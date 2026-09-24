@@ -48,7 +48,7 @@ const NOTES = {
   'news/news.html':            "Read-only view of home's news ledger, grouped and filterable by topic and date; backfilled items held distinct.",
   'links.html':                "home's bookmarks board: a pinned rail, areas of links, and an area's markdown dossier, all editable in place.",
   'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves.',
-  'dictate.html':              'The blank page you talk at: a full-viewport voice buffer with the mark pad under your thumb, and Copy, Share, Jot or Drop at the end of it.',
+  'dictate.html':              'The blank page you talk at: a full-viewport voice buffer with the mark pad under your thumb, and Copy, Send, Jot or Drop at the end of it. With ?file=, it opens a repo file instead and saves it back.',
   'word-select.html':          'Touch-first word-level selection: tap, hold-drag, discontinuous runs, adjustable pins, no native selection anywhere.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',

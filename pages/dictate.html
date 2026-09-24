@@ -2,7 +2,7 @@
 <html lang="en" data-theme="winter">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Dictate</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎙️</text></svg>">
@@ -174,6 +174,68 @@
     ?target=code|chat            which of Send's rows opens selected
     ?lang=en-US               recognition language, default the browser's
     ?use=<ref>                pin the lib chain to a branch for previewing
+    ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
+
+  FILE MODE opens an existing file instead of a blank page, so the same pad,
+  voice and keyboard revise a document rather than start a note. Added
+  2026-09-24, because nothing in the estate opened an arbitrary markdown file,
+  took edits, and committed it back. Five things change and nothing else does:
+
+    THE BOTTOM ROW IS COPY AND SEND. Jot and Drop file a note somewhere new,
+    which is the wrong act for words that already have a home. Send opens the
+    same sheet as ever with two things added: WHAT GOES (the edit as a patch,
+    or the whole file) above the rows, and SAVE TO GITHUB as the first row, so
+    committing is one destination among the places the edit can go rather than
+    a button of its own.
+
+    SAVE WRITES WITH THE SHA IT LOADED, AND NOTHING ELSE. It does not go
+    through GH.prototype.save, whose recovery answers a 409 by fetching the
+    current sha and writing again: right for the estate's own JSON, and a
+    silent overwrite of somebody else's edit here. A conflict is reported, the
+    buffer stays, and Reload is the way back to what GitHub holds.
+
+    THE DRAFT IS KEYED TO THE FILE and carries the sha it was begun from, so an
+    interrupted edit reopens in the file it belongs to, and a save of it still
+    conflicts if the file moved in the meantime.
+
+    NOTHING STARTS LISTENING ON ARRIVAL. The remembered grant opens a blank
+    page into the microphone, which is what a blank page is for; a document is
+    opened to be read first, and words landing at its end unasked are damage.
+
+    THE TYPE IS SMALLER, 17px against 21, since a document is read at reading
+    distance and a note is spoken at arm's length.
+
+    AND IT HAS THREE FACES, on a toggle in the file band. SOURCE is the buffer
+    as this page has always drawn it. RENDERED is the document as it reads, and
+    it is not a preview: kits/md-surface.js answers the same three questions
+    Dictate.paint does (draw, point to offset, on the words or not) over the
+    rendered markdown, so every gesture here works on it and every edit is still
+    an edit to the markdown string. CHANGES is kits/md-diff.js over the buffer
+    and what GitHub holds, read-only. A markdown file opens Rendered.
+
+    TYPING WORKS IN THE RENDERED FACE TOO, through an invisible textarea that
+    holds the caret's line of source (see startTyping). A wrapper such as
+    `**…**` stays while one character of it remains and goes with the last;
+    backspace at the start of a heading or item drops its marker; Enter makes a
+    paragraph, or the next list item.
+
+    AND IT TRACKS CHANGES IN PLACE, the way a word processor does. Each run
+    of blocks that differs from GitHub's copy is drawn as one CARD in the flow,
+    open to typing: removed words struck, added words green, both where they
+    stand, and a block taken out struck whole. Deleting an original word strikes it; typing shows green; deleting
+    your own green text simply removes it, since the changes are the difference
+    between the buffer and the base rather than a log. Struck words are drawn
+    and never mapped, so the caret cannot land in them; tapping one offers it
+    back. A sideways swipe turns a card to the original, read-only and
+    labelled, and a tap or another swipe turns it back; its number offers Go
+    back to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
+
+    A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
+    in the Changes face: Reject this change puts that block back as GitHub has
+    it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
+    edit leaves by Send: a Claude Code session gets the patch with a line saying
+    where it belongs, Share and Copy in the sheet's foot get the bare patch
+    (`git apply` takes it). Copy in the bottom row copies the whole buffer.
 
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
@@ -236,6 +298,24 @@
 
 <script type="module">
   const q = new URLSearchParams(location.search);
+  // NO FOCUS ZOOM. Safari zooms the page when the keyboard opens on a field it
+  // judges too small, and reported 2026-09-24 on file mode's 17px textarea
+  // inside a toss. The cause at that size is not established; the remedy is
+  // the one kits/annotate.js settled on for the same report at 16px:
+  // maximum-scale=1 on the TOP document's viewport meta, which stops the focus
+  // zoom and leaves pinch zoom alone (iOS ignores it for gestures since iOS 10).
+  // This page's own meta carries it statically; a same-origin shell around it
+  // (the toss) gets it here. A cross-origin top is left alone.
+  try {
+    if (window.top !== window) {
+      const top = window.top.document;
+      let m = top.querySelector('meta[name=viewport]');
+      if (!m) { m = top.createElement('meta'); m.name = 'viewport'; top.head.appendChild(m); }
+      const parts = (m.getAttribute('content') || 'width=device-width, initial-scale=1')
+        .split(',').map((x) => x.trim()).filter((x) => x && !/^maximum-scale/.test(x));
+      m.setAttribute('content', parts.concat('maximum-scale=1').join(', '));
+    }
+  } catch {}
   const ref = q.get('use');
   // THE PAGE ADOPTS ITS OWN PRE-BUILD (dist/dictate.js), and the reason is
   // arrival time on a phone rather than bytes. The gh.load chain below is a
@@ -285,6 +365,10 @@
   await gh.load('kits/prompt-link.js');
   // The composer-to-page handoff, read once at init. See kits/dictate-handoff.js.
   await gh.load('kits/dictate-handoff.js');
+  // File mode's Unwrap lines (window.mdUnwrap). Loaded for every arrival, since
+  // a literal path is what lets the pre-build carry it; it is 5k and does nothing
+  // until asked.
+  await gh.load('kits/md-unwrap.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';
   const JOTS = 'lists/jots.json';
@@ -295,6 +379,7 @@
   // would be a second draft store nobody asked for.
   const ASIDE = 'dictate:aside';
   const GRANT = 'dictate:granted';
+  const VIEW = 'dictate:view';
 
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -310,6 +395,19 @@
     return m ? { repo: m[1], ref: m[2] || '', dir: m[3].replace(/^\/|\/$/g, '') } : null;
   };
   const DEST = parseDest(q.get('dest')) || { repo: 'mehrlander/home', ref: '', dir: 'chron/dump' };
+  // File mode's address, in the same grammar with a file where the directory
+  // was. Null is the blank page, which is every arrival without ?file=.
+  const FILE = ((f) => f && f.dir ? { repo: f.repo, ref: f.ref, path: f.dir } : null)(parseDest(q.get('file')));
+  const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
+
+  // Base64 of UTF-8, chunked: a spread of a whole document's bytes into
+  // String.fromCharCode overruns the argument limit somewhere past 100 KB.
+  const b64 = (s) => {
+    const u = new TextEncoder().encode(s);
+    let bin = '';
+    for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
 
   document.addEventListener('alpine:init', () => {
     Alpine.data('dictate', () => ({
@@ -355,6 +453,35 @@
       canShare: typeof navigator !== 'undefined' && !!navigator.share,
       destName: DEST.repo.split('/')[1] + '/' + DEST.dir,
       _wake: null,
+      // ── File mode ───────────────────────────────────────────────────────
+      // `fileBase` is the text GitHub holds at `fileSha`, as far as this page
+      // knows, and `dirty` is the buffer measured against it.
+      file: FILE,
+      fileSha: '', fileBase: null, fileErr: '', fileLoading: false,
+      get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
+      get fileWhere() { return FILE ? FILE.repo.split('/')[1] + (FILE.ref ? '@' + FILE.ref : '') + ':' + FILE.path : ''; },
+      get fileUrl() { return FILE ? `https://github.com/${FILE.repo}/blob/${FILE.ref || 'HEAD'}/${FILE.path}` : ''; },
+      // Which face of the file the pane shows. Rendered is where a markdown file
+      // opens: the document as it reads, still aimed at by offset into its source
+      // through kits/md-surface.js, so the pad, the pins, the long press and the
+      // voice all work on it. Source is the markdown itself; Changes is the
+      // document against what GitHub holds, read-only.
+      view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
+      mdReady: false, changesCount: 0,
+      // Typing into the Rendered face: the sink has focus and the keyboard is up.
+      typing: false, composing: false,
+      // Marks for what changed since GitHub's copy, drawn over the Rendered
+      // face (kits/md-surface.js). On unless the reader turned them off.
+      showMarks: ls.get('dictate:marks') !== '0',
+      delPop: null,             // a tapped removal: { text, at, x, y }
+      patchMenu: false,
+      // File mode's Send: what rides, the edit as a patch or the whole file.
+      sendWhat: 'patch',
+      get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
+      get dirty() {
+        this.beat;
+        return !!FILE && this.fileBase !== null && (this.edit ? this.draft : this.text) !== this.fileBase;
+      },
 
       get token() { return window.TOKEN || ls.get('ghToken') || ''; },
       get words() { const t = (this.text + ' ' + this.interim).trim(); return t ? t.split(/\s+/).length : 0; },
@@ -420,6 +547,28 @@
       // its own in the row below, always there, and this face is a full stop
       // again.
       get pad() {
+        // FILE MODE TRADES TWO MARKS FOR FORMATTING. A document is headed,
+        // listed, bolded and coded far more than it is exclaimed at: measured
+        // across this repo's markdown, inline code is 69% of inline marks and
+        // bold 22%, and headings and list items with paragraphs are 91% of
+        // blocks. Heading and list act on the caret's line, so they need no
+        // selection and take the shifted face; bold and code wrap a selection,
+        // so they take the selection face, and casing moves behind its shift.
+        if (FILE) {
+          if (this.sel && this.shift) return [
+            { k: 'AB', t: 'Upper case' }, { k: 'ab', t: 'Lower case' }, { k: 'Ab', t: 'Capitalise' },
+          ];
+          if (this.sel) return [
+            { k: 'B', t: 'Bold: wrap the selection in **, or unwrap it' },
+            { k: '`', t: 'Code: wrap the selection in backticks, or unwrap it' },
+            { k: 'H', t: 'Heading: the line becomes ##, then ###, then plain' },
+          ];
+          if (this.shift) return [
+            { k: 'H', t: 'Heading: the line becomes ##, then ###, then plain' },
+            { k: '•', t: 'List: the line, or every selected line, gains or loses its - marker' },
+            { k: '¶', t: 'New paragraph' },
+          ];
+        }
         if (this.sel) return [
           { k: 'AB', t: 'Upper case' }, { k: 'ab', t: 'Lower case' }, { k: 'Ab', t: 'Capitalise' },
         ];
@@ -482,10 +631,14 @@
         // aside under its own key and offered back in the band above the words,
         // one tap, above whatever is there by then. That is the same join, made
         // when the reader asks for it rather than guessed on their behalf.
-        const sent = window.dictateHandoff?.take?.() || null;
-        const held = (ls.get(DRAFT) || '').replace(/\s+$/, '');
-        this.aside = (ls.get(ASIDE) || '').replace(/\s+$/, '');
-        if (sent) {
+        // File mode takes neither: the buffer is the file, and a handoff left
+        // untaken stays in its slot for the next blank page.
+        const sent = FILE ? null : (window.dictateHandoff?.take?.() || null);
+        const held = FILE ? '' : (ls.get(DRAFT) || '').replace(/\s+$/, '');
+        this.aside = FILE ? '' : (ls.get(ASIDE) || '').replace(/\s+$/, '');
+        if (FILE) {
+          this.loadFile();
+        } else if (sent) {
           this.d.text = sent.text.replace(/\s+$/, '');
           // The newest set-aside wins: an older one the reader has walked past
           // twice is not what "bring back what was here" means to them.
@@ -532,7 +685,158 @@
         // The remembered grant. WebKit will not raise the microphone prompt
         // outside a user gesture, so the first arrival must be tapped; after
         // that the permission is the site's and the page can simply begin.
-        if (ls.get(GRANT) && this.d.available()) this.begin();
+        if (!FILE && ls.get(GRANT) && this.d.available()) this.begin();
+      },
+
+      // ── File mode: load and save ──────────────────────────────────────
+      // A held draft wins over the file, with the sha it was begun from, so
+      // saving it conflicts if the file moved since. `fresh` discards it,
+      // which is what Reload and the band's Start fresh mean here.
+      async loadFile(fresh = false) {
+        if (!FILE) return;
+        this.fileLoading = true; this.fileErr = '';
+        if (fresh) ls.del(FILE_DRAFT);
+        let held = null;
+        try { held = JSON.parse(ls.get(FILE_DRAFT) || 'null'); } catch {}
+        try {
+          const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
+          const res = await gh2.get(FILE.path, window.GH.FRESH);
+          this.fileBase = res.text;
+          if (held && typeof held.text === 'string' && held.text !== res.text) {
+            this.fileSha = held.sha || res.sha;
+            this.d.text = held.text;
+            this.restored = held.text.length;
+          } else {
+            this.fileSha = res.sha;
+            this.d.text = res.text;
+            this.restored = 0;
+          }
+          // A document opens at its top with the caret there, so the first
+          // spoken word lands where the reader is looking. The painter follows
+          // growth to the end when no range is set, which is right for a note
+          // and would open every file on its last line.
+          this.d.caretAt(0);
+          this.started = true;
+        } catch (e) {
+          this.fileErr = e?.status === 404
+            ? 'Not found, or this browser’s token cannot read it: ' + this.fileWhere
+            : 'Could not open ' + this.fileWhere + ': ' + (e?.message || e);
+        }
+        this.fileLoading = false;
+        this.menu = false;
+        if (this.view !== 'source' && !this.fileErr) await this.setView(this.view);
+        this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+      },
+
+      // ── File mode: the three faces ────────────────────────────────────
+      // The renderers load on first use, so a blank page and a source-only
+      // session pay nothing for them. Literal paths, so the pre-build carries
+      // them all the same.
+      async ensureMd() {
+        if (this.mdReady) return true;
+        try {
+          await gh.load('kits/md-doc.js');
+          await gh.load('kits/guide-render.js');
+          await gh.load('kits/standoff.js');
+          await gh.load('kits/md-surface.js');
+          await window.GuideRender.needMarked();
+          // jsdiff, for the change marks, through md-diff's own loader so the
+          // Changes face and the marks share one copy. Without it the marks are
+          // simply absent.
+          await gh.load('kits/md-diff.js');
+          await window.mdDiff.needDiff();
+          await gh.load('kits/row-menu.js');
+          // NOT content-visibility:auto, though it halved a re-render on a 160k
+          // file: fresh blocks lay out at their placeholder height for a frame,
+          // so the caret and the selection were measured a line off, and blocks
+          // above the fold kept the placeholder and moved the text under the
+          // reader. Correct first; kits/md-surface.js notes the cost.
+          this.$refs.md.className = window.GuideRender.bodyClass() + ' min-h-full';
+          this.mdReady = true;
+        } catch (e) {
+          Alpine.store('toast')('warning', 'Rendered view unavailable: ' + (e?.message || e), 'alert-error', 5000);
+        }
+        return this.mdReady;
+      },
+      async setView(v) {
+        if (!FILE) return;
+        if (this.edit) this.editClose();
+        if (this.typing) this.stopTyping();
+        if (v === 'rendered' && !(await this.ensureMd())) v = 'source';
+        // Each face draws its own furniture into the shared layer, so the one
+        // being left takes its marks with it.
+        const layer = this.$refs.layer;
+        if (layer) for (const n of [...layer.querySelectorAll('[data-md-surface],[data-edge],[data-mend]')]) n.remove();
+        this.view = v;
+        ls.set(VIEW, v);
+        if (v === 'changes') { await this.$nextTick(); await this.renderChanges(); return; }
+        this.$nextTick(() => this.paint());
+      },
+      async renderChanges() {
+        const host = this.$refs.changes;
+        if (!host) return;
+        try {
+          await gh.load('kits/md-diff.js');
+          await gh.load('kits/row-menu.js');
+          this.d.flush();
+          // A change's own index opens what can be done to that change.
+          const menu = (chg) => [
+            { label: 'Reject this change', icon: 'ph-arrow-u-up-left', run: () => { this.rejectChange(chg); } },
+            ...(chg.newRange ? [{ label: 'Edit here', icon: 'ph-cursor-text', run: () => {
+              this.d.caretAt(chg.newRange.start); this.setView('rendered');
+            } }] : []),
+          ];
+          const h = await window.mdDiff.render(host, this.fileBase || '', this.text, { layout: 'swipe', menu });
+          this.changesCount = h?.count || 0;
+        } catch (e) {
+          host.textContent = 'Could not draw the changes: ' + (e?.message || e);
+        }
+      },
+      // One rewrite of the whole buffer, so one undo takes it back, and unsaved
+      // until Save, so the reader looks before anything is committed. The rule
+      // and what it leaves alone are in kits/md-unwrap.js.
+      unwrapLines() {
+        this.menu = false;
+        if (this.edit) this.editClose();
+        this.d.flush();
+        const r = window.mdUnwrap.unwrap(this.d.text);
+        if (!r.joined) {
+          Alpine.store('toast')('info', 'No wrapped lines to join', 'alert-info', 2500);
+          return;
+        }
+        this.d.text = r.text;
+        this.d.caretAt(0);
+        this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+        Alpine.store('toast')('check', `Joined ${r.joined} line break${r.joined === 1 ? '' : 's'}. Undo reverses it.`, 'alert-success', 3500);
+      },
+      async saveFile() {
+        if (!FILE || !this.dirty) return;
+        if (!this.token) {
+          Alpine.store('toast')('warning', 'No token on this browser: Copy instead', 'alert-error', 5000);
+          return;
+        }
+        if (this.edit) this.editClose();
+        const text = this.outgoing();
+        this.saving = FILE.repo;
+        try {
+          const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
+          const body = { message: `Edit ${this.fileName} via dictate`, content: b64(text), sha: this.fileSha };
+          if (FILE.ref) body.branch = FILE.ref;
+          const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
+          this.fileSha = res.content.sha;
+          this.fileBase = text;
+          this.restored = 0;
+          ls.del(FILE_DRAFT);
+          this.paint();             // the base moved, so the change marks clear
+          Alpine.store('toast')('check', 'Saved ' + this.fileWhere, 'alert-success', 3200);
+        } catch (e) {
+          const conflict = e?.status === 409 || e?.status === 422;
+          Alpine.store('toast')('warning', conflict
+            ? 'Not saved: the file changed on GitHub after you opened it. Copy your text, then Reload.'
+            : 'Not saved: ' + (e?.message || e), 'alert-error', 8000);
+        }
+        this.saving = '';
+        this.beat++;
       },
 
       // ── The two modifier taps ─────────────────────────────────────────
@@ -569,6 +873,10 @@
           && !e.target?.closest?.('input, textarea, select, [contenteditable]');
 
         addEventListener('keydown', (e) => {
+          // A character typed at the Rendered face with no keyboard open opens
+          // it, and focus moving inside keydown carries the character with it.
+          if (this.rendered && !this.typing && this.d && mine(e) && e.key.length === 1
+              && !e.ctrlKey && !e.metaKey && !e.altKey) this.startTyping();
           if (e.repeat) return;                 // a held key is not a tap
           tap = (e.key === 'Control' || e.key === 'Shift') && mine(e) ? e.key : null;
         }, true);
@@ -639,7 +947,15 @@
       },
       unwake() { try { this._wake && this._wake.release(); } catch {} this._wake = null; },
 
-      save() { this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT); },
+      save() {
+        if (FILE) {
+          // Before the file has loaded, the buffer is not an edit of anything.
+          if (this.fileBase === null) return;
+          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha })) : ls.del(FILE_DRAFT);
+          return;
+        }
+        this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT);
+      },
 
       // ── The painted surface and its gestures ──────────────────────────
       // The notes composer's set, which is a version on from the stage's and
@@ -673,6 +989,7 @@
       // every gesture here asks. Three of them used to carry their own copy of
       // this, differing only in which local named the host.
       pointOffset(cx, cy) {
+        if (this.rendered) return window.MdSurface.offsetAt(this.$refs.md, cx, cy);
         const host = this._host;
         if (!host) return null;
         const doc = host.ownerDocument;
@@ -708,6 +1025,11 @@
       // went without it at first, on the reading that a finger on the text IS
       // the aim point and holding back would read as lag. It reads as the
       // thumb covering the boundary instead.
+      // On the words, in whichever face is showing.
+      hits(x, y) {
+        return this.rendered ? window.MdSurface.hitsText(this.$refs.md, x, y)
+                             : window.Dictate.hitsText(this._host, x, y);
+      },
       DEAD_LINES: 1.5,
       dragY(y0, py, cy, lineH, lead = 0) {
         const buffer = this.DEAD_LINES * lineH + (Math.abs(lead) - lead);
@@ -790,7 +1112,9 @@
         const at = (cx, cy) => this.pointOffset(cx, cy);
         const lineOf = () => parseFloat(getComputedStyle(this.$refs.view).lineHeight) || 26;
         surface.addEventListener('pointerdown', (e) => {
-          if (this.edit) return;
+          if (this.edit || this.view === 'changes') return;
+          // A card's number and label are controls, not text: no caret, no long press.
+          if (e.target?.closest?.('[data-md-ui]')) { anchor = null; clear(); return; }
           // ANY TOUCH ON THE WORDS ENDS A PENDING STITCH. It was reported as
           // the missing exit: the marker went up and tapping the canvas left
           // it there, because the only disarm was a change in the text and a
@@ -805,13 +1129,13 @@
           unhold();
           held = e.target;
           if (held?.addEventListener) held.addEventListener('touchmove', holdMove, { passive: false });
-          anchor = window.Dictate.hitsText(host, x, y) ? at(x, y) : null;
+          anchor = this.hits(x, y) ? at(x, y) : null;
           clear();
           timer = setTimeout(() => {
             timer = null; long = true;
             // OFF the words a held finger is not an aim that missed, it is a
             // request for the keyboard. Nothing is collapsed on the way in.
-            if (!window.Dictate.hitsText(host, x, y)) { this.editOpen(); return; }
+            if (!this.hits(x, y)) { this.editOpen(); return; }
             const i = at(x, y);
             if (i == null) return;
             this.d.selectWordAt(i); this.armed = null;
@@ -895,11 +1219,17 @@
           dragging = true;
           // And it arms the edge it is moving, the same as every other way of
           // extending here, so the pad or that pinhead continues on release.
+          this._selA = anchor;
           if (i === anchor) { this.d.caretAt(i); this.armed = null; }
           else { this.d.select(anchor, i); this.armed = i > anchor ? 'end' : 'start'; }
           this.pinDrag = this.armed;
           this.paint();
         });
+        // WHILE TYPING, A TAP MOVES THE CARET AND KEEPS THE KEYBOARD. The
+        // compatibility mousedown would move focus off the sink, so it is
+        // cancelled, and the release puts focus back in case the platform took
+        // it anyway.
+        surface.addEventListener('mousedown', (e) => { if (this.typing) e.preventDefault(); });
         surface.addEventListener('pointercancel', () => {
           clear(); anchor = null; dragging = false; word = null; this.pinDrag = null; unhold();
         });
@@ -923,6 +1253,7 @@
           if (dragging) {
             dragging = false; anchor = null; taps = 0;
             this.pinDrag = null; this.armed = null; this.paint();
+            if (e.pointerType === 'mouse' && this.rendered) this.keepTyping();
             return;
           }
           anchor = null;
@@ -937,17 +1268,34 @@
           // moved the caret to the far end of the gesture. Same 10px slop the
           // move handler uses, and the count resets so a scroll cannot become
           // the first half of a double.
+          if (e.target?.closest?.('[data-md-ui]')) { taps = 0; return; }
+          // A SIDEWAYS SWIPE ON A CARD turns it to the original and back, either
+          // way. The card carries touch-action:pan-y, so the drag reaches here.
+          const card = this.rendered && e.target?.closest?.('[data-md-card]');
+          const dx = e.clientX - x, dy = e.clientY - y;
+          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
+          // The original takes no caret, so a tap on it returns the card to the
+          // marked text, where the next tap, or a double, lands as usual.
+          if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
+            taps = 0; this.swipeCard(+card.dataset.mdCard); return;
+          }
+          // A struck word is the base's, not the buffer's: tapping it offers it back.
+          const gone = this.rendered && e.target?.closest?.('del');
+          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapRemoved(gone); return; }
           const pin = e.target?.closest?.('[data-edge]');
           if (!pin && !surface.contains(e.target)) { taps = 0; return; }
           // ARMING ENDS A RUN. pointerdown already armed the pin, and counting
           // the tap too made "tap a pin, then tap the text" a double and opened
           // the keyboard on the gesture meant to move the edge.
           if (pin) { taps = 0; return; }
+          // A MOUSE IN THE RENDERED FACE GETS A DESKTOP EDITOR'S CLICKS, not the
+          // phone's: see mouseClick.
+          if (e.pointerType === 'mouse' && this.rendered) { taps = 0; this.mouseClick(e); return; }
           const t = Date.now();
           taps = (t - lastTap) < 300 ? taps + 1 : 1;
           lastTap = t;
-          const onText = window.Dictate.hitsText(host, e.clientX, e.clientY);
+          const onText = this.hits(e.clientX, e.clientY);
           const i = onText ? at(e.clientX, e.clientY) : null;
           // The double opens the keyboard from the canvas too: tapping the
           // empty space under the words is the most obvious way of saying
@@ -972,6 +1320,7 @@
           if (this.pinned) { this.d.moveEdge(this.armed, i); this.armed = null; }
           else this.d.caretAt(i);
           this.paint();
+          if (this.typing) { try { this.$refs.sink.focus({ preventScroll: true }); } catch {} }
         });
       },
       // ── A pinhead is tapped OR dragged ────────────────────────────────
@@ -1126,7 +1475,10 @@
       // the three numbers: crawl and the caret creeps at well under 1:1, flick
       // and it runs ahead of the thumb, so a short button reaches a long
       // buffer and the overshoot is walked back without lifting.
-      padDrag: false, pinDrag: null, precise: false,
+      padDrag: false, pinDrag: null,
+      // A fine pointer from the start, so a desktop never sees the pins it would
+      // only lose at the first click; any mouse press sets it too.
+      precise: !!(window.matchMedia && matchMedia('(pointer: fine)').matches),
 
       // ── One armed state, three ways in ────────────────────────────────
       // `armed` is the whole aiming state and it has four values: null, the
@@ -1237,7 +1589,8 @@
           const hr = h?.getBoundingClientRect?.();
           if (hr && (hr.width || hr.height)) return { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 };
         }
-        const c = host.querySelector('[data-d="caret"]');
+        const c = this.rendered ? this.$refs.layer?.querySelector('[data-md-surface="caret"]')
+                                : host.querySelector('[data-d="caret"]');
         const r = c?.getBoundingClientRect?.();
         if (r && (r.width || r.height)) return { x: r.left, y: r.top + r.height / 2 };
         const b = host.getBoundingClientRect();
@@ -1354,6 +1707,23 @@
       // is hidden for good costs a wasted tick rather than a loop.
       paint(retry = true) {
         this.beat++;
+        if (FILE && this.view === 'changes') return;
+        if (this.rendered) {
+          const md = this.$refs.md;
+          if (!md.getClientRects().length) { if (retry) this.$nextTick(() => this.paint(false)); return; }
+          window.MdSurface.paint(md, {
+            text: this.text, interim: this.interim,
+            range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
+            overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
+            base: this.fileBase, marks: false, track: this.showMarks,
+            // Red is the phone's precision caret; a mouse gets the text's own color.
+            caret: this.precise ? 'var(--color-base-content)' : null,
+          });
+          const layer = this.$refs.layer;
+          if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
+          if (this.typing) this.syncSink();
+          return;
+        }
         if (!this._host) return;
         if (!this._host.getClientRects().length) {
           if (retry) this.$nextTick(() => this.paint(false));
@@ -1444,10 +1814,398 @@
         if (k === 'jump') { this.d.jumpBack(); this.paint(); return; }
         const cased = { AB: 'upper', ab: 'lower', Ab: 'title' }[k];
         if (cased) { this.d.recase(cased); this.paint(); return; }
+        if (FILE && (k === 'B' || k === '`' || k === 'H' || k === '•')) { this.format(k); this.shift = false; return; }
         this.d.punct(k);
         // A shifted mark drops the shift, the way a phone keyboard does: the
         // sticky case is the one asked for by tapping again.
         this.shift = false;
+      },
+      // ── Typing into the Rendered face ─────────────────────────────────
+      // A phone raises its keyboard only for a focused field, so an invisible
+      // textarea (the SINK) takes focus and every keystroke goes through it.
+      // It holds the caret's line of source, caret placed to match, so the
+      // platform's autocorrect and capitalization see real context; each input
+      // is read as a difference against what the sink held and applied to the
+      // buffer at the same place, through the kit's type() and erase(), whose
+      // undo coalesces a run of typing into one step. The document re-renders
+      // around it. The rules for Enter, a line-start backspace, and a wrapper
+      // losing its last character are kits/md-surface.js's.
+      // ── The Rendered face under a mouse ───────────────────────────────
+      // The red caret, the pins, the long press and the double tap that opens
+      // the keyboard are all answers to a phone: to iOS raising its own
+      // selection, callout and loupe over a surface it does not own. A mouse
+      // has none of those problems, and on a desktop the phone's gestures
+      // only got in the way: a double click opened the keyboard instead of
+      // taking the word, and typing did nothing until it had. So under a
+      // mouse the face behaves like any text editor. A click places the caret
+      // and types there, shift-click extends, a double click takes the word,
+      // a triple click the line, and a drag selects (the move handler). Keys
+      // are sinkKey's. The model underneath is the same range the phone
+      // drives, so dictation, the pad and the format keys see no difference.
+      mouseClick(e) {
+        const t = Date.now(), c = this._clicks || {};
+        const near = Math.abs((c.x ?? -99) - e.clientX) < 6 && Math.abs((c.y ?? -99) - e.clientY) < 6;
+        const n = near && t - (c.t || 0) < 500 ? (c.n % 3) + 1 : 1;
+        this._clicks = { t, n, x: e.clientX, y: e.clientY };
+        let i = this.pointOffset(e.clientX, e.clientY);
+        if (i == null) i = this.d.text.length;
+        if (n === 2) { const w = this.d.selectWordAt(i); this._selA = w.start; }
+        else if (n === 3) {
+          // The block, not the source line: a hard-wrapped paragraph is one
+          // paragraph on screen, and that is what a triple click means.
+          const t = this.d.text, a = t.lastIndexOf('\n\n', i - 1), b = t.indexOf('\n\n', i);
+          const ls = a < 0 ? 0 : a + 2, le = b < 0 ? t.replace(/\s+$/, '').length : b;
+          this.d.select(ls, le); this._selA = ls;
+        }
+        else this.extendTo(i, e.shiftKey);
+        this.armed = null;
+        this.paint();
+        this.keepTyping();
+      },
+      // A collapsed range moves; with shift, the end away from the anchor does.
+      extendTo(i, shift) {
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        if (!shift) { this.d.caretAt(i); this._selA = i; return; }
+        const a = r.start === r.end ? r.start : (this._selA === r.end ? r.end : r.start);
+        this._selA = a;
+        if (a === i) this.d.caretAt(i); else this.d.select(Math.min(a, i), Math.max(a, i));
+      },
+      selFocus() {
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        return this._selA === r.end && r.start !== r.end ? r.start : r.end;
+      },
+      // Typing follows the click, except while the microphone is live: starting
+      // to type stops dictation, and a click to move where the words land must
+      // not. A key pressed then starts typing on its own (bindKeys).
+      keepTyping() {
+        if (this.typing) { this.syncSink(true); try { this.$refs.sink.focus({ preventScroll: true }); } catch {} return; }
+        if (!this.listening) this.startTyping();
+      },
+      // The keys a textarea would handle itself, if it held the document. The
+      // sink holds only the caret's line, so travel is computed here against the
+      // render: left and right by MdSurface.step (markup skipped), up and down
+      // by the caret's screen position, keeping the column it started from.
+      sinkKey(e) {
+        if (!this.rendered || this.composing || !this.d) return;
+        const mod = e.ctrlKey || e.metaKey, k = e.key, t = this.d.text, md = this.$refs.md;
+        const r = this.d.range || { start: t.length, end: t.length };
+        const done = () => { e.preventDefault(); this.armed = null; this.syncSink(true); this.paint(); this.revealCaret(); };
+        if (mod && !e.altKey && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) this.redo(); else this.undo(); this.syncSink(true); return; }
+        if (mod && !e.altKey && k === 'y') { e.preventDefault(); this.redo(); this.syncSink(true); return; }
+        if (mod && !e.altKey && k === 'a') { this.d.select(0, t.length); this._selA = 0; return done(); }
+        if (!/^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(k)) return;
+        const f = this.selFocus();
+        let i = f;
+        if (k === 'ArrowLeft' || k === 'ArrowRight') {
+          const dir = k === 'ArrowRight' ? 1 : -1;
+          this._goalX = null;
+          if (r.start !== r.end && !e.shiftKey) i = dir > 0 ? r.end : r.start;
+          else if (mod || e.altKey) {
+            const word = (j) => /[\w']/.test(t[dir > 0 ? j : j - 1] || '');
+            let g = 0;
+            while (g++ < 4000 && !word(i) && (dir > 0 ? i < t.length : i > 0)) { const n = window.MdSurface.step(md, i, dir); if (n === i) break; i = n; }
+            while (g++ < 8000 && word(i)) { const n = window.MdSurface.step(md, i, dir); if (n === i) break; i = n; }
+          } else i = window.MdSurface.step(md, f, dir);
+        } else if (mod && (k === 'Home' || k === 'End')) {
+          i = k === 'Home' ? 0 : t.length; this._goalX = null;
+        } else {
+          const c = window.MdSurface.rectAt(md, f);
+          if (!c) return;
+          const hb = md.getBoundingClientRect();
+          if (k === 'Home' || k === 'End') {
+            const hit = window.MdSurface.offsetAt(md, k === 'Home' ? hb.left + 1 : hb.right - 1, c.top + c.height / 2);
+            if (hit != null) i = hit;
+            this._goalX = null;
+          } else {
+            const x = (this._goalX ??= c.left) + 0.5, dir = k === 'ArrowDown' ? 1 : -1, v = this.$refs.view;
+            const vb = v.getBoundingClientRect();
+            let y = dir > 0 ? c.bottom : c.top, found = false;
+            for (let g = 0; g < 12 && !found; g++) {
+              y += dir * c.height * 0.5;
+              if (y < vb.top + 2 || y > vb.bottom - 2) {        // off the pane: scroll it, then look
+                const d = y < vb.top + 2 ? y - vb.top - c.height : y - vb.bottom + c.height;
+                const before = v.scrollTop;
+                v.scrollTop += d;
+                const moved = v.scrollTop - before;
+                if (!moved) break;
+                y -= moved;
+              }
+              const hit = window.MdSurface.offsetAt(md, x, y);
+              if (hit == null || hit === f) continue;
+              const hr = window.MdSurface.rectAt(md, hit);
+              if (!hr || !(dir > 0 ? hr.top > c.top + 2 : hr.top < c.top - 2)) continue;
+              // A point in the gap between blocks resolves to the nearest text,
+              // often a line's end; asking again at that line's middle puts the
+              // caret back under the column it came from.
+              const again = window.MdSurface.offsetAt(md, x, hr.top + hr.height / 2);
+              i = again ?? hit; found = true;
+            }
+            if (!found) i = dir > 0 ? t.length : 0;
+            const keep = this._goalX;
+            this.extendTo(i, e.shiftKey);
+            this._goalX = keep;
+            return done();
+          }
+        }
+        this.extendTo(i, e.shiftKey);
+        done();
+      },
+      // The caret's line kept on screen after a key moved it.
+      revealCaret() {
+        const v = this.$refs.view, c = window.MdSurface.rectAt(this.$refs.md, this.selFocus());
+        if (!v || !c) return;
+        const vb = v.getBoundingClientRect();
+        if (c.top < vb.top) v.scrollTop -= vb.top - c.top + 8;
+        else if (c.bottom > vb.bottom) v.scrollTop += c.bottom - vb.bottom + 8;
+        else return;
+        this.paint();
+      },
+      startTyping(at) {
+        this.d.flush();
+        if (typeof at === 'number') this.d.caretAt(at);
+        this._resume = this.listening;
+        this.d.stop();
+        this.typing = true;
+        const k = this.$refs.sink;
+        this.syncSink(true);
+        try { k.focus({ preventScroll: true }); } catch { k.focus(); }
+        this.paint();
+      },
+      stopTyping() {
+        this.typing = false;
+        try { this.$refs.sink.blur(); } catch {}
+        this.paint();
+        if (this._resume) this.begin();
+        this._resume = false;
+      },
+      syncSink(force = false) {
+        const k = this.$refs.sink;
+        if (!k || this.composing) return;
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        const L = window.MdSurface.lineAt(t, r.start);
+        const le = Math.max(L.le, t.indexOf('\n', r.end) < 0 ? t.length : t.indexOf('\n', r.end));
+        const v = t.slice(L.ls, le);
+        this._sinkBase = L.ls;
+        if (force || k.value !== v) k.value = v;
+        this._sinkVal = v;
+        const a = r.start - L.ls, b = r.end - L.ls;
+        if (force || k.selectionStart !== a || k.selectionEnd !== b) { try { k.setSelectionRange(a, b); } catch {} }
+      },
+      applyEdit(res) {
+        if (!res) return false;
+        this.d.text = res.text;
+        this.d.caretAt(res.caret);
+        return true;
+      },
+      sinkBefore(e) {
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+          e.preventDefault();
+          this.applyEdit(window.MdSurface.enter(t, r.start, r.end));
+        } else if (e.inputType === 'deleteContentForward' && r.start === r.end
+                   && this.$refs.sink.selectionStart === this.$refs.sink.value.length) {
+          // The sink holds one line, so a forward delete at its end has nothing
+          // to take there; the next character of the document is taken here.
+          if (r.start >= t.length) return;
+          e.preventDefault();
+          this.applyEdit({ text: t.slice(0, r.start) + t.slice(r.start + 1), caret: r.start });
+        } else if (e.inputType === 'deleteContentBackward' && r.start === r.end) {
+          const res = window.MdSurface.backspace(t, r.start);
+          if (!res) return;
+          e.preventDefault();
+          this.applyEdit(res);
+        } else return;
+        this.syncSink(true);
+        this.paint();
+      },
+      sinkInput() {
+        if (!this.typing) return;
+        const k = this.$refs.sink, old = this._sinkVal ?? '', nw = k.value, base = this._sinkBase ?? 0;
+        if (old === nw) return;
+        let p = 0;
+        while (p < old.length && p < nw.length && old[p] === nw[p]) p++;
+        let q = 0;
+        while (q < old.length - p && q < nw.length - p && old[old.length - 1 - q] === nw[nw.length - 1 - q]) q++;
+        const a = base + p, b = base + old.length - q, ins = nw.slice(p, nw.length - q);
+        const r = this.d.range;
+        const atCaret = r && r.start === r.end && r.start === b;
+        if (!ins && b - a === 1 && atCaret) this.d.erase();
+        else {
+          if (!(atCaret && a === b)) this.d.select(a, b);
+          this.d.type(ins);
+        }
+        this._sinkVal = nw;
+        // The wrapper rule, after a deletion: markers whose last character just
+        // went go with it.
+        if (!ins) {
+          const c = this.d.range ? this.d.range.start : this.d.text.length;
+          this.applyEdit(window.MdSurface.tidy(this.d.text, c));
+        }
+        this.syncSink();
+        this.paint();
+      },
+
+      // ── The edit as a patch ───────────────────────────────────────────
+      // Rejecting one change lives on that change's index in the Changes face
+      // (renderChanges); these are the whole edit, as a unified diff to copy or
+      // to hand to a Claude Code session.
+      async rejectChange(chg) {
+        this.d.text = window.mdDiff.revert(this.fileBase, this.text, chg);
+        const at = chg.newRange ? chg.newRange.start : chg.insertAt;
+        this.d.caretAt(Math.min(at, this.d.text.length));
+        await this.renderChanges();
+      },
+      get patchText() {
+        this.beat;
+        // Only while the menu is open: Alpine evaluates the menu's bindings even
+        // hidden, and a whole-file diff per keystroke is not free.
+        if (!(this.patchMenu || this.sendOpen) || !FILE || this.fileBase == null) return '';
+        return window.MdSurface?.patch(FILE.path, this.fileBase, this.text) || '';
+      },
+      // What rides to Claude Code: where the edit belongs, what it was made
+      // against, and the patch. Addresses plus the change, which is what a
+      // session with the repository cloned needs; it reads the rest itself.
+      get patchPrompt() {
+        if (!FILE) return '';
+        return 'Here is an edit to `' + FILE.path + '` in ' + FILE.repo
+          + (FILE.ref ? ' (branch ' + FILE.ref + ')' : '') + ', made against blob ' + (this.fileSha || '').slice(0, 7)
+          + '. Review it, then apply it with `git apply` on a new branch and open a PR.\n\n```diff\n' + this.patchText + '\n```';
+      },
+      get patchFits() { return !!window.PromptLink && window.PromptLink.fits(this.patchPrompt); },
+      async copyPayload() {
+        try {
+          await navigator.clipboard.writeText(this.sharePayload);
+          Alpine.store('toast')('clipboard-text', FILE && this.sendWhat === 'patch' ? 'Copied the patch' : 'Copied the file', 'alert-success', 2500);
+        } catch {
+          Alpine.store('toast')('warning', 'The browser refused the clipboard', 'alert-error', 4000);
+        }
+      },
+      async copyPatch() {
+        try {
+          await navigator.clipboard.writeText(this.patchText);
+          Alpine.store('toast')('clipboard-text', 'Copied the patch: git apply, or paste it to a session', 'alert-success', 3000);
+        } catch {
+          Alpine.store('toast')('warning', 'The browser refused the clipboard', 'alert-error', 4000);
+        }
+      },
+      sendPatch() {
+        if (!this.patchFits) return;
+        const link = window.PromptLink.code({ prompt: this.patchPrompt, repos: [FILE.repo], branch: FILE.ref || undefined });
+        window.open(link.url, '_blank', 'noopener');
+        this.patchMenu = false;
+      },
+
+      // ── The change cards ──────────────────────────────────────────────
+      // Each run of blocks that differs from GitHub's copy is one card in the
+      // Rendered face (kits/md-surface.js, tracked), shown with its change
+      // marked and open to typing. A sideways swipe turns it to the original
+      // and back, a tap on the original returns it, and its number offers the
+      // one thing left to decide: going back to the original for good.
+      swipeCard(i) {
+        const md = this.$refs.md;
+        window.MdSurface.setReading(md, i, window.MdSurface.readingOf(md, i) === 'old' ? 'inline' : 'old');
+        this.paint();
+      },
+      cardTap(ev) {
+        const badge = ev.target?.closest?.('[data-md-card-badge]');
+        if (!badge || !window.rowMenu) return;
+        const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
+        if (!run) return;
+        const r = badge.getBoundingClientRect();
+        window.rowMenu.open({ x: r.left, y: r.bottom + 4, items: [
+          { label: 'Go back to original', icon: 'ph-arrow-u-up-left', run: () => { this.rejectCard(run); } },
+        ] });
+      },
+      rejectCard(run) {
+        const e = run[0];
+        this.d.text = window.mdDiff.revert(this.fileBase, this.text, run);
+        this.d.caretAt(Math.min(e.newRange ? e.newRange.start : e.insertAt, this.d.text.length));
+        this.paint();
+      },
+      // A tapped struck word: where it would go back is the caret the tap would
+      // have placed, which is just before it.
+      tapRemoved(del) {
+        const at = window.MdSurface.offsetAt(this.$refs.md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
+        const b = del.getBoundingClientRect();
+        this.delPop = { text: del.textContent, at: at ?? 0, with: null, by: '',
+                        x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
+      },
+
+      // ── The change marks ──────────────────────────────────────────────
+      toggleMarks() {
+        this.showMarks = !this.showMarks;
+        ls.set('dictate:marks', this.showMarks ? '1' : '0');
+        this.menu = false;
+        this.paint();
+      },
+      // A removal's wedge was tapped: show what went, with a way to put it back.
+      delTap(e) {
+        const w = e.target?.closest?.('[data-md-del]');
+        if (!w) return;
+        e.preventDefault(); e.stopPropagation();
+        const d = window.MdSurface.removals(this.$refs.md)[+w.getAttribute('data-md-del')];
+        if (!d) return;
+        const b = w.getBoundingClientRect();
+        this.delPop = { text: d.text, at: d.at, with: d.with || null,
+                        by: d.with ? this.d.text.slice(d.with[0], d.with[1]) : '', x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
+      },
+      restoreRemoval() {
+        const p = this.delPop;
+        if (!p) return;
+        const t = this.d.text;
+        const [a, b] = p.with || [p.at, p.at];
+        this.d.text = t.slice(0, a) + p.text + t.slice(b);
+        this.d.caretAt(a + p.text.length);
+        this.delPop = null;
+        this.paint();
+      },
+
+      // ── Formatting, file mode ─────────────────────────────────────────
+      // Each is ONE write to the buffer, so one undo takes it back, and each
+      // leaves the words it acted on selected, so a second tap undoes it or the
+      // next key stacks on it.
+      format(k) {
+        this.d.flush();
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        const put = (text, a, b) => { this.d.text = text; this.d.select(a, b); this.armed = null; this.paint(); };
+        if (k === 'B' || k === '`') {
+          const m = k === 'B' ? '**' : '`';
+          let a = r.start, b = r.end;
+          while (a < b && /\s/.test(t[a])) a++;
+          while (b > a && /\s/.test(t[b - 1])) b--;
+          if (a === b) return;
+          if (t.slice(a - m.length, a) === m && t.slice(b, b + m.length) === m) {
+            put(t.slice(0, a - m.length) + t.slice(a, b) + t.slice(b + m.length), a - m.length, b - m.length);
+          } else if (b - a > 2 * m.length && t.slice(a, a + m.length) === m && t.slice(b - m.length, b) === m) {
+            put(t.slice(0, a) + t.slice(a + m.length, b - m.length) + t.slice(b), a, b - 2 * m.length);
+          } else {
+            put(t.slice(0, a) + m + t.slice(a, b) + m + t.slice(b), a + m.length, b + m.length);
+          }
+          return;
+        }
+        // The lines the caret or the selection touches.
+        const ls = t.lastIndexOf('\n', r.start - 1) + 1;
+        let le = t.indexOf('\n', Math.max(r.end - (r.end > r.start ? 1 : 0), r.start));
+        if (le < 0) le = t.length;
+        const lines = t.slice(ls, le).split('\n');
+        let block;
+        if (k === 'H') {
+          const m = /^(#{1,6})\s+/.exec(lines[0]);
+          const level = m ? m[1].length : 0;
+          const next = level === 0 ? '## ' : level === 2 ? '### ' : '';
+          lines[0] = next + lines[0].replace(/^#{1,6}\s+/, '');
+          block = lines.join('\n');
+        } else {
+          const LIST = /^(\s*)[-*+]\s+/;
+          const filled = lines.filter((l) => l.trim());
+          const all = filled.length && filled.every((l) => LIST.test(l));
+          block = lines.map((l) => !l.trim() ? l : all ? l.replace(LIST, '$1') : LIST.test(l) ? l : '- ' + l).join('\n');
+        }
+        const text = t.slice(0, ls) + block + t.slice(le);
+        if (r.start === r.end) {
+          const at = Math.max(ls, Math.min(ls + block.length, r.start + (block.length - (le - ls))));
+          this.d.text = text; this.d.caretAt(at); this.armed = null; this.paint();
+        } else put(text, ls, ls + block.length);
       },
       back() { this.d.backWord(); },
       undo() { this.d.undo(); this.armed = null; this.paint(); },
@@ -1466,6 +2224,13 @@
       // has; the button has none and takes the selection instead. Both end at
       // the same call, so the textarea is always opened somewhere deliberate.
       editOpen(at) {
+        // In the Rendered face the keyboard types where the caret is, into the
+        // document as it reads, rather than swapping in the source.
+        if (this.rendered) {
+          if (at === undefined && this.typing) { this.stopTyping(); return; }
+          this.startTyping(at);
+          return;
+        }
         this.d.flush();                  // the phrase on screen is part of what is being edited
         this._resume = this.listening;
         this.d.stop();
@@ -1619,7 +2384,7 @@
       // the reader's, and a URL that could file a note on arrival would be a
       // different and much less safe thing. It is the only difference between
       // the four buttons, so it is a class rather than a branch.
-      lead(k) { return this.dest === k ? 'btn-primary' : 'btn-ghost bg-base-200'; },
+      lead(k) { return !FILE && this.dest === k ? 'btn-primary' : 'btn-ghost bg-base-200'; },
 
       // Copy and Share only READ the buffer, so they leave it standing and
       // leave the draft in place: nothing durable has happened yet and a
@@ -1638,7 +2403,7 @@
         }
       },
       async share() {
-        const t = this.outgoing();
+        const t = this.sendOpen || FILE ? this.sharePayload : this.outgoing();
         try { await navigator.share({ text: t }); } catch {}
       },
       // Jot and Drop file it, so both clear: the note has a home now and the
@@ -1688,7 +2453,19 @@
       // words are still on this page when you come back, which matters more
       // for this one than for the other two, since the far end may refuse
       // them (over the cap) or the reader may change their mind about where.
-      openSend() { this.sendOpen = true; this.loadRepos(); },
+      openSend() {
+        // FILE MODE SENDS A FILE, not a note: the edit or the whole of it, and
+        // one of the places it can go is back to GitHub. With changes, the
+        // sheet opens on the edit and on Save; without, on the file and on a
+        // session, since there is nothing to save.
+        if (FILE) {
+          this.d.flush();
+          this.sendWhat = this.dirty ? 'patch' : 'file';
+          this.sendTarget = this.dirty ? 'save' : 'code';
+          if (!this.sendRepos.length) this.sendRepos = [FILE.repo];
+        }
+        this.sendOpen = true; this.loadRepos();
+      },
 
       // The account's repositories, most recently updated first. Fetched once,
       // on the first open, because a page that is usually only dictated into
@@ -1740,7 +2517,29 @@
       // a second way to finish, not a third destination. The rows above are
       // the ones that need a repository or a warning read first; Share needs
       // neither and should cost what Copy costs.
-      get sendTargets() { return (window.PromptLink?.targets) || []; },
+      get sendTargets() {
+        const rows = (window.PromptLink?.targets) || [];
+        if (!FILE) return rows;
+        const save = {
+          key: 'save', label: 'Save to GitHub', icon: 'ph-floppy-disk', submits: false,
+          hint: 'Commit to ' + this.fileWhere,
+          available: this.dirty && !!this.token && !this.fileLoading,
+          reason: !this.dirty ? 'Nothing to save: the file is as GitHub has it'
+                : !this.token ? 'No token on this browser' : 'Still loading',
+        };
+        return [save, ...rows];
+      },
+      // What rides. A session or a chat gets the patch WITH a line saying where
+      // it belongs; Share and Copy get the bare patch, which is what git and a
+      // paste want. The whole file is the buffer either way.
+      get sendPayload() {
+        if (FILE && this.sendWhat === 'patch') return this.patchPrompt;
+        return this.outgoing();
+      },
+      get sharePayload() {
+        if (FILE && this.sendWhat === 'patch') return this.patchText;
+        return this.outgoing();
+      },
       get sendTargetRow() { return this.sendTargets.find((t) => t.key === this.sendTarget) || null; },
 
       // The link, and what it could not carry. Recomputed on every change
@@ -1749,8 +2548,9 @@
       get sendLink() {
         const P = window.PromptLink;
         if (!P) return { url: '', carried: [], dropped: ['prompt-link kit not loaded'] };
+        if (this.sendTarget === 'save') return { url: '', carried: [], dropped: [] };
         return P.url(this.sendTarget, {
-          prompt: this.outgoing(),
+          prompt: this.sendPayload,
           repos: this.sendTarget === 'code' ? this.sendRepos : [],
         });
       },
@@ -1763,11 +2563,15 @@
       // text with no address to fit it into, so it is never over.
       get sendOver() {
         const P = window.PromptLink;
-        return !!P && this.outgoing().length > P.PROMPT_MAX;
+        return !!P && this.sendTarget !== 'save' && this.sendPayload.length > P.PROMPT_MAX;
       },
-      get sendReady() { return !!this.sendLink.url && !this.sendOver; },
+      get sendReady() {
+        if (this.sendTarget === 'save') return this.dirty && !this.saving && !this.fileLoading;
+        return !!this.sendLink.url && !this.sendOver;
+      },
 
       send() {
+        if (this.sendTarget === 'save') { this.sendOpen = false; this.saveFile(); return; }
         const link = this.sendLink;
         if (!link.url) {
           Alpine.store('toast')('warning', link.dropped[0] || 'Nowhere to send this', 'alert-error', 5000);
@@ -1888,8 +2692,8 @@
            does the other thing, and it is the reason it exists rather than
            being a second route to the same place: whatever is selected comes
            across selected, so the first thing typed replaces it. -->
-      <button @click="editOpen()" :disabled="edit"
-              class="btn btn-ghost btn-md btn-square"
+      <button @click="editOpen()" @pointerdown.prevent :disabled="edit"
+              class="btn btn-md btn-square" :class="typing ? 'btn-info' : 'btn-ghost'"
               title="Type. Anything selected comes across selected, so typing replaces it.">
         <i class="ph ph-keyboard text-xl"></i>
       </button>
@@ -1902,9 +2706,27 @@
         </button>
         <div x-show="menu" x-cloak
              class="absolute right-0 top-full mt-1 z-50 w-56 rounded-box border border-base-300 bg-base-100 shadow-xl py-1 flex flex-col">
-          <button @click="clear(); menu = false"
+          <button x-show="!file" @click="clear(); menu = false"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200">
             <i class="ph ph-file-dashed text-lg opacity-60"></i>New
+          </button>
+          <!-- File mode's New: back to what GitHub holds, the local edit discarded.
+               One step of undo still reaches the edit, as it does for New. -->
+          <button x-show="file" @click="loadFile(true)" :disabled="fileLoading"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
+                  title="Discard the local edit and reopen the file as GitHub holds it">
+            <i class="ph ph-arrow-clockwise text-lg opacity-60"></i>Reload
+          </button>
+          <button x-show="file" @click="unwrapLines()" :disabled="!!(fileLoading || blank)"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
+                  title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
+            <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
+          </button>
+          <button x-show="file" @click="toggleMarks()"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
+                  title="Show each changed block as a card: the change marked in place, swipe for the original or the clean text">
+            <i class="ph ph-highlighter text-lg opacity-60"></i>Track changes
+            <i x-show="showMarks" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
@@ -1942,9 +2764,31 @@
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
     <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
             title="Put the draft this page was holding back above these words">Bring back</button>
-    <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
+    <button @click="file ? loadFile(true) : clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
-
+  <!-- FILE MODE'S ONE LINE: which file, and whether the buffer differs from
+       it. The name links to GitHub, the only place a reader can check what
+       Save would overwrite. -->
+  <div x-show="file" class="shrink-0 px-4 py-1.5 text-sm border-b border-base-300 flex items-center gap-2 min-w-0">
+    <i class="ph ph-file-text opacity-60 shrink-0"></i>
+    <a :href="fileUrl" target="_blank" rel="noopener" class="link link-hover font-mono truncate min-w-0"
+       :title="fileWhere" x-text="fileWhere"></a>
+    <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
+    <span x-show="dirty" class="badge badge-warning badge-sm shrink-0">unsaved</span>
+    <!-- The three faces. Icons, since the band is one line on a phone; the
+         titles name them for a reader who hovers or long-presses. -->
+    <div class="join ml-auto shrink-0">
+      <button @click="setView('source')" class="join-item btn btn-xs" :class="view === 'source' ? 'btn-active' : 'btn-ghost'"
+              title="Source: the markdown itself"><i class="ph ph-code text-sm"></i></button>
+      <button @click="setView('rendered')" class="join-item btn btn-xs" :class="view === 'rendered' ? 'btn-active' : 'btn-ghost'"
+              title="Rendered: the document as it reads, still editable by tap and voice"><i class="ph ph-eye text-sm"></i></button>
+      <button @click="setView('changes')" class="join-item btn btn-xs" :class="view === 'changes' ? 'btn-active' : 'btn-ghost'"
+              title="Changes: this edit against what GitHub holds">
+        <i class="ph ph-git-diff text-sm"></i><span x-show="view === 'changes' && changesCount" class="text-[10px]" x-text="changesCount"></span>
+      </button>
+    </div>
+  </div>
+  <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
   <!-- ── The text ────────────────────────────────────────────────────────
        The whole width and the whole remaining height. THE COMPOSER'S MARK
        COLUMN DID NOT COME ACROSS, and it is the one piece of that card's
@@ -1962,7 +2806,7 @@
        The LAYER is the handles' home: outside the scroll box and unclipped,
        so a pin may hang above the first line rather than being cut in half. -->
   <div class="grow min-h-0 relative touch-manipulation flex" x-ref="layer"
-       @pointerdown="pinDown($event)" data-no-swipe>
+       @pointerdown="pinDown($event)" @click="delTap($event)" data-no-swipe>
 
     <div class="relative grow min-w-0">
       <!-- ALWAYS RENDERED, hidden by opacity rather than by `x-show`, and the
@@ -1990,24 +2834,60 @@
            permits the programmatic focus this is all for. -->
       <textarea x-ref="ta" x-model="draft" :tabindex="edit ? 0 : -1"
                 @blur="editClose()" @keydown.escape="editClose()"
-                class="absolute inset-0 w-full h-full resize-none textarea rounded-none border-0 text-[21px] leading-[1.65] tracking-[-0.01em] break-words px-4 py-3 focus:outline-none"
-                :class="edit ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+                class="absolute inset-0 w-full h-full resize-none textarea rounded-none border-0 leading-[1.65] tracking-[-0.01em] break-words px-4 py-3 focus:outline-none"
+                :class="(edit ? 'opacity-100' : 'opacity-0 pointer-events-none') + (file ? ' text-[17px]' : ' text-[21px]')"
                 placeholder="Type instead"></textarea>
 
       <div x-show="!edit" x-ref="view" data-dictate-view class="absolute inset-0 overflow-y-auto px-4 py-3" @scroll="paint()">
-        <div class="whitespace-pre-wrap break-words text-[21px] leading-[1.65] tracking-[-0.01em]"
+        <div x-show="!rendered" class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
              x-ref="body" @contextmenu.prevent></div>
+        <!-- File mode's Rendered face. Its classes are set once from
+             GuideRender.bodyClass() when the renderer loads, so the document
+             reads in the house markdown type. -->
+        <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" @contextmenu.prevent @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes
              unavoidable and the largest target a page can offer for it. -->
-        <button x-show="!text && !interim" @click="started ? mic() : begin()"
+        <button x-show="!text && !interim && !(file && (fileLoading || fileErr))" @click="started ? mic() : begin()"
                 class="absolute inset-0 w-full flex flex-col items-center justify-center gap-3 text-center px-8">
           <i class="ph text-6xl opacity-20" :class="listening ? 'ph-waveform' : 'ph-microphone'"></i>
           <span class="text-lg opacity-50" x-text="listening ? 'Go ahead.' : (started ? 'Paused. Tap to carry on.' : 'Tap anywhere to start talking.')"></span>
           <span x-show="!started" class="text-sm opacity-30">Your phone will ask for the microphone once.</span>
         </button>
       </div>
+
+      <!-- THE SINK: the Rendered face's keyboard input. Invisible, 16px so a
+           phone does not zoom to it, and holding the caret's line of source so
+           autocorrect has context (see startTyping). -->
+      <textarea x-ref="sink" tabindex="-1" rows="1" aria-hidden="true"
+                autocapitalize="sentences" autocomplete="off" spellcheck="true"
+                class="absolute top-0 left-0 w-px h-px opacity-0 pointer-events-none resize-none text-[16px] p-0 border-0"
+                @beforeinput="sinkBefore($event)" @input="sinkInput()" @keydown="sinkKey($event)"
+                @compositionstart="composing = true" @compositionend="composing = false; sinkInput()"
+                @blur="if (typing) stopTyping()"></textarea>
+
+      <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
+           since the buffer no longer holds them; this is where they are read. -->
+      <div x-show="delPop" x-cloak @click.outside="delPop = null"
+           class="fixed z-50 w-72 card card-sm bg-base-100 border border-base-300 shadow-xl"
+           :style="delPop ? 'left:' + delPop.x + 'px;top:' + delPop.y + 'px' : ''">
+        <div class="card-body gap-2">
+          <div class="text-xs opacity-60">Removed since GitHub's copy</div>
+          <div class="text-base line-through decoration-[var(--color-error)] bg-error/10 rounded px-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words" x-text="delPop?.text"></div>
+          <div x-show="delPop?.by" class="text-sm"><span class="opacity-60">Replaced by </span><span class="bg-success/20 rounded px-1" x-text="delPop?.by"></span></div>
+          <div class="card-actions justify-end">
+            <button class="btn btn-sm btn-ghost" @click="delPop = null">Close</button>
+            <button class="btn btn-sm btn-primary" @click="restoreRemoval()"><i class="ph ph-arrow-u-up-left"></i>Put back</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- File mode's Changes face: the document against what GitHub holds,
+           drawn by kits/md-diff.js. Read-only, and above the text pane, so no
+           gesture meant for the words reaches through it. -->
+      <div x-show="file && view === 'changes'" x-cloak x-ref="changes"
+           class="absolute inset-0 overflow-y-auto px-4 py-3 bg-base-100 z-10"></div>
 
       <!-- The keyboard half, and it has no controls of its own: blur or
            Escape is the way out, which is the keyboard's own gesture and the
@@ -2048,7 +2928,7 @@
        generous in the axis a thumb actually misses in. Tapped over and over
        inside one note, so they are the tall row, and being the tall row is
        what qualifies a control to be here. -->
-  <div x-show="!edit" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
+  <div x-show="!edit && !(file && view === 'changes')" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
     <template x-for="k in pad" :key="k.k">
       <button @pointerdown.prevent="key(k.k)" :title="k.t"
               class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl font-semibold"
@@ -2066,8 +2946,8 @@
     <button @pointerdown.prevent="shift = !shift"
             class="btn h-14 min-h-0 grow basis-0 px-0 font-mono text-sm"
             :class="shift ? 'btn-warning' : 'btn-ghost bg-base-200'"
-            title="The other three marks"
-            x-text="shift ? 'abc' : '·!¶'"></button>
+            :title="file ? (sel ? 'Casing' : 'Heading, list, paragraph') : 'The other three marks'"
+            x-text="shift ? 'abc' : (file ? (sel ? 'Aa' : 'H•¶') : '·!¶')"></button>
     <!-- ── THE REPAIRS, past a rule ───────────────────────────────────────
          Four keys write and three take back, and until this rule they sat in
          one undifferentiated run where a thumb had to count cells to find the
@@ -2204,17 +3084,22 @@
          because it was one, and it took the row to five across and cost the
          other four their labels under 375px. Folding it in gives all of that
          back: four buttons, four labels, one width. -->
-    <button @click="openSend()" :disabled="blank"
+    <!-- IN FILE MODE SEND IS THE DESTINATION BUTTON, and Save is one of the
+         places it goes: back to GitHub, to a Claude Code session, to the
+         system sheet. It is lit while the edit is unsaved, so its colour still
+         answers "is this saved" the way Save's did. -->
+    <button @click="openSend()" :disabled="blank && !file"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
-            :class="lead('send')" title="Share it, or send it somewhere that can act on it">
+            :class="file ? (dirty ? 'btn-primary' : 'btn-ghost bg-base-200') : lead('send')"
+            :title="file ? 'Save it, share it, or send the edit somewhere that can act on it' : 'Share it, or send it somewhere that can act on it'">
       <i class="ph ph-paper-plane-tilt text-lg"></i>Send
     </button>
-    <button @click="jot()" :disabled="blank || !!saving"
+    <button x-show="!file" @click="jot()" :disabled="blank || !!saving"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="lead('jot')" title="File it in the estate's jots pile, beside the others">
       <i class="ph ph-note-pencil text-lg"></i>Jot
     </button>
-    <button @click="drop()" :disabled="blank || !!saving"
+    <button x-show="!file" @click="drop()" :disabled="blank || !!saving"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="lead('drop')" :title="'Write a dated markdown file into ' + destName + ', for the next drain'">
       <i class="ph ph-tray-arrow-down text-lg"></i>Drop
@@ -2266,11 +3151,25 @@
          style="padding-bottom:calc(env(safe-area-inset-bottom) + 1.5rem)">
       <div class="flex items-center gap-2">
         <span class="font-medium">Send</span>
-        <span class="font-mono text-xs opacity-40" x-text="words + ' words'"></span>
+        <span class="font-mono text-xs opacity-40"
+              x-text="file ? (sendWhat === 'patch' ? (patchText.split('\n').length + ' patch lines') : (words + ' words')) : (words + ' words')"></span>
         <div class="grow"></div>
         <button @click="sendOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
       </div>
 
+      <!-- WHAT GOES, in file mode, above where: the edit as a patch, which is
+           what a reviewer or a session wants, or the whole file. Save commits
+           the file either way; the choice is for the other rows and the foot. -->
+      <div x-show="file" class="join w-full">
+        <button @click="sendWhat = 'patch'" :disabled="!dirty" class="join-item btn btn-sm grow"
+                :class="sendWhat === 'patch' ? 'btn-active' : 'btn-ghost bg-base-200'">
+          <i class="ph ph-git-diff"></i>The edit
+        </button>
+        <button @click="sendWhat = 'file'" class="join-item btn btn-sm grow"
+                :class="sendWhat === 'file' ? 'btn-active' : 'btn-ghost bg-base-200'">
+          <i class="ph ph-file-text"></i>The whole file
+        </button>
+      </div>
       <div class="flex flex-col gap-1">
         <template x-for="t in sendTargets" :key="t.key">
           <button @click="t.available && (sendTarget = t.key)" :disabled="!t.available"
@@ -2344,10 +3243,15 @@
           <i class="ph ph-share-network text-lg"></i>
           <span>Share</span>
         </button>
+        <button x-show="file" @click="copyPayload()"
+                class="btn h-12 min-h-0 grow basis-0 gap-1.5 btn-ghost bg-base-200"
+                :title="sendWhat === 'patch' ? 'Copy the patch: git apply takes it' : 'Copy the whole file'">
+          <i class="ph ph-clipboard-text text-lg"></i><span>Copy</span>
+        </button>
         <button @click="send()" :disabled="!sendReady"
                 class="btn btn-primary h-12 min-h-0 gap-2 grow">
-          <i class="ph ph-paper-plane-tilt text-lg"></i>
-          <span x-text="(sendTargetRow && sendTargetRow.submits) ? 'Open and send' : 'Open, prefilled'"></span>
+          <i class="ph text-lg" :class="sendTarget === 'save' ? 'ph-floppy-disk' : 'ph-paper-plane-tilt'"></i>
+          <span x-text="sendTarget === 'save' ? (saving ? 'Saving\u2026' : 'Save') : (sendTargetRow && sendTargetRow.submits) ? 'Open and send' : 'Open, prefilled'"></span>
         </button>
       </div>
     </div>

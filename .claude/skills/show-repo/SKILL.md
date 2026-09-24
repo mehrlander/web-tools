@@ -52,6 +52,10 @@ For stage work (the bench, the preview and its diff, save-as-surface, the
 curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/stage.md
 ```
 
+`show-repo.md` covers the shell only. For one view or form, fetch the document
+its row names in the `doc` column of `docs/app-routes.csv` or
+`docs/subjects.csv` (under `docs/views/` and `docs/forms/`).
+
 `raw.githubusercontent.com` is on the Claude Code web sandbox allowlist, and the
 repo is public, so this needs no auth. In `mehrlander/web-tools` itself the files
 are local; read `docs/show-repo.md` and `docs/stage.md` directly.

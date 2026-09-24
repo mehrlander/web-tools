@@ -289,6 +289,51 @@ export function readEsm(pathname, repoRoot) {
   return { body: text, contentType: 'application/javascript; charset=utf-8' };
 }
 
+// The commits endpoints in the live API's shape, as far as the app reads it:
+// sha, parents, the commit's message and dates, and for one commit its files.
+const commitJson = (fields, files) => {
+  const [sha, parents, name, email, adate, cname, cdate0, ...msg] = fields;
+  const utc = (d) => new Date(d).toISOString().replace('.000Z', 'Z');   // GitHub's form
+  const date = utc(adate), cdate = utc(cdate0);
+  const out = {
+    sha, html_url: `https://github.com/${REPO}/commit/${sha}`, author: null, committer: null,
+    parents: parents ? parents.split(' ').map(p => ({ sha: p })) : [],
+    commit: { message: msg.join('\x1f').trim(), author: { name, email, date }, committer: { name: cname, date: cdate } },
+  };
+  if (files) {
+    out.files = files;
+    const add = files.reduce((n, f) => n + f.additions, 0), del = files.reduce((n, f) => n + f.deletions, 0);
+    out.stats = { additions: add, deletions: del, total: add + del };
+  }
+  return out;
+};
+const FMT = '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%cn%x1f%cI%x1f%B%x1e';
+const json = (status, body, tag) => ({ kind: 'fulfill', status, contentType: 'application/json; charset=utf-8', tag, body: JSON.stringify(body) });
+function localCommits(u, root) {
+  const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 << 20 });
+  const rev = (r) => (!r || r === 'main' || r === 'HEAD') ? 'HEAD' : r;
+  const one = u.pathname.match(/\/commits\/([^/]+)$/);
+  if (one) {
+    const r = git('show', '--no-patch', FMT, rev(decodeURIComponent(one[1])));
+    if (r.status !== 0) return json(404, { message: 'No commit found for SHA: ' + one[1] }, `api commit ${one[1]} (absent)`);
+    const num = git('show', '--numstat', '--format=', rev(decodeURIComponent(one[1]))).stdout.trim();
+    const files = num ? num.split('\n').map(l => {
+      const [a, d, filename] = l.split('\t');
+      return { filename, status: 'modified', additions: +a || 0, deletions: +d || 0, changes: (+a || 0) + (+d || 0) };
+    }) : [];
+    return json(200, commitJson(r.stdout.replace(/\x1e\s*$/, '').split('\x1f'), files), `api commit ${one[1].slice(0, 7)}`);
+  }
+  const q = u.searchParams, per = Math.min(100, +q.get('per_page') || 30), page = Math.max(1, +q.get('page') || 1);
+  const args = ['log', FMT, '-n', String(per), '--skip', String((page - 1) * per), rev(q.get('sha'))];
+  if (q.get('since')) args.push('--since=' + q.get('since'));
+  if (q.get('until')) args.push('--until=' + q.get('until'));
+  if (q.get('path')) args.push('--', q.get('path'));
+  const r = git(...args);
+  if (r.status !== 0) return json(404, { message: 'No commit found for SHA: ' + q.get('sha') }, 'api commits (absent)');
+  const list = r.stdout.split('\x1e').map(c => c.trim()).filter(Boolean).map(c => commitJson(c.split('\x1f')));
+  return json(200, list, `api commits${q.get('path') ? ' ' + q.get('path') : ''}`);
+}
+
 export function resolveCdn(rawUrl, repoRoot, ref) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
@@ -379,6 +424,18 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         stargazers_count: 0, forks_count: 0, pushed_at: new Date().toISOString(),
       }),
     };
+  }
+
+  // --- Own repo history: commits and commits/<sha>, from local git ---
+  // Passed through to the live API until 2026-09-24, unauthenticated from a
+  // headless browser at 60 calls an hour. The app's activity surfaces spend
+  // two dozen per load, and a 403 makes the shell swap the whole view for its
+  // "GitHub token needed" screen, so a check of an unrelated view failed on
+  // whichever run crossed the limit. `main` means HEAD, as the tree's ref
+  // does: the checkout is the ref being rendered.
+  if (host === 'api.github.com' && /^\/repos\/[^/]+\/[^/]+\/commits(\/[^/]+)?$/.test(u.pathname)
+      && u.pathname.startsWith(`/repos/${REPO}/commits`)) {
+    return localCommits(u, repoRoot);
   }
 
   // --- Own repo tree: git/trees/<ref> (the Pages lens scan) ---
