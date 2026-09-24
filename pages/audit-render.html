@@ -729,7 +729,7 @@ window.__audit = {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
       let payload = window.__audit;
       const spec = p.get('src') || new URLSearchParams(location.hash.slice(1)).get('src');
-      if (spec) payload = JSON.parse((await gh.get(spec)).text);
+      if (spec) payload = await this.fetchPayload(spec);
       this.a = payload;
       // INTO THIS BROWSER'S COORDINATES, ONCE. segment.py writes offsets in code
       // points and every slice below is UTF-16, so an emoji anywhere earlier in
@@ -769,6 +769,23 @@ window.__audit = {
       // viewport last put it, which is off screen.
       window.visualViewport?.addEventListener('resize', () => this.placePanel());
       window.visualViewport?.addEventListener('scroll', () => this.placePanel());
+    },
+    // ?src= NAMES THE STANDOFF ITSELF, which is also the file Save writes, so
+    // a reload shows what was saved. The document it annotates is fetched
+    // from the same branch by the path the standoff records, and checked
+    // against the sha256 it records: a document edited since the annotation
+    // was made is reported, since every span would then point at the wrong
+    // text. A pre-joined audit/1 payload (the builder's `payload` output)
+    // still loads as it is.
+    async fetchPayload(spec) {
+      const got = JSON.parse((await gh.get(spec)).text);
+      if (got.kind !== 'standoff/1') return got;
+      const text = (await gh.get(got.target.path)).text;
+      const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))]
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      if (got.target.sha256 && digest !== got.target.sha256)
+        fault(`${got.target.path} has changed since this annotation was made; its spans may point at the wrong text`);
+      return { kind: 'audit/1', title: got.target.path.split('/').pop(), standoff: got, text };
     },
     get vocab() { return this.so.vocabulary.filter(v => this.count(v.label)); },
     get sides() { return [...new Set(this.vocab.map(v => v.side))]; },
