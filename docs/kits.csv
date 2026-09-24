@@ -81,7 +81,7 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",649,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,25,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,26,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",940,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",284,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
