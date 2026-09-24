@@ -219,17 +219,16 @@
     backspace at the start of a heading or item drops its marker; Enter makes a
     paragraph, or the next list item.
 
-    AND IT TRACKS CHANGES IN PLACE, the way a word processor does. Each block
-    that differs from GitHub's copy is drawn as a CARD in the flow, on its
-    inline reading: removed words struck, added words green, both where they
-    stand. Deleting an original word strikes it; typing shows green; deleting
+    AND IT TRACKS CHANGES IN PLACE, the way a word processor does. Each run
+    of blocks that differs from GitHub's copy is drawn as one CARD in the flow,
+    open to typing: removed words struck, added words green, both where they
+    stand, and a block taken out struck whole. Deleting an original word strikes it; typing shows green; deleting
     your own green text simply removes it, since the changes are the difference
     between the buffer and the base rather than a log. Struck words are drawn
     and never mapped, so the caret cannot land in them; tapping one offers it
-    back. A card's stops (old, inline, new) and a sideways swipe pick the
-    reading, old being the base and read-only; its number opens Reject this
-    change and the other readings. Track changes in the menu turns the cards
-    off. kits/md-surface.js (tracked) draws them.
+    back. A sideways swipe turns a card to the original, read-only and
+    labelled, and a tap or another swipe turns it back; its number offers Go
+    back to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
 
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
@@ -1110,7 +1109,7 @@
         const lineOf = () => parseFloat(getComputedStyle(this.$refs.view).lineHeight) || 26;
         surface.addEventListener('pointerdown', (e) => {
           if (this.edit || this.view === 'changes') return;
-          // A card's number and stops are controls, not text: no caret, no long press.
+          // A card's number and label are controls, not text: no caret, no long press.
           if (e.target?.closest?.('[data-md-ui]')) { anchor = null; clear(); return; }
           // ANY TOUCH ON THE WORDS ENDS A PENDING STITCH. It was reported as
           // the missing exit: the marker went up and tapping the canvas left
@@ -1264,13 +1263,17 @@
           // move handler uses, and the count resets so a scroll cannot become
           // the first half of a double.
           if (e.target?.closest?.('[data-md-ui]')) { taps = 0; return; }
-          // A SIDEWAYS SWIPE ON A CARD turns it to the next reading, the way the
-          // Changes face's cards swipe: left for the one after, right for the one
-          // before. The card carries touch-action:pan-y, so the drag reaches here.
+          // A SIDEWAYS SWIPE ON A CARD turns it to the original and back, either
+          // way. The card carries touch-action:pan-y, so the drag reaches here.
           const card = this.rendered && e.target?.closest?.('[data-md-card]');
           const dx = e.clientX - x, dy = e.clientY - y;
-          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard, dx < 0 ? 1 : -1); return; }
+          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
+          // The original takes no caret, so a tap on it returns the card to the
+          // marked text, where the next tap, or a double, lands as usual.
+          if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
+            taps = 0; this.swipeCard(+card.dataset.mdCard); return;
+          }
           // A struck word is the base's, not the buffer's: tapping it offers it back.
           const gone = this.rendered && e.target?.closest?.('del');
           if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapRemoved(gone); return; }
@@ -1942,47 +1945,30 @@
       },
 
       // ── The change cards ──────────────────────────────────────────────
-      // Each block that differs from GitHub's copy is a card in the Rendered
-      // face (kits/md-surface.js, tracked). Its stops and a sideways swipe pick
-      // the reading; its number opens what can be done to the change.
-      cardModes(i) {
-        const e = window.MdSurface.cards(this.$refs.md)[i];
-        return !e ? [] : e.kind === 'removed' ? ['gone'] : e.kind === 'added' ? ['inline'] : ['old', 'inline', 'new'];
-      },
-      setCardReading(i, mode) {
-        window.MdSurface.setReading(this.$refs.md, i, mode);
+      // Each run of blocks that differs from GitHub's copy is one card in the
+      // Rendered face (kits/md-surface.js, tracked), shown with its change
+      // marked and open to typing. A sideways swipe turns it to the original
+      // and back, a tap on the original returns it, and its number offers the
+      // one thing left to decide: going back to the original for good.
+      swipeCard(i) {
+        const md = this.$refs.md;
+        window.MdSurface.setReading(md, i, window.MdSurface.readingOf(md, i) === 'old' ? 'inline' : 'old');
         this.paint();
       },
-      swipeCard(i, step) {
-        const modes = this.cardModes(i);
-        if (modes.length < 2) return;
-        const cur = window.MdSurface.readingOf(this.$refs.md, i);
-        const k = Math.max(0, Math.min(modes.length - 1, modes.indexOf(cur) + step));
-        this.setCardReading(i, modes[k]);
-      },
       cardTap(ev) {
-        const read = ev.target?.closest?.('[data-md-card-read]');
-        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.setCardReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
         if (!badge || !window.rowMenu) return;
-        const i = +badge.dataset.mdCardBadge;
-        const e = window.MdSurface.cards(this.$refs.md)[i];
-        if (!e) return;
+        const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
+        if (!run) return;
         const r = badge.getBoundingClientRect();
-        const cur = window.MdSurface.readingOf(this.$refs.md, i);
-        const LABEL = { old: 'Original', inline: 'Marked', new: 'Clean' };
         window.rowMenu.open({ x: r.left, y: r.bottom + 4, items: [
-          { label: e.kind === 'removed' ? 'Put this block back' : 'Reject this change', icon: 'ph-arrow-u-up-left',
-            run: () => { this.rejectCard(e); } },
-          ...this.cardModes(i).filter((m) => m !== 'gone' && m !== cur)
-            .map((m) => ({ label: 'Show ' + LABEL[m].toLowerCase(), icon: m === 'old' ? 'ph-clock-counter-clockwise' : m === 'new' ? 'ph-file-text' : 'ph-git-diff',
-                           run: () => { this.setCardReading(i, m); } })),
+          { label: 'Go back to original', icon: 'ph-arrow-u-up-left', run: () => { this.rejectCard(run); } },
         ] });
       },
-      rejectCard(e) {
-        this.d.text = window.mdDiff.revert(this.fileBase, this.text, e);
+      rejectCard(run) {
+        const e = run[0];
+        this.d.text = window.mdDiff.revert(this.fileBase, this.text, run);
         this.d.caretAt(Math.min(e.newRange ? e.newRange.start : e.insertAt, this.d.text.length));
-        this.$refs.md.__readings = {};           // numbering shifts once a card goes
         this.paint();
       },
       // A tapped struck word: where it would go back is the caret the tap would
