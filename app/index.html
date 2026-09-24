@@ -2434,10 +2434,11 @@ function app(){ return {
     // asynchronous, so `read` hands back the raw payload and the stage component
     // resolves it once it mounts. The route cannot wait for that, so the mere
     // PRESENCE of a payload is what says this link is bound for the stage.
+    // A plain `take` payload (an iPhone shortcut's send) is bound there too.
     // Without this line a link that is nothing but a paste opened on the estate
     // while its file appeared, correctly, in a view the reader was not looking
     // at. Found by the courier, which mints exactly that link.
-    if (staged.length || (link && link.gz)) this.goStage();
+    if (staged.length || (link && (link.gz || link.take))) this.goStage();
     // A bare open (no repo, file, view, or stage addressed) lands on the
     // estate: the all-repo view is the page's front door.
     else if (!url) this.goDashboard();
