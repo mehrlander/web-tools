@@ -201,6 +201,14 @@
     THE TYPE IS SMALLER, 17px against 21, since a document is read at reading
     distance and a note is spoken at arm's length.
 
+    AND IT HAS THREE FACES, on a toggle in the file band. SOURCE is the buffer
+    as this page has always drawn it. RENDERED is the document as it reads, and
+    it is not a preview: kits/md-surface.js answers the same three questions
+    Dictate.paint does (draw, point to offset, on the words or not) over the
+    rendered markdown, so every gesture here works on it and every edit is still
+    an edit to the markdown string. CHANGES is kits/md-diff.js over the buffer
+    and what GitHub holds, read-only. A markdown file opens Rendered.
+
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
   on its own the first time. Once the reader has allowed it, the grant is
@@ -343,6 +351,7 @@
   // would be a second draft store nobody asked for.
   const ASIDE = 'dictate:aside';
   const GRANT = 'dictate:granted';
+  const VIEW = 'dictate:view';
 
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -424,6 +433,14 @@
       get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
       get fileWhere() { return FILE ? FILE.repo.split('/')[1] + (FILE.ref ? '@' + FILE.ref : '') + ':' + FILE.path : ''; },
       get fileUrl() { return FILE ? `https://github.com/${FILE.repo}/blob/${FILE.ref || 'HEAD'}/${FILE.path}` : ''; },
+      // Which face of the file the pane shows. Rendered is where a markdown file
+      // opens: the document as it reads, still aimed at by offset into its source
+      // through kits/md-surface.js, so the pad, the pins, the long press and the
+      // voice all work on it. Source is the markdown itself; Changes is the
+      // document against what GitHub holds, read-only.
+      view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
+      mdReady: false, changesCount: 0,
+      get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
       get dirty() {
         this.beat;
         return !!FILE && this.fileBase !== null && (this.edit ? this.draft : this.text) !== this.fileBase;
@@ -648,7 +665,57 @@
         }
         this.fileLoading = false;
         this.menu = false;
+        if (this.view !== 'source' && !this.fileErr) await this.setView(this.view);
         this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+      },
+
+      // ── File mode: the three faces ────────────────────────────────────
+      // The renderers load on first use, so a blank page and a source-only
+      // session pay nothing for them. Literal paths, so the pre-build carries
+      // them all the same.
+      async ensureMd() {
+        if (this.mdReady) return true;
+        try {
+          await gh.load('kits/md-doc.js');
+          await gh.load('kits/guide-render.js');
+          await gh.load('kits/standoff.js');
+          await gh.load('kits/md-surface.js');
+          await window.GuideRender.needMarked();
+          // Blocks off screen skip layout until scrolled to: a whole-document
+          // re-render after each phrase cost 210ms on a 160k file, most of it
+          // laying out text nobody was looking at.
+          this.$refs.md.className = window.GuideRender.bodyClass()
+            + ' min-h-full [&>*]:[content-visibility:auto] [&>*]:[contain-intrinsic-size:auto_3rem]';
+          this.mdReady = true;
+        } catch (e) {
+          Alpine.store('toast')('warning', 'Rendered view unavailable: ' + (e?.message || e), 'alert-error', 5000);
+        }
+        return this.mdReady;
+      },
+      async setView(v) {
+        if (!FILE) return;
+        if (this.edit) this.editClose();
+        if (v === 'rendered' && !(await this.ensureMd())) v = 'source';
+        // Each face draws its own furniture into the shared layer, so the one
+        // being left takes its marks with it.
+        const layer = this.$refs.layer;
+        if (layer) for (const n of [...layer.querySelectorAll('[data-md-surface],[data-edge],[data-mend]')]) n.remove();
+        this.view = v;
+        ls.set(VIEW, v);
+        if (v === 'changes') { await this.$nextTick(); await this.renderChanges(); return; }
+        this.$nextTick(() => this.paint());
+      },
+      async renderChanges() {
+        const host = this.$refs.changes;
+        if (!host) return;
+        try {
+          await gh.load('kits/md-diff.js');
+          this.d.flush();
+          const h = await window.mdDiff.render(host, this.fileBase || '', this.text, { layout: 'swipe' });
+          this.changesCount = h?.count || 0;
+        } catch (e) {
+          host.textContent = 'Could not draw the changes: ' + (e?.message || e);
+        }
       },
       // One rewrite of the whole buffer, so one undo takes it back, and unsaved
       // until Save, so the reader looks before anything is committed. The rule
@@ -842,6 +909,7 @@
       // every gesture here asks. Three of them used to carry their own copy of
       // this, differing only in which local named the host.
       pointOffset(cx, cy) {
+        if (this.rendered) return window.MdSurface.offsetAt(this.$refs.md, cx, cy);
         const host = this._host;
         if (!host) return null;
         const doc = host.ownerDocument;
@@ -877,6 +945,11 @@
       // went without it at first, on the reading that a finger on the text IS
       // the aim point and holding back would read as lag. It reads as the
       // thumb covering the boundary instead.
+      // On the words, in whichever face is showing.
+      hits(x, y) {
+        return this.rendered ? window.MdSurface.hitsText(this.$refs.md, x, y)
+                             : window.Dictate.hitsText(this._host, x, y);
+      },
       DEAD_LINES: 1.5,
       dragY(y0, py, cy, lineH, lead = 0) {
         const buffer = this.DEAD_LINES * lineH + (Math.abs(lead) - lead);
@@ -959,7 +1032,7 @@
         const at = (cx, cy) => this.pointOffset(cx, cy);
         const lineOf = () => parseFloat(getComputedStyle(this.$refs.view).lineHeight) || 26;
         surface.addEventListener('pointerdown', (e) => {
-          if (this.edit) return;
+          if (this.edit || this.view === 'changes') return;
           // ANY TOUCH ON THE WORDS ENDS A PENDING STITCH. It was reported as
           // the missing exit: the marker went up and tapping the canvas left
           // it there, because the only disarm was a change in the text and a
@@ -974,13 +1047,13 @@
           unhold();
           held = e.target;
           if (held?.addEventListener) held.addEventListener('touchmove', holdMove, { passive: false });
-          anchor = window.Dictate.hitsText(host, x, y) ? at(x, y) : null;
+          anchor = this.hits(x, y) ? at(x, y) : null;
           clear();
           timer = setTimeout(() => {
             timer = null; long = true;
             // OFF the words a held finger is not an aim that missed, it is a
             // request for the keyboard. Nothing is collapsed on the way in.
-            if (!window.Dictate.hitsText(host, x, y)) { this.editOpen(); return; }
+            if (!this.hits(x, y)) { this.editOpen(); return; }
             const i = at(x, y);
             if (i == null) return;
             this.d.selectWordAt(i); this.armed = null;
@@ -1116,7 +1189,7 @@
           const t = Date.now();
           taps = (t - lastTap) < 300 ? taps + 1 : 1;
           lastTap = t;
-          const onText = window.Dictate.hitsText(host, e.clientX, e.clientY);
+          const onText = this.hits(e.clientX, e.clientY);
           const i = onText ? at(e.clientX, e.clientY) : null;
           // The double opens the keyboard from the canvas too: tapping the
           // empty space under the words is the most obvious way of saying
@@ -1406,7 +1479,8 @@
           const hr = h?.getBoundingClientRect?.();
           if (hr && (hr.width || hr.height)) return { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 };
         }
-        const c = host.querySelector('[data-d="caret"]');
+        const c = this.rendered ? this.$refs.layer?.querySelector('[data-md-surface="caret"]')
+                                : host.querySelector('[data-d="caret"]');
         const r = c?.getBoundingClientRect?.();
         if (r && (r.width || r.height)) return { x: r.left, y: r.top + r.height / 2 };
         const b = host.getBoundingClientRect();
@@ -1523,6 +1597,19 @@
       // is hidden for good costs a wasted tick rather than a loop.
       paint(retry = true) {
         this.beat++;
+        if (FILE && this.view === 'changes') return;
+        if (this.rendered) {
+          const md = this.$refs.md;
+          if (!md.getClientRects().length) { if (retry) this.$nextTick(() => this.paint(false)); return; }
+          window.MdSurface.paint(md, {
+            text: this.text, interim: this.interim,
+            range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
+            overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
+          });
+          const layer = this.$refs.layer;
+          if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
+          return;
+        }
         if (!this._host) return;
         if (!this._host.getClientRects().length) {
           if (retry) this.$nextTick(() => this.paint(false));
@@ -2134,6 +2221,18 @@
        :title="fileWhere" x-text="fileWhere"></a>
     <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
     <span x-show="dirty" class="badge badge-warning badge-sm shrink-0">unsaved</span>
+    <!-- The three faces. Icons, since the band is one line on a phone; the
+         titles name them for a reader who hovers or long-presses. -->
+    <div class="join ml-auto shrink-0">
+      <button @click="setView('source')" class="join-item btn btn-xs" :class="view === 'source' ? 'btn-active' : 'btn-ghost'"
+              title="Source: the markdown itself"><i class="ph ph-code text-sm"></i></button>
+      <button @click="setView('rendered')" class="join-item btn btn-xs" :class="view === 'rendered' ? 'btn-active' : 'btn-ghost'"
+              title="Rendered: the document as it reads, still editable by tap and voice"><i class="ph ph-eye text-sm"></i></button>
+      <button @click="setView('changes')" class="join-item btn btn-xs" :class="view === 'changes' ? 'btn-active' : 'btn-ghost'"
+              title="Changes: this edit against what GitHub holds">
+        <i class="ph ph-git-diff text-sm"></i><span x-show="view === 'changes' && changesCount" class="text-[10px]" x-text="changesCount"></span>
+      </button>
+    </div>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
 
@@ -2187,8 +2286,12 @@
                 placeholder="Type instead"></textarea>
 
       <div x-show="!edit" x-ref="view" data-dictate-view class="absolute inset-0 overflow-y-auto px-4 py-3" @scroll="paint()">
-        <div class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
+        <div x-show="!rendered" class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
              x-ref="body" @contextmenu.prevent></div>
+        <!-- File mode's Rendered face. Its classes are set once from
+             GuideRender.bodyClass() when the renderer loads, so the document
+             reads in the house markdown type. -->
+        <div x-show="rendered" x-ref="md" @contextmenu.prevent></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes
@@ -2200,6 +2303,12 @@
           <span x-show="!started" class="text-sm opacity-30">Your phone will ask for the microphone once.</span>
         </button>
       </div>
+
+      <!-- File mode's Changes face: the document against what GitHub holds,
+           drawn by kits/md-diff.js. Read-only, and above the text pane, so no
+           gesture meant for the words reaches through it. -->
+      <div x-show="file && view === 'changes'" x-cloak x-ref="changes"
+           class="absolute inset-0 overflow-y-auto px-4 py-3 bg-base-100 z-10"></div>
 
       <!-- The keyboard half, and it has no controls of its own: blur or
            Escape is the way out, which is the keyboard's own gesture and the

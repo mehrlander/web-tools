@@ -21,7 +21,7 @@ lib/kits/csv.js,Csv,"CSV, small and shared.",54,no,no,10,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,62,no,no,1,yes
 lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a page to the dictation page.,78,no,no,2,yes
-lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1699,no,yes,10,yes
+lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1699,no,yes,11,yes
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,6,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",497,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
@@ -31,16 +31,17 @@ lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,13,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",652,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",98,no,no,3,yes
-lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,13,yes
+lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,14,yes
 lib/kits/installation.js,Installation,"The installation ledger: what the repository holds for a work installation that has no Git checkout, where each file is meant to go, what has been observed…",325,no,no,2,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",216,no,yes,21,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,5,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,2,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1205,no,yes,10,yes
-lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,14,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1205,no,yes,11,yes
+lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,15,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the proposals the Text collection holds…",275,no,no,2,yes
 lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals retained against its paragraphs.,231,no,yes,2,yes
+lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",188,no,no,1,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes
@@ -76,7 +77,7 @@ lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,ye
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,533,yes,yes,11,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
-lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",577,no,no,2,yes
+lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",645,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,24,yes
