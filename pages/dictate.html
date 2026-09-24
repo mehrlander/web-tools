@@ -2355,7 +2355,7 @@
     <!-- FILE MODE'S ONE DESTINATION, standing in for the three below it. Lit
          only while there is something to write, so its colour answers "is this
          saved" without the band above having to be read. -->
-    <button x-show="file" @click="saveFile()" :disabled="!dirty || blank || !!saving || fileLoading"
+    <button x-show="file" @click="saveFile()" :disabled="!!(!dirty || blank || !!saving || fileLoading)"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="dirty ? 'btn-primary' : 'btn-ghost bg-base-200'"
             :title="'Commit the buffer to ' + fileWhere">
