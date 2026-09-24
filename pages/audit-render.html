@@ -115,19 +115,11 @@ window.__audit = {
   "verdicts": [
    {
     "verdict": "KEEP",
-    "gloss": "stands as written"
-   },
-   {
-    "verdict": "REWRITE",
-    "gloss": "the content earns its place; the sentence does not"
-   },
-   {
-    "verdict": "MOVE",
-    "gloss": "belongs in another document"
+    "gloss": "stays; a note on it asks for any rewording"
    },
    {
     "verdict": "DROP",
-    "gloss": "says nothing the document needs"
+    "gloss": "removed from the document"
    }
   ],
   "units": [
@@ -488,17 +480,12 @@ window.__audit = {
   // vocabulary entry declares, or the next of these in turn: HUE reordered so
   // neighbours differ in hue, and never a verdict's color.
   const PALETTE = ['WHAT', 'WHY', 'NAV', 'PROV', 'HOW', 'EVID', 'META'].map(k => HUE[k]);
-  // The second axis, and deliberately NOT a second run of the label palette.
-  // That one is categorical, where no hue outranks another; this one is a
-  // judgment, so KEEP is the quiet default and the lens works by making the
-  // document go grey except where a decision was taken.
-  // No VALUE here appears in HUE either, which the suite holds: the Standoff
-  // table puts a label chip and a verdict chip in adjacent columns, so a shared
-  // rgb would be one swatch meaning two things in the one view that shows both.
-  const VHUE = { KEEP: '100,116,139', REWRITE: '234,88,12',
-                 MOVE: '2,132,199', DROP: '239,68,68' };
-  // Disjoint in both name and colour, so one lookup serves both axes and a
-  // template does not have to know which lens is on.
+  // The remove marker's two values, for the Standoff table's verdict column.
+  // No VALUE here appears in HUE, which the suite holds: that table puts a
+  // label chip and a verdict chip in adjacent columns, so a shared rgb would be
+  // one swatch meaning two things.
+  const VHUE = { KEEP: '100,116,139', DROP: '239,68,68' };
+  // Disjoint in both name and colour, so one lookup serves both.
   const RGB = { ...HUE, ...VHUE };
   // AN INSERTION IS ON NEITHER AXIS: it has no label and no verdict, because it
   // is not a unit. So it is in neither palette, and it carries a colour of its
@@ -674,7 +661,7 @@ window.__audit = {
         libRef: d?.libRef || null,
         faults: window.__auditFaults.map(f => ({ ...f })),
         crumb: window.__auditCrumb || null,
-        doc: d ? { units: d.units?.length, words: d.words, view: d.view, lens: d.lens } : null,
+        doc: d ? { units: d.units?.length, words: d.words, view: d.view } : null,
         kits: ['Standoff', 'mdDoc', 'Dictate', 'marked'].filter(k => !window[k]),
       };
       const res = reason ? await window.PageReport.send(extra) : await window.PageReport.auto(extra);
@@ -736,7 +723,7 @@ window.__audit = {
   // not, the split ran through inline markup, which is a finding.
 
   window.auditPage = () => ({
-    a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, mark: 'fill', lens: 'label', off: {}, sel: null, selPt: null,
+    a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, mark: 'fill', off: {}, sel: null, selPt: null,
     sections: [], ref: '',
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
@@ -786,12 +773,10 @@ window.__audit = {
     count(l) { return this.units.filter(u => u.label === l).length; },
     side(l) { return (this.so.vocabulary.find(v => v.label === l) || {}).side || ''; },
 
-    // THE TWO AXES. `vocabulary` says what a unit IS, `verdicts` says what was
-    // decided about it, and they are orthogonal: a unit is WHY and DROP at
-    // once. Everything that draws goes through keyOf, so switching the lens
-    // repaints the same document against the other question rather than
-    // building a second view of it.
-    keyOf(u) { return this.lens === 'verdict' ? (u.verdict || 'KEEP') : u.label; },
+    // WHAT A UNIT CARRIES. A label from the declared vocabulary says what it
+    // IS; `verdict` is only KEEP or DROP, whether it stays; a note says
+    // anything else, a rewording asked for included. The tint is the label's.
+    keyOf(u) { return u.label; },
     KINDS,
     // `from` records HOW this unit got its boundaries, and the verb is in the
     // value. The panel used to print "split from" over all three, so a merged
@@ -842,13 +827,11 @@ window.__audit = {
         ? 'neither edge can be moved: both fall in markup the render does not show'
         : `this span's ${e[0]} cannot be moved: it falls in markup the render does not show`;
     },
-    // The panel's two pills, as data: one row per axis, each naming the
-    // operation that edits it, the choices, and the value in force. Written
-    // once because the two pills differ in nothing but which list they read.
+    // The panel's label pill, as data: the operation that edits it, the
+    // choices, and the value in force.
     get axes() {
       return [
         { op: 'relabel', list: (this.so.vocabulary || []).map(v => v.label), now: this.sel?.label || '' },
-        { op: 'verdict', list: (this.so.verdicts || []).map(v => v.verdict), now: this.sel?.verdict || 'KEEP' },
       ];
     },
     tally(k) { return this.units.filter(u => this.keyOf(u) === k).length; },
@@ -858,18 +841,18 @@ window.__audit = {
       return v ? v.gloss : '';
     },
     // WHAT A CHIP'S NOTE SAYS: what Reading's modal used to hold, per key.
-    // The gloss, the key's share of the document, and on the label lens the
-    // side it belongs to with that side's share. Kept inside note.js's six
+    // The gloss, the key's share of the document, and the side it belongs to
+    // with that side's share. Kept inside note.js's six
     // lines, since a note that would scroll is a card.
     noteTitle(k) {
-      const sd = this.lens === 'label' ? this.side(k) : '';
+      const sd = this.side(k);
       return sd ? `${k} · ${sd}` : k;
     },
     noteText(k) {
       const us = this.units.filter(u => this.keyOf(u) === k);
       const w = Math.round(100 * us.reduce((n, u) => n + u.words, 0) / (this.words || 1));
       const lines = [this.gloss(k), `${us.length} unit${us.length === 1 ? '' : 's'}, ${w}% of words`];
-      const sd = this.lens === 'label' && this.side(k);
+      const sd = this.side(k);
       // A side holding only this label would repeat the line above.
       if (sd && this.vocab.filter(v => v.side === sd).length > 1) {
         const n = this.units.filter(u => this.side(u.label) === sd).length;
@@ -877,13 +860,9 @@ window.__audit = {
       }
       return lines.filter(Boolean).join('\n');
     },
-    // Unused keys are omitted from the legend on both axes: a chip for a label
-    // nothing carries is a filter that does nothing.
-    get axis() {
-      return (this.lens === 'verdict'
-        ? (this.so.verdicts || []).map(v => v.verdict)
-        : this.vocab.map(v => v.label)).filter(k => this.tally(k));
-    },
+    // Unused labels are omitted from the legend: a chip for a label nothing
+    // carries is a filter that does nothing.
+    get axis() { return this.vocab.map(v => v.label).filter(k => this.tally(k)); },
     get decided() { return this.units.filter(u => (u.verdict || 'KEEP') !== 'KEEP').length; },
     // Words, not units: a one-line NAV pointer and a four-sentence provenance
     // paragraph are one unit each and are not the same amount of document.
@@ -1434,11 +1413,9 @@ window.__audit = {
         m.tick && last && `inset -1px 0 0 0 ${tint(k, m.tick * a)}`,
         m.under && `inset 0 -2px 0 0 ${tint(k, m.under * a)}`,
       ].filter(Boolean).join(', ');
-      // TEXT DECORATION IS THE FREE CHANNEL, which is why the verdict can ride
-      // beside the label rather than displacing it: the tint, the ticks and the
-      // opacity are all spent on the active lens, and this is not. A DROP reads
-      // under EITHER lens, because it is the destructive one and hiding it behind
-      // a switch would let a reader browse labels over text already condemned.
+      // TEXT DECORATION IS THE FREE CHANNEL, which is why the remove marker can
+      // ride beside the label rather than displacing it: the tint, the ticks and
+      // the opacity are all spent on the label, and this is not.
       const deco = [(u.verdict || 'KEEP') === 'DROP' && 'line-through',
                     sel && 'underline'].filter(Boolean);
       if (deco.length) {
@@ -1977,8 +1954,8 @@ window.__audit = {
         <span class="font-semibold" x-text="a.title"></span>
         <span class="text-xs opacity-60" x-text="so.question"></span>
         <span class="text-xs font-mono opacity-70"
-              x-text="`${units.length} units · ${words.toLocaleString()} words · ` + (lens === 'verdict'
-                        ? `${decided} decided` : explains ? `${pctOn('explanation')}% explanation` : `${vocab.length} labels`)"></span>
+              x-text="`${units.length} units · ${words.toLocaleString()} words · ` + (decided ? `${decided} removed · ` : '')
+                        + (explains ? `${pctOn('explanation')}% explanation` : `${vocab.length} labels`)"></span>
         <a class="text-xs link link-primary" :href="so.target.url" x-show="so.target.url">source</a>
         <div id="audit-faults" class="text-xs font-mono w-full whitespace-pre-line leading-tight
                     text-base-content/50"
@@ -2044,15 +2021,8 @@ window.__audit = {
           </button>
         </template>
         </div>
-        <!-- What the colour answers, and what it is spent on. -->
+        <!-- What the colour is spent on. -->
         <div class="flex items-center gap-1 shrink-0">
-          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" x-show="so.verdicts" aria-label="colour by">
-            <template x-for="l in ['label', 'verdict']" :key="l">
-              <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
-                      :class="lens === l ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                      @click="lens = l; paint()" x-text="l"></button>
-            </template>
-          </div>
           <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="unit treatment">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
               <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none font-normal px-2" :aria-label="t[2]" :title="t[2]"
@@ -2137,9 +2107,7 @@ window.__audit = {
              the padding that read as awkward. The span sizes the pill to the
              value actually shown; the select lies over it at zero opacity and
              takes the tap, so this is still the platform's own dropdown rather
-             than a menu reimplemented. Two of them, because there are two
-             questions and answering one never answers the other; same shape on
-             purpose, so a verdict does not read as a different kind of thing. -->
+             than a menu reimplemented. -->
         <template x-for="ax in axes" :key="ax.op">
           <label class="relative inline-flex items-center rounded-full px-2 py-0.5 font-mono cursor-pointer"
                  x-show="ax.list.length" x-cloak
@@ -2153,6 +2121,13 @@ window.__audit = {
             </select>
           </label>
         </template>
+        <!-- Whether the unit stays. The one edit the tools carry out; anything
+             else, a rewording included, goes in the note below. -->
+        <button class="btn btn-xs h-6 min-h-0 gap-1" x-show="so.verdicts" x-cloak
+                :class="sel?.verdict === 'DROP' ? 'btn-error' : 'btn-ghost border border-base-300'"
+                :aria-pressed="sel?.verdict === 'DROP'"
+                @click="push({op:'verdict', uid:sel.uid, verdict: sel?.verdict === 'DROP' ? 'KEEP' : 'DROP'})">
+          <i class="ph ph-trash"></i><span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
 
       </div>
 
@@ -2226,14 +2201,14 @@ window.__audit = {
                   aria-label="redo"><i class="ph ph-arrow-clockwise"></i></button>
         </div>
         <button class="btn btn-xs" x-show="view!=='read'"
-                @click="view='read'; paint()">Edges</button>
+                @click="view = docView = 'read'; paint()">Edges</button>
         <button class="btn btn-xs" @click="openSplit(sel)">Split</button>
         <button class="btn btn-xs" :disabled="!nextOf(sel?.uid)"
                 @click="push({op:'merge',uid:sel.uid})">Merge next</button>
       </div>
 
       <input class="input input-xs input-bordered w-full mt-2"
-             placeholder="note: what the label cannot say"
+             placeholder="note: a rewording, where it goes, anything the label cannot say"
              x-effect="$el.value = sel?.note || ''"
              @change="push({op:'note',uid:sel.uid,text:$event.target.value})">
 

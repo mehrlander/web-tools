@@ -53,19 +53,11 @@
  "verdicts": [
   {
    "verdict": "KEEP",
-   "gloss": "stands as written"
-  },
-  {
-   "verdict": "REWRITE",
-   "gloss": "the content earns its place; the sentence does not"
-  },
-  {
-   "verdict": "MOVE",
-   "gloss": "belongs in another document"
+   "gloss": "stays; a note on it asks for any rewording"
   },
   {
    "verdict": "DROP",
-   "gloss": "says nothing the document needs"
+   "gloss": "removed from the document"
   }
  ],
  "units": [
@@ -139,7 +131,7 @@
    "kind": "sent",
    "words": 29,
    "label": "WHY",
-   "verdict": "REWRITE",
+   "verdict": "KEEP",
    "note": "Merge with 009 into one sentence: a change stated as prose or as a raw paste makes the reader rebuild it by hand."
   },
   {
@@ -186,7 +178,7 @@
    "kind": "sent",
    "words": 22,
    "label": "WHAT",
-   "verdict": "REWRITE",
+   "verdict": "KEEP",
    "note": "'reading like a view the app already owned' is connotation; name the visual properties instead (edge-to-edge, no card)."
   },
   {
@@ -278,7 +270,7 @@
    "kind": "h2",
    "words": 3,
    "label": "META",
-   "verdict": "REWRITE",
+   "verdict": "KEEP",
    "note": "'Key insights' does not say what the section holds. Candidate: 'Template behavior'."
   },
   {
@@ -390,8 +382,7 @@
    "kind": "sent",
    "words": 17,
    "label": "WHY",
-   "verdict": "KEEP",
-   "note": "Model restriction: trigger, symptom, mitigation in one sentence."
+   "verdict": "KEEP"
   },
   {
    "uid": "skill-036",
@@ -463,7 +454,7 @@
    "kind": "sent",
    "words": 4,
    "label": "WHY",
-   "verdict": "REWRITE",
+   "verdict": "KEEP",
    "note": "Fragment. Say which layout is cramped: side-by-side on a phone, which is why it collapses."
   },
   {

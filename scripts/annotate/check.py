@@ -48,7 +48,7 @@ for uid, d in units.items():
     if v == 'KEEP':
         if tier != 'ORPHANED' or conf >= 0.45: honoured += 1
         else: breach.append((d['words'], conf, ann[uid]['label'], d['text']))
-    elif v in ('DROP', 'MOVE') and tier in ('EXACT', 'EXACT-CTX'):
+    elif v == 'DROP' and tier in ('EXACT', 'EXACT-CTX'):
         ghost.append((d['words'], ann[uid]['label'], d['text']))
 
 nk = sum(1 for u in units if ann[u]['verdict'] == 'KEEP')
@@ -62,9 +62,9 @@ def refs(t):
 # it legitimately: it was evidence, not a live pointer to an owner. Subtract
 # those before reporting, or the check punishes a correct removal.
 sent_away = ' '.join(units[k]['text'] for k in units
-                     if ann[k]['verdict'] in ('DROP', 'MOVE'))
+                     if ann[k]['verdict'] == 'DROP')
 kept_src = ' '.join(units[k]['text'] for k in units
-                    if ann[k]['verdict'] not in ('DROP', 'MOVE'))
+                    if ann[k]['verdict'] != 'DROP')
 lost = sorted((refs(orig) - refs(new)) & refs(kept_src))
 excused = sorted((refs(orig) - refs(new)) - refs(kept_src))
 
