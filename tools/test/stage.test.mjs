@@ -3961,3 +3961,33 @@ test('send() with git-change routes through arming and deposits via executeGitCh
   assert.ok(prCall, 'calls createPull');
   assert.equal(prCall.head, branch);
 });
+
+// ---- #take=: plain text from a sender that cannot gzip -------------------
+
+test('parseLink reads a plain #take= and its optional name', () => {
+  const { StageLink } = window;
+  const lk = StageLink.parseLink('#name=' + encodeURIComponent('link.txt') + '&take=' + encodeURIComponent('https://example.com/a?b=1&c=2'));
+  assert.equal(lk.take, 'https://example.com/a?b=1&c=2');
+  assert.equal(lk.takeName, 'link.txt');
+  assert.equal(StageLink.parseLink('#stage=me/r:a.md').take, '', 'no take by default');
+  assert.equal(StageLink.parseLink('#take=a&b=c d').take, 'a&b=c d', 'take runs to the end, literal & and all');
+  assert.equal(StageLink.parseLink('#take=x').takeName, '', 'no name by default');
+  assert.equal(StageLink.parseLink('#take=%E0%A4%A').take, '', 'a malformed encoding is dropped, not thrown');
+});
+
+test('takeFromLink stages the text once, sniffed like a paste', () => {
+  reset();
+  const lk = window.StageLink.parseLink('#take=' + encodeURIComponent('# Heading\n\nbody'));
+  const added = data.takeFromLink(lk);
+  assert.equal(added.length, 1);
+  assert.equal(store.stage.length, 1);
+  assert.match(store.stage[0].name, /\.md$/);
+  assert.equal(store.stage[0].sniffed, true);
+  assert.equal(data.takeFromLink(lk).length, 0, 'a reload of the same link stages nothing new');
+  assert.equal(store.stage.length, 1);
+  reset();
+  data.takeFromLink({ take: 'hello', takeName: 'note.txt' });
+  assert.equal(store.stage[0].name, 'note.txt');
+  assert.ok(!store.stage[0].sniffed);
+  reset();
+});
