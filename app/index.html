@@ -1483,29 +1483,35 @@ html.dk-dragging main{transition:none !important}
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-6 pt-8">
-            <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <!-- A project's masthead: the repository it lives in, then the
+                 project, under a project mark. The ways out are icons beside
+                 the name, the convention every project row in the sidebar
+                 already follows: the github-logo opens the folder on GitHub
+                 and peeks its README, the folder opens it in Files, and a
+                 folder board keeps its icon (a file board has its own pill).
+                 These were three outlined buttons until 2026-09-24. -->
+            <div class="flex items-center gap-3 mb-4 min-w-0">
+              <span class="shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
+                <i class="ph-duotone ph-kanban text-2xl"></i></span>
               <div class="min-w-0">
-                <h1 class="text-2xl font-bold tracking-tight truncate" x-text="project.label"></h1>
-                <p class="text-base-content/50 mt-1 font-mono text-base truncate"
-                   x-text="$store.browser.repo + ' / ' + project.path"></p>
-              </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button @click="openProjectFiles()" class="btn btn-outline gap-1.5">
-                  <i class="ph ph-folders"></i> Files
-                </button>
-                <!-- A file board lives in the pill row below, so the header
-                     button remains only for a folder board, which has no one
-                     file to render in-pane. -->
-                <button x-show="project.board && !projectBoardFile"
-                        @click="openProjectBoard($store.browser.repo, project)"
-                        class="btn btn-outline gap-1.5">
-                  <i class="ph ph-list-checks"></i> Board
-                </button>
-                <a :href="projectGithubUrl($store.browser.repo, project)"
-                   :data-peek="projectReadmePeek($store.browser.repo, project)" target="_blank" rel="noopener"
-                   :title="project.path + ' on GitHub'" class="btn btn-outline gap-1.5">
-                  <i class="ph ph-github-logo"></i> GitHub
-                </a>
+                <button @click="goLanding()" class="block max-w-full truncate font-mono text-sm text-base-content/50 hover:text-primary transition-colors"
+                        :title="$store.browser.repo" x-text="$store.browser.repo"></button>
+                <div class="flex items-center gap-1 min-w-0">
+                  <h1 class="text-2xl font-bold tracking-tight truncate mr-1" x-text="project.label"></h1>
+                  <a :href="projectGithubUrl($store.browser.repo, project)"
+                     :data-peek="projectReadmePeek($store.browser.repo, project)" target="_blank" rel="noopener"
+                     :title="project.path + ' on GitHub'" :aria-label="project.path + ' on GitHub'"
+                     class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
+                    <i class="ph ph-github-logo text-xl leading-none"></i></a>
+                  <button @click="openProjectFiles()" :title="project.path + ' in Files'" :aria-label="project.path + ' in Files'"
+                          class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
+                    <i class="ph ph-folder-simple text-xl leading-none"></i></button>
+                  <button x-show="project.board && !projectBoardFile"
+                          @click="openProjectBoard($store.browser.repo, project)"
+                          :title="'Task board: ' + project.board" aria-label="Task board"
+                          class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
+                    <i class="ph ph-list-checks text-xl leading-none"></i></button>
+                </div>
               </div>
             </div>
 
@@ -6608,11 +6614,17 @@ function app(){ return {
         if (await intake.workspace.receive(target, text, { name, source })) return;
         this.assertCorrespondenceIntake(intake);
       }
+      // The installation Overview compares a copy in memory and shows it in
+      // its own Changes view; nothing is saved to the browser and the Stage
+      // does not open. Every other surface keeps the stored check below.
+      if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
+        const host = document.querySelector('[x-data^="installationView"]');
+        const view = host && Alpine.$data?.(host);
+        if (view?.takeCopy && await view.takeCopy(target, text, name, source)) return;
+      }
       const result = await window.FileCorrespondence.open({ target, text, name, source });
       this.announceCheck(result);
-      // The Overview shows the comparison in its own Source pane (Changes), so
-      // a copy compared there stays there; everywhere else it opens the Stage.
-      if (!(this.view === 'project' && this.projectTab === 'overview' && this.project?.installation)) this.goStage();
+      this.goStage();
       Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
                             result.saved ? 'alert-info' : 'alert-warning', 5000);
     } catch (e) { this.correspondenceFailure(e); }

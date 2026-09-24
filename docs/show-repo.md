@@ -576,11 +576,13 @@ chosen file, or a drop on the column; the page-wide paste and drop still aim at
 that file, and a file that fails to decode is offered its encoding then), where
 a copy compared there stays on the Overview. When the work computer's known
 copy (a copy supplied in this browser, or the version the ledger last recorded)
-differs from GitHub now, the pane opens on Changes. Then: Open code workspace,
-and **Mark as installed**, which opens a confirm showing
-the exact ledger row and commits it on the branch being browsed only when the
-reader taps "I placed this on the work computer". A browser-local check can be
-promoted to a `verified` or `differs` row the same way. A comparison, copy, or
+differs from GitHub now, the pane opens on Changes. Each file carries a status icon (assumed in sync, confirmed, update pending, new
+file, differs, repository only) whose menu, opened by a tap or a right-click,
+holds the actions its state allows: **Confirm installed…**, which opens a confirm
+showing the exact ledger row and commits it on the branch being browsed only when
+the reader taps "I placed this on the work computer"; Record the match or the
+difference, which promotes a browser-local check to a `verified` or `differs` row
+the same way; Show changes; and Open in Code. A comparison, copy, or
 download never writes a row; the ledger is appended, never rewritten, and a
 later session reads the same states from the repository.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).

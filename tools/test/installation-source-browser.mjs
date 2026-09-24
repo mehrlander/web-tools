@@ -189,9 +189,13 @@ try {
       target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
     });
     assert.equal(await desk.page.evaluate(() => window.__ringWhileDragging), true, 'the code box highlights under a drag');
-    await desk.page.waitForFunction(() => window.__shell.compared.length === 1);
-    const compared = await desk.page.evaluate(() => window.__shell.compared[0]);
-    assert.deepEqual(compared, { path: A, text: 'function Get-Message {}\n', name: 'A.psm1', source: 'drop' });
+    // The view compares the drop itself, in memory: Changes opens on it and
+    // nothing goes to the shell's stored-check flow.
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).baseline?.label === 'Supplied copy');
+    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
+    assert.equal(await desk.page.evaluate(() => window.__shell.compared.length), 0);
+    assert.equal(await desk.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).checks[0].content), 'function Get-Message {}\n');
+    await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
     assert.equal((await desk.editor()).text, display(files[A]), 'a drop compares; it does not insert into the read-only view');
     await desk.page.waitForFunction(() => !document.querySelector('[data-source-editor]').classList.contains('ring-2'));
     assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-editor]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
@@ -206,7 +210,8 @@ try {
       .filter(t => !t.startsWith('Unchanged')));
     assert.deepEqual(rows, ['Removed     $Step = 1', 'Added     param([int]$Step = 2)']);
     assert.match(await desk.page.locator('[data-source-diff]').innerText(), /reported installed at ccccccc/);
-    for (const label of ['Files', 'Stage']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
+    for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
+    assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('title'), 'Update pending');
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-changes.png'), fullPage: true });
     await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
     await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
@@ -217,11 +222,25 @@ try {
   await desk.context.close();
 
   const phone = await openPage({ width: 390, height: 844 });
-  await check('on a phone the code is collapsed below Mark as installed until Show code', async () => {
+  await check('on a phone the list menu opens on screen, and the detail keeps its status menu above the collapsed code', async () => {
+    await phone.page.locator('[data-row]').first().locator('[data-status]').click();
+    const listMenu = phone.page.locator('[data-row] [data-status-menu]').first();
+    await listMenu.waitFor({ state: 'visible' });
+    const lb = await listMenu.boundingBox();
+    assert.ok(lb.x >= 0 && lb.x + lb.width <= 390, 'the list menu is inside the viewport: ' + JSON.stringify(lb));
+    await phone.page.keyboard.press('Escape');
     await phone.select(A); await phone.settled();
-    const record = phone.page.getByRole('button', { name: 'Mark as installed' });
-    const box = await record.boundingBox();
-    assert.ok(box && box.y + box.height <= 844, 'Mark as installed is above the fold');
+    const status = phone.page.locator('[data-status]:not([data-row] [data-status])');
+    const box = await status.boundingBox();
+    assert.ok(box && box.y + box.height <= 844, 'the status menu is above the fold');
+    await status.click();
+    const menu = phone.page.locator('[data-status-menu]:not([data-row] [data-status-menu])');
+    await menu.waitFor({ state: 'visible' });
+    const mb = await menu.boundingBox();
+    assert.ok(mb.x >= 0 && mb.x + mb.width <= 390, 'the detail menu is inside the viewport: ' + JSON.stringify(mb));
+    assert.equal(await menu.getByRole('button', { name: 'Confirm installed…' }).isVisible(), true);
+    if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
+    await phone.page.keyboard.press('Escape');
     assert.equal(await phone.page.locator('[data-source] .cm-editor').isVisible(), false);
     for (const label of ['Copy GitHub text', 'Download GitHub text', 'Compare a file with this file'])
       assert.equal(await phone.page.getByLabel(label, { exact: true }).isVisible(), true, label + ' shows while the code is collapsed');

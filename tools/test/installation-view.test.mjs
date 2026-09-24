@@ -144,16 +144,11 @@ window.__shell = {
   pasteAnywhere() { shellCalls.push(['pasteAnywhere', this.installationItem]); },
   goProject(...args) { shellCalls.push(['goProject', ...args]); },
   openFile(p) { shellCalls.push(['openFile', p]); },
+  // As the app does on the Overview (app/index.html openCorrespondence): the
+  // copy goes to the view, which compares it in memory and stores nothing.
   async openCorrespondence(target, text, name, source) {
     shellCalls.push(['compare', target.path, source]);
-    const file = snapshotAt(target.ref)[target.path];
-    const exact = text === file;
-    const rec = { id: 'c' + checks.length, repo: target.repo, path: target.path, revision: snapshots.has(target.ref) ? target.ref : currentRevision, blobSha: gitBlob(file),
-      incomingSha256: createHash('sha256').update(text, 'utf8').digest('hex'), exact,
-      lineEndingsOnly: !exact && text.replace(/\r\n?/g, '\n') === file.replace(/\r\n?/g, '\n'),
-      source, checkedAt: new Date().toISOString(), content: text };
-    checks.push(rec);
-    window.dispatchEvent(new window.CustomEvent('correspondence-check', { detail: rec }));
+    await window.Alpine.$data(window.document.getElementById('v')).takeCopy(target, text, name, source);
   },
 };
 // The pane links the explanation document and the ledger through the shared
@@ -192,11 +187,10 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
   // The explanation is linked, not copied onto the pane, and nothing on it
   // parks a fact in a title where a phone and a screenshot cannot reach it.
-  assert.match(data.docUrl, /INSTALLATION\.md$/);
   const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
   assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
     'a title is the label of an icon-only control, never a sentence of explanation');
-  assert.match(data.headline, /^aaaaaaa · 5 files · 2 local state unknown · 1 repository only · 1 new file awaiting adoption · 1 update awaiting adoption$/);
+  assert.doesNotMatch(el.textContent, /the installation map|5 files/, 'no map link and no counts line in the header');
   assert.equal(publications.length, 0);
   assert.ok(reads.every(r => r.ref === REV), 'manifest and ledger are read at the captured revision');
 });
@@ -207,22 +201,23 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   assert.equal(window.__shell.installationItem, FORMS);
   assert.ok(shellCalls.some(c => c[0] === 'syncUrl'));
   assert.match(el.textContent, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
-  assert.match(el.textContent, /local state unknown/);
-  assert.match(el.textContent, /Nothing recorded for this file/);
-  assert.equal(data.badgeOf(FORMS), 'badge-warning badge-outline');
-  assert.match(el.querySelector('[data-adoption]').textContent, /Repository update awaiting adoption/);
+  assert.equal(data.statusOf(FORMS).label, 'Update pending');
+  assert.doesNotMatch(el.textContent, /Nothing recorded for this file|local state unknown/, 'no "we do not know" notes on the pane');
+  assert.equal(el.querySelector('[data-observations]').style.display, 'none', 'an empty ledger history is not shown');
+  const line = () => el.querySelector('[data-status-line]').textContent;
+  assert.equal(line(), 'Update pending · since 2026-09-14', 'one status line carries the state and its date');
+  assert.doesNotMatch(el.querySelector('[data-adoption]').textContent, /awaiting adoption|Pending since/, 'the pending note is only the entry\'s own words');
+  assert.equal(el.querySelector('[data-installation] dl'), null, 'no installs-to / GitHub-now field list');
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
-  q('button').find(b => b.textContent.includes('Open code workspace')).click();
+  await data.runAction(FORMS, 'code');
   assert.deepEqual(shellCalls.find(c => c[0] === 'goProject'), ['goProject', P, 'code', FORMS]);
   data.select(`${P}/app/Forms/Bookmarks/Bookmarks.xaml`);
   await settle();
-  assert.match(el.textContent, /companion/);
-  assert.match(el.textContent, /Bookmarks\.ps1/);
+  assert.match(el.textContent, /with\s+Bookmarks\.ps1/, 'the companion reads as "with <file>"');
   data.select(`${P}/app/Scripts/Demo.ps1`);
   await settle();
-  assert.match(el.textContent, /no installation destination \(repository only\)/);
-  const record = q('button').find(b => /Mark as installed/.test(b.textContent));
-  assert.equal(record.style.display, 'none', 'repository-only material offers no placement to record');
+  assert.equal(el.querySelector('[data-destination]').textContent, `${P}/app/Scripts/Demo.ps1`, 'repository-only material shows its repository path');
+  assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['code'], 'repository-only material offers no placement to confirm');
   data.select(FORMS);
   await settle();
 });
@@ -232,12 +227,13 @@ const dropped = text => ({ dataTransfer: { files: [], getData: () => text } });
 test('a comparison goes through the shell and comes back as a browser check, with no ledger write', async () => {
   await data.compareDrop(dropped('function Import-Form {}\r\n'));
   await settle();
-  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare'), [['compare', FORMS, 'drop']]);
+  assert.deepEqual([...data.checks.map(c => c.path + ' ' + c.source)], [FORMS + ' drop'], 'the copy is held by the view');
+  assert.equal(checks.length, 0, 'nothing is written to the browser-local check store');
   assert.equal(data.checks.length, 1);
   assert.equal(data.checks[0].lineEndingsOnly, true);
   assert.equal(data.stateOf(FORMS).state, 'pending-changed', 'a check is browser-local; adoption stays pending');
-  assert.match(el.textContent, /Checks in this browser/);
-  assert.match(el.textContent, /matched, line endings differ/);
+  assert.equal(el.querySelector('[data-checks]'), null, 'no checks section; the menu carries what it offered');
+  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'record-check' && a.label === 'Record the match…'));
   assert.equal(publications.length, 0, 'comparing writes nothing');
 });
 
@@ -275,7 +271,7 @@ test('recording shows the exact row and adoption closure before publishing both 
   assert.equal(JSON.parse(files[`${P}/data/installation.json`]).pending_adoption.length, 1);
   assert.equal(data.revision, publications[0].body.sha);
   assert.match(el.textContent, /reported installed/);
-  assert.match(el.textContent, /this file has not changed since/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Confirmed installed · \d{4}-\d{2}-\d{2}$/);
 });
 
 test('a browser check can be promoted to a verified row, and then reads as recorded', async () => {
@@ -292,7 +288,7 @@ test('a browser check can be promoted to a verified row, and then reads as recor
   assert.equal(data.isRecorded(check), true);
   assert.equal(data.stateOf(FORMS).state, 'verified');
   assert.equal(data.stateOf(FORMS).history.length, 2, 'the installed row is kept beneath the verification');
-  assert.match(el.textContent, /recorded/);
+  assert.ok(!data.actionsFor(FORMS).some(a => a.key === 'record-check'), 'a recorded check is no longer offered');
 });
 
 test('the record survives a reload, and GitHub moving turns it into "changed since"', async () => {
@@ -307,7 +303,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.lastTransfer[FORMS], undefined, 'a download of older bytes is not evidence of transferring the new file');
   assert.equal(data.stateOf(FORMS).label, 'GitHub changed since verification');
   data.select(FORMS); await settle();
-  assert.match(el.textContent, /this file has changed on GitHub since/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Update pending · installed \d{4}-\d{2}-\d{2}$/);
   // A later copy that differs from the new revision contradicts the record.
   await window.__shell.openCorrespondence({ repo: 'mehrlander/home', ref: 'main', path: FORMS }, 'something else\n', 'Forms.psm1', 'drop');
   await settle();
@@ -379,12 +375,13 @@ test('selection changes cancel pending copy, download, and installed-row prepara
 
 test('a selected file cannot change while a supplied copy is being read', async () => {
   data.select(FORMS);
-  const gate = deferred(), comparisons = shellCalls.filter(c => c[0] === 'compare').length;
+  const gate = deferred(), comparisons = data.checks.length;
   const pending = data.compareFile({ name: 'Forms.psm1', arrayBuffer: () => gate.promise }, 'file picker');
   data.select(`${P}/app/Profile.ps1`);
   gate.resolve(new TextEncoder().encode(files[FORMS]).buffer);
   await pending;
-  assert.equal(shellCalls.filter(c => c[0] === 'compare').length, comparisons);
+  assert.equal(data.checks.filter(c => c.path === FORMS).length <= 1, true);
+  assert.equal(data.checks.length, comparisons);
 });
 
 test('a reload reads manifest, inventory, and ledger from the same revision even when the branch moves', async () => {
@@ -480,8 +477,8 @@ test('the source pane shows the selected file read-only, swaps on reselect, and 
   assert.doesNotMatch(body.className, /(^|\s)hidden(\s|$)/);
   assert.match(toggle.textContent, /Hide code/);
   // The pane follows the state and the actions in the detail column.
-  const record = q('button').find(b => /Mark as installed/.test(b.textContent));
-  assert.ok(record.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING);
+  const status = [...el.querySelectorAll('[data-status]')].find(b => !b.closest('[data-row]'));
+  assert.ok(status.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING, 'the header\'s status menu precedes the pane');
   data.select(profile);
   await settle();
   assert.equal(data.sourceOpen, false, 'a new selection starts collapsed');
@@ -510,22 +507,22 @@ test('the Source header carries copy, download and compare; the action row keeps
 
 test('a file that fails to decode is offered its encoding, and the retry compares it', async () => {
   data.select(FORMS); await settle();
-  const before = shellCalls.filter(c => c[0] === 'compare').length;
+  const before = data.checks.find(c => c.path === FORMS)?.id;
   // “Import” in Windows-1252 quotes: 0x93 and 0x94 are not UTF-8.
   const bytes = Uint8Array.from([0x93, ...Buffer.from('Import'), 0x94, 0x0a]);
   const file = { name: 'Forms.psm1', arrayBuffer: async () => bytes.buffer };
   await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
   await settle();
-  assert.equal(shellCalls.filter(c => c[0] === 'compare').length, before, 'nothing compared on a failed decode');
+  assert.equal(data.checks.find(c => c.path === FORMS)?.id, before, 'nothing compared on a failed decode');
   assert.ok(data.compareRetry);
   const box = el.querySelector('[data-compare-error]');
   assert.notEqual(box.style.display, 'none');
   const choices = [...box.querySelectorAll('button')].map(b => b.textContent);
   assert.deepEqual(choices, ['UTF-16 LE', 'UTF-16 BE', 'Windows-1252']);
   [...box.querySelectorAll('button')].find(b => b.textContent === 'Windows-1252').click();
-  for (let i = 0; i < 10 && shellCalls.filter(c => c[0] === 'compare').length === before; i++) await tick(2);
-  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare').at(-1), ['compare', FORMS, 'drop']);
-  assert.equal(checks.at(-1).content, '\u201cImport\u201d\n');
+  for (let i = 0; i < 10 && data.checks.find(c => c.path === FORMS)?.id === before; i++) await tick(2);
+  assert.equal(data.checks[0].path, FORMS); assert.equal(data.checks[0].source, 'drop');
+  assert.equal(data.checks[0].content, '\u201cImport\u201d\n');
   assert.equal(data.compareRetry, null); assert.equal(data.compareError, '');
   // A retry never lands on a different selection.
   await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
@@ -540,10 +537,10 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   const views = () => el.querySelector('[data-source-views]');
   const diff = () => el.querySelector('[data-source-diff]');
   const shown = node => !/(^|\s)hidden(\s|$)/.test(node.className);
-  // The action row is the placement flow: no Files, no Stage.
+  // No action row: no Files, no Stage, no Open code workspace, no Mark as installed.
   data.select(xaml); await settle();
-  const row = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim());
-  assert.ok(row.includes('Mark as installed')); assert.ok(!row.includes('Files')); assert.ok(!row.includes('Stage'));
+  const labels = q('button').map(b => b.textContent.trim());
+  for (const gone of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.ok(!labels.includes(gone), gone + ' is gone');
   // Recorded and unchanged since: nothing to compare, so Code only.
   assert.equal(data.stateOf(xaml).state, 'reported');
   assert.equal(views().style.display, 'none'); assert.equal(data.sourceView, 'code');
@@ -564,20 +561,18 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   // A copy supplied from the work computer is newer evidence and takes over.
   await data.compareDrop(dropped('<Window>\n</Window>\n')); await settle(); await settle();
   assert.equal(data.sourceView, 'changes');
-  assert.match(data.baseline.label, /^Copy supplied /);
+  assert.equal(data.baseline.label, 'Supplied copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
-  // The check row offers the same comparison.
-  const check = data.checks.find(c => c.path === xaml);
-  const button = q('button').find(b => b.textContent.trim() === 'Changes' && !b.closest('[data-source-views]'));
-  assert.ok(button, 'each check with kept text offers Changes');
-  data.setSourceView('code'); button.click(); await settle();
-  assert.equal(data.baseline.key, 'check:' + check.id); assert.equal(data.sourceView, 'changes');
-  // No evidence: say so rather than guess. A new file says it is new.
+  // The menu's Show changes returns to it from Code.
+  data.setSourceView('code'); await settle();
+  await data.runAction(xaml, 'changes'); await settle();
+  assert.equal(data.sourceView, 'changes');
+  // No evidence and nothing to guess: Code, with no note. A new file's
+  // pending box already says it is new; an assumed-synced file says nothing.
   data.select(ctl); await settle(); await settle();
-  assert.equal(data.baseline, null); assert.equal(data.sourceView, 'code');
-  assert.match(el.textContent, /New file: the work computer has no copy yet\./);
+  assert.equal(data.baseline, null); assert.equal(data.sourceView, 'code'); assert.equal(data.baselineNote, '');
   data.select(`${P}/app/Profile.ps1`); await settle(); await settle();
-  assert.match(data.baselineNote, /Nothing records what the work computer holds/);
+  assert.equal(data.baselineNote, '');
   assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'Changes writes nothing');
   files[xaml] = original; advanceHead(); await data.reload();
   data.select(FORMS); await settle();
@@ -602,6 +597,47 @@ test('a pending update with no record compares from the version before its chang
   assert.equal(data.baseline, null);
   assert.match(data.baselineNote, /No earlier version of this file/);
   files[manifestPath] = manifest; advanceHead(); await data.reload();
+  data.select(FORMS); await settle();
+});
+
+test('the status icon opens a menu of the actions the file\'s state allows; a differing paste does not recolour it', async () => {
+  const profile = `${P}/app/Profile.ps1`, demo = `${P}/app/Scripts/Demo.ps1`;
+  const rowOf = path => q('[data-row]').find(r => r.textContent.includes(path.split('/').pop()));
+  const writes = publications.length;
+  data.select(''); await settle();
+  // Assumed in sync is an outline check; a ledger confirmation is filled.
+  assert.equal(data.statusOf(profile).cls, 'ph ph-check-circle text-success');
+  assert.equal(data.statusOf(FORMS).cls.split(' ')[0], 'ph-fill');
+  const icon = rowOf(profile).querySelector('[data-status]');
+  assert.equal(icon.getAttribute('title'), 'Assumed synced');
+  icon.click(); await settle();
+  const menu = rowOf(profile).querySelector('[data-status-menu]');
+  assert.notEqual(menu.style.display, 'none');
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in Code']);
+  // Right-click opens the same menu; Escape closes it.
+  data.menuFor = ''; await settle();
+  rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
+  assert.equal(data.menuFor, profile);
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })); await settle();
+  assert.equal(data.menuFor, '');
+  assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['code'], 'repository-only material offers no placement');
+  // Confirm installed… selects the file and opens the confirm; nothing writes until it is tapped.
+  icon.click(); await settle();
+  [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Confirm installed/.test(b.textContent)).click();
+  for (let i = 0; i < 10 && !data.pending; i++) await tick(2);
+  assert.equal(data.selected, profile); assert.equal(data.pending.kind, 'installed');
+  assert.match(el.textContent, /I placed this on the work computer/);
+  assert.equal(publications.length, writes, 'the menu opens the confirm; it does not write');
+  data.pending = null;
+  // A paste that differs, newer than any ledger row, shows as Differs with Record the difference….
+  await data.compareDrop(dropped('something else\n')); await settle();
+  assert.equal(data.statusOf(profile).short, 'Assumed synced', 'only a recorded difference turns the icon red');
+  assert.ok(data.actionsFor(profile).some(a => a.key === 'record-check' && a.label === 'Record the difference…'));
+  assert.ok(data.actionsFor(profile).some(a => a.key === 'changes'));
+  await data.runAction(profile, 'record-check'); await settle();
+  assert.equal(data.pending.kind, 'check'); assert.equal(data.pending.row.kind, 'differs');
+  data.pending = null; await settle();
+  assert.equal(publications.length, writes);
   data.select(FORMS); await settle();
 });
 
