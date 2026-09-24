@@ -1980,7 +1980,8 @@ window.__audit = {
                 :title="form === 'raw' ? 'Showing raw; tap for rendered' : 'Show raw'"
                 aria-label="raw" @click="setForm(form === 'raw' ? 'rendered' : 'raw')">
           <i class="ph ph-code text-sm"></i></button>
-        <button class="btn btn-xs btn-ghost" @click="deck()"><i class="ph ph-cards"></i> Sections</button>
+        <button class="btn btn-xs btn-ghost h-6 min-h-0 px-2" @click="deck()"
+                title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-base"></i></button>
         <button class="btn btn-xs btn-ghost" @click="$refs.reading.showModal()">Reading</button>
         <div class="join" x-show="patch.length" x-cloak>
           <button class="join-item btn btn-xs" :disabled="!canUndo" @click="undo()"
@@ -1996,9 +1997,12 @@ window.__audit = {
            names, so a label chip is tinted as its units are. Tapping one dims
            its units in place rather than hiding them, which keeps the document
            readable while one category is set aside. -->
-      <div class="px-4 pb-2 flex flex-wrap items-center gap-1">
-        <template x-for="k in (view === 'standoff' ? [] : axis)" :key="k">
-          <button class="btn btn-xs gap-1.5 border-0"
+      <!-- One line at any width. The chips take whatever the controls leave and
+           scroll sideways when a vocabulary has more labels than fit. -->
+      <div class="px-4 pb-2 flex items-center gap-2" x-show="view !== 'standoff'">
+        <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
+        <template x-for="k in axis" :key="k">
+          <button class="btn btn-xs gap-1.5 border-0 shrink-0"
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
                   :class="off[k] && 'opacity-40'"
@@ -2008,9 +2012,9 @@ window.__audit = {
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
         </template>
-        <!-- What the colour answers, and what it is spent on. Both change only
-             the document view. -->
-        <div class="flex items-center gap-1 ml-auto" x-show="view !== 'standoff'">
+        </div>
+        <!-- What the colour answers, and what it is spent on. -->
+        <div class="flex items-center gap-1 shrink-0">
           <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" x-show="so.verdicts" aria-label="colour by">
             <template x-for="l in ['label', 'verdict']" :key="l">
               <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
