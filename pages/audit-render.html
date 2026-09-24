@@ -2052,7 +2052,7 @@ window.__audit = {
                icon's colour alone: no outline, no fill. -->
           <div class="flex items-center" x-show="view !== 'standoff'" aria-label="unit marks">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
-              <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
                       :class="mark === t[0] ? 'text-primary' : 'text-base-content/35'"
                       @click="mark = t[0]; paint()"><i class="ph-bold text-lg" :class="t[1]"></i></button>
@@ -2061,7 +2061,7 @@ window.__audit = {
           <!-- Rendered, on or off, for whichever object is on screen: the
                formatted document or the spans table when on, the markdown or
                standoff.json when off. -->
-          <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
                   :aria-pressed="form === 'rendered'"
                   :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
