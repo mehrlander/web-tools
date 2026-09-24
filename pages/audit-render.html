@@ -2048,25 +2048,25 @@ window.__audit = {
              document has, then rendered or raw for either view, far right. -->
         <div class="flex items-center gap-1 shrink-0">
           <!-- How a unit is drawn, Doc only: its label's tint over the whole
-               span, or an underline. -->
-          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]"
-               x-show="view !== 'standoff'" aria-label="unit marks">
+               span, or an underline. Icon toggles carry their state in the
+               icon's colour alone: no outline, no fill. -->
+          <div class="flex items-center" x-show="view !== 'standoff'" aria-label="unit marks">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
-              <button class="join-item btn btn-xs h-6 min-h-0 px-2 border-none transition-none"
+              <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
-                      :class="mark === t[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                      @click="mark = t[0]; paint()"><i class="ph text-sm" :class="t[1]"></i></button>
+                      :class="mark === t[0] ? 'text-primary' : 'text-base-content/35'"
+                      @click="mark = t[0]; paint()"><i class="ph-bold text-lg" :class="t[1]"></i></button>
             </template>
           </div>
           <!-- Rendered, on or off, for whichever object is on screen: the
                formatted document or the spans table when on, the markdown or
                standoff.json when off. -->
-          <button class="btn btn-xs h-6 min-h-0 px-2 border border-base-300 transition-none"
-                  :class="form === 'rendered' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+          <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
                   :aria-pressed="form === 'rendered'"
                   :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
                   aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
-            <i class="ph ph-eye text-sm"></i></button>
+            <i class="ph-bold ph-eye text-lg"></i></button>
         </div>
       </div>
     </header>
