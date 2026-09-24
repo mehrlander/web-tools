@@ -227,15 +227,13 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   assert.doesNotMatch(el.querySelector('[data-adoption]').textContent, /awaiting adoption|Pending since/, 'the pending note is only the entry\'s own words');
   assert.equal(el.querySelector('[data-installation] dl'), null, 'no installs-to / GitHub-now field list');
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
-  await data.runAction(FORMS, 'code');
-  assert.deepEqual(shellCalls.find(c => c[0] === 'goProject'), ['goProject', P, 'code', FORMS]);
   data.select(`${P}/app/Forms/Bookmarks/Bookmarks.xaml`);
   await settle();
   assert.match(el.textContent, /with\s+Bookmarks\.ps1/, 'the companion reads as "with <file>"');
   data.select(`${P}/app/Scripts/Demo.ps1`);
   await settle();
   assert.equal(el.querySelector('[data-destination]').textContent, `${P}/app/Scripts/Demo.ps1`, 'repository-only material shows its repository path');
-  assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['deck', 'code'], 'repository-only material offers no placement to confirm');
+  assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['deck'], 'repository-only material offers no placement to confirm');
   data.select(FORMS);
   await settle();
 });
@@ -653,14 +651,14 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
-  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in editor', 'Open in Code']);
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in editor']);
   // Right-click opens the same menu; Escape closes it.
   data.menuFor = ''; await settle();
   rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
   assert.equal(data.menuFor, profile);
   window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })); await settle();
   assert.equal(data.menuFor, '');
-  assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['deck', 'code'], 'repository-only material offers no placement');
+  assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['deck'], 'repository-only material offers no placement');
   // Confirm installed… selects the file and opens the confirm; nothing writes until it is tapped.
   icon.click(); await settle();
   [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Confirm installed/.test(b.textContent)).click();
@@ -734,7 +732,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   assert.equal(card().diffRows.filter(r => r.type === 'add').length, 1);
   assert.equal(card().diffRows.filter(r => r.type === 'del').length, 0);
   const rows = card().menuRows().map(r => r.label);
-  for (const label of ['Find', 'Copy GitHub text', 'Download', 'Copy transfer script', 'Discard draft…', 'Review and publish in Code'])
+  for (const label of ['Find', 'Copy GitHub text', 'Download', 'Copy transfer script', 'Discard draft…', 'Publish drafts…'])
     assert.ok(rows.includes(label), label + ' is in the file menu');
   button('Done editing').click(); await tick(2);
   assert.equal(editor.readOnlyOn, true);
@@ -742,6 +740,20 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   deck.close(); await settle();
   await poll(() => data.drafts[FORMS], 'the list marks the file with a browser draft');
   assert.ok(el.querySelector('[data-draft-mark]:not([style*="display: none"])'), 'the mark renders');
+  assert.equal(data.draftList.length, 1, 'the Overview lists the draft for publication');
+  const W = window.PowerShellWorkspace, realPublish = W.publish; let sent = null;
+  W.publish = async args => { sent = args; return { branch: args.branch, url: 'https://example/tree', compareUrl: 'https://example/compare' }; };
+  data.reviewPublish();
+  assert.ok(data.publishOpen && data.publishBranch && data.publishMessage, 'the panel opens with a branch and message proposed');
+  await data.publish();
+  W.publish = realPublish;
+  assert.equal(data.publishError, '');
+  assert.equal(sent.baseRevision, data.revision);
+  assert.equal(sent.drafts.length, 1);
+  assert.equal(sent.drafts[0].path, FORMS);
+  assert.equal(sent.drafts[0].baseRevision, data.revision, 'an unmoved draft is carried onto the current revision');
+  assert.equal(data.published.branch, data.publishBranch);
+  data.published = null;
   await data.openFileDeck(FORMS);
   const again = window.swipeDeck.stack.at(-1);
   const reopened = () => [...again.el.querySelectorAll('[data-ps-file]')].map(n => Alpine.$data(n)).find(c => c.item?.path === FORMS);

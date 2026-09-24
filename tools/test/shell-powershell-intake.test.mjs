@@ -1,6 +1,6 @@
 // Execute the shipped shell against real Alpine selection lookup and the
-// correspondence parser. The workspace receiver is the tested boundary here;
-// its pinned-source comparison and draft review are covered by its view tests.
+// correspondence parser. The Overview's receiver (installationView.takeCopy)
+// is the boundary here; what it does with a copy is covered by its view tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -11,7 +11,6 @@ const REPO = 'example/estate', REF = 'review/powershell';
 const A = 'projects/wps/app/Forms/Report.ps1', B = 'projects/wps/app/Modules/Utility.psm1';
 const X = 'projects/wps/app/Forms/Report.xaml', OUTSIDE = 'projects/elsewhere/Other.ps1';
 const text = '\ufeff# @file ' + A + '\r\nfunction Get-Report { "héllo 🌳" }\r\n';
-const bundle = JSON.stringify({ format: 'web-tools-powershell-drafts', version: 1, drafts: [] });
 const defer = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const plain = text => [{ kind: 'text', type: 'text/plain', text }];
 const { window, problems } = makeWindow();
@@ -38,30 +37,22 @@ function fixture({ active = A, busy = false } = {}) {
   Alpine.store('browser', store);
   Alpine.store('toast', (icon, message, cls) => toasts.push({ icon, message, cls }));
   const shell = app();
-  shell.view = 'project'; shell.projectTab = 'code'; shell.projectPath = 'projects/wps';
-  shell.installationItem = A; shell.syncUrl = () => {};
+  shell.view = 'project'; shell.projectTab = 'overview'; shell.projectPath = 'projects/wps';
+  shell.installationItem = active; shell.syncUrl = () => {};
   Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', installation: 'data/installation.json' } });
-  const data = { active, busy, generation: 0, captures: 0,
-    captureIntake() {
-      this.captures++;
-      if (this.busy) return null;
-      const generation = this.generation, selectedPath = this.active;
-      const current = () => generation === this.generation && selectedPath === this.active;
-      return { repo: REPO, ref: REF, selected: selectedPath ? { repo: REPO, ref: REF, path: selectedPath } : null,
-        isCurrent: current,
-        receive: async (target, sourceText, meta) => {
-          if (!current()) throw new Error('Stale workspace intake');
-          if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
-          received.push({ target, text: sourceText, meta });
-          return true;
-        } };
-    } };
-  Alpine.data('powershellWorkspace', () => data);
+  // The Overview's receiver: the shell hands it a copy for the selected file
+  // (openCorrespondence -> installationView.takeCopy) and the Overview shows it.
+  Alpine.data('installationView', () => ({ busy,
+    async takeCopy(target, sourceText, name, source) {
+      if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
+      received.push({ target, text: sourceText, meta: { name, source } });
+      return true;
+    } }));
   const el = window.document.createElement('div');
-  el.setAttribute('x-data', 'powershellWorkspace()');
+  el.setAttribute('x-data', 'installationView()');
   Alpine.mutateDom(() => { window.document.body.appendChild(el); Alpine.initTree(el); });
   mounted = el;
-  const workspace = Alpine.$data(el);
+  const workspace = { captures: 0 };
   window.FileCorrespondence = { ...correspondence, open: async opts => {
     comparisons.push(opts); return { record: { observation: 'Compared' }, saved: true };
   } };
@@ -90,7 +81,7 @@ function event(data, { target = { tagName: 'DIV' }, drop = false } = {}) {
 }
 const file = (name, contents = text) => ({ name, arrayBuffer: async () => new TextEncoder().encode(contents).buffer });
 
-test('desktop paste resolves the live Alpine workspace and preserves exact signed source', async () => {
+test('desktop paste reaches the Overview for the selected file and preserves exact signed source', async () => {
   const h = fixture();
   const e = event(clipboard());
   await h.fire('paste', e);
@@ -134,79 +125,6 @@ test('a conflicting file declaration waits for either explicit target choice', a
   assert.equal(h.shell.correspondencePending, null);
   assert.equal(h.shell.view, 'project');
   assert.deepEqual(h.comparisons, []);
-});
-
-test('a declaration choice is rejected if its original selection changed, even A to B to A', async () => {
-  const h = fixture();
-  await h.shell.takeCorrespondence('# @file ' + B + '\ncopy');
-  h.workspace.active = B; h.workspace.generation++;
-  h.workspace.active = A; h.workspace.generation++;
-  await h.shell.chooseCorrespondence('declared');
-  assert.deepEqual(h.received, []);
-  assert.deepEqual(h.comparisons, []);
-  assert.equal(h.shell.view, 'project');
-  assert.match(h.toasts.at(-1).message, /selection changed/i);
-});
-
-test('clipboard reads capture the target before waiting, rather than compare to the new selection', async () => {
-  const h = fixture(), gate = defer();
-  window.io.pasteItems = () => gate.promise;
-  const operation = h.shell.pasteAnywhere();
-  assert.equal(h.workspace.captures, 1);
-  h.workspace.active = B;
-  gate.resolve(plain('unsigned source'));
-  await operation;
-  assert.deepEqual(h.received, []);
-  assert.deepEqual(h.staged, []);
-  assert.deepEqual(h.comparisons, []);
-  assert.match(h.toasts.at(-1).message, /selection changed/i);
-  assert.equal(h.shell.pasteBusy, false);
-});
-
-test('file reads retain the original target and stop when the active file changes', async () => {
-  const h = fixture(), gate = defer();
-  const local = { name: 'Report.ps1', arrayBuffer: () => gate.promise };
-  const operation = h.fire('drop', event(clipboard('', { files: [local], items: [{ kind: 'file' }] }), { drop: true }));
-  h.workspace.active = B;
-  gate.resolve(new TextEncoder().encode('unsigned source').buffer);
-  await operation;
-  assert.deepEqual(h.received, []);
-  assert.deepEqual(h.staged, []);
-  assert.match(h.toasts.at(-1).message, /selection changed/i);
-});
-
-test('route departure or workspace remount invalidates an unresolved declaration chooser', async () => {
-  const h = fixture();
-  await h.shell.takeCorrespondence('# @file ' + B + '\ncopy');
-  h.shell.view = 'map';
-  await h.shell.chooseCorrespondence('declared');
-  assert.equal(h.shell.view, 'map');
-  assert.deepEqual(h.received, []);
-  h.shell.view = 'project';
-  await h.shell.takeCorrespondence('# @file ' + B + '\ncopy');
-  h.el.remove();
-  await h.shell.chooseCorrespondence('selected');
-  assert.deepEqual(h.received, []);
-  assert.deepEqual(h.comparisons, []);
-});
-
-test('All files never reuses installationItem, while a declared manifest file still has a target', async () => {
-  const h = fixture({ active: '' });
-  assert.equal(h.shell.installationItem, A);
-  assert.equal(h.shell.selectedCorrespondence, null);
-  assert.equal(await h.shell.takeCorrespondence('unsigned source'), false);
-  await h.shell.takeCorrespondence(text);
-  assert.equal(h.received[0].target.path, A);
-  assert.deepEqual(h.comparisons, []);
-});
-
-test('an opening workspace reports retry instead of guessing its old installation target', async () => {
-  const h = fixture({ busy: true });
-  await h.fire('paste', event(clipboard()));
-  assert.deepEqual(h.received, []);
-  assert.deepEqual(h.staged, []);
-  assert.deepEqual(h.comparisons, []);
-  assert.match(h.toasts.at(-1).message, /finish opening/i);
 });
 
 test('a selected XAML document accepts exact unsigned XAML through the same intake', async () => {
@@ -264,17 +182,6 @@ test('app Paste follows explicit single-line addresses before code intake', asyn
   assert.deepEqual(h.staged, []);
 });
 
-test('a delayed address recognizer cannot shift the target of unsigned code intake', async () => {
-  const h = fixture(), gate = defer();
-  h.shell.pasteRoute = () => gate.promise;
-  const operation = h.fire('paste', event(clipboard('unsigned source')));
-  h.workspace.active = B;
-  gate.resolve(false);
-  await operation;
-  assert.deepEqual(h.received, []);
-  assert.match(h.toasts.at(-1).message, /selection changed/i);
-});
-
 test('screenshots and binary or multiple-file arrivals retain Stage routing with code selected', async () => {
   const h = fixture();
   const screenshot = { name: 'Screenshot.png', arrayBuffer: async () => { assert.fail('binary bytes must not be decoded as code'); } };
@@ -298,19 +205,6 @@ test('file clipboard items without exposed files do not let accompanying text be
   assert.equal(h.staged[0].kind, 'paste');
 });
 
-test('known draft bundles reach import review through text, JSON flavor and JSON file', async () => {
-  const h = fixture();
-  await h.fire('paste', event(clipboard(bundle)));
-  await h.fire('paste', event(clipboard(bundle, { type: 'application/json' })));
-  window.io.pasteItems = async () => [{ kind: 'text', type: 'application/json', text: bundle }];
-  await h.shell.pasteAnywhere();
-  await h.fire('drop', event(clipboard('', { files: [file('drafts.json', bundle)], items: [{ kind: 'file' }] }), { drop: true }));
-  assert.equal(h.received.length, 4);
-  assert.ok(h.received.every(copy => copy.target === null && copy.text === bundle));
-  assert.deepEqual(h.comparisons, []);
-  assert.equal(h.shell.view, 'project');
-});
-
 test('an ordinary JSON file stays Stage content instead of replacing the selected code context', async () => {
   const h = fixture();
   const local = file('data.json', '{"color":"blue"}');
@@ -332,15 +226,14 @@ test('native field drops and already-handled drops remain untouched', async () =
   assert.deepEqual(h.staged, []);
 });
 
-test('Overview and Files keep the preexisting Stage comparison route', async () => {
+test('the Overview takes a copy in place, and Files keeps the Stage comparison route', async () => {
   const h = fixture();
-  h.shell.projectTab = 'overview';
   await h.shell.takeCorrespondence('overview copy');
-  assert.equal(h.comparisons[0].target.path, A);
+  assert.equal(h.received[0].target.path, A);
+  assert.deepEqual(h.comparisons, []);
   h.shell.view = 'search'; h.shell.searchOpenFile = { repo: REPO, ref: REF, path: B };
   await h.shell.takeCorrespondence('search copy');
-  assert.equal(h.comparisons[1].target.path, B);
+  assert.equal(h.comparisons[0].target.path, B);
   assert.equal(h.shell.view, 'stage');
-  assert.equal(h.workspace.captures, 0);
-  assert.deepEqual(h.received, []);
+  assert.equal(h.received.length, 1);
 });
