@@ -211,6 +211,20 @@ test('source reads reject corrupt and non-UTF-8 bytes without replacing them', a
   await assert.rejects(K.readFile({ gh, path: FILE, revision: REV, blobSha: sha }), /not UTF-8/);
 });
 
+test('byte reads return a Windows-1252 file exactly as its Git blob, still verified', async () => {
+  const { K, gh, blobs, writes } = harness();
+  // "Width)×$(" as Windows PowerShell 5.1 saves it with no BOM: 0xD7 is ×.
+  const ansi = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]), sha = blobSha(ansi);
+  blobs.set(sha, ansi);
+  await assert.rejects(K.readFile({ gh, path: FILE, revision: REV, blobSha: sha }), /not UTF-8/);
+  const result = await K.readBytes({ gh, path: FILE, revision: REV, blobSha: sha });
+  assert.equal(Buffer.from(result.bytes).compare(ansi), 0);
+  assert.equal(result.sha, sha);
+  blobs.set(sha, Buffer.from('corrupt'));
+  await assert.rejects(K.readBytes({ gh, path: FILE, revision: REV, blobSha: sha }), /do not match/);
+  assert.equal(writes.length, 0);
+});
+
 test('drafts persist independently by repository, project, ref and file with no GitHub writes', async () => {
   const { K, writes, records } = harness();
   const first = await K.saveDraft(draft());

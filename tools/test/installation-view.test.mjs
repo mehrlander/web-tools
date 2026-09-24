@@ -108,6 +108,13 @@ window.GH = class {
       publications.push({ body, paths: changedTrees.get(commit.tree), snapshot: { ...files } });
       return { object: { sha: currentRevision } };
     }
+    if (method === 'GET' && p.startsWith('git/blobs/')) {
+      const sha = p.slice('git/blobs/'.length);
+      const hit = [...snapshots.values(), files].flatMap(s => Object.entries(s)).find(([, t]) => gitBlob(t) === sha);
+      if (!hit) throw Object.assign(new Error('Not Found'), { status: 404 });
+      await readGate?.(hit[0], this.ref);
+      return { sha, encoding: 'base64', content: Buffer.from(hit[1], 'utf8').toString('base64') };
+    }
     if (method === 'GET' && p.startsWith('git/trees/')) {
       treeReads++;
       const revision = p.slice('git/trees/'.length).split('?')[0];
@@ -159,7 +166,7 @@ const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };
 Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async t => { clip.push(t); } } });
 
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/alpineComponents/installation-view.js'])
+for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-workspace.js', 'lib/kits/powershell-language.js', 'lib/alpineComponents/installation-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];
 Alpine.store('browser', { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: 'mehrlander/home', ref: 'main' }) });
@@ -354,9 +361,31 @@ test('an older file fetch cannot replace the new selection\'s text or busy state
   assert.equal(await data.fetchText(), files[FORMS]);
 });
 
+test('the transfer script carries the exact GitHub bytes to the manifest destination and records nothing', async () => {
+  const written = publications.length;
+  data.select(FORMS); await settle();
+  await data.copyTransferScript();
+  const script = clip[clip.length - 1];
+  assert.match(script, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1'\r$/m);
+  const encoded = /FromBase64String\('([^']+)'\)/.exec(script)[1];
+  assert.equal(Buffer.from(encoded, 'base64').toString('utf8'), files[FORMS]);
+  assert.match(script, /WriteAllBytes\(\$dest, \$bytes\)/);
+  assert.ok(script.includes(gitBlob(files[FORMS])), 'the script names the Git blob the placed file should hash to');
+  assert.equal(data.lastTransfer[FORMS], 'script');
+  assert.equal(publications.length, written, 'a transfer script is not an installation');
+  assert.equal(window.PowerShellLanguage.inspect(script).diagnostics.length, 0, 'the script itself uses no PowerShell 7 syntax');
+  const demo = `${P}/app/Scripts/Demo.ps1`, copies = clip.length;
+  data.select(demo); await settle();
+  assert.equal(el.querySelector('[aria-label="Copy transfer script"]').style.display, 'none', 'repository-only material offers no script');
+  await data.copyTransferScript();
+  assert.equal(clip.length, copies, 'repository-only material has no destination to script');
+  assert.match(data.err, /no installation destination/);
+  data.err = ''; data.select(FORMS); await settle();
+});
+
 test('selection changes cancel pending copy, download, and installed-row preparation', async () => {
   const profile = `${P}/app/Profile.ps1`;
-  for (const method of ['copyText', 'downloadText', 'askInstalled']) {
+  for (const method of ['copyText', 'downloadText', 'copyTransferScript', 'askInstalled']) {
     data.select(FORMS);
     const gate = deferred(), copies = clip.length, downloads = saves.length;
     readGate = p => p === FORMS ? gate.promise : undefined;
@@ -495,7 +524,7 @@ test('the Source header carries copy, download and compare; the action row keeps
   data.select(FORMS); await settle();
   const tools = el.querySelector('[data-source-tools]');
   const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
-  assert.deepEqual(labels, ['Copy GitHub text', 'Download GitHub text', 'Compare the clipboard with this file', 'Compare a file with this file']);
+  assert.deepEqual(labels, ['Copy GitHub text', 'Download GitHub text', 'Copy transfer script', 'Compare the clipboard with this file', 'Compare a file with this file']);
   assert.ok(tools.querySelector('input[type=file]'), 'the file picker rides the compare icon');
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
   for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');

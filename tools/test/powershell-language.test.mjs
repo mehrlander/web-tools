@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 const window = {};
 new Function('window', readFileSync(new URL('../../lib/kits/powershell-language.js', import.meta.url), 'utf8'))(window);
-const { inspect, compareCompanions } = window.PowerShellLanguage;
+const { inspect, compareCompanions, compareTheme } = window.PowerShellLanguage;
 
 test('PowerShell outline masks comments, here-strings, multiline strings, and escaped quotes', () => {
   const source = [
@@ -106,9 +106,30 @@ test('selected compatibility warnings ignore comments, literals, and here-string
   ].join('\n');
   const result = inspect(source);
   assert.deepEqual(result.diagnostics.map(d => [d.rule, d.line]).sort((a, b) => a[1] - b[1]), [
-    ['ps51-requires', 1], ['ps51-pipeline-chain', 8], ['ps51-null-coalescing', 9], ['ps51-parallel', 10],
+    ['ps51-requires', 1], ['ps51-pipeline-chain', 8], ['ps51-null-coalescing-assignment', 9], ['ps51-parallel', 10],
   ]);
   assert.deepEqual(inspect('#requires -Version 5.1\n$value = \'??\'').diagnostics, []);
+});
+
+test('ternary and null-coalescing observations skip the Where-Object alias, scope and drive colons, wildcards, and masked text', () => {
+  const source = [
+    "$label = $ready ? 'Ready' : 'Waiting'",
+    '$count = ($items | ? { $_.Enabled }).Count',
+    '? Name -like "a*"',
+    '$rows = $items | ? Name -eq $script:name',
+    "$name = $item.Name ?? 'none'",
+    '$first = $items[0] ?? $default',
+    'Get-ChildItem ??.txt',
+    '# $x ? 1 : 2 ?? 3',
+    "$example = '$x ? 1 : 2'",
+    '$value = if ($ready) { 1 } else { 2 }',
+    '$path = C:\\Temp\\out.txt; $script:total ??= 0',
+    '$size = ($file.Length -gt 0) ? "$($file.Length) bytes" : \'empty\'',
+  ].join('\r\n');
+  assert.deepEqual(inspect(source).diagnostics.map(d => [d.rule, d.line]), [
+    ['ps51-ternary', 1], ['ps51-null-coalescing', 5], ['ps51-null-coalescing', 6], ['ps51-null-coalescing-assignment', 11], ['ps51-ternary', 12],
+  ]);
+  assert.match(inspect('$a ? 1 : 2').diagnostics[0].message, /if and else/);
 });
 
 test('unclosed lexical regions are observations with a location, not runtime validation', () => {
@@ -137,6 +158,26 @@ test('XAML inspection supports multiline tags, multiple tags per line, quotes, c
   assert.deepEqual(result.controls.map(c => [c.name, c.type, c.line]), [['MainWindow', 'Window', 5], ['SaveButton', 'Button', 7], ['Search', 'TextBox', 9], ['Status', 'TextBlock', 9]]);
   assert.deepEqual(result.resources.map(r => [r.name, r.kind]), [['AccentBrush', 'dynamic'], ['TextBrush', 'static'], ['AccentBrush', 'definition']]);
   assert.deepEqual(result.references, [{ name: 'OnSave', kind: 'handler', line: 8, detail: 'Click' }]);
+  assert.deepEqual(result.symbols.map(s => [s.name, s.kind, s.line]), [
+    ['MainWindow', 'control', 5], ['SaveButton', 'control', 7], ['AccentBrush', 'DynamicResource', 8], ['Search', 'control', 9], ['Status', 'control', 9], ['TextBrush', 'StaticResource', 9], ['AccentBrush', 'x:Key', 10],
+  ]);
+});
+
+test('the XAML outline lists each resource key once, at its first use, while every occurrence stays in resources', () => {
+  const source = [
+    '<ResourceDictionary>',
+    '  <SolidColorBrush x:Key="PanelBrush" Color="Gray"/>',
+    '  <Style x:Key="Heading"><Setter Property="Foreground" Value="{DynamicResource PanelBrush}"/></Style>',
+    '  <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource PanelBrush}"/>',
+    '</ResourceDictionary>',
+  ].join('\n');
+  const result = inspect(source, 'Theme.xaml');
+  assert.equal(result.resources.filter(r => r.kind === 'dynamic').length, 3);
+  assert.deepEqual(result.symbols, [
+    { name: 'PanelBrush', kind: 'x:Key', line: 2, detail: '' }, { name: 'Heading', kind: 'x:Key', line: 3, detail: '' },
+    { name: 'PanelBrush', kind: 'DynamicResource', line: 3, detail: '3 uses' },
+  ]);
+  assert.deepEqual(inspect('<Grid/>', 'Form.xaml').symbols, []);
 });
 
 test('companion matching requires explicit literal FindName lookups and respects WPF name casing', () => {
@@ -174,4 +215,24 @@ test('event receivers are never inferred from unrelated same-name variable assig
   const source = "function First { $button.Add_Click({}) }\nfunction Second { $button = $window.FindName('Save') }";
   assert.deepEqual(inspect(source).references.find(r => r.kind === 'event'), { name: '$button', kind: 'event', line: 1, detail: 'Click' });
   assert.deepEqual(inspect('<TextBlock Text="{}{StaticResource Example}"/>', 'Form.xaml').resources, []);
+});
+
+test('a DynamicResource key defined neither in the form nor in Theme.xaml is reported at its line', () => {
+  const theme = '<ResourceDictionary>\n  <SolidColorBrush x:Key="BorderColor" Color="Gray"/>\n  <Style x:Key="MonoText"/>\n</ResourceDictionary>';
+  const form = [
+    '<Window>',
+    '  <Window.Resources><SolidColorBrush x:Key="LinkBlue" Color="Blue"/></Window.Resources>',
+    '  <!-- <Border BorderBrush="{DynamicResource Commented}"/> -->',
+    '  <Border BorderBrush="{DynamicResource BorderColor}" Background="{DynamicResource LinkBlue}"/>',
+    '  <TextBox Style="{DynamicResource MonoTextBox}"/>',
+    '  <Grid Background="{StaticResource NotChecked}"/>',
+    '  <TextBox Style="{DynamicResource MonoTextBox}"/>',
+    '</Window>',
+  ].join('\r\n');
+  const result = compareTheme(form, theme);
+  assert.deepEqual(result.unresolved.map(r => [r.name, r.line]), [['MonoTextBox', 5], ['MonoTextBox', 7]]);
+  assert.deepEqual(result.diagnostics.map(d => [d.rule, d.line]), [['theme-unresolved', 5], ['theme-unresolved', 7]]);
+  assert.match(result.diagnostics[0].message, /MonoTextBox.*WPF keeps the property default/);
+  assert.deepEqual(compareTheme(inspect(form, 'Form.xaml'), inspect(theme, 'Theme.xaml')).unresolved.length, 2);
+  assert.deepEqual(compareTheme('<Grid Background="Red"/>', theme).diagnostics, []);
 });
