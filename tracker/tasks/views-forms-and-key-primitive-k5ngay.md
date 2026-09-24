@@ -142,3 +142,4 @@ column; the FAB captions a deck slide by its type with a deck row above it;
 ## Progress log
 - 2026-09-22: filed from the design pass on claude/serene-einstein-dyr03b, after PR #756.
 - 2026-09-24: claimed on claude/show-docs-restructure-fc9r96 for part 1, with the scope widened to every route and the owner's trim rule added above.
+- 2026-09-24: part 1 on claude/show-docs-restructure-fc9r96, PR #778: show-repo.md split into docs/views/ and docs/forms/ (31,586 words to 5,333), doc columns on app-routes.csv and subjects.csv held by app-routes.test.mjs, routes folded into the Map doc. Parts 2 to 4 remain.
