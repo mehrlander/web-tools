@@ -69,7 +69,13 @@ window.GH = class {
     reads.push({ path: p, ref: this.ref, cache: opts.cache });
     await readGate?.(p, this.ref);
     if (t === undefined) { const e = new Error('Not Found'); e.status = 404; throw e; }
-    return { text: t, sha: gitBlob(t) };
+    // The contents API decodes as UTF-8 and replaces what is not, as GH.get does.
+    return { text: typeof t === 'string' ? t : new TextDecoder().decode(t), sha: gitBlob(t) };
+  }
+  async bytes(p) {
+    const t = snapshotAt(this.ref)[p];
+    if (t === undefined) { const e = new Error('Not Found'); e.status = 404; throw e; }
+    return { bytes: new Uint8Array(Buffer.from(t)), sha: gitBlob(t) };
   }
   async req(p, opts = {}) {
     const method = opts.method || 'GET', body = opts.body ? JSON.parse(opts.body) : null;
@@ -140,6 +146,7 @@ const checks = [];
 const shellCalls = [];
 window.FileCorrespondence = {
   applies: t => /\.(ps1|psm1|xaml)$/i.test(t?.path || ''),
+  declaration: text => (String(text).match(/^\s*#\s*@file\s+(.+?)\s*$/im) || [])[1] || '',
   decodeBytes: (bytes, encoding = 'auto') => new TextDecoder(encoding === 'auto' ? 'utf-8' : encoding, { fatal: true }).decode(bytes),
   checksUnder: async (repo, prefix) => checks.filter(c => c.repo === repo && c.path.startsWith(prefix)),
   reopen: async c => { shellCalls.push(['reopen', c.id]); },
@@ -385,7 +392,7 @@ test('the transfer script carries the exact GitHub bytes to the manifest destina
   assert.equal(window.PowerShellLanguage.inspect(script).diagnostics.length, 0, 'the script itself uses no PowerShell 7 syntax');
   const demo = `${P}/app/Scripts/Demo.ps1`, copies = clip.length;
   data.select(demo); await settle();
-  assert.equal(el.querySelector('[aria-label="Copy transfer script"]').style.display, 'none', 'repository-only material offers no script');
+  assert.ok(!data.actionsFor(demo).some(a => a.key === 'script'), 'repository-only material offers no install script');
   await data.copyTransferScript();
   assert.equal(clip.length, copies, 'repository-only material has no destination to script');
   assert.match(data.err, /no installation destination/);
@@ -529,18 +536,19 @@ test('the source pane shows the selected file read-only, swaps on reselect, and 
   data.select(FORMS); await settle();
 });
 
-test('the Source header carries copy, download and compare; the action row keeps placement and navigation', async () => {
+test('the Source header carries only Open in editor and Copy; a copy arrives through the paste zone', async () => {
   data.select(FORMS); await settle();
   const tools = el.querySelector('[data-source-tools]');
   const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
-  assert.deepEqual(labels, ['Open in editor', 'Copy GitHub text', 'Download GitHub text', 'Copy transfer script', 'Compare the clipboard with this file', 'Compare a file with this file']);
-  assert.ok(tools.querySelector('input[type=file]'), 'the file picker rides the compare icon');
+  assert.deepEqual(labels, ['Open in editor', 'Copy GitHub text']);
+  assert.equal(el.querySelector('input[type=file]'), null, 'no file picker: a file is dropped on the zone or the column');
+  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'script' && a.label === 'Copy install script'), 'a file awaiting adoption offers the install script from its status menu');
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
   for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');
   assert.equal(el.querySelector('textarea'), null, 'no paste field: the page-wide paste and the clipboard icon take a copy');
   assert.equal(q('select').length, 1, 'only the state filter; encoding is asked for when decoding fails');
-  tools.querySelector('[aria-label="Compare the clipboard with this file"]').click();
-  assert.deepEqual(shellCalls.at(-1), ['pasteAnywhere', FORMS], 'the clipboard goes through the app\'s Paste, aimed at this file');
+  el.querySelector('[data-copy-zone]').click();
+  assert.deepEqual(shellCalls.at(-1), ['pasteAnywhere', FORMS], 'a tap on the zone reads the clipboard through the app\'s Paste, aimed at this file');
 });
 
 test('a file that fails to decode is offered its encoding, and the retry compares it', async () => {
@@ -598,6 +606,10 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.equal(data.sourceView, 'code'); assert.ok(shown(el.querySelector('[data-source-plain]'))); assert.ok(!shown(diff()));
   // A copy supplied from the work computer is newer evidence and takes over.
   await data.compareDrop(dropped('<Window>\n</Window>\n')); await settle(); await settle();
+  assert.equal(data.sourceView, 'code', 'a supplied copy is described first, not opened as a diff');
+  assert.equal(data.copyNote.title, 'This copy differs from GitHub.');
+  assert.deepEqual(JSON.parse(JSON.stringify(data.copyNote.lines)), ['No named control or resource key changed; the difference is in layout or values.']);
+  [...el.querySelectorAll('[data-copy-summary] button')].find(b => b.textContent === 'Show line changes').click(); await settle();
   assert.equal(data.sourceView, 'changes');
   assert.equal(data.baseline.label, 'Supplied copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
@@ -732,7 +744,8 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   assert.equal(card().diffRows.filter(r => r.type === 'add').length, 1);
   assert.equal(card().diffRows.filter(r => r.type === 'del').length, 0);
   const rows = card().menuRows().map(r => r.label);
-  for (const label of ['Find', 'Copy GitHub text', 'Download', 'Copy transfer script', 'Discard draft…', 'Publish drafts…'])
+  assert.ok(!rows.includes('Download'), 'no Download in the file menu');
+  for (const label of ['Find', 'Copy GitHub text', 'Copy install script', 'Discard draft…', 'Publish drafts…'])
     assert.ok(rows.includes(label), label + ' is in the file menu');
   button('Done editing').click(); await tick(2);
   assert.equal(editor.readOnlyOn, true);
@@ -799,6 +812,52 @@ test('a Windows-1252 file opens decoded and read-only, and its transfer script c
   deck.close(); await settle();
   delete files[ANSI]; advanceHead(); await data.reload(); await settle();
   delete window.PowerShellEditor;
+});
+
+test('a pasted copy is described by function before any diff, and can open as a draft in the file line endings', async () => {
+  const CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`, original = files[CTL];
+  files[CTL] = 'function Get-Mark {\r\n  param($Name)\r\n  $Name\r\n}\r\nfunction Old-One { }\r\n';
+  advanceHead(); await data.reload(); await settle();
+  data.select(CTL); await settle();
+  await data.takeCopy(null, 'function Get-Mark {\n  param($Name, $Count)\n  $ok ? $Name : $Count\n}\nfunction New-One { }\n', 'clip', 'paste');
+  await settle();
+  const note = data.copyNote;
+  assert.equal(note.title, 'This copy differs from GitHub.');
+  assert.deepEqual([...note.lines], ['Changed: Get-Mark (adds $Count)', 'Added: New-One', 'Removed: Old-One',
+    'New 5.1 problem at line 3: The ternary operator (? :) requires PowerShell 7 or later; Windows PowerShell 5.1 needs if and else.']);
+  assert.equal(data.sourceView, 'code', 'no jump to the line diff');
+  assert.ok(el.querySelector('[data-copy-summary]').textContent.includes('Added: New-One'));
+  window.PowerShellEditor = { create: async (host, cfg) => ({ host, cfg, open() {}, readOnly() {}, go() {}, command() {}, focus() {}, refresh() {}, destroy() {} }) };
+  await data.copyAsDraft(); await settle();
+  const draft = [...draftStore.values()].find(d => d.path === CTL);
+  assert.ok(draft, 'the copy became the file\'s browser draft');
+  assert.equal(draft.text, 'function Get-Mark {\r\n  param($Name, $Count)\r\n  $ok ? $Name : $Count\r\n}\r\nfunction New-One { }\r\n', 'with the GitHub file\'s CRLF');
+  assert.equal(draft.baseText, files[CTL]);
+  assert.ok(window.swipeDeck.stack.length, 'and it opened in the file deck');
+  window.swipeDeck.stack.at(-1).close(); await settle();
+  draftStore.clear(); await data.loadDrafts();
+  const signed = '# @file ' + CTL + '\r\n' + files[CTL];
+  await data.takeCopy(null, files[CTL], 'clip', 'paste');
+  assert.equal(data.copyNote.title, 'This copy matches GitHub exactly.');
+  assert.equal(data.copyNote.same, true);
+  await data.takeCopy(null, signed, 'clip', 'paste');
+  assert.match(data.copyNote.title, /^Signed copy of Bookmarks\.ps1: /);
+  files[CTL] = original; advanceHead(); await data.reload(); await settle();
+  delete window.PowerShellEditor;
+});
+
+test('the Overview reads a Windows-1252 file as Windows-1252 and says so', async () => {
+  const ANSI = `${P}/app/Modules/Ansi/Ansi.psm1`;
+  files[ANSI] = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]);
+  advanceHead(); await data.reload(); await settle();
+  data.select(ANSI); await settle();
+  assert.equal(await data.fetchText(), 'Width)×$(\r\n');
+  assert.equal(data.textEncoding, 'windows-1252');
+  assert.match(el.querySelector('[data-source]').textContent, /Windows-1252/);
+  data.select(FORMS); await settle();
+  assert.equal(await data.fetchText(), files[FORMS]);
+  assert.equal(data.textEncoding, '');
+  delete files[ANSI]; advanceHead(); await data.reload(); await settle();
 });
 
 test('every ledger write in this run went through a confirm', () => {
