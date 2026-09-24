@@ -240,8 +240,10 @@
         // session, so they are orthogonal to the three ways of naming one.
         const pane = pick('pane');
         const card = parseInt(pick('card'), 10);
+        const file = pick('file');
         const at = { ...(['outline', 'files', 'raw'].includes(pane) ? { pane } : {}),
-                     ...(Number.isInteger(card) ? { start: card } : {}) };
+                     ...(Number.isInteger(card) ? { start: card } : {}),
+                     ...(file ? { file } : {}) };
         const gz = pick('gz');
         if (gz) return { kind: 'gz', gz, at };
         const id = pick('id');
