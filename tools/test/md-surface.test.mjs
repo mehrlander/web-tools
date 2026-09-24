@@ -154,6 +154,7 @@ test('reverting one change restores exactly that block, blank lines included', a
   let t = text;
   for (let c = D.changes(base, t)[0]; c; c = D.changes(base, t)[0]) t = D.revert(base, t, c);
   assert.equal(t, base, 'reverting every change, one at a time, gives back the base exactly');
+  assert.equal(D.revert(base, text, D.changes(base, text)), base, 'and all of them at once, as a card does');
 });
 
 test('the patch applies with git and reproduces the edit byte for byte', async () => {
@@ -170,4 +171,54 @@ test('the patch applies with git and reproduces the edit byte for byte', async (
   execFileSync('git', ['apply', 'edit.patch'], { cwd: dir });
   assert.equal(rd(path.join(dir, 'docs/SURFACING.md'), 'utf8'), text);
   assert.equal(M().patch('x.md', base, base), '', 'no edit, no patch');
+});
+
+// Tracked: the edit drawn as cards in the document, one card per run of
+// changed blocks, marked as a whole. Removed words are shown and never mapped,
+// so every stamped run is still the buffer's text.
+test('tracked render draws each run of changes as one card and maps only the buffer', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const base = '# Title\n\nThe canonical source is here.\n\nGone para.\n\nSame para.\n';
+  const text = '# Title\n\nThe official source is here.\n\nSame para.\n\nAdded para.\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
+  const cards = [...host.querySelectorAll('[data-md-card]')];
+  assert.equal(cards.length, 2, 'the changed and removed blocks side by side are one card, the added one another');
+  assert.equal(window.MdSurface.cards(host)[0].map((e) => e.kind).join(), 'changed,removed');
+  assert.deepEqual([...host.querySelectorAll('del')].map((d) => d.textContent.trim()), ['canonical', 'Gone para.'],
+    'the run is marked as a whole, so a block taken out beside a changed one is struck where it stood');
+  assert.ok(![...host.querySelectorAll('del [data-src], [data-md-ghost] [data-src], [data-md-ui] [data-src]')].length,
+    'removed words, removed blocks and card controls carry no offset');
+  for (const sp of host.querySelectorAll('[data-src]')) {
+    const s = +sp.dataset.src, t = sp.firstChild.data;
+    assert.equal(text.slice(s, s + t.length), t, `run at ${s}`);
+  }
+  window.MdSurface.setReading(host, 0, 'old');
+  window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(window.MdSurface.readingOf(host, 0), 'old');
+  const ghost = host.querySelector('[data-md-card="0"] [data-md-ghost]').textContent;
+  assert.ok(ghost.includes('canonical') && ghost.includes('Gone para'), 'old shows the whole run from the base, unmapped');
+  assert.ok(!host.querySelector('[data-md-card="0"] [data-src]'), 'the original takes no caret');
+  const typed = text.replace('Same para.', 'Same para!');
+  window.MdSurface.paint(host, { text: typed, base, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(window.MdSurface.readingOf(host, 0), 'inline', 'an edit returns every card to the marked text');
+  assert.equal(window.mdDiff.revert(base, text, window.MdSurface.cards(host)[0]).split('Same')[0], base.split('Same')[0],
+    'a card goes back to the original as a whole');
+  host.__mdKey = null;
+  window.MdSurface.paint(host, { text, base: text, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(host.querySelectorAll('[data-md-card]').length, 0, 'no change, no cards');
+});
+
+// A one-word heading retyped shares no word with its old self; it is still
+// one block edited, and pairs as one, with the typo struck inside it.
+test('a retyped heading pairs with its old self, and a typo pairs by letters', () => {
+  const one = window.mdDiff.align('# Surfacing\n\nBody.\n', '# Suacing\n\nBody.\n').filter((e) => e.kind !== 'same');
+  assert.deepEqual(one.map((e) => e.kind), ['changed']);
+  const two = window.mdDiff.align('# Surfacing\n\nA paragraph of prose.\n', '# Suacing\n\nSomething else entirely new.\n')
+    .filter((e) => e.kind !== 'same');
+  assert.ok(two.some((e) => e.kind === 'changed' && e.old === '# Surfacing'), 'same kind, close letters: paired');
+  const cross = window.mdDiff.align('# Setup\n', '```\nsetap\n```\n').filter((e) => e.kind !== 'same');
+  assert.deepEqual(cross.map((e) => e.kind).sort(), ['added', 'removed'], 'a heading never pairs with a fence');
 });
