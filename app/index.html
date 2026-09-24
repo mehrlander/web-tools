@@ -1540,10 +1540,6 @@ html.dk-dragging main{transition:none !important}
                       :class="projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-files text-lg"></i>Docs
                 <span x-show="projectDocsCount" class="font-mono text-sm opacity-60" x-text="projectDocsCount"></span></button>
-              <button role="tab" x-show="project.installation" @click="goProjectTab('code')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
-                      :class="projectTab==='code' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-code text-lg"></i>Code</button>
               <button role="tab" @click="goProjectTab('files')"
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
                       :class="projectTab==='files' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
@@ -1559,14 +1555,6 @@ html.dk-dragging main{transition:none !important}
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
 
-            <template x-if="projectTab==='code' && project.installation">
-              <div class="grow min-h-0 flex flex-col mt-3">
-                <template x-for="p in [project]" :key="p.path + '@' + $store.browser.repo + '@' + $store.browser.ref">
-                  <div x-data="powershellWorkspace(p)" class="grow min-h-0 flex flex-col"></div>
-                </template>
-              </div>
-            </template>
-
             <!-- Files: the project folder's tree beside the file it opens
                  (alpineComponents/file-browser.js), based at the project so the
                  crumbs never climb out of it. Remounted per project, repo and
@@ -1579,7 +1567,7 @@ html.dk-dragging main{transition:none !important}
               </div>
             </template>
 
-            <div x-show="projectTab!=='code' && projectTab!=='files' && !(projectTab==='overview' && project.landing)"
+            <div x-show="projectTab!=='files' && !(projectTab==='overview' && project.landing)"
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
               <!-- OVERVIEW IS WHATEVER THE WORKSPACE DECLARES AS ITS FRONT, in
@@ -4398,7 +4386,7 @@ function app(){ return {
   // these properties directly instead, which is what makes picking a row in the
   // sidebar repaint the pane.
   projectPath: '',
-  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'code'
+  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'files'
   installationItem: '',     // the Installation pill's selected file (repo path), stamped as &item=
   projectHtml: '',
   projectLoading: false,
@@ -4439,7 +4427,9 @@ function app(){ return {
     // deliberately still accepted and falls through to 'overview', so a link
     // minted before the change lands where it always did rather than on a tab
     // that no longer exists.
-    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'code' || tab === 'files') ? tab : 'overview';
+    // `tab=code` named the PowerShell Code workspace until 2026-09-24; its
+    // one-file view is now the Overview's file deck, so an old link lands there.
+    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'files') ? tab : 'overview';
     // A deep link into that view may name the file it is about; the component
     // reads it at mount and stamps it back as it moves.
     if (typeof item === 'string' && item) this.installationItem = item;
@@ -5467,7 +5457,7 @@ function app(){ return {
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
-        if (['overview', 'code'].includes(this.projectTab) && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
+        if (this.projectTab === 'overview' && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
       } },
     { key: 'estate',   open(){ this.goEstate(); } },
     // `surfaces` is the retired Saved pane, which listed the registry's
@@ -6546,7 +6536,6 @@ function app(){ return {
   correspondenceFileError: '',
   searchOpenFile: null,
   get selectedCorrespondence(){
-    if (this.view === 'project' && this.projectTab === 'code') return this.captureCorrespondence().selected;
     // The installation view's selected file takes a page-wide paste or drop
     // the way an open Files result does: the view names the file, so a work
     // copy dropped anywhere on the page compares against it. That view is the
@@ -6577,44 +6566,14 @@ function app(){ return {
   // The workspace owns its live selection and pinned source; installationItem
   // may still name a previous file while the Code explorer shows All files.
   captureCorrespondence(){
-    if (this.view === 'project' && this.projectTab === 'code') {
-      const host = document.querySelector('[x-data^="powershellWorkspace"]');
-      const workspace = host ? Alpine.$data?.(host)?.captureIntake?.() : null;
-      const store = Alpine.store('browser');
-      return { code: true, workspace, selected: workspace?.selected || null,
-        repo: workspace?.repo || store.repo, ref: workspace?.ref ?? store.ref ?? '',
-        isCurrent: () => this.view === 'project' && this.projectTab === 'code'
-          && document.querySelector('[x-data^="powershellWorkspace"]') === host
-          && !!workspace?.isCurrent() };
-    }
     return { selected: this.selectedCorrespondence, ...this.correspondenceContext() };
   },
-  assertCorrespondenceIntake(intake){
-    if (!intake?.code) return;
-    if (!intake.workspace) throw new Error('Wait for the Code workspace to finish opening, then paste or drop the copy again.');
-    if (!intake.isCurrent()) throw new Error('The Code selection changed while receiving this copy. Paste or drop it again for the current file.');
-  },
-  isPowerShellDraftBundle(text){
-    if (typeof text !== 'string' || !/^\s*\{/.test(text)) return false;
-    try { return JSON.parse(text)?.format === 'web-tools-powershell-drafts'; } catch { return false; }
-  },
-  correspondenceText(data, intake){
-    const text = data.getData('text/plain') || data.getData('text') || '';
-    if (text || !intake.code) return text;
-    const json = data.getData('application/json') || '';
-    return this.isPowerShellDraftBundle(json) ? json : '';
+  correspondenceText(data){
+    return data.getData('text/plain') || data.getData('text') || '';
   },
   async takeCorrespondence(text, { name = '', source = 'paste', intake = this.captureCorrespondence() } = {}){
     const K = window.FileCorrespondence;
     if (!K || typeof text !== 'string' || !text.length) return false;
-    try { this.assertCorrespondenceIntake(intake); }
-    catch (e) { this.correspondenceFailure(e); return true; }
-    // A draft bundle has its own explicit identity. The workspace validates
-    // and previews it before import; it is never compared as source code.
-    if (intake.code && this.isPowerShellDraftBundle(text)) {
-      try { return await intake.workspace.receive(null, text, { name, source }); }
-      catch (e) { this.correspondenceFailure(e); return true; }
-    }
     let path;
     try { path = K.declaration(text); }
     catch (e) { Alpine.store('toast')('warning', e.message, 'alert-error', 5000); return true; }
@@ -6637,11 +6596,6 @@ function app(){ return {
   },
   async openCorrespondence(target, text, name, source, intake = null){
     try {
-      this.assertCorrespondenceIntake(intake);
-      if (intake?.workspace) {
-        if (await intake.workspace.receive(target, text, { name, source })) return;
-        this.assertCorrespondenceIntake(intake);
-      }
       // The installation Overview compares a copy in memory and shows it in
       // its own Changes view; nothing is saved to the browser and the Stage
       // does not open. Every other surface keeps the stored check below.
@@ -6684,15 +6638,13 @@ function app(){ return {
   async takeCorrespondenceFile(file, source = 'drop', encoding = 'auto', intake = this.captureCorrespondence()){
     if (!file) return false;
     const codeFile = /\.(?:ps1|psm1|psd1|ps1xml|xaml|txt)$/i.test(file.name);
-    const bundleFile = intake.code && /\.json$/i.test(file.name);
-    // A screenshot or other binary is still Stage intake, even with code open.
-    if (intake.code ? !codeFile && !bundleFile : !intake.selected && !codeFile) return false;
+    // Only a code file is a work copy. A screenshot, a JSON file or any other
+    // arrival is Stage intake, whether or not a file is selected.
+    if (!codeFile) return false;
     this.correspondenceFileError = '';
     try {
-      this.assertCorrespondenceIntake(intake);
       const bytes = new Uint8Array(await file.arrayBuffer());
       const text = window.FileCorrespondence.decodeBytes(bytes, encoding);
-      if (bundleFile && !this.isPowerShellDraftBundle(text)) return false;
       return this.takeCorrespondence(text, { name: file.name, source, intake });
     } catch (e) {
       this.correspondenceFileError = 'Could not read comparison file: ' + (e?.message || e);
@@ -6733,8 +6685,7 @@ function app(){ return {
       if (!window.io?.pasteItems) throw new Error('the clipboard kit is not loaded yet');
       const intake = this.captureCorrespondence();
       const flavors = await window.io.pasteItems();
-      const plain = flavors.find(f => f.kind === 'text' && f.type === 'text/plain')
-        || (intake.code && flavors.find(f => f.kind === 'text' && f.type === 'application/json' && this.isPowerShellDraftBundle(f.text)));
+      const plain = flavors.find(f => f.kind === 'text' && f.type === 'text/plain');
       if (!flavors.some(f => f.kind === 'blob' || f.kind === 'file') && plain) {
         if (await this.pasteRoute({ items: [], getData: type => type === 'text/plain' ? plain.text : '' })) return;
         if (await this.takeCorrespondence(plain.text, { source: 'clipboard', intake })) return;

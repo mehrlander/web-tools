@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 const window = {};
 new Function('window', readFileSync(new URL('../../lib/kits/powershell-language.js', import.meta.url), 'utf8'))(window);
-const { inspect, compareCompanions, compareTheme } = window.PowerShellLanguage;
+const { inspect, compareCompanions, compareTheme, compareStructure } = window.PowerShellLanguage;
 
 test('PowerShell outline masks comments, here-strings, multiline strings, and escaped quotes', () => {
   const source = [
@@ -235,4 +235,55 @@ test('a DynamicResource key defined neither in the form nor in Theme.xaml is rep
   assert.match(result.diagnostics[0].message, /MonoTextBox.*WPF keeps the property default/);
   assert.deepEqual(compareTheme(inspect(form, 'Form.xaml'), inspect(theme, 'Theme.xaml')).unresolved.length, 2);
   assert.deepEqual(compareTheme('<Grid Background="Red"/>', theme).diagnostics, []);
+});
+
+test('a second version is summarized by function: added, removed, changed, parameters, script body and new problems', () => {
+  const before = [
+    '#requires -Version 5.1',
+    'function Get-Report {',
+    '  param([string]$Name)',
+    '  "Report $Name"',
+    '}',
+    'function Remove-Old { }',
+    'function Keep-Same($A) {',
+    '  $A   ',
+    '}',
+    '$x = "# function Fake-Comment { }"',
+    'Get-Report -Name one',
+  ].join('\r\n');
+  const after = [
+    '#requires -Version 5.1',
+    'function get-report {',
+    '  param([string]$Name, [int]$Count = 1)',
+    '  "Report $Name" * $Count',
+    '}',
+    'function Keep-Same($A) {',
+    '  $A',
+    '}',
+    'function New-Thing {',
+    '  function Inner-Helper { 1 }',
+    '  $ok ? 1 : 2',
+    '}',
+    '$x = "# function Fake-Comment { }"',
+    'Get-Report -Name two',
+  ].join('\n');
+  const r = compareStructure(before, after, 'Module.psm1');
+  assert.equal(r.kind, 'powershell');
+  assert.equal(r.same, false);
+  assert.deepEqual(r.added.map(f => f.name), ['New-Thing', 'Inner-Helper']);
+  assert.deepEqual(r.removed.map(f => f.name), ['Remove-Old']);
+  assert.deepEqual(r.changed.map(f => [f.name, f.params.added.join(), f.params.removed.join()]), [['get-report', '$Count', '']]);
+  assert.equal(r.unchanged, 1, 'line endings and trailing spaces do not count as a change');
+  assert.equal(r.outsideChanged, true, 'the script body changed');
+  assert.deepEqual(r.newProblems.map(d => [d.rule, d.line]), [['ps51-ternary', 11]]);
+  const same = compareStructure(before, before.replace(/\r\n/g, '\n'), 'Module.psm1');
+  assert.equal(same.same, true);
+  assert.deepEqual([same.added.length, same.removed.length, same.changed.length, same.outsideChanged], [0, 0, 0, false]);
+});
+
+test('a second XAML version is summarized by named controls and resource keys', () => {
+  const r = compareStructure('<Grid><Button x:Name="Save"/><SolidColorBrush x:Key="Accent"/></Grid>',
+    '<Grid><Button x:Name="Save"/><TextBox x:Name="Search"/></Grid>', 'Form.xaml');
+  assert.equal(r.kind, 'xaml');
+  assert.deepEqual([r.controls.added, r.controls.removed, r.resources.added, r.resources.removed].map(x => x.join()), ['Search', '', '', 'Accent']);
 });
