@@ -2,13 +2,19 @@
 
 A project whose manifest declares `installation` lists its PowerShell and XAML
 files in the Overview (`?view=project&project=<path>[&item=<file>]`). The
-Overview finds a file and records installation evidence; the **file deck** reads
-and edits one file at a time. The Code tab was retired on 2026-09-24; `&tab=code`
+Overview finds a file, shows it and records installation evidence; the **file
+deck** steps through files one per slide. Both show a file through one component,
+`powershell-file.js`. The Code tab was retired on 2026-09-24; `&tab=code`
 opens the Overview.
 
 ## The Overview's source pane
 
-- **Toolbar:** Open in editor (the deck) and Copy (the GitHub text).
+- **Toolbar:** Open in deck and Copy (the GitHub text).
+- **File pane:** the file component inline, one editor view reused across
+  selections. Tabs: Code, Work copy (when a recorded or supplied version differs
+  from GitHub; opens by default), Draft (when one exists), Problems, Outline. Its
+  bar carries Edit, or Undo, Redo and Done, and a dropdown without the two copy
+  actions the Overview already has.
 - **Paste zone:** a tap reads the clipboard through the app's Paste; a drop or a
   page-wide paste arrives the same way. Only `.ps1 .psm1 .psd1 .ps1xml .xaml .txt`
   files count as a work copy; anything else goes to the Stage.
@@ -29,18 +35,19 @@ opens the Overview.
 ## The file deck
 
 One slide per file, over the files the Overview is showing. A slide has Code
-(read-only until **Edit**), Changes (draft against its GitHub base), Problems and
-Outline. The header carries Edit, or Undo, Redo and Done, and a dropdown: Find,
+(read-only until **Edit**), Draft (against its GitHub base, when one exists),
+Problems and Outline. The deck header carries Edit, or Undo, Redo and Done, and a dropdown: Find,
 Companion, Copy GitHub text, Copy install script (when behind), Copy draft text,
 Discard draft, Publish drafts, Open on GitHub. Editing pauses the swipe and keeps
-arrow keys and Escape in the editor.
+arrow keys and Escape in the editor. Opening the deck ends inline editing; closing
+it reloads the inline pane, so the two never hold diverging drafts.
 
 ## Invariants
 
 - Source reads verify each Git blob's bytes (`PowerShellWorkspace.readFile`,
   `readBytes`). A draft keeps the file's BOM and line separators.
 - A Windows-1252 file (what Windows PowerShell 5.1 assumes without a BOM) is
-  decoded as such and is read-only in the deck; a draft would re-encode it.
+  decoded as such and is read-only; a draft would re-encode it.
 - Drafts live in browser storage keyed by repo, project, ref and path. Publishing
   creates a new branch and never updates an existing one.
 - Nothing but a confirmed row writes to the observations ledger.
@@ -51,7 +58,7 @@ arrow keys and Escape in the editor.
 | Part | File | Held by |
 | --- | --- | --- |
 | Overview | `lib/alpineComponents/installation-view.js` | `installation-view.test.mjs`, `installation-source-browser.mjs` |
-| Deck slide | `lib/alpineComponents/powershell-file.js` | `installation-view.test.mjs`, `powershell-file-browser.mjs` |
+| File pane and deck slide | `lib/alpineComponents/powershell-file.js` | `installation-view.test.mjs`, both browser harnesses |
 | Reads, drafts, publish | `lib/kits/powershell-workspace.js` | `powershell-workspace.test.mjs` |
 | Analysis | `lib/kits/powershell-language.js` | `powershell-language.test.mjs` |
 | Editor | `lib/kits/powershell-editor.js` (CodeMirror 6) | `powershell-file-browser.mjs` |

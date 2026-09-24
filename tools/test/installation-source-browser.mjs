@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// The Overview's source pane (alpineComponents/installation-view.js) under real
-// Alpine, Tailwind and CodeMirror 6, with GitHub fixture reads and every CDN
-// asset resolved from node_modules through tools/render/cdn.mjs. No external
-// requests. Holds what jsdom cannot: a selected file renders in .cm-editor
-// read-only, a second selection reuses the same view through open(), the
+// The Overview's source pane (installation-view.js mounting
+// alpineComponents/powershell-file.js inline) under real Alpine, Tailwind and
+// CodeMirror 6, with GitHub fixture reads and every CDN asset resolved from
+// node_modules through tools/render/cdn.mjs. No external requests. Holds what
+// jsdom cannot: a selected file renders in .cm-editor read-only, Edit in its
+// bar writes only a browser draft, a second selection reuses the same view through open(), the
 // Source header's tools are visible at both widths and a real drop on the
 // pane compares, a phone width keeps the code collapsed below Record
 // installed, the <pre> fallback when esm.sh is unreachable, and no GitHub
@@ -39,7 +40,7 @@ files[project + '/data/observations.csv'] = 'date,path,kind,revision,blob_sha,lo
   + ['2026-09-01T00:00:00Z', C, 'installed', oldRevision, blob(oldC), createHash('sha256').update(oldC).digest('hex'), '', 'copy', ''].join(',') + '\n';
 const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entries(files).map(([p, t]) => [p, blob(t)])),
   oldRevision, old: { [C]: { text: oldC, sha: blob(oldC) } } };
-const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-language.js', 'alpineComponents/installation-view.js'];
+const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'alpineComponents/powershell-file.js', 'alpineComponents/installation-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installation source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -48,6 +49,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installati
 window.__fixture = ${JSON.stringify(fixture).replace(/</g, '\\u003c')};
 window.__fixture.calls = [];
 window.TOKEN = 't';
+const __drafts = new Map(); window.persistence = { collection: () => ({ async find(m) { return [...__drafts.values()].filter(m); }, async put(r) { __drafts.set(r.id, r); return r; }, async delete(id) { __drafts.delete(id); } }) };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
   constructor(opts = {}) { this.repo = opts.repo; this.ref = opts.ref || 'main'; }
@@ -63,6 +65,7 @@ window.GH = class {
     f.calls.push({ method: opts.method || 'GET', path, ref: this.ref });
     if (opts.method && opts.method !== 'GET') throw new Error('Browser verification forbids publication');
     if (path.startsWith('commits?')) return [{ sha: f.revision }];
+    if (path.startsWith('git/blobs/')) { const sha = path.slice(10); const p = Object.keys(f.blobs).find(k => f.blobs[k] === sha); if (p) return { sha, encoding: 'base64', content: btoa(unescape(encodeURIComponent(f.files[p]))) }; }
     if (path.startsWith('git/trees/')) return { truncated: false, tree: Object.keys(f.files).map(p => ({ type: 'blob', path: p, sha: f.blobs[p], size: f.files[p].length })) };
     throw Object.assign(new Error('Not found'), { status: 404 });
   }
@@ -175,7 +178,7 @@ try {
   });
   await check('the Source header tools and the paste zone are visible, and a drop on the pane is described, then compared', async () => {
     await desk.select(A); await desk.settled();
-    for (const label of ['Open in editor', 'Copy GitHub text'])
+    for (const label of ['Open in deck', 'Copy GitHub text'])
       assert.equal(await desk.page.getByLabel(label, { exact: true }).isVisible(), true, label);
     for (const gone of ['Download GitHub text', 'Copy transfer script', 'Compare a file with this file'])
       assert.equal(await desk.page.getByLabel(gone, { exact: true }).count(), 0, gone + ' is gone');
@@ -187,7 +190,7 @@ try {
       dt.setData('text/plain', 'function Get-Message {}\n');
       for (const type of ['dragenter', 'dragover']) target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
       await new Promise(resolve => setTimeout(resolve, 50)); // Alpine applies the binding on its next flush
-      window.__ringWhileDragging = document.querySelector('[data-source-editor]').classList.contains('ring-2');
+      window.__ringWhileDragging = document.querySelector('[data-source-file]').classList.contains('ring-2');
       target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
     });
     assert.equal(await desk.page.evaluate(() => window.__ringWhileDragging), true, 'the code box highlights under a drag');
@@ -204,8 +207,8 @@ try {
     assert.equal(await desk.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).checks[0].content), 'function Get-Message {}\n');
     await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
     assert.equal((await desk.editor()).text, display(files[A]), 'a drop compares; it does not insert into the read-only view');
-    await desk.page.waitForFunction(() => !document.querySelector('[data-source-editor]').classList.contains('ring-2'));
-    assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-editor]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
+    await desk.page.waitForFunction(() => !document.querySelector('[data-source-file]').classList.contains('ring-2'));
+    assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-file]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
   });
   await check('a file changed since it was recorded opens on Changes, and Code is one tap away', async () => {
     await desk.select(C); await desk.settled();
@@ -224,6 +227,27 @@ try {
     await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
     assert.equal((await desk.editor()).text, files[C]);
     assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false);
+  });
+  await check('Edit in the pane writes a browser draft, and its menu offers the draft actions', async () => {
+    await desk.select(B); await desk.settled();
+    await desk.page.locator('[data-file-actions] [title="Edit"]').click();
+    assert.equal((await desk.editor()).readOnly, false);
+    await desk.page.locator('[data-source] .cm-content').click();
+    await desk.page.keyboard.press('Control+End');
+    await desk.page.keyboard.type('# edited');
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).draftList.length === 1);
+    await desk.page.locator('[data-file-actions] [title="Done editing"]').click();
+    assert.equal((await desk.editor()).readOnly, true);
+    await desk.page.locator('[data-file-actions] [title="File actions"]').click();
+    const menu = desk.page.locator('[data-file-menu]');
+    await menu.waitFor({ state: 'visible' });
+    const items = await menu.locator('li').allInnerTexts();
+    for (const label of ['Copy draft text', 'Discard draft…', 'Publish drafts…']) assert.ok(items.some(t => t.includes(label)), label + ' is offered');
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-edit.png'), fullPage: true });
+    await menu.locator('button', { hasText: 'Discard draft' }).click();
+    await desk.page.locator('[data-discard] button', { hasText: 'Discard draft' }).click();
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).draftList.length === 0);
+    assert.equal((await desk.editor()).text, display(files[B]));
   });
   await check('the pane writes nothing to GitHub', async () => { assert.equal(await desk.writes(), 0); });
   await desk.context.close();
