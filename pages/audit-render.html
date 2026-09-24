@@ -723,7 +723,7 @@ window.__audit = {
   // not, the split ran through inline markup, which is a finding.
 
   window.auditPage = () => ({
-    a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, mark: 'fill', off: {}, sel: null, selPt: null,
+    a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
     sections: [], ref: '',
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
@@ -742,7 +742,9 @@ window.__audit = {
       });
       this.sections = mdDoc.split(this.a.text);
       this.base = JSON.parse(JSON.stringify(this.a.standoff));
-      this.$nextTick(() => { this.bindDoc(); this.paint(); this.syncReport(); window.__auditSettled?.(); });
+      this.$nextTick(() => { this.bindDoc(); this.paint(); this.syncReport(); window.__auditSettled?.();
+        // ?deck=off keeps the plain page, for a caller that frames it itself.
+        if (p.get('deck') !== 'off') this.openViewer(); });
       // Clicking off every unit clears the selection. Until now the only way
       // out was the panel's own close button, which is the one control a
       // reader is not looking at once they have decided they are done. Capture
@@ -1915,9 +1917,33 @@ window.__audit = {
 
     // The deck is a CONTAINER, not a viewer: one section per slide, same units,
     // same paint(). Nothing about the audit changes to ride it.
+    // THE VIEWER. The page opens in the house swipe deck, the frame other
+    // files open in: one slide holding the whole document as one vertical
+    // scroll, the view controls in the deck's header and the legend in its
+    // subheader row. The Stage's transform tool mounts the same way. Closing
+    // the deck puts each piece back where it came from, so the plain page
+    // underneath is whole again rather than empty.
+    openViewer() {
+      if (!window.swipeDeck || this._viewer) return;
+      const r = this.$refs, home = [r.ctrls, r.legend, r.main].map(el => [el, el.parentNode, el.nextSibling]);
+      this.inDeck = true;
+      this._viewer = swipeDeck.open({
+        count: 1, title: this.a.title, subtitle: this.so.question, icon: 'ph-highlighter',
+        slideScroll: false, innerClass: 'h-full w-full min-w-0',
+        actions: [r.ctrls], subheader: r.legend,
+        render: (i, slide) => { slide.append(r.main); },
+        release: () => {},
+        onClose: () => {
+          home.forEach(([el, parent, next]) => parent.insertBefore(el, next));
+          this.inDeck = false; this._viewer = null;
+          this.$nextTick(() => this.paint());
+        },
+      });
+      this.$nextTick(() => this.paint());
+    },
     deck() {
       const secs = this.sections;
-      swipeDeck.open({
+      (this._viewer ? (o) => swipeDeck.drill(this._viewer, o) : (o) => swipeDeck.open(o))({
         count: secs.length, title: this.a.title, subtitle: this.so.question, icon: 'ph-cards',
         render: (i, slide) => {
           const s = secs[i];
@@ -1974,7 +2000,9 @@ window.__audit = {
              the annotation itself as data. How the document is shown (rendered
              or raw markdown) is a display choice, so it sits on the legend row
              with the other two. -->
-        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-auto" aria-label="what is on screen">
+        <!-- The view controls. In the deck viewer they ride in its header. -->
+        <div x-ref="ctrls" class="flex items-center gap-1 ml-auto">
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="what is on screen">
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view !== 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = docView; paint()">Doc</button>
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
@@ -1991,13 +2019,17 @@ window.__audit = {
           <i class="ph ph-eye text-sm"></i></button>
         <button class="btn btn-xs btn-ghost h-6 min-h-0 px-2" @click="deck()"
                 title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-base"></i></button>
+        <!-- On a phone the pair shrinks to undo and the count, so the deck's
+             header keeps its title: redo stays in the unit panel and on the
+             keyboard. -->
         <div class="join" x-show="patch.length" x-cloak>
           <button class="join-item btn btn-xs" :disabled="!canUndo" @click="undo()"
                   aria-label="undo"><i class="ph ph-arrow-counter-clockwise"></i></button>
-          <button class="join-item btn btn-xs btn-primary" @click="$refs.patch.showModal()">
-            patch <span class="font-mono" x-text="at + (canRedo ? '/' + patch.length : '')"></span></button>
-          <button class="join-item btn btn-xs" :disabled="!canRedo" @click="redo()"
+          <button class="join-item btn btn-xs btn-primary" @click="$refs.patch.showModal()" aria-label="patch">
+            <span class="max-sm:hidden">patch</span> <span class="font-mono" x-text="at + (canRedo ? '/' + patch.length : '')"></span></button>
+          <button class="join-item btn btn-xs max-sm:hidden" :disabled="!canRedo" @click="redo()"
                   aria-label="redo"><i class="ph ph-arrow-clockwise"></i></button>
+        </div>
         </div>
       </div>
 
@@ -2007,7 +2039,8 @@ window.__audit = {
            readable while one category is set aside. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
-      <div class="px-4 pb-2 flex items-center gap-2" x-show="view !== 'standoff'">
+      <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
+           x-show="view !== 'standoff'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
         <template x-for="k in axis" :key="k">
           <button class="btn btn-xs gap-1.5 border-0 shrink-0"
@@ -2042,6 +2075,9 @@ window.__audit = {
       </div>
     </header>
 
+    <!-- Everything below the header. In the deck viewer this is the one slide,
+         and it scrolls inside itself: the whole document, top to bottom. -->
+    <div x-ref="main" :class="inDeck && 'h-full overflow-y-auto'">
     <div class="relative">
     <div x-ref="doc" class="px-4 py-4" x-show="view!=='standoff'"></div>
       <!-- The pin layer. It overlays the doc box exactly, takes no taps of its
@@ -2060,7 +2096,7 @@ window.__audit = {
     <!-- Fills the viewport under the header, and the table or the JSON scrolls
          inside it, so the column headings stay in view. -->
     <div class="px-4 pt-3 pb-2 flex flex-col" x-show="view==='standoff'" x-cloak
-         :style="`height:calc(100dvh - ${hdrH}px)`">
+         :style="inDeck ? 'height:100%' : `height:calc(100dvh - ${hdrH}px)`">
       <div class="shrink-0 flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mb-2">
         <span x-text="so.kind"></span>
         <a class="link link-primary" :href="so.target.url" x-text="so.target.path"></a>
@@ -2098,6 +2134,7 @@ window.__audit = {
       </div>
       <pre class="flex-1 min-h-0 overflow-auto text-xs bg-base-200 p-3 rounded"
            x-show="soView === 'json'" x-text="raw"></pre>
+    </div>
     </div>
 
     <!-- Above the shared FAB (z-80), which is fixed to this same corner and was

@@ -7,8 +7,8 @@ export default async function (page) {
     const d = document.documentElement, doc = document.querySelector('[x-ref="doc"]');
     return { docEl: [d.scrollWidth, d.clientWidth], box: [doc.scrollWidth, doc.clientWidth] };
   });
-  console.log('SOURCE overflow', JSON.stringify(await read()));
-  await page.click('button:has-text("Read")');
-  await page.waitForTimeout(600);
   console.log('READ   overflow', JSON.stringify(await read()));
+  await page.click('[aria-label="rendered"]');   // the eye: off is the raw source
+  await page.waitForTimeout(600);
+  console.log('SOURCE overflow', JSON.stringify(await read()));
 }
