@@ -1925,13 +1925,18 @@ window.__audit = {
     // underneath is whole again rather than empty.
     openViewer() {
       if (!window.swipeDeck || this._viewer) return;
-      const r = this.$refs, home = [r.ctrls, r.legend, r.main].map(el => [el, el.parentNode, el.nextSibling]);
+      // The elements themselves, held here: $refs is resolved against the DOM,
+      // so a ref detached by the deck (the legend in Spans) stops resolving.
+      const r = { ctrls: this.$refs.ctrls, legend: this.$refs.legend, main: this.$refs.main },
+            home = [r.ctrls, r.legend, r.main].map(el => [el, el.parentNode, el.nextSibling]);
       this.inDeck = true;
       this._viewer = swipeDeck.open({
         count: 1, title: this.a.title, subtitle: this.so.question, icon: 'ph-highlighter',
         slideScroll: false, innerClass: 'h-full w-full min-w-0',
         actions: [r.ctrls], subheader: r.legend,
         render: (i, slide) => { slide.append(r.main); },
+        // The legend row is the document's; in Spans the deck carries no
+        // subheader at all, rather than an empty bordered strip.
         release: () => {},
         onClose: () => {
           home.forEach(([el, parent, next]) => parent.insertBefore(el, next));
@@ -1939,6 +1944,7 @@ window.__audit = {
           this.$nextTick(() => this.paint());
         },
       });
+      this.$watch('view', v => this._viewer?.setSubheader(v === 'standoff' ? null : r.legend));
       this.$nextTick(() => this.paint());
     },
     deck() {
@@ -2008,6 +2014,15 @@ window.__audit = {
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = 'standoff'">Spans</button>
         </div>
+        <!-- Rendered, on or off, for whichever object is on screen: the
+             formatted document or the spans table when on, the markdown or
+             standoff.json when off. -->
+        <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
+                :aria-pressed="form === 'rendered'"
+                :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
+                aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
+          <i class="ph-bold ph-eye text-lg"></i></button>
         <button class="btn btn-sm btn-ghost btn-square" @click="deck()"
                 title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
         <!-- On a phone the pair shrinks to undo and the count, so the deck's
@@ -2030,9 +2045,10 @@ window.__audit = {
            readable while one category is set aside. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
-      <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'">
+      <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
+           x-show="view !== 'standoff'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
-        <template x-for="k in (view === 'standoff' ? [] : axis)" :key="k">
+        <template x-for="k in axis" :key="k">
           <button class="btn btn-xs gap-1.5 border-0 shrink-0"
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
@@ -2044,13 +2060,12 @@ window.__audit = {
           </button>
         </template>
         </div>
-        <!-- How what is on screen is drawn: the unit marks, which only the
-             document has, then rendered or raw for either view, far right. -->
+        <!-- How the document's units are drawn. -->
         <div class="flex items-center gap-1 shrink-0">
           <!-- How a unit is drawn, Doc only: its label's tint over the whole
                span, or an underline. Icon toggles carry their state in the
                icon's colour alone: no outline, no fill. -->
-          <div class="flex items-center" x-show="view !== 'standoff'" aria-label="unit marks">
+          <div class="flex items-center" aria-label="unit marks">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
               <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
@@ -2058,15 +2073,6 @@ window.__audit = {
                       @click="mark = t[0]; paint()"><i class="ph-bold text-lg" :class="t[1]"></i></button>
             </template>
           </div>
-          <!-- Rendered, on or off, for whichever object is on screen: the
-               formatted document or the spans table when on, the markdown or
-               standoff.json when off. -->
-          <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                  :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
-                  :aria-pressed="form === 'rendered'"
-                  :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
-                  aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
-            <i class="ph-bold ph-eye text-lg"></i></button>
         </div>
       </div>
     </header>
