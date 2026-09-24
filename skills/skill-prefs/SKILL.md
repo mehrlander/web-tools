@@ -9,9 +9,9 @@ Read alongside skill-creator, not instead of it.
 
 ## The premise
 
-skill-creator is useful but opinionated. Its defaults assume one kind of skill: ambient, meant to appear before you knew to ask, often imported without fully knowing what it does. Such a skill has to trigger on its own rather than wait to be asked.
+The base skill-creator skill assumes one kind of skill: ambient, meant to appear before you knew to ask, often imported without fully knowing what it does. Such a skill has to trigger on its own rather than wait to be asked.
 
-For personal-use skills, the default guidance blurs scope and often gets in the way.
+For personal-use skills, we want finer control.
 
 In Claude Code a skill can declare its mode in frontmatter (disable-model-invocation for summoned-only, user-invocable to hide it from the menu); here, skill-creator adopts a simpler skill concept, and that posture is largely the premise.
 
@@ -21,7 +21,7 @@ The goal is to help yield a more effective and maintainable skill file that the 
 
 ## The process
 
-This skill is a reference for you in drafting any skill.
+This skill is a reference for drafting any skill.
 
 ## Key insights
 
@@ -34,7 +34,7 @@ This skill is a reference for you in drafting any skill.
 
 - **Kinds.** Five families give the library its spine: **support**, the largest (language, library, writing, and prompt support, plus kits, a kit being support scoped to one seam within a domain); **text processing**, output-to-output document pipelines; **surfacing**, self-contained display artifacts; **workflow documentation**, processes executed outside the session; and **agentic primitives**, governing meta-skills, this one included. Name the family a new skill joins. Support is the one-word premise for most.
 
-- **Register.** Foremost, not your typical helpful and engaging voice.  Terse, dry, precise.  Key in the new session, do not show every room in the house.  Root out emphasis, especially casual why-this-point-matters ("usually", "most of the time", "is the first to go", etc.).  An intensifier is an unbacked frequency claim; the cure is specificity, name the mechanism, not a softer adverb.  No em dashes: a colon or a period.  The reader is a future session, capable, impatient, with eyes on a task.
+- **Register.** Terse, dry, precise.  Key in the new session, do not show every room in the house.  Root out emphasis, especially casual why-this-point-matters ("usually", "most of the time", "is the first to go", etc.).  An intensifier is an unbacked frequency claim; the cure is specificity, name the mechanism, not a softer adverb.  No em dashes: a colon or a period.  The reader is a future session, capable, impatient, with eyes on a task.
 
 - **Trigger.** The stock advice is to write the description pushy, which suits an ambient skill but misfires on a summoned one. The trigger should name the situation that summons the skill, never the material it produces. inspire-excellence is the cautionary case: a session built its trigger from the vocabulary of the prompts the skill writes, firing on its own output instead of the request that calls for it.
 
