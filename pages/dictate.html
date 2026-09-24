@@ -510,6 +510,28 @@
       // its own in the row below, always there, and this face is a full stop
       // again.
       get pad() {
+        // FILE MODE TRADES TWO MARKS FOR FORMATTING. A document is headed,
+        // listed, bolded and coded far more than it is exclaimed at: measured
+        // across this repo's markdown, inline code is 69% of inline marks and
+        // bold 22%, and headings and list items with paragraphs are 91% of
+        // blocks. Heading and list act on the caret's line, so they need no
+        // selection and take the shifted face; bold and code wrap a selection,
+        // so they take the selection face, and casing moves behind its shift.
+        if (FILE) {
+          if (this.sel && this.shift) return [
+            { k: 'AB', t: 'Upper case' }, { k: 'ab', t: 'Lower case' }, { k: 'Ab', t: 'Capitalise' },
+          ];
+          if (this.sel) return [
+            { k: 'B', t: 'Bold: wrap the selection in **, or unwrap it' },
+            { k: '`', t: 'Code: wrap the selection in backticks, or unwrap it' },
+            { k: 'H', t: 'Heading: the line becomes ##, then ###, then plain' },
+          ];
+          if (this.shift) return [
+            { k: 'H', t: 'Heading: the line becomes ##, then ###, then plain' },
+            { k: '•', t: 'List: the line, or every selected line, gains or loses its - marker' },
+            { k: '¶', t: 'New paragraph' },
+          ];
+        }
         if (this.sel) return [
           { k: 'AB', t: 'Upper case' }, { k: 'ab', t: 'Lower case' }, { k: 'Ab', t: 'Capitalise' },
         ];
@@ -681,11 +703,12 @@
           await gh.load('kits/standoff.js');
           await gh.load('kits/md-surface.js');
           await window.GuideRender.needMarked();
-          // Blocks off screen skip layout until scrolled to: a whole-document
-          // re-render after each phrase cost 210ms on a 160k file, most of it
-          // laying out text nobody was looking at.
-          this.$refs.md.className = window.GuideRender.bodyClass()
-            + ' min-h-full [&>*]:[content-visibility:auto] [&>*]:[contain-intrinsic-size:auto_3rem]';
+          // NOT content-visibility:auto, though it halved a re-render on a 160k
+          // file: fresh blocks lay out at their placeholder height for a frame,
+          // so the caret and the selection were measured a line off, and blocks
+          // above the fold kept the placeholder and moved the text under the
+          // reader. Correct first; kits/md-surface.js notes the cost.
+          this.$refs.md.className = window.GuideRender.bodyClass() + ' min-h-full';
           this.mdReady = true;
         } catch (e) {
           Alpine.store('toast')('warning', 'Rendered view unavailable: ' + (e?.message || e), 'alert-error', 5000);
@@ -1700,10 +1723,58 @@
         if (k === 'jump') { this.d.jumpBack(); this.paint(); return; }
         const cased = { AB: 'upper', ab: 'lower', Ab: 'title' }[k];
         if (cased) { this.d.recase(cased); this.paint(); return; }
+        if (FILE && (k === 'B' || k === '`' || k === 'H' || k === '•')) { this.format(k); this.shift = false; return; }
         this.d.punct(k);
         // A shifted mark drops the shift, the way a phone keyboard does: the
         // sticky case is the one asked for by tapping again.
         this.shift = false;
+      },
+      // ── Formatting, file mode ─────────────────────────────────────────
+      // Each is ONE write to the buffer, so one undo takes it back, and each
+      // leaves the words it acted on selected, so a second tap undoes it or the
+      // next key stacks on it.
+      format(k) {
+        this.d.flush();
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        const put = (text, a, b) => { this.d.text = text; this.d.select(a, b); this.armed = null; this.paint(); };
+        if (k === 'B' || k === '`') {
+          const m = k === 'B' ? '**' : '`';
+          let a = r.start, b = r.end;
+          while (a < b && /\s/.test(t[a])) a++;
+          while (b > a && /\s/.test(t[b - 1])) b--;
+          if (a === b) return;
+          if (t.slice(a - m.length, a) === m && t.slice(b, b + m.length) === m) {
+            put(t.slice(0, a - m.length) + t.slice(a, b) + t.slice(b + m.length), a - m.length, b - m.length);
+          } else if (b - a > 2 * m.length && t.slice(a, a + m.length) === m && t.slice(b - m.length, b) === m) {
+            put(t.slice(0, a) + t.slice(a + m.length, b - m.length) + t.slice(b), a, b - 2 * m.length);
+          } else {
+            put(t.slice(0, a) + m + t.slice(a, b) + m + t.slice(b), a + m.length, b + m.length);
+          }
+          return;
+        }
+        // The lines the caret or the selection touches.
+        const ls = t.lastIndexOf('\n', r.start - 1) + 1;
+        let le = t.indexOf('\n', Math.max(r.end - (r.end > r.start ? 1 : 0), r.start));
+        if (le < 0) le = t.length;
+        const lines = t.slice(ls, le).split('\n');
+        let block;
+        if (k === 'H') {
+          const m = /^(#{1,6})\s+/.exec(lines[0]);
+          const level = m ? m[1].length : 0;
+          const next = level === 0 ? '## ' : level === 2 ? '### ' : '';
+          lines[0] = next + lines[0].replace(/^#{1,6}\s+/, '');
+          block = lines.join('\n');
+        } else {
+          const LIST = /^(\s*)[-*+]\s+/;
+          const filled = lines.filter((l) => l.trim());
+          const all = filled.length && filled.every((l) => LIST.test(l));
+          block = lines.map((l) => !l.trim() ? l : all ? l.replace(LIST, '$1') : LIST.test(l) ? l : '- ' + l).join('\n');
+        }
+        const text = t.slice(0, ls) + block + t.slice(le);
+        if (r.start === r.end) {
+          const at = Math.max(ls, Math.min(ls + block.length, r.start + (block.length - (le - ls))));
+          this.d.text = text; this.d.caretAt(at); this.armed = null; this.paint();
+        } else put(text, ls, ls + block.length);
       },
       back() { this.d.backWord(); },
       undo() { this.d.undo(); this.armed = null; this.paint(); },
@@ -2367,8 +2438,8 @@
     <button @pointerdown.prevent="shift = !shift"
             class="btn h-14 min-h-0 grow basis-0 px-0 font-mono text-sm"
             :class="shift ? 'btn-warning' : 'btn-ghost bg-base-200'"
-            title="The other three marks"
-            x-text="shift ? 'abc' : '·!¶'"></button>
+            :title="file ? (sel ? 'Casing' : 'Heading, list, paragraph') : 'The other three marks'"
+            x-text="shift ? 'abc' : (file ? (sel ? 'Aa' : 'H•¶') : '·!¶')"></button>
     <!-- ── THE REPAIRS, past a rule ───────────────────────────────────────
          Four keys write and three take back, and until this rule they sat in
          one undifferentiated run where a thumb had to count cells to find the
