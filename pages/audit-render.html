@@ -2008,17 +2008,8 @@ window.__audit = {
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = 'standoff'">Spans</button>
         </div>
-        <!-- Rendered, on or off, for whichever object is on screen: the
-             formatted document or the spans table when on, the markdown or
-             standoff.json when off. -->
-        <button class="btn btn-xs h-6 min-h-0 px-2 border border-base-300 transition-none"
-                :class="form === 'rendered' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                :aria-pressed="form === 'rendered'"
-                :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
-                aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
-          <i class="ph ph-eye text-sm"></i></button>
-        <button class="btn btn-xs btn-ghost h-6 min-h-0 px-2" @click="deck()"
-                title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-base"></i></button>
+        <button class="btn btn-sm btn-ghost btn-square" @click="deck()"
+                title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
         <!-- On a phone the pair shrinks to undo and the count, so the deck's
              header keeps its title: redo stays in the unit panel and on the
              keyboard. -->
@@ -2039,10 +2030,9 @@ window.__audit = {
            readable while one category is set aside. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
-      <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
-           x-show="view !== 'standoff'">
+      <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
-        <template x-for="k in axis" :key="k">
+        <template x-for="k in (view === 'standoff' ? [] : axis)" :key="k">
           <button class="btn btn-xs gap-1.5 border-0 shrink-0"
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
@@ -2054,11 +2044,22 @@ window.__audit = {
           </button>
         </template>
         </div>
-        <!-- How the colour is drawn. -->
+        <!-- How what is on screen is drawn: rendered or raw, for either view,
+             then the display settings, which only the document has. -->
         <div class="flex items-center gap-1 shrink-0">
+          <!-- Rendered, on or off, for whichever object is on screen: the
+               formatted document or the spans table when on, the markdown or
+               standoff.json when off. -->
+          <button class="btn btn-xs h-6 min-h-0 px-2 border border-base-300 transition-none"
+                  :class="form === 'rendered' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                  :aria-pressed="form === 'rendered'"
+                  :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
+                  aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
+            <i class="ph ph-eye text-sm"></i></button>
+
           <!-- Display settings, the diff tool's pattern: a menu with a titled
                section per setting. -->
-          <div class="dropdown dropdown-end">
+          <div class="dropdown dropdown-end" x-show="view !== 'standoff'">
             <button tabindex="0" class="btn btn-ghost btn-xs h-6 min-h-0 px-2 border border-base-300"
                     title="Display settings" aria-label="Display settings">
               <i class="ph ph-sliders-horizontal text-sm"></i></button>
