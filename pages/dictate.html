@@ -873,6 +873,10 @@
           && !e.target?.closest?.('input, textarea, select, [contenteditable]');
 
         addEventListener('keydown', (e) => {
+          // A character typed at the Rendered face with no keyboard open opens
+          // it, and focus moving inside keydown carries the character with it.
+          if (this.rendered && !this.typing && this.d && mine(e) && e.key.length === 1
+              && !e.ctrlKey && !e.metaKey && !e.altKey) this.startTyping();
           if (e.repeat) return;                 // a held key is not a tap
           tap = (e.key === 'Control' || e.key === 'Shift') && mine(e) ? e.key : null;
         }, true);
@@ -1215,6 +1219,7 @@
           dragging = true;
           // And it arms the edge it is moving, the same as every other way of
           // extending here, so the pad or that pinhead continues on release.
+          this._selA = anchor;
           if (i === anchor) { this.d.caretAt(i); this.armed = null; }
           else { this.d.select(anchor, i); this.armed = i > anchor ? 'end' : 'start'; }
           this.pinDrag = this.armed;
@@ -1248,6 +1253,7 @@
           if (dragging) {
             dragging = false; anchor = null; taps = 0;
             this.pinDrag = null; this.armed = null; this.paint();
+            if (e.pointerType === 'mouse' && this.rendered) this.keepTyping();
             return;
           }
           anchor = null;
@@ -1283,6 +1289,9 @@
           // the tap too made "tap a pin, then tap the text" a double and opened
           // the keyboard on the gesture meant to move the edge.
           if (pin) { taps = 0; return; }
+          // A MOUSE IN THE RENDERED FACE GETS A DESKTOP EDITOR'S CLICKS, not the
+          // phone's: see mouseClick.
+          if (e.pointerType === 'mouse' && this.rendered) { taps = 0; this.mouseClick(e); return; }
           const t = Date.now();
           taps = (t - lastTap) < 300 ? taps + 1 : 1;
           lastTap = t;
@@ -1466,7 +1475,10 @@
       // the three numbers: crawl and the caret creeps at well under 1:1, flick
       // and it runs ahead of the thumb, so a short button reaches a long
       // buffer and the overshoot is walked back without lifting.
-      padDrag: false, pinDrag: null, precise: false,
+      padDrag: false, pinDrag: null,
+      // A fine pointer from the start, so a desktop never sees the pins it would
+      // only lose at the first click; any mouse press sets it too.
+      precise: !!(window.matchMedia && matchMedia('(pointer: fine)').matches),
 
       // ── One armed state, three ways in ────────────────────────────────
       // `armed` is the whole aiming state and it has four values: null, the
@@ -1704,6 +1716,8 @@
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
             overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
             base: this.fileBase, marks: false, track: this.showMarks,
+            // Red is the phone's precision caret; a mouse gets the text's own color.
+            caret: this.precise ? 'var(--color-base-content)' : null,
           });
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
@@ -1816,6 +1830,136 @@
       // undo coalesces a run of typing into one step. The document re-renders
       // around it. The rules for Enter, a line-start backspace, and a wrapper
       // losing its last character are kits/md-surface.js's.
+      // ── The Rendered face under a mouse ───────────────────────────────
+      // The red caret, the pins, the long press and the double tap that opens
+      // the keyboard are all answers to a phone: to iOS raising its own
+      // selection, callout and loupe over a surface it does not own. A mouse
+      // has none of those problems, and on a desktop the phone's gestures
+      // only got in the way: a double click opened the keyboard instead of
+      // taking the word, and typing did nothing until it had. So under a
+      // mouse the face behaves like any text editor. A click places the caret
+      // and types there, shift-click extends, a double click takes the word,
+      // a triple click the line, and a drag selects (the move handler). Keys
+      // are sinkKey's. The model underneath is the same range the phone
+      // drives, so dictation, the pad and the format keys see no difference.
+      mouseClick(e) {
+        const t = Date.now(), c = this._clicks || {};
+        const near = Math.abs((c.x ?? -99) - e.clientX) < 6 && Math.abs((c.y ?? -99) - e.clientY) < 6;
+        const n = near && t - (c.t || 0) < 500 ? (c.n % 3) + 1 : 1;
+        this._clicks = { t, n, x: e.clientX, y: e.clientY };
+        let i = this.pointOffset(e.clientX, e.clientY);
+        if (i == null) i = this.d.text.length;
+        if (n === 2) { const w = this.d.selectWordAt(i); this._selA = w.start; }
+        else if (n === 3) {
+          // The block, not the source line: a hard-wrapped paragraph is one
+          // paragraph on screen, and that is what a triple click means.
+          const t = this.d.text, a = t.lastIndexOf('\n\n', i - 1), b = t.indexOf('\n\n', i);
+          const ls = a < 0 ? 0 : a + 2, le = b < 0 ? t.replace(/\s+$/, '').length : b;
+          this.d.select(ls, le); this._selA = ls;
+        }
+        else this.extendTo(i, e.shiftKey);
+        this.armed = null;
+        this.paint();
+        this.keepTyping();
+      },
+      // A collapsed range moves; with shift, the end away from the anchor does.
+      extendTo(i, shift) {
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        if (!shift) { this.d.caretAt(i); this._selA = i; return; }
+        const a = r.start === r.end ? r.start : (this._selA === r.end ? r.end : r.start);
+        this._selA = a;
+        if (a === i) this.d.caretAt(i); else this.d.select(Math.min(a, i), Math.max(a, i));
+      },
+      selFocus() {
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        return this._selA === r.end && r.start !== r.end ? r.start : r.end;
+      },
+      // Typing follows the click, except while the microphone is live: starting
+      // to type stops dictation, and a click to move where the words land must
+      // not. A key pressed then starts typing on its own (bindKeys).
+      keepTyping() {
+        if (this.typing) { this.syncSink(true); try { this.$refs.sink.focus({ preventScroll: true }); } catch {} return; }
+        if (!this.listening) this.startTyping();
+      },
+      // The keys a textarea would handle itself, if it held the document. The
+      // sink holds only the caret's line, so travel is computed here against the
+      // render: left and right by MdSurface.step (markup skipped), up and down
+      // by the caret's screen position, keeping the column it started from.
+      sinkKey(e) {
+        if (!this.rendered || this.composing || !this.d) return;
+        const mod = e.ctrlKey || e.metaKey, k = e.key, t = this.d.text, md = this.$refs.md;
+        const r = this.d.range || { start: t.length, end: t.length };
+        const done = () => { e.preventDefault(); this.armed = null; this.syncSink(true); this.paint(); this.revealCaret(); };
+        if (mod && !e.altKey && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) this.redo(); else this.undo(); this.syncSink(true); return; }
+        if (mod && !e.altKey && k === 'y') { e.preventDefault(); this.redo(); this.syncSink(true); return; }
+        if (mod && !e.altKey && k === 'a') { this.d.select(0, t.length); this._selA = 0; return done(); }
+        if (!/^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(k)) return;
+        const f = this.selFocus();
+        let i = f;
+        if (k === 'ArrowLeft' || k === 'ArrowRight') {
+          const dir = k === 'ArrowRight' ? 1 : -1;
+          this._goalX = null;
+          if (r.start !== r.end && !e.shiftKey) i = dir > 0 ? r.end : r.start;
+          else if (mod || e.altKey) {
+            const word = (j) => /[\w']/.test(t[dir > 0 ? j : j - 1] || '');
+            let g = 0;
+            while (g++ < 4000 && !word(i) && (dir > 0 ? i < t.length : i > 0)) { const n = window.MdSurface.step(md, i, dir); if (n === i) break; i = n; }
+            while (g++ < 8000 && word(i)) { const n = window.MdSurface.step(md, i, dir); if (n === i) break; i = n; }
+          } else i = window.MdSurface.step(md, f, dir);
+        } else if (mod && (k === 'Home' || k === 'End')) {
+          i = k === 'Home' ? 0 : t.length; this._goalX = null;
+        } else {
+          const c = window.MdSurface.rectAt(md, f);
+          if (!c) return;
+          const hb = md.getBoundingClientRect();
+          if (k === 'Home' || k === 'End') {
+            const hit = window.MdSurface.offsetAt(md, k === 'Home' ? hb.left + 1 : hb.right - 1, c.top + c.height / 2);
+            if (hit != null) i = hit;
+            this._goalX = null;
+          } else {
+            const x = (this._goalX ??= c.left) + 0.5, dir = k === 'ArrowDown' ? 1 : -1, v = this.$refs.view;
+            const vb = v.getBoundingClientRect();
+            let y = dir > 0 ? c.bottom : c.top, found = false;
+            for (let g = 0; g < 12 && !found; g++) {
+              y += dir * c.height * 0.5;
+              if (y < vb.top + 2 || y > vb.bottom - 2) {        // off the pane: scroll it, then look
+                const d = y < vb.top + 2 ? y - vb.top - c.height : y - vb.bottom + c.height;
+                const before = v.scrollTop;
+                v.scrollTop += d;
+                const moved = v.scrollTop - before;
+                if (!moved) break;
+                y -= moved;
+              }
+              const hit = window.MdSurface.offsetAt(md, x, y);
+              if (hit == null || hit === f) continue;
+              const hr = window.MdSurface.rectAt(md, hit);
+              if (!hr || !(dir > 0 ? hr.top > c.top + 2 : hr.top < c.top - 2)) continue;
+              // A point in the gap between blocks resolves to the nearest text,
+              // often a line's end; asking again at that line's middle puts the
+              // caret back under the column it came from.
+              const again = window.MdSurface.offsetAt(md, x, hr.top + hr.height / 2);
+              i = again ?? hit; found = true;
+            }
+            if (!found) i = dir > 0 ? t.length : 0;
+            const keep = this._goalX;
+            this.extendTo(i, e.shiftKey);
+            this._goalX = keep;
+            return done();
+          }
+        }
+        this.extendTo(i, e.shiftKey);
+        done();
+      },
+      // The caret's line kept on screen after a key moved it.
+      revealCaret() {
+        const v = this.$refs.view, c = window.MdSurface.rectAt(this.$refs.md, this.selFocus());
+        if (!v || !c) return;
+        const vb = v.getBoundingClientRect();
+        if (c.top < vb.top) v.scrollTop -= vb.top - c.top + 8;
+        else if (c.bottom > vb.bottom) v.scrollTop += c.bottom - vb.bottom + 8;
+        else return;
+        this.paint();
+      },
       startTyping(at) {
         this.d.flush();
         if (typeof at === 'number') this.d.caretAt(at);
@@ -1858,6 +2002,13 @@
         if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
           e.preventDefault();
           this.applyEdit(window.MdSurface.enter(t, r.start, r.end));
+        } else if (e.inputType === 'deleteContentForward' && r.start === r.end
+                   && this.$refs.sink.selectionStart === this.$refs.sink.value.length) {
+          // The sink holds one line, so a forward delete at its end has nothing
+          // to take there; the next character of the document is taken here.
+          if (r.start >= t.length) return;
+          e.preventDefault();
+          this.applyEdit({ text: t.slice(0, r.start) + t.slice(r.start + 1), caret: r.start });
         } else if (e.inputType === 'deleteContentBackward' && r.start === r.end) {
           const res = window.MdSurface.backspace(t, r.start);
           if (!res) return;
@@ -2693,7 +2844,7 @@
         <!-- File mode's Rendered face. Its classes are set once from
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
-        <div x-show="rendered" x-ref="md" @contextmenu.prevent @click="cardTap($event)"></div>
+        <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" @contextmenu.prevent @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes
@@ -2712,7 +2863,7 @@
       <textarea x-ref="sink" tabindex="-1" rows="1" aria-hidden="true"
                 autocapitalize="sentences" autocomplete="off" spellcheck="true"
                 class="absolute top-0 left-0 w-px h-px opacity-0 pointer-events-none resize-none text-[16px] p-0 border-0"
-                @beforeinput="sinkBefore($event)" @input="sinkInput()"
+                @beforeinput="sinkBefore($event)" @input="sinkInput()" @keydown="sinkKey($event)"
                 @compositionstart="composing = true" @compositionend="composing = false; sinkInput()"
                 @blur="if (typing) stopTyping()"></textarea>
 
