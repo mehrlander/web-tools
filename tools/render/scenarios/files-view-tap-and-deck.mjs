@@ -3,38 +3,49 @@
 // Asserts rather than only photographs, and throws on a miss so screenshot.mjs
 // exits 1. Written after a tapped file loaded and stayed hidden while a file
 // opened from the address rendered, so a shot of the second case passed for
-// both. Run through tools/test/files-view-browser.mjs, against this checkout's
-// own tree (docs/), which the renderer serves offline.
+// both. Checks the one position both ways: a tap in the tree moves the swiper,
+// and a move in the swiper or the deck moves the tree's selection. Run through
+// tools/test/files-view-browser.mjs, against this checkout's own tree (docs/),
+// which the renderer serves offline.
 export default async (page) => {
   const data = () => page.evaluate(() => {
     const d = Alpine.$data(document.querySelector('[data-file-browser]').parentElement);
-    return { file: d.file, busy: d.busy, note: d.note, folder: d.folderFiles.length,
-             shown: !!document.querySelector('[data-file-viewer]')?.offsetParent,
-             mode: document.querySelector('[data-file-viewer]')?.__viewer?.mode || '',
-             text: (document.querySelector('[data-file-viewer]')?.innerText || '').trim().length };
+    const v = document.querySelector('[data-slide="' + d.at + '"] [data-file-viewer]');
+    return { sel: d.sel, at: d.at, picked: d.picker?.picked || '', folder: d.folderFiles.length,
+             shown: !!v?.offsetParent, mode: v?.__viewer?.mode || '',
+             text: (v?.innerText || '').trim().length };
   });
   const fail = (what, got) => { throw new Error('files-view: ' + what + ' ' + JSON.stringify(got)); };
+  const until = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 10000 }).then(() => true, () => false);
   await page.waitForSelector('[data-file-browser] [role=option]', { timeout: 20000 });
   await page.locator('[data-file-browser] [role=option]', { hasText: 'README.md' }).first().click();
-  await page.waitForFunction(() => {
-    const d = Alpine.$data(document.querySelector('[data-file-browser]').parentElement);
-    return d.file && !d.busy;
-  }, null, { timeout: 15000 });
-  let s = await data();
   // Visible is not shown: the reader must have been handed the file (a mode)
   // and drawn something. The frame alone passed while it was empty.
-  await page.waitForFunction(() => !!document.querySelector('[data-file-viewer]')?.__viewer?.mode, null, { timeout: 10000 }).catch(() => {});
-  await page.waitForTimeout(1500);
+  await until(() => {
+    const d = Alpine.$data(document.querySelector('[data-file-browser]').parentElement);
+    return !!document.querySelector('[data-slide="' + d.at + '"] [data-file-viewer]')?.__viewer?.mode;
+  });
+  await page.waitForTimeout(1000);
+  let s = await data();
+  if (s.sel !== 'docs/README.md' || s.at < 0 || !s.shown || !s.mode || s.text < 20) fail('a tapped file must show below', s);
+  if (s.picked !== s.sel) fail('the tapped row must stay selected', s);
+  if (s.folder < 2) fail('the folder must list its files for the swiper', s);
+  // A move below moves the selection above.
+  await page.locator('[data-strip]').hover();
+  await page.keyboard.press('ArrowRight');
+  if (!await until(() => Alpine.$data(document.querySelector('[data-file-browser]').parentElement).sel !== 'docs/README.md'))
+    fail('a swipe below must move the selection', await data());
+  await page.waitForTimeout(800);
   s = await data();
-  if (s.file !== 'docs/README.md' || !s.shown || s.note || !s.mode || s.text < 20) fail('a tapped file must show in the reader', s);
-  if (s.folder < 2) fail('the folder must list its files for the deck', s);
-  await page.locator('[data-file-browser] button:has(.ph-cards-three)').click();
+  if (s.picked !== s.sel) fail('the tree must follow the swiper', s);
+  const before = s.sel;
+  // And the full deck moves it too.
+  await page.locator('[data-deck-door]').click();
   await page.waitForTimeout(2000);
   await page.keyboard.press('ArrowRight');
-  const moved = await page.waitForFunction(() =>
-    Alpine.$data(document.querySelector('[data-file-browser]').parentElement).file !== 'docs/README.md',
-    null, { timeout: 10000 }).then(() => true, () => false);
+  if (!await until((b) => Alpine.$data(document.querySelector('[data-file-browser]').parentElement).sel !== b, before))
+    fail('a swipe in the deck must move the selection', await data());
   s = await data();
-  if (!moved) fail('a swipe in the deck must move the pane to the next file', s);
+  if (s.picked !== s.sel) fail('the tree must follow the deck', s);
   console.log('CHECK OK files-view', JSON.stringify(s));
 };
