@@ -88,10 +88,9 @@ const Alpine = await startAlpine(window, [
   // the pre-build boots both in this position for the same reason.
   'lib/kits/url-params.js',
   'lib/kits/repo-address.js',
-  // The mailbox kit: the stage reads its `ask` kind, the one the browser cannot
-  // fulfil. show-repo loads every kit before any component, so this mirrors the
+  // The errands kit: the stage lists, grades and closes errands through it.
+  // show-repo loads every kit before any component, so this mirrors the
   // page's own order rather than adding a dependency the page lacks.
-  'lib/kits/repo-mailbox.js',
   'lib/kits/errands.js',
   'lib/kits/surface.js',
   'lib/kits/text-diff.js',
@@ -3408,8 +3407,8 @@ test('Done resumes dictation only if the keyboard interrupted it', async () => {
 });
 
 // ---- errands: what a session needs this browser for ---------------------
-// One list for reads of your repos, courier runs, and material only you have.
-// Nothing runs on its own; each card is graded, and one button completes it.
+// One list for reads of your repos, code for you to run, and material only you
+// have. Nothing runs on its own; each card is graded, and one button completes it.
 
 test('askAge is coarse, and says nothing when the record carries no date', () => {
   assert.equal(data.askAge(''), '');
@@ -3428,25 +3427,19 @@ test('errandTaskUrl links the citation, and stays quiet without one', () => {
   assert.equal(data.errandTaskUrl({ for: 'nonsense' }), '');
 });
 
-// A registry with both folders and the public courier list, for loadErrands.
-function errandRegistry({ requests = {}, results = [], mailbox = {}, mailboxResults = [], list = null } = {}) {
+// A registry's errands folder, plus the scripts run blocks name, for loadErrands.
+function errandRegistry({ requests = {}, results = [], scripts = {} } = {}) {
   const saved = [];
   const gh = (repo) => ({
     async ls(dir) {
       if (dir === 'errands/requests') return Object.keys(requests).map(name => ({ name, type: 'file' }));
       if (dir === 'errands/results') return results.map(name => ({ name, type: 'file' }));
-      if (dir === 'mailbox/requests') return Object.keys(mailbox).map(name => ({ name, type: 'file' }));
-      if (dir === 'mailbox/results') return mailboxResults.map(name => ({ name, type: 'file' }));
       throw new Error('404');
     },
     async get(p) {
-      if (repo === 'mehrlander/web-tools') {
-        if (p === 'courier/errands.json' && list) return { text: JSON.stringify(list) };
-        if (p === 'bookmarklets/courier-stage.js') return { text: 'javascript:void 0\n' };
-        throw new Error('404');
-      }
-      const name = p.split('/').pop();
-      const v = (p.startsWith('mailbox/') ? mailbox : requests)[name];
+      if (repo === 'mehrlander/web-tools' && p === 'bookmarklets/courier-stage.js') return { text: 'javascript:void 0\n' };
+      if (repo + ':' + p in scripts) return { text: scripts[repo + ':' + p] };
+      const v = p.startsWith('errands/requests/') ? requests[p.split('/').pop()] : undefined;
       if (v === undefined) throw new Error('404');
       return { text: typeof v === 'string' ? v : JSON.stringify(v) };
     },
@@ -3455,44 +3448,82 @@ function errandRegistry({ requests = {}, results = [], mailbox = {}, mailboxResu
   return { gh, saved };
 }
 
-test('loadErrands gathers every source as one list, and drops what it cannot use', async () => {
+const PS_RUN = { script: 'me/tools@main:ps/list.ps1', method: 'ise-f5', venue: 'work-machine', outputType: 'json', outputSigned: true };
+
+test('loadErrands reads the one folder, and drops what it cannot use', async () => {
   const reg = errandRegistry({
     requests: {
-      'hand-ok.json': { id: 'hand-ok', action: 'hand', note: 'the PowerShell files', dest: 'me/dest:dump' },
-      'done.json': { id: 'done', action: 'hand', note: 'already closed', dest: 'me/dest:d' },
-      'bad.json': { id: 'bad', action: 'hand' },
+      'plain.json': { id: 'plain', note: 'the PowerShell files', dest: 'me/dest:dump' },
+      'done.json': { id: 'done', note: 'already closed', dest: 'me/dest:d' },
+      'bad.json': { id: 'bad', note: 'no destination' },
+      'wrong-venue.json': { id: 'wrong-venue', note: 'n', dest: 'me/dest:d', run: { ...PS_RUN, venue: 'browser' } },
       'junk.json': '<<<not json>>>',
-    },
-    results: ['done.json', 'pub-closed.json'],
-    mailbox: {
       'ask-old.json': { id: 'ask-old', kind: 'ask', note: 'an older ask', dest: 'me/dest:x', task: 'me/t:a.md' },
-      'req-tree.json': { id: 'req-tree', kind: 'tree', repo: 'me/open' },
+      'req-tree.json': { id: 'req-tree', kind: 'tree', repo: 'me/open', note: 'list it' },
+      'ps.json': { id: 'ps', note: 'list the reports', dest: 'me/dest:d', purpose: 'get-data', run: PS_RUN },
     },
-    list: { errands: [
-      { id: 'pub-open', host: 'site.example', status: 'open', title: 'Public', url: 'https://site.example/', script: 's.js',
-        result: { repo: 'me/private', branch: 'main', path: 'courier/results/pub-open.md' } },
-      { id: 'pub-closed', host: 'site.example', status: 'open', title: 'Closed privately', url: 'https://site.example/', script: 's.js',
-        result: { repo: 'me/private', branch: 'main', path: 'r/pub-closed.md' } },
-    ] },
+    results: ['done.json'],
+    scripts: { 'me/tools:ps/list.ps1': '# @file ps/list.ps1\n$x = 1' },
   });
   window.__shell = { REGISTRY_REPO: 'me/registry' };
   data.srcGh = (repo) => reg.gh(repo);
   await data.loadErrands();
-  assert.deepEqual(plain_(data.errands.map(e => e.id)).sort(), ['ask-old', 'hand-ok', 'pub-open', 'req-tree'],
-    'a closed errand, a malformed one and an unparsable file each drop their own row, not the panel');
+  assert.deepEqual(plain_(data.errands.map(e => e.id)).sort(), ['ask-old', 'plain', 'ps', 'req-tree'],
+    'a closed errand, a malformed one, a run its method refuses and an unparsable file each drop their own row, not the panel');
   const ask = data.errands.find(e => e.id === 'ask-old');
-  assert.equal(ask.action, 'hand', 'an old ask is a hand errand');
-  assert.equal(ask.src.res, 'mailbox/results', 'and closes where it was filed');
-  const pub = data.errands.find(e => e.id === 'pub-open');
-  assert.equal(pub.dest, 'me/private@main:courier/results');
-  assert.equal(pub.src.res, 'errands/results', 'a public courier errand closes by a private record');
+  assert.equal(data.errandKind(ask), 'note', 'an old ask is the plain case');
+  assert.equal(ask.src.res, 'errands/results');
+  assert.equal(data.errandKind(data.errands.find(e => e.id === 'req-tree')), 'tree');
+  const ps = data.errands.find(e => e.id === 'ps');
+  assert.equal(data.errandKind(ps), 'ise-f5');
+  assert.equal(ps.run.outputReturn, 'direct-to-clipboard', 'the card shows the value the registry filled');
+  assert.ok(data.errandRules(ps).includes('ends with Set-Clipboard'));
+  assert.equal(data.errandScriptUrl(ps), 'https://github.com/me/tools/blob/main/ps/list.ps1');
+  for (let i = 0; i < 5; i++) await tick();
+  assert.equal(ps.scriptText, '# @file ps/list.ps1\n$x = 1', 'the script bytes are on the card');
   assert.equal(data.pointer, 'javascript:void 0', 'the bookmarklet comes from the one copy in the repo');
   data.srcGh = realSrcGh;
   delete window.__shell;
 });
 
+test('a pasted signed result is staged for its errand and graded there', async () => {
+  reset();
+  window.__shell = { REGISTRY_REPO: 'me/registry' };
+  const e = { ...window.Errands.normalize({ id: 'ps', note: 'n', dest: 'me/dest:d', run: PS_RUN, expect: { names: ['*.json'] } },
+                                         { repo: 'me/registry', res: 'errands/results', name: 'ps.json' }),
+              message: '', busy: false, armed: false, outcome: null };
+  const other = { ...window.Errands.normalize({ id: 'other', note: 'n', dest: 'me/dest:d' }), busy: false };
+  data.errands = [e, other];
+  data.errandsOpen = true;
+  store.stage = [window.StageIntake.textItem('notes.txt', 'unrelated')];
+  window.StageIntake.take({ text: JSON.stringify({ envelope: 'errand-result/1', errand: 'ps', script: 'ps/list.ps1',
+    ranAt: 'T', venue: 'work-machine', outputType: 'json', body: [{ n: 1 }] }) });
+  await tick();
+  const item = store.stage.find(it => it.errand === 'ps');
+  assert.equal(item.name, 'ps.json', 'the body is staged under the errand\'s name');
+  assert.equal(data.errandFocus, 'ps', 'the panel turns to the errand the envelope names');
+  assert.equal(data.errandGrade(data.errands[0]).level, 'green', 'graded on its own file, not on the unrelated one');
+  assert.equal(data.errandGrade(data.errands[1]).level, 'green', 'another errand still sees the untagged file');
+  store.stage = [window.StageIntake.textItem('notes.txt', 'unrelated')];
+  assert.equal(data.errandGrade(data.errands[0]).level, 'amber', 'without the envelope, the unrelated file misses *.json');
+  delete window.__shell;
+  reset();
+});
+
+test('Copy script puts the errand id in, and the committed bytes stay generic', async () => {
+  const e = { ...window.Errands.normalize({ id: 'ps', note: 'n', dest: 'me/dest:d', run: PS_RUN }),
+              scriptText: '# @file ps/list.ps1\n$x = 1', copied: false };
+  let copied = '';
+  const clip = Object.getOwnPropertyDescriptor(window.navigator, 'clipboard');
+  Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async (t) => { copied = t; } }, configurable: true });
+  await data.copyErrandScript(e);
+  assert.equal(copied, "# @file ps/list.ps1\n$ErrandId = 'ps'\n$x = 1");
+  assert.equal(e.scriptText, '# @file ps/list.ps1\n$x = 1');
+  if (clip) Object.defineProperty(window.navigator, 'clipboard', clip); else delete window.navigator.clipboard;
+});
+
 test('nothing runs on load: a read waits for Run, then its grade decides the button', async () => {
-  const reg = errandRegistry({ requests: { 'r.json': { id: 'r', action: 'fetch', repo: 'me/open', paths: ['a.md', 'b.md'] } } });
+  const reg = errandRegistry({ requests: { 'r.json': { id: 'r', action: 'fetch', repo: 'me/open', paths: ['a.md', 'b.md'], note: 'read two' } } });
   window.__shell = { REGISTRY_REPO: 'me/registry' };
   data.srcGh = (repo) => reg.gh(repo);
   await data.loadErrands();
@@ -3517,12 +3548,12 @@ test('nothing runs on load: a read waits for Run, then its grade decides the but
   delete window.__shell;
 });
 
-test('a hand errand is graded against the bench, and a decline must say why', async () => {
+test('a plain errand is graded against the bench, and a decline must say why', async () => {
   reset();
   const saved = [];
   window.__shell = { REGISTRY_REPO: 'me/registry' };
   data.srcGh = () => ({ async save(path, body, msg) { saved.push({ path, body, msg }); return {}; } });
-  const e = { ...window.Errands.normalize({ id: 'h', action: 'hand', note: 'scripts', dest: 'me/dest:d', expect: { names: ['*.ps1'] } },
+  const e = { ...window.Errands.normalize({ id: 'h', note: 'scripts', dest: 'me/dest:d', expect: { names: ['*.ps1'] } },
                                          { repo: 'me/registry', res: 'errands/results', name: 'h.json' }),
               message: '  ', busy: false, armed: false, outcome: null };
   data.errands = [e];

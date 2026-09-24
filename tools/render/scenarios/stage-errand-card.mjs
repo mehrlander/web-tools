@@ -11,15 +11,19 @@ import { repoRoot } from '../../test/bootstrap.mjs';
 
 const REQUESTS = {
   'read-home-tree.json': { id: 'read-home-tree', action: 'tree', repo: 'mehrlander/home',
-    title: 'List the files in mehrlander/home', for: 'mehrlander/home:tracker/tasks/example.md', createdAt: new Date().toISOString() },
-  'hand-wps.json': { id: 'hand-wps', action: 'hand', note: 'The PowerShell loaders off the Windows machine.\nAEF05.ps1 and Get-AEF05Detail are still missing.',
+    note: 'List the files in mehrlander/home', title: 'List the files in mehrlander/home', for: 'mehrlander/home:tracker/tasks/example.md', createdAt: new Date().toISOString() },
+  'wps-reports.json': { id: 'wps-reports', note: 'The report list off the work machine, as JSON.', purpose: 'get-data',
+    dest: 'mehrlander/home:projects/wps/dump', createdAt: '2026-09-23T00:00:00Z',
+    run: { script: 'mehrlander/web-tools@main:tools/render/fixtures/errand-list.ps1', method: 'ise-f5', venue: 'work-machine',
+           outputType: 'json', outputSigned: true } },
+  'hand-wps.json': { id: 'hand-wps', note: 'The PowerShell loaders off the Windows machine.\nAEF05.ps1 and Get-AEF05Detail are still missing.',
     dest: 'mehrlander/home:projects/wps/dump', expect: { names: ['*.ps1'] }, createdAt: '2026-09-20T00:00:00Z' },
 };
 const json = (route, body, status = 200) => route.fulfill({ status, body: typeof body === 'string' ? body : JSON.stringify(body),
   headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
 
 export default async (page) => {
-  const list = readFileSync(path.join(repoRoot, 'courier/errands.json'), 'utf8');
+  const script = readFileSync(path.join(repoRoot, 'tools/render/fixtures/errand-list.ps1'), 'utf8');
   const pointer = readFileSync(path.join(repoRoot, 'bookmarklets/courier-stage.js'), 'utf8');
   await page.route('https://api.github.com/**', route => {
     const u = new URL(route.request().url());
@@ -34,8 +38,8 @@ export default async (page) => {
         const text = JSON.stringify(REQUESTS[file.split('/').pop()]);
         return json(route, { type: 'file', encoding: 'base64', content: Buffer.from(text).toString('base64'), sha: 'x', size: text.length });
       }
-      if (repo === 'mehrlander/web-tools' && (file === 'courier/errands.json' || file === 'bookmarklets/courier-stage.js')) {
-        const text = file.endsWith('.json') ? list : pointer;
+      if (repo === 'mehrlander/web-tools' && (file === 'tools/render/fixtures/errand-list.ps1' || file === 'bookmarklets/courier-stage.js')) {
+        const text = file.endsWith('.ps1') ? script : pointer;
         return json(route, { type: 'file', encoding: 'base64', content: Buffer.from(text).toString('base64'), sha: 'x', size: text.length });
       }
       return json(route, { message: 'Not Found' }, 404);

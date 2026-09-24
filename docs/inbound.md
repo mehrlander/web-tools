@@ -18,15 +18,14 @@ it. See "What was measured" below.
 | **PR comment, subscribed** | anyone with repo write *except this session* | **push** | yes | **yes** |
 | `SendMessage` between sessions | Claude sessions on the account | push | no | no |
 | Routine, `send_later` | a schedule, or a session arming itself | push | the trigger is | no |
-| mailbox `requests/` | a session, answered by the browser | pull | yes | by token |
-| mailbox `ask` | a session, answered by a person | pull | yes | yes |
+| errand, `errands/requests/` | a session, answered by a person in the browser | pull | yes | by token |
 | `chron/dump/`, drained | the user | pull | yes | yes |
 | A tracker task | anyone | pull | yes | yes |
 
 Two columns carry the whole argument.
 
 **Every durable inbound in this estate is pull.** A dump file, a tracker task,
-a mailbox request: each waits in a folder until something next looks. That is
+an errand: each waits in a folder until something next looks. That is
 robust and it is slow, and slowness is the correct trade for most of them. What
 it cannot do is redirect work already under way.
 
@@ -135,7 +134,7 @@ not knowable from the sending end.
 Measured 2026-08-21 on `web-tools-private#35`, a private repo. **A private
 repository delivers**, which is what makes the channel usable at all: an inbound
 message that had to be world-readable could carry nothing drawn from the session
-corpus, the mailbox, or any other private material.
+corpus, the errands folder, or any other private material.
 
 The same probe answered a question nobody had asked. Two comments sat on that one
 pull request under one subscription:
@@ -286,7 +285,7 @@ What the old rule got right is kept, and it is worth saying which half that is:
 a session should not burn tokens on a red build it had nothing to do with. What
 it got wrong was reach. Phrased as "never monitor a PR," it concealed the inbound
 channel for as long as it stood, because every session read it as covering the
-mailbox too. **A rule stated broadly enough to be safe can hide a capability
+errands folder too. **A rule stated broadly enough to be safe can hide a capability
 without anyone noticing**, which is the same failure that let the early-PR
 convention create this inbox unremarked. Both directions of that failure are now
 on the record in one file.

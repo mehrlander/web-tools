@@ -1,9 +1,10 @@
 // alpineComponents/stage.js: the Stage as the courier's popup. Opened by the
 // courier bookmarklet with `courier=1`, the bench hears only the window that
-// opened it, stages what the page sends, finds the courier errand for that
-// host among the errands (the registry's folder, then the public list) with its
-// own token, sends the errand's script back, and stages the script's result
-// aimed at the errand's destination.
+// opened it, stages what the page sends, finds the courier-bookmark errand for
+// the sender's origin in the private registry with its own token, sends the
+// errand's script back, and stages the script's result aimed at the errand's
+// destination. The host is the origin the browser reports, never the url a
+// message claims, so a page is sent only its own errand's script.
 //
 // Its own file because the intake is fixed at load: the flag is read from the
 // address before the shell can rewrite it, and window.opener exists only here.
@@ -22,33 +23,31 @@ const sent = [];
 const opener = { postMessage(msg, origin) { sent.push({ msg, origin }); } };
 Object.defineProperty(window, 'opener', { value: opener, configurable: true });
 
-// The registry holds one private courier errand as its own file; the public
-// list holds one open and one closed.
+// The registry holds two courier errands, each its own file, and a closed one
+// whose result is already written.
+const courier = (id, host) => ({ id, note: 'Collect the links on ' + host, url: 'https://' + host + '/', title: id,
+  run: { script: 'mehrlander/web-tools-private@main:sites/' + host + '/go.js', method: 'courier-bookmark' },
+  dest: 'mehrlander/web-tools-private@main:courier/results', file: id + '.md' });
 const PRIVATE = {
-  'priv.json': { id: 'priv', action: 'courier', url: 'https://private.example/', title: 'A private errand',
-                 script: 'sites/private.example/go.js', dest: 'mehrlander/web-tools-private@main:courier/results' },
+  'pub.json': courier('pub', 'site.example'),
+  'priv.json': courier('priv', 'private.example'),
+  'shut.json': courier('shut', 'closed.example'),
 };
-const PUBLIC = { errands: [
-  { id: 'pub', host: 'site.example', url: 'https://site.example/', status: 'open', title: 'A public errand',
-    script: 'sites/site.example/go.js',
-    result: { repo: 'mehrlander/web-tools-private', branch: 'main', path: 'courier/results/pub.md' } },
-  { id: 'shut', host: 'closed.example', url: 'https://closed.example/', status: 'done', title: 'Closed',
-    script: 'sites/closed.example/go.js', result: { repo: 'x/y', branch: 'main', path: 'r.md' } },
-] };
 const reads = [];
 class FakeGH {
   constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async ls(dir) {
     if (this.repo === 'mehrlander/web-tools-private' && dir === 'errands/requests')
       return Object.keys(PRIVATE).map(name => ({ name, type: 'file' }));
+    if (this.repo === 'mehrlander/web-tools-private' && dir === 'errands/results')
+      return [{ name: 'shut.json', type: 'file' }];
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async get(path) {
     reads.push(this.repo + ':' + path);
     if (this.repo === 'mehrlander/web-tools-private' && path.startsWith('errands/requests/'))
       return { text: JSON.stringify(PRIVATE[path.split('/').pop()]) };
-    if (this.repo === 'mehrlander/web-tools' && path === 'courier/errands.json') return { text: JSON.stringify(PUBLIC) };
-    if (path.endsWith('/go.js')) return { text: 'return "script from ' + this.repo + '"' };
+    if (path.endsWith('/go.js')) return { text: 'return "script at ' + this.repo + ':' + path + '"' };
     throw Object.assign(new Error('404'), { status: 404 });
   }
 }
@@ -57,7 +56,6 @@ const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/url-params.js',
   'lib/kits/repo-address.js',
-  'lib/kits/repo-mailbox.js',
   'lib/kits/errands.js',
   'lib/kits/surface.js',
   'lib/kits/text-diff.js',
@@ -118,7 +116,8 @@ test('an errand for the host sends its script back, aims the bench, and stages t
   const run = sent.at(-1);
   assert.equal(run.msg.type, 'courier-run');
   assert.equal(run.msg.id, 'pub');
-  assert.equal(run.msg.code, 'return "script from mehrlander/web-tools"', 'the script is read from the repo its list lives in');
+  assert.equal(run.msg.code, 'return "script at mehrlander/web-tools-private:sites/site.example/go.js"',
+    'the script is read from the address its run block names');
   assert.equal(run.origin, 'https://site.example', 'the script goes only to the origin that asked');
   assert.equal(data.destSpec, 'mehrlander/web-tools-private@main:courier/results', 'the destination is the errand record, not the message');
   assert.equal(data.courier.state, 'running');
@@ -128,11 +127,18 @@ test('an errand for the host sends its script back, aims the bench, and stages t
   assert.equal(data.courier.state, 'ran');
 });
 
-test('a private errand is found in the registry folder, and its script is read from there', async () => {
+test('a page that claims another host in its url is sent nothing for that host', async () => {
+  const before = sent.length;
+  deliver({ type: 'courier-page', url: 'https://private.example/', title: 'P', links: [] }, opener, 'https://evil.example');
+  await settle();
+  assert.equal(sent.length, before, 'the errand is keyed on the sender origin, not on the url it names');
+});
+
+test('a second errand is found by its own origin', async () => {
   deliver({ type: 'courier-page', url: 'https://private.example/', title: 'P', links: [] }, opener, 'https://private.example');
   await settle();
   assert.equal(sent.at(-1).msg.id, 'priv');
-  assert.equal(sent.at(-1).msg.code, 'return "script from mehrlander/web-tools-private"');
+  assert.equal(sent.at(-1).origin, 'https://private.example');
 });
 
 test('a result for an errand that is not running is ignored, and a failure is shown', async () => {

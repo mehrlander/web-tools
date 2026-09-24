@@ -159,9 +159,8 @@
   await gh.load('kits/route-activity.js');
   await gh.load('kits/route-join.js');
   // Errands: what a session needs this browser for, one record for reads of
-  // your repos, courier runs, and material only you have. The mailbox kit
-  // performs the reads, when an errand's Run is tapped.
-  await gh.load('kits/repo-mailbox.js');
+  // your repos, code for you to run, and material only you have. The kit
+  // performs the reads itself, when an errand's Run is tapped.
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');

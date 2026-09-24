@@ -4,25 +4,49 @@ A deferred read **from a page**, run by you in the browser you already have.
 
 An **errand** is anything a session needs your browser for, and there is one
 kind of record for all of them
-([`lib/kits/errands.js`](../lib/kits/errands.js)): a read of one of your repos,
-material only you have, or a read from a **web page a session cannot reach**.
-The last is the courier's: the courier is the mechanism, and a courier errand
-is one job it runs, answered when you visit that page and tap one bookmark.
+([`lib/kits/errands.js`](../lib/kits/errands.js)). A courier errand is an errand
+whose run block names `method: courier-bookmark`: a script to run on a **web
+page a session cannot reach**, answered when you visit that page and tap one
+bookmark. The courier is the mechanism; the errand is one job it runs.
 
-Every errand waits on the Stage for a tap, reads included; nothing is answered
-on load. A session files one as `errands/requests/<id>.json` in the private
-registry and hands you `?view=stage&errand=<id>`, which opens the Stage on that
-errand's card. The card says in one line whether the errand got what it came
-for (a read grades itself; a courier or hand errand is graded against its
-`expect` field), and its one green button completes it. Closing writes
-`errands/results/<id>.json`, with a reason required on a decline.
+Every errand waits on the Stage for a tap; nothing is answered on load. A
+session files one as `errands/requests/<id>.json` in the private registry and
+hands you `?view=stage&errand=<id>`, which opens the Stage on that errand's
+card. The card says in one line whether the errand got what it came for, graded
+against its `expect` field, and its one green button completes it. Closing
+writes `errands/results/<id>.json`, with a reason required on a decline.
+
+## A courier errand
+
+```json
+{
+  "id": "wsl-drs-cafr-index",
+  "note": "what it collects, and why the session cannot",
+  "purpose": "get-data",
+  "url": "http://wsldocs.sos.wa.gov/library/docs/drs/cafr_home.aspx",
+  "run": {
+    "script": "mehrlander/web-tools@main:sites/wsldocs.sos.wa.gov/courier/list-cafr.js",
+    "method": "courier-bookmark",
+    "venue": "browser",
+    "outputType": "text"
+  },
+  "dest": "mehrlander/web-tools-private@main:courier/results",
+  "file": "wsl-drs-cafr-index.md",
+  "for": "who is waiting on it"
+}
+```
+
+`url` is the page you go to, and its hostname is the errand's host. `run.script`
+is the exact code, as `owner/repo@ref:path`. `run.outputReturn` is
+`courier-message` for this method and is filled in when omitted; the method's
+row in [`docs/run-methods.csv`](../docs/run-methods.csv) owns that. `dest` and
+`file` say where the result is staged to be sent.
 
 ## Why it works where a background fetch does not
 
 CORS is the **server's** decision. A page on `mehrlander.github.io` cannot read
 `wsldocs.sos.wa.gov`, because that host sends no
-`Access-Control-Allow-Origin`. Nothing in the app can fix that, and a mailbox
-read that fetched arbitrary URLs would hit the same wall.
+`Access-Control-Allow-Origin`. Nothing in the app can fix that.
 
 Turn the request around and the wall is not there:
 
@@ -30,170 +54,60 @@ Turn the request around and the wall is not there:
 | --- | --- |
 | Web Tools page reads a state website | blocked, no `Access-Control-Allow-Origin` |
 | script **on** the state website reads its own host | same-origin, nothing to refuse |
-| script on the state website reads `api.github.com` | allowed, that host sends `*` |
+| the state website and a Web Tools window exchange `postMessage` | allowed; each side checks the other's origin |
 
-So the courier runs **on the target page**. Its own code and its errand list
-come from `api.github.com`, which answers any origin. Not the raw CDN: it caches
-five minutes at the edge and `cache: no-store` defeats only the browser's copy,
-so an errand added a moment ago could be invisible. The API answers current, at
-the cost of the unauthenticated rate limit, 60 an hour per address, which is
-about twenty courier runs. A 403 says which it was. Two things follow that no
-other route here gets:
+So the script runs **on the target page**, where you already cleared any
+Cloudflare interstitial by navigating like a person. A same-origin `fetch()` from
+the script carries the clearance cookie; a sandboxed session gets a 403.
 
-- **Cloudflare is already satisfied.** You cleared the interstitial by
-  navigating like a person, so a same-origin `fetch()` from the errand script
-  carries the clearance cookie. A sandboxed session gets a 403.
-- **No token is anywhere near it.** The errand list is public, the script is
-  public, and the result travels by clipboard or by a prefilled GitHub form you
-  submit while signed in. Nothing stores a credential on a third-party origin,
-  which is the failure this design is built to avoid: a bookmarklet's code runs
-  inside the visited page's JavaScript context, so a hostile page could shim
-  `fetch` and read an Authorization header straight off it.
+## The route
 
-## The parts
+[`bookmarklets/courier-stage.js`](../bookmarklets/courier-stage.js) is the whole
+bookmark. Tapped on a page, it opens the Web Tools Stage as a popup at
+`?view=stage&courier=1`, and the two windows talk by `postMessage`:
 
-| Part | Where | Changes |
-| --- | --- | --- |
-| the pointer | [`bookmarklets/courier.js`](../bookmarklets/courier.js) | almost never; it names one URL and decides whether to open a window |
-| the body | [`run.js`](run.js) | freely: routing, panel, gate, delivery |
-| the errand list | [`errands.json`](errands.json) | per errand |
-| the errand script | `sites/<hostname>/courier/<id>.js` | per errand, then frozen when it closes |
+1. The Stage says `courier-ready` to the window that opened it.
+2. The page sends `courier-page`: its URL, title, selection and links.
+3. The Stage stages the links as `<host>-<date>-links.md`, and looks for an open
+   `courier-bookmark` errand whose host is the **sender's origin**, as the
+   browser reports it. The URL in the message is never used to choose.
+4. If one exists, the Stage reads its script with your token and sends
+   `courier-run`, to that origin only.
+5. The page runs the script and sends `courier-ran` with the text it returned.
+6. The Stage stages the result under the errand's `file`, aimed at its `dest`,
+   and writes nothing until you tap send.
 
-**Nothing here names a branch.** Every read, the pointer's read of `run.js`
-included, omits `ref` and takes the repository's default branch; the panel's
-links use GitHub's `HEAD`, which resolves the same way. One rule rather than
-two. A constant `main` in `run.js` beside an implicit default in the pointer
-would agree only while `main` is the default, and would part silently
-otherwise, with the header printing a branch nothing had checked.
+A page with no errand is one send from saved: the links file is aimed at
+`web-tools-private` `courier/captures/`.
 
-**That is also why the pointer carries no `?` and no character above ASCII.**
-Chrome stores a `javascript:` bookmark as a parsed URL and percent-decodes it
-before running it, so an encoded bookmark still works; it just becomes
-unreadable in the bookmark editor. The rule is legible: the first `?` ends the
-opaque path and begins a query component, where every apostrophe comes back as
-`%27`. Dropping `ref` removed the first `?`, and the two places that wanted a
-ternary use an `if` instead.
+**No token goes near the visited page.** A bookmarklet's code runs inside the
+page's JavaScript context, where a hostile page could wrap `fetch` and read an
+Authorization header. Here the token stays in the Stage's window, a realm the
+page never executed code in, and the page receives only the one script its own
+origin is owed. So the errand list and the scripts can live in the private
+registry; nothing about an errand has to be public.
 
-**The panel names what it is connected to**, in its header: `mehrlander/web-tools@main`,
-linked to this folder. That is a constant, not a setting. A courier you could
-aim at another repo is a courier somebody else can aim, and the trust story here
-is that the code and the errand list come from one public place you can read
-before you tap. The unauthenticated allowance, 60 GitHub reads an hour against
-two per run, appears beside it once it is down to ten, so a 403 arrives as a
-countdown rather than as a bug. Whether it appears at all is GitHub's call: a
-cross-origin reader sees only the headers the server exposes.
+**The window is opened by the bookmark, synchronously.** A popup is permitted
+only while the user-gesture token is live, and the first `await` spends it. The
+bookmark therefore opens the window before it does anything else.
 
-**Every part but the pointer is read at `main`, so a change is live when it
-merges and not when it is pushed.** Tapping the bookmark from a branch gets you
-whatever `main` served that minute. There is no ref switch on purpose: a
-bookmark that could be aimed at a branch is a bookmark that can be aimed
-anywhere.
+The Stage hears only the window that opened it, stages what arrives without
+sending it, and takes the destination from the errand record, never from a
+message. Held by `tools/test/stage-courier.test.mjs`.
 
-Install the pointer once, as a bookmark whose URL is the whole file. It fetches
-`run.js` and runs it. `run.js` reads `location.hostname`, finds the open errands
-for that host, shows what it is about to run, and runs it on your tap.
+## Where it does not work
 
-## Where there is an interface, it is a popup, and only the pointer can open one
+- **A blocked popup.** The bookmark alerts and stops; allow popups for the site.
+- **A site that sends `Cross-Origin-Opener-Policy`** cuts the link between the
+  windows, and nothing arrives.
+- **A Content Security Policy that forbids `eval`** refuses the script, which
+  runs through `new Function`. The page's links still arrive.
 
-A panel injected into somebody else's document loses fights it should not be in:
-a host stylesheet, a focus trap, `overflow:hidden` on `html`, `position:fixed`
-behaving oddly inside a transformed ancestor. Shadow DOM answers the styling
-half and none of the rest. A separate window answers all of it, and this repo
-already runs that pattern in
-[`bookmarklets/popup-launcher.js`](../bookmarklets/popup-launcher.js) and
-[`popups/`](../popups).
-
-**The window is opened by the pointer, synchronously, before its first `await`.**
-That is not a style choice. A popup is permitted only while the user-gesture
-token is live, and the first `await` spends it; by the time `run.js` has been
-fetched the gesture is gone. So the one thing the pointer does besides naming a
-URL is open the window, because it is the only place in the chain that still
-can. A test that fires the bookmarklet with `evaluate()` rather than a real
-click will not notice this, and will pass on code that fails in a browser.
-
-**A window opened with an empty URL inherits the opener's origin**, so `run.js`
-can script its document and `window.opener` survives. That gives the split the
-design needs: the errand script keeps running in the **host page**, where the
-DOM it must read actually is, and only the interface moves. Running the script
-inside the popup would hand it a blank document.
-
-**If the popup was blocked**, `w` arrives as null and a plain in-page panel runs
-instead: a shadow root, no scrim animation, the same markup and wiring. It is
-the fallback rather than the design, so it is kept simple deliberately.
-
-## On our own pages it opens nothing and takes you there
-
-On `mehrlander.github.io` the pointer opens no window and passes `home` true.
-With one errand open, `run.js` sets `location.href` to it and stops: no popup,
-no panel, nothing to read and nothing to dismiss. Reading about the errand was
-never the point; standing on its page is. With more than one open there is no
-single place to go, so the list is the answer after all and the in-page panel
-carries it.
-
-**`home` is a separate argument rather than `w === null`**, and that distinction
-is the whole safety of this. A blocked popup on somebody else's page arrives as
-`w === null` too, and navigating a page you were reading is the one thing a
-bookmarklet must not do. So the tab is only ever taken on pages that are ours.
-
-## Anywhere else, every page is the directory
-
-A host with no open errand does not dead-end. The panel becomes the same form
-over **every** open errand, with each one's host beside its title, and the verb
-becomes Open that page. So the courier answers "what is waiting, and where do I
-go" from anywhere, and there is no separate helper page to remember to visit.
-
-The one thing a page on the Web Tools origin could add is **results already
-landed**, since it holds the token that reads the private results folder and the
-courier deliberately holds none. That is a status view rather than a directory,
-and it is not built.
-
-**The bookmark is a pointer on purpose, and the trade is worth naming.** The
-mechanism lived in the bookmark first, which put the confirm gate beyond this
-repo's reach: no commit could remove the step that shows you a script before it
-runs. Moving it out makes every part revisable without a reinstall, and moves
-the trust anchor from "this bookmark's own code" to "whatever
-`mehrlander/web-tools` main serves at `courier/run.js`". That is a smaller
-guarantee, stated rather than quietly lost, and it buys two things: reinstalling
-becomes rare rather than routine, and the mechanism becomes readable source
-instead of the single line a bookmarklet is obliged to be.
-
-**Rare is not never, and the reinstalls are predictable.** The pointer has to
-change when a decision must be made before the first `await`, since that is the
-only ground it holds alone. Two are made there today: whether to open a window,
-and what to pass in. Everything after the fetch belongs in `run.js`.
-
-It adds no new capability requirement. `run.js` reaches the page through
-`new Function`, which is how an errand script already ran, so a page whose
-Content-Security-Policy would refuse the loader would have refused the errand
-too.
-
-## An errand
-
-**The panel is a form over this record, and shows all of it**: a radio per open
-errand, then `url`, `script`, `result`, `for` and `opened` as labelled rows for
-whichever is selected. The picker is drawn for a single errand too, because
-hiding the choice when there is one leaves a reader unable to tell whether there
-could be more. Adding a field here means adding a row to `FIELDS` in `run.js`.
-
-```json
-{
-  "id": "wsl-drs-cafr-index",
-  "host": "wsldocs.sos.wa.gov",
-  "status": "open",
-  "opened": "2026-09-04",
-  "title": "shown as the panel heading",
-  "note": "one or two sentences: what it collects and why the session cannot",
-  "url": "where you go to run it",
-  "script": "sites/<hostname>/courier/<id>.js",
-  "result": { "repo": "owner/repo", "branch": "main", "path": "courier/results/<id>.md" },
-  "for": "who is waiting on it"
-}
-```
-
-`host` is matched against `location.hostname` exactly, with no normalisation, so
-`www.example.com` and `example.com` are different errands. `status` is `open`
-until the result lands, then `done`. Close an errand by setting it rather than
-deleting the record, so the list stays a history of what was asked.
+Until 2026-09-24 a second, tokenless route (`bookmarklets/courier.js` reading a
+public `courier/errands.json`) covered the first two cases. It was retired when
+errands moved to one private folder, since it needed the list and the scripts
+to be public. No page in use has needed it; if one does, a deliberately public
+errand is the way back, not a standing public list.
 
 ## An errand script
 
@@ -201,7 +115,7 @@ The body of a function called with one argument, `ctx` (`{errand}`), returning a
 string or a promise of one. It **reads and returns**: it does not navigate,
 submit a form, or write. That is a rule about what belongs here rather than a
 sandbox, since the script has the page's full authority while it runs; the
-protection is that you read it in the panel before it runs, which is the
+protection is that you read it on the errand card before it runs, which is the
 Proposals rule ("show the bytes, not a description of them") applied to code.
 
 Two habits earn their place. Report the shape of what was found, not only the
@@ -212,68 +126,19 @@ nothing should say how many anchors and frames it had, so "the links are built
 after load" and "the links are in a child document" arrive as answers rather
 than as silence.
 
-## Getting the result back
-
-The panel offers Copy and **Send to the stage**. Send opens the Web Tools app
-with the result carried in the link: gzip plus base64url of `[{name, text}]` in
-the fragment, which never reaches a server, and `&dest=` aiming the stage's send
-field at the errand's `result` repo, branch and directory. The stage decodes it
-into a local file and sends nothing until you tap send there.
-
-**That is the whole reason the destination is a page of ours.** A credential
-belongs in a realm the visited page never executed code in, and your own origin
-is the only such realm reachable from a bookmarklet. So the courier carries
-content and never a token, and the token that finally writes the file is the one
-the app already holds.
-
-Budget: 24K of base64, matching `StageLink`'s own cap, checked before the tap, so
-past it the button arrives disabled and Copy is the route. Measured on the DRS
-errand, a 2,215-character result packs to 786 characters, 3% of the allowance.
-
-This replaced a prefilled `github.com/<repo>/new/<branch>?value=` form. That
-route authenticates fine, by your github.com session, and it is still how
-[`drop-link`](../.claude/skills/drop-link/SKILL.md) works, with the filename
-only. It was dropped here because it leaned on an undocumented editor parameter
-nothing in this repo had exercised, and because it carried the content raw in a
-URL, which made its cap a guess rather than a measurement.
-
-**Nothing tells the courier the result landed.** The errand stays `open` until
-someone edits `errands.json`, which is the session's job on reading the result,
-not yours. Closing that loop from the browser would need a token to check the
-private results folder, and the courier holds none by design.
-
-## The Stage as the popup
-
-[`bookmarklets/courier-stage.js`](../bookmarklets/courier-stage.js) opens the
-Web Tools Stage itself as the popup, at `?view=stage&courier=1`, and talks to it
-by `postMessage`. The Stage is a first-party window holding your token, so it
-does what this folder's public design could not:
-
-| | `courier.js` (older) | `courier-stage.js` |
-| --- | --- | --- |
-| errand list and scripts | public, read without a token | the private errands folder in the registry, then this public list |
-| a page with no errand | a directory of open errands | its links and selection, staged as `<host>-<date>-links.md` and aimed at web-tools-private `courier/captures/` |
-| the result's route | `#gz=` link, capped at 24K | a message, with no URL cap |
-| the write | the Stage's send, on your tap | the same |
-
-The Stage hears only the window that opened it, stages what arrives without
-sending it, and takes the destination from the errand record, never from a
-message. The one thing it sends back is the errand's script. A site that sets
-`Cross-Origin-Opener-Policy` cuts the link between the windows, and one whose
-Content Security Policy forbids `eval` refuses the script; `courier.js` remains
-the route there. Held by `tools/test/stage-courier.test.mjs`.
+Scripts live at `sites/<hostname>/courier/<id>.js`, in whichever repo the
+errand's `run.script` names.
 
 ## What it is not for
 
 A page you can read from a session already. A file behind a login you would not
 otherwise open. Anything where the honest answer is to download it and hand it
-over, which for a few large binaries is faster than any mechanism here: a
-result travels as text through a form, so bulk PDFs want the Stage's upload
-intake instead.
+over, which for a few large binaries is faster than any mechanism here: bulk
+PDFs want the Stage's upload intake instead.
 
 ## Testing an errand before it ships
 
-The sandbox browser cannot reach external hosts, so both halves are exercised
-against a fixture with the `api.github.com` reads routed to the local
-checkout. That tests the real fetch path rather than stubbing it out of the code
-under test. Run the errand script alone first, then the courier end to end.
+The sandbox browser cannot reach external hosts, so the exchange is exercised in
+jsdom (`tools/test/stage-courier.test.mjs`) with the registry reads stubbed. Run
+the errand script alone against a saved copy of the page first, then the
+courier end to end in a real browser.
