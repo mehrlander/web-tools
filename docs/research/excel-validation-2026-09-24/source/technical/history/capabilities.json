@@ -1,0 +1,75 @@
+{
+  "capturedUtc": "2026-09-24T21:38:27.4748259Z",
+  "powershell": {
+    "version": "7.6.5",
+    "edition": "Core",
+    "apartment": "STA"
+  },
+  "excel": {
+    "registrations": [
+      {
+        "registryKey": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\excel.exe",
+        "path": "C:\\Program Files\\Microsoft Office\\Root\\Office16\\EXCEL.EXE",
+        "exists": true,
+        "fileVersion": "16.0.20326.20158"
+      },
+      {
+        "registryKey": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\App Paths\\excel.exe",
+        "path": "C:\\Program Files\\Microsoft Office\\Root\\Office16\\EXCEL.EXE",
+        "exists": true,
+        "fileVersion": "16.0.20326.20158"
+      }
+    ],
+    "comRegistered": true,
+    "nativeSessionTested": false
+  },
+  "importExcel": [
+    {
+      "name": "ImportExcel",
+      "version": "7.8.10",
+      "path": "C:\\Users\\mehrl\\Documents\\PowerShell\\Modules\\ImportExcel\\7.8.10\\ImportExcel.psd1"
+    },
+    {
+      "name": "ImportExcel",
+      "version": "7.8.10",
+      "path": "C:\\Users\\mehrl\\Documents\\WindowsPowerShell\\Modules\\ImportExcel\\7.8.10\\ImportExcel.psd1"
+    }
+  ],
+  "commands": [
+    {
+      "name": "powershell.exe",
+      "path": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    },
+    {
+      "name": "pwsh.exe",
+      "path": "C:\\Users\\mehrl\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe"
+    },
+    {
+      "name": "python.exe",
+      "path": "C:\\Program Files\\Inkscape\\bin\\python.exe"
+    }
+  ],
+  "python": {
+    "inspected": true,
+    "executable": "C:\\Users\\mehrl\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+    "packages": {
+      "openpyxl": {
+        "discoverable": true,
+        "version": "3.1.5"
+      },
+      "xlsxwriter": {
+        "discoverable": true,
+        "version": "3.2.9"
+      },
+      "win32com": {
+        "discoverable": false,
+        "version": null
+      },
+      "xlwings": {
+        "discoverable": false,
+        "version": null
+      }
+    }
+  },
+  "discoveryErrors": []
+}

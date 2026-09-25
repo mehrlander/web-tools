@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-12 by a skill, 28 by a page or component. The remaining 47 are
+12 by a skill, 28 by a page or component. The remaining 77 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -138,6 +138,63 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
+
+## docs/research/excel-validation-2026-09-24/
+
+- [`README.md`](research/excel-validation-2026-09-24/README.md) *(record, orphan)* — entry point to the September 24 native Excel validation research and frozen evidence
+
+## docs/research/excel-validation-2026-09-24/source/
+
+- [`browser-evidence.json`](research/excel-validation-2026-09-24/source/browser-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: browser-evidence.json
+- [`results.md`](research/excel-validation-2026-09-24/source/results.md) *(record, orphan)* — dated Excel validation evidence or result: results.md
+- [`roundtrip-chart-browser-evidence.json`](research/excel-validation-2026-09-24/source/roundtrip-chart-browser-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: roundtrip-chart-browser-evidence.json
+- [`roundtrip-chart-browser-results.md`](research/excel-validation-2026-09-24/source/roundtrip-chart-browser-results.md) *(record, orphan)* — dated Excel validation evidence or result: roundtrip-chart-browser-results.md
+- [`roundtrip-evidence.json`](research/excel-validation-2026-09-24/source/roundtrip-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: roundtrip-evidence.json
+- [`roundtrip-live-evidence.json`](research/excel-validation-2026-09-24/source/roundtrip-live-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: roundtrip-live-evidence.json
+- [`roundtrip-results.md`](research/excel-validation-2026-09-24/source/roundtrip-results.md) *(record, orphan)* — dated Excel validation evidence or result: roundtrip-results.md
+
+## docs/research/excel-validation-2026-09-24/source/charts/
+
+- [`chart-manifest.json`](research/excel-validation-2026-09-24/source/charts/chart-manifest.json) *(record, orphan)* — dated Excel validation evidence or result: charts/chart-manifest.json
+- [`column-measurements.json`](research/excel-validation-2026-09-24/source/charts/column-measurements.json) *(record, orphan)* — dated Excel validation evidence or result: charts/column-measurements.json
+- [`native-preview-evidence.json`](research/excel-validation-2026-09-24/source/charts/native-preview-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: charts/native-preview-evidence.json
+- [`results.md`](research/excel-validation-2026-09-24/source/charts/results.md) *(record, orphan)* — dated Excel validation evidence or result: charts/results.md
+
+## docs/research/excel-validation-2026-09-24/source/technical/
+
+- [`evidence-manifest.json`](research/excel-validation-2026-09-24/source/technical/evidence-manifest.json) *(record, orphan)* — SHA-256 inventory of the frozen Excel research evidence files
+- [`NATIVE-EXCEL-WORKFLOW.md`](research/excel-validation-2026-09-24/source/technical/NATIVE-EXCEL-WORKFLOW.md) *(record, orphan)* — observed Excel UI inspection and native chart export procedure with failure recovery
+- [`package-facts.json`](research/excel-validation-2026-09-24/source/technical/package-facts.json) *(record, orphan)* — read-only package audit of pivot inputs, reconciliation formulas, and chart blank cache
+- [`README.md`](research/excel-validation-2026-09-24/source/technical/README.md) *(record, orphan)* — native Excel and PR 791 findings, workbook semantics, chart measurements, and next experiments
+- [`REPRODUCTION.md`](research/excel-validation-2026-09-24/source/technical/REPRODUCTION.md) *(record, orphan)* — reproduction instructions, script dependencies, output behavior, and assertion limits
+- [`script-index.json`](research/excel-validation-2026-09-24/source/technical/script-index.json) *(record, orphan)* — original paths and hashes of preserved research scripts, sources, and skill files
+
+## docs/research/excel-validation-2026-09-24/source/technical/history/
+
+- [`browser-evidence.json`](research/excel-validation-2026-09-24/source/technical/history/browser-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: technical/history/browser-evidence.json
+- [`browser-failure.json`](research/excel-validation-2026-09-24/source/technical/history/browser-failure.json) *(record, orphan)* — dated Excel validation evidence or result: technical/history/browser-failure.json
+- [`capabilities.json`](research/excel-validation-2026-09-24/source/technical/history/capabilities.json) *(record, orphan)* — dated Excel validation evidence or result: technical/history/capabilities.json
+- [`package-inventory.json`](research/excel-validation-2026-09-24/source/technical/history/package-inventory.json) *(record, orphan)* — dated Excel validation evidence or result: technical/history/package-inventory.json
+
+## docs/research/excel-validation-2026-09-24/source/technical/history/chart-fixture/
+
+- [`artifact-attempt-evidence.json`](research/excel-validation-2026-09-24/source/technical/history/chart-fixture/artifact-attempt-evidence.json) *(record, orphan)* — dated Excel validation evidence or result: technical/history/chart-fixture/artifact-attempt-evidence.json
+- [`specification.json`](research/excel-validation-2026-09-24/source/technical/history/chart-fixture/specification.json) *(record, orphan)* — dated Excel validation evidence or result: technical/history/chart-fixture/specification.json
+
+## docs/research/excel-validation-2026-09-24/source/technical/skill/
+
+- [`SKILL.md`](research/excel-validation-2026-09-24/source/technical/skill/SKILL.md) *(record, orphan)* — historical validate-excel skill reference: technical/skill/SKILL.md
+
+## docs/research/excel-validation-2026-09-24/source/technical/skill/references/
+
+- [`local-evidence.md`](research/excel-validation-2026-09-24/source/technical/skill/references/local-evidence.md) *(record, orphan)* — historical validate-excel skill reference: technical/skill/references/local-evidence.md
+- [`validation-cases.md`](research/excel-validation-2026-09-24/source/technical/skill/references/validation-cases.md) *(record, orphan)* — historical validate-excel skill reference: technical/skill/references/validation-cases.md
+- [`windows-routes.md`](research/excel-validation-2026-09-24/source/technical/skill/references/windows-routes.md) *(record, orphan)* — historical validate-excel skill reference: technical/skill/references/windows-routes.md
+
+## docs/research/excel-validation-2026-09-24/source/technical/source-cache/pr791-review/
+
+- [`CLAUDE.md`](research/excel-validation-2026-09-24/source/technical/source-cache/pr791-review/CLAUDE.md) *(record, orphan)* — historical script/source reference: technical/source-cache/pr791-review/CLAUDE.md
+- [`package.json`](research/excel-validation-2026-09-24/source/technical/source-cache/pr791-review/package.json) *(record, orphan)* — historical script/source reference: technical/source-cache/pr791-review/package.json
 
 ## docs/views/
 
