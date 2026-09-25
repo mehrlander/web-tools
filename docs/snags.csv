@@ -21,6 +21,7 @@ mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as 
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
+triage-bare-branch-name-reads-as-orphan,"every branch reported ""no merge base""",1,2026-09-25,2026-09-25,../.claude/skills/tend/SKILL.md#branches
 spawned-session-not-recorded,the recorder ran every idle and found nothing,1,2026-09-21,2026-09-21,environment/extending.md#sessionstart-the-sessions-store-directive
 subtree-touch-guard-kills-the-anchor,"a tap that produces nothing, not even an error",1,2026-09-20,2026-09-20,../lib/alpineComponents/fab.js;../tools/test/fab-menu.test.mjs
 app-frame-outruns-the-inliner,the shell draws and every view is empty,1,2026-09-17,2026-09-17,../scripts/showing.py
