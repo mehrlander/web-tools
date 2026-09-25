@@ -57,7 +57,8 @@ Tending operates in a clear two-beat rhythm:
 When invoked, survey the estate without making destructive or durable changes:
 
 1. **Survey branches**:
-   - List remote branches (`git branch -r`), excluding `HEAD` and default branch.
+   - Fast filter: `git branch -r --merged origin/main` to list remote branches merged directly.
+   - Squash and rebase check: run `python3 scripts/stranded-triage.py . <branch>` or inspect `git log -n 1 <ref>` for PR references.
    - Classify each branch touched files against `main`:
      - **Landed**: Touched bytes exist on `main` (accounting for squash merges).
      - **Retired**: `main` deliberately deleted the touched paths.
@@ -66,7 +67,8 @@ When invoked, survey the estate without making destructive or durable changes:
      retired.
 2. **Survey trackers**:
    - Compare open tasks (`tracker/tasks/*.md` with `status: backlog` or
-     `in-progress`) against recent commits and merged PRs on `main`.
+     `in-progress`) against recent commits and merged PRs on `main`
+     (`gh pr list --state merged --limit 50 --json number,title,body`).
    - Identify tasks whose stated deliverables have already merged.
    - Identify tasks lacking `## Related` links for key files mentioned in the
      task body.
@@ -98,10 +100,11 @@ When the user responds with approval ("green light", "go", "proceed", "yes"):
 4. **Offer more**:
    Inspect the next layer and present higher-order opportunities or choices for
    commitment:
-   - **Stranded novel work**: If a branch holds unmerged work, identify the
-     originating session ID from commit footers or branch tokens, summarize the
-     novel files, and ask whether to polish, cherry-pick, or abandon. Never
-     delete stranded novel code without explicit instruction.
+   - **Stranded novel work**: If a branch holds unmerged work, run
+     `python3 scripts/stranded-triage.py . <branch>` to pinpoint exact novel
+     files. Locate the originating session ID from commit footers or branch
+     tokens, summarize the novel files, and ask whether to polish, cherry-pick,
+     or abandon. Never delete stranded novel code without explicit instruction.
    - **Harvest PR threads**: Inspect the 25 most recently merged pull requests
      (`gh pr list --state merged --limit 25`). If `## Open threads` in a merged
      PR body contains a genuine, unaddressed follow-up, nominate it for owner
@@ -109,3 +112,34 @@ When the user responds with approval ("green light", "go", "proceed", "yes"):
    - Close following standard Surfacing rules: use `🟢 Ready to continue` if
      further actions or nominations are proposed, or `⚪ Clean exit` if the
      workspace is completely tended.
+
+## Example: How I tended tend (I heard you liked tending so I tended my tend)
+
+Here is a concrete trace of tending applied to the `tend` workstream itself and its surrounding estate:
+
+### Turn 1 (Survey & Plan)
+
+The user runs `/tend`. The assistant surveys without modifying durable state:
+
+1. **Branch survey**:
+   - Inspects `origin/gemini/tend-skill` (PR #794): In-flight, unmerged. Holds 2 novel files (`.claude/skills/tend/SKILL.md` and `tools/test/tend.test.mjs`). Not settled; active work to preserve.
+   - Inspects candidate branches via `git branch -r --merged origin/main`: finds settled branches such as `origin/gemini/aims-strategic-initiatives` and `origin/claude/retire-two-markers`, 100% merged into main.
+2. **Tracker survey**:
+   - Scans `tracker/tasks/*.md`: checks `pr-body-open-threads-z5o66p.md` (backlog, relates to PR harvesting). Verifies file references. No delivered tasks left open.
+3. **Surfacing closing**:
+   The assistant states the survey findings plainly and closes:
+   `🟢 Ready to continue: Prune 2 settled remote branches (aims-strategic-initiatives, retire-two-markers). Awaiting your green light.`
+
+### Turn 2 (Execute & Offer More)
+
+The user replies: `green light`. The assistant executes and probes the next layer:
+
+1. **Prunes approved branches**:
+   - Deletes `origin/gemini/aims-strategic-initiatives`
+   - Deletes `origin/claude/retire-two-markers`
+2. **Offers more (Harvest PR threads & Stranded code)**:
+   - Inspects `## Open threads` across recent merged PRs:
+     - PR #783 (PowerShell file deck): Thread 3 notes that the Overview source pane decodes Windows-1252 as UTF-8, showing replacement marks for non-ASCII characters.
+     - PR #782 (Branch view deck button): Thread 4 notes a pre-existing error logging `gh is not defined`.
+   - Asks the owner if either thread warrants addressing.
+   - Closes with `🟢 Ready to continue: Nominated 2 harvested follow-up threads from merged PRs #783 and #782.`
