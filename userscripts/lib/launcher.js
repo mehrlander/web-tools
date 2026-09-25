@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'c992d81';
-const BUILT = '2026-09-25T05:36:17Z';
+const BUILD = '34e5d97';
+const BUILT = '2026-09-25T12:56:54Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -2633,6 +2633,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     copyEl.onclick = () => {
       copyText(getSlideText(state.slide), copyEl);
     };
+  }
   if (sendEl) sendEl.addEventListener('click', () => setTimeout(closeDrawer, 300));
 
   const handleStoreGesture = async (e, el) => {
