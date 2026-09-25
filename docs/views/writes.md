@@ -21,7 +21,7 @@ its shape is a contract that `write-kinds.js` reads:
 
 - **`via Web Tools`** marks a write a person made by tapping in the app: a jot,
   to-do or pin, a `.web-tools.json` save, an estate join or set-aside, a
-  proposal applied or retired, a mailbox request, a stage deposit. Add it to
+  proposal applied or retired, an errand closed, a stage deposit. Add it to
   any new person-initiated write.
 - **Crawl writes carry no trailer.** The cache refreshes (`state/configs.json`,
   `state/activity.json`, `state/sessions.json`, `state/calls.json`) run on a tab

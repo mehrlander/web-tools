@@ -1,4 +1,8 @@
 registry,property,mode,deriver,required,form,exclusive,values,column_primitive,gloss
+csv-census,rows,computed,scripts/csv-census.py,value,column,yes,,value,number of CSV records after the header record
+csv-census,columns,computed,scripts/csv-census.py,value,column,yes,,value,number of fields in the first CSV record
+csv-census,bytes,computed,scripts/csv-census.py,value,column,yes,,value,physical byte length of the indexed CSV blob
+csv-census,headers,computed,scripts/csv-census.py,value,column,yes,,value,JSON array of parsed header strings preserving blanks and duplicates
 docs,subject,recorded,,none,column,yes,,value,"what the document is about, one line"
 docs,status,recorded,,none,column,yes,living;record;measured,label,"whether the document is kept true, preserved as written, or derived from measurement"
 docs,reach,computed,tools/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
@@ -188,7 +192,11 @@ assistant-branches,declared,recorded,,none,column,yes,,value,the date the row wa
 subjects,label,recorded,,value,column,yes,,value,the type's display name, which is what the FAB captions
 subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a form"
 subjects,carrier,recorded,,value,column,yes,,locator,"the page or mode that draws a subject of this type, which the FAB's layer strip names as the row above it"
-subjects,doc,recorded,,none,column,yes,,locator,"the document for the form that draws this type; blank for a type with no form"
+subjects,doc,recorded,,none,column,yes,,locator,the document for the form that draws this type; blank for a type with no form
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
-subjects,icon,recorded,,value,column,yes,,value,"the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal"
+subjects,icon,recorded,,value,column,yes,,value,the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal
 subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
+run-methods,venues,recorded,,value,list,no,,value,the machines a person may run this method's script on; an errand's run.venue must be one
+run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message,value,how the script's output comes back; filled into run.outputReturn when a record omits it
+run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
+run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it

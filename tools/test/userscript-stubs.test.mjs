@@ -21,6 +21,7 @@ import assert from 'node:assert';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const stubs = fs.readdirSync(path.join(ROOT, 'userscripts'))
@@ -51,8 +52,11 @@ test('every stub loads a body that exists and defines what the stub calls', () =
 
     const body = path.join(ROOT, 'userscripts', 'lib', `${lib}.js`);
     assert.ok(fs.existsSync(body), `${stub}: body ${lib}.js is missing`);
-    assert.match(fs.readFileSync(body, 'utf8'), new RegExp(`window\\.${fnName(lib)}\\s*=`),
+    const bodyCode = fs.readFileSync(body, 'utf8');
+    assert.match(bodyCode, new RegExp(`window\\.${fnName(lib)}\\s*=`),
       `${lib}.js must define window.${fnName(lib)}; the stub calls it`);
+    assert.doesNotThrow(() => new vm.Script(bodyCode, { filename: `${lib}.js` }),
+      `${lib}.js has a syntax error that will break dynamic evaluation in loader`);
     assert.match(src, new RegExp(`window\\.${fnName(lib)}\\(`),
       `${stub} must call window.${fnName(lib)}`);
   }
@@ -121,14 +125,15 @@ test('the manifest names nothing that has no body', () => {
     'ships: ' + orphans.join(', '));
 });
 
-test('launcher body includes errand sensing, swipe deck, and artifact definitions', () => {
+test('launcher body includes the swipe deck and artifact definitions, and no errand list', () => {
   const text = fs.readFileSync(path.join(ROOT, 'userscripts', 'lib', 'launcher.js'), 'utf8');
-  assert.match(text, /ERRANDS_MANIFEST/, 'launcher must define ERRANDS_MANIFEST');
+  assert.doesNotMatch(text, /courier\/errands\.json/, 'errands are private now; the Stage popup runs them');
   assert.match(text, /deck-track/, 'launcher must have a swipe deck track');
   assert.match(text, /meta-toggle/, 'launcher must have a page metadata disclosure');
-  assert.match(text, /errand-banner/, 'launcher must have an errand banner');
   assert.match(text, /data-take-html/, 'launcher must support copying HTML');
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
+  assert.match(text, /data-slide-id="sel"/, 'launcher must support selective selection slide visibility');
+  assert.match(text, /const getSlides =/, 'launcher must dynamically calculate active slides');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {

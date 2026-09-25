@@ -1,8 +1,8 @@
 # Map
 
 `?view=map[&tab=<key>]` (`lib/alpineComponents/map.js`) makes the coordination
-layer inspectable. Each tab renders a hub registry, so the registry is the
-source and the tab is its reading. The FAB `description` in `map.js` states
+layer inspectable. Most tabs render a hub registry; federated tabs assemble
+each repository's declarations. The FAB `description` in `map.js` states
 each tab's contents in full; the table below is the index.
 
 The shell owns the tab (`MAP_TABS` and `MAP_SUBVIEWS` in `app/index.html`,
@@ -19,13 +19,14 @@ validated before `map()` mounts). The default, `set`, stays out of the URL.
 | Harness: Automation (`harness`), Tests (`tests`), Context (`context`) | [harness.csv](../harness.csv), [tests.csv](../tests.csv), `pages/session-context.html` | `tests-registry.test.mjs`, `derived-artifacts.test.mjs` |
 | Kits | [kits.csv](../kits.csv) | `kits-register.test.mjs` |
 | Skills | the shipped skill catalog | `skills-registry.test.mjs` |
+| Data (`data`) | each declaring repo's [CSV census](../csv-census.md) | `csv-census.test.mjs`, `map-data-census.test.mjs` |
 | Views (`views`) | [app-routes.csv](../app-routes.csv) | `app-routes.test.mjs` |
 | Registries | [registries.csv](../registries.csv) | `properties-registry.test.mjs` |
 
 **Two ownership exceptions.** In Surfacing, `SURFACING.md` is authoritative and
 `surfacing.csv` is its gated index; a card's title lands on its bullet through
-`lib/kits/land.js`. The Docs Inventory's readership column is the one
-token-gated reading, and it is absent (not blank) without a token.
+`lib/kits/land.js`. The Docs Inventory's readership column is token-gated,
+and it is absent (not blank) without a token.
 
 ## Views: the app's own destinations
 

@@ -159,9 +159,8 @@
   await gh.load('kits/route-activity.js');
   await gh.load('kits/route-join.js');
   // Errands: what a session needs this browser for, one record for reads of
-  // your repos, courier runs, and material only you have. The mailbox kit
-  // performs the reads, when an errand's Run is tapped.
-  await gh.load('kits/repo-mailbox.js');
+  // your repos, code for you to run, and material only you have. The kit
+  // performs the reads itself, when an errand's Run is tapped.
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
@@ -1972,7 +1971,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // as Purpose, Growth remains ?tab=growth under Docs, and Tests remains
 // ?tab=tests under Harness, so old links still land on the exact reading they
 // named even though none needs a top-level stop. Context joins Harness here.
-const MAP_TABS = ['set', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'views', 'registries'];
+const MAP_TABS = ['set', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'data', 'views', 'registries'];
 const MAP_SUBVIEWS = ['aims', 'growth', 'tests', 'context'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 

@@ -14,14 +14,13 @@ import { makeShell } from './shell.mjs';
 
 const html = readFileSync(path.join(repoRoot, 'app/index.html'), 'utf8');
 
-test('the shell has no mailbox loop, and fulfils nothing', () => {
+test('the shell has no errand loop, and fulfils nothing', () => {
   const { shell } = makeShell({ win: {} });
   assert.equal(shell.processMailbox, undefined, 'no boot-time fulfilment');
   assert.doesNotMatch(html, /\.fulfill\(/, 'nothing in the shell answers a request');
 });
 
-test('the errands kit is loaded, after the mailbox kit whose read it calls', () => {
-  const mailbox = html.indexOf("gh.load('kits/repo-mailbox.js')");
-  const errands = html.indexOf("gh.load('kits/errands.js')");
-  assert.ok(mailbox > -1 && errands > mailbox);
+test('the errands kit is loaded, and carries its own reads', () => {
+  assert.ok(html.includes("gh.load('kits/errands.js')"));
+  assert.ok(!html.includes('repo-mailbox'), 'the mailbox kit is folded into errands.js');
 });

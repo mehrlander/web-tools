@@ -9,6 +9,53 @@ new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/tabular-explorer.
 
 const { DataProfile, TabularExplorer } = window;
 
+test('declared columns survive empty datasets and retain source labels', () => {
+  const columns = [{ field: 'first', title: ' a ' }, { field: 'second', title: '' }, { field: 'third', title: ' a ' }];
+  const profile = DataProfile.analyze([], { columns });
+  assert.equal(profile.rowCount, 0);
+  assert.equal(profile.colCount, 3);
+  assert.equal(profile.typeCounts.empty, 3);
+  assert.deepEqual(Array.from(profile.columns, c => c.title), [' a ', '', ' a ']);
+});
+
+test('explorer uses explicit labels safely in grid, Columns, Pivot, filters and CSV download', t => {
+  const priorTable = window.Tabulator, priorPapa = window.Papa;
+  const priorUrl = window.URL.createObjectURL, priorRevoke = window.URL.revokeObjectURL;
+  t.after(() => {
+    window.Tabulator = priorTable; window.Papa = priorPapa;
+    window.URL.createObjectURL = priorUrl; window.URL.revokeObjectURL = priorRevoke;
+  });
+  let grid, exported;
+  window.Tabulator = class { constructor(_target, opts) { grid = opts; } redraw() {} destroy() {} };
+  window.Papa = { unparse: data => { exported = data; return 'csv'; } };
+  window.URL.createObjectURL = () => 'blob:test';
+  window.URL.revokeObjectURL = () => {};
+  const container = window.document.createElement('div');
+  const columns = [
+    { field: 'a.b', title: '<b>Group</b>' },
+    { field: 'col2', title: '' }, { field: 'amount', title: '<b>Group</b>' },
+  ];
+  const explorer = TabularExplorer.mount(container, {
+    columns, rows: [{ 'a.b': 'A', col2: 'keep', amount: '12' }],
+    opts: { filter: { col: 'a.b', find: 'A' } },
+  });
+  assert.equal(grid.columns.length, 3);
+  assert.equal(grid.columns[0].title, '&lt;b&gt;Group&lt;/b&gt;');
+  assert.equal(grid.columns[1].title, '');
+  assert.equal(grid.nestedFieldSeparator, false);
+  assert.equal(grid.initialHeaderFilter[0].field, 'a.b');
+  explorer.setView('columns');
+  assert.equal(container.querySelector('tbody tr td:nth-child(2)').textContent, '<b>Group</b>');
+  assert.equal(container.querySelectorAll('b').length, 0);
+  explorer.setView('pivot');
+  assert.ok(Array.from(container.querySelectorAll('option')).some(o => o.value === 'amount' && o.textContent === '<b>Group</b>'));
+  assert.ok(container.textContent.includes('SUM of <b>Group</b>'));
+  container.querySelector('i.ph-download-simple').closest('a').click();
+  assert.deepEqual(Array.from(exported.fields), ['<b>Group</b>', '', '<b>Group</b>']);
+  assert.deepEqual(Array.from(exported.data[0]), ['A', 'keep', '12']);
+  explorer.destroy();
+});
+
 test('DataProfile.parseNum parses numbers, currencies, and accounting negatives', () => {
   assert.equal(DataProfile.parseNum(42), 42);
   assert.equal(DataProfile.parseNum('42'), 42);

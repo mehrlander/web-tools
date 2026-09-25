@@ -8,6 +8,12 @@ doc went unread; it is that no question was raised. So the venues are named
 here, and named again in one line of [CONVENTIONS.md](CONVENTIONS.md), which is
 always in context. A name is enough to make a session ask.
 
+**Two fields in this estate are called `venue`, and they name different
+things.** Here and in the tracker's `venue:` tag, a venue is an agent channel
+(`cli`, `cowork`, `dispatch`, `runner`). An errand's `run.venue` is the machine a
+person runs code on (`personal-laptop`, `work-machine`, `browser`; see
+[run-methods.csv](run-methods.csv)). The two value lists do not overlap.
+
 This file answers where work can *run*. Its sibling [inbound.md](inbound.md)
 answers how work *reaches* a session, which is a different question with a
 different failure: an unreachable venue is idle, while an inbound channel with

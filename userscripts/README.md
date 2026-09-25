@@ -104,13 +104,6 @@ refuse the same way.
 
   **Universal Footer:** A single `[ Copy ]` button and dynamic `[ Stage ]` handoff link automatically track whichever slide is active, accompanied by 6 tap-target pager dots (`● ○ ○ ○ ○ ○`) and a live character / KB counter.
 
-  **Ambient Errand Sensing & Execution.** When visiting a host with an open errand
-  registered in [`courier/errands.json`](../courier/errands.json), the launcher
-  illuminates with an amber accent and badge indicator. An Errand row appears in
-  the hold-menu, and an Errand banner sits atop the drawer allowing one-tap
-  execution directly in the host page context. Errand results can be copied or
-  handed off directly to the Web Tools Stage via gzip compression in the URL fragment.
-
   The header carries a **refresh**, because a read is a moment and a news front
   page is not. **Collect** answers the harder version: a virtual-scroll feed
   removes rows as you pass them, so a read taken at the end sees the last screen

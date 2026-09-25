@@ -257,10 +257,23 @@ stage. Design and future ideas: `web-tools-private/DESIGN.md`.
 
 ## Errands (`errands/requests` → `errands/results`)
 
-An errand is work a session needs this browser for: `tree`, `branches` or
-`fetch` (read one of your repos), `courier` (run a script on a page the session
-cannot reach; see `courier/README.md`), or `hand` (material only you have).
-File `errands/requests/<id>.json` in the registry, with the fields in
+An errand is work a session needs this browser, or the person using it, to do.
+Every errand carries a `note` saying what is wanted. Three optional fields say how:
+
+- `action` names a mechanism the Stage performs itself: `tree`, `branches` or
+  `fetch`, a read of one of your repos with your token.
+- `run` describes code a person runs: `script` (`owner/repo@ref:path`), `venue`,
+  `method`, `outputReturn`, `outputType` and `outputSigned`. The methods, the
+  venues each allows and how each returns its output are the registry
+  [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
+  page the session cannot reach; see `courier/README.md`.
+- `purpose` is `test-script` (the output is evidence that code works) or
+  `get-data` (the output is source material that lands and is used).
+
+An errand with no `action` and no `run` asks for material only you have. `expect`
+grades what arrives. A run with `outputSigned: true` wraps its output as an
+`errand-result/1` envelope, which a paste anywhere on the Stage routes to its
+errand. File `errands/requests/<id>.json` in the registry, with the fields in
 `lib/kits/errands.js`, and hand the user `?view=stage&errand=<id>`. Nothing runs
 until they tap, reads included. The answer lands at `errands/results/<id>.json`.
 
