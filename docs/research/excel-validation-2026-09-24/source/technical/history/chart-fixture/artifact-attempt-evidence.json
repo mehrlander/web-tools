@@ -1,0 +1,104 @@
+{
+  "writer": "@oai/artifact-tool 2.8.59",
+  "note": "Limited documented API attempt, not proof the library lacks every equivalent control. Native chart parts exist; explicit bounds were not authored. No package mutation.",
+  "charts": [
+    {
+      "part": "xl/drawings/charts/chart1.xml",
+      "type": "barChart",
+      "axes": [
+        {
+          "position": {
+            "val": "l"
+          },
+          "minimum": null,
+          "maximum": null,
+          "majorUnit": {
+            "val": "5"
+          }
+        }
+      ],
+      "blankPolicy": null,
+      "series": [
+        {
+          "references": [
+            "'Column'!$A$4:$A$7",
+            "'Column'!$B$4:$B$7"
+          ],
+          "numericCaches": [
+            []
+          ],
+          "marker": null
+        }
+      ]
+    },
+    {
+      "part": "xl/drawings/charts/chart2.xml",
+      "type": "lineChart",
+      "axes": [
+        {
+          "position": {
+            "val": "l"
+          },
+          "minimum": null,
+          "maximum": null,
+          "majorUnit": {
+            "val": "2"
+          }
+        }
+      ],
+      "blankPolicy": null,
+      "series": [
+        {
+          "references": [
+            "'Line'!$A$4:$A$8",
+            "'Line'!$B$4:$B$8"
+          ],
+          "numericCaches": [
+            []
+          ],
+          "marker": {
+            "val": "none"
+          }
+        }
+      ]
+    },
+    {
+      "part": "xl/drawings/charts/chart3.xml",
+      "type": "scatterChart",
+      "axes": [
+        {
+          "position": {
+            "val": "l"
+          },
+          "minimum": null,
+          "maximum": null,
+          "majorUnit": {
+            "val": "2"
+          }
+        },
+        {
+          "position": {
+            "val": "b"
+          },
+          "minimum": null,
+          "maximum": null,
+          "majorUnit": {
+            "val": "2"
+          }
+        }
+      ],
+      "blankPolicy": null,
+      "series": [
+        {
+          "references": [
+            "'Scatter'!$B$4:$B$7"
+          ],
+          "numericCaches": [
+            []
+          ],
+          "marker": null
+        }
+      ]
+    }
+  ]
+}

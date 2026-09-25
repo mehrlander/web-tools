@@ -1,0 +1,589 @@
+{
+  "head": "3263a62ec6588e6e60df1afbf77697b3d1e9582c",
+  "time": "2026-09-25T06:19:39.042Z",
+  "fixtures": [
+    {
+      "name": "native-cases",
+      "source": "outputs\\excel-validation\\charts\\chart-cases.xlsx",
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+      "charts": [
+        {
+          "part": "xl/charts/chart1.xml",
+          "sha256": "d962232d32b17799bea3b9733fbb1565c0bddaca5fb7dbba0919e23edb6cf839",
+          "axes": [
+            {
+              "min": "-5",
+              "max": "15",
+              "majorUnit": "5"
+            }
+          ],
+          "model": {
+            "title": "Column values",
+            "chartType": "barChart",
+            "subType": "column",
+            "grouping": "clustered",
+            "legend": null,
+            "series": [
+              {
+                "name": "Value",
+                "categories": [
+                  "Alpha",
+                  "Beta",
+                  "Gamma",
+                  "Delta"
+                ],
+                "values": [
+                  8,
+                  0,
+                  -4,
+                  12
+                ],
+                "formatCode": "General",
+                "color": "#2563EB"
+              }
+            ]
+          }
+        },
+        {
+          "part": "xl/charts/chart2.xml",
+          "sha256": "870bcd74b92820527aeb48ff6da1f37d1ae025cdf50c8d3b787996dcc191cf3b",
+          "axes": [
+            {
+              "min": "0",
+              "max": "10",
+              "majorUnit": "2"
+            }
+          ],
+          "model": {
+            "title": "Line with blank February",
+            "chartType": "lineChart",
+            "subType": "line",
+            "grouping": "standard",
+            "legend": null,
+            "series": [
+              {
+                "name": "Value",
+                "categories": [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May"
+                ],
+                "values": [
+                  2,
+                  0,
+                  7,
+                  3,
+                  9
+                ],
+                "formatCode": "General",
+                "color": "#2563EB"
+              }
+            ]
+          }
+        },
+        {
+          "part": "xl/charts/chart3.xml",
+          "sha256": "ace4b7e354414f2efed54d077b686450cbd09e45f0cca70bb1366c4023ff1318",
+          "axes": [
+            {
+              "min": "0",
+              "max": "10",
+              "majorUnit": "2"
+            },
+            {
+              "min": "0",
+              "max": "10",
+              "majorUnit": "2"
+            }
+          ],
+          "model": null
+        }
+      ],
+      "downloadControls": []
+    },
+    {
+      "name": "pr-demo",
+      "source": "work\\web-tools-pr792-review\\docs\\examples\\demonstration-charts.xlsx",
+      "sha256": "a7a7cb831aeebd42ead3f129e1b2c5b99990a2a4ef9d72d19edb14adddd3b4dd",
+      "charts": [
+        {
+          "part": "xl/charts/chart1.xml",
+          "sha256": "2a859a7428ee853ee36c9463282a8936d4e5b0f92a879458b17af54077dafccf",
+          "axes": [
+            {
+              "min": null,
+              "max": null,
+              "majorUnit": null
+            }
+          ],
+          "model": {
+            "title": "Budget vs Actual by Division",
+            "chartType": "barChart",
+            "subType": "column",
+            "grouping": "clustered",
+            "legend": {
+              "pos": "r"
+            },
+            "series": [
+              {
+                "name": "Budget",
+                "categories": [
+                  "Actuarial & Finance",
+                  "Information Technology",
+                  "Operations",
+                  "Retirement Services"
+                ],
+                "values": [
+                  3500,
+                  6850,
+                  1730,
+                  2575
+                ],
+                "formatCode": "\"$\"#,##0",
+                "color": null
+              },
+              {
+                "name": "Actual",
+                "categories": [
+                  "Actuarial & Finance",
+                  "Information Technology",
+                  "Operations",
+                  "Retirement Services"
+                ],
+                "values": [
+                  3475,
+                  6990,
+                  1760,
+                  2585
+                ],
+                "formatCode": "\"$\"#,##0",
+                "color": null
+              }
+            ]
+          }
+        },
+        {
+          "part": "xl/charts/chart2.xml",
+          "sha256": "8b42edaf17e66bf2ce32b49779951f3aa414447eab470f56cafe6596f7cc4e5c",
+          "axes": [
+            {
+              "min": null,
+              "max": null,
+              "majorUnit": null
+            }
+          ],
+          "model": {
+            "title": "Net Variance by Division ($k)",
+            "chartType": "barChart",
+            "subType": "bar",
+            "grouping": "clustered",
+            "legend": null,
+            "series": [
+              {
+                "name": "Variance",
+                "categories": [
+                  "Actuarial & Finance",
+                  "Information Technology",
+                  "Operations",
+                  "Retirement Services"
+                ],
+                "values": [
+                  -25,
+                  140,
+                  30,
+                  10
+                ],
+                "formatCode": "\"$\"\\+#,##0;\"$\"\\-#,##0;\"$\"0",
+                "color": null
+              }
+            ]
+          }
+        },
+        {
+          "part": "xl/charts/chart3.xml",
+          "sha256": "91102750c94d3eb94529b257b1ab0f64e98bb1428cadbc16220a1ac00074391a",
+          "axes": [
+            {
+              "min": null,
+              "max": null,
+              "majorUnit": null
+            }
+          ],
+          "model": {
+            "title": "Quarterly Outlay Trajectory",
+            "chartType": "lineChart",
+            "subType": "line",
+            "grouping": "standard",
+            "legend": {
+              "pos": "r"
+            },
+            "series": [
+              {
+                "name": "FY2026",
+                "categories": [
+                  "Q1",
+                  "Q2",
+                  "Q3",
+                  "Q4"
+                ],
+                "values": [
+                  2100,
+                  2450,
+                  2300,
+                  2850
+                ],
+                "formatCode": "\"$\"#,##0",
+                "color": null
+              },
+              {
+                "name": "FY2027",
+                "categories": [
+                  "Q1",
+                  "Q2",
+                  "Q3",
+                  "Q4"
+                ],
+                "values": [
+                  2350,
+                  2700,
+                  2550,
+                  3100
+                ],
+                "formatCode": "\"$\"#,##0",
+                "color": null
+              },
+              {
+                "name": "FY2028",
+                "categories": [
+                  "Q1",
+                  "Q2",
+                  "Q3",
+                  "Q4"
+                ],
+                "values": [
+                  2600,
+                  2950,
+                  2800,
+                  3450
+                ],
+                "formatCode": "\"$\"#,##0",
+                "color": null
+              }
+            ]
+          }
+        },
+        {
+          "part": "xl/charts/chart4.xml",
+          "sha256": "70ae01feb5e21293d2273c4b34786fe8164548b94509e60aac899d4c691d866c",
+          "axes": [],
+          "model": {
+            "title": "Expenditure Share by Object",
+            "chartType": "pieChart",
+            "subType": "pie",
+            "grouping": null,
+            "legend": {
+              "pos": "r"
+            },
+            "series": [
+              {
+                "name": "Share",
+                "categories": [
+                  "Salaries & Wages",
+                  "Employee Benefits",
+                  "Personal Contracts",
+                  "Equipment",
+                  "Goods & Services"
+                ],
+                "values": [
+                  0.42,
+                  0.28,
+                  0.18,
+                  0.07,
+                  0.05
+                ],
+                "formatCode": "0.0%",
+                "color": null
+              }
+            ]
+          }
+        }
+      ],
+      "downloadControls": []
+    }
+  ],
+  "synthetic": {
+    "sparseLine": {
+      "model": {
+        "title": "Line with blank February",
+        "chartType": "lineChart",
+        "subType": "line",
+        "grouping": "standard",
+        "legend": null,
+        "series": [
+          {
+            "name": "Value",
+            "categories": [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May"
+            ],
+            "values": [
+              2,
+              7,
+              3,
+              9
+            ],
+            "formatCode": "General",
+            "color": "#2563EB"
+          }
+        ]
+      }
+    },
+    "grouping": {
+      "clusteredEqualsStacked": true,
+      "clusteredEqualsPercentStacked": true,
+      "parsedGroupings": [
+        "clustered",
+        "stacked",
+        "percentStacked"
+      ],
+      "explanation": "Only the XML grouping attribute changes before parsing. Identical SVG shows the renderer ignores it."
+    }
+  },
+  "browser": [
+    {
+      "fixture": "native-cases",
+      "sheet": "Column",
+      "charts": [
+        {
+          "width": 750,
+          "height": 400,
+          "text": [
+            "Column values",
+            "-5",
+            "0",
+            "5",
+            "10",
+            "15",
+            "Alpha",
+            "Beta",
+            "Gamma",
+            "Delta"
+          ],
+          "lines": [],
+          "rectangles": 4,
+          "paths": 0
+        }
+      ],
+      "tabs": [
+        "Column",
+        "Line",
+        "Scatter"
+      ]
+    },
+    {
+      "fixture": "native-cases",
+      "sheet": "Line",
+      "charts": [
+        {
+          "width": 750,
+          "height": 400,
+          "text": [
+            "Line with blank February",
+            "0",
+            "2",
+            "4",
+            "6",
+            "8",
+            "10",
+            "12",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May"
+          ],
+          "lines": [
+            {
+              "d": "M 127 311.1666666666667 L 261 365 L 395 176.58333333333334 L 529 284.25 L 663 122.75",
+              "stroke": "#2563EB"
+            }
+          ],
+          "rectangles": 0,
+          "paths": 1
+        }
+      ],
+      "tabs": [
+        "Column",
+        "Line",
+        "Scatter"
+      ]
+    },
+    {
+      "fixture": "native-cases",
+      "sheet": "Scatter",
+      "charts": [],
+      "tabs": [
+        "Column",
+        "Line",
+        "Scatter"
+      ]
+    },
+    {
+      "fixture": "pr-demo",
+      "sheet": "ColumnAndBar",
+      "charts": [
+        {
+          "width": 512,
+          "height": 266,
+          "text": [
+            "Budget vs Actual by Division",
+            "$0",
+            "$1,000",
+            "$2,000",
+            "$3,000",
+            "$4,000",
+            "$5,000",
+            "$6,000",
+            "$7,000",
+            "$8,000",
+            "Actuarial &",
+            "Finance",
+            "Information",
+            "Technology",
+            "Operations",
+            "Retirement",
+            "Services",
+            "Budget",
+            "Actual"
+          ],
+          "lines": [],
+          "rectangles": 10,
+          "paths": 0
+        },
+        {
+          "width": 512,
+          "height": 228,
+          "text": [
+            "Net Variance by Division ($k)",
+            "-$50",
+            "$0",
+            "$+50",
+            "$+100",
+            "$+150",
+            "$+200",
+            "Actuarial & Finance",
+            "Information Technology",
+            "Operations",
+            "Retirement Services"
+          ],
+          "lines": [],
+          "rectangles": 4,
+          "paths": 0
+        }
+      ],
+      "tabs": [
+        "ColumnAndBar",
+        "TrendsAndShares"
+      ]
+    },
+    {
+      "fixture": "pr-demo",
+      "sheet": "TrendsAndShares",
+      "charts": [
+        {
+          "width": 512,
+          "height": 266,
+          "text": [
+            "Quarterly Outlay Trajectory",
+            "$0",
+            "$500",
+            "$1,000",
+            "$1,500",
+            "$2,000",
+            "$2,500",
+            "$3,000",
+            "$3,500",
+            "$4,000",
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4",
+            "FY2026",
+            "FY2027",
+            "FY2028"
+          ],
+          "lines": [
+            {
+              "d": "M 100.875 131.77499999999998 L 182.625 115.2375 L 264.375 122.325 L 346.125 96.3375",
+              "stroke": "#1b6288"
+            },
+            {
+              "d": "M 100.875 119.96249999999999 L 182.625 103.42500000000001 L 264.375 110.5125 L 346.125 84.525",
+              "stroke": "#e46c24"
+            },
+            {
+              "d": "M 100.875 108.14999999999999 L 182.625 91.61250000000001 L 264.375 98.69999999999999 L 346.125 67.9875",
+              "stroke": "#24693d"
+            }
+          ],
+          "rectangles": 5,
+          "paths": 3
+        },
+        {
+          "width": 448,
+          "height": 247,
+          "text": [
+            "Expenditure Share by Object",
+            "Salaries & Wages",
+            "Employee Benefits",
+            "Personal Contracts",
+            "Equipment",
+            "Goods & Services"
+          ],
+          "lines": [],
+          "rectangles": 5,
+          "paths": 5
+        }
+      ],
+      "tabs": [
+        "ColumnAndBar",
+        "TrendsAndShares"
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "blocked": [],
+  "empty": [],
+  "priorDemoComparison": {
+    "workbookSha256": "edbe112466c209c50a94cd30f280a2a16d8586c9a2537a0a172267667c97dc3b",
+    "currentWorkbookSha256": "a7a7cb831aeebd42ead3f129e1b2c5b99990a2a4ef9d72d19edb14adddd3b4dd",
+    "chartParts": [
+      {
+        "part": "xl/charts/chart1.xml",
+        "identical": true,
+        "priorSha256": "2a859a7428ee853ee36c9463282a8936d4e5b0f92a879458b17af54077dafccf"
+      },
+      {
+        "part": "xl/charts/chart2.xml",
+        "identical": true,
+        "priorSha256": "8b42edaf17e66bf2ce32b49779951f3aa414447eab470f56cafe6596f7cc4e5c"
+      },
+      {
+        "part": "xl/charts/chart3.xml",
+        "identical": true,
+        "priorSha256": "91102750c94d3eb94529b257b1ab0f64e98bb1428cadbc16220a1ac00074391a"
+      },
+      {
+        "part": "xl/charts/chart4.xml",
+        "identical": true,
+        "priorSha256": "70ae01feb5e21293d2273c4b34786fe8164548b94509e60aac899d4c691d866c"
+      }
+    ]
+  },
+  "browserVersion": "153.0.4234.48"
+}

@@ -1,0 +1,208 @@
+{
+  "case": "native-excel-image-delivery-and-workbook-download",
+  "scope": "Diagnostic local page showing Excel-exported PNG images; does not validate an independent renderer.",
+  "startedAt": "2026-09-25T00:38:16.582Z",
+  "inputHashes": {
+    "native-preview.html": "bbee0001d9ec1babba3678d9b1ab4c44811816e4f15deafaec697ab8cc68b480",
+    "chart-cases.xlsx": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+    "excel-column.png": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+    "excel-line.png": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+    "excel-scatter.png": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f"
+  },
+  "nativeReferenceWorkbookSha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+  "playwrightVersion": "1.62.1",
+  "nodeVersion": "v24.19.0",
+  "viewport": {
+    "width": 1280,
+    "height": 1080
+  },
+  "images": [
+    {
+      "sheet": "Column",
+      "filename": "excel-column.png",
+      "naturalWidth": 2464,
+      "naturalHeight": 1322,
+      "displayedWidth": 1005.96875,
+      "displayedHeight": 539.734375,
+      "currentSrc": "http://127.0.0.1:50273/excel-column.png",
+      "sha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+      "bytes": 19320,
+      "status": 200,
+      "url": "http://127.0.0.1:50273/excel-column.png",
+      "nativeFileSha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+      "bytesMatch": true
+    },
+    {
+      "sheet": "Line",
+      "filename": "excel-line.png",
+      "naturalWidth": 2464,
+      "naturalHeight": 1322,
+      "displayedWidth": 1005.96875,
+      "displayedHeight": 539.734375,
+      "currentSrc": "http://127.0.0.1:50273/excel-line.png",
+      "sha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+      "bytes": 52347,
+      "status": 200,
+      "url": "http://127.0.0.1:50273/excel-line.png",
+      "nativeFileSha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+      "bytesMatch": true
+    },
+    {
+      "sheet": "Scatter",
+      "filename": "excel-scatter.png",
+      "naturalWidth": 2464,
+      "naturalHeight": 1322,
+      "displayedWidth": 1005.96875,
+      "displayedHeight": 539.734375,
+      "currentSrc": "http://127.0.0.1:50273/excel-scatter.png",
+      "sha256": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f",
+      "bytes": 14711,
+      "status": 200,
+      "url": "http://127.0.0.1:50273/excel-scatter.png",
+      "nativeFileSha256": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f",
+      "bytesMatch": true
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "file": "native-preview.html",
+      "status": 200,
+      "sha256": "bbee0001d9ec1babba3678d9b1ab4c44811816e4f15deafaec697ab8cc68b480",
+      "bytes": 6874
+    },
+    {
+      "method": "GET",
+      "file": "excel-column.png",
+      "status": 200,
+      "sha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+      "bytes": 19320
+    },
+    {
+      "method": "GET",
+      "file": "excel-line.png",
+      "status": 200,
+      "sha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+      "bytes": 52347
+    },
+    {
+      "method": "GET",
+      "file": "chart-cases.xlsx",
+      "status": 200,
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+      "bytes": 13637
+    },
+    {
+      "method": "GET",
+      "file": "excel-scatter.png",
+      "status": 200,
+      "sha256": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f",
+      "bytes": 14711
+    },
+    {
+      "method": "GET",
+      "file": "chart-cases.xlsx",
+      "status": 200,
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+      "bytes": 13637
+    },
+    {
+      "method": "GET",
+      "file": "native-preview.html",
+      "status": 200,
+      "sha256": "bbee0001d9ec1babba3678d9b1ab4c44811816e4f15deafaec697ab8cc68b480",
+      "bytes": 6874
+    },
+    {
+      "method": "GET",
+      "file": "excel-column.png",
+      "status": 200,
+      "sha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+      "bytes": 19320
+    },
+    {
+      "method": "GET",
+      "file": "excel-line.png",
+      "status": 200,
+      "sha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+      "bytes": 52347
+    },
+    {
+      "method": "GET",
+      "file": "excel-scatter.png",
+      "status": 200,
+      "sha256": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f",
+      "bytes": 14711
+    },
+    {
+      "method": "GET",
+      "file": "native-preview.html",
+      "status": 200,
+      "sha256": "bbee0001d9ec1babba3678d9b1ab4c44811816e4f15deafaec697ab8cc68b480",
+      "bytes": 6874
+    },
+    {
+      "method": "GET",
+      "file": "excel-column.png",
+      "status": 200,
+      "sha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+      "bytes": 19320
+    },
+    {
+      "method": "GET",
+      "file": "excel-line.png",
+      "status": 200,
+      "sha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+      "bytes": 52347
+    },
+    {
+      "method": "GET",
+      "file": "excel-scatter.png",
+      "status": 200,
+      "sha256": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f",
+      "bytes": 14711
+    },
+    {
+      "method": "GET",
+      "file": "chart-cases.xlsx",
+      "status": 200,
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+      "bytes": 13637
+    }
+  ],
+  "browserErrors": [],
+  "outcome": "confirmed",
+  "browserLaunch": {
+    "channel": "msedge"
+  },
+  "url": "http://127.0.0.1:50273/native-preview.html",
+  "browserVersion": "153.0.4234.48",
+  "displayedWorkbookSha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+  "download": {
+    "savedAs": "chart-cases-downloaded.xlsx",
+    "suggestedFilename": "chart-cases.xlsx",
+    "url": "http://127.0.0.1:50273/chart-cases.xlsx",
+    "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+    "finalWorkbookSha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+    "bytesMatch": true
+  },
+  "changedWorkbookGuard": {
+    "outcome": "confirmed",
+    "method": "One response byte changed in browser transport; source files untouched",
+    "downloadDisabled": true
+  },
+  "capture": {
+    "filename": "capture.png",
+    "sha256": "fb4f67bcfc5803fbb19e1772a908f0fb256bea0b460ecfadb43d4961bf40c687",
+    "activeSheet": "Column"
+  },
+  "finalHashes": {
+    "native-preview.html": "bbee0001d9ec1babba3678d9b1ab4c44811816e4f15deafaec697ab8cc68b480",
+    "chart-cases.xlsx": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+    "excel-column.png": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+    "excel-line.png": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+    "excel-scatter.png": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f"
+  },
+  "confirmedClaim": "All three tabs show decoded native Excel images whose received bytes match the retained PNGs. The actual workbook download matches the unchanged source workbook.",
+  "finishedAt": "2026-09-25T00:38:21.720Z"
+}

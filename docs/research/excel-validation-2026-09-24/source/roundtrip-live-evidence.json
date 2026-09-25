@@ -1,0 +1,91 @@
+{
+  "revision": "5109699ac5eea3ca510947859ff9e5cb3980676e",
+  "browserVersion": "153.0.4234.48",
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "deviceScaleFactor": 1
+  },
+  "specimenSha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+  "specimenBytes": 28024,
+  "rawUrl": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+  "appTransport": "Original pinned data-view.html and app source unchanged; dependency reads served from previously retrieved exact-revision local cache.",
+  "attempts": [
+    {
+      "transport": "live-network",
+      "requests": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "method": "GET",
+          "resourceType": "document",
+          "navigation": true
+        }
+      ],
+      "responses": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "status": 200,
+          "headers": {
+            "accept-ranges": "bytes",
+            "access-control-allow-origin": "*",
+            "cache-control": "max-age=300",
+            "content-length": "28024",
+            "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+            "content-type": "application/octet-stream",
+            "cross-origin-resource-policy": "cross-origin",
+            "date": "Fri, 25 Sep 2026 00:19:01 GMT",
+            "etag": "W/\"eb2c8f508f7a0b2666d8f8a1fc379cbab3e01b385fe94e6f7f1dfdcd03ceec53\"",
+            "expires": "Fri, 25 Sep 2026 00:24:01 GMT",
+            "source-age": "0",
+            "strict-transport-security": "max-age=31536000",
+            "vary": "Authorization,Accept-Encoding",
+            "via": "1.1 varnish",
+            "x-cache": "MISS",
+            "x-cache-hits": "0",
+            "x-content-type-options": "nosniff",
+            "x-fastly-request-id": "9c6cb09b749bf372bd2e5ff6eb30dab9224c8673",
+            "x-frame-options": "deny",
+            "x-github-edge-region": "westus2",
+            "x-github-request-id": "C22E:0A07:795DBF:FB8ABD:6AB5BDF4",
+            "x-served-by": "cache-bfi-krnt7300075-BFI",
+            "x-timer": "S1790295542.733462,VS0,VE182",
+            "x-xss-protection": "1; mode=block"
+          }
+        }
+      ],
+      "failures": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "downloads": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "suggestedFilename": "demonstration-workbooks.xlsx",
+          "file": "roundtrip-live-network-downloaded.xlsx",
+          "bytes": 28024,
+          "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+          "matchesSpecimen": true,
+          "failure": null
+        }
+      ],
+      "pages": [
+        {
+          "initialUrl": "about:blank"
+        },
+        {
+          "initialUrl": ""
+        },
+        {
+          "initialUrl": ""
+        }
+      ],
+      "link": {
+        "href": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+        "target": "_blank"
+      },
+      "result": "downloaded"
+    }
+  ]
+}

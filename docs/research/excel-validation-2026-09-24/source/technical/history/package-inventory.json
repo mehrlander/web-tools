@@ -1,0 +1,83 @@
+{
+  "file": "C:\\Users\\mehrl\\Documents\\Codex\\2026-09-24\\tak\\outputs\\excel-validation\\demonstration-workbooks.xlsx",
+  "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+  "bytes": 28024,
+  "rendererRevision": "5109699ac5eea3ca510947859ff9e5cb3980676e",
+  "zipCRC": null,
+  "sheets": [
+    {
+      "name": "RawData",
+      "sheetId": "1",
+      "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId1"
+    },
+    {
+      "name": "PivotSummary",
+      "sheetId": "2",
+      "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId2"
+    },
+    {
+      "name": "FormattingAndLogic",
+      "sheetId": "3",
+      "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId3"
+    },
+    {
+      "name": "Reconciliation",
+      "sheetId": "4",
+      "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId4"
+    }
+  ],
+  "tables": [
+    {
+      "part": "xl/tables/table1.xml",
+      "{http://schemas.openxmlformats.org/markup-compatibility/2006}Ignorable": "xr xr3",
+      "id": "1",
+      "{http://schemas.microsoft.com/office/spreadsheetml/2014/revision}uid": "{5B9EEEC7-EA22-43D1-846F-CAD5409F33F1}",
+      "name": "Financials",
+      "displayName": "Financials",
+      "ref": "B5:N30",
+      "totalsRowCount": "1",
+      "style": {
+        "name": "TableStyleMedium2",
+        "showFirstColumn": "0",
+        "showLastColumn": "0",
+        "showRowStripes": "1",
+        "showColumnStripes": "0"
+      }
+    }
+  ],
+  "pivots": [
+    {
+      "part": "xl/pivotTables/pivotTable1.xml",
+      "{http://schemas.openxmlformats.org/markup-compatibility/2006}Ignorable": "xr",
+      "{http://schemas.microsoft.com/office/spreadsheetml/2014/revision}uid": "{32C2BA00-8441-415C-95B4-8F692ECF49D5}",
+      "name": "FinancialPivot",
+      "cacheId": "13",
+      "applyNumberFormats": "0",
+      "applyBorderFormats": "0",
+      "applyFontFormats": "0",
+      "applyPatternFormats": "0",
+      "applyAlignmentFormats": "0",
+      "applyWidthHeightFormats": "1",
+      "dataCaption": "Values",
+      "updatedVersion": "8",
+      "minRefreshableVersion": "3",
+      "useAutoFormatting": "1",
+      "itemPrintTitles": "1",
+      "createdVersion": "8",
+      "indent": "0",
+      "compact": "0",
+      "compactData": "0",
+      "multipleFieldFilters": "0",
+      "location": {
+        "ref": "B5:O19",
+        "firstHeaderRow": "1",
+        "firstDataRow": "3",
+        "firstDataCol": "2"
+      }
+    }
+  ],
+  "charts": [],
+  "externalLinks": [],
+  "macros": [],
+  "connections": []
+}
