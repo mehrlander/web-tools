@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-12 by a skill, 28 by a page or component. The remaining 48 are
+13 by a skill, 27 by a page or component. The remaining 48 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
