@@ -140,6 +140,63 @@ test('tableRows passes a JSON array through, and names the shape it wanted', () 
   assert.throws(() => VR.tableRows({ ext: 'json', content: '{"a":1}' }), /array of records/);
 });
 
+test('delimited metadata preserves source titles and avoids fallback key collisions', () => {
+  const table = plain(VR.tableDelimited({ ext: 'csv', content: '\uFEFFcol3,a,a,, a ,a.b,"<b>x</b>"\r\n1,2,3,4,5,6,7\r\n' }));
+  assert.deepEqual(table.columns, [
+    { field: 'col3', title: 'col3' }, { field: 'a', title: 'a' },
+    { field: 'col3_', title: 'a' }, { field: 'col4', title: '' },
+    { field: 'col5', title: ' a ' }, { field: 'a.b', title: 'a.b' },
+    { field: '<b>x</b>', title: '<b>x</b>' },
+  ]);
+  assert.deepEqual(Object.values(table.rows[0]), ['1', '2', '3', '4', '5', '6', '7']);
+  assert.deepEqual(plain(VR.tableDelimited({ ext: 'tsv', content: ' a \t\ta\n' })).columns.map(c => c.title), [' a ', '', 'a']);
+  assert.deepEqual(plain(VR.parseDelimited('"line\r\nbreak",b\r\n1,2', ',')), [['line\r\nbreak', 'b'], ['1', '2']]);
+  assert.deepEqual(plain(VR.parseDelimited('a\n""', ',')), [['a'], ['']]);
+  assert.deepEqual(plain(VR.tableDelimited({ ext: 'csv', content: '""' })), { rows: [], columns: [{ field: 'col1', title: '' }] });
+});
+
+test('table mount passes header-only schema and mapped filters to the current explorer', async t => {
+  const prior = window.TabularExplorer;
+  t.after(() => { window.TabularExplorer = prior; });
+  let mounted, built, input;
+  window.TabularExplorer = { mount: (_target, options) => {
+    mounted = options;
+    return { table: { on: (_event, fn) => { built = fn; }, setHeaderFilterValue: (...args) => { input = args; } } };
+  } };
+  const root = window.document.createElement('div');
+  root.innerHTML = '<div data-table="target"></div>';
+  VR.modules.find(m => m.id === 'table').after({ name: 'headers.csv', ext: 'csv', content: ' a ,,a\n' }, {
+    root, alive: () => true, opts: { filter: { col: ' a ', find: 'value' } },
+  });
+  await new Promise(resolve => window.requestAnimationFrame(resolve));
+  assert.deepEqual(plain(mounted.rows), []);
+  assert.deepEqual(plain(mounted.columns).map(c => c.title), [' a ', '', 'a']);
+  assert.deepEqual(plain(mounted.opts.filter), { col: 'a', find: 'value' });
+  built();
+  assert.deepEqual(input, ['a', 'value']);
+});
+
+test('table fallback retains literal safe titles and flat dotted fields', async t => {
+  const priorExplorer = window.TabularExplorer, priorLoad = VR.loadLib, priorTable = window.Tabulator;
+  t.after(() => { window.TabularExplorer = priorExplorer; VR.loadLib = priorLoad; window.Tabulator = priorTable; });
+  window.TabularExplorer = null;
+  VR.loadLib = async () => {};
+  let options;
+  window.Tabulator = class { constructor(_target, opts) { options = opts; } on() {} };
+  const root = window.document.createElement('div');
+  root.innerHTML = '<div data-table="target"></div>';
+  VR.modules.find(m => m.id === 'table').after({ name: 'headers.csv', ext: 'csv', content: '<b>x</b>,a.b,,a.b\n' }, {
+    root, alive: () => true, opts: {},
+  });
+  await new Promise(resolve => window.requestAnimationFrame(resolve));
+  await tick();
+  assert.ok(options, root.textContent);
+  assert.equal(options.columns[0].title, '&lt;b&gt;x&lt;/b&gt;');
+  assert.equal(options.columns[2].title, '');
+  assert.equal(options.columns.length, 4);
+  assert.equal(options.nestedFieldSeparator, false);
+});
+
 test('no stray warnings or errors after the resolves', async () => {
   await tick();
   assert.deepEqual(problems, []);

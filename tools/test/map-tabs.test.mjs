@@ -55,7 +55,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // other tab in this strip already does.
   // 13 to 11 on 2026-09-11: Growth moved inside Docs and Tests inside Harness.
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
-  assert.equal(TABS.length, 10, 'ten top-level tabs, or this test is reading the wrong literal');
+  // 10 to 11: Data aggregates the declared CSV inventories.
+  assert.equal(TABS.length, 11, 'eleven top-level tabs, or this test is reading the wrong literal');
   assert.equal(SUBVIEWS.length, 6, 'Docs and Harness each carry three choices');
   assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', tests: 'harness', context: 'harness' });
   assert.deepEqual(SUBVIEWS.slice(0, 3).map(s => [s.k, s.n]),
