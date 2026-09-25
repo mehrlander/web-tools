@@ -2,10 +2,9 @@
 name: tend
 description: >-
   Cultivate a workspace toward recognized objectives: identify settled
-  branches and shipped tasks, formulate an action plan for user approval,
-  execute approved steps on green light, and surface stranded work or next
-  opportunities. Use when the user asks to tend, tidy, refine the backlog,
-  or triage branches.
+  branches and shipped tasks, propose an action plan with green light,
+  execute approved steps, and surface next opportunities. Use when the user
+  asks to tend, tidy, refine the backlog, or triage branches.
 disable-model-invocation: true
 ---
 
@@ -50,18 +49,17 @@ operational instructions for cultivating repositories.
 
 Tending operates in a clear two-beat rhythm:
 
-```
-[Phase 1: Survey & Propose Plan]  --->  User gives Green Light  --->  [Phase 2: Execute & Offer More]
-```
+1. **Phase 1: Survey and propose plan with green light**
+2. **Phase 2: Execute on green light and offer more**
 
-### Phase 1: Survey and propose plan (request green light)
+### Phase 1: Survey and propose plan with green light
 
 When invoked, survey the estate without making destructive or durable changes:
 
 1. **Survey branches**:
    - List remote branches (`git branch -r`), excluding `HEAD` and default branch.
    - Classify each branch touched files against `main`:
-     - **Landed**: Touch bytes exist on `main` (accounting for squash merges).
+     - **Landed**: Touched bytes exist on `main` (accounting for squash merges).
      - **Retired**: `main` deliberately deleted the touched paths.
      - **Stranded**: Holds novel files never present on `main`.
    - Identify candidate branches where 100% of touched files are proved landed or
@@ -73,25 +71,12 @@ When invoked, survey the estate without making destructive or durable changes:
    - Identify tasks lacking `## Related` links for key files mentioned in the
      task body.
    - Identify obsolete or non-existent task IDs listed in `depends-on:`.
-3. **Formulate the plan**:
+3. **Propose with green light**:
    - Assemble high-confidence items into a concise, numbered plan.
-   - Present the plan directly and request a green light:
-
-   ```markdown
-   ### Tending Plan
-
-   Ready to execute with your green light:
-   1. **Prune 2 settled branches**:
-      - `feat/json-explorer` (squashed into main in PR #750)
-      - `fix/header-nav` (merged in PR #752)
-   2. **Close 1 shipped task**:
-      - `task-0042` (delivered in PR #761)
-   3. **Add resolving file links**:
-      - `task-0089`: link `lib/kits/branch-status.js`
-      - `task-0091`: link `pages/branch.html`
-
-   Give the green light to proceed, or adjust the plan.
-   ```
+   - State the proposed batch of actions plainly in the response.
+   - Follow standard Surfacing rules (`docs/SURFACING.md`): close with the
+     `🟢 Ready to continue` closing state naming the proposed maintenance
+     awaiting green light. Do not introduce a bespoke output template.
 
 ### Phase 2: Execute on green light and offer more
 
@@ -121,5 +106,6 @@ When the user responds with approval ("green light", "go", "proceed", "yes"):
      (`gh pr list --state merged --limit 25`). If `## Open threads` in a merged
      PR body contains a genuine, unaddressed follow-up, nominate it for owner
      decision (do not file autonomously).
-   - If no further opportunities exist, confirm that the workspace is clean and
-     step back.
+   - Close following standard Surfacing rules: use `🟢 Ready to continue` if
+     further actions or nominations are proposed, or `⚪ Clean exit` if the
+     workspace is completely tended.

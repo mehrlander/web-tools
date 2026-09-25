@@ -19,7 +19,7 @@ test('.claude/skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes
   assert.match(content, /^---\r?\nname:\s*tend\b/, 'frontmatter must declare name: tend');
   assert.match(content, /description:\s*>-?\s+Cultivate a workspace/, 'frontmatter must declare description');
   assert.match(content, /disable-model-invocation:\s*true/, 'frontmatter must disable unprompted invocation');
-  assert.match(content, /Phase 1: Survey and propose plan \(request green light\)/, 'must define Phase 1 plan and green light');
+  assert.match(content, /Phase 1: Survey and propose plan with green light/, 'must define Phase 1 plan with green light');
   assert.match(content, /Phase 2: Execute on green light and offer more/, 'must define Phase 2 execution and offer more');
 });
 
