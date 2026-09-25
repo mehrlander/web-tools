@@ -659,6 +659,14 @@ PY
 
 The same base64url step without the gzip is what `&prompts=` takes.
 
+### Short text: the `#take=` param
+
+`#take=<percent-encoded text>` carries one piece of text with no gzip, and
+`name=` optionally names it. `take` is always the last param and runs to the end
+of the fragment, so a `name` goes before it. It exists because an iPhone
+shortcut can URL-encode but not gzip. The text goes through the same fold as a
+paste, and a reload of the same link does not stage it twice.
+
 ### Commentary: the `&prompts=` param
 
 `prompts=` is a base64url'd JSON list of `{label, ask}` review asks, authored

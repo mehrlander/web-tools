@@ -4025,3 +4025,20 @@ test('takeFromLink stages the text once, sniffed like a paste', () => {
   assert.ok(!store.stage[0].sniffed);
   reset();
 });
+
+// ---- #gz= from an iPhone shortcut --------------------------------------------
+//
+// Stage-Input (shortcut-tools) builds the payload with Make Archive (gz) and
+// Base64 Encode, which emit STANDARD base64: '+', '/' and '=' padding rather
+// than the url-safe alphabet mint() writes. The decoder has to take both.
+
+test('decodeLocals takes standard base64 with padding, as a shortcut emits it', async () => {
+  const { gzipSync } = await import('node:zlib');
+  const items = [{ name: 'example.com-link.txt', text: 'https://example.com/a?b=1&c=2' },
+                 { name: 'example.com.html', text: '<!DOCTYPE html>\n<html><body>ok ??>>></body></html>' }];
+  const std = gzipSync(Buffer.from(JSON.stringify(items))).toString('base64');
+  assert.match(std, /[+/=]/, 'the fixture must exercise the standard alphabet');
+  const lk = window.StageLink.parseLink('#gz=' + std);
+  const back = await window.StageLink.decodeLocals(lk.gz);
+  assert.equal(JSON.stringify(back), JSON.stringify(items));
+});
