@@ -109,6 +109,8 @@ complete. Anything genuinely noticed counts, whether or not a step asked for it.
 
 ## Depth: sweep
 
+> Note: Sweep is superseded by `/tend` ([docs/TENDING.md](../../../docs/TENDING.md)) for workspace cultivation. Where sweep collected observations into a rolling file, `/tend` actively clears paths: unattended pruning of landed branches, closing shipped tasks, linking related context, and harvesting PR threads while keeping novel work safe.
+
 The repo speaking first. A wide net over the repo's own material, pulling out
 finds a person would want to see: a connection nobody drew, a corner going
 quiet, an old entry that suddenly rhymes with current work.
