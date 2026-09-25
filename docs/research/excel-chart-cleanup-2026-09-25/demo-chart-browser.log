@@ -1,0 +1,47 @@
+Loading demonstration-charts.xlsx in data-view viewer:
+Validating Sheet 1: ColumnAndBar
+Sheet 1 details: {
+  cols: [
+    '',  'A', 'B', 'C', 'D',
+    'E', 'F', 'G', 'H', 'I',
+    'J', 'K', 'L', 'M', 'N'
+  ],
+  containers: [
+    {
+      left: '0px',
+      top: '0px',
+      width: 512,
+      height: 266,
+      parentCell: 'F5'
+    },
+    {
+      left: '0px',
+      top: '0px',
+      width: 512,
+      height: 228,
+      parentCell: 'F21'
+    }
+  ]
+}
+  ok    sheet 1 renders two chart containers
+  ok    chart 1 has correct title
+  ok    chart 1 has bars and legend swatches
+  ok    chart 2 has correct title
+  ok    chart 2 has horizontal bars
+Switching to Sheet 2: TrendsAndShares
+  ok    clicked TrendsAndShares sheet tab
+  ok    sheet 2 renders two chart containers
+  ok    chart 3 has correct title
+  ok    chart 3 has 3 series line paths
+Chart container info on Sheet 2: [
+  { width: 512, height: 266, left: '0px', top: '0px', parentTd: 'G5' },
+  { width: 448, height: 247, left: '0px', top: '0px', parentTd: 'G21' }
+]
+  ok    chart 4 has correct title
+  ok    chart 4 has 5 pie slices
+Testing mobile viewport and horizontal scroll over gutter...
+  ok    scrolled horizontally on mobile width
+
+Chart checks completed.
+
+ALL CHECKS PASSED

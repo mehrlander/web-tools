@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-12 by a skill, 28 by a page or component. The remaining 47 are
+13 by a skill, 27 by a page or component. The remaining 50 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -84,6 +84,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
+- [`csv-census.md`](csv-census.md) *(orphan)* — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 
 ## docs/doc-craft-specimens/
 
@@ -138,6 +139,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
+
+## docs/research/excel-chart-cleanup-2026-09-25/
+
+- [`README.md`](research/excel-chart-cleanup-2026-09-25/README.md) *(record, orphan)* — Excel chart semantics and PivotTable cleanup evidence from September 25, 2026
+- [`verification.json`](research/excel-chart-cleanup-2026-09-25/verification.json) *(record, orphan)* — browser verification results and workbook/source hashes for the Excel cleanup
 
 ## docs/views/
 

@@ -335,6 +335,17 @@ if changed tracker/tasks/; then
   fi
 fi
 
+# --- leg 4a: each tracked CSV -> the repo's own Data census -------------------
+# Run after every other CSV-producing leg and after their outputs were staged:
+# csv-census.py measures index blobs, the exact bytes the commit will contain.
+if changed '*.csv' .web-tools.json scripts/csv-census.py; then
+  if python3 scripts/csv-census.py >/dev/null 2>&1; then
+    stage data/csv-census.csv
+  else
+    echo "build hook: 'python3 scripts/csv-census.py' failed - data/csv-census.csv may be stale" >&2
+  fi
+fi
+
 # --- leg 4b: reading columns (warn only) --------------------------------------
 # The PreToolUse guard in the portable plugin refuses these as they are written,
 # and tools/test/reading-column.test.mjs fails CI on any that land, so this leg

@@ -1,6 +1,6 @@
 import http from 'node:http';
 import path from 'node:path';
-import { readFile, mkdir, copyFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
@@ -8,10 +8,9 @@ import { resolveCdn, typeFor } from '../render/cdn.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const JSZIP_UMD = await readFile(path.join(root, 'node_modules/jszip/dist/jszip.min.js'), 'utf8');
 
-const previewDir = path.join(root, 'tools', '.preview');
+const previewDir = path.resolve(process.env.XLSX_PREVIEW_DIR || path.join(root, 'tools', '.preview'));
 await mkdir(previewDir, { recursive: true });
 
-const artifactsDir = 'C:\\Users\\mehrl\\.gemini\\antigravity\\brain\\71fb05a6-090d-4167-b515-57b3176e3aa7';
 
 const failures = [];
 const ok = (name, cond, detail = '') => {
@@ -32,7 +31,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined, args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1600, height: 950 } });
 
 await page.route('**/*', route => {
@@ -115,16 +114,13 @@ try {
   // Screenshot sheet 1
   const sheet1Path = path.join(previewDir, 'rendered-sheet-column-and-bar.png');
   await page.screenshot({ path: sheet1Path, fullPage: false });
-  await copyFile(sheet1Path, path.join(artifactsDir, 'rendered-sheet-column-and-bar.png'));
 
   // Screenshot individual chart elements
   const c1Path = path.join(previewDir, 'rendered-chart-1-column.png');
   await sheet1Containers[0].screenshot({ path: c1Path });
-  await copyFile(c1Path, path.join(artifactsDir, 'rendered-chart-1-column.png'));
 
   const c2Path = path.join(previewDir, 'rendered-chart-2-bar.png');
   await sheet1Containers[1].screenshot({ path: c2Path });
-  await copyFile(c2Path, path.join(artifactsDir, 'rendered-chart-2-bar.png'));
 
   // 2. Sheet 2: TrendsAndShares
   console.log('Switching to Sheet 2: TrendsAndShares');
@@ -146,7 +142,7 @@ try {
   const chart3Title = await page.locator('.xl-chart-container').nth(0).locator('text').first().textContent();
   ok('chart 3 has correct title', /Quarterly Outlay Trajectory/i.test(chart3Title), chart3Title);
 
-  const chart3Lines = await page.locator('.xl-chart-container').nth(0).locator('path[fill="none"]').count();
+  const chart3Lines = await page.locator('.xl-chart-container').nth(0).locator('path[data-chart-series]').count();
   ok('chart 3 has 3 series line paths', chart3Lines === 3, `line paths count: ${chart3Lines}`);
 
   const chartInfo = await page.evaluate(() => {
@@ -169,16 +165,13 @@ try {
   // Screenshot sheet 2
   const sheet2Path = path.join(previewDir, 'rendered-sheet-trends-and-shares.png');
   await page.screenshot({ path: sheet2Path, fullPage: false });
-  await copyFile(sheet2Path, path.join(artifactsDir, 'rendered-sheet-trends-and-shares.png'));
 
   // Screenshot individual chart elements
   const c3Path = path.join(previewDir, 'rendered-chart-3-line.png');
   await sheet2Containers[0].screenshot({ path: c3Path });
-  await copyFile(c3Path, path.join(artifactsDir, 'rendered-chart-3-line.png'));
 
   const c4Path = path.join(previewDir, 'rendered-chart-4-pie.png');
   await sheet2Containers[1].screenshot({ path: c4Path });
-  await copyFile(c4Path, path.join(artifactsDir, 'rendered-chart-4-pie.png'));
 
   // 3. Mobile Gutter Scroll Test: verify charts slide behind the sticky row number gutter
   console.log('Testing mobile viewport and horizontal scroll over gutter...');
@@ -198,9 +191,8 @@ try {
 
   const mobileGutterPath = path.join(previewDir, 'mobile-gutter-scrolled.png');
   await page.screenshot({ path: mobileGutterPath, fullPage: false });
-  await copyFile(mobileGutterPath, path.join(artifactsDir, 'mobile-gutter-scrolled.png'));
 
-  console.log('\nAll chart tests completed successfully!');
+  console.log('\nChart checks completed.');
 } catch (err) {
   console.error('Test error:', err);
   failures.push('Exception: ' + err.message);

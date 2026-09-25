@@ -13,7 +13,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
 .claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,48,hook:PostToolUse,no,no,no
 .githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,no,yes,yes
-.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,361,git:pre-commit,no,yes,yes
+.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,372,git:pre-commit,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through scripts/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists",.github/workflows,133,ci:push+repository_dispatch+schedule+workflow_dispatch,no,no,no
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,116,ci:pull_request+push+workflow_dispatch,no,yes,no
@@ -31,6 +31,7 @@ scripts/build-tree.py,render a repository file tree as a linked markdown table f
 scripts/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,scripts,145,imported,no,yes,no
 scripts/code-shape.py,"per-file observable properties of lib/: what a file attaches to, boot, hub, DOM, Alpine; the instrument behind docs/code-layers.md and the code-layers gate",scripts,382,npm:code-shape,yes,yes,yes
 scripts/conventions-delivery.py,"count how each recorded session took delivery of the conventions: by @-import, by invoking the plugin skill, or not at all. The instrument behind the 2026-09-12 move to plugin-only delivery, since a prod is a request a model can decline",scripts,162,imported,yes,yes,no
+scripts/csv-census.py,generate and check a repository's tracked-CSV inventory from its Git index,scripts,138,imported,no,yes,yes
 scripts/dead-family.py,"report a daisyUI theme colour used in a utility family daisyUI does not ship, which compiles to nothing and is dropped silently; Tailwind v4 then falls back to currentColor, so divide-y paints black hairlines. The supported set is DERIVED from node_modules/daisyui/daisyui.css rather than declared, so it tracks the installed version: of the 25 families it defines with a semantic colour, only bg, border and text are Tailwind utilities and the rest are daisyUI's own components. Advisory; --check gates",scripts,194,npm:family-scan,no,yes,yes
 scripts/dead-links.py,"report markdown links that no longer resolve, in three classes (internal, cross-repo, github)",scripts,272,imported,no,yes,yes
 scripts/dead-opacity.py,"report a daisyUI theme colour carrying an opacity step that generates no CSS rule. The ramp daisyUI ships is 10..90 by tens, so every other step, both ends, and the bracket form fall back: a background to transparent and TEXT to full strength, which is the wrong direction and errors nowhere. Stock palette colours take any step and are never reported, which is the half a looser scan gets wrong. --check gates it",scripts,212,npm:opacity-scan,no,yes,yes
@@ -48,7 +49,7 @@ scripts/page-strips.py,"render a PDF page as overlapping horizontal strips a vis
 scripts/pip-steps.py,,scripts,208,none found,no,no,no
 scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. Advisory, never gates",scripts,656,npm:showing,no,yes,yes
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
-scripts/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",scripts,269,argv,no,no,yes
+scripts/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",scripts,269,argv,no,yes,yes
 scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,no,yes
 scripts/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",scripts,539,argv,no,yes,yes
 scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",scripts,187,npm:code-scan,no,yes,no
@@ -71,6 +72,7 @@ tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and p
 tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",tools/build,85,npm:pages-shots,no,yes,no
 tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,yes,yes
 tools/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",tools/build,90,npm:registries-reach,yes,yes,yes
+tools/build/repair-demonstration-pivot.py,,tools/build,46,none found,no,yes,no
 tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,tools/build,167,argv,no,yes,no
 tools/build/sample-workbook.mjs,,tools/build,437,npm:sample-workbook,yes,yes,yes
 tools/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,tools/build,252,npm:snags-index,yes,yes,yes
@@ -193,6 +195,7 @@ tools/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redire
 tools/render/scenarios/installation-home.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,tools/render/scenarios,67,driver,no,no,no
 tools/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,tools/render/scenarios,53,driver,no,no,no
+tools/render/scenarios/map-data-census.mjs,,tools/render/scenarios,64,driver,no,no,yes
 tools/render/scenarios/map-docs-cold.mjs,"the Map's Docs tab sorted coldest first, with the unresolved-reads strip: the ordering and the misspelled paths that make the readership column answerable",tools/render/scenarios,93,driver,no,no,no
 tools/render/scenarios/map-docs-reads.mjs,the Map's Docs tab with the readership column,tools/render/scenarios,73,driver,no,no,no
 tools/render/scenarios/map-docs.mjs,"the Map's Docs tab, the documentation registry rendered live",tools/render/scenarios,52,driver,no,no,no

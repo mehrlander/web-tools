@@ -58,7 +58,7 @@ lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carr
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes
 lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcdoc HTML out.",83,no,no,16,yes
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,3,yes
-lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",329,no,no,4,yes
+lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",337,no,no,4,yes
 lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web-tools ecosystem.,221,no,no,7,yes
 lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",149,yes,no,13,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
@@ -80,8 +80,8 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",654,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1404,no,yes,26,yes
-lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",940,no,no,1,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1433,no,yes,26,yes
+lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",284,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",394,yes,no,3,yes
@@ -93,7 +93,7 @@ lib/kits/wring.js,wring,"single-document template induction: give it one documen
 lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",102,no,no,2,yes
 lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",351,no,no,4,yes
 lib/kits/wsl.js,wsl,browser-facing WSL kit.,299,no,no,3,yes
-lib/kits/xlsx-chart.js,xlsxChartKit,Native zero-dependency SVG renderer for Excel charts.,538,no,no,1,no
+lib/kits/xlsx-chart.js,xlsxChartKit,Browser SVG previews of supported Excel chart models.,456,no,no,1,yes
 lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,714,no,no,1,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1098,no,no,2,yes
-lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2629,no,yes,8,yes
+lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2674,no,yes,8,yes

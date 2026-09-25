@@ -30,7 +30,8 @@
         "./scour",
         "./gold-set",
         "./apple-shortcuts-actions",
-        "./sessions"
+        "./sessions",
+        "./tend"
       ],
       "keywords": [
         "conventions",

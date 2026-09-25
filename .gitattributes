@@ -20,6 +20,7 @@
 # cloned, so without setup these attributes are inert and a conflict here falls
 # back to Git's ordinary behavior.
 
+data/csv-census.csv merge=derived-csv
 docs/docs.csv merge=derived-csv
 docs/harness.csv merge=derived-csv
 docs/kits.csv merge=derived-csv

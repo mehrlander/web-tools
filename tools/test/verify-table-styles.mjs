@@ -7,13 +7,14 @@ import http from 'node:http';
 import path from 'node:path';
 import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const JSZIP_UMD = await readFile(path.join(root, 'node_modules/jszip/dist/jszip.min.js'), 'utf8');
 
-const previewDir = path.join(root, 'tools', '.preview');
+const previewDir = path.resolve(process.env.XLSX_PREVIEW_DIR || path.join(root, 'tools', '.preview'));
 await mkdir(previewDir, { recursive: true });
 
 const server = http.createServer(async (req, res) => {
@@ -29,7 +30,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined, args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 
 await page.route('**/*', route => {
@@ -50,7 +51,9 @@ const ok = (name, cond, detail = '') => {
 
 try {
   console.log('1. Loading Demonstration-Workbooks.xlsx in data-view.html...');
-  await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent('mehrlander/web-tools@main:docs/examples/demonstration-workbooks.xlsx')}`, {
+  const bytes = await readFile(path.join(root, 'docs/examples/demonstration-workbooks.xlsx'));
+  const env = { kind: 'data-view/1', items: [{ name: 'demonstration-workbooks.xlsx', content: 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + bytes.toString('base64') }] };
+  await page.goto(`${origin}/pages/data-view.html#gz=${gzipSync(JSON.stringify(env)).toString('base64url')}`, {
     waitUntil: 'domcontentloaded'
   });
 
