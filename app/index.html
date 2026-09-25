@@ -2104,9 +2104,9 @@ function app(){ return {
   //
   // It also keeps the ADDRESS minimal in both directions, since the stamp
   // compares against this rather than against a constant: `?app=budget-drs`
-  // carries no `shell` key and opens bare, and turning the header on there
-  // stamps `shell=full`, which is the honest reading of a screen showing the
-  // app's chrome around a promoted page.
+  // carries no `shell` key and opens with nav chrome, and turning the header off there
+  // stamps `shell=none`, which is the honest reading of a screen showing the
+  // promoted page bare.
   //
   // `none` is not a trap: the FAB's Render tab carries this as a bar (the
   // `modes` contract below), beside the ref and width bars, since which ref,
@@ -2125,7 +2125,7 @@ function app(){ return {
   // because the two answer different questions: what was asked for, and what
   // this screen opens as when nothing was.
   _shellChoice: '',
-  get defaultShellMode(){ return this.view === 'app' ? 'none' : 'full'; },
+  get defaultShellMode(){ return this.view === 'app' ? 'nav' : 'full'; },
   get shellMode(){ return this._shellChoice || this.defaultShellMode; },
 
   // Whether the sidebar is showing. One boolean at every width, which is the
@@ -7637,13 +7637,10 @@ function app(){ return {
     }];
   },
 
-  // The SAME switch, on the launcher's long-press menu, because the Render tab
-  // is the wrong and only place for it on the view that needs it most. An app
-  // view opens at shellMode 'none' by design, so it arrives with no header on
-  // screen and no clue that a header exists; finding the way back meant knowing
-  // which of the drawer's four tabs holds it, and then spotting one word at the
-  // end of the width-preset row. Reported from a phone on 2026-09-08 by a
-  // reader who knew the control existed and still could not find it.
+  // The SAME switch, on the launcher's long-press menu, so a reader can easily
+  // hide or show the header on any view. An app view defaults to 'nav' mode
+  // (header visible, sidebar closed) for easy navigation, and this toggle offers
+  // a fast 1-tap gesture to tuck the header away if they want the view bare.
   //
   // fab.js's own description already claimed show-repo contributed this row,
   // and it did not: nothing declared `menu` anywhere, so readPageMenu found
