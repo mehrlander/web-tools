@@ -1,4 +1,8 @@
 registry,property,mode,deriver,required,form,exclusive,values,column_primitive,gloss
+csv-census,rows,computed,scripts/csv-census.py,value,column,yes,,value,number of CSV records after the header record
+csv-census,columns,computed,scripts/csv-census.py,value,column,yes,,value,number of fields in the first CSV record
+csv-census,bytes,computed,scripts/csv-census.py,value,column,yes,,value,physical byte length of the indexed CSV blob
+csv-census,headers,computed,scripts/csv-census.py,value,column,yes,,value,JSON array of parsed header strings preserving blanks and duplicates
 docs,subject,recorded,,none,column,yes,,value,"what the document is about, one line"
 docs,status,recorded,,none,column,yes,living;record;measured,label,"whether the document is kept true, preserved as written, or derived from measurement"
 docs,reach,computed,tools/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
