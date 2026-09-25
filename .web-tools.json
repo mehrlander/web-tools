@@ -35,6 +35,16 @@
       "icon": "ph-seal-check",
       "order": 50,
       "slug": "approve"
+    },
+    {
+      "path": "pages/text-lab.html",
+      "title": "Text Lab",
+      "note": "The estate's text-analysis, NLP work, and retained proposals catalog.",
+      "appView": true,
+      "viewLabel": "Text Lab",
+      "icon": "ph-flask",
+      "order": 60,
+      "slug": "text-lab"
     }
   ],
   "stage": {
