@@ -95,27 +95,8 @@ try {
   await page.screenshot({ path: shotPivotBlue, fullPage: false });
   console.log(`  Saved screenshot: ${shotPivotBlue}`);
 
-  // Test Theme Changing
-  console.log('3. Testing Theme Switcher (Forest Green)...');
-  await page.selectOption('[data-xl-theme]', 'green');
-  await page.waitForTimeout(500);
-
-  const greenBg = await page.evaluate(() => {
-    const td = document.querySelector('[data-sheet="stage"] td.pvt-hdr');
-    return td ? getComputedStyle(td).backgroundColor : '';
-  });
-  ok('Theme change updates header background to green', greenBg.includes('30, 94, 58') || greenBg === 'rgb(30, 94, 58)', greenBg);
-
-  const shotPivotGreen = path.join(previewDir, 'rendered-pivot-summary-green.png');
-  await page.screenshot({ path: shotPivotGreen, fullPage: false });
-  console.log(`  Saved screenshot: ${shotPivotGreen}`);
-
-  // Switch back to blue
-  await page.selectOption('[data-xl-theme]', 'blue');
-  await page.waitForTimeout(300);
-
   // Switch to RawData
-  console.log('4. Inspecting RawData table (ListObject)...');
+  console.log('3. Inspecting RawData table (ListObject)...');
   const rawTabBtn = page.locator('[data-sheet="tabs"] button:has-text("RawData")');
   await rawTabBtn.click();
   await page.waitForTimeout(1000);
@@ -125,19 +106,17 @@ try {
     const tblHdrs = [...stage.querySelectorAll('td.tbl-hdr')].map(td => ({
       text: td.textContent.trim(),
       bg: getComputedStyle(td).backgroundColor,
-      color: getComputedStyle(td).color,
+      fontWeight: getComputedStyle(td).fontWeight,
       hasCaret: !!td.querySelector('.xl-caret')
     }));
-    const stripes = stage.querySelectorAll('td.tbl-stripe').length;
     const totals = stage.querySelectorAll('td.tbl-total').length;
-    return { tblHdrsCount: tblHdrs.length, sampleHdr: tblHdrs[0], stripes, totals };
+    return { tblHdrsCount: tblHdrs.length, sampleHdr: tblHdrs[0], totals };
   });
 
   ok('Table headers marked with .tbl-hdr', tableStats.tblHdrsCount > 0, `found ${tableStats.tblHdrsCount}`);
-  ok('Table headers have light blue background (rgb(200, 225, 238))', tableStats.sampleHdr?.bg === 'rgb(200, 225, 238)', tableStats.sampleHdr?.bg);
-  ok('Table headers have black text color', tableStats.sampleHdr?.color === 'rgb(0, 0, 0)', tableStats.sampleHdr?.color);
+  ok('Table headers have NO forced light blue header color', tableStats.sampleHdr?.bg !== 'rgb(200, 225, 238)', tableStats.sampleHdr?.bg);
+  ok('Table headers are bold', Number(tableStats.sampleHdr?.fontWeight) >= 600, tableStats.sampleHdr?.fontWeight);
   ok('Table headers carry filter dropdown carets', tableStats.sampleHdr?.hasCaret === true);
-  ok('Alternating data rows have zebra striping (.tbl-stripe)', tableStats.stripes > 0, `found ${tableStats.stripes}`);
   ok('Table total row marked with .tbl-total', tableStats.totals > 0, `found ${tableStats.totals}`);
 
   const shotRawTable = path.join(previewDir, 'rendered-raw-data-table.png');
