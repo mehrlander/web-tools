@@ -132,6 +132,8 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   assert.match(text, /meta-toggle/, 'launcher must have a page metadata disclosure');
   assert.match(text, /data-take-html/, 'launcher must support copying HTML');
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
+  assert.match(text, /data-slide-id="sel"/, 'launcher must support selective selection slide visibility');
+  assert.match(text, /const getSlides =/, 'launcher must dynamically calculate active slides');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {
