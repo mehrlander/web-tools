@@ -11,7 +11,7 @@ Part of the **workflow documentation** family.
 
 The Userscripts Safari extension executes code across third-party web origins without access to user credentials or GitHub tokens. The launcher and swipe deck run on any page with no manual setup per site once allowed in the extension menu.
 
-Because re-installing an iOS extension on every edit is prohibitive, the `.user.js` stub is installed once. It loads a dynamic body from GitHub into GM storage, checking for new builds in the background and executing them on subsequent page loads.
+Because re-installing an iOS extension on every edit is prohibitive, the `.user.js` stub is installed once. It loads a dynamic body from GitHub into GM storage, checking for new builds in the background and executing them on subsequent page loads. The installed stub is permanently pinned to `main`.
 
 Bookmarklets share the same source file (`userscripts/lib/launcher.js`) but cannot use the raw host: raw GitHub serves `text/plain` with `nosniff`, which browser script tags refuse to execute. Bookmarklets read from jsDelivr instead.
 
@@ -44,10 +44,11 @@ All changes must pass the 7 test assertions in `tools/test/userscript-stubs.test
    node --test tools/test/userscript-stubs.test.mjs
    ```
    Ensures the stub body exists, both host routes load the same body, SHA256 stamps match, the manifest agrees with the body, and versioned `@require` lines are intact.
-4. **Ship**: Commit and merge to `main`. When landed on `main`, clients update silently in the background.
+4. **Ship actively to main**: Commit and merge directly to `main`. Do not park changes on feature branches for previewing. Behavior can only be observed on a physical device running over live web pages, and the installed stub reads `main`. Landing on `main` turns the phone into an immediate test environment where tapping `[ ⟳ ]` loads the new build instantly.
 
 ## Key insights
 
+- **Active merging over GitHub Flow.** Branch-based previewing is an anti-pattern for Userscripts. Previewing a branch on device requires re-stamping with `--ref <branch>`, pushing, opening Safari, and manually re-installing the extension stub. Once `tools/test/userscript-stubs.test.mjs` passes, merge each change directly to `main` for device verification. `main` is the hot-reload source for the phone.
 - **No manual re-installation.** The installed stub declares `@grant GM.getValue`, `@grant GM.setValue`, and `@grant GM.xmlHttpRequest`. On page load, the stub queries `builds.json` using a timestamp query parameter to bypass cache. When a new build hash is detected, it downloads the body into GM storage. The next page load evaluates the cached body. The refresh button `[ ⟳ ]` in the drawer header triggers an immediate update check.
 - **Host separation.** Raw GitHub serves `text/plain` with `nosniff`. Safari Userscripts can fetch and evaluate this text, but bookmarklets injecting `<script>` tags cannot. Bookmarklets read from `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/userscripts/lib/launcher.js`. The stub generator prints the CDN purge URL when run.
 - **Physical gesture requirement.** iOS Safari blocks programmatic navigation to `shortcuts://` schemes (`location.href = ...`) without an active user gesture. All Shortcut actions must bind to physical `<a>` elements rendered in the DOM.
