@@ -548,10 +548,10 @@ test('a fact carries its definition on data-note, not in a title', () => {
   // comparison.
   const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  assert.equal(extras.length, 4,
-    'the id, the running-ref marker, the scope row, and the pages mark off-strip: '
+  assert.equal(extras.length, 5,
+    'the id, the running-ref marker, the scope row, the pages mark, and the branches mark off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim())));
-  assert.equal(noted.length, d.strip.length + 4, 'every fact and those four, and nothing else');
+  assert.equal(noted.length, d.strip.length + 5, 'every fact and those five, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -710,7 +710,7 @@ test('branchGroups groups session fileRows by repository and branch', async () =
   assert.equal(groups[0].repo, 'web-tools');
   assert.equal(groups[0].branch, 'feat/json-explorer');
   assert.equal(groups[0].files.length, 2);
-  assert.match(groups[0].branchUrl, /branch\.html#gh=web-tools@feat%2Fjson-explorer/);
+  assert.match(groups[0].branchUrl, /branch\.html#gh=(?:me|mehrlander)(?:%2F|\/)web-tools@feat%2Fjson-explorer/);
 
   assert.equal(groups[1].repo, 'other-repo');
   assert.equal(groups[1].branch, 'main');
@@ -783,7 +783,7 @@ test('branchChips extracts active branch chips with branch view links', async ()
   assert.equal(chips.length, 2);
   assert.equal(chips[0].repo, 'web-tools');
   assert.equal(chips[0].branch, 'feat/session-file-swiper');
-  assert.match(chips[0].url, /branch\.html#gh=web-tools@feat%2Fsession-file-swiper/);
+  assert.match(chips[0].url, /branch\.html#gh=(?:me|mehrlander)(?:%2F|\/)web-tools@feat%2Fsession-file-swiper/);
   assert.equal(chips[1].repo, 'data-tools');
   assert.equal(chips[1].branch, 'main');
 });
