@@ -1,0 +1,54 @@
+<svg class="xl-chart" viewBox="0 0 512 266" width="512" height="266" xmlns="http://www.w3.org/2000/svg" style="font-family: Aptos, Calibri, -apple-system, sans-serif; background: #ffffff; border: 1px solid #d9d9d9; box-sizing: border-box; display: block;">
+<text x="256" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#000000">Quarterly Outlay Trajectory</text>
+<line x1="60" y1="231" x2="387" y2="231" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="235" text-anchor="end" font-size="11" fill="#333333">$0</text>
+<line x1="60" y1="207" x2="387" y2="207" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="211" text-anchor="end" font-size="11" fill="#333333">$500</text>
+<line x1="60" y1="184" x2="387" y2="184" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="188" text-anchor="end" font-size="11" fill="#333333">$1,000</text>
+<line x1="60" y1="160" x2="387" y2="160" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="164" text-anchor="end" font-size="11" fill="#333333">$1,500</text>
+<line x1="60" y1="137" x2="387" y2="137" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="141" text-anchor="end" font-size="11" fill="#333333">$2,000</text>
+<line x1="60" y1="113" x2="387" y2="113" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="117" text-anchor="end" font-size="11" fill="#333333">$2,500</text>
+<line x1="60" y1="89" x2="387" y2="89" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="93" text-anchor="end" font-size="11" fill="#333333">$3,000</text>
+<line x1="60" y1="66" x2="387" y2="66" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="70" text-anchor="end" font-size="11" fill="#333333">$3,500</text>
+<line x1="60" y1="42" x2="387" y2="42" stroke="#bfbfbf" stroke-width="1"></line>
+<text x="52" y="46" text-anchor="end" font-size="11" fill="#333333">$4,000</text>
+<line x1="60" y1="231" x2="387" y2="231" stroke="#808080" stroke-width="1"></line>
+<text x="100.875" y="247" text-anchor="middle" font-size="11" fill="#333333">Q1</text>
+<line x1="100.875" y1="231" x2="100.875" y2="235" stroke="#808080" stroke-width="1"></line>
+<text x="182.625" y="247" text-anchor="middle" font-size="11" fill="#333333">Q2</text>
+<line x1="182.625" y1="231" x2="182.625" y2="235" stroke="#808080" stroke-width="1"></line>
+<text x="264.375" y="247" text-anchor="middle" font-size="11" fill="#333333">Q3</text>
+<line x1="264.375" y1="231" x2="264.375" y2="235" stroke="#808080" stroke-width="1"></line>
+<text x="346.125" y="247" text-anchor="middle" font-size="11" fill="#333333">Q4</text>
+<line x1="346.125" y1="231" x2="346.125" y2="235" stroke="#808080" stroke-width="1"></line>
+<path d="M 100.875 131.77499999999998 L 182.625 115.2375 L 264.375 122.325 L 346.125 96.3375" fill="none" stroke="#1b6288" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+<polygon points="100.875,126.77499999999998 105.875,131.77499999999998 100.875,136.77499999999998 95.875,131.77499999999998" fill="#1b6288" stroke="#ffffff" stroke-width="1"></polygon>
+<polygon points="182.625,110.2375 187.625,115.2375 182.625,120.2375 177.625,115.2375" fill="#1b6288" stroke="#ffffff" stroke-width="1"></polygon>
+<polygon points="264.375,117.325 269.375,122.325 264.375,127.325 259.375,122.325" fill="#1b6288" stroke="#ffffff" stroke-width="1"></polygon>
+<polygon points="346.125,91.3375 351.125,96.3375 346.125,101.3375 341.125,96.3375" fill="#1b6288" stroke="#ffffff" stroke-width="1"></polygon>
+<path d="M 100.875 119.96249999999999 L 182.625 103.42500000000001 L 264.375 110.5125 L 346.125 84.525" fill="none" stroke="#e46c24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+<rect x="96.875" y="115.96249999999999" width="8" height="8" fill="#e46c24" stroke="#ffffff" stroke-width="1"></rect>
+<rect x="178.625" y="99.42500000000001" width="8" height="8" fill="#e46c24" stroke="#ffffff" stroke-width="1"></rect>
+<rect x="260.375" y="106.5125" width="8" height="8" fill="#e46c24" stroke="#ffffff" stroke-width="1"></rect>
+<rect x="342.125" y="80.525" width="8" height="8" fill="#e46c24" stroke="#ffffff" stroke-width="1"></rect>
+<path d="M 100.875 108.14999999999999 L 182.625 91.61250000000001 L 264.375 98.69999999999999 L 346.125 67.9875" fill="none" stroke="#24693d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+<polygon points="100.875,103.14999999999999 105.875,112.14999999999999 95.875,112.14999999999999" fill="#24693d" stroke="#ffffff" stroke-width="1"></polygon>
+<polygon points="182.625,86.61250000000001 187.625,95.61250000000001 177.625,95.61250000000001" fill="#24693d" stroke="#ffffff" stroke-width="1"></polygon>
+<polygon points="264.375,93.69999999999999 269.375,102.69999999999999 259.375,102.69999999999999" fill="#24693d" stroke="#ffffff" stroke-width="1"></polygon>
+<polygon points="346.125,62.9875 351.125,71.9875 341.125,71.9875" fill="#24693d" stroke="#ffffff" stroke-width="1"></polygon>
+<line x1="402" y1="111.5" x2="418" y2="111.5" stroke="#1b6288" stroke-width="3"></line>
+<polygon points="410,107.5 414,111.5 410,115.5 406,111.5" fill="#1b6288" stroke="#ffffff" stroke-width="0.5"></polygon>
+<text x="424" y="115.5" font-size="11" fill="#333333">FY2026</text>
+<line x1="402" y1="131.5" x2="418" y2="131.5" stroke="#e46c24" stroke-width="3"></line>
+<rect x="407" y="128.5" width="6" height="6" fill="#e46c24" stroke="#ffffff" stroke-width="0.5"></rect>
+<text x="424" y="135.5" font-size="11" fill="#333333">FY2027</text>
+<line x1="402" y1="151.5" x2="418" y2="151.5" stroke="#24693d" stroke-width="3"></line>
+<polygon points="410,147.5 414,154.5 406,154.5" fill="#24693d" stroke="#ffffff" stroke-width="0.5"></polygon>
+<text x="424" y="155.5" font-size="11" fill="#333333">FY2028</text>
+</svg>

@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-12 by a skill, 28 by a page or component. The remaining 78 are
+13 by a skill, 27 by a page or component. The remaining 83 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -139,6 +139,20 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
+
+## docs/research/excel-chart-review-2026-09-25/
+
+- [`README.md`](research/excel-chart-review-2026-09-25/README.md) *(record, orphan)* — September 25 assessment of merged Excel work, open renderer work, and published validation evidence
+
+## docs/research/excel-chart-review-2026-09-25/source/
+
+- [`README.md`](research/excel-chart-review-2026-09-25/source/README.md) *(record, orphan)* — retained PR 792 review: blank values, grouping, axes, coverage, and reproduction limits
+- [`probe-results.json`](research/excel-chart-review-2026-09-25/source/probe-results.json) *(record, orphan)* — retained parser and browser observations for the pinned PR 792 renderer
+- [`evidence-manifest.json`](research/excel-chart-review-2026-09-25/source/evidence-manifest.json) *(record, orphan)* — file identities and origins for the retained PR 792 review and native chart references
+
+## docs/research/excel-chart-review-2026-09-25/source/prior-gemini/
+
+- [`walkthrough.md`](research/excel-chart-review-2026-09-25/source/prior-gemini/walkthrough.md) *(record, orphan)* — historical PR 792 author walkthrough of native chart references and SVG implementation
 
 ## docs/research/excel-validation-2026-09-24/
 

@@ -21,6 +21,7 @@ import assert from 'node:assert';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const stubs = fs.readdirSync(path.join(ROOT, 'userscripts'))
@@ -51,8 +52,11 @@ test('every stub loads a body that exists and defines what the stub calls', () =
 
     const body = path.join(ROOT, 'userscripts', 'lib', `${lib}.js`);
     assert.ok(fs.existsSync(body), `${stub}: body ${lib}.js is missing`);
-    assert.match(fs.readFileSync(body, 'utf8'), new RegExp(`window\\.${fnName(lib)}\\s*=`),
+    const bodyCode = fs.readFileSync(body, 'utf8');
+    assert.match(bodyCode, new RegExp(`window\\.${fnName(lib)}\\s*=`),
       `${lib}.js must define window.${fnName(lib)}; the stub calls it`);
+    assert.doesNotThrow(() => new vm.Script(bodyCode, { filename: `${lib}.js` }),
+      `${lib}.js has a syntax error that will break dynamic evaluation in loader`);
     assert.match(src, new RegExp(`window\\.${fnName(lib)}\\(`),
       `${stub} must call window.${fnName(lib)}`);
   }

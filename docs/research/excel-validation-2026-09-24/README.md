@@ -4,6 +4,8 @@ This research accompanies [PR 791](https://github.com/mehrlander/web-tools/pull/
 
 The browser experiments used revision `5109699ac5eea3ca510947859ff9e5cb3980676e`. PR 791 subsequently merged with a different final head. These observations describe the tested revision and retained fixtures; they do not certify the later merge or current viewer.
 
+The [September 25 assessment](../excel-chart-review-2026-09-25/README.md) explains what merged, what remains open, and where this conversation's useful local content is preserved. That separate run contains the subsequent PR 792 browser-chart review and its native references. The original evidence below remains frozen.
+
 - [Technical findings](source/technical/README.md): claims, measurements, evidence, limitations, and next experiments.
 - [Reproduction and script catalog](source/technical/REPRODUCTION.md): dependencies, script behavior, output paths, and repeatable checks.
 - [Native Excel workflow](source/technical/NATIVE-EXCEL-WORKFLOW.md): the interactive application steps, capture failures, and cleanup procedure.

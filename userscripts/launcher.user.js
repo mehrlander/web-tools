@@ -2,8 +2,8 @@
 // @name        wt launcher
 // @description The Web Tools launcher and swipe deck
 // @match       *://*/*
-// @version     c992d81
-// @require     https://raw.githubusercontent.com/mehrlander/web-tools/main/userscripts/lib/launcher.js?v=c992d81
+// @version     34e5d97
+// @require     https://raw.githubusercontent.com/mehrlander/web-tools/main/userscripts/lib/launcher.js?v=34e5d97
 // @grant       GM.xmlHttpRequest
 // @grant       GM.getValue
 // @grant       GM.setValue
@@ -50,7 +50,7 @@
               if (res.status < 200 || res.status >= 300) return;
               const data = JSON.parse(res.responseText);
               const latestBuild = data?.['launcher']?.build;
-              const activeBuild = await getVal('wt_launcher_build') || 'c992d81';
+              const activeBuild = await getVal('wt_launcher_build') || '34e5d97';
               if (latestBuild && latestBuild !== activeBuild) {
                 xhr({
                   method: 'GET',
