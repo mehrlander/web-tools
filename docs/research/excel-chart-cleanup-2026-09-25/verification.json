@@ -1,0 +1,217 @@
+{
+  "time": "2026-09-25T14:24:17.674Z",
+  "sourceHashNormalization": "UTF-8 with LF line endings",
+  "sourceHashes": {
+    "lib/kits/xlsx.js": "ef3ae277d7bd5265ee46ea2a708a6d0f19dee273ab2f0870374c74de9ecf3a3f",
+    "lib/kits/xlsx-chart.js": "eb3b0f770aec976c4ba7dd2a4efa36a85110203995c3cd490621c8368e151584",
+    "lib/alpineComponents/viewer.js": "8c0bfcf01810c3622e43b9b25e9a6f33495aa9c65435905fa155448e3861799c"
+  },
+  "fixtures": [
+    {
+      "id": "native",
+      "file": "tools/test/fixtures/native-chart-cases.xlsx",
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+      "sheets": [
+        {
+          "name": "Column",
+          "charts": [
+            {
+              "status": "rendered",
+              "text": [
+                "Column values",
+                "-5",
+                "0",
+                "5",
+                "10",
+                "15",
+                "Alpha",
+                "Beta",
+                "Gamma",
+                "Delta",
+                "Category",
+                "Value"
+              ],
+              "series": [],
+              "markers": 0
+            }
+          ]
+        },
+        {
+          "name": "Line",
+          "charts": [
+            {
+              "status": "rendered",
+              "text": [
+                "Line with blank February",
+                "0",
+                "2",
+                "4",
+                "6",
+                "8",
+                "10",
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Month",
+                "Value"
+              ],
+              "series": [
+                "M 145 282.8 M 405 132.3 L 535 252.7 L 665 72.1"
+              ],
+              "markers": 4
+            }
+          ]
+        },
+        {
+          "name": "Scatter",
+          "charts": [
+            {
+              "status": "unsupported",
+              "text": [
+                "Chart preview unavailable",
+                "scatter charts",
+                "Open the workbook in Excel."
+              ],
+              "series": [],
+              "markers": 0
+            }
+          ]
+        }
+      ],
+      "downloadSha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326"
+    },
+    {
+      "id": "demo",
+      "file": "docs/examples/demonstration-charts.xlsx",
+      "sha256": "a7a7cb831aeebd42ead3f129e1b2c5b99990a2a4ef9d72d19edb14adddd3b4dd",
+      "sheets": [
+        {
+          "name": "ColumnAndBar",
+          "charts": [
+            {
+              "status": "rendered",
+              "text": [
+                "Budget vs Actual by Division",
+                "$0",
+                "$1,000",
+                "$2,000",
+                "$3,000",
+                "$4,000",
+                "$5,000",
+                "$6,000",
+                "$7,000",
+                "$8,000",
+                "Actuarial &",
+                "Finance",
+                "Information",
+                "Technology",
+                "Operations",
+                "Retirement",
+                "Services",
+                "Budget",
+                "Actual"
+              ],
+              "series": [],
+              "markers": 0
+            },
+            {
+              "status": "rendered",
+              "text": [
+                "Net Variance by Division ($k)",
+                "-$50",
+                "$0",
+                "$+50",
+                "$+100",
+                "$+150",
+                "$+200",
+                "Actuarial & Finance",
+                "Information Technology",
+                "Operations",
+                "Retirement Services"
+              ],
+              "series": [],
+              "markers": 0
+            }
+          ]
+        },
+        {
+          "name": "TrendsAndShares",
+          "charts": [
+            {
+              "status": "rendered",
+              "text": [
+                "Quarterly Outlay Trajectory",
+                "$0",
+                "$500",
+                "$1,000",
+                "$1,500",
+                "$2,000",
+                "$2,500",
+                "$3,000",
+                "$3,500",
+                "$4,000",
+                "Q1",
+                "Q2",
+                "Q3",
+                "Q4",
+                "FY2026",
+                "FY2027",
+                "FY2028"
+              ],
+              "series": [
+                "M 100.875 131.77499999999998 L 182.625 115.2375 L 264.375 122.325 L 346.125 96.3375",
+                "M 100.875 119.96249999999999 L 182.625 103.42500000000001 L 264.375 110.5125 L 346.125 84.525",
+                "M 100.875 108.14999999999999 L 182.625 91.61250000000001 L 264.375 98.69999999999999 L 346.125 67.9875"
+              ],
+              "markers": 0
+            },
+            {
+              "status": "rendered",
+              "text": [
+                "Expenditure Share by Object",
+                "Salaries & Wages",
+                "Employee Benefits",
+                "Personal Contracts",
+                "Equipment",
+                "Goods & Services"
+              ],
+              "series": [],
+              "markers": 0
+            }
+          ]
+        }
+      ],
+      "downloadSha256": "a7a7cb831aeebd42ead3f129e1b2c5b99990a2a4ef9d72d19edb14adddd3b4dd"
+    },
+    {
+      "id": "pivot",
+      "file": "docs/examples/demonstration-workbooks.xlsx",
+      "sha256": "0e410ac0b7297b75970a4998531070c9633bcba3d9e01fb47c0cb87e7125fd7f",
+      "sheets": [
+        {
+          "name": "RawData",
+          "charts": []
+        },
+        {
+          "name": "PivotSummary",
+          "charts": []
+        },
+        {
+          "name": "FormattingAndLogic",
+          "charts": []
+        },
+        {
+          "name": "Reconciliation",
+          "charts": []
+        }
+      ],
+      "downloadSha256": "0e410ac0b7297b75970a4998531070c9633bcba3d9e01fb47c0cb87e7125fd7f"
+    }
+  ],
+  "pageErrors": [],
+  "blockedRequests": [],
+  "browserVersion": "153.0.4234.48",
+  "passed": true
+}

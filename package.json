@@ -76,6 +76,8 @@
     "test:viewer-xlsx": "node tools/test/viewer-xlsx.mjs",
     "test:viewer-docx": "node tools/test/viewer-docx.mjs",
     "test:table-styles": "node tools/test/verify-table-styles.mjs",
+    "test:chart-styles": "node tools/test/verify-chart-styles.mjs",
+    "test:excel-cleanup": "node tools/test/verify-excel-cleanup.mjs",
     "test:alpine-teardown": "node tools/test/alpine-teardown.mjs",
     "test:reader-height": "node tools/test/stage-reader-height.mjs",
     "test:writes-pane": "node tools/test/writes-pane.mjs",

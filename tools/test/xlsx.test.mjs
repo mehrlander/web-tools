@@ -1482,3 +1482,104 @@ test('a cache with no records part reads as null rather than as an empty table',
   assert.equal(xlsxKit.pivotRecords(xl, 'xl/pivotCache/nothing.xml'), null,
     'and a part that is not a cache at all is the same answer');
 });
+
+// ---------------------------------------------------------------------------
+// Charts: OpenXML <c:chartSpace> parsing and drawing anchors
+// ---------------------------------------------------------------------------
+
+const CHART1_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <c:chart>
+    <c:title><c:tx><c:rich><a:p><a:r><a:t>Quarterly Revenue</a:t></a:r></a:p></c:rich></c:tx></c:title>
+    <c:plotArea>
+      <c:barChart>
+        <c:barDir val="col"/>
+        <c:grouping val="clustered"/>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:tx><c:v>2026</c:v></c:tx>
+          <c:cat>
+            <c:strRef><c:strCache>
+              <c:pt idx="0"><c:v>Q1</c:v></c:pt>
+              <c:pt idx="1"><c:v>Q2</c:v></c:pt>
+            </c:strCache></c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef><c:numCache>
+              <c:formatCode>"$"#,##0</c:formatCode>
+              <c:pt idx="0"><c:v>1250</c:v></c:pt>
+              <c:pt idx="1"><c:v>1450</c:v></c:pt>
+            </c:numCache></c:numRef>
+          </c:val>
+        </c:ser>
+      </c:barChart>
+    </c:plotArea>
+    <c:legend><c:legendPos val="r"/></c:legend>
+  </c:chart>
+</c:chartSpace>`;
+
+const CHART_DRAWING = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <xdr:twoCellAnchor>
+    <xdr:from><xdr:col>4</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>10</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+    <xdr:graphicFrame>
+      <xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="Revenue Chart"/></xdr:nvGraphicFramePr>
+      <a:graphic>
+        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:chart r:id="rIdC1"/>
+        </a:graphicData>
+      </a:graphic>
+    </xdr:graphicFrame>
+    <xdr:clientData/>
+  </xdr:twoCellAnchor>
+</xdr:wsDr>`;
+
+const CHART_DRAWING_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdC1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/>
+</Relationships>`;
+
+test('parseChartXml: parses title, series names, categories, and cached values', () => {
+  const chart = xlsxKit.parseChartXml(CHART1_XML);
+  assert.equal(chart.title, 'Quarterly Revenue');
+  assert.equal(chart.chartType, 'barChart');
+  assert.equal(chart.subType, 'column');
+  assert.equal(chart.grouping, 'clustered');
+  assert.equal(chart.legend?.pos, 'r');
+  assert.equal(chart.series.length, 1);
+  assert.equal(chart.series[0].name, '2026');
+  assert.deepEqual(chart.series[0].categories, ['Q1', 'Q2']);
+  assert.deepEqual(chart.series[0].values, [1250, 1450]);
+  assert.equal(chart.series[0].formatCode, '"$"#,##0');
+});
+
+test('a chart is parsed from xl/charts/ and placed in sheetLayout drawings', () => {
+  const parts = [
+    ['[Content_Types].xml', CONTENT_TYPES],
+    ['xl/workbook.xml', `<workbook xmlns="wb"><sheets><sheet name="Rev" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', `<Relationships xmlns="rel"><Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
+    ['xl/worksheets/sheet1.xml', `<worksheet xmlns="ws" xmlns:r="rel"><sheetData><row r="1"><c r="A1"><v>100</v></c></row></sheetData><drawing r:id="rIdD1"/></worksheet>`],
+    ['xl/worksheets/_rels/sheet1.xml.rels', `<Relationships xmlns="rel"><Relationship Id="rIdD1" Type=".../drawing" Target="../drawings/drawing1.xml"/></Relationships>`],
+    ['xl/drawings/drawing1.xml', CHART_DRAWING],
+    ['xl/drawings/_rels/drawing1.xml.rels', CHART_DRAWING_RELS],
+    ['xl/charts/chart1.xml', CHART1_XML],
+  ];
+
+  const { xl } = xlsxKit.analyze(parts);
+  assert.ok(xl.charts['xl/charts/chart1.xml'], 'chart XML part was analyzed');
+  const sheet = xl.sheets.sheet1;
+  assert.equal(sheet.drawings.length, 1);
+  assert.equal(sheet.drawings[0].kind, 'chart');
+  assert.equal(sheet.drawings[0].chart.title, 'Quarterly Revenue');
+
+  const layout = xlsxKit.sheetLayout(sheet, xl);
+  assert.equal(layout.drawings.length, 1);
+  const d = layout.drawings[0];
+  assert.equal(d.kind, 'chart');
+  assert.equal(d.row, 3, 'from.row is 2 (0-based) -> row 3 (1-based)');
+  assert.equal(d.col, 4, 'from.col is 4 (column E)');
+  assert.ok(d.width > 0);
+  assert.ok(d.height > 0);
+  assert.equal(d.chart.title, 'Quarterly Revenue');
+});
