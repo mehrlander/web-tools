@@ -171,6 +171,44 @@ test('the deck lists itself by the headline, and an unnamed record still gets a 
   await tick();
 });
 
+test('fromGrid preserves the displayed source labels, blanks, and literal entities as text', async () => {
+  const labels = [' <tag> ', '&lt;tag&gt;', '', 'same', 'same'];
+  const definitions = [' &lt;tag&gt; ', '&amp;lt;tag&amp;gt;', '', 'same', 'same'];
+  const columns = labels.map((title, i) => {
+    const element = window.document.createElement('div');
+    const label = window.document.createElement('div');
+    label.className = 'tabulator-col-title';
+    label.textContent = title || '\u00a0';
+    element.append(label);
+    return { getField: () => 'field' + i, getDefinition: () => ({ title: definitions[i] }),
+      getElement: () => element };
+  });
+  columns.push({ getField: () => 'fallback', getDefinition: () => ({ title: '<unrendered>' }) });
+  columns.push({ getField: () => 'unnamed', getDefinition: () => ({}) });
+  const row = Object.fromEntries(columns.map((c, i) => [c.getField(), 'value ' + i]));
+  const table = { getRows: () => [{ getData: () => row }], getColumns: () => columns };
+  const handle = drivable(recordDeck.fromGrid(table));
+  await tick();
+  const slide = handle.deck.track.children[0];
+  assert.deepEqual([...slide.querySelectorAll('dt > span')].map(el => el.textContent),
+    [...labels, '<unrendered>', 'unnamed']);
+  assert.equal(slide.querySelector('tag, unrendered'), null, 'labels are text, never inserted as HTML');
+  handle.close();
+  await tick();
+});
+
+test('explicit blank labels survive when a caller opens records without a grid', async () => {
+  const handle = drivable(recordDeck.open({
+    rows: [{ first: 'one', second: 'two' }],
+    columns: [{ field: 'first', title: '' }, { field: 'second' }],
+  }));
+  await tick();
+  assert.deepEqual([...handle.deck.track.children[0].querySelectorAll('dt > span')].map(el => el.textContent),
+    ['', 'second']);
+  handle.close();
+  await tick();
+});
+
 test('an empty collection opens nothing rather than an empty deck', () => {
   const before = swipeDeck.stack.length;
   assert.equal(recordDeck.open({ rows: [] }), null);

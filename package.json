@@ -93,7 +93,8 @@
     "sample-workbook": "node tools/build/sample-workbook.mjs",
     "test:powershell-file": "node tools/test/powershell-file-browser.mjs",
     "test:installation-source": "node tools/test/installation-source-browser.mjs",
-    "test:files-view": "node tools/test/files-view-browser.mjs"
+    "test:files-view": "node tools/test/files-view-browser.mjs",
+    "test:map-data-census": "node tools/test/map-data-census-browser.mjs"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",
