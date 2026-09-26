@@ -1,7 +1,8 @@
 ---
 id: pdf-lattice-open-perimeter-h4kx9r
 title: Close open table perimeters in the pdf kit's lattice
-status: backlog
+status: in-progress
+session: claude/open-ended-exploration-9zkc1y
 opened: 2026-07-25
 size: M
 ---
@@ -63,3 +64,4 @@ gap is still real; there is no longer a web-tools dependency blocking it.
 - 2026-07-25: Filed from PR #294 as the kit's main known gap.
 - 2026-09-17: Dropped the harness-dependency framing (harness task done 2026-08-25). Provenance marking for inferred edges is decided in this task when the work runs.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-09-26: Implemented in PR #807 (draft): `lattice.close` closes open sides at rule ends (basis `rules`) or out to text (basis `text`); `lattice.project` splits unruled headers; tables and cells carry `inferred`, derived by `mark` from drawn rules. Doc change to `docs/pdf-structure.md` awaits owner approval there, as does the on-by-default choice.

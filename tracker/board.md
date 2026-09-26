@@ -15,7 +15,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M (awaiting: the reader/writer split, recommended in the body and unanswered since filing)
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
 - 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M (awaiting: CSS transform then settle, recommended in the body; live re-render is the alternative)
-- 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) · M
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md) · M
 - 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M (awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10)
@@ -27,7 +26,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Split show-repo.md by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
-- (none)
+- 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) · M (`claude/open-ended-exploration-9zkc1y`)
 
 ## Blocked
 - (none)
