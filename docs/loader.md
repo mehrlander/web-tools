@@ -65,10 +65,10 @@ come from GitHub Pages on main; only the runtime-loaded files are ref-pinned.
 `entry.js` brings `gh-api.js` in by one of two routes, and everything after
 it loads through the contents API at the same ref either way:
 
-- **No `?use=`:** a native import of main's `gh-api.js` from beside `entry.js`
-  on GitHub Pages, which serves JavaScript as JavaScript with a ten-minute
-  cache.
-- **`?use=<ref>`:** that ref's `gh-api.js` from `raw.githubusercontent`,
+- **Main** (no `?use=`): a native import of `gh-api.js` from beside
+  `entry.js` on GitHub Pages, which serves JavaScript as JavaScript with a
+  ten-minute cache.
+- **Any other ref** (`?use=<ref>`): that ref's `gh-api.js` from `raw.githubusercontent`,
   fetched `no-store` and blob-imported, since raw serves `text/plain` with
   `nosniff`. A branch name is cache-safe this way: raw and the contents API
   are both fresh on a just-pushed branch.
@@ -424,9 +424,12 @@ routes this repo's own pages take, and no third:
 - **The chain**, for a page that wants a few files: import `lib/entry.js`
   from GitHub Pages, then `gh.load()` each file, then `alpine-bundle.js` last
   when a loaded file registers an Alpine component. Every file after
-  `entry.js` is fetched at main's tip (or the page's `?use=` ref) through raw
-  and the contents API, on the token the browser holds, and is current on the
-  next load.
+  `entry.js` is fetched at main's tip through Pages and the contents API, on
+  the token the browser holds, and is current on the next load. A page tossed
+  from another repo carries that repo's ref in `?use=`, so it pins web-tools on
+  the import instead: `entry.js?ref=<ref>` takes precedence over the page
+  query. The budget-drs pages in `mehrlander/home` pass their `?lib=` this
+  way.
 - **The pre-build**, for a page that wants the library whole: resolve `main`
   to its commit through the commits API, fetch `dist/web-tools.js` from
   raw.githubusercontent at that SHA, and blob-import it, which is the app's
