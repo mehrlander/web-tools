@@ -19,7 +19,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md) · M
 - 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M (awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10)
-- 🎫 [Inline the run-time CDN references a rendering copy still carries](tasks/render-copy-runtime-cdn-refs-p4m2wq.md) · S
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M (awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body)
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
@@ -80,6 +79,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Private-repo landing federation via the home registry](tasks/private-repo-landing-federation-u50nns.md)
 - 🎫 [Decide whether apple-shortcuts-actions belongs in the portable plugin](tasks/promote-shortcuts-skill-to-plugin-5d74br.md)
 - 🎫 [Two gaps the proposal channel showed on first use](tasks/proposals-diff-and-removal-w1y9lk.md) (`claude/web-tools-project-tracker-reo5qo`)
+- 🎫 [Inline the run-time CDN references a rendering copy still carries](tasks/render-copy-runtime-cdn-refs-p4m2wq.md)
 - 🎫 [Render files over 1 MB in toss-render and the shell viewers](tasks/render-large-files-toss-render-xm9ex7.md)
 - 🎫 [Repo-designated inbox and outbox in .web-tools.json](tasks/repo-inbox-outbox-manifest-0g6c8s.md) (`claude/tracker-status-cjogjn`)
 - 🎫 [Repo-level GitHub links in show-repo's shield dialog](tasks/repo-level-github-links-shield-9aufgx.md)
