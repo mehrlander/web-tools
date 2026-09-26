@@ -66,6 +66,17 @@ test('what is not a locator, an empty note, and a reply to nothing are refused',
   assert.notEqual(run('reply', 'nzzzz', 'x', '--author', 'a').status, 0);
 });
 
+test('the store is found by the declaration on main, whatever branch the checkout is on', () => {
+  const root = path.join(tmp, 'project');
+  git(tmp, 'clone', '-q', 'origin.git', 'project/store');
+  git(path.join(root, 'store'), 'checkout', '-q', '--orphan', 'claude/old');
+  git(path.join(root, 'store'), 'rm', '-rqf', '.');
+  const r = spawnSync('python3', [NOTE, 'show', 'mehrlander/web-tools#803'],
+    { env: { ...ENV, CLAUDE_PROJECT_DIR: root }, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Merged cleanly\./);
+});
+
 test('the skill is registered with the plugin and the portable index', () => {
   assert.ok(readFileSync(path.join(repoRoot, '.claude', 'skills', 'notes', 'SKILL.md'), 'utf8')
     .startsWith('---\nname: notes\n'));

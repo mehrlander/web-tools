@@ -50,7 +50,7 @@ python3 note.py list [--author A]
 `note.py` sits beside this file. `author` defaults to the current branch when it
 carries an assistant prefix (`claude/`, `codex/`, `gemini/`, `grok/`); pass
 `--author` otherwise. The store is the folder a checkout's `.web-tools.json`
-declares as `"notes"`, searched in the project root, its children and its
+declares as `"notes"` on main, searched in the project root, its children and its
 siblings; `--store` overrides. Writes go to the store's `main` by git plumbing,
 so the checkout's own branch does not matter.
 

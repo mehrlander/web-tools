@@ -10,8 +10,9 @@ Notes are never edited or deleted. A correction or an addition is a new note
 whose `about` is `note:<id>`.
 
 The store is found the way the session recorder finds its own: a checkout whose
-.web-tools.json declares "notes" (a path relative to that checkout), searched in
-the project root, its children and its siblings. --store overrides.
+.web-tools.json on origin/main declares "notes" (a path relative to that
+checkout), searched in the project root, its children and its siblings.
+--store overrides.
 
 Writes land on the store's origin/main by git plumbing, never through the
 working tree, so the checkout can sit on any branch. A push that loses a race
@@ -72,10 +73,16 @@ def find_store(explicit):
         except OSError:
             pass
     for repo in cands:
-        manifest = os.path.join(repo, ".web-tools.json")
+        # main holds the declaration, as it holds the notes; the checkout may sit
+        # on a branch cut before either existed.
+        r = subprocess.run(["git", "-C", repo, "show", "origin/main:.web-tools.json"],
+                           capture_output=True, text=True)
         try:
-            with open(manifest, encoding="utf-8") as fh:
-                declared = json.load(fh).get("notes")
+            if r.returncode == 0:
+                declared = json.loads(r.stdout).get("notes")
+            else:
+                with open(os.path.join(repo, ".web-tools.json"), encoding="utf-8") as fh:
+                    declared = json.load(fh).get("notes")
         except (OSError, ValueError):
             continue
         if isinstance(declared, str) and declared:
