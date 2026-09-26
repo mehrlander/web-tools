@@ -945,7 +945,10 @@ document.addEventListener('alpine:init', () => Alpine.data('pdfInspect', () => (
     }
     if (this.layers.cells) for (const g of grids) for (const cell of g.cells) {
       const b = S.v.box(cell);
-      rect(b, c.cells, c.cells + '18', 1);
+      // Dashed where the kit inferred an edge no rule draws: an open perimeter
+      // or a header split. Solid means every side traces to ink.
+      const r = rect(b, c.cells, c.cells + '18', 1);
+      if (cell.inferred) r.setAttribute('stroke-dasharray', '4 3');
       add('text', { x: b.left + 2, y: b.top + 9, fill: c.cells, class: 'lbl' })
         .textContent = `${cell.row},${cell.col}` + (cell.colspan > 1 || cell.rowspan > 1 ? `+${cell.colspan}x${cell.rowspan}` : '');
     }
@@ -1185,8 +1188,12 @@ document.addEventListener('alpine:init', () => Alpine.data('pdfInspect', () => (
     const streamRows = window.pdf.stream.split(inside, cols).map(r => r.cells);
     this.matrix = g.matrix;
     this.agree = JSON.stringify(g.matrix) === JSON.stringify(streamRows);
+    // An edge placed from text is the evidence stream reads, so agreement over
+    // it is weaker than agreement over drawn rules; say which edges those are.
+    const inferred = (g.inferred ?? []).map(e => `${e.edge} (${e.basis})`);
     this.tableInfo = `lattice ${g.rows}×${g.cols} · stream ${streamRows.length}×${cols.length} ` +
-      `over the same region · ${this.agree ? 'agree' : 'DIFFER'}`;
+      `over the same region · ${this.agree ? 'agree' : 'DIFFER'}` +
+      (inferred.length ? ` · inferred: ${inferred.join(', ')}` : '');
   },
 
   // Drag selection. Screen coordinates go straight to the kit; the only thing

@@ -47,7 +47,7 @@ lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line pe
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,15,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
-lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2063,no,no,6,yes
+lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2279,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,343,no,yes,7,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
