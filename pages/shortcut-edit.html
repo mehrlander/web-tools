@@ -41,50 +41,44 @@
   <header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300 px-3 py-2 flex items-center gap-2">
     <i class="ph ph-pencil-simple-line text-xl text-base-content/50"></i>
     <h1 class="font-semibold truncate" x-text="body ? body.name : 'Shortcut edit'"></h1>
-    <span x-show="body" class="text-xs font-mono text-base-content/50 shrink-0" x-text="tally" data-tally></span>
+    <span x-show="body" class="badge badge-sm badge-success badge-soft font-mono shrink-0" x-text="tally" data-tally></span>
+    <div class="grow"></div>
+    <button x-show="body" @click="foldToChange()" class="btn btn-ghost btn-sm btn-square" aria-label="Fold to the change"><i class="ph ph-arrows-in-line-vertical text-lg"></i></button>
+    <button x-show="body" @click="expandAll()" class="btn btn-ghost btn-sm btn-square" aria-label="Expand all"><i class="ph ph-arrows-out-line-vertical text-lg"></i></button>
   </header>
 
   <p x-show="err" class="text-error px-3 py-3" x-text="err" data-error></p>
 
   <template x-if="body">
-    <div class="flex flex-col gap-3 p-3">
+    <div class="flex flex-col gap-3 pt-3">
 
-      <div class="flex flex-wrap gap-2" data-actions>
+      <div class="px-3 flex flex-wrap gap-2" data-actions>
         <a :href="copyHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-primary btn-sm"><i class="ph ph-clipboard-text"></i>1 · Copy the cards</a>
         <a :href="openHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-sm"><i class="ph ph-pencil-simple"></i><span x-text="'2 · Open ' + body.name"></span></a>
       </div>
 
       <template x-for="(h, n) in hunks" :key="n">
-        <button @click="jump(h.at)" class="text-left bg-base-200 rounded-box px-3 py-2 flex flex-col gap-1" data-place>
-          <div class="flex flex-wrap items-center gap-1 text-sm">
-            <template x-for="(p, k) in h.path" :key="k">
-              <span class="flex items-center gap-1">
-                <i x-show="k" class="ph ph-caret-right text-xs text-base-content/40"></i>
-                <code class="font-mono" x-text="p"></code>
-              </span>
-            </template>
-          </div>
-          <div class="text-sm font-mono"><span class="text-success font-semibold" x-text="h.verb"></span><template x-if="h.above"><span><span class="text-base-content/50"> after </span><span x-text="h.above"></span></span></template><template x-if="h.below"><span><span class="text-base-content/50">, before </span><span x-text="h.below"></span></span></template></div>
+        <button @click="jump(h.at)" class="px-3 text-left text-sm flex items-baseline gap-2" data-place>
+          <i class="ph-fill ph-plus-circle text-success self-center"></i>
+          <span><span class="font-semibold" x-text="h.verb"></span><template x-if="h.where"><span><span class="text-base-content/50"> in </span><code class="font-mono" x-text="h.where"></code></span></template><template x-if="h.above"><span><span class="text-base-content/50">, after </span><code class="font-mono" x-text="h.above"></code></span></template></span>
         </button>
       </template>
 
-      <div class="flex items-center gap-2">
-        <button @click="expandAll()" class="btn btn-xs btn-ghost"><i class="ph ph-arrows-out-line-vertical"></i>Expand all</button>
-        <button @click="foldToChange()" class="btn btn-xs btn-ghost"><i class="ph ph-arrows-in-line-vertical"></i>Fold to the change</button>
-      </div>
-
-      <div class="-mx-3 sm:mx-0 border-y sm:border border-base-300 sm:rounded-box py-1" data-listing>
+      <div class="sm:mx-3 border-y sm:border border-base-300 sm:rounded-box py-1 font-mono text-sm" data-listing>
         <template x-for="l in shown" :key="l.key">
-          <div :id="l.id" class="flex items-baseline pr-3 py-0.5"
-               :class="l.t === '+' ? 'bg-success/15' : l.t === '-' ? 'bg-error/10' : shut[l.key] ? 'bg-base-200' : ''" :data-op="l.t">
-            <span class="w-8 shrink-0 text-right font-mono text-sm select-none"
-                  :class="l.t === '+' ? 'text-success font-semibold' : l.t === '-' ? 'text-error' : 'opacity-40'"
+          <div :id="l.id" class="flex items-baseline pr-3"
+               :class="l.t === '+' ? 'bg-success/25 shadow-[inset_4px_0_0_var(--color-success)] py-1.5 font-semibold'
+                     : l.t === '-' ? 'bg-error/15 shadow-[inset_4px_0_0_var(--color-error)] py-1'
+                     : shut[l.key] ? 'bg-base-200/70 py-0.5' : 'py-0.5'" :data-op="l.t">
+            <span class="w-8 shrink-0 text-right select-none"
+                  :class="l.t === '+' ? 'text-success' : l.t === '-' ? 'text-error' : 'text-base-content/35'"
                   x-text="l.t === ' ' ? l.i : l.t"></span>
             <button x-show="l.kids" @click="toggle(l.key)" class="w-4 shrink-0 text-center text-[0.6rem] leading-none text-base-content/40" data-toggle
                     :aria-label="shut[l.key] ? 'Expand' : 'Collapse'">
               <i class="ph-fill" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></button>
             <span x-show="!l.kids" class="w-4 shrink-0"></span>
-            <code class="font-mono text-sm whitespace-pre-wrap break-words" :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template><button x-show="shut[l.key]" @click="toggle(l.key)" class="ml-2 px-1.5 rounded border border-base-content/25 bg-base-100 text-xs text-base-content/60 align-middle text-left whitespace-normal" data-preview><span class="font-semibold" x-text="l.kids"></span><span x-text="' · ' + preview(l)"></span></button></code>
+            <div class="min-w-0 grow" :class="[pad(l), shut[l.key] ? 'truncate cursor-pointer' : 'break-words -indent-[2ch] pl-[2ch]']" @click="shut[l.key] && toggle(l.key)"><code :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template></code><span x-show="shut[l.key]" class="ml-2 text-xs text-base-content/45" data-preview x-text="'· ' + l.kids + ' · ' + preview(l)"></span></div>
+            <span x-show="l.t !== ' '" class="badge badge-xs shrink-0 self-center font-sans" :class="l.t === '+' ? 'badge-success' : 'badge-error'" x-text="l.t === '+' ? 'new' : 'remove'"></span>
           </div>
         </template>
       </div>
@@ -96,6 +90,7 @@
 // sketch.py writes "%3d %s": a right-aligned index, then the nesting as two
 // spaces per level, the verb, and one summarised parameter.
 const INDEX = 4;
+const PADS = ['ml-0', 'ml-[2ch]', 'ml-[4ch]', 'ml-[6ch]', 'ml-[8ch]', 'ml-[10ch]', 'ml-[12ch]', 'ml-[14ch]', 'ml-[16ch]'];
 const parse = t => t.split('\n').filter(Boolean).map(raw => ({ i: raw.slice(0, INDEX).trim(), s: raw.slice(INDEX) }));
 const depth = s => s.match(/^ */)[0].length;
 
@@ -189,6 +184,7 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
       this.hunks.push({
         at: d[k].id,
         path: at >= 0 ? path(kept, at) : [],
+        where: at >= 0 ? (path(kept, at).slice(-1)[0] || '') : '',
         verb: [add && `add ${add} card${add > 1 ? 's' : ''}`, del && `remove ${del}`].filter(Boolean).join(', '),
         above: above ? above.s.trim() : '',
         below: below ? below.s.trim() : '',
@@ -224,6 +220,10 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
     const out = this.lines.filter(c => c.parent === l.key).map(c => c.s.trim()).join(' ; ');
     return out.length > PREVIEW ? out.slice(0, PREVIEW - 1) + '…' : out;
   },
+  // The nesting as left padding rather than leading spaces, so a line that
+  // wraps hangs under its own first word instead of returning to the margin.
+  // Each depth is its own literal class, which Tailwind's browser build can see.
+  pad(l) { return PADS[Math.min(depth(l.s) / 2, PADS.length - 1)]; },
   toggle(k) { this.shut = { ...this.shut, [k]: !this.shut[k] }; },
   expandAll() { this.shut = {}; },
   foldToChange() {
@@ -237,7 +237,7 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
   paint(s) {
     const lead = s.match(/^ */)[0], rest = s.slice(lead.length);
     const verb = /^[a-z#][a-z #<>.\-]*/.exec(rest);
-    const out = [{ t: lead, c: '' }];
+    const out = [];
     if (verb) out.push({ t: verb[0], c: 'font-semibold' });
     const tail = verb ? rest.slice(verb[0].length) : rest;
     let at = 0;
