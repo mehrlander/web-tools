@@ -43,7 +43,7 @@ const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entrie
 // repo.js registers Alpine.data('repo'), as the app does; that name shadows the
 // view's repo inside the pane's x-data expression, which is how the 2026-09-25
 // break reached the app while this check stayed green.
-const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/installation-view.js'];
+const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/installation-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installation source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
