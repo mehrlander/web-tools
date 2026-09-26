@@ -40,7 +40,11 @@ commitment. Doctrine: `mehrlander/home`,
 
 ## Process
 
-`/tend` runs every stream; `/tend branches` or `/tend trackers` runs one.
+`/tend` runs the four streams below. `/tend <stream>` runs one, and a stream is
+any body of work with a name and a boundary a reader can locate: `branches`,
+`trackers`, `prs`, `snags`, but also a project folder, a pull request, or a
+topic. A stream with no section here keeps the principles and tiers; an action
+there goes unasked only when a check shows nothing is lost.
 
 1. **Survey** every stream. Change nothing.
 2. **Act** on each stream's *Act* tier, and report it.
