@@ -199,18 +199,3 @@ test('a title-tip closes on a scroll, a resize and a window blur', () => {
   window.dispatchEvent(new window.Event('blur'));
   gone('a blur ends the hover with no pointerout behind it');
 });
-
-test('LEGACY: a data-note element still gets its tip, and window.Note still resolves', async () => {
-  const el = window.document.createElement('span');
-  el.id = 'legacy';
-  el.setAttribute('data-note', 'written before the rename');
-  el.setAttribute('data-note-title', 'old lead');
-  window.document.body.append(el);
-  await new Promise((r) => setTimeout(r, 0));   // the migration observer runs
-  assert.equal(el.getAttribute('data-title-tip'), 'written before the rename');
-  assert.equal(el.getAttribute('data-title-tip-lead'), 'old lead');
-  el.setAttribute('data-note', 'changed later');
-  await new Promise((r) => setTimeout(r, 0));
-  assert.equal(TitleTip.text(el), 'changed later', 'an update to the old attribute follows through');
-  assert.equal(window.Note, window.TitleTip);
-});

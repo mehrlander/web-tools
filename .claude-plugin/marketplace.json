@@ -31,7 +31,8 @@
         "./gold-set",
         "./apple-shortcuts-actions",
         "./sessions",
-        "./tend"
+        "./tend",
+        "./notes"
       ],
       "keywords": [
         "conventions",
