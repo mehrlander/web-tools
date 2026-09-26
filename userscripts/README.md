@@ -38,16 +38,16 @@ zero manual extension sheets required.
 
 **The bookmarklet cannot follow it there**, so the two routes read different
 hosts on purpose. Raw serves `text/plain` with `nosniff`, which a browser
-refuses to execute from a script tag; jsDelivr serves it as JavaScript. So the
-bookmarklet keeps the CDN and keeps needing the purge, and the generator prints
-that URL. The test holds the two to the same ref and path, which is what decides
-which body runs.
+refuses to execute from a script tag; GitHub Pages serves it as JavaScript,
+with a ten-minute cache and no purge step, but only as main has it. The test
+holds the two to the same path, which is what decides which body runs. (The
+bookmarklet read jsDelivr until 2026-09-26, which cached a branch for about
+twelve hours and rate-limited purges.)
 
 **A branch pin costs the one thing a commit pin gave free**, knowing which copy
-ran, and a purge does not settle it either: jsDelivr propagates per edge, so for
-a while after a push a reload can land on either body (measured 2026-09-06, six
-of eight reads on the old one). Purging is also rate-limited, roughly hourly per
-path. So the drawer header answers the freshness question three ways, each
+ran, and any cache between a push and the phone widens the gap: under
+jsDelivr, a reload after a push could land on either body for a while
+(measured 2026-09-06, six of eight reads on the old one). So the drawer header answers the freshness question three ways, each
 weaker than the next but each available where the others are not:
 
 | Shown | Answers |

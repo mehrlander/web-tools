@@ -1,22 +1,22 @@
-// use-boot-block.test.mjs — the ?use= boot block, which is how every render
-// link in the conventions reaches a branch.
+// use-boot-block.test.mjs — the ?use= boot, which is how every render link in
+// the conventions reaches a branch.
 //
-// A page previewed at a ref fetches lib/gh-api.js from raw.githubusercontent
-// and blob-imports it, because jsDelivr's branch-tip listing lags a fresh push
-// by hours. The blob: URL carries no ref for gh-api to parse out of
-// import.meta.url, so the page has to hand it one: window.__ghBlobBoot =
-// { repo, ref }, read at lib/gh-api.js's module scope.
+// A loader page imports lib/entry.js, which under ?use= fetches that ref's
+// lib/gh-api.js from raw.githubusercontent and blob-imports it. The blob: URL
+// carries no ref for gh-api to parse out of import.meta.url, so entry.js hands
+// it one: window.__ghBlobBoot = { repo, ref }, read at gh-api.js's module scope.
 //
 // The defect this exists for: pages/audit-render.html shipped a hand-rolled
-// block setting { ref, base }. `repo` was undefined, every load asked
-// api.github.com for /repos//contents/…, and the page rendered blank with a
-// FAB on it. The suite was green, because no test sets `use` and the toss's
-// #gh= route is what injects it, so tapping the branch toss was the first time
-// that branch had ever run the block. It reached the reader.
+// copy of that block setting { ref, base }. `repo` was undefined, every load
+// asked api.github.com for /repos//contents/…, and the page rendered blank with
+// a FAB on it. The suite was green, because no test sets `use` and the toss's
+// #gh= route is what injects it. Some sixty pages carried their own copy of the
+// block then. Since 2026-09-26 there is one copy, in lib/entry.js, and the
+// pre-build pages keep a second shape that fetches dist/<bundle>.js.
 //
-// So this reads the blocks as text. It cannot prove a page boots; what it
-// proves is that the four things the runtime needs from the block are in it and
-// agree with each other, which is the whole class the defect came from.
+// So this reads the blocks as text and holds two things: no page hand-rolls
+// the chain block again, and the blocks that remain carry what the runtime
+// needs, in the right order.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,8 +36,8 @@ const pages = ['app', 'pages', 'popups', 'lib', 'archive']
   .map(full => ({ rel: path.relative(repoRoot, full).split(path.sep).join('/'),
                   src: readFileSync(full, 'utf8') }));
 
-// The raw fetch is what identifies a ?use= block, in both families: the chain
-// pages fetch lib/gh-api.js, the pre-build pages fetch dist/<bundle>.js.
+// The raw fetch is what identifies a hand-written ?use= block: the pre-build
+// pages fetch dist/<bundle>.js. (The chain block lives in lib/entry.js, below.)
 const RAW = /https:\/\/raw\.githubusercontent\.com\/([^/`'"]+\/[^/`'"]+)\/\$\{(\w+)\}\/([^`'"]+)/g;
 
 // One block per raw fetch: from the `if (` guarding it to the revoke that ends
@@ -61,12 +61,10 @@ function blocks(src) {
 const found = pages.flatMap(p => blocks(p.src).map(b => ({ ...b, rel: p.rel })));
 
 test('the scan reaches the blocks it is meant to gate', () => {
-  // Vacuity guard. Every render link the conventions mint rides this block, so
-  // a scan that quietly matched nothing would pass forever.
-  assert.ok(found.length >= 30,
-    `only ${found.length} ?use= blocks matched; the shape moved and this gate went blind`);
-  assert.ok(found.some(b => b.rel === 'pages/audit-render.html'),
-    'the page the defect shipped on is not being scanned');
+  // Vacuity guard for the pre-build family, the one hand-written shape left: a
+  // scan that quietly matched nothing would pass forever.
+  assert.ok(found.length >= 4,
+    `only ${found.length} pre-build ?use= blocks matched; the shape moved and this gate went blind`);
 });
 
 test('a fetch that failed is never blob-imported', () => {
@@ -78,43 +76,32 @@ test('a fetch that failed is never blob-imported', () => {
     'a ?use= block blob-imports without checking the response');
 });
 
-// ── the chain family: the four facts gh-api reads ──────────────────────────
-const chain = found.filter(b => b.file.startsWith('lib/gh-api.js'));
+// ── the chain family: one block, in lib/entry.js ────────────────────────────
+// Code lines only: the header comment quotes the import a page writes.
+const entry = readFileSync(path.join(repoRoot, 'lib/entry.js'), 'utf8')
+  .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
 
-test('every chain page hands gh-api a repo, not just a ref', () => {
-  assert.ok(chain.length >= 30, `only ${chain.length} chain blocks; expected the whole set`);
-  for (const b of chain) {
-    const m = b.text.match(/__ghBlobBoot\s*=\s*\{([^}]*)\}/);
-    assert.ok(m, `${b.rel}: a ?use= chain block with no __ghBlobBoot assignment`);
-    assert.match(m[1], /repo\s*:\s*['"][^/'"]+\/[^/'"]+['"]/,
-      `${b.rel}: __ghBlobBoot needs repo: 'owner/name'. Without it gh-api builds ` +
-      `/repos//contents/… and the page renders blank. This is the audit-render defect.`);
-  }
+test('no page hand-rolls the gh-api.js boot; the chain pages import lib/entry.js', () => {
+  const rolled = pages.filter(p => !p.rel.startsWith('archive/') &&
+    /raw\.githubusercontent\.com\/[^`'"]*\/lib\/gh-api\.js/.test(p.src)).map(p => p.rel);
+  assert.deepEqual(rolled, [],
+    'a page fetches lib/gh-api.js itself; import lib/entry.js instead, which is the one copy');
+  const importers = pages.filter(p => /import\(\s*['"`]https:\/\/mehrlander\.github\.io\/web-tools\/lib\/entry\.js/.test(p.src));
+  assert.ok(importers.length >= 50,
+    `only ${importers.length} pages import lib/entry.js; the shape moved and this gate went blind`);
+  assert.ok(importers.some(p => p.rel === 'pages/audit-render.html'),
+    'the page the defect shipped on no longer boots through entry.js');
 });
 
-test('the boot object and the fetch name the same repo and the same ref', () => {
-  // Two facts stated twice in one block, which is how they came apart: the
-  // hand-rolled version kept the fetch and reinvented the object.
-  for (const b of chain) {
-    const m = b.text.match(/__ghBlobBoot\s*=\s*\{([^}]*)\}/);
-    const repo = m[1].match(/repo\s*:\s*['"]([^'"]+)['"]/)[1];
-    assert.equal(repo, b.repo, `${b.rel}: __ghBlobBoot repo is ${repo}, the fetch reads ${b.repo}`);
-    // Shorthand `ref` or `ref: ident`; either way it must be the variable the
-    // URL interpolated, or the page loads one ref and reports another.
-    const ref = m[1].match(/\bref\s*:\s*(\w+)/)?.[1] ?? (/\bref\b\s*(?:,|$)/.test(m[1]) ? 'ref' : null);
-    assert.equal(ref, b.refVar,
-      `${b.rel}: __ghBlobBoot carries ref=${ref}, the fetch interpolates \${${b.refVar}}`);
-  }
-});
-
-test('the boot object is set before the import that reads it', () => {
-  // gh-api reads window.__ghBlobBoot at module scope, so an assignment after
-  // the import is inert and the page silently falls back to parsing a blob:
-  // URL that has no ref in it.
-  for (const b of chain) {
-    const set = b.text.indexOf('__ghBlobBoot');
-    const imp = b.text.search(/await\s+import\s*\(/);
-    assert.ok(set >= 0 && imp >= 0 && set < imp,
-      `${b.rel}: __ghBlobBoot is assigned after the import that consumes it`);
-  }
+test('entry.js hands gh-api a repo and the fetched ref, before the import, and checks the response', () => {
+  const m = entry.match(/__ghBlobBoot\s*=\s*\{([^}]*)\}/);
+  assert.ok(m, 'entry.js sets no __ghBlobBoot');
+  assert.match(m[1], /\brepo\b/, 'without repo, gh-api builds /repos//contents/… and the page renders blank');
+  assert.match(m[1], /\bref\b/, 'without ref, gh-api does not know which ref it was fetched at');
+  assert.match(entry, /raw\.githubusercontent\.com\/\$\{repo\}\/\$\{ref\}\/lib\/gh-api\.js/,
+    'the fetch must read the same repo and ref the boot object names');
+  const set = entry.indexOf('__ghBlobBoot');
+  const imp = entry.search(/await\s+import\s*\(/);
+  assert.ok(set >= 0 && imp > set, 'gh-api reads __ghBlobBoot at module scope, so it must be set first');
+  assert.match(entry, /if\s*\(!\w+\.ok\)\s*throw/, 'a failed fetch must not be blob-imported');
 });

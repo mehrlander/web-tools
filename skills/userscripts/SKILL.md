@@ -13,7 +13,7 @@ The Userscripts Safari extension executes code across third-party web origins wi
 
 Because re-installing an iOS extension on every edit is prohibitive, the `.user.js` stub is installed once. It loads a dynamic body from GitHub into GM storage, checking for new builds in the background and executing them on subsequent page loads. The installed stub is permanently pinned to `main`.
 
-Bookmarklets share the same source file (`userscripts/lib/launcher.js`) but cannot use the raw host: raw GitHub serves `text/plain` with `nosniff`, which browser script tags refuse to execute. Bookmarklets read from jsDelivr instead.
+Bookmarklets share the same source file (`userscripts/lib/launcher.js`) but cannot use the raw host: raw GitHub serves `text/plain` with `nosniff`, which browser script tags refuse to execute. Bookmarklets read the same file from GitHub Pages instead, which serves it as JavaScript but only as `main` has it.
 
 Data delivery back to repositories operates under mobile sandbox constraints: direct device Shortcuts (`shortcuts://run-shortcut?name=Log-Repo`) handle payloads within URL length limits (~8 KB), while larger payloads route through Web Tools Stage (`dest=owner/repo:channel`) and write directly to the clipboard.
 
@@ -24,7 +24,7 @@ Maintain the launcher deck, view extractors, and channel routers in `userscripts
 Every edit yields three synchronized artifacts via the build generator:
 1. `userscripts/builds.json`: SHA256 build hash and timestamp.
 2. `userscripts/launcher.user.js`: Safari Userscripts stub with GM storage permissions and background loader.
-3. `bookmarklets/launcher.js`: Standalone bookmarklet loader targeting the jsDelivr CDN.
+3. `bookmarklets/launcher.js`: Standalone bookmarklet loader reading from GitHub Pages.
 
 All changes must pass the 7 test assertions in `tools/test/userscript-stubs.test.mjs`.
 
@@ -50,7 +50,7 @@ All changes must pass the 7 test assertions in `tools/test/userscript-stubs.test
 
 - **Active merging over GitHub Flow.** Branch-based previewing is an anti-pattern for Userscripts. Previewing a branch on device requires re-stamping with `--ref <branch>`, pushing, opening Safari, and manually re-installing the extension stub. Once `tools/test/userscript-stubs.test.mjs` passes, merge each change directly to `main` for device verification. `main` is the hot-reload source for the phone.
 - **No manual re-installation.** The installed stub declares `@grant GM.getValue`, `@grant GM.setValue`, and `@grant GM.xmlHttpRequest`. On page load, the stub queries `builds.json` using a timestamp query parameter to bypass cache. When a new build hash is detected, it downloads the body into GM storage. The next page load evaluates the cached body. The refresh button `[ ⟳ ]` in the drawer header triggers an immediate update check.
-- **Host separation.** Raw GitHub serves `text/plain` with `nosniff`. Safari Userscripts can fetch and evaluate this text, but bookmarklets injecting `<script>` tags cannot. Bookmarklets read from `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/userscripts/lib/launcher.js`. The stub generator prints the CDN purge URL when run.
+- **Host separation.** Raw GitHub serves `text/plain` with `nosniff`. Safari Userscripts can fetch and evaluate this text, but bookmarklets injecting `<script>` tags cannot. Bookmarklets read from `https://mehrlander.github.io/web-tools/userscripts/lib/launcher.js`, whose ten-minute cache needs no purge.
 - **Physical gesture requirement.** iOS Safari blocks programmatic navigation to `shortcuts://` schemes (`location.href = ...`) without an active user gesture. All Shortcut actions must bind to physical `<a>` elements rendered in the DOM.
 - **Size threshold (`SEND_MAX`).** Shortcuts URLs drop payloads exceeding ~8,000 characters. In `userscripts/lib/launcher.js`, calculate `shortcutUrl(payload)`. If within `SEND_MAX`, wire `href` to the shortcut. If it exceeds `SEND_MAX`, route `href` to Web Tools Stage (`dest=owner/repo:channel`) and copy the full JSON payload to the clipboard in the click handler.
 - **Capture envelope contract.** Standardize capture payloads across views: `{ op: "capture", channel, url, title, view, representation, captured_at, content, source, meta }`. Register the channel destination in the target repo's `.web-tools.json` and document the key in `docs/manifest-fields.csv`.

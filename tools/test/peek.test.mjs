@@ -236,7 +236,7 @@ test('disable: removes every node it added', () => {
 const STYLED = `<!doctype html><html lang="en" data-theme="winter"><head>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5">
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js"></script>
+  <script src="https://mehrlander.github.io/web-tools/lib/entry.js"></script>
   <script type="module" src="https://example.com/mod.js"></script>
   <script src="../local.js"></script>
   <style>.kit-outline{outline:1px solid red}</style>
@@ -269,11 +269,11 @@ test('wrap: carries the theme, the vendor tags, the small style and the body cla
 test('wrap: leaves behind this repo\'s code, modules, relative scripts and a compiled sheet, and says so', () => {
   const w = bootStyled();
   const info = w.Peek.wrapInfo(w.document.getElementById('card'));
-  assert.doesNotMatch(info.html, /gh-api\.js/, 'own code is the repo, not a vendor');
+  assert.doesNotMatch(info.html, /entry\.js/, 'own code is the repo, not a vendor');
   assert.doesNotMatch(info.html, /example\.com\/mod\.js/, 'a module script is a boot chain');
   assert.doesNotMatch(info.html, /local\.js/, 'a relative script resolves nowhere else');
   assert.doesNotMatch(info.html, /\.x\{\}\.x\{\}/, 'a compiled sheet is recompiled by the vendor tag');
-  assert.ok(info.skipped.some(s => s.includes('gh-api.js')));
+  assert.ok(info.skipped.some(s => s.includes('entry.js')));
   assert.ok(info.skipped.some(s => /compiled <style>/.test(s)));
 });
 
