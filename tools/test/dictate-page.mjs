@@ -141,16 +141,19 @@ try {
       pad: r(document.querySelector('[data-dictate-ui] button:has(i.ph-crosshair)')),
       mic: r(document.querySelector('button[title*="listening"], button[title*="Recording"]')),
       back: r(document.querySelector('button:has(i.ph-backspace)')),
-      fab: r(document.querySelector('[class*="--fab-bottom"].fixed')),
-      buttons: [...document.querySelectorAll('button')].filter(b => b.offsetParent && !b.closest('[class*="--fab-bottom"]'))
-        .map(b => b.getBoundingClientRect().toJSON()),
+      fab: r(document.querySelector('.fixed[class*="bottom-[var(--fab-bottom"]')),
+      // Controls only: the empty page's tap-anywhere target is the text
+      // surface itself, which the launcher floats over as it does the words.
+      buttons: [...document.querySelectorAll('[data-dictate-ui] button')].filter(b => b.offsetParent)
+        .map(b => b.getBoundingClientRect().toJSON()).filter(b => b.height < 200),
       h: innerHeight, docH: document.body.scrollHeight, w: innerWidth,
     };
   });
   const hit = boxes.fab && boxes.buttons.filter(b => b.width && b.height &&
     b.left < boxes.fab.right && b.right > boxes.fab.left && b.top < boxes.fab.bottom && b.bottom > boxes.fab.top);
   ok('the FAB is mounted', !!boxes.fab, 'no launcher found');
-  ok('and it covers no button', !!boxes.fab && hit.length === 0, JSON.stringify(hit));
+  ok('and it covers no button', !!boxes.fab && boxes.buttons.length > 8 && hit.length === 0,
+    `${boxes.buttons.length} buttons, covered: ${JSON.stringify(hit)}`);
   // The instruments live in the HEADER now: record, undo, redo and the target
   // are each tapped a handful of times a session, and the bottom of a phone
   // belongs to whatever is tapped every sentence.

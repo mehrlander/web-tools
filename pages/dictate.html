@@ -226,9 +226,11 @@
     your own green text simply removes it, since the changes are the difference
     between the buffer and the base rather than a log. Struck words are drawn
     and never mapped, so the caret cannot land in them; tapping one offers it
-    back. A sideways swipe turns a card to the original, read-only and
-    labelled, and a tap or another swipe turns it back; its number offers Go
-    back to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
+    back. A card's stops pill reads original, marked and new: original is
+    GitHub's text, read-only; new is the text clean, still open to typing. A
+    tap on a stop or a sideways swipe picks one, a tap on the original returns
+    to marked, and an edit forgets every original; its number offers Go back
+    to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
 
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
@@ -1269,16 +1271,17 @@
           // move handler uses, and the count resets so a scroll cannot become
           // the first half of a double.
           if (e.target?.closest?.('[data-md-ui]')) { taps = 0; return; }
-          // A SIDEWAYS SWIPE ON A CARD turns it to the original and back, either
-          // way. The card carries touch-action:pan-y, so the drag reaches here.
+          // A SIDEWAYS SWIPE ON A CARD steps through its stops: left toward
+          // new, right toward the original. The card carries touch-action:pan-y,
+          // so the drag reaches here.
           const card = this.rendered && e.target?.closest?.('[data-md-card]');
           const dx = e.clientX - x, dy = e.clientY - y;
-          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard); return; }
+          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard, dx < 0 ? 1 : -1); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
           // The original takes no caret, so a tap on it returns the card to the
           // marked text, where the next tap, or a double, lands as usual.
           if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
-            taps = 0; this.swipeCard(+card.dataset.mdCard); return;
+            taps = 0; this.setCardReading(+card.dataset.mdCard, 'inline'); return;
           }
           // A struck word is the base's, not the buffer's: tapping it offers it back.
           const gone = this.rendered && e.target?.closest?.('del');
@@ -1703,14 +1706,18 @@
       //
       // Guarded HERE rather than at that one call site, because the trap
       // belongs to painting and not to the keyboard: any caller that repaints
-      // across a visibility change has it. One deferral only, so a host that
-      // is hidden for good costs a wasted tick rather than a loop.
-      paint(retry = true) {
+      // across a visibility change has it. The deferral is a FRAME, not a
+      // tick, and up to three of them: once the FAB mounted on this page (its
+      // selection listener hears the textarea let go) Alpine's flush could
+      // outlast one $nextTick, and a trip through the keyboard came back with
+      // no pins about half the time. Bounded, so a host that is hidden for
+      // good costs three frames rather than a loop.
+      paint(retry = 3) {
         this.beat++;
         if (FILE && this.view === 'changes') return;
         if (this.rendered) {
           const md = this.$refs.md;
-          if (!md.getClientRects().length) { if (retry) this.$nextTick(() => this.paint(false)); return; }
+          if (!md.getClientRects().length) { if (retry > 0) requestAnimationFrame(() => this.paint(retry - 1)); return; }
           window.MdSurface.paint(md, {
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
@@ -1726,7 +1733,7 @@
         }
         if (!this._host) return;
         if (!this._host.getClientRects().length) {
-          if (retry) this.$nextTick(() => this.paint(false));
+          if (retry > 0) requestAnimationFrame(() => this.paint(retry - 1));
           return;
         }
         window.Dictate.paint(this._host, {
@@ -2098,15 +2105,24 @@
       // ── The change cards ──────────────────────────────────────────────
       // Each run of blocks that differs from GitHub's copy is one card in the
       // Rendered face (kits/md-surface.js, tracked), shown with its change
-      // marked and open to typing. A sideways swipe turns it to the original
-      // and back, a tap on the original returns it, and its number offers the
-      // one thing left to decide: going back to the original for good.
-      swipeCard(i) {
-        const md = this.$refs.md;
-        window.MdSurface.setReading(md, i, window.MdSurface.readingOf(md, i) === 'old' ? 'inline' : 'old');
+      // marked and open to typing. Its stops pill reads original, marked and
+      // new; a tap on a stop or a sideways swipe picks one, a tap on the
+      // original returns to marked, and its number offers the one thing left
+      // to decide: going back to the original for good.
+      setCardReading(i, mode) {
+        window.MdSurface.setReading(this.$refs.md, i, mode);
         this.paint();
       },
+      swipeCard(i, step) {
+        const md = this.$refs.md;
+        const modes = window.MdSurface.cardModes(md, i);
+        if (modes.length < 2) return;
+        const k = Math.max(0, Math.min(modes.length - 1, modes.indexOf(window.MdSurface.readingOf(md, i)) + step));
+        this.setCardReading(i, modes[k]);
+      },
       cardTap(ev) {
+        const read = ev.target?.closest?.('[data-md-card-read]');
+        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.setCardReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
         if (!badge || !window.rowMenu) return;
         const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
