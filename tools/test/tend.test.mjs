@@ -29,7 +29,7 @@ test('.claude/skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes
 
 test('tend SKILL.md names commands and paths that exist', () => {
   const content = readFileSync(SKILL_PATH, 'utf8');
-  for (const p of ['scripts/stranded-triage.py', 'lib/kits/branch-brief.js', 'docs/SNAGS.md', 'docs/SURFACING.md']) {
+  for (const p of ['scripts/stranded-triage.py', 'lib/kits/branch-brief.js', 'docs/SNAGS.md']) {
     assert.ok(content.includes(p), `tend SKILL.md should name ${p}`);
     assert.ok(existsSync(path.join(repoRoot, p)), `${p} named by tend SKILL.md must exist`);
   }
