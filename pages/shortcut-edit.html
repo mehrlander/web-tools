@@ -76,7 +76,7 @@
       <div class="-mx-3 sm:mx-0 border-y sm:border border-base-300 sm:rounded-box py-1" data-listing>
         <template x-for="l in shown" :key="l.key">
           <div :id="l.id" class="flex items-baseline pr-3 py-0.5"
-               :class="l.t === '+' ? 'bg-success/15' : l.t === '-' ? 'bg-error/10' : ''" :data-op="l.t">
+               :class="l.t === '+' ? 'bg-success/15' : l.t === '-' ? 'bg-error/10' : shut[l.key] ? 'bg-base-200' : ''" :data-op="l.t">
             <span class="w-8 shrink-0 text-right font-mono text-sm select-none"
                   :class="l.t === '+' ? 'text-success font-semibold' : l.t === '-' ? 'text-error' : 'opacity-40'"
                   x-text="l.t === ' ' ? l.i : l.t"></span>
@@ -84,7 +84,7 @@
                     :aria-label="shut[l.key] ? 'Expand' : 'Collapse'">
               <i class="ph-fill" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></button>
             <span x-show="!l.kids" class="w-4 shrink-0"></span>
-            <code class="font-mono text-sm whitespace-pre-wrap break-words" :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template><button x-show="shut[l.key]" @click="toggle(l.key)" class="ml-2 px-1 rounded border border-base-content/30 text-xs text-base-content/50 align-middle" x-text="'⋯ ' + l.kids"></button></code>
+            <code class="font-mono text-sm whitespace-pre-wrap break-words" :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template><button x-show="shut[l.key]" @click="toggle(l.key)" class="ml-2 px-1.5 rounded border border-base-content/25 bg-base-100 text-xs text-base-content/60 align-middle text-left whitespace-normal" data-preview><span class="font-semibold" x-text="l.kids"></span><span x-text="' · ' + preview(l)"></span></button></code>
           </div>
         </template>
       </div>
@@ -216,6 +216,13 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
 
   get shown() {
     return this.lines.filter(l => { for (let p = l.parent; p >= 0; p = this.lines[p].parent) if (this.shut[p]) return false; return true; });
+  },
+  // What a folded block holds, on one line: its direct children in order,
+  // each as its verb and argument, cut at PREVIEW characters.
+  preview(l) {
+    const PREVIEW = 90;
+    const out = this.lines.filter(c => c.parent === l.key).map(c => c.s.trim()).join(' ; ');
+    return out.length > PREVIEW ? out.slice(0, PREVIEW - 1) + '…' : out;
   },
   toggle(k) { this.shut = { ...this.shut, [k]: !this.shut[k] }; },
   expandAll() { this.shut = {}; },
