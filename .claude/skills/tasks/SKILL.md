@@ -212,6 +212,8 @@ merged or gone. Check status, not only prose: waiting on an event or a machine
 is `backlog` with `awaiting:` or `runner:`, since `blocked` reads as "do not
 try"; a `done` without `closed:` or a `backlog` with `session:` is the same
 class of finding. Propose; confirm before closing, reframing, or splitting.
+A task whose `## Done when` a merged pull request meets is not a refinement
+finding: closing it is a delivery close, unattended like any other.
 Dormant tasks are out of scope unless the user just asked about one. Where an
 earlier session left a condition for the change you are making ("fold these two
 once the owner says so"), cite that condition rather than asserting the owner
