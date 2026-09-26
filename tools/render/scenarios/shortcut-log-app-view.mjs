@@ -9,7 +9,7 @@
 // stages shortcut-tools' promotion (the same fixture shape approve-app-view.mjs
 // uses) and a token the framed page can read, then routes the slug the way a
 // cold open does. The log itself is served from the sibling web-tools-private
-// checkout. DETAIL=1 taps the first row inside the frame.
+// checkout. DETAIL=1 taps the first row inside the frame; ZIP=1 opens a dump.
 export default async function (page) {
   // Identity has no local answer (cdn.mjs), and with a token in storage the
   // shell asks for it; a 401 there swaps the whole app for the token screen.
@@ -60,4 +60,13 @@ export default async function (page) {
   if (!f) throw new Error('shortcut-log-app-view scenario: no rows in the frame');
   await page.waitForTimeout(2500);
   if (process.env.DETAIL) { await f.locator('[data-row]').first().click(); await page.waitForTimeout(600); }
+  // ZIP=1 opens the newest dump that zipped one shortcut, its zip, and that
+  // shortcut's listing: the dump detail as far as it goes.
+  if (process.env.ZIP) {
+    await f.locator('[data-row]', { hasText: 'zipped 1' }).first().click();
+    await f.getByRole('button', { name: 'Open the zip' }).click();
+    await f.waitForSelector('[data-zip-row]', { timeout: 15000 });
+    await f.locator('[data-zip-row]').first().click();
+    await page.waitForTimeout(2500);
+  }
 }

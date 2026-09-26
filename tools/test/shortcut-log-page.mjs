@@ -13,6 +13,9 @@
 //   - an unanswerable lookup yields no verdict icon at all;
 //   - the token screen is gh-auth's, raised for a missing token and for the
 //     private repo's 404.
+//   - rows minutes apart share a sitting label; a scheduled run says so; a
+//     dump that found more shortcuts than names is flagged;
+//   - a dump's zip lists its shortcuts, and each shows what the dump changed.
 //
 // Exits nonzero on any failure. Not part of `npm test` (needs a browser).
 
@@ -22,6 +25,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { typeFor, resolveCdn } from '../render/cdn.mjs';
+import JSZip from 'jszip';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const failures = [];
@@ -57,6 +61,17 @@ const LOG = {
   '2026-08-22-170121': 'I pledge allegiance to the Flag',
 };
 
+// A dump's zip, folded, and the sketch of its one shortcut before and after.
+const PLIST = n => `<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>WFWorkflowActions</key><array>${'<dict/>'.repeat(n)}</array></dict></plist>`;
+const zipBytes = await (() => { const z = new JSZip(); z.file('Show-Loop.wflow', PLIST(3)); return z.generateAsync({ type: 'nodebuffer' }); })();
+const FOLD = 'f'.repeat(40), PARENT = 'e'.repeat(40);
+const SKETCH = { [FOLD]: 'menu\n  case Share\n  case Stage\n', [PARENT]: 'menu\n  case Share\n' };
+const DUMPS = {
+  [stampOf(new Date(Date.now() - 3 * 864e5))]: JSON.stringify({ op: 'dump', name: 'Dump-Named', file: '2026-09-20-120000.zip', names: '1', found: '1', build: 'x' }),
+  [stampOf(new Date(Date.now() - 3 * 864e5 - 60_000))]: JSON.stringify({ op: 'dump', name: 'Dump-Named', file: '2026-09-20-115900.zip', names: '2', found: '685', build: 'x' }),
+  [stampOf(new Date(Date.now() - 4 * 864e5))]: JSON.stringify({ op: 'probe-unattended', name: 'Probe-Unattended', leg: 'js' }),
+};
+
 let access = 200;
 let pulls = [{ number: 50, state: 'open', head: { sha: HEAD, ref: 'claude/x' } }];
 let builds = { main: { 'Dump-Named': 'f0304eb' }, [HEAD]: { 'Dump-Named': 'c4fd8aa' } };
@@ -73,6 +88,14 @@ const handler = async route => {
       return json(route, 200, Object.keys(LOG).map(s => ({ name: s + '.json', type: 'file' })));
     const m = p.match(/\/contents\/shortcuts\/log\/(.+)\.json$/);
     if (m) return json(route, 200, { content: b64(LOG[m[1]] || ''), encoding: 'base64', sha: 'x', size: 1 });
+    if (p.endsWith('/contents/shortcuts/dumps/2026-09-20-120000-dump.zip'))
+      return route.fulfill({ status: 200, contentType: 'application/zip', body: zipBytes });
+    if (p.endsWith('/commits') && /dumps/.test(u.searchParams.get('path') || ''))
+      return json(route, 200, [{ sha: FOLD, parents: [{ sha: PARENT }] }]);
+    if (p.endsWith('/contents/shortcuts/sketches/Show-Loop.txt')) {
+      const t = SKETCH[u.searchParams.get('ref')];
+      return t ? json(route, 200, { content: b64(t), encoding: 'base64', sha: 'x', size: 1 }) : json(route, 404, { message: 'Not Found' });
+    }
   }
   if (u.host === 'api.github.com' && p.startsWith('/repos/mehrlander/shortcut-tools/')) {
     if (/\/commits\/[0-9a-f]{40}\/pulls$/.test(p))
@@ -171,6 +194,32 @@ await withPage(token, async page => {
      r.map(x => x.text).join(' | '));
   ok('and says so in the header', /Dump-Named/.test(await page.textContent('[data-only]')));
 }, '?name=Dump-Named');
+
+// Dumps: sittings, the found-too-many flag, a scheduled row, and the zip.
+Object.assign(LOG, DUMPS);
+await withPage(token, async (page, errors) => {
+  await page.waitForFunction(() => document.querySelectorAll('[data-row]').length === 6, null, { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  const r = await rows(page);
+  const labels = await page.$$eval('[data-sitting]', els => els.filter(e => e.offsetParent).map(e => e.textContent));
+  ok('rows minutes apart share a sitting label that counts them', labels.some(l => /2 dumps/.test(l)), labels.join(' | '));
+  const anomalous = r.find(x => /685 for 2 names/.test(x.text));
+  ok('a dump that found more than its names is flagged in the row', !!anomalous, r.map(x => x.text).join(' | '));
+  ok('a scheduled run says so', r.some(x => /Probe-Unattended/.test(x.text) && /scheduled/.test(x.text)), r.map(x => x.text).join(' | '));
+  const i = r.findIndex(x => /zipped 1/.test(x.text));
+  await page.locator('[data-row]').nth(i).click();
+  ok('the detail says what happened in a sentence', /You ran Dump-Named, which zipped 1 shortcut/.test(await page.textContent('[data-sentence]')));
+  await page.getByRole('button', { name: 'Open the zip' }).click();
+  await page.waitForSelector('[data-zip-row]', { timeout: 8000 }).catch(() => {});
+  const zr = await page.$$eval('[data-zip-row]', els => els.map(e => e.innerText.replace(/\s+/g, ' ')));
+  ok('the zip lists its shortcut with its action count', zr.length === 1 && /Show-Loop/.test(zr[0]) && /3 actions/.test(zr[0]), zr.join(' | '));
+  await page.locator('[data-zip-row]').first().click();
+  await page.waitForFunction(() => /changed/.test(document.querySelector('[data-sketch]')?.innerText || ''), null, { timeout: 8000 }).catch(() => {});
+  const sk = await page.textContent('[data-sketch]');
+  ok('a shortcut shows what this dump changed', /\+1 −0 lines/.test(sk) && /case Stage/.test(sk), sk.slice(0, 160));
+  ok('no page errors through the dump flow', errors.length === 0, errors[0]);
+});
+for (const k of Object.keys(DUMPS)) delete LOG[k];
 
 // The failure that would make this worse than no verdict.
 pulls = null;

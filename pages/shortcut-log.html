@@ -70,14 +70,17 @@
       <template x-for="g in groups" :key="g.day">
         <section>
           <h2 class="sticky top-12 z-10 bg-base-200/95 px-3 py-1 text-xs font-mono uppercase tracking-widest text-base-content/50" x-text="g.day"></h2>
-          <template x-for="e in g.rows" :key="e.stem">
+          <template x-for="st in g.sittings" :key="st.key">
+          <div>
+          <div x-show="st.rows.length > 1" class="px-3 pt-2 pb-0.5 text-xs font-mono text-base-content/40" data-sitting x-text="st.label"></div>
+          <template x-for="e in st.rows" :key="e.stem">
             <button @click="open(e.stem)" data-row
                     class="w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-base-200 hover:bg-base-200 transition-colors"
                     :class="[sel === e.stem && 'bg-primary/10', fresh[e.stem] && 'bg-info/10']">
               <i class="ph text-xl shrink-0" :class="[iconOf(e), e.install ? 'text-primary' : 'text-base-content/40']"></i>
               <span class="min-w-0 grow flex items-baseline gap-2">
                 <span class="shrink-0 max-w-full truncate" :class="e.name ? 'font-medium' : 'text-base-content/70'" x-text="titleOf(e)"></span>
-                <span class="min-w-0 truncate text-xs font-mono text-base-content/50" x-text="tagOf(e)"></span>
+                <span class="min-w-0 truncate text-xs font-mono" :class="anomaly(e) ? 'text-warning' : 'text-base-content/50'" x-text="tagOf(e)" data-tag></span>
               </span>
               <span class="shrink-0 flex items-center gap-1" data-verdict>
                 <template x-if="v(e)">
@@ -89,6 +92,8 @@
               </span>
               <span class="shrink-0 w-16 text-right text-xs font-mono" :class="recent(e) ? 'text-info font-semibold' : 'text-base-content/50'" x-text="timeOf(e)"></span>
             </button>
+          </template>
+          </div>
           </template>
         </section>
       </template>
@@ -116,6 +121,7 @@
                 <span class="badge badge-sm badge-ghost font-mono" x-text="item.verb"></span>
               </div>
               <div class="text-xs font-mono text-base-content/50" x-text="fullTime(item)"></div>
+              <p class="mt-1" :class="anomaly(item) && 'text-warning'" x-text="sentenceOf(item)" data-sentence></p>
             </div>
             <a :href="fileUrl(item)" target="_blank" rel="noopener" class="btn btn-ghost btn-sm btn-square" aria-label="Open on GitHub"><i class="ph ph-github-logo text-lg"></i></a>
           </div>
@@ -138,6 +144,33 @@
             <button @click="only = item.name; close()" class="btn btn-sm"><i class="ph ph-funnel"></i><span x-text="'Only ' + item.name"></span></button>
             <a :href="'shortcuts.html?name=' + encodeURIComponent(item.name)" class="btn btn-sm btn-ghost"><i class="ph ph-link"></i>Chain</a>
           </div>
+
+          <template x-if="item.op === 'dump' && item.fields.file">
+            <div class="flex flex-col gap-1" data-contents>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono uppercase tracking-wider text-base-content/50">contents</span>
+                <span class="text-xs font-mono text-base-content/40" x-text="zip.note"></span>
+              </div>
+              <button x-show="zip.stem !== item.stem" @click="openZip(item)" class="btn btn-sm self-start"><i class="ph ph-file-zip"></i>Open the zip</button>
+              <span x-show="zip.stem === item.stem && zip.loading" class="loading loading-dots loading-sm opacity-40"></span>
+              <p x-show="zip.stem === item.stem && zip.err" class="text-error text-sm" x-text="zip.err"></p>
+              <template x-for="s in (zip.stem === item.stem ? zip.list : [])" :key="s.name">
+                <div class="border-b border-base-200">
+                  <button @click="openSketch(s)" class="w-full flex items-center gap-2 py-2 text-left" data-zip-row>
+                    <i class="ph ph-lightning text-base-content/40"></i>
+                    <span class="grow min-w-0 truncate font-medium" x-text="s.name"></span>
+                    <span class="text-xs font-mono text-base-content/50" x-text="s.actions === null ? 'unreadable' : s.actions + ' actions'"></span>
+                    <i class="ph" :class="s.open ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                  </button>
+                  <div x-show="s.open" class="pb-2 flex flex-col gap-1" data-sketch>
+                    <span x-show="s.loading" class="loading loading-dots loading-sm opacity-40"></span>
+                    <p x-show="s.note" class="text-xs font-mono text-base-content/50" x-text="s.note"></p>
+                    <pre x-show="s.lines.length" class="bg-base-200 rounded-box p-2 text-xs overflow-x-auto max-h-[60dvh] overflow-y-auto"><template x-for="(l, i) in s.lines" :key="i"><div :class="l.t === '+' ? 'bg-success/15' : l.t === '-' ? 'bg-error/15 line-through opacity-70' : l.t === '…' ? 'text-base-content/40 italic' : ''" x-text="l.s"></div></template></pre>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
 
           <template x-if="item.payload || !item.name">
             <div class="flex flex-col gap-1" data-payload>
@@ -171,6 +204,13 @@ const DIR = 'shortcuts/log';
 const TOOLS = 'mehrlander/shortcut-tools';
 const PAGE = 30;
 const RECENT = 5 * 60 * 1000;
+// A gap longer than this starts a new sitting: the unit a reader remembers
+// ("the installs this morning"), where a day is too coarse and a row too fine.
+const SITTING = 15 * 60 * 1000;
+// Shortcuts that run from a Shortcuts automation, not a tap. Nothing in a log
+// row says who started it, so this is a list, and a name missing from it reads
+// as a person's action. Probe-Unattended is the 02:00 automation.
+const SCHEDULED = new Set(['Probe-Unattended']);
 const SE = window.ShortcutEvidence;
 
 const NEED_TOKEN =
@@ -179,6 +219,49 @@ const NEED_TOKEN =
   + 'so this may need entering once in each place you open the page.';
 
 const log = new window.GH({ repo: LOG, ref: 'main' });
+
+// The number of actions in one workflow plist, or null when it will not parse
+// (the device exports at least one shortcut as invalid XML).
+const countActions = xml => {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  if (doc.querySelector('parsererror')) return null;
+  const keys = [...doc.querySelectorAll('plist > dict > key')];
+  const k = keys.find(n => n.textContent === 'WFWorkflowActions');
+  const arr = k && k.nextElementSibling;
+  return arr && arr.tagName === 'array' ? arr.children.length : 0;
+};
+
+// The changed lines of a diff with `k` lines of context each side; each run
+// of unchanged lines beyond that becomes one marker saying how many.
+const around = (d, k) => {
+  const near = d.map((x, i) => d.slice(Math.max(0, i - k), i + k + 1).some(y => y.t !== ' '));
+  const out = [];
+  for (let i = 0; i < d.length; i++) {
+    if (near[i]) { out.push(d[i]); continue; }
+    let j = i; while (j < d.length && !near[j]) j++;
+    out.push({ t: '…', s: `  … ${j - i} unchanged line${j - i === 1 ? '' : 's'}` });
+    i = j - 1;
+  }
+  return out;
+};
+
+// A line diff by longest common subsequence: small inputs only, which a
+// sketch is (a few hundred lines at most).
+const lineDiff = (a, b) => {
+  const n = a.length, m = b.length, L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { out.push({ t: ' ', s: a[i] }); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) out.push({ t: '-', s: a[i++] });
+    else out.push({ t: '+', s: b[j++] });
+  }
+  while (i < n) out.push({ t: '-', s: a[i++] });
+  while (j < m) out.push({ t: '+', s: b[j++] });
+  return out;
+};
 const tools = new window.GH({ repo: TOOLS, ref: 'main' });
 const p2 = n => String(n).padStart(2, '0');
 const dayKey = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
@@ -199,6 +282,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   base: {},           // source ref -> baseOf() answer (null: unanswered)
   verdicts: {},       // stem -> verdict
   scrollY: 0,
+  zip: { stem: '', loading: false, err: '', note: '', list: [], fold: null, folded: false },
 
   async boot() {
     await this.load(false);
@@ -280,6 +364,21 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
       if (!out.length || out[out.length - 1].day !== day) out.push({ day, rows: [] });
       out[out.length - 1].rows.push(e);
     }
+    // Within a day, rows closer than SITTING belong to one sitting. Rows are
+    // newest first, so a sitting's span reads from its last row to its first.
+    for (const g of out) {
+      g.sittings = [];
+      for (const e of g.rows) {
+        const cur = g.sittings[g.sittings.length - 1], prev = cur && cur.rows[cur.rows.length - 1];
+        if (cur && prev.when && e.when && prev.when - e.when <= SITTING) cur.rows.push(e);
+        else g.sittings.push({ key: e.stem, rows: [e] });
+      }
+      for (const st of g.sittings) {
+        const a = st.rows[st.rows.length - 1].when, b = st.rows[0].when, hm = d => `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+        const who = st.rows.every(e => this.scheduled(e)) ? ' · scheduled' : '';
+        st.label = a && b ? `${hm(a)}${hm(a) === hm(b) ? '' : '–' + hm(b)} · ${this.summary(st.rows)}${who}` : '';
+      }
+    }
     return out;
   },
   get tally() {
@@ -299,7 +398,37 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
     this.$nextTick(() => window.scrollTo(0, this.scrollY));
   },
 
+  scheduled(e) { return SCHEDULED.has(e.name); },
+  // A dump that found more shortcuts than it was given names has matched
+  // something it should not have. 2026-09-26: names=2 found=685.
+  anomaly(e) {
+    const n = Number(e.fields.names), f = Number(e.fields.found);
+    return e.op === 'dump' && n > 0 && f > n;
+  },
+  // What a sitting held, in words: "3 installs, 1 dump".
+  summary(rows) {
+    const c = {};
+    for (const e of rows) { const k = e.install ? 'install' : e.op === 'dump' ? 'dump' : 'run'; c[k] = (c[k] || 0) + 1; }
+    return ['install', 'dump', 'run'].filter(k => c[k]).map(k => `${c[k]} ${k}${c[k] > 1 ? 's' : ''}`).join(', ');
+  },
+  // One sentence for the detail: what happened, said the way a person would.
+  sentenceOf(e) {
+    const who = this.scheduled(e) ? 'An automation ran' : 'You ran';
+    if (e.install) {
+      const from = e.source ? (this.base[e.source.ref]?.kind === 'pr' ? `PR #${this.base[e.source.ref].pr}` : 'main') : '';
+      return `You installed ${e.name}${from ? ' from ' + from : ''} through ${e.installer?.name || 'a paste'}.`;
+    }
+    if (e.op === 'dump') {
+      const f = e.fields.found, n = e.fields.names;
+      const got = f ? `zipped ${f} shortcut${f == 1 ? '' : 's'}` : 'zipped shortcuts';
+      const warn = this.anomaly(e) ? ` It was given ${n} name${n == 1 ? '' : 's'}, so it matched more than it should have.` : '';
+      return `${who} ${e.name}, which ${got} into ${e.fields.file || 'a zip'}.${warn}`;
+    }
+    if (e.name) return `${who} ${e.name}.`;
+    return '';
+  },
   iconOf(e) {
+    if (this.scheduled(e)) return 'ph-clock';
     if (e.install) return 'ph-download-simple';
     if (e.op === 'dump') return 'ph-archive';
     if (!e.name) return 'ph-note';
@@ -308,6 +437,9 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   // The small mono word after the title: what happened, or for a row with no
   // name, the short values it carried.
   tagOf(e) {
+    if (this.anomaly(e)) return `${e.fields.found} for ${e.fields.names} name${e.fields.names == 1 ? '' : 's'}`;
+    if (e.op === 'dump' && e.fields.found) return `zipped ${e.fields.found}`;
+    if (this.scheduled(e)) return 'scheduled';
     if (e.name) return e.op === e.name.toLowerCase() ? '' : e.verb;
     return Object.entries(e.fields).filter(([k, x]) => k !== 'build' && typeof x === 'string' && x && x.length <= 24)
       .slice(0, 2).map(([, x]) => x).join(' · ');
@@ -333,14 +465,91 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   pretty(e) { return SE.pretty(e.payload || e.raw); },
   copy(t) { navigator.clipboard?.writeText(t); },
 
+  // A dump's zip: every entry is one shortcut's workflow, an XML plist. It is
+  // fetched only on request, since a whole-library snapshot runs to megabytes.
+  // The phone commits it to incoming/, and the fold moves it unchanged to
+  // dumps/<stem>-dump.zip, so the folded name is tried first.
+  async openZip(e) {
+    const file = e.fields.file, stem = file.replace(/\.zip$/, '');
+    this.zip = { stem: e.stem, loading: true, err: '', note: '', list: [], fold: null, folded: false };
+    const raw = async path => {
+      const r = await fetch(`https://api.github.com/repos/${LOG}/contents/${path}`,
+        { headers: { ...log.headers, Accept: 'application/vnd.github.raw' }, cache: 'no-store' });
+      if (!r.ok) throw Object.assign(new Error(`${r.status} ${path}`), { status: r.status });
+      // The raw media type answers with bytes. An answer in the JSON envelope
+      // (the headless render's stand-in for the API gives only that) carries
+      // them base64'd, so read either.
+      if (!/json/.test(r.headers.get('content-type') || '')) return r.arrayBuffer();
+      const j = await r.json();
+      return Uint8Array.from(atob((j.content || '').replace(/\n/g, '')), c => c.charCodeAt(0)).buffer;
+    };
+    try {
+      const folded = `shortcuts/dumps/${stem}-dump.zip`;
+      let buf, where;
+      try { buf = await raw(folded); where = folded; }
+      catch (err) { if (err.status !== 404) throw err; where = `shortcuts/incoming/${file}`; buf = await raw(where); }
+      const JSZip = window.JSZip ?? (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+      const z = await JSZip.loadAsync(buf);
+      const list = [];
+      for (const f of Object.values(z.files)) {
+        if (f.dir) continue;
+        const name = f.name.replace(/\.wflow$/, '');
+        list.push({ name, actions: countActions(await f.async('string')), open: false, loading: false, note: '', lines: [] });
+      }
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      if (where === folded) {
+        this.zip.folded = true;
+        const c = await log.req(`commits?path=${encodeURIComponent(folded)}&per_page=1`).catch(() => null);
+        if (c && c[0]) this.zip.fold = { sha: c[0].sha, parent: c[0].parents?.[0]?.sha || '' };
+      }
+      this.zip.note = `${list.length} shortcut${list.length === 1 ? '' : 's'} · ${where === folded ? 'folded into the corpus' : 'waiting in incoming/'}`;
+      this.zip.list = list;
+    } catch (err) {
+      this.zip.err = String(err.message || err);
+    } finally {
+      this.zip.loading = false;
+    }
+  },
+
+  // One shortcut's listing, as the fold wrote it to sketches/. Against the
+  // commit before the fold it shows what this dump changed; with no fold on
+  // record it shows the listing as it stands now, and says so.
+  async openSketch(s) {
+    s.open = !s.open;
+    if (!s.open || s.lines.length || s.loading) return;
+    s.loading = true;
+    const path = `shortcuts/sketches/${s.name.replace('/', ':')}.txt`;
+    const at = ref => new window.GH({ repo: LOG, ref }).get(path).then(r => r.text).catch(() => null);
+    try {
+      const f = this.zip.fold;
+      const after = await at(f ? f.sha : 'main');
+      if (after === null) { s.note = 'no listing: the fold could not read this shortcut'; return; }
+      if (!f) {
+        s.note = this.zip.folded ? 'as it stands now; the commit that folded this zip was not found'
+                                 : 'as it stands now; this zip is not folded yet';
+        s.lines = after.split('\n').map(x => ({ t: ' ', s: x }));
+        return;
+      }
+      const before = f.parent ? await at(f.parent) : null;
+      if (before === null) { s.note = 'new with this dump'; s.lines = after.split('\n').map(x => ({ t: ' ', s: x })); return; }
+      const d = lineDiff(before.split('\n'), after.split('\n'));
+      const add = d.filter(x => x.t === '+').length, del = d.filter(x => x.t === '-').length;
+      s.note = add || del ? `changed with this dump: +${add} −${del} lines` : 'unchanged since the previous dump';
+      s.lines = add || del ? around(d, 2) : [];
+    } finally {
+      s.loading = false;
+    }
+  },
+
   // The rows of the detail's definition list: the verdict first, then what the
   // row carried, with the install fields read for what they mean.
   facts(e) {
     const out = [], v = this.v(e), short = r => /^[0-9a-f]{40}$/.test(r) ? r.slice(0, 7) : r;
     if (v) {
       const against = v.against.kind === 'pr' ? `PR #${v.against.pr}` : 'main';
+      const title = v.against.kind === 'pr' ? Object.values(this.base).find(b => b && b.pr === v.against.pr)?.title : '';
       out.push({ k: 'verdict', v: v.state === 'current' ? `current with ${against}` : `behind ${against}`,
-                 icon: this.stateIcon(v) });
+                 icon: this.stateIcon(v), note: title || '' });
       out.push({ k: 'build', v: v.build, mono: true, note: v.inferred ? `as published at ${short(v.ref)}` : '' });
       if (v.state === 'stale') out.push({ k: against, v: v.target, mono: true, note: 'publishes' });
     } else if (e.build) {
