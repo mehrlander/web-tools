@@ -15,10 +15,11 @@
 //
 // `new Function(src)` is the check because it is exactly what the loader does
 // with these files (docs/loader.md): they are function bodies, not modules, so
-// this compiles them under the same rules and runs nothing. The two real ES
-// modules under lib/ are excluded by their own syntax, since `export` at top
-// level is a parse error in a function body and would fail here for the wrong
-// reason.
+// this compiles them under the same rules and runs nothing. The real ES modules
+// under lib/ are excluded, since `export` or a top-level `await` is a parse
+// error in a function body and would fail here for the wrong reason. Two say so
+// by their own syntax; lib/entry.js has neither import nor export, only
+// top-level await, so it is named.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,8 +31,9 @@ const DIRS = ['lib', 'lib/kits', 'lib/alpineComponents'];
 
 // A file the loader would hand to `new Function`. ES modules are loaded as
 // modules and are not this test's subject.
-function loadable(src) {
-  return !/^\s*(export|import)\s/m.test(src);
+const MODULES = new Set(['lib/entry.js']);
+function loadable(src, rel) {
+  return !MODULES.has(rel) && !/^\s*(export|import)\s/m.test(src);
 }
 
 const files = DIRS.flatMap(dir =>
@@ -44,7 +46,7 @@ test('every loadable lib file compiles as a function body', () => {
   let checked = 0;
   for (const rel of files) {
     const src = readFileSync(path.join(repoRoot, rel), 'utf8');
-    if (!loadable(src)) continue;
+    if (!loadable(src, rel.split(path.sep).join('/'))) continue;
     checked++;
     try {
       new Function(src);

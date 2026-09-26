@@ -308,7 +308,8 @@ defangs a markdown link into an inert code span
 ([`scripts/mcp-link-safe.py`](../../scripts/mcp-link-safe.py) holds that
 limit); the page plus a branch name plus a full SHA runs to 207. Both routes
 take an abbreviated ref, confirmed rather than assumed: the contents API behind
-`?src=`, and jsDelivr behind `?use=`.
+`?src=`, and raw.githubusercontent behind `?use=` (rechecked 2026-09-26, when
+`?use=` moved there from jsDelivr).
 
 Each trap cost a handover in this format's own pull request, which is why the
 rule is in the command rather than in this paragraph.

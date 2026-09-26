@@ -33,8 +33,9 @@ function walk(dir, out = []) {
   return out;
 }
 
-// The loader line, as every page writes it: a template literal naming the ref.
-const LOADER = /fetch\(`https:\/\/raw\.githubusercontent\.com\/mehrlander\/web-tools\/\$\{ref\}[^`]*`([^)]*)\)/g;
+// The loader line: a template literal naming the ref. lib/entry.js names the
+// repo by variable too; the pre-build pages spell it out.
+const LOADER = /fetch\(`https:\/\/raw\.githubusercontent\.com\/(?:mehrlander\/web-tools|\$\{repo\})\/\$\{ref\}[^`]*`([^)]*)\)/g;
 
 const files = [
   ...walk(path.join(repoRoot, 'pages')),
@@ -53,7 +54,7 @@ test('every ?use= loader passes cache: no-store', () => {
       }
     }
   }
-  assert.ok(seen > 20, 'the pattern still matches the loaders (' + seen + ' found)');
+  assert.ok(seen >= 5, 'the pattern still matches the loaders (' + seen + ' found)');
   assert.deepEqual(offenders, [],
     'a ?use= ref moves, so its bundle must not come from the HTTP cache');
 });

@@ -90,14 +90,14 @@ test('exporter.relRefs counts what resolves only against the page\'s own locatio
 test('renderCopy reports relative refs on a chainless page and none on a baked one', async () => {
   const w = boot();
   w.buildKit = {
-    bakeable: (h) => /gh-api\.js/.test(h),
+    bakeable: (h) => /lib\/entry\.js/.test(h),
     collectCache: async () => ({ ghApiSrc: 'class GH {}', cache: {} }),
     emit: () => 'BUILD',
     bake: (h) => h.replace(/import\([^)]*\)/, 'import(window.__wtBuild)'),
   };
   w.gh.get = async (p) => ({ text: p === 'app/index.html'
     ? '<html><head><script type="module">await import("../dist/app.js");</script></head></html>'
-    : '<html><head><script type="module">await import("https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js");</script></head></html>' });
+    : '<html><head><script type="module">await import("https://mehrlander.github.io/web-tools/lib/entry.js");</script></head></html>' });
   const chainless = await w.exporter.renderCopy({ path: 'app/index.html', scripts: [], reads: [] });
   assert.equal(chainless.chainless, true);
   assert.equal(chainless.relRefs, 1, 'the dist import is a relative reference');

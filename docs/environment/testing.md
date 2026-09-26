@@ -30,8 +30,8 @@ working tree over loopback and intercepts every external request through
 [`tools/render/cdn.mjs`](../../tools/render/cdn.mjs), which resolves three
 kinds of traffic:
 
-- **Own code** (the jsDelivr `gh-api.js` import, then every contents-API
-  `gh.load`) → local files, so the render shows branch edits, committed or not.
+- **Own code** (the `lib/entry.js` import from Pages, the raw `gh-api.js` it
+  fetches, then every contents-API `gh.load`) → local files, so the render shows branch edits, committed or not.
 - **Own data**: `cdn.mjs` impersonates the GitHub API *for this repo only*.
   Contents listings, file reads, `/repos/<repo>` metadata, `git/trees`, and
   `commits` and `commits/<sha>` (from `git log`, `main` meaning HEAD) are

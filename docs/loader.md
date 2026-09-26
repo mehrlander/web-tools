@@ -39,25 +39,11 @@ Every loader-based page's `<head>` looks like this, with minor variation:
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href=".../daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script type="module">
-  // ?use=<branch|tag|sha> picks which ref the bundle loads from; defaults to main.
-  // gh-api.js auto-bootstraps (sets window.gh, chains gh-boot.js), so the page just
-  // chains gh.load() calls below. By the time the import resolves, gh-boot has
-  // already loaded gh-auth.js, gh-fetch.js, kits/console.js, and
-  // vanilla-bundle.js; gh-store.js stays opt-in.
-  //   - No ?use: import from jsDelivr @main; the bootstrap parses repo/ref from
-  //     that import URL (import.meta.url).
-  //   - ?use=<ref>: fetch gh-api.js from raw.githubusercontent (no branch-tip lag)
-  //     and blob-import it, handing repo/ref via window.__ghBlobBoot.
-  const ref = new URLSearchParams(location.search).get('use');
-  if (ref) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`);
-    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
+  // entry.js imports gh-api.js at that ref, which sets window.gh and chains
+  // gh-boot.js, so by the time the import resolves gh-auth.js, gh-fetch.js,
+  // kits/console.js, and vanilla-bundle.js are loaded; gh-store.js stays opt-in.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 
   // await gh.load('gh-store.js');                // optional: write methods
 
@@ -72,24 +58,36 @@ The page body then has `<body x-data="app()" x-init="init()">` and the
 components each use `x-data="repo()"`, `x-data="mention()"`,
 `x-data="viewer()"`.
 
-The `?use=` convention is opt-in per page. Pages that adopt it gain a runtime
-ref-pinning hatch: append `?use=<branch|tag|sha>` to the URL and every file
-loaded after `gh-api.js` comes from that ref instead of main. The HTML itself
-still comes from GitHub Pages on main; only the runtime-loaded files are
-ref-pinned. A branch name is cache-safe: the `?use=` boot fetches `gh-api.js`
-from `raw.githubusercontent` (no branch-tip cache) and blob-imports it, and
-`gh-api.js` then loads the rest through the contents API at that ref, both
-fresh on a just-pushed branch. jsDelivr serves only the no-`?use` `@main`
-default, which is cache-stable and shared.
+Every loader page gets the `?use=` hatch from `lib/entry.js`: append
+`?use=<branch|tag|sha>` to the URL and every file loaded after `gh-api.js`
+comes from that ref instead of main. The HTML itself, and `entry.js`, still
+come from GitHub Pages on main; only the runtime-loaded files are ref-pinned.
+`entry.js` brings `gh-api.js` in by one of two routes, and everything after
+it loads through the contents API at the same ref either way:
 
-The `gh-api.js` auto-bootstrap triggers on either signal: an import URL with an
-`@<ref>` segment pointing at `lib/gh-api.js` (the jsDelivr path), or
-`window.__ghBlobBoot = { repo, ref }` set before a blob-import (the `?use=`
-path, where `import.meta.url` is an opaque `blob:` URL). Either way it sets the
+- **No `?use=`:** a native import of main's `gh-api.js` from beside `entry.js`
+  on GitHub Pages, which serves JavaScript as JavaScript with a ten-minute
+  cache.
+- **`?use=<ref>`:** that ref's `gh-api.js` from `raw.githubusercontent`,
+  fetched `no-store` and blob-imported, since raw serves `text/plain` with
+  `nosniff`. A branch name is cache-safe this way: raw and the contents API
+  are both fresh on a just-pushed branch.
+
+The unpinned route stays a native import rather than the blob route at main
+because a toss shell hosting a frame survives the first on iPhone and dies on
+the second, measured on the device and recorded in `scripts/showing.py`, with
+the mechanism unknown. `entry.js` itself is served from Pages so that any page
+on any origin can import it. jsDelivr's `/gh/` route was the no-`?use` default
+until 2026-09-26 and is gone from live code: it cached a branch for about
+twelve hours and needed purges.
+
+The `gh-api.js` auto-bootstrap triggers on one signal:
+`window.__ghBlobBoot = { repo, ref }`, set by `entry.js` before either
+import. A signal rather than parsing `import.meta.url`, because on the `?use=`
+route that is an opaque `blob:` URL. It sets the
 loader's `loadBase` to `lib/`, so every later `gh.load('kits/x.js')` resolves
-under `lib/`. Older pages that hard-code the bundle URL without `@<ref>` and set
-no `__ghBlobBoot` are unaffected: neither signal matches, so the bootstrap
-stays dormant and the page instantiates `GH` by hand.
+under `lib/`. A page that imports `gh-api.js` any other way sets no signal, so
+the bootstrap stays dormant and the page instantiates `GH` by hand.
 
 ### What each piece contributes
 
@@ -99,14 +97,14 @@ stays dormant and the page instantiates `GH` by hand.
   request/cache plumbing. Read methods (`ls / repos / history / parseUrl / …`)
   live in `gh-fetch.js`, which patches them onto `GH.prototype`; write methods live in `gh-store.js`; token resolution
   lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
-  `GH.prototype` in place. **Auto-bootstrap:** when imported from a
-  `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/lib/gh-api.js` URL, the file parses
-  owner/repo/ref out of `import.meta.url`, instantiates `window.gh`, sets
+  `GH.prototype` in place. **Auto-bootstrap:** when `window.__ghBlobBoot`
+  names a repo and ref, the file instantiates `window.gh`, sets
   `window.__bundleRef`, sets `loadBase` to `lib/`, and chains `gh-boot.js`.
-  Pages can then skip `new GH(...)` and augmentation boilerplate by reading
-  `?use=` from the page URL and embedding it in the bundle's import URL.
-- `gh-boot.js` — the startup list, kept out of `gh-api.js` so new entries
-  don't require purging the loader from the jsDelivr cache. Loaded by the
+- `lib/entry.js` — the page's one import, from GitHub Pages. Reads `?use=`,
+  sets `window.__ghBlobBoot`, and imports `gh-api.js` by one of the two routes
+  above. Always main's copy, which is why it holds nothing but the boot.
+- `gh-boot.js` — the startup list, kept out of `gh-api.js` so the loader
+  itself changes rarely. Loaded by the
   auto-bootstrap. Its `BOOT` manifest is the unconditional sequence, declared
   as data so the cost of starting a page can be read without reading the boot
   function; as of 2026-09-08 it runs eight, in this order: `vanilla-bundle.js`,
@@ -168,7 +166,7 @@ stays dormant and the page instantiates `GH` by hand.
 ### The ambient surface
 
 What the boot chain leaves on `window`, in one place. A bootstrap page
-(the `@<ref>` jsDelivr import) gets all of it without loading anything
+(the `entry.js` import) gets all of it without loading anything
 itself; a page that instantiates `GH` by hand gets only what it loads.
 
 | Global | Installed by | What it is |
@@ -391,8 +389,8 @@ So the contract has two readings:
   contents API, freshest-wins, ref-pinnable with `?use=<ref>`. Edit a file in
   `lib/`, reload, see it. This is what the rest of this doc describes.
 - **Build** (delivery): the reachable set of own-code files is frozen into
-  `dist/<page>.js`, which a page adopts by pointing its `gh-api.js` import at
-  the local build instead of jsDelivr. `bake` goes one further and inlines
+  `dist/<page>.js`, which a page adopts by importing the local build instead
+  of `entry.js`. `bake` goes one further and inlines
   that into the page's HTML, so the page opens with zero own-code network. The
   build still honors `?use=<ref>` (an explicit ref falls through to the
   network), so a built page can be re-pinned for review.
@@ -423,25 +421,25 @@ commands, and the byte-identical `verify-build` guarantee — lives in
 A page in another repository that uses a `lib/` file takes the same two
 routes this repo's own pages take, and no third:
 
-- **The chain**, for a page that wants a few files: import `gh-api.js` from
-  jsDelivr at `@main`, then `gh.load()` each file, then `alpine-bundle.js`
-  last when a loaded file registers an Alpine component. `gh-api.js` is the
-  one file that comes through the CDN's branch cache (the purge rule in
-  `CLAUDE.md` covers it, and `gh-boot.js` is split out so it rarely changes);
-  every file after it is fetched at main's tip through the contents API, on
-  the token the browser holds, and is current on the next load.
+- **The chain**, for a page that wants a few files: import `lib/entry.js`
+  from GitHub Pages, then `gh.load()` each file, then `alpine-bundle.js` last
+  when a loaded file registers an Alpine component. Every file after
+  `entry.js` is fetched at main's tip (or the page's `?use=` ref) through raw
+  and the contents API, on the token the browser holds, and is current on the
+  next load.
 - **The pre-build**, for a page that wants the library whole: resolve `main`
   to its commit through the commits API, fetch `dist/web-tools.js` from
   raw.githubusercontent at that SHA, and blob-import it, which is the app's
   own `?use=` boot in `app/index.html`. A SHA is an address no cache can hold
   stale.
 
-**Not a plain `<script src>` at `@main`.** jsDelivr caches a branch URL
-twelve hours at the edge and tells the browser to keep it seven days, and a
-purge reaches only the edge. Measured 2026-09-04: PR #584 merged at 09:35 and
-the budget-drs submittal page in `mehrlander/home`, loading `viewer.js` that
-way, showed the old render all day. A plain tag is for a demo or a throwaway
-page, and for third-party libraries, which keep their CDN tags on both routes.
+**Not a plain `<script src>` for a `lib/` file.** Raw cannot back one (its
+`nosniff`), and GitHub Pages can only for main, which would skip `?use=`. That
+is why `entry.js` is the only file a page loads by URL. The host used before,
+jsDelivr, also cached a branch URL twelve hours at the edge and told the
+browser to keep it seven days. Measured 2026-09-04: PR #584 merged at 09:35 and the budget-drs
+submittal page in `mehrlander/home`, loading `viewer.js` that way, showed the
+old render all day. Third-party libraries keep their CDN tags on both routes.
 
 Two things differ from a page in this repo:
 
