@@ -195,6 +195,19 @@ test('tracked render draws each run of changes as one card and maps only the buf
     const s = +sp.dataset.src, t = sp.firstChild.data;
     assert.equal(text.slice(s, s + t.length), t, `run at ${s}`);
   }
+  assert.deepEqual([...host.querySelectorAll('[data-md-card="0"] [data-md-card-read]')].map((b) => b.textContent),
+    ['old', 'inline', 'new'], 'a run with both sides carries all three stops');
+  assert.deepEqual(window.MdSurface.cardModes(host, 1), ['inline'], 'a run that only adds has one reading, and no pill');
+  assert.ok(!host.querySelector('[data-md-card="1"] [data-md-card-read]'));
+  window.MdSurface.setReading(host, 0, 'new');
+  window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
+  assert.ok(!host.querySelector('[data-md-card="0"] del'), 'new is the text clean');
+  assert.ok(host.querySelector('[data-md-card="0"] [data-src]'), 'and it takes the caret');
+  const typedNew = text.replace('Added para.', 'Added para!');
+  window.MdSurface.paint(host, { text: typedNew, base, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(window.MdSurface.readingOf(host, 0), 'new', 'an edit keeps a card on new, since typing there is reading it');
+  window.MdSurface.setReading(host, 0, 'inline');
+  window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   window.MdSurface.setReading(host, 0, 'old');
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   assert.equal(window.MdSurface.readingOf(host, 0), 'old');
@@ -203,7 +216,7 @@ test('tracked render draws each run of changes as one card and maps only the buf
   assert.ok(!host.querySelector('[data-md-card="0"] [data-src]'), 'the original takes no caret');
   const typed = text.replace('Same para.', 'Same para!');
   window.MdSurface.paint(host, { text: typed, base, track: true, overlay: window.document.getElementById('box') });
-  assert.equal(window.MdSurface.readingOf(host, 0), 'inline', 'an edit returns every card to the marked text');
+  assert.equal(window.MdSurface.readingOf(host, 0), 'inline', 'an edit returns a card on the original to the marked text');
   assert.equal(window.mdDiff.revert(base, text, window.MdSurface.cards(host)[0]).split('Same')[0], base.split('Same')[0],
     'a card goes back to the original as a whole');
   host.__mdKey = null;
