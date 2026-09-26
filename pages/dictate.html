@@ -2112,6 +2112,9 @@
       setCardReading(i, mode) {
         window.MdSurface.setReading(this.$refs.md, i, mode);
         this.paint();
+        // On touch the reading slides in over 200ms, and the caret and pins
+        // are measured, so they are measured again once it has landed.
+        setTimeout(() => this.paint(), 240);
       },
       swipeCard(i, step) {
         const md = this.$refs.md;
