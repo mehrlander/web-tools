@@ -201,7 +201,11 @@ test('tracked render draws each run of changes as one card and maps only the buf
   assert.ok(!host.querySelector('[data-md-card="1"] [data-md-card-read]'));
   window.MdSurface.setReading(host, 0, 'new');
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
-  assert.ok(!host.querySelector('[data-md-card="0"] del'), 'new is the text clean');
+  assert.ok(!host.querySelector('[data-md-card="0"] [data-md-reading="new"] del'), 'new is the text clean');
+  assert.ok(host.querySelector('[data-md-card="0"] [data-md-reading="inline"].invisible'),
+    'the other readings stay in the card, invisible, so it keeps the tallest one\'s height');
+  assert.equal(host.querySelectorAll('[data-md-card="0"] [data-md-reading]:not(.invisible) [data-src]').length,
+    host.querySelectorAll('[data-md-card="0"] [data-src]').length, 'only the reading on screen is mapped');
   assert.ok(host.querySelector('[data-md-card="0"] [data-src]'), 'and it takes the caret');
   const typedNew = text.replace('Added para.', 'Added para!');
   window.MdSurface.paint(host, { text: typedNew, base, track: true, overlay: window.document.getElementById('box') });
