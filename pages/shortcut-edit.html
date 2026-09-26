@@ -73,18 +73,18 @@
         <button @click="foldToChange()" class="btn btn-xs btn-ghost"><i class="ph ph-arrows-in-line-vertical"></i>Fold to the change</button>
       </div>
 
-      <div class="bg-base-100 border border-base-300 rounded-box py-2" data-listing>
+      <div class="-mx-3 sm:mx-0 border-y sm:border border-base-300 sm:rounded-box py-1" data-listing>
         <template x-for="l in shown" :key="l.key">
-          <div :id="l.id" class="flex gap-1 pl-1 pr-3 py-0.5"
+          <div :id="l.id" class="flex items-baseline pr-3 py-0.5"
                :class="l.t === '+' ? 'bg-success/15' : l.t === '-' ? 'bg-error/10' : ''" :data-op="l.t">
-            <span class="w-7 shrink-0 text-right font-mono text-sm select-none"
+            <span class="w-8 shrink-0 text-right font-mono text-sm select-none"
                   :class="l.t === '+' ? 'text-success font-semibold' : l.t === '-' ? 'text-error' : 'opacity-40'"
                   x-text="l.t === ' ' ? l.i : l.t"></span>
-            <button x-show="l.kids" @click="toggle(l.key)" class="w-5 shrink-0 text-base-content/50" data-toggle
+            <button x-show="l.kids" @click="toggle(l.key)" class="w-4 shrink-0 text-center text-[0.6rem] leading-none text-base-content/40" data-toggle
                     :aria-label="shut[l.key] ? 'Expand' : 'Collapse'">
-              <i class="ph" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></button>
-            <span x-show="!l.kids" class="w-5 shrink-0"></span>
-            <code class="font-mono text-sm whitespace-pre-wrap break-words" :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template><span x-show="shut[l.key]" class="text-xs text-base-content/40" x-text="'  · ' + l.kids + (l.kids === 1 ? ' line' : ' lines')"></span></code>
+              <i class="ph-fill" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></button>
+            <span x-show="!l.kids" class="w-4 shrink-0"></span>
+            <code class="font-mono text-sm whitespace-pre-wrap break-words" :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template><button x-show="shut[l.key]" @click="toggle(l.key)" class="ml-2 px-1 rounded border border-base-content/30 text-xs text-base-content/50 align-middle" x-text="'⋯ ' + l.kids"></button></code>
           </div>
         </template>
       </div>
