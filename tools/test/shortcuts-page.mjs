@@ -170,7 +170,7 @@ const list = await page.evaluate(() => ({
   names: [...document.querySelectorAll('#rows a.link')].map(a => a.textContent),
   hrefs: [...document.querySelectorAll('#rows a.link')].map(a => a.getAttribute('href')),
   states: Object.fromEntries([...document.querySelectorAll('#rows > tr')].map(tr =>
-    [tr.querySelector('a.link').textContent, tr.children[3].textContent.trim()])),
+    [tr.querySelector('a.link').textContent, tr.children[3].querySelector('[aria-label]')?.getAttribute('aria-label') || ''])),
   icons: [...document.querySelectorAll('#rows > tr td:nth-child(4) i')].map(i => i.className),
   tally: document.getElementById('tally').textContent,
   status: document.getElementById('status').textContent,

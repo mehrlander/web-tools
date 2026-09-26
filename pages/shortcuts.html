@@ -365,7 +365,10 @@ const LOOK = {
 };
 const mark = s => {
   const m = node('span', 'inline-flex items-center gap-1 whitespace-nowrap text-sm');
-  m.append(node('i', 'text-lg ' + window.SyncStatus.ICON[LOOK[s].icon]), node('span', null, LOOK[s].word));
+  // Icon only on a phone, as the Overview's list draws it; the word returns
+  // where there is room, and the detail header always says it.
+  m.append(node('i', 'text-xl ' + window.SyncStatus.ICON[LOOK[s].icon]), node('span', 'hidden sm:inline', LOOK[s].word));
+  m.setAttribute('aria-label', LOOK[s].word);
   return m;
 };
 
