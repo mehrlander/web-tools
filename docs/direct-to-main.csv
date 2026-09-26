@@ -1,5 +1,10 @@
-﻿process,target_repo,path_pattern,writer,sync_discipline,purpose
+﻿process,target_repo,path_pattern,writer,sync_discipline,gloss
 tracker-state,all,"*/tracker/tasks/*.md, */tracker/board.*, trackers.md",agent / tasks-skill,immediate push on commit,cross-session memory and backlog status
 session-records,web-tools-private,"sessions/YYYY/MM/*.json",on-stop hook (git plumbing),throttled push during session,preserving ephemeral container transcripts
 personal-lists,web-tools-private,"lists/*.json",browser GitHub API,immediate push on user gesture,real-time personal capture
-crawl-caches,web-tools-private,"state/configs.json, state/activity.json",browser crawl / refresh script,throttled push on material change,caching cross-repo API scans
+crawl-caches,web-tools-private,"state/configs.json, state/activity.json, state/calls.json",browser crawl / refresh script,throttled push on material change,caching cross-repo API scans
+session-caches,web-tools-private,"state/sessions.json, state/session-menu.json, state/sessions-index/*.json",browser sessions crawl,throttled push on material change,indexing session records for search and menus
+shortcut-logs,web-tools-private,"shortcuts/log/*",device Log-Repo shortcut,immediate push per run,return channel for shortcut probes and installs
+page-reports,web-tools-private,"logs/page/*",browser page report,immediate push on user gesture,reports sent from a rendered page
+errands,web-tools-private,"errands/requests/*, errands/results/*",agent (requests) / Web Tools Stage (results),immediate push on commit,what a session needs a person or their browser to do
+notes,web-tools-private,"notes/notes.jsonl",agent / notes skill (git plumbing),immediate push per note,short signed observations about any subject

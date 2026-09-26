@@ -30,9 +30,10 @@ to see the vital choice and commit.
    choices handed to the owner are friction masquerading as diligence. Bring a
    question only when investigation establishes a consequential choice that
    requires the owner's judgment. Define its terms and say why it matters.
-4. **Findings go to the record they concern.** A finding about a task goes in
-   its `## Related` or `## Progress log`; a trap, in its `docs/SNAGS.md` entry;
-   anything else, in the reply. Create no record to hold a finding.
+4. **A finding is a note about its subject,** left with `/portable:notes`. A
+   trap still goes in its `docs/SNAGS.md` entry. Where no notes store is
+   reachable, the finding goes in the reply. Create no other record to hold a
+   finding.
 
 ## Process
 
