@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Shortcut Edit</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>✏️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+
+<!--
+  shortcut-edit.html — a proposed hand edit to a shortcut, shown where it goes.
+
+  A shortcut whose only copy is the device cannot be replaced by paste without
+  losing its file settings (share sheet, input types, icon), so a change to one
+  is a hand edit: cards pasted at one place in the editor. The editor has no
+  line numbers and no search, so the place has to be recognisable by what
+  surrounds it. This page is that reference, open in Safari beside the editor.
+
+  THE LINK CARRIES EVERYTHING. shortcut-tools' tools/edit.py applies the cards
+  to the newest exported copy of the shortcut, sketches it before and after,
+  and gzips {name, before, after, cards} into #gz=. No token and no fetch, so
+  the page opens anywhere and cannot disagree with what was proposed.
+
+  WHAT IS SHOWN. The after listing, in the Chains page's form (index gutter,
+  nesting kept as indent, verb in bold), with added lines marked and removed
+  lines struck through where they stood. Lines are matched on their text
+  without the index, since an insertion renumbers everything below it.
+  Unchanged runs far from a change collapse to a count. Each change names its
+  place as the blocks that enclose it and the lines either side, which is what
+  a reader scrolling the editor can actually match.
+-->
+</head>
+<body class="min-h-dvh bg-base-100">
+
+<div x-data="edit()" x-init="boot()" class="min-h-dvh flex flex-col">
+
+  <header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300 px-3 py-2 flex items-center gap-2">
+    <i class="ph ph-pencil-simple-line text-xl text-base-content/50"></i>
+    <h1 class="font-semibold truncate" x-text="body ? body.name : 'Shortcut edit'"></h1>
+    <span x-show="body" class="text-xs font-mono text-base-content/50 shrink-0" x-text="tally" data-tally></span>
+  </header>
+
+  <p x-show="err" class="text-error px-3 py-3" x-text="err" data-error></p>
+
+  <template x-if="body">
+    <div class="flex flex-col gap-3 p-3">
+
+      <div class="flex flex-wrap gap-2" data-actions>
+        <a :href="copyHref" class="btn btn-primary btn-sm"><i class="ph ph-clipboard-text"></i>1 · Copy the cards</a>
+        <a :href="openHref" class="btn btn-sm"><i class="ph ph-pencil-simple"></i><span x-text="'2 · Open ' + body.name"></span></a>
+      </div>
+
+      <template x-for="(h, n) in hunks" :key="n">
+        <button @click="jump(h.at)" class="text-left bg-base-200 rounded-box px-3 py-2 flex flex-col gap-1" data-place>
+          <div class="flex flex-wrap items-center gap-1 text-sm">
+            <template x-for="(p, k) in h.path" :key="k">
+              <span class="flex items-center gap-1">
+                <i x-show="k" class="ph ph-caret-right text-xs text-base-content/40"></i>
+                <code class="font-mono" x-text="p"></code>
+              </span>
+            </template>
+          </div>
+          <div class="text-sm font-mono"><span class="text-success font-semibold" x-text="h.verb"></span><template x-if="h.above"><span><span class="text-base-content/50"> after </span><span x-text="h.above"></span></span></template><template x-if="h.below"><span><span class="text-base-content/50">, before </span><span x-text="h.below"></span></span></template></div>
+        </button>
+      </template>
+
+      <div class="bg-base-100 border border-base-300 rounded-box py-2" data-listing>
+        <template x-for="(r, k) in rows" :key="k">
+          <div>
+            <template x-if="r.fold">
+              <button @click="r.fold = false" class="w-full text-left px-3 py-1 text-xs font-mono text-base-content/40 hover:bg-base-200"
+                      x-text="'⋯ ' + r.lines.length + ' unchanged'"></button>
+            </template>
+            <template x-if="!r.fold">
+              <div>
+                <template x-for="l in r.lines" :key="l.key">
+                  <div :id="l.id" class="flex gap-2 px-3 py-0.5"
+                       :class="l.t === '+' ? 'bg-success/15' : l.t === '-' ? 'bg-error/10' : ''" :data-op="l.t">
+                    <span class="w-7 shrink-0 text-right font-mono text-sm select-none"
+                          :class="l.t === '+' ? 'text-success font-semibold' : l.t === '-' ? 'text-error' : 'opacity-40'"
+                          x-text="l.t === ' ' ? l.i : l.t"></span>
+                    <code class="font-mono text-sm whitespace-pre-wrap break-words" :class="l.t === '-' && 'line-through opacity-60'"
+                          x-html="paint(l.s)"></code>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>
+
+<script>
+// sketch.py writes "%3d %s": a right-aligned index, then the nesting as two
+// spaces per level, the verb, and one summarised parameter.
+const INDEX = 4;
+const CONTEXT = 3;
+const parse = t => t.split('\n').filter(Boolean).map(raw => ({ i: raw.slice(0, INDEX).trim(), s: raw.slice(INDEX) }));
+const depth = s => s.match(/^ */)[0].length;
+
+async function inflate(b64) {
+  const b = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+  const bytes = Uint8Array.from(b, c => c.charCodeAt(0));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+
+// Longest common subsequence on the text without its index, and with each «N»
+// masked: an insertion renumbers every line below it, so the references do
+// too, and compared as written every later line would read as changed. The
+// cost is that a change to a reference alone goes unseen; an edit this page
+// shows adds or removes cards, which that does not hide.
+const key = s => s.replace(/«\d+»/g, '«»');
+function diff(a, b) {
+  const A = a.map(l => key(l.s)), B = b.map(l => key(l.s));
+  const n = a.length, m = b.length, L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { out.push({ t: ' ', ...b[j] }); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) out.push({ t: '-', ...a[i++] });
+    else out.push({ t: '+', ...b[j++] });
+  }
+  while (i < n) out.push({ t: '-', ...a[i++] });
+  while (j < m) out.push({ t: '+', ...b[j++] });
+  return out.map((l, k) => ({ ...l, key: k, id: 'D' + k }));
+}
+
+// The blocks enclosing line k: each earlier line at a shallower indent. A menu
+// case sits at its menu's indent, so the menu itself is named beside it.
+function path(lines, k) {
+  const out = [];
+  let d = depth(lines[k].s);
+  for (let i = k - 1; i >= 0 && d > 0; i--) {
+    const e = depth(lines[i].s);
+    if (e < d) {
+      out.unshift(lines[i].s.trim());
+      if (/^case\b/.test(lines[i].s.trim())) {
+        for (let j = i - 1; j >= 0; j--)
+          if (depth(lines[j].s) === e && /^menu\b/.test(lines[j].s.trim())) { out.unshift(lines[j].s.trim()); break; }
+          else if (depth(lines[j].s) < e) break;
+      }
+      d = e;
+    }
+  }
+  return out;
+}
+
+document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
+  body: null,
+  err: '',
+  rows: [],
+  hunks: [],
+  get tally() {
+    const all = this.rows.flatMap(r => r.lines);
+    const add = all.filter(l => l.t === '+').length, del = all.filter(l => l.t === '-').length;
+    return [add && `+${add}`, del && `−${del}`].filter(Boolean).join(' ');
+  },
+  get copyHref() {
+    return 'shortcuts://run-shortcut?name=Copy-ActionFromUrl&input=text&text=' + encodeURIComponent(this.body.cards);
+  },
+  get openHref() {
+    return 'shortcuts://open-shortcut?name=' + encodeURIComponent(this.body.name);
+  },
+
+  async boot() {
+    const m = /[#&]gz=([^&]+)/.exec(location.hash);
+    if (!m) { this.err = 'No edit in this link.'; return; }
+    try { this.body = await inflate(m[1]); } catch (e) { this.err = 'This link does not decode: ' + e.message; return; }
+    const d = diff(parse(this.body.before), parse(this.body.after));
+
+    // One place per run of changed lines, named in the after listing's terms.
+    const kept = d.filter(l => l.t !== '-');
+    for (let k = 0; k < d.length; k++) {
+      if (d[k].t === ' ' || (k && d[k - 1].t !== ' ')) continue;
+      let e = k; while (e + 1 < d.length && d[e + 1].t !== ' ') e++;
+      const run = d.slice(k, e + 1), first = run.find(l => l.t === '+') || run[0];
+      const at = kept.indexOf(first);
+      const above = d.slice(0, k).reverse().find(l => l.t === ' ');
+      const below = d.slice(e + 1).find(l => l.t === ' ');
+      const add = run.filter(l => l.t === '+').length, del = run.filter(l => l.t === '-').length;
+      this.hunks.push({
+        at: d[k].id,
+        path: at >= 0 ? path(kept, at) : [],
+        verb: [add && `add ${add} card${add > 1 ? 's' : ''}`, del && `remove ${del}`].filter(Boolean).join(', '),
+        above: above ? above.s.trim() : '',
+        below: below ? below.s.trim() : '',
+      });
+    }
+
+    // Unchanged runs more than CONTEXT lines from a change fold to a count.
+    const near = d.map((_, k) => d.slice(Math.max(0, k - CONTEXT), k + CONTEXT + 1).some(l => l.t !== ' '));
+    for (let k = 0; k < d.length;) {
+      let e = k; while (e < d.length && near[e] === near[k]) e++;
+      this.rows.push({ fold: !near[k] && e - k > 1, lines: d.slice(k, e) });
+      k = e;
+    }
+    this.$nextTick(() => this.hunks[0] && this.jump(this.hunks[0].at));
+  },
+
+  jump(id) { document.getElementById(id)?.scrollIntoView({ block: 'center' }); },
+
+  // The Chains page's colouring: the verb bold, «N» references, "literals"
+  // and $sources each in their own tone.
+  paint(s) {
+    const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const lead = s.match(/^ */)[0], rest = s.slice(lead.length);
+    const verb = /^[a-z#][a-z #<>.\-]*/.exec(rest);
+    const tail = verb ? rest.slice(verb[0].length) : rest;
+    const body = esc(tail).replace(/«\d+»|"[^"]*"|\$[A-Za-z]+/g, t =>
+      t.startsWith('«') ? `<span class="text-primary">${t}</span>`
+      : t.startsWith('$') ? `<span class="text-secondary">${t}</span>`
+      : `<span class="text-success">${t}</span>`);
+    return lead + (verb ? `<span class="font-semibold">${esc(verb[0])}</span>` : '') + body;
+  },
+})));
+</script>
+</body>
+</html>
