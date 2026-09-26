@@ -274,3 +274,7 @@ test("stale:'geometry' keeps Escape and the press outside", async () => {
 test('LEGACY: window.Card still resolves to the panel-tip kit', () => {
   assert.equal(window.Card, window.PanelTip);
 });
+
+test('LEGACY: the ✕ still carries data-wt-card-close for pages that select it', () => {
+  assert.match(PanelTip.closeHTML(true), /data-wt-card-close/);
+});

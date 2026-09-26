@@ -47,7 +47,7 @@ lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line pe
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/note.js,,LEGACY path: renamed to title-tip.js on 2026-09-26.,4,no,no,0,no
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
-lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,307,no,yes,3,yes
+lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,308,no,yes,3,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2063,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,343,no,yes,7,yes

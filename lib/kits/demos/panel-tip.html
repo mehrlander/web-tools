@@ -69,11 +69,11 @@
 // times across this estate before the kit existed.
 const FUNDS = [
   { fund: '600-1', lane: 'appropriated', amt: '92,118',
-    title-tip: 'The appropriated lane of fund 600. Reconciles to the enacted ledger to the dollar, which the non-appropriated lane on the same fund number never does.' },
+    note: 'The appropriated lane of fund 600. Reconciles to the enacted ledger to the dollar, which the non-appropriated lane on the same fund number never does.' },
   { fund: '600-2', lane: 'non-appropriated', amt: '41,006',
-    title-tip: 'Reported on the same fund number as the lane above and never nets into it. Plan 3 recordkeeping sits here.' },
+    note: 'Reported on the same fund number as the lane above and never nets into it. Plan 3 recordkeeping sits here.' },
   { fund: '888-6', lane: 'gated', amt: '252',
-    title-tip: 'Released by proviso rather than appropriated outright, so the balance moves only when the gate opens.' },
+    note: 'Released by proviso rather than appropriated outright, so the balance moves only when the gate opens.' },
 ];
 
 const el = document.getElementById('demo-panel-tip');
@@ -86,7 +86,7 @@ const paint = () => {
   // with no hover, since a touch opens this panel-tip through a hover it never leaves.
   el.innerHTML = PanelTip.closeHTML(pinned)
     + `<div class="font-semibold pr-6">${row.fund} · ${row.lane}</div>`
-    + `<div class="text-base-content/70 mt-1">${row.title-tip}</div>`
+    + `<div class="text-base-content/70 mt-1">${row.note}</div>`
     + `<div class="mt-1.5 pt-1.5 border-t border-base-300 text-base-content/50">`
     + `Authored in <a class="link link-primary" href="#funds" onclick="return false">funds.csv</a>`
     + ` <span class="text-primary/60">↗</span></div>`;
