@@ -16,7 +16,7 @@ docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis
 docs/direct-to-main.csv,4,6,678,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""purpose""]"
 docs/docs.csv,109,7,28226,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
 docs/harness.csv,287,8,55319,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
-docs/kits.csv,101,8,12814,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
+docs/kits.csv,101,8,12822,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,74,6,19694,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
 docs/owners.csv,11,4,1687,"[""subject"",""kind"",""applies_to"",""authoritative""]"
 docs/portable.csv,52,6,7866,"[""kind"",""command"",""path"",""title"",""role"",""use""]"

@@ -5,7 +5,7 @@ lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier fo
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",384,no,no,7,yes
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",612,no,no,6,yes
 lib/kits/brief.js,brief,"assemble a page into a review brief: one markdown document holding the page source plus the source of the modules the page itself loaded, sized for pasting…",238,no,no,3,yes
-lib/kits/card.js,,LEGACY path: renamed to panel-tip.js on 2026-09-26.,4,no,no,1,no
+lib/kits/card.js,Card,LEGACY path: renamed to panel-tip.js on 2026-09-26.,6,no,no,1,no
 lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, read one month at a time.",329,no,no,4,yes
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,7,yes
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
@@ -45,7 +45,7 @@ lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",572,no,no,1,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
-lib/kits/note.js,,LEGACY path: renamed to title-tip.js on 2026-09-26.,4,no,no,0,no
+lib/kits/note.js,Note,LEGACY path: renamed to title-tip.js on 2026-09-26.,6,no,no,0,no
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
 lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,308,no,yes,3,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2063,no,no,6,yes
