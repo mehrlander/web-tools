@@ -7,14 +7,14 @@
 //       [--height N] [--wait MS] [--full] [--touch]
 //
 // The page is served from the on-disk working tree over loopback; every external
-// request is intercepted and resolved by tools/render/cdn.mjs — own code (gh-api.js
-// via jsDelivr, the rest via the GitHub contents API) to local files, third-party
+// request is intercepted and resolved by tools/render/cdn.mjs — own code (entry.js
+// via Pages, gh-api.js via raw, the rest via the contents API) to local files, third-party
 // libs (Tailwind/daisyUI/Phosphor/Alpine) to node_modules. So the real gh.load
 // chain runs unmodified against branch code, with no GitHub token.
 //
 // --build renders the page through its dist/<page>.js instead of the live
-// gh.load chain (build it first with tools/build/build.mjs): the page's jsDelivr
-// gh-api.js import is rewritten to the local build. Used by tools/build/verify-build.mjs
+// gh.load chain (build it first with tools/build/build.mjs): the page's entry.js
+// import is rewritten to the local build. Used by tools/build/verify-build.mjs
 // to prove the two render identically.
 //
 // Output PNG + a render log land under tools/.preview/ (gitignored) by default.
@@ -71,17 +71,17 @@ const suffix = (opts.build ? '.build' : '') + scriptName;
 const pngPath = opts.out ? path.resolve(repoRoot, opts.out) : path.join(outDir, `${baseName}${suffix}.png`);
 const logPath = path.join(outDir, `${baseName}${suffix}.shot.log`);
 
-// In --build mode, rewrite the page's jsDelivr gh-api.js import to the local
-// dist build so the page boots offline from cache instead of the gh.load chain.
+// In --build mode, rewrite the page's entry.js import to the local dist build
+// so the page boots offline from cache instead of the gh.load chain.
 function transformPage(html) {
   if (!opts.build) return html;
   const buildRel = `/dist/${baseName}.js`;
   if (!existsSync(path.join(repoRoot, 'dist', `${baseName}.js`))) {
     throw new Error(`--build: dist/${baseName}.js not found; run: node tools/build/build.mjs ${opts.page}`);
   }
-  // Replace the dynamic import of gh-api.js (any ref/template form) with the build.
-  const re = /(['"`])https:\/\/cdn\.jsdelivr\.net\/gh\/mehrlander\/web-tools[^'"`]*\/lib\/gh-api\.js\1/g;
-  if (!re.test(html)) throw new Error('--build: no gh-api.js jsDelivr import found in page to rewrite');
+  // Replace the entry.js import with the build.
+  const re = /(['"`])https:\/\/mehrlander\.github\.io\/web-tools\/lib\/entry\.js\1/g;
+  if (!re.test(html)) throw new Error('--build: no entry.js import found in page to rewrite');
   return html.replace(re, JSON.stringify(buildRel));
 }
 

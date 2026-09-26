@@ -60,14 +60,8 @@
 </div>
 
 <script type="module">
-  const REPO = 'mehrlander/web-tools';
-  const BRANCH = 'main';
-  const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
-
   try {
-    const mod = await import(`${CDN}/lib/gh-api.js`);
-    window.GH = mod.default;
-    const gh = new window.GH({ repo: REPO, ref: BRANCH, loadBase: 'lib/' });
+    await import('https://mehrlander.github.io/web-tools/lib/entry.js');
     await gh.load('kits/compression.js');
     await gh.load('kits/io.js');
     await gh.load('kits/cm6.js');

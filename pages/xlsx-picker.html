@@ -266,17 +266,7 @@
   // The repo's standard boot. ?use=<ref> pins the chain to a branch so an
   // edit can be previewed before it is on main, exactly as the other
   // loader-based pages do.
-  const useRef = new URLSearchParams(location.search).get('use');
-  if (useRef) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref: useRef };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${useRef}/lib/gh-api.js`,
-                          { cache: 'no-store' });
-    if (!r.ok) throw new Error(`?use=${useRef}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 
   // The reader first: kits/xlsx-write.js reads window.xlsxKit and refuses to
   // run without it, which is the dependency stated rather than assumed.

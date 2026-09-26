@@ -51,20 +51,6 @@
 </div>
 
 <script>
-  // Everything this page reads comes from ONE ref, resolved in this order: the
-  // ref a toss render stamped, then ?use=, then main. Relative paths would not
-  // do, because a toss stamps a <base> at the owner's github.io: on a branch
-  // link `../report-layout.js` would quietly load whatever main has, which for
-  // a kit added on the branch is nothing at all.
-  const REF = window.__ref || new URLSearchParams(location.search).get('use') || 'main';
-  const BASE = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${REF}/`;
-
-  const script = src => new Promise((ok, no) => {
-    const tag = document.createElement('script');
-    tag.src = src; tag.onload = ok; tag.onerror = () => no(new Error(src));
-    document.head.append(tag);
-  });
-
   window.reportDemo = () => ({
     templates: [
       { file: 'three-way-compare.json', name: 'Three-way compare' },
@@ -75,7 +61,8 @@
     rows: [], rowsText: '', specText: '', html: '', model: null, bad: false, copied: false,
 
     async load() {
-      const data = f => fetch(BASE + 'data/report-layout/' + f).then(r => r.text());
+      // Through the loader, like the kits, so ?use=<ref> pins the data too.
+      const data = async f => (await gh.get('data/report-layout/' + f)).text;
       if (!this.rowsText) {
         this.rowsText = await data('three-way-compare.csv');
         this.rows = Csv.rows(this.rowsText);
@@ -106,9 +93,10 @@
   // Alpine goes last, after the kits its first x-init will reach: an inline
   // x-data needs only its factory defined, but draw() calls ReportLayout on the
   // same tick.
-  for (const f of ['lib/vanilla-bundle.js', 'lib/kits/csv.js', 'lib/kits/report-layout.js'])
-    await script(BASE + f);
-  await script('https://unpkg.com/alpinejs');
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  for (const f of ['vanilla-bundle.js', 'kits/csv.js', 'kits/report-layout.js']) await gh.load(f);
+  document.head.append(Object.assign(document.createElement('script'), { src: 'https://unpkg.com/alpinejs' }));
 </script>
 </body>
 </html>

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Stamp a userscript body and emit its stub, its bookmarklet twin, and a purge link.
+"""Stamp a userscript body and emit its stub and its bookmarklet twin.
 
 A userscript installed on the phone is a file nobody can edit there, so every
 script here is a STUB: a header naming what it matches and one @require pulling
-the body from jsDelivr. The question is what that @require pins to, and the
+the body from raw.githubusercontent. The question is what that @require pins to, and the
 answer changed on 2026-09-06.
 
 A COMMIT PIN meant every edit was a reinstall, because a new commit is a new
 file to install, and the install is the one step on the device. So the stub
 pins a BRANCH and never changes again: push, and the next page load runs the new
 body. See the note on REQUIRE below for why the userscript reads raw and the
-bookmarklet reads the CDN, and why only the second one needs purging.
+bookmarklet reads GitHub Pages.
 
 What the commit pin gave for free was knowing which copy ran. The stamp buys it
 back: `#BUILD#` in the body is replaced here by a short hash of the body itself,
@@ -37,19 +37,16 @@ import sys
 # TWO SOURCES FOR ONE FILE, and the split is forced rather than chosen.
 #
 # The userscript's @require goes to raw.githubusercontent, whose cache is five
-# minutes and needs no purge. jsDelivr caches a branch for about twelve hours,
-# propagates a purge per edge, and rate-limits purging to roughly hourly per
-# path: measured on 2026-09-06, an hour after a push it was still serving two
-# builds back with the purge window closed. That is the wrong trade for a file
-# edited several times an hour, which is what a script under development is.
+# minutes and follows any ref.
 #
 # The bookmarklet cannot follow it there. It loads the body through a script
 # tag, and raw serves text/plain with nosniff, which a browser refuses to
-# execute; jsDelivr serves it as JavaScript. So the bookmarklet keeps the CDN
-# and keeps needing the purge, and the generator still prints that URL.
+# execute. GitHub Pages serves the same file as JavaScript, with a ten-minute
+# cache and no purge step, but only as main has it: a stub pinned to a branch
+# gets a bookmarklet that still runs main. jsDelivr was the host here until
+# 2026-09-26; it cached a branch for about twelve hours and rate-limited purges.
 REQUIRE = 'https://raw.githubusercontent.com/mehrlander/web-tools/{ref}/userscripts/lib/{lib}.js'
-CDN = 'https://cdn.jsdelivr.net/gh/mehrlander/web-tools@{ref}/userscripts/lib/{lib}.js'
-PURGE = 'https://purge.jsdelivr.net/gh/mehrlander/web-tools@{ref}/userscripts/lib/{lib}.js'
+PAGES = 'https://mehrlander.github.io/web-tools/userscripts/lib/{lib}.js'
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 STAMP = re.compile(r"^const BUILD = '([^']*)';$", re.M)
 BUILT = re.compile(r"^const BUILT = '([^']*)';$", re.M)
@@ -123,7 +120,7 @@ def main() -> int:
     rows[a.lib] = {'build': build, 'built': built}
     mf.write_text(json.dumps(dict(sorted(rows.items())), indent=2) + '\n', encoding='utf-8', newline='\n')
     req = REQUIRE.format(ref=ref, lib=a.lib)
-    url = CDN.format(ref=ref, lib=a.lib)
+    url = PAGES.format(lib=a.lib)
     matches = '\n'.join(f'// @match       {m}' for m in a.match)
 
     (ROOT / 'userscripts' / f'{a.lib}.user.js').write_text(f"""\
@@ -210,8 +207,8 @@ def main() -> int:
     print(f'  userscripts/{a.lib}.user.js')
     print(f'  bookmarklets/{a.lib}.js')
     print(f'  {MANIFEST}')
-    print(f'  the userscript reads raw, which needs no purge (max-age 300)')
-    print(f'  the bookmarklet reads the CDN: {PURGE.format(ref=ref, lib=a.lib)}')
+    print(f'  the userscript reads raw at {ref} (max-age 300)')
+    print(f'  the bookmarklet reads GitHub Pages, which serves main (max-age 600)')
     return 0
 
 
