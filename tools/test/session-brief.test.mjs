@@ -511,7 +511,7 @@ test('a clamped box is never a button, because Safari sizes one from its unclipp
   assert.doesNotMatch(fn, /h\('button'/, 'and never the element, which would size from the clip');
 });
 
-test('a fact carries its definition on data-note, not in a title', () => {
+test('a fact carries its definition on data-title-tip, not in a title', () => {
   const d = lent();
   const el = window.document.getElementById('lent');
   // Half the strip is exact about something the plain word is not, so the
@@ -526,12 +526,12 @@ test('a fact carries its definition on data-note, not in a title', () => {
   assert.ok(strip, 'the facts strip');
   assert.equal(strip.querySelectorAll('[title]').length, 0, 'no fact is stranded in a title');
 
-  // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/note.js` is this
+  // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
   // estate's tier between a title and a built panel, and a strip definition is
   // what that kit calls its own case: a string a reader looks at. This file
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
-  const noted = [...el.querySelectorAll('[data-note]')];
+  const noted = [...el.querySelectorAll('[data-title-tip]')];
   // Every fact, plus three notes that are not facts about the SESSION: the id,
   // the `running <ref>` marker naming the ref this page's own code booted from,
   // and the scope row, whose note says what tapping it will do. They are found
@@ -554,7 +554,7 @@ test('a fact carries its definition on data-note, not in a title', () => {
   // "day" or "calls" would find the definition of whichever fact happened to
   // start with those letters. The rendered text is what a reader points at, so
   // it is what the note has to be attached to.
-  const byNote = new Map(noted.map(n => [n.textContent.replace(/\s+/g, ' ').trim(), n.getAttribute('data-note')]));
+  const byNote = new Map(noted.map(n => [n.textContent.replace(/\s+/g, ' ').trim(), n.getAttribute('data-title-tip')]));
   for (const f of d.strip) {
     const shown = String(f.v) + (f.unit ? ' ' + f.unit : '');
     assert.ok(byNote.has(shown), 'strip row ' + f.k + ' is on the page as "' + shown + '"');
@@ -566,21 +566,21 @@ test('a fact carries its definition on data-note, not in a title', () => {
   // (2026-08-05-b8fae678), and reading the note as written is what produced a
   // dead session link on 2026-09-05. The positive wording is free to move; the
   // conflation is what has to stay fixed.
-  const idNote = noted.find(n => /^\(/.test(n.textContent))?.getAttribute('data-note') || '';
+  const idNote = noted.find(n => /^\(/.test(n.textContent))?.getAttribute('data-title-tip') || '';
   assert.ok(idNote.length > 20, 'the id carries a definition');
   assert.doesNotMatch(idNote, /filename stem/, 'the id is part of the stem, not the whole of it');
 });
 
-test('the kit that draws the notes is in the chain that loads them', () => {
-  // A `data-note` with nothing listening is a fact that renders as a dotted
+test('the kit that draws the title-tips is in the chain that loads them', () => {
+  // A `data-title-tip` with nothing listening is a fact that renders as a dotted
   // underline and says nothing when touched, which is worse than the title it
   // replaced. Nothing else on this page loaded the kit before.
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
-  assert.match(src, /'kits\/note\.js'/);
+  assert.match(src, /'kits\/title-tip\.js'/);
   assert.match(src, /'kits\/closing-state\.js'/);
   // The early return must count every kit the chain loads, or a host that
   // already has the first three skips the rest and the page renders half-drawn.
-  assert.match(src, /&& window\.Note && window\.ClosingState\) return;/,
+  assert.match(src, /&& window\.TitleTip && window\.ClosingState\) return;/,
     'the early return counts them, or the chain never runs');
 });
 
@@ -657,8 +657,8 @@ test('the act is one mark on the facts strip, not a row of its own', () => {
   assert.doesNotMatch(link[0], /<span/, 'and no words beside it');
   // THE WORDS ARE NOT LOST, they are one hover or tap away. A note reaches a
   // touch screen and a screenshot, which is the property that lets an icon
-  // carry an act here where a title attribute could not (kits/note.js).
-  assert.match(link[0], /data-note=/, 'the note says what will happen');
+  // carry an act here where a title attribute could not (kits/title-tip.js).
+  assert.match(link[0], /data-title-tip=/, 'the note says what will happen');
   assert.match(link[0], /aria-label="Prepare a follow-up session"/,
     'and the same act is named for a reader who gets no note at all');
 });
@@ -669,7 +669,7 @@ test('the note names the checkouts and promises nothing runs unasked', () => {
   // Scoped to the anchor: the facts on the strip carry notes of their own, and
   // a document-wide match reads whichever comes first.
   const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/)[0];
-  const note = link.match(/:data-note="([\s\S]*?)"\s*>/);
+  const note = link.match(/:data-title-tip="([\s\S]*?)"\s*>/);
   assert.ok(note, 'the note is bound rather than written down, so it carries the real scope');
   assert.match(note[1], /scopeNames/, 'which is the same list the strip prints');
   assert.match(note[1], /Nothing runs until you send it/,
