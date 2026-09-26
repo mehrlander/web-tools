@@ -9,7 +9,7 @@
 // buffer, whether a filed note really stops coming back, and whether the
 // controls are where a thumb can reach them. The last one is not a style
 // question. The first headless shot of this page showed Save sitting under the
-// FAB launcher, which is fixed at bottom-6 right-6 on every page that boots the
+// FAB launcher, which is fixed at the bottom right of every page that boots the
 // lib chain: a primary action covered by standing equipment, invisible in the
 // source and invisible to jsdom, which has no layout. Save is four buttons now
 // (Copy, Share, Jot, Drop, flattened out of the sheet on 2026-08-27), so the
@@ -123,14 +123,13 @@ const say = async (t, final = true) => {
 const buffer = () => page.evaluate(() => document.querySelector('[x-ref="body"]').textContent);
 
 try {
-  // ── 1. The corner belongs to the cursor pad ──────────────────────────
-  // The FAB launcher is fixed at bottom-6 right-6 on every page that boots
-  // the lib chain, and it sat on this page's send button until the layout
-  // reserved the corner. Once the composer's grid came across, the corner
-  // became the CURSOR PAD's, which is the one control here that is held and
-  // dragged rather than tapped, so the page opts out of the FAB entirely
-  // (data-no-fab). Both halves are asserted, because a silently returning
-  // launcher would land on the pad and the source would not say so.
+  // ── 1. The FAB rides above the key rows ──────────────────────────────
+  // The FAB launcher is fixed at the bottom right of every page that boots
+  // the lib chain. This page declined it (data-no-fab) while the corner held
+  // the cursor pad; the pad moved to the header, and the FAB is wanted here
+  // for its ref bar. The page lifts it with --fab-bottom, so the assertion is
+  // that it is present and covers no button, since a launcher at its default
+  // corner lands on the backspace key and Send and the source would not say so.
   console.log('geometry at 390x844:');
   await open();
   const boxes = await page.evaluate(() => {
@@ -139,15 +138,19 @@ try {
     return {
       copy: r([...document.querySelectorAll('button')].find(b => /Copy/.test(b.textContent))),
       drop: r([...document.querySelectorAll('button')].find(b => /Drop/.test(b.textContent))),
-      pad: r(document.querySelector('button:has(i.ph-crosshair)')),
+      pad: r(document.querySelector('[data-dictate-ui] button:has(i.ph-crosshair)')),
       mic: r(document.querySelector('button[title*="listening"], button[title*="Recording"]')),
       back: r(document.querySelector('button:has(i.ph-backspace)')),
-      fab: r(document.querySelector('.fixed.bottom-6.right-6')),
+      fab: r(document.querySelector('[class*="--fab-bottom"].fixed')),
+      buttons: [...document.querySelectorAll('button')].filter(b => b.offsetParent && !b.closest('[class*="--fab-bottom"]'))
+        .map(b => b.getBoundingClientRect().toJSON()),
       h: innerHeight, docH: document.body.scrollHeight, w: innerWidth,
     };
   });
-  ok('the page declines the FAB, so nothing is fixed over the corner', !boxes.fab,
-    JSON.stringify(boxes.fab));
+  const hit = boxes.fab && boxes.buttons.filter(b => b.width && b.height &&
+    b.left < boxes.fab.right && b.right > boxes.fab.left && b.top < boxes.fab.bottom && b.bottom > boxes.fab.top);
+  ok('the FAB is mounted', !!boxes.fab, 'no launcher found');
+  ok('and it covers no button', !!boxes.fab && hit.length === 0, JSON.stringify(hit));
   // The instruments live in the HEADER now: record, undo, redo and the target
   // are each tapped a handful of times a session, and the bottom of a phone
   // belongs to whatever is tapped every sentence.
@@ -183,7 +186,7 @@ try {
     `left=${boxes.copy?.left} right=${boxes.drop?.right} of ${boxes.w}`);
   ok('no Save button survives',
     !(await page.evaluate(() =>
-      [...document.querySelectorAll('button')].some(b => /^\s*Save\s*$/.test(b.textContent)))));
+      [...document.querySelectorAll('[data-dictate-ui] button')].some(b => /^\s*Save\s*$/.test(b.textContent)))));
   // FOUR ACROSS, and the fourth is Send rather than Share. Share was bound to
   // navigator.share, which headless Chromium does not have, so this had to
   // force `canShare` to measure a row the browser would not otherwise draw.
@@ -193,8 +196,8 @@ try {
   // is the one that decides whether a name still fits beside its icon.
   const four = await page.evaluate(() => new Promise(done =>
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      done([...document.querySelectorAll('button')]
-        .filter(x => /^(Copy|Send|Jot|Drop)$/.test(x.textContent.trim()))
+      done([...document.querySelectorAll('[data-dictate-ui] button')]
+        .filter(x => x.offsetParent && /^(Copy|Send|Jot|Drop)$/.test(x.textContent.trim()))
         .map(x => ({ name: x.textContent.trim(), ...x.getBoundingClientRect().toJSON() })));
     }))));
   ok('all four fit the row at phone width', four.length === 4
@@ -271,7 +274,7 @@ try {
       view: cs('[x-ref="view"]'),
       layer: cs('[x-ref="layer"]'),
       marks: cs('[x-ref="layer"] ~ div button'),
-      pad: cs('button:has(i.ph-crosshair)'),
+      pad: cs('[data-dictate-ui] button:has(i.ph-crosshair)'),
       root: cs('[data-dictate-ui]'),
     };
   });
@@ -352,7 +355,7 @@ try {
   // The pad is pressed and dragged. The caret starts at the end (a null
   // range), so the first drag has to place one; dragging LEFT walks it back
   // through the buffer, which is the whole of what the control does.
-  const padBox = await page.locator('button:has(i.ph-crosshair)').boundingBox();
+  const padBox = await page.locator('[data-dictate-ui] button:has(i.ph-crosshair)').boundingBox();
   await page.mouse.move(padBox.x + padBox.width / 2, padBox.y + padBox.height / 2);
   await page.mouse.down();
   for (let i = 0; i < 14; i++) {
@@ -371,7 +374,7 @@ try {
   // THE TARGET'S TAP HALF. Tap it and the caret becomes one end of a
   // selection; the next tap in the text is the other end. Two taps for an
   // arbitrary range, where the long press gives only a word.
-  const target = page.locator('button:has(i.ph-crosshair)');
+  const target = page.locator('[data-dictate-ui] button:has(i.ph-crosshair)');
   const armed = () => page.evaluate(() =>
     document.querySelector('[x-data="dictate"]')._x_dataStack[0].armed);
   const targetRed = () => target.evaluate(el => el.className.includes('btn-error'));
@@ -755,7 +758,7 @@ try {
       return seen;
     };
     return {
-      pad: probe(document.querySelector('button:has(i.ph-crosshair)')),
+      pad: probe(document.querySelector('[data-dictate-ui] button:has(i.ph-crosshair)')),
       pin: probe(document.querySelector('[x-ref="layer"] [data-edge]')),
     };
   });

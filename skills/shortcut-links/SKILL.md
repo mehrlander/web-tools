@@ -22,6 +22,7 @@ Run these commands from `mehrlander/shortcut-tools`.
 | Copy actions for pasting | `python3 tools/pack.py <chain> --url` | `Copy-ActionFromClaude` |
 | Install a shortcut | `python3 tools/plist.py <chain> --link --fetch --ref <sha>` | `Library-Fetch` |
 | Replace an installed shortcut | `python3 tools/plist.py <chain> --link --replace --ref <sha>` | `Library-Replace` |
+| Install by paste (no signing) | `python3 tools/pack.py <chain> --install --ref <sha>` | `Library-Paste` |
 | Run a shortcut | `python3 tools/run.py <Name>` | The named shortcut |
 | Run with text input | `python3 tools/run.py <Name> --text '<input>'` | The named shortcut |
 | Run and report the result | `python3 tools/run.py <Name> --log` | The named shortcut, `Run-Steps`, and `Log-Repo` |
@@ -52,7 +53,10 @@ confirm success. A signing-service failure can appear on the phone as
 
 ## Replacing a shortcut assigned to a gesture
 
-Replacing a shortcut breaks its Back Tap or AssistiveTouch assignment.
+Settings binds only `Double-BackTap` and `Triple-BackTap`, two stubs that pass
+a label to `Route-Gesture` and never change. Anything behind the router is
+called by name, so replacing it costs no Settings visit. Replacing a stub, or
+whatever AssistiveTouch is bound to (not yet recorded), breaks its assignment.
 Tell the user to select the replacement in Settings, and include the
 appropriate Settings link in the same message.
 
