@@ -32,7 +32,7 @@ docs/showing-mechanisms.csv,8,11,4139,"[""key"",""glyph"",""label"",""form"",""s
 docs/snags.csv,109,6,14726,"[""slug"",""title"",""count"",""last_seen"",""seen"",""targets""]"
 docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""detect"",""icon"",""gloss""]"
 docs/surfacing.csv,22,7,7621,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
-docs/tests.csv,322,8,355928,"[""path"",""kind"",""protects"",""assertions"",""method"",""runner"",""boot_smoke"",""assertion_names""]"
+docs/tests.csv,322,8,356217,"[""path"",""kind"",""protects"",""assertions"",""method"",""runner"",""boot_smoke"",""assertion_names""]"
 docs/text-fields.csv,13,5,3999,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
 docs/themes.csv,51,7,11694,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
 docs/tools.csv,5,2,190,"[""path"",""icon""]"
