@@ -7,4 +7,4 @@ session-caches,web-tools-private,"state/sessions.json, state/session-menu.json, 
 shortcut-logs,web-tools-private,"shortcuts/log/*",device Log-Repo shortcut,immediate push per run,return channel for shortcut probes and installs
 page-reports,web-tools-private,"logs/page/*",browser page report,immediate push on user gesture,reports sent from a rendered page
 errands,web-tools-private,"errands/requests/*, errands/results/*",agent (requests) / Web Tools Stage (results),immediate push on commit,what a session needs a person or their browser to do
-notes,web-tools-private,"notes/notes.jsonl",agent / notes skill (git plumbing),immediate push per note,short signed observations about any subject
+notes,web-tools-private,"notes/notes.jsonl",agent / notes skill (git plumbing) / browser kits/notes.js,immediate push per note,short signed observations about any subject

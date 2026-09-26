@@ -54,6 +54,10 @@ declares as `"notes"` on main, searched in the project root, its children and it
 siblings; `--store` overrides. Writes go to the store's `main` by git plumbing,
 so the checkout's own branch does not matter.
 
+In the browser, `lib/kits/notes.js` reads and appends the same file. The Lists
+view and the branch page show notes, and the annotation kit saves annotations
+as notes.
+
 ## Key insights
 
 - **A note records one observation about its subject.** For more, write another
