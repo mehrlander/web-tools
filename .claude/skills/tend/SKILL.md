@@ -30,9 +30,9 @@ to see the vital choice and commit.
    choices handed to the owner are friction masquerading as diligence. Bring a
    question only when investigation establishes a consequential choice that
    requires the owner's judgment. Define its terms and say why it matters.
-4. **Findings stay in the reply.** Write no new documents for routine
-   clarifications. Exempt: a snag entry (`docs/SNAGS.md` takes them without
-   approval) and a task proposed through the `tasks` filing gate.
+4. **Findings go to the record they concern.** A finding about a task goes in
+   its `## Related` or `## Progress log`; a trap, in its `docs/SNAGS.md` entry;
+   anything else, in the reply. Create no record to hold a finding.
 
 ## Process
 
@@ -107,13 +107,3 @@ The `×N` count in `docs/SNAGS.md` orders the reading and triggers nothing.
   (`git grep <slug> origin/main -- tracker/tasks`), its entry records no fix
   in place, and a later session would otherwise rediscover it. Also propose
   folding entries the index flags as overlapping.
-
-## Example
-
-```
-x/alpha  tip = head of merged PR #N    -> deleted
-x/beta   ancestor, no PR, pushed today -> proposed
-x/gamma  4 novel files, trailer S      -> owner: polish, cherry-pick, or abandon?
-task t1  Done when met by PR #N        -> closed
-PR #M    thread 2 still live           -> proposed as a task
-```
