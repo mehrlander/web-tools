@@ -393,6 +393,189 @@ test('grids returns an empty list for a page with no rules', () => {
   assert.deepEqual(plain(pdf.lattice.grids({ h: [], v: [] }, TABLE_ITEMS)), []);
 });
 
+// ---- lattice: open perimeters and unruled headers ---------------------------
+//
+// A 3x3 table drawn the way many government forms draw one: two interior
+// horizontal rules running the full width, two interior verticals running the
+// full height, and no outer border. Columns 100/200/300/400, rows 720/700/680/660.
+const openLines = () => ({
+  h: [hline(700, 100, 400, { id: 1 }), hline(680, 100, 400, { id: 2 })],
+  v: [vline(200, 660, 720, { id: 3 }), vline(300, 660, 720, { id: 4 })],
+});
+const OPEN_TEXT = [
+  item('Agency', 110, 705, 40), item('FTE', 210, 705, 20), item('Amount', 310, 705, 40),
+  item('DRS', 110, 685, 20), item('1240', 210, 685, 25), item('457,833', 310, 685, 40),
+  item('OFM', 110, 665, 20), item('310', 210, 665, 20), item('88,100', 310, 665, 35),
+];
+const OPEN_MATRIX = [['Agency', 'FTE', 'Amount'], ['DRS', '1240', '457,833'], ['OFM', '310', '88,100']];
+
+test('without inference an open perimeter keeps only its enclosed middle cell', () => {
+  // The gap as it stood: four interior junctions close one cell, and the eight
+  // around it, including every header and every row label, are lost.
+  const [t] = pdf.lattice.grids(openLines(), OPEN_TEXT, { infer: false });
+  assert.equal(t.cells.length, 1);
+  assert.deepEqual(plain(t.matrix), [['1240']]);
+  assert.equal(t.inferred, undefined);
+});
+
+test('an open perimeter closes at the rule ends and reads the whole table', () => {
+  const tables = pdf.lattice.grids(openLines(), OPEN_TEXT);
+  assert.equal(tables.length, 1);
+  const [t] = tables;
+  assert.deepEqual(plain(t.matrix), OPEN_MATRIX);
+  assert.deepEqual([t.x1, t.y1, t.x2, t.y2], [100, 660, 400, 720]);
+  // Every edge is marked, and every one is placed by real ink: the ends of the
+  // rules that run out to it.
+  assert.deepEqual(plain(t.inferred).map(e => `${e.edge}@${e.at}:${e.basis}`).sort(),
+    ['bottom@660:rules', 'left@100:rules', 'right@400:rules', 'top@720:rules']);
+});
+
+test('each cell names the sides no drawn rule covers, and only those', () => {
+  const [t] = pdf.lattice.grids(openLines(), OPEN_TEXT);
+  const at = (r, c) => t.cells.find(x => x.row === r && x.col === c);
+  assert.deepEqual(plain(at(0, 0).inferred), ['top', 'left']);
+  assert.deepEqual(plain(at(0, 1).inferred), ['top']);
+  assert.deepEqual(plain(at(2, 2).inferred), ['right', 'bottom']);
+  assert.equal(at(1, 1).inferred, undefined); // the middle cell is fully drawn
+});
+
+test('a fully ruled table is untouched by inference', () => {
+  const { h, v } = gridLines();
+  const text = [item('Agency', 110, 685, 40), item('Amount', 210, 685, 40),
+                item('DRS', 110, 665, 20), item('457,833', 210, 665, 40)];
+  const [t] = pdf.lattice.grids({ h, v }, text);
+  assert.deepEqual(plain(t.inferred), []);
+  assert.equal(t.cells.some(c => 'inferred' in c), false);
+  assert.deepEqual(plain(t.matrix), [['Agency', 'Amount'], ['DRS', '457,833']]);
+});
+
+test('a two-column table with one interior rule goes from nothing to a table', () => {
+  // One vertical, so every junction lies on one x and the walk finds no
+  // rectangle at all: the empty result the task was filed for.
+  const lines = { h: [hline(700, 100, 300, { id: 1 }), hline(680, 100, 300, { id: 2 })],
+                  v: [vline(200, 660, 720, { id: 3 })] };
+  const text = [item('Agency', 110, 705, 40), item('Amount', 210, 705, 40),
+                item('DRS', 110, 685, 20), item('457,833', 210, 685, 40),
+                item('OFM', 110, 665, 20), item('88,100', 210, 665, 35)];
+  assert.deepEqual(plain(pdf.lattice.grids(lines, text, { infer: false })), []);
+  const [t] = pdf.lattice.grids(lines, text);
+  assert.deepEqual(plain(t.matrix), [['Agency', 'Amount'], ['DRS', '457,833'], ['OFM', '88,100']]);
+});
+
+test('rules drawn short of the text let the text place the edge', () => {
+  // The row rules are inset, starting 20pt into the first column and stopping
+  // 10pt short of the last column's values. The edge moves out to the text,
+  // and the basis says so, because that edge is now the evidence stream reads.
+  const lines = { h: [hline(700, 130, 340, { id: 1 }), hline(680, 130, 340, { id: 2 })],
+                  v: [vline(200, 660, 720, { id: 3 }), vline(300, 660, 720, { id: 4 })] };
+  const [t] = pdf.lattice.grids(lines, OPEN_TEXT);
+  const byEdge = Object.fromEntries(plain(t.inferred).map(e => [e.edge, e]));
+  assert.deepEqual([byEdge.left.basis, byEdge.left.at], ['text', 108.5]);
+  assert.deepEqual([byEdge.right.basis, byEdge.right.at], ['text', 351.5]);
+  assert.equal(byEdge.top.basis, 'rules');
+  assert.deepEqual(plain(t.matrix), OPEN_MATRIX);
+});
+
+test('text outside a drawn border never moves it', () => {
+  // A form labels its boxes from outside: "Name" sits left of a ruled field.
+  // The border is drawn, so the label stays out, however close it sits.
+  const { h, v } = gridLines();
+  const label = item('Name', 70, 685, 25);
+  const [t] = pdf.lattice.grids({ h, v }, [label, item('DRS', 110, 685, 20)]);
+  assert.equal(t.x1, 100);
+  assert.deepEqual(plain(t.unplaced).map(u => u.str), ['Name']);
+});
+
+test('text beyond reach does not stretch an open side', () => {
+  // A margin note 80pt left of the table shares its rows but not its columns.
+  const note = item('see note', 10, 685, 15);
+  const [t] = pdf.lattice.grids(openLines(), [...OPEN_TEXT, note]);
+  assert.equal(t.x1, 100);
+  assert.equal(plain(t.unplaced).map(u => u.str).includes('see note'), true);
+});
+
+test('a stray rule past a drawn border opens a side but closes no cell', () => {
+  // A signature line leaves the table's right border and runs on to x=500.
+  // The right side is opened at 500, but no second rule reaches the new edge,
+  // so no fourth corner ever closes and the table reads as it did.
+  const { h, v } = gridLines();
+  const text = [item('Agency', 110, 685, 40), item('Amount', 210, 685, 40),
+                item('DRS', 110, 665, 20), item('457,833', 210, 665, 40)];
+  const stray = hline(670, 100, 500, { id: 9 });
+  const [base] = pdf.lattice.grids({ h, v }, text, { infer: false });
+  const withStray = pdf.lattice.grids({ h: [...h, stray], v }, text);
+  assert.equal(withStray.length, 1);
+  assert.equal(withStray[0].x2, 300);
+  assert.equal(withStray[0].cells.length, base.cells.length + 2); // 670 splits the lower row, as a drawn rule should
+  assert.deepEqual(plain(withStray[0].inferred), []);
+});
+
+test('a table does not claim an edge inferred for its neighbour', () => {
+  // An open table above a bordered one, both starting at x=100. Found by the
+  // browser fixture: matched on position alone, the bordered table reported
+  // the open table's left and right edges as its own.
+  const { h, v } = gridLines();
+  const low = { h: h.map(l => ({ ...l, y: l.y - 200 })), v: v.map(l => ({ ...l, y1: l.y1 - 200, y2: l.y2 - 200 })) };
+  const lowText = [item('Agency', 110, 485, 40), item('Amount', 210, 485, 40),
+                   item('DRS', 110, 465, 20), item('457,833', 210, 465, 40)];
+  const open = openLines();
+  const tables = pdf.lattice.grids({ h: [...open.h, ...low.h], v: [...open.v, ...low.v] }, [...OPEN_TEXT, ...lowText]);
+  assert.equal(tables.length, 2);
+  assert.equal(tables[0].inferred.length, 4);
+  assert.deepEqual(plain(tables[1].inferred), []);
+});
+
+test('a lone crossing of two rules is not a region', () => {
+  const lines = { h: [hline(700, 100, 300, { id: 1 })], v: [vline(200, 600, 800, { id: 2 })] };
+  assert.deepEqual(plain(pdf.lattice.grids(lines, [item('x', 120, 720, 5)])), []);
+});
+
+// Header ruled above and below, body columns ruled, header columns not.
+const headerLines = () => ({
+  h: [hline(720, 100, 400, { id: 1 }), hline(700, 100, 400, { id: 2 }), hline(660, 100, 400, { id: 3 })],
+  v: [vline(100, 660, 720, { id: 4 }), vline(200, 660, 700, { id: 5 }),
+      vline(300, 660, 700, { id: 6 }), vline(400, 660, 720, { id: 7 })],
+});
+const BODY = [item('DRS', 110, 675, 20), item('1240', 210, 675, 25), item('457,833', 310, 675, 40)];
+
+test('a header with a label per column is split along the body rules', () => {
+  const header = [item('Agency', 110, 705, 40), item('FTE', 210, 705, 20), item('Amount', 310, 705, 40)];
+  const [t] = pdf.lattice.grids(headerLines(), [...header, ...BODY]);
+  assert.deepEqual(plain(t.matrix), [['Agency', 'FTE', 'Amount'], ['DRS', '1240', '457,833']]);
+  assert.deepEqual(plain(t.inferred).map(e => `${e.edge}@${e.at}:${e.basis}`),
+    ['interior@200:projected', 'interior@300:projected']);
+  const h0 = t.cells.filter(c => c.row === 0);
+  assert.deepEqual(plain(h0.map(c => c.inferred)), [['right'], ['left', 'right'], ['left']]);
+  // Off, the header is the one wide cell the rules describe.
+  const [off] = pdf.lattice.grids(headerLines(), [...header, ...BODY], { infer: false });
+  assert.deepEqual(plain(off.matrix[0]), ['Agency FTE Amount', 'Agency FTE Amount', 'Agency FTE Amount']);
+});
+
+test('a genuine spanning header is left whole', () => {
+  // Centred over all three columns: text crosses no anchor, but the outer
+  // pieces would be empty, which is what a real span looks like.
+  const header = [item('FY 2025', 235, 705, 30)];
+  const [t] = pdf.lattice.grids(headerLines(), [...header, ...BODY]);
+  const top = t.cells.filter(c => c.row === 0);
+  assert.equal(top.length, 1);
+  assert.equal(top[0].colspan, 3);
+  assert.deepEqual(plain(t.inferred), []);
+});
+
+test('a header label that crosses a body rule blocks the split there', () => {
+  const header = [item('Agency and FTE', 110, 705, 130), item('Amount', 310, 705, 40)];
+  const [t] = pdf.lattice.grids(headerLines(), [...header, ...BODY]);
+  assert.deepEqual(plain(t.matrix[0]), ['Agency and FTE', 'Agency and FTE', 'Amount']);
+  const top = t.cells.filter(c => c.row === 0);
+  assert.deepEqual(plain(top.map(c => c.colspan)), [2, 1]);
+});
+
+test('stream and lattice agree on an open-perimeter table', () => {
+  const lat = pdf.lattice.grids(openLines(), OPEN_TEXT)[0].matrix;
+  const str = pdf.stream.split(OPEN_TEXT, pdf.stream.columns(OPEN_TEXT).map(c => c.x1)).map(r => r.cells);
+  assert.deepEqual(plain(lat), plain(str));
+});
+
 // ---- recurring and trim: the page axis --------------------------------------
 
 // Four pages with a running head, a folio whose text changes, and one body
