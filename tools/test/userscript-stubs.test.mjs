@@ -64,29 +64,25 @@ test('every stub loads a body that exists and defines what the stub calls', () =
 
 // The two routes deliberately load the same file from DIFFERENT hosts: raw
 // serves text/plain with nosniff, which a script tag will not execute, so the
-// bookmarklet must use the CDN while the userscript uses raw for its five
-// minute cache. What has to match is the path and the ref, since those are what
-// decide WHICH body runs; getting only one of them re-pinned is the drift.
+// bookmarklet uses GitHub Pages while the userscript uses raw for its five
+// minute cache. What has to match is the path, since that decides WHICH body
+// runs; getting only one of them re-pointed is the drift.
 test('the two routes load the same body from their own hosts', () => {
   for (const stub of stubs) {
     const lib = stub.replace('.user.js', '');
     const req = fs.readFileSync(path.join(ROOT, 'userscripts', stub), 'utf8')
       .match(/@require\s+(\S+)/)[1];
     assert.match(req, /^https:\/\/raw\.githubusercontent\.com\//,
-      `${stub}: @require must read raw, whose cache is five minutes; a CDN ` +
-      'address brings back the purge step and its rate limit');
+      `${stub}: @require must read raw, whose cache is five minutes and which ` +
+      'follows the ref the stub pins');
 
     const twin = path.join(ROOT, 'bookmarklets', `${lib}.js`);
     assert.ok(fs.existsSync(twin), `${stub}: no bookmarklet twin at bookmarklets/${lib}.js`);
     const src = fs.readFileSync(twin, 'utf8');
-    assert.match(src, /cdn\.jsdelivr\.net/,
-      `bookmarklets/${lib}.js must read the CDN: raw serves text/plain with ` +
-      'nosniff, which a script tag refuses to execute');
-
-    const ref = req.match(/githubusercontent\.com\/mehrlander\/web-tools\/(.+)\/userscripts\//)[1];
-    assert.ok(src.includes(`web-tools@${ref}/userscripts/lib/${lib}.js`),
-      `bookmarklets/${lib}.js points at a different ref or path than ${stub}: ` +
-      're-run scripts/userscript-stub.py, which writes both');
+    assert.ok(src.includes(`https://mehrlander.github.io/web-tools/userscripts/lib/${lib}.js`),
+      `bookmarklets/${lib}.js must read ${lib}.js from GitHub Pages: raw serves ` +
+      'text/plain with nosniff, which a script tag refuses to execute. ' +
+      'Re-run scripts/userscript-stub.py, which writes both.');
   }
 });
 

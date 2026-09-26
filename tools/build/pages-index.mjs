@@ -56,7 +56,7 @@ const NOTES = {
   'demos/wring-dom.html':      'Repeated DOM components from signatures or pasted HTML.',
   'stories/bookmarklets-story.html': 'Field notes on bookmarklet packing.',
   // Kit demos live under lib/kits/demos/ — surfaced here under the kit-demos group.
-  'kit-demos/card.html':         'Card kit — the ghost ✕ and the three ways out of a card.',
+  'kit-demos/panel-tip.html':    'Panel-tip kit — the ghost ✕ and the three ways out of a panel-tip.',
   'kit-demos/compression.html':  'Compression kit — brotli/gz round-trip, live.',
   'kit-demos/export.html':       'Export kit — file download from a user gesture.',
   'kit-demos/io.html':           'IO kit — read/write helpers, shown live.',
@@ -226,18 +226,8 @@ function buildHtml() {
 <script type="module">
   // alpine-bundle.js loads Alpine itself, after fab.js has registered, so the
   // FAB's alpine:init listener is never missed.
-  //   - No ?use: jsDelivr @main (cache-stable). ?use=<ref>: raw + blob-import
-  //     (fresh branch), handing repo/ref via window.__ghBlobBoot.
-  const ref = new URLSearchParams(location.search).get('use');
-  if (ref) {
-    window.__ghBlobBoot = { repo: '${REPO}', ref };
-    const r = await fetch(\`https://raw.githubusercontent.com/${REPO}/\${ref}/lib/gh-api.js\`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(\`?use=\${ref}: could not fetch gh-api.js (HTTP \${r.status})\`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/${REPO}@main/lib/gh-api.js');
-  }
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
+  await import('https://${REPO.split('/')[0]}.github.io/${REPO.split('/')[1]}/lib/entry.js');
   await gh.load('alpineComponents/fab.js');
   await gh.load('alpine-bundle.js');
 </script>

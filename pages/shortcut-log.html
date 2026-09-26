@@ -2,7 +2,7 @@
 <html lang="en" data-theme="winter">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Shortcut Log</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧾</text></svg>">
@@ -10,302 +10,360 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  shortcut-log.html — what the device reported, read live, on the device.
+  shortcut-log.html — what the phone reported, as installation evidence.
 
-  THE PROBLEM THIS REPLACES. A shortcut that logs already returns itself, but the
-  only thing the person tapping sees is Show Result, which clips a long payload
-  to a few lines and does not scroll. So the useful half of a run, the result,
-  was visible to the session (which reads the log from git) and invisible to the
-  person who ran it. That asymmetry is backwards: they did the work.
+  Promoted as the Web Tools app view `shortcut-log` by shortcut-tools'
+  .web-tools.json, so the address the dumpers bake in is the slug, not this
+  path: app/?app=shortcut-log&shell=full. The page can move without a
+  reinstall on the phone; the slug cannot.
 
-  ONE SURFACE, BOTH READERS. This renders the same log the session reads, from
-  the same source, so a run can be compared rather than described. Handed to
-  Show Web View it comes up as a sheet over Shortcuts, scrollable, with the run
-  that just happened at the top.
+  ONE SURFACE, BOTH READERS. The session reads shortcuts/log/ from git; the
+  person who tapped reads it here. Show Result clips a payload and does not
+  scroll, which is why this page exists at all.
 
-  WHY A HOSTED URL AND NOT AN HTML PAYLOAD. Show Web View takes either, and the
-  difference decides whether this works at all: HTML text lands at a file://
-  origin, a different storage partition, where localStorage.ghToken is not. A
-  plain https URL keeps the page on its own origin and the stored token with it.
-  Measured 2026-08-26 by Probe-WebViewCaps; Dictate already takes this route.
+  THE SAME SHAPE AS THE POWERSHELL OVERVIEW. A list of one-line rows, a state
+  icon per row taken from installation-view.js (check for current, up-arrow for
+  an update pending, drawn from kits/sync-status.js), and the detail on tap: in place of the list on a phone,
+  beside it on a wide screen. The derivation is lib/kits/shortcut-evidence.js,
+  which says which build a row is about and what it is scored against.
 
-  THE BUILD CHIP IS THE POINT. Every install logs the ref it came from and every
-  stamped chain logs its own build id, so a row answers "is the copy that ran the
-  copy that was pushed" without anyone reasoning from silence. That question cost
-  this session hours before the stamp existed.
+  WHY A HOSTED URL AND NOT AN HTML PAYLOAD. Show Web View given HTML text lands
+  at a file:// origin, where localStorage.ghToken is not. An https URL keeps the
+  page on mehrlander.github.io and the stored token with it (measured 2026-08-26
+  by Probe-WebViewCaps). The app frames this page with allow-same-origin, so the
+  token the app reads is the token this page reads.
 
-  Payloads come in two shapes and both are rendered: JSON, which installs write,
-  and a `verb key=value` header line followed by a free payload, which runs write
-  because a result full of quotes broke the JSON form.
+  THE TOKEN SCREEN IS gh-auth.js's, raised explicitly: a private repo with no
+  token answers 404, which gh-auth's 401/403 takeover never sees.
 
-  THE TOKEN SCREEN IS NOT THIS PAGE'S. It is gh-auth.js's showPrompt, reached by
-  loading the standard chain, and it carries a "Get a token" link that a
-  hand-rolled form does not. This page had a hand-rolled form for one day; the
-  cost of that was a reader stranded in a Shortcuts sheet with a password box and
-  nowhere to go for a token. A page that talks to a private repo loads gh-auth
-  and calls ghAuth.prompt; it does not build the screen.
-
-  WHY IT IS RAISED EXPLICITLY AND NOT LEFT TO THE 401. gh-auth takes the page
-  over on a 401 or 403, and a private repo with no token answers 404, since
-  GitHub hides what you cannot see. So an absent token has to raise the prompt
-  here, and a 404 has to be forwarded to it, or the page dies as "not found".
-
-  AND THE VERDICT, WHICH IS THE HALF THE STAMP COULD NOT SUPPLY. A logged build
-  id says which copy ran; it takes a second number to say whether that copy is
-  the current one, and getting it meant a checkout and a hand-run hash. So a run
-  is scored against shortcut-tools' published plists/builds.json: `current`, or
-  `stale -> <id>`. Silent while the manifest is unfetched, because an unknown
-  answer must never render as a good one.
+  UNKNOWN IS SILENT. A row gets a verdict icon only when both the installed
+  build and the baseline's build are in hand.
 -->
 </head>
-<body class="min-h-dvh bg-base-200">
-<div class="mx-auto p-3 flex flex-col gap-3">
+<body class="min-h-dvh bg-base-100">
 
-  <div class="flex items-center gap-2 flex-wrap">
-    <h1 class="text-xl font-bold">Shortcut Log</h1>
-    <span id="status" class="badge badge-ghost badge-sm">loading</span>
-    <button id="refresh" class="btn btn-xs ml-auto"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+<div id="log" x-data="shortcutLog()" x-init="boot()" class="@container min-h-dvh flex flex-col">
+
+  <header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300 px-3 py-2 flex items-center gap-2">
+    <i class="ph ph-list-checks text-xl text-base-content/50"></i>
+    <h1 class="font-semibold whitespace-nowrap">Shortcut log</h1>
+    <span class="min-w-0 text-xs font-mono text-base-content/50 truncate" x-text="tally" data-tally></span>
+    <button x-show="only" @click="only = ''" class="badge badge-primary badge-soft gap-1 shrink-0" data-only>
+      <span class="max-w-32 truncate" x-text="only"></span><i class="ph ph-x"></i></button>
+    <div class="grow"></div>
+    <select x-model="filter" class="select select-sm w-auto" aria-label="Show">
+      <option value="all">All</option>
+      <option value="installs">Installs</option>
+      <option value="runs">Runs</option>
+      <option value="stale">Behind</option>
+    </select>
+    <button @click="load(true)" class="btn btn-ghost btn-sm btn-square" aria-label="Refresh">
+      <i class="ph ph-arrows-clockwise text-lg" :class="loading && 'animate-spin'"></i></button>
+  </header>
+
+  <p x-show="err" class="text-error px-3 py-2" x-text="err"></p>
+
+  <div class="grow grid @3xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+
+    <!-- The list: one line per entry, grouped by day. -->
+    <div class="min-w-0 @3xl:border-r border-base-300" :class="sel ? 'hidden @3xl:block' : 'block'" data-list>
+      <template x-for="g in groups" :key="g.day">
+        <section>
+          <h2 class="sticky top-12 z-10 bg-base-200/95 px-3 py-1 text-xs font-mono uppercase tracking-widest text-base-content/50" x-text="g.day"></h2>
+          <template x-for="e in g.rows" :key="e.stem">
+            <button @click="open(e.stem)" data-row
+                    class="w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-base-200 hover:bg-base-200 transition-colors"
+                    :class="[sel === e.stem && 'bg-primary/10', fresh[e.stem] && 'bg-info/10']">
+              <i class="ph text-xl shrink-0" :class="[iconOf(e), e.install ? 'text-primary' : 'text-base-content/40']"></i>
+              <span class="min-w-0 grow flex items-baseline gap-2">
+                <span class="shrink-0 max-w-full truncate" :class="e.name ? 'font-medium' : 'text-base-content/70'" x-text="titleOf(e)"></span>
+                <span class="min-w-0 truncate text-xs font-mono text-base-content/50" x-text="tagOf(e)"></span>
+              </span>
+              <span class="shrink-0 flex items-center gap-1" data-verdict>
+                <template x-if="v(e)">
+                  <span class="flex items-center gap-0.5">
+                    <i class="text-xl" :class="stateIcon(v(e))"></i>
+                    <span x-show="v(e).against.kind === 'pr'" class="text-xs font-mono text-base-content/50" x-text="'#' + v(e).against.pr"></span>
+                  </span>
+                </template>
+              </span>
+              <span class="shrink-0 w-16 text-right text-xs font-mono" :class="recent(e) ? 'text-info font-semibold' : 'text-base-content/50'" x-text="timeOf(e)"></span>
+            </button>
+          </template>
+        </section>
+      </template>
+      <div x-show="!groups.length && !loading" class="px-3 py-10 text-center text-base-content/40">Nothing matches.</div>
+      <div x-show="loading && !entries.length" class="flex justify-center py-16"><span class="loading loading-dots loading-md opacity-30"></span></div>
+      <div x-show="files.length > limit" class="p-3 flex justify-center">
+        <button @click="more()" class="btn btn-sm btn-ghost" :disabled="loading">
+          <span x-text="'Older · ' + (files.length - limit)"></span></button>
+      </div>
+    </div>
+
+    <!-- The detail: in place of the list on a phone, beside it when there is room. -->
+    <div class="min-w-0" :class="sel ? 'block' : 'hidden @3xl:block'" data-detail>
+      <template x-if="!item">
+        <div class="hidden @3xl:flex justify-center py-16 text-base-content/30"><i class="ph ph-cursor-click text-4xl"></i></div>
+      </template>
+      <template x-if="item">
+        <div class="p-3 flex flex-col gap-4 @3xl:sticky @3xl:top-12">
+          <div class="flex items-start gap-2">
+            <button @click="close()" class="btn btn-ghost btn-sm btn-square @3xl:hidden" aria-label="Back"><i class="ph ph-arrow-left text-lg"></i></button>
+            <div class="min-w-0 grow">
+              <div class="flex flex-wrap items-center gap-x-2">
+                <i class="ph text-xl" :class="[iconOf(item), item.install ? 'text-primary' : 'text-base-content/40']"></i>
+                <h2 class="text-lg font-semibold break-all" x-text="titleOf(item)"></h2>
+                <span class="badge badge-sm badge-ghost font-mono" x-text="item.verb"></span>
+              </div>
+              <div class="text-xs font-mono text-base-content/50" x-text="fullTime(item)"></div>
+            </div>
+            <a :href="fileUrl(item)" target="_blank" rel="noopener" class="btn btn-ghost btn-sm btn-square" aria-label="Open on GitHub"><i class="ph ph-github-logo text-lg"></i></a>
+          </div>
+
+          <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 items-baseline" data-facts>
+            <template x-for="f in facts(item)" :key="f.k">
+              <div class="contents">
+                <dt class="text-xs font-mono uppercase tracking-wider text-base-content/50" x-text="f.k"></dt>
+                <dd class="min-w-0 break-all flex flex-wrap items-center gap-x-1.5">
+                  <i x-show="f.icon" :class="f.icon"></i>
+                  <template x-if="f.href"><a :href="f.href" target="_blank" rel="noopener" class="link link-hover font-mono" x-text="f.v"></a></template>
+                  <template x-if="!f.href"><span :class="f.mono && 'font-mono'" x-text="f.v"></span></template>
+                  <span x-show="f.note" class="text-xs font-mono text-base-content/50" x-text="f.note"></span>
+                </dd>
+              </div>
+            </template>
+          </dl>
+
+          <div x-show="item.name" class="flex flex-wrap gap-2">
+            <button @click="only = item.name; close()" class="btn btn-sm"><i class="ph ph-funnel"></i><span x-text="'Only ' + item.name"></span></button>
+            <a :href="'shortcuts.html?name=' + encodeURIComponent(item.name)" class="btn btn-sm btn-ghost"><i class="ph ph-link"></i>Chain</a>
+          </div>
+
+          <template x-if="item.payload || !item.name">
+            <div class="flex flex-col gap-1" data-payload>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono uppercase tracking-wider text-base-content/50">payload</span>
+                <span class="text-xs font-mono text-base-content/40" x-text="size(item.payload || item.raw)"></span>
+                <div class="grow"></div>
+                <button x-show="pretty(item)" @click="raw = !raw" class="btn btn-xs btn-ghost" x-text="raw ? 'pretty' : 'raw'"></button>
+                <button @click="copy(item.payload || item.raw)" class="btn btn-xs btn-ghost"><i class="ph ph-copy"></i></button>
+              </div>
+              <pre class="bg-base-200 rounded-box p-3 text-sm whitespace-pre-wrap break-all max-h-[70dvh] overflow-y-auto" x-text="raw || !pretty(item) ? (item.payload || item.raw) : pretty(item)"></pre>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
   </div>
-
-  <div id="rows" class="flex flex-col gap-2"></div>
 </div>
 
 <script type="module">
-// The repo's standard boot: gh-api.js, then gh-auth.js, which patches token
-// resolution and owns the token screen. ?use=<ref> pins the chain to a branch
-// for previewing edits, exactly as the other loader pages do.
+// The repo's standard boot. ?use=<ref> pins the chain to a branch for
+// previewing edits, exactly as the other loader pages do.
 const q = new URLSearchParams(location.search);
-const useRef = q.get('use');
-if (useRef) {
-  window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref: useRef };
-  const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${useRef}/lib/gh-api.js`,
-                        { cache: 'no-store' });
-  if (!r.ok) throw new Error(`?use=${useRef}: could not fetch gh-api.js (HTTP ${r.status})`);
-  const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-  try { await import(u); } finally { URL.revokeObjectURL(u); }
-} else {
-  await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-}
+await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 await gh.load('gh-auth.js');
+await gh.load('kits/shortcut-evidence.js');
+await gh.load('kits/sync-status.js');
 
-const REPO = 'mehrlander/web-tools-private';
-const DIR  = 'shortcuts/log';
-const SHOW = 25;
-// name -> build id for every installable chain, published by tools/plist.py.
-// A run logs which copy ran; this is the only thing that says whether that
-// copy is the current one, which is the question the stamp was added to answer
-// and could not answer alone.
-const BUILDS = 'https://cdn.jsdelivr.net/gh/mehrlander/shortcut-tools@main/plists/builds.json';
+const LOG = 'mehrlander/web-tools-private';
+const DIR = 'shortcuts/log';
+const TOOLS = 'mehrlander/shortcut-tools';
+const PAGE = 30;
+const RECENT = 5 * 60 * 1000;
+const SE = window.ShortcutEvidence;
 
-const el = id => document.getElementById(id);
-
-// One client, so token resolution and the 401/403 takeover are gh-auth's job
-// rather than this page's. `log` reads the private repo; the raw blob fetches
-// below still carry the header directly, since download_url is not an API path.
-const log = new window.GH({ repo: REPO, ref: 'main' });
-const headers = () => {
-  const t = window.ghAuth.resolve();
-  return t ? { Authorization: 'Bearer ' + t } : {};
-};
-
-// A private repo with no access answers 404, not 401, because GitHub hides what
-// you cannot see. gh-auth only takes over on 401/403, so that case is forwarded
-// by hand or the page dies reading "not found" with no way to fix it.
 const NEED_TOKEN =
   'The device log lives in a private repo, so this page needs a GitHub token with repo scope. '
   + 'Storage here is per-app: a token saved in Safari is not visible inside the Shortcuts sheet, '
   + 'so this may need entering once in each place you open the page.';
 
-const node = (tag, cls, text) => {
-  const n = document.createElement(tag);
-  if (cls) n.className = cls;
-  if (text != null) n.textContent = text;   // never innerHTML: payloads are arbitrary
-  return n;
-};
+const log = new window.GH({ repo: LOG, ref: 'main' });
+const tools = new window.GH({ repo: TOOLS, ref: 'main' });
+const p2 = n => String(n).padStart(2, '0');
+const dayKey = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
 
-// A `verb key=value …` first line with the payload on the lines after. Runs use
-// this because a result carrying quotes broke the JSON form it replaced.
-function header(text) {
-  const nl = text.indexOf('\n');
-  const first = nl < 0 ? text : text.slice(0, nl);
-  const rest = nl < 0 ? '' : text.slice(nl + 1);
-  if (!/^\w+(\s+\w+=\S*)+\s*$/.test(first)) return null;
-  const [verb, ...pairs] = first.trim().split(/\s+/);
-  const fields = {};
-  for (const p of pairs) { const i = p.indexOf('='); fields[p.slice(0, i)] = p.slice(i + 1); }
-  return { verb, fields, rest: rest.trim() };
-}
+document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => ({
+  files: [],          // every log file name, newest first
+  bodies: {},         // stem -> raw text, fetched once
+  entries: [],        // parsed, newest first, the loaded window
+  limit: PAGE,
+  filter: 'all',
+  only: q.get('name') || '',   // ?name= opens on one shortcut; Chains links here that way
+  sel: '',
+  raw: false,
+  loading: false,
+  err: '',
+  fresh: {},          // stems that arrived since the previous poll
+  at: {},             // ref -> builds.json at that ref (null: unreadable)
+  base: {},           // source ref -> baseOf() answer (null: unanswered)
+  verdicts: {},       // stem -> verdict
+  scrollY: 0,
 
-function shape(raw) {
-  try {
-    const j = JSON.parse(raw);
-    if (j && typeof j === 'object') {
-      const { op = '?', name = '', ...rest } = j;
-      const from = rest.from ? (String(rest.from).match(/\/shortcut-tools\/(.+?)\/plists\//) || [])[1] : null;
-      if (from) rest.from = /^[0-9a-f]{40}$/.test(from) ? from.slice(0, 7) : from;
-      return { verb: op, name, fields: rest, rest: '' };
-    }
-  } catch {}
-  const h = header(raw);
-  if (h) return { verb: h.verb, name: h.fields.name || '', fields: (delete h.fields.name, h.fields), rest: h.rest };
-  return { verb: 'text', name: '', fields: {}, rest: raw };
-}
+  async boot() {
+    await this.load(false);
+    window.ghAuth.bootDone();
+    setInterval(() => { if (!document.hidden) this.load(false); }, 15000);
+  },
 
-const parse = stem => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})(\d{2})$/.exec(stem);
-  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
-};
-const when = stem => {
-  const d = parse(stem);
-  if (!d) return stem;
-  const p2 = n => String(n).padStart(2, '0');
-  return `${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
-};
-
-// "Did mine land" is the question this page is opened to answer, and it is
-// asked seconds after a tap. So an entry logged in the last five minutes says
-// how long ago in words. It claims recency, never ownership: the page cannot
-// know whose run it was, and a chip reading "yours" would be a guess.
-const RECENT = 5 * 60 * 1000;
-const ago = stem => {
-  const d = parse(stem);
-  if (!d) return null;
-  const s = (Date.now() - d) / 1000;
-  if (s < 0 || s * 1000 > RECENT) return null;
-  return s < 45 ? 'just now' : `${Math.round(s / 60)} min ago`;
-};
-const TONE = { run: 'badge-primary', import: 'badge-success', text: 'badge-ghost' };
-
-let builds = null;         // null until fetched: unknown is not "current"
-let buildsOnce = null;     // one fetch per page, awaited before the first paint
-// Public repo, so no token. A failure just means no verdict chip: an unknown
-// answer must not render as a good one.
-const loadBuilds = () => buildsOnce ||= fetch(BUILDS, { cache: 'no-store' })
-  .then(r => r.ok ? r.json() : null).then(b => { builds = b }).catch(() => {});
-
-// A payload is usually JSON carrying one enormous base64 field. Printing it raw
-// buries every row under it, which is the Show Result defect this page replaces,
-// only with scrolling. So print the STRUCTURE and elide the noise: a long string
-// keeps its head and reports its length, which is what a person actually reads
-// it for. `raw` is one tap away, never lost.
-const CAP = 96;
-function elide(v) {
-  if (typeof v === 'string') return v.length > CAP ? v.slice(0, 48) + `\u2026[${v.length}]` : v;
-  if (Array.isArray(v)) return v.map(elide);
-  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, elide(x)]));
-  return v;
-}
-// Runs nest JSON inside JSON as a string, so one parse is not enough to see in.
-function deepen(v) {
-  if (typeof v === 'string' && /^\s*[[{]/.test(v)) {
-    try { return deepen(JSON.parse(v)) } catch { return v }
-  }
-  if (Array.isArray(v)) return v.map(deepen);
-  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deepen(x)]));
-  return v;
-}
-function pretty(raw) {
-  try { return JSON.stringify(elide(deepen(JSON.parse(raw))), null, 2) } catch { return null }
-}
-
-const size = n => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
-
-// Collapsed to a few lines by default so the row shape survives a big payload.
-function body(raw) {
-  const wrap = node('div', 'flex flex-col gap-1');
-  const nice = pretty(raw);
-  const pre = node('pre', 'bg-base-200 rounded-box p-2 text-xs whitespace-pre-wrap break-all');
-  const bar = node('div', 'flex items-center gap-2');
-  let open = false, isRaw = !nice;
-
-  const paint = () => {
-    pre.textContent = isRaw ? raw : nice;
-    pre.classList.toggle('max-h-24', !open);
-    pre.classList.toggle('overflow-hidden', !open);
-    pre.classList.toggle('max-h-96', open);
-    pre.classList.toggle('overflow-y-auto', open);
-    more.textContent = open ? 'less' : 'more';
-  };
-  const more = node('button', 'btn btn-xs');
-  more.onclick = () => { open = !open; paint() };
-  bar.append(node('span', 'badge badge-ghost badge-sm font-mono', size(raw.length)), more);
-  if (nice) {
-    const t = node('button', 'btn btn-xs btn-ghost', 'raw');
-    t.onclick = () => { isRaw = !isRaw; t.textContent = isRaw ? 'pretty' : 'raw'; paint() };
-    bar.append(t);
-  }
-  paint();
-  wrap.append(pre, bar);
-  return wrap;
-}
-
-function card(stem, raw, fresh) {
-  const { verb, name, fields, rest } = shape(raw);
-  const c = node('div', 'card bg-base-100 shadow-sm'
-    + (fresh || ago(stem) ? ' ring-2 ring-[var(--color-primary)]' : ''));
-  const b = node('div', 'card-body gap-2 p-3');
-  const head = node('div', 'flex items-center gap-2 flex-wrap');
-  head.append(node('span', 'badge badge-sm ' + (TONE[verb] || 'badge-ghost'), verb));
-  if (name) head.append(node('span', 'font-bold', name));
-  for (const [k, v] of Object.entries(fields))
-    head.append(node('span', 'badge badge-outline badge-sm font-mono', `${k}=${v}`));
-  // The verdict the build id exists for. Silent while unknown, because
-  // "current" and "not looked up" must never render the same.
-  const now = builds && name && builds[name];
-  if (now && fields.build)
-    head.append(fields.build === now
-      ? node('span', 'badge badge-success badge-sm', 'current')
-      : node('span', 'badge badge-warning badge-sm font-mono', 'stale \u2192 ' + now));
-  const fresh2 = ago(stem);
-  head.append(node('span', 'text-xs opacity-50 ml-auto', when(stem)));
-  if (fresh2) head.append(node('span', 'badge badge-sm badge-info', fresh2));
-  b.append(head);
-  if (rest) b.append(body(rest));
-  c.append(b);
-  return c;
-}
-
-let seen = null;
-
-async function load() {
-  if (!window.ghAuth.resolve()) { window.ghAuth.prompt(NEED_TOKEN); return; }
-  el('status').textContent = 'loading';
-  const manifest = loadBuilds();
-  try {
-    let list;
+  async load(force) {
+    if (!window.ghAuth.resolve()) { window.ghAuth.prompt(NEED_TOKEN); return; }
+    if (this.loading) return;
+    this.loading = true; this.err = '';
     try {
-      list = await log.req(`contents/${DIR}`);
+      let list;
+      try { list = await log.req(`contents/${DIR}`, { cache: 'no-store' }); }
+      catch (e) { if (e && e.status === 404) { window.ghAuth.prompt(NEED_TOKEN); return; } throw e; }
+      const had = this.files.length ? new Set(this.files) : null;
+      this.files = list.filter(f => f.name.endsWith('.json')).map(f => f.name)
+                       .sort((a, b) => b.localeCompare(a));
+      const want = this.files.slice(0, this.limit).map(n => n.replace(/\.json$/, ''));
+      const missing = want.filter(s => !(s in this.bodies));
+      const got = await Promise.all(missing.map(s =>
+        log.get(`${DIR}/${s}.json`).then(r => r.text).catch(() => '')));
+      missing.forEach((s, i) => { this.bodies[s] = got[i]; });
+      this.fresh = had ? Object.fromEntries(want.filter(s => !had.has(s + '.json')).map(s => [s, true])) : {};
+      this.entries = SE.link(want.map(s => SE.parse(s, this.bodies[s])));
+      await this.score(force);
     } catch (e) {
-      if (e && e.status === 404) { window.ghAuth.prompt(NEED_TOKEN); return; }
-      throw e;
+      this.err = String(e.message || e);
+    } finally {
+      this.loading = false;
     }
-    const newest = list.filter(f => f.name.endsWith('.json'))
-                       .sort((a, b) => b.name.localeCompare(a.name)).slice(0, SHOW);
-    const bodies = await Promise.all(newest.map(f =>
-      fetch(f.download_url, { cache: 'no-store' }).then(r => r.text()).catch(() => '')));
-    await manifest;   // in flight since before the listing: costs nothing, and
-                      // a verdict that appears 15s late reads as an absent one
-    const rows = el('rows');
-    rows.textContent = '';
-    newest.forEach((f, i) => {
-      const stem = f.name.replace(/\.json$/, '');
-      rows.append(card(stem, bodies[i].trim(), seen !== null && !seen.has(f.name)));
-    });
-    seen = new Set(newest.map(f => f.name));
-    el('status').className = 'badge badge-success badge-sm';
-    el('status').textContent = newest.length + ' entries';
-  } catch (e) {
-    el('status').className = 'badge badge-error badge-sm';
-    el('status').textContent = String(e.message || e);
-  }
-}
+  },
 
-el('refresh').onclick = load;
-await load();
-// The boot chain is settled, so a later rejection is the page's own, not a boot
-// failure, and must not paint gh-auth's "Boot failed" screen over a live page.
-window.ghAuth.bootDone();
-setInterval(load, 15000);
+  more() { this.limit += PAGE; this.load(false); },
+
+  // The lookups a verdict needs: builds.json on main, at every source ref, and
+  // at the head of every open PR a source ref belongs to. A commit's builds
+  // never change, so a sha stays cached; main and PR membership are re-read
+  // on Refresh.
+  async score(force) {
+    if (force) {
+      this.base = {};
+      this.at = Object.fromEntries(Object.entries(this.at).filter(([k]) => /^[0-9a-f]{40}$/.test(k)));
+    }
+    const refs = SE.refs(this.entries).filter(r => !(r in this.base));
+    await Promise.all(refs.map(async r => {
+      const path = /^[0-9a-f]{40}$/.test(r) ? `commits/${r}/pulls`
+                 : `pulls?head=${TOOLS.split('/')[0]}:${encodeURIComponent(r)}&state=all`;
+      let pulls = null;
+      if (r !== 'main') { try { pulls = await tools.req(path); } catch {} }
+      this.base[r] = SE.baseOf(r, pulls);
+    }));
+    const need = new Set(['main', ...SE.refs(this.entries)]);
+    for (const b of Object.values(this.base)) if (b && b.kind === 'pr') need.add(b.head);
+    await Promise.all([...need].filter(r => !(r in this.at)).map(async r => {
+      try { this.at[r] = JSON.parse((await new window.GH({ repo: TOOLS, ref: r }).get('plists/builds.json')).text); }
+      catch { this.at[r] = null; }
+    }));
+    const ctx = { at: this.at, base: this.base };
+    this.verdicts = Object.fromEntries(this.entries.map(e => [e.stem, SE.verdict(e, ctx)]));
+  },
+
+  get shown() {
+    return this.entries.filter(e => {
+      if (this.only && e.name !== this.only) return false;
+      if (this.filter === 'installs') return e.install;
+      if (this.filter === 'runs') return !e.install;
+      if (this.filter === 'stale') return this.verdicts[e.stem]?.state === 'stale';
+      return true;
+    });
+  },
+  get groups() {
+    const today = dayKey(new Date()), yest = dayKey(new Date(Date.now() - 864e5));
+    const out = [];
+    for (const e of this.shown) {
+      const k = e.when ? dayKey(e.when) : '?';
+      const day = k === today ? 'Today' : k === yest ? 'Yesterday'
+        : e.when ? e.when.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Undated';
+      if (!out.length || out[out.length - 1].day !== day) out.push({ day, rows: [] });
+      out[out.length - 1].rows.push(e);
+    }
+    return out;
+  },
+  get tally() {
+    const behind = this.entries.filter(e => this.verdicts[e.stem]?.state === 'stale').length;
+    return `${this.entries.length}` + (behind ? ` · ${behind} behind` : '');
+  },
+  get item() { return this.entries.find(e => e.stem === this.sel) || null; },
+
+  v(e) { return this.verdicts[e.stem] || null; },
+  open(stem) {
+    if (!this.sel) this.scrollY = window.scrollY;
+    this.sel = stem; this.raw = false;
+    window.scrollTo(0, 0);
+  },
+  close() {
+    this.sel = '';
+    this.$nextTick(() => window.scrollTo(0, this.scrollY));
+  },
+
+  iconOf(e) {
+    if (e.install) return 'ph-download-simple';
+    if (e.op === 'dump') return 'ph-archive';
+    if (!e.name) return 'ph-note';
+    return 'ph-play';
+  },
+  // The small mono word after the title: what happened, or for a row with no
+  // name, the short values it carried.
+  tagOf(e) {
+    if (e.name) return e.op === e.name.toLowerCase() ? '' : e.verb;
+    return Object.entries(e.fields).filter(([k, x]) => k !== 'build' && typeof x === 'string' && x && x.length <= 24)
+      .slice(0, 2).map(([, x]) => x).join(' · ');
+  },
+  titleOf(e) {
+    if (e.name) return e.name;
+    const first = (e.payload || '').split('\n')[0].trim();
+    return first ? (first.length > 80 ? first.slice(0, 80) + '…' : first) : e.op;
+  },
+  stateIcon(v) {
+    return window.SyncStatus.ICON[v.state === 'current' ? 'current' : 'behind'];
+  },
+  recent(e) { return e.when && Date.now() - e.when < RECENT; },
+  timeOf(e) {
+    if (!e.when) return '';
+    const s = (Date.now() - e.when) / 1000;
+    if (s >= 0 && s * 1000 < RECENT) return s < 45 ? 'just now' : `${Math.round(s / 60)}m ago`;
+    return `${p2(e.when.getHours())}:${p2(e.when.getMinutes())}`;
+  },
+  fullTime(e) { return e.when ? e.when.toLocaleString() : e.stem; },
+  fileUrl(e) { return `https://github.com/${LOG}/blob/main/${DIR}/${e.stem}.json`; },
+  size(t) { const n = (t || '').length; return n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB'; },
+  pretty(e) { return SE.pretty(e.payload || e.raw); },
+  copy(t) { navigator.clipboard?.writeText(t); },
+
+  // The rows of the detail's definition list: the verdict first, then what the
+  // row carried, with the install fields read for what they mean.
+  facts(e) {
+    const out = [], v = this.v(e), short = r => /^[0-9a-f]{40}$/.test(r) ? r.slice(0, 7) : r;
+    if (v) {
+      const against = v.against.kind === 'pr' ? `PR #${v.against.pr}` : 'main';
+      out.push({ k: 'verdict', v: v.state === 'current' ? `current with ${against}` : `behind ${against}`,
+                 icon: this.stateIcon(v) });
+      out.push({ k: 'build', v: v.build, mono: true, note: v.inferred ? `as published at ${short(v.ref)}` : '' });
+      if (v.state === 'stale') out.push({ k: against, v: v.target, mono: true, note: 'publishes' });
+    } else if (e.build) {
+      out.push({ k: 'build', v: e.build, mono: true });
+    }
+    if (e.source) {
+      const b = this.base[e.source.ref];
+      out.push({ k: 'from', v: `${short(e.source.ref)} · ${e.source.dir}/${e.source.file}`,
+                 href: `https://github.com/${TOOLS}/blob/${e.source.ref}/${e.source.dir}/${e.source.file}`,
+                 note: b && b.kind === 'pr' ? `PR #${b.pr}` : '' });
+    }
+    if (e.installer && e.installer.build) out.push({ k: 'by', v: `${e.installer.name} ${e.installer.build}`, mono: true });
+    const skip = e.install ? ['from', 'target', 'build'] : ['build'];
+    for (const [k, x] of Object.entries(e.fields)) {
+      if (skip.includes(k)) continue;
+      const s = typeof x === 'string' ? x : JSON.stringify(SE.elide(x));
+      out.push({ k, v: s, mono: s.length < 60 });
+    }
+    return out;
+  },
+})));
+
+await gh.load('alpine-bundle.js');
 </script>
 </body>
 </html>

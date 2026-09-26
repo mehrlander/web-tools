@@ -81,11 +81,11 @@ test('resolve: bare path means the hub at main; qualified ref overrides', () => 
 });
 
 test('render/thumb/source URLs follow the page catalog\'s conventions', () => {
-  // Bare hub path at main: hosted github.io + jsDelivr thumb + blob source.
+  // Bare hub path at main: hosted github.io + raw thumb + blob source.
   assert.equal(data.renderUrl('pages/diff-tool.html'),
     'https://mehrlander.github.io/web-tools/pages/diff-tool.html');
   assert.equal(data.thumbUrl('pages/diff-tool.html'),
-    'https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/pages/thumbs/diff-tool.png');
+    'https://raw.githubusercontent.com/mehrlander/web-tools/main/pages/thumbs/diff-tool.png');
   assert.equal(data.codeUrl('pages/diff-tool.html'),
     'https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html');
   // A mehrlander repo off its default ref routes through toss-render #gh=.

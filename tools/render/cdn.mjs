@@ -1,12 +1,12 @@
 // Shared CDN -> local resolution for the headless render tools.
 //
 // The repo's pages pull three things off the network:
-//   1. Own code  — gh-api.js's loader fetches lib/* via the GitHub contents
-//      API (base64), after the page's first jsDelivr `/gh/` import of gh-api.js
-//      itself. Both must resolve to the on-disk working tree so a render shows
-//      branch edits, not whatever main serves. Two more routes reach the same
-//      tree for the same reason: raw.githubusercontent (the ?use= pre-build
-//      boot) and <owner>.github.io (the <base> a toss render stamps).
+//   1. Own code  — the page imports lib/entry.js from <owner>.github.io, which
+//      imports gh-api.js beside it (or from raw.githubusercontent under
+//      ?use=), whose loader then fetches lib/* via the GitHub contents API. All three must resolve to
+//      the on-disk working tree so a render shows branch edits, not whatever
+//      main serves. The pre-build boot and the <base> a toss render stamps
+//      reach the same two hosts for the same reason.
 //   2. Own data: the GitHub API surface for REPO (contents listings/reads,
 //      /repos/<REPO> metadata, git/trees) is answered from the working tree
 //      too: no token, no network, and uncommitted edits render. ANOTHER repo's
@@ -339,29 +339,14 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
   const host = u.host;
 
-  // --- Own code: jsDelivr /gh/<repo>[@ref]/<path> (the first gh-api.js import) ---
-  if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith(`/gh/${REPO}`)) {
-    const tail = u.pathname.slice(`/gh/${REPO}`.length).replace(/^@[^/]+/, '');
-    const rel = decodeURIComponent(tail).replace(/^\//, '');
-    const fp = path.join(repoRoot, rel);
-    if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `gh ${rel}` };
-    return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `MISS gh ${rel}` };
-  }
   // --- A SIBLING REPO in the same estate, served from its checkout. ---
   // pages/shortcuts.html is the first page here whose data belongs to another
   // repo: it reads shortcut-tools' catalog.json. Without this route a headless
   // render of such a page shows chrome and an empty table, because the branch
-  // holding the data is not on any CDN yet and the two rules below would answer
-  // empty (jsDelivr) or let the request reach the real network (raw), which the
-  // sandbox refuses. The same reasoning as the two rules above: a --ref render
-  // must see the working tree, and a sibling checkout IS the working tree for
-  // the repo that owns the file.
-  {
-    const m = /^\/gh\/([^/@]+)\/([^/@]+)(?:@[^/]+)?\/(.+)$/.exec(u.pathname);
-    const sib = host === 'cdn.jsdelivr.net' && m ? siblingFile(repoRoot, m[1], m[2], m[3]) : null;
-    if (sib) return { kind: 'fulfill', body: readFileSync(sib), contentType: typeFor(sib),
-                      tag: `sibling ${m[2]}/${decodeURIComponent(m[3])}` };
-  }
+  // holding the data may not be pushed yet and the request would otherwise reach
+  // the real network, which the sandbox refuses. The same reasoning as the own
+  // code rules below: a --ref render must see the working tree, and a sibling
+  // checkout IS the working tree for the repo that owns the file.
   {
     const m = /^\/([^/]+)\/([^/]+)\/(.+)$/.exec(u.pathname);
     if (host === 'raw.githubusercontent.com' && m) {
@@ -377,15 +362,11 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     }
   }
 
-  // Other /gh/ refs are third-party data (word lists, etc.) — not vendored.
-  if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith('/gh/')) {
-    return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
-  }
-
   // --- Own code: raw.githubusercontent.com/<repo>/<ref>/<path>. The pre-build
   // ?use= boot loads dist/web-tools.js this way (fetch + blob-import), so a
   // --ref render must serve the working tree here too, or it would hit the
-  // real remote bundle and lose branch edits. Mirrors the jsDelivr /gh/ case.
+  // real remote bundle and lose branch edits. lib/entry.js reaches gh-api.js
+  // the same way on every page, with or without ?use=.
   // The ref is stripped by the exact --ref value (branch names carry slashes,
   // so segment-counting can't find where the path starts); with no ref known,
   // fall back to dropping one segment. ---
@@ -400,9 +381,9 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `MISS raw ${rel}` };
   }
 
-  // --- Own code via GitHub Pages: <owner>.github.io/<repo>/<path>. The <base>
-  // a toss-render address render stamps resolves the tossed page's relative
-  // URLs here, so toss scenarios need it mapped to the working tree too. ---
+  // --- Own code via GitHub Pages: <owner>.github.io/<repo>/<path>. Every page's
+  // lib/entry.js import lands here, and the <base> a toss-render address render
+  // stamps resolves the tossed page's relative URLs here too. ---
   {
     const [owner, name] = REPO.split('/');
     if (host === `${owner}.github.io` && u.pathname.startsWith(`/${name}/`)) {

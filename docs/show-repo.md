@@ -141,9 +141,9 @@ with the kit's `drop()`.
 ## Public browse
 
 `?view=public` (`lib/alpineComponents/public-browse.js`) lists and previews any
-public repo through jsDelivr (`GH.flatTree()`, `GH.rawUrl()`), with no token and
-no GitHub quota. Private repos 404; jsDelivr's listing can lag a push by about
-12 hours.
+public repo with no token: one anonymous GitHub trees call for the listing
+(`GH.flatTree()`, one of the 60 anonymous requests an hour) and
+raw.githubusercontent for a file's bytes (`GH.rawUrl()`). Private repos 404.
 
 ## Transfer
 

@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-// pages/shortcut-log.html — the reader both sides use.
+// pages/shortcut-log.html — the reader both sides use, as the app view
+// `shortcut-log`.
 //
 //   node tools/test/shortcut-log-page.mjs
 //
-// The GitHub API is stubbed, so what is checked is the part that actually broke
-// before: whether both payload shapes render. Installs write JSON; runs write a
-// `verb key=value` header line with a free payload, because a result full of
-// quotes broke the JSON form it replaced. A reader that handles one and not the
-// other shows the useful half as untyped text, which is exactly what the
-// terminal reader did until it was fixed.
+// The GitHub API is stubbed and every library is served from node_modules, so
+// the run is offline. What is checked is what broke or was asked for:
+//
+//   - each entry is one line (what ran, verdict, when), with detail on tap;
+//   - a paste is scored by its target, against the open PR its commit belongs
+//     to, not by the installer's stamp against main;
+//   - an unanswerable lookup yields no verdict icon at all;
+//   - the token screen is gh-auth's, raised for a missing token and for the
+//     private repo's 404.
 //
 // Exits nonzero on any failure. Not part of `npm test` (needs a browser).
 
@@ -17,7 +21,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { typeFor } from '../render/cdn.mjs';
+import { typeFor, resolveCdn } from '../render/cdn.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const failures = [];
@@ -36,214 +40,162 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-// Shaped like the real thing: one enormous base64 field beside the few small
-// ones that actually answer anything. Rendering that raw is what buried every
-// row under it on 2026-08-29.
-const B64 = 'eyJvcCI6ImltcG9ydCIsIm5hbWUiOiJSdW4tUGljayJ9'.repeat(20);
-const RUN = 'run name=Run-Pick build=b07361d chose=Get-FileInfo\n'
-          + JSON.stringify({ Base64: B64, Type: 'Text', 'File Size': 165,
-                             caption: 'a "quoted" thing' });
-const IMPORT = JSON.stringify({ op: 'import', name: 'Run-Pick',
-  from: 'https://raw.githubusercontent.com/mehrlander/shortcut-tools/1136303175657' +
-        '0f309858118c8562681161eaef6/plists/Run-Pick.plist' });
-
-// Dated at load time, since the recency chip is the point of the freshest row:
-// a fixture with a hard-coded date would age out of it and stop testing it.
+const SHA = '3793674509e3378e65a4f4ed8007373c4e22c8ad';
+const HEAD = '203abce496c0ad4836581952ee7cf64cd26035a4';
 const stampOf = (d) => [d.getFullYear(), d.getMonth() + 1, d.getDate()]
   .map((n, i) => String(n).padStart(i ? 2 : 4, '0')).join('-') + '-'
   + [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join('');
-const RUN_STEM = stampOf(new Date(Date.now() - 20_000));
-const OLD_STEM = '2026-08-29-095546';
 
-// A private repo answers 404, not 401, when the token cannot see it.
+// Newest first: a run seconds ago, the paste it came from, and an old text row.
+const LOG = {
+  [stampOf(new Date(Date.now() - 20_000))]:
+    'run name=Dump-Named build=c4fd8aa chose=Get-FileInfo\n'
+    + JSON.stringify({ Base64: 'eyJvcCI6ImltcG9ydCJ9'.repeat(20), caption: 'a "quoted" thing' }),
+  [stampOf(new Date(Date.now() - 600_000))]: JSON.stringify({
+    op: 'paste', name: 'Dump-Named', target: 'c4fd8aa', build: 'f18efdb',
+    from: `https://raw.githubusercontent.com/mehrlander/shortcut-tools/${SHA}/packed/dump-named.json` }),
+  '2026-08-22-170121': 'I pledge allegiance to the Flag',
+};
+
 let access = 200;
+let pulls = [{ number: 50, state: 'open', head: { sha: HEAD, ref: 'claude/x' } }];
+let builds = { main: { 'Dump-Named': 'f0304eb' }, [HEAD]: { 'Dump-Named': 'c4fd8aa' } };
 
-// Swapped per case below: the run logs build=b07361d, so this decides whether
-// the page should call it current, stale, or nothing at all.
-let manifest = { 'Run-Pick': 'b07361d' };
+const json = (route, status, body) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+const b64 = s => Buffer.from(s, 'utf8').toString('base64');
+
+const handler = async route => {
+  const u = new URL(route.request().url());
+  const p = u.pathname;
+  if (u.host === 'api.github.com' && p.startsWith('/repos/mehrlander/web-tools-private/')) {
+    if (access === 404) return json(route, 404, { message: 'Not Found' });
+    if (p.endsWith('/contents/shortcuts/log'))
+      return json(route, 200, Object.keys(LOG).map(s => ({ name: s + '.json', type: 'file' })));
+    const m = p.match(/\/contents\/shortcuts\/log\/(.+)\.json$/);
+    if (m) return json(route, 200, { content: b64(LOG[m[1]] || ''), encoding: 'base64', sha: 'x', size: 1 });
+  }
+  if (u.host === 'api.github.com' && p.startsWith('/repos/mehrlander/shortcut-tools/')) {
+    if (/\/commits\/[0-9a-f]{40}\/pulls$/.test(p))
+      return pulls === null ? json(route, 500, { message: 'boom' }) : json(route, 200, pulls);
+    if (p.endsWith('/contents/plists/builds.json')) {
+      const b = builds[u.searchParams.get('ref')];
+      return b ? json(route, 200, { content: b64(JSON.stringify(b)), encoding: 'base64', sha: 'x', size: 1 })
+               : json(route, 404, { message: 'Not Found' });
+    }
+  }
+  const r = resolveCdn(u.href, root);
+  if (r.kind === 'fulfill') return route.fulfill({ status: r.status || 200, body: r.body, contentType: r.contentType });
+  if (r.kind === 'empty') return route.fulfill({ status: 200, body: '', contentType: r.contentType });
+  if (u.origin === origin) return route.continue();
+  return route.fulfill({ status: 404, body: '' });
+};
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-await ctx.addInitScript(() => { try { localStorage.setItem('ghToken', 'stub'); } catch {} });
-const page = await ctx.newPage();
-const errors = [];
-page.on('pageerror', e => errors.push(e.message));
-
-const cdn = new Map();
-const handler = async route => {
-  const url = route.request().url();
-  if (url.includes('api.github.com/repos/mehrlander/web-tools-private')) {
-    if (access === 404)
-      return route.fulfill({ status: 404, contentType: 'application/json',
-                             body: JSON.stringify({ message: 'Not Found' }) });
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
-      { name: RUN_STEM + '.json', download_url: origin + '/__log/run' },
-      { name: '2026-08-29-095546.json', download_url: origin + '/__log/import' },
-    ]) });
-  }
-  if (url.endsWith('/__log/run')) return route.fulfill({ status: 200, body: RUN });
-  if (url.endsWith('/__log/import')) return route.fulfill({ status: 200, body: IMPORT });
-  if (url.includes('plists/builds.json'))
-    return manifest === null
-      ? route.fulfill({ status: 404, body: 'nope' })
-      : route.fulfill({ status: 200, contentType: 'application/json',
-                        body: JSON.stringify(manifest) });
-  // The boot chain, served from this checkout: gh-api.js by URL, then each
-  // gh.load() through the contents API. Hitting the real CDN and the real API
-  // would make this check depend on the network and on rate limits.
-  if (url.includes('/lib/gh-api.js'))
-    return route.fulfill({ status: 200, contentType: 'application/javascript',
-                           body: await readFile(path.join(root, 'lib/gh-api.js')) });
-  const lib = url.match(/api\.github\.com\/repos\/mehrlander\/web-tools\/contents\/(lib\/[^?]+)/);
-  if (lib) {
-    const buf = await readFile(path.join(root, decodeURIComponent(lib[1])));
-    return route.fulfill({ status: 200, contentType: 'application/json',
-      body: JSON.stringify({ content: buf.toString('base64'), encoding: 'base64' }) });
-  }
-  if (url.startsWith('https://cdn.jsdelivr.net')) {
-    if (!cdn.has(url)) {
-      const r = await fetch(url);
-      cdn.set(url, { status: r.status, body: Buffer.from(await r.arrayBuffer()),
-                     type: r.headers.get('content-type') || 'application/javascript' });
-    }
-    const c = cdn.get(url);
-    return route.fulfill({ status: c.status, body: c.body, contentType: c.type });
-  }
-  return route.continue();
+const withPage = async (setup, fn, query = '') => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx.addInitScript(setup);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.route('**/*', handler);
+  await page.goto(`${origin}/pages/shortcut-log.html${query}`, { waitUntil: 'load' });
+  try { return await fn(page, errors); } finally { await ctx.close(); }
 };
-await page.route('**/*', route => handler(route));
+const token = () => { try { localStorage.setItem('ghToken', 'stub') } catch {} };
 
-await page.goto(`${origin}/pages/shortcut-log.html`, { waitUntil: 'networkidle' });
-await page.waitForFunction(() => document.querySelectorAll('#rows > div').length > 0, { timeout: 8000 });
-
-const r = await page.evaluate(() => {
-  const cards = [...document.querySelectorAll('#rows > div')];
-  const read = c => ({
-    badges: [...c.querySelectorAll('.badge')].map(b => b.textContent),
-    bold: (c.querySelector('.font-bold') || {}).textContent || '',
-    pre: (c.querySelector('pre') || {}).textContent || '',
-    clipped: !!c.querySelector('pre.max-h-24.overflow-hidden'),
-    btns: [...c.querySelectorAll('button')].map(b => b.textContent),
-    ringed: c.className.includes('ring-primary'),
-  });
-  return { count: cards.length, run: read(cards[0]), imp: read(cards[1]),
-           status: document.getElementById('status').textContent,
-           noPrompt: !document.getElementById('__ghAuthForm') };
-});
+const rows = page => page.evaluate(() => [...document.querySelectorAll('[data-row]')].map(r => ({
+  text: r.innerText.replace(/\s+/g, ' ').trim(),
+  height: r.getBoundingClientRect().height,
+  current: !!r.querySelector('[data-verdict] .ph-check-circle'),
+  stale: !!r.querySelector('[data-verdict] .ph-arrow-circle-up'),
+})));
+const settle = page => page.waitForFunction(() =>
+  document.querySelectorAll('[data-row]').length === 3
+  && document.querySelectorAll('[data-verdict] i').length > 0, null, { timeout: 15000 }).catch(() => {});
 
 console.log('shortcut-log.html');
-ok('page boots with no error', errors.length === 0, errors[0]);
-ok('a stored token skips the token screen', r.noPrompt);
-ok('both entries render', r.count === 2, String(r.count));
-ok('a run is typed as a run', r.run.badges.includes('run'), r.run.badges.join(','));
-ok('the run names the shortcut', r.run.bold === 'Run-Pick', r.run.bold);
-// The whole point: the build id is legible without scrolling or guessing.
-ok('the build id is a chip', r.run.badges.includes('build=b07361d'), r.run.badges.join(','));
-ok('the choice is a chip', r.run.badges.includes('chose=Get-FileInfo'), r.run.badges.join(','));
-// The half Show Result clipped away, and the reason a reader is worth having:
-// the small fields that answer something are legible without hunting for them.
-ok('the result shows its structure', r.run.pre.includes('"File Size": 165'),
-   r.run.pre.slice(0, 80));
-// The base64 is the noise. Keeping its head and its length says what it is
-// without spending the screen on it; a raw copy is still one tap away below.
-ok('a huge field is elided with its length',
-   /"Base64": "eyJ\S*\u2026\[\d+\]"/.test(r.run.pre), r.run.pre.slice(0, 200));
-ok('the payload is collapsed, not dominating', r.run.clipped);
-ok('more and raw are both offered', r.run.btns.includes('more') && r.run.btns.includes('raw'),
-   r.run.btns.join(','));
 
-// Raw has to be the exact bytes, escapes intact: the pretty view is a reading of
-// the payload and the raw view is the payload. Losing the second makes the first
-// unfalsifiable.
-const raw = await page.evaluate(async () => {
-  const c = document.querySelector('#rows > div');
-  [...c.querySelectorAll('button')].find(b => b.textContent === 'raw').click();
-  [...c.querySelectorAll('button')].find(b => b.textContent === 'more').click();
-  return { pre: c.querySelector('pre').textContent,
-           scrolls: !!c.querySelector('pre.overflow-y-auto') };
+await withPage(token, async (page, errors) => {
+  await settle(page);
+  const r = await rows(page);
+  ok('page boots with no error', errors.length === 0, errors[0]);
+  ok('a stored token skips the token screen', !(await page.$('#__ghAuthForm')));
+  ok('all three entries render', r.length === 3, String(r.length));
+  // One line of meaning per entry, whatever the payload carries.
+  ok('every row is one line', r.every(x => x.height < 64), r.map(x => x.height).join(','));
+  ok('the run names the shortcut', /^Dump-Named/.test(r[0]?.text), r[0]?.text);
+  ok('an entry logged seconds ago says so', /just now/.test(r[0]?.text), r[0]?.text);
+  // The defect this redesign fixed: the paste's own stamp is Library-Paste's.
+  ok('a paste is scored by its target against its PR head: current', r[1]?.current, r[1]?.text);
+  ok('and the row names the PR it was scored against', /#50/.test(r[1]?.text), r[1]?.text);
+  ok('the run inherits that baseline', r[0]?.current, r[0]?.text);
+  ok('a text row gets no verdict', !r[2]?.current && !r[2]?.stale, r[2]?.text);
+  ok('no page-wide horizontal scroll', await page.evaluate(() =>
+    document.documentElement.scrollWidth <= innerWidth));
+
+  await page.locator('[data-row]').nth(0).click();
+  await page.waitForSelector('[data-detail] [data-facts]', { timeout: 5000 });
+  const d = await page.evaluate(() => ({
+    listHidden: getComputedStyle(document.querySelector('[data-list]')).display === 'none',
+    facts: document.querySelector('[data-facts]').innerText.replace(/\s+/g, ' '),
+    pre: document.querySelector('[data-payload] pre')?.textContent || '',
+  }));
+  ok('on a phone the detail replaces the list', d.listHidden);
+  ok('the detail states the verdict and baseline', /current with PR #50/.test(d.facts), d.facts);
+  ok('a huge field is elided with its length', /"Base64": "eyJ\S*…\[\d+\]"/.test(d.pre), d.pre.slice(0, 120));
+  await page.getByRole('button', { name: 'raw' }).click();
+  const raw = await page.textContent('[data-payload] pre');
+  ok('raw restores the exact payload', raw.includes('\\"quoted\\"'), raw.slice(0, 80));
+  await page.getByRole('button', { name: 'Back' }).click();
+  ok('back returns to the list', await page.isVisible('[data-list]'));
 });
-ok('raw restores the exact payload', raw.pre.includes('"File Size":165')
-   && raw.pre.includes('\\"quoted\\"'), raw.pre.slice(0, 80));
-ok('and opened, it scrolls rather than clipping', raw.scrolls);
-ok('an install is typed as an import', r.imp.badges.includes('import'), r.imp.badges.join(','));
-// The whole URL is noise; the ref is the only part that answers the question.
-ok('an install shows the ref, not the URL', r.imp.badges.includes('from=1136303'),
-   r.imp.badges.join(','));
-ok('status reports the count', /2 entries/.test(r.status), r.status);
 
-// "Did mine land" is what the page is opened to answer, seconds after a tap.
-ok('an entry logged seconds ago says so', r.run.badges.includes('just now'),
-   r.run.badges.join(','));
-ok('and it is ringed', r.run.ringed);
-// The claim is recency, not ownership: an older entry makes neither.
-ok('an older entry claims nothing', !r.imp.badges.some(b => /just now|min ago/.test(b)),
-   r.imp.badges.join(','));
-ok('and is not ringed', !r.imp.ringed);
+// Main has moved past the PR head: stale, and the detail names what it publishes.
+builds = { main: { 'Dump-Named': 'f0304eb' }, [HEAD]: { 'Dump-Named': 'abcb62e' } };
+await withPage(token, async page => {
+  await settle(page);
+  const r = await rows(page);
+  ok('a paste behind its PR head is marked behind', r[1]?.stale && !r[1]?.current, r[1]?.text);
+  await page.locator('[data-row]').nth(1).click();
+  const facts = (await page.textContent('[data-facts]')).replace(/\s+/g, ' ');
+  ok('the detail names the build the PR head publishes', /abcb62e/.test(facts) && /behind PR #50/.test(facts), facts);
+  ok('the detail names the installer and its own stamp', /Library-Paste f18efdb/.test(facts), facts);
+});
 
-// THE VERDICT. A build id alone says which copy ran; scoring it against the
-// published manifest is what says whether that copy is the current one, which
-// is the question the stamp was added to answer and could not answer alone.
-const badges = async () => {
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForFunction(() => document.querySelectorAll('#rows > div').length > 0,
-                             { timeout: 8000 });
-  return page.evaluate(() =>
-    [...document.querySelectorAll('#rows > div')[0].querySelectorAll('.badge')]
-      .map(b => b.textContent));
-};
+// Chains links each shortcut to its own entries this way.
+await withPage(token, async page => {
+  await page.waitForFunction(() => document.querySelectorAll('[data-row]').length > 0, null, { timeout: 15000 });
+  await page.waitForTimeout(500);
+  const r = await rows(page);
+  ok('?name= opens on that shortcut alone', r.length === 2 && r.every(x => /Dump-Named/.test(x.text)),
+     r.map(x => x.text).join(' | '));
+  ok('and says so in the header', /Dump-Named/.test(await page.textContent('[data-only]')));
+}, '?name=Dump-Named');
 
-const same = await badges();
-ok('a run matching the manifest is marked current', same.includes('current'), same.join(','));
+// The failure that would make this worse than no verdict.
+pulls = null;
+await withPage(token, async page => {
+  await page.waitForFunction(() => document.querySelectorAll('[data-row]').length === 3, null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  const r = await rows(page);
+  ok('an unanswered PR lookup yields no verdict at all', r.every(x => !x.current && !x.stale), r.map(x => x.text).join(' | '));
+});
+pulls = [];
 
-manifest = { 'Run-Pick': 'ccb6cfc' };
-const moved = await badges();
-ok('a run behind the manifest is marked stale, and names the current id',
-   moved.includes('stale \u2192 ccb6cfc'), moved.join(','));
-ok('and it is not also called current', !moved.includes('current'), moved.join(','));
-
-// The failure that would make this worse than no verdict: an unfetched
-// manifest rendering as a good answer.
-manifest = null;
-const blank = await badges();
-ok('an unreachable manifest yields no verdict at all',
-   !blank.includes('current') && !blank.some(b => b.startsWith('stale')), blank.join(','));
-ok('and the row still renders', blank.includes('build=b07361d'), blank.join(','));
-
-// THE TOKEN SCREEN IS gh-auth's, NOT THIS PAGE'S. A hand-rolled form shipped
-// here for one day and stranded a reader in a Shortcuts sheet with a password
-// box and nowhere to get a token. What makes the standard screen worth having
-// is the "Get a token" link, so that is what is asserted, not merely that some
-// form appeared.
-const promptFor = async (setup) => {
-  const c2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await c2.addInitScript(setup);
-  const p2 = await c2.newPage();
-  await p2.route('**/*', route => handler(route));
-  await p2.goto(`${origin}/pages/shortcut-log.html`, { waitUntil: 'networkidle' });
-  await p2.waitForSelector('#__ghAuthForm', { timeout: 8000 }).catch(() => {});
-  const out = await p2.evaluate(() => {
-    const f = document.getElementById('__ghAuthForm');
-    return { shown: !!f,
-             getToken: [...document.querySelectorAll('a')]
-               .some(a => /github\.com\/settings\/tokens\/new/.test(a.href)),
-             text: (document.body.innerText || '').slice(0, 200) };
-  });
-  await c2.close();
-  return out;
-};
-
-const noToken = await promptFor(() => { try { localStorage.removeItem('ghToken') } catch {} });
-ok('no token raises the standard token screen', noToken.shown, noToken.text);
-ok('and it offers the link to go get one', noToken.getToken, noToken.text);
-
-// gh-auth takes the page over on 401/403, and a private repo with no access
-// answers 404 because GitHub hides what you cannot see. Left unforwarded, the
-// page dies reading "not found" with no way to fix it.
+const prompt = async setup => withPage(setup, async page => {
+  await page.waitForSelector('#__ghAuthForm', { timeout: 8000 }).catch(() => {});
+  return page.evaluate(() => ({
+    shown: !!document.getElementById('__ghAuthForm'),
+    getToken: [...document.querySelectorAll('a')].some(a => /github\.com\/settings\/tokens\/new/.test(a.href)),
+    text: (document.body.innerText || '').slice(0, 200),
+  }));
+});
+const none = await prompt(() => { try { localStorage.removeItem('ghToken') } catch {} });
+ok('no token raises the standard token screen', none.shown, none.text);
+ok('and it offers the link to go get one', none.getToken, none.text);
 access = 404;
-const denied = await promptFor(() => { try { localStorage.setItem('ghToken', 'stale') } catch {} });
-ok('a 404 on the private repo raises it too, not a dead end', denied.shown, denied.text);
-ok('and that screen also offers the link', denied.getToken, denied.text);
-access = 200;
+const denied = await prompt(token);
+ok('a 404 on the private repo raises it too', denied.shown, denied.text);
 
 await browser.close(); server.close();
 console.log(failures.length ? `\n${failures.length} failed` : '\nall passed');

@@ -61,18 +61,18 @@ function scanLoads(src) {
 }
 
 // Pull the gh.load args out of a page's <script type="module"> boot block, and
-// confirm the page actually boots the loader (imports gh-api.js, or its own
+// confirm the page actually boots the loader (imports lib/entry.js, or its own
 // build). Returns { isGhBooted, loads:Set, defaultRef }.
 //
 // A PAGE THAT HAS ADOPTED ITS BUILD IS STILL A gh.load PAGE, which is the
 // circularity this second pattern breaks: adopting the build replaces the
-// gh-api.js import with `dist/<page>.js`, and a detector looking only for the
+// entry.js import with `dist/<page>.js`, and a detector looking only for the
 // first then reports the page as unbuildable and refuses to rebuild the very
 // artifact it is running on. Every later commit would have shipped a stale
 // build with nothing to say so. What makes a page buildable is the CHAIN, and
 // the chain is unchanged: the build is the same loader with its reads served
 // from memory. Found the moment pages/dictate.html adopted one (2026-09-08).
-const BOOT_IMPORT = /gh-api\.js|dist\/[\w.-]+\.js/;
+const BOOT_IMPORT = /lib\/entry\.js|dist\/[\w.-]+\.js/;
 
 export function readPageBoot(repoRoot, pagePath) {
   const html = readFileSync(path.join(repoRoot, pagePath), 'utf8');
@@ -80,9 +80,9 @@ export function readPageBoot(repoRoot, pagePath) {
   const boot = blocks.find(b => BOOT_IMPORT.test(b)) || '';
   const isGhBooted = !!boot;
   const loads = scanLoads(boot);
-  // The boot block's own gh-api import URL doesn't count as a load arg; drop any
-  // accidental capture of a lib path that is gh-api.js itself.
+  // The loader itself is not a load arg; drop any accidental capture of it.
   loads.delete('gh-api.js');
+  loads.delete('entry.js');
   const refM = boot.match(/BRANCH\s*=\s*['"]([^'"]+)['"]/);
   return { isGhBooted, loads, defaultRef: refM ? refM[1] : 'main' };
 }
@@ -93,7 +93,7 @@ export function readPageBoot(repoRoot, pagePath) {
 export function buildGraph(repoRoot, pagePath) {
   const { isGhBooted, loads, defaultRef } = readPageBoot(repoRoot, pagePath);
   if (!isGhBooted) {
-    throw new Error(`${pagePath} has no loader boot block (gh-api.js or its own dist/ build) — not a gh.load page, nothing to build.`);
+    throw new Error(`${pagePath} has no loader boot block (lib/entry.js or its own dist/ build) — not a gh.load page, nothing to build.`);
   }
 
   const seeds = [...new Set([...IMPLICIT_SEED, ...loads])];

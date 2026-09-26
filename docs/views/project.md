@@ -25,3 +25,7 @@ check. Each opens a confirm showing the exact ledger row and commits it on the
 browsed branch only after the reader taps "I placed this on the work computer".
 Comparing, copying and the install script never write a row. The ledger is appended,
 never rewritten.
+
+**Shared icons.** State icons come from `lib/kits/sync-status.js`, which the
+shortcut views also use. Only the evidence differs: a confirm writes the ledger
+here; the phone logs its own installs.

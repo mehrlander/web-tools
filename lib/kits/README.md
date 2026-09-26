@@ -424,13 +424,12 @@ does for `get()`: a `path → value` map consulted before the local probe
 and before the network, which is how a single-file copy carries data it
 cannot lay down as sibling files.
 
-`bake` matches the import **call**, not a literal URL, because two boot
-idioms are in use: the canonical block imports the jsDelivr URL directly
-(25 pages) while every kit demo builds it from a `base` const and imports
-`` `${base}/gh-api.js` `` (33 pages). Matching only the literal form left
-the larger half looking chainless when it was merely unreachable, which is
-the worse failure: the output looks finished and then asks the network for
-its modules. `bakeable` is the honest predicate for "there is nothing to
+`bake` rewrites the page's `lib/entry.js` import **call**, the one boot
+every loader page shares. It matches the call rather than a literal URL
+because, before 2026-09-26, two boot idioms spelled the specifier
+differently and a literal pattern left the larger half looking chainless
+when it was merely unreachable, which is the worse failure: the output
+looks finished and then asks the network for its modules. `bakeable` is the honest predicate for "there is nothing to
 inline," which is a real state (a page with no chain is already a
 standalone artifact). See "Load and build are one contract" in
 [`docs/loader.md`](../../docs/loader.md) and the pipeline in
@@ -454,12 +453,14 @@ HTML string for pasting into CodePen or any bare HTML preview, so it has
 nowhere to put sibling files and inlines the `read()` data as well as the
 code. Third-party CDN tags are left alone on purpose, since the
 destination has a network and untouched tags are what keep the paste
-small. What it cannot inline it counts: `cdnRefs` is the number of
-run-time references to this repo's CDN that survive baking (a kit demo
-injects `${base}/kits/<kit>.js` into each proof frame as a plain
-`<script src>`, which is no `gh.load` and so not in the cache). Those
-resolve wherever jsDelivr does and break on a private repo, so they are
-reported at copy time rather than discovered on paste.
+small. The kits a demo injects into its proof frames ride along too: they
+are read through the loader (`vanilla-demo.js` declares them on
+`window.__frameScripts`) and `collectCache` gathers them with the loaded
+chain. What it still cannot inline it counts: `cdnRefs` is the number of
+run-time references to this repo's `lib/` on GitHub Pages that survive
+baking, which break on a private repo, so they are reported at copy time
+rather than discovered on paste. A page that follows the loader leaves
+none.
 
 ```js
 await window.exporter.renderCopy(opts)  // one pasteable HTML string:

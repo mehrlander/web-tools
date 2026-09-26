@@ -9,9 +9,7 @@
 <script type="module">
   // The chain boot, so the FAB arrives and its Region take aims at this page;
   // the kit itself is loaded by name so the buttons below work without it.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/peek.js');
   // Peek escapes panel text through window.esc, which vanilla-bundle puts
   // there and gh-boot loads first; the page's own header waits for both.
