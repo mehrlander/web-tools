@@ -23,7 +23,7 @@
 
   THE SAME SHAPE AS THE POWERSHELL OVERVIEW. A list of one-line rows, a state
   icon per row taken from installation-view.js (check for current, up-arrow for
-  an update pending), and the detail on tap: in place of the list on a phone,
+  an update pending, drawn from kits/sync-status.js), and the detail on tap: in place of the list on a phone,
   beside it on a wide screen. The derivation is lib/kits/shortcut-evidence.js,
   which says which build a row is about and what it is scored against.
 
@@ -136,6 +136,7 @@
 
           <div x-show="item.name" class="flex flex-wrap gap-2">
             <button @click="only = item.name; close()" class="btn btn-sm"><i class="ph ph-funnel"></i><span x-text="'Only ' + item.name"></span></button>
+            <a :href="'shortcuts.html?name=' + encodeURIComponent(item.name)" class="btn btn-sm btn-ghost"><i class="ph ph-link"></i>Chain</a>
           </div>
 
           <template x-if="item.payload || !item.name">
@@ -173,6 +174,7 @@ if (useRef) {
 }
 await gh.load('gh-auth.js');
 await gh.load('kits/shortcut-evidence.js');
+await gh.load('kits/sync-status.js');
 
 const LOG = 'mehrlander/web-tools-private';
 const DIR = 'shortcuts/log';
@@ -197,7 +199,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   entries: [],        // parsed, newest first, the loaded window
   limit: PAGE,
   filter: 'all',
-  only: '',
+  only: q.get('name') || '',   // ?name= opens on one shortcut; Chains links here that way
   sel: '',
   raw: false,
   loading: false,
@@ -326,7 +328,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
     return first ? (first.length > 80 ? first.slice(0, 80) + '…' : first) : e.op;
   },
   stateIcon(v) {
-    return v.state === 'current' ? 'ph-fill ph-check-circle text-success' : 'ph-fill ph-arrow-circle-up text-warning';
+    return window.SyncStatus.ICON[v.state === 'current' ? 'current' : 'behind'];
   },
   recent(e) { return e.when && Date.now() - e.when < RECENT; },
   timeOf(e) {

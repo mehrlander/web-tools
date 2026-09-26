@@ -73,7 +73,7 @@ lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",242,n
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1434,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",291,no,no,4,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1121,no,no,4,yes
-lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as installation evidence.,159,no,no,1,yes
+lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as installation evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,533,yes,yes,11,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
@@ -82,6 +82,7 @@ lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six 
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1433,no,yes,26,yes
+lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",29,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",284,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes

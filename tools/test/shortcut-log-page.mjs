@@ -91,14 +91,14 @@ const handler = async route => {
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
-const withPage = async (setup, fn) => {
+const withPage = async (setup, fn, query = '') => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(setup);
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.route('**/*', handler);
-  await page.goto(`${origin}/pages/shortcut-log.html`, { waitUntil: 'load' });
+  await page.goto(`${origin}/pages/shortcut-log.html${query}`, { waitUntil: 'load' });
   try { return await fn(page, errors); } finally { await ctx.close(); }
 };
 const token = () => { try { localStorage.setItem('ghToken', 'stub') } catch {} };
@@ -161,6 +161,16 @@ await withPage(token, async page => {
   ok('the detail names the build the PR head publishes', /abcb62e/.test(facts) && /behind PR #50/.test(facts), facts);
   ok('the detail names the installer and its own stamp', /Library-Paste f18efdb/.test(facts), facts);
 });
+
+// Chains links each shortcut to its own entries this way.
+await withPage(token, async page => {
+  await page.waitForFunction(() => document.querySelectorAll('[data-row]').length > 0, null, { timeout: 15000 });
+  await page.waitForTimeout(500);
+  const r = await rows(page);
+  ok('?name= opens on that shortcut alone', r.length === 2 && r.every(x => /Dump-Named/.test(x.text)),
+     r.map(x => x.text).join(' | '));
+  ok('and says so in the header', /Dump-Named/.test(await page.textContent('[data-only]')));
+}, '?name=Dump-Named');
 
 // The failure that would make this worse than no verdict.
 pulls = null;

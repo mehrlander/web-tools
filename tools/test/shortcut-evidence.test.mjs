@@ -138,6 +138,16 @@ test('unknown is silent: no verdict without both numbers', () => {
   assert.equal(K.verdict(K.parse('s', 'plain text'), { at: {}, base: {} }), null, 'no name');
 });
 
+test('observed takes the newest build per shortcut, never an installer\'s', () => {
+  const es = [DUMP, PASTE, FETCH].map((raw, i) => K.parse('2026-09-25-12000' + i, raw));
+  const o = K.observed(es);
+  assert.equal(o.builds.get('Dump-Named').build, 'c4fd8aa');
+  assert.equal(o.builds.get('Dump-Named').stem, '2026-09-25-120000');
+  assert.equal(o.builds.has('Run-AppDetermined'), false, 'a fetch carries Library-Fetch\'s build, not its own');
+  assert.equal(o.builds.has('Library-Paste'), false);
+  assert.ok(o.names.has('Run-AppDetermined'), 'but it does say the name is present');
+});
+
 test('pretty elides a long string and keeps its length', () => {
   const p = K.pretty('{"Base64":"' + 'y'.repeat(200) + '","Type":"Text"}');
   assert.match(p, /"Base64": "y{48}…\[200\]"/);

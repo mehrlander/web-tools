@@ -169,6 +169,11 @@ if (useRef) {
   await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
 }
 await gh.load('gh-auth.js');
+// The log is read by the same rules the Shortcut log uses, and a state is drawn
+// with the icons the PowerShell Overview uses.
+await gh.load('kits/shortcut-evidence.js');
+await gh.load('kits/sync-status.js');
+const SE = window.ShortcutEvidence;
 
 // ?ref= points the catalog and the install links at a branch of shortcut-tools,
 // so a chain can be reviewed here before it reaches main. It is separate from
@@ -319,19 +324,19 @@ async function loadDevice() {
   } catch {}
 
   // The log: installs prove arrival, runs carry the build id that decides
-  // whether the copy on the phone is the copy that was published.
+  // whether the copy on the phone is the copy that was published. Read through
+  // the kit, because an install row's own `build` is its INSTALLER's stamp:
+  // read directly, as it was until 2026-09-26, a paste of Dump-Named recorded
+  // Library-Paste's build as Dump-Named's and called the fresh copy stale.
   try {
     const list = await priv.req('contents/shortcuts/log');
     const newest = list.filter(f => f.name.endsWith('.json'))
                        .sort((a, b) => b.name.localeCompare(a.name)).slice(0, LOGS);
     const bodies = await Promise.all(newest.map(f =>
-      fetch(f.download_url, { cache: 'no-store' }).then(r => r.text()).catch(() => '')));
-    for (const raw of bodies) {                 // newest first, so the first wins
-      let j; try { j = JSON.parse(raw) } catch { continue }
-      if (!j || typeof j !== 'object' || !j.name) continue;
-      have.add(j.name);
-      if (j.build && !ran.has(j.name)) ran.set(j.name, String(j.build));
-    }
+      priv.get(f.path || `shortcuts/log/${f.name}`).then(r => r.text).catch(() => '')));
+    const seen = SE.observed(newest.map((f, i) => SE.parse(f.name.replace(/\.json$/, ''), bodies[i])));
+    for (const n of seen.names) have.add(n);
+    for (const [n, b] of seen.builds) ran.set(n, b.build);
   } catch {}
 
   return { have, ran, lib, dumped };
@@ -350,11 +355,18 @@ function state(row) {
   return 'not on device';
 }
 
-const TONE = {
-  'current':      'badge-success',
-  'stale':        'badge-primary',
-  'on device':    'badge-ghost',
-  'not on device':'badge-outline',
+// Each state as the estate draws it (kits/sync-status.js) and the word beside
+// it. The words are the Shortcut log's: "behind" where this page said "stale".
+const LOOK = {
+  'current':       { icon: 'current', word: 'current' },
+  'stale':         { icon: 'behind',  word: 'behind' },
+  'on device':     { icon: 'assumed', word: 'on device' },
+  'not on device': { icon: 'new',     word: 'not installed' },
+};
+const mark = s => {
+  const m = node('span', 'inline-flex items-center gap-1 whitespace-nowrap text-sm');
+  m.append(node('i', 'text-lg ' + window.SyncStatus.ICON[LOOK[s].icon]), node('span', null, LOOK[s].word));
+  return m;
 };
 
 function matches(row, view, needle) {
@@ -431,7 +443,7 @@ function paint() {
 
     const dev = node('td', 'align-top');
     const s = state(row);
-    if (s) dev.append(node('span', 'badge badge-sm whitespace-nowrap ' + TONE[s], s));
+    if (s) dev.append(mark(s));
     tr.append(dev);
 
     const acts = node('td', 'align-top');
@@ -581,6 +593,8 @@ function detail(row) {
   }
   bar.append(btn('btn-ghost', BLOB(row.file), 'Source', 'ph-file-code'));
   if (row.name) bar.append(btn('btn-ghost', PLIST(row.name), 'Plist', 'ph-file-text'));
+  // The evidence behind the state: this shortcut's entries in the phone's log.
+  if (row.name) bar.append(btn('btn-ghost', 'shortcut-log.html?name=' + encodeURIComponent(row.name), 'Log', 'ph-list-checks'));
   wrap.append(bar);
 
   // What it calls, and what calls it. The second is the one no file holds: a
@@ -600,7 +614,7 @@ function detail(row) {
 
   el('title').textContent = row.name || row.file.replace(/\.json$/, '');
   const head = [];
-  if (s) head.push(s);
+  if (s) head.push(LOOK[s].word);
   if (row.name && device && device.ran.get(row.name) && s === 'stale')
     head.push('ran ' + device.ran.get(row.name));
   el('tally').textContent = head.join(' · ');
