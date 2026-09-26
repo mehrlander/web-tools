@@ -41,8 +41,9 @@ work stream, such as `snags`, a project folder, or a pull request.
 
 1. **Survey** every stream. Change nothing.
 2. **Act** on each stream's *Act* tier, and report it.
-3. **Propose** the *Propose* tier as one numbered batch.
-4. **On green light,** execute, then offer the next layer.
+3. **Propose** the *Propose* tier as one numbered batch, and close 🟢.
+4. **On green light,** execute, then offer the next layer. Close 🟢 if anything
+   is proposed, ⚪ if nothing remains.
 
 Act unasked only on a mechanical test. Whether something deserves the owner's
 attention is judgment: read it and nominate with a one-line reason, never by a
