@@ -21,7 +21,7 @@
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
 //
-// resolveCdn(url, repoRoot, ref?) classifies a request URL and returns one of:
+// resolveCdn(url, repoRoot, ref?, headers?) classifies a request URL and returns one of:
 // (ref is the render's --ref value, used to strip a slashed branch name from a
 // raw.githubusercontent own-code URL; optional, only the raw case reads it.)
 //   { kind:'fulfill', body, contentType }  serve these local bytes
@@ -309,13 +309,20 @@ const commitJson = (fields, files) => {
 };
 const FMT = '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%cn%x1f%cI%x1f%B%x1e';
 const json = (status, body, tag) => ({ kind: 'fulfill', status, contentType: 'application/json; charset=utf-8', tag, body: JSON.stringify(body) });
-function localCommits(u, root) {
+function localCommits(u, root, accept = '') {
   const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 << 20 });
   const rev = (r) => (!r || r === 'main' || r === 'HEAD') ? 'HEAD' : r;
   const one = u.pathname.match(/\/commits\/([^/]+)$/);
   if (one) {
     const r = git('show', '--no-patch', FMT, rev(decodeURIComponent(one[1])));
     if (r.status !== 0) return json(404, { message: 'No commit found for SHA: ' + one[1] }, `api commit ${one[1]} (absent)`);
+    // The sha media type answers the bare 40 hex characters and nothing else.
+    // The app's ?use= boot resolves a branch name this way, and so does the
+    // shell-pin probe; answered as JSON, both read the whole document as a ref.
+    if (/vnd\.github\.sha/.test(accept)) {
+      return { kind: 'fulfill', status: 200, contentType: 'application/vnd.github.sha; charset=utf-8',
+               tag: `api commit ${one[1].slice(0, 7)} (sha)`, body: r.stdout.split('\x1f')[0].trim() };
+    }
     const num = git('show', '--numstat', '--format=', rev(decodeURIComponent(one[1]))).stdout.trim();
     const files = num ? num.split('\n').map(l => {
       const [a, d, filename] = l.split('\t');
@@ -334,7 +341,7 @@ function localCommits(u, root) {
   return json(200, list, `api commits${q.get('path') ? ' ' + q.get('path') : ''}`);
 }
 
-export function resolveCdn(rawUrl, repoRoot, ref) {
+export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
   const host = u.host;
@@ -416,7 +423,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   // does: the checkout is the ref being rendered.
   if (host === 'api.github.com' && /^\/repos\/[^/]+\/[^/]+\/commits(\/[^/]+)?$/.test(u.pathname)
       && u.pathname.startsWith(`/repos/${REPO}/commits`)) {
-    return localCommits(u, repoRoot);
+    return localCommits(u, repoRoot, headers.accept || headers.Accept || '');
   }
 
   // --- Own repo tree: git/trees/<ref> (the Pages lens scan) ---
