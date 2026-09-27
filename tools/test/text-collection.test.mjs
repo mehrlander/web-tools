@@ -1,7 +1,7 @@
 // The collection, read in the browser from its files. The fixture is a
 // miniature passages.jsonl, variants.jsonl and proposals.jsonl; what is under
 // test is identity, validation, the variant-proposal join, lookup, search, the
-// read cache, and the transition read of a home that has no variants.jsonl.
+// read cache, and a proposals file that fails without taking the variants down.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -206,19 +206,9 @@ test('a proposals.jsonl that fails for any other reason leaves the variants read
   T.clear();
 });
 
-test('TRANSITION: without variants.jsonl, legacy rows in proposals.jsonl are split by shape', async () => {
+test('without variants.jsonl the collection is unavailable, not empty', async () => {
   T.clear();
-  const legacy = VARIANTS + PROPOSALS;
-  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: legacy } });
-  const loaded = await T.load(gh);
-  assert.equal(loaded.summary.variants, 4, 'rows with an author and a purpose are variants');
-  assert.equal(loaded.summary.proposals, 1, 'rows with a repo, path and basis are proposals');
-  assert.equal(loaded.variants[0].id, vid(EDGES[0]), 'a legacy row keeps the id its address was minted with');
-  assert.equal(loaded.sources.variants.path, P.proposals, 'the source names the file actually read');
-  assert.deepEqual(T.view(loaded, vid(EDGES[0])).proposals.map(p => p.path), ['docs/text-tools.md']);
-  T.clear();
-  const neither = fixtureGh({ blobs: { [P.passages]: PASSAGES } });
-  await assert.rejects(T.load(neither), /unavailable \(the read returned 404\)/,
-    'with neither file the collection is unavailable, not empty');
+  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS } });
+  await assert.rejects(T.load(gh), /unavailable \(the read returned 404\)/);
   T.clear();
 });
