@@ -232,6 +232,24 @@ test('tracked render draws each changed paragraph as its own card and maps only 
   assert.equal(host.querySelectorAll('[data-md-card]').length, 0, 'no change, no cards');
 });
 
+// The native selection option reads the platform's Selection through this:
+// its ends are DOM points, which have to land on the same offsets a tap does.
+test('a DOM point maps to its source offset and back', () => {
+  const host = window.document.getElementById('host');
+  const text = '# T\n\nOne **two** three.\n\nFour.\n';
+  host.__mdKey = null;
+  window.MdSurface.paint(host, { text, overlay: window.document.getElementById('box') });
+  for (const at of [text.indexOf('One'), text.indexOf('two') + 1, text.indexOf('three'), text.indexOf('Four.') + 5]) {
+    const p = window.MdSurface.domPoint(host, at);
+    assert.ok(p, `a point for ${at}`);
+    assert.equal(window.MdSurface.offsetOf(host, p.node, p.offset), at, `round trip at ${at}`);
+  }
+  const para = host.querySelectorAll('p')[0];
+  assert.equal(window.MdSurface.offsetOf(host, para, para.childNodes.length), text.indexOf(' three.') + 7,
+    'past an element\'s last child is the end of its last run');
+  assert.equal(window.MdSurface.offsetOf(host, window.document.body, 0), null, 'outside the host is nothing');
+});
+
 // A one-word heading retyped shares no word with its old self; it is still
 // one block edited, and pairs as one, with the typo struck inside it.
 test('a retyped heading pairs with its old self, and a typo pairs by letters', () => {

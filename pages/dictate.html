@@ -241,6 +241,12 @@
     In a change card, a gray bar in the text marks where a paragraph break was
     closed, or in the original, where one will be opened.
 
+    NATIVE SELECTION, a menu option (or ?sel=native), hands selecting in the
+    Rendered face to the platform: its long press, handles and callout. The
+    buffer's range follows the platform's selection, a tap still places the
+    caret, and a Move pill under a selection carries it to the next place
+    tapped. Split then comes from the shifted ¶ at a caret. See nativeSync.
+
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
     it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
@@ -283,6 +289,15 @@
 }
 [data-dictate-ui] textarea, [data-dictate-ui] input {
   -webkit-touch-callout: default; -webkit-user-select: text; user-select: text;
+}
+/* NATIVE SELECTION (the menu's option) hands the Rendered face's words back to
+   the platform: its long press, its handles, its callout. Controls in the
+   cards stay out of it, so a selection never picks up a pill's label. */
+[data-dictate-ui] [data-native-sel], [data-dictate-ui] [data-native-sel] * {
+  -webkit-touch-callout: default; -webkit-user-select: text; user-select: text;
+}
+[data-dictate-ui] [data-native-sel] [data-md-ui], [data-dictate-ui] [data-native-sel] [data-md-ui] * {
+  -webkit-user-select: none; user-select: none;
 }
 
 /* A PIN IS FURNITURE WHILE ANYTHING IS DRIVING IT, the pad or the pin's own
@@ -484,6 +499,13 @@
       // Marks for what changed since GitHub's copy, drawn over the Rendered
       // face (kits/md-surface.js). On unless the reader turned them off.
       showMarks: ls.get('dictate:marks') !== '0',
+      // THE PLATFORM'S OWN SELECTION, as an option: Native selection in the
+      // menu, or ?sel=native. See nativeSync. Rendered face only, and not
+      // while typing, where the sink owns the keyboard and a selection gesture
+      // on the words would take focus from it.
+      nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get('dictate:sel') === 'native',
+      moveArm: null,            // native: the range the Move pill picked up
+      get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
       delPop: null,             // a tapped removal: { text, at, x, y }
       patchMenu: false,
       // File mode's Send: what rides, the edit as a patch or the whole file.
@@ -593,6 +615,7 @@
       },
 
       init() {
+        document.addEventListener('selectionchange', () => this.nativeSync());
         this.d = window.Dictate.create({
           lang: q.get('lang') || undefined,
           fix: (s) => this.autocorrect(s),
@@ -1088,6 +1111,9 @@
         // down. Its presence is what turns the rest of the gesture into an
         // extension rather than a fresh selection. See the move handler.
         let word = null;
+        // Native selection: when the press began, and whether it began on the
+        // end of a live selection, where the platform's handle is.
+        let downAt = 0, nearEdge = false;
 
         // ── Holding the iOS sheet for the length of a long-press drag ─────
         // The pad and the pins can carry `touch-action: none` because neither
@@ -1149,6 +1175,10 @@
           if (e.pointerType === 'mouse') { this.precise = true; }
           x = e.clientX; y = e.clientY; long = false; word = null;
           unhold();
+          downAt = Date.now();
+          // THE PLATFORM SELECTS, under the native option: no long press
+          // here, no mouse drag, no carry by holding. Only the tap is ours.
+          if (this.native) { nearEdge = this.nearSelEdge(x, y); anchor = null; carry = null; clear(); return; }
           held = e.target;
           if (held?.addEventListener) held.addEventListener('touchmove', holdMove, { passive: false });
           anchor = this.hits(x, y) ? at(x, y) : null;
@@ -1325,6 +1355,14 @@
           const dx = e.clientX - x, dy = e.clientY - y;
           if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard, dx < 0 ? 1 : -1); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
+          // Under the native option a long press was the platform selecting,
+          // and a press on a selection's end was its handle: neither is a tap,
+          // and reading one as a tap would drop a caret over what it made.
+          // With words picked up by Move, the tap says where they go.
+          if (this.native) {
+            if (Date.now() - downAt > 400 || nearEdge) { taps = 0; return; }
+            if (this.moveArm) { taps = 0; this.dropArmed(e.clientX, e.clientY); return; }
+          }
           // The original takes no caret, so a tap on it returns the card to the
           // marked text, where the next tap, or a double, lands as usual.
           if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
@@ -1768,14 +1806,18 @@
           window.MdSurface.paint(md, {
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
-            overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover, reach: 0,
+            overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover && !this.native, reach: 0,
             base: this.fileBase, marks: false, track: this.showMarks,
+            // Under the native option the platform draws the selection, unless
+            // Move has picked it up, when the page holds it until the drop.
+            selection: !this.native || !!this.moveArm,
             // Red is the phone's precision caret; a mouse gets the text's own color.
             caret: this.precise ? 'var(--color-base-content)' : null,
           });
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
           if (this.typing) this.syncSink();
+          if (this.nativeSel) this.nativeReflect();
           this.paintExtras();
           return;
         }
@@ -2219,6 +2261,23 @@
             });
           }
         }
+        // NATIVE: a Move pill under the platform's selection, since holding
+        // it opens the callout rather than picking it up. Tapped, it holds the
+        // words and reads as a cancel until the next tap says where they go.
+        const nr = this.d && this.d.range;
+        if (this.native && !this.mover && (this.moveArm || (nr && nr.start !== nr.end))) {
+          const e = window.MdSurface.rectAt(this.$refs.md, this.moveArm ? this.moveArm.b : nr.end);
+          if (e && e.bottom > vb.top && e.bottom < vb.bottom - 60) {
+            const pill = add('button', 'absolute z-20 -translate-x-1/2 btn btn-xs rounded-full shadow gap-1 whitespace-nowrap '
+              + (this.moveArm ? 'btn-neutral' : 'btn-primary'),
+              `left:${Math.max(box.left - lb.left + 84, Math.min(box.right - lb.left - 84, e.left - lb.left))}px;top:${e.bottom - lb.top + 30}px`, 'seam');
+            pill.dataset.mdUi = '';
+            pill.dataset.moveNative = '';
+            pill.innerHTML = this.moveArm ? '<i class="ph ph-x"></i>Tap where it goes' : '<i class="ph ph-arrows-out-cardinal"></i>Move';
+            this.keepFocus(pill);
+            pill.addEventListener('click', (ev) => { ev.stopPropagation(); this.moveNative(); });
+          }
+        }
         const m = this.mover;
         if (!m) return;
         const tg = m.target;
@@ -2314,8 +2373,8 @@
       // blocks, above the first, below the last, or a blank line in the
       // source), else the nearer edge of the word under it. Null when it
       // would land inside the words being carried.
-      dropAt(x, y) {
-        const m = this.mover, t = this.d.text;
+      dropAt(x, y, m = this.mover) {
+        const t = this.d.text;
         // The aim stays inside the pane: above the finger near the top is
         // over the file bar, and a gap scrolled out of sight is no place to
         // drop words the reader cannot see land.
@@ -2397,6 +2456,84 @@
         this.paint();
       },
 
+      // ── Native selection ──────────────────────────────────────────────
+      // THE OPTION HANDS SELECTING TO THE PLATFORM. The words are made
+      // selectable (the stylesheet's data-native-sel rule), the page stops
+      // painting a selection and its pins, and the platform's long press and
+      // handles make one. The buffer follows it: every selectionchange inside
+      // the Rendered face is read back through the map (MdSurface.offsetOf)
+      // into d.range, so dictation, the keys and backspace act on it as on a
+      // painted one. The other way round, a range the page sets (undo, a
+      // drop) is written into the platform's selection (nativeReflect).
+      //
+      // WHAT IT GIVES UP. The page's long press did three jobs and the
+      // platform's does one. Taking a word is the platform's now. Split on a
+      // held space goes: a tap and the shifted ¶ split at the caret. Carrying
+      // by holding goes too, since a held selection opens the callout, so a
+      // Move pill rides under the selection: tap it, then tap where the words
+      // go, between two words or in the gap between paragraphs.
+      nativeRange() {
+        const sel = document.getSelection(), md = this.$refs.md;
+        if (!sel || !sel.rangeCount || sel.isCollapsed) return null;
+        const r = sel.getRangeAt(0);
+        if (!md.contains(r.startContainer) || !md.contains(r.endContainer)) return null;
+        const a = window.MdSurface.offsetOf(md, r.startContainer, r.startOffset);
+        const b = window.MdSurface.offsetOf(md, r.endContainer, r.endOffset);
+        return a == null || b == null || a === b ? null : { a: Math.min(a, b), b: Math.max(a, b) };
+      },
+      nativeSync() {
+        if (!this.native || this.moveArm) return;
+        const n = this.nativeRange();
+        if (!n) return;                    // a collapse is a tap's, and the tap places the caret
+        const cur = this.d.range;
+        if (cur && cur.start === n.a && cur.end === n.b) return;
+        this._fromNative = true;
+        this.d.select(n.a, n.b); this.armed = null; this.splitPick = null;
+        this.paint();
+        this._fromNative = false;
+      },
+      nativeReflect() {
+        if (this._fromNative) return;
+        const sel = document.getSelection(), md = this.$refs.md, r = this.d.range;
+        if (!sel) return;
+        if (this.native && r && r.start !== r.end && !this.moveArm) {
+          const n = this.nativeRange();
+          if (n && n.a === r.start && n.b === r.end) return;
+          const p = window.MdSurface.domPoint(md, r.start), q = window.MdSurface.domPoint(md, r.end);
+          if (p && q) { try { sel.setBaseAndExtent(p.node, p.offset, q.node, q.offset); } catch {} }
+        } else if (sel.rangeCount && !sel.isCollapsed && md.contains(sel.anchorNode)) {
+          sel.removeAllRanges();
+        }
+      },
+      // Near either end of the platform's selection, where its handles are.
+      nearSelEdge(x, y) {
+        const sel = document.getSelection();
+        if (!sel || !sel.rangeCount || sel.isCollapsed || !this.$refs.md.contains(sel.anchorNode)) return false;
+        const rs = [...sel.getRangeAt(0).getClientRects()].filter((r) => r.width);
+        if (!rs.length) return false;
+        const f = rs[0], l = rs[rs.length - 1];
+        // The start's knob sits above its line and the end's below, so each
+        // zone reaches past its own line on that side only, not into the
+        // line beside it where a tap is a tap.
+        return (Math.abs(x - f.left) < 20 && y > f.top - 20 && y < f.bottom + 4)
+          || (Math.abs(x - l.right) < 20 && y > l.top - 4 && y < l.bottom + 20);
+      },
+      moveNative() {
+        const r = this.d.range;
+        if (this.moveArm) { this.moveArm = null; this.paint(); return; }
+        if (!r || r.start === r.end) return;
+        this.moveArm = { a: r.start, b: r.end };
+        this.paint();
+      },
+      dropArmed(x, y) {
+        const m = this.moveArm;
+        this.moveArm = null;
+        const tg = m && this.dropAt(x, y, m);
+        if (tg) this.d.move(m.a, m.b, tg.at, tg.para);
+        else if (m) this.d.select(m.a, m.b);
+        this.paint();
+      },
+
       // ── The change cards ──────────────────────────────────────────────
       // Each run of blocks that differs from GitHub's copy is one card in the
       // Rendered face (kits/md-surface.js, tracked), shown with its change
@@ -2450,6 +2587,13 @@
         this.showMarks = !this.showMarks;
         ls.set('dictate:marks', this.showMarks ? '1' : '0');
         this.menu = false;
+        this.paint();
+      },
+      toggleNativeSel() {
+        this.nativeSel = !this.nativeSel;
+        ls.set('dictate:sel', this.nativeSel ? 'native' : 'painted');
+        this.menu = false; this.moveArm = null;
+        try { document.getSelection().removeAllRanges(); } catch {}
         this.paint();
       },
       // A removal's wedge was tapped: show what went, with a way to put it back.
@@ -3042,6 +3186,12 @@
             <i class="ph ph-highlighter text-lg opacity-60"></i>Track changes
             <i x-show="showMarks" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
+          <button x-show="file" @click="toggleNativeSel()"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
+                  title="Select words with the phone's own long press and handles, instead of the page's pins. Rendered view only.">
+            <i class="ph ph-cursor-text text-lg opacity-60"></i>Native selection
+            <i x-show="nativeSel" class="ph ph-check ml-auto text-lg text-success"></i>
+          </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
                   :title="breakable ? 'Break into paragraphs where you paused longest' : 'Needs the pause record, which typing replaces'">
@@ -3158,7 +3308,8 @@
         <!-- File mode's Rendered face. Its classes are set once from
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
-        <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" @contextmenu.prevent @click="cardTap($event)"></div>
+        <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
+             @contextmenu="native || $event.preventDefault()" @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes

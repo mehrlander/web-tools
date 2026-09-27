@@ -1351,6 +1351,84 @@ try {
   // gap scrolled out of sight, and somewhere rather than nowhere.
   ok('a drop aimed above the pane lands inside it, not on the gap out of sight',
     !!aim.t && aim.t.at !== aim.hidden && aim.y >= aim.vtop - 12, JSON.stringify(aim));
+
+  // ── Native selection, the menu's option ─────────────────────────────
+  // The platform selects; the buffer follows its selection, and the page
+  // stops painting one. Only a tap is the page's. A selection made in script
+  // stands in for the platform's long press, which a headless browser cannot
+  // produce; the handles and callout are the phone's to show.
+  console.log('native selection:');
+  await reset();
+  // From the top: the check before this one scrolled the pane down.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.$refs.view.scrollTop = 0; c.toggleNativeSel(); });
+  await page.waitForTimeout(150);
+  const nat = await page.evaluate(() => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    const us = (el) => { const cs = getComputedStyle(el); return cs.webkitUserSelect || cs.userSelect; };
+    return { on: c.native, attr: md.hasAttribute('data-native-sel'), p: us(md.querySelector('p')) };
+  });
+  ok('the option makes the rendered words selectable by the platform', nat.on && nat.attr && nat.p === 'text', JSON.stringify(nat));
+  const synced = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    const a = c.text.indexOf('First two.'), b = a + 'First two.'.length;
+    const p = window.MdSurface.domPoint(md, a), q = window.MdSurface.domPoint(md, b);
+    document.getSelection().setBaseAndExtent(p.node, p.offset, q.node, q.offset);
+    await new Promise((r) => setTimeout(r, 100));
+    return { range: c.d.range, a, b, painted: !!document.querySelector('[data-md-surface="sel"]'),
+             pins: !!document.querySelector('[data-edge]'), move: !!document.querySelector('[data-move-native]') };
+  });
+  ok('the platform\'s selection becomes the buffer\'s range', synced.range && synced.range.start === synced.a && synced.range.end === synced.b, JSON.stringify(synced));
+  ok('and the page paints no selection or pins of its own, and offers Move', !synced.painted && !synced.pins && synced.move, JSON.stringify(synced));
+  // Move, then a tap in the gap below the first paragraph: the words land as
+  // a paragraph of their own.
+  const mv = await pillAt('Move');
+  if (mv) { await page.touchscreen.tap(mv.x, mv.y); await page.waitForTimeout(150); }
+  const armedPill = await pillAt('Tap where it goes');
+  ok('Move holds the words and says what the next tap does', !!armedPill);
+  const gN = await seamBelow('First one');
+  await page.touchscreen.tap(gN.x, gN.y);
+  await page.waitForTimeout(200);
+  ok('and the next tap drops them there', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
+  // A range the page sets is written into the platform's selection.
+  const reflected = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('Second para.'); c.d.select(a, a + 12); c.paint();
+    await new Promise((r) => setTimeout(r, 50));
+    return document.getSelection().toString();
+  });
+  ok('a range set by the page shows as the platform\'s selection', reflected === 'Second para.', JSON.stringify(reflected));
+  // A long press is the platform's: the page takes no word and moves nothing.
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.caretAt(3); c.paint(); });
+  const lp = await rectOf('Second para.', 2);
+  await touch('pointerdown', lp.x, lp.y);
+  await page.waitForTimeout(550);
+  await touch('pointerup', lp.x, lp.y);
+  await page.waitForTimeout(150);
+  const afterLp = await page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].d.range);
+  ok('a long press is left to the platform: no word taken, the caret stays', afterLp && afterLp.start === 3 && afterLp.end === 3, JSON.stringify(afterLp));
+  // A press on a selection's end is on the platform's handle, not a tap.
+  const edge = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('Third'); c.d.select(a, a + 5); c.paint();
+    const r = [...document.getSelection().getRangeAt(0).getClientRects()].filter((x) => x.width)[0];
+    return { x: r.left + 2, y: r.top - 8, a }; });
+  await page.touchscreen.tap(edge.x, edge.y);
+  await page.waitForTimeout(350);
+  const afterEdge = await page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].d.range);
+  ok('a press on the start handle is the platform\'s: the range stands', afterEdge && afterEdge.start === edge.a && afterEdge.end === edge.a + 5, JSON.stringify(afterEdge));
+  // A tap is still the page's: it places the caret and clears the selection.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('Third'); c.d.select(a, a + 5); c.paint(); });
+  const tp = await rectOf('Second para.', 3);
+  await page.touchscreen.tap(tp.x, tp.y);
+  await page.waitForTimeout(350);
+  const afterTap = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    return { r: c.d.range, want: c.text.indexOf('Second para.') + 3, sel: document.getSelection().toString() }; });
+  ok('a tap places the caret and the platform\'s selection goes', afterTap.r && afterTap.r.start === afterTap.r.end
+    && Math.abs(afterTap.r.start - afterTap.want) <= 1 && !afterTap.sel, JSON.stringify(afterTap));
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.toggleNativeSel(); });
+  const offAgain = await page.evaluate(() => document.querySelector('[x-ref="md"]').hasAttribute('data-native-sel'));
+  ok('turning the option off gives the words back to the page', !offAgain);
 } finally {
   await browser.close();
   server.close();
