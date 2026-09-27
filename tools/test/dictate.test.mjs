@@ -1848,3 +1848,33 @@ test('a move that changes nothing is not an edit and leaves no undo step', () =>
   d.undo();
   assert.notEqual(d.text, 'A.\n\nB.\n');
 });
+
+// Found by the second review, 2026-09-27, in the first round's fixes.
+test('a middle list item carried away leaves the list tight', () => {
+  const d = doc('- one\n- two\n- three\n');
+  d.move(8, 11, d.text.length, true);
+  assert.equal(d.text, '- one\n- three\n\ntwo\n');
+});
+
+test('an inline drop at the start of a paragraph lands there, not at the end of the one before', () => {
+  const t = 'One two.\n\nThree four.\n\nFive six.\n';
+  const d = doc(t);
+  d.move(t.indexOf('six'), t.indexOf('six') + 3, t.indexOf('Three'));
+  assert.equal(d.text, 'One two.\n\nsix Three four.\n\nFive.\n');
+});
+
+test('prose that only looks like a marker keeps its line', () => {
+  const t = 'Year:\n2019. Done.\n\nP.\n';
+  const d = doc(t);
+  d.move(t.indexOf('Done.'), t.indexOf('Done.') + 5, t.length - 1);
+  assert.equal(d.text, 'Year:\n2019.\n\nP. Done.\n');
+  const u = '#hashtag and more.\n\nP.\n';
+  const e = doc(u);
+  e.move(1, 18, u.length - 1);
+  assert.equal(e.text, '#\n\nP. hashtag and more.\n');
+});
+
+test('a split at an indented or quoted continuation is not offered', () => {
+  assert.equal(doc('- a\n  more\n\nP.\n').canSplit(3), false, 'a list item continuation');
+  assert.equal(doc('> a\n> b\n').canSplit(3), false, 'a quote continuation');
+});

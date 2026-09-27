@@ -609,7 +609,10 @@
             // the words it picked up, and a final result from the microphone
             // replaces exactly those. The drop's own edit arrives after the
             // carry has ended, so it never cancels itself.
-            if (t !== this.text && this.mover) { this.mover = null; this.stopEdgeScroll(); }
+            // Only a change that reaches the carried words ends it: words
+            // appended further on leave the range naming what it named.
+            const mv = this.mover;
+            if (mv && t !== this.text && t.slice(mv.a, mv.b) !== this.text.slice(mv.a, mv.b)) { this.mover = null; this.stopEdgeScroll(); }
             this.text = t; this.heard(); this.save(); this.paint();
           },
           onInterim: (t) => { this.interim = t; this.heard(); this.paint(); },
@@ -2277,7 +2280,16 @@
       inCode(i) {
         const t = this.d.text, ls = t.lastIndexOf('\n', i - 1) + 1;
         if (((t.slice(ls, i).match(/`/g) || []).length) % 2) return true;
-        return ((t.slice(0, ls).match(/^[ \t]*(?:```|~~~)/gm) || []).length) % 2 === 1;
+        // An indented code line: four spaces or a tab after a blank line.
+        const prev = t.slice(t.lastIndexOf('\n', ls - 2) + 1, Math.max(0, ls - 1));
+        if (/^(?: {4}|\t)/.test(t.slice(ls)) && !prev.trim()) return true;
+        // Inside a fence: an opening ``` or ~~~ is closed only by its own kind.
+        let open = null;
+        for (const m of t.slice(0, ls).matchAll(/^[ \t]*(`{3,}|~{3,})/gm)) {
+          if (!open) open = m[1][0];
+          else if (m[1][0] === open) open = null;
+        }
+        return !!open;
       },
       // A PILL MUST NOT TAKE FOCUS. While the keyboard is up, the press on it
       // would blur the typing sink; the blur ends typing and repaints, which
@@ -2330,7 +2342,8 @@
         y = Math.max(vb.top + 2, Math.min(vb.bottom - 2, y));
         if (this.rendered) {
           const s = this.seamAtPoint(x, y, 4);
-          if (s) return { at: s.at, para: true, y: Math.max(vb.top + 2, Math.min(vb.bottom - 2, (s.top + s.bottom) / 2)) };
+          const mid = s && (s.top + s.bottom) / 2;
+          if (s && mid >= vb.top && mid <= vb.bottom) return { at: s.at, para: true, y: mid };
           const bs = window.MdSurface.blocks(this.$refs.md);
           if (bs.length) {
             const f = bs[0].el.getBoundingClientRect(), l = bs[bs.length - 1].el.getBoundingClientRect();
@@ -2339,6 +2352,17 @@
           }
         }
         let i = this.pointOffset(x, y);
+        // A word target out of sight (the nearest text to a point in the gap
+        // at the top is the end of the paragraph scrolled away) steps inward
+        // until it lands on text the reader can see.
+        if (this.rendered) {
+          for (let k = 0; k < 6 && i != null; k++) {
+            const r = window.MdSurface.rectAt(this.$refs.md, i);
+            if (!r || (r.top >= vb.top - 2 && r.bottom <= vb.bottom + 2)) break;
+            y += r.top < vb.top ? 12 : -12;
+            i = this.pointOffset(x, y);
+          }
+        }
         if (i == null) return null;
         if (!this.rendered && t[i - 1] === '\n' && (t[i] === '\n' || i >= t.length)) {
           const r = window.Dictate.rectAt(this._host, Math.max(0, i - 1));

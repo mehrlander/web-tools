@@ -1275,6 +1275,23 @@ try {
   await touch('pointerup', f3.x + 20, g3.y + 44);
   await page.waitForTimeout(200);
   ok('text changing under a carry ends it, and the drop moves nothing', (await docText()) === spoken, JSON.stringify(await docText()));
+  // Words landing elsewhere (appended at the end) leave the carry alive.
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); });
+  const f4 = await rectOf('First two.', 3);
+  await touch('pointerdown', f4.x, f4.y);
+  await page.waitForTimeout(550);
+  await touch('pointermove', f4.x + 20, f4.y + 20);
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = c.d.text + 'Appended.\n'; });
+  await page.waitForTimeout(150);
+  // measured after the change, which moves the layout
+  const g4 = await seamBelow('First one');
+  for (let k = 1; k <= 4; k++) await touch('pointermove', f4.x + 20, f4.y + (g4.y + 44 - f4.y) * k / 4);
+  await touch('pointerup', f4.x + 20, g4.y + 44);
+  await page.waitForTimeout(200);
+  ok('words landing elsewhere leave the carry alive, and it drops', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
 
   // The Join pill while the keyboard is up: tapping it used to blur the
   // typing sink, whose repaint rebuilt the pill before the tap landed.
@@ -1312,6 +1329,21 @@ try {
   const inCodeOffer = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     const t = c.text; return { code: c.inCode(t.indexOf(' run build')), prose: c.inCode(t.indexOf(' Then')) }; });
   ok('a space inside inline code is not a place to split, a sentence gap is', inCodeOffer.code && !inCodeOffer.prose, JSON.stringify(inCodeOffer));
+  // And the gesture itself: a long press on that space offers no Split.
+  const codeSp = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.precise = false; const t = c.text, r = window.MdSurface.rectAt(c.$refs.md, t.indexOf(' run build') + 1);
+    return r && { x: r.left - 2, y: r.top + r.height / 2 }; });
+  if (codeSp) {
+    await touch('pointerdown', codeSp.x, codeSp.y);
+    await page.waitForTimeout(550);
+    await touch('pointerup', codeSp.x, codeSp.y);
+    await page.waitForTimeout(200);
+  }
+  ok('and a long press there shows no Split button', !!codeSp && !(await pillAt('Split')));
+  const fence = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = 'Text.\n\n```\n~~~\nstill code here\n```\n\nProse again here.\n';
+    const t = c.text; return { inFence: c.inCode(t.indexOf(' code here')), after: c.inCode(t.indexOf(' again')) }; });
+  ok('a ~~~ line inside a ``` fence does not close it', fence.inFence && !fence.after, JSON.stringify(fence));
 
   // A finger near the top of the pane aims above it; the drop is kept inside
   // the pane rather than landing on a gap scrolled out of sight.
@@ -1321,16 +1353,19 @@ try {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     // Put a whole gap just above the top of the pane, out of sight.
     const v = c.$refs.view, s0 = window.MdSurface.seams(c.$refs.md)[4];
-    v.scrollTop += s0.bottom - v.getBoundingClientRect().top + 5;
+    v.scrollTop += s0.bottom - v.getBoundingClientRect().top - 1;
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const vb = v.getBoundingClientRect(), md = c.$refs.md.getBoundingClientRect();
     c.mover = { a: 0, b: 1, text: 'x', x: 0, y: 0, touch: true, target: null };
     const t = c.dropAt(md.left + md.width / 2, vb.top - 12);
     c.mover = null; c.paint();
     const y = t && (t.para ? t.y : window.MdSurface.rectAt(c.$refs.md, t.at)?.top);
-    return { vtop: vb.top, y };
+    return { vtop: vb.top, y, t, hidden: s0.at };
   });
-  ok('a drop aimed above the pane lands inside it', aim.y == null || aim.y >= aim.vtop - 1, JSON.stringify(aim));
+  // Where the words LAND, not only where the marker is drawn: never on the
+  // gap scrolled out of sight, and somewhere rather than nowhere.
+  ok('a drop aimed above the pane lands inside it, not on the gap out of sight',
+    !!aim.t && aim.t.at !== aim.hidden && aim.y >= aim.vtop - 12, JSON.stringify(aim));
 } finally {
   await browser.close();
   server.close();
