@@ -2280,9 +2280,19 @@
       inCode(i) {
         const t = this.d.text, ls = t.lastIndexOf('\n', i - 1) + 1;
         if (((t.slice(ls, i).match(/`/g) || []).length) % 2) return true;
-        // An indented code line: four spaces or a tab after a blank line.
-        const prev = t.slice(t.lastIndexOf('\n', ls - 2) + 1, Math.max(0, ls - 1));
-        if (/^(?: {4}|\t)/.test(t.slice(ls)) && !prev.trim()) return true;
+        // An indented code block: a run of lines indented four spaces or a
+        // tab, opened by a blank line, and not under a list item, where the
+        // same indent is a continuation paragraph.
+        const ind = /^(?: {4}|\t)/;
+        if (ind.test(t.slice(ls))) {
+          const above = t.slice(0, ls).split('\n').slice(0, -1);
+          let k = above.length - 1;
+          while (k >= 0 && ind.test(above[k]) && above[k].trim()) k--;
+          if (k < 0 || !above[k].trim()) {
+            while (k >= 0 && (!above[k].trim() || ind.test(above[k]))) k--;
+            if (k < 0 || !/^[^\S\n]*(?:[-*+]|\d+[.)])[^\S\n]/.test(above[k])) return true;
+          }
+        }
         // Inside a fence: an opening ``` or ~~~ is closed only by its own kind.
         let open = null;
         for (const m of t.slice(0, ls).matchAll(/^[ \t]*(`{3,}|~{3,})/gm)) {

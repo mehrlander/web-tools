@@ -1877,4 +1877,9 @@ test('prose that only looks like a marker keeps its line', () => {
 test('a split at an indented or quoted continuation is not offered', () => {
   assert.equal(doc('- a\n  more\n\nP.\n').canSplit(3), false, 'a list item continuation');
   assert.equal(doc('> a\n> b\n').canSplit(3), false, 'a quote continuation');
+  assert.equal(doc('- a b\n').canSplit(3), false, 'mid-line on a list item');
+  assert.equal(doc('1. a b\n').canSplit(4), false, 'mid-line on a numbered item');
+  assert.equal(doc('> a b\n').canSplit(3), false, 'mid-line in a quote');
+  assert.equal(doc('- a\n\n  more words\n').canSplit(8), false, 'mid-line in a continuation paragraph');
+  assert.equal(doc('Plain a b.\n').canSplit(7), true, 'prose still splits');
 });

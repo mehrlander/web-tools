@@ -1344,6 +1344,11 @@ try {
     c.d.text = 'Text.\n\n```\n~~~\nstill code here\n```\n\nProse again here.\n';
     const t = c.text; return { inFence: c.inCode(t.indexOf(' code here')), after: c.inCode(t.indexOf(' again')) }; });
   ok('a ~~~ line inside a ``` fence does not close it', fence.inFence && !fence.after, JSON.stringify(fence));
+  const indented = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = 'Intro.\n\n    one two. three\n    four five. six\n\n- item\n\n    Cont para. Next sentence.\n\nLazy line\n    wrapped on. Here.\n';
+    const t = c.text; return { first: c.inCode(t.indexOf(' three')), second: c.inCode(t.indexOf(' six')), cont: c.inCode(t.indexOf(' Next')), lazy: c.inCode(t.indexOf(' Here')) }; });
+  ok('every line of an indented code block is code, a list continuation or a lazy wrap is not',
+    indented.first && indented.second && !indented.cont && !indented.lazy, JSON.stringify(indented));
 
   // A finger near the top of the pane aims above it; the drop is kept inside
   // the pane rather than landing on a gap scrolled out of sight.
