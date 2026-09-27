@@ -34,7 +34,7 @@ docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""d
 docs/surfacing.csv,22,7,7621,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
 docs/tests.csv,327,8,360069,"[""path"",""kind"",""protects"",""assertions"",""method"",""runner"",""boot_smoke"",""assertion_names""]"
 docs/text-fields.csv,13,5,3999,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
-docs/themes.csv,82,7,18071,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
+docs/themes.csv,88,7,19444,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
 docs/tools.csv,5,2,190,"[""path"",""icon""]"
 docs/vocabularies.csv,38,5,4969,"[""registry"",""property"",""value"",""label"",""gloss""]"
 pages/pages.csv,103,8,22071,"[""top"",""group"",""label"",""title"",""href"",""thumb"",""code"",""note""]"

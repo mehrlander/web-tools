@@ -2,7 +2,7 @@
 
 **Summary.** The slice is the living documentation of `home/projects/budget-drs` outside `data/source/`, dated records, probes, research, and tracker tasks. That leaves about 190 Markdown files and roughly 192,600 words (`find ... | xargs wc -w`, with dated names, `probes/`, `research/`, `source-docs/`, `companion-docs/` and `request-development/2026-*` excluded). The dominant bloat is not restated rules. It is **records living as if they were contracts**: shipped proposals, retired fan-out briefings, and change logs kept beside the code they describe, each carrying a status banner that says "this is history now" and then thousands of words of the history. The second source is **incident narrative inside living docs**, where a rule arrives with its dated backstory attached.
 
-(Proposals below are added as they firm up.)
+
 
 ## 1. Retire the eight shipped proposals and briefings in app/view
 
@@ -163,3 +163,53 @@ The project's own rule (home `CLAUDE.md`, status markers retired 2026-09-21) is 
 **Inbound dependencies:** No anchor links into the removed sections found (grep for `#the-two-source`, `#what-each-product`, `#ground-rules` returned nothing). `docs/README.md` and the project README link the file, not the sections.
 
 **Risk:** Low. The product table is the one quick overview of what each product proves. If the owner values it, make the folder list carry a short gloss per entry and drop the separate table, so there is one list instead of two.
+
+## 8. Retire CFL-FAQ.md; carry-forward level is stated three times
+
+**Repo:** home
+
+**Targets:** `projects/budget-drs/app/CFL-FAQ.md` (1,152 w). Overlaps with `projects/budget-drs/app/CARRY-FORWARD.md` (3,635 w) and `home/.claude/skills/reading-cfl/SKILL.md` (763 w).
+
+**Kind:** merge
+
+**Proposal:** Delete `CFL-FAQ.md`. Before deleting, check each of its 20-odd questions against `CARRY-FORWARD.md`; any answer not already there becomes one line in CARRY-FORWARD's "Reading rules" (181-187). Point `app/README.md:16`, `docs/README.md:26`, the skill's Process line and the `build-submittal.py:4318` comment at CARRY-FORWARD alone.
+
+**Rationale:** The same mechanism appears three times at three lengths. The skill is already the short, rule-shaped form ("Items dissolve at the boundary", "Continuation is silent", "One boundary", "The second supplemental does not feed the base"), and each of those is a FAQ question: "Can a CFL result be read into the biennium after next? No. One boundary" (FAQ 60-62); "Which prior budgets does it settle? ... The second supplemental ... does not feed the base" (FAQ 33-35). The SB 5104 digit-transposition finding is stated in both documents (CARRY-FORWARD.md:114 and 239; CFL-FAQ.md:121-124). The FAQ's "misreadings" framing does not hold up on reading: most entries restate the mechanism rather than name a misreading. A short form for agents exists (the skill), and a full form for people exists (CARRY-FORWARD). A third form adds a copy to keep in step.
+
+**Evidence:** Quoted overlaps above; `wc -w` on the three files.
+
+**Words removed:** about 1,000 net (1,152 minus any unique lines folded into CARRY-FORWARD).
+
+**Inbound dependencies:** `app/README.md:16`, `docs/README.md:26`, `app/CARRY-FORWARD.md` (lines 6 and 12), `.claude/skills/reading-cfl/SKILL.md` (Process section), `submittal/tools/build-submittal.py:4318` (comment), `data/source/2026-06-08-drs-operating-agency-detail/ANALYSIS.md` (supplied source, out of scope; leave a stale link or use a SHA permalink). Chron and blog entries link it as history.
+
+**Risk:** Medium, and the call is the owner's. Tracker task `consolidate-cfl-documentation-jd9mg9` (closed 2026-07-13) chose this three-part shape on purpose: a skill for agents, a full document, and an FAQ. The case for reopening that choice is the duplication measured here, not a new fact about CFL.
+
+## 9. Fix the two genre rules that still prescribe the retired status markers
+
+**Repo:** home
+
+**Targets:** `projects/budget-drs/docs/README.md:41-43` ("Dated records ... stay put as records and are corrected by dated markers, never rewritten") and `projects/budget-drs/app/workshop/README.md:3-5` ("everything else is a dated record, corrected by markers and never rewritten").
+
+**Kind:** rewrite-shorter
+
+**Proposal:** Replace "corrected by dated markers" with the home rule as it stands since 2026-09-21: a wrong claim in a dated record gets an ordinary sentence naming the correction and linking the successor. Or just link home `CLAUDE.md`'s rule and state nothing. Apply the same rule to living contracts in the slice that still carry marker-shaped asides, for example `data/authored/README.md` "(Corrected 2026-09-10. ...)" (proposal 3) and bill/README.md's "(corrected 2026-08-25)" heading-level asides (proposal 6).
+
+**Rationale:** home `CLAUDE.md` retired the markers on 2026-09-21 and says "No dated lead-in replaces the markers". The two project-level genre rules still instruct the retired practice, so a session reading the budget-drs documentation map is told to do what the repo contract forbids. This one is small in words and high in value, because the genre rules are what every other doc in the project is written against.
+
+**Evidence:** `grep -n marker docs/README.md app/workshop/README.md` returns the two lines quoted.
+
+**Words removed:** about 20. The value is removing a contradiction.
+
+**Inbound dependencies:** None beyond the files themselves.
+
+**Risk:** None.
+
+## Considered and left alone
+
+- **`data/authored/comment-shorthand.md` (7,279 w).** It is the largest file in the slice after the probes, but it is generated by `build-comment-shorthand.py`, gated in the verify suite, and was kept deliberately as the only readable review surface for a 173-row authored CSV (`tracker/tasks/estate-hygiene-prune-bwfgyj.md`, 2026-07-27 entry). Not prose bloat.
+- **`data/design/product-inventory.md` and `transaction-extract-intake.md`.** Both are proposals or candidates, but both are live inputs: `descent-edges.csv`, `transaction-extract/*.csv`, `app/transform/tools/build-intake.py` and `transforms.csv` reference them.
+- **`app/workshop/DECISIONS.md` (8,285 w).** It is a dated log, so its entries are records. The one change worth making is prospective: several recent entries (2026-09-22 at 518 w, 2026-07-22 at 501 w) restate their tracker task's closing note at full length. New entries could be two sentences and a link to the task.
+
+## Totals
+
+Nine proposals. Estimated words removed from living documentation: about 28,500 of roughly 192,600 in the slice (about 15 percent). Proposal 1 (the eight shipped proposals in `app/view/`, 14,700 w) and proposal 5 (the search README rewrite, about 4,500 w) are most of it.

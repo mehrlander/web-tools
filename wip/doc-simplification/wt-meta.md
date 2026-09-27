@@ -124,3 +124,23 @@ This slice is web-tools' process and environment documentation: the five files u
 
 **Risk:** Low. The portable recipe (vendor, then intercept) survives intact.
 
+## 6. artifacts.md: keep the house pipeline, drop the copied matrix and the stale platform summary
+
+**Repo:** web-tools
+
+**Targets:** `docs/artifacts.md:17-39` (the link-choice matrix), `:9-15` and `:41-49` (what an artifact is, page constraints), `:75-106` (identity, editing, persistence and privacy), `:129-140` (requirements).
+
+**Kind:** link-to-owner
+
+**Proposal:** Reduce artifacts.md to what the estate adds on top of the platform. That is the bake-then-strip-then-publish pipeline (`:51-73`), the daisyUI theming note, and conventions 1 to 4 (`:107-127`): the repo is the source of record, commit the CDN-form source, embedded data is a snapshot, and record the URL. Replace the matrix with one line: "Which link to hand over is decided by `npm run showing` and tabled in `showing-mechanisms.csv` (row `artifact`)." Replace the platform description with a link to code.claude.com's artifacts page. Keep the stale-sign-in "Page not found" tell (`:134-140`), because it is an observed failure the platform documentation does not state.
+
+**Rationale:** The web-tools `CLAUDE.md` says the link-choice rule is "not restated here. They live as data in `docs/showing-mechanisms.csv`". This file restates it as a six-row table. The platform summary is also dated and has drifted. On 2026-09-27 the Artifact tool described runtime capabilities to this session: shared state, a per-artifact database, viewer identity, and multi-file publishes through `files`. artifacts.md still says an artifact "cannot store form input, call an API at view time, or serve multiple routes" (`:13-15`) and "Relative links do not resolve" (`:47`). The platform owns these facts, and a copy of them goes stale without any signal.
+
+**Evidence:** `artifacts.md:26-33` against `showing-mechanisms.csv` rows `artifact`, `toss-gh`, `toss-gz` and `use`. `artifacts.md:13-15,45-47` against the Artifact tool's current description (runtime capabilities, `files` for multi-file artifacts). `surfacing-extended.md:13-14` and `surfacing.csv` row `artifact` also carry the Pro/Max-privacy boundary, so that sentence is the fourth copy.
+
+**Words removed:** about 650 of 1,147 (224 + 81 + 60 + 268 + about 20).
+
+**Inbound dependencies:** 117 files mention `artifacts.md`, mostly session records. The live links are `surfacing-extended.md:14`, `portable.csv:26` (description: "the bake-and-publish pipeline and the 📦 marker's place in the link-choice matrix", which needs its tail updated), `showing.md`, `show-repo.md` and `SNAGS.md`, all of which link the file rather than an anchor, and `docs/examples/which-link.html`, the interactive matrix published as an artifact. That page is a second copy of the matrix. Either regenerate it from `showing-mechanisms.csv` or retire it along with the table.
+
+**Risk:** Low. The only content a reader might miss is platform behaviour, and the platform documents it.
+

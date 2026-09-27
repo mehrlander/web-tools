@@ -153,3 +153,23 @@ Living guidance across the four repos carries a large layer of incident narrativ
 **Inbound dependencies:** No `APP.md#anchor` links found by grep. `docs/docs.csv` describes the file as "mission, durable goals, and the name split," which still holds.
 
 **Risk:** Medium. The "strings in code, not only prose" lesson (`:79-81`) is a real method point for any future name audit. Keep it as one clause of statement (2): "count strings in code as well as prose."
+
+## 8. Delete the history dump in web-tools `text-content.md`, and the "how this doc came to be" openers
+
+**Repos:** web-tools
+
+**Targets:** `web-tools/docs/text-content.md:627-688` ("# The history the pilot moved out, 2026-09-08"); `:689-724` ("# What the pilot taught about running the pass, 2026-09-08"); `web-tools/docs/code-layers.md:3-14` (the "because the alternative is what happened" paragraph and "was in that state from 2026-07-26, was settled on 2026-08-07, and the tree was migrated … on 2026-08-08"); `web-tools/docs/estate-span.md:3-12` ("until 2026-08-20 nothing said which were which…").
+
+**Kind:** delete (the first), move (the second), collapse (the openers).
+
+**Proposal:** Delete `:627-688` outright. PR #625 removed 48 passages of history from four code files "under the rule that a comment keeps its criterion and sends the date, the measurement and the incident here." The removed text is in PR #625's diff, which is exactly where git already put it; this section re-files it in a living doc under a filter. Move the method findings of `:689-724` ("a rewriter marking its own work is not evidence"; a second agent per file found eleven defects, seven of them added claims) into the `reduction-panel` skill as two sentences, since that skill runs this operation, and delete the section. Open `code-layers.md` with its current first rule sentence and one line: "`npm run code-scan` measures it." Open `estate-span.md` with "`span` is a column in `registries.csv`; this doc holds the reasoning the column cannot."
+
+**Rationale:** The "moved out" section is the clearest case in the estate of history relocated rather than removed: the pass's stated purpose was to stop comments carrying incident narrative, and its output was 562 words of incident narrative in a doc. Its own filter admits the problem ("a passage already held by a test or by another file is not repeated, because a second copy is the thing this whole pass is against"), and PR #625's diff is a first copy of everything left. The code-layers and estate-span openers explain what was missing before the doc existed; a reader arriving now needs what the doc says, not the gap it filled.
+
+**Evidence:** `awk` word counts: `:627-688` 562, `:689-724` 402. `code-layers.md:1-14` 149 words, about 100 of them history. `estate-span.md:3-12` about 70, about 40 of them history. `docs/docs.csv:82` classes `text-content.md` as `measured` and `orphan`: nothing outside the index points at it.
+
+**Words removed:** about 1,050 (562 + about 360 of 402 after moving two sentences + about 140).
+
+**Inbound dependencies:** None found for the two dated sections: `grep 'text-content.md#'` returns nothing. The `reduction-panel` skill cites home `chron/2026/09/2026-09-08-reduction-panel-on-a-doc-i-just-trimmed.md`, a record of the same day, which is the natural home for any detail the two moved sentences drop.
+
+**Risk:** Low for the history section. Medium for the pilot lesson, which is a genuine method finding; it must land in the skill in the same change, or it is lost rather than moved.

@@ -60,9 +60,9 @@ Proposals are ordered by words removed.
 
 **Rationale:** Three problems in one span. **It restates web-tools.** `:1030-1041` ("a thing installed per container is not installed") and `:953-969` are the same argument as `extending.md:147-149`, down to the same measurement ("On 2026-07-30 the store held one record ... At least four other sessions ran that day"). `:1042-1084` is `container.md:36-52` and `:115-123` ("account skills sync every container and account plugins do not"). **It is wrong where the copies diverged.** `:923` says "`Stop` fires once per assistant turn" and `:946-947` says publishing on every Stop "holds that window to a single turn, which is the floor". web-tools measured on 2026-09-21 that Stop fires on idle and an auto-continued turn produces no Stop (`extending.md:155`), so the loss window is until the next idle. The owner was corrected and the copy was not, which is the failure duplication causes. **It describes closed problems.** `:1113-1120` says "No code here can fix it ... Carrying this repo in every session's sources is the whole remedy"; since web-tools #747 the plugin's session-start directive reads `SESSIONS_STORE_REPO` and the sessions skill attaches the store (`environment/README.md:14-21`, `extending.md:179`). The two 2026-07-30 bullets record an incident whose fix shipped. The `skip-worktree` story (`:1002-1012`) justifies a design choice that `test-sync.sh` already pins.
 
-**Evidence:** Word counts: `:916-947` 292, `:949-1026` 838, `:1028-1146` 1,268; total 2,398. The contradiction: `sessions/README.md:923` against `web-tools/docs/environment/extending.md:155`.
+**Evidence:** Word counts: `:916-947` 292, `:949-1026` 838, `:1028-1146` 1,268 less the title bullet `:1094-1108` (193, counted in proposal 2); total 2,205. The contradiction: `sessions/README.md:923` against `web-tools/docs/environment/extending.md:155`.
 
-**Words removed:** about 1,900 (the store-side mechanics keep about 250, the limits keep about 150: the reparse cost, the loss window, and pre-store sessions existing only as chat history).
+**Words removed:** about 1,800 (the store-side mechanics keep about 250, the limits keep about 150: the reparse cost, the loss window, and pre-store sessions existing only as chat history).
 
 **Inbound dependencies:** `web-tools/.claude/skills/hooks/session-record.sh:10` points at `docs/environment/extending.md`, not here, so the hook's own citation already goes to the owner. No script reads these sections. `README.md:107-108` tells a reader to "set up recording in a fresh container with `sessions/tools/install-hook.sh`", which is the per-container route this span calls a failure; fix it with proposal 5.
 
@@ -122,7 +122,7 @@ Proposals are ordered by words removed.
 
 **Evidence:** Word counts: `:828-914` 847, of which the prose after the command block (`:849-914`) is 708. `python3 sessions/tools/search.py --help` output confirms the missing help strings and the undocumented `--surplus`.
 
-**Words removed:** about 800 from the README; the help strings add about 200 words to `search.py`, for a net of about 600.
+**Words removed:** about 800 from the README, of which the 228-word `--name` paragraph (`:866-886`) is also counted in proposal 2, so about 570 beyond it. The help strings add about 200 words to `search.py`.
 
 **Inbound dependencies:** `web-tools/docs/views/sessions.md:14` names `search.py --show` and `:666-667` of the sessions README names `search.py --agents`; both flags stay. No other file cites the Use section.
 
@@ -147,4 +147,24 @@ Proposals are ordered by words removed.
 **Inbound dependencies:** No script reads `proposals/README.md`. A session writing a proposal is directed by web-tools docs and the app, not this file. `web-tools/tracker/tasks/cross-repo-edit-proposals-evo1ml.md` discusses the design and is out of scope.
 
 **Risk:** Low. A session that opens only this repo gets one extra hop to the contract. The contract is public in web-tools and always reachable.
+
+## 8. Trim `shortcuts/README.md` to the folder map and the one regeneration command; the per-tool commands, renames, tiers and corpus findings each have an owner
+
+**Repo:** web-tools-private (reads shortcut-tools `tools/fold-incoming.py`, `tools/survey.py`, `docs/idioms.md` and `shortcuts/core/harvest.json` as owners)
+
+**Targets:** `shortcuts/README.md:21-31` (the `index-dump.py` command), `:126-142` (the survey command and tier table), `:175-177` (the sketch command), `:196-223` (the harvest command, the renames, the rejected renames, the five ambiguous names), `:225-248` ("Read the dumps together"), `:250-270` ("Size is a property of four shortcuts"), `:272-294` ("Credentials") and the credential pointer at `:54-56`.
+
+**Kind:** link-to-owner
+
+**Proposal:** Keep "What is here" (one paragraph), "Regenerating" (the three `fold-incoming.py` and `freshness.py` lines), the sync-channel table, the app-view and `prune.json` paragraphs, and one line per derivative folder (`sketches/`, `core/`). Delete the four per-tool invocations, since `fold-incoming.py --regen` runs all of them in order and `freshness.py` checks them. Replace the tier table with "Tiers and their rules are defined in shortcut-tools `tools/survey.py` (`TIERS`) and shown on the Shortcuts app view." Replace `:205-223` with "The renames and dropped calls the harvest applies are `core/harvest.json`; the reasoning, including the renames rejected and the five still ambiguous, is shortcut-tools `docs/idioms.md`, 'What the corpus says is wrong'." Replace "Read the dumps together" with two sentences: read the dumps as one corpus because a folder dump names dependencies outside itself, and `survey.py --dangling` sorts what is missing. Collapse "Size" to one sentence (four shortcuts hold most of the bytes, as literal text; the folder is the size control on the clipboard route). Collapse "Credentials" to the standing rule: scan every new dump before committing, use `Inject-🎟️GitHubToken` rather than an inline token, and once a secret is on `main` the answer is to revoke it, not to rewrite history. Say it once, not at `:54-56` and again at `:291-294`.
+
+**Rationale:** **The file argues against its own copies.** `:47-50` says the harvest's renames "lived only in this README's prose until then, which is why `core/` could not be checked and had fallen two shortcuts behind its own tier". The renames then appear in prose again at `:205-211`. `core/harvest.json` holds exactly those three renames and two dropped calls, and shortcut-tools `docs/idioms.md:252-280` holds the same renames, the same two rejections (`Speak-Text`, `Show-Template`) and the same five ambiguous names, word for word in places. **The tier table is the code's table.** shortcut-tools `tools/survey.py:48` names the three hubs and `:221-225` defines the tier labels and rules that `library.html` renders. **The self-call note is owned twice already** (`docs/idioms.md:36`, `docs/shortcuts-format-notes.md:854`, "55 shortcuts call themselves"). **The incident narrative outlived its use.** The Credentials section tells how two shortcuts were dropped from the fourteenth dump before a push; the rule it teaches is three lines, and `shortcuts/incoming/README.md:28-29` repeats the scan rule a third time. The Size table measures the first dump of 2026-08-13, which the file itself says it stopped doing for counts on 2026-09-05 (`:17-19`, "this file stopped restating them ... when every number it carried had been stale for a fortnight").
+
+**Evidence:** Word counts: `:21-31` 65, `:126-142` 108, `:175-177` 8, `:187-223` 262 (renames `:205-219` 117), `:225-248` 248, `:250-270` 173, `:272-294` 200, `:54-56` 30; total about 1,094 of 2,291. `cat shortcuts/core/harvest.json` shows the three renames and two drops.
+
+**Words removed:** about 850.
+
+**Inbound dependencies:** `shortcuts/incoming/README.md:25-26` links `../README.md#regenerating` and `shortcuts/manifests/README.md` links `../README.md#the-sync-channel`; both sections stay with their headings unchanged. shortcut-tools `tools/fold-incoming.py:173` prints "see shortcuts/README.md" when `core/harvest.json` is missing; the kept `core/` line should name `harvest.json` so that pointer still lands. `tools/harvest.py:12` mentions the README historically. `freshness.py` does not read the README.
+
+**Risk:** Low. The Credentials history explains why this corpus is private, which is also stated in the file's first paragraph (`:3-6`). The size measurement is the only fact with no other home; one sentence keeps it.
 

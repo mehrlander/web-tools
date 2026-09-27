@@ -2,7 +2,9 @@
 
 ## Summary
 
-(Filled in at the end.)
+This slice is home's projects other than budget-drs (doc-audit, text, local-models, term-migration, surfacer, wps, bills, workbooks, wa-budget-landscape), plus `news/`, `links/`, `app/`, `repos/` and `code/` READMEs. Excluding dated records, run folders and tracker tasks, the authored documentation is about 93,000 words: doc-audit 29,400, text 18,700 (10,100 of it the concept-lab `findings.md` experiment log, left alone as a record), wps 12,100, local-models 9,100, surfacer 6,800, term-migration 4,400, and 9,200 across news, repos, app, links and code. `wa-budget-landscape` adds 118,000 words, but those state, governor and actor READMEs are the project's research product rather than documentation about the estate, so they are out of this pass.
+
+The dominant bloat is **documents that outlived their job but stayed at living paths**: skill drafts copied byte for byte from the shipped skill library, superseded plans and planning documents for parked or finished work, a manual for a retired method, and hand-maintained summaries of READMEs. The second source is **restated measurements and incidents**: one 2026-08-18 story told four times, and a catalog that copies numbers from the logs that own them. Thirteen proposals below remove or move roughly 29,000 words, about 30 percent of the slice, with no loss of a fact that lacks another owner.
 
 ## 1. Delete the four doc-audit files that are byte-identical copies of shipped skills
 
@@ -243,4 +245,24 @@
 **Inbound dependencies:** For the rename: `projects/doc-audit/README.md`, `full-picture.md` (deleted under proposal 3), `projects/local-models/README.md` and `corpus-analysis.md`, and the dated `2026-06-09-tightening-revisited.md`. Every link would need repointing in the same commit. The lint's dated-filename check applies to the new names.
 
 **Risk:** Low for "Next". The rename is optional; skip it if link churn outweighs the signal.
+
+## 13. news/README: point at the skill and the page that now own the views
+
+**Repo:** mehrlander/home
+
+**Targets:** `news/README.md` (1,260 words): "Views" (lines 105 to 118), the "Why this hook acts" paragraphs in "Capture cadence" (lines 93 to 103, 160 words), and the "Design origin" paragraph (line 10).
+
+**Kind:** link-to-owner, rewrite-shorter
+
+**Proposal:** Replace the Briefs bullet with "Briefs: `briefs/YYYY-MM-DD.md`, written by the `/news` skill, which owns their format." Replace the Dashboard bullet, which calls the dashboard "planned", with a link to web-tools `pages/news/news.html`. Cut the cadence justification to one sentence: "Feeds roll items off in about three days, so the fetch runs at session start when two days have passed; the measurement is in task `rss-buffer-loss-k3n7pq`." Drop "Design origin".
+
+**Rationale:** The brief format (title, topic headings, two to five KB, one-line brief when empty) is stated in both the README and `.claude/skills/news/SKILL.md`, which is the file a session executes. The dashboard exists, so "planned" is wrong. The cadence paragraphs argue a doctrine point that the README's own next sentence defers to the tracker task.
+
+**Evidence:** `news/README.md` lines 111 to 114 against `.claude/skills/news/SKILL.md` lines 45 to 48 ("Start with `# Title` ... under the topic headings of `me/news-interests.md` ... Two to five KB"). `web-tools/pages/news/news.html` lines 12 to 25 describe the ledger and sources facets and cite `news/README.md` for the honesty rule. `app/README.md` line 11 says News "moved there".
+
+**Words removed:** about 280.
+
+**Inbound dependencies:** `web-tools/pages/news/news.html` line 18 cites `news/README.md` for the ledger's honesty rule, which stays. No script parses the README.
+
+**Risk:** Low.
 

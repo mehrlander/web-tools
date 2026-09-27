@@ -98,3 +98,87 @@ This lens swept web-tools, home, shortcut-tools and web-tools-private for one ru
 
 **Risk:** Medium for non-Claude agents. The table was copied because Codex and Gemini read `AGENTS.md` and may not follow a cross-repo link. If that is the measured reason, keep the table in `AGENTS.md` and make it generated from the owner (the pre-commit hook already copies `surfacing-course.md` into the plugin, so one more target is cheap), rather than hand-kept.
 
+## 4. Render-link rules: "run showing.py" and the budget-drs frame bug, told in four places
+
+**Repos:** web-tools, home.
+
+**Copies:**
+- web-tools `docs/SURFACING.md:57`, loaded every session: "Run `npm run showing` before handing over a render link, and paste the line it prints."
+- web-tools `CLAUDE.md:11-22` (173 words): the same instruction, plus the history of why ("This section used to be 1,589 words ... It happened again on 2026-08-22").
+- home `CLAUDE.md:132-152` (~200 words): the same instruction for home ("Do not pick the link by reading; run it"), plus the history of the paragraph it replaced.
+- home `CLAUDE.md:153-180` (310 words): the unsettled app-frame bug: 46 files, 9,692,313 bytes, `inlineRelativeDeps`, the `data-inline-error` console line, the two candidate causes, "hand over the framed page on its own".
+- web-tools `docs/SNAGS.md:274-297` (`app-frame-outruns-the-inliner`): the same bug with the same numbers, the same console line, the same two candidates and the same workaround, plus the fact that `showing.py` prints the broken route.
+- home `CLAUDE.md:182-215` (398 words): the branch-preview `__ref` rule, two "former limits, and neither holds now", `appendix-render`, and the `SUBMITTAL_OPEN` params `?pkg=`, `?piece=`, `?track=`, `?diag=`.
+- home `projects/budget-drs/app/view/README.md:69-75` (the four `SUBMITTAL_OPEN` params, "every param present is forwarded") and `:245-265` (`embedView`, `inlineRelativeDeps`, `data-inline-error`, `ref` is `"main"` by design).
+
+**Owner:** `SURFACING.md:57` for "run it". `web-tools/docs/SNAGS.md#app-frame-outruns-the-inliner` for the open bug. `home/projects/budget-drs/app/view/README.md` for how the frame forwards params and mounts tenants.
+
+**Kind:** restated rule, duplicated incident, app internals in an instruction file.
+
+**Proposal:**
+- web-tools `CLAUDE.md:11-22`: delete the section. `SURFACING.md` carries the rule into this session already. If the honesty rule ("for a kit or doc, link the `[new]` blob; where no link reaches a change, say so and send a screenshot") is not in `SURFACING.md`, move that one sentence there, since it is portable.
+- home `CLAUDE.md:127-215` becomes one bullet of about 70 words: "**Render path.** The repo is private, so ⭐ never applies; 🥏 toss in owner mode, `#gh=mehrlander/home@<branch>:<path>`. Pages the budget-drs app frames are declared in the `showing` block of [.web-tools.json](.web-tools.json); run `python3 ../web-tools/scripts/showing.py` for the link. Until [app-frame-outruns-the-inliner](https://github.com/mehrlander/web-tools/blob/main/docs/SNAGS.md#app-frame-outruns-the-inliner) is settled, hand over the framed page on its own with `#pkg=<id>` and say the app route is broken. How the frame forwards params: [app/view/README.md](projects/budget-drs/app/view/README.md)."
+
+**Rationale:** An instruction file is paid for on every turn. The frame bug is a snag with an owner, and the snag already says everything the home paragraph says, down to the byte count. The `SUBMITTAL_OPEN` rungs, the `__ref` override and the "two former limits" are how one app works, not how an agent should behave in home; the view README owns them. The home paragraph even schedules its own deletion ("when the cause is known ... this paragraph goes"), which is the snag's job.
+
+**Evidence:** `grep -rln "inlineRelativeDeps\|app-frame-outruns-the-inliner\|SUBMITTAL_OPEN\|9,692,313\|data-inline-error"` returns home `CLAUDE.md`, `web-tools/docs/SNAGS.md`, `home/projects/budget-drs/app/view/README.md`, and two tracker tasks. Line 170 of home `CLAUDE.md` itself says "The trip is logged upstream as `app-frame-outruns-the-inliner`".
+
+**Words removed:** about 1,000 (home ~830, web-tools ~170).
+
+**Inbound dependencies:** No file links to the home `CLAUDE.md` Render path bullet (`grep -rn "Render path"` in home finds only the bullet itself). `showing.py` reads `.web-tools.json`, not the prose.
+
+**Risk:** Low. Two facts in the home block are not in the view README: that a framed view can now be shot headless through `tools/screenshot.mjs` (since 2026-09-05), and the `#pkg=` fragment form for the standalone page. Check both against the view README before cutting, and add a line there if missing.
+
+## 5. The prose-clarity block in home CLAUDE.md is a compressed copy of a library skill
+
+**Repos:** home, web-tools.
+
+**Copies:**
+- home `CLAUDE.md:37-66` (482 words, "Prose clarity"): role, seven principles, execution rules, a six-row example table.
+- web-tools `skills/google-style-clarity/SKILL.md` (1,179 words): the full statement, with citations. The table row "Keep both. / Keep both app views." appears at `SKILL.md:71` and home `CLAUDE.md:61`.
+- web-tools `docs/QUALIFIED-WRITING.md:14-20`, loaded every session through `/portable:default`: "Introduce before you refer", "Use plain language", "Qualify noun phrases", which cover the same ground as "Resolve pronouns", "Define jargon" and "Unstack modifiers".
+- The user's global `~/.claude/CLAUDE.md` also sets the prose register ("Use short sentences ... common words in their common meanings").
+
+**Owner:** `web-tools/skills/google-style-clarity/SKILL.md` for the Google rules; `QUALIFIED-WRITING.md` for the always-on rules.
+
+**Kind:** compressed restatement of a skill, which the block admits: "this block is a repetition of it, not a second authority."
+
+**Proposal:** Replace home `CLAUDE.md:37-66` with two sentences: "**Prose clarity.** Before drafting, reviewing or rewriting prose, apply `QUALIFIED-WRITING.md` (already loaded) and, for an edit pass or a disputed call, `/load-skill google-style-clarity`."
+
+**Rationale:** The block is the second-largest section of the repo's instruction file and is paid on every turn in every home session, including sessions that write no prose. The always-on half of its content already arrives through `QUALIFIED-WRITING.md`; the rest is an editing procedure that belongs on demand. The block names its own owner and disclaims authority, so it adds no rule the skill lacks.
+
+**Evidence:** The block's own line 39: "This is the compressed form of `google-style-clarity`, which owns the full statement". `grep -rn "google-style-clarity\|Prose clarity" home` finds no other reference, so nothing depends on the section.
+
+**Words removed:** about 450.
+
+**Inbound dependencies:** None found.
+
+**Risk:** Medium. The block exists because `google-style-clarity` is not in the `portable` plugin (it is absent from the catalog's skill list), so without the block the rules fire only when a session loads the skill. If the owner wants the Google rules always on, the fix is to fold the seven principles into `QUALIFIED-WRITING.md` (which is always on, in every repo) and delete the home copy, not to keep a home-only copy.
+
+## 6. Four verbatim copies of library skills parked in home/projects/doc-audit
+
+**Repos:** home, web-tools.
+
+**Copies:**
+- `home/projects/doc-audit/atomic-decomposition.md` (2,792 words) = `web-tools/skills/atomic-decomposition/SKILL.md` (2,792 words), zero differing words.
+- `home/projects/doc-audit/source-anchored-writing.md` (934) = `web-tools/skills/source-anchored-writing/SKILL.md` (934), zero differing words.
+- `home/projects/doc-audit/source-anchored-xlsx.md` (1,706) = `web-tools/skills/source-anchored-xlsx/SKILL.md` (1,706), zero differing words.
+- `home/projects/doc-audit/source-anchoring.md` (918) = `web-tools/skills/source-anchoring/SKILL.md` (920): the diff is trailing whitespace, a missing final newline, and one sentence where the home copy has em dashes and the skill has commas.
+- Not verbatim, and not proposed for deletion: `outlining.md` (757), `outlining-revised.md` (1,015) and `source-anchoring-revised.md` (1,444) differ substantially from their skills and read as drafts.
+
+**Owner:** the web-tools skill library (`web-tools/skills/<name>/SKILL.md`).
+
+**Kind:** parked draft superseded by the published skill.
+
+**Proposal:** Delete the four verbatim files. In `home/projects/doc-audit/README.md:68-76` ("Skill framings"), point each bullet at the skill: "[atomic-decomposition](https://github.com/mehrlander/web-tools/blob/main/skills/atomic-decomposition/SKILL.md) (web-tools skill library)". Do the same for the inbound links in `projects/local-models/README.md:97,156` and `projects/local-models/corpus-analysis.md:27`. Leave the three `-revised`/`outlining` drafts in place and say in the README that they are proposed revisions against the published skill.
+
+**Rationale:** The README calls this section "Reusable-skill statements ... parked here as they accumulate. Each is a draft developed elsewhere." The drafts have since been published, and the home copies are now the published text, not drafts. A reader who edits one edits a copy nobody loads. The home copy of `source-anchoring.md` has already diverged by one sentence, in the direction the conventions forbid (em dashes).
+
+**Evidence:** word-level diff (`diff -w` on tokenized text) gives 0, 0, 0 and 4 differing lines for the four pairs. home's own `tools/duplicated-claims.py` ranks the doc-audit/skill cluster among its top pairs (388 and 500 shared windows for the source-anchoring and outlining pairs).
+
+**Words removed:** about 6,350.
+
+**Inbound dependencies:** `projects/doc-audit/README.md`, `projects/doc-audit/full-picture.md` (check whether it is generated), `projects/doc-audit/source-anchoring-revised.md`, `projects/doc-audit/source-manifest.md`, `projects/doc-audit/2026-06-23-one-machine-three-questions.md` (dated, leave its links to break or point them at the skill), `projects/local-models/README.md`, `projects/local-models/corpus-analysis.md`. Session records in `web-tools-private/sessions/2026/08/` mention the paths; those are captured records and stay as they are. No script reads these files (`grep` for `doc-audit/*.md` in `.py`, `.sh`, `.js` under `projects/` and `tools/` finds none).
+
+**Risk:** Low. The one question is whether `source-anchoring-revised.md` is meant to be a revision of the home copy specifically; since the home copy equals the skill, it is equally a revision of the skill.
+
