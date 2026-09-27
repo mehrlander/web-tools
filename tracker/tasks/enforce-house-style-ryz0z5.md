@@ -48,7 +48,7 @@ scanners reach files outside `lib app pages`.
 - `scripts/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
 - `scripts/stranded-titles.py`: sibling scanner with the same root limit
 - `skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
-- `skills/daisy-alpine/SKILL.md`: discovery half that PR #554 fixed
+- `skills/html-style/SKILL.md`: discovery half that PR #554 fixed
 - PR #554: style-guide discovery half
 - PR #565: rule 3 (reading columns) shipped; residual is rule 1 plus scanner roots
 

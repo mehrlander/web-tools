@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse(Edit|Write|MultiEdit): refuse a class that narrows text to a
-# reading column, at the moment it would be written. daisy-alpine rule 3 has
+# reading column, at the moment it would be written. html-style rule 3 has
 # forbidden it since 2026-08-31 and the rule caught nothing, because a rule only
 # fires when it is read and this class arrives as a model default. Engine and
 # the full argument: reading-column.py beside this file.
