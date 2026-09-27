@@ -242,3 +242,32 @@ test('a retyped heading pairs with its old self, and a typo pairs by letters', (
   const cross = window.mdDiff.align('# Setup\n', '```\nsetap\n```\n').filter((e) => e.kind !== 'same');
   assert.deepEqual(cross.map((e) => e.kind).sort(), ['added', 'removed'], 'a heading never pairs with a fence');
 });
+
+// A word diff cannot see a paragraph break: two paragraphs joined have the
+// same words as before. The card marks the break itself, struck where one was
+// closed and green where one was opened, and neither mark takes the caret.
+test('a closed paragraph break is struck in place, and an opened one is marked green', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const host = window.document.getElementById('host');
+  const box = window.document.getElementById('box');
+  const base = '# T\n\nOne ends here.\n\nTwo starts here.\n\nTail.\n';
+  const joined = '# T\n\nOne ends here. Two starts here.\n\nTail.\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text: joined, base, track: true, overlay: box });
+  const closed = host.querySelector('[data-md-break="closed"]');
+  assert.ok(closed, 'the join is marked');
+  assert.match(closed.parentElement.textContent, /here\.¶ Two/, 'where the break stood, after the first half');
+  assert.ok(!closed.querySelector('[data-src]') && closed.tagName === 'DEL', 'and it takes no caret');
+  const split = '# T\n\nOne ends\n\nhere.\n\nTwo starts here.\n\nTail.\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text: split, base, track: true, overlay: box });
+  const opened = host.querySelector('[data-md-break="opened"]');
+  assert.ok(opened, 'the split is marked');
+  assert.match(opened.parentElement.textContent, /One ends¶$/, 'at the end of the first half');
+  for (const sp of host.querySelectorAll('[data-src]')) {
+    const s = +sp.dataset.src, t = sp.firstChild.data;
+    assert.equal(split.slice(s, s + t.length), t, `run at ${s} is still the buffer's text`);
+  }
+});
