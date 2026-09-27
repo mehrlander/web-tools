@@ -113,3 +113,43 @@ Living guidance across the four repos carries a large layer of incident narrativ
 **Inbound dependencies:** None found. The `invoke-default` hook prints its own directive and does not read these files.
 
 **Risk:** Low. The "if missing, the prod is broken" clause is the one live instruction in these passages, and it survives.
+
+## 6. Finish the marker retirement: delete the notices it left behind, and the live instructions that still name it
+
+**Repos:** web-tools, home
+
+**Targets:** `web-tools/CLAUDE.md:5` ("run `/markers` before marking or editing near frozen areas"); `web-tools/tools/build/docs-readme.mjs:51`, which generates `web-tools/docs/README.md:8-10` ("A **record** preserves a moment and is corrected by markers, never rewritten"); `web-tools/docs/estate-span.md:36-49` (the `.paths.json` table row note and the paragraph "The declarations were 2, in 2 repos … until 2026-09-20 retired the `Frozen` marker word…"); `home/README.md:123` (the `stale-flags.sh` row: "retired 2026-07-29 … `/markers` … inventories every `Frozen`/`Stale`/`Wrong` marker"); `home/tools/README.md:43` ("Status markers are retired (2026-09-21). Nothing here inventories them…").
+
+**Kind:** delete (three notices) and correct (two stale instructions).
+
+**Proposal:** Delete the `/markers` clause from web-tools' four one-line defaults. Change the generator string to "A **record** preserves a moment and is not rewritten; a later correction is an ordinary sentence that links its successor," and regenerate. Delete `home/README.md:123` and `home/tools/README.md:43` outright: a tools inventory lists tools, and neither row names one. In `estate-span.md`, drop the chronology paragraph and state the current count: "`.paths.json` declarations: home (budget-drs), chat-histories, web-tools-private; the hub carries none."
+
+**Rationale:** Per `web-tools/docs/estate-span.md:40-42`, the markers skill and `status.py` were retired on 2026-09-21, and `ls .claude/skills/markers` confirms the skill is gone. Yet web-tools' `CLAUDE.md`, which loads every session, still tells a session to run it, and the generated docs index still defines a doc class by the correction mechanism that no longer exists. Those two are live defects, not history. The other three are the retired-convention explanations the lens targets: rows whose only content is that something was retired, which the retiring commit already records. The estate-span paragraph walks through three dates in six lines to arrive at a count the table beside it states.
+
+**Evidence:** `grep -rln '/markers\|markers skill'` over living docs returns web-tools `CLAUDE.md`, `docs/estate-span.md`, `docs/envelopes/approval.md` (a worked example, left alone) and home `README.md`. `docs-readme.mjs:51` holds the "corrected by markers" string. Word counts: `home/README.md:123` 63, `home/tools/README.md:43` 56, `estate-span.md:38-49` about 110, the `/markers` clause about 10.
+
+**Words removed:** about 240.
+
+**Inbound dependencies:** `docs/README.md` is generated, so the edit is to `docs-readme.mjs` and `derived-artifacts.test.mjs` will require the regenerated file in the same commit. Two living docs still carry `Stale` banners, e.g. `web-tools/docs/github/mcp-server-routing.md:6` and `:32`; that file is classed `record` in `docs/docs.csv:47`, so its banners are allowed history under the new wording and need no edit.
+
+**Risk:** Low. The only judgment is whether web-tools means to keep a successor to `/markers` for frozen areas; if so, the default should name it, and if not, the clause goes.
+
+## 7. Reduce web-tools `APP.md`'s name-split section to the rule and the current list
+
+**Repos:** web-tools
+
+**Targets:** `web-tools/docs/APP.md:24-35` ("The route registry was on that list and never belonged there … Corrected the same day…"), `:38-39` ("Reading it as reader-facing … was proposed in this session and withdrawn…"), `:42-49` ("This sentence used to claim … The route registry above is the third correction of the same kind…"), `:57-62` ("The version of this passage written on 2026-08-27 said…"), `:64-83` ("a session used the internal name in a reply on 2026-08-27 … That count of two was wrong … Recounted 2026-09-08"), `:88-96` ("This doc first ruled … This sentence used to list the component name here…").
+
+**Kind:** collapse.
+
+**Proposal:** Keep four statements and the current holders list. (1) "A name is kept because it is accurate or because someone outside holds it; never because renaming is expensive." (2) "Anything a reader meets takes **Web Tools**: chat replies, captions, PR bodies, and commit messages the app writes (`via Web Tools`)." (3) "Identifiers that are still true keep **show-repo**: `?view=` keys, registry keys, the tracker tag, `/show-repo`." (4) "The address moved to `app/index.html`; the stub's path stays because 151 files and saved links hold it." Delete the correction narratives around them.
+
+**Rationale:** `APP.md` is the product frame: "mission, goals, and the name split" (`web-tools/CLAUDE.md:9`). About half of its name-split section is the story of this section being wrong: "This sentence used to claim", "the third correction of the same kind", "The version of this passage written on 2026-08-27 said", "That count of two was wrong", "Recounted 2026-09-08". The section argues well that a list of holders goes wrong by not being recounted, and then keeps the history of each miscount rather than a recount method. Git holds the old versions, and the rule "an inaccurate name is a defect at any price" survives as one sentence.
+
+**Evidence:** `sed -n | wc -w`: `:24-35` about 110, `:38-39` 28, `:42-49` 114, `:57-62` 75, `:64-83` 246, `:88-96` 115. About 690 words, against a file of 1,437. The figures 1,022 occurrences, 608 commits, 584/23/1 by repo, and "twenty-four string literals across six files" are measurements of a finished migration.
+
+**Words removed:** about 550, net of about 110 words of rule.
+
+**Inbound dependencies:** No `APP.md#anchor` links found by grep. `docs/docs.csv` describes the file as "mission, durable goals, and the name split," which still holds.
+
+**Risk:** Medium. The "strings in code, not only prose" lesson (`:79-81`) is a real method point for any future name audit. Keep it as one clause of statement (2): "count strings in code as well as prose."

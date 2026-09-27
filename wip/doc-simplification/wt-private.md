@@ -108,3 +108,43 @@ Proposals are ordered by words removed.
 
 **Risk:** Low. The only content with no other owner is the `autocorrect` rationale and the `kind` vocabulary argument (`README.md:56-66`); the latter is already in `docs/views/todo.md:24-27` in short form.
 
+## 6. Move the `search.py` usage prose into the tool's own `--help`, and let the README say "run `--help`"
+
+**Repo:** web-tools-private
+
+**Targets:** `sessions/README.md:828-914` ("Use": the 17-line command block and seven paragraphs on the axes) and the argparse definitions in `sessions/tools/search.py`.
+
+**Kind:** move-to-data-or-check
+
+**Proposal:** Give every flag in `search.py` a one-sentence `help=` string drawn from the README paragraph about it: `--errors` ("failing calls, one per line; schema-1 records carry no calls"), `--attention` ("ranks by distinct sessions, not access count"), `--stats` ("clipped, dropped and elided are separate counters"), `--grep` ("searches asks, replies, and `last_message` for pre-schema-4 records"), and so on. Replace `:828-914` with three lines: "`sessions/tools/search.py --help` lists every filter. Filters combine with AND. `--attention` and `--corrections` print their own caveats." Keep the one sentence that links web-tools `docs/SNAGS.md` as the reason `--errors` exists, if the owner values it.
+
+**Rationale:** The README and the tool already disagree. `search.py --help` lists `--surplus` ("closing states with no user prompt between them, the churn rate") and `--until`, `--limit` and `--json`, and the README's command block mentions none of them. Most flags in `--help` have no help text at all (`--since`, `--repo`, `--grep`, `--tool`, `--show`, `--stats`), so the one place a user types gets nothing and the place nobody opens at a terminal gets 708 words. The script's own docstring (`search.py:2-14`) is a third copy of the command block and says `--grep` looks at "the opening ask, every stored prompt, and the closing message", which omits `replies`, while the README (`:888`) says replies are searched from schema 4 on. Putting the explanation on the flag makes it one copy, and an argparse test can hold every flag to having help text. The README paragraphs also carry dated counts that no longer describe anything ("55 of the 58 records on file when the derived name landed carried a `claude/` branch", `:884-886`; "2.1% of 21,675 replies" `:910`).
+
+**Evidence:** Word counts: `:828-914` 847, of which the prose after the command block (`:849-914`) is 708. `python3 sessions/tools/search.py --help` output confirms the missing help strings and the undocumented `--surplus`.
+
+**Words removed:** about 800 from the README; the help strings add about 200 words to `search.py`, for a net of about 600.
+
+**Inbound dependencies:** `web-tools/docs/views/sessions.md:14` names `search.py --show` and `:666-667` of the sessions README names `search.py --agents`; both flags stay. No other file cites the Use section.
+
+**Risk:** Low. This edits code as well as prose, so it goes through a PR in web-tools-private with the store's tests (`sessions/tools/test-record.py`) run.
+
+## 7. Cut `proposals/README.md` to a stub that links the web-tools contract, and fix its dead `mailbox/` links
+
+**Repo:** web-tools-private (reads web-tools `docs/manifest.md`, "Proposals", as owner)
+
+**Targets:** `proposals/README.md:1-157` (the whole file except the folder layout).
+
+**Kind:** link-to-owner
+
+**Proposal:** Replace the file with about 60 words: what the folder holds (`pending/<id>.json` written by a session, `applied/<id>.json` written by show-repo as the tombstone), that nothing applies without a two-tap confirm, and one link: "Record shape, the four kinds, staleness guards, delivery, and how to write `summary`, `why` and `caution`: web-tools [`docs/manifest.md`, Proposals](https://github.com/mehrlander/web-tools/blob/main/docs/manifest.md#proposals-proposalspending--proposalsapplied); validated by `lib/kits/repo-proposals.js`." Change the counterpart reference from `mailbox/` to `errands/`.
+
+**Rationale:** The README's own last line names the owner ("Contract and validation: `web-tools/lib/kits/repo-proposals.js` ... Reference: `web-tools/docs/show-repo.md`"). The content is a copy of web-tools `docs/manifest.md:363-560`, which covers the same four kinds (`put-file`, `set-json-field`, `unset-json-field`, `delete-issue`), the named-kind argument against a general `graphql-mutation` (`manifest.md:410-413` against `README.md:83-85`), the `expectComments` and `expectTitle` guards, the permanent-deletion warning, and the three text fields (`manifest.md:546-555`). The owner has moved on and the copy has not: the owner documents `deliver` (commit or branch) and `proposals/attempts/`, which the README never mentions except as a refused field. The README also links `../mailbox/README.md` twice (`:3`, `:12`) and uses the mailbox as its comparison (`:15`); that folder was renamed `errands/` on 2026-09-24 (`errands/README.md:14-15`), so the first link on the page is dead.
+
+**Evidence:** `wc -w proposals/README.md` is 865. `ls mailbox` fails in web-tools-private. web-tools `docs/manifest.md` "Proposals" section is about 1,870 words and a superset.
+
+**Words removed:** about 800.
+
+**Inbound dependencies:** No script reads `proposals/README.md`. A session writing a proposal is directed by web-tools docs and the app, not this file. `web-tools/tracker/tasks/cross-repo-edit-proposals-evo1ml.md` discusses the design and is out of scope.
+
+**Risk:** Low. A session that opens only this repo gets one extra hop to the contract. The contract is public in web-tools and always reachable.
+

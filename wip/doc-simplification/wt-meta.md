@@ -98,3 +98,29 @@ This slice is web-tools' process and environment documentation: the five files u
 
 **Risk:** Low. TRACKER.md is the adoption contract for other repos, so a reader adopting without the plugin loses the operating detail. The `tasks` skill ships in that same plugin, and TRACKER.md already sends such a reader to the skill.
 
+## 5. headless-vendoring.md and testing.md: fix a false premise, cut the copies of each other, collapse two correction stories
+
+**Repo:** web-tools
+
+**Targets:** `docs/headless-vendoring.md:17-26` (the problem paragraph), `:288-296` (showing the result in chat), `:324-352` (the theme-explorer example), `:354-375` (Gotchas), `:377-400` (edge cases and the jsdom variant); `docs/environment/testing.md:105-113` (the typography failure story), `:114-118` (the Pages `?use=` limit), `:349-398` (Tailwind generates lazily).
+
+**Kind:** rewrite-shorter
+
+**Proposal:**
+- **headless-vendoring.md.** Rewrite the premise from "the JS CDNs ... all return a denial" to what `capabilities.md:180-198` measured on 2026-08-05: the shell reaches the CDNs, and the headless browser reaches no host at all. Interception is therefore needed for every host, not only the CDN hosts. Keep Steps 1 and 2 and the minimal worked example, which are the portable recipe. Delete the following:
+  - "Showing the result in chat", which is owned by SURFACING's "Hand over the artifact" and by `capabilities.md:288-307`.
+  - The theme-explorer walkthrough. The example file is its own documentation, and only this doc links it.
+  - The Gotchas. Each one is in testing.md: the TLS flag at `:332-337`, the Alpine import at `:285-287`, `MISS` at `:275-276`, and the pre-installed browser at `capabilities.md:249-264`.
+  - The jsdom variant, which is testing.md's `npm run preview` section.
+- **testing.md.** Cut the Tailwind section to three sentences: Tailwind 4 browser generates a utility when the class first appears, so toggled classes work; assert on `getComputedStyle`, not on class names or stylesheet text; a baked page loses only classes assembled from fragments. Delete the typography "worth writing down for how it failed" paragraph. The fix is in `cdn.mjs`, and the one-line limit above it stays. Replace `:114-118` with a link to the `use` row of `showing-mechanisms.csv`, which states the same trap.
+
+**Rationale:** headless-vendoring.md is indexed in `portable.csv:28` as on-demand portable material. A session in another repo that fetches it is told its CDNs are denied and its browser can reach them once they are intercepted, and on this platform both statements are wrong. testing.md's own header (`:5-7`) says "superseded methods and discovery stories live in git history. Supersede in place, don't append". The Tailwind section instead opens by retracting "an earlier entry here that said the opposite" and then spends 400 words on how the error was made.
+
+**Evidence:** `headless-vendoring.md:21-24` against `capabilities.md:180-189` ("The shell reaches arbitrary hosts... The headless browser reaches none of them"). `testing.md:356` ("This corrects an earlier entry here that said the opposite") against `testing.md:5-7`. `testing.md:114-118` against `showing-mechanisms.csv` row `use` (trap: "Pages serves the page FILE from the default branch").
+
+**Words removed:** about 1,000 from headless-vendoring.md (88 + 276 + 441 + about 200 of edge cases and jsdom; the premise rewrite is word-neutral) and about 540 from testing.md (447 - 80 + 107 + 60 - 20).
+
+**Inbound dependencies:** `tools/render/cdn.mjs` names headless-vendoring.md in a comment. `testing.md:53-55` and `capabilities.md:195` link to it, and `capabilities.md:301` links `#showing-the-result-in-chat`; repoint that link to SURFACING. `portable.csv:28` has a description row ("where the sandbox blocks their CDNs") that needs the same premise fix. `docs/themes.csv:6`, the repo's own duplication graph, already records the testing.md and headless-vendoring.md pair as sharing 30 ten-word windows (the Alpine import and the certificate flag), which confirms the overlap by measurement. That row is computed and drops out on regeneration.
+
+**Risk:** Low. The portable recipe (vendor, then intercept) survives intact.
+

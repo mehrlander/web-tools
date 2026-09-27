@@ -184,3 +184,63 @@
 
 **Risk:** Low. If Surfacer is picked up again, PLAN.md is in git.
 
+## 10. Delete repo notes for repos the estate checks out, and one for home itself
+
+**Repo:** mehrlander/home
+
+**Targets:** `repos/home.md` (465 words), `repos/web-tools.md` (289), `repos/shortcut-tools.md` (415); `repos/index.md` "Three things follow" (lines 59 to 86, 280 words) and the "Per-repo file format" section.
+
+**Kind:** delete, link-to-owner, collapse-narrative
+
+**Proposal:** Delete the three notes. Their index rows keep a one-line description and link straight to the repo. In `repos/index.md`, keep the store dependency table and replace the four bold paragraphs after it with two sentences: "home and budget-wa read each other, as do home and spend-wa. A bare clone cannot run every check; suites name their skips." Cut "Per-repo file format" to one sentence. The remaining notes (the data stores, Wring, Alp and the small tool repos) stay, since no session has those checked out and a note is their only local orientation.
+
+**Rationale:** The index says these notes are "pointer-grade" and that "each repo's own README is the real reference". For web-tools and shortcut-tools that README is always present in a session of this estate, and for home the note describes the repo it sits in, which `README.md` and `CLAUDE.md` "Where things go" already describe. All three are stale in ways that mislead.
+
+**Evidence:** `repos/web-tools.md` describes a `kits/` folder and a `docs/CONVENTIONS.md` sync; neither path exists in the web-tools checkout. `repos/home.md` is stamped 2026-07-06, lists `projects/budget-wa/` (dissolved 2026-08-01, per the same note) and skills `/rounds` and `/update-full-picture`, which home `CLAUDE.md` now calls depths of `/repo-review`. `repos/shortcut-tools.md` gives the repo as "a reference dataset of 810 entries" in its index row and "What it is", while its own 2026-09-05 section says it holds 22 Python tools and the chain tooling.
+
+**Words removed:** about 1,300.
+
+**Inbound dependencies:** `tools/generate-full-picture.sh` line 64 counts `repos/*.md` files (the count changes; nothing breaks). `app/data.js` lists `repos/shortcut-tools.md` as a path in its generated payload; `tools/build-home-app.py` rebuilds it. `created/2026-06-12-the-recall-test/data/metrics.json` cites the paths as a dated result. `projects/doc-audit/README.md` links `repos/Wring.md`, which stays. A `refresh-repos-notes-nzg5zd` task exists in `tracker/tasks/`; this proposal shrinks its scope.
+
+**Risk:** Low.
+
+## 11. Replace wps's model-written inventory with a generated one, and drop ORGANIZATION.md
+
+**Repo:** mehrlander/home
+
+**Targets:** `projects/wps/docs/INVENTORY.md` (4,945 words), of which the per-file sections from line 231 on are 2,902 words; `projects/wps/docs/ORGANIZATION.md` (967 words).
+
+**Kind:** move-to-data-or-check, delete
+
+**Proposal:** Extend `tools/inventory-counts.py` (which already parses every `function` definition in `app/`) to emit the per-file function list, exported versus internal and its imports and dot-sources, as a generated section of `INVENTORY.md`. Keep the authored part as a short table of one-line purposes per file, in a CSV if it grows. Delete the model-written per-function prose. Delete `ORGANIZATION.md`: its commit groupings already appear in `INVENTORY.md` "Commit Groupings" (line 150), and its one kept finding, that BytesViewer is consumed by MainWindow and not Clipboard, is one sentence that can move into `INVENTORY.md`.
+
+**Rationale:** `INVENTORY.md`'s own banner says the per-function prose "has not been re-verified line by line" and that "where the two disagree, the derived figures win." A document whose authority rests on a script should be the script's output. `ORGANIZATION.md` is described by its banner as a frozen arrival proposal that the adopted layout departs from, and the README holds the living layout.
+
+**Evidence:** `projects/wps/docs/INVENTORY.md` lines 5 to 21 (the provenance note). `projects/wps/tools/inventory-counts.py` lines 22 to 26 (it already reads `app/` with a `function` regex). `projects/wps/docs/ORGANIZATION.md` line 2 (banner) and "Commit Groupings Summary" (line 211) against `INVENTORY.md` line 150. The closed task `reconcile-inventory-docs-udxhtg` records that only the counts were brought into agreement.
+
+**Words removed:** about 3,500 of authored prose, replaced by generated output.
+
+**Inbound dependencies:** `tools/inventory-counts.py --check` reads `INVENTORY.md` (lines 23 and 128 to 203), and `tools/verify-artifacts.sh` line 216 runs it, so the builder change and the doc change must land together. `projects/wps/README.md` lines 12, 13 and 144 link both files. `docs/duplicate-definitions.md` links `INVENTORY.md#statistics`. The open wps task `theme-consistency-pass-6weoqb` cites the Forms Overview table (lines 18 to 36), so that authored table should survive or the task should be updated.
+
+**Risk:** Medium. It is a small code change, and some purpose lines are worth keeping.
+
+## 12. Retire doc-audit's stale Next list and superseded concept statements
+
+**Repo:** mehrlander/home
+
+**Targets:** `projects/doc-audit/README.md` "Next" (line 95 to end, 390 words); `projects/doc-audit/tiers-and-build-plan.md` (1,523) and `projects/doc-audit/instruments-and-analyst.md` (1,917), both superseded statements in the README's "Lineage".
+
+**Kind:** rewrite-shorter, restructure
+
+**Proposal:** Cut "Next" to the items still open, one line each. Drop item 1 (apply the web-tools README proposal) and item 2 (verify kit consumption because "this session could not reach web-tools at all"). Rename the two superseded statements to dated filenames (`2026-06-05-tiers-and-build-plan.md`, `2026-06-06-instruments-and-analyst.md`) so they read as records, which the Lineage section already treats them as.
+
+**Rationale:** Item 1 proposes applying a condensed rewrite of the web-tools README, computed against a 2,016-word version pinned in June. That README is now 2,843 words and has been rewritten many times since, so the proposal no longer applies. Item 2's blocker (no access to web-tools) no longer holds: web-tools is checked out in every estate session, and `lib/kits/persistence.js` exists to load. The Lineage section says "The newest is current", which makes the two older statements records with undated names.
+
+**Evidence:** `projects/doc-audit/README.md` lines 95 to 131; `wc -w web-tools/README.md` returns 2,843; `full-picture.md` "The one run" gives the patient as 2,016 words. README "Lineage" (lines 23 to 30). `projects/local-models/README.md` links both statements by current name (lines 98, 123 and 155).
+
+**Words removed:** about 300 from "Next". The rename removes about 3,440 from the living set without deleting.
+
+**Inbound dependencies:** For the rename: `projects/doc-audit/README.md`, `full-picture.md` (deleted under proposal 3), `projects/local-models/README.md` and `corpus-analysis.md`, and the dated `2026-06-09-tightening-revisited.md`. Every link would need repointing in the same commit. The lint's dated-filename check applies to the new names.
+
+**Risk:** Low for "Next". The rename is optional; skip it if link churn outweighs the signal.
+
