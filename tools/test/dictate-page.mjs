@@ -688,6 +688,10 @@ try {
     window.__pressed.dispatchEvent(ev);
     return ev.defaultPrevented;
   });
+  // The press is driven by the mouse here, and a mouse pressed INSIDE a
+  // selection picks it up to carry rather than long-pressing, so the one the
+  // checks above left standing is collapsed first.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.caretAt(0); c.paint(); });
   await page.evaluate(({ x, y }) => { window.__pressed = document.elementFromPoint(x, y); },
     { x: line1.x + 60, y: line1.y + 12 });
   await page.mouse.move(line1.x + 60, line1.y + 12);
@@ -1122,6 +1126,106 @@ try {
   await open();
   ok('a second arrival opens on itself, not on the pile',
     (await buffer()).trim() === 'a second note', await buffer());
+
+  // ── Paragraphs in file mode: join, split, and carrying words ─────────
+  // The Rendered view draws a document block by block, so the gap between two
+  // paragraphs was nowhere to aim and a paragraph could only be cut from the
+  // shifted ¶ key. These are the three routes that replaced that, driven the
+  // way a finger drives them: a tap on the gap, a long press on a space, and
+  // a long press inside a selection that then carries it.
+  console.log('paragraphs:');
+  const PARA_DOC = '# Title\n\nFirst one. First two.\n\nSecond para.\n\nThird para.\n';
+  await page.route('**/repos/mehrlander/web-tools/contents/tools/test/para-fixture.md*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      content: Buffer.from(PARA_DOC).toString('base64'), encoding: 'base64', sha: 'para', size: PARA_DOC.length }) }));
+  await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('dictate')) localStorage.removeItem(k); });
+  await open('?file=mehrlander/web-tools:tools/test/para-fixture.md');
+  await page.waitForFunction(() => document.querySelector('[x-ref="md"] p'), null, { timeout: 10000 });
+  const docText = () => page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].text);
+  const reset = () => page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.text = t; c.precise = false; c.d.caretAt(0); c.paint(); }, PARA_DOC);
+  const touch = (type, x, y) => page.evaluate(([type, x, y]) => {
+    document.elementFromPoint(x, y).dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'touch',
+      pointerId: 11, clientX: x, clientY: y, buttons: type === 'pointerup' ? 0 : 1 }));
+  }, [type, x, y]);
+  const pillAt = (label) => page.evaluate((label) => {
+    const b = [...document.querySelectorAll('[data-seam].btn')].find((b) => b.textContent.includes(label));
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }, label);
+  const rectOf = (needle, k = 0) => page.evaluate(([needle, k]) => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const r = window.MdSurface.rectAt(c.$refs.md, c.text.indexOf(needle) + k);
+    return { x: r.left + 1, y: r.top + r.height / 2 };
+  }, [needle, k]);
+  const seamBelow = (start) => page.evaluate((start) => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const s = window.MdSurface.seams(c.$refs.md).find((s) => s.a.el.textContent.startsWith(start));
+    const md = c.$refs.md.getBoundingClientRect();
+    return s && { x: md.left + md.width / 2 + 40, y: (s.top + s.bottom) / 2 };
+  }, start);
+
+  await reset();
+  const gap = await seamBelow('First one');
+  await page.touchscreen.tap(gap.x, gap.y);
+  await page.waitForTimeout(200);
+  const join = await pillAt('Join');
+  ok('a tap on the gap between two paragraphs offers Join', !!join);
+  await page.touchscreen.tap(join.x, join.y);
+  await page.waitForTimeout(250);
+  ok('and Join closes the break to one space', (await docText()).includes('First two. Second para.'), await docText());
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.undo(); c.paint(); });
+  ok('one undo puts the break back', (await docText()) === PARA_DOC);
+
+  await reset();
+  const sp = await rectOf(' First two', 0);
+  await touch('pointerdown', sp.x + 2, sp.y);
+  await page.waitForTimeout(550);
+  await touch('pointerup', sp.x + 2, sp.y);
+  await page.waitForTimeout(200);
+  const split = await pillAt('Split');
+  ok('a long press on the space between two sentences offers Split', !!split);
+  if (split) {
+    await page.touchscreen.tap(split.x, split.y);
+    await page.waitForTimeout(250);
+  }
+  ok('and Split cuts the paragraph there, no space stranded',
+    (await docText()).includes('First one.\n\nFirst two.'), JSON.stringify(await docText()));
+
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); });
+  const from = await rectOf('First two.', 3);
+  const to = await seamBelow('First one');
+  await touch('pointerdown', from.x, from.y);
+  await page.waitForTimeout(550);
+  const LIFT = 44;
+  for (let k = 1; k <= 6; k++) await touch('pointermove', from.x + k * 4, from.y + (to.y + LIFT - from.y) * k / 6);
+  const mid = await page.evaluate(() => ({ label: !!document.querySelector('[data-move].truncate'),
+    line: !!document.querySelector('[data-move].border-t-\\[3px\\]'),
+    wide: document.documentElement.scrollWidth > innerWidth, pins: !!document.querySelector('[data-edge]') }));
+  ok('a long press inside a selection picks it up: the words ride above the finger', mid.label, JSON.stringify(mid));
+  ok('and the gap they would land in is lined', mid.line, JSON.stringify(mid));
+  ok('the carried words stay inside the pane, so the page never widens', !mid.wide);
+  ok('and the pins come off while they are carried', !mid.pins);
+  await touch('pointerup', from.x + 24, to.y + LIFT);
+  await page.waitForTimeout(250);
+  ok('dropped on the gap below, the sentence becomes its own paragraph',
+    (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
+
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('Second para.'); c.d.select(a, a + 12); c.paint(); });
+  const from2 = await rectOf('Second para.', 3);
+  const end = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const r = window.MdSurface.rectAt(c.$refs.md, c.text.indexOf('First two.') + 9); return { x: r.left + 6, y: r.top + r.height / 2 }; });
+  await touch('pointerdown', from2.x, from2.y);
+  await page.waitForTimeout(550);
+  for (let k = 1; k <= 6; k++) await touch('pointermove', from2.x + (end.x - from2.x) * k / 6, from2.y + (end.y + LIFT - from2.y) * k / 6);
+  await touch('pointerup', end.x, end.y + LIFT);
+  await page.waitForTimeout(250);
+  ok('carried onto the end of the paragraph above, a paragraph joins it and leaves no gap',
+    (await docText()).includes('First two. Second para.\n\nThird para.'), JSON.stringify(await docText()));
 } finally {
   await browser.close();
   server.close();

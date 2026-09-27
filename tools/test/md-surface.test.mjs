@@ -108,7 +108,10 @@ test('a wrapper goes when its last character does, and not before', () => {
 test('backspace at a line start drops its marker, or joins the block before', () => {
   assert.deepEqual(M().backspace('## Head', 3), { text: 'Head', caret: 0 });
   assert.deepEqual(M().backspace('- item', 2), { text: 'item', caret: 0 });
-  assert.deepEqual(M().backspace('one\n\ntwo', 5), { text: 'onetwo', caret: 3 });
+  assert.deepEqual(M().backspace('one\n\ntwo', 5), { text: 'one two', caret: 4 },
+    'two paragraphs join with a space, not glued into one word');
+  assert.deepEqual(M().backspace('one \n\ntwo', 6), { text: 'one two', caret: 4 },
+    'and a space already there is not doubled');
   assert.equal(M().backspace('## Head', 5), null, 'mid-line is an ordinary backspace');
 });
 

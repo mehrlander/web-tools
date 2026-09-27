@@ -1717,3 +1717,88 @@ test('the marker takes the screen from the caret while it is up', () => {
   assert.equal(host.querySelector('[data-d="caret"]'), null,
     'a caret inside the marker is a second thing to look at in a one-question moment');
 });
+
+// ── Paragraphs: join, split, move ──────────────────────────────────────────
+// The edits behind the Rendered view's seam and the drag. Each is one undo
+// step, and each tidies both seams it touches the way the delete key does.
+const doc = (t, caret) => { const d = engine(); d.text = t; if (caret != null) d.caretAt(caret); return d; };
+
+test('a paragraph break is found from either side of it and from the blank line', () => {
+  const t = 'One ends.\n\nTwo starts.';
+  const d = doc(t);
+  for (const i of [9, 10, 11]) assert.deepEqual(d.breakAt(i), { start: 9, end: 11 }, `at ${i}`);
+  assert.equal(d.breakAt(3), null, 'inside a word is not a break');
+  assert.equal(doc('one\ntwo').breakAt(3), null, 'a single newline is a soft wrap, not a break');
+});
+
+test('join closes a break to one space and keeps both sentences as written', () => {
+  const d = doc('One ends.\n\nTwo starts.\n\nThree.');
+  assert.equal(d.join(11), true);
+  assert.equal(d.text, 'One ends. Two starts.\n\nThree.');
+  assert.deepEqual(d.range, { start: 10, end: 10 }, 'the caret sits where the second began');
+  d.undo();
+  assert.equal(d.text, 'One ends.\n\nTwo starts.\n\nThree.', 'one step back');
+  assert.equal(d.join(3), false, 'no break, no edit');
+});
+
+test('split opens a break at the caret and takes the spaces with it', () => {
+  const d = doc('First half. Second half.', 11);
+  assert.equal(d.split(), true);
+  assert.equal(d.text, 'First half.\n\nSecond half.');
+  assert.deepEqual(d.range, { start: 13, end: 13 }, 'the caret starts the new paragraph');
+  const e = doc('First half. Second half.', 12);
+  e.split();
+  assert.equal(e.text, 'First half.\n\nSecond half.', 'either side of the space cuts the same');
+  assert.equal(doc('abc', 0).split(), false, 'not at the start');
+  assert.equal(doc('a.\n\nb', 3).split(), false, 'not inside a break already');
+});
+
+test('backspace at the start of a paragraph joins it with a space, not glued', () => {
+  const d = doc('One ends.\n\nTwo starts.', 11);
+  d.backWord();
+  assert.equal(d.text, 'One ends. Two starts.');
+});
+
+test('move carries a sentence to the gap below as its own paragraph: a split by drag', () => {
+  const t = 'Keep this. Move this.\n\nNext para.';
+  const d = doc(t);
+  assert.equal(d.move(11, 21, t.indexOf('\n\n'), true), true);
+  assert.equal(d.text, 'Keep this.\n\nMove this.\n\nNext para.');
+  assert.deepEqual(d.range, { start: 12, end: 22 }, 'the moved words stay selected');
+  d.undo();
+  assert.equal(d.text, t, 'one step back');
+});
+
+test('move carries a whole paragraph onto the end of another: a join by drag, no empty paragraph left', () => {
+  const t = 'First para.\n\nSecond para.\n\nThird.';
+  const d = doc(t);
+  assert.equal(d.move(13, 25, 11), true);
+  assert.equal(d.text, 'First para. Second para.\n\nThird.');
+});
+
+test('move within a paragraph spaces both seams and refuses a drop onto itself', () => {
+  const t = 'alpha beta gamma delta';
+  const d = doc(t);
+  assert.equal(d.move(6, 10, 22), true, 'beta to the end');
+  assert.equal(d.text, 'alpha gamma delta beta');
+  assert.equal(doc(t).move(6, 10, 8), false, 'inside itself');
+  assert.equal(doc(t).move(6, 10, 5), false, 'onto the space touching it');
+  const e = doc('one two, three');
+  e.move(4, 7, 0);
+  assert.equal(e.text, 'two one, three', 'a mark after the hole takes no space before it');
+});
+
+test('move lands a paragraph between two others and closes the hole it left', () => {
+  const t = 'A.\n\nB.\n\nC.';
+  const d = doc(t);
+  assert.equal(d.move(8, 10, 2, true), true);
+  assert.equal(d.text, 'A.\n\nC.\n\nB.');
+});
+
+test('the paragraph key at a caret mid-text splits cleanly, one undo step', () => {
+  const d = doc('First half. Second half.', 12);
+  d.punct('¶');
+  assert.equal(d.text, 'First half.\n\nSecond half.', 'no space stranded on either side');
+  d.undo();
+  assert.equal(d.text, 'First half. Second half.');
+});

@@ -232,6 +232,13 @@
     to marked, and an edit forgets every original; its number offers Go back
     to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
 
+    PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. A tap on the gap
+    between two paragraphs offers Join; a long press on the space between two
+    sentences offers Split; a long press inside a selection (a drag, under a
+    mouse) carries it, to between two words or onto a gap as a paragraph of
+    its own. Each is one undo step, in kits/dictate.js (join, split, move);
+    the methods beside paintExtras below say how they are drawn.
+
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
     it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
@@ -1104,7 +1111,9 @@
         // touch drag it protected: nothing now becomes a selection without a
         // long press first, and by the time a press has taken its word there
         // is a `word` to gate on.
-        const holdMove = (ev) => { if (word || dragging) ev.preventDefault(); };
+        const holdMove = (ev) => { if (word || dragging || this.mover) ev.preventDefault(); };
+        // A mouse press inside the selection: a drag from here carries it.
+        let carry = null;
         const unhold = () => {
           if (!held) return;
           held.removeEventListener('touchmove', holdMove, { passive: false });
@@ -1123,6 +1132,8 @@
           // tap changes none. Whatever this gesture turns out to be, a caret,
           // a word, the keyboard, it is the reader looking somewhere else.
           this.mendArmed = false;
+          this.seamPick = null;
+          this.splitPick = null;
           // A mouse or a keyboard means the pins can go: drag and shift-click
           // do the extending, so the handles are furniture for a job the
           // platform already does. The selection stays painted.
@@ -1132,7 +1143,14 @@
           held = e.target;
           if (held?.addEventListener) held.addEventListener('touchmove', holdMove, { passive: false });
           anchor = this.hits(x, y) ? at(x, y) : null;
+          // PRESSED INSIDE THE SELECTION, a mouse is picking it up rather than
+          // starting a new one: the drag below carries it if the press moves.
+          const sr = this.d.range;
+          carry = e.pointerType === 'mouse' && anchor != null && sr && sr.start !== sr.end
+            && anchor >= sr.start && anchor <= sr.end ? { a: sr.start, b: sr.end, id: e.pointerId } : null;
+          if (carry) anchor = null;
           clear();
+          if (carry) return;
           timer = setTimeout(() => {
             timer = null; long = true;
             // OFF the words a held finger is not an aim that missed, it is a
@@ -1140,10 +1158,18 @@
             if (!this.hits(x, y)) { this.editOpen(); return; }
             const i = at(x, y);
             if (i == null) return;
+            // HELD INSIDE THE SELECTION, a finger picks it up, the way the
+            // platform does: the words follow the finger until it lifts.
+            const cur = this.d.range;
+            if (e.pointerType !== 'mouse' && cur && cur.start !== cur.end && i >= cur.start && i <= cur.end) {
+              this.startMove(cur.start, cur.end, x, y, true);
+              return;
+            }
             this.d.selectWordAt(i); this.armed = null;
             // REMEMBER THE WORD, because the finger has not lifted and what it
             // does next decides whether this gesture is over.
             const r = this.d.range;
+            if (r && r.start === r.end && this.d.canSplit(r.start)) this.splitPick = r.start;
             word = r && r.start !== r.end ? { start: r.start, end: r.end } : null;
             this.paint();
           }, 450);
@@ -1152,6 +1178,13 @@
           const far = Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10;
           if (timer && far) clear();
           if (!e.buttons) return;
+          if (this.mover) { this.moveTo(e.clientX, e.clientY); return; }
+          if (carry && far) {
+            try { surface.setPointerCapture(carry.id); } catch {}
+            this.startMove(carry.a, carry.b, e.clientX, e.clientY, false);
+            carry = null;
+            return;
+          }
 
           // ── A LONG PRESS THAT KEEPS GOING IS ONE GESTURE ────────────────
           // The press takes the word; carrying on past it extends from the
@@ -1233,12 +1266,17 @@
         // it anyway.
         surface.addEventListener('mousedown', (e) => { if (this.typing) e.preventDefault(); });
         surface.addEventListener('pointercancel', () => {
-          clear(); anchor = null; dragging = false; word = null; this.pinDrag = null; unhold();
+          clear(); anchor = null; dragging = false; word = null; carry = null; this.pinDrag = null; unhold();
+          this.cancelMove();
         });
         (this.$refs.layer || surface).addEventListener('pointerup', (e) => {
           clear();
           word = null;
+          carry = null;
           unhold();
+          // A CARRY ENDS WHERE IT IS DROPPED, and claims the release: nothing
+          // below may read it as a tap.
+          if (this.mover) { taps = 0; this.dropMove(); return; }
           // A drag claims its own release: the tap logic below would read it as
           // a click and drop a caret where the selection just finished.
           //
@@ -1292,6 +1330,13 @@
           // the tap too made "tap a pin, then tap the text" a double and opened
           // the keyboard on the gesture meant to move the edge.
           if (pin) { taps = 0; return; }
+          // A TAP IN THE GAP BETWEEN TWO PARAGRAPHS picks that seam, rather than
+          // sending the caret to the end of the document, which is what a tap
+          // off the words otherwise means. See paintExtras for what it shows.
+          if (this.rendered && !this.hits(e.clientX, e.clientY)) {
+            const s = this.seamAtPoint(e.clientX, e.clientY);
+            if (s && s.join) { taps = 0; this.seamPick = s.at; this.paintExtras(); return; }
+          }
           // A MOUSE IN THE RENDERED FACE GETS A DESKTOP EDITOR'S CLICKS, not the
           // phone's: see mouseClick.
           if (e.pointerType === 'mouse' && this.rendered) { taps = 0; this.mouseClick(e); return; }
@@ -1721,7 +1766,7 @@
           window.MdSurface.paint(md, {
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
-            overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
+            overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover, reach: 0,
             base: this.fileBase, marks: false, track: this.showMarks,
             // Red is the phone's precision caret; a mouse gets the text's own color.
             caret: this.precise ? 'var(--color-base-content)' : null,
@@ -1729,6 +1774,7 @@
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
           if (this.typing) this.syncSink();
+          this.paintExtras();
           return;
         }
         if (!this._host) return;
@@ -1762,7 +1808,7 @@
           // selection to a caret. The keyboard button carries a selection
           // across intact, so two pins were suddenly drawn on top of the
           // textarea's own native one, marking the same words twice.
-          handles: !this.precise && !this.edit,
+          handles: !this.precise && !this.edit && !this.mover,
           // NO STALK. The armed pin was pushed out on one, first 36px and then
           // 18, to keep the thumb off the words it was aiming at. THE DRAG'S
           // VERTICAL DEADBAND does that instead, and does it better: the
@@ -1788,6 +1834,7 @@
         // of a drag, which is the one moment it is for.
         const layer = this.$refs.layer;
         if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
+        this.paintExtras();
       },
 
       // ── The pad ───────────────────────────────────────────────────────
@@ -2100,6 +2147,208 @@
         const link = window.PromptLink.code({ prompt: this.patchPrompt, repos: [FILE.repo], branch: FILE.ref || undefined });
         window.open(link.url, '_blank', 'noopener');
         this.patchMenu = false;
+      },
+
+      // ── Paragraphs: the seam between two, and carrying words across ──
+      // The Rendered view draws a document block by block, so the gap between
+      // two paragraphs was nowhere a finger could aim. It is a target now.
+      //
+      // TAP THE GAP and the seam is picked: a dashed line across it and a
+      // Join pill on it, and the pill closes the break to one space
+      // (kits/dictate.js join). Only between two paragraphs, the one case
+      // where joining leaves the markdown meaning what it looks like. The
+      // key-side routes stay: backspace at a paragraph's start joins, and the
+      // shifted ¶ splits at the caret.
+      //
+      // HOLD A SELECTION AND DRAG IT to move the words (kits/dictate.js
+      // move). A touch picks the selection up with the same long press that
+      // otherwise takes a word, pressed INSIDE what is already selected; a
+      // mouse picks it up by dragging it. The drop marker says where it will
+      // land: a bar between two words, or a line across the gap between two
+      // paragraphs, which lands the words as a paragraph of their own. So a
+      // sentence carried out to the gap below is a split, and a paragraph
+      // carried onto the end of the one above is a join. A touch aims a
+      // little above the finger, where the carried words are drawn, so the
+      // finger does not cover the place it is pointing at.
+      seamPick: null,
+      // A LONG PRESS ON THE SPACE BETWEEN TWO WORDS places a caret, as it
+      // always has; where a paragraph could be cut there, a Split pill rides
+      // under it, the mirror of the seam's Join. Spent by the next touch.
+      splitPick: null,
+      mover: null,
+      seamsNow() {
+        return FILE && this.rendered && !this.edit && window.MdSurface?.seams
+          ? window.MdSurface.seams(this.$refs.md) : [];
+      },
+      seamAtPoint(x, y, pad = 6) {
+        const md = this.$refs.md?.getBoundingClientRect();
+        if (!md || x < md.left || x > md.right) return null;
+        return this.seamsNow().find((s) => y >= s.top - pad && y <= s.bottom + pad) || null;
+      },
+      joinSeam(at) {
+        this.seamPick = null;
+        if (this.d.join(at)) this.paint();
+        else this.paintExtras();
+      },
+      // Drawn into the pin layer, after every paint, since both follow the
+      // layout: a scroll, a re-render or a keyboard all move them.
+      paintExtras() {
+        const layer = this.$refs.layer;
+        if (!layer) return;
+        for (const n of [...layer.querySelectorAll('[data-seam],[data-move]')]) n.remove();
+        const doc = layer.ownerDocument, lb = layer.getBoundingClientRect();
+        const vb = this.$refs.view.getBoundingClientRect();
+        const box = (this.rendered ? this.$refs.md : this._host)?.getBoundingClientRect();
+        if (!box) return;
+        const add = (tag, cls, css, mark) => {
+          const n = doc.createElement(tag);
+          n.className = cls; n.style.cssText = css; n.dataset[mark] = '';
+          layer.appendChild(n);
+          return n;
+        };
+        const across = (y, mark, cls) => add('div', 'absolute pointer-events-none ' + cls,
+          `left:${box.left - lb.left}px;width:${box.width}px;top:${y - lb.top - 1}px`, mark);
+        if (this.seamPick != null) {
+          const s = this.seamsNow().find((x) => x.at === this.seamPick && x.join);
+          const mid = s && (s.top + s.bottom) / 2;
+          if (!s) this.seamPick = null;
+          else if (mid > vb.top && mid < vb.bottom) {
+            across(mid, 'seam', 'border-t-2 border-dashed border-primary/60');
+            const pill = add('button', 'absolute z-20 -translate-x-1/2 -translate-y-1/2 btn btn-xs btn-primary rounded-full shadow gap-1',
+              `left:${box.left - lb.left + box.width / 2}px;top:${mid - lb.top}px`, 'seam');
+            pill.dataset.mdUi = '';
+            pill.innerHTML = '<i class="ph ph-arrows-in-line-vertical"></i>Join';
+            pill.addEventListener('click', (e) => { e.stopPropagation(); this.joinSeam(s.at); });
+          }
+        }
+        if (this.splitPick != null && !this.mover) {
+          const at = this.splitPick;
+          const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, at) : window.Dictate.rectAt(this._host, at);
+          if (!r || !this.d.canSplit(at) || (this.d.range && this.d.range.start !== at)) this.splitPick = null;
+          else if (r.bottom > vb.top && r.bottom < vb.bottom - 30) {
+            const pill = add('button', 'absolute z-20 -translate-x-1/2 btn btn-xs btn-primary rounded-full shadow gap-1',
+              `left:${Math.max(box.left - lb.left + 36, Math.min(box.right - lb.left - 36, r.left - lb.left))}px;top:${r.bottom - lb.top + 6}px`, 'seam');
+            pill.dataset.mdUi = '';
+            pill.innerHTML = '<i class="ph ph-arrows-out-line-vertical"></i>Split';
+            pill.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.splitPick = null;
+              if (this.d.split(at)) this.paint(); else this.paintExtras();
+            });
+          }
+        }
+        const m = this.mover;
+        if (!m) return;
+        const tg = m.target;
+        if (tg && tg.para) {
+          across(tg.y, 'move', 'border-t-[3px] border-primary rounded-full');
+        } else if (tg) {
+          const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, tg.at)
+                                  : window.Dictate.rectAt(this._host, tg.at);
+          if (r) add('div', 'absolute pointer-events-none w-[3px] rounded-full bg-primary',
+            `left:${r.left - lb.left - 1}px;top:${r.top - lb.top}px;height:${r.height || 20}px`, 'move');
+        }
+        // The carried words, drawn where they are aimed and KEPT INSIDE THE
+        // PANE: a label hanging past the edge widens the page, and a phone
+        // answers that by zooming the whole view out mid-drag (measured
+        // headless: the viewport grew from 844 to 896 and everything fixed to
+        // it jumped).
+        const g = add('div', 'absolute z-30 pointer-events-none max-w-[75%] truncate rounded-lg border border-base-300 '
+          + 'bg-base-100/95 shadow-lg px-2 py-1 text-sm' + (tg ? '' : ' opacity-60'), 'left:0;top:0', 'move');
+        g.textContent = m.text;
+        const w = g.offsetWidth, h = g.offsetHeight;
+        const gx = m.touch ? m.x - lb.left - w / 2 : m.x - lb.left + 14;
+        const gy = m.touch ? m.y - lb.top - this.LIFT - h : m.y - lb.top + 14;
+        g.style.left = Math.max(8, Math.min(lb.width - w - 8, gx)) + 'px';
+        g.style.top = Math.max(0, gy) + 'px';
+      },
+      // How far above a finger the carried words are drawn and aimed.
+      LIFT: 44,
+      startMove(a, b, x, y, touch) {
+        this.seamPick = null; this.splitPick = null;
+        this.mover = { a, b, text: this.d.text.slice(a, b).trim(), x, y, touch, target: null };
+        this.armed = null; this.pinDrag = null;
+        // Repainted once so the pins come off: the words are lifted, and a
+        // handle left on them would read as a second thing to drag.
+        this.paint();
+        this.moveTo(x, y);
+      },
+      moveTo(x, y) {
+        const m = this.mover;
+        if (!m) return;
+        m.x = x; m.y = y;
+        this.edgeScroll(y);
+        m.target = this.dropAt(x, m.touch ? y - this.LIFT : y);
+        this.paintExtras();
+      },
+      // WHERE A DROP AT A POINT LANDS: a paragraph break (the gap between two
+      // blocks, above the first, below the last, or a blank line in the
+      // source), else the nearer edge of the word under it. Null when it
+      // would land inside the words being carried.
+      dropAt(x, y) {
+        const m = this.mover, t = this.d.text;
+        if (this.rendered) {
+          const s = this.seamAtPoint(x, y, 4);
+          if (s) return { at: s.at, para: true, y: (s.top + s.bottom) / 2 };
+          const bs = window.MdSurface.blocks(this.$refs.md);
+          if (bs.length) {
+            const f = bs[0].el.getBoundingClientRect(), l = bs[bs.length - 1].el.getBoundingClientRect();
+            if (y < f.top) return { at: 0, para: true, y: f.top - 6 };
+            if (y > l.bottom) return { at: t.length, para: true, y: l.bottom + 6 };
+          }
+        }
+        let i = this.pointOffset(x, y);
+        if (i == null) return null;
+        if (!this.rendered && t[i - 1] === '\n' && (t[i] === '\n' || i >= t.length)) {
+          const r = window.Dictate.rectAt(this._host, Math.max(0, i - 1));
+          return { at: i, para: true, y: r ? r.bottom + (r.height || 20) / 2 : y };
+        }
+        if (/\S/.test(t[i - 1] || '') && /\S/.test(t[i] || '')) {
+          let s = i, e = i;
+          while (s > 0 && /\S/.test(t[s - 1])) s--;
+          while (e < t.length && /\S/.test(t[e])) e++;
+          i = i - s <= e - i ? s : e;
+        }
+        return i >= m.a && i <= m.b ? null : { at: i, para: false };
+      },
+      // Held near the top or bottom of the pane, the pane scrolls, so a drop
+      // can reach a paragraph off screen. THE SPEED RAMPS WITH THE SQUARE OF
+      // THE DEPTH into the edge band: a linear ramp ran at 200px a second a
+      // few pixels in, which is where a reader aiming at the last visible
+      // line already is, and carried a headless drop to the end of the file.
+      edgeScroll(y) {
+        const v = this.$refs.view, r = v.getBoundingClientRect(), z = 48;
+        const d = y < r.top + z ? y - (r.top + z) : y > r.bottom - z ? y - (r.bottom - z) : 0;
+        const k = Math.min(1, Math.abs(d) / z);
+        this._edgeV = Math.sign(d) * k * k * 16;
+        if (!d) { this.stopEdgeScroll(); return; }
+        if (this._edgeT) return;
+        const step = () => {
+          if (!this.mover || !this._edgeV) { this._edgeT = null; return; }
+          v.scrollTop += this._edgeV;
+          const m = this.mover;
+          m.target = this.dropAt(m.x, m.touch ? m.y - this.LIFT : m.y);
+          this.paintExtras();
+          this._edgeT = requestAnimationFrame(step);
+        };
+        this._edgeT = requestAnimationFrame(step);
+      },
+      stopEdgeScroll() {
+        if (this._edgeT) cancelAnimationFrame(this._edgeT);
+        this._edgeT = null; this._edgeV = 0;
+      },
+      dropMove() {
+        const m = this.mover;
+        this.mover = null;
+        this.stopEdgeScroll();
+        if (m && m.target) this.d.move(m.a, m.b, m.target.at, m.target.para);
+        this.paint();
+      },
+      cancelMove() {
+        if (!this.mover) return;
+        this.mover = null;
+        this.stopEdgeScroll();
+        this.paint();
       },
 
       // ── The change cards ──────────────────────────────────────────────
