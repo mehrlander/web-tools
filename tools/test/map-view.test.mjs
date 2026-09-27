@@ -67,6 +67,8 @@ const skillsCsv = readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'u
 const textFieldsCsv = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
 const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
+const ctxCsv = readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8');
+const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.csv'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
@@ -106,6 +108,8 @@ window.GH = class {
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
     if (p === 'docs/kits.csv') return { text: kitsCsv };
+    if (p === 'docs/context-sources.csv') return { text: ctxCsv };
+    if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
     return { text: toCsv(manifest.items) };
@@ -841,8 +845,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'context']),
-    'Harness exposes Automation, Tests, and Context');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests']),
+    'Harness exposes Automation and Tests; Context is its own tab');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -893,21 +897,48 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   window.__shell = undefined;
 });
 
-test('a Context deep link opens under Harness with the shared graph in Map', async () => {
+test('Context is a top-level tab that renders the public circles and derives the overlaps', async () => {
   window.__shell = { mapTab: 'context', goMapTab: () => {} };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'map()');
   window.document.body.appendChild(el);
   Alpine.initTree(el);
-  await tick(2);
+  await tick(3);
   const state = Alpine.$data(el);
-  assert.equal(state.displayTab, 'harness');
-  assert.equal(state.contextSeen, true);
-  assert.match(state.contextEmbedUrl, /session-context\.html\?embed=1/);
+  assert.equal(state.displayTab, 'context', 'Context is its own tab, not a Harness subview');
+  assert.ok(state.ctxReg, 'the public registry loaded on the deep link');
+  const rows = window.Csv.rows(readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8'));
+  assert.equal(state.ctxReg.rows.length, rows.length, 'every public row is in the model');
+
+  // With no token the private circles say why they are empty, rather than
+  // rendering as circles that supply nothing.
+  const account = state.ctxCircles.find(c => c.key === 'account');
+  assert.equal(account.rows.length, 0);
+  assert.match(state.ctxGap(account), /token/);
+  assert.equal(state.ctxGap(state.ctxCircles.find(c => c.key === 'plugin')), '', 'a public circle has no gap line');
+
+  // Overlap membership is derived from the rows, never authored on the topic.
+  const ask = state.ctxOverlaps.find(o => o.topic === 'askuserquestion');
+  assert.ok(ask && ask.rows.length >= 2, 'the AskUserQuestion ban is spoken to by more than one source');
+  assert.ok(ask.rows.every(r => r.topicList.includes('askuserquestion')));
+  state.openCtxTopic('askuserquestion');
+  assert.equal(state.ctxLens, 'overlaps');
+  assert.equal(state.ctxOverlaps.length, 1, 'a chosen topic narrows the lens to itself');
+  state.ctxTopic = '';
+
+  // The tally joins by key, and "not measured" never reads as zero.
+  const wt = state.ctxReg.rows.find(r => r.tally === 'startup:web-tools/CLAUDE.md');
+  assert.equal(state.ctxTally(wt), '', 'no cache, no tally text');
+  state.docStartup = { 'web-tools/CLAUDE.md': { path: 'web-tools/CLAUDE.md', sessions: 12, receipt: 0, reconstructed: 12, last: '2026-09-27T00:00:00Z' },
+                       'stray/CLAUDE.md': { path: 'stray/CLAUDE.md', sessions: 3, receipt: 0, reconstructed: 3, last: '2026-09-20T00:00:00Z' } };
+  assert.equal(state.ctxTally(wt), '12 sessions');
+  const measured = state.ctxMeasuredStartup;
+  assert.equal(measured[0].row.id, 'wt-claude', 'a tallied file joins its registry row');
+  assert.equal(measured.find(m => m.path === 'stray/CLAUDE.md').row, null, 'an unclaimed file is flagged, not dropped');
+
   const section = el.querySelector('section[x-show="mapTab===\'context\'"]');
-  assert.ok(section.querySelector('iframe[title="Session context routes and record inspector"]'));
-  assert.ok([...section.querySelectorAll('button')].some(b => b.textContent.trim() === 'Automation'));
-  assert.ok([...section.querySelectorAll('a')].some(a => a.textContent.includes('Delivery history')));
+  assert.ok(section, 'the Context section exists');
+  assert.equal(section.querySelector('iframe'), null, 'the old embedded page is gone');
   window.__shell = undefined;
 });
 
