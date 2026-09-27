@@ -82,8 +82,8 @@
             <span x-show="l.t !== ' '" class="badge badge-xs shrink-0 self-center font-sans" :class="l.t === '+' ? 'badge-success' : 'badge-error'" x-text="l.t === '+' ? 'new' : 'remove'"></span>
           </div>
           <template x-if="l.why">
-            <div class="flex items-start gap-2 pl-8 pr-3 pb-2 bg-success/25 shadow-[inset_4px_0_0_var(--color-success)] font-sans text-sm text-base-content/75" data-why>
-              <i class="ph ph-info text-base text-success shrink-0 mt-0.5 ml-4"></i><span x-text="l.why"></span>
+            <div class="flex items-start gap-2 pl-4 pr-3 py-2 bg-success/10 shadow-[inset_4px_0_0_var(--color-success)] font-sans text-sm leading-snug text-base-content" data-why>
+              <i class="ph ph-info text-base text-base-content/60 shrink-0 mt-px"></i><span x-text="l.why"></span>
             </div>
           </template>
           </div>
