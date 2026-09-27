@@ -232,12 +232,14 @@
     to marked, and an edit forgets every original; its number offers Go back
     to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
 
-    PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. A tap on the gap
-    between two paragraphs offers Join; a long press on the space between two
-    sentences offers Split; a long press inside a selection (a drag, under a
-    mouse) carries it, to between two words or onto a gap as a paragraph of
-    its own. Each is one undo step, in kits/dictate.js (join, split, move);
-    the methods beside paintExtras below say how they are drawn.
+    PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. Backspace at a
+    paragraph's start joins it to the one above; a long press on the space
+    between two sentences offers Split; a long press inside a selection (a
+    drag, under a mouse) carries it, to between two words or onto a gap as a
+    paragraph of its own. Each is one undo step, in kits/dictate.js (join,
+    split, move); the methods beside paintExtras below say how they are drawn.
+    In a change card, a gray bar in the text marks where a paragraph break was
+    closed, or in the original, where one will be opened.
 
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
@@ -1140,7 +1142,6 @@
           // tap changes none. Whatever this gesture turns out to be, a caret,
           // a word, the keyboard, it is the reader looking somewhere else.
           this.mendArmed = false;
-          this.seamPick = null;
           this.splitPick = null;
           // A mouse or a keyboard means the pins can go: drag and shift-click
           // do the extending, so the handles are furniture for a job the
@@ -1338,14 +1339,6 @@
           // the tap too made "tap a pin, then tap the text" a double and opened
           // the keyboard on the gesture meant to move the edge.
           if (pin) { taps = 0; return; }
-          // A TAP IN THE GAP BETWEEN TWO PARAGRAPHS picks that seam, rather than
-          // sending the caret to the end of the document, which is what a tap
-          // off the words otherwise means. See paintExtras for what it shows.
-          // A SECOND tap there is still the double that opens the keyboard.
-          if (this.rendered && !this.hits(e.clientX, e.clientY) && Date.now() - lastTap >= 300) {
-            const s = this.seamAtPoint(e.clientX, e.clientY);
-            if (s && s.join) { taps = 1; lastTap = Date.now(); this.seamPick = s.at; this.paintExtras(); return; }
-          }
           // A MOUSE IN THE RENDERED FACE GETS A DESKTOP EDITOR'S CLICKS, not the
           // phone's: see mouseClick.
           if (e.pointerType === 'mouse' && this.rendered) { taps = 0; this.mouseClick(e); return; }
@@ -2160,14 +2153,11 @@
 
       // ── Paragraphs: the seam between two, and carrying words across ──
       // The Rendered view draws a document block by block, so the gap between
-      // two paragraphs was nowhere a finger could aim. It is a target now.
-      //
-      // TAP THE GAP and the seam is picked: a dashed line across it and a
-      // Join pill on it, and the pill closes the break to one space
-      // (kits/dictate.js join). Only between two paragraphs, the one case
-      // where joining leaves the markdown meaning what it looks like. The
-      // key-side routes stay: backspace at a paragraph's start joins, and the
-      // shifted ¶ splits at the caret.
+      // two paragraphs was nowhere a finger could aim. It is a drop target now.
+      // Joining needs no target: backspace at a paragraph's start joins it to
+      // the one above with a space (kits/dictate.js join). A Join pill on a
+      // tapped gap was tried and dropped as a second route to the same edit.
+      // The shifted ¶ splits at the caret.
       //
       // HOLD A SELECTION AND DRAG IT to move the words (kits/dictate.js
       // move). A touch picks the selection up with the same long press that
@@ -2179,10 +2169,10 @@
       // carried onto the end of the one above is a join. A touch aims a
       // little above the finger, where the carried words are drawn, so the
       // finger does not cover the place it is pointing at.
-      seamPick: null,
       // A LONG PRESS ON THE SPACE BETWEEN TWO WORDS places a caret, as it
       // always has; where a paragraph could be cut there, a Split pill rides
-      // under it, the mirror of the seam's Join. Spent by the next touch.
+      // under it. Spent by the next touch. There is no Join pill: ⌫ at the
+      // start of a paragraph joins it to the one above, with a space.
       splitPick: null,
       mover: null,
       seamsNow() {
@@ -2193,11 +2183,6 @@
         const md = this.$refs.md?.getBoundingClientRect();
         if (!md || x < md.left || x > md.right) return null;
         return this.seamsNow().find((s) => y >= s.top - pad && y <= s.bottom + pad) || null;
-      },
-      joinSeam(at) {
-        this.seamPick = null;
-        if (this.d.join(at)) this.paint();
-        else this.paintExtras();
       },
       // Drawn into the pin layer, after every paint, since both follow the
       // layout: a scroll, a re-render or a keyboard all move them.
@@ -2217,20 +2202,6 @@
         };
         const across = (y, mark, cls) => add('div', 'absolute pointer-events-none ' + cls,
           `left:${box.left - lb.left}px;width:${box.width}px;top:${y - lb.top - 1}px`, mark);
-        if (this.seamPick != null) {
-          const s = this.seamsNow().find((x) => x.at === this.seamPick && x.join);
-          const mid = s && (s.top + s.bottom) / 2;
-          if (!s) this.seamPick = null;
-          else if (mid > vb.top && mid < vb.bottom) {
-            across(mid, 'seam', 'border-t-2 border-dashed border-primary/60');
-            const pill = add('button', 'absolute z-20 -translate-x-1/2 -translate-y-1/2 btn btn-xs btn-primary rounded-full shadow gap-1',
-              `left:${box.left - lb.left + box.width / 2}px;top:${mid - lb.top}px`, 'seam');
-            pill.dataset.mdUi = '';
-            pill.innerHTML = '<i class="ph ph-arrows-in-line-vertical"></i>Join';
-            this.keepFocus(pill);
-            pill.addEventListener('click', (e) => { e.stopPropagation(); this.joinSeam(s.at); });
-          }
-        }
         if (this.splitPick != null && !this.mover) {
           const at = this.splitPick;
           const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, at) : window.Dictate.rectAt(this._host, at);
@@ -2313,7 +2284,7 @@
       // How far above a finger the carried words are drawn and aimed.
       LIFT: 44,
       startMove(a, b, x, y, touch) {
-        this.seamPick = null; this.splitPick = null;
+        this.splitPick = null;
         // A mouse carry starts only once the pointer has left the slop, so it
         // is already moving; a touch carry starts at the press and is not.
         this.mover = { a, b, text: this.d.text.slice(a, b).trim(), x, y, x0: x, y0: y, moved: !touch, touch, target: null };

@@ -1173,17 +1173,13 @@ try {
     return s && { x: md.left + md.width / 2 + 40, y: (s.top + s.bottom) / 2 };
   }, start);
 
+  // No Join pill: backspace joins, and a tap on the gap is only a tap.
   await reset();
   const gap = await seamBelow('First one');
   await page.touchscreen.tap(gap.x, gap.y);
   await page.waitForTimeout(200);
-  const join = await pillAt('Join');
-  ok('a tap on the gap between two paragraphs offers Join', !!join);
-  await page.touchscreen.tap(join.x, join.y);
-  await page.waitForTimeout(250);
-  ok('and Join closes the break to one space', (await docText()).includes('First two. Second para.'), await docText());
-  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.undo(); c.paint(); });
-  ok('one undo puts the break back', (await docText()) === PARA_DOC);
+  ok('a tap on the gap between two paragraphs offers no Join pill and changes nothing',
+    !(await pillAt('Join')) && (await docText()) === PARA_DOC);
 
   await reset();
   const sp = await rectOf(' First two', 0);
@@ -1293,24 +1289,8 @@ try {
   await page.waitForTimeout(200);
   ok('words landing elsewhere leave the carry alive, and it drops', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
 
-  // The Join pill while the keyboard is up: tapping it used to blur the
-  // typing sink, whose repaint rebuilt the pill before the tap landed.
-  await reset();
-  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.startTyping(3); });
-  await page.waitForTimeout(250);
-  const gapT = await seamBelow('First one');
-  await page.touchscreen.tap(gapT.x, gapT.y);
-  await page.waitForTimeout(200);
-  const joinT = await pillAt('Join');
-  ok('while typing, a tap on the gap still offers Join', !!joinT);
-  if (joinT) { await page.touchscreen.tap(joinT.x, joinT.y); await page.waitForTimeout(250); }
-  const typed = await page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].typing);
-  ok('and Join joins without closing the keyboard', (await docText()).includes('First two. Second para.') && typed,
-    JSON.stringify({ typing: typed, text: await docText() }));
-  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (c.typing) c.stopTyping(); });
-
-  // A double tap on a gap still opens the keyboard, as a double tap on the
-  // canvas does anywhere else; the seam only takes a single tap.
+  // A double tap on a gap opens the keyboard, as a double tap on the canvas
+  // does anywhere else.
   await reset();
   const gapD = await seamBelow('First one');
   await page.touchscreen.tap(gapD.x, gapD.y);
