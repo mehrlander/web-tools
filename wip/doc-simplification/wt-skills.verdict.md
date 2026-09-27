@@ -99,3 +99,13 @@
 **Revised proposal:** Enable the plugin, and keep an always-on block in home CLAUDE.md, cut to the opening directive, the link to the skill, and the seven "Clarity principles" bullets (159 words). Drop the role paragraph, the Execution section and the example table, which the plugin supplies on invocation.
 
 **Corrected words removed:** about 300.
+
+## Missed
+
+**Five library skills are copied whole into home.** `home/projects/doc-audit/` holds `atomic-decomposition.md` (2,792 words), `source-anchored-xlsx.md` (1,706), `source-anchored-writing.md` (934), `source-anchoring.md` (918) and `outlining.md` (757), 7,107 words in all. Each matches `web-tools/skills/<name>/SKILL.md` except for whitespace: the diff lines are blank lines that carry a non-breaking space in the home copy. `skills/README.md` names the web-tools library "the source of truth", so the home copies are second copies of the kind the README warns about. The doc-audit README (line 76), `source-manifest.md:43`, `source-anchoring-revised.md:77`, `full-picture.md:66` and `2026-06-23-one-machine-three-questions.md:120` link them by relative path. Replace the five files with absolute links to the library skills and repoint those five documents. This is larger than every proposal here except proposal 1, and it crosses into the home slice, so the home reader should confirm that no doc-audit tool parses the local copies.
+
+**Relative links out of a plugin skill break wherever the plugin is installed.** The plugin cache (`~/.claude/plugins/cache/web-tools/portable/<sha>/`) holds only the skill folders. `grep -oE "\]\((\.\./)+"` over `.claude/skills` finds six escaping links in `tree/SKILL.md` and one in `apple-shortcuts-actions/SKILL.md`, and the second is broken even in web-tools (proposal 7). One rule settles both: a plugin skill links outside its own folder only by absolute GitHub URL. The `default` skill already follows it, and it could become a check in `tools/test/`.
+
+**The retired `docs/CONVENTIONS.md` is named in eight Markdown files outside the archive**, not two, including `docs/venues.md:8`, which says the venues are "named again in one line of CONVENTIONS.md, which is always in context". That sentence is now false as well as dead. Proposal 9 fixes only the two inside skills. A single pass over all eight is the right unit, and it belongs to whichever slice owns `docs/`.
+
+**`skills/daisy-alpine/references/daisyui.md` (4,110 words) is a vendored copy of daisyUI's `llms.txt`**, as the reader noted in passing. It is a reference file read on demand, so it costs context only when read. Its real cost is staleness against a library that versions independently. Treat it as its own proposal, gated on whether `daisyui.com` is reachable from the sandbox.
