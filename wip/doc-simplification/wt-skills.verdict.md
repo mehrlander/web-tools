@@ -36,9 +36,9 @@
 
 **Checked:** `wc -w` gives 1,522. Premise (lines 8-14) is 197 words, Key insights (56-80) is 747, Extending (82-86) is 79, not 107. The script does carry the rationale: `is_shallow()` docstring at `in-flight.py:86-94` holds the 24-second unshallow measurement, `sessions_for()` at 244-262 holds the constant signing key and own-commits rule, lines 14-15 and 228-229 hold the squash rule, 395 holds "a claim decays", and the rendered output warns about squash (630-631) and an unfed claim layer (576). Inbound references are `docs/portable.csv:7` (file only) and `tend/SKILL.md:88` (skill name). The reader's four rules drop two that change what a session does and that no run-time output tells it. "Claims come from the base branch, not the checked-out files" explains the `--worktree` flag, and without it a session that sees a surprising claim list has no reason to reach for the flag. "Do not run content forensics over the whole estate" stops a session hand-rolling a path-overlap scan outside the script, which the script cannot warn about because it is not running.
 
-**Revised proposal:** As proposed, but keep six one-line rules, not four: add "claims are read from the base branch; `--worktree` reads the checkout instead" and "check path overlap only on live branches, never across the whole estate". Extending's second paragraph ("the repair step is deliberately manual") repeats step 4 and can go with the rest.
+**Revised proposal:** As proposed, but keep six one-line rules, not four: add "claims are read from the base branch; `--worktree` reads the checkout instead" and "check path overlap only on live branches, never across the whole estate". Do not delete Extending. `skills/skill-prefs/SKILL.md:26-33` sets Premise, Goal and output, Process, Key insights and Extending as the library's default skill sections, with Extending kept "when there is" a growth path, and in-flight names two (the unused `--json` output and a future `--fix` flag). Cut Extending to one sentence naming both. Its second paragraph ("the repair step is deliberately manual") repeats step 4.
 
-**Corrected words removed:** about 820.
+**Corrected words removed:** about 770.
 
 ## 5. Cut `tree` to the generator, the two formats, and the Major folders block
 

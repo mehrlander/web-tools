@@ -42,3 +42,17 @@ The "Context cost" section (`:221-237`) repeats the component list as a table, a
 
 **Corrected words removed:** about 2,200. The spans measure primer 281, diagnosis 555, essays 1,658 and inventory 162, for 2,656. Add about 80 for the Context cost table. Subtract about 250 for the table, the six facts and the kept settings bullet, and about 290 for the kept two sentences and settings proof.
 
+## 4. TRACKER.md: cut the operating rules its own line 5 gives to the `tasks` skill
+
+**Verdict:** revise
+
+**Checked:** `TRACKER.md:5` does assign every operating rule to the `tasks` skill. The skill tells sessions to fetch TRACKER.md for the schema (`tasks/SKILL.md:26`, `:196`, `:224`), and the proposal keeps the schema, parser contract, graduation rule, board format, typed projection and assessment record, so that path survives. The runnable-task template, "writing the skill is part of filing", "prefer a derivation" and "belongs in a hook, a test, or CI" are all in `SKILL.md:142-171`. The size scale and "a smell" are at `SKILL.md:130-132`. The conflict rule "take either side and rerun" is at `SKILL.md:256-257`. The correct-versus-file split and the commit-message rule are at `SKILL.md:260-266`. No task file in any local tracker still carries a legacy integer or dated id (266 task files checked). `state-the-rule.test.mjs:787` needs more than 1,000 units and at least 10 code units across eight files; losing one fence here will not threaten that, but re-run it.
+
+Two rules in the cut spans have no copy in the skill. First, "References carry their repo" (`TRACKER.md:217`): write the `owner/repo` prefix on any path in another repository. The proposal keeps it in its two lines, which is right. Second, the rule at `:235` that a session moving material across a repo boundary owns repointing every tracker that names it. The proposal drops it, and the skill does not have it. Also missing from the skill is the resolution rule at `:108` that an `action` resolves the way a skill invocation resolves, repo first, then plugin. That is design contract, not operation, which is what line 5 says this file keeps.
+
+The word arithmetic is wrong. "Across repositories" (`:213-235`) is 413 words, not 584. Conflicts (`:205-211`) is 171 and was left out of the sum.
+
+**Revised proposal:** As proposed, with three additions to what stays. Keep the `:235` repoint-on-move rule as one sentence under "Across repositories", beside the `owner/repo` and `depends-on` lines. Keep the `action` resolution rule (`:108`, first two sentences) in the two lines for runner and action. Legacy migration at `:88` can go for web-tools and home, but TRACKER.md is the adoption contract for other repos, so leave one sentence: "Legacy integer or dated ids still parse; rename to the slug form when you next touch the tracker."
+
+**Corrected words removed:** about 1,300. Spans: runner and action 574, across 413, conflicts 171, size and awaiting 231, id minting line 88 98, incident tails about 150, for about 1,640. Kept text is about 330.
+
