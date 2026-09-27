@@ -1517,7 +1517,10 @@ try {
   const touchAt = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y: cardAt.y }] });
   await touchAt('touchStart', cardAt.x - 100);
   for (let k = 1; k <= 8; k++) { await touchAt('touchMove', cardAt.x - 100 + k * 25); await page.waitForTimeout(16); }
+  // A finger that pauses mid-drag is still dragging: nothing settles under it.
+  await page.waitForTimeout(400);
   const mid = await readNow();
+  ok('a drag that pauses with the finger down is not settled under it', mid.reading === 'new', JSON.stringify(mid));
   await touchAt('touchEnd');
   await page.waitForTimeout(900);
   const afterDrag = await readNow();
