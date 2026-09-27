@@ -66,6 +66,7 @@
 
       <div class="sm:mx-3 border-y sm:border border-base-300 sm:rounded-box py-1 font-mono text-sm" data-listing>
         <template x-for="l in shown" :key="l.key">
+          <div>
           <div :id="l.id" class="flex items-baseline pr-3" :role="l.kids ? 'button' : null"
                :class="l.t === '+' ? 'bg-success/25 shadow-[inset_4px_0_0_var(--color-success)] py-1.5 font-semibold'
                      : l.t === '-' ? 'bg-error/15 shadow-[inset_4px_0_0_var(--color-error)] py-1'
@@ -79,6 +80,12 @@
             <span x-show="!l.kids" class="w-4 shrink-0"></span>
             <div class="min-w-0 grow" :class="[pad(l), shut[l.key] ? 'truncate' : 'break-words -indent-[2ch] pl-[2ch]']"><code :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template></code><span x-show="shut[l.key]" class="ml-2 text-xs text-base-content/45" data-preview x-text="'· ' + l.kids + ' · ' + preview(l)"></span></div>
             <span x-show="l.t !== ' '" class="badge badge-xs shrink-0 self-center font-sans" :class="l.t === '+' ? 'badge-success' : 'badge-error'" x-text="l.t === '+' ? 'new' : 'remove'"></span>
+          </div>
+          <template x-if="l.why">
+            <div class="flex items-start gap-2 pl-8 pr-3 pb-2 bg-success/25 shadow-[inset_4px_0_0_var(--color-success)] font-sans text-sm text-base-content/75" data-why>
+              <i class="ph ph-info text-base text-success shrink-0 mt-0.5 ml-4"></i><span x-text="l.why"></span>
+            </div>
+          </template>
           </div>
         </template>
       </div>
@@ -215,7 +222,10 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
       let j = k + 1; while (j < d.length && depth(d[j].s) > depth(l.s)) j++;
       if (j < d.length && depth(d[j].s) === depth(l.s) && /^end\b/.test(d[j].s.trim())) closes[j] = k;
     });
-    this.lines = d.map((l, k) => ({ ...l, parent: parent[k], kids: kids[k], hot: hot[k], closes: closes[k] }));
+    // The proposal's reason rides under its first added line.
+    const first = d.findIndex(l => l.t === '+');
+    this.lines = d.map((l, k) => ({ ...l, parent: parent[k], kids: kids[k], hot: hot[k], closes: closes[k],
+                                     why: k === first ? (this.body.why || '') : '' }));
     this.foldToChange();
     this.$nextTick(() => this.hunks[0] && this.jump(this.hunks[0].at));
   },
