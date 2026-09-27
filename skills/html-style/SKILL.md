@@ -1,16 +1,13 @@
 ---
-name: daisy-alpine
+name: html-style
 description: The binding house style for every HTML page built here: what a page looks like, not how it is built. This is the HTML style guide, the page style guide, the house rules for what a page looks like. Read it BEFORE laying out any page and BEFORE any general design, dashboard, or charting skill, which recommend what these rules forbid: no stat cards, no KPI tiles, no explanatory prose on the page, browsing takes the full viewport, type sized for reading. Use when creating or reviewing an HTML page, artifact, single-file web app, dashboard, interactive prototype, web UI component, or browser tool; when asked why a page looks wrong or how pages here should look; and whenever the user mentions the style guide, house style, page layout, or stat cards. The DaisyUI 5 / Tailwind CSS 4 / Alpine.js mechanics for building it, including component syntax, tooltips, CDN loading and the traps that compile to nothing, are in references/mechanics.md beside this file.
 ---
 
 # HTML house style
 
-What pages built here look like. How to build them, meaning the DaisyUI,
-Tailwind and Alpine mechanics, is
-[`references/mechanics.md`](references/mechanics.md) beside this file. The names
-this is asked for, and why a doc has to carry the words a stranger would search,
-are at
-[`docs/HTML-STYLE.md`](https://github.com/mehrlander/web-tools/blob/main/docs/HTML-STYLE.md).
+This file states the layout and composition rules for HTML pages. DaisyUI,
+Tailwind and Alpine usage is in
+[`references/mechanics.md`](references/mechanics.md).
 
 These are standing decisions. If a correction recurs, write it down instead of
 relitigating it per page

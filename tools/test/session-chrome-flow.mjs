@@ -8,7 +8,7 @@
 // content, so a record taller than the viewport was clipped with nothing to
 // scroll. The fix let the document scroll, and left the other half of the house
 // style's shape for an embeddable page unbuilt: `min-h-dvh` plus STICKY CHROME
-// (daisy-alpine rule 5). Nothing was sticky, so at 390x844 the tab row sat
+// (html-style rule 5). Nothing was sticky, so at 390x844 the tab row sat
 // 189px above the fold at the bottom of the scroll, Raw laid 243 KB out as a
 // single 40,528px block, and Pick all revealed an export bar 612px BELOW the
 // fold with nothing on screen to say it existed.

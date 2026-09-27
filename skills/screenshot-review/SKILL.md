@@ -48,7 +48,7 @@ Extend it in SNAGS first, here second.
 One subagent each; a reader given two jobs lets one prime the other.
 
 - **Style**: assess against the house rules by file path (web-tools:
-  `skills/daisy-alpine/SKILL.md`), never from memory, with rule-by-rule
+  `skills/html-style/SKILL.md`), never from memory, with rule-by-rule
   verdicts naming regions. Checklist first: a style verdict on a broken render
   grades the failure as a design choice.
 - **Comprehension**: two questions, no checklist, no stated intent: how do you

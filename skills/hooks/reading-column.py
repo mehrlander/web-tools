@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tailwind classes that narrow text to a reading column (daisy-alpine rule 3).
+"""Tailwind classes that narrow text to a reading column (html-style rule 3).
 
 `max-w-3xl` on a paragraph caps it at 768px whatever the window is doing, so a
 sentence wider than the cap breaks mid-phrase beside a full-width page. Measured
@@ -99,14 +99,14 @@ EXTENSIONS = {'.html', '.js', '.mjs'}
 
 MESSAGE = (
     '{cls} narrows text to a reading column and is not allowed '
-    '(daisy-alpine rule 3): the page\'s own layout sets the width. Note that a '
+    '(html-style rule 3): the page\'s own layout sets the width. Note that a '
     'reading column is a common tell for explanatory prose (rule 2), and the '
     'fix is often to improve structural clarity so that the text can be removed.'
 )
 
 ARBITRARY_MESSAGE = (
     '{cls} is a reading column written as a value rather than a name '
-    '(daisy-alpine rule 3), and a size list cannot see it: {why}. The page\'s '
+    '(html-style rule 3), and a size list cannot see it: {why}. The page\'s '
     'own layout sets the width, so take the measure from a grid track or a '
     'flex basis instead of capping the element.'
 )
@@ -213,7 +213,7 @@ def main(argv):
         return 0
 
     files = len({f for f, _, _, _ in found})
-    print(f'\nreading-column: {len(found)} in {files} file(s); daisy-alpine rule 3')
+    print(f'\nreading-column: {len(found)} in {files} file(s); html-style rule 3')
     return 1 if args.check else 0
 
 

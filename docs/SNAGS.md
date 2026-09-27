@@ -448,7 +448,7 @@ because an `x-show`-hidden menu never evaluates its own bindings. A browser is
 what finds it, and the cheap version of that is to render the surface the
 expression is on rather than to assert around it.
 *(seen: 2026-09-10)*
-→ [`skills/daisy-alpine/references/mechanics.md`](../skills/daisy-alpine/references/mechanics.md)
+→ [`skills/html-style/references/mechanics.md`](../skills/html-style/references/mechanics.md)
 for the expression-attribute rules.
 
 ### state-only-check-agrees-with-a-broken-page: four reproductions passed while the panel sat on screen
@@ -461,7 +461,7 @@ flag, and where a bug lives only on someone else's machine, stop reproducing
 and hand them an instrument that reports the DOM beside the state. One capture
 answered what four reproductions and three source reads had not.
 → [`lib/kits/probe.js`](../lib/kits/probe.js) for the instrument,
-[`daisy-alpine/references/mechanics.md`](../skills/daisy-alpine/references/mechanics.md)
+[`html-style/references/mechanics.md`](../skills/html-style/references/mechanics.md)
 "Title-tips and panel-tips" for the Alpine trap underneath it.
 
 ### stale-store-reads-as-dead-link: a present checkout, two weeks behind, reported four good links dead
@@ -472,7 +472,7 @@ stale**, which is the worse case: the store resolves, the file genuinely is not
 in it, and the verdict comes back `dead` with the same confidence as a real
 break. In home the sibling sat at a commit two weeks old, from before three
 skills were added, so four correct links to `google-style-clarity`,
-`state-the-rule` and `daisy-alpine/references/mechanics.md` all read as broken.
+`state-the-rule` and `html-style/references/mechanics.md` all read as broken.
 The report survived three of my own retellings, twice as "pre-existing on main,
 not this branch's", which was true and hid that they were not defects at all;
 the near miss was rewriting four good links to worse targets on a stale store's
@@ -880,7 +880,7 @@ read the pixels, since a guard that reports on class names cannot see the two
 caps compose. Measure with `npm run shot -- app/index.html --script`, and treat
 a standing `reading-column-ok` as a claim to re-check rather than a settled
 answer. →
-[`skills/daisy-alpine/SKILL.md`](https://github.com/mehrlander/web-tools/blob/main/skills/daisy-alpine/SKILL.md)
+[`skills/html-style/SKILL.md`](https://github.com/mehrlander/web-tools/blob/main/skills/html-style/SKILL.md)
 rule 3, and `skills/hooks/reading-column.py`'s docstring for what each
 exemption buys.
 
@@ -918,7 +918,7 @@ above it running the full width. The corrected move: `!max-w-none`, always, and
 never reason about which stylesheet came last. Gated by
 `skills/hooks/reading-column.py`, which taught the plain form until this
 trip and now reports it. →
-[`skills/daisy-alpine/SKILL.md`](https://github.com/mehrlander/web-tools/blob/main/skills/daisy-alpine/SKILL.md)
+[`skills/html-style/SKILL.md`](https://github.com/mehrlander/web-tools/blob/main/skills/html-style/SKILL.md)
 
 ### backtick-in-an-html-comment-ends-the-template: a component that will not parse, from prose
 An Alpine component's markup is a backtick template literal, and an HTML comment
@@ -1395,7 +1395,7 @@ the string: the path picker died on `repo.split is not a function` on every page
 carrying a fab. `$data` is the same proxy and does not help; hand the callback a
 real component reference. Folded in from the log's tail on 2026-08-26, where it
 sat as an unslugged bullet crediting its sighting to nothing. *(seen: 2026-08-14)*
-→ [the house style](../skills/daisy-alpine/SKILL.md)
+→ [the house style](../skills/html-style/SKILL.md)
 
 
 ### fetched-ref-behind-remote: a merge preflight certifies a merge GitHub refuses
@@ -1747,7 +1747,7 @@ reference's advice had never been measured, only reasoned, and the reasoning
 picked the expensive fix. dead-opacity.py needed a 193-item sweep before its
 gate; this needed a browser and twenty minutes.
 *(seen: 2026-07-28, 2026-08-22, 2026-09-08)*
-→ [the mechanics reference](../skills/daisy-alpine/references/mechanics.md)
+→ [the mechanics reference](../skills/html-style/references/mechanics.md)
 
 ---
 
@@ -1790,7 +1790,7 @@ a horizontally scrollable ancestor or every carousel slide reads as a fault.
 The cause here was the usual one, a scroll track as a grid item taking
 `min-width: auto` from its 100 `min-w-full` slides; `min-w-0` is the fix, the
 horizontal twin of the `min-h-0` already applied to the row. *(seen: 2026-08-04)*
-→ [the house style](../skills/daisy-alpine/SKILL.md)
+→ [the house style](../skills/html-style/SKILL.md)
 
 ### house-style-not-consulted: built a page with stat cards, page prose, and small type, against a doc that forbids all three
 The house style exists precisely because these corrections recur, and the
@@ -1809,7 +1809,7 @@ skill's defaults are not the house style; load the local rule before a general
 one that overlaps it.** Neither scanner covers the gap either:
 `stranded-titles.py` and `dead-opacity.py` default to `lib/`, `app/`, `pages/`,
 so a page built in `dump/` is checked by nothing. *(seen: 2026-08-04, 2026-08-29)*
-→ [the house style](../skills/daisy-alpine/SKILL.md)
+→ [the house style](../skills/html-style/SKILL.md)
 
 ### allowlist-table-trusted-stale: trusted the network allowlist table instead of re-probing it
 The
@@ -1968,7 +1968,7 @@ variants (`sm:`, `lg:`) answer the wrong question there, and Tailwind's
 `@container` plus `@md:`/`@xl:` answer the right one, degrading to one column
 where unsupported. Both rules now sit with the other composition rules.
 *(seen: 2026-08-06)*
-→ [the house style](../skills/daisy-alpine/SKILL.md)
+→ [the house style](../skills/html-style/SKILL.md)
 
 ### status-audit-skipped-index: the status audit silently dropped every marker in a file named `index.md`
 `status.py` carried `SKIP_NAMES = {"index.md"}`, added because a
@@ -2017,7 +2017,7 @@ thing meant to recede advances. About 120 occurrences are live in `lib/` and
 never drawn and leave the branch list's state on its rail alone. Use tens.
 Three sightings in one day: one text colour, one fill, and one straggler a hand
 sweep had left behind. *(seen: 2026-08-19 ×3)*
-→ [the house style](../skills/daisy-alpine/SKILL.md), and the gate at
+→ [the house style](../skills/html-style/SKILL.md), and the gate at
 [../scripts/dead-opacity.py](../scripts/dead-opacity.py)
 
 **2026-08-19, corrected and closed by a gate.** Two claims above are narrower
