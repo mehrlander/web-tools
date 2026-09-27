@@ -169,7 +169,7 @@
           this.probes = JSON.parse(res.text).probes
             .sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
         } catch (e) {
-          this.error = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
+          this.error = `${e.message || e} (${this.REPO}@${this.DATA_REF})`;
         }
         this.loading = false;
         // Whatever ?pane= asked for, not just the one that used to need it:
@@ -280,7 +280,7 @@
               ?.scrollIntoView({ block: 'start' });
           });
         } catch (e) {
-          this.variantError = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
+          this.variantError = `${e.message || e} (${this.REPO}@${this.DATA_REF})`;
           this.variantState = 'error';
         }
       },

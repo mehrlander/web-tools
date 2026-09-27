@@ -94,6 +94,6 @@ the PR or commit that makes the old text wrong, and it asks for a yes or no.
 joins each proposal onto the variant with the same passage pair.
 
 Variants enter the collection from runs in `mehrlander/home`, including a
-[local-model worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/proposals)
+[local-model worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/variants)
 that appends its edits with the author `Ollama <model>`. Web Tools only
 displays them.
