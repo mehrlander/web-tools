@@ -179,7 +179,7 @@ test('the patch applies with git and reproduces the edit byte for byte', async (
 // Tracked: the edit drawn as cards in the document, one card per run of
 // changed blocks, marked as a whole. Removed words are shown and never mapped,
 // so every stamped run is still the buffer's text.
-test('tracked render draws each run of changes as one card and maps only the buffer', async () => {
+test('tracked render draws each changed paragraph as its own card and maps only the buffer', async () => {
   window.Diff = (await import('diff')).default ?? (await import('diff'));
   window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
@@ -188,10 +188,11 @@ test('tracked render draws each run of changes as one card and maps only the buf
   host.__mdKey = null; host.__readings = {};
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   const cards = [...host.querySelectorAll('[data-md-card]')];
-  assert.equal(cards.length, 2, 'the changed and removed blocks side by side are one card, the added one another');
-  assert.equal(window.MdSurface.cards(host)[0].map((e) => e.kind).join(), 'changed,removed');
-  assert.deepEqual([...host.querySelectorAll('del')].map((d) => d.textContent.trim()), ['canonical', 'Gone para.'],
-    'the run is marked as a whole, so a block taken out beside a changed one is struck where it stood');
+  assert.equal(cards.length, 3, 'a changed, a removed and an added paragraph that share no words are three cards');
+  assert.deepEqual(window.MdSurface.cards(host).map((r) => r.map((e) => e.kind).join()), ['changed', 'removed', 'added']);
+  assert.deepEqual([...host.querySelectorAll('del')].map((d) => d.textContent.trim()), ['canonical']);
+  assert.equal(cards[1].querySelector('[data-md-reading="inline"] [data-md-ghost]').textContent.trim(), 'Gone para.',
+    'a block taken out is struck whole in a card of its own, where it stood');
   assert.ok(![...host.querySelectorAll('del [data-src], [data-md-ghost] [data-src], [data-md-ui] [data-src]')].length,
     'removed words, removed blocks and card controls carry no offset');
   for (const sp of host.querySelectorAll('[data-src]')) {
@@ -200,8 +201,8 @@ test('tracked render draws each run of changes as one card and maps only the buf
   }
   assert.deepEqual([...host.querySelectorAll('[data-md-card="0"] [data-md-card-read]')].map((b) => b.textContent),
     ['old', 'inline', 'new'], 'a run with both sides carries all three stops');
-  assert.deepEqual(window.MdSurface.cardModes(host, 1), ['inline'], 'a run that only adds has one reading, and no pill');
-  assert.ok(!host.querySelector('[data-md-card="1"] [data-md-card-read]'));
+  assert.deepEqual(window.MdSurface.cardModes(host, 2), ['inline'], 'a run that only adds has one reading, and no pill');
+  assert.ok(!host.querySelector('[data-md-card="2"] [data-md-card-read]'));
   window.MdSurface.setReading(host, 0, 'new');
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   assert.ok(!host.querySelector('[data-md-card="0"] [data-md-reading="new"] del'), 'new is the text clean');
@@ -219,13 +220,13 @@ test('tracked render draws each run of changes as one card and maps only the buf
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   assert.equal(window.MdSurface.readingOf(host, 0), 'old');
   const ghost = host.querySelector('[data-md-card="0"] [data-md-ghost]').textContent;
-  assert.ok(ghost.includes('canonical') && ghost.includes('Gone para'), 'old shows the whole run from the base, unmapped');
+  assert.ok(ghost.includes('canonical') && !ghost.includes('Gone para'), 'old shows the card\'s own paragraph from the base, unmapped');
   assert.ok(!host.querySelector('[data-md-card="0"] [data-src]'), 'the original takes no caret');
   const typed = text.replace('Same para.', 'Same para!');
   window.MdSurface.paint(host, { text: typed, base, track: true, overlay: window.document.getElementById('box') });
   assert.equal(window.MdSurface.readingOf(host, 0), 'inline', 'an edit returns a card on the original to the marked text');
-  assert.equal(window.mdDiff.revert(base, text, window.MdSurface.cards(host)[0]).split('Same')[0], base.split('Same')[0],
-    'a card goes back to the original as a whole');
+  assert.equal(window.mdDiff.revert(base, text, window.MdSurface.cards(host)[0]),
+    '# Title\n\nThe canonical source is here.\n\nSame para.\n\nAdded para.\n', 'a card goes back to the original as a whole');
   host.__mdKey = null;
   window.MdSurface.paint(host, { text, base: text, track: true, overlay: window.document.getElementById('box') });
   assert.equal(host.querySelectorAll('[data-md-card]').length, 0, 'no change, no cards');

@@ -58,6 +58,21 @@ const textWithout = (el, sel) => {
   for (const n of c.querySelectorAll(sel)) n.remove();
   return c.textContent;
 };
+// The dotted seam traces a break the other reading has: in `inline` and `new`
+// once per closed break, in `old` once per opened one.
+const seamProblems = (card, i) => {
+  const out = [], n = (sel) => card.querySelectorAll(sel).length;
+  const closed = n('[data-md-reading="inline"] [data-md-break="closed"]');
+  const opened = n('[data-md-reading="inline"] [data-md-break="opened"]');
+  for (const m of ['inline', 'new']) {
+    if (card.querySelector(`[data-md-reading="${m}"]`) && n(`[data-md-reading="${m}"] [data-md-seam]`) !== closed)
+      out.push(`card ${i + 1}: ${m} has ${n(`[data-md-reading="${m}"] [data-md-seam]`)} seams for ${closed} closed breaks`);
+  }
+  if (card.querySelector('[data-md-reading="inline"]') && card.querySelector('[data-md-reading="old"]')
+      && n('[data-md-reading="old"] [data-md-seam]') !== opened)
+    out.push(`card ${i + 1}: old has ${n('[data-md-reading="old"] [data-md-seam]')} seams for ${opened} opened breaks`);
+  return out;
+};
 const rendered = (md) => { const d = window.document.createElement('div'); d.innerHTML = marked.parse(md); return d.textContent; };
 
 function check(text, want = {}) {
@@ -79,6 +94,7 @@ function check(text, want = {}) {
       const asOld = textWithout(inl, '.md-diff-ins, [data-md-break]');
       if (squash(asOld) !== squash(rendered(oldMd))) problems.push(`card ${i + 1}: marked minus green is not old: "${asOld.trim().slice(0, 80)}" vs "${rendered(oldMd).trim().slice(0, 80)}"`);
     }
+    problems.push(...seamProblems(card, i));
   });
   for (const sp of host.querySelectorAll('[data-src]')) {
     const s = +sp.dataset.src, t = sp.firstChild.data;
@@ -102,7 +118,7 @@ const edit = (fn) => {
   let before = BASE;
   const d2 = new Proxy(d, { get: (o, k) => {
     const v = o[k];
-    return typeof v === 'function' && ['join', 'split', 'move', 'backWord'].includes(k)
+    return typeof v === 'function' && ['join', 'split', 'move', 'backWord', 'type'].includes(k)
       ? (...a) => { before = o.text; return v.apply(o, a); } : (typeof v === 'function' ? v.bind(o) : v);
   } });
   fn(d2, BASE);
@@ -123,7 +139,7 @@ const SCENARIOS = [
   { name: 'split, then join the halves back', want: { cards: 0 },
     run: (d, t) => { d.split(at(t, ' Alpha two')); d.join(at(d.text, 'Alpha two')); },
     expect: (x) => x === BASE },
-  { name: 'carry a sentence to the end of the next paragraph', want: { cards: 1 },
+  { name: 'carry a sentence to the end of the next paragraph', want: { cards: 2 },
     run: (d, t) => d.move(...span(t, 'Alpha two.'), at(t, 'Bravo two.', 10)),
     expect: (x) => x.includes('Alpha one. Alpha three.') && x.includes('Bravo two. Alpha two.') },
   { name: 'carry a sentence to the gap below as its own paragraph', want: { cards: 1, opened: 1 },
@@ -153,6 +169,18 @@ const SCENARIOS = [
   { name: 'two separate edits make two cards', want: { cards: 2, closed: 1, opened: 1 },
     run: (d, t) => { d.split(at(t, ' Alpha two')); d.join(at(d.text, 'Delta one')); },
     expect: (x) => x.includes('Alpha one.\n\nAlpha two.') && x.includes('Section Delta one.') },
+  { name: 'edit two neighbouring paragraphs apart: a card each', want: { cards: 2, closed: 0, opened: 0 },
+    run: (d, t) => { d.select(...span(t, 'Alpha three.')); d.backWord(); d.select(...span(d.text, 'Bravo two.')); d.backWord(); },
+    expect: (x) => /Alpha two\.\s*\n\nBravo one\.\s*\n\nCharlie/.test(x) },
+  { name: 'join, then edit the paragraph below: the join is one card, the edit another', want: { cards: 2, closed: 1 },
+    run: (d, t) => { d.join(at(t, 'Bravo one')); d.select(...span(d.text, 'Charlie one.')); d.backWord(); d.type('Charlie two.'); },
+    expect: (x) => x.includes('Alpha three. Bravo one. Bravo two.\n\nCharlie two.') },
+  { name: 'split, then edit the paragraph below: the split is one card, the edit another', want: { cards: 2, opened: 1 },
+    run: (d, t) => { d.split(at(t, ' Alpha two')); d.select(...span(d.text, 'Bravo two.')); d.backWord(); },
+    expect: (x) => /Alpha one\.\n\nAlpha two\. Alpha three\.\n\nBravo one\.\s*\n\nCharlie/.test(x) },
+  { name: 'join three paragraphs into one: one card, two seams', want: { cards: 1, closed: 2 },
+    run: (d, t) => { d.join(at(t, 'Bravo one')); d.join(at(d.text, 'Charlie one')); },
+    expect: (x) => x.includes('Alpha three. Bravo one. Bravo two. Charlie one.\n\n- item') },
   { name: 'join a paragraph to a heading-less neighbour after a list', want: {},
     run: (d, t) => d.join(at(t, 'Bravo one') - 2) || d.join(at(t, 'Charlie')),
     expect: (x) => x !== BASE },
@@ -209,6 +237,7 @@ function checkAgainst(base, text) {
       if (squash(textWithout(inl, 'del, [data-md-break]')) !== squash(rendered(newMd))) out.push(`card ${i + 1}: marked minus struck is not new`);
       if (squash(textWithout(inl, '.md-diff-ins, [data-md-break]')) !== squash(rendered(oldMd))) out.push(`card ${i + 1}: marked minus green is not old`);
     }
+    out.push(...seamProblems(card, i));
   });
   for (const sp of host.querySelectorAll('[data-src]')) {
     const s = +sp.dataset.src, t = sp.firstChild.data;
