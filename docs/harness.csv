@@ -47,7 +47,7 @@ scripts/xlsx-picker-sweep.mjs,,scripts,104,imported,yes,yes,yes
 skills/hooks/ask-question-guard.sh,,skills/hooks,38,hook:PreToolUse,no,no,yes
 skills/hooks/commit-consent.py,,skills/hooks,298,imported,no,no,yes
 skills/hooks/invoke-default.sh,,skills/hooks,152,hook:SessionStart,no,yes,yes
-skills/hooks/invoke-sessions.sh,,skills/hooks,101,hook:SessionStart,no,yes,yes
+skills/hooks/invoke-sessions.sh,,skills/hooks,99,hook:SessionStart,no,yes,yes
 skills/hooks/mcp-fail-hint.sh,,skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 skills/hooks/pr-subscribe-hint.sh,,skills/hooks,95,hook:PostToolUse,no,yes,no
 skills/hooks/reading-column-guard.sh,,skills/hooks,105,hook:PreToolUse,no,no,yes

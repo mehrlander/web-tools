@@ -198,7 +198,7 @@ fi
 # lines, invocation, emits, named, and tested are stamped from the tree, and a
 # rename or a new npm script moves them without touching the registry.
 # artifacts-lockstep runs the generator's --check as the backstop.
-if changed tools scripts package.json tools/build/tools-index.mjs docs/harness.csv; then
+if changed tools scripts skills/hooks .githooks package.json tools/build/tools-index.mjs docs/harness.csv; then
   if npm run tools-index --silent >/dev/null 2>&1; then
     stage docs/harness.csv
   else
