@@ -1226,6 +1226,16 @@ try {
   await page.waitForTimeout(250);
   ok('carried onto the end of the paragraph above, a paragraph joins it and leaves no gap',
     (await docText()).includes('First two. Second para.\n\nThird para.'), JSON.stringify(await docText()));
+  const closedMark = await page.evaluate(() => !!document.querySelector('[x-ref="md"] [data-md-break="closed"]'));
+  ok('and the card shows the break it closed, since the words themselves did not change', closedMark);
+  // Going back through the card's own number, the way a reader would.
+  const badge = await page.evaluate(() => { const b = document.querySelector('[x-ref="md"] [data-md-card-badge]');
+    b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(badge.x, badge.y);
+  await page.waitForTimeout(250);
+  await page.locator('text=Go back to original').first().click();
+  await page.waitForTimeout(250);
+  ok('Go back to original on that card restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
 } finally {
   await browser.close();
   server.close();
