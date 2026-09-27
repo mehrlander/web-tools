@@ -116,3 +116,23 @@ Three errors. First, the doc-craft duplication claim is backwards. `skills/doc-c
 
 **Corrected words removed:** about 2,395 from `docs/` (497 + 970 + 764 + 164). The net cut is about 660 if the doc-craft files move rather than go.
 
+## 10. registries.md: let the test own its own checklist, drop the budget-drs crosswalk
+
+**Verdict:** keep
+
+**Checked:** The 14 bullets at `registries.md:182-198` match the 14 `test(` names in `properties-registry.test.mjs` one for one, so the list is a hand copy. `registries.md:264` says "No consumer reads both". The `kind` history is at `:104-106`. The stale comment at `properties-registry.test.mjs:34` ("docs/registries.md carries the five") is confirmed against `registries.md:15-18`, which says that account was cut on 2026-09-20. The anchors the tests cite survive, and `SNAGS.md:400` links `#storage-rules`, which also survives. The spans measure 241, 234 and 30.
+
+One addition. The crosswalk's substance is already in home's `projects/budget-drs/data/design/README.md:68-80` ("normal form, not in model", the fan-out argument, `definition_owner`). That README says "Both sides point at each other because nothing detects a one-way pointer". `registries.md:15` names budget-drs's `properties.csv` but does not link the README. When the crosswalk goes, add that link to the line at `:15`, so the pointer back survives.
+
+**Corrected words removed:** about 450, as estimated.
+
+## Missed
+
+**capabilities.md links a deleted hook and restates a script header.** The section "SessionStart hooks: a per-hook size ceiling" (`capabilities.md:35-74`, 327 words) links `.claude/skills/hooks/inject-conventions.sh` at `:50`, and that file no longer exists. The injection channel was retired on 2026-09-09. The section also mentions "the injector" at `:73`. Its per-entry cap, the 28,000 guard and the 29.4 KB bound are all in `session-dispatch.sh:55-75`, and the per-entry cap is also in `invoke-default.sh:25` and `extending.md:137`. Only two findings in the section exist nowhere else: the transcript keeps both halves of a cut, and the receipts are what gets lost. Cut the section to those two findings plus a link to the script, and drop the dead link. About 230 words.
+
+**A third copy of the file-card rule.** Proposal 5 deletes "Showing the result in chat" from headless-vendoring.md and repoints `capabilities.md:301` to SURFACING. But `capabilities.md:288-307` (178 words) is itself a restatement of `SURFACING.md:55` ("Send an artifact with `SendUserFile`, not a path. Images preview inline; HTML, zip, and audio download"). Keep its one unique point, that the agent cannot see the rendered chip and so cannot check the type map itself, as one sentence. About 130 words.
+
+**The stale artifact CSP claim is in three owners, not one.** Proposal 6 treats it as an artifacts.md problem. The same "CSP blocks every external request" statement is the `limit` of the `artifact` row in `showing-mechanisms.csv`, and it is in `surfacing-extended.md:14`. The `artifact` row feeds `npm run showing` and the Map view's Showing tab, so a wrong limit there shapes which link a session hands over. It needs the one publish probe named under proposal 6 before any of the three is edited.
+
+**extending.md's "Context cost" table repeats its own Components section** (`:221-237`). It goes with the primer in proposal 3, as noted there.
+
