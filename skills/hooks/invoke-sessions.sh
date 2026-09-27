@@ -7,10 +7,8 @@
 # its task named. Measured 2026-09-21: a session that began in an empty working
 # directory and attached one repo ran for hours with the recorder installed,
 # firing, and finding nothing, because nothing had put web-tools-private beside
-# the project root. Nothing reported the gap, which is the recorder's designed
-# behavior when no store is present. That silence is correct for a session that
-# was never meant to be recorded and wrong for one that was; the difference is
-# whether anything DECLARED that it should be, and that is what this reads.
+# the project root. Nothing reported the gap. Now, wherever no store is checked
+# out, this prints its directive, since a store name always exists (below).
 #
 # WHO NAMES THE STORE. In order: SESSIONS_STORE_REPO, a checkout's
 # .web-tools.json `sessionsStore`, then mehrlander/web-tools-private, hard-coded
