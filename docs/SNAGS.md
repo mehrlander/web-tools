@@ -192,7 +192,7 @@ prints `no merge base with origin/main` and "nothing to report". That is the
 wording of an orphaned history, over branches with ordinary merge bases. Pass
 `origin/<branch>`. Found in a read-only dry run of the `/tend` branch survey.
 *(seen: 2026-09-25)*
-→ [`.claude/skills/tend/SKILL.md`](../.claude/skills/tend/SKILL.md#branches)
+→ [`skills/tend/SKILL.md`](../skills/tend/SKILL.md#branches)
 
 ### spawned-session-not-recorded: the recorder ran every idle and found nothing
 
@@ -368,7 +368,7 @@ prints about a name the repository also defines can outrun the tree it lands in.
 `conventions-delivery.py` cannot see this, since it counts what arrived and not
 what was declined.
 *(seen: 2026-09-13)*
-→ [invoke-default.sh](../.claude/skills/hooks/invoke-default.sh), which prints the directive
+→ [invoke-default.sh](../skills/hooks/invoke-default.sh), which prints the directive
 
 ### orphan-reads-as-unreferenced: a label about delivery, read as a claim about links
 
@@ -881,7 +881,7 @@ caps compose. Measure with `npm run shot -- app/index.html --script`, and treat
 a standing `reading-column-ok` as a claim to re-check rather than a settled
 answer. →
 [`skills/daisy-alpine/SKILL.md`](https://github.com/mehrlander/web-tools/blob/main/skills/daisy-alpine/SKILL.md)
-rule 3, and `.claude/skills/hooks/reading-column.py`'s docstring for what each
+rule 3, and `skills/hooks/reading-column.py`'s docstring for what each
 exemption buys.
 
 ### python-offsets-read-as-utf16: an emoji shifts every standoff offset the browser reads
@@ -916,7 +916,7 @@ carried the plain form and four already carried `!max-w-none`, which emits
 chat-render's reply prose wrapped at 470px of a 1280px viewport with the ask
 above it running the full width. The corrected move: `!max-w-none`, always, and
 never reason about which stylesheet came last. Gated by
-`.claude/skills/hooks/reading-column.py`, which taught the plain form until this
+`skills/hooks/reading-column.py`, which taught the plain form until this
 trip and now reports it. →
 [`skills/daisy-alpine/SKILL.md`](https://github.com/mehrlander/web-tools/blob/main/skills/daisy-alpine/SKILL.md)
 

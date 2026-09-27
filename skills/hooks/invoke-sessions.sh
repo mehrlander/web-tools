@@ -12,14 +12,11 @@
 # was never meant to be recorded and wrong for one that was; the difference is
 # whether anything DECLARED that it should be, and that is what this reads.
 #
-# WHO NAMES THE STORE. In order: the environment's SESSIONS_STORE_REPO, a
-# checkout's .web-tools.json `sessionsStore` (an owner/repo string), and then
-# mehrlander/web-tools-private, hard-coded here since 2026-09-27. web-tools
-# working with web-tools-private is built in: the owner's decision, which let
-# the environment setup script stop setting the variable for the one shape a
-# manifest cannot cover, a session that starts with no checkout at all.
-# session-record.sh still holds no repo name; it finds a store by declaration.
-#
+# WHO NAMES THE STORE. In order: SESSIONS_STORE_REPO, a checkout's
+# .web-tools.json `sessionsStore`, then mehrlander/web-tools-private, hard-coded
+# because web-tools working with web-tools-private is built in. The default
+# covers a session that starts with no checkout at all.
+
 # WHY A DIRECTIVE. A hook cannot do the fetch itself. An unattached private
 # repo is unreachable from a shell in the sandbox (measured 2026-09-21:
 # `git ls-remote` on one fails at the credential prompt), and attaching is a

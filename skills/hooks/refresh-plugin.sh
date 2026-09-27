@@ -1,29 +1,19 @@
 #!/usr/bin/env bash
 # SessionStart: move the portable plugin to the tip of web-tools main.
 #
-# WHY EVERY SESSION. The cloud environment runs its setup script once, when the
-# snapshot is built, and every later container restores that snapshot. The
-# plugin pin is therefore the one current on build day until something moves
-# it, and this is the something. It replaces refresh-portable.sh, which the
-# setup script wrote into ~/.claude/hooks/ where no session could read or edit
-# it (docs/environment/container.md).
+# A cloud session restores a snapshot taken when the environment was built, so
+# the plugin pin is build day's until something moves it. This moves it. Skills
+# from the new pin appear within the session; hooks follow next session or after
+# /reload-plugins. The one printed line names a moved pin.
 #
-# WHAT IT CANNOT DO. It runs from the plugin, so a snapshot whose pin fails to
-# load never runs it. Recovery is then manual: fix main, and change any byte of
-# the setup script so the snapshot rebuilds. That trade was taken on 2026-09-27
-# for a setup script that is two readable lines.
+# It cannot recover a pin that fails to load, since it runs from the plugin: fix
+# main, then change any byte of the setup script to force a rebuild
+# (docs/environment/container.md).
 #
-# WHEN IT LANDS. Skills from the new pin appear within the session (measured
-# 2026-07-30 and again 2026-09-25); hooks run from the old pin until the next
-# session or /reload-plugins. The one line printed names a moved pin, so a lag
-# is legible rather than silent.
+# Also uninstalls the retired daisy-alpine and google-style-clarity plugins
+# where an older snapshot still has them.
 #
-# Also uninstalls the plugins the marketplace retired on 2026-09-27
-# (daisy-alpine, google-style-clarity), so a snapshot built before then stops
-# carrying a second copy of daisy-alpine.
-#
-# Its own hook entry: the harness caps output per entry (see invoke-default.sh).
-# Never fails into the session: every path exits 0.
+# Its own hook entry, because the harness caps output per entry. Always exits 0.
 set -uo pipefail
 cat >/dev/null 2>&1
 command -v claude >/dev/null 2>&1 || exit 0

@@ -1,23 +1,17 @@
 #!/usr/bin/env bash
 # PreToolUse: refuse AskUserQuestion in every session the plugin reaches.
 #
-# WHY A HOOK. The owner's standing rule is prose over a menu: lay out what was
-# found, the options and a recommendation, and let the reader answer freely. It
-# was enforced by permissions.deny, written into ~/.claude/settings.json by the
-# account's environment setup script and repeated in home's and web-tools'
-# project settings. A plugin cannot carry that deny: its settings.json honors
-# only `agent` and `subagentStatusLine`. Project settings are not read when a
-# multi-repo session's root sits above the checkouts. So the one channel that
-# reaches every session is a hook, and moving the ban here is what lets the
-# setup script shrink to the plugin install.
+# The owner's rule is a question asked in prose, not a menu. A plugin cannot
+# ship permissions.deny (its settings.json honors only `agent` and
+# `subagentStatusLine`), and project settings are not read when a session's
+# root sits above the checkouts, so a hook is the one channel that reaches
+# every session.
 #
-# UNVERIFIED as of 2026-09-27: whether PreToolUse fires for AskUserQuestion. The
-# hooks reference lists matchers by tool name without excluding it. The project
-# settings deny stays as a backstop where it is read, and the first session with
-# the setup-script deny removed is the test.
+# Not verified: whether PreToolUse fires for AskUserQuestion. The project
+# settings deny in home and web-tools stays as a backstop.
 #
-# Never denies anything it was not aimed at: the payload is re-checked against
-# the tool name, and any other shape exits 0 and says nothing.
+# Denies nothing else: the tool name is re-checked, and any other payload exits
+# 0 silently.
 set -uo pipefail
 
 HOOK_PAYLOAD="$(cat)" python3 <<'PY' 2>/dev/null || exit 0
