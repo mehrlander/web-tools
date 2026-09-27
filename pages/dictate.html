@@ -1351,12 +1351,10 @@
           // move handler uses, and the count resets so a scroll cannot become
           // the first half of a double.
           if (e.target?.closest?.('[data-md-ui]')) { taps = 0; return; }
-          // A SIDEWAYS SWIPE ON A CARD steps through its stops: left toward
-          // new, right toward the original. The card carries touch-action:pan-y,
-          // so the drag reaches here.
+          // A sideways swipe on a card is the card's own scroll (md-surface,
+          // the snap track), settled into a reading by md-card-reading. It
+          // arrives here, if at all, as a release far from its press.
           const card = this.rendered && e.target?.closest?.('[data-md-card]');
-          const dx = e.clientX - x, dy = e.clientY - y;
-          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard, dx < 0 ? 1 : -1); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
           // Under the native option a long press was the platform selecting,
           // and a press on a selection's end was its handle: neither is a tap,
@@ -1369,7 +1367,7 @@
           // The original takes no caret, so a tap on it returns the card to the
           // marked text, where the next tap, or a double, lands as usual.
           if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
-            taps = 0; this.setCardReading(+card.dataset.mdCard, 'inline'); return;
+            taps = 0; this.pickReading(+card.dataset.mdCard, 'inline'); return;
           }
           // A struck word is the base's, not the buffer's: tapping it offers it back.
           const gone = this.rendered && e.target?.closest?.('del');
@@ -2562,26 +2560,20 @@
       // Each run of blocks that differs from GitHub's copy is one card in the
       // Rendered face (kits/md-surface.js, tracked), shown with its change
       // marked and open to typing. Its stops pill reads original, marked and
-      // new; a tap on a stop or a sideways swipe picks one, a tap on the
-      // original returns to marked, and its number offers the one thing left
-      // to decide: going back to the original for good.
+      // new; a sideways swipe moves the card's text with the finger and
+      // settles on one (md-card-reading), a tap on a stop scrolls there, a
+      // tap on the original returns to marked, and its number offers the one
+      // thing left to decide: going back to the original for good.
       setCardReading(i, mode) {
         window.MdSurface.setReading(this.$refs.md, i, mode);
         this.paint();
-        // On touch the reading slides in over 200ms, and the caret and pins
-        // are measured, so they are measured again once it has landed.
-        setTimeout(() => this.paint(), 240);
       },
-      swipeCard(i, step) {
-        const md = this.$refs.md;
-        const modes = window.MdSurface.cardModes(md, i);
-        if (modes.length < 2) return;
-        const k = Math.max(0, Math.min(modes.length - 1, modes.indexOf(window.MdSurface.readingOf(md, i)) + step));
-        this.setCardReading(i, modes[k]);
+      pickReading(i, mode) {
+        if (!window.MdSurface.showReading(this.$refs.md, i, mode)) this.setCardReading(i, mode);
       },
       cardTap(ev) {
         const read = ev.target?.closest?.('[data-md-card-read]');
-        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.setCardReading(+i, m); return; }
+        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
         if (!badge || !window.rowMenu) return;
         const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
@@ -3333,6 +3325,7 @@
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
         <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
+             @md-card-reading="setCardReading($event.detail.i, $event.detail.mode)"
              @contextmenu="native || $event.preventDefault()" @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,

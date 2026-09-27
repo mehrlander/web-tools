@@ -206,9 +206,9 @@ test('tracked render draws each changed paragraph as its own card and maps only 
   window.MdSurface.setReading(host, 0, 'new');
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   assert.ok(!host.querySelector('[data-md-card="0"] [data-md-reading="new"] del'), 'new is the text clean');
-  assert.ok(host.querySelector('[data-md-card="0"] [data-md-reading="inline"].invisible'),
-    'the other readings stay in the card, invisible, so it keeps the tallest one\'s height');
-  assert.equal(host.querySelectorAll('[data-md-card="0"] [data-md-reading]:not(.invisible) [data-src]').length,
+  assert.ok(host.querySelector('[data-md-card="0"] [data-md-track] > [data-md-reading="inline"][data-md-off]'),
+    'the other readings stay in the card, side by side on its track, so it keeps the tallest one\'s height');
+  assert.equal(host.querySelectorAll('[data-md-card="0"] [data-md-reading]:not([data-md-off]) [data-src]').length,
     host.querySelectorAll('[data-md-card="0"] [data-src]').length, 'only the reading on screen is mapped');
   assert.ok(host.querySelector('[data-md-card="0"] [data-src]'), 'and it takes the caret');
   const typedNew = text.replace('Added para.', 'Added para!');

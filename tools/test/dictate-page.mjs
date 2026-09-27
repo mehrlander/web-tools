@@ -1479,6 +1479,61 @@ try {
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.toggleNativeSel(); });
   const offAgain = await page.evaluate(() => document.querySelector('[x-ref="md"]').hasAttribute('data-native-sel'));
   ok('turning the option off gives the words back to the page', !offAgain);
+
+  // ── A card's readings are a snap track ──────────────────────────────
+  // The text follows the finger and the platform settles it on a reading,
+  // as the Changes view does. The page no longer reads a swipe off how far a
+  // release landed from its press, which is how a selection handle dragged
+  // sideways across a card turned it over.
+  {
+  console.log('card track:');
+  await reset();
+  const cardAt = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.$refs.view.scrollTop = 0;
+    c.d.text = c.text.replace('Second para.', 'Second paragraph here.'); c.paint();
+    await new Promise((r) => setTimeout(r, 100));
+    const card = c.$refs.md.querySelector('[data-md-card]'), t = card.querySelector('[data-md-track]');
+    const r = t.getBoundingClientRect();
+    return { i: +card.dataset.mdCard, w: t.clientWidth, sw: t.scrollWidth, left: t.scrollLeft,
+             x: r.left + r.width / 2, y: r.top + r.height / 2, reading: window.MdSurface.readingOf(c.$refs.md, +card.dataset.mdCard) };
+  });
+  ok('a card opens on its marked reading, with the others beside it on a track',
+    cardAt.reading === 'inline' && Math.abs(cardAt.sw - 3 * cardAt.w) < 4 && Math.abs(cardAt.left - cardAt.w) < 2, JSON.stringify(cardAt));
+  const readNow = () => page.evaluate((i) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const t = c.$refs.md.querySelector('[data-md-card="' + i + '"] [data-md-track]');
+    return { reading: window.MdSurface.readingOf(c.$refs.md, i), left: t && t.scrollLeft, w: t && t.clientWidth,
+             mapped: !!c.$refs.md.querySelector('[data-md-card="' + i + '"] [data-md-reading="new"] [data-src]') }; }, cardAt.i);
+  const stopNew = await page.evaluate((i) => { const b = document.querySelector('[data-md-card-read="' + i + ':new"]').getBoundingClientRect();
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, cardAt.i);
+  await page.touchscreen.tap(stopNew.x, stopNew.y);
+  await page.waitForTimeout(700);
+  const afterStop = await readNow();
+  ok('a tap on a stop scrolls the track there, and that reading takes the caret',
+    afterStop.reading === 'new' && Math.abs(afterStop.left - 2 * afterStop.w) < 2 && afterStop.mapped, JSON.stringify(afterStop));
+  // A finger dragged right across the card: the text moves while it drags,
+  // and the release settles one reading back, on marked.
+  const cdp = await page.context().newCDPSession(page);
+  const touchAt = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y: cardAt.y }] });
+  await touchAt('touchStart', cardAt.x - 100);
+  for (let k = 1; k <= 8; k++) { await touchAt('touchMove', cardAt.x - 100 + k * 25); await page.waitForTimeout(16); }
+  const mid = await readNow();
+  await touchAt('touchEnd');
+  await page.waitForTimeout(900);
+  const afterDrag = await readNow();
+  ok('a drag moves the text with the finger', mid.left < 2 * mid.w - 20, JSON.stringify(mid));
+  ok('and the release settles on the next reading over', afterDrag.reading === 'inline' && Math.abs(afterDrag.left - afterDrag.w) < 2, JSON.stringify(afterDrag));
+  // A press that travels sideways and lifts is no longer a swipe: under the
+  // native option that is a selection handle, and it must leave the card be.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (!c.nativeSel) c.toggleNativeSel(); });
+  await touch('pointerdown', cardAt.x - 60, cardAt.y);
+  await touch('pointermove', cardAt.x + 60, cardAt.y);
+  await touch('pointerup', cardAt.x + 60, cardAt.y);
+  await page.waitForTimeout(300);
+  const afterHandle = await readNow();
+  ok('a sideways press-and-release, as a selection handle makes, does not turn the card', afterHandle.reading === 'inline', JSON.stringify(afterHandle));
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (c.nativeSel) c.toggleNativeSel(); });
+  }
 } finally {
   await browser.close();
   server.close();
