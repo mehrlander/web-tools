@@ -22,7 +22,7 @@ skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
 skill,/portable:consolidate-memory,skills/consolidate-memory/SKILL.md,consolidate-memory,,plugin
-skill,/portable:daisy-alpine,skills/daisy-alpine/SKILL.md,daisy-alpine,,plugin
+skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
 skill,/portable:doc-coauthoring,skills/doc-coauthoring/SKILL.md,doc-coauthoring,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
 skill,/portable:document-visual-mapping,skills/document-visual-mapping/SKILL.md,document-visual-mapping,,plugin
@@ -68,7 +68,6 @@ doc,,docs/TRACKER.md,Project tracker,opt-in cross-session tracker: one file per 
 doc,,docs/CONSTELLATION.md,Constellation architecture,"the portable kernel of the what-goes-where doctrine: commit discipline, visibility forces repo boundaries, conventions pull from a public hub, the repo owns its own scope, documentation has four places. The theory behind show-repo's Map view",reference
 doc,,docs/show-repo.md,show-repo,"the hosted shell, the stage, and the .web-tools.json manifest",on-demand
 doc,,docs/artifacts.md,Artifacts,the bake-and-publish pipeline and the 📦 marker's place in the link-choice matrix,on-demand
-doc,,docs/HTML-STYLE.md,HTML house style (the name),"the name the style guide is asked for, pointing at the rules. They live in the daisy-alpine skill, which arrives with the plugin and fires on page work whether or not anyone asks; this file exists so a search for ""style guide"" in any repo lands somewhere",on-demand
 doc,,docs/headless-vendoring.md,Headless vendoring,build with CDN stacks and test them headless where the sandbox blocks their CDNs,on-demand
 doc,,docs/markdown-in-chat.md,Markdown in chat,working visually with markdown in a chat client; tables over nested bullets,on-demand
 doc,,docs/github/markdown.md,GitHub markdown,"what GitHub's renderer does with Mermaid, math, alerts, sparklines",on-demand

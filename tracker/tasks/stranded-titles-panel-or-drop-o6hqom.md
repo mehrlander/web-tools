@@ -45,7 +45,7 @@ land together.
 - `lib/alpineComponents/map.js`: start here after Map cleanup; largest untouched carrier at filing
 - `lib/alpineComponents/estate.js`: worked precedent for building a panel from a stranded title
 - `lib/alpineComponents/state-view.js`, `lib/alpineComponents/fab.js`: other concentrated carriers in the filing table
-- `docs/HTML-STYLE.md`: house-style rule 7 (panel behaviors a built title owes); PR #543 carried it into daisy-alpine
+- `skills/html-style/SKILL.md`: house-style rule 7 (panel behaviors a built title owes), carried in by PR #543
 - task `align-map-view-cleanup-40afu8`: soft sequence: finish Map alignment before working map.js titles
 - PR #610: cut stranded titles ~128 to ~25 (notes+cards); restamp counts before acting
 - PR #447: original survey and worst-case fixes on branch/session rows

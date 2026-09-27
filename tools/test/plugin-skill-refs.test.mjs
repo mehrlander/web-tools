@@ -26,7 +26,7 @@ const carried = new Set(portable.skills.map(s => path.posix.basename(s)));
 // Skills a plugin skill may name because the platform supplies them, not this
 // plugin. Each entry says where it comes from.
 const PLATFORM = new Map([
-  ['dataviz', 'bundled with Claude; daisy-alpine cites its stat-tile heuristic to overrule it'],
+  ['dataviz', 'bundled with Claude; html-style cites its stat-tile heuristic to overrule it'],
 ]);
 
 const PATTERNS = [

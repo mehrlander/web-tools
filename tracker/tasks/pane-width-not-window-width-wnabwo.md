@@ -14,7 +14,7 @@ keeps answering a question nobody asked: how wide is the WINDOW. Nothing is
 wrong at any window size, which is why these survive.
 
 **The rule is already written**, so this task is the sweep and nothing else:
-`skills/daisy-alpine/references/mechanics.md` rule 10 says to size a pane by its
+`skills/html-style/references/mechanics.md` rule 10 says to size a pane by its
 container, `@container` on the column and `@md:`/`@xl:` in place of `sm:`/`lg:`.
 (No longer in `docs/HTML-STYLE.md`, a pointer since 2026-08-31.)
 
@@ -37,9 +37,8 @@ mechanism, not just the first.
 
 ## Related
 
-- `skills/daisy-alpine/references/mechanics.md`: rule 10 already states container sizing
+- `skills/html-style/references/mechanics.md`: rule 10 already states container sizing
 - `docs/SNAGS.md`: `viewport-rule-blind-to-a-docked-pane` filing note
-- `docs/HTML-STYLE.md`: pointer since 2026-08-31; mechanics.md owns the rule
 - `lib/alpineComponents/viewer.js`: Files corridor fix (`!max-w-none`) lived here
 - PR #480: Docs conversion that filed the sweep
 - PR #574: Files conversion without citing this task
