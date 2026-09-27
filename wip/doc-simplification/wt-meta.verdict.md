@@ -68,3 +68,15 @@ The direction of the Gotchas cut is backwards. `testing.md:52-55` says headless-
 
 **Corrected words removed:** about 900. headless-vendoring.md loses 88 + 276 = 364. testing.md loses about 370 from the Tailwind section, 107 from the typography story, about 45 from `?use=`, and about 80 from the two gotcha copies.
 
+## 6. artifacts.md: keep the house pipeline, drop the copied matrix and the stale platform summary
+
+**Verdict:** revise
+
+**Checked:** The matrix at `artifacts.md:27-34` does restate what `showing-mechanisms.csv` holds, and `CLAUDE.md` says the link rule is not restated. The inbound links listed are right: `surfacing-extended.md:14`, `portable.csv:26`, and `docs/examples/which-link.html` exists as a second copy of the matrix. The drift is real. The Artifact tool's description in this session says a page may load scripts from `cdnjs.cloudflare.com` and `cdn.jsdelivr.net/npm/` and stylesheets from Google Fonts, may publish several files through `files`, and may declare runtime capabilities (a shared database, viewer identity, live data). `artifacts.md:13-15`, `:45-47` say the opposite. That comes from the tool's own text in this session, not from a publish probe.
+
+The proposal keeps the parts the drift hits hardest. First, the bake step (`:58-61`) exists because "the CSP blocks every external request". If jsDelivr `/npm/` scripts load, a page in CDN form may publish without a bake, and the pipeline the proposal calls "what the estate adds" may be one step shorter or gone. Second, convention 3 (`:117-120`) reasons from "the CSP means the page cannot read repo files live". Third, convention 5 (`:124-126`, "Nothing notifies sessions of changes") is now contradicted by the tool's watch and comment features, though the proposal already drops 5. Fourth, the replacement line points at the `artifact` row of `showing-mechanisms.csv`, and that row says "artifact CSP blocks every external request". `surfacing-extended.md:14` says the same ("bake CDN dependencies in first"). Linking to the owner moves the reader to a copy that is just as stale.
+
+**Revised proposal:** Do the cuts as proposed: the matrix to one line, the platform summary to a link, and the stale-sign-in tell kept. Before keeping the pipeline, run one probe: publish the CDN-form `examples/which-link.html` without baking and see whether it renders. If it renders, cut the pipeline to "author in CDN form, strip to a fragment, publish", and note that `/combine/` URLs may still need a bake because the tool names only `/npm/`. Either way, fix the CSP wording in the `artifact` row of `showing-mechanisms.csv` and in `surfacing-extended.md:14` in the same change. Reword convention 3 to "embedded data is a snapshot unless the page declares a live-data capability". Retire `which-link.html` with the matrix rather than regenerate it.
+
+**Corrected words removed:** about 650, as estimated, before the probe. Spans measure 224 + 63 + 81 + 268 + 92 = 728, less about 80 kept. If the probe shows the bake is unneeded, about 100 more.
+
