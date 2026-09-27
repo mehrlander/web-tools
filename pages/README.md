@@ -42,6 +42,7 @@ the link-dense text twin of the visual index above.
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
 | `session-context` | Session Context | [view](https://mehrlander.github.io/web-tools/pages/session-context.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session-context.html) |
+| `shortcut-edit` | Shortcut Edit | [view](https://mehrlander.github.io/web-tools/pages/shortcut-edit.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-edit.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
 | `shortcuts` | Shortcuts | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
@@ -121,7 +122,6 @@ the link-dense text twin of the visual index above.
 | Page | Title | Links |
 |---|---|---|
 | `annotate` | annotate — notes pinned to pieces of a page | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/annotate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/annotate.html) |
-| `card` | card — the way out of a card | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/card.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/card.html) |
 | `cm6` | cm6 — a CodeMirror 6 editor, framework free | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/cm6.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/cm6.html) |
 | `compression` | compression — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/compression.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/compression.html) |
 | `dictate` | dictate — voice input as a plain text buffer | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/dictate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/dictate.html) |
@@ -130,9 +130,9 @@ the link-dense text twin of the visual index above.
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
 | `md-diff` | md-diff — a documentation change, read as the document | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-diff.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html) |
-| `md-proposals` | md-proposals — a document read with its retained proposals | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-proposals.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-proposals.html) |
+| `md-variants` | md-variants: a document read with its retained variants | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-variants.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
-| `note` | note — the small tooltip | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/note.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/note.html) |
+| `panel-tip` | panel-tip — the way out of a panel-tip | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/panel-tip.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/panel-tip.html) |
 | `peek` | peek — the region under the pointer | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/peek.html) |
 | `persistence` | persistence — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html) |
 | `read-aloud` | read-aloud — markdown reduced to what is worth hearing | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/read-aloud.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/read-aloud.html) |
@@ -140,6 +140,7 @@ the link-dense text twin of the visual index above.
 | `row-menu` | row-menu — a tap on a row, and what you can do with it | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/row-menu.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/row-menu.html) |
 | `source-peek` | source-peek — the hover card behind an exact-file GitHub jump-over | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/source-peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/source-peek.html) |
 | `swipe-deck` | swipe-deck — the house swipe format | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/swipe-deck.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/swipe-deck.html) |
+| `title-tip` | title-tip — the small tooltip | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/title-tip.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/title-tip.html) |
 | `xlsx` | xlsx — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/xlsx.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/xlsx.html) |
 
 ## pages/news/

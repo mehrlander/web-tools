@@ -317,7 +317,7 @@ function sessionContext() {
         const m = this.address.trim().match(/^([^/@:]+\/[^/@:]+)(?:@([^:]+))?:(.+)$/);
         if (!m) throw new Error('Use owner/repo@ref:path to a session JSON.');
         // Lazy boot: the route map and local JSON reader need no token or GH calls.
-        if (!window.GH) await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
+        if (!window.GH) await import('https://mehrlander.github.io/web-tools/lib/entry.js');
         const client = new window.GH({repo:m[1],ref:m[2] || 'main'});
         this.accept(JSON.parse((await client.get(m[3])).text),m[3].split('/').pop());
         this.loadedAddress = this.address.trim(); if (remember) this.remember();

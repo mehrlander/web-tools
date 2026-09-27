@@ -7,9 +7,10 @@ facts these build on.
 
 Everything here resolves the same two networks of dependencies to local files:
 
-- **Own code** — the page's first jsDelivr `/gh/` import of `gh-api.js`, then
-  every `gh.load()` after it via the GitHub contents API → the on-disk working
-  tree (so a render reflects branch edits, not what `main` serves; no token).
+- **Own code** — the page's `lib/entry.js` import from GitHub Pages, the
+  `gh-api.js` it fetches from raw.githubusercontent, then every `gh.load()`
+  after it via the GitHub contents API → the on-disk working tree (so a render
+  reflects branch edits, not what `main` serves; no token).
 - **Third-party libs** — Tailwind / daisyUI / Phosphor / Alpine off jsDelivr +
   unpkg → npm-installed copies under `node_modules`.
 
@@ -119,10 +120,9 @@ is fully offline-capable.
 
 The build and the runtime loader **optimize opposite things**. `gh.load` exists
 for freshness — edit a file, see it immediately — fetching own code through the
-contents API (not jsDelivr) precisely to dodge CDN caching. The build is the
-opposite: a *delivery snapshot*, regenerated on demand, not polled. So the build
-should never go back onto jsDelivr (that reintroduces the 12h branch-tip cache the
-loader was written to avoid). Its caching-free homes are:
+contents API precisely to dodge CDN caching. The build is the opposite: a
+*delivery snapshot*, regenerated on demand, not polled. Its caching-free homes
+are:
 
 - **Inlined into HTML** (see "bake", below) — nothing to fetch; the code is in the
   document.
@@ -133,8 +133,8 @@ loader was written to avoid). Its caching-free homes are:
 A page adopts the build by swapping one line — its loader import:
 
 ```js
-// gh-for-review (unchanged): runtime loads from the CDN at ?use=<ref>
-await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+// gh-for-review (unchanged): runtime loads at ?use=<ref>, else main
+await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 // the build (offline / production twin): same chain, served from the inlined cache
 await import('../dist/diff-tool.js');
 ```
@@ -182,7 +182,7 @@ whole chain and writes one line:
 
 ```js
 // loader (dev / freshness): per-file, ref-pinnable, network for own code
-await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 // pre-build (delivery / simplicity): whole library, one fetch, no own-code network
 await import('../dist/web-tools.js');
 ```
@@ -193,10 +193,9 @@ ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
 instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
 Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` re-pins the bundle to
 that ref for review. It does so by **fetch + blob-import from
-raw.githubusercontent**, not jsDelivr's `/gh/` CDN: raw serves public files
-anonymously with permissive CORS and no branch-tip cache, so a fresh push
-previews immediately (jsDelivr's `/gh/` listing lags ~12h, which used to make a
-just-pushed branch preview stale). A blob URL imports despite raw's `text/plain`
+raw.githubusercontent**, the same route `lib/entry.js` takes: raw serves public
+files anonymously with permissive CORS and a five-minute cache, so a fresh push
+previews immediately. A blob URL imports despite raw's `text/plain`
 type because the blob sets its own JS type, and the bundle is one self-contained
 module (no internal imports), so blob-import is clean and a branch name is
 cache-safe (no SHA needed). The no-`?use` path stays the same-origin Pages
@@ -229,8 +228,7 @@ Both artifacts are committed and held to `lib/` by the commit hook and by
 half of that gate.
 
 **Staying current.** `dist/web-tools.js` is **committed** (the one exception to
-the gitignored `dist/`) and served same-origin by Pages — never back onto
-jsDelivr, whose cache the loader exists to dodge. It's held to
+the gitignored `dist/`) and served same-origin by Pages. It's held to
 `lib/` by the commit-time hook (see [The refresh model](#the-refresh-model)).
 The build is deterministic (sorted cache + sorted boot, no date stamp), so it
 only shows a diff when `lib/` actually changed. Don't hand-edit

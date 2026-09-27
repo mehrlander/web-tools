@@ -178,7 +178,7 @@ test('a cell with no conditional format carries no class for one', () => {
 test('a validation list gets the caret and its options in the note', () => {
   const html = drawWith(layoutWith({ note: { kind: 'list', title: '', prompt: '', options: ['Bill', 'Budget'] } }));
   assert.match(html, /class="dv"/);
-  assert.match(html, /data-note="One of: Bill, Budget"/);
+  assert.match(html, /data-title-tip="One of: Bill, Budget"/);
 });
 
 test('an input message gets the corner wedge and the form’s own words', () => {
@@ -186,8 +186,8 @@ test('an input message gets the corner wedge and the form’s own words', () => 
   assert.match(html, /class="note"/);
   // Excel draws the field name bold above the message, so the render does too
   // rather than inventing "Fee Code: Enter …" for something already formatted.
-  assert.match(html, /data-note-title="Fee Code"/);
-  assert.match(html, /data-note="Enter the four digit code\."/);
+  assert.match(html, /data-title-tip-lead="Fee Code"/);
+  assert.match(html, /data-title-tip="Enter the four digit code\."/);
 });
 
 test('a long option list is trimmed in the note and says how many it dropped', () => {
@@ -209,9 +209,9 @@ test('a comment wears Excel\'s red corner and names who left it', () => {
   const html = drawWith(commented());
   assert.match(html, /class="note cmt"/, 'cmt recolours the wedge the note class draws');
   assert.match(html, /td\.cmt::before\{border-top-color:#dc2626/);
-  assert.match(html, /data-note-title="Shields, Sharon \(OFM\):"/,
+  assert.match(html, /data-title-tip-lead="Shields, Sharon \(OFM\):"/,
     'Excel writes the author with a colon over the comment, and bold');
-  assert.match(html, /data-note="Include sales tax\."/);
+  assert.match(html, /data-title-tip="Include sales tax\."/);
 });
 
 test('a comment outranks a list, so one cell wears one mark', () => {
@@ -227,20 +227,20 @@ test('everything a commented cell knows arrives in one note, in reading order', 
   const html = drawWith(commented({ title: 'Rate', prompt: 'Hourly.' }), {});
   // Read back off the DOM, so the &#10; the markup carries is a real newline
   // here; a reader sees the break either way.
-  const note = /\bdata-note="([^"]*)"/.exec(html)[1];
+  const note = /\bdata-title-tip="([^"]*)"/.exec(html)[1];
   assert.equal(note, 'Include sales tax.\n\nRate: Hourly.',
     'the comment first, the form\'s own instruction after, separated by a blank line');
-  assert.match(html, /data-note-title="Shields, Sharon \(OFM\):"/,
+  assert.match(html, /data-title-tip-lead="Shields, Sharon \(OFM\):"/,
     'the author took the lead line, so the form\'s own title comes back inline');
 });
 
-test('a sheet cell opts out of the note kit\'s underline', () => {
-  // The kit underlines a `data-note` element by default. Excel underlines
+test('a sheet cell opts out of the title-tip kit\'s underline', () => {
+  // The kit underlines a `data-title-tip` element by default. Excel underlines
   // nothing, the render\'s claim is that it looks like Excel, and the stored-
   // value note lands on most numeric cells, so the underline would be on half
   // the sheet.
   const html = drawWith(commented());
-  assert.match(html, /data-note-bare(="")?[ >]/);
+  assert.match(html, /data-title-tip-bare(="")?[ >]/);
 });
 
 test('a fact never rides in a title attribute', () => {
@@ -402,14 +402,14 @@ test('a sheet names itself once per run, so the column reads as a grouping', () 
     'the name returns when the sheet does, so a run is never mislabelled by the one above it');
 });
 
-test('a sheet cell asks the note kit for Excel\'s comment box', () => {
+test('a sheet cell asks the title-tip kit for Excel\'s comment box', () => {
   // The sheet beside it is a reproduction, and a rounded panel in the page's
   // own theme was the one thing on it that announced it was not Excel.
   const html = drawWith(commented());
-  assert.match(html, /data-note-look="excel"/);
-  assert.match(html, /#wt-note\[data-look="excel"\]\{[^}]*background:#ffffe1/,
+  assert.match(html, /data-title-tip-look="excel"/);
+  assert.match(html, /#wt-title-tip\[data-look="excel"\]\{[^}]*background:#ffffe1/,
     "Windows' info-tip yellow, which is what Excel fills a comment with");
-  assert.match(html, /#wt-note\[data-look="excel"\]\{[^}]*border-radius:0/,
+  assert.match(html, /#wt-title-tip\[data-look="excel"\]\{[^}]*border-radius:0/,
     'square corners: the rounded default is the tell');
 });
 
@@ -417,8 +417,8 @@ test('every cell note wears the same box, not only the comments', () => {
   // One sheet cannot show two kinds of tooltip. A cell whose only note is the
   // stored value has no Excel counterpart and still gets Excel's frame.
   const stored = drawWith(layoutWith({ raw: '0.125' }));
-  assert.match(stored, /data-note-look="excel"/);
-  assert.match(stored, /data-note="Stored as 0\.125"/);
+  assert.match(stored, /data-title-tip-look="excel"/);
+  assert.match(stored, /data-title-tip="Stored as 0\.125"/);
 });
 
 test('the Excel look is asked for per note, so it cannot leak to the page', () => {
@@ -426,5 +426,5 @@ test('the Excel look is asked for per note, so it cannot leak to the page', () =
   // to be unscoped; what keeps it off the rest of the estate is that the kit
   // stamps data-look per note and clears it again.
   const html = drawWith(commented());
-  assert.doesNotMatch(html, /#wt-note\{/, 'the bare panel selector would restyle every note there is');
+  assert.doesNotMatch(html, /#wt-title-tip\{/, 'the bare panel selector would restyle every note there is');
 });

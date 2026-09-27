@@ -98,7 +98,15 @@ const WITH_REPLACE = '==name==\nAlpha\nChoose-Thing\nMenu-Thing\n'
 const WITHOUT_REPLACE = '==name==\nAlpha\nChoose-Thing\nMenu-Thing\n'
                       + 'Fresh-Install\n==folder==\nAgentic\n';
 let MANIFEST = WITH_REPLACE;
-const LOG = JSON.stringify({ op: 'run', name: 'Alpha', build: 'aaa111' });
+// Two rows for Alpha, newest first. The paste is the case that read wrong until
+// 2026-09-26: its `build` is Library-Paste's own stamp (fff999) and Alpha's is
+// `target`, so a page reading `build` called a fresh paste stale. The older run
+// carries a superseded build, which the paste must win over.
+const LOG = {
+  '2026-09-15-101010.json': JSON.stringify({ op: 'paste', name: 'Alpha', target: 'aaa111', build: 'fff999',
+    from: 'https://raw.githubusercontent.com/mehrlander/shortcut-tools/0123456789012345678901234567890123456789/packed/alpha.json' }),
+  '2026-09-15-090000.json': JSON.stringify({ op: 'run', name: 'Alpha', build: 'old000' }),
+};
 
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 430, height: 932 } });
@@ -119,10 +127,11 @@ const handler = async route => {
   if (url.includes('/contents/shortcuts/library.json')) return contents(route, JSON.stringify(LIBRARY));
   if (url.includes('/contents/shortcuts/manifests'))
     return json(route, [{ name: '2026-09-14.txt', download_url: origin + '/__man' }]);
+  const logFile = url.match(/\/contents\/shortcuts\/log\/([^?]+)/);
+  if (logFile) return contents(route, LOG[decodeURIComponent(logFile[1])] || '');
   if (url.includes('/contents/shortcuts/log'))
-    return json(route, [{ name: '2026-09-15-101010.json', download_url: origin + '/__log' }]);
+    return json(route, Object.keys(LOG).map(name => ({ name, path: 'shortcuts/log/' + name })));
   if (url.endsWith('/__man')) return route.fulfill({ status: 200, body: MANIFEST });
-  if (url.endsWith('/__log')) return route.fulfill({ status: 200, body: LOG });
   // The boot chain, served from this checkout: hitting the real CDN and the
   // real API would make this check depend on the network and on rate limits.
   if (url.includes('/lib/gh-api.js'))
@@ -160,20 +169,23 @@ const list = await page.evaluate(() => ({
   rows: document.querySelectorAll('#rows > tr').length,
   names: [...document.querySelectorAll('#rows a.link')].map(a => a.textContent),
   hrefs: [...document.querySelectorAll('#rows a.link')].map(a => a.getAttribute('href')),
-  badges: [...document.querySelectorAll('#rows .badge')].map(b => b.textContent),
+  states: Object.fromEntries([...document.querySelectorAll('#rows > tr')].map(tr =>
+    [tr.querySelector('a.link').textContent, tr.children[3].querySelector('[aria-label]')?.getAttribute('aria-label') || ''])),
+  icons: [...document.querySelectorAll('#rows > tr td:nth-child(4) i')].map(i => i.className),
   tally: document.getElementById('tally').textContent,
   status: document.getElementById('status').textContent,
 }));
+const st = JSON.stringify(list.states);
 ok('page boots with no error', errors.length === 0, errors[0]);
 ok('the device half is read with a token', list.status === 'device read', list.status);
 ok('the default view is the installable chains', list.rows === 3, String(list.rows));
 ok('every chain name is a link to its own page',
    list.hrefs.every(h => /^\?(name|chain)=/.test(h)), list.hrefs.join(' '));
 // The join this page exists for: a build that ran matches the build published.
-ok('a chain whose logged run matches its build reads current',
-   list.badges.includes('current'), list.badges.join(','));
-ok('a chain the device has never reported reads not on device',
-   list.badges.includes('not on device'), list.badges.join(','));
+ok('a paste is read by its target, not the installer\'s stamp: current', list.states.Alpha === 'current', st);
+ok('a chain the device has never reported reads not installed', list.states.Gamma === 'not installed', st);
+ok('states are drawn with the shared icons', list.icons.some(c => c.includes('ph-check-circle'))
+   && list.icons.some(c => c.includes('ph-plus-circle')), list.icons.join(' | '));
 ok('the header states the counts', /4 chains · 3 installable/.test(list.tally), list.tally);
 
 // ── the detail view ────────────────────────────────────────────────────────
@@ -322,7 +334,7 @@ await bare.waitForFunction(() => document.getElementById('status').textContent !
 const n = await bare.evaluate(() => ({
   status: document.getElementById('status').textContent,
   rows: document.querySelectorAll('#rows > tr').length,
-  badges: document.querySelectorAll('#rows .badge').length,
+  badges: document.querySelectorAll('#rows > tr td:nth-child(4) i').length,
   tally: document.getElementById('tally').textContent,
 }));
 ok('without a token the catalog still renders', n.rows === 3, String(n.rows));

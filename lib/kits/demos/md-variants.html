@@ -3,28 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>md-proposals — a document read with its retained proposals</title>
+<title>md-variants: a document read with its retained variants</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // The chain boot. md-proposals loads md-diff and text-proposals itself;
+  // The chain boot. md-variants loads md-diff and text-collection itself;
   // naming them here is what makes the demo's dependencies readable.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/guide-render.js');
   await gh.load('kits/md-doc.js');
   await gh.load('kits/swipe-deck.js');
   await gh.load('kits/md-diff.js');
   await gh.load('kits/text-collection.js');
-  await gh.load('kits/md-proposals.js');
+  await gh.load('kits/md-variants.js');
 
-  // A HAND-BUILT PROJECTION, in the shape kits/text-collection.js produces. The
+  // A HAND-BUILT COLLECTION, in the shape kits/text-collection.js produces. The
   // live one is read from mehrlander/home, which is private, so a public demo
   // cannot load it; what this page shows is the SURFACE, against a fixture at
-  // the density proposals actually have: nine blocks, three with proposals,
-  // one of those with two alternatives. The viewer's Proposals reading is the
-  // same kit over the live projection.
+  // the density variants actually have: nine blocks, three with variants, one
+  // of those with two alternatives, and one variant proposed for the file the
+  // demo pretends to be. The viewer's Variants reading is the same kit over
+  // the live collection.
   const P = {
     lanes: 'Fund 600 is reported as one number and read as two. The appropriated lane\ncarries recordkeeping and the agency\'s own operations, and it is the lane a\nbudget bill moves.',
     lanesClarity: 'Fund 600 is reported as one number and read as two. The appropriated lane carries recordkeeping and the agency\'s own operations. It is the only lane a budget bill moves.',
@@ -60,27 +59,32 @@ two different bases and will find a swing that is not there.
 python3 tools/allotment.py --fund 600 --lane appropriated
 \`\`\`
 `;
+  const FILE = { repo: 'mehrlander/home', path: 'skills/drs-funds/fund-600.md' };
   const INDEX = {
-    proposals: [
+    variants: [
       { id: 'demo-lanes-clarity', from: 'a', to: 'a1', author: 'Ollama mistral:7b', purpose: 'clarity' },
       { id: 'demo-lanes-half', from: 'a', to: 'a2', author: 'Chief of Staff (Grok)', purpose: 'half-length' },
       { id: 'demo-schedule', from: 'b', to: 'b1', author: 'guarded editorial pass', purpose: 'qualify' },
       { id: 'demo-base-half', from: 'c', to: 'c1', author: 'Chief of Staff (Grok)', purpose: 'half-length' },
+    ],
+    proposals: [
+      { from: 'b', to: 'b1', ...FILE, basis: 'https://github.com/mehrlander/home/pulls' },
     ],
     passages: { a: P.lanes, a1: P.lanesClarity, a2: P.lanesHalf, b: P.schedule, b1: P.scheduleQualify, c: P.base, c1: P.baseHalf },
   };
 
   const host = document.getElementById('doc');
   const count = document.getElementById('count');
-  const h = await mdProposals.render(host, DOC, INDEX, {
+  const h = await mdVariants.render(host, DOC, INDEX, {
+    file: FILE,
     onPick: (i, k) => { count.textContent = `picked alternative ${k + 1} on block ${i + 1}`; },
   });
-  count.textContent = `${h.plan.count} of ${mdDiff.blocks(DOC).length} blocks carry proposals, ${h.plan.proposals} proposals in all`;
+  count.textContent = `${h.plan.count} of ${mdDiff.blocks(DOC).length} blocks carry variants, ${h.plan.variants} variants in all`;
 </script>
 </head>
 <body class="bg-base-100 text-base-content">
   <header class="sticky top-0 z-30 flex items-center gap-3 border-b border-base-300 bg-base-100/90 px-4 py-2 backdrop-blur">
-    <span class="font-medium">md-proposals</span>
+    <span class="font-medium">md-variants</span>
     <span id="count" class="text-sm opacity-60"></span>
   </header>
   <main class="px-4 py-6">

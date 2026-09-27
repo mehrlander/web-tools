@@ -183,7 +183,7 @@ window.persistence = { collection: () => ({
 }) };
 window.Element.prototype.scrollTo ??= function () {};
 window.Element.prototype.scrollIntoView ??= function () {};
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-workspace.js', 'lib/kits/powershell-language.js',
+for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/sync-status.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-workspace.js', 'lib/kits/powershell-language.js',
   'lib/kits/swipe-deck.js', 'lib/alpineComponents/powershell-file.js', 'lib/alpineComponents/installation-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];

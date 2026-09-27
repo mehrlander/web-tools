@@ -1,6 +1,7 @@
-// The collection, read in the browser from its two files. The fixture is a
-// miniature passages.jsonl and proposals.jsonl; what is under test is
-// identity, validation, lookup, search, and the read cache.
+// The collection, read in the browser from its files. The fixture is a
+// miniature passages.jsonl, variants.jsonl and proposals.jsonl; what is under
+// test is identity, validation, the variant-proposal join, lookup, search, the
+// read cache, and a proposals file that fails without taking the variants down.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,32 +27,43 @@ const EDGES = [
   ['old wording', 'new wording', 'doc-audit', 'repair'],
   ['The lanes answer to different authorities.', 'The lanes answer to different authorities; adding them misleads.', 'Chief of Staff (Grok)', 'half-length'],
 ];
-const PROPOSALS = EDGES.map(([from, to, author, purpose]) =>
+const VARIANTS = EDGES.map(([from, to, author, purpose]) =>
   JSON.stringify({ from: ID[from], to: ID[to], author, purpose })).join('\n') + '\n';
-const pid = ([from, to, author, purpose]) => sha(pyJson({ from: ID[from], to: ID[to], author, purpose }));
-const args = ({ passages = PASSAGES, proposals = PROPOSALS } = {}) => ({
-  files: { passages, proposals },
-  metadata: { passages: { sha: '1'.repeat(40), size: passages.length }, proposals: { sha: '2'.repeat(40), size: proposals.length } },
+const BASIS = 'https://github.com/mehrlander/web-tools/pull/1';
+const PROPOSALS = JSON.stringify({ from: ID.families, to: ID['bill-section families'],
+  repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }) + '\n';
+const vid = ([from, to, author, purpose]) => sha(pyJson({ from: ID[from], to: ID[to], author, purpose }));
+const args = ({ passages = PASSAGES, variants = VARIANTS, proposals = PROPOSALS } = {}) => ({
+  files: { passages, variants, proposals },
+  metadata: {
+    passages: { sha: '1'.repeat(40), size: passages.length },
+    variants: { sha: '2'.repeat(40), size: variants.length },
+    proposals: { sha: '3'.repeat(40), size: proposals.length },
+  },
   repo: 'mehrlander/home', ref: 'main',
 });
 const index = await T.build(args());
 
-test('build reads the two files and derives the Python identities', () => {
+test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.schema, 'text-collection/v1');
   assert.equal(index.summary.passages, 9);
-  assert.equal(index.summary.proposals, 4);
+  assert.equal(index.summary.variants, 4);
+  assert.equal(index.summary.proposals, 1);
   assert.equal('revisions' in index, false, 'a passage\'s history is git\'s, read by md-history, not a file here');
   assert.deepEqual(index.summary.by_purpose, { qualify: 1, rephrase: 1, repair: 1, 'half-length': 1 });
   assert.deepEqual(index.summary.by_author, { 'guarded editorial pass': 2, 'doc-audit': 1, 'Chief of Staff (Grok)': 1 });
-  assert.equal(index.proposals[0].id, pid(EDGES[0]), 'the proposal id is the hash text_store.propose writes');
+  assert.equal(index.variants[0].id, vid(EDGES[0]), 'the variant id is the hash proposal ids were, so old addresses resolve');
   assert.equal(index.sources.passages.path, P.passages);
-  assert.equal(index.sources.proposals.sha, '2'.repeat(40));
-  assert.deepEqual(Object.keys(index.sources), ['passages', 'proposals']);
+  assert.equal(index.sources.variants.path, 'projects/text/variants.jsonl');
+  assert.equal(index.sources.variants.sha, '2'.repeat(40));
+  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals']);
+  assert.deepEqual(index.proposals, [{ from: ID.families, to: ID['bill-section families'],
+    repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }]);
 });
 
 test('view is the one shape every surface reads', () => {
-  const v = T.view(index, index.proposals[0]);
-  assert.deepEqual(Object.keys(v), ['id', 'from', 'to', 'author', 'purpose']);
+  const v = T.view(index, index.variants[0]);
+  assert.deepEqual(Object.keys(v), ['id', 'from', 'to', 'author', 'purpose', 'proposals']);
   assert.equal(v.from.text, 'families');
   assert.equal(v.to.text, 'bill-section families');
   assert.equal(T.view(index, v.id).id, v.id, 'an id resolves to the same view');
@@ -81,14 +93,44 @@ test('search filters by author and purpose and reads both texts', () => {
 test('build refuses a passage that does not hash to its id, and a row outside the collection', async () => {
   await assert.rejects(T.build(args({ passages: PASSAGES.replace('"text":"chrome"', '"text":"chromium"') })), /does not hash to its id/);
   await assert.rejects(T.build(args({ passages: PASSAGES.replace('"text":"chrome"', '"text":" chrome"') })), /not edge-trimmed/);
-  await assert.rejects(T.build(args({ proposals: PROPOSALS + JSON.stringify({ from: 'x', to: ID.chrome, author: 'a', purpose: 'p' }) + '\n' })), /does not hold/);
-  await assert.rejects(T.build(args({ proposals: PROPOSALS + JSON.stringify({ from: ID.chrome, to: ID.decoration, author: '', purpose: 'p' }) + '\n' })), /without an author/);
-  await assert.rejects(T.build(args({ proposals: PROPOSALS + PROPOSALS.split('\n')[0] + '\n' })), /repeats proposal/);
-  await assert.rejects(T.build({ ...args(), files: { passages: PASSAGES } }), /missing proposals/);
+  await assert.rejects(T.build(args({ variants: VARIANTS + JSON.stringify({ from: 'x', to: ID.chrome, author: 'a', purpose: 'p' }) + '\n' })), /does not hold/);
+  await assert.rejects(T.build(args({ variants: VARIANTS + JSON.stringify({ from: ID.chrome, to: ID.decoration, author: '', purpose: 'p' }) + '\n' })), /without an author/);
+  await assert.rejects(T.build(args({ variants: VARIANTS + VARIANTS.split('\n')[0] + '\n' })), /repeats variant/);
+  await assert.rejects(T.build({ ...args(), files: { passages: PASSAGES } }), /missing variants/);
 });
 
-function fixtureGh({ token = '', failOnce = false } = {}) {
-  const blobs = { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS };
+test('build skips a bad proposal with a warning, and treats a missing proposals text as none', async () => {
+  const row = { from: ID.chrome, to: ID.decoration, repo: 'mehrlander/home', path: 'README.md', basis: BASIS };
+  const good = JSON.stringify(row) + '\n';
+  const skipped = async (bad, pattern) => {
+    const index = await T.build(args({ proposals: bad + good }));
+    assert.equal(index.proposals.length, 1, 'the good row survives the bad one');
+    assert.equal(index.summary.variants, 4, 'the variants are untouched');
+    assert.match(index.warnings.join('\n'), pattern);
+  };
+  await skipped(JSON.stringify({ ...row, from: 'x' }) + '\n', /does not hold; the row was skipped/);
+  await skipped(JSON.stringify({ ...row, basis: '' }) + '\n', /without a from, to, repo, path and basis/);
+  await skipped(JSON.stringify({ ...row, path: 7 }) + '\n', /without a from, to, repo, path and basis/);
+  const repeated = await T.build(args({ proposals: good + good }));
+  assert.equal(repeated.proposals.length, 1);
+  assert.match(repeated.warnings.join('\n'), /repeated proposal for mehrlander\/home:README\.md/);
+  const garbled = await T.build(args({ proposals: '{not json\n' }));
+  assert.deepEqual(garbled.proposals, []);
+  assert.match(garbled.warnings.join('\n'), /no proposals were read/);
+  const none = await T.build({ ...args(), files: { passages: PASSAGES, variants: VARIANTS } });
+  assert.deepEqual(none.proposals, []);
+  assert.deepEqual(none.warnings, []);
+  assert.equal(none.summary.proposals, 0);
+});
+
+test('a proposal rides on the view of the variant with the same passage pair, and only that one', () => {
+  const families = T.view(index, vid(EDGES[0]));
+  assert.deepEqual(families.proposals, [{ repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }]);
+  assert.deepEqual(T.view(index, vid(EDGES[1])).proposals, [], 'a variant nobody has proposed carries an empty list');
+  assert.deepEqual(T.lookup(index, 'families').exact[0].proposals, families.proposals, 'lookup reads the same view');
+});
+
+function fixtureGh({ token = '', failOnce = false, blobs = { [P.passages]: PASSAGES, [P.variants]: VARIANTS, [P.proposals]: PROPOSALS } } = {}) {
   const calls = [];
   let shouldFail = failOnce;
   return {
@@ -103,13 +145,14 @@ function fixtureGh({ token = '', failOnce = false } = {}) {
   };
 }
 
-test('load reads the two files at their fixed paths, and caches per credential', async () => {
+test('load reads the three files at their fixed paths, and caches per credential', async () => {
   const anon = fixtureGh();
   const a = await T.load(anon);
   const b = await T.load(anon);
   assert.equal(a, b, 'one read per client');
-  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages].sort());
-  assert.equal(a.summary.proposals, 4);
+  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants].sort());
+  assert.equal(a.summary.variants, 4);
+  assert.equal(a.summary.proposals, 1);
   const other = fixtureGh({ token: 'other' });
   assert.notEqual(await T.load(other), a, 'a different credential never receives another account\'s index');
   const quiet = fixtureGh();
@@ -127,13 +170,45 @@ test('an unreachable collection reports the status, is held briefly, and recover
     await assert.rejects(T.load(gh), /unavailable \(the read returned 404\)/);
     await assert.rejects(T.load(gh), /unavailable/, 'the rejection is held rather than retried per call');
     await new Promise(r => setTimeout(r, 60));
-    assert.equal((await T.load(gh)).summary.proposals, 4, 'and recovers once the hold expires');
+    assert.equal((await T.load(gh)).summary.variants, 4, 'and recovers once the hold expires');
   } finally { T.FAIL_MS = old; }
 });
 
 test('a malformed file names the line rather than the network', async () => {
   const gh = fixtureGh();
-  gh.get = async (path, options) => path === P.proposals ? { text: '{"from":\n' } : fixtureGh().get(path, options);
-  await assert.rejects(T.load(gh, { fresh: true }), /proposals\.jsonl line 1 is not JSON/);
+  gh.get = async (path, options) => path === P.variants ? { text: '{"from":\n' } : fixtureGh().get(path, options);
+  await assert.rejects(T.load(gh, { fresh: true }), /variants\.jsonl line 1 is not JSON/);
+  T.clear();
+});
+
+test('a proposals.jsonl that 404s is an empty list, not an unavailable collection', async () => {
+  T.clear();
+  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.variants]: VARIANTS } });
+  const loaded = await T.load(gh);
+  assert.deepEqual(loaded.proposals, []);
+  assert.equal(loaded.summary.variants, 4);
+  assert.deepEqual(T.view(loaded, loaded.variants[0]).proposals, []);
+  T.clear();
+});
+
+test('a proposals.jsonl that fails for any other reason leaves the variants readable, with a warning', async () => {
+  T.clear();
+  const gh = fixtureGh();
+  const base = gh.get.bind(gh);
+  gh.get = async (path, options) => {
+    if (path === P.proposals) { const e = new Error('Forbidden'); e.status = 403; throw e; }
+    return base(path, options);
+  };
+  const loaded = await T.load(gh);
+  assert.deepEqual(loaded.proposals, []);
+  assert.equal(loaded.summary.variants, 4);
+  assert.match(loaded.warnings.join('\n'), /could not be read .*403.*no proposals are shown/);
+  T.clear();
+});
+
+test('without variants.jsonl the collection is unavailable, not empty', async () => {
+  T.clear();
+  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS } });
+  await assert.rejects(T.load(gh), /unavailable \(the read returned 404\)/);
   T.clear();
 });

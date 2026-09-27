@@ -1,6 +1,7 @@
-// text-lab-proposals.test.mjs: the central proposal browser delegates to the
-// same collection reader as the FAB and stays addressable without claiming an
-// apply operation.
+// text-lab-variants.test.mjs: the central variant browser delegates to the
+// same collection reader as the FAB, stays addressable (including by the
+// pre-rename ?proposal= address), shows each file a variant is proposed for,
+// and never claims an apply operation.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -21,7 +22,8 @@ const MODEL = SRC.slice(start, stop);
 
 const ROWS = [
   { id: 'phrase-1', from: { passage_id: 'from-1', text: 'families' }, to: { passage_id: 'to-1', text: 'bill-section families' },
-    author: 'guarded editorial pass', purpose: 'qualify' },
+    author: 'guarded editorial pass', purpose: 'qualify',
+    proposals: [{ repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: 'https://github.com/mehrlander/web-tools/pull/1' }] },
   { id: 'audit-1', from: { passage_id: 'from-2', text: 'converting to and from' }, to: { passage_id: 'to-2', text: 'converting text to and from compressed form' },
     author: 'doc-audit', purpose: 'repair' },
   { id: 'grok-1', from: { passage_id: 'from-3', text: 'A long paragraph.' }, to: { passage_id: 'to-3', text: 'A paragraph.' },
@@ -30,10 +32,12 @@ const ROWS = [
 
 const INDEX = {
   rows: ROWS,
-  proposals: ROWS,
+  variants: ROWS,
+  proposals: [],
   summary: {
     passages: 6,
-    proposals: 3,
+    variants: 3,
+    proposals: 1,
     by_author: { 'guarded editorial pass': 1, 'doc-audit': 1, 'Chief of Staff (Grok)': 1 },
     by_purpose: { qualify: 1, repair: 1, 'half-length': 1 },
   },
@@ -71,7 +75,7 @@ function harness(search = '') {
   const document = {
     addEventListener(_name, fn) { fn(); },
     getElementById(id) {
-      if (!id.startsWith('proposal-')) return null;
+      if (!id.startsWith('variant-')) return null;
       return { scrollIntoView(options) { scrolls.push({ id, options }); } };
     },
   };
@@ -86,92 +90,122 @@ function harness(search = '') {
   return { model, window, location, history, loads, scrolls };
 }
 
-test('proposals is visible without changing the Probes landing', () => {
+test('variants is visible without changing the Probes landing', () => {
   const plain = harness().model;
   assert.equal(plain.pane, 'probes');
-  assert.equal([...plain.PANES].join(','), 'probes,proposals,instruments,resources,runs');
-  const linked = harness('?proposal=audit-1').model;
-  assert.equal(linked.pane, 'proposals', 'a proposal id is the stronger pane address');
-  assert.equal(linked.proposalOpen, 'audit-1');
+  assert.equal([...plain.PANES].join(','), 'probes,variants,instruments,resources,runs');
+  const linked = harness('?variant=audit-1').model;
+  assert.equal(linked.pane, 'variants', 'a variant id is the stronger pane address');
+  assert.equal(linked.variantOpen, 'audit-1');
+});
+
+test('the pre-rename ?proposal= and ?pane=proposals addresses open the same row and are rewritten', () => {
+  const h = harness('?use=branch&proposal=audit-1&q=converting');
+  assert.equal(h.model.pane, 'variants');
+  assert.equal(h.model.variantOpen, 'audit-1');
+  h.model.migrateLegacyAddress();
+  const url = new URL(h.location.href);
+  assert.equal(url.searchParams.get('variant'), 'audit-1');
+  assert.equal(url.searchParams.has('proposal'), false);
+  assert.equal(url.searchParams.get('pane'), 'variants');
+  assert.equal(url.searchParams.get('use'), 'branch', 'other params ride through');
+  assert.equal(url.searchParams.get('q'), 'converting');
+  const pane = harness('?pane=proposals');
+  assert.equal(pane.model.pane, 'variants');
+  pane.model.migrateLegacyAddress();
+  assert.equal(new URL(pane.location.href).searchParams.get('pane'), 'variants');
+  const current = harness('?variant=audit-1');
+  current.model.migrateLegacyAddress();
+  assert.equal(current.history.writes.length, 0, 'a current address is left alone');
 });
 
 test('the pane loads the collection reader once, and nothing else', async () => {
-  const h = harness('?pane=proposals');
+  const h = harness('?pane=variants');
   h.model.home = { repo: 'mehrlander/home', ref: 'main' };
-  await h.model.loadProposals();
-  await h.model.loadProposals();
+  await h.model.loadVariants();
+  await h.model.loadVariants();
   assert.equal(h.loads.join(','), 'kits/text-collection.js');
-  assert.equal(h.model.proposalState, 'done');
-  assert.equal(h.model.proposalTotal, 3);
+  assert.equal(h.model.variantState, 'done');
+  assert.equal(h.model.variantTotal, 3);
 });
 
 test('search and facets are delegated, grouped by purpose, and deep links stay visible', () => {
-  const h = harness('?pane=proposals&q=families&author=guarded%20editorial%20pass&purpose=qualify');
-  h.model.proposalIndex = INDEX;
-  h.model.proposalState = 'done';
-  assert.equal(h.model.proposalRows.map(row => row.id).join(','), 'phrase-1');
-  assert.equal(h.model.proposalGroups().map(group => group.purpose).join(','), 'qualify');
-  assert.deepEqual(h.model.proposalFacet('purpose').map(row => row.key), ['half-length', 'qualify', 'repair'],
+  const h = harness('?pane=variants&q=families&author=guarded%20editorial%20pass&purpose=qualify');
+  h.model.variantIndex = INDEX;
+  h.model.variantState = 'done';
+  assert.equal(h.model.variantRows.map(row => row.id).join(','), 'phrase-1');
+  assert.equal(h.model.variantGroups().map(group => group.purpose).join(','), 'qualify');
+  assert.deepEqual(h.model.variantFacet('purpose').map(row => row.key), ['half-length', 'qualify', 'repair'],
     'facets are the collection\'s own values, counted');
-  h.model.proposalQ = 'nothing matches';
-  h.model.proposalOpen = 'audit-1';
-  assert.equal(h.model.proposalRows[0].id, 'audit-1', 'the exact proposal address wins over stale search filters');
+  h.model.variantQ = 'nothing matches';
+  h.model.variantOpen = 'audit-1';
+  assert.equal(h.model.variantRows[0].id, 'audit-1', 'the exact variant address wins over stale search filters');
 });
 
-test('a proposal deep link scrolls its expanded row into view after loading', async () => {
-  const h = harness('?proposal=audit-1');
+test('a variant deep link scrolls its expanded row into view after loading', async () => {
+  const h = harness('?variant=audit-1');
   h.model.home = { repo: 'mehrlander/home', ref: 'main' };
-  await h.model.loadProposals();
-  assert.deepEqual(h.scrolls, [{ id: 'proposal-audit-1', options: { block: 'start' } }]);
+  await h.model.loadVariants();
+  assert.deepEqual(h.scrolls, [{ id: 'variant-audit-1', options: { block: 'start' } }]);
 });
 
-test('proposal state round-trips through the address', () => {
+test('variant state round-trips through the address', () => {
   const h = harness('?use=branch&data=home-branch');
-  h.model.pane = 'proposals';
-  h.model.proposalQ = 'families';
-  h.model.proposalAuthor = 'doc-audit';
-  h.model.proposalPurpose = 'repair';
-  h.model.toggleProposal('audit-1');
+  h.model.pane = 'variants';
+  h.model.variantQ = 'families';
+  h.model.variantAuthor = 'doc-audit';
+  h.model.variantPurpose = 'repair';
+  h.model.toggleVariant('audit-1');
   const url = new URL(h.location.href);
   assert.equal(url.searchParams.get('use'), 'branch');
   assert.equal(url.searchParams.get('data'), 'home-branch');
-  assert.equal(url.searchParams.get('pane'), 'proposals');
+  assert.equal(url.searchParams.get('pane'), 'variants');
   assert.equal(url.searchParams.get('q'), 'families');
   assert.equal(url.searchParams.get('author'), 'doc-audit');
   assert.equal(url.searchParams.get('purpose'), 'repair');
-  assert.equal(url.searchParams.get('proposal'), 'audit-1');
-  h.model.setProposalFilter('purpose', 'qualify');
+  assert.equal(url.searchParams.get('variant'), 'audit-1');
+  h.model.setVariantFilter('purpose', 'qualify');
   const filtered = new URL(h.location.href);
   assert.equal(filtered.searchParams.get('purpose'), 'qualify');
-  assert.equal(filtered.searchParams.has('proposal'), false,
+  assert.equal(filtered.searchParams.has('variant'), false,
     'changing the result set closes a detail that may no longer belong to it');
 });
 
 test('a facet the collection does not hold is dropped once the collection is read', async () => {
-  const h = harness('?pane=proposals&author=nobody&purpose=impossible');
-  h.model.normalizeProposalParams();
-  assert.equal(h.model.proposalAuthor, 'nobody', 'before the load nothing is known to be invalid');
+  const h = harness('?pane=variants&author=nobody&purpose=impossible');
+  h.model.normalizeVariantParams();
+  assert.equal(h.model.variantAuthor, 'nobody', 'before the load nothing is known to be invalid');
   h.model.home = { repo: 'mehrlander/home', ref: 'main' };
-  await h.model.loadProposals();
-  assert.equal(h.model.proposalAuthor, '');
-  assert.equal(h.model.proposalPurpose, '');
+  await h.model.loadVariants();
+  assert.equal(h.model.variantAuthor, '');
+  assert.equal(h.model.variantPurpose, '');
   const url = new URL(h.location.href);
   assert.equal(url.searchParams.has('author'), false);
   assert.equal(url.searchParams.has('purpose'), false);
 });
 
 test('the markup shows the four fields and never offers Apply', () => {
-  assert.match(SRC, /x-show="pane === 'proposals'"/);
-  assert.match(SRC, /Search proposals/);
-  assert.match(SRC, /Proposed replacement/);
+  assert.match(SRC, /x-show="pane === 'variants'"/);
+  assert.match(SRC, /Search variants/);
+  assert.match(SRC, />Variant</);
   assert.match(SRC, />Purpose</);
   assert.match(SRC, />Author</);
   assert.match(SRC, /prior work, not an automatic recommendation/);
-  assert.match(SRC, /:id="'proposal-' \+ p\.id"/, 'each stable proposal address resolves to a DOM target');
+  assert.match(SRC, /:id="'variant-' \+ p\.id"/, 'each stable variant address resolves to a DOM target');
   assert.doesNotMatch(SRC, />\s*apply\s*</i);
   assert.doesNotMatch(SRC, /lane|Provenance|Relocation|Evidence/, 'nothing the collection does not carry is drawn');
-  assert.match(SRC, /if \(!this\.proposalIndex \|\| !window\.TextCollection\) return \[\]/,
+  assert.match(SRC, /if \(!this\.variantIndex \|\| !window\.TextCollection\) return \[\]/,
     'hidden Alpine expressions have a null-safe getter');
   assert.match(SRC, /const pane = this\.PANES\.includes\(name\)/,
     'async pane work keeps the pane that initiated it instead of rereading mutable state');
+});
+
+test('a variant with proposals shows a chip per target path, linking the basis', () => {
+  const chips = SRC.slice(SRC.indexOf('data-variant-proposals'));
+  assert.match(chips, /x-for="q in p\.proposals"/);
+  assert.match(chips, /x-text="q\.path"/, 'the chip names the target path');
+  assert.match(chips, /:href="safeHref\(q\.basis\)"/, 'and links the basis');
+  const { model } = harness();
+  assert.equal(model.safeHref('https://github.com/mehrlander/web-tools/pull/1'), 'https://github.com/mehrlander/web-tools/pull/1');
+  assert.equal(model.safeHref('javascript:alert(1)'), null, 'a basis that is not a web address gets no link');
 });

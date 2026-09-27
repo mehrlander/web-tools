@@ -294,7 +294,7 @@ test('a row with no turn times contributes nothing, and the note says so', () =>
   assert.equal(plain(data.sessionRailAll).reduce((a, m) => a + m.n, 0), 2,
     'the version-22 row adds no marks');
   assert.match(data.sessionRailAllNote, /1 row predates turn times/);
-  // And the note stays inside the note kit's six-line box. At 34ch a line that
+  // And the note stays inside the title-tip kit's six-line box. At 34ch a line that
   // is about 200 characters; the first draft ran to 260 and the kit clipped it
   // and said so in the console, which is the failure this guards.
   assert.ok(data.sessionRailAllNote.length < 200,
@@ -415,20 +415,20 @@ test('hovering a row rail lights the column and names the turn under the pointer
     'the hover settles on the column the nearest tick is in');
   // And the note is about THAT TURN, parked at it, which is the whole point of
   // the cursor: a note anchored to the rail would open over the middle of it.
-  assert.equal(cursorOf(ev).getAttribute('data-note-title'), 'Turn 2 of 2 · ' + data.railWhen(turns[1].at));
+  assert.equal(cursorOf(ev).getAttribute('data-title-tip-lead'), 'Turn 2 of 2 · ' + data.railWhen(turns[1].at));
   assert.equal(cursorOf(ev).style.left, ticks[1] + '%', 'and sits on the mark it describes');
   // The body is the turn's own opening where the row carries one. These rows
   // are two ends and a beat list with no transcript behind them, which is the
   // lean shape the cache stores, so the note says so rather than inventing a
   // line. railTurnHead's own tests cover the join that finds the text.
-  assert.match(cursorOf(ev).getAttribute('data-note'), /^No text for this turn/);
+  assert.match(cursorOf(ev).getAttribute('data-title-tip'), /^No text for this turn/);
 
   // Nearest, not exact: a pointer between two ticks takes the closer one, and
   // the note follows it rather than staying on the last one named.
   ev = overRail((ticks[0] + ticks[1]) / 2 - 1);
   data.rowRailTrack(ev, row);
   assert.equal(data.railHover.k, data.railBin(ticks[0]), 'just left of the midpoint takes the left tick');
-  assert.equal(cursorOf(ev).getAttribute('data-note-title'), 'Turn 1 of 2 · ' + data.railWhen(turns[0].at));
+  assert.equal(cursorOf(ev).getAttribute('data-title-tip-lead'), 'Turn 1 of 2 · ' + data.railWhen(turns[0].at));
 
   // And the strip's own handler lands on the same column from the same x.
   data.railHover = null;
@@ -442,7 +442,7 @@ test('a row with no turn times has no tick to hover, and nothing is invented', (
   data.railHover = null;
   data.rowRailTrack(ev, liveRow(20, 4));
   assert.equal(data.railHover, null, 'no ticks, no column, no hover');
-  assert.equal(cursorOf(ev).getAttribute('data-note'), null, 'and no note is written');
+  assert.equal(cursorOf(ev).getAttribute('data-title-tip'), null, 'and no note is written');
 });
 
 // ── THE TWO THINGS THAT MADE THE HOVER FEEL BROKEN ────────────────────────
@@ -570,7 +570,7 @@ test('a quoted turn is flattened and cut to fit a note', () => {
   assert.doesNotMatch(got, /https:|\]\(|^\*/, 'no markup survives into a note that cannot render it');
   assert.match(got, /2025-27 Biennial Budget Instructions · Budget Development Manual/,
     'a list keeps its boundaries as the separator the bullets were');
-  // The note kit caps a note at six lines and warns when one overflows. The
+  // The title-tip kit caps a note at six lines and warns when one overflows. The
   // cache heads a user turn at 240, which is a card's budget; this is cut again.
   assert.ok(got.length <= 160, `cut to a note's width: ${got.length}`);
 });

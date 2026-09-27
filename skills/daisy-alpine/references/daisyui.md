@@ -878,5 +878,5 @@ Tooltip can be used to show a message when hovering over an element
 - **House style overrides this component: do not use it.** (Added here, not
   upstream.) It is CSS `:hover` only, so on a touch screen the first tap sticks
   it open and only a tap somewhere else clears it, and nothing inside it can be
-  tapped. Use `data-note` (`lib/kits/note.js`) for a note, or build a panel where
-  the content must be tapped: the three tiers are in `SKILL.md` rule 11.
+  tapped. Use a title-tip (`data-title-tip`, `lib/kits/title-tip.js`), or a panel-tip
+  (`lib/kits/panel-tip.js`) where the content must be tapped: `SKILL.md` rule 11.

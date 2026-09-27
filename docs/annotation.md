@@ -4,7 +4,9 @@ An **annotation** splits a document into units about a sentence long and gives e
 unit a **label** from a declared vocabulary (what the unit is), a **verdict**
 (`KEEP` or `DROP`), and an optional **note**. It is stored beside the document as a
 **standoff**: a JSON file of character spans, the question, the vocabulary, and a
-`sha256` of the document it describes. Any question works; the vocabulary is data.
+`sha256` of the document it describes, which pins it to those exact bytes (a span
+locator, in the terms of [locators.md](locators.md)). Any question works; the
+vocabulary is data.
 
 The user reviews it in [`pages/audit-render.html`](../pages/audit-render.html),
 which shows the whole document tinted by label, removed units struck through, and

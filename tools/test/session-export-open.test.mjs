@@ -825,13 +825,13 @@ test('the state line is nested under the reply, not drawn as its sibling', () =>
 });
 
 test('the disc opens nothing, because it is inside the row\'s own button', () => {
-  // It carried `data-note` while it was a bare dot in the box's pad, outside
-  // any control. Inside the button, the note kit's capture-phase pointerdown
+  // It carried `data-title-tip` while it was a bare dot in the box's pad, outside
+  // any control. Inside the button, the title-tip kit's capture-phase pointerdown
   // does not stop propagation, so one tap would open a panel AND expand the
   // card. The words beside it carry the gloss instead.
   buildWith(STATEFUL);
   const { mark } = statesOf(1)[0];
-  assert.equal(mark.getAttribute('data-note'), null);
+  assert.equal(mark.getAttribute('data-title-tip'), null);
   assert.equal(mark.getAttribute('title'), null, 'and it is not a tooltip either');
   assert.equal(mark.getAttribute('aria-hidden'), 'true', 'the line beside it says the same thing');
 });
@@ -962,7 +962,7 @@ test('a fine pointer opens on hover after a dwell, and closes after leaving both
   // Asked for on 2026-09-02: a reader running a mouse down the list wants the
   // half under it, not a click per row. The dwell stops a pointer crossing the
   // row from flashing a panel at it; the grace after leaving is what lets the
-  // panel be entered, which is the rule kits/note.js can skip because its own
+  // panel be entered, which is the rule kits/title-tip.js can skip because its own
   // panel is `pointer-events:none` and this one is not.
   hoverable(true);
   buildWith(STATEFUL);

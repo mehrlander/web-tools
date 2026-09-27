@@ -44,14 +44,15 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '0bd90bb';
-const BUILT = '2026-09-25T13:23:31Z';
+const BUILD = 'c9fa5d3';
+const BUILT = '2026-09-26T05:11:09Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
 // against this and says so when they differ, which is the only way a reader
-// learns that the edge they hit is behind: jsDelivr propagates a purge per
-// edge, so for a while after a push a reload can land on either body.
+// learns that the copy they got is behind: any cache between a push and the
+// device (GitHub Pages holds the bookmarklet's copy ten minutes) can serve the
+// previous body for a while after a push.
 //
 // It is read from raw.githubusercontent with a cache-buster rather than from
 // the CDN, because a manifest served from the same cache as the thing it
