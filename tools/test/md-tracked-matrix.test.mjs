@@ -58,27 +58,21 @@ const textWithout = (el, sel) => {
   for (const n of c.querySelectorAll(sel)) n.remove();
   return c.textContent;
 };
-// The dashed seam traces a break the other reading has, and the gap line one
-// the other reading lacks: a closed break is a seam in `inline` and `new` and a
-// gap line in `old`, an opened break the reverse.
+// The dashed seam traces a break the other reading has, in the readings with
+// fewer paragraphs only: a closed break is a seam in `inline` and `new`, an
+// opened one a seam in `old`, and no reading marks a break it shows.
 const seamProblems = (card, i) => {
   const out = [], n = (sel) => card.querySelectorAll(sel).length;
   const closed = n('[data-md-reading="inline"] [data-md-break="closed"]');
-  const opened = n('[data-md-reading="inline"] [data-md-break="opened"]');
+  const opened = n('[data-md-reading="old"] [data-md-break="opened"]');
   for (const m of ['inline', 'new']) {
     if (card.querySelector(`[data-md-reading="${m}"]`) && n(`[data-md-reading="${m}"] [data-md-seam]`) !== closed)
       out.push(`card ${i + 1}: ${m} has ${n(`[data-md-reading="${m}"] [data-md-seam]`)} seams for ${closed} closed breaks`);
   }
-  if (card.querySelector('[data-md-reading="inline"]') && card.querySelector('[data-md-reading="old"]')) {
-    if (n('[data-md-reading="old"] [data-md-seam]') !== opened)
-      out.push(`card ${i + 1}: old has ${n('[data-md-reading="old"] [data-md-seam]')} seams for ${opened} opened breaks`);
-    if (n('[data-md-reading="old"] [data-md-gap]') !== closed)
-      out.push(`card ${i + 1}: old has ${n('[data-md-reading="old"] [data-md-gap]')} gap lines for ${closed} closed breaks`);
-  }
-  for (const m of ['inline', 'new']) {
-    if (card.querySelector(`[data-md-reading="${m}"]`) && n(`[data-md-reading="${m}"] [data-md-gap]`) !== opened)
-      out.push(`card ${i + 1}: ${m} has ${n(`[data-md-reading="${m}"] [data-md-gap]`)} gap lines for ${opened} opened breaks`);
-  }
+  if (card.querySelector('[data-md-reading="inline"]') && card.querySelector('[data-md-reading="old"]')
+      && n('[data-md-reading="old"] [data-md-seam]') !== opened)
+    out.push(`card ${i + 1}: old has ${n('[data-md-reading="old"] [data-md-seam]')} seams for ${opened} opened breaks`);
+  if (n('[data-md-gap]')) out.push(`card ${i + 1}: a gap line`);
   return out;
 };
 const rendered = (md) => { const d = window.document.createElement('div'); d.innerHTML = marked.parse(md); return d.textContent; };
@@ -321,7 +315,7 @@ test('a seeded walk of joins, splits and moves over real documents keeps every c
       // A lone join shows a struck ¶, a lone split a green one: the word
       // checks above cannot see either, since a break has no words.
       if (kinds.length === 1 && kinds[0] === 'join' && !host.querySelector('[data-md-break="closed"]')) problems.push('a join with no seam');
-      if (kinds.length === 1 && kinds[0] === 'split' && !host.querySelector('[data-md-break="opened"]')) problems.push('a split with no gap line');
+      if (kinds.length === 1 && kinds[0] === 'split' && !host.querySelector('[data-md-break="opened"]')) problems.push('a split with no seam');
       // One undo takes back the last edit whole.
       if (kinds.length) { d.undo(); if (d.text !== before) problems.push('one undo does not take back the last edit'); }
       if (problems.length) { failures.push({ file, step, did, problems }); continue; }

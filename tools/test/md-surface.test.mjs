@@ -247,7 +247,7 @@ test('a retyped heading pairs with its old self, and a typo pairs by letters', (
 // A word diff cannot see a paragraph break: two paragraphs joined have the
 // same words as before. The card marks the break itself, struck where one was
 // closed and green where one was opened, and neither mark takes the caret.
-test('a closed paragraph break is traced by a seam, and an opened one by a gap line', async () => {
+test('a paragraph break is traced by a seam in the reading that runs the paragraphs together', async () => {
   window.Diff = (await import('diff')).default ?? (await import('diff'));
   window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
@@ -262,16 +262,17 @@ test('a closed paragraph break is traced by a seam, and an opened one by a gap l
   assert.equal(closed.closest('[data-md-seam]').textContent, 'Two', 'the seam rises at the first word after the old break');
   assert.ok(!closed.textContent && closed.hasAttribute('data-md-ui'), 'the mark holds no text, and is a control the caret skips');
   assert.ok(!host.querySelector('[data-md-reading="inline"] del'), 'no ¶ is struck, the seam says it');
-  const oldGap = host.querySelector('[data-md-reading="old"] [data-md-gap]');
-  assert.match(oldGap && oldGap.previousElementSibling.textContent, /One ends here\./, 'the original shows a gap line where the break was');
+  assert.equal(host.querySelectorAll('[data-md-reading="new"] [data-md-seam]').length, 1, 'new is traced too');
+  assert.ok(!host.querySelector('[data-md-reading="old"] [data-md-seam], [data-md-gap]'), 'the original shows its break and marks nothing');
   const split = '# T\n\nOne ends\n\nhere.\n\nTwo starts here.\n\nTail.\n';
   host.__mdKey = null; host.__readings = {};
   window.MdSurface.paint(host, { text: split, base, track: true, overlay: box });
-  const opened = host.querySelector('[data-md-reading="inline"] [data-md-break="opened"]');
+  const opened = host.querySelector('[data-md-reading="old"] [data-md-break="opened"]');
   assert.ok(opened, 'the split is marked');
-  assert.match(opened.previousElementSibling.textContent.trim(), /One ends$/, 'by a gap line after the first half');
+  assert.equal(opened.closest('[data-md-seam]').textContent, 'here.', 'in the original, where it will divide');
+  assert.ok(!host.querySelector('[data-md-reading="inline"] [data-md-seam], [data-md-reading="new"] [data-md-seam], [data-md-gap]'),
+    'the readings that show the break mark nothing');
   assert.ok(!host.querySelector('[data-md-reading="inline"] .md-diff-ins'), 'no green ¶, and nothing else added');
-  assert.equal(host.querySelector('[data-md-reading="old"] [data-md-seam]').textContent, 'here.', 'the original traces where it will divide');
   for (const sp of host.querySelectorAll('[data-src]')) {
     const s = +sp.dataset.src, t = sp.firstChild.data;
     assert.equal(split.slice(s, s + t.length), t, `run at ${s} is still the buffer's text`);
@@ -279,8 +280,8 @@ test('a closed paragraph break is traced by a seam, and an opened one by a gap l
 });
 
 // Found by review, 2026-09-27: a join is usually followed by lower-casing the
-// word after it, and the struck ¶ has to survive that; and an opened break at
-// the end of a list lands in the item, not loose in the <ul>.
+// word after it, and the join's mark has to survive that; and a break opened
+// out of a list item is marked in the original at the word that left it.
 test('a closed break is still marked when the word after it changed too', async () => {
   window.Diff = (await import('diff')).default ?? (await import('diff'));
   window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
@@ -294,7 +295,7 @@ test('a closed break is still marked when the word after it changed too', async 
   }
   host.__mdKey = null; host.__readings = {};
   window.MdSurface.paint(host, { text: '- Para one\n\ntwo.\n\nTail.\n', base: 'Para one two.\n\nTail.\n', track: true, overlay: box });
-  const opened = host.querySelector('[data-md-break="opened"]');
+  const opened = host.querySelector('[data-md-reading="old"] [data-md-break="opened"]');
   assert.ok(opened, 'the split is marked');
-  assert.equal(opened.previousElementSibling.querySelector('li')?.textContent.trim(), 'Para one', 'after the list holding the first half');
+  assert.equal(opened.closest('[data-md-seam]').textContent, 'two.', 'at the word that left the item');
 });
