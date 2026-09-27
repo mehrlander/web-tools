@@ -26,7 +26,7 @@ const sha = value => createHash('sha256').update(value, 'utf8').digest('hex');
 const NOW = 'Carry-forward level is the base a request is measured against, not the base an agency spends from.';
 const BEFORE = 'Carry-forward level is the base a request is measured against.';
 const FIRST = 'CFL is the base.';
-const PROPOSED_THEN = 'Carry-forward level is the base against which a request is measured.';
+const VARIANT_THEN = 'Carry-forward level is the base against which a request is measured.';
 const UNTOUCHED = 'An untouched paragraph.';
 const LATER = 'Added in the newest commit.';
 const DOC = `# Reading fund 600\n\n${NOW}\n\n${UNTOUCHED}\n\n${LATER}\n`;
@@ -50,10 +50,10 @@ function source() {
   };
 }
 function index() {
-  const ID = { before: sha(BEFORE), then: sha(PROPOSED_THEN), now: sha(NOW), first: sha(FIRST) };
+  const ID = { before: sha(BEFORE), then: sha(VARIANT_THEN), now: sha(NOW), first: sha(FIRST) };
   return {
-    passages: { [ID.before]: BEFORE, [ID.then]: PROPOSED_THEN, [ID.now]: NOW, [ID.first]: FIRST },
-    proposals: [
+    passages: { [ID.before]: BEFORE, [ID.then]: VARIANT_THEN, [ID.now]: NOW, [ID.first]: FIRST },
+    variants: [
       { id: 'p-then', from: ID.before, to: ID.then, author: 'doc-audit', purpose: 'repair' },
       { id: 'p-now', from: ID.now, to: ID.first, author: 'Chief of Staff (Grok)', purpose: 'half-length' },
     ],
@@ -101,7 +101,7 @@ test('plan keeps the blocks with a predecessor, in document order; compose puts 
   assert.equal(K.compose(DOC, p), `# Reading fund 600\n\n${BEFORE}\n\n${UNTOUCHED}\n\n${LATER}\n`);
 });
 
-test('render draws one container per changed block, with the chain, its proposals, and the origin underneath', async () => {
+test('render draws one container per changed block, with the chain, its variants, and the origin underneath', async () => {
   const host = window.document.createElement('div');
   window.document.body.append(host);
   const h = await K.render(host, DOC, opts({ index: index() }));
@@ -115,13 +115,13 @@ test('render draws one container per changed block, with the chain, its proposal
   assert.match(chain.textContent, /and before that, in/);
   assert.match(chain.textContent, /first written in/);
   assert.match(chain.textContent, /2026-09-20/);
-  assert.match(chain.textContent, /doc-audit/, 'the proposal made against the earlier text rides with it');
+  assert.match(chain.textContent, /doc-audit/, 'the variant of the earlier text rides with it');
   assert.match(chain.textContent, /repair/);
-  assert.doesNotMatch(chain.textContent, /half-length/, 'a proposal against the current text is the Proposals reading\'s business');
+  assert.doesNotMatch(chain.textContent, /half-length/, 'a variant of the current text is the Variants reading\'s business');
   const links = [...chain.querySelectorAll('a')].map(a => a.getAttribute('href'));
   assert.ok(links.includes(C1.url), 'the commit is the evidence, linked');
   assert.ok(links.includes(C3.url), 'so is the origin');
-  assert.ok(links.includes(`${K.LAB}?proposal=p-then`), 'a proposal along the chain links to Text Lab');
+  assert.ok(links.includes(`${K.LAB}?variant=p-then`), 'a variant along the chain links to Text Lab');
   const bound = host.querySelector('.md-history-bound');
   assert.match(bound.textContent, /Read 3 commits back, to where every block was first written/);
   assert.equal(bound.querySelector('button'), null, 'nothing more to read');
