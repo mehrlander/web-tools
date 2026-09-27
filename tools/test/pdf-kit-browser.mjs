@@ -82,6 +82,40 @@ async function buildFixture() {
   return Buffer.from(await doc.save());
 }
 
+// A second document for the inferred geometry, kept apart so the first page's
+// answer key stays exactly what it was. Two tables on one page:
+//
+//   1. OPEN. The same 3x3 table drawn with interior rules only: two row rules
+//      the full width, two column rules the full height, and no border. The
+//      cell walk alone finds the one enclosed middle cell.
+//   2. HEADER. A bordered table whose header row is ruled above and below but
+//      has no column separators, over a body whose columns are ruled.
+const OPEN_Y = [520, 496, 472, 448];
+const HEAD_Y = [360, 336, 312];
+const HEAD = ['AGENCY', 'CODE', 'AMOUNT'];
+const BODY = ['Retirement Systems', '1240', '457,833'];
+
+async function buildOpenFixture() {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([612, 792]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const black = rgb(0, 0, 0);
+  const line = (x1, y1, x2, y2) => page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: 1, color: black });
+
+  for (const y of OPEN_Y.slice(1, -1)) line(COLS[0], y, COLS.at(-1), y);
+  for (const x of COLS.slice(1, -1)) line(x, OPEN_Y.at(-1), x, OPEN_Y[0]);
+  CELLS.forEach((row, r) => row.forEach((text, c) =>
+    page.drawText(text, { x: COLS[c] + 6, y: OPEN_Y[r] - 16, size: 9, font, color: black })));
+
+  for (const y of HEAD_Y) line(COLS[0], y, COLS.at(-1), y);
+  for (const x of [COLS[0], COLS.at(-1)]) line(x, HEAD_Y.at(-1), x, HEAD_Y[0]);
+  for (const x of COLS.slice(1, -1)) line(x, HEAD_Y.at(-1), x, HEAD_Y[1]);
+  [HEAD, BODY].forEach((row, r) => row.forEach((text, c) =>
+    page.drawText(text, { x: COLS[c] + 6, y: HEAD_Y[r] - 16, size: 9, font, color: black })));
+
+  return Buffer.from(await doc.save());
+}
+
 // ---------------------------------------------------------------- the harness
 
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.pdf': 'application/pdf', '.map': 'application/json' };
@@ -108,6 +142,7 @@ const check = (name, pass, detail = '') => {
 // ---------------------------------------------------------------------- run
 
 const pdfBytes = await buildFixture();
+const openBytes = await buildOpenFixture();
 await mkdir(outDir, { recursive: true });
 await writeFile(path.join(outDir, 'fixture.pdf'), pdfBytes);
 
@@ -129,6 +164,7 @@ const { server, port } = await serve({
   '/pdf.worker.min.js': worker,
   '/pdf-lib.min.js': pdflib,
   '/fixture.pdf': pdfBytes,
+  '/open.pdf': openBytes,
 });
 
 const browser = await chromium.launch();
@@ -170,7 +206,15 @@ const out = await page.evaluate(async () => {
   const tableRect = v.box({ x1: 55, y1: 620, x2: 545, y2: 705 });
   const selected = v.select(tableRect, projectedItems, { mode: 'contain' }).map(p => p.str);
 
+  // The inferred geometry, on real extraction. Tables come back top down.
+  const o = await window.pdf.open('/open.pdf');
+  const summary = g => g && ({ rows: g.rows, cols: g.cols, matrix: g.matrix,
+    inferred: g.inferred?.map(e => `${e.edge}:${e.basis}`) ?? null });
+  const inferredGrids = o.grids(1).map(summary);
+  const drawnGrids = o.grids(1, { infer: false }).map(summary);
+
   return {
+    inferredGrids, drawnGrids,
     numPages: d.numPages,
     itemCount: d.items.length,
     hCount: d.paths.h.length,
@@ -274,6 +318,27 @@ check('every extra selected item is blank, not stray text',
   `${out.selected.length - 9} extras, ${blanks.length} of them blank`);
 
 // pdf-lib.
+// Inferred geometry. The drawn-only reading is asserted too, so the test
+// shows the gap it closes rather than only the result.
+const [openT, headT] = out.inferredGrids;
+const [openD, headD] = out.drawnGrids;
+check('without inference the open table reads as its one middle cell',
+  JSON.stringify(openD?.matrix) === JSON.stringify([['1240']]), JSON.stringify(openD));
+check('with inference the open table reads in full',
+  JSON.stringify(openT?.matrix) === JSON.stringify(CELLS), JSON.stringify(openT));
+check('all four open edges are marked, placed by rule ends',
+  JSON.stringify(openT?.inferred?.toSorted()) === JSON.stringify(['bottom:rules', 'left:rules', 'right:rules', 'top:rules']),
+  JSON.stringify(openT?.inferred));
+check('without inference the unruled header is one spanning cell',
+  headD?.matrix?.[0]?.every(s => s === HEAD.join(' ')), JSON.stringify(headD?.matrix));
+check('with inference the header splits along the body rules',
+  JSON.stringify(headT?.matrix) === JSON.stringify([HEAD, BODY]), JSON.stringify(headT));
+check('the two header splits are marked as projected',
+  JSON.stringify(headT?.inferred) === JSON.stringify(['interior:projected', 'interior:projected']),
+  JSON.stringify(headT?.inferred));
+check('the bordered first table is unchanged and carries no inferred edge',
+  JSON.stringify(out.matrix) === JSON.stringify(CELLS));
+
 check('slice round-trips through pdf-lib', out.slicedPages === 1, `got ${out.slicedPages}`);
 check('sliced document still extracts its text', out.slicedItems >= 11, `got ${out.slicedItems}`);
 

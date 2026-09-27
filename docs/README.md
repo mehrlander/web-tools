@@ -83,9 +83,9 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
 - [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
-- [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) *(orphan)* — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
+- [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 
 ## docs/doc-craft-specimens/
 
