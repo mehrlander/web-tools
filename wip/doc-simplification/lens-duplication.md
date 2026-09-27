@@ -127,7 +127,7 @@ This lens swept web-tools, home, shortcut-tools and web-tools-private for one ru
 
 **Inbound dependencies:** No file links to the home `CLAUDE.md` Render path bullet (`grep -rn "Render path"` in home finds only the bullet itself). `showing.py` reads `.web-tools.json`, not the prose.
 
-**Risk:** Low. Two facts in the home block are not in the view README: that a framed view can now be shot headless through `tools/screenshot.mjs` (since 2026-09-05), and the `#pkg=` fragment form for the standalone page. Check both against the view README before cutting, and add a line there if missing.
+**Risk:** Low, with one conflict to settle first. The copies already disagree on a fact: home `CLAUDE.md:187-196` says "a framed view can be shot headless since 2026-09-05", while `projects/budget-drs/app/view/README.md:301-304` says "a headless shot of one comes back empty; shoot the framed page directly." Whichever is true goes in the view README, and the other sentence goes. The `#pkg=` fragment form for the standalone page also needs a home in the view README if it is not there.
 
 ## 5. The prose-clarity block in home CLAUDE.md is a compressed copy of a library skill
 

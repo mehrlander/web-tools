@@ -144,3 +144,36 @@ This slice is web-tools' process and environment documentation: the five files u
 
 **Risk:** Low. The only content a reader might miss is platform behaviour, and the platform documents it.
 
+## 7. inbound.md: keep the channel table and the rules, move the 2026-08-20 test log to git history, and settle the one-session-late claim in one place
+
+**Repo:** web-tools
+
+**Targets:** `docs/inbound.md:101-156` (What was measured), `:182-223` (subscribing at creation), `:224-268` (when a merged hook starts firing), `:269-end` (it replaced a standing decision), and the "Adopted 2026-08-20, replacing an `@go`/`@note` pair" aside near `:95`.
+
+**Kind:** collapse-narrative
+
+**Proposal:** Keep the channel table (`:13-41`), the comment-kind split, and the authorship caveat. Replace the rest with a "Rules" list of six lines:
+- A subscribed PR comment wakes a reclaimed session. Worst case is about 3 minutes cold and 2 seconds warm.
+- The channel works on private repositories.
+- A session's own comments never arrive.
+- Detection of a new PR is a hook (`pr-subscribe-hint.sh`); the subscribe call is always the model's.
+- Subscriptions accumulate, and a PR Steward preempts them, so read the tool result.
+- A plugin hook change reaches sessions one session late unless `/reload-plugins` is run. Link this rule to MARKETPLACE.md as its single owner.
+
+Delete the project-root explanation at `:205-212`. It is the fourth copy (extending, sandbox-traps, home CLAUDE.md, here), and a link to `sandbox-traps` covers it. Delete the "replaced a standing decision" essay; surfacing-course.md now owns the subscribe, receive, act split.
+
+**Rationale:** The file announces that it was measured on 2026-08-20 and 2026-08-21 and then keeps the lab notebook. The timestamps table, the control trigger and the story of how a probe's answer arrived early all support rules that fit in one line each. More importantly, the estate holds three disagreeing copies of whether a plugin update takes effect in the running session:
+- `inbound.md:229-249` says hooks run from the old pin, so the change lands one session late.
+- Home `CLAUDE.md:268-269` says the same.
+- `container.md:129-141` says that, measured twice on CLI 2.1.220, a mid-session `claude plugin update` did take effect: a new skill appeared and a new `Stop` hook fired, with no restart.
+
+Each copy was true of one observation. None links the others, so a reader gets whichever copy they open first.
+
+**Evidence:** The line numbers above. `pr-subscribe-hint.sh` carries a 30-line header comment covering detection and delivery. `surfacing-course.md:5` states that the hook delivers the course when a PR opens.
+
+**Words removed:** about 1,250 of 2,650 (468 + 381 + 384 + 246 = 1,479 in the spans, less about 230 for the rules list).
+
+**Inbound dependencies:** Few. Among docs and skills, only `venues.md` and the generated `docs/README.md` link it; `pr-subscribe-hint.sh` does not name it. No test reads its content. The one-session-late reconciliation also edits `container.md` (proposal 2) and home `CLAUDE.md`, which is outside this slice. Flag it to the home-contract reader.
+
+**Risk:** Medium. The conflict has to be settled by a fresh probe, not by picking a copy. Until then the single owner should say that both results have been observed.
+

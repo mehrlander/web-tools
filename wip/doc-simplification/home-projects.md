@@ -202,7 +202,7 @@ The dominant bloat is **documents that outlived their job but stayed at living p
 
 **Words removed:** about 1,300.
 
-**Inbound dependencies:** `tools/generate-full-picture.sh` line 64 counts `repos/*.md` files (the count changes; nothing breaks). `app/data.js` lists `repos/shortcut-tools.md` as a path in its generated payload; `tools/build-home-app.py` rebuilds it. `created/2026-06-12-the-recall-test/data/metrics.json` cites the paths as a dated result. `projects/doc-audit/README.md` links `repos/Wring.md`, which stays. A `refresh-repos-notes-nzg5zd` task exists in `tracker/tasks/`; this proposal shrinks its scope.
+**Inbound dependencies:** `tools/generate-full-picture.sh` line 64 counts `repos/*.md` files (the count changes; nothing breaks). `app/data.js` lists `repos/shortcut-tools.md` as a path in its generated payload; `tools/build-home-app.py` rebuilds it. `created/2026-06-12-the-recall-test/data/metrics.json` cites the paths as a dated result. `projects/doc-audit/README.md` links `repos/Wring.md`, which stays. The closed task `refresh-repos-notes-nzg5zd` refreshed these notes once; nothing keeps them current since.
 
 **Risk:** Low.
 
@@ -222,7 +222,7 @@ The dominant bloat is **documents that outlived their job but stayed at living p
 
 **Words removed:** about 3,500 of authored prose, replaced by generated output.
 
-**Inbound dependencies:** `tools/inventory-counts.py --check` reads `INVENTORY.md` (lines 23 and 128 to 203), and `tools/verify-artifacts.sh` line 216 runs it, so the builder change and the doc change must land together. `projects/wps/README.md` lines 12, 13 and 144 link both files. `docs/duplicate-definitions.md` links `INVENTORY.md#statistics`. The open wps task `theme-consistency-pass-6weoqb` cites the Forms Overview table (lines 18 to 36), so that authored table should survive or the task should be updated.
+**Inbound dependencies:** `tools/inventory-counts.py --check` reads `INVENTORY.md` (lines 23 and 128 to 203), and `tools/verify-artifacts.sh` line 216 runs it, so the builder change and the doc change must land together. `projects/wps/README.md` lines 12, 13 and 144 link both files. `docs/duplicate-definitions.md` links `INVENTORY.md#statistics`. The backlog wps task `theme-consistency-pass-6weoqb` cites the Forms Overview table (lines 18 to 36), so that authored table should survive or the task should be updated.
 
 **Risk:** Medium. It is a small code change, and some purpose lines are worth keeping.
 

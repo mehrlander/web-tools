@@ -168,3 +168,26 @@ Proposals are ordered by words removed.
 
 **Risk:** Low. The Credentials history explains why this corpus is private, which is also stated in the file's first paragraph (`:3-6`). The size measurement is the only fact with no other home; one sentence keeps it.
 
+## 9. Rewrite the `startup_context`, `startup_delivery` and `repos` notes as field-table rows; the examples describe retired mechanisms
+
+**Repo:** web-tools-private
+
+**Targets:** `sessions/README.md:125-184` (six paragraphs after the field table on `startup_context`, `startup_delivery`, duplicate entries, and why `repos` is name-sorted).
+
+**Kind:** rewrite-shorter
+
+**Proposal:** Fold each paragraph into its row of the field table at `:45-68`. `startup_context`: "What was in context before the first prompt, one entry per (`path`, `via`, `sha256`). `basis` is `receipt` when an injecting hook printed a `[startup-context]` line, `reconstructed` when `session-memory-manifest.sh` re-derived it from the filesystem. Read with `startup_delivery`." `startup_delivery`: "Per SessionStart firing: `produced` and `delivered` character counts, and `truncated` when the harness wrapped the output in `<persisted-output>`. A receipt says what was supplied; this says what arrived." `repos`: "Name-sorted; the order carries nothing. `lines` is the attention measure." Delete the rest.
+
+**Rationale:** The explanation of `receipt` names home's `session-load-conventions.sh` (`:133-135`), which no longer exists: home's `CLAUDE.md` records that the injection hook was retired on 2026-09-09, and the only emitter of `[startup-context]` lines today is `home/.claude/hooks/session-memory-manifest.sh:124`, the script the paragraph calls the *reconstructed* path. The duplicate-entry example (`:168-174`) is `docs/CONVENTIONS.md` fetched by a hook and `@`-imported by `web-tools/CLAUDE.md`; that file is gone from web-tools `docs/`, and web-tools' `CLAUDE.md` says the `@`-import was cut on 2026-09-12. The truncation measurement (`:162-166`, "`produced` 28,670 characters, `delivered` 2,238") is the finding that retired the injection hook, and home's dated record `chron/2026/08/2026-08-26-the-injection-delivers-five-percent.md` owns it. The `repos` ordering paragraph (`:176-184`) is the story of a bug fix ("That happened nine times across this store's history"); the rule is one clause.
+
+**Evidence:** `wc -w` of `:125-184` is 619. `find /home/user/home -name session-load-conventions.sh` finds nothing; `ls web-tools/docs/CONVENTIONS.md` fails; `grep -n startup-context` over home and web-tools hooks finds only `session-memory-manifest.sh:124`.
+
+**Words removed:** about 500.
+
+**Inbound dependencies:** web-tools `lib/alpineComponents/session-brief.js:682` cites the README for the file-tool attention caveat, which is in "File attention", not here. No script reads these paragraphs.
+
+**Risk:** Low. The `basis` distinction is the one idea a consumer needs, and the row keeps it.
+
+## Totals
+
+Proposals 1 to 9 remove about 13,000 words from about 20,700, with the counts in proposals 3 and 6 adjusted so no span is counted twice. `sessions/README.md` goes from 11,350 to about 2,900, which is a field table, the bounds and invariants, session identity, and the store-side publish mechanics. Beyond the cuts, four statements in the slice are wrong today and are fixed by the same edits: Stop timing (proposal 3), `quickLinks` and `repos` as live config (proposal 5), the `mailbox/` folder (proposals 4 and 7), and the `receipt` injector (proposal 9). Three code comments cite section names that have already moved or never existed (`search.py:239`, `repo-activity-cache.js:10`, and the lib paths in `DESIGN.md:88,93,134`); each proposal names the one to repoint.
