@@ -4,7 +4,7 @@
 
 Living guidance across the four repos carries a large layer of incident narrative: what a session did on a date, what a sentence used to say, how a measurement was taken, and why a paragraph exists. Most of it sits beside a rule that would stand without it. home already decided on 2026-09-21 that git holds what a sentence used to say ([`chron/2026/09/2026-09-21-retiring-the-markers.md`](../../../home/chron/2026/09/2026-09-21-retiring-the-markers.md)). The same logic applies to justification by anecdote: the rule belongs in the living doc, and the story belongs in git, a snag entry, or a chron record that already exists.
 
-**Estimate: about 20,000 words of embedded history in living docs, out of roughly 1.0 million living words.** Method. A script walked every `.md` in the four repos, excluding `chron/`, `archive/`, tracker task files, `data/source/`, assignments, probes, runs, `wip/`, dated-filename records, `SNAGS.md`, `LOG.md` and generated indexes. It split each file into blank-line paragraphs and flagged any paragraph matching a narrative pattern (`until 20YY-`, `since 20YY-`, `on 20YY-MM-DD`, `measured 20YY`, `Wrong 20YY`, `used to (say|read|be|carry|live)`, `this section said`, `which is why this`, `a session (did|reasoned|shipped)`, `happened again`, `were retired`). Flagged paragraphs totalled 61,056 words: web-tools 13,610, home 34,602, shortcut-tools 10,842, web-tools-private 2,002. Two outliers inflate that: home's `projects/budget-drs/app/workshop/DECISIONS.md` (8,224 flagged of 8,285) is a decision log and legitimately historical, and `shortcut-tools/workflows/README.md` is one giant table, so each row counts as one paragraph. Without them the total is about 44,600 words in 404 prose paragraphs. A seeded random sample of eight flagged paragraphs read at 30 to 50 percent history by word, the rest being the rule the history props up. That gives 13,000 to 22,000 words, before counting unflagged history that uses no dated phrase. The ten proposals below target about 6,500 words of it, concentrated where it costs most: the three `CLAUDE.md` files that load into every session.
+**Estimate: about 20,000 words of embedded history in living docs, out of roughly 1.0 million living words.** Method. A script walked every `.md` in the four repos, excluding `chron/`, `archive/`, tracker task files, `data/source/`, assignments, probes, runs, `wip/`, dated-filename records, `SNAGS.md`, `LOG.md` and generated indexes. It split each file into blank-line paragraphs and flagged any paragraph matching a narrative pattern (`until 20YY-`, `since 20YY-`, `on 20YY-MM-DD`, `measured 20YY`, `Wrong 20YY`, `used to (say|read|be|carry|live)`, `this section said`, `which is why this`, `a session (did|reasoned|shipped)`, `happened again`, `were retired`). Flagged paragraphs totalled 61,056 words: web-tools 13,610, home 34,602, shortcut-tools 10,842, web-tools-private 2,002. Two outliers inflate that: home's `projects/budget-drs/app/workshop/DECISIONS.md` (8,224 flagged of 8,285) is a decision log and legitimately historical, and `shortcut-tools/workflows/README.md` is one giant table, so each row counts as one paragraph. Without them the total is about 44,600 words in 404 prose paragraphs. A seeded random sample of eight flagged paragraphs read at 30 to 50 percent history by word, the rest being the rule the history props up. That gives 13,000 to 22,000 words, before counting unflagged history that uses no dated phrase. Proposals 1 to 9 remove about 5,100 of those words net, and proposal 10 is the standing rule. They concentrate where history costs most: the three `CLAUDE.md` files that load into every session.
 
 **The distinction applied throughout.** History that carries a live rule gets collapsed: keep the rule, drop the story, link the record if one exists. History that carries nothing gets deleted. Measurement stamps on volatile environment facts (`docs/environment/*.md`, the format notes' `*Measured …*` provenance lines) are not targeted: a date on a sandbox fact tells the reader how stale the fact may be, which is a live property. The target is the narrative of how the doc came to say what it says.
 
@@ -173,3 +173,51 @@ Living guidance across the four repos carries a large layer of incident narrativ
 **Inbound dependencies:** None found for the two dated sections: `grep 'text-content.md#'` returns nothing. The `reduction-panel` skill cites home `chron/2026/09/2026-09-08-reduction-panel-on-a-doc-i-just-trimmed.md`, a record of the same day, which is the natural home for any detail the two moved sentences drop.
 
 **Risk:** Low for the history section. Medium for the pilot lesson, which is a genuine method finding; it must land in the skill in the same change, or it is lost rather than moved.
+
+## 9. Keep the conclusions in web-tools-private `sessions/README.md` and send the measurement narratives to `record.py`
+
+**Repos:** web-tools-private
+
+**Targets:** `web-tools-private/sessions/README.md:281-285` ("This section said the opposite until 2026-08-07, and said it had been checked…"), `:629-668` ("The later pass, run on the agent stream (2026-09-08)"), `:669-692` ("What schema 3 cut, and what it was measured against"), `:694-702` (the redactor's firing counts), `:1138-1144` ("Unrecorded sessions on 2026-07-30 are real; the cause is not established").
+
+**Kind:** collapse and move.
+
+**Proposal:** Keep each bold conclusion as the section body: "The 1 KB output cap is right: 80 percent of clipped bytes are a file read back or the agent's own earlier `Write`, and about 1.3 percent of Bash output is computed and lost"; "Schema 3 keeps failing bodies and drops successful shell output, where 97 percent of the bytes were"; "Nothing captured is rewritten on the way in; records before 2026-08-23 keep a retired redactor's masks." Move the measurement tables into `record.py`'s docstring, which `:696` says already "carries the measurement in full" for the redactor. Delete `:281-285`. Move `:1138-1144` to web-tools-private's snag or notes store, or delete it: an unresolved incident from 2026-07-30 whose own text says "nothing currently distinguishes them after the fact" is not a known limit a reader can act on.
+
+**Rationale:** The README is organized partly by schema generation ("(schema 5)", "(schema 3)", "What schema 3 cut"), so a reader looking up what a field means today walks the order in which fields were added. The measurement narratives justify caps that are settled, and one of them already has a fuller copy in code. "This section said the opposite until 2026-08-07" is exactly the retired-marker content in prose form: it explains a former wrong sentence that git holds.
+
+**Evidence:** `sed -n | wc -w`: `:281-285` 55, `:629-668` 385, `:669-692` about 250, `:694-702` about 110, `:1138-1144` 86. The file is 11,350 words.
+
+**Words removed:** about 620, net of about 80 words of conclusion.
+
+**Inbound dependencies:** `session-render.js` behaviour ("draws returns by default past six agents") is described at `:664-668` and should stay as one sentence. `../DESIGN.md` links the README as a whole.
+
+**Risk:** Medium. The two measurement tables are the only human-readable evidence for the cap sizes. Moving them into `record.py` keeps them next to the constant they justify, which is where a person changing the cap will look.
+
+## 10. Standing rule: a living doc states the rule, not the incident
+
+**Repos:** web-tools (portable, so all four), with the enforceable half in each repo's lint.
+
+**Targets:** `web-tools/docs/QUALIFIED-WRITING.md` (224 words, the portable prose rules that `/portable:default` loads in every session), plus `home/CLAUDE.md:74`, which states the narrower markers rule and would then point at this one.
+
+**Kind:** standing rule.
+
+**Proposal:** Add to `QUALIFIED-WRITING.md`:
+
+> **Living docs state the rule, not how it was learned.** A living document (a `CLAUDE.md`, a README, a `docs/` page, a `SKILL.md`) says what is true and what to do. It does not say what it used to say, when a session got it wrong, or why a paragraph exists. That history has owners: git holds the former sentence, the snag log holds the trip, and a dated record holds the argument. Link one of them in a few words if a reader needs the evidence. Two exceptions: a date on a measured fact that can go stale (`measured 2026-08-30` on a sandbox limit), and a doc classed as a record or a log. When a correction lands, fix the sentence and delete the story.
+
+Enforce the checkable half. Extend `scripts/embedded-prose.py --dated`, which already lists dated claims in code comments, to Markdown files classed `living` in `docs/docs.csv`, and report these forms: `**Wrong`, `used to (say|read|claim)`, `this (section|sentence|paragraph) (said|read|used to)`, `until YYYY-MM-DD this`, `which is why this (section|paragraph) exists`. Keep it advisory, as `--dated` is: the same report found a dated block is "a claim someone has to re-check," not a defect (`web-tools/docs/text-content.md:612-615`). Promote only the `**Wrong`/`**Stale` banner form to a gate, since home's `tools/lint-conventions.py` already enforces retired terms and the banner form was retired on 2026-09-21.
+
+**Rationale:** home's markers retirement stated the principle ("fix the sentence; git holds what it used to say") but scoped it to marker vocabulary, so the same content kept arriving as prose: "This section said the opposite until…", "The version of this passage written on 2026-08-27 said…", "which is the reason this paragraph exists." The retirement record itself names the target as "the habit … rather than the keyword" (`home/CLAUDE.md:74`). Every proposal above is an instance of that habit surviving the keyword. The estate also already has the right destinations: three `SNAGS.md` files, `chron/`, and `docs.csv`'s `record` class.
+
+**Evidence:** Proposals 1 to 9. The sampling in the Summary puts 13,000 to 22,000 words of this content in living docs. `shortcut-tools/CLAUDE.md:383-384` already states the local version ("A trip goes there rather than into a narrative paragraph") and is broken by its own file in at least eleven places (proposal 3).
+
+**Words removed:** none directly. It is the rule that keeps the other nine from growing back.
+
+**Inbound dependencies:** `QUALIFIED-WRITING.md` ships in the `portable` plugin (`docs/portable.csv`), so the rule reaches every consumer repo one session after merge. `home/CLAUDE.md:74` should shrink to a pointer to it.
+
+**Risk:** Low for the rule. Medium for the report: a regex over living docs will flag rationale that happens to carry a date. That is why it stays advisory, and why the measured-fact exception is written into the rule.
+
+## Totals
+
+Proposals 1 to 9 remove about 5,100 words net: about 1,580 from shortcut-tools, 1,090 from home (850 of it from `home/CLAUDE.md`, loaded every session), 1,830 from web-tools, and 620 from web-tools-private. The three `CLAUDE.md` files lose about 2,000 words between them, roughly 17 percent of their combined 12,054. Two live defects surface along the way: the import-over-a-name contradiction between `shortcut-tools/workflows/README.md:452-465` and `CLAUDE.md:117-130` (proposal 1), and web-tools `CLAUDE.md:5` still telling sessions to run a `/markers` skill that no longer exists (proposal 6).

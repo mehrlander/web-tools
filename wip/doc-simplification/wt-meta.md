@@ -177,3 +177,27 @@ Each copy was true of one observation. None links the others, so a reader gets w
 
 **Risk:** Medium. The conflict has to be settled by a fresh probe, not by picking a copy. Until then the single owner should say that both results have been observed.
 
+## 8. doc-growth.md: state what the page does, drop the stories behind it
+
+**Repo:** web-tools
+
+**Targets:** `docs/doc-growth.md:77-83` (the bug worth remembering), `:95-120` (two app views until 2026-08-28, and the slug collision), `:132-163` (the Map view's delta-colour story and "I argued against the tab first"), `:165-177` (verifying against the real CDN).
+
+**Kind:** collapse-narrative
+
+**Proposal:**
+- Replace the `cat-file` deadlock story with one comment in `scripts/doc-growth.py` at the thread that feeds the batch, if it is not already there. The doc needs no line on it.
+- Replace `:95-120` with two sentences. "The chart is one Map tab, not an app view per repo: a page pointed at a repo is a lens, and its subject belongs on a control. App-view slugs are estate-wide, and `manifest-registry.test.mjs` rejects a duplicate."
+- In the Map section, keep the rule that sparklines are normalized per file and that deltas use ink tokens, not tone colours. Keep the split statement ("Docs answers 'is this document growing'... Growth answers 'what is the whole corpus doing'"). Delete the first-cut colour story and the first-person reversal.
+- Replace the CDN verification section with a link to the `combine-serves-cjs` snag, which already owns it.
+
+**Rationale:** Each deleted span is a "which is why" paragraph whose fix has already shipped as code or a test: the threaded feeder, `manifest-registry.test.mjs`, the explicit combine paths, and the ink-token rule in the dataviz guidance. The doc is an orphan by the Docs registry's own reach measure (`docs/README.md:39`). Nothing reads it except the index, so a reader opens it to learn what the chart shows, and it should answer that.
+
+**Evidence:** `doc-growth.md:83` ("The request list is fed from a thread"). `doc-growth.md:115-116` ("`manifest-registry.test.mjs` now reads every manifest on disk and rejects a shared slug"). `doc-growth.md:175-176` ("See the `combine-serves-cjs` entry in SNAGS.md"). `doc-growth.md:153` ("I argued against the tab first... That was wrong in a specific way worth keeping").
+
+**Words removed:** about 700 of 1,740 (74 + 313 + about 250 of the 464 in `:132-177` + about 60 net from the CDN section).
+
+**Inbound dependencies:** Orphan per `docs.csv`. `pages/doc-growth.html:10` names it in a header comment, which is unaffected by these cuts. `data/doc-growth/web-tools.json` and the tree fixture mention the filename as data, not as links. No test reads its content.
+
+**Risk:** Low.
+
