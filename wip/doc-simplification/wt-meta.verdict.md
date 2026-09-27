@@ -80,3 +80,39 @@ The proposal keeps the parts the drift hits hardest. First, the bake step (`:58-
 
 **Corrected words removed:** about 650, as estimated, before the probe. Spans measure 224 + 63 + 81 + 268 + 92 = 728, less about 80 kept. If the probe shows the bake is unneeded, about 100 more.
 
+## 7. inbound.md: keep the channel table and the rules, move the 2026-08-20 test log to git history, and settle the one-session-late claim in one place
+
+**Verdict:** revise
+
+**Checked:** The spans measure 468 + 381 + 384 + 246 = 1,479, as stated. `inbound.md:229-249` and home `CLAUDE.md:268-269` say a plugin change lands one session late. `container.md:111` and `:136-141` measured a mid-session update reaching a new skill and a later `Stop` hook. The project-root paragraph at `inbound.md:216-222` repeats `sandbox-traps/SKILL.md:106-113`. Inbound links are as stated (`venues.md:17`, the generated `docs/README.md:44`). `repo-sessions-cache.test.mjs:1283` names the file only as fixture data.
+
+Two corrections. First, `MARKETPLACE.md` does not carry the one-session-late rule today (grep finds neither "one session late" nor "previous pin" there). The rule's actual source is the refresher's own output line, `web-tools-private/environment/setup.sh:38` ("its hooks ran from the old pin, so /reload-plugins if you were waiting on a hook change"). Naming MARKETPLACE.md as the "single owner" means writing the rule there first. Second, the three copies disagree less than the proposal says. The `SessionStart` hooks of the refreshing session necessarily ran before the refresh, so they ran the old pin. The container.md result is about hooks on later events and skills. The one real conflict is the inbound.md table's claim that a `PostToolUse` hook such as `pr-subscribe-hint.sh` waits a whole session, against container.md's later `Stop` hook taking effect at once. Home `CLAUDE.md` is the overbroad copy.
+
+**Revised proposal:** As proposed for the cuts and the six-line rules list. For the reconciliation, write in MARKETPLACE.md: "A refresh at session start cannot change hooks that already ran for that event. Whether later-event hooks pick up the new pin without `/reload-plugins` has one positive measurement (CLI 2.1.220, 2026-07-30) and no negative one." Link to it from inbound.md and container.md. Flag home `CLAUDE.md:268-269` to the home-contract reader.
+
+**Corrected words removed:** about 1,250, as estimated.
+
+## 8. doc-growth.md: state what the page does, drop the stories behind it
+
+**Verdict:** revise
+
+**Checked:** The deadlock comment already exists at `scripts/doc-growth.py:114-117`, so the doc's paragraph (`doc-growth.md:77-83`) can go with nothing added. `manifest-registry.test.mjs` exists. The first-person reversal is at `:153-157`. Nothing tests the file's content. Spans measure 74 + 313 + 346 + 118.
+
+The CDN section cannot be replaced by a link to the snag. The snag points the other way: `SNAGS.md:2198` names `doc-growth.md` as the owner of the fix ("→ [doc-growth.md](doc-growth.md); the mirror's fidelity gap is unowned"), and `snags.csv:55` records the same owner. Replacing the section with a link to the snag makes a loop with no owner. The rule the section states is also general and has nothing to do with doc growth: a page that depends on a CDN is verified only when the bytes came from the CDN.
+
+**Revised proposal:** As proposed for the first three bullets. For the CDN section, move its two-sentence rule to `environment/testing.md`, beside the `npm run shot` harness it corrects, and repoint `SNAGS.md:2198` and `snags.csv:55` there. Then delete the section from doc-growth.md.
+
+**Corrected words removed:** about 700 from doc-growth.md, as estimated, with about 50 added to testing.md.
+
+## 9. Clear superseded records and pointer residue out of docs/, and fix the generated index's retired vocabulary
+
+**Verdict:** revise
+
+**Checked:** `mcp-server-routing.md:5-10` carries the retired `[!WARNING] Stale` banner and names `mcp.md` as the owner. `portable.csv:31` does ship it on demand. `tools/build/docs-readme.mjs:51` does emit "corrected by markers", and `docs/README.md:8-11` shows it. The markers and `status.py` were retired on 2026-09-21 (`SNAGS.md:1987`, `estate-span.md:39-41`). `DOC_CRAFT_STUDY.md:5-7` marks itself superseded by `skills/doc-craft/SKILL.md`. Word counts hold: 497, 970, 764.
+
+Three errors. First, the doc-craft duplication claim is backwards. `skills/doc-craft/` holds only `SKILL.md` and `binding/`, with no `references/` folder. The `formerly` column in `docs.csv:107-108` records where the specimens used to live, not a second copy. The specimens in `docs/` are the only copies. Relocating them is still fine, but it is not removing a duplicate. Second, the HTML-STYLE cut takes too much. `skills/daisy-alpine/SKILL.md:10-13` links the file for "the names this is asked for, **and why a doc has to carry the words a stranger would search**". That "why" is the second paragraph (`HTML-STYLE.md:10-16`), which the proposed `:10-32` cut removes. Only the "Why the rules moved into the skill" section (`:18` onward, 164 words) is migration history. Third, the dependency list for `mcp-server-routing.md` misses `snags.csv:21` (its owner column names the file), `github/mcp.md:6` (a "Supersedes" link), and the `tree-web-tools.json` test fixture, which lists the path.
+
+**Revised proposal:** Delete `mcp-server-routing.md`, and update `SNAGS.md:1780`, `snags.csv:21`, `mcp.md:6`, `portable.csv:31`, `docs.csv:47`, `repetitions.csv:10` and `github/README.md:33` in the same commit. Check whether the tree fixture needs regenerating. Move the study and specimens as proposed, with the rationale "a dated record in a living folder" rather than "a duplicate". Cut HTML-STYLE.md to its first two paragraphs (`:1-16`). Change the generated sentence at `docs-readme.mjs:51` as proposed.
+
+**Corrected words removed:** about 2,395 from `docs/` (497 + 970 + 764 + 164). The net cut is about 660 if the doc-craft files move rather than go.
+
