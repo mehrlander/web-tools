@@ -336,6 +336,12 @@
         return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
           .map(([key, n]) => ({ key, n }));
       },
+      // A purpose word's definition from purposes.csv, or null when the word
+      // has none: the gloss says what the word means, the prompt is the exact
+      // instruction its variants were written under, when one was recorded.
+      purposeDef(word) {
+        return this.variantIndex?.purposes?.[word] || null;
+      },
       variantGroups() {
         const rows = this.variantRows;
         return this.variantFacet('purpose')
@@ -850,9 +856,11 @@
       <template x-for="g in variantGroups()" :key="g.purpose">
         <section class="mb-10">
           <div class="flex items-end gap-2 border-b border-base-300">
-            <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 grow">
+            <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 grow flex items-baseline gap-2 min-w-0">
               <span x-text="g.purpose"></span>
-              <span class="ml-2 tabular-nums" x-text="g.items.length"></span>
+              <span class="tabular-nums" x-text="g.items.length"></span>
+              <span class="normal-case tracking-normal truncate" x-show="purposeDef(g.purpose)?.gloss"
+                    x-text="purposeDef(g.purpose)?.gloss"></span>
             </h2>
             <button class="btn btn-square btn-xs btn-ghost text-primary mb-0.5"
                     :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
@@ -916,6 +924,10 @@
                     <div>
                       <div class="font-mono text-xs uppercase tracking-wide opacity-40">Purpose</div>
                       <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.purpose"></div>
+                      <div class="text-base leading-6 text-pretty opacity-70 mt-1" x-show="purposeDef(p.purpose)?.gloss"
+                           x-text="purposeDef(p.purpose)?.gloss"></div>
+                      <blockquote class="text-base leading-6 text-pretty border-l-2 border-base-300 pl-3 mt-2"
+                                  x-show="purposeDef(p.purpose)?.prompt" x-text="purposeDef(p.purpose)?.prompt"></blockquote>
                     </div>
                     <div>
                       <div class="font-mono text-xs uppercase tracking-wide opacity-40">Author</div>
