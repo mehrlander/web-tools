@@ -42,6 +42,7 @@ the link-dense text twin of the visual index above.
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
 | `session-context` | Session Context | [view](https://mehrlander.github.io/web-tools/pages/session-context.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session-context.html) |
+| `shortcut-edit` | Shortcut Edit | [view](https://mehrlander.github.io/web-tools/pages/shortcut-edit.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-edit.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
 | `shortcuts` | Shortcuts | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
@@ -129,7 +130,7 @@ the link-dense text twin of the visual index above.
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
 | `md-diff` | md-diff — a documentation change, read as the document | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-diff.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html) |
-| `md-proposals` | md-proposals — a document read with its retained proposals | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-proposals.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-proposals.html) |
+| `md-variants` | md-variants: a document read with its retained variants | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-variants.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
 | `panel-tip` | panel-tip — the way out of a panel-tip | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/panel-tip.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/panel-tip.html) |
 | `peek` | peek — the region under the pointer | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/peek.html) |

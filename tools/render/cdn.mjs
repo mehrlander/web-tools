@@ -570,7 +570,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
       // utf8 decode replaces every invalid sequence, so a gzip inventory or an
       // image served this way arrived corrupted, and a page reading it through
       // DecompressionStream reported the damage as "Failed to fetch"
-      // (2026-09-18, the viewer's Proposals mode over home's drafts.jsonl.gz).
+      // (2026-09-18, the viewer's Proposals mode, now Variants, over home's drafts.jsonl.gz).
       const bytes = readFileSync(fp);
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,

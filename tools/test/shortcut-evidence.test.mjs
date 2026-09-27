@@ -83,7 +83,9 @@ test('a run inherits the ref of the newest earlier install of its name', () => {
 
 test('an open PR carrying the commit is the baseline; otherwise main', () => {
   const open = [{ number: 50, state: 'open', head: { sha: HEAD, ref: 'claude/x' } }];
-  assert.deepEqual(K.baseOf(SHA, open), { kind: 'pr', pr: 50, head: HEAD, branch: 'claude/x' });
+  assert.deepEqual(K.baseOf(SHA, open), { kind: 'pr', pr: 50, head: HEAD, branch: 'claude/x', title: '' });
+  assert.equal(K.baseOf(SHA, [{ number: 51, state: 'open', title: 'Dumpers end on the log', head: { sha: HEAD } }]).title,
+    'Dumpers end on the log', 'the PR title rides along so a reader sees words, not a number');
   assert.deepEqual(K.baseOf(SHA, [{ number: 48, state: 'closed', head: { sha: HEAD } }]), { kind: 'main' });
   assert.deepEqual(K.baseOf(SHA, []), { kind: 'main' });
   assert.deepEqual(K.baseOf('main', null), { kind: 'main' });

@@ -245,8 +245,8 @@ test('markdown offers a separate full-width History reading', () => {
   data.file = 'docs/history.md';
   data.content = '# Passage history\n\nCurrent wording.\n';
   const ids = data.availableModes.map(mode => mode.id);
-  assert.ok(ids.includes('proposals'));
-  assert.ok(ids.includes('history'), 'history is not folded into proposal semantics');
+  assert.ok(ids.includes('variants'));
+  assert.ok(ids.includes('history'), 'history is not folded into variant semantics');
   const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
   assert.equal(mod.icon, 'ph-clock-counter-clockwise');
   const doc = new window.DOMParser().parseFromString(mod.render(data.fileContext), 'text/html');
