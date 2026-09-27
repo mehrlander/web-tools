@@ -59,3 +59,43 @@
 **Revised proposal:** Keep PRIOR-ART.md. In SKILL.md: delete the duplicate at 266-267; shorten the capabilities paragraph (26-33, 79 words) to its link; drop the 14-domain table and keep the organisational-form rule with one clause giving the range ("10x to 93x on associations, near zero on agencies"); in Instrumentation, state 7 of 776 once and drop the recovery narrative, keeping the transcript path and the "require of every fetched page" list. Leave the failure shapes as written.
 
 **Corrected words removed:** about 300.
+
+## 7. Merge `shortcut-links` into `apple-shortcuts-actions`, and make shortcut-tools link instead of restate
+
+**Verdict:** revise
+
+**Checked:** `wc -w` gives 862 and 672 (1,534 together). The handoff link at `.claude/skills/apple-shortcuts-actions/SKILL.md:77` is worse than the reader says. `../../skills/shortcut-links/SKILL.md`, resolved from `.claude/skills/apple-shortcuts-actions/`, lands on `.claude/skills/shortcut-links/SKILL.md`, which does not exist in web-tools either, so the link is broken in every repo, not only outside web-tools. The gesture rule and both `prefs:` URLs are duplicated between `skills/shortcut-links/SKILL.md:54-69` and `shortcut-tools/CLAUDE.md:147-173`. Missed inbound dependencies: `shortcut-tools/tools/run.py:43` and `:204` both tell a reader that the card format "is in web-tools skills/shortcut-links", so deleting the folder breaks two docstrings in the tool that emits the cards. The span the reader targets in shortcut-tools overshoots: lines 147-179 include "Replacing a generated receiver is free" (175-178), which shortcut-links does not carry; the gesture material is 147-173, 229 words, not about 330. The two documents also disagree on the install route. shortcut-links:40 says "Prefer `Library-Fetch`", while shortcut-tools CLAUDE.md never names `Library-Fetch` and routes installs through `Library-Import` and `Library-Replace`. `workflows/library-fetch.json` exists. A merge that copies shortcut-links' table into the plugin skill makes the plugin the owner of an install rule that the repo's own contract contradicts.
+
+**Revised proposal:** Merge as proposed, keeping shortcut-links' trigger phrases in the merged description. Before merging, settle which install route is current and correct whichever document is wrong. Repoint `shortcut-tools/tools/run.py:43,204` and `docs/markdown-in-chat.md:136` in the same change. In shortcut-tools CLAUDE.md, replace lines 147-173 only, and keep the generated-receiver paragraph. If the merge is deferred, at least fix line 77 to an absolute GitHub URL, since it is broken today.
+
+**Corrected words removed:** about 250 inside the merged skill and about 200 from shortcut-tools CLAUDE.md.
+
+## 8. Stop `tasks` restating the TRACKER.md schema
+
+**Verdict:** revise
+
+**Checked:** `wc -w` gives 1,930. Lines 127-141 hold 142 words and 142-172 hold 152. `docs/TRACKER.md` does carry every item: status values at 31, `size` and `awaiting` at 37-38 and 80-84, `depends-on` at 33 and 145, `runner` and `action` at 98-108, and a runnable-task template at 110-121. So the runnable-task template in the skill is a true duplicate. The key definitions are a weaker case. The skill ships in the plugin to every repo, and TRACKER.md reaches a session only by a fetch (`tasks/SKILL.md:26`). Every filing needs the `status` values and the `size` scale, so replacing a 40-word enumeration with a fetch adds a network call to the most common operation to save a few lines. "Absence means no dependency; never write a value meaning none" is a filing behavior, and the skill says it owns behavior (line 24).
+
+**Revised proposal:** Delete the runnable-task template and its prose except the one behavioral rule the reader names. Delete the `track:` migration note. Keep the status enumeration and a one-line `size` scale; replace the `awaiting` and `depends-on` definitions with the link to TRACKER.md's "Recognized keys", keeping "never write a value meaning none".
+
+**Corrected words removed:** about 170.
+
+## 9. Sweep the incident narratives and dead links out of the plugin skills
+
+**Verdict:** revise
+
+**Checked:** `ls docs/CONVENTIONS.md` fails. The concept-index dead hub is worse than cosmetic: `vocab.py` treats `--hub` as set membership (`build_index`, line 210), so a missing hub is ignored silently and the canonical tier shrinks with no error. The daisy-alpine dead link is at line 17 and the `build-board.py:156` comment is confirmed. The `mcp-fail-hint.sh` hook is registered at `.claude/skills/hooks/hooks.json:78`. Word counts: default 16-28 is 124; sandbox-traps spans are 103, 127 and 49 (279); concept-index 51-59 is 89; daisy-alpine 14-23 and 50-61 are 94 and 134 (228, not 282). One part conflicts with the estate's own skill standard. `skills/skill-prefs/SKILL.md:26-31` makes Premise, Goal and output, and Process the default sections, and says "The skill may offer reference material only... If so, that's the process." sandbox-traps' "Reference. Match the symptom, run the test, apply the rule." is that rule applied, not empty scaffold; 12 skills carry `## Premise`. For daisy-alpine rule 3, the `reading-column` hook ships in the `portable` plugin (`.claude/skills/hooks/reading-column-guard.sh`), so enforcement does reach consuming repos. But the arbitrary-value paragraph states what the hook counts (any `ch` cap; absolute caps from 42rem to 64rem), and without it a session learns the rule only by being refused.
+
+**Revised proposal:** Apply the default, concept-index and dead-link fixes as proposed, and fix `build-board.py:156` in the same pass. In sandbox-traps, keep the three section headings with Premise cut to one sentence, and apply the other two collapses. In daisy-alpine, cut the dataviz story to its rule, and cut the 920px/64ch paragraph to one sentence that keeps the thresholds: "Arbitrary values count: any `ch` cap, and an absolute cap from 42rem to 64rem."
+
+**Corrected words removed:** about 480 (default about 100, sandbox-traps about 170, concept-index about 70, daisy-alpine about 140).
+
+## 10. Replace home's copy of google-style-clarity with the plugin it copies
+
+**Verdict:** revise
+
+**Checked:** `home/.claude/settings.json:10-13` enables only `portable` and `daisy-alpine`; the user-scope `~/.claude/settings.json` enables the same two. The `google-style-clarity` entry exists in `marketplace.json` with the model-invocable description quoted. The home block is 484 words; the skill is 1,179. The risk the reader rates medium is the one this estate has already measured. `web-tools/docs/SNAGS.md:1795-1800` (`house-style-not-consulted`, seen twice) records that `daisy-alpine`, installed as an ambient plugin so it would "fire on artifact work unprompted", did not fire, and a page shipped against its first rule. home CLAUDE.md's HTML rule exists for the same reason: it is "the one instruction guaranteed to fire". An ambient plugin is not an equivalent for an always-on block; it is the channel that failed.
+
+**Revised proposal:** Enable the plugin, and keep an always-on block in home CLAUDE.md, cut to the opening directive, the link to the skill, and the seven "Clarity principles" bullets (159 words). Drop the role paragraph, the Execution section and the example table, which the plugin supplies on invocation.
+
+**Corrected words removed:** about 300.

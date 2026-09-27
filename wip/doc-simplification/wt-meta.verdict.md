@@ -56,3 +56,15 @@ The word arithmetic is wrong. "Across repositories" (`:213-235`) is 413 words, n
 
 **Corrected words removed:** about 1,300. Spans: runner and action 574, across 413, conflicts 171, size and awaiting 231, id minting line 88 98, incident tails about 150, for about 1,640. Kept text is about 330.
 
+## 5. headless-vendoring.md and testing.md: fix a false premise, cut the copies of each other, collapse two correction stories
+
+**Verdict:** revise
+
+**Checked:** The premise contradiction is real. `headless-vendoring.md:19-23` says the JS CDNs "all return a denial". `capabilities.md:180-189` (2026-08-05) found the shell reaches them and the headless browser reaches no host. `portable.csv:28` repeats the old premise. `testing.md:356` does retract an earlier entry against its own header at `:5-7`. `testing.md:114-118` states the same trap as the `use` row of `showing-mechanisms.csv`. `SURFACING.md:55` owns "send the file, not a path", so "Showing the result in chat" can go, and the link at `capabilities.md:301` must be repointed. The duplication measure is real: `themes.csv` records the testing.md and headless-vendoring.md pair at 30 shared windows (now at row 16, not row 6, because the file has been regenerated).
+
+The direction of the Gotchas cut is backwards. `testing.md:52-55` says headless-vendoring.md is "the portable, repo-agnostic write-up" and that testing.md "owns the web-tools harness specifics". `portable.csv:28` ships headless-vendoring.md on demand to other repos. The TLS flag, the Alpine import and the pre-installed browser are generic facts. Deleting them from the portable doc and keeping them in the web-tools doc leaves a reader in another repo with the recipe and without its failure modes. The same holds for the jsdom variant: `npm run preview` exists only in web-tools, so it is no substitute in a portable doc. The edge cases at `:377-391` overlap `testing.md:275-281` only in part (`/+esm` and CJS). The `esm.sh` point and the data-API point are not in testing.md.
+
+**Revised proposal:** Rewrite the premise as proposed, and fix `portable.csv:28`'s "where the sandbox blocks their CDNs" in the same commit. Word the premise for both cases, since other sandboxes may still deny the CDNs: "the browser may reach no host at all, and the CDNs may be denied as well; interception answers both." Delete "Showing the result in chat" and repoint `capabilities.md:301` to SURFACING. Delete the theme-explorer walkthrough. Keep the Gotchas, the edge cases and the jsdom variant in headless-vendoring.md. Cut their copies from testing.md instead: the Alpine bullet at `testing.md:285-287` and the TLS paragraph at `:332-337`, each replaced by a link. Take the testing.md cuts as proposed (the Tailwind section to three sentences, the typography story, the `?use=` paragraph to a link).
+
+**Corrected words removed:** about 900. headless-vendoring.md loses 88 + 276 = 364. testing.md loses about 370 from the Tailwind section, 107 from the typography story, about 45 from `?use=`, and about 80 from the two gotcha copies.
+
