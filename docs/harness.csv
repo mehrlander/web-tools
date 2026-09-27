@@ -44,7 +44,7 @@ scripts/text-carriers.py,"inventory the CSV and JSON files that already hold aut
 scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",scripts,187,npm:code-scan,no,yes,no
 scripts/userscript-stub.py,,scripts,217,argv,no,yes,yes
 scripts/xlsx-picker-sweep.mjs,,scripts,104,imported,yes,yes,yes
-skills/hooks/ask-question-guard.sh,,skills/hooks,38,hook:PreToolUse,no,yes,yes
+skills/hooks/ask-question-guard.sh,,skills/hooks,38,hook:PreToolUse,no,no,yes
 skills/hooks/commit-consent.py,,skills/hooks,298,imported,no,no,yes
 skills/hooks/invoke-default.sh,,skills/hooks,152,hook:SessionStart,no,yes,yes
 skills/hooks/invoke-sessions.sh,,skills/hooks,101,hook:SessionStart,no,yes,yes
@@ -52,7 +52,7 @@ skills/hooks/mcp-fail-hint.sh,,skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 skills/hooks/pr-subscribe-hint.sh,,skills/hooks,95,hook:PostToolUse,no,yes,no
 skills/hooks/reading-column-guard.sh,,skills/hooks,105,hook:PreToolUse,no,no,yes
 skills/hooks/reading-column.py,,skills/hooks,222,npm:reading-column,no,yes,yes
-skills/hooks/refresh-plugin.sh,,skills/hooks,50,hook:SessionStart,no,yes,yes
+skills/hooks/refresh-plugin.sh,,skills/hooks,50,hook:SessionStart,no,no,yes
 skills/hooks/send-later-guard.sh,,skills/hooks,60,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,,skills/hooks,89,hook:Stop,no,yes,yes
