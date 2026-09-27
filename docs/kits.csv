@@ -39,9 +39,10 @@ lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",2
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,3,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1304,no,yes,12,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,15,yes
-lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the proposals the Text collection holds…",275,no,no,2,yes
+lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",275,no,no,2,yes
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",670,no,no,1,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
+lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",259,no,yes,2,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",121,no,no,3,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
@@ -83,7 +84,7 @@ lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,ye
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1433,no,yes,26,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",29,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
-lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",284,no,no,5,yes
+lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",369,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",340,no,yes,15,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",391,yes,no,3,yes
@@ -98,4 +99,3 @@ lib/kits/wsl.js,wsl,browser-facing WSL kit.,299,no,no,3,yes
 lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,714,no,no,1,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1098,no,no,2,yes
 lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2486,no,yes,8,yes
-lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",259,no,yes,2,yes
