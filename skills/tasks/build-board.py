@@ -2,7 +2,7 @@
 # Regenerate board.md, board.csv and board-tags.csv from tasks/*.md.
 # Frontmatter is flat `key: value` pairs.
 # Portable: python3, stdlib only, zero dependencies.
-# Canonical source: mehrlander/web-tools at .claude/skills/tasks/build-board.py
+# Canonical source: mehrlander/web-tools at skills/tasks/build-board.py
 # (bundled in the portable plugin; /tasks runs it via ${CLAUDE_PLUGIN_ROOT})
 # Usage: python3 build-board.py <tasks_dir> <board_out> [--check]
 #   --check writes nothing and exits 1 if any artifact is behind its source,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # git commit-msg hook — the consent gate. The engine is portable and lives in
-# the plugin (.claude/skills/hooks/commit-consent.py); this file is the two
+# the plugin (skills/hooks/commit-consent.py); this file is the two
 # lines that let git find it, the same split markers/status.py already uses.
 #
 # WHY commit-msg AND NOT pre-commit. pre-commit runs before the message exists,
@@ -41,12 +41,12 @@ export PATH PYTHONUTF8 PYTHONIOENCODING
 
 plugin_script() {            # $1 = e.g. hooks/commit-consent.py
   local p
-  p="$root/.claude/skills/$1"
+  p="$root/skills/$1"
   [ -f "$p" ] && { echo "$p"; return 0; }          # this repo IS the plugin source
   local reg="$HOME/.claude/plugins/installed_plugins.json"
   p=$(python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d['plugins']['portable@web-tools'][0]['installPath'])" "$reg" 2>/dev/null || true)
   [ -n "$p" ] && [ -f "$p/$1" ] && { echo "$p/$1"; return 0; }
-  p="$HOME/.claude/plugins/marketplaces/web-tools/.claude/skills/$1"
+  p="$HOME/.claude/plugins/marketplaces/web-tools/skills/$1"
   [ -f "$p" ] && { echo "$p"; return 0; }
   return 1
 }

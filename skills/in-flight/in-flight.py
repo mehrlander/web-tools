@@ -22,11 +22,11 @@
 # is what keeps the claim layer worth reading.
 #
 # Portable: python3, stdlib only, zero dependencies, no network.
-# Canonical source: mehrlander/web-tools at .claude/skills/in-flight/in-flight.py
+# Canonical source: mehrlander/web-tools at skills/in-flight/in-flight.py
 # (ships inside the `portable` plugin, beside the `in-flight` skill that drives it)
 #
 # Usage:
-#   python3 .claude/skills/in-flight/in-flight.py [REPO ...] [options]
+#   python3 skills/in-flight/in-flight.py [REPO ...] [options]
 #
 #   REPO ...          repo paths to scan (default: the current directory)
 #   --paths P [P ...] report which live branches touch these files or folders

@@ -33,7 +33,7 @@ CLI:
   python3 registry.py corpus <repo-root> <analysis_use> [--list]
 
 Ships with the portable plugin's content-registry skill; the canonical
-copy lives at .claude/skills/content-registry/ in mehrlander/web-tools.
+copy lives at skills/content-registry/ in mehrlander/web-tools.
 """
 from __future__ import annotations
 

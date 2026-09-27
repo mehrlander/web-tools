@@ -24,7 +24,7 @@
 //                 session:SessionStart  a .claude/hooks/session-*.sh, run by
 //                               the plugin's dispatcher at session start
 //                 hook:<event>  a plugin hook script; the event comes from the
-//                               declaration in .claude/skills/hooks/hooks.json
+//                               declaration in skills/hooks/hooks.json
 //                 ci:<events>   a .github/workflows/ file; the events come from
 //                               its top-level `on:` block, '+'-joined
 //                 none found    no route the derivation can see
@@ -35,10 +35,10 @@
 //
 // tools/test/ is deliberately absent: docs/tests.csv is that folder's registry,
 // and one file must not answer to two registries. Skill-bundle scripts under
-// .claude/skills/ (corpus_search.py and kin) are absent for a different
+// skills/ (corpus_search.py and kin) are absent for a different
 // reason: they are the internals of skills that travel to other repos, not
 // this repo's machinery, and no warning state applies to them. The plugin's
-// hook bundle at .claude/skills/hooks/ is the one exception: it runs HERE,
+// hook bundle at skills/hooks/ is the one exception: it runs HERE,
 // on platform events, in every session.
 //
 // Run `npm run tools-index` to restamp; `--check` compares instead of writing.
@@ -99,7 +99,7 @@ function importedSet(repoRoot, files) {
 function pluginHookEvents(repoRoot) {
   const out = new Map();
   let decl;
-  try { decl = JSON.parse(read(repoRoot, '.claude/skills/hooks/hooks.json')).hooks || {}; }
+  try { decl = JSON.parse(read(repoRoot, 'skills/hooks/hooks.json')).hooks || {}; }
   catch { return out; }
   for (const [event, entries] of Object.entries(decl)) {
     for (const e of entries) {
@@ -140,7 +140,7 @@ export function deriveTools(repoRoot) {
   const files = tracked(repoRoot);
   const subjects = files.filter(f =>
     ((f.startsWith('tools/') || f.startsWith('scripts/') ||
-      f.startsWith('.claude/hooks/') || f.startsWith('.claude/skills/hooks/')) &&
+      f.startsWith('.claude/hooks/') || f.startsWith('skills/hooks/')) &&
      !f.startsWith('tools/test/') &&
      CODE_EXT.some(e => f.endsWith(e))) ||
     // Git hooks are extensionless by contract; the folder is the filter.

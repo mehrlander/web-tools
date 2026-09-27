@@ -2,7 +2,7 @@
 # PostToolUse hook on Edit|Write: when the edited file is documentation, exit 2
 # so the warning on stderr reaches Claude immediately after the edit lands.
 # "Documentation" is the markdown globs of the repo's declared retrieval
-# sources (.claude/skills/file-retrieval/sources.csv) when the repo carries
+# sources (skills/ or .claude/skills/file-retrieval/sources.csv) when the repo carries
 # that registry, else the same shapes as a fallback: docs/**/*.md, root *.md,
 # skills trees, and any CLAUDE.md or SKILL.md. Never chron/, tracker/tasks/,
 # blog/, or dump trays, which are written freely by design.
@@ -23,7 +23,7 @@ if rel.startswith(("chron/", "tracker/tasks/", "blog/")) or "/dump/" in rel or r
     sys.exit(0)
 
 globs, basis = [], "fallback globs"
-reg = os.path.join(root, ".claude/skills/file-retrieval/sources.csv") if root else ""
+reg = next((c for c in (os.path.join(root, d, "file-retrieval/sources.csv") for d in ("skills", ".claude/skills")) if os.path.exists(c)), "") if root else ""
 if reg and os.path.exists(reg):
     with open(reg, newline="") as fh:
         globs = [r["glob"] for r in csv.DictReader(fh) if r["glob"].endswith(".md")]

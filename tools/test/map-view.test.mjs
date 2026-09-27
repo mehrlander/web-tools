@@ -34,7 +34,7 @@ const toCsv = (rows) => {
 // copies of .claude-plugin/marketplace.json anyway.
 const manifest = {
   items: [
-    { kind: 'skill', command: '/portable:tasks', path: '.claude/skills/tasks/SKILL.md', title: 'tasks', role: 'the tracker', use: 'plugin' },
+    { kind: 'skill', command: '/portable:tasks', path: 'skills/tasks/SKILL.md', title: 'tasks', role: 'the tracker', use: 'plugin' },
     { kind: 'doc', path: 'docs/CONVENTIONS.md', title: 'Working conventions', role: 'the conventions', use: 'live' },
     { kind: 'script', path: 'scripts/sunset-scan.py', title: 'sunset-scan.py', role: 'sunset markers', use: 'on-demand' },
   ],
@@ -180,8 +180,8 @@ test('Distribution groups by delivery mode while every row keeps its artifact ty
 
 test('plugin-internal scripts cross-reference their parent skill, not Automation', async () => {
   const supportFiles = [
-    ['.claude/skills/tasks/build-board.py', 'tasks'],
-    ['.claude/skills/in-flight/in-flight.py', 'in-flight'],
+    ['skills/tasks/build-board.py', 'tasks'],
+    ['skills/in-flight/in-flight.py', 'in-flight'],
   ];
   const realSetTab = data.setTab;
   let openedTab = '';
@@ -1147,12 +1147,11 @@ test('the Map template holds no backtick', () => {
     'the template literal reaches its last section, so no stray backtick closed it early');
 });
 
-// The Skills tab, added 2026-08-19 for the one registry whose absence read as
-// coverage: the Portable tab renders the plugin's skills and this renders the
-// on-demand library, and the two sets share no member. The disjointness is the
-// assertion worth holding, because the moment they overlap the tab is a
-// duplicate rather than the only view of a population.
-test('Skills renders the library, which is disjoint from the plugin set', async () => {
+// The Skills tab, added 2026-08-19 when the plugin's skills and the on-demand
+// library were disjoint. Since 2026-09-27 the plugin carries the whole library,
+// so the assertion flipped: every library row must be a plugin skill, or the
+// manifest names a skill no session receives.
+test('Skills renders the library, and the plugin carries every row of it', async () => {
   assert.equal(data.skillsReg, null, 'the library is not fetched until the tab is opened');
   await data.loadSkillsReg();
   assert.equal(data.skillsErr, '');
@@ -1164,9 +1163,9 @@ test('Skills renders the library, which is disjoint from the plugin set', async 
   // one written for the test.
   const plugin = new Set(window.Csv.rows(readFileSync(path.join(repoRoot, 'docs', 'portable.csv'), 'utf8'))
     .filter(r => r.kind === 'skill').map(r => r.title));
-  const both = data.skillsReg.map(s => s.name).filter(n => plugin.has(n));
-  assert.equal(both.join(', '), '',
-    'a skill in both sets means this tab duplicates Portable: ' + both.join(', '));
+  const uncarried = data.skillsReg.map(s => s.name).filter(n => !plugin.has(n));
+  assert.equal(uncarried.join(', '), '',
+    'a library skill the plugin does not carry: ' + uncarried.join(', '));
 });
 
 test('the Skills search matches the trigger text, not only the slug', async () => {

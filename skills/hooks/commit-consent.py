@@ -72,7 +72,7 @@ def doc_globs(root):
     """The repo's own declared retrieval sources where it has them, else the
     shapes documentation takes here. Reading the registry keeps one repo's idea
     of what counts as documentation in one place."""
-    reg = os.path.join(root, ".claude/skills/file-retrieval/sources.csv")
+    reg = next((c for c in (os.path.join(root, d, "file-retrieval/sources.csv") for d in ("skills", ".claude/skills")) if os.path.exists(c)), "")
     if os.path.exists(reg):
         with open(reg, newline="") as fh:
             globs = [r["glob"] for r in csv.DictReader(fh) if r["glob"].endswith(".md")]

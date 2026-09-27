@@ -12,13 +12,13 @@
 # was never meant to be recorded and wrong for one that was; the difference is
 # whether anything DECLARED that it should be, and that is what this reads.
 #
-# WHO NAMES THE STORE. Not this file. session-record.sh holds no repo name, and
-# neither does this: a checkout's .web-tools.json declares `sessionsStore` as
-# an owner/repo string, or the environment sets SESSIONS_STORE_REPO. The plugin
-# still carries no knowledge of where anyone keeps their records; the consumer
-# says, the way it already says `conventions: optout` and `sessions: <dir>`.
-# The env var exists for the one shape a manifest cannot cover: a session that
-# starts with no checkout at all, which is how a task-spawned session begins.
+# WHO NAMES THE STORE. In order: the environment's SESSIONS_STORE_REPO, a
+# checkout's .web-tools.json `sessionsStore` (an owner/repo string), and then
+# mehrlander/web-tools-private, hard-coded here since 2026-09-27. web-tools
+# working with web-tools-private is built in: the owner's decision, which let
+# the environment setup script stop setting the variable for the one shape a
+# manifest cannot cover, a session that starts with no checkout at all.
+# session-record.sh still holds no repo name; it finds a store by declaration.
 #
 # WHY A DIRECTIVE. A hook cannot do the fetch itself. An unattached private
 # repo is unreachable from a shell in the sandbox (measured 2026-09-21:
@@ -91,7 +91,7 @@ for repo in cands:
         pointer = named.strip()
 
 if not pointer:
-    sys.exit(0)
+    pointer = "mehrlander/web-tools-private"
 
 # One sentence: the instruction, what invoking it gets, and the one fact the
 # action needs. The repo name is included, unlike invoke-default's directive,

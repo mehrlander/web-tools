@@ -1,4 +1,4 @@
-// .claude/skills/hooks/reading-column.py — a Tailwind class that narrows text
+// skills/hooks/reading-column.py — a Tailwind class that narrows text
 // to a reading column (daisy-alpine rule 3), plus the guard hook that refuses
 // one at edit time.
 //
@@ -35,7 +35,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const hooks = path.join(repoRoot, '.claude', 'skills', 'hooks');
+const hooks = path.join(repoRoot, 'skills', 'hooks');
 const script = path.join(hooks, 'reading-column.py');
 const guard = path.join(hooks, 'reading-column-guard.sh');
 

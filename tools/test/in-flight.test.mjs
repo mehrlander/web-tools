@@ -1,4 +1,4 @@
-// in-flight.py (.claude/skills/in-flight/) — the classification is the product, so these tests build real
+// in-flight.py (skills/in-flight/) — the classification is the product, so these tests build real
 // git repositories with a known answer and assert the script's reading of them.
 // The four branch shapes that matter (merged, live, squash-landed, unrelated
 // history) cannot be faked with stub data: each is a property of the object
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 // a stdlib-only python script through its CLI. Keeping the test's dependencies
 // as narrow as the script's means it runs wherever the script does.
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SCRIPT = path.join(repoRoot, '.claude/skills/in-flight/in-flight.py');
+const SCRIPT = path.join(repoRoot, 'skills/in-flight/in-flight.py');
 
 // One timestamp for the whole run, two days old: fixed enough that two commits
 // sharing a tree, a parent, and a message still collide (see commit() below),

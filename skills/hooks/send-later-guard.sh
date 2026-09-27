@@ -18,8 +18,8 @@
 # those running while looking closed. The matcher in hooks.json is a regex, so
 # one entry covers every spelling and any later rename. A plugin also cannot
 # ship permissions.deny at all: its settings.json honors only `agent` and
-# `subagentStatusLine`, which is why the AskUserQuestion ban lives in the
-# account's own setup script instead.
+# `subagentStatusLine`, which is why the AskUserQuestion ban is a hook too
+# (ask-question-guard.sh).
 #
 # WHAT IS DELIBERATELY STILL OPEN. create_trigger. It does everything this does
 # plus recurring schedules, and it is how the account's weekday morning brief

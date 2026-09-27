@@ -270,7 +270,7 @@ fi
 # length changes the second, and both edits are nowhere near docs/docs.json.
 # Restamp before leg 3b so the README projects the new value in the same commit.
 # docs-registry.test.mjs is the backstop where the hook does not run.
-if changed .claude/skills skills lib pages docs tools/build/docs-reach.mjs; then
+if changed skills lib pages docs tools/build/docs-reach.mjs; then
   if npm run docs-reach --silent >/dev/null 2>&1; then
     stage docs/docs.csv
   else
@@ -285,7 +285,7 @@ fi
 # how it drifted before (resynced by hand in 2b785b2).
 if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md tools/build/vendor-docs.mjs; then
   if npm run vendor-docs --silent >/dev/null 2>&1; then
-    stage .claude/skills/default/SURFACING.md .claude/skills/default/surfacing-course.md .claude/skills/default/QUALIFIED-WRITING.md
+    stage skills/default/SURFACING.md skills/default/surfacing-course.md skills/default/QUALIFIED-WRITING.md
   else
     echo "build hook: 'npm run vendor-docs' failed - the plugin's doc copies may be stale" >&2
   fi
@@ -351,8 +351,8 @@ fi
 # and tools/test/reading-column.test.mjs fails CI on any that land, so this leg
 # exists for the third case only: a file edited outside this session's harness,
 # where the guard never ran and the suite has not been run yet.
-if [ -f .claude/skills/hooks/reading-column.py ]; then
-  out="$(python3 .claude/skills/hooks/reading-column.py lib pages app 2>/dev/null || true)"
+if [ -f skills/hooks/reading-column.py ]; then
+  out="$(python3 skills/hooks/reading-column.py lib pages app 2>/dev/null || true)"
   case "$out" in
     *'reading-column: none'*) ;;
     '') ;;

@@ -16,9 +16,9 @@ test('the current startup repair joins the directive to the default skill', () =
   const skill = routes.find(r => r.id === 'skills');
   const hook = routes.find(r => r.id === 'hooks');
   assert.ok(skill.phases.includes('start'));
-  assert.ok(skill.sources.some(s => s.path === '.claude/skills/default/SKILL.md' && s.current));
+  assert.ok(skill.sources.some(s => s.path === 'skills/default/SKILL.md' && s.current));
   assert.ok(skill.sources.some(s => s.path === 'docs/QUALIFIED-WRITING.md' && s.current));
-  assert.ok(hook.sources.some(s => s.path === '.claude/skills/hooks/invoke-default.sh' && s.current));
+  assert.ok(hook.sources.some(s => s.path === 'skills/hooks/invoke-default.sh' && s.current));
   assert.match(hook.limit, /prompt, not that the skill ran/);
 });
 
