@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-14 by a skill, 26 by a page or component. The remaining 49 are
+14 by a skill, 28 by a page or component. The remaining 50 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -86,6 +86,9 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) *(orphan)* — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
+- [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
+- [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
+- [`context.md`](context.md) *(orphan)* — the frame for the context registry: its two halves, the circles, overlap verdicts, and the session-store join
 
 ## docs/doc-craft-specimens/
 
