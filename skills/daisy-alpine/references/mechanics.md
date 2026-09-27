@@ -73,154 +73,86 @@ or `marked` turns opening metadata into the first paragraph. Existing `prose
 prose-sm` surfaces may stay; prefer the guide renderer for new work, and do not
 convert working pages for symmetry.
 
-## Notes and cards
+## Title-tips and panel-tips
 
 **This section is the one statement of the house popup rule.** Rule 11 of the
-style guide points here; the note kit's header, the budget-drs app's README and
-any page comment point here rather than restating it. Edit this section, not a
-copy.
+style guide, the kit headers and page comments point here rather than
+restating it.
 
-A popup is a **note** or a **card**, and one question decides which: **can the
-reader tap anything inside it?** A link, a ↗ reference, a copy button, a table,
-or a scrollbar, since a box that scrolls has to take the pointer. If yes, it is
-a card. If no, it is a note. Size and importance do not enter into it. A
-`title` attribute is neither: it is the label of an icon-only control, carries
-no fact, and never reaches a phone or a screenshot. daisyUI's `tooltip`,
-`data-tip` and `cursor-help` are not used at all; this overrides
-`references/daisyui.md`.
+A popup is a **title-tip** or a **panel-tip**, and one question decides which:
+**can the reader tap anything inside it?** A link, a ↗ reference, a copy button,
+a table, or a scrollbar, since a box that scrolls takes the pointer. If yes, it
+is a panel-tip; if no, a title-tip. Where a reader might ask what the content
+rests on, it is also a panel-tip, and it names its source with a ↗. Size and
+importance do not enter into it. The standard terms are a tooltip (ARIA
+`role="tooltip"`) and a popover.
 
-| | Note | Card | Card, pinned |
+A `title` attribute is neither: it labels an icon-only control and carries no
+fact, since it never reaches a phone or a screenshot. daisyUI's `tooltip`,
+`data-tip` and `cursor-help` are not used; this overrides `references/daisyui.md`.
+
+| | Title-tip | Panel-tip | Panel-tip, pinned |
 | --- | --- | --- | --- |
 | Holds | one line the page already implies; nothing tappable | anything, with a ↗ to where it came from; may scroll | the same |
 | Opens | hover, focus, tap | hover with grace, focus, tap | a deliberate click; on touch, every tap |
 | Closes | leave, its own tap, tap anywhere, Escape, a scroll, a resize, a blur | the pointer elsewhere, a scroll, a resize, a blur, ✕, tap outside, Escape | ✕, Escape, a scroll, an action inside |
-| Own close target | its body: on touch, tapping the note closes it and swallows the tap | ✕, shown where the reader cannot hover | ✕, always |
-| Looks | `plain` (the browser's tooltip redrawn) or the styled default | one shell | the same shell, marked pinned |
-| Standard term | ARIA `role="tooltip"` | popover with light dismiss | popover with manual dismiss |
+| Own close target | its body: on touch, tapping it closes it and swallows the tap | ✕, shown where the reader cannot hover | ✕, always |
 
-**Every popup carries its own close target.** Tap-outside stays as a courtesy
-and lets the tap through to what was tapped, so on a dense page it is never
-the route out: for a note the route is the note itself, for a card it is the
-✕. A pinned card is a state of a card, not a third component: click pins on a
-desktop, and on touch a card opens pinned, since a phone has no "leave". That
-one sentence is where the ✕ rule comes from.
+**Every popup carries its own close target.** Tap-outside also closes, and lets
+the tap through to what was under it, so on a dense page it is never the route
+out: a title-tip closes on its own tap, a panel-tip on its ✕. Pinned is a state
+of a panel-tip, not a third kind: a click pins it on a desktop, and on touch it
+opens pinned, since a phone has no "leave".
 
-**The card's way out is built once, in
-[`kits/card.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/card.js).**
-`Card.closeHTML(pinned)` returns the ghost ✕ (no border, no fill, muted, in the
-corner) when the card is pinned or the screen has no hover, and
-`Card.wire(el, {onClose, except})` attaches every route to one callback: the ✕,
-Escape, and a capture-phase `pointerdown` outside. `except` names the control
-that toggles the card, without which the press closes it and the toggle
-reopens it. The kit owns the way out and not the geometry, since a card
-following the cursor over a chart and one anchored beside a sidebar row are the
-same rule and different placement.
+### Title-tip: `kits/title-tip.js`
 
-Two traps it answers, both of which fail silently. A capture-phase listener is
-required because a press often lands on a control whose own handler stops
-propagation, so `@click.outside` alone strands the card open. And a shell that
-is `pointer-events: none` unless pinned draws a ✕ that cannot be pressed, which
-looks correct in a screenshot and fails under a finger; `wire` measures the
-element on a coarse pointer and reports it. The shell owns that property:
-`@media (hover:none){ .<shell>.show{pointer-events:auto} }`.
+Load [the kit](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js)
+and write `data-title-tip="…"` where a `title` would have gone; markup written
+later needs nothing more. Beside it:
 
-**A card closes on the world, not on a leave event.** A leave is not a promise:
-the pointer can stop being over the trigger without one ever firing. A scroll
-slides the content out from under a card positioned `fixed`, which stays exactly
-where it was and is then beside the wrong row. A re-render replaces the element
-the listener was attached to. The window loses focus mid-hover. None of those is
-a gesture anyone can report, so the symptom arrives as cards that refuse to go
-away rather than as a reproduction. `wire` therefore closes on two facts checked
-against the world: the pointer is demonstrably somewhere else (over something
-that is neither the card nor a selector in `except`, after the 220 ms grace that
-lets a reader cross the gap), or the geometry the card was placed against no
-longer holds (a page scroll, a resize, a window blur). A scroll *inside* the card
-is excluded, since that is a reader reaching the rest of a long one. `stale:
-false` opts out, and is only right for a card anchored to nothing that moves.
+- `data-title-tip-lead`: a bold lead line, such as a comment's author.
+- `data-title-tip-bare`: no dotted underline, where there is no room for one.
+- `data-title-tip-look`: `plain` (the browser's tooltip redrawn, for a few
+  words) or the styled default, resolved with `closest()` so `<body>` sets a
+  page default. Any other token is the page's to style through
+  `#wt-title-tip[data-look="<token>"]`, as the sheet render does for `excel`.
 
-**A hand-rolled note takes the geometry half of that, and only that.** Where a
-page raises its own panel rather than using `Note`, the panel is usually
-`pointer-events: none`, which makes it never the pointer's target: `contains`
-is false for every point on it, so the pointer guard would arm the instant it
-opened and close it 220 ms later. `Card.wire(el, { stale: 'geometry' })` is
-that case, bringing the scroll, resize and blur guards, Escape and the press
-outside, and leaving the ordinary departure to the trigger's own leave. Found
-on budget-drs's submittal page, which carried three panels where two had been
-counted: the third survived a blur or a resize with the pointer never moving.
+A title-tip is one line and never scrolls. One that wraps is the cue to ask
+whether it is a panel-tip. The kit caps it at six lines and reports a clip in
+the console; `TitleTip.fits(el)` answers the same question for a test. Demo:
+[`lib/kits/demos/title-tip.html`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/title-tip.html).
 
-Two consequences worth knowing. `except` now does double duty: a pointer resting
-on the control that raised the card has not left, which is also what lets a
-second trigger's own hover replace the card rather than flickering through empty.
-And the guards read the card's ACTUAL visibility rather than a flag, the same
-rule the toggle follows, covering the three ways a panel here is hidden: an
-Alpine `x-show`, the `hidden` class, the `hidden` attribute. A card hidden by
-opacity alone reads as shown and needs its own answer.
+### Panel-tip: `kits/panel-tip.js`
 
-**Closing an already-closed panel un-hides it, so a closer must refuse to
-write.** `this.obs = { ...this.obs, open: false }` replaces the object, and
-Alpine re-runs `x-show` on the identity change even though the value it reads
-is the same `false`; re-running the hide on an element already hidden by a
-completed leave transition clears the inline `display: none` and leaves it at
-`display: block`, with the state still saying closed. It never recovers: the
-guards then see a shown panel and close it again, each close re-stranding it.
-Assign the scalar (`this.obs.open = false`), which triggers nothing when
-unchanged, or gate the write on `if (!this.obs.open) return`. Found 2026-09-09
-on budget-drs's submittal page, where every state-only check passed while the
-card sat on screen.
+[The kit](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)
+owns the way out, not the geometry or the opening. Render
+`PanelTip.closeHTML(pinned)`, the ghost ✕ shown when pinned or where nothing
+hovers, and call `PanelTip.wire(el, { onClose, except })` once. It closes on the
+✕, Escape, a press outside, the pointer demonstrably elsewhere after a 220 ms
+grace, and a page scroll, resize or window blur, since a leave event is not
+guaranteed to fire. `except` names the control that toggles the panel-tip.
+`stale: false` drops the scroll, resize and blur guards, which is right only for
+a panel-tip anchored to nothing that moves; `stale: 'geometry'` keeps them and
+drops the pointer guard, for a hand-rolled panel that is `pointer-events: none`.
 
-**What the caller still owns: opening.** Enable hover only when
-`(hover: hover) and (pointer: fine)` match: open after about 140 ms and close
-about 220 ms after leaving both the control and the card. Tapping the control
-toggles it using its actual visibility, not a separate state flag, so the two
-cannot fall out of step.
+The caller owns four things:
 
-**The note is built once, in
-[`kits/note.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/note.js),
-and not again.** `data-note="…"` where a `title` would have gone, one shared
-panel, delegated listeners so markup written later by `innerHTML` needs no
-re-init. Load the kit and write the attribute. Beside it: `data-note-title`
-for a bold lead line, `data-note-bare` to drop the dotted underline where there
-is no room for one, and `data-note-look`, resolved with `closest()` so a page
-sets its default once on `<body>`. The kit ships two looks: the styled default,
-and `plain`, the browser's own tooltip redrawn (square, no shadow, one size
-smaller) for a note of a few words, a header unwrapped, a unit spelled out,
-where the styled box reads as more than the text deserves. Any other token is
-the page's to style through `#wt-note[data-look="<token>"]`; the sheet render
-asks for `excel` and draws Excel's comment box on a page already drawing Excel.
+- **Opening.** Hover only where `(hover: hover) and (pointer: fine)` match: open
+  after about 140 ms, close about 220 ms after leaving both the control and the
+  panel-tip. A tap toggles on the panel-tip's actual visibility, not on a flag.
+- **The ✕ on touch.** A shell that is `pointer-events: none` unless pinned draws
+  a ✕ nobody can press. Add `@media (hover:none){ .<shell>.show{pointer-events:auto} }`;
+  `wire` reports the case on a coarse pointer.
+- **Closing once.** Assign the scalar (`this.obs.open = false`) or return early
+  when already closed. Replacing the object (`this.obs = {...this.obs, open: false}`)
+  re-runs Alpine's `x-show` and un-hides a panel its leave transition already hid.
+- **Hiding in a way the guards can read:** `x-show`, the `hidden` class, or the
+  `hidden` attribute. A panel-tip hidden by opacity alone reads as shown.
 
-**A note is meant to be one line, and it never scrolls.** Its content is
-what the page already implies and cannot fit: a header unwrapped past its
-truncation, a unit spelled out, a code's long name. Nobody asks where such a
-note came from, because the page beside it already answers, and that is the
-second criterion, beside tappability: **where a reader might ask what the
-content rests on, it is a card, and the card says so** with a ↗ to the manifest
-or table it was drawn from (the budget-drs principle that a caption drawn from a
-table also opens that table). A note that wraps is the signal to ask that
-question. The kit caps the panel at six lines as a ceiling, not a target, and
-clips past it with a console report naming the element; `Note.fits(el)` answers
-the same question for a test. The ceiling is a number and can move; the rule
-that a note never scrolls cannot.
-
-Three behaviours the kit had to add, each found by measurement:
-
-- **`focusin` alone leaves the panel open when focus goes nowhere.** A bare
-  `blur()`, or a click on dead space, fires `focusout` with no `focusin` behind
-  it, so the note survives and only Escape clears it. Handle `focusout` too.
-- **A note assembled from parts loses its breaks under `white-space: normal`.**
-  A caller joining a comment to the value a cell stores wrote a blank line
-  between them and got one run-on sentence. The panel is `pre-line`.
-- **A screen reader must still get the text.** `title` is announced, so a
-  visual-only tooltip is a regression wearing an improvement's clothes. Follow
-  the WAI-ARIA pattern: the trigger is focusable, the panel is `role="tooltip"`,
-  it opens on focus, and `aria-describedby` points at it while open. The cost is
-  a tab stop per note, which is also the only way a keyboard reaches it.
-
-Demo, including the headless recipe that proves a note survives a screenshot
-where a `title` cannot:
-[`lib/kits/demos/note.html`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/note.html).
-The budget-drs app's shared caption card (`window.__tip` in
-`app/view/app.html`) is the worked example of a card, and its rich views
-(lineage, stream, schema, composition) of the pinned state.
+Worked example: the budget-drs app's caption panel-tip (`window.__tip` in
+`app/view/app.html`), and the pinned state in its lineage, stream, schema and
+composition views. Demo:
+[`lib/kits/demos/panel-tip.html`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/panel-tip.html).
 
 ## References
 

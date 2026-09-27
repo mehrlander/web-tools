@@ -9,18 +9,35 @@ import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
 const SKILL_PATH = path.join(repoRoot, '.claude', 'skills', 'tend', 'SKILL.md');
-const REPO_REVIEW_PATH = path.join(repoRoot, '.claude', 'skills', 'repo-review', 'SKILL.md');
 
-test('.claude/skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and green-light workflow', () => {
+test('.claude/skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a tiered process', () => {
   assert.ok(existsSync(SKILL_PATH), '.claude/skills/tend/SKILL.md must exist on disk');
   const content = readFileSync(SKILL_PATH, 'utf8');
-  assert.ok(content.length > 200, 'tend SKILL.md must have substantive content');
   assert.ok(!content.includes('\u2014'), 'tend SKILL.md must contain zero em dashes');
   assert.match(content, /^---\r?\nname:\s*tend\b/, 'frontmatter must declare name: tend');
   assert.match(content, /description:\s*>-?\s+Cultivate a workspace/, 'frontmatter must declare description');
   assert.match(content, /disable-model-invocation:\s*true/, 'frontmatter must disable unprompted invocation');
-  assert.match(content, /Phase 1: Survey and propose plan with green light/, 'must define Phase 1 plan with green light');
-  assert.match(content, /Phase 2: Execute on green light and offer more/, 'must define Phase 2 execution and offer more');
+  assert.match(content, /Commitment belongs to the owner\./, 'must keep the doctrine\'s commitment boundary');
+  for (const stream of ['Branches', 'Trackers', 'Pull requests', 'Snags']) {
+    assert.match(content, new RegExp(`^## ${stream}$`, 'm'), `must define the ${stream} stream`);
+  }
+  for (const tier of ['Act', 'Propose']) {
+    assert.match(content, new RegExp(`\\*\\*${tier}:\\*\\*`), `must place actions in the ${tier} tier`);
+  }
+  assert.match(content, /\*\*Owner only:\*\*/, 'must name what only the owner decides');
+});
+
+test('tend SKILL.md names commands and paths that exist', () => {
+  const content = readFileSync(SKILL_PATH, 'utf8');
+  for (const p of ['scripts/stranded-triage.py', 'lib/kits/branch-brief.js', 'docs/SNAGS.md']) {
+    assert.ok(content.includes(p), `tend SKILL.md should name ${p}`);
+    assert.ok(existsSync(path.join(repoRoot, p)), `${p} named by tend SKILL.md must exist`);
+  }
+});
+
+test('tasks skill treats a met Done-when as a delivery close, which tend acts on', () => {
+  const tasks = readFileSync(path.join(repoRoot, '.claude', 'skills', 'tasks', 'SKILL.md'), 'utf8');
+  assert.match(tasks, /delivery close, unattended/, 'tasks skill must classify a met Done-when close as unattended');
 });
 
 test('relative markdown links in tend SKILL.md resolve on disk', () => {
@@ -61,9 +78,4 @@ test('.claude-plugin/marketplace.json registers ./tend in portable plugin skills
   const portable = marketplace.plugins.find(p => p.name === 'portable');
   assert.ok(portable, 'portable plugin must be declared in marketplace.json');
   assert.ok(portable.skills.includes('./tend'), 'portable plugin skills must include ./tend');
-});
-
-test('.claude/skills/repo-review/SKILL.md sweep section points to /tend', () => {
-  const content = readFileSync(REPO_REVIEW_PATH, 'utf8');
-  assert.match(content, /superseded by `\/tend`/, 'sweep section must note supersession by /tend');
 });

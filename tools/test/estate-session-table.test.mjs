@@ -330,12 +330,12 @@ test('a repo is a glyph it declares, and the tap that names it is not a navigati
   assert.match(cell, /ph-toolbox/);
   assert.match(cell, /ph-house/);
   // Every glyph carries the name, because an icon column on a phone is only
-  // honest if the name is one tap away: note.js opens on pointerdown, and
-  // mountTable's rowClick skips a tap landing on [data-note] for this reason.
+  // honest if the name is one tap away: title-tip.js opens on pointerdown, and
+  // mountTable's rowClick skips a tap landing on [data-title-tip] for this reason.
   // The note carries the state too, so this matches the identity half only:
   // what must hold is that every glyph names its repo on tap.
-  assert.match(cell, /data-note="web-tools —/);
-  assert.match(cell, /data-note="home —/);
+  assert.match(cell, /data-title-tip="web-tools —/);
+  assert.match(cell, /data-title-tip="home —/);
   assert.equal(data.repoIconCell(''), '<span class="text-base-content/30">–</span>');
 });
 
@@ -346,7 +346,7 @@ test('past four repos the overflow is counted, not clipped', () => {
   const cell = data.repoIconCell('a b c d e f');
   assert.equal((cell.match(/<i /g) || []).length, 4, 'four glyphs drawn');
   assert.match(cell, />\+2</, 'and the rest counted');
-  assert.match(cell, /data-note="e, f"/, 'the counter names who it stands for');
+  assert.match(cell, /data-title-tip="e, f"/, 'the counter names who it stands for');
   assert.ok(!data.repoIconCell('a b c d').includes('+'), 'exactly four needs no counter');
 });
 

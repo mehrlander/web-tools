@@ -106,18 +106,15 @@ control pick which one is marked rather than spending a second colour.
 
 **11. A tooltip worth having is worth building.** Prefer text on the page. A
 `title` never carries a fact: it reaches no touch screen, renders outside the
-page's theme, and cannot be captured in a screenshot, so a fact parked in one is
-invisible to every review that happens through pixels. Every other popup is a
-**note** or a **card**, and the whole rule, the criterion that separates them,
-what each opens and closes on, and the ✕, is stated once in
-[`references/mechanics.md`, "Notes and cards"](references/mechanics.md#notes-and-cards).
-In one line: a note is one line the page already implies (a header unwrapped, a
-unit spelled out), closes on its own tap, and is written as `data-note="…"`
-through [`kits/note.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/note.js);
-anything that scrolls, can be tapped inside, or whose source a reader might ask
-for is a card, which names that source with a ↗ and carries its ✕. Do not use `cursor-help`, daisyUI's `tooltip`, or `data-tip`; this overrides
-`references/daisyui.md`. `npm run stranded-titles` lists facts parked in a
-`title`; `Note.open('#id')` opens a note on demand for a shot.
+page's theme, and cannot be captured in a screenshot. One line the page already
+implies is a **title-tip**, `data-title-tip="…"` through
+[`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js).
+Anything tapped inside, scrolled, or sourced is a **panel-tip**, built with
+[`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js).
+Never daisyUI's `tooltip`, `data-tip`, or `cursor-help`. The rule is stated once
+in [`references/mechanics.md`, "Title-tips and panel-tips"](references/mechanics.md#title-tips-and-panel-tips).
+`npm run stranded-titles` lists facts parked in a `title`; `TitleTip.open('#id')`
+opens a title-tip on demand for a shot.
 
 ## The shape a browsing page takes
 

@@ -1,10 +1,10 @@
-// kits/card.js — the card of the house popup rule (daisy-alpine mechanics.md,
-// "Notes and cards"), held at the edges that decide whether a reader can get
+// kits/panel-tip.js — the panel-tip of the house popup rule (daisy-alpine mechanics.md,
+// "Title-tips and panel-tips"), held at the edges that decide whether a reader can get
 // out of one.
 //
 // What is checked here is the dismissal contract, which is the half that was
 // written five times across the estate and written differently each time: the
-// ✕ shows when the card is pinned AND on any screen with no hover, every way
+// ✕ shows when the panel-tip is pinned AND on any screen with no hover, every way
 // out reaches the same callback, and a press outside is not swallowed. Plus
 // the check that catches a ✕ that is drawn and cannot be pressed.
 
@@ -17,7 +17,7 @@ import { makeWindow, repoRoot } from './bootstrap.mjs';
 const { window } = makeWindow({
   html: `<!doctype html><html><body>
     <button id="toggle">i</button>
-    <div id="pop"><p>a card</p></div>
+    <div id="pop"><p>a panel-tip</p></div>
     <a id="under" href="#x">something under the page</a>
   </body></html>`,
 });
@@ -29,8 +29,8 @@ const setHover = (has) => {
 };
 setHover(true);
 
-new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/card.js'), 'utf8'))();
-const Card = window.Card;
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/panel-tip.js'), 'utf8'))();
+const PanelTip = window.PanelTip;
 const $ = (sel) => window.document.querySelector(sel);
 const press = (el) => {
   const ev = new window.Event('pointerdown', { bubbles: true, cancelable: true });
@@ -38,40 +38,40 @@ const press = (el) => {
   return ev;
 };
 
-test('the kit registers window.Card beside Note, the other half of one rule', () => {
-  assert.equal(typeof Card, 'object');
-  assert.equal(typeof Card.closeHTML, 'function');
-  assert.equal(typeof Card.wire, 'function');
+test('the kit registers window.PanelTip beside TitleTip, the other half of one rule', () => {
+  assert.equal(typeof PanelTip, 'object');
+  assert.equal(typeof PanelTip.closeHTML, 'function');
+  assert.equal(typeof PanelTip.wire, 'function');
 });
 
 test('the ✕ shows when pinned, and on any screen with no hover', () => {
   // The second half is the one that keeps being missed: a touch synthesizes
-  // the hover that opens a card and never sends the leave that would close it,
-  // so a hover-opened card on a phone is pinned in all but name.
+  // the hover that opens a panel-tip and never sends the leave that would close it,
+  // so a hover-opened panel-tip on a phone is pinned in all but name.
   setHover(true);
-  assert.equal(Card.closeHTML(false), '', 'unpinned, hover available: the card closes on leaving');
-  assert.match(Card.closeHTML(true), /wt-card-close/, 'pinned: nothing else closes it');
+  assert.equal(PanelTip.closeHTML(false), '', 'unpinned, hover available: the panel-tip closes on leaving');
+  assert.match(PanelTip.closeHTML(true), /wt-panel-tip-close/, 'pinned: nothing else closes it');
   setHover(false);
-  assert.match(Card.closeHTML(false), /wt-card-close/, 'no hover: there is no leave to wait for');
-  assert.match(Card.closeHTML(true), /wt-card-close/);
+  assert.match(PanelTip.closeHTML(false), /wt-panel-tip-close/, 'no hover: there is no leave to wait for');
+  assert.match(PanelTip.closeHTML(true), /wt-panel-tip-close/);
   setHover(true);
 });
 
 test('the ✕ is a ghost: no border, no fill', () => {
-  // A bordered button reads as an action the card offers. This is the rule the
+  // A bordered button reads as an action the panel-tip offers. This is the rule the
   // first draft got wrong, so it is held rather than left to taste.
-  assert.match(Card.CSS, /\.wt-card-close\{[^}]*border:0/s);
-  assert.match(Card.CSS, /\.wt-card-close\{[^}]*background:none/s);
-  assert.doesNotMatch(Card.CSS, /\.wt-card-close\{[^}]*border:1px/s);
+  assert.match(PanelTip.CSS, /\.wt-panel-tip-close\{[^}]*border:0/s);
+  assert.match(PanelTip.CSS, /\.wt-panel-tip-close\{[^}]*background:none/s);
+  assert.doesNotMatch(PanelTip.CSS, /\.wt-panel-tip-close\{[^}]*border:1px/s);
 });
 
 test('every way out reaches the same callback: the ✕, Escape, and a press outside', () => {
   const pop = $('#pop');
   let closed = 0;
-  const w = Card.wire(pop, { onClose: () => { closed += 1; } });
+  const w = PanelTip.wire(pop, { onClose: () => { closed += 1; } });
 
-  pop.innerHTML = Card.closeHTML(true) + '<p>a card</p>';
-  pop.querySelector('[data-wt-card-close]').dispatchEvent(
+  pop.innerHTML = PanelTip.closeHTML(true) + '<p>a panel-tip</p>';
+  pop.querySelector('[data-wt-panel-tip-close]').dispatchEvent(
     new window.Event('click', { bubbles: true }));
   assert.equal(closed, 1, 'the ✕');
 
@@ -82,7 +82,7 @@ test('every way out reaches the same callback: the ✕, Escape, and a press outs
   assert.equal(closed, 3, 'a press outside');
 
   press(pop.querySelector('p'));
-  assert.equal(closed, 3, 'a press inside the card is not a dismissal');
+  assert.equal(closed, 3, 'a press inside the panel-tip is not a dismissal');
 
   w.detach();
   press($('#under'));
@@ -91,20 +91,20 @@ test('every way out reaches the same callback: the ✕, Escape, and a press outs
 
 test('a press outside is not swallowed, which is why it cannot be the only way out', () => {
   // What was pressed still acts. That is correct, and it is exactly why a
-  // dense page needs the ✕: every point outside the card is a control.
+  // dense page needs the ✕: every point outside the panel-tip is a control.
   const pop = $('#pop');
-  const w = Card.wire(pop, { onClose: () => {} });
+  const w = PanelTip.wire(pop, { onClose: () => {} });
   const ev = press($('#under'));
   assert.equal(ev.defaultPrevented, false);
   w.detach();
 });
 
-test('the control that toggles a card is not "outside" it', () => {
-  // Without this the press closes the card and the toggle immediately reopens
+test('the control that toggles a panel-tip is not "outside" it', () => {
+  // Without this the press closes the panel-tip and the toggle immediately reopens
   // it, or the reverse, and which one you get depends on listener order.
   const pop = $('#pop');
   let closed = 0;
-  const w = Card.wire(pop, { onClose: () => { closed += 1; }, except: ['#toggle'] });
+  const w = PanelTip.wire(pop, { onClose: () => { closed += 1; }, except: ['#toggle'] });
   press($('#toggle'));
   assert.equal(closed, 0);
   press($('#under'));
@@ -123,7 +123,7 @@ test('a ✕ that cannot be pressed is reported, since nothing else would notice'
   const real = window.console.warn;
   window.console.warn = (...a) => warnings.push(a[0]);
   try {
-    Card.wire(pop, { onClose: () => {} }).detach();
+    PanelTip.wire(pop, { onClose: () => {} }).detach();
   } finally {
     window.console.warn = real;
     pop.style.pointerEvents = '';
@@ -137,7 +137,7 @@ test('a ✕ that cannot be pressed is reported, since nothing else would notice'
 //
 // The half a leave event cannot promise. Each of these is a way the pointer
 // stops being over the trigger, or the placement stops meaning anything, with
-// no leave ever firing; before the guards, each left a card on screen anchored
+// no leave ever firing; before the guards, each left a panel-tip on screen anchored
 // to content that had moved out from under it.
 
 const over = (el) => el.dispatchEvent(
@@ -146,22 +146,22 @@ const scrollOn = (el) => el.dispatchEvent(
   new window.Event('scroll', { bubbles: false }));
 const settle = (ms = 320) => new Promise((r) => setTimeout(r, ms));
 
-test('a pointer demonstrably elsewhere closes the card, with no leave fired', async () => {
+test('a pointer demonstrably elsewhere closes the panel-tip, with no leave fired', async () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, except: ['#toggle'] });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; }, except: ['#toggle'] });
   over($('#under'));
   await settle();
   assert.equal(closed, 1, 'the pointer being over something else is the close');
   w.detach();
 });
 
-test('the card and its trigger are not elsewhere, and cancel a pending close', async () => {
+test('the panel-tip and its trigger are not elsewhere, and cancel a pending close', async () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, except: ['#toggle'] });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; }, except: ['#toggle'] });
   over($('#under'));      // start the grace
-  over($('#pop'));        // the reader crossed the gap into the card
+  over($('#pop'));        // the reader crossed the gap into the panel-tip
   await settle();
-  assert.equal(closed, 0, 'arriving on the card cancels the fade');
+  assert.equal(closed, 0, 'arriving on the panel-tip cancels the fade');
   over($('#under'));
   over($('#toggle'));     // and the trigger counts the same way
   await settle();
@@ -171,17 +171,17 @@ test('the card and its trigger are not elsewhere, and cancel a pending close', a
 
 test('a page scroll closes it, and a scroll inside it does not', async () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; } });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; } });
   scrollOn($('#pop'));
-  assert.equal(closed, 0, 'a reader reaching the rest of a long card is not a departure');
+  assert.equal(closed, 0, 'a reader reaching the rest of a long panel-tip is not a departure');
   scrollOn(window.document);
-  assert.equal(closed, 1, 'the content moved and the card did not');
+  assert.equal(closed, 1, 'the content moved and the panel-tip did not');
   w.detach();
 });
 
 test('resize and window blur close it, since the placement stops meaning anything', () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; } });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; } });
   window.dispatchEvent(new window.Event('resize'));
   assert.equal(closed, 1);
   window.dispatchEvent(new window.Event('blur'));
@@ -189,10 +189,10 @@ test('resize and window blur close it, since the placement stops meaning anythin
   w.detach();
 });
 
-test('a hidden card is not closed again by any of them', async () => {
+test('a hidden panel-tip is not closed again by any of them', async () => {
   let closed = 0;
   const pop = $('#pop');
-  const w = Card.wire(pop, { onClose: () => { closed += 1; } });
+  const w = PanelTip.wire(pop, { onClose: () => { closed += 1; } });
   for (const hide of [
     () => { pop.classList.add('hidden'); },
     () => { pop.classList.remove('hidden'); pop.style.display = 'none'; },
@@ -209,9 +209,9 @@ test('a hidden card is not closed again by any of them', async () => {
   w.detach();
 });
 
-test('stale:false leaves a card that must survive a scroll alone', async () => {
+test('stale:false leaves a panel-tip that must survive a scroll alone', async () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: false });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; }, stale: false });
   scrollOn(window.document);
   over($('#under'));
   await settle();
@@ -219,16 +219,16 @@ test('stale:false leaves a card that must survive a scroll alone', async () => {
   w.detach();
 });
 
-test('detach releases the guards, so a rebuilt card does not close twice', async () => {
+test('detach releases the guards, so a rebuilt panel-tip does not close twice', async () => {
   let closed = 0;
-  Card.wire($('#pop'), { onClose: () => { closed += 1; } }).detach();
+  PanelTip.wire($('#pop'), { onClose: () => { closed += 1; } }).detach();
   scrollOn(window.document);
   over($('#under'));
   await settle();
   assert.equal(closed, 0);
 });
 
-// ── stale:'geometry', the mode a NOTE takes ───────────────────────────────
+// ── stale:'geometry', the mode a TITLE-TIP takes ───────────────────────────────
 //
 // A panel that is `pointer-events: none` is never the pointer's target, so
 // `el.contains(target)` is false for every point on the panel itself and the
@@ -242,7 +242,7 @@ test("stale:'geometry' still closes on a scroll, a resize and a blur", async () 
     () => window.dispatchEvent(new window.Event('blur')),
   ]) {
     let closed = 0;
-    const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
+    const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
     fire();
     await settle();
     assert.equal(closed, 1, 'the geometry half is on');
@@ -252,17 +252,17 @@ test("stale:'geometry' still closes on a scroll, a resize and a blur", async () 
 
 test("stale:'geometry' ignores a pointer elsewhere, which is the point of it", async () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
   over($('#under'));
   await settle();
   assert.equal(closed, 0,
-    'a note is left to its trigger own leave; the pointer guard would close it on open');
+    'a title-tip is left to its trigger own leave; the pointer guard would close it on open');
   w.detach();
 });
 
 test("stale:'geometry' keeps Escape and the press outside", async () => {
   let closed = 0;
-  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
+  const w = PanelTip.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
   window.document.dispatchEvent(
     new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   assert.equal(closed, 1, 'Escape is not a staleness guard and is never gated');
