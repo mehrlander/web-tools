@@ -271,3 +271,24 @@ test('a closed paragraph break is struck in place, and an opened one is marked g
     assert.equal(split.slice(s, s + t.length), t, `run at ${s} is still the buffer's text`);
   }
 });
+
+// Found by review, 2026-09-27: a join is usually followed by lower-casing the
+// word after it, and the struck ¶ has to survive that; and an opened break at
+// the end of a list lands in the item, not loose in the <ul>.
+test('a closed break is still struck when the word after it changed too', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const host = window.document.getElementById('host'), box = window.document.getElementById('box');
+  const base = 'One two.\n\nThree four.\n';
+  for (const text of ['One two. three four.\n', 'One two. four.\n']) {
+    host.__mdKey = null; host.__readings = {};
+    window.MdSurface.paint(host, { text, base, track: true, overlay: box });
+    assert.equal(host.querySelectorAll('[data-md-break="closed"]').length, 1, JSON.stringify(text));
+  }
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text: '- Para one\n\ntwo.\n\nTail.\n', base: 'Para one two.\n\nTail.\n', track: true, overlay: box });
+  const opened = host.querySelector('[data-md-break="opened"]');
+  assert.ok(opened, 'the split is marked');
+  assert.equal(opened.parentElement.tagName, 'LI', 'inside the item, not loose in the list');
+});

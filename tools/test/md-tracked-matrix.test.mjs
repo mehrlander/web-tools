@@ -233,31 +233,61 @@ test('a seeded walk of joins, splits and moves over real documents keeps every c
       const t = base;
       // one to three edits per step, so edits meet cards already there
       const n = 1 + pick(3);
-      const did = [];
+      const did = [], kinds = [];
+      let before = base;
       for (let k = 0; k < n; k++) {
-        const x = d.text, op = pick(3);
+        const x = d.text, op = pick(4);
+        const was = d.text;
+        let done = false;
+        // Joins and splits are taken where the page offers them: between two
+        // paragraphs of prose, and at a space in prose outside inline code.
+        const prose = (line) => /^[A-Za-z*_(\[]/.test(line) && !/^(?:[-*+] |\d+[.)] |---|___|\*\*\*$)/.test(line);
+        const lineAt = (i) => x.slice(x.lastIndexOf('\n', i - 1) + 1, (x.indexOf('\n', i) + 1 || x.length + 1) - 1);
+        const inCode = (i) => (lineAt(i).slice(0, i - (x.lastIndexOf('\n', i - 1) + 1)).match(/`/g) || []).length % 2 === 1;
         if (op === 0) {
-          const breaks = [...x.matchAll(/\S(\n[^\S\n]*\n\s*)(?=[A-Za-z])/g)].map((m) => m.index + 1);
-          if (breaks.length) { const b = breaks[pick(breaks.length)]; if (d.join(b)) did.push(`join@${b}`); }
+          const breaks = [...x.matchAll(/\S(\n[^\S\n]*\n\s*)(?=[A-Za-z])/g)].map((m) => m.index + 1)
+            .filter((i) => prose(lineAt(i - 1)) && prose(lineAt(x.slice(i).search(/\S/) + i)));
+          if (breaks.length) { const b = breaks[pick(breaks.length)]; if (d.join(b)) { did.push(`join@${b}`); kinds.push('join'); done = true; } }
         } else if (op === 1) {
-          const gaps = [...x.matchAll(/[.!?] (?=[A-Z])/g)].map((m) => m.index + 1);
-          if (gaps.length) { const g = gaps[pick(gaps.length)]; if (d.split(g)) did.push(`split@${g}`); }
+          const gaps = [...x.matchAll(/[.!?,;:]? (?=[A-Za-z])|\n(?=[a-z])/g)].map((m) => m.index + (m[0][0] === ' ' || m[0][0] === '\n' ? 0 : 1))
+            .filter((i) => prose(lineAt(i)) && !inCode(i));
+          if (gaps.length) { const g = gaps[pick(gaps.length)]; if (d.split(g)) { did.push(`split@${g}`); kinds.push('split'); done = true; } }
         } else {
-          const sents = [...x.matchAll(/[A-Z][^.!?\n`|]{3,80}[.!?]/g)];
-          if (sents.length) {
-            const m = sents[pick(sents.length)], a = m.index, b = a + m[0].length;
-            const asPara = rand() < 0.5;
+          // A sentence (across a soft wrap too), or a list item's words; with
+          // its spaces sometimes; dropped between words, at either end of the
+          // file, or onto a break as a paragraph of its own.
+          const pool = op === 2
+            ? [...x.matchAll(/[A-Z][^.!?`|]{3,120}?[.!?]/g)].filter((m) => !m[0].includes('\n\n'))
+            : [...x.matchAll(/^[ \t]*(?:[-*+]|\d{1,3}[.)]) +([^\n`|]{2,60})$/gm)].map((m) => Object.assign([m[1]], { index: m.index + m[0].length - m[1].length }));
+          if (pool.length) {
+            const m = pool[pick(pool.length)];
+            let a = m.index, b = a + m[0].length;
+            if (rand() < 0.3 && x[a - 1] === ' ') a--;
+            if (rand() < 0.3 && x[b] === ' ') b++;
+            const asPara = rand() < 0.5, edge = rand() < 0.15;
             let to;
-            if (asPara) { const brs = [...x.matchAll(/\n\n/g)].map((q) => q.index); to = brs.length ? brs[pick(brs.length)] : x.length; }
+            if (edge) to = rand() < 0.5 ? 0 : x.length;
+            else if (asPara) { const brs = [...x.matchAll(/\n\n/g)].map((q) => q.index); to = brs.length ? brs[pick(brs.length)] : x.length; }
             else { const ws = [...x.matchAll(/ (?=\w)/g)].map((q) => q.index + 1); to = ws.length ? ws[pick(ws.length)] : 0; }
-            if (d.move(a, b, to, asPara)) did.push(`move[${a},${b})->${to}${asPara ? '¶' : ''}`);
+            if (d.move(a, b, to, asPara)) { did.push(`move[${a},${b})->${to}${asPara ? '¶' : ''}`); kinds.push('move'); done = true; }
           }
         }
+        if (done) before = was;
       }
       const text = d.text;
       if (text === t) continue;
+      const problems = [];
+      // The file ends as it did.
+      if (/\n$/.test(text) !== /\n$/.test(base) || /\n\n$/.test(text) && !/\n\n$/.test(base)) problems.push('the file no longer ends as it did');
       const r1 = checkAgainst(base, text);
-      if (r1.out.length) { failures.push({ file, step, did, problems: r1.out }); continue; }
+      problems.push(...r1.out);
+      // A lone join shows a struck ¶, a lone split a green one: the word
+      // checks above cannot see either, since a break has no words.
+      if (kinds.length === 1 && kinds[0] === 'join' && !host.querySelector('[data-md-break="closed"]')) problems.push('a join with no struck ¶');
+      if (kinds.length === 1 && kinds[0] === 'split' && !host.querySelector('[data-md-break="opened"]')) problems.push('a split with no green ¶');
+      // One undo takes back the last edit whole.
+      if (kinds.length) { d.undo(); if (d.text !== before) problems.push('one undo does not take back the last edit'); }
+      if (problems.length) { failures.push({ file, step, did, problems }); continue; }
       if (r1.runs.length) {
         const one = mdDiff.revert(base, text, r1.runs[0]);
         const r2 = checkAgainst(base, one);

@@ -605,6 +605,11 @@
           // is why nothing here has to special-case the jump.
           onText: (t) => {
             if (t !== this.text) this.mendArmed = false;
+            // A CARRY IS OVER WHEN THE TEXT MOVES UNDER IT: its range names
+            // the words it picked up, and a final result from the microphone
+            // replaces exactly those. The drop's own edit arrives after the
+            // carry has ended, so it never cancels itself.
+            if (t !== this.text && this.mover) { this.mover = null; this.stopEdgeScroll(); }
             this.text = t; this.heard(); this.save(); this.paint();
           },
           onInterim: (t) => { this.interim = t; this.heard(); this.paint(); },
@@ -1169,7 +1174,7 @@
             // REMEMBER THE WORD, because the finger has not lifted and what it
             // does next decides whether this gesture is over.
             const r = this.d.range;
-            if (r && r.start === r.end && this.d.canSplit(r.start)) this.splitPick = r.start;
+            if (r && r.start === r.end && this.d.canSplit(r.start) && !this.inCode(r.start)) this.splitPick = r.start;
             word = r && r.start !== r.end ? { start: r.start, end: r.end } : null;
             this.paint();
           }, 450);
@@ -1333,9 +1338,10 @@
           // A TAP IN THE GAP BETWEEN TWO PARAGRAPHS picks that seam, rather than
           // sending the caret to the end of the document, which is what a tap
           // off the words otherwise means. See paintExtras for what it shows.
-          if (this.rendered && !this.hits(e.clientX, e.clientY)) {
+          // A SECOND tap there is still the double that opens the keyboard.
+          if (this.rendered && !this.hits(e.clientX, e.clientY) && Date.now() - lastTap >= 300) {
             const s = this.seamAtPoint(e.clientX, e.clientY);
-            if (s && s.join) { taps = 0; this.seamPick = s.at; this.paintExtras(); return; }
+            if (s && s.join) { taps = 1; lastTap = Date.now(); this.seamPick = s.at; this.paintExtras(); return; }
           }
           // A MOUSE IN THE RENDERED FACE GETS A DESKTOP EDITOR'S CLICKS, not the
           // phone's: see mouseClick.
@@ -2218,6 +2224,7 @@
               `left:${box.left - lb.left + box.width / 2}px;top:${mid - lb.top}px`, 'seam');
             pill.dataset.mdUi = '';
             pill.innerHTML = '<i class="ph ph-arrows-in-line-vertical"></i>Join';
+            this.keepFocus(pill);
             pill.addEventListener('click', (e) => { e.stopPropagation(); this.joinSeam(s.at); });
           }
         }
@@ -2230,6 +2237,7 @@
               `left:${Math.max(box.left - lb.left + 36, Math.min(box.right - lb.left - 36, r.left - lb.left))}px;top:${r.bottom - lb.top + 6}px`, 'seam');
             pill.dataset.mdUi = '';
             pill.innerHTML = '<i class="ph ph-arrows-out-line-vertical"></i>Split';
+            this.keepFocus(pill);
             pill.addEventListener('click', (e) => {
               e.stopPropagation();
               this.splitPick = null;
@@ -2262,11 +2270,31 @@
         g.style.left = Math.max(8, Math.min(lb.width - w - 8, gx)) + 'px';
         g.style.top = Math.max(0, gy) + 'px';
       },
+      // INSIDE CODE A SPACE IS NOT A SENTENCE GAP: a split there cuts an inline
+      // code span or a fenced block in two, so Split is not offered. Read off
+      // the source: an odd count of backticks before the offset on its line,
+      // or an odd count of fence lines before it in the file.
+      inCode(i) {
+        const t = this.d.text, ls = t.lastIndexOf('\n', i - 1) + 1;
+        if (((t.slice(ls, i).match(/`/g) || []).length) % 2) return true;
+        return ((t.slice(0, ls).match(/^[ \t]*(?:```|~~~)/gm) || []).length) % 2 === 1;
+      },
+      // A PILL MUST NOT TAKE FOCUS. While the keyboard is up, the press on it
+      // would blur the typing sink; the blur ends typing and repaints, which
+      // rebuilds the pill before the tap lands, so the tap did nothing and the
+      // keyboard closed. The press is refused focus; the click still fires.
+      keepFocus(node) {
+        const stop = (e) => e.preventDefault();
+        node.addEventListener('pointerdown', stop);
+        node.addEventListener('mousedown', stop);
+      },
       // How far above a finger the carried words are drawn and aimed.
       LIFT: 44,
       startMove(a, b, x, y, touch) {
         this.seamPick = null; this.splitPick = null;
-        this.mover = { a, b, text: this.d.text.slice(a, b).trim(), x, y, touch, target: null };
+        // A mouse carry starts only once the pointer has left the slop, so it
+        // is already moving; a touch carry starts at the press and is not.
+        this.mover = { a, b, text: this.d.text.slice(a, b).trim(), x, y, x0: x, y0: y, moved: !touch, touch, target: null };
         this.armed = null; this.pinDrag = null;
         // Repainted once so the pins come off: the words are lifted, and a
         // handle left on them would read as a second thing to drag.
@@ -2277,6 +2305,14 @@
         const m = this.mover;
         if (!m) return;
         m.x = x; m.y = y;
+        // NOTHING IS AIMED UNTIL THE FINGER MOVES. A touch aims above the
+        // finger, so a target taken at the press would sit on the line above
+        // the words, and a long press let go where it began would drop them
+        // there. Inside the same slop the tap uses, the words are only lifted.
+        if (!m.moved) {
+          if (Math.hypot(x - m.x0, y - m.y0) <= 10) { m.target = null; this.paintExtras(); return; }
+          m.moved = true;
+        }
         this.edgeScroll(y);
         m.target = this.dropAt(x, m.touch ? y - this.LIFT : y);
         this.paintExtras();
@@ -2287,9 +2323,14 @@
       // would land inside the words being carried.
       dropAt(x, y) {
         const m = this.mover, t = this.d.text;
+        // The aim stays inside the pane: above the finger near the top is
+        // over the file bar, and a gap scrolled out of sight is no place to
+        // drop words the reader cannot see land.
+        const vb = this.$refs.view.getBoundingClientRect();
+        y = Math.max(vb.top + 2, Math.min(vb.bottom - 2, y));
         if (this.rendered) {
           const s = this.seamAtPoint(x, y, 4);
-          if (s) return { at: s.at, para: true, y: (s.top + s.bottom) / 2 };
+          if (s) return { at: s.at, para: true, y: Math.max(vb.top + 2, Math.min(vb.bottom - 2, (s.top + s.bottom) / 2)) };
           const bs = window.MdSurface.blocks(this.$refs.md);
           if (bs.length) {
             const f = bs[0].el.getBoundingClientRect(), l = bs[bs.length - 1].el.getBoundingClientRect();
@@ -2341,7 +2382,7 @@
         const m = this.mover;
         this.mover = null;
         this.stopEdgeScroll();
-        if (m && m.target) this.d.move(m.a, m.b, m.target.at, m.target.para);
+        if (m && m.moved && m.target) this.d.move(m.a, m.b, m.target.at, m.target.para);
         this.paint();
       },
       cancelMove() {

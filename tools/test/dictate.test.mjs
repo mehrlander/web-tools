@@ -1802,3 +1802,49 @@ test('the paragraph key at a caret mid-text splits cleanly, one undo step', () =
   d.undo();
   assert.equal(d.text, 'First half. Second half.');
 });
+
+// ── Found by review, 2026-09-27 ────────────────────────────────────────────
+// Each of these failed on the code the review read.
+test('a move leaves unrelated lines alone even when they look like a list marker', () => {
+  const t = 'Score was\n10.\n\nMove me. Stay here.\n';
+  const d = doc(t);
+  d.move(t.indexOf('Move'), t.indexOf('Move') + 8, t.length - 1);
+  assert.equal(d.text, 'Score was\n10.\n\nStay here. Move me.\n');
+});
+
+test('a list item or heading carried away takes its marker line with it, and the file keeps its ending', () => {
+  const a = doc('Para.\n\n- only');
+  a.move(9, 13, 0);
+  assert.equal(a.text, 'only Para.', 'no final newline invented');
+  const b = doc('Para.\n\n- only\n');
+  b.move(9, 13, 0, true);
+  assert.equal(b.text, 'only\n\nPara.\n');
+  const c = doc('# Head\n\nPara.\n');
+  c.move(2, 6, c.text.length - 1);
+  assert.equal(c.text, 'Para. Head\n', 'no stray first line');
+  const e = doc('> quoted\n\nPara.\n');
+  e.move(2, 8, e.text.length - 1);
+  assert.equal(e.text, 'Para. quoted\n');
+});
+
+test('a split at a line break makes one paragraph break, and none at the end of the content', () => {
+  const d = doc('Line one\nline two\n');
+  assert.equal(d.split(8), true);
+  assert.equal(d.text, 'Line one\n\nline two\n');
+  assert.equal(doc('Para one two.\n').canSplit(13), false, 'the end of the content is not a split');
+});
+
+test('a move whose selection carries its spaces does not glue the words it leaves', () => {
+  const d = doc('alpha beta gamma delta');
+  d.move(5, 11, 22);
+  assert.equal(d.text, 'alpha gamma delta beta');
+});
+
+test('a move that changes nothing is not an edit and leaves no undo step', () => {
+  const d = doc('A.\n\nB.\n');
+  assert.equal(d.move(0, 2, 0, true), false);
+  // Setting the text was itself a step; one undo must reach past it, which it
+  // would not if the no-op had recorded a step of its own.
+  d.undo();
+  assert.notEqual(d.text, 'A.\n\nB.\n');
+});

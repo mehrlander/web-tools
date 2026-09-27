@@ -706,7 +706,12 @@ try {
   ok('and the hold is released with the finger', (await holdProbe()) === false);
 
   // Dragging BACK inside the word restores it rather than cutting into it: the
-  // word is the floor of this gesture, as it is on the platform.
+  // word is the floor of this gesture, as it is on the platform. The word the
+  // press above took is collapsed first: pressed inside a selection, a mouse
+  // now picks it up to carry, and this check would then compare two
+  // unchanged ranges and pass without the extension ever running (found by
+  // review, 2026-09-27). `grown` proves the extension ran.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.caretAt(0); c.paint(); });
   await page.mouse.move(line1.x + 60, line1.y + 12);
   await page.mouse.down();
   await page.waitForTimeout(600);
@@ -715,6 +720,9 @@ try {
     await page.mouse.move(line1.x + 60 + 12 * i, line1.y + 12);
     await page.waitForTimeout(20);
   }
+  const grown2 = await sel();
+  ok('the long press extends as it is dragged on', !!grown2 && !!held2 && grown2.end > held2.end,
+    `${JSON.stringify(held2)} -> ${JSON.stringify(grown2)}`);
   await page.mouse.move(line1.x + 62, line1.y + 12);
   await page.waitForTimeout(80);
   const shrunk = await sel();
@@ -1236,6 +1244,93 @@ try {
   await page.locator('text=Go back to original').first().click();
   await page.waitForTimeout(250);
   ok('Go back to original on that card restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
+
+  // ── Found by review, 2026-09-27 ─────────────────────────────────────
+  // Each of these failed on the page the review read.
+  console.log('paragraphs, review:');
+  // A long press on a selection that never moves is not a drop: it used to
+  // aim 44px above the finger at once and drop there on release.
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); });
+  const hold = await rectOf('First two.', 3);
+  await touch('pointerdown', hold.x, hold.y);
+  await page.waitForTimeout(600);
+  await touch('pointerup', hold.x, hold.y);
+  await page.waitForTimeout(200);
+  ok('a long press on a selection, released without moving, moves nothing', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
+
+  // Words landing mid-carry (a final result from the microphone) end the
+  // carry: its range no longer names the words it picked up.
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); });
+  const f3 = await rectOf('First two.', 3), g3 = await seamBelow('First one');
+  await touch('pointerdown', f3.x, f3.y);
+  await page.waitForTimeout(550);
+  await touch('pointermove', f3.x + 20, f3.y + 20);
+  const spoken = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.insert('words that just arrived'); return c.d.text; });
+  for (let k = 1; k <= 4; k++) await touch('pointermove', f3.x + 20, f3.y + (g3.y + 44 - f3.y) * k / 4);
+  await touch('pointerup', f3.x + 20, g3.y + 44);
+  await page.waitForTimeout(200);
+  ok('text changing under a carry ends it, and the drop moves nothing', (await docText()) === spoken, JSON.stringify(await docText()));
+
+  // The Join pill while the keyboard is up: tapping it used to blur the
+  // typing sink, whose repaint rebuilt the pill before the tap landed.
+  await reset();
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.startTyping(3); });
+  await page.waitForTimeout(250);
+  const gapT = await seamBelow('First one');
+  await page.touchscreen.tap(gapT.x, gapT.y);
+  await page.waitForTimeout(200);
+  const joinT = await pillAt('Join');
+  ok('while typing, a tap on the gap still offers Join', !!joinT);
+  if (joinT) { await page.touchscreen.tap(joinT.x, joinT.y); await page.waitForTimeout(250); }
+  const typed = await page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].typing);
+  ok('and Join joins without closing the keyboard', (await docText()).includes('First two. Second para.') && typed,
+    JSON.stringify({ typing: typed, text: await docText() }));
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (c.typing) c.stopTyping(); });
+
+  // A double tap on a gap still opens the keyboard, as a double tap on the
+  // canvas does anywhere else; the seam only takes a single tap.
+  await reset();
+  const gapD = await seamBelow('First one');
+  await page.touchscreen.tap(gapD.x, gapD.y);
+  await page.waitForTimeout(80);
+  await page.touchscreen.tap(gapD.x, gapD.y);
+  await page.waitForTimeout(300);
+  const kbOpen = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; return c.edit || c.typing; });
+  ok('a double tap on a gap opens the keyboard', !!kbOpen);
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (c.typing) c.stopTyping(); if (c.edit) c.editClose(); });
+
+  // Split is not offered on a space inside inline code: it would cut the
+  // code span in two.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = '# Title\n\nRun `npm run build now` first. Then more.\n'; c.d.caretAt(0); c.paint(); });
+  await page.waitForTimeout(200);
+  const inCodeOffer = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const t = c.text; return { code: c.inCode(t.indexOf(' run build')), prose: c.inCode(t.indexOf(' Then')) }; });
+  ok('a space inside inline code is not a place to split, a sentence gap is', inCodeOffer.code && !inCodeOffer.prose, JSON.stringify(inCodeOffer));
+
+  // A finger near the top of the pane aims above it; the drop is kept inside
+  // the pane rather than landing on a gap scrolled out of sight.
+  const aim = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = Array.from({ length: 14 }, (_, k) => `Paragraph ${k} has a few words in it.`).join('\n\n') + '\n';
+    c.paint();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // Put a whole gap just above the top of the pane, out of sight.
+    const v = c.$refs.view, s0 = window.MdSurface.seams(c.$refs.md)[4];
+    v.scrollTop += s0.bottom - v.getBoundingClientRect().top + 5;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const vb = v.getBoundingClientRect(), md = c.$refs.md.getBoundingClientRect();
+    c.mover = { a: 0, b: 1, text: 'x', x: 0, y: 0, touch: true, target: null };
+    const t = c.dropAt(md.left + md.width / 2, vb.top - 12);
+    c.mover = null; c.paint();
+    const y = t && (t.para ? t.y : window.MdSurface.rectAt(c.$refs.md, t.at)?.top);
+    return { vtop: vb.top, y };
+  });
+  ok('a drop aimed above the pane lands inside it', aim.y == null || aim.y >= aim.vtop - 1, JSON.stringify(aim));
 } finally {
   await browser.close();
   server.close();
