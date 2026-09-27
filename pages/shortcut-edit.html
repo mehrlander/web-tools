@@ -66,18 +66,18 @@
 
       <div class="sm:mx-3 border-y sm:border border-base-300 sm:rounded-box py-1 font-mono text-sm" data-listing>
         <template x-for="l in shown" :key="l.key">
-          <div :id="l.id" class="flex items-baseline pr-3"
+          <div :id="l.id" class="flex items-baseline pr-3" :role="l.kids ? 'button' : null"
                :class="l.t === '+' ? 'bg-success/25 shadow-[inset_4px_0_0_var(--color-success)] py-1.5 font-semibold'
                      : l.t === '-' ? 'bg-error/15 shadow-[inset_4px_0_0_var(--color-error)] py-1'
-                     : shut[l.key] ? 'bg-base-200/70 py-0.5' : 'py-0.5'" :data-op="l.t">
+                     : shut[l.key] ? 'bg-base-200/70 py-0.5' : 'py-0.5'" :data-op="l.t" @click="l.kids && toggle(l.key)">
             <span class="w-8 shrink-0 text-right select-none"
                   :class="l.t === '+' ? 'text-success' : l.t === '-' ? 'text-error' : 'text-base-content/35'"
                   x-text="l.t === ' ' ? l.i : l.t"></span>
-            <button x-show="l.kids" @click="toggle(l.key)" class="w-4 shrink-0 text-center text-[0.6rem] leading-none text-base-content/40" data-toggle
+            <span x-show="l.kids" class="w-4 shrink-0 text-center text-[0.6rem] leading-none text-base-content/40" data-toggle
                     :aria-label="shut[l.key] ? 'Expand' : 'Collapse'">
-              <i class="ph-fill" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></button>
+              <i class="ph-fill" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></span>
             <span x-show="!l.kids" class="w-4 shrink-0"></span>
-            <div class="min-w-0 grow" :class="[pad(l), shut[l.key] ? 'truncate cursor-pointer' : 'break-words -indent-[2ch] pl-[2ch]']" @click="shut[l.key] && toggle(l.key)"><code :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template></code><span x-show="shut[l.key]" class="ml-2 text-xs text-base-content/45" data-preview x-text="'· ' + l.kids + ' · ' + preview(l)"></span></div>
+            <div class="min-w-0 grow" :class="[pad(l), shut[l.key] ? 'truncate' : 'break-words -indent-[2ch] pl-[2ch]']"><code :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template></code><span x-show="shut[l.key]" class="ml-2 text-xs text-base-content/45" data-preview x-text="'· ' + l.kids + ' · ' + preview(l)"></span></div>
             <span x-show="l.t !== ' '" class="badge badge-xs shrink-0 self-center font-sans" :class="l.t === '+' ? 'badge-success' : 'badge-error'" x-text="l.t === '+' ? 'new' : 'remove'"></span>
           </div>
         </template>
@@ -205,13 +205,26 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
     });
     const kids = d.map(() => 0), hot = d.map(l => l.t !== ' ');
     d.forEach((l, k) => { for (let p = parent[k]; p >= 0; p = parent[p]) { kids[p]++; if (l.t !== ' ') hot[p] = true; } });
-    this.lines = d.map((l, k) => ({ ...l, parent: parent[k], kids: kids[k], hot: hot[k] }));
+    // The `end …` line a block's fold also hides: the first line after the
+    // block at its own depth, when that line is an end. A case never claims
+    // `end menu`, which closes the menu rather than the case, and an if never
+    // claims past its else, which is a branch of its own.
+    const closes = d.map(() => -1);
+    d.forEach((l, k) => {
+      if (!kids[k] || /^case\b/.test(l.s.trim())) return;
+      let j = k + 1; while (j < d.length && depth(d[j].s) > depth(l.s)) j++;
+      if (j < d.length && depth(d[j].s) === depth(l.s) && /^end\b/.test(d[j].s.trim())) closes[j] = k;
+    });
+    this.lines = d.map((l, k) => ({ ...l, parent: parent[k], kids: kids[k], hot: hot[k], closes: closes[k] }));
     this.foldToChange();
     this.$nextTick(() => this.hunks[0] && this.jump(this.hunks[0].at));
   },
 
   get shown() {
-    return this.lines.filter(l => { for (let p = l.parent; p >= 0; p = this.lines[p].parent) if (this.shut[p]) return false; return true; });
+    return this.lines.filter(l => {
+      for (let p = l.parent; p >= 0; p = this.lines[p].parent) if (this.shut[p]) return false;
+      return !(l.closes >= 0 && this.shut[l.closes]);
+    });
   },
   // What a folded block holds, on one line: its direct children in order,
   // each as its verb and argument, cut at PREVIEW characters.
