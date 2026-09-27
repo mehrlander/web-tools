@@ -10,7 +10,7 @@
 
 <!--
   text-lab.html — the estate's text-analysis and NLP work as one reading
-  surface. Five panes over one subject: what we tried, the retained proposals we
+  surface. Five panes over one subject: what we tried, the variants we
   retained, what we read with, what we read against, and what came out.
 
   Named Text LAB, not Text Instruments. That name collided twice: with Texas
@@ -24,13 +24,14 @@
                  what it opens. Failures are recorded at the same weight as
                   successes, so the standing counts lead the header rather than
                   being tucked behind a total.
-    proposals    The shared Text collection, read from its committed files
-                 in home (passages.jsonl and proposals.jsonl):
-                 every proposed edit, as passage, replacement, author, and
-                 purpose.
+    variants     The shared Text collection, read from its committed files
+                 in home (passages.jsonl, variants.jsonl, proposals.jsonl):
+                 every variant, as passage, alternative wording, author, and
+                 purpose, with a chip naming each file a variant has been
+                 proposed for, linked to the proposal's basis.
                  Searchable, filterable by author and purpose, addressable by
-                 proposal id. It does not claim that a proposal applies to
-                 the document a reader has open, and nothing here applies one.
+                 variant id. A variant does not claim to apply to the
+                 document a reader has open, and nothing here applies one.
     instruments  projects/text/INSTRUMENTS.md, rendered. Organised by
                  unit of analysis (word, term of art, named entity, speaker,
                  sentence, document), because that is the question a session
@@ -62,9 +63,11 @@
     ?use=<ref>   pins this page's own lib chain to a ref.
     ?data=<ref>  pins which ref of home is read (defaults to main).
     ?pane=<name> opens one pane.
-    ?q=<text>    searches the proposal projection.
-    ?author=<name> and ?purpose=<word> filter proposal rows.
-    ?proposal=<id> opens one proposal and implies the proposals pane.
+    ?q=<text>    searches the variants.
+    ?author=<name> and ?purpose=<word> filter variant rows.
+    ?variant=<id> opens one variant and implies the variants pane.
+    ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
+                 read and the address is rewritten to the new form.
 -->
 
 <style>[x-cloak]{display:none!important}</style>
@@ -83,7 +86,7 @@
       TOSS: 'https://mehrlander.github.io/web-tools/pages/toss-render.html',
       DATA_REF: params.get('data') || 'main',
 
-      PANES: ['probes', 'proposals', 'instruments', 'resources', 'runs'],
+      PANES: ['probes', 'variants', 'instruments', 'resources', 'runs'],
 
       // The page's only coloured dimension.
       STANDINGS: {
@@ -134,7 +137,8 @@
       },
 
       home: null,
-      pane: params.get('proposal') ? 'proposals' : (params.get('pane') || 'probes'),
+      pane: (params.get('variant') || params.get('proposal')) ? 'variants'
+        : params.get('pane') === 'proposals' ? 'variants' : (params.get('pane') || 'probes'),
       probes: [],
       concept: '',
       filterStanding: '',
@@ -144,20 +148,21 @@
       resources: [],
       rate: '',
       filterState: '',
-      proposalIndex: null,
-      proposalState: 'idle',
-      proposalError: '',
-      proposalQ: params.get('q') || '',
-      proposalAuthor: params.get('author') || '',
-      proposalPurpose: params.get('purpose') || '',
-      proposalOpen: params.get('proposal') || '',
+      variantIndex: null,
+      variantState: 'idle',
+      variantError: '',
+      variantQ: params.get('q') || '',
+      variantAuthor: params.get('author') || '',
+      variantPurpose: params.get('purpose') || '',
+      variantOpen: params.get('variant') || params.get('proposal') || '',
       loading: true,
       error: '',
       framed: window.self !== window.top,
 
       async init() {
         document.getElementById('boot')?.remove();
-        this.normalizeProposalParams();
+        this.migrateLegacyAddress();
+        this.normalizeVariantParams();
         this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
         try {
           const res = await this.home.get(`${this.ROOT}/probes/probes.json`);
@@ -226,7 +231,7 @@
         this.pane = pane;
         this.syncPaneAddress();
         try {
-          if (pane === 'proposals') await this.loadProposals();
+          if (pane === 'variants') await this.loadVariants();
           if (pane === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
@@ -251,105 +256,123 @@
 
       // The collection's two files, read by the shared kit that the FAB and the
       // file viewer also read, so every surface has one answer.
-      async loadProposals() {
-        if (this.proposalState === 'loading' || this.proposalState === 'done') return;
-        this.proposalState = 'loading';
-        this.proposalError = '';
+      async loadVariants() {
+        if (this.variantState === 'loading' || this.variantState === 'done') return;
+        this.variantState = 'loading';
+        this.variantError = '';
         try {
           await gh.load('kits/text-collection.js');
-          this.proposalIndex = await window.TextCollection.load(this.home);
-          this.proposalState = 'done';
-          this.normalizeProposalParams();
-          if (this.proposalOpen
-              && !window.TextCollection.view(this.proposalIndex, this.proposalOpen)) {
-            this.proposalOpen = '';
-            this.syncProposalAddress();
+          this.variantIndex = await window.TextCollection.load(this.home);
+          this.variantState = 'done';
+          this.normalizeVariantParams();
+          if (this.variantOpen
+              && !window.TextCollection.view(this.variantIndex, this.variantOpen)) {
+            this.variantOpen = '';
+            this.syncVariantAddress();
           }
-          // A proposal ID is a visible address, not merely an expanded row. Do
+          // A variant ID is a visible address, not merely an expanded row. Do
           // this only after the initial load, so opening a row by hand does not
           // make the list jump under the reader.
-          const addressed = this.proposalOpen;
+          const addressed = this.variantOpen;
           if (addressed) this.$nextTick(() => {
-            if (this.proposalOpen !== addressed) return;
-            document.getElementById(`proposal-${addressed}`)
+            if (this.variantOpen !== addressed) return;
+            document.getElementById(`variant-${addressed}`)
               ?.scrollIntoView({ block: 'start' });
           });
         } catch (e) {
-          this.proposalError = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
-          this.proposalState = 'error';
+          this.variantError = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
+          this.variantState = 'error';
         }
       },
 
-      get proposalRows() {
-        if (!this.proposalIndex || !window.TextCollection) return [];
-        const rows = window.TextCollection.search(this.proposalIndex, {
-          q: this.proposalQ,
-          author: this.proposalAuthor,
-          purpose: this.proposalPurpose,
+      get variantRows() {
+        if (!this.variantIndex || !window.TextCollection) return [];
+        const rows = window.TextCollection.search(this.variantIndex, {
+          q: this.variantQ,
+          author: this.variantAuthor,
+          purpose: this.variantPurpose,
         });
-        // A direct proposal address remains visible even when stale filters
+        // A direct variant address remains visible even when stale filters
         // also rode in the URL. The id is the stronger, exact address.
-        if (this.proposalOpen && !rows.some(row => row.id === this.proposalOpen)) {
-          const selected = window.TextCollection.view(this.proposalIndex, this.proposalOpen);
+        if (this.variantOpen && !rows.some(row => row.id === this.variantOpen)) {
+          const selected = window.TextCollection.view(this.variantIndex, this.variantOpen);
           if (selected) return [selected, ...rows];
         }
         return rows;
       },
 
-      get proposalTotal() {
-        if (!this.proposalIndex) return 0;
-        return this.proposalIndex.summary?.proposals
-          || this.proposalIndex.proposals?.length || 0;
+      get variantTotal() {
+        if (!this.variantIndex) return 0;
+        return this.variantIndex.summary?.variants
+          || this.variantIndex.variants?.length || 0;
       },
 
       // The facets are what the collection holds, counted, most common first.
-      proposalFacet(kind) {
-        const counts = this.proposalIndex?.summary?.[kind === 'author' ? 'by_author' : 'by_purpose'] || {};
+      variantFacet(kind) {
+        const counts = this.variantIndex?.summary?.[kind === 'author' ? 'by_author' : 'by_purpose'] || {};
         return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
           .map(([key, n]) => ({ key, n }));
       },
-      proposalGroups() {
-        const rows = this.proposalRows;
-        return this.proposalFacet('purpose')
+      variantGroups() {
+        const rows = this.variantRows;
+        return this.variantFacet('purpose')
           .map(({ key }) => ({ purpose: key, items: rows.filter(row => row.purpose === key) }))
           .filter(group => group.items.length);
       },
 
-      proposalPreview(value, limit = 190) {
+      variantPreview(value, limit = 190) {
         const text = String(value || '').replace(/\s+/g, ' ').trim();
         if (text.length <= limit) return text;
         const cut = text.slice(0, limit).replace(/\s+\S*$/, '');
         return `${cut || text.slice(0, limit)}…`;
       },
 
-      toggleProposal(id) {
-        this.proposalOpen = this.proposalOpen === id ? '' : id;
-        this.syncProposalAddress();
+      // A basis is a PR or commit URL; anything else gets no link.
+      safeHref(value) {
+        return /^https?:\/\//.test(String(value || '')) ? value : null;
       },
 
-      setProposalFilter(kind, value) {
-        if (kind === 'author') this.proposalAuthor = value;
-        if (kind === 'purpose') this.proposalPurpose = value;
-        this.proposalOpen = '';
-        this.syncProposalAddress();
+      toggleVariant(id) {
+        this.variantOpen = this.variantOpen === id ? '' : id;
+        this.syncVariantAddress();
+      },
+
+      setVariantFilter(kind, value) {
+        if (kind === 'author') this.variantAuthor = value;
+        if (kind === 'purpose') this.variantPurpose = value;
+        this.variantOpen = '';
+        this.syncVariantAddress();
         this.shut();
       },
 
       // A facet the collection does not hold is dropped, so a stale address
       // shows the whole list rather than an empty one. Before the load, only a
       // blank is known to be valid.
-      normalizeProposalParams() {
-        if (!this.proposalIndex) return;
-        const author = this.proposalFacet('author').some(row => row.key === this.proposalAuthor)
-          ? this.proposalAuthor : '';
-        const purpose = this.proposalFacet('purpose').some(row => row.key === this.proposalPurpose)
-          ? this.proposalPurpose : '';
-        if (author === this.proposalAuthor && purpose === this.proposalPurpose) return;
-        this.proposalAuthor = author;
-        this.proposalPurpose = purpose;
+      normalizeVariantParams() {
+        if (!this.variantIndex) return;
+        const author = this.variantFacet('author').some(row => row.key === this.variantAuthor)
+          ? this.variantAuthor : '';
+        const purpose = this.variantFacet('purpose').some(row => row.key === this.variantPurpose)
+          ? this.variantPurpose : '';
+        if (author === this.variantAuthor && purpose === this.variantPurpose) return;
+        this.variantAuthor = author;
+        this.variantPurpose = purpose;
         const url = new URL(location.href);
         if (!author) url.searchParams.delete('author');
         if (!purpose) url.searchParams.delete('purpose');
+        history.replaceState(null, '', url);
+      },
+
+      // The rows were called proposals until 2026-09-27, and addresses minted
+      // then still arrive. The pane and the open row are already read from
+      // either name above; this rewrites the address to the new one.
+      migrateLegacyAddress() {
+        const url = new URL(location.href);
+        const legacy = url.searchParams.get('proposal');
+        if (!legacy && url.searchParams.get('pane') !== 'proposals') return;
+        url.searchParams.delete('proposal');
+        if (legacy && !url.searchParams.get('variant')) url.searchParams.set('variant', legacy);
+        url.searchParams.set('pane', 'variants');
         history.replaceState(null, '', url);
       },
 
@@ -357,20 +380,20 @@
         const url = new URL(location.href);
         if (this.pane === 'probes') url.searchParams.delete('pane');
         else url.searchParams.set('pane', this.pane);
-        if (this.pane !== 'proposals') url.searchParams.delete('proposal');
+        if (this.pane !== 'variants') url.searchParams.delete('variant');
         history.replaceState(null, '', url);
       },
 
-      syncProposalAddress() {
+      syncVariantAddress() {
         const url = new URL(location.href);
-        url.searchParams.set('pane', 'proposals');
+        url.searchParams.set('pane', 'variants');
         const set = (key, value) => value
           ? url.searchParams.set(key, value)
           : url.searchParams.delete(key);
-        set('q', this.proposalQ.trim());
-        set('author', this.proposalAuthor);
-        set('purpose', this.proposalPurpose);
-        set('proposal', this.proposalOpen);
+        set('q', this.variantQ.trim());
+        set('author', this.variantAuthor);
+        set('purpose', this.variantPurpose);
+        set('variant', this.variantOpen);
         history.replaceState(null, '', url);
       },
 
@@ -502,22 +525,22 @@
          ("4 worked 6 mixed 5 failed 1 open"). -->
     <div class="px-5 sm:px-7 py-2 border-t border-base-200 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs">
 
-      <div x-show="pane === 'proposals'" class="flex items-center gap-3 grow min-w-[14rem]">
+      <div x-show="pane === 'variants'" class="flex items-center gap-3 grow min-w-[14rem]">
         <label class="flex items-center gap-2 grow min-w-0">
           <i class="ph ph-magnifying-glass opacity-30 shrink-0"></i>
           <input class="bg-transparent outline-none min-w-0 grow placeholder:text-base-content/30"
-                 aria-label="Search proposals" placeholder="search text, replacement, author, or purpose"
-                 x-model="proposalQ"
-                 @input.debounce.250ms="proposalOpen = ''; syncProposalAddress()"
-                 @keydown.escape="proposalQ = ''; proposalOpen = ''; syncProposalAddress()">
+                 aria-label="Search variants" placeholder="search text, variant, author, or purpose"
+                 x-model="variantQ"
+                 @input.debounce.250ms="variantOpen = ''; syncVariantAddress()"
+                 @keydown.escape="variantQ = ''; variantOpen = ''; syncVariantAddress()">
         </label>
-        <button x-show="proposalQ" class="opacity-40 hover:opacity-100"
-                aria-label="Clear proposal search"
-                @click="proposalQ = ''; proposalOpen = ''; syncProposalAddress()">
+        <button x-show="variantQ" class="opacity-40 hover:opacity-100"
+                aria-label="Clear variant search"
+                @click="variantQ = ''; variantOpen = ''; syncVariantAddress()">
           <i class="ph ph-x"></i>
         </button>
         <span class="opacity-40 whitespace-nowrap tabular-nums"
-              x-text="proposalRows.length + ' of ' + proposalTotal"></span>
+              x-text="variantRows.length + ' of ' + variantTotal"></span>
       </div>
 
       <div x-show="pane === 'probes'" class="flex items-baseline gap-x-5">
@@ -543,20 +566,20 @@
       <div class="grow"></div>
 
       <template x-for="kind in ['purpose', 'author']" :key="kind">
-        <div x-show="pane === 'proposals'" class="dropdown" :class="kind === 'author' && 'dropdown-end'">
+        <div x-show="pane === 'variants'" class="dropdown" :class="kind === 'author' && 'dropdown-end'">
           <div tabindex="0" role="button"
                class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
-               :class="(kind === 'author' ? proposalAuthor : proposalPurpose) && 'opacity-100 font-medium'">
-            <span x-text="(kind === 'author' ? proposalAuthor : proposalPurpose) || ('all ' + kind + 's')"></span>
+               :class="(kind === 'author' ? variantAuthor : variantPurpose) && 'opacity-100 font-medium'">
+            <span x-text="(kind === 'author' ? variantAuthor : variantPurpose) || ('all ' + kind + 's')"></span>
             <i class="ph ph-caret-down"></i>
           </div>
           <ul tabindex="0" class="dropdown-content menu flex-nowrap bg-base-100 border border-base-300 rounded-box z-30 w-64 shadow-lg">
-            <li><a class="font-mono text-xs" @click="setProposalFilter(kind, '')" x-text="'all ' + kind + 's'"></a></li>
-            <template x-for="row in proposalFacet(kind)" :key="row.key">
+            <li><a class="font-mono text-xs" @click="setVariantFilter(kind, '')" x-text="'all ' + kind + 's'"></a></li>
+            <template x-for="row in variantFacet(kind)" :key="row.key">
               <li>
                 <a class="font-mono text-xs justify-between"
-                   :class="(kind === 'author' ? proposalAuthor : proposalPurpose) === row.key && 'font-medium'"
-                   @click="setProposalFilter(kind, row.key)">
+                   :class="(kind === 'author' ? variantAuthor : variantPurpose) === row.key && 'font-medium'"
+                   @click="setVariantFilter(kind, row.key)">
                   <span x-text="row.key"></span>
                   <span class="opacity-40" x-text="row.n"></span>
                 </a>
@@ -609,26 +632,27 @@
   </header>
 
   <main class="px-5 sm:px-7 py-7 mx-auto"
-        :class="pane === 'proposals' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
+        :class="pane === 'variants' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
 
     <div x-show="pane === 'probes' && loading" class="py-24 text-center">
       <span class="loading loading-dots loading-md opacity-20"></span>
     </div>
-    <div x-show="error && pane !== 'proposals'" class="font-mono text-sm text-error py-6" x-text="error"></div>
+    <div x-show="error && pane !== 'variants'" class="font-mono text-sm text-error py-6" x-text="error"></div>
 
-    <!-- ── proposals ────────────────────────────────────────────────────
-         The collection, one row per proposed edit: text, replacement,
-         author, purpose. It can be inspected here; applying one remains a
-         separate decision against a current occurrence. -->
-    <section x-show="pane === 'proposals'">
-      <div x-show="proposalState === 'idle' || proposalState === 'loading'" class="py-24 text-center">
+    <!-- ── variants ─────────────────────────────────────────────────────
+         The collection, one row per variant: text, variant, author,
+         purpose, and a chip per file it has been proposed for. It can be
+         inspected here; applying one remains a separate decision against a
+         current occurrence. -->
+    <section x-show="pane === 'variants'">
+      <div x-show="variantState === 'idle' || variantState === 'loading'" class="py-24 text-center">
         <span class="loading loading-dots loading-md opacity-20"></span>
       </div>
 
-      <div x-show="proposalState === 'error'"
-           class="font-mono text-sm text-error py-6 break-words" x-text="proposalError"></div>
+      <div x-show="variantState === 'error'"
+           class="font-mono text-sm text-error py-6 break-words" x-text="variantError"></div>
 
-      <template x-for="g in proposalGroups()" :key="g.purpose">
+      <template x-for="g in variantGroups()" :key="g.purpose">
         <section class="mb-10">
           <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
             <span x-text="g.purpose"></span>
@@ -637,23 +661,23 @@
 
           <template x-for="p in g.items" :key="p.id">
             <article class="border-b border-base-200 scroll-mt-24"
-                     :id="'proposal-' + p.id"
-                     :class="proposalOpen === p.id && 'bg-base-200/30'">
-              <button class="w-full text-left py-5" @click="toggleProposal(p.id)">
+                     :id="'variant-' + p.id"
+                     :class="variantOpen === p.id && 'bg-base-200/30'">
+              <button class="w-full text-left py-5" @click="toggleVariant(p.id)">
                 <span class="grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 sm:gap-5 items-start">
                   <span class="min-w-0">
                     <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Text</span>
                     <span class="block text-lg leading-7 text-pretty"
-                          x-text="proposalPreview(p.from.text)"></span>
+                          x-text="variantPreview(p.from.text)"></span>
                   </span>
                   <span class="sm:pt-7 opacity-25 justify-self-center">
                     <i class="ph ph-arrow-down sm:hidden"></i>
                     <i class="ph ph-arrow-right hidden sm:inline"></i>
                   </span>
                   <span class="min-w-0">
-                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Proposed replacement</span>
+                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Variant</span>
                     <span class="block text-lg leading-7 text-pretty font-medium"
-                          x-text="proposalPreview(p.to.text)"></span>
+                          x-text="variantPreview(p.to.text)"></span>
                   </span>
                 </span>
 
@@ -661,11 +685,27 @@
                   <span class="uppercase tracking-wide" x-text="p.purpose"></span>
                   <span>·</span>
                   <span class="truncate" x-text="p.author"></span>
-                  <i class="ph shrink-0 ml-auto" :class="proposalOpen === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
+                  <i class="ph shrink-0 ml-auto" :class="variantOpen === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
                 </span>
               </button>
 
-              <template x-if="proposalOpen === p.id">
+              <!-- A chip per file this variant is proposed for, linking the
+                   basis that makes the old text wrong there. Outside the row
+                   button, since a link cannot sit inside one, and uncoloured,
+                   since colour on this page is a probe's standing. -->
+              <template x-if="p.proposals && p.proposals.length">
+                <div class="flex flex-wrap gap-1.5 pb-4 -mt-2" data-variant-proposals>
+                  <template x-for="q in p.proposals" :key="q.repo + ':' + q.path + ':' + q.basis">
+                    <a class="badge badge-sm badge-outline gap-1 font-mono opacity-70 hover:opacity-100"
+                       :href="safeHref(q.basis)" target="_blank" rel="noopener"
+                       :title="q.repo + ' · ' + q.basis">
+                      <i class="ph ph-seal-question"></i><span x-text="q.path"></span>
+                    </a>
+                  </template>
+                </div>
+              </template>
+
+              <template x-if="variantOpen === p.id">
                 <div class="border-t border-base-300/60 px-1 sm:px-4 pt-5 pb-6 grid gap-6">
                   <div class="grid lg:grid-cols-2 gap-6 lg:gap-10">
                     <div class="min-w-0">
@@ -673,7 +713,7 @@
                       <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.from.text"></div>
                     </div>
                     <div class="min-w-0">
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Proposed replacement</div>
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Variant</div>
                       <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.to.text"></div>
                     </div>
                   </div>
@@ -700,9 +740,9 @@
         </section>
       </template>
 
-      <p x-show="proposalState === 'done' && !proposalRows.length"
+      <p x-show="variantState === 'done' && !variantRows.length"
          class="py-16 text-center font-mono text-xs opacity-40">
-        no proposal carries that combination
+        no variant carries that combination
       </p>
     </section>
 
