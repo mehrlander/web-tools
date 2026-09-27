@@ -1426,6 +1426,56 @@ try {
     return { r: c.d.range, want: c.text.indexOf('Second para.') + 3, sel: document.getSelection().toString() }; });
   ok('a tap places the caret and the platform\'s selection goes', afterTap.r && afterTap.r.start === afterTap.r.end
     && Math.abs(afterTap.r.start - afterTap.want) <= 1 && !afterTap.sel, JSON.stringify(afterTap));
+  // Found by review, 2026-09-27.
+  console.log('native selection, review:');
+  // A selection ending in the gap between two paragraphs ends at the first
+  // one's last word, and takes nothing of the next.
+  await reset();
+  const gapEnd = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    const a = c.text.indexOf('First two'), p = window.MdSurface.domPoint(md, a, 'start');
+    const next = [...md.querySelectorAll('p')].find((x) => x.textContent.startsWith('Second'));
+    document.getSelection().setBaseAndExtent(p.node, p.offset, next, 0);
+    await new Promise((r) => setTimeout(r, 100));
+    return { got: c.text.slice(c.d.range.start, c.d.range.end) };
+  });
+  ok('a selection ending in the gap below a paragraph takes nothing of the next', gapEnd.got === 'First two.', JSON.stringify(gapEnd));
+  // The H key twice on a selection makes an h3, as it does without the
+  // option: the range it leaves on the marker is not widened on the way back.
+  await reset();
+  const h2 = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    const a = c.text.indexOf('Second para.'), p = window.MdSurface.domPoint(md, a, 'start'), q = window.MdSurface.domPoint(md, a + 12, 'end');
+    document.getSelection().setBaseAndExtent(p.node, p.offset, q.node, q.offset);
+    await new Promise((r) => setTimeout(r, 100));
+    c.format('H'); await new Promise((r) => setTimeout(r, 100));
+    c.format('H'); await new Promise((r) => setTimeout(r, 100));
+    return c.text;
+  });
+  ok('H twice on a native selection makes an h3 and touches nothing else', h2.includes('\n\n### Second para.\n\n') && h2.startsWith('# Title\n\nFirst one. First two.'), JSON.stringify(h2));
+  // Words held for Move are let go when the text changes under them.
+  await reset();
+  const stale = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two'); c.d.select(a, a + 9); c.paint();
+    c.moveNative();
+    const armed = !!c.moveArm;
+    c.d.text = 'Inserted. ' + c.text; await new Promise((r) => setTimeout(r, 50));
+    return { armed, after: c.moveArm, pill: !!document.querySelector('[data-move-native]') && document.querySelector('[data-move-native]').textContent };
+  });
+  ok('an edit lets go of words held for Move', stale.armed && !stale.after && !/Tap where/.test(stale.pill || ''), JSON.stringify(stale));
+  // The platform letting go without a tap does not leave a live range with
+  // no highlight: it is written back.
+  await reset();
+  const dropped = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('Second para.'); c.d.select(a, a + 12); c.paint();
+    await new Promise((r) => setTimeout(r, 50));
+    document.getSelection().removeAllRanges();
+    await new Promise((r) => setTimeout(r, 100));
+    return { sel: document.getSelection().toString(), r: c.text.slice(c.d.range.start, c.d.range.end) };
+  });
+  ok('a selection the platform drops without a tap is shown again, not kept invisible', dropped.sel === 'Second para.' && dropped.r === 'Second para.', JSON.stringify(dropped));
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.toggleNativeSel(); });
   const offAgain = await page.evaluate(() => document.querySelector('[x-ref="md"]').hasAttribute('data-native-sel'));
   ok('turning the option off gives the words back to the page', !offAgain);

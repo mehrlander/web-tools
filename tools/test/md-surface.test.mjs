@@ -248,6 +248,26 @@ test('a DOM point maps to its source offset and back', () => {
   assert.equal(window.MdSurface.offsetOf(host, para, para.childNodes.length), text.indexOf(' three.') + 7,
     'past an element\'s last child is the end of its last run');
   assert.equal(window.MdSurface.offsetOf(host, window.document.body, 0), null, 'outside the host is nothing');
+  // Found by review, 2026-09-27: a Selection's ends are often (element, k),
+  // the point BEFORE child k. An end there must not take child k with it,
+  // and a start there must not reach back into the block before.
+  const four = host.querySelectorAll('p')[1];
+  assert.equal(window.MdSurface.offsetOf(host, four, 0, 'end'), text.indexOf(' three.') + 7,
+    'a selection ending at the head of the next paragraph ends where the last one did');
+  assert.equal(window.MdSurface.offsetOf(host, para, 0, 'start'), text.indexOf('One'),
+    'a selection starting at a paragraph\'s head starts at its first word');
+  const strong = para.querySelector('strong');
+  assert.equal(window.MdSurface.offsetOf(host, para, [...para.childNodes].indexOf(strong), 'start'), text.indexOf('two'),
+    'a start before the bold starts at its word, not at the text before it');
+  assert.equal(window.MdSurface.offsetOf(host, para, [...para.childNodes].indexOf(strong) + 1, 'end'), text.indexOf('two') + 3,
+    'an end after the bold ends at its word');
+  // A page-set range starting between blocks (the H key's `## ` sits there)
+  // lands on the next word, not on the end of the block before.
+  const at = text.indexOf('\n\nFour') + 1;
+  const p = window.MdSurface.domPoint(host, at, 'start');
+  assert.equal(window.MdSurface.offsetOf(host, p.node, p.offset, 'start'), text.indexOf('Four'), 'start between blocks goes forward');
+  const q = window.MdSurface.domPoint(host, at, 'end');
+  assert.equal(window.MdSurface.offsetOf(host, q.node, q.offset, 'end'), text.indexOf(' three.') + 7, 'an end there goes back');
 });
 
 // A one-word heading retyped shares no word with its old self; it is still
