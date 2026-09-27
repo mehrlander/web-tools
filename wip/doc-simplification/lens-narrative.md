@@ -64,7 +64,7 @@ Living guidance across the four repos carries a large layer of incident narrativ
 - `:237-244` becomes: "Where two checks state one invariant, the cheaper one must not be weaker: `--check` reports an orphan in the same breath as a stale file."
 - `:414-421` becomes: "This is judgment and stays prose: no check can read a question and tell whether the repo holds its answer."
 
-**Rationale:** The file's rules are strong and short. The stories double its length around them and are already filed where the estate files trips: `docs/SNAGS.md` carries `install-shipped-where-a-tap-would-do` (the `:34-42` story), `corpus-not-searched-before-asking` x3 (the `:50-54` story, naming `Check-🎟️GitHubToken`), `success-asserted-without-reading-the-log` x4 (the `:344-347` and `:414-421` family), and `gate-narrower-than-its-own-claim`. The SNAGS header says a trip "goes there rather than into a narrative paragraph" (`CLAUDE.md:~390`), so `CLAUDE.md` is breaking its own rule in these paragraphs. The owner quote at `:36-38` is the most persuasive sentence in the file and is still a quote about one afternoon; the rule it produced is the table row.
+**Rationale:** The file's rules are strong and short. The stories double its length around them and are already filed where the estate files trips: `docs/SNAGS.md` carries `install-shipped-where-a-tap-would-do` (the `:34-42` story), `corpus-not-searched-before-asking` x3 (the `:50-54` story, naming `Check-🎟️GitHubToken`), `success-asserted-without-reading-the-log` x4 (the `:344-347` and `:414-421` family), and `gate-narrower-than-its-own-claim`. The SNAGS header says a trip "goes there rather than into a narrative paragraph" (`CLAUDE.md:383-384`), so `CLAUDE.md` is breaking its own rule in these paragraphs. The owner quote at `:36-38` is the most persuasive sentence in the file and is still a quote about one afternoon; the rule it produced is the table row.
 
 **Evidence:** `sed -n | wc -w` per span: 121, 106, 90, 119, 285, 78, 93, 102, 62, 111, 57. The history share of each, read by hand: 90, 70, 50, 80, 240, 50, 40, 50, 30, 90, 57. The file is 4,561 words.
 
@@ -73,3 +73,43 @@ Living guidance across the four repos carries a large layer of incident narrativ
 **Inbound dependencies:** SNAGS entries link to `CLAUDE.md` as a document, not to these paragraphs. The name-audit Python snippet and the `#BUILD#` rules are untouched. `workflows/README.md` and `docs/idioms.md` cite `CLAUDE.md` sections by heading, and every heading survives.
 
 **Risk:** Medium. This repo's rules are unusual (running beats installing, a probe must return itself), and the stories are what made past sessions believe them. The mitigation is that each collapsed rule gets the snag slug in parentheses, so the evidence is one click away rather than gone.
+
+## 4. Cut the retirement notices and origin stories from home's Working style and Conventions
+
+**Repos:** home
+
+**Targets:** `home/CLAUDE.md:20-29` (the parenthetical "Two earlier channels are retired…"), `:30` (the parenthetical "The rules lived in `docs/HTML-STYLE.md` until 2026-08-31…"), `:32` ("Naming only the first is how a page … happened three times…"), `:73` ("as of 2026-07-05" in the `seam` sentence), `:74` (from "A label at the head of a paragraph…" through "The measured case for retiring them…"), `:76` ("The `record` key is gone with the markers; it existed only to license a `Wrong` banner."), `:91` (the parenthetical "Reusable prompt templates lived in a top-level `prompts/` folder until 2026-09-05…").
+
+**Kind:** collapse.
+
+**Proposal:** Delete each parenthetical and origin sentence; keep the rule and, where one exists, the record link. The `:20-29` parenthetical becomes: "Earlier channels are retired; see [`chron/2026/08/2026-08-26-the-injection-delivers-five-percent.md`](../../../home/chron/2026/08/2026-08-26-the-injection-delivers-five-percent.md)." The status-marker bullet at `:74` ends after "…link the successor, with the date inside the sentence. No dated lead-in replaces the markers. Record: `chron/2026/09/2026-09-21-retiring-the-markers.md`." The `seam` sentence keeps "The umbrella word `seam` is retired from living prose" and drops the date, since `tools/lint-conventions.py` enforces it and carries the list.
+
+**Rationale:** These are the retired-convention explanations the lens names. Each tells a reader where a rule used to live or how it came to be, which a reader following the rule does not need. The HTML-STYLE path is a pointer file that still exists for search, so the parenthetical adds nothing a search does not already find. The stat-card story is the snag `house-style-not-consulted` (web-tools `docs/SNAGS.md:93`, x2), which the sentence itself cites. The markers bullet is the sharpest case: it retires annotation-as-history and then spends 105 words on the history of the retirement, including "the measured case" and the reasoning against a replacement label, both of which its own record link says live in the record's "What the audit found" section.
+
+**Evidence:** Word counts: `:20-29` 87; the `:30` parenthetical 22; `:32` about 60; `:74` from "A label at the head" 105; `:76` 17; the `:91` parenthetical 28; date clause in `:73` 5.
+
+**Words removed:** about 300, net of about 25 words of replacement.
+
+**Inbound dependencies:** The Working style bullet's claim "one visibly wrong reply beats a silent channel" is the live rule and stays. `tools/lint-conventions.py` reads its retired-terms list from code, not from this prose.
+
+**Risk:** Low. Every dropped passage either points at a record that exists (both chron files were checked present) or duplicates a snag.
+
+## 5. One sentence for the delivery rule in all three `CLAUDE.md` files, and no story of the import cut
+
+**Repos:** web-tools, home, shortcut-tools
+
+**Targets:** `web-tools/CLAUDE.md:5` (sentences 1b, 3 and 4: "This file `@`-imported both documents until 2026-09-12…", "The import was not part of the plugin…", "Two channels for one contract…"), `:13` ("This section used to be 1,589 words, 63% of this file…"), `:17-19` ("It happened again on 2026-08-22… which is why the last rule this section stated in prose is now executable"), `:30` ("turned on 2026-07-10", "a session predating the toggle…", "the toggle was probed not to fire retroactively"); `shortcut-tools/CLAUDE.md:9-11` ("A web-tools checkout is not delivery and has not been since 2026-09-12, when that repo cut the `@`-import that used to make it one."); the matching parenthetical in `home/CLAUDE.md:20-29` is counted in proposal 4.
+
+**Kind:** collapse.
+
+**Proposal:** In all three files the delivery statement becomes: "The portable conventions arrive through the `portable` plugin: its `invoke-default` hook prompts `/portable:default` at session start. If they are missing, the prompt failed; say so rather than working around it." web-tools `:13` ends at "…render in the app's **Map view, Showing tab**." web-tools `:17-19` becomes "**Do not decide it by reading. Run it:** `npm run showing` …" with the 2026-08-22 clause dropped. web-tools `:30` becomes: "Draft PRs are created automatically on first push. A session in an added repo opens the draft itself via the GitHub MCP."
+
+**Rationale:** The 2026-09-12 import cut is told three times, once per repo, each with its own argument ("the hub was the one place that could not notice the prod failing"). That argument was the reason to cut the import; it is not something a session needs in order to load the conventions. Telling it three times is also the pattern it complains about: several copies of a statement that has an owner. The owner is web-tools PR #652, which home already cites. The "1,589 words, 63%" and "happened again on 2026-08-22" sentences argue for a decision already made; the executable `npm run showing` is the rule, and the snag `showing-answers-commits-only` (web-tools `docs/SNAGS.md:134`, 2026-08-22) holds the incident. The draft-PR clause about sessions that predate 2026-07-10 describes sessions that cannot exist now, eleven weeks later.
+
+**Evidence:** Sentence word counts from splitting `web-tools/CLAUDE.md:5`: 13 of 19, 48, and 17 are history. `:13` about 30, `:17-19` about 30, `:30` about 35 of 92. `shortcut-tools/CLAUDE.md:9-11` about 30.
+
+**Words removed:** about 200 across web-tools and shortcut-tools (the home share is in proposal 4). web-tools `CLAUDE.md` drops from 1,497 to about 1,330 words.
+
+**Inbound dependencies:** None found. The `invoke-default` hook prints its own directive and does not read these files.
+
+**Risk:** Low. The "if missing, the prod is broken" clause is the one live instruction in these passages, and it survives.

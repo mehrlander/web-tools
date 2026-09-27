@@ -1,6 +1,6 @@
 # Slice: home-contract
 
-**Summary.** This slice is the home repo's standing contract and doctrine: `CLAUDE.md` (5,999 words, loaded in every home session), `README.md` (3,335), `me/` (about 8,500 across prose and CSV), the `created/` doctrine essays (about 38,000), the living chron guidance files (`chron/assignments/README.md` 772, `chron/blog/drafts.md` 1,902, `chron/sweeps.md` 2,334), `tools/README.md` (2,103) and `.claude/skills/**` (15,941). The dominant bloat in `CLAUDE.md` is project-specific operating detail and incident narrative sitting in the one file every session pays for: the budget-drs render exception and fragment params alone are 895 words, and a further 1,000 or so restate documents that web-tools or a budget-drs README already owns. Proposals below are ordered by words saved per unit of risk.
+**Summary.** This slice is the home repo's standing contract and doctrine: `CLAUDE.md` (5,999 words, loaded in every home session), `README.md` (3,335), `me/` (about 8,500 across prose and CSV), the `created/` doctrine essays (about 38,000), the living chron guidance files (`chron/assignments/README.md` 772, `chron/blog/drafts.md` 1,902, `chron/sweeps.md` 2,334), `tools/README.md` (2,103) and `.claude/skills/**` (15,941). The dominant bloat in `CLAUDE.md` is project-specific operating detail and incident narrative sitting in the one file every session pays for: the budget-drs render exception and fragment params alone are 895 words, and a further 1,000 or so restate documents that web-tools or a budget-drs README already owns. Taken together, proposals 1, 2, 3, 5, 7 and 8 remove about 2,200 words (37%) from home's `CLAUDE.md`; proposals 4, 6, 7 and 10 remove about 3,900 from the READMEs; proposal 9 moves about 7,600 words of superseded doctrine from `living` to `record`. Proposals are ordered by words saved per unit of risk.
 
 ## 1. Move the budget-drs render routing out of CLAUDE.md
 
@@ -19,6 +19,8 @@
 **Words removed:** about 850 of 895 (`sed -n 132,215p CLAUDE.md | wc -w` = 895).
 
 **Inbound dependencies:** None mechanical. `grep` for `SUBMITTAL_OPEN`, `inlineRelativeDeps` and `app-frame-outruns-the-inliner` in living docs finds only `CLAUDE.md`, the view README, web-tools `SNAGS.md`, and two tracker tasks (out of scope, untouched). No script reads `CLAUDE.md`.
+
+While editing the section intro, fix `CLAUDE.md:121`, which says the surfacing contract is "operated by `/caption`"; no `caption` skill exists in web-tools `.claude/skills/` or `docs/portable.csv`.
 
 **Risk:** Low. The one behaviour that must survive in always-loaded context is "the app route is currently broken, hand over the page alone", and the two-sentence replacement keeps it. When the cause is fixed, one sentence goes instead of 700 words.
 
@@ -141,4 +143,64 @@
 **Inbound dependencies:** None found; no living file links `me/README.md` (grep for `me/README` finds only unrelated `runs/.../README.md` hits). `build-home-app.py` reads `me/*` as content for the home app, so the shorter file simply shows shorter.
 
 **Risk:** Low.
+
+## 8. Move the Prose clarity block out of home's CLAUDE.md
+
+**Repo:** home (and web-tools `docs/QUALIFIED-WRITING.md` if the owner chooses the merge)
+
+**Targets:** `CLAUDE.md:37-66`.
+
+**Kind:** link-to-owner
+
+**Proposal:** Two options, and the choice is the owner's. (a) Replace the block with one line: "Prose clarity: the `google-style-clarity` skill (web-tools), loaded before any drafting or review pass." (b) If every-session placement is the point, move the seven principles and the table into web-tools `docs/QUALIFIED-WRITING.md`, which `/portable:default` already loads in every repo, merging the two rules that overlap (resolve pronouns, define jargon), and delete the block here. Either way home's `CLAUDE.md` loses it.
+
+**Rationale:** The block is not home-specific. It says itself that it is "a repetition, not a second authority" of the skill. Its two most important principles already sit in `QUALIFIED-WRITING.md`, which every session loads, so home sessions carry three statements of "introduce before you refer": QUALIFIED-WRITING rule 1, this block's "Resolve pronouns", and the global `~/.claude/CLAUDE.md` "use common words in their common meanings". Web-tools and shortcut-tools sessions get none of the block, which is the inconsistency option (b) fixes.
+
+**Evidence:** `CLAUDE.md:39-41` names the skill as the owner. web-tools `docs/QUALIFIED-WRITING.md` rules 1 ("Introduce before you refer") and 2 ("Use plain language ... pin terms to what you mean by them") against `CLAUDE.md:46-47`. The placement was chosen deliberately on 2026-08-28 (session record `web-tools-private/sessions/2026/08/2026-08-28-54923707.json`, turn at line 248): `CLAUDE.md` was picked because the session-hook channel was over its byte budget. That hook channel was retired on 2026-09-09 and the plugin skill channel replaced it, so the constraint that selected `CLAUDE.md` no longer holds.
+
+**Words removed:** 482 from home `CLAUDE.md`; under option (b), about 300 added to `QUALIFIED-WRITING.md` after merging the overlap.
+
+**Inbound dependencies:** None mechanical. The block is not linked from any other home file (grep for "Resolve pronouns" finds only `CLAUDE.md:46`).
+
+**Risk:** Medium. The owner placed this on purpose, and the same 2026-08-28 turn flagged regressions in the compressed form (no citations, "strict technical editor" pushing toward over-application). Option (a) loses always-on placement; option (b) spends words in a file every repo loads.
+
+## 9. Re-status the created/ doctrine that has been superseded, and stop citing it as current
+
+**Repo:** home
+
+**Targets:** `created/2026-06-27-constellation-architecture.md` (4,230 words, `status: living`), `created/2026-06-27-constellation-mechanics.md` (1,925, `status: living`), `created/2026-07-19-source-anchoring.md` (1,429, `status: draft; destined for web-tools/docs/SOURCE-ANCHORING.md once settled`); `CLAUDE.md:72` ("Full doctrine: ... constellation-architecture.md; mechanics ... constellation-mechanics.md").
+
+**Kind:** restructure
+
+**Proposal:** Set the two constellation documents to `status: record` (a dated snapshot of 2026-06-27 thinking) and point `CLAUDE.md:72` at `created/2026-07-23-organizing-the-constellation.md` for the living theory and web-tools `docs/MARKETPLACE.md` for the sync mechanism. The commit-discipline bullet at `CLAUDE.md:72` already states the surviving rules (small diffable source, gitignore-and-regenerate, LFS only for its narrow case, repo boundaries follow visibility, sync by pull), so nothing needs rescuing. Set `source-anchoring.md` to `status: superseded by web-tools skill source-anchoring` after confirming the skill carries its "Why parsimony lives inside" section and the worked-instances list; move either into the skill if it does not.
+
+**Rationale:** A document marked `living` that describes a retired mechanism is worse than a record: `CLAUDE.md` sends every session to it as "full doctrine". Under the 2026-09-21 rule, a living claim that is wrong gets its sentence fixed; for 6,000 words about a mechanism that is gone, re-classing is the honest fix and costs one line each.
+
+**Evidence:** `constellation-architecture.md:62-92` (Principle 3 and 4) prescribes "the same committed hook" that fetches conventions from the hub, "the fetch hook itself must be copied into each repo", and unpinned raw pulls; home's `CLAUDE.md:262-265` says conventions arrive through the plugin marketplace instead (migration record `chron/2026/07/2026-07-11-adopting-the-plugin-marketplace.md`). `constellation-mechanics.md` section 2 ("pull-hook vs subtree vs submodule") is the recipe for that retired hook. `source-anchoring.md` frontmatter names its own destination, and web-tools `skills/source-anchoring/SKILL.md` (920 words) now exists with the same premise, relation, chain, anti-patterns and tone sections.
+
+**Words removed:** about 7,580 words leave the living doctrine set (4,230 + 1,925 + 1,429); nothing is deleted.
+
+**Inbound dependencies:** `constellation-*` is linked from `CLAUDE.md`, `repos/home.md`, `repos/legal-data.md`, `organizing-the-constellation.md`, `chron/threads/repo-architecture.md`, `projects/budget-drs/app/workshop/DECISIONS.md` and several tracker tasks; all links keep resolving. `source-anchoring.md` is linked from `parsimony.md`, `favoring-the-mechanical.md`, `gold-sets.md`, `document-parsing-process.md`, `projects/doc-audit/*` and `chron/threads/source-anchoring.md`. `build-home-app.py` reads `created/` and shows `status`, so the app will display the new status.
+
+**Risk:** Low for the constellation pair. Medium for source-anchoring until the skill is checked against the draft section by section.
+
+## 10. Collapse tools/README.md bullets that narrate rather than describe
+
+**Repo:** home
+
+**Targets:** `tools/README.md:43` (the "Status markers are retired" bullet), `:48` (`duplicated-claims.py`), `:49` (the dead-link report), `:51` (`screenshot.mjs`), `:26-32` (the "Not swept" paragraph).
+
+**Kind:** collapse-narrative
+
+**Proposal:** Delete the markers bullet (it describes no tool; `verify-artifacts.sh` and `.paths.json` are covered in `CLAUDE.md`). Cut the dead-link bullet to: "Dead links: web-tools `scripts/dead-links.py`, run by `verify-artifacts.sh` via `hub_script()` for the cross-repo classes; the internal class is not gated." Cut `screenshot.mjs` to what it does, its two failure lines (`unvendored CDN misses`, `page errors`) and what each means, dropping the 2026-09-05 history. Cut `duplicated-claims.py` to its behaviour and scope (skills in, `.claude/agents/` out). Delete the "Not swept" paragraph, which records a one-time rename sweep.
+
+**Rationale:** The file's stated job (line 3) is "what each does, and what it means when its output is wrong". The dead-link bullet spends most of its 317 words on how 25 links were fixed in August, which is a dated record's content.
+
+**Evidence:** Dead-link bullet: the 8/10/3 split, the budget-wa hand-copy story and the "2 as of 2026-08-03" count are all history (`tools/README.md:49`). Markers bullet (`:43`) is about a convention, not a script. Word counts per bullet: dead-link 317, screenshot 303, duplicated-claims 127, markers 56; "Not swept" about 70.
+
+**Words removed:** about 600.
+
+**Inbound dependencies:** `CLAUDE.md:252` and `README.md` link `tools/README.md` as a whole; no anchor links into these bullets.
+
+**Risk:** Low. The `screenshot.mjs` failure-reading advice is the one part worth keeping in full.
 

@@ -49,3 +49,52 @@ This slice is web-tools' process and environment documentation: the five files u
 
 **Risk:** Medium. The partial-transcript-on-resume hazard (`:92-102`) is real and non-obvious. Keep it as one sentence rather than letting it go with the narrative around it.
 
+## 3. extending.md: drop the Claude Code primer, replace per-hook essays with a table of the nine hooks
+
+**Repo:** web-tools
+
+**Targets:** `docs/environment/extending.md:3` and `:45-69`, `:185-199` (the Components and Settings primer); `:18-43` (the `PreToolUse`-did-not-fire diagnosis and its 2026-08-06 resolution); `:129-183` (the invoke-default, Stop and sessions-directive essays); `:5-16` (the inventory).
+
+**Kind:** restructure
+
+**Proposal:**
+- Delete the Components and Settings sections. They paraphrase code.claude.com pages that are already linked at `:3`, and one sentence per component adds nothing to the link.
+- Cut `:18-43` to two sentences. "Claude Code hooks in `.claude/settings.json` do not load when the session root sits above the repo (`ls ~/.claude/projects/` names the root), so this repo's commit-time work runs as git hooks installed by `npm run setup`, backed by `tools/test/derived-artifacts.test.mjs`." The `SessionStart` checkout-delegate section below it already carries the `npm run setup`/`ready` mechanics.
+- Replace `:5-16` and the three hook essays with one table generated from `.claude/skills/hooks/hooks.json`, or written by hand and gated by a test that compares the two. The columns are event, matcher, script, and a one-line job. Point to each script's header comment for the reason. Keep, as a short "Plugin hook facts" list, the four measured loader facts that no script states: `claude plugin validate` does not read the hooks file; `claude plugin details` reports the declared inventory, not the loader's verdict; `claude plugin list` status is per directory; cached plugin files lose the executable bit.
+
+**Rationale:** The hook scripts already carry their own rationale. `session-record.sh:1-22` states the "why a plugin hook" argument, the declarative store discovery and the silent-exit rule, and ends "See docs/environment/extending.md", so the two files cite each other with the same text. `invoke-default.sh` and `invoke-sessions.sh` each open with a comment block of about 25 lines. The narrative inventory is also stale. `hooks.json` registers nine plugin hooks (three `SessionStart`, two `PreToolUse`, two `PostToolUse`, one `PostToolUseFailure`, one `Stop`), and the doc describes three of them. It says nothing about `session-dispatch.sh`, `reading-column-guard.sh`, `send-later-guard.sh`, `pr-subscribe-hint.sh`, `warn-governing-docs.sh` or `mcp-fail-hint.sh`. Line 5 promises "one plugin hook" and then lists two. A table checked against `hooks.json` cannot drift in this way.
+
+**Evidence:** `extending.md:5-16` against the `hooks.json` listing above. `session-record.sh:4-10` against `extending.md:147-149`. `extending.md:163` ("validate does not read the hooks file") conflicts with `docs/MARKETPLACE.md:46`, which recommends `claude plugin validate .` before pushing with no caveat. That is a second copy of the plugin-health rule, and it gives the weaker check. Home `CLAUDE.md` ("Cross-repo conventions") already says "`claude plugin list` is the one command that shows a load failure".
+
+**Words removed:** about 2,300 of 4,472 (primer 281, `PreToolUse` diagnosis about 500, hook essays about 1,700, less about 200 words of table and facts list).
+
+**Inbound dependencies:** 92 files mention `extending.md`. Most are session records in web-tools-private. The live links are in the web-tools `CLAUDE.md` ("Details: extending.md") and home `CLAUDE.md` ("This repo declares no SessionStart hooks..."), both to the file, and in `container.md:180`, to the project-root proof. Four hook scripts cite the file in comments: `session-record.sh:10`, `pr-subscribe-hint.sh:17`, `reading-column-guard.sh:18` and `invoke-default.sh:145`. `reading-column-guard.sh:18` cites the project-root measurement specifically, which the two-sentence version keeps. No script or skill links an anchor inside the hook essays. Fix `MARKETPLACE.md:46` in the same change.
+
+**Risk:** Medium. The measured loader facts are the one part of this file that exists nowhere else, and they must survive the cut.
+
+## 4. TRACKER.md: cut the operating rules its own line 5 gives to the `tasks` skill
+
+**Repo:** web-tools
+
+**Targets:** `docs/TRACKER.md:98-128` (runner and action tags), `:205-211` (Conflicts), `:213-235` (Across repositories), `:80-84` (size and awaiting guidance), `:86-88` (id minting and legacy migration), and the incident tails at `:70` (last two sentences), `:74` (last sentence) and `:76` ("Measured 2026-09-17... Migrate one of the three").
+
+**Kind:** link-to-owner
+
+**Proposal:** Keep TRACKER.md as the schema and board contract: model, recognized keys, parser contract, graduation rule, board format, typed projection, and the `tracker-assessment/1` record. Cut the following:
+- Runner and action tags: reduce `:98-128` to two lines. Both are open tags carried into `board-tags.csv`, and the `tasks` skill's "File a runnable task" section owns their use.
+- Across repositories: reduce `:213-235` to two lines. References carry `owner/repo`, and `depends-on` does not cross a tracker. The correct-versus-file rule, the commit-message shape and the scope rule are in the skill's "Another repo's tracker" section.
+- Conflicts: reduce `:205-211` to the id-collision rationale, one sentence placed next to the id scheme.
+- Size and awaiting: reduce `:80-84` to the field definitions. The size scale and the "XL is a smell" advice are in `SKILL.md:130-134`.
+- Id minting: cut the legacy-migration procedure at `:88`. It is an operating instruction, and every tracker it names has already migrated to slug ids.
+- Incident tails: at `:70`, `:74` and `:76`, keep the rule and drop the "which is what happened on 2026-09-17" sentences.
+
+**Rationale:** `TRACKER.md:5` says: "This file is the contract, not the instructions... Every rule about operating a tracker... has one owner, the `tasks` skill." These sections are operating rules. The skill restates each of them, and the two copies already differ in wording, so every edit has to be made twice.
+
+**Evidence:** Runnable tasks: `TRACKER.md:102-126` against `.claude/skills/tasks/SKILL.md:142-171` (the same template, the same "if the procedure is not a skill yet, writing the skill is part of filing", the same "prefer a derivation", the same "belongs in a hook, a test, or CI"). Cross-repo: `TRACKER.md:221-233` against `SKILL.md:260-266`. Size: `TRACKER.md:82` against `SKILL.md:130-132`. Conflicts: `TRACKER.md:211` against the skill's "`board.md` is generated, so take either side and rerun".
+
+**Words removed:** about 1,600 of 4,363 (574 + 584 + 231 + 219 + about 200 of incident tails, less about 200 of retained pointers).
+
+**Inbound dependencies:** `tools/test/state-the-rule.test.mjs:748` uses TRACKER.md as segmenter corpus and needs more than 1,000 units in total across eight files. The remaining text keeps its fences and tables, so the count should still clear the threshold, but re-run the test. `tools/test/tracker-tasks.test.mjs` enforces the Related-path and no-em-dash rules that `:70` states; keep the statement and cut only the narrative. home's `tracker/tasks/cross-repo-tracker-convention-t2oesn.md:28` names the "Across repositories" section; it is a task file, out of scope to edit, but the reference goes stale. `swipe-deck-index.test.mjs:38` and `build-board.test.mjs` cite the file, not these sections.
+
+**Risk:** Low. TRACKER.md is the adoption contract for other repos, so a reader adopting without the plugin loses the operating detail. The `tasks` skill ships in that same plugin, and TRACKER.md already sends such a reader to the skill.
+

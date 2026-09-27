@@ -1,0 +1,6 @@
+# Lens: cross-repo duplication
+
+## Summary
+
+This lens swept web-tools, home, shortcut-tools and web-tools-private for one rule or fact stated in more than one place. The method was a 10-word shingle comparison across every top-level document, `docs/`, skill and README in the four repos, plus home's own `tools/duplicated-claims.py`, then a read of each hit. Ten clusters survive. The largest single cut is mechanical: four files in `home/projects/doc-audit/` are byte-for-byte copies (modulo whitespace and one em dash) of web-tools library skills, about 6,350 words. The largest instruction-file cut is home `CLAUDE.md`, where the render-path exception, the prose-clarity block, the plugin delivery history, the marketplace mechanics and the tracker section restate owners that already exist, about 2,100 words together. Several clusters also show the cost of the copies: they have already drifted. The assistant table's Codex and Gemini notes differ between the owner and its two copies; `MARKETPLACE.md` counts eight plugin hooks where the catalog lists nine; home `README.md` still describes the retired `/markers` skill, a `created/assignments/` folder that does not exist, and a `/caption` skill; and web-tools `CLAUDE.md` tells every session to run `/markers`, which was retired on 2026-09-21. Estimated total removed across the ten proposals: about 11,900 words.
+
