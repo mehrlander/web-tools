@@ -1,7 +1,7 @@
 // The collection, read in the browser from its files. The fixture is a
 // miniature passages.jsonl, variants.jsonl and proposals.jsonl; what is under
 // test is identity, validation, the variant-proposal join, lookup, search, the
-// read cache, and the transition read of a home that has no variants.jsonl.
+// read cache, and a proposals file that fails without taking the variants down.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -99,15 +99,27 @@ test('build refuses a passage that does not hash to its id, and a row outside th
   await assert.rejects(T.build({ ...args(), files: { passages: PASSAGES } }), /missing variants/);
 });
 
-test('build validates proposals and treats a missing proposals text as none', async () => {
+test('build skips a bad proposal with a warning, and treats a missing proposals text as none', async () => {
   const row = { from: ID.chrome, to: ID.decoration, repo: 'mehrlander/home', path: 'README.md', basis: BASIS };
-  await assert.rejects(T.build(args({ proposals: JSON.stringify({ ...row, from: 'x' }) + '\n' })), /does not hold/);
-  await assert.rejects(T.build(args({ proposals: JSON.stringify({ ...row, basis: '' }) + '\n' })), /without a from, to, repo, path and basis/);
-  await assert.rejects(T.build(args({ proposals: JSON.stringify({ ...row, path: 7 }) + '\n' })), /without a from, to, repo, path and basis/);
-  const line = JSON.stringify(row) + '\n';
-  await assert.rejects(T.build(args({ proposals: line + line })), /repeats a proposal for mehrlander\/home:README\.md/);
+  const good = JSON.stringify(row) + '\n';
+  const skipped = async (bad, pattern) => {
+    const index = await T.build(args({ proposals: bad + good }));
+    assert.equal(index.proposals.length, 1, 'the good row survives the bad one');
+    assert.equal(index.summary.variants, 4, 'the variants are untouched');
+    assert.match(index.warnings.join('\n'), pattern);
+  };
+  await skipped(JSON.stringify({ ...row, from: 'x' }) + '\n', /does not hold; the row was skipped/);
+  await skipped(JSON.stringify({ ...row, basis: '' }) + '\n', /without a from, to, repo, path and basis/);
+  await skipped(JSON.stringify({ ...row, path: 7 }) + '\n', /without a from, to, repo, path and basis/);
+  const repeated = await T.build(args({ proposals: good + good }));
+  assert.equal(repeated.proposals.length, 1);
+  assert.match(repeated.warnings.join('\n'), /repeated proposal for mehrlander\/home:README\.md/);
+  const garbled = await T.build(args({ proposals: '{not json\n' }));
+  assert.deepEqual(garbled.proposals, []);
+  assert.match(garbled.warnings.join('\n'), /no proposals were read/);
   const none = await T.build({ ...args(), files: { passages: PASSAGES, variants: VARIANTS } });
   assert.deepEqual(none.proposals, []);
+  assert.deepEqual(none.warnings, []);
   assert.equal(none.summary.proposals, 0);
 });
 
@@ -179,7 +191,7 @@ test('a proposals.jsonl that 404s is an empty list, not an unavailable collectio
   T.clear();
 });
 
-test('a proposals.jsonl that fails for any other reason still fails the read', async () => {
+test('a proposals.jsonl that fails for any other reason leaves the variants readable, with a warning', async () => {
   T.clear();
   const gh = fixtureGh();
   const base = gh.get.bind(gh);
@@ -187,23 +199,16 @@ test('a proposals.jsonl that fails for any other reason still fails the read', a
     if (path === P.proposals) { const e = new Error('Forbidden'); e.status = 403; throw e; }
     return base(path, options);
   };
-  await assert.rejects(T.load(gh), /unavailable \(the read returned 403\)/);
+  const loaded = await T.load(gh);
+  assert.deepEqual(loaded.proposals, []);
+  assert.equal(loaded.summary.variants, 4);
+  assert.match(loaded.warnings.join('\n'), /could not be read .*403.*no proposals are shown/);
   T.clear();
 });
 
-test('TRANSITION: without variants.jsonl, legacy rows in proposals.jsonl are split by shape', async () => {
+test('without variants.jsonl the collection is unavailable, not empty', async () => {
   T.clear();
-  const legacy = VARIANTS + PROPOSALS;
-  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: legacy } });
-  const loaded = await T.load(gh);
-  assert.equal(loaded.summary.variants, 4, 'rows with an author and a purpose are variants');
-  assert.equal(loaded.summary.proposals, 1, 'rows with a repo, path and basis are proposals');
-  assert.equal(loaded.variants[0].id, vid(EDGES[0]), 'a legacy row keeps the id its address was minted with');
-  assert.equal(loaded.sources.variants.path, P.proposals, 'the source names the file actually read');
-  assert.deepEqual(T.view(loaded, vid(EDGES[0])).proposals.map(p => p.path), ['docs/text-tools.md']);
-  T.clear();
-  const neither = fixtureGh({ blobs: { [P.passages]: PASSAGES } });
-  await assert.rejects(T.load(neither), /unavailable \(the read returned 404\)/,
-    'with neither file the collection is unavailable, not empty');
+  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS } });
+  await assert.rejects(T.load(gh), /unavailable \(the read returned 404\)/);
   T.clear();
 });
