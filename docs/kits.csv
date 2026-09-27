@@ -84,7 +84,7 @@ lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,ye
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1433,no,yes,26,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",29,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
-lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",369,no,no,5,yes
+lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",386,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",340,no,yes,15,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",391,yes,no,3,yes
