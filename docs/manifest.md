@@ -262,11 +262,18 @@ Every errand carries a `note` saying what is wanted. Three optional fields say h
 
 - `action` names a mechanism the Stage performs itself: `tree`, `branches` or
   `fetch`, a read of one of your repos with your token.
-- `run` describes code a person runs: `script` (`owner/repo@ref:path`), `venue`,
+- `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue`,
   `method`, `outputReturn`, `outputType` and `outputSigned`. The methods, the
   venues each allows and how each returns its output are the registry
   [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
-  page the session cannot reach; see `courier/README.md`.
+  page the session cannot reach; see `courier/README.md`. A `computer-use` run's
+  script is a prompt rather than code: the person hands it to a computer-use
+  agent on the home laptop, whichever product, pastes the agent's report onto
+  the errand, and does the work themselves only when no agent can.
+- `for` (also read as `task`) names the tracker task the errand serves, as
+  `owner/repo:path`. It is a follow reference in the sense of
+  [`locators.md`](locators.md): it means the task as it now stands, and the task
+  does not store the errand back, since a derived lookup finds it.
 - `purpose` is `test-script` (the output is evidence that code works) or
   `get-data` (the output is source material that lands and is used).
 

@@ -38,6 +38,10 @@ note about a passage.
 | pull request | `owner/repo#N` |
 | another note | `note:<id>` |
 
+A note is one kind of reference among several in the estate. The kinds of
+locator, and how a reference is tested for broken or changed, are in
+[`docs/locators.md`](../../../docs/locators.md).
+
 ## Process
 
 ```
