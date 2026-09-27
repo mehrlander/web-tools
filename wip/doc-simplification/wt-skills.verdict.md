@@ -29,3 +29,33 @@
 **Revised proposal:** Make the load-skill changes as proposed, with two exceptions. Keep one sentence on the account route that names its cost: "A claude.ai chat has no plugin; uploading this skill at account scope reaches it, and the upload must be redone when this file changes." Keep the sentence "Do not fire on general topic overlap", since the description implies it but does not state it. In the README, collapse "Snapshot lineage" to its rule ("This folder is the source of truth for the library skills") rather than deleting it. Apply the other README cuts as proposed, and correct "16 directories" at README:14 to 18, which is what `marketplace.json` registers.
 
 **Corrected words removed:** about 210 from load-skill and about 200 from the README, about 410 in total rather than 610.
+
+## 4. Collapse `in-flight`'s Premise and Key insights to operator rules
+
+**Verdict:** revise
+
+**Checked:** `wc -w` gives 1,522. Premise (lines 8-14) is 197 words, Key insights (56-80) is 747, Extending (82-86) is 79, not 107. The script does carry the rationale: `is_shallow()` docstring at `in-flight.py:86-94` holds the 24-second unshallow measurement, `sessions_for()` at 244-262 holds the constant signing key and own-commits rule, lines 14-15 and 228-229 hold the squash rule, 395 holds "a claim decays", and the rendered output warns about squash (630-631) and an unfed claim layer (576). Inbound references are `docs/portable.csv:7` (file only) and `tend/SKILL.md:88` (skill name). The reader's four rules drop two that change what a session does and that no run-time output tells it. "Claims come from the base branch, not the checked-out files" explains the `--worktree` flag, and without it a session that sees a surprising claim list has no reason to reach for the flag. "Do not run content forensics over the whole estate" stops a session hand-rolling a path-overlap scan outside the script, which the script cannot warn about because it is not running.
+
+**Revised proposal:** As proposed, but keep six one-line rules, not four: add "claims are read from the base branch; `--worktree` reads the checkout instead" and "check path overlap only on live branches, never across the whole estate". Extending's second paragraph ("the repair step is deliberately manual") repeats step 4 and can go with the rest.
+
+**Corrected words removed:** about 820.
+
+## 5. Cut `tree` to the generator, the two formats, and the Major folders block
+
+**Verdict:** revise
+
+**Checked:** `wc -w` gives 1,448. The targeted spans hold 143, 56, 133, 29 and 81 words. The boundary does appear twice (17-29 and 188-196). `docs/markdown-in-chat.md:85-91` names the tree skill as operator of `scripts/build-tree.py`. The flaw is delivery. The skill ships in the `portable` plugin, and the plugin cache (`~/.claude/plugins/cache/web-tools/portable/<sha>/`) holds only the skill folders, not `docs/` or `scripts/`. The skill's existing relative links (`../../../docs/SURFACING.md`, `../../../docs/markdown-in-chat.md`, `../../../scripts/build-tree.py`) therefore resolve only inside a web-tools checkout. Replacing the four rendering rules with another relative link removes the only copy a session in home or shortcut-tools can read. The same problem applies to "icons are set in `build-tree.py`'s `ICONS` map" if written as a relative path.
+
+**Revised proposal:** Make the cuts, but write every pointer that replaces text as an absolute `https://github.com/mehrlander/web-tools/blob/main/...` URL, and convert the skill's existing relative links to the same form in the same commit. Keep the one rendering rule that governs hand edits to generated output ("a code span cannot hold a link, so the prefix goes in backticks and the name stays outside"), since a session touching up a table needs it and the generator does not enforce it.
+
+**Corrected words removed:** about 380.
+
+## 6. Delete `scour/PRIOR-ART.md` and shorten scour's measurement narratives
+
+**Verdict:** revise
+
+**Checked:** `wc -w` gives 2,298 for SKILL.md and 1,129 for PRIOR-ART.md. The only live inbound link is SKILL.md:94. The two fact-census rows in home (`chron/2026/09/2026-09-06-hand-typed-fact-census.csv:4273-4274`) cite `docs/PORTABLE.md` line 53, not SKILL.md as the reader says; they are dated and harmless either way. The duplicate "Keep a superseded pass" is confirmed at 250-251 and 266-267 (28 words). The "7 of 776" figure is itself stated twice, at 194 and 204. Two reasons to keep PRIOR-ART.md. First, it is a companion file read on demand, so deleting it saves no context in any session; it only shrinks the tree. Second, its Sources section (lines 130 onward) holds the only citations for HITS, focused crawling, tunneling, harvest rate and respondent-driven sampling, which the skill invokes as authority. The four failure shapes (154-173, 178 words) are already operator rules with specific actions: budget a search per 403 domain, budget two fetches through the readability proxy, diagnose client-rendered pages separately, and watch for the WebFetch summarizer returning "Anthropic" as page content. One-line bullets would drop those actions.
+
+**Revised proposal:** Keep PRIOR-ART.md. In SKILL.md: delete the duplicate at 266-267; shorten the capabilities paragraph (26-33, 79 words) to its link; drop the 14-domain table and keep the organisational-form rule with one clause giving the range ("10x to 93x on associations, near zero on agencies"); in Instrumentation, state 7 of 776 once and drop the recovery narrative, keeping the transcript path and the "require of every fetched page" list. Leave the failure shapes as written.
+
+**Corrected words removed:** about 300.
