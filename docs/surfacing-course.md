@@ -28,7 +28,7 @@ A commit or branch that carries no assistant prefix or trailer is **unclassified
 Two rules hold for every assistant, whichever tool it runs in:
 
 * **Preflight before a pull request.** In web-tools, `npm run preflight` (checkout setup, the derived-artifact refresh, then the suite). In home, `python3 tools/lint-conventions.py` and `bash tools/verify-artifacts.sh`. Twelve of fifteen Gemini branches in September 2026 ended red on the derived-artifact gate because the commit hook never ran in their checkout; the failing check names the command that repairs it. A red check is not mergeable, whoever opened the PR.
-* **Batch output is a run, not a PR against the documents.** An overnight pass that proposes changes across many documents lands in home as a run under `projects/text/runs/<date>-<name>/`, where the Text collection admits it as proposals. It never opens a pull request that edits the documents it proposes changes to.
+* **Batch output is a run, not a PR against the documents.** An overnight pass that proposes changes across many documents lands in home as a run under `projects/text/runs/<date>-<name>/`, where the Text collection admits it as variants. It never opens a pull request that edits the documents it proposes changes to.
 
 Maintain the PR body as the workstream's current state and durable record. Open a draft PR on the first push.
 Body sync is manual: after each push that materially changes state, rewrite the guide region

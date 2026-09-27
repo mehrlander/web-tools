@@ -33,22 +33,24 @@ going unstated.
 | **Claude Code on the web** | yes | an ephemeral clone, an allowlisted network, a headless Chromium, no local files | starting a session, or a Routine that spawns one |
 | **Claude Code CLI, local** | yes | the machine and everything on it; peers via cross-session messaging | running it in a terminal |
 | **Cowork, desktop** | yes | local files, apps, connectors, plugins | working in the desktop app |
-| **Dispatch** | yes: desktop awake, app open | Cowork's reach, plus computer use | a message from the phone, into one persistent thread |
+| **Computer-use agents, home laptop** (Claude Dispatch, Gemini in Antigravity, Codex) | yes: laptop awake, app open | the laptop's apps and browser, by computer use | a `computer-use` errand: its prompt goes to whichever agent is at hand, and to the person when none can do it |
 | **GitHub Actions, hosted runner** | no | open egress, CPU only, no GPU, no local files | `workflow_dispatch`, `repository_dispatch`, `schedule`, `push` |
 | **GitHub Actions, self-hosted runner** | no | whatever that machine has, including a local model | the same four triggers; the job queues while the machine sleeps |
 | **Claude Code Remote environment** | no | a provisioned cloud container, or a self-hosted pool (`ccpool_` ids) | `create_session`, or a Routine |
 
 Two properties are easy to get wrong and worth stating outright:
 
-- **Dispatch is attended even when it is scheduled.** Its recurring tasks still
-  require the desktop to be awake with the app open. It is a relay to your
-  machine, not a scheduler on it.
+- **A computer-use agent is attended even when it is scheduled.** Dispatch's
+  recurring tasks still require the desktop to be awake with the app open; it
+  is a relay to your machine, not a scheduler on it. The same is assumed, not
+  yet checked, for Antigravity and Codex.
 - **A self-hosted runner is unattended even when the machine is asleep.** It
   holds an outbound long-poll, so a queued job waits and runs on wake. Nothing
   needs to be open, and no thread is consumed.
 
-Which is why the two compose rather than compete: **Dispatch does the setup that
-has to touch the machine, and the runner does the recurring work afterwards.**
+Which is why the two compose rather than compete: **a computer-use agent does
+the setup that has to touch the machine, and the runner does the recurring work
+afterwards.**
 
 ## The constraint that is not negotiable
 
@@ -57,14 +59,15 @@ from a fork would execute arbitrary code on that machine. In this estate that
 means `web-tools` is out, since it serves the github.io pages, and
 `web-tools-private` is the place.
 
-## The tracker's `runner:` tag
+## Handing work to a machine: errands, not tags
 
-[TRACKER.md](TRACKER.md) defines `runner: <machine>` as the tag that parks a task
-for a machine. It predates this file and names a machine rather than a venue,
-which is the coarser axis: one laptop is reachable through the CLI, Cowork,
-Dispatch, and a self-hosted runner, and those four differ in exactly the way
-that decides whether a task can run tonight. Where the distinction matters, say
-the venue in the task body until the tag earns the change.
+One-off work for a machine is an errand, filed in the registry's
+`errands/requests/`, which the Stage lists and a result closes (see
+[manifest.md](manifest.md#errands-errandsrequests--errandsresults)). An errand
+serving a tracker task names it in `for`; the task does not name the errand.
+The tracker's `venue:` tag ([TRACKER.md](TRACKER.md)) remains a description of
+where a task's work happens, and no longer a queue: nothing ever read it, and one
+task carried it.
 
 ## Keeping this true
 

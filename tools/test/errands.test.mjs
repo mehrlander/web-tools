@@ -99,6 +99,17 @@ test('withErrandId puts the id after # @file in PowerShell and first in JavaScri
   assert.equal(E.withErrandId('copy(1)', 'console-enter', "e'2"), "const ErrandId = 'e2';\ncopy(1)", 'a quote cannot end the string');
 });
 
+test('a computer-use errand carries a prompt: filled from the registry, headed by its id', () => {
+  const e = E.normalize({ id: 'e3', note: 'probe', dest: 'me/r:out',
+    run: { script: 'me/r@main:errands/prompts/e3.md', method: 'computer-use' } });
+  assert.equal(e.run.venue, 'personal-laptop', 'the one venue a computer-use agent runs on');
+  assert.equal(e.run.outputReturn, 'report-pasted');
+  assert.deepEqual(E.validate(e), { ok: true });
+  assert.equal(E.withErrandId('Goal: probe.', 'computer-use', 'e3'), 'Errand: e3\n\nGoal: probe.',
+    'a prompt gets a plain header, not a JavaScript or PowerShell assignment');
+  assert.match(E.validate({ ...e, run: { ...e.run, venue: 'work-machine' } }).error, /runs on personal-laptop/);
+});
+
 test('a signed envelope is recognised, and its body becomes the staged file', () => {
   const env = { envelope: 'errand-result/1', errand: 'e1', script: 'ps/a.ps1', ranAt: 'T', venue: 'work-machine',
                 outputType: 'json', body: { rows: 2 } };
