@@ -201,3 +201,57 @@ Each copy was true of one observation. None links the others, so a reader gets w
 
 **Risk:** Low.
 
+## 9. Clear superseded records and pointer residue out of docs/, and fix the generated index's retired vocabulary
+
+**Repo:** web-tools
+
+**Targets:** `docs/github/mcp-server-routing.md` (497 words), `docs/DOC_CRAFT_STUDY.md` (970) with `docs/doc-craft-specimens/` (764), `docs/HTML-STYLE.md:10-32` (about 250 of 312), and `tools/build/docs-readme.mjs:51`, which generates `docs/README.md:8-11`.
+
+**Kind:** delete
+
+**Proposal:**
+- **Delete `github/mcp-server-routing.md`.** Repoint `SNAGS.md:1780` to `github/mcp.md`, which is the owner the record itself names. Drop its row from `portable.csv:31`, which currently ships a superseded record to other repos as on-demand portable material, and from `docs.csv`, `repetitions.csv:10` and `github/README.md`.
+- **Move the doc-craft study and its two specimens out of `docs/`** to `archive/` or to home's `chron/2026/09/`. They are dated records whose current guidance, by the study's own 2026-09-23 note, lives in `skills/doc-craft/SKILL.md`, and the skill has its own copies under `references/` (`docs.csv:107-108`, `formerly` column). If the owner treats records in `docs/` as out of scope, leave this item and note that the specimens duplicate `skills/doc-craft/references/`.
+- **Cut HTML-STYLE.md to its first paragraph** (about 70 words). "Why the rules moved into the skill (2026-08-31)" is migration history that git holds.
+- **Change the generated sentence** "A **record** preserves a moment and is corrected by markers, never rewritten" to drop "by markers". The markers system, including `status.py`, was retired on 2026-09-21 (`SNAGS.md:1987`, `estate-span.md:39-41`). The same retirement makes the `[!WARNING] Stale 2026-08-05 →` banner in `mcp-server-routing.md:5-10` a form nobody maintains, which is one more reason to delete that file rather than keep it.
+
+**Rationale:** A superseded record inside a living docs folder counts toward the "orphan" total and shows up in search, and in one case it is distributed as portable guidance. The routing rule it describes is now machine-delivered by `mcp-fail-hint.sh` and stated in `sandbox-traps`, and `mcp.md` is the named owner. HTML-STYLE.md explains that it exists so the words "style guide" land somewhere. Its first paragraph does that; the 250 words on why the rules moved do not.
+
+**Evidence:** `mcp-server-routing.md:5-10` (the banner names `mcp.md` as the one owner). `portable.csv:31` ships it on demand. `DOC_CRAFT_STUDY.md:5-7` ("Historical exploratory analysis; drafting principles superseded"). `docs.csv` rows 105-108 mark all three files as record and orphan. `tools/build/docs-readme.mjs:51` emits "corrected by markers".
+
+**Words removed:** about 2,480 from `docs/` (497 + 970 + 764 + 250). The relocation keeps the doc-craft files elsewhere, so the net cut is about 750 if they move rather than go.
+
+**Inbound dependencies:** Given in each bullet above. `skills/daisy-alpine/SKILL.md:13` links HTML-STYLE.md "for the names this is asked for, and why a doc has to carry the words a stranger would search". The first paragraph still covers the names; the "why" goes to history. Home `CLAUDE.md:30` describes the file as a pointer, which stays true. The docs-reach gate and `docs.csv` need their rows removed in the same commit, or `npm test` fails.
+
+**Risk:** Low. Nothing live depends on the body text of any of these files.
+
+## 10. registries.md: let the test own its own checklist, drop the budget-drs crosswalk
+
+**Repo:** web-tools
+
+**Targets:** `docs/registries.md:178-203` (What the suite checks), `:247-268` (The same model in budget-drs), `:104-106` (the retired `kind` column history).
+
+**Kind:** link-to-owner
+
+**Proposal:**
+- Replace the 14-bullet list of test names with one sentence: "The gate is `properties-registry.test.mjs`; its test names are the checklist, and a gate reports a disagreement without choosing the repair." The file already links the gate at `:13`.
+- Delete the budget-drs field-for-field crosswalk. Its own last paragraph says "No consumer reads both, so the names stay as they are", so it is a comparison with no reader.
+- Cut the `kind` history sentence (`:104-106`) to "Do not reintroduce a single `kind` column; the two questions are separate."
+
+**Rationale:** The bullet list is a hand copy of `test(...)` names. It drifts silently the next time a test is added or renamed, and `node --test` prints the real list. The crosswalk maps one repo's column names onto another's for a reader who, by the doc's own statement, does not exist. The rest of registries.md is tight after its 2026-09-20 cut, and these are the last two restatements left in it.
+
+**Evidence:** `registries.md:180-198` against the `test(` names in `tools/test/properties-registry.test.mjs`. `registries.md:264` ("No consumer reads both"). One more stale reference was found while checking inbound links: `properties-registry.test.mjs:34` says "docs/registries.md carries the five and what each got wrong", but that account was cut on 2026-09-20 (`registries.md:15-18`). The comment should point at the linked last-full-copy commit instead.
+
+**Words removed:** about 450 of 2,223 (241 + 234 + about 40, less about 40 for the replacement sentence).
+
+**Inbound dependencies:** `owners-registry.test.mjs:95` cites the "Limits of the model" section, `portable-manifest.test.mjs:40` cites "One owner per assertion", and `properties-registry.test.mjs:290,328` cites the area rule and the ownership rule. All four sections survive. `state-the-rule.test.mjs:749` uses the file as segmenter corpus (see proposal 4 on the unit threshold). The "Across repositories" section links `estate-span.md` and stays.
+
+**Risk:** Low.
+
+## On the number of files in docs/
+
+`docs/` holds 70 Markdown files and 46 other files, 32 of them CSV and JSON registries at the top level. Its generated index (`docs/README.md:12-16`) reports that 48 of its entries, Markdown and CSV together, are reached by nothing but the index. **The count is a symptom, not the problem.** Almost every file exists because a registry row, a view, or a kit wanted a document of its own: `views/` has eleven files averaging 340 words, `forms/` has two under 220, and each subfolder has a front-door README (`environment/README.md` 308, `github/README.md` 271) that repeats what `docs.csv` and the generated index already list. The cost shows as orphans, not as file count. A reader cannot tell which of 70 files is current, and the doc-per-thing habit makes each new feature add one more file. Two structural moves follow from the proposals above:
+- Fold the subfolder front doors into the generated index. `docs-readme.mjs` already emits a section per folder, and the environment README's three-bullet update discipline fits as a header line on `capabilities.md`.
+- Consider whether the 11 `views/*.md` files, all orphans per `docs.csv:145-155`, should be one `views.md` with a section per view. That would cut eleven entries to one. Those files belong to the show-repo family, so this is a question for that slice, not a proposal here.
+
+Proposals 1 to 10 delete four files outright or by relocation (`mcp-server-routing.md`, the study, and its two specimens) and shrink a further eleven.

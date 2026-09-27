@@ -2,7 +2,7 @@
 
 ## Summary
 
-This lens swept web-tools, home, shortcut-tools and web-tools-private for one rule or fact stated in more than one place. The method was a 10-word shingle comparison across every top-level document, `docs/`, skill and README in the four repos, plus home's own `tools/duplicated-claims.py`, then a read of each hit. Ten clusters survive. The largest single cut is mechanical: four files in `home/projects/doc-audit/` are byte-for-byte copies (modulo whitespace and one em dash) of web-tools library skills, about 6,350 words. The largest instruction-file cut is home `CLAUDE.md`, where the render-path exception, the prose-clarity block, the plugin delivery history, the marketplace mechanics and the tracker section restate owners that already exist, about 2,100 words together. Several clusters also show the cost of the copies: they have already drifted. The assistant table's Codex and Gemini notes differ between the owner and its two copies; `MARKETPLACE.md` counts eight plugin hooks where the catalog lists nine; home `README.md` still describes the retired `/markers` skill, a `created/assignments/` folder that does not exist, and a `/caption` skill; and web-tools `CLAUDE.md` tells every session to run `/markers`, which was retired on 2026-09-21. Estimated total removed across the ten proposals: about 11,900 words.
+This lens swept web-tools, home, shortcut-tools and web-tools-private for one rule or fact stated in more than one place. The method was a 10-word shingle comparison across every top-level document, `docs/`, skill and README in the four repos, plus home's own `tools/duplicated-claims.py`, then a read of each hit. Ten clusters survive. The largest single cut is mechanical: four files in `home/projects/doc-audit/` are byte-for-byte copies (modulo whitespace and one em dash) of web-tools library skills, about 6,350 words. The largest instruction-file cut is home `CLAUDE.md`, where the render-path exception, the prose-clarity block, the plugin delivery history, the marketplace mechanics and the tracker section restate owners that already exist, about 2,300 words together. Several clusters also show the cost of the copies: they have already drifted. The assistant table's Codex and Gemini notes differ between the owner and its two copies; `MARKETPLACE.md` counts eight plugin hooks where the catalog lists nine; home `README.md` still describes the retired `/markers` skill, a `created/assignments/` folder that does not exist, and a `/caption` skill; and web-tools `CLAUDE.md` tells every session to run `/markers`, which was retired on 2026-09-21. Estimated total removed across the ten proposals: about 13,100 words.
 
 ## 1. The plugin delivery story, told three times with its history
 
@@ -28,7 +28,7 @@ This lens swept web-tools, home, shortcut-tools and web-tools-private for one ru
 
 **Rationale:** The mechanism is one sentence and every repo states it. The two paragraphs of "why the import was cut" explain a decision to a reader who can no longer make the mistake: the import is gone from web-tools `CLAUDE.md`, so nothing needs defending. The copies have already rotted. home `CLAUDE.md:17` says invoking `/portable:default` "also reports this repo's frozen paths"; `default/SKILL.md` contains no mention of frozen paths or `.paths.json`. home `CLAUDE.md:121` names a `/caption` skill that no plugin ships (`.claude-plugin/marketplace.json` lists 18 skills, none named `caption`). web-tools `CLAUDE.md:5` says "run `/markers` before marking or editing near frozen areas" and says four defaults "ride with the contract"; `/markers` was retired on 2026-09-21 (`web-tools/docs/SNAGS.md:1555-1560`), and none of the four defaults appears in `default/SKILL.md`, `SURFACING.md` or `QUALIFIED-WRITING.md` (grep for `markers`, `venue`, `hypothetical`, `link instead` returns nothing), so they ride with nothing.
 
-**Evidence:** `grep -n "invoke-default\|portable:default\|@-import"` across the four repos' top-level docs returns exactly the five locations above plus `web-tools/docs/SNAGS.md:357-371` (a snag, which stays) and `home/me/README.md:41` (a one-line pointer, which stays).
+**Evidence:** `grep -n "invoke-default\|portable:default\|@-import"` across the four repos' top-level docs returns the locations above, `web-tools/CLAUDE.md:78` (an unrelated note that `docs/environment/` is not imported), and `web-tools/docs/SNAGS.md:357-371` (a snag, which stays) and `home/me/README.md:41` (a one-line pointer, which stays).
 
 **Words removed:** about 600 (web-tools ~190, home ~345, shortcut-tools ~50).
 
@@ -182,3 +182,110 @@ This lens swept web-tools, home, shortcut-tools and web-tools-private for one ru
 
 **Risk:** Low. The one question is whether `source-anchoring-revised.md` is meant to be a revision of the home copy specifically; since the home copy equals the skill, it is equally a revision of the skill.
 
+## 7. home README.md restates CLAUDE.md, tools/README.md and .claude/skills/README.md, and has gone stale doing it
+
+**Repos:** home.
+
+**Copies:**
+- home `README.md:69-92` (973 words, the prose under "Structure"): one paragraph per folder. The `chron/dump/`, `chron/threads/`, `chron/blog/`, `chron/assignments/`, `news/`, `links/`, `created/` and `me/` paragraphs restate `CLAUDE.md:82-99` ("Where things go"), `CLAUDE.md:233-240` ("Dump promotion"), `CLAUDE.md:241-249` ("Threads") and `CLAUDE.md:254-261` ("Blog"). The `links/` paragraph also restates `links/README.md` (27 shared ten-word windows).
+- home `README.md:95-112` (361 words, "Skills"): the plugin roster (see proposal 2), the three `/repo-review` depths (restating `CLAUDE.md:108-114`), and a per-skill list that `.claude/skills/README.md` (1,627 words) owns as "the full inventory".
+- home `README.md:114-137` (1,067 words, "Tools"): one entry per script, against `tools/README.md` (2,103 words), which `CLAUDE.md:250-252` names as the owner: "What each tool does ... is in `tools/README.md`."
+- home `README.md:139-141` (42 words, "Style"): the no-em-dash rule, which is also in `CLAUDE.md:70`, `QUALIFIED-WRITING.md:12` (loaded every session), home `GEMINI.md`, the global `~/.claude/CLAUDE.md`, and is enforced by `tools/lint-conventions.py`.
+
+**Owner:** `CLAUDE.md` for where things go; `tools/README.md` for tools; `.claude/skills/README.md` for skills; `lint-conventions.py` for the dash rule.
+
+**Kind:** human-facing restatement of the agent contract and two inventories.
+
+**Proposal:**
+- Keep the README's orientation sections, which no other file owns: "Fast and slow layers", "Push and pull", "Ingress", and the tree diagram.
+- Replace the folder paragraphs (`:69-92`) with one line: "What goes in each folder, and how, is the contract in [CLAUDE.md](CLAUDE.md#where-things-go)." Keep only what CLAUDE.md lacks: the `full-picture.md`/`state.md` split (two sentences) and the topic-folder graduation test (one sentence).
+- Replace "Skills" with: "Home's own verbs are in [.claude/skills/README.md](.claude/skills/README.md); the portable set arrives by plugin."
+- Replace "Tools" with: "Every script is described in [tools/README.md](tools/README.md)." First move the entries `tools/README.md` lacks: `generate-tracker-registry.py`, `archive-session.py`, `heatmap.ps1`, `repo-constellation.html`, and a pointer to `news/tools/news-state.sh`.
+- Delete "Style".
+
+**Rationale:** `CLAUDE.md:3-5` says the README is orientation and CLAUDE.md is "self-sufficient", so every rule in the README is a second copy by construction. The copies have drifted. The tree at `README.md:60` puts `assignments/` under `created/`; the folder is `chron/assignments/` (`ls created/assignments` fails), and the README's own paragraph at `:87` says so. `README.md:123` describes `stale-flags.sh` as replaced by `/markers`, a skill retired on 2026-09-21; the script is not in `tools/`. `README.md:97` lists `/web-tools` and `/caption` as plugin skills; neither exists.
+
+**Evidence:** shingle overlap: `README.md`/`tools/README.md` 41 windows, `README.md`/`CLAUDE.md` 37, `README.md`/`links/README.md` 27, `README.md`/`.claude/skills/README.md` 11.
+
+**Words removed:** about 2,200 (Structure prose ~850, Skills ~320, Tools ~1,030 net of the entries moved, Style 42).
+
+**Inbound dependencies:** `CLAUDE.md:3-5` and `AGENTS.md` link to `README.md` as a whole, not to sections. `app/README.md` and `full-picture.md` do not link into these sections (`grep -n "README.md#"` finds no section anchors into home `README.md`).
+
+**Risk:** Low. A human reader loses nothing that is not one click away, and gains a README that is not wrong.
+
+## 8. home's tracker section restates the tasks skill, TRACKER.md and tracker/README.md, and keeps a rule for a retired artifact
+
+**Repos:** home, web-tools.
+
+**Copies:**
+- home `CLAUDE.md:100-107` (524 words, "Project tracking").
+- home `CLAUDE.md:35`: tracker state commits to `main` in Real-time mode.
+- web-tools `docs/TRACKER.md:3` (state lives on `main`), `:14` (`board.md`, `board.csv`, `board-tags.csv`), `:19` (scope a tracker to a workspace), `:134` (On deck is `status: backlog`).
+- web-tools `.claude/skills/tasks/SKILL.md:7,239` (task files and `board.md` commit straight to `main`), and the filing rules the home section summarizes.
+- web-tools `docs/surfacing-course.md:10-13` (the two modes).
+- home `tracker/README.md` (204 words): "Board command: regenerate via `/tasks`", the root placement rationale, the pointer to the convention.
+
+**Owner:** the `tasks` skill for operation; `docs/TRACKER.md` for schema; home `tracker/README.md` for the root instance; home `CLAUDE.md` for the two extension points only (the registry command and the phrases).
+
+**Kind:** restated contract, plus a retired-concept rule.
+
+**Proposal:** Replace `CLAUDE.md:100-107` with about 90 words: "Trackers follow the portable convention, operated by `/tasks` ([TRACKER.md](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md) is the schema). A tracker is scoped to a workspace; the root `tracker/` holds repo-meta work. After standing one up, run `python3 tools/generate-tracker-registry.py`, which rewrites `trackers.md` and the `projects` field of `.web-tools.json`. Migrated tasks carry their old integer as a `legacy-id:` tag. Phrases: 'what's on deck for X' reports On deck and In progress; 'stand up a tracker for X' scaffolds `X/tracker/` and refreshes the registry." Delete the "No merge guide" bullet. Delete the tracker clause from `CLAUDE.md:35`, since the skill owns it.
+
+**Rationale:** The section opens by saying the skill "owns every operating rule" and TRACKER.md is "the contract", and then restates the rollup's three files, the drift check's resolution mechanics, and the filing gate. The "No merge guide" bullet explains why home does not keep an artifact web-tools retired on 2026-08-05 (`web-tools/docs/estate-span.md:48`, `web-tools/docs/SNAGS.md:1836`). No convention now asks for a merge guide, so the opt-out defends against nothing. The board-command bullet repeats `tracker/README.md` word for word in substance.
+
+**Evidence:** shingle overlap home `CLAUDE.md`/`tasks/SKILL.md` 10 windows, `CLAUDE.md`/`tracker/README.md` 7. `grep -rn -i "merge guide"` in web-tools' living docs finds only snags and retirement notes.
+
+**Words removed:** about 430.
+
+**Inbound dependencies:** None to the section. `tools/verify-artifacts.sh` runs the drift check regardless of the prose describing it.
+
+**Risk:** Low. The wrap-up sequence in the merge-guide bullet ("preflight merge check, per-session refreshes, tracker task updates, final guide-PR body sync, mark ready") is the only operative content there, and no upstream owner states it: a case-insensitive grep for "wrap-up" in `SURFACING.md` and `surfacing-course.md` finds only one line about a clean exit, although web-tools `CLAUDE.md:26` cites "the conventions' wrap-up step 1". Keep the sequence as one line in home, or restore it upstream, before deleting the bullet.
+
+## 9. shortcut-tools CLAUDE.md restates the install, replace and Back Tap rules the shortcut-links skill owns
+
+**Repos:** shortcut-tools, web-tools.
+
+**Copies:**
+- shortcut-tools `CLAUDE.md:109-180` (648 words): installing is an import; importing over a name leaves both copies; `Library-Replace` for a replace; `Library-Paste` when signing is down; a struck "Wrong 2026-08-26" paragraph; Back Tap binds only `Double-BackTap` and `Triple-BackTap`; replacing a bound shortcut breaks the binding; the `prefs:` table for Back Tap and AssistiveTouch; `Open-URL` as the delivery.
+- web-tools `skills/shortcut-links/SKILL.md:15-36` (the command table: `plist.py --link --replace` → `Library-Replace`, `pack.py --install` → `Library-Paste`), `:38-52` (prepare an installation, the older `Library-Import` route), `:54-69` (the Back Tap stubs, the binding break, "include the appropriate Settings link in the same message", the identical `prefs:` table, "bare `prefs:` links do not work reliably in chat"), `:71-79` (diagnostics through `--log` and `Log-Repo`).
+- shortcut-tools `CLAUDE.md:476` already concedes the handover card is "owned upstream by web-tools' `shortcut-links` skill, not restated here."
+
+**Owner:** `web-tools/skills/shortcut-links/SKILL.md`.
+
+**Kind:** restated procedure with incident history.
+
+**Proposal:** Replace `CLAUDE.md:109-180` with about 80 words: "**Before handing over an install, replace or run link, `/load-skill shortcut-links`.** It owns which command and receiver to use, the replace-not-import rule, and the Settings link a re-bound gesture needs. Two local facts: installing is the dearest route (see the table above), and a generated receiver is reproducible from `git`, so replacing one needs no staging." Keep `:181-191` ("The one-time cost so far"), which is a local ledger. Drop the "Wrong 2026-08-26" paragraph outright: it narrates a superseded version of the rule, and git holds it.
+
+**Rationale:** The skill has the same rules with the same table, and it is the thing a session in another repo loads to hand over a shortcut link. Keeping a longer copy here means two places to update when a receiver changes. The "Wrong" paragraph uses the marker form retired across the estate on 2026-09-21 (home `CLAUDE.md:74`, web-tools `SNAGS.md:1555`); the retirement's rule is to fix the sentence and let git hold the history.
+
+**Evidence:** shingle overlap `shortcut-tools/CLAUDE.md`/`shortcut-links/SKILL.md` 38 windows, concentrated at `CLAUDE.md:147-172`. The `prefs:` URLs appear only in these two files and `Fav-Settings`.
+
+**Words removed:** about 570.
+
+**Inbound dependencies:** `shortcut-tools/workflows/README.md:371` links `CLAUDE.md#a-diagnostic-returns-itself`, a different section, unaffected. No anchor into `:109-180` was found.
+
+**Risk:** Medium. `shortcut-links` is not in the `portable` plugin (absent from `docs/portable.csv`), so it loads only on request. The one-line directive at the top of the replacement is what keeps the rule firing; without it, a session reading only `CLAUDE.md` would hand over an import where a replace was needed, which is the failure the section records. An alternative with no risk: add `shortcut-links` to the plugin, since `apple-shortcuts-actions` already rides there.
+
+## 10. web-tools-private proposals/README.md restates the manifest doc's Proposals section
+
+**Repos:** web-tools-private, web-tools.
+
+**Copies:**
+- web-tools-private `proposals/README.md` (865 words): purpose, record shape with a JSON example, required fields, `ref`, the signature fields, `expectSha`, the three file kinds (`put-file`, `set-json-field`, `unset-json-field`) and `delete-issue`.
+- web-tools `docs/manifest.md:363-557` (2,044 words, "Proposals (`proposals/pending` → `proposals/applied`)"): the same record, the same kinds, `expectSha`, the applied tombstone, plus the code paths (`lib/kits/repo-proposals.js`, `lib/alpineComponents/proposals.js`).
+
+**Owner:** `web-tools/docs/manifest.md#proposals`, which sits beside the code that enforces the shape.
+
+**Kind:** restated schema.
+
+**Proposal:** Cut `proposals/README.md` to the shape `errands/README.md` in the same repo already uses (108 words): two sentences of purpose, the `pending/` and `applied/` layout, "Nothing here is applied automatically", and "The record shape and the kinds are specified in [docs/manifest.md](https://github.com/mehrlander/web-tools/blob/main/docs/manifest.md#proposals-proposalspending--proposalsapplied) and enforced by `lib/kits/repo-proposals.js`."
+
+**Rationale:** The precedent is in the repo: `web-tools-private/errands/README.md:9-10` says the errand record is "specified in `docs/manifest.md` ... and enforced by `lib/kits/errands.js` there" and stops. The proposals README does the opposite and carries its own schema. Both copies count the same fields (a grep for `expectSha`, `put-file`, `unset-json-field` or `delete-issue` matches 10 lines in each file), so a new kind needs two edits in two repos.
+
+**Evidence:** 95 of 920 ten-word windows in `proposals/README.md` also occur in `manifest.md`, the highest cross-repo pair in the sweep after the `AGENTS.md` pair.
+
+**Words removed:** about 740.
+
+**Inbound dependencies:** None in the living docs (`grep -rn "proposals/README"` finds only an unrelated `home/projects/text/instruments/proposals/README.md` in a session cache). A session writing a proposal reads the README it lands beside, so the link must be the first thing after the purpose.
+
+**Risk:** Low. The web-tools-private repo is private and web-tools is public; the link goes from private to public, which always resolves.
