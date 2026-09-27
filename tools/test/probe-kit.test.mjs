@@ -1,5 +1,5 @@
 // kits/probe.js — the page shows its own conditions, so a screenshot carries
-// them, and card.js's report hook, which is what puts a guard's REFUSAL into
+// them, and panel-tip.js's report hook, which is what puts a guard's REFUSAL into
 // that picture.
 //
 // Held at the edges that decide whether the instrument can be trusted:
@@ -9,7 +9,7 @@
 //   - never the pointer's target, which is the one rule the kit states as a
 //     rule: the bug class it watches is decided by hit-testing, so an overlay
 //     that can be hovered changes what it is measuring;
-//   - card.js reports every branch it takes, the refusals included, and
+//   - panel-tip.js reports every branch it takes, the refusals included, and
 //     reports nothing when nobody is listening.
 //
 // Each assertion below was checked to fail with its own fix removed.
@@ -37,7 +37,7 @@ function boot({ search = '', withCard = true } = {}) {
   // and the assertions free of timers.
   window.requestAnimationFrame = (fn) => { fn(); return 0; };
   try { window.history.replaceState(null, '', '/probe.html' + search); } catch (e) {}
-  if (withCard) new window.Function(src('lib/kits/card.js'))();
+  if (withCard) new window.Function(src('lib/kits/panel-tip.js'))();
   new window.Function(src('lib/kits/probe.js'))();
   return window;
 }
@@ -67,7 +67,7 @@ test('a caller can arm it with no address, and take it off again whole', () => {
   w.Probe.arm();
   assert.equal(w.Probe.on, true);
   assert.ok(w.document.getElementById('wt-probe'), 'armed, it draws');
-  assert.equal(typeof w.__cardProbe, 'function', 'armed, card.js has somewhere to report');
+  assert.equal(typeof w.__panelTipProbe, 'function', 'armed, panel-tip.js has somewhere to report');
   const api = w.Probe;
   api.log('x', 'y');
   assert.ok(api.trace().length > 0);
@@ -79,7 +79,7 @@ test('a caller can arm it with no address, and take it off again whole', () => {
   assert.equal(w.Probe.on, false);
   assert.equal(w.document.getElementById('wt-probe'), null, 'the overlay goes');
   assert.equal(w.document.getElementById('wt-probe-css'), null, 'and its stylesheet with it');
-  assert.equal(w.__cardProbe, undefined, 'and the card hook goes back to what it was');
+  assert.equal(w.__panelTipProbe, undefined, 'and the card hook goes back to what it was');
   // The page's own wrappers keep a reference to the old object; a call through
   // it after stop() must record nothing, or the next arm opens onto a trace
   // that has been filling invisibly.
@@ -111,7 +111,7 @@ test('a page declares what it knows and the probe adopts it, whichever starts fi
   // DECLARED, NOT REGISTERED. A page that registers watchers itself inside an
   // `if (Probe.on)` has nothing to give a probe armed later, which is the case
   // the fab created: the declaration has already run and gone unheard, so the
-  // capture names card.js's verdicts with nothing saying which panel each
+  // capture names panel-tip.js's verdicts with nothing saying which panel each
   // belongs to.
   const before = boot({ search: '' });
   before.__probeWatch = { 'note card': () => 'open=no' };
@@ -282,16 +282,16 @@ test('the trace keeps order, deltas and a bounded tail', () => {
   assert.ok(w.Probe.trace().length <= 400, 'the retained trace is bounded');
 });
 
-test('card.js reports every branch it takes, refusals included', () => {
+test('panel-tip.js reports every branch it takes, refusals included', () => {
   const w = boot({ search: '?probe=pop' });
   const seen = [];
-  const chained = w.__cardProbe;              // the probe's own listener
-  w.__cardProbe = (tag, el, d) => { seen.push(tag); chained(tag, el, d); };
+  const chained = w.__panelTipProbe;              // the probe's own listener
+  w.__panelTipProbe = (tag, el, d) => { seen.push(tag); chained(tag, el, d); };
 
   const pop = w.document.getElementById('pop');
   const trigger = w.document.getElementById('trigger');
   let closed = 0;
-  w.Card.wire(pop, { onClose: () => { closed++; }, except: ['[data-obs]'], label: 'note card' });
+  w.PanelTip.wire(pop, { onClose: () => { closed++; }, except: ['[data-obs]'], label: 'note card' });
   assert.ok(seen.includes('wire:on'), 'the attach is reported, with the panel named');
 
   // A press on the trigger is NOT a press outside, and the refusal is the
@@ -315,10 +315,10 @@ test('card.js reports every branch it takes, refusals included', () => {
 test('the geometry mode is reported as such, so a capture is not misread', () => {
   const w = boot({ search: '?probe=pop' });
   const seen = [];
-  const chained = w.__cardProbe;
-  w.__cardProbe = (tag, el, d) => { seen.push([tag, d]); chained(tag, el, d); };
+  const chained = w.__panelTipProbe;
+  w.__panelTipProbe = (tag, el, d) => { seen.push([tag, d]); chained(tag, el, d); };
   const pop = w.document.getElementById('pop');
-  w.Card.wire(pop, { onClose() {}, stale: 'geometry', label: 'tip panel' });
+  w.PanelTip.wire(pop, { onClose() {}, stale: 'geometry', label: 'tip panel' });
   // A pointer arriving elsewhere must be reported as declined-by-mode rather
   // than silently ignored: "the pointer guard is off here" is the answer on a
   // note-kind panel, and a trace that omits it reads as a missing listener.
@@ -347,15 +347,15 @@ test('a repeat is one line with a count, so a flood cannot fill the tail', () =>
   assert.equal(w.Probe.trace().length, 3);
 });
 
-test('card.js costs nothing and says nothing with no listener attached', () => {
+test('panel-tip.js costs nothing and says nothing with no listener attached', () => {
   const w = boot({ search: '', withCard: true });   // probe off: no hook installed
-  assert.equal(w.__cardProbe, undefined);
+  assert.equal(w.__panelTipProbe, undefined);
   const pop = w.document.getElementById('pop');
   // The whole contract of the hook: with nobody listening the guards behave
   // exactly as before and nothing throws.
   let closed = 0;
   assert.doesNotThrow(() => {
-    w.Card.wire(pop, { onClose: () => { closed++; }, except: ['[data-obs]'] });
+    w.PanelTip.wire(pop, { onClose: () => { closed++; }, except: ['[data-obs]'] });
     w.document.body.dispatchEvent(new w.Event('pointerdown', { bubbles: true, cancelable: true }));
   });
   assert.equal(closed, 1, 'the dismissal contract is unchanged when nothing is watching');

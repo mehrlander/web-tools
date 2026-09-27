@@ -641,6 +641,7 @@ window.Annotate.noteMarkdown(id)            // one note, same shape and preamble
 window.Annotate.noteJSON(id)                //   (still annotate/1, one note in it)
 await window.Annotate.copy('md' | 'json')   // serialize + clipboard
 await window.Annotate.saveJot()             // one jot (fresh-read → mutate → save)
+await window.Annotate.saveNotes()           // each worded annotation as a note (kits/notes.js)
 window.Annotate.expand(true)                // open the card onto the set
 window.Annotate.setReading('notes'|'md'|'json')
 window.Annotate.setScope('set' | 'note')    // which subject a serialization has

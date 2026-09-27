@@ -462,7 +462,7 @@ and hand them an instrument that reports the DOM beside the state. One capture
 answered what four reproductions and three source reads had not.
 → [`lib/kits/probe.js`](../lib/kits/probe.js) for the instrument,
 [`daisy-alpine/references/mechanics.md`](../skills/daisy-alpine/references/mechanics.md)
-"Notes and cards" for the Alpine trap underneath it.
+"Title-tips and panel-tips" for the Alpine trap underneath it.
 
 ### stale-store-reads-as-dead-link: a present checkout, two weeks behind, reported four good links dead
 `dead-links.py` resolves a cross-repo link against a sibling checkout, and
