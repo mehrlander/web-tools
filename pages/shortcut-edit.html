@@ -39,8 +39,9 @@
 <div x-data="edit()" x-init="boot()" class="min-h-dvh flex flex-col">
 
   <header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300 px-3 py-2 flex items-center gap-2">
-    <i class="ph ph-pencil-simple-line text-xl text-base-content/50"></i>
-    <h1 class="font-semibold truncate" x-text="body ? body.name : 'Shortcut edit'"></h1>
+    <button x-show="body && proposals.length" @click="back()" class="btn btn-ghost btn-sm btn-square" aria-label="All edits"><i class="ph ph-arrow-left text-lg"></i></button>
+    <i x-show="!(body && proposals.length)" class="ph ph-pencil-simple-line text-xl text-base-content/50"></i>
+    <h1 class="font-semibold truncate" x-text="body ? body.name : 'Edits'"></h1>
     <span x-show="body" class="badge badge-sm badge-success badge-soft font-mono shrink-0" x-text="tally" data-tally></span>
     <div class="grow"></div>
     <button x-show="body" @click="foldToChange()" class="btn btn-ghost btn-sm btn-square" aria-label="Fold to the change"><i class="ph ph-arrows-in-line-vertical text-lg"></i></button>
@@ -49,12 +50,39 @@
 
   <p x-show="err" class="text-error px-3 py-3" x-text="err" data-error></p>
 
+  <!-- The list: every open proposal, with where it stands. -->
+  <template x-if="!body && !err">
+    <div class="flex flex-col" data-list>
+      <template x-for="p in proposals" :key="p.file">
+        <button @click="pick(p)" class="text-left px-3 py-3 border-b border-base-200 hover:bg-base-200 flex flex-col gap-1" data-proposal>
+          <div class="flex items-center gap-2">
+            <span class="font-semibold" x-text="p.body.name"></span>
+            <span class="badge badge-sm badge-success badge-soft font-mono" x-text="'+' + (p.body.expect.length - p.body.base.length)"></span>
+            <div class="grow"></div>
+            <span class="badge badge-sm" :class="badge(p.status)" x-text="p.status.label"></span>
+          </div>
+          <div class="text-sm text-base-content/70 line-clamp-2" x-text="p.body.why"></div>
+          <div class="text-xs font-mono text-base-content/40" x-text="p.body.created"></div>
+        </button>
+      </template>
+      <div x-show="loading" class="flex justify-center py-16"><span class="loading loading-dots loading-md opacity-30"></span></div>
+      <div x-show="!loading && !proposals.length" class="px-3 py-16 text-center text-base-content/40">No proposed edits.</div>
+    </div>
+  </template>
+
   <template x-if="body">
     <div class="flex flex-col gap-3 pt-3">
 
       <div class="px-3 flex flex-wrap gap-2" data-actions>
         <a :href="copyHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-primary btn-sm"><i class="ph ph-clipboard-text"></i>1 · Copy the cards</a>
         <a :href="openHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-sm"><i class="ph ph-pencil-simple"></i><span x-text="'2 · Open ' + body.name"></span></a>
+        <a x-show="body.expect" :href="exportHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-sm"><i class="ph ph-check-circle"></i>3 · Export to check</a>
+      </div>
+
+      <div x-show="status" class="px-3 flex items-center gap-2 text-sm" data-status>
+        <span class="badge badge-sm" :class="badge(status)" x-text="status && status.label"></span>
+        <span class="text-base-content/70 min-w-0" x-text="status && status.detail"></span>
+        <button x-show="status && status.state !== 'checking'" @click="check()" class="btn btn-ghost btn-xs btn-square" aria-label="Check again"><i class="ph ph-arrows-clockwise"></i></button>
       </div>
 
       <template x-for="(h, n) in hunks" :key="n">
@@ -100,6 +128,24 @@ const INDEX = 4;
 const PADS = ['ml-0', 'ml-[2ch]', 'ml-[4ch]', 'ml-[6ch]', 'ml-[8ch]', 'ml-[10ch]', 'ml-[12ch]', 'ml-[14ch]', 'ml-[16ch]'];
 const parse = t => t.split('\n').filter(Boolean).map(raw => ({ i: raw.slice(0, INDEX).trim(), s: raw.slice(INDEX) }));
 const depth = s => s.match(/^ */)[0].length;
+
+const TOOLS = 'mehrlander/shortcut-tools', STORE = 'mehrlander/web-tools-private';
+const Q = new URLSearchParams(location.search);
+const REF = Q.get('ref') || 'main';   // the shortcut-tools ref proposals are read at
+
+// The action identifiers of one workflow plist, in order, or null when the
+// export does not parse.
+function actionIds(xml) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  if (doc.querySelector('parsererror')) return null;
+  const key = [...doc.querySelectorAll('plist > dict > key')].find(k => k.textContent === 'WFWorkflowActions');
+  const arr = key && key.nextElementSibling;
+  if (!arr) return [];
+  return [...arr.children].map(d => {
+    const k = [...d.children].find(c => c.tagName === 'key' && c.textContent === 'WFWorkflowActionIdentifier');
+    return k ? k.nextElementSibling.textContent : '';
+  });
+}
 
 async function inflate(b64) {
   const b = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
@@ -154,6 +200,9 @@ function path(lines, k) {
 document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
   body: null,
   err: '',
+  proposals: [],
+  loading: false,
+  status: null,
   lines: [],
   shut: {},
   hunks: [],
@@ -168,14 +217,107 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
   get copyHref() {
     return 'shortcuts://run-shortcut?name=Copy-ActionFromUrl&input=text&text=' + encodeURIComponent(this.body.cards);
   },
+  get exportHref() {
+    return 'shortcuts://run-shortcut?name=Dump-Named&input=text&text=' + encodeURIComponent('⟦' + this.body.name + '⟧');
+  },
   get openHref() {
     return 'shortcuts://open-shortcut?name=' + encodeURIComponent(this.body.name);
   },
 
+  // Three ways in: a proposal carried whole in #gz=, one named by
+  // ?proposal=<file>, or none, which lists every file in shortcut-tools'
+  // proposals/ with where it stands.
   async boot() {
     const m = /[#&]gz=([^&]+)/.exec(location.hash);
-    if (!m) { this.err = 'No edit in this link.'; return; }
-    try { this.body = await inflate(m[1]); } catch (e) { this.err = 'This link does not decode: ' + e.message; return; }
+    if (m) {
+      try { this.show(await inflate(m[1])); } catch (e) { this.err = 'This link does not decode: ' + e.message; }
+      return;
+    }
+    this.loading = true;
+    try {
+      const want = Q.get('proposal');
+      const r = await fetch(`https://api.github.com/repos/${TOOLS}/contents/proposals?ref=${encodeURIComponent(REF)}`, { cache: 'no-store' });
+      const files = r.ok ? (await r.json()).filter(f => f.name.endsWith('.json')).map(f => f.name) : [];
+      this.proposals = await Promise.all(files.map(async file => ({
+        file, status: { state: 'checking', label: 'checking' },
+        body: await (await fetch(`https://raw.githubusercontent.com/${TOOLS}/${REF}/proposals/${encodeURIComponent(file)}`, { cache: 'no-store' })).json(),
+      })));
+      this.proposals.sort((a, b) => (b.body.created || '').localeCompare(a.body.created || ''));
+      const one = want && this.proposals.find(p => p.file === want);
+      if (want && !one) this.err = `No proposal ${want} at ${REF}.`;
+      if (one) this.pick(one);
+      for (const p of this.proposals) {
+        p.status = await this.verdict(p.body);
+        if (this.body === p.body) this.status = p.status;
+      }
+    } catch (e) {
+      this.err = String(e.message || e);
+    } finally {
+      this.loading = false;
+    }
+  },
+
+  pick(p) { this.show(p.body); this.status = p.status; window.scrollTo(0, 0); },
+  back() { this.body = null; this.status = null; this.lines = []; this.hunks = []; },
+  badge(st) {
+    return { applied: 'badge-success', pending: 'badge-warning', differs: 'badge-error' }[st && st.state] || 'badge-ghost';
+  },
+  async check() {
+    this.status = { state: 'checking', label: 'checking', detail: '' };
+    this.status = await this.verdict(this.body);
+    const p = this.proposals.find(x => x.body === this.body);
+    if (p) p.status = this.status;
+  },
+
+  // Where a proposal stands, from the newest export of its shortcut: the
+  // phone's exports land in web-tools-private's shortcuts/incoming/ and are
+  // folded into shortcuts/dumps/, both private, so this needs the token the
+  // other pages on this origin store. The newest zip holding the shortcut is
+  // compared action type by action type with the proposal's `expect` (the
+  // edit made) and `base` (not yet). It does not compare parameters, so a
+  // card pasted in place and then changed still reads as applied.
+  async verdict(b) {
+    if (!b.expect) return { state: 'unknown', label: 'no check', detail: 'This proposal carries no sequence to check against.' };
+    let token = '';
+    try { token = localStorage.getItem('ghToken') || ''; } catch {}
+    if (!token) return { state: 'unknown', label: 'unchecked', detail: 'Needs the GitHub token the other Web Tools pages use.' };
+    const H = { Authorization: 'token ' + token };
+    const list = async dir => {
+      const r = await fetch(`https://api.github.com/repos/${STORE}/contents/shortcuts/${dir}`, { headers: H, cache: 'no-store' });
+      return r.ok ? (await r.json()).filter(f => f.name.endsWith('.zip')).map(f => `shortcuts/${dir}/${f.name}`) : [];
+    };
+    const raw = async path => {
+      const r = await fetch(`https://api.github.com/repos/${STORE}/contents/${path}`,
+        { headers: { ...H, Accept: 'application/vnd.github.raw' }, cache: 'no-store' });
+      if (!r.ok) throw new Error(r.status + ' ' + path);
+      if (!/json/.test(r.headers.get('content-type') || '')) return r.arrayBuffer();
+      const j = await r.json();
+      return Uint8Array.from(atob((j.content || '').replace(/\n/g, '')), c => c.charCodeAt(0)).buffer;
+    };
+    try {
+      const JSZip = window.JSZip ?? (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+      const zips = [...await list('incoming'), ...await list('dumps')]
+        .sort((x, y) => y.split('/').pop().localeCompare(x.split('/').pop()));
+      for (const path of zips.slice(0, 6)) {
+        const z = await JSZip.loadAsync(await raw(path));
+        const f = z.file(b.name + '.wflow');
+        if (!f) continue;
+        const ids = actionIds(await f.async('string')), file = path.split('/').pop();
+        const same = (x, y) => x.length === y.length && x.every((v, i) => v === y[i]);
+        if (!ids) return { state: 'differs', label: 'unreadable', detail: `${file} holds ${b.name}, and it does not parse.` };
+        if (same(ids, b.expect)) return { state: 'applied', label: 'applied', detail: `The export in ${file} has the edit.` };
+        if (same(ids, b.base)) return { state: 'pending', label: 'not yet', detail: `The newest export, ${file}, is still the original.` };
+        const at = b.expect.findIndex((v, i) => ids[i] !== v);
+        return { state: 'differs', label: 'differs', detail: `${file} differs from the proposal at line ${at}.` };
+      }
+      return { state: 'unknown', label: 'no export', detail: `No recent export holds ${b.name}. Tap 3 to make one.` };
+    } catch (e) {
+      return { state: 'unknown', label: 'unchecked', detail: String(e.message || e) };
+    }
+  },
+
+  show(body) {
+    this.body = body; this.hunks = []; this.lines = []; this.shut = {};
     const d = diff(parse(this.body.before), parse(this.body.after));
 
     // One place per run of changed lines, named in the after listing's terms.
