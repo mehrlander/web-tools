@@ -209,3 +209,58 @@ test('a variant with proposals shows a chip per target path, linking the basis',
   assert.equal(model.safeHref('https://github.com/mehrlander/web-tools/pull/1'), 'https://github.com/mehrlander/web-tools/pull/1');
   assert.equal(model.safeHref('javascript:alert(1)'), null, 'a basis that is not a web address gets no link');
 });
+
+test('the variants deck reads the filtered rows and keeps its place in the address', async () => {
+  const h = harness('?pane=variants&purpose=repair&deck=variants&at=4');
+  const opened = [];
+  h.window.swipeDeck = { open: o => { opened.push(o); return {}; }, h: () => ({}) };
+  h.model.home = { repo: 'mehrlander/home', ref: 'main' };
+  await h.model.loadVariants();
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(opened.length, 1, 'an addressed deck reopens once the collection is read');
+  assert.equal(opened[0].count, 1, 'the deck holds the filtered rows, not the collection');
+  assert.equal(opened[0].start, 0, 'a slide past the end is clamped to the last one');
+  assert.equal(opened[0].subtitle, 'repair · every author');
+  assert.ok(h.loads.includes('kits/swipe-deck.js'));
+  opened[0].onSlide(0);
+  assert.equal(new URL(h.location.href).searchParams.get('deck'), 'variants');
+  opened[0].onClose();
+  const closed = new URL(h.location.href);
+  assert.equal(closed.searchParams.has('deck'), false);
+  assert.equal(closed.searchParams.has('at'), false);
+  assert.equal(closed.searchParams.get('purpose'), 'repair', 'closing the deck keeps the filters');
+});
+
+test('text runs are the run folders that declare their files, newest first', async () => {
+  const h = harness('?pane=runs');
+  const files = [
+    { repo: 'mehrlander/web-tools', path: 'CLAUDE.md', words_before: 10, words_after: 8, variants: 3 },
+    { repo: 'mehrlander/home', path: 'CLAUDE.md', words_before: 20, words_after: 15, variants: 4 },
+  ];
+  h.model.home = {
+    req: async () => [
+      { type: 'dir', name: '2026-09-16-import' },
+      { type: 'dir', name: '2026-09-27-behavior-trim' },
+      { type: 'file', name: 'README.md' },
+    ],
+    get: async p => {
+      if (p.endsWith('2026-09-27-behavior-trim/files.jsonl')) return { text: files.map(f => JSON.stringify(f)).join('\n') + '\n' };
+      if (p.endsWith('2026-09-27-behavior-trim/README.md')) return { text: '# Behavior trim, 2026-09-27\n\nbody' };
+      throw new Error('404');
+    },
+  };
+  await h.model.loadTextRuns();
+  assert.equal(h.model.textRuns.length, 1, 'a folder without files.jsonl is a run of another kind');
+  const run = h.model.textRuns[0];
+  assert.equal(run.title, 'Behavior trim, 2026-09-27');
+  assert.equal(run.date, '2026-09-27');
+  assert.equal(run.variants, 7);
+  assert.equal(run.files.length, 2);
+});
+
+test('the markup offers the deck door on the list, each group, and each text run', () => {
+  assert.equal((SRC.match(/ph-cards-three/g) || []).length >= 3, true);
+  assert.match(SRC, /@click="openVariantDeck\(variantRows\)"/);
+  assert.match(SRC, /@click="openRunDeck\(r\)"/);
+  assert.match(SRC, /x-init="renderPair\(\$el, p\)"/, 'an open row shows the pair as md-diff draws it');
+});
