@@ -14,8 +14,9 @@
 //
 // The cases marked `todo` state the behaviour the plan asks for and do not hold
 // today. A todo that fails is reported, not counted as a failure, which is the
-// point: the suite records the defect without going red, and stage S1 of the
-// plan is done when every todo here can drop its marker. Each one also prints
+// point: the suite records the defect without going red, and steps 1 and 2 of
+// the plan's smallest implementation are done when every todo here can drop its
+// marker. Each one also prints
 // what it observed, so the current answer is on the record in the test output.
 
 import { test } from 'node:test';
@@ -96,7 +97,7 @@ test('a cross-repo page that pins its import with ?ref= keeps its pin', (t) => {
 // `use`, which entry.js reads as a WEB-TOOLS ref: a 404 on raw, or, where the
 // same branch name exists in both repos, that web-tools branch in silence.
 test('a cross-repo page with a plain entry.js import boots web-tools main',
-  { todo: 'S1: inject `use` only when the subject repo is web-tools' }, (t) => {
+  { todo: 'plan step 1: the renderer passes the Web Tools ref, main for another repo' }, (t) => {
   const { lib } = libRefFor({ name: 'shortcut-tools', ref: 'claude/x', path: 'pages/library.html' });
   t.diagnostic(`observed lib ref: ${lib}`);
   assert.equal(lib, 'main');
@@ -106,7 +107,7 @@ test('a cross-repo page with a plain entry.js import boots web-tools main',
 // patched get() answers the page query for EVERY URLSearchParams in the frame,
 // including the one entry.js builds from its own import URL.
 test('a page query `ref` does not re-pin the library',
-  { todo: 'S1: scope the params shim to the page address, not the prototype' }, (t) => {
+  { todo: 'plan step 2: scope the params shim to the page address, not the prototype' }, (t) => {
   const { lib } = libRefFor({ name: 'web-tools', ref: 'claude/x', path: 'pages/repo-atlas.html',
     pageQuery: 'repo=mehrlander/home&ref=feature' });
   t.diagnostic(`observed lib ref: ${lib}`);
@@ -114,7 +115,7 @@ test('a page query `ref` does not re-pin the library',
 });
 
 test('an unrelated URLSearchParams in the frame answers only its own keys',
-  { todo: 'S1: scope the params shim to the page address, not the prototype' }, (t) => {
+  { todo: 'plan step 2: scope the params shim to the page address, not the prototype' }, (t) => {
   const { other } = libRefFor({ name: 'web-tools', ref: 'claude/x',
     extra: "new URLSearchParams('a=1').get('use')" });
   t.diagnostic(`observed get('use') on 'a=1': ${other}`);
