@@ -59,7 +59,7 @@
   if (!m) fail('expected ?gh=owner/repo[@ref]:path');
   else if (!OWNERS.includes(m[1])) fail('owner not allowed: ' + m[1]);
   else {
-    const [, owner, name, ref = '', path, oldPageQuery = ''] = m;
+    let [, owner, name, ref = '', path, oldPageQuery = ''] = m;
     const repo = owner + '/' + name;
     // The page's own parameters: every real key but `gh`, plus, in the old
     // form, the query that rode inside the gh value.
@@ -70,8 +70,36 @@
     const own = new URLSearchParams(oldPageQuery);
     const oldKeys = new Set(own.keys());
     for (const [k, v] of real) if (!oldKeys.has(k)) own.append(k, v);
-    const asked = own.get('lib') || '';
-    const lib = asked || (repo === HUB ? ref : 'main') || '';
+    // THE SELECTION, in the renderer's grammar (docs/loader.md, "The
+    // selection"): repeatable refs=owner/repo@ref[:path], lib= as the web-tools
+    // entry. The target is read at its address @ref, else where the selection
+    // puts it; the rest of its repository follows the selection first.
+    const E = {};
+    for (const v of own.getAll('refs')) {
+      const x = String(v).match(/^([^/@:\s]+\/[^/@:\s]+)@([^:]+?)(?::(.+))?$/);
+      if (x) E[x[3] ? x[1] + ':' + x[3].replace(/^\/+/, '') : x[1]] = x[2];
+    }
+    if (own.get('lib')) E[HUB] = own.get('lib');
+    function refForIn(E, I, repo, path, pathOnly) {
+      var own = Object.prototype.hasOwnProperty;
+      repo = String(repo || ''); path = String(path == null ? '' : path).replace(/^\/+/, '');
+      var best = '', n = -1;
+      for (var k in E) {
+        if (!own.call(E, k)) continue;
+        var i = k.indexOf(':');
+        if (i < 0 || k.slice(0, i) !== repo) continue;
+        var p = k.slice(i + 1);
+        if (p.length > n && (p === path || (p.charAt(p.length - 1) === '/' && path.slice(0, p.length) === p))) { best = E[k]; n = p.length; }
+      }
+      if (best || pathOnly) return best;
+      return (own.call(E, repo) && E[repo]) || (own.call(I, repo) && I[repo]) || '';
+    }
+    if (!ref) ref = refForIn(E, {}, repo, path);
+    const asked = E[HUB] || '';
+    const lib = asked || (repo === HUB ? (refForIn(E, {}, repo, '') || ref) : 'main') || '';
+    const implied = {};
+    if (ref) implied[repo] = ref;
+    if (lib && !implied[HUB]) implied[HUB] = lib;
 
     const headers = { Accept: 'application/vnd.github.raw+json' };
     try { const t = localStorage.getItem('ghToken'); if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim(); } catch {}
@@ -93,8 +121,12 @@
       const A = repo + (ref ? '@' + ref : '') + ':' + path;
       const prelude =
         `<base href="https://${owner}.github.io/${name}/${dir}">` +
-        `<script>window.__ref=${JSON.stringify(ref || 'main')};` +
+        // __ref is the displayed file's version, stamped only when known, as
+        // the renderer stamps it (a default-branch read leaves it unset).
+        `<script>` + (ref ? `window.__ref=${JSON.stringify(ref)};` : '') +
         (asked ? `window.__lib=${JSON.stringify(asked)};` : '') +
+        `window.__refs=${JSON.stringify(E)};window.__refsImplied=${JSON.stringify(implied)};` +
+        `window.__refFor=function(repo,path,pathOnly){return (${refForIn.toString()})(window.__refs||{},window.__refsImplied||{},repo,path,pathOnly);};` +
         `window.__tossTop=${JSON.stringify({ repo, ref: ref || 'main', path, lib })};<\/script>` +
         // The address stays out of the page's sight: every read of a params
         // object that holds gh=<this address> skips that entry, and `use` and
