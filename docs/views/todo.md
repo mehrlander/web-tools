@@ -32,6 +32,6 @@ each check-off is a commit. `state/` holds only derived caches, never these.
   rewritten. The about field filters the list by prefix and addresses the next
   note. A to-do's or jot's note key addresses it as
   `<registry>:lists/<file>.json#<id>`. The skill is
-  [`.claude/skills/notes/SKILL.md`](../../.claude/skills/notes/SKILL.md).
+  [`skills/notes/SKILL.md`](../../skills/notes/SKILL.md).
 - Each heading links its file; the three `lists/` headings also peek it,
   re-seeded by every save.

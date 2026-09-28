@@ -20,7 +20,7 @@ The index is cheap enough to build on demand (1.7s over web-tools, 20s over a
 use it, let it go.
 
 ```bash
-V=.claude/skills/concept-index/vocab.py          # or $CLAUDE_PLUGIN_ROOT/...
+V=skills/concept-index/vocab.py          # or $CLAUDE_PLUGIN_ROOT/...
 
 python3 $V index . --output /tmp/vocab.json \
   --hub docs/CONVENTIONS.md --hub docs/SURFACING.md --hub CLAUDE.md \

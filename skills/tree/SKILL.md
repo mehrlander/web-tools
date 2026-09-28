@@ -26,17 +26,17 @@ change handoff. The boundary, worth stating so the two do not drift:
 
 They share DNA (tappable GitHub links at a ref) but answer different
 questions. When the ask is about change, follow
-[`SURFACING.md`](../../../docs/SURFACING.md); about structure, use this.
+[`SURFACING.md`](../../docs/SURFACING.md); about structure, use this.
 
 Substitute the current repo into all URL templates. The rendering rules
-below are the applied form of [`docs/markdown-in-chat.md`](../../../docs/markdown-in-chat.md);
+below are the applied form of [`docs/markdown-in-chat.md`](../../docs/markdown-in-chat.md);
 read that for *why* tables beat bullets and which characters survive a
 table cell.
 
 ## The generator
 
 Hand-building nested links with correct blob/tree URLs is exactly the
-tedious, error-prone work to script. [`scripts/build-tree.py`](../../../scripts/build-tree.py)
+tedious, error-prone work to script. [`scripts/build-tree.py`](../../scripts/build-tree.py)
 (python3 stdlib, argv-parameterized, raw-URL fetchable) emits the table.
 It produces structure, links, and icons; it leaves the gloss column empty,
 because a one-line "what this is" needs judgement the walker lacks (same
@@ -96,12 +96,12 @@ the cell trim; the icon and link sit outside the span, so they stay
 tappable. This is the most capable format: full box art, perfect
 alignment, links, icons, optional gloss.
 
-| [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) | What it is |
+| [skills](https://github.com/mehrlander/web-tools/tree/main/skills) | What it is |
 |---|---|
-| `├─ `📁 [hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks) | commit + session hooks |
-| `│  └─ `📄 [build-on-commit.sh](https://github.com/mehrlander/web-tools/blob/main/.claude/hooks/build-on-commit.sh) | regenerates derived files |
-| `└─ `📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) | the portable bag |
-| `   └─ `📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/tasks) | the tracker protocol |
+| `├─ `📁 [hooks](https://github.com/mehrlander/web-tools/tree/main/skills/hooks) | the plugin's hooks |
+| `│  └─ `📄 [hooks.json](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/hooks.json) | registers them |
+| `└─ `📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/skills/tasks) | the tracker protocol |
+| `   └─ `📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/skills/tasks/SKILL.md) | the skill |
 
 ### B. braille — invisible indent + icons
 
@@ -111,11 +111,10 @@ not. The icon carries the folder-vs-file signal. Cleaner and quieter than
 box art; best for shallow trees where the eye does not need a rail to peg
 depth.
 
-| [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) |
+| [skills](https://github.com/mehrlander/web-tools/tree/main/skills) |
 |---|
-| ⠀⠀⠀📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) |
-| ⠀⠀⠀⠀⠀⠀📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/tasks) |
-| ⠀⠀⠀⠀⠀⠀⠀⠀⠀📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/tasks/SKILL.md) |
+| ⠀⠀⠀📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/skills/tasks) |
+| ⠀⠀⠀⠀⠀⠀📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/skills/tasks/SKILL.md) |
 
 Pick A when depth or alignment matters, or a gloss column is wanted; pick B
 for a quiet, shallow orientation view. When unsure, A is the default.
@@ -146,11 +145,9 @@ tree.
 | [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) |
 |---|
 | `├─ `📁 [hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks) |
-| `├─ `📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) |
 | `└─ `⚙️ [settings.json](https://github.com/mehrlander/web-tools/blob/main/.claude/settings.json) |
 | 🧳 **Major folders** |
 | **[hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks)** › Two Shell Scripts, Flat |
-| **[skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills)** › One Folder Per Skill |
 
 The `└─ ` last row separates cleanly from the `🧳` header below; the note
 rows carry no connector, so they read as a distinct block, not tree nodes.
@@ -165,7 +162,7 @@ drops the navigation that is the point of rendering in chat.
 ## Rendering rules (why this shape)
 
 These are load-bearing, established empirically (full account in
-[`docs/markdown-in-chat.md`](../../../docs/markdown-in-chat.md)):
+[`docs/markdown-in-chat.md`](../../docs/markdown-in-chat.md)):
 
 - **Never nested bullets.** Chat renders each list item with paragraph
   margin, and nesting compounds it, so a deep bullet tree is mostly
@@ -187,10 +184,10 @@ json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
 
 ## Boundary with surfacing and Web Tools
 
-This skill owns structure rendering. [`SURFACING.md`](../../../docs/SURFACING.md)
+This skill owns structure rendering. [`SURFACING.md`](../../docs/SURFACING.md)
 owns change surfacing: the branch-page caption by default, the
 `[new]/[main]/[diff]` file list as fallback, and render lines. The
-[`surfacing-course`](../../../docs/surfacing-course.md) owns PR bodies and the
+[`surfacing-course`](../../docs/surfacing-course.md) owns PR bodies and the
 merge guide. A tree is not a change handoff: it carries no change state and no
 diff links. If the ask is "what did I touch," follow the surfacing contract; a
 tree that also marks change is a deliberate combined view, not the default.

@@ -1,5 +1,5 @@
 topic,label,verdict,gloss
-askuserquestion,The AskUserQuestion ban,layered,"A prose rule in home's CLAUDE.md, a deny in two repos' project settings that is read only when that repo is the root, a user-scope deny the old setup script writes, and the plugin guard. The guard is meant to replace the user deny."
+askuserquestion,The AskUserQuestion ban,layered,"A prose rule in home's CLAUDE.md, a deny in two repos' project settings that is read only when that repo is the root, a user-scope deny the setup script writes, and the plugin guard, which replaces the user deny once verified."
 writing-rules,Writing rules,redundant,"The user-scope CLAUDE.md, the account preferences and QUALIFIED-WRITING.md all state rules about plain words and the em dash, in three different wordings."
 house-style,The HTML house style,conflicting,"The plugin's html-style skill and an older claude.ai upload named daisy-alpine both reach Code sessions and describe the same stack differently; the preferences restate it a third time."
 conventions-delivery,How the conventions arrive,redundant,"The plugin delivers them; each repo's CLAUDE.md also explains that delivery, so one mechanism is described in several places."

@@ -18,11 +18,9 @@ description: >-
 Look at the project root, its children, and its siblings, which is exactly the
 search the hook runs. If one is there, say so in one line and do nothing else.
 
-**Find the store's name.** It is not in the plugin, on purpose. Read it from
-`SESSIONS_STORE_REPO` in the environment, or failing that from the first
-`.web-tools.json` in that same search that declares
-`"sessionsStore": "<owner>/<repo>"`. No name means nothing asked for this
-session to be recorded; say so and stop.
+**Find the store's name.** Read it from `SESSIONS_STORE_REPO`, else from the
+first `.web-tools.json` in that search that declares
+`"sessionsStore": "<owner>/<repo>"`, else use `mehrlander/web-tools-private`.
 
 **Attach, then clone beside the other checkouts.** An unattached private repo
 is unreachable from a shell here, so attach it first with the session's

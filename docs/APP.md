@@ -17,7 +17,7 @@ page title, the README's front door, the app's own address. **show-repo** is
 the shell's internal name and stays on the identifiers that key by it: the
 `consumer` column of [manifest-fields.csv](manifest-fields.csv), 55 of its 58
 rows and the largest holding by far; the reference doc; the skill that operates
-the shell (`.claude/skills/show-repo/`, typed as `/show-repo`); the redirect
+the shell (`skills/show-repo/`, typed as `/show-repo`); the redirect
 stub's path; and the tracker project tag. The old name records the app's origin
 as a repo viewer; the scope outgrew it.
 

@@ -2,7 +2,7 @@
 
 Cross-session memory for the work of a workspace: what is planned, in flight, blocked, and done, in a form the next session can read. Tracker state lives on `main`: one shared place every session knows to check. Canonical source `mehrlander/web-tools` at `docs/TRACKER.md`; local `CLAUDE.md` sets placement and the registry.
 
-**This file is the contract, not the instructions.** Read it to adopt a tracker, to write a second implementation of the generator, or to change the design. Every rule about *operating* a tracker (when to file, how to claim, how to close, how to push) has one owner, the [`tasks` skill](../.claude/skills/tasks/SKILL.md), which is what a session loads at the moment it acts.
+**This file is the contract, not the instructions.** Read it to adopt a tracker, to write a second implementation of the generator, or to change the design. Every rule about *operating* a tracker (when to file, how to claim, how to close, how to push) has one owner, the [`tasks` skill](../skills/tasks/SKILL.md), which is what a session loads at the moment it acts.
 
 Prose style: no em dashes. Use colons, commas, semicolons, or new sentences.
 
@@ -168,7 +168,7 @@ The board adds three derived values the task file does not state:
 
 No artifact carries a timestamp, so the same input produces the same bytes and the gates that re-run the generator against a clean tree do not fail on every run. `board-tags.csv` is written even when nothing is tagged, header and no rows, since a check that compares bytes needs the file to exist either way.
 
-The generator ships with the `portable` plugin as `tasks/build-board.py` (python3, stdlib only, zero dependencies). It is one canonical implementation, so every tracker's board comes out the same shape and a repo does not write its own. A repo running without the plugin fetches that same tracked script from its [raw GitHub path](https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/tasks/build-board.py) into a gitignored location; it is the same file reached by a different transport, not a reimplementation. The skill carries the invocation.
+The generator ships with the `portable` plugin as `tasks/build-board.py` (python3, stdlib only, zero dependencies). It is one canonical implementation, so every tracker's board comes out the same shape and a repo does not write its own. A repo running without the plugin fetches that same tracked script from its [raw GitHub path](https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/tasks/build-board.py) into a gitignored location; it is the same file reached by a different transport, not a reimplementation. The skill carries the invocation.
 
 ## Assessment and refinement
 
@@ -177,7 +177,7 @@ Two operations read the whole tracker rather than one task, and they are distinc
 - **Assessment interprets.** It reads the tracker as a whole and renders judgment: the workstreams the open tasks form, framing that has fallen behind the work, decisions hiding inside tasks, differences in scale and readiness, bundles that would travel together, and good next-session candidates. It recommends and does not mutate.
 - **Refinement mutates.** It restores scope truth in the task files: closing stale or superseded tasks, reframing inaccurate ones, narrowing residual work, splitting or consolidating where justified.
 
-The cycle they form: tracker state → assessment → refinement → dispatch and execution → changed tracker state → later assessment. Neither obligates the other. A refinement pass does not owe an assessment record, and an assessment does not commit anyone to acting on it. The split is one of permission and record, not sequencing: asking for an assessment alone does not authorize refinement, and one session may do both in a single pass once the refinement is agreed. The [`tasks` skill](../.claude/skills/tasks/SKILL.md) carries the operating rules for both; what belongs here is the record.
+The cycle they form: tracker state → assessment → refinement → dispatch and execution → changed tracker state → later assessment. Neither obligates the other. A refinement pass does not owe an assessment record, and an assessment does not commit anyone to acting on it. The split is one of permission and record, not sequencing: asking for an assessment alone does not authorize refinement, and one session may do both in a single pass once the refinement is agreed. The [`tasks` skill](../skills/tasks/SKILL.md) carries the operating rules for both; what belongs here is the record.
 
 ### The assessment record
 
@@ -222,7 +222,7 @@ Trackers are scoped to a workspace and sessions are scoped to a repository, so t
 
 The line is whether the tracker currently says something untrue. It does: correct it. It merely lacks something you noticed: propose it.
 
-**Use the ordinary mechanism.** Cut a scratch branch from that repo's `origin/main`, edit the task file, regenerate the rollups, push to `main`, as the [`tasks` skill](../.claude/skills/tasks/SKILL.md) already describes. No PR, no branch left behind. The repository has to be in the session's scope; if it is not, the correction is a line in your reply for the next session that holds it, not a task filed at home to remember it.
+**Use the ordinary mechanism.** Cut a scratch branch from that repo's `origin/main`, edit the task file, regenerate the rollups, push to `main`, as the [`tasks` skill](../skills/tasks/SKILL.md) already describes. No PR, no branch left behind. The repository has to be in the session's scope; if it is not, the correction is a line in your reply for the next session that holds it, not a task filed at home to remember it.
 
 **It announces itself in two places, and both matter.** The commit message names the correction and where it came from, so the other repo's history does not show an unexplained edit from a session that was working elsewhere:
 

@@ -1,11 +1,13 @@
 ---
 name: load-skill
-description: Load a named skill from Marcus's canonical skill library at mehrlander/web-tools/skills/ (or another declared source) and follow its instructions in the current session. Use when the user says "load skill X", "load my X skill", "fetch the X skill", "load-skill X", "/load-skill", or explicitly names a skill from the library and asks it to be applied. Not for the auto-invoked kind of skill; this is a deliberate library load, comparable to `require('...')` in another language.
+description: Fetch a named skill by URL, from Marcus's library at mehrlander/web-tools/skills/ or another declared source, and follow it in the current session. Only for a session without the portable plugin, which already carries every skill in that library as /portable:<name>, or for a skill from another source. Use when the user says "load skill X", "load my X skill", "fetch the X skill", "load-skill X", "/load-skill", or names a skill and asks for it to be loaded.
 ---
 
 # load-skill
 
 Fetch a named skill from a defined source and apply its instructions. The mechanism is source-agnostic: the default source is `mehrlander/web-tools/skills/`, but any `<source>/<name>/SKILL.md` shape works.
+
+**Check the plugin first.** The `portable` plugin carries every skill in the default source as `/portable:<name>`. Use that when the plugin is installed. Fetch only without the plugin, or from another source.
 
 ## Default source
 
@@ -72,7 +74,7 @@ Only fire this skill on explicit signals from the user. Examples:
 - "use my arriving-together skill for this"
 - "load skill X from source Y" (custom source)
 
-Do not fire on general topic overlap. The whole point of this skill is that the library loads deliberately, not opportunistically.
+Do not fire on general topic overlap.
 
 ## Custom sources
 
@@ -86,7 +88,7 @@ The mechanism itself installs the same way `web-tools` does. From a session in t
 
 ```bash
 mkdir -p .claude/skills/load-skill
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/load-skill/SKILL.md \
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/load-skill/SKILL.md \
   -o .claude/skills/load-skill/SKILL.md
 ```
 
@@ -98,4 +100,4 @@ Copy the contents of this SKILL.md into Settings > Capabilities as a new skill n
 
 ## Why this exists
 
-The account-level skill mechanism assumes each skill is a fire-when-relevant capability. The user's personal skills mostly want the opposite: library-load-when-asked. `load-skill` reifies that model: only this one mechanism is registered anywhere, and the actual skill bodies stay as static library resources at `web-tools/skills/`, fetched deliberately when needed.
+It reaches a skill where the portable plugin is not installed, such as claude.ai chat, or where the skill comes from another library.

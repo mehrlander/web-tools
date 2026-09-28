@@ -107,9 +107,10 @@ the bootstrap stays dormant and the page instantiates `GH` by hand.
   itself changes rarely. Loaded by the
   auto-bootstrap. Its `BOOT` manifest is the unconditional sequence, declared
   as data so the cost of starting a page can be read without reading the boot
-  function; as of 2026-09-08 it runs eight, in this order: `vanilla-bundle.js`,
+  function; it runs, in this order: `vanilla-bundle.js`,
   `gh-auth.js`, `gh-fetch.js`, `kits/repo-address.js`, `kits/source-peek.js`,
-  `kits/traffic.js`, `kits/claude-mark.js` and `kits/console.js` (structured
+  `kits/traffic.js`, `kits/claude-mark.js`, `kits/assistant-mark.js` and
+  `kits/console.js` (structured
   console retention; see [kits/README.md](../lib/kits/README.md)). Read `BOOT`
   itself rather than this list, which is a copy. A separate `FAB_BOOT` carries
   the conditional standing equipment. It

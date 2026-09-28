@@ -85,7 +85,7 @@ From a session in the target repo:
 
 ```bash
 mkdir -p .claude/skills/show-repo
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/show-repo/SKILL.md \
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/show-repo/SKILL.md \
   -o .claude/skills/show-repo/SKILL.md
 ```
 

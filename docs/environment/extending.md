@@ -128,7 +128,7 @@ The hook applies only to sessions using a branch that contains its configuration
 
 #### SessionStart: the invoke-default directive
 
-*Added 2026-09-10.* [`.claude/skills/hooks/invoke-default.sh`](../../.claude/skills/hooks/invoke-default.sh), a second `SessionStart` entry in the plugin's [`hooks.json`](../../.claude/skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
+*Added 2026-09-10.* [`skills/hooks/invoke-default.sh`](../../skills/hooks/invoke-default.sh), a second `SessionStart` entry in the plugin's [`hooks.json`](../../skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
 
 **It asks whether they ARRIVED, not whether a repo intends them**, and the two answers differ. home's `CLAUDE.md` names `/web-tools` in prose and imports nothing, so a session on home alone starts without the primitives while looking configured. `lib/kits/portable-align.js`'s `conventionsWired()` answers the intent question for the app's adoption column and is deliberately not reused here; they are different claims, so no `owners.csv` repetition is owed.
 
@@ -140,7 +140,7 @@ A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the fie
 
 #### Stop: the session recorder
 
-*Added 2026-07-30.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks.
+*Added 2026-07-30.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`skills/hooks/hooks.json`](../../skills/hooks/hooks.json), running [`skills/hooks/session-record.sh`](../../skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks.
 
 **The marketplace entry declares nothing, and must not.** A `hooks` key on the entry refuses the whole plugin: the file-path and array forms are not supported there, only an inline object. The suite pins the key's **absence**, because adding it reads as diligence.
 
@@ -172,15 +172,23 @@ The skill count remains the useful second half of a `details` check, confirming 
 
 #### SessionStart: the sessions-store directive
 
-*Added 2026-09-21.* [`invoke-sessions.sh`](../../.claude/skills/hooks/invoke-sessions.sh), its own `SessionStart` entry in the same `hooks.json`, on the [`invoke-default`](#sessionstart-checkout-delegates) pattern: it asks whether the store is *checked out*, and when it is not, prints one line telling the session to invoke [`/portable:sessions`](../../.claude/skills/sessions/SKILL.md), which attaches the store and clones it beside the project root.
+*Added 2026-09-21.* [`invoke-sessions.sh`](../../skills/hooks/invoke-sessions.sh), its own `SessionStart` entry in the same `hooks.json`, on the [`invoke-default`](#sessionstart-checkout-delegates) pattern: it asks whether the store is *checked out*, and when it is not, prints one line telling the session to invoke [`/portable:sessions`](../../skills/sessions/SKILL.md), which attaches the store and clones it beside the project root.
 
-**The gap it closes was measured the day it was written.** A task-spawned session begins in an empty working directory and attaches exactly the repos its task names. One ran for hours on 2026-09-21 with the recorder installed, firing, and finding nothing, because nothing had put `web-tools-private` beside the root. That silence is the recorder's designed behaviour for a session that was never meant to be recorded, and it is indistinguishable from the failure. The difference is whether anything *declared* that the session should be recorded, so that is what this reads.
+**The gap it closes was measured the day it was written.** A task-spawned session begins in an empty working directory and attaches exactly the repos its task names. One ran for hours on 2026-09-21 with the recorder installed, firing, and finding nothing, because nothing had put `web-tools-private` beside the root. Where no store is checked out, the hook now always prints its directive, because a store name always exists: the default below.
 
-**The plugin still names no repo.** The Stop hook finds the store by a checkout's `sessions` declaration; this finds where to *get* the store by a checkout's `sessionsStore` declaration (`docs/manifest-fields.csv`), an owner/repo string on the repos whose sessions should be recorded, or by `SESSIONS_STORE_REPO` in the environment. The env var is not a convenience. It is the only voice a session has when it starts with no checkout at all, which is the spawned shape exactly; the same provisioning that installs the plugin into every container is where it belongs.
+**Where the store's name comes from**, in order: `SESSIONS_STORE_REPO` in the environment; a checkout's `sessionsStore` in `.web-tools.json` (`docs/manifest-fields.csv`); otherwise `mehrlander/web-tools-private`, hard-coded in the hook and in the `sessions` skill. Every consumer of the marketplace gets that default, so a session with no access to the private repo is told to fetch a store it cannot reach.
 
 **A hook cannot do the fetch.** An unattached private repo is unreachable from a shell in the sandbox (`git ls-remote` on one fails at the credential prompt), and attaching is a tool only the model holds. So the hook speaks and the skill acts, and the skill ends by asking the session to end its turn, because a record is written at idle and not before.
 
-Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sessions.test.mjs): speech on a pointer with no store, silence on a runnable store or on no pointer, the env var speaking for an empty root, the three search shapes, the soft failures, and the assertion that it holds its own hook entry so it cannot share the dispatcher's output budget.
+Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sessions.test.mjs): speech on a pointer with no store, silence on a runnable store, the built-in store speaking when nothing names one, the env var speaking for an empty root, the three search shapes, the soft failures, and the assertion that it holds its own hook entry so it cannot share the dispatcher's output budget.
+
+#### SessionStart: the plugin refresher
+
+*Added 2026-09-27.* [`refresh-plugin.sh`](../../skills/hooks/refresh-plugin.sh) moves `portable` to the tip of web-tools `main` each session and prints one line when the pin moves; its log is `/tmp/refresh-plugin.log`. Skills from the new pin appear within the session. Hooks that already fired at session start ran from the old pin. It cannot recover a pin that fails to load; [container.md](container.md#what-the-accounts-setup-script-must-do) has the recovery.
+
+#### PreToolUse: the AskUserQuestion guard
+
+*Added 2026-09-27.* [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) is meant to deny `AskUserQuestion` and tell the session to ask in prose. A plugin cannot ship `permissions.deny`: its `settings.json` honors only `agent` and `subagentStatusLine`. **Not verified:** whether `PreToolUse` fires for `AskUserQuestion`. Until a session rooted above the checkouts shows the guard refusing the tool, the setup script keeps the user-scope deny.
 
 ### LSP servers
 
@@ -213,7 +221,7 @@ This setup uses:
 
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
 
-  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the user-scope deny is the one in force and the project row is dormant, which is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
+  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the project row is dormant; the deny in force is the user-scope one the setup script writes. The plugin's `ask-question-guard.sh` is meant to replace it once verified. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
 - `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.
@@ -222,10 +230,12 @@ The Local scope (`.claude/settings.local.json`) is per-user and meant to stay un
 
 Skill and agent descriptions consume context even when their full contents are not invoked. Full skill contents enter the conversation when the skill runs and remain there for the session.
 
-The [`claude plugin inspect`](https://code.claude.com/docs/en/plugins-reference#plugin-inspect) command reports the plugin inventory and two cost estimates:
+`claude plugin details <plugin>` reports the plugin inventory and two cost estimates:
 
 * **Always-on:** listing text included in every session, including skill descriptions, agent descriptions, and command names.
 * **On-invoke:** context added when a component runs.
+
+Measured 2026-09-27: `portable`, carrying every skill, costs about 10,400 always-on tokens, against about 3,700 for the two plugins it replaced.
 
 | Component  | Function                                             |
 | ---------- | ---------------------------------------------------- |

@@ -37,7 +37,7 @@ then a final `N documents matched` line. Hits are ranked most-matches-first,
 then by path. Real run:
 
 ```
-$ python3 .claude/skills/file-retrieval/corpus_search.py "toss-render" --max 6
+$ python3 skills/file-retrieval/corpus_search.py "toss-render" --max 6
 [docs] docs/showing.md  Showing: which link shows what  (12 matches)
     L44: ...the toss-render address mode reaches a branch page that github.io cannot...
     ... 9 more

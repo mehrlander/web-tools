@@ -1,6 +1,6 @@
 # Context: what enters a session
 
-Everything a Claude Code session in this estate receives, listed in one registry and rendered in the app's Map view, Context tab. This file frames the registry. The rows themselves are the record, so this file does not restate them.
+Everything a Claude Code session in this estate receives is listed in one registry and rendered in the app's Map view, Context tab.
 
 ## The two halves
 
