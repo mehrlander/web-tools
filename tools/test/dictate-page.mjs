@@ -1394,9 +1394,18 @@ try {
   const heldArm = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     return { arm: c.moveArm, wash: !!document.querySelector('[data-seam].bg-primary\\/25'), lit: document.querySelector('[data-target]').classList.contains('btn-primary') }; });
   ok('the target holds the words, keeps them washed, and lights', !!heldArm.arm && heldArm.wash && heldArm.lit, JSON.stringify(heldArm));
-  const label = await page.evaluate(() => ({ text: [...document.querySelectorAll('[data-target] span')].filter((s) => s.getClientRects().length).map((s) => s.textContent).join(''),
-    cancel: document.querySelector('[data-move-cancel]').getClientRects().length > 0 }));
-  ok('held, the target reads Move here, with a cancel beside it', label.text === 'Move here' && label.cancel, JSON.stringify(label));
+  const label = await page.evaluate(() => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const k = window.MdSurface.rectAt(c.$refs.md, c.d.range.start);
+    const w = [...document.querySelectorAll('[data-seam].ph-caret-down, [data-seam].ph-caret-up')].map((n) => n.getBoundingClientRect());
+    const t = document.querySelector('[data-move-here]')?.getBoundingClientRect();
+    return { cancel: document.querySelector('[data-move-cancel]').getClientRects().length > 0,
+      wedges: w.length, aligned: w.every((r) => Math.abs(r.left + r.width / 2 - k.left) < 3),
+      above: w.some((r) => r.bottom <= k.top + 2), below: w.some((r) => r.top >= k.bottom - 2),
+      tag: !!t && Math.abs(t.left + t.width / 2 - k.left) < 60 && (t.top > k.bottom || t.bottom < k.top) };
+  });
+  ok('held, yellow wedges point at the caret from above and below, a Move here tag sits by it, and a cancel shows',
+    label.cancel && label.wedges === 2 && label.aligned && label.above && label.below && label.tag, JSON.stringify(label));
   // A tap on the text aims and lands nothing; Move here lands them. A tap in
   // the gap below the first paragraph makes them a paragraph of their own.
   const gN = await seamBelow('First one');
@@ -1404,10 +1413,10 @@ try {
   await page.waitForTimeout(200);
   const aimOnly = await page.evaluate(() => ({ text: document.querySelector('[x-data="dictate"]')._x_dataStack[0].text, line: !!document.querySelector('[data-move]') }));
   ok('a tap on the text while words are held aims them, shows the drop line, and moves nothing', aimOnly.text === PARA_DOC && aimOnly.line, JSON.stringify(aimOnly));
-  const tgt2 = await page.evaluate(() => { const r = document.querySelector('[data-target]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  const tgt2 = await page.evaluate(() => { const r = document.querySelector('[data-move-here]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.touchscreen.tap(tgt2.x, tgt2.y);
   await page.waitForTimeout(200);
-  ok('and Move here drops them there', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
+  ok('and the Move here tag drops them there', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
   // A range the page sets is written into the platform's selection.
   const reflected = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
@@ -1582,13 +1591,13 @@ try {
     document.querySelector('[data-move-cancel]').click();
     await new Promise((r) => setTimeout(r, 100));
     return { held: !!c.moveArm, text: c.text, sel: c.text.slice(c.d.range.start, c.d.range.end),
-             label: document.querySelector('[data-target] span').getClientRects().length > 0 };
+             label: !!document.querySelector('[data-move-here]') };
   });
   ok('the cancel lets go of held words where they were, still selected', !cancelled.held && cancelled.text === PARA_DOC
     && cancelled.sel === 'First two.' && !cancelled.label, JSON.stringify(cancelled));
   // While words are held, a finger dragged on the text moves the caret in
-  // parallel, as the target's own drag does, shows the loupe while it moves,
-  // and drops nothing.
+  // parallel, as the target's own drag does, with no loupe (the finger is not
+  // over the caret), and drops nothing.
   await reset();
   const pre = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     c.$refs.view.scrollTop = 0;
@@ -1605,7 +1614,7 @@ try {
              lensAfter: !!document.querySelector('[data-drop-loupe]') }; });
   ok('a drag on the text while words are held moves the caret and drops nothing',
     surfPad.held && surfPad.collapsed && surfPad.caret !== pre.caret && surfPad.text === PARA_DOC, JSON.stringify({ ...surfPad, was: pre.caret }));
-  ok('and the loupe shows while the finger aims, gone when it lifts', midLens && !surfPad.lensAfter, JSON.stringify({ midLens, lensAfter: surfPad.lensAfter }));
+  ok('and no loupe covers the view while it aims', !midLens && !surfPad.lensAfter, JSON.stringify({ midLens, lensAfter: surfPad.lensAfter }));
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.padTap(); });
   ok('and the drop moves the words, here onto a gap as their own paragraph', dnd.text.includes('Second para.\n\nFirst two.\n\nThird para.'), JSON.stringify(dnd.text));
   // The platform letting go without a tap does not leave a live range with
