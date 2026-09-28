@@ -302,6 +302,34 @@ def classify(paths):
     return b
 
 
+# THE OVERLAY (docs/loader.md, "The selection"): main, plus this branch's
+# changed files at the branch's commit, as refs=owner/repo@sha:path entries on
+# the renderer. It previews what the branch would be once merged rather than
+# the branch as it stands, which differs whenever the branch lags main: a branch
+# 97 commits behind previewed as a branch silently reverts every file main
+# changed since (measured on the open PRs, 2026-09-29). Generated files (dist/)
+# are left out, since the page boots main's build and each changed library file
+# steps around that build's cache on its own entry.
+#
+# Only when main can read it. The link goes to the DEPLOYED renderer, so this
+# asks main's own renderer and build whether they understand path entries,
+# rather than trusting this branch's copy of them.
+OVERLAY_CAP = 20
+
+def overlay_ready(base, use_git, forced=None):
+    if forced is not None:
+        return forced
+    if not use_git:
+        return False
+    r = sh("git", "show", f"{base}:pages/toss-render.html")
+    b = sh("git", "show", f"{base}:lib/build.js")
+    return bool(r and "getAll('refs')" in r and b and "GH.refFor(__REPO, p, true)" in b)
+
+def overlay_entries(slug, sha, paths, skip=()):
+    return [f"{slug}@{sha}:{p}" for p in sorted(paths)
+            if not p.startswith("dist/") and p not in skip]
+
+
 def top_level_hits(text):
     found = []
     for line in text.splitlines():
@@ -313,7 +341,7 @@ def top_level_hits(text):
     return found
 
 
-def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
+def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=None):
     slug = repo_slug()
     hosted = hosted_ok()
     facts = ref_facts(ref) if use_git else {"sha": ref, "branch": "", "pushed": True}
@@ -347,6 +375,13 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
             return decision("none", [(p, None) for p in b["shell"]], sha, slug, hosted, why, warn, facts, at, query)
         why.append("a page's own file changed, which ?use= never swaps: Pages serves the page file from the default branch.")
         subjects = [(p, None) for p in b["shell"]]
+        if overlay_ready(base, use_git, overlay):
+            entries = overlay_entries(slug, sha, paths, skip=set(b["shell"]))
+            if len(entries) <= OVERLAY_CAP:
+                why.append("The page is read at the branch's commit and everything else at main, with the branch's other changed files over it: the branch as it would merge.")
+                return decision("overlay", subjects, sha, slug, hosted, why, warn, facts, at, query,
+                                entries=[f"{slug}@main"] + entries, page_ref=sha)
+            warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}: this links the branch as it stands instead.")
         return decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at, query)
 
     # Lib, which is the case that gets called wrong.
@@ -375,11 +410,18 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
             if page != "app/index.html" or not keys:
                 subjects.append((page, None, "gh.load"))
         carried = sorted(set(prebuilt) - direct - {s[0] for s in subjects})
-        why.append("only lib/ or dist/ changed, and a page's own file is untouched, so the deployed page loading the branch's lib is the real thing.")
         if not subjects and carried:
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
-        d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
+        entries = overlay_entries(slug, sha, paths)
+        if overlay_ready(base, use_git, overlay) and len(entries) <= OVERLAY_CAP:
+            why.append("only lib/ or dist/ changed, so the page is main's and the changed library files are read at the branch's commit over it: the branch as it would merge, which a branch behind main is not.")
+            d = decision("overlay", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query, entries=entries)
+        else:
+            why.append("only lib/ or dist/ changed, and a page's own file is untouched, so the deployed page loading the branch's lib is the real thing.")
+            if len(entries) > OVERLAY_CAP:
+                warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}, so this pins the whole branch instead.")
+            d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
         for l, s3 in zip(d["links"], subjects):
             l["via"] = s3[2]
         if carried:
@@ -477,7 +519,7 @@ MCP_URL_CAP = 150
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
-def address(mech, page, sha, slug, view=None, at="", query=""):
+def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref=""):
     base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
@@ -529,6 +571,16 @@ def address(mech, page, sha, slug, view=None, at="", query=""):
             q += ("&" if q else "?") + query.lstrip("?&")
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
                 f"#gh={slug}@{sha}:{page}{q}{frag}")
+    if mech == "overlay":
+        # The renderer is main's; the selection rides on ITS query as refs=, and
+        # the page is addressed at the branch only when the page itself changed.
+        sel = "&".join("refs=" + e for e in (entries or []))
+        at_ref = f"@{page_ref}" if page_ref else ""
+        vq = f"?view={view}" if view else ""
+        if query:
+            vq += ("&" if vq else "?") + query.lstrip("?&")
+        return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html" + (f"?{sel}" if sel else "")
+                + f"#gh={slug}{at_ref}:{page}{vq}{frag}")
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
                 f"#gh={slug}@{sha}:pages/<the page to render>.html")
@@ -547,10 +599,10 @@ def routes_on_hash(page):
         return False
 
 
-GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏"}
+GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏"}
 
 
-def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query=""):
+def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref=""):
     if not hosted and mech in ("use",):
         warn.append("this repo serves no pages, so ?use= has nothing to pin: use the toss instead.")
         mech = "toss-gh"
@@ -563,7 +615,7 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         + "): pass --at '<fragment>' to put an address on the link, e.g. "
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
-    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query)} for p, v in subjects]
+    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
     over = [l for l in links if len(l["url"]) >= MCP_URL_CAP]
     if over:
         warn.append(f"{len(over)} link(s) run {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
@@ -623,6 +675,7 @@ def main():
                          "than on a hash (e.g. --query 'view=sessions'). Without it a link to such "
                          "a page opens whichever view it defaults to.")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--overlay", choices=["yes", "no"], help="(for tests) treat main's renderer as reading refs= path entries, or not, instead of asking git")
     ap.add_argument("--root", help="the checkout to read (default: the git toplevel of the current "
                                    "directory, else this repo); another repo's pages come from its "
                                    ".web-tools.json `showing` block")
@@ -639,10 +692,12 @@ def main():
         # A stated file set pins the SHA too, so a test's expected output does
         # not move with the branch.
         paths = [p for p in a.files.split(",") if p]
-        d = pick(paths, a.base, "0" * 40, use_git=False, diff=diff, at=a.at, query=a.query)
+        d = pick(paths, a.base, "0" * 40, use_git=False, diff=diff, at=a.at, query=a.query,
+                 overlay=None if a.overlay is None else a.overlay == "yes")
     else:
         try:
-            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at, query=a.query)
+            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at, query=a.query,
+                     overlay=None if a.overlay is None else a.overlay == "yes")
         except GitFailed as e:
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),

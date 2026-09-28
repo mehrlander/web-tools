@@ -46,7 +46,13 @@ function lift(name) {
   throw new Error(`unbalanced braces lifting ${name}`);
 }
 
-const { addressHtml, libRef } = new Function(
+
+// addressHtml stamps the renderer's selection (SELECTED) and the resolver's
+// source (refForSource), both module-level in the page: declared here from
+// the shipped source, so the prelude under test is the real one.
+const SELECTION_SCOPE = 'let SELECTED = {};\n' + lift('refForIn') + '\n' +
+  (SRC.match(/const refForSource = [\s\S]*?;\n/) || [''])[0];
+const { addressHtml, libRef } = new Function(SELECTION_SCOPE +
   [lift('hashNavigationShim'), lift('fetchShim'), lift('libRef'), lift('addressHtml')].join('\n') +
   '; return { addressHtml, libRef };')();
 
@@ -66,7 +72,9 @@ function libRefFor({ owner = 'mehrlander', name, ref, path = 'pages/x.html', pag
   const html = addressHtml('<!doctype html><html><head></head><body></body></html>',
     { owner, name, ref, path, pageQuery, lib: handed, libAsked });
   const { window } = new JSDOM(html, { runScripts: 'dangerously', url: 'https://mehrlander.github.io/' });
-  const lib = window.eval(`(function(u){ return ${refExpr.replace(/import\.meta\.url/g, 'u')}; })`)(importUrl);
+  // entry.js's surroundings: its repo, the page's own query, the selection.
+  const lib = window.eval(`(function(u){ var repo = 'mehrlander/web-tools', q = new URLSearchParams(location.search),
+    sel = window.__refs || {}; return ${refExpr.replace(/import\.meta\.url/g, 'u')}; })`)(importUrl);
   const other = extra ? window.eval(extra) : undefined;
   window.close();
   return { lib, other };

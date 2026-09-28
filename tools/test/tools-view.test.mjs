@@ -64,8 +64,8 @@ test('mounts and loads the curated manifest with no startup warnings', () => {
   assert.deepEqual(problems, []);
   assert.ok(data.description.length > 0);
   assert.deepEqual(getLog.sort(), [
-    ['mehrlander/web-tools', 'main', 'docs/tools.csv'],
-    ['mehrlander/web-tools', 'main', 'pages/pages.csv'],
+    ['mehrlander/web-tools', undefined, 'docs/tools.csv'],
+    ['mehrlander/web-tools', undefined, 'pages/pages.csv'],
   ]);
   assert.equal(data.items.length, 3);
 });

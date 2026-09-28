@@ -36,6 +36,10 @@ function lift(signature) {
 const splitAddrSrc = lift('splitAddr(addr)');
 const showRouteSrc = lift('showRoute(key, raw)');
 const setSubjectSrc = lift('setSubject(s)');
+// showRoute resolves the viewer page through the renderer's selection.
+const refForInSrc = lift('refForIn(E, I, repo, path, pathOnly)');
+const parseRefsSrc = (src.match(/const parseRefs = [\s\S]*?\n {2}\};\n/) || [''])[0];
+assert.ok(parseRefsSrc, 'parseRefs not found in ' + PAGE);
 
 const splitAddr = new Function(splitAddrSrc + '\n  return splitAddr;')();
 
@@ -58,6 +62,11 @@ function harness({ routes, fail, query = '' } = {}) {
     'showAddress', 'showEmpty', 'splitFrag', 'absUrl', 'setFavicon', 'adoptSubjectIcon', 'baseIcon',
     'clearMark', 'queryParams',
     `let tossLinkFn = null, cancelIconWatch = null;
+     ${refForInSrc}
+     ${parseRefsSrc}
+     // The renderer's SELECTED, built from its query the way the page builds it.
+     const SELECTED = parseRefs(queryParams.getAll('refs'), {});
+     if (queryParams.get('lib')) SELECTED['mehrlander/web-tools'] = queryParams.get('lib');
      ${splitAddrSrc}
      ${setSubjectSrc}
      ${showRouteSrc}

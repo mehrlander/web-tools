@@ -279,3 +279,38 @@ test('--at puts a fragment on a framed link', () => {
   assert.equal(d.mechanism, 'toss-app');
   assert.match(d.links[0].url, /#note=abc$/);
 });
+
+// ── The overlay (docs/loader.md, "The selection") ───────────────────────────
+// main plus the branch's changed files, as path entries on main's renderer. It
+// is offered only once main's renderer and build read path entries; until then
+// the lib case stays on ?use=, which --overlay no pins as the real git answer
+// would on a main that predates them.
+test('with main able to read path entries, a lib change is an overlay of its files on main', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'overlay');
+  const app = d.links.find(l => l.page === 'app/index.html');
+  assert.equal(app.url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+    + `?refs=mehrlander/web-tools@${ZERO}:lib/alpineComponents/estate.js`
+    + '#gh=mehrlander/web-tools:app/index.html',
+    'the page is main\'s (no @ref), the build is left out, and the one changed file rides as an entry');
+});
+
+test('a changed page is addressed at the branch, with main under it and its other files over it', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+    + `?refs=mehrlander/web-tools@main&refs=mehrlander/web-tools@${ZERO}:lib/kits/branch-status.js`
+    + `#gh=mehrlander/web-tools@${ZERO}:pages/diff-tool.html`);
+});
+
+test('while main cannot read path entries, a lib change stays on ?use=', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'no']);
+  assert.equal(d.mechanism, 'use');
+});
+
+test('past the cap the overlay steps aside and says so', () => {
+  const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).join(',');
+  const d = run(many, ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'use');
+  assert.ok(d.warnings.some(w => /past the overlay's 20/.test(w)));
+});

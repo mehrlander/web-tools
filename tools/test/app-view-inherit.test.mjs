@@ -33,7 +33,10 @@ function liftMethod(sig) {
   }
   throw new Error('unbalanced braces');
 }
-const appViewAddress = new Function(liftMethod('appViewAddress(v, ctx){') + '\nreturn appViewAddress;')();
+// selectionEntries is a plain function at module scope in the page; the method
+// calls it, so it is lifted beside it.
+const selectionEntriesSrc = liftMethod('selectionEntries(refs, skip){').replace(/^function /, 'function ');
+const appViewAddress = new Function(selectionEntriesSrc + '\n' + liftMethod('appViewAddress(v, ctx){') + '\nreturn appViewAddress;')();
 
 const HUB = 'mehrlander/web-tools';
 const R = '../pages/toss-render.html';
@@ -99,7 +102,10 @@ function liftFn(name) {
   for (let j = TOSS.indexOf('{', after); j < TOSS.length; j++) { if (TOSS[j] === '{') depth++; else if (TOSS[j] === '}' && --depth === 0) return TOSS.slice(start, j + 1); }
   throw new Error('unbalanced');
 }
-const { addressHtml } = new Function(['hashNavigationShim', 'fetchShim', 'addressHtml'].map(liftFn).join('\n') + '\nreturn { addressHtml };')();
+// addressHtml stamps the renderer's SELECTED and the resolver's source.
+const { addressHtml } = new Function('let SELECTED = {};\n' + liftFn('refForIn') + '\n' +
+  (TOSS.match(/const refForSource = [\s\S]*?;\n/) || [''])[0] +
+  ['hashNavigationShim', 'fetchShim', 'addressHtml'].map(liftFn).join('\n') + '\nreturn { addressHtml };')();
 
 test('inside a toss with ?lib=main, the app still forwards main to a view with no query of its own', () => {
   // The app, tossed at page-branch with the renderer's ?lib=main.
@@ -108,8 +114,45 @@ test('inside a toss with ?lib=main, the app still forwards main to a view with n
       pageQuery: 'view=app&lib=main', lib: 'main', libAsked: 'main' });
   const { window } = new JSDOM(html, { runScripts: 'dangerously', url: 'https://mehrlander.github.io/' });
   assert.equal(window.eval("new URLSearchParams('').get('lib')"), 'main', 'the shim answers an empty parse with the page query');
+  window.eval(selectionEntriesSrc);
   const fn = window.eval('(' + liftMethod('appViewAddress(v, ctx){') + ')');
   const got = fn({ repo: HUB, path: 'pages/diff-tool.html' }, { hub: HUB, appRef: 'page-branch', appLib: 'main' });
   window.close();
   assert.equal(got, R + '?lib=main#gh=' + HUB + '@page-branch:pages/diff-tool.html');
+});
+
+// ── The selection travels whole (docs/loader.md, "The selection") ───────────
+const sel = (appRef, appLib, refs) => ({ hub: HUB, appRef, appLib, refs });
+
+test('every entry the link asked for rides to the view, path entries included', () => {
+  const refs = { 'mehrlander/home': 'home-br', 'mehrlander/web-tools-private': 'data-br',
+                 'mehrlander/web-tools:lib/alpineComponents/map.js': 'c/view-br' };
+  assert.equal(appViewAddress(home(), sel('', '', refs)),
+    R + '?refs=mehrlander/home@home-br&refs=mehrlander/web-tools-private@data-br' +
+    '&refs=mehrlander/web-tools@c/view-br:lib/alpineComponents/map.js#gh=mehrlander/home:projects/p/page.html');
+});
+
+test('the web-tools entry rides as ?lib=, once, and a view\'s own lib still wins', () => {
+  const refs = { 'mehrlander/web-tools': 'lib-br', 'mehrlander/home': 'home-br' };
+  assert.equal(appViewAddress(home(), sel('', 'lib-br', refs)),
+    R + '?lib=lib-br&refs=mehrlander/home@home-br#gh=mehrlander/home:projects/p/page.html');
+  assert.equal(appViewAddress(home({ query: 'lib=own' }), sel('', 'lib-br', refs)),
+    R + '?refs=mehrlander/home@home-br#gh=mehrlander/home:projects/p/page.html?lib=own');
+});
+
+test('a hub view is displayed at the app\'s version; a hub selection decides only what it loads', () => {
+  assert.equal(appViewAddress(wt(), sel('app-br', 'main', { 'mehrlander/web-tools': 'main' })),
+    R + '?lib=main#gh=' + HUB + '@app-br:pages/diff-tool.html', 'the view at app-br, its Web Tools at main');
+  assert.equal(appViewAddress(wt(), sel('app-br', '', {})),
+    R + '#gh=' + HUB + '@app-br:pages/diff-tool.html', 'with nothing asked, the view derives its own');
+});
+
+test('a view\'s own ref is its displayed version whatever the selection says', () => {
+  assert.equal(appViewAddress(wt({ ref: 'view-br' }), sel('app-br', '', { 'mehrlander/home': 'h' })),
+    R + '?refs=mehrlander/home@h#gh=' + HUB + '@view-br:pages/diff-tool.html');
+});
+
+test('a ref that needs escaping survives the trip', () => {
+  assert.equal(appViewAddress(home(), sel('', '', { 'mehrlander/home': 'a&b#c' })),
+    R + '?refs=mehrlander/home@a%26b%23c#gh=mehrlander/home:projects/p/page.html');
 });

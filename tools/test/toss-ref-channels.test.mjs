@@ -50,7 +50,13 @@ function lift(name) {
   throw new Error(`unbalanced braces lifting ${name}`);
 }
 
-const { addressHtml, libRef } = new Function(
+
+// addressHtml stamps the renderer's selection (SELECTED) and the resolver's
+// source (refForSource), both module-level in the page: declared here from
+// the shipped source, so the prelude under test is the real one.
+const SELECTION_SCOPE = 'let SELECTED = {};\n' + lift('refForIn') + '\n' +
+  (SRC.match(/const refForSource = [\s\S]*?;\n/) || [''])[0];
+const { addressHtml, libRef } = new Function(SELECTION_SCOPE +
   lift('fetchShim') + '\n' + lift('hashNavigationShim') + '\n' + lift('libRef') + '\n' + lift('addressHtml') +
   '\nreturn { addressHtml, libRef };')();
 
