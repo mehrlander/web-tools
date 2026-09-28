@@ -1541,6 +1541,27 @@ try {
     return { dx: Math.round(p.left - (k.left + k.width / 2)), dy: Math.round((p.top + p.bottom) / 2 - (k.top + k.bottom) / 2) };
   });
   ok('the loupe\'s caret sits on the drop point in its copy, below a card with a taller original', Math.abs(lensAt.dx) <= 3 && Math.abs(lensAt.dy) <= 3, JSON.stringify(lensAt));
+  // While words are held, nothing else may take a drag: the sheet an iPhone
+  // presents the page in closes on one. A touch on the text cancels its start
+  // and its moves; a touch on a control keeps its start (so its tap lands)
+  // and loses its moves. Without words held, the text scrolls as ever.
+  await reset();
+  const sheet = await page.evaluate(() => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    const word = md.querySelector('p span[data-src]'), key = document.querySelector('[data-dictate-ui] button:has(i.ph-clipboard-text)');
+    const fire = (el, type) => { const r = el.getBoundingClientRect();
+      const t = new Touch({ identifier: 7, target: el, clientX: r.left + 2, clientY: r.top + 2 });
+      return !el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] })); };
+    const probe = (el) => { const start = fire(el, 'touchstart'), move = fire(el, 'touchmove'); fire(el, 'touchend'); return { start, move }; };
+    const idle = probe(word);
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); c.padTap();
+    const text = probe(word), control = probe(key);
+    c.padTap();
+    return { idle, text, control };
+  });
+  ok('while words are held, a drag on the text is held from the page: start and moves cancelled', sheet.text.start && sheet.text.move, JSON.stringify(sheet));
+  ok('a control keeps its tap but not its drag, and without words held nothing is cancelled',
+    !sheet.control.start && sheet.control.move && !sheet.idle.start && !sheet.idle.move, JSON.stringify(sheet));
   // While words are held, a finger dragged on the text moves the caret in
   // parallel, as the target's own drag does, and drops nothing.
   await reset();

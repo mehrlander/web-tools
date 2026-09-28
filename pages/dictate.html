@@ -650,6 +650,26 @@
             this.paint();
           });
           md.addEventListener('dragend', () => { if (this.dnd) { this.dnd = null; this.paint(); } });
+          // WHILE WORDS ARE HELD FOR A MOVE, NOTHING ELSE MAY TAKE A DRAG, and
+          // above all not the sheet an iPhone presents this page in, which
+          // closes on a downward drag (docs/ios-sheet-drags.md). Holding is a
+          // deliberate opening act, the one thing that note says a scrolling
+          // pane needs before it can hold a drag at all, so here the whole page
+          // takes variant D: a cancelled touchstart, so no scroll begins, and a
+          // cancelled touchmove on the node the touch started on, since a
+          // listener on an ancestor goes quiet if that node is rebuilt. A
+          // control keeps its touchstart, or its tap would be lost with it, and
+          // loses only its touchmove, which a tap does not need.
+          this.$el.addEventListener('touchstart', (ev) => {
+            if (!this.moveArm || !this.native) return;
+            const t = ev.target;
+            if (!t?.closest?.('button, input, textarea, select, a, [data-md-ui]')) ev.preventDefault();
+            const hold = (m) => m.preventDefault();
+            const off = () => { t.removeEventListener('touchmove', hold); t.removeEventListener('touchend', off); t.removeEventListener('touchcancel', off); };
+            t.addEventListener('touchmove', hold, { passive: false });
+            t.addEventListener('touchend', off);
+            t.addEventListener('touchcancel', off);
+          }, { passive: false });
         });
         this.d = window.Dictate.create({
           lang: q.get('lang') || undefined,
