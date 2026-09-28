@@ -2,7 +2,7 @@
 id: session-link-from-commit-trailer-7a407c
 title: Resolve a branch's session from the commit trailer, not the open PR body
 status: done
-project: show-repo
+project: app
 opened: 2026-07-26
 closed: 2026-07-26
 session: claude/active-work-branches-sd289p

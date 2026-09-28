@@ -10,7 +10,7 @@
 #
 # Three projections from one run, so they cannot drift:
 #   board.md        the human list: GitHub, a diff, a clone, a session reading files
-#   board.csv       the typed projection: show-repo and anything else machine-side
+#   board.csv       the typed projection: the app and anything else machine-side
 #   board-tags.csv  the open tags, one row per (task, tag) pair
 # The app must never parse the rendered board to recover fields it could have
 # been handed (data before display).
@@ -31,7 +31,7 @@ out_tags = out.with_name(out.stem + "-tags.csv")
 
 # Where a row's link points, as a path relative to the BOARD's folder rather
 # than to the cwd, so the same href resolves on GitHub (relative to board.md)
-# and in show-repo's board pane (onBoardClick resolves against the board file's
+# and in the app's board pane (onBoardClick resolves against the board file's
 # folder). Computed rather than hardcoded to `tasks/`, since the generator takes
 # both directories as arguments and a repo may lay them out differently.
 task_href_base = os.path.relpath(tasks_dir, out.parent).replace(os.sep, "/")

@@ -146,7 +146,7 @@ tools/render/scenarios/branch-page-cold.mjs,"the branch view mounted as a PAGE, 
 tools/render/scenarios/branch-page-subject.mjs,"the branch page announcing which of its documents is showing, and a real fab adopting it: the compare bar that gating hid",tools/render/scenarios,126,driver,no,no,no
 tools/render/scenarios/branch-panes.mjs,,tools/render/scenarios,103,driver,no,no,no
 tools/render/scenarios/branch-reach.mjs,"shoot the Branches pane's coverage line, patching the scan block after load since only a real crawl writes the fields it reads",tools/render/scenarios,30,driver,no,no,no
-tools/render/scenarios/branch-takeover.mjs,show-repo's branch-detail takeover with the embedded branch page fully rendered,tools/render/scenarios,86,driver,no,no,no
+tools/render/scenarios/branch-takeover.mjs,the app's branch-detail takeover with the embedded branch page fully rendered,tools/render/scenarios,86,driver,no,no,no
 tools/render/scenarios/branch-verdict.mjs,the content verdict as a filter strip in the branch view's Files pane,tools/render/scenarios,80,driver,no,no,no
 tools/render/scenarios/branches-window.mjs,the Branches window pill: the reader's time slice over the Recent scope,tools/render/scenarios,61,driver,no,no,no
 tools/render/scenarios/chats-paging.mjs,"the Chats pane's paging control: one earlier month loaded on demand, shot at the footer",tools/render/scenarios,20,driver,no,no,no
@@ -199,7 +199,7 @@ tools/render/scenarios/map-docs-cold.mjs,"the Map's Docs tab sorted coldest firs
 tools/render/scenarios/map-docs-reads.mjs,the Map's Docs tab with the readership column,tools/render/scenarios,73,driver,no,no,no
 tools/render/scenarios/map-docs.mjs,"the Map's Docs tab, the documentation registry rendered live",tools/render/scenarios,52,driver,no,no,no
 tools/render/scenarios/map-growth.mjs,"the Map's Growth tab with its corpus strip: a fixture config cache declaring two repos' growth payloads, so the federated selector renders and GROWTH_REPO switches the framed chart",tools/render/scenarios,75,driver,no,no,no
-tools/render/scenarios/map-harness.mjs,drive show-repo's Map view onto the Harness tab with the committed registry served through GH.get,tools/render/scenarios,52,driver,no,no,no
+tools/render/scenarios/map-harness.mjs,drive the app's Map view onto the Harness tab with the committed registry served through GH.get,tools/render/scenarios,52,driver,no,no,no
 tools/render/scenarios/map-registries.mjs,"drive the Map view's Registries tab for a screenshot, serving the real docs/registries.csv through a stubbed GH so a tokenless render still shows the three areas and the cards",tools/render/scenarios,69,driver,no,no,no
 tools/render/scenarios/map-set-adoption.mjs,"the Map's first two tabs, both halves populated",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/map-showing-peek.mjs,the Showing tab with a pointer held over an exact-file jump-over so the peek renders,tools/render/scenarios,50,driver,no,no,yes
@@ -259,7 +259,7 @@ tools/render/scenarios/shortcut-log-app-view.mjs,,tools/render/scenarios,73,driv
 tools/render/scenarios/showing-paste-rows.mjs,,tools/render/scenarios,27,driver,no,no,no
 tools/render/scenarios/sidebar-compare.mjs,,tools/render/scenarios,194,driver,no,yes,yes
 tools/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,tools/render/scenarios,51,driver,no,yes,no
-tools/render/scenarios/sidebar-projects.mjs,drive show-repo's sidebar into the nested-projects state,tools/render/scenarios,66,driver,no,yes,no
+tools/render/scenarios/sidebar-projects.mjs,drive the app's sidebar into the nested-projects state,tools/render/scenarios,66,driver,no,yes,no
 tools/render/scenarios/sidebar-repo-menus.mjs,the sidebar Repos index with one row's two menus open,tools/render/scenarios,61,driver,no,no,no
 tools/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",tools/render/scenarios,67,driver,no,yes,no
 tools/render/scenarios/stage-aimed-deposit.mjs,"the stage opened at a branch destination, the shape a branch-page deposit hands it",tools/render/scenarios,20,driver,no,no,no

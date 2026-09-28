@@ -13,7 +13,7 @@ invariants: strict
 One hosted page is the front door to the development estate. GitHub is the system of record; the app is the operating surface over it, rendering repositories, branches, sessions, pages, and tools operable from a single URL. 
 
 Reference manuals:
-- [show-repo.md](show-repo.md): The underlying browser execution shell.
+- [show-repo.md](APP.md): The underlying browser execution shell.
 - [showing.md](showing.md): Display doctrine and frame mechanics.
 
 ---
@@ -54,4 +54,4 @@ A feature belongs in the app only when it serves one of these five core goals:
 ## Product Boundary
 
 - **Built-in Shell Views:** Views whose subject is the estate itself are compiled directly into the shell.
-- **Promoted App Views:** Views whose subject is repository content are app views promoted via that repository's `.web-tools.json` configuration. Mechanics are defined in [show-repo.md](show-repo.md).
+- **Promoted App Views:** Views whose subject is repository content are app views promoted via that repository's `.web-tools.json` configuration. Mechanics are defined in [show-repo.md](APP.md).

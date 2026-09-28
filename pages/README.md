@@ -59,8 +59,10 @@ the link-dense text twin of the visual index above.
 | `alpine-bundle-demo` | alpine-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/alpine-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/alpine-bundle-demo.html) |
 | `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/demos/console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/console-kit-demo.html) |
 | `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/demos/cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/cross-repo-read-demo.html) |
+| `demo-viewer` | Assembled Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/demos/demo-viewer.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/demo-viewer.html) |
 | `mention-demo` | @-mention picker — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/mention-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/mention-demo.html) |
 | `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/demos/prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/prebuild-demo.html) |
+| `repo-drag` | Repo drag explorer | [view](https://mehrlander.github.io/web-tools/pages/demos/repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/repo-drag.html) |
 | `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/demos/sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/sheet-modal-demo.html) |
 | `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html) |
 | `wring-dom` | Wring | Bookend Merge — DOM Signature Grouping | [view](https://mehrlander.github.io/web-tools/pages/demos/wring-dom.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-dom.html) |
@@ -161,13 +163,6 @@ the link-dense text twin of the visual index above.
 | `review-proto` | Review · styling prototype | [view](https://mehrlander.github.io/web-tools/pages/scratch/review-proto.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/review-proto.html) |
 | `sidebar-drawer-mwe` | Sidebar Drawer MWE | [view](https://mehrlander.github.io/web-tools/pages/scratch/sidebar-drawer-mwe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/sidebar-drawer-mwe.html) |
 | `web-tools-icon-preview` | Web Tools icon · iPhone size check | [view](https://mehrlander.github.io/web-tools/pages/scratch/web-tools-icon-preview.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/web-tools-icon-preview.html) |
-
-## pages/show-repo/
-
-| Page | Title | Links |
-|---|---|---|
-| `demo-viewer` | Assembled Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/show-repo/demo-viewer.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/demo-viewer.html) |
-| `repo-drag` | Repo drag explorer | [view](https://mehrlander.github.io/web-tools/pages/show-repo/repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/repo-drag.html) |
 
 ## pages/stories/
 

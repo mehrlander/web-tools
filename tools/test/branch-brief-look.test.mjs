@@ -173,7 +173,7 @@ test('the row has something to occupy its line with', () => {
 });
 
 // Three ways to have no chips, and they are different facts. The deferral is
-// the one that must not read as "this branch changes no view": in show-repo the
+// the one that must not read as "this branch changes no view": in the app the
 // compare waits for a tap, so the row asks for it rather than rendering empty.
 test('a deferred compare keeps the row, as the ask for the read it needs', async () => {
   const el = window.document.createElement('div');

@@ -3,7 +3,7 @@
 The write-side counterpart to errands, built by `lib/kits/repo-proposals.js` and
 reviewed in the **Proposals** view (`?view=proposals`,
 `lib/alpineComponents/proposals.js`). A session that cannot reach a repo drops a
-proposed edit into the registry; show-repo shows it and commits it to the target
+proposed edit into the registry; the app shows it and commits it to the target
 with the user's token, on a two-tap confirm.
 
 A proposal writes to a repo the session could not reach, so **nothing is ever

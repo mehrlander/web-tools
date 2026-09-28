@@ -66,7 +66,7 @@ move is choosing which shape it takes:
 Either shape includes `lib/alpineComponents/estate.js`, folded in from
 `estate-js-commentary-read-mymt4u` on 2026-09-17. That file carries a question
 the rest of the worklist does not: how much of its 25,643 comment words restate
-`docs/show-repo.md`'s estate sections, and how much is rationale sitting where
+the estate sections now in `docs/views/`, and how much is rationale sitting where
 it belongs. Do not answer it by token overlap; the reason is in
 `docs/text-content.md` and is the lesson of PR #403.
 

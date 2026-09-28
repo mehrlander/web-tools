@@ -22,7 +22,7 @@ export default async function (page) {
     window.EstateSearch = {
       ...window.EstateSearch,
       async names({ repos }) {
-        const paths = ['CLAUDE.md', 'README.md', 'docs/CONVENTIONS.md', 'docs/show-repo.md',
+        const paths = ['CLAUDE.md', 'README.md', 'docs/CONVENTIONS.md', 'docs/APP.md',
                        'lib/gh-api.js', 'lib/kits/estate-search.js'];
         return { hits: paths.map(p => ({ repo: repos[0].repo, ref: repos[0].ref || '',
                                         path: p, size: p.length * 137 })),

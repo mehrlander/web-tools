@@ -1,13 +1,13 @@
 ---
 id: views-forms-and-key-primitive-k5ngay
-title: Split show-repo.md by view and form, and make the registries one model
+title: Split the app reference by view and form, and make the registries one model
 status: backlog
 opened: 2026-09-22
-project: show-repo
+project: app
 size: L
 depends-on: typed-subject-registry-xys5g4
 ---
-# Split show-repo.md by view and form, and make the registries one model
+# Split the app reference by view and form, and make the registries one model
 
 Everything the viewer shows is an object: a thing with a type, properties
 and verbs. A type has a page that draws it: a renderer draws a file by
@@ -23,16 +23,16 @@ Four parts, which land together or in order.
 
 ## 1. Documentation split
 
-`docs/show-repo.md` is 31,855 words and its headings no longer match its
+The app's reference doc is 31,855 words and its headings no longer match its
 contents: `### Lists` holds 7,381 words, of which about 1,200 are the two
 personal piles and the rest is the Branches view with no heading of its
 own. Move each estate view's section to `docs/views/<key>.md`, named by the
 app-routes key, and the branch and session pages' material to
-`docs/forms/`; show-repo.md keeps the shell's own material (preamble,
+`docs/forms/`; the reference keeps the app's own material (preamble,
 honesty caveat, browsing, shell mode, ref switch, public browse, boundary,
 using it from a session; about 6,300 words). Sections and destinations:
 
-| show-repo.md section | Words | Destination |
+| Reference section | Words | Destination |
 | --- | --- | --- |
 | The estate (the Repos index) | 3,042 | `views/estate.md` |
 | Routes | 1,326 | `views/routes.md`, folding toward `views/map.md` |
@@ -48,7 +48,7 @@ using it from a session; about 6,300 words). Sections and destinations:
 `app-routes.csv` gains a `doc` column on the routes-routes precedent, held
 by a test in both directions (every `doc` exists; every file under
 `docs/views/` has a row). Each new file needs its `docs.csv` row; the README
-regenerates. Code cites show-repo.md by filename only, never by anchor, so
+regenerates. Code cites the reference by filename only, never by anchor, so
 nothing in lib or the app breaks. The commit hook wants a
 documentation-approval trailer per doc file, so the approval has to name
 the split as a whole.
@@ -121,7 +121,7 @@ tables, which name the role a link addresses and keep the word.
 
 ## Related
 
-- `docs/show-repo.md`: the file to split; its section table is above.
+- `docs/APP.md`: the app's reference after part 1 and its merge into APP.md.
 - `docs/app-routes.csv`, `docs/routes-routes.csv`: the `doc` column precedent.
 - `lib/alpineComponents/fab.js`: `readLayers`, `_typeLayers`, the object model comment above `SUBJECT_ICON`.
 - `lib/kits/swipe-deck.js`, `lib/kits/subject-channel.js`: where the deck announces.
@@ -131,7 +131,7 @@ tables, which name the role a link addresses and keep the word.
 
 ## Done when
 
-show-repo.md is the shell's reference and every estate view and form has a
+APP.md is the app's reference and every estate view and form has a
 file of its own, linked from app-routes.csv and pages.csv by a tested
 column; the FAB captions a deck slide by its type with a deck row above it;
 `registries.csv` carries `key_primitive` in place of `area`, tested against

@@ -328,7 +328,7 @@ test('a PDF offers the pdf mode, with raw still one tap away', () => {
 });
 
 test('the pdf mode is exclusive: it beats a host blanket default of raw', () => {
-  // show-repo's file view sets defaultMode 'raw', which is right for the only
+  // The app's file view sets defaultMode 'raw', which is right for the only
   // kind of file it used to have and wrong for a PDF. Before this mode existed
   // that produced a pane of replacement characters, which is what `exclusive`
   // is here to prevent, exactly as it does for images.

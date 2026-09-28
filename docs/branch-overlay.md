@@ -3,13 +3,12 @@
 How the Web Tools app shows a branch's version of the estate: the overlay that
 substitutes a branch's files while you browse, the branch-detail takeover, the
 sidebar's second ref, the ref bar's in-place actions, and dropping a file on a
-branch. Split out of [show-repo.md](show-repo.md) on 2026-08-16; the shell that
-hosts it stays documented there, and the branch page itself
+branch. The app that hosts it is documented in [APP.md](APP.md), and the branch page itself
 (`pages/branch.html`) is the shareable single-branch address the surfacing
 conventions call the branch anchor.
 
 ```
-show-repo.html?overlay=<branch>
+app/?overlay=<branch>
 ```
 
 Previews the estate **as if `<branch>` were merged wherever it exists**. The
@@ -67,7 +66,7 @@ through main's deployed toss renderer:
 
 The outer `@<branch>` pins the shell (the code half); `?overlay=` pins the
 data half. After the shell change merges, the deployed form
-`show-repo.html?overlay=<branch>` does the same for data-only branches.
+`app/?overlay=<branch>` does the same for data-only branches.
 
 The honest limits, stated rather than implied: the overlay re-derives only
 the per-repo **manifests**; other main-derived artifacts (the activity and

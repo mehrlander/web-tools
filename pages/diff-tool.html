@@ -721,7 +721,7 @@ function diffApp() {
       // unified. A stored preference wins over it.
       this.view = window.innerWidth < 768 ? 'unified' : 'split';
       // pathPicker reads its GH instance from the shared browser store, which
-      // the show-repo shell normally fills. This page has no shell, so it seeds
+      // the app normally fills. This page has no shell, so it seeds
       // the store itself from its own boot instance.
       const store = Alpine.store('browser');
       if (store && !store.gh && window.gh) {

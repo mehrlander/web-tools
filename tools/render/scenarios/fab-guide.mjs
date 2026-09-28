@@ -19,19 +19,19 @@
 // node_modules or refuses them, so this stubs a minimal parser: enough markdown
 // for the shot to be about the pane, not about the parser.
 
-const BODY = `Promotes the fab's ref readout into show-repo's header, where it can be seen without opening anything.
+const BODY = `Promotes the fab's ref readout into the app's header, where it can be seen without opening anything.
 
-**Look:** [show-repo at this ref](https://github.com/mehrlander/web-tools/blob/claude/show-repo-branch-nav-xzttnt/app/index.html)
+**Look:** [the app at this ref](https://github.com/mehrlander/web-tools/blob/claude/app-branch-nav-xzttnt/app/index.html)
 
 **Changed:**
-- [lib/alpineComponents/ref-switch.js](https://github.com/mehrlander/web-tools/blob/claude/show-repo-branch-nav-xzttnt/lib/alpineComponents/ref-switch.js) the control itself
-- [app/index.html](https://github.com/mehrlander/web-tools/blob/claude/show-repo-branch-nav-xzttnt/app/index.html) one mount in the header
-- [docs/show-repo.md](https://github.com/mehrlander/web-tools/blob/claude/show-repo-branch-nav-xzttnt/docs/show-repo.md) a section for it
+- [lib/alpineComponents/ref-switch.js](https://github.com/mehrlander/web-tools/blob/claude/app-branch-nav-xzttnt/lib/alpineComponents/ref-switch.js) the control itself
+- [app/index.html](https://github.com/mehrlander/web-tools/blob/claude/app-branch-nav-xzttnt/app/index.html) one mount in the header
+- [docs/APP.md](https://github.com/mehrlander/web-tools/blob/claude/app-branch-nav-xzttnt/docs/APP.md) a section for it
 
 **Notes:** the switch pins the ref on both halves of the address, since ?use= alone would leave the shell at the deployed version.`;
 
 const BRANCHES = [
-  { name: 'claude/show-repo-branch-nav-xzttnt', date: '2026-08-01T14:00:00Z', ago: '2h',
+  { name: 'claude/app-branch-nav-xzttnt', date: '2026-08-01T14:00:00Z', ago: '2h',
     subject: 'Put the box itself in the header', status: 'differs',
     div: { ahead: 2, behind: 0 }, session: 'https://claude.ai/code/session_x',
     pr: { number: 333, draft: true, title: 'Put the ref box itself in the header, not behind a tap', body: BODY } },
@@ -75,7 +75,7 @@ export default async (page) => {
     d.repo = 'mehrlander/web-tools';
     d.path = 'app/index.html';
     d.ref = state === 'nopr' ? 'claude/branch-page-lifespan-9k2xd'
-                             : 'claude/show-repo-branch-nav-xzttnt';
+                             : 'claude/app-branch-nav-xzttnt';
     window.GithubLinks = { rows: (repo, o) => {
       const at = o.ref && o.ref !== o.defaultRef ? '/' + o.ref : '';
       const u = p => 'https://github.com/' + repo + p;
@@ -97,16 +97,16 @@ export default async (page) => {
     // The branch's full PR history, which the scan's open-PR list cannot
     // hold: #332 merged, #333 open, both on the same branch.
     if (state !== 'nopr') d.prHistory = [
-      { number: 333, title: "Put the ref box in show-repo's header; make the fab's render tab a guide",
+      { number: 333, title: "Put the ref box in the app's header; make the fab's render tab a guide",
         body: prBody, draft: true, state: 'open' },
-      { number: 332, title: 'Say which ref show-repo is running from, in the header',
+      { number: 332, title: 'Say which ref the app is running from, in the header',
         body: 'The first pass: a chip and a panel. Superseded by #333.', state: 'merged' },
     ];
     if (state !== 'nopr') d._prsFor = d.ref;
     d.guideIdx = state === 'older' ? 1 : 0;
     // The standing info the no-PR pane shows, normally one REST call away.
     d.ver = { ref: d.ref, sha: 'dca998b', tipUrl: 'https://github.com/x', pr: '332',
-              prTitle: 'Say which ref show-repo is running from', prUrl: 'https://github.com/y',
+              prTitle: 'Say which ref the app is running from', prUrl: 'https://github.com/y',
               since: 3, ago: '2h ago' };
     d.verLoaded = true;
     if (state === 'menu') d.refMenu = true;
@@ -122,7 +122,7 @@ export default async (page) => {
         children: [
           { name: 'dist', kind: 'folder', children: [{ name: 'web-tools.js', kind: 'file' }] },
           { name: 'docs', kind: 'folder', children: [
-            { name: 'show-repo.md', kind: 'file' }, { name: 'SURFACING.md', kind: 'file' }] },
+            { name: 'APP.md', kind: 'file' }, { name: 'SURFACING.md', kind: 'file' }] },
           { name: 'lib', kind: 'folder', children: [{ name: 'gh-api.js', kind: 'file' }] },
           { name: 'pages', kind: 'folder', children: [
             { name: 'branch.html', kind: 'file' }, { name: 'toss-render.html', kind: 'file' }] },

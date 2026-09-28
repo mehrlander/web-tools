@@ -30,7 +30,7 @@ const reset = () => {
 
 test('a surface says what it is showing, and the page gets its own back', () => {
   reset();
-  // show-repo can itself be running inside a toss, so the globals are borrowed
+  // The app can itself be running inside a toss, so the globals are borrowed
   // rather than owned: what was there is what has to be there afterwards.
   const held = { repo: 'me/tools', ref: 'main', path: 'pages/app.html' };
   const frame = { name: 'the toss frame' };

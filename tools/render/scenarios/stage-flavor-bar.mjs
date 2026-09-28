@@ -20,7 +20,7 @@ export default async (page) => {
   await page.evaluate(async () => {
     const text = [
       'Working conventions Surfacing Portable docs',
-      'The stage The show-repo shell Envelopes',
+      'The stage The app Envelopes',
       'Ask on GitHub',
     ].join('\n');
     const html = `<div>
@@ -28,7 +28,7 @@ export default async (page) => {
          <a href="https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md">Surfacing</a>
          <a href="https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md">Portable docs</a></p>
       <p><a href="https://github.com/mehrlander/web-tools/blob/main/docs/stage.md">The stage</a>
-         <a href="https://github.com/mehrlander/web-tools/blob/main/docs/show-repo.md">The show-repo shell</a>
+         <a href="https://github.com/mehrlander/web-tools/blob/main/docs/APP.md">The app</a>
          <a href="https://github.com/mehrlander/web-tools/tree/main/docs/envelopes">Envelopes</a></p>
       <p><a href="#top">Back to top</a>
          <a href="mailto:ask@example.com">Ask</a>

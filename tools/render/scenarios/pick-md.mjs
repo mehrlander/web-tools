@@ -1,5 +1,5 @@
 // End-to-end reproduction of "pick a file in the fab, get a blank window":
-// stand a real toss up around show-repo, then drive the fab's path picker to
+// stand a real toss up around the app, then drive the fab's path picker to
 // choose a file and report what the frame actually did.
 //
 //   npm run shot -- pages/toss-render.html \
@@ -9,12 +9,12 @@
 // SHELL_MODE=branch  the working tree's toss-render, which has __tossRoute (default)
 // SHELL_MODE=main    __tossRoute deleted, which is what the DEPLOYED shell looks
 //                    like: goTarget falls through to a top-level navigation
-// PICK=owner/repo:path  what to pick (default mehrlander/web-tools:docs/show-repo.md).
+// PICK=owner/repo:path  what to pick (default mehrlander/web-tools:docs/APP.md).
 //                    Naming a repo the sandbox will not serve is how the
 //                    fetch-failure path gets exercised.
 
 const SHELL = process.env.SHELL_MODE || 'branch';
-const PICK = process.env.PICK || 'mehrlander/web-tools:docs/show-repo.md';
+const PICK = process.env.PICK || 'mehrlander/web-tools:docs/APP.md';
 
 export default async (page) => {
   page.on('console', m => console.log('  [page:' + m.type() + '] ' + m.text()));

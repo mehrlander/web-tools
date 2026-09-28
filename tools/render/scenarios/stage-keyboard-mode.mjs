@@ -30,7 +30,7 @@ export default async (page) => {
   await page.waitForTimeout(500);
 
   const row = await page.evaluate(() => {
-    // Scoped by TITLE, not by the word Done: show-repo has other buttons whose
+    // Scoped by TITLE, not by the word Done: the app has other buttons whose
     // text contains it, and the first scenario picked one of those up.
     const done = document.querySelector('button[title="Done: back to dictation"]');
     const btns = [...document.querySelectorAll('button')];

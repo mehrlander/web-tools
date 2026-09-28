@@ -89,7 +89,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/url-params.js',
   'lib/kits/repo-address.js',
   // The errands kit: the stage lists, grades and closes errands through it.
-  // show-repo loads every kit before any component, so this mirrors the
+  // The app loads every kit before any component, so this mirrors the
   // page's own order rather than adding a dependency the page lacks.
   'lib/kits/errands.js',
   'lib/kits/surface.js',
@@ -2487,7 +2487,7 @@ test('a local item says so rather than staying silent', async () => {
   await shown();
   // The drawer's own branch for this folds away the ref bar and the path
   // picker and names what is being read. Silence would instead leave it
-  // describing the app shell, so stepping off a repo file onto a pasted one
+  // describing the app, so stepping off a repo file onto a pasted one
   // would watch the sidebar keep naming the file just left.
   assert.equal(said().local, true);
   assert.equal(said().label, 'pasted.txt');
@@ -2498,7 +2498,7 @@ test('a local item says so rather than staying silent', async () => {
 
 test('leaving puts back the subject that was there before', async () => {
   reset();
-  // show-repo can itself be running inside a toss, so the global is borrowed.
+  // The app can itself be running inside a toss, so the global is borrowed.
   const held = { repo: 'me/tools', ref: 'main', path: 'pages/app.html' };
   window.__tossSubject = held;
   store.stage = [{ repo: 'me/a', ref: '', path: 'lib/x.js' }];
@@ -3000,8 +3000,8 @@ test('a dest-carrying send lands local files ON the named branch', async () => {
 });
 
 test('parseDest reads a slashed branch out of owner/repo@ref:dir', () => {
-  const d = data.parseDest('mehrlander/web-tools@claude/show-repo-scripts-staged-files-yhwb4b:dump');
-  assert.deepEqual(plain_(d), { repo: 'mehrlander/web-tools', ref: 'claude/show-repo-scripts-staged-files-yhwb4b', dir: 'dump' });
+  const d = data.parseDest('mehrlander/web-tools@claude/app-scripts-staged-files-yhwb4b:dump');
+  assert.deepEqual(plain_(d), { repo: 'mehrlander/web-tools', ref: 'claude/app-scripts-staged-files-yhwb4b', dir: 'dump' });
 });
 
 test('a dest= key aims the stage, from the fragment or the query', () => {

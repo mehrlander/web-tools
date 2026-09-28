@@ -173,7 +173,7 @@
      document, so reading it scrolled the branch name, the facts strip and
      every control away.
 
-     `dvh` rather than `vh`: the page is a tenant (show-repo's branch-detail
+     `dvh` rather than `vh`: the page is a tenant (the app's branch-detail
      takeover embeds it), and inside a frame `dvh` measures the frame. This is
      an `h-dvh` flex column, NOT `fixed inset-0`, which is the shape the house
      style reserves for a known top-level page. -->
@@ -183,7 +183,7 @@
   <!-- The masthead stands down inside a frame, the same courtesy links.html
        pays its embedder. Standalone use is unchanged.
 
-       This used to name show-repo's branch-detail takeover as the embedder,
+       This used to name the app's branch-detail takeover as the embedder,
        which stopped being true on 2026-08-13 when the takeover swapped its
        iframe for a direct mount of the component. The only page-level
        embedder left is the toss. This flag is still the page's own and still
@@ -311,7 +311,7 @@
         // masthead above stands down. The brief's `framed` says something
         // else: that a HOST draws the branch name and the state, so the view
         // need not repeat them, AND that it is a slide rather than a page, so
-        // it takes the single-scroller shape. That is true of show-repo's
+        // it takes the single-scroller shape. That is true of the app's
         // branch deck, which mounts the COMPONENT with framed: true. It is
         // true of nothing that embeds this PAGE: the takeover stopped using an
         // iframe on 2026-08-13, so the only embedder left is the toss, and the

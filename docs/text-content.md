@@ -145,7 +145,7 @@ these figures were taken. The link is retargeted so the numbers stay attached
 to a reachable file; the figures themselves are as measured and are not
 restated for the move.
 
-The page also has a companion doc, [`docs/show-repo.md`](show-repo.md), at
+The page also has a companion doc, [`docs/show-repo.md`](APP.md), at
 23,920 words, overlapping 4.5% by 8-gram. This document has now been wrong
 about that pair twice, and the second correction is the useful one.
 
@@ -518,7 +518,7 @@ turning the gate on and watching it misfire.
 
 What remains:
 
-1. **Register, do not move.** The show-repo split is done. For everything else a
+1. **Register, do not move.** The app reference's split is done. For everything else a
    row saying where the text is and who wrote it is worth more than relocating
    it, at a fraction of the cost.
 
@@ -654,7 +654,7 @@ roughly 80k URL ceiling, and a 7 KB HTML paste encodes to about 2 KB.
 
 **What was tried and rejected.** The deck's desktop panel was a centred card
 (`max-w-4xl my-4 rounded-3xl`, border and shadow) until 2026-08-18; over
-show-repo it floated across the sidebar, so chrome the reader still needed sat
+the app it floated across the sidebar, so chrome the reader still needed sat
 under a card they had to dismiss. Its overlay was measured the same day as
 computed `rgba(0,0,0,0)` with no background image, meaning every deck had been
 transparent since it was written. The header pill cost about 64px of a 390px

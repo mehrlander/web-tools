@@ -12,12 +12,12 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-14 by a skill, 27 by a page or component. The remaining 49 are
+13 by a skill, 27 by a page or component. The remaining 49 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
 
-- [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, and the name split
+- [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, product boundary, addresses, and what every view shares
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`HTML-STYLE.md`](HTML-STYLE.md) — a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
@@ -62,7 +62,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`routes-paste.csv`](routes-paste.csv) — what a paste becomes on each surface that reads the clipboard, and what each one declines to
 - [`routes-routes.csv`](routes-routes.csv) — the toss routes: which content type opens in which renderer page
 - [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the showing frame
-- [`show-repo.md`](show-repo.md) — the show-repo shell: routing, chrome, shared gestures, transfer and boundaries
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — why the showing boundaries sit where they are: the frame and the record behind routes.json
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
