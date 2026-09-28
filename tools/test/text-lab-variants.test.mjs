@@ -202,10 +202,10 @@ test('the markup shows the four fields and never offers Apply', () => {
 
 test('a variant with proposals shows a chip per target path, linking the basis', () => {
   const chips = SRC.slice(SRC.indexOf('A chip per file this variant is proposed for'));
-  assert.match(chips, /x-for="q in \(p\.proposals \|\| \[\]\)"/);
-  assert.match(chips, /data-variant-proposals/);
-  assert.match(chips, /x-text="q\.path"/, 'the chip names the target path');
-  assert.match(chips, /:href="safeHref\(q\.basis\)"/, 'and links the basis');
+  assert.match(chips, /for \(const q of v\.proposals \|\| \[\]\)/);
+  assert.match(chips, /\), q\.path\)\);/, 'the chip names the target path');
+  assert.match(chips, /href: this\.safeHref\(q\.basis\)/, 'and links the basis');
+  assert.match(SRC, /data-variant-proposals/);
   const { model } = harness();
   assert.equal(model.safeHref('https://github.com/mehrlander/web-tools/pull/1'), 'https://github.com/mehrlander/web-tools/pull/1');
   assert.equal(model.safeHref('javascript:alert(1)'), null, 'a basis that is not a web address gets no link');
@@ -263,5 +263,5 @@ test('the markup offers the deck door on the list, each group, and each text run
   assert.equal((SRC.match(/ph-cards-three/g) || []).length >= 3, true);
   assert.match(SRC, /@click="openVariantDeck\(variantRows\)"/);
   assert.match(SRC, /@click="openRunDeck\(r\)"/);
-  assert.match(SRC, /@click="openVariantDeck\(variantRows, variantRows\.indexOf\(p\)\)"/, 'a row opens the deck at itself');
+  assert.match(SRC, /variantFoot\(p, \{ deckAt: variantRows\.indexOf\(p\) \}\)/, 'a row opens the deck at itself');
 });

@@ -48,6 +48,13 @@
                  projects/text/runs/ that declares its documents in a
                  files.jsonl, each opening as a deck of those documents.
 
+  Reviewing. Under every pair, in the list and in both decks, one line carries
+  the variant's facts and a reader's three acts: vote it up, vote it down, and
+  comment. Each act is one line appended to home's projects/text/reviews.jsonl
+  through the viewer's token, written straight to the ref being read, the way
+  approve.html writes a verdict. The details that used to sit behind a row's
+  expander are a panel-tip (kits/panel-tip.js), opened from the same line.
+
   Reading one at a time. The variants list is the index, and a deck is how it
   is read: the house swipe-deck, with the same door (the cards glyph) every
   other list here uses. Two decks. The filtered variants, one pair per slide in
@@ -175,6 +182,12 @@
       variantAuthor: params.get('author') || '',
       variantPurpose: params.get('purpose') || '',
       variantOpen: params.get('variant') || params.get('proposal') || '',
+      me: '',
+      tip: null,
+      tipClose: '',
+      noteDraft: '',
+      reviewBusy: '',
+      reviewError: '',
       TEXT_RUNS: 'projects/text/runs',
       textRuns: [],
       textRunState: 'idle',
@@ -186,6 +199,12 @@
 
       async init() {
         document.getElementById('boot')?.remove();
+        gh.load('kits/panel-tip.js').then(() => {
+          if (!window.PanelTip || !this.$refs?.tip) return;
+          this.tipClose = window.PanelTip.closeHTML(true);
+          window.PanelTip.wire(this.$refs.tip, { onClose: () => this.closeTip(), except: ['[data-tip-btn]'] });
+          if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.placeTip()).observe(this.$refs.tip);
+        }).catch(() => {});
         this.migrateLegacyAddress();
         this.normalizeVariantParams();
         this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
@@ -456,22 +475,6 @@
 
       wordCount(s) { return (String(s || '').match(/\S+/g) || []).length },
 
-      // One line above a pair: purpose, author, length, and a chip per file
-      // it is proposed for. The same four facts the list row carries.
-      variantMeta(v) {
-        const h = window.swipeDeck.h;
-        const line = h('div', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs opacity-60 mb-4' },
-          h('span', { class: 'uppercase tracking-wide' }, v.purpose || ''),
-          h('span', {}, v.author || ''),
-          h('span', { class: 'tabular-nums' }, `${this.wordCount(v.from?.text)} → ${this.wordCount(v.to?.text)} words`));
-        for (const q of v.proposals || []) {
-          line.append(h('a', { class: 'badge badge-sm badge-outline gap-1', href: this.safeHref(q.basis) || '',
-                               target: '_blank', rel: 'noopener' },
-            h('i', { class: 'ph ph-seal-question' }), q.path));
-        }
-        return line;
-      },
-
       // A pair drawn by md-diff, the renderer the file viewer uses, so the
       // three readings and the marks are the same everywhere.
       async renderPair(host, v) {
@@ -483,6 +486,154 @@
           host.textContent = `${e.message || e}`;
         }
       },
+
+      // ── Reviews ───────────────────────────────────────────────────────────
+      async whoami() {
+        if (this.me) return this.me;
+        try { this.me = (await this.home.req('/user'))?.login || ''; } catch (_) { this.me = ''; }
+        return this.me;
+      },
+
+      reviewsOf(v) {
+        const T = window.TextCollection;
+        return T && this.variantIndex ? T.reviewsFor(this.variantIndex, v.from.passage_id, v.to.passage_id)
+          : { up: [], down: [], notes: [], voteOf: () => '' };
+      },
+
+      // One act, one appended line. A vote repeated takes itself back.
+      async review(v, patch) {
+        if (this.reviewBusy) return false;
+        this.reviewBusy = v.id;
+        this.reviewError = '';
+        this.refreshActions(v.id);
+        try {
+          await this.whoami();
+          if (!this.me) throw new Error('Reviewing needs a GitHub token that can write to mehrlander/home.');
+          await gh.load('gh-store.js');
+          const T = window.TextCollection;
+          const row = { from: v.from.passage_id, to: v.to.passage_id, by: this.me, at: new Date().toISOString() };
+          if ('vote' in patch) row.vote = this.reviewsOf(v).voteOf(this.me) === patch.vote ? '' : patch.vote;
+          if (patch.note) row.note = patch.note;
+          const path = T.PATHS.reviews;
+          let text = '', sha;
+          try {
+            const cur = await this.home.get(path, window.GH.FRESH);
+            text = cur.text; sha = cur.sha;
+          } catch (e) { if (e?.status !== 404) throw e; }
+          if (text && !text.endsWith('\n')) text += '\n';
+          const what = row.vote !== undefined ? (row.vote || 'withdraw vote') : 'note';
+          await this.home.save(path, text + T.reviewLine(row) + '\n',
+            `Text review: ${what} on variant ${v.id.slice(0, 12)}`, sha ? { sha } : {});
+          T.addReview(this.variantIndex, row);
+          return true;
+        } catch (e) {
+          this.reviewError = e.message || String(e);
+          return false;
+        } finally {
+          this.reviewBusy = '';
+          this.refreshActions(v.id);
+        }
+      },
+
+      async saveNote(v) {
+        const note = this.noteDraft.trim();
+        if (!note) return;
+        if (await this.review(v, { note })) this.noteDraft = '';
+      },
+
+      // The line under a pair: its facts, then the three acts and the details.
+      // Built as DOM rather than template because the decks are DOM, so the
+      // list and both decks draw one line from one function.
+      variantFoot(v, { deckAt = null } = {}) {
+        const h = window.swipeDeck?.h || ((tag, attrs = {}, ...kids) => {
+          const e = document.createElement(tag);
+          for (const [k, val] of Object.entries(attrs)) e.setAttribute(k, val);
+          for (const k of kids.flat()) if (k) e.append(k);
+          return e;
+        });
+        const foot = h('div', { class: 'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-base text-base-content/60' },
+          h('span', { class: 'font-medium text-base-content/80' }, v.purpose || ''),
+          h('span', {}, v.author || ''),
+          h('span', { class: 'tabular-nums' }, `${this.wordCount(v.from?.text)} → ${this.wordCount(v.to?.text)} words`));
+        // A chip per file this variant is proposed for, linking the proposal's basis.
+        for (const q of v.proposals || []) {
+          foot.append(h('a', { class: 'badge badge-outline gap-1 font-mono', href: this.safeHref(q.basis) || '',
+                               target: '_blank', rel: 'noopener' }, h('i', { class: 'ph ph-seal-question' }), q.path));
+        }
+        foot.append(h('span', { class: 'grow' }), this.variantActions(v, { deckAt }));
+        return foot;
+      },
+
+      variantActions(v, o = {}) {
+        const h = window.swipeDeck?.h;
+        const r = this.reviewsOf(v);
+        const mine = this.me ? r.voteOf(this.me) : '';
+        const busy = this.reviewBusy === v.id;
+        const box = document.createElement('span');
+        box.className = 'inline-flex items-center gap-0.5';
+        box.dataset.actions = v.id;
+        box._v = v; box._o = o;
+        const btn = (icon, label, n, on, fn, extra = '') => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = `btn btn-ghost btn-sm gap-1 px-2 max-sm:h-10 ${extra}`;
+          b.setAttribute('aria-label', label);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          b.dataset.tipBtn = '';
+          b.innerHTML = `<i class="${on ? 'ph-fill' : 'ph'} ${icon} text-lg"></i>`
+            + (n ? `<span class="tabular-nums">${n}</span>` : '');
+          if (busy) b.disabled = true;
+          b.addEventListener('click', (e) => fn(e.currentTarget));
+          return b;
+        };
+        box.append(
+          btn('ph-thumbs-up', 'Vote up', r.up.length, mine === 'up', () => this.review(v, { vote: 'up' })),
+          btn('ph-thumbs-down', 'Vote down', r.down.length, mine === 'down', () => this.review(v, { vote: 'down' })),
+          btn('ph-chat-circle', 'Comment', r.notes.length, false, (b) => this.openTip('note', v, b)),
+          btn('ph-info', 'Details', 0, false, (b) => this.openTip('info', v, b)));
+        if (o.deckAt != null) {
+          box.append(btn('ph-cards-three', 'Read from here, one at a time', 0, false,
+            () => this.openVariantDeck(this.variantRows, o.deckAt), 'text-primary'));
+        }
+        if (this.reviewError && this.reviewTarget === v.id) {
+          box.append(Object.assign(document.createElement('span'), { className: 'text-sm text-error ml-2', textContent: this.reviewError }));
+        }
+        return box;
+      },
+
+      refreshActions(id) {
+        this.reviewTarget = id;
+        for (const el of document.querySelectorAll(`[data-actions="${id}"]`)) {
+          el.replaceWith(this.variantActions(el._v, el._o));
+        }
+      },
+
+      // The details and the notes open as a pinned panel-tip beside the
+      // button, clamped to the screen and flipped above when there is no
+      // room below.
+      openTip(kind, v, btn) {
+        if (this.tip && this.tip.kind === kind && this.tip.v.id === v.id) return this.closeTip();
+        const r = btn.getBoundingClientRect();
+        const w = Math.min(384, innerWidth - 16);
+        this.noteDraft = '';
+        this.tip = { kind, v, x: Math.max(8, Math.min(r.right - w, innerWidth - w - 8)), y: r.bottom + 6, w };
+        this._tipRect = r;
+        if (kind === 'note') this.$nextTick(() => this.$refs.tip?.querySelector('textarea')?.focus({ preventScroll: true }));
+      },
+
+      // Below the button when it fits, above when it does not, and inside the
+      // screen either way. Run by a ResizeObserver, since the panel's body
+      // arrives after the open and its height is not known until it has.
+      placeTip() {
+        const el = this.$refs.tip, r = this._tipRect;
+        if (!el || !this.tip || !r) return;
+        const hgt = el.offsetHeight;
+        const below = r.bottom + 6;
+        const y = below + hgt <= innerHeight - 8 ? below
+          : r.top - 6 - hgt >= 8 ? r.top - 6 - hgt : Math.max(8, innerHeight - hgt - 8);
+        if (y !== this.tip.y) this.tip.y = y;
+      },
+      closeTip() { this.tip = null; this.noteDraft = ''; },
 
       // A row draws its pair when it comes within a screen of the viewport,
       // once. One observer serves the whole list.
@@ -518,7 +669,7 @@
                          group: rows[i].purpose }),
           render: (i, slide) => {
             const doc = document.createElement('div');
-            slide.append(this.variantMeta(rows[i]), doc);
+            slide.append(doc, this.variantFoot(rows[i]));
             this.renderPair(doc, rows[i]);
           },
           onSlide: i => this.syncDeckAddress('variants', i),
@@ -608,7 +759,10 @@
           // strips it, or a skill's YAML renders as one bold heading.
           const md = (await repo.get(f.path)).text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
           host.textContent = '';
-          await window.mdVariants.render(host, md, this.variantIndex, { file: { repo: f.repo, path: f.path }, strip: false });
+          await window.mdVariants.render(host, md, this.variantIndex, {
+            file: { repo: f.repo, path: f.path }, strip: false,
+            actions: v => this.variantActions(v),
+          });
           if (!host.querySelector('.md-diff-change')) host.prepend(Object.assign(document.createElement('p'), {
             className: 'font-mono text-xs opacity-60 mb-3',
             textContent: 'No variant matches a paragraph of this file as it stands on main.' }));
@@ -770,11 +924,11 @@
     <!-- purposes as a rail, as Search shows repos: few, and switched often -->
     <div x-show="pane === 'variants' && variantIndex" class="flex flex-wrap items-center gap-1">
       <button @click="setVariantFilter('purpose', '')"
-              class="badge badge-sm cursor-pointer transition-opacity"
+              class="badge cursor-pointer transition-opacity"
               :class="!variantPurpose ? 'badge-primary' : 'badge-ghost opacity-50'">All</button>
       <template x-for="row in variantFacet('purpose')" :key="row.key">
         <button @click="setVariantFilter('purpose', variantPurpose === row.key ? '' : row.key)"
-                class="badge badge-sm cursor-pointer gap-1 transition-opacity"
+                class="badge cursor-pointer gap-1 transition-opacity"
                 :class="variantPurpose === row.key ? 'badge-primary' : variantPurpose ? 'badge-ghost opacity-40' : 'badge-ghost'"
                 :title="purposeDef(row.key)?.gloss || row.key">
           <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
@@ -865,57 +1019,12 @@
             <article class="py-4 border-b border-base-200 scroll-mt-24"
                      :id="'variant-' + p.id"
                      :class="variantOpen === p.id && 'bg-base-200/30'">
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-base-content/60 mb-2">
-                <span class="font-medium text-base-content/80" x-text="p.purpose"></span>
-                <span class="truncate max-w-[16rem]" x-text="p.author"></span>
-                <span class="tabular-nums" x-text="wordCount(p.from.text) + ' → ' + wordCount(p.to.text) + ' words'"></span>
-                <!-- A chip per file this variant is proposed for, linking the
-                     proposal's basis. -->
-                <template x-for="q in (p.proposals || [])" :key="q.repo + ':' + q.path + ':' + q.basis">
-                  <a class="badge badge-sm badge-outline gap-1 font-mono opacity-70 hover:opacity-100" data-variant-proposals
-                     :href="safeHref(q.basis)" target="_blank" rel="noopener"
-                     :title="q.repo + ' · ' + q.basis">
-                    <i class="ph ph-seal-question"></i><span x-text="q.path"></span>
-                  </a>
-                </template>
-                <span class="grow"></span>
-                <button class="btn btn-square btn-xs btn-ghost text-primary"
-                        aria-label="Read from here, one at a time" title="Read from here, one at a time"
-                        @click="openVariantDeck(variantRows, variantRows.indexOf(p))">
-                  <i class="ph ph-cards-three"></i>
-                </button>
-                <button class="btn btn-square btn-xs btn-ghost" :aria-expanded="variantOpen === p.id"
-                        aria-label="Details" title="Purpose, author and id" @click="toggleVariant(p.id)">
-                  <i class="ph" :class="variantOpen === p.id ? 'ph-caret-up' : 'ph-caret-down'"></i>
-                </button>
-              </div>
-
               <div class="min-w-0" x-init="lazyPair($el, p)">
                 <div class="text-lg leading-7 text-pretty text-base-content/50" x-text="variantPreview(p.from.text, 300)"></div>
               </div>
-
-              <template x-if="variantOpen === p.id">
-                <div class="mt-4 border-t border-base-300/60 pt-4 grid gap-4">
-                  <div class="grid sm:grid-cols-2 gap-5">
-                    <div>
-                      <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50">Purpose</div>
-                      <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.purpose"></div>
-                      <div class="text-base leading-6 text-pretty opacity-70 mt-1" x-show="purposeDef(p.purpose)?.gloss"
-                           x-text="purposeDef(p.purpose)?.gloss"></div>
-                      <blockquote class="text-base leading-6 text-pretty border-l-2 border-base-300 pl-3 mt-2"
-                                  x-show="purposeDef(p.purpose)?.prompt" x-text="purposeDef(p.purpose)?.prompt"></blockquote>
-                    </div>
-                    <div>
-                      <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50">Author</div>
-                      <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.author"></div>
-                    </div>
-                  </div>
-                  <div class="font-mono text-xs opacity-40 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>prior work, not an automatic recommendation</span>
-                    <span class="break-all" x-text="p.id"></span>
-                  </div>
-                </div>
-              </template>
+              <!-- The facts and the acts, under the pair, as in both decks. A
+                   proposal chip rides this line too (data-variant-proposals). -->
+              <div data-variant-proposals x-init="$el.replaceWith(variantFoot(p, { deckAt: variantRows.indexOf(p) }))"></div>
             </article>
           </template>
         </section>
@@ -1123,6 +1232,55 @@
     </section>
 
   </main>
+
+  <!-- The one panel-tip: a variant's details, or its notes and a box to add
+       one. Pinned by the click that opens it; panel-tip.js owns the ways out. -->
+  <div x-ref="tip" x-show="tip" x-cloak role="dialog" aria-label="Variant"
+       class="fixed z-[1000] rounded-lg border border-base-300 bg-base-100 shadow-xl p-4 text-base leading-6 max-h-[70vh] overflow-y-auto"
+       :style="tip ? `left:${tip.x}px;top:${tip.y}px;width:${tip.w}px` : ''">
+    <div x-html="tipClose"></div>
+    <template x-if="tip && tip.kind === 'info'">
+      <div class="grid gap-3 pr-6">
+        <div>
+          <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50">Purpose</div>
+          <div class="font-medium" x-text="tip.v.purpose"></div>
+          <div class="text-base-content/70" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></div>
+          <blockquote class="border-l-2 border-base-300 pl-3 mt-1" x-show="purposeDef(tip.v.purpose)?.prompt"
+                      x-text="purposeDef(tip.v.purpose)?.prompt"></blockquote>
+        </div>
+        <div>
+          <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50">Author</div>
+          <div x-text="tip.v.author"></div>
+        </div>
+        <div class="text-sm text-base-content/50 flex flex-wrap gap-x-3 gap-y-1">
+          <span>prior work, not an automatic recommendation</span>
+          <a class="link link-hover break-all" :href="'?pane=variants&variant=' + tip.v.id" x-text="tip.v.id"></a>
+        </div>
+      </div>
+    </template>
+    <template x-if="tip && tip.kind === 'note'">
+      <div class="grid gap-3">
+        <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50 pr-6">Comments</div>
+        <template x-for="(n, k) in reviewsOf(tip.v).notes" :key="k">
+          <div class="border-l-2 border-base-300 pl-3">
+            <div class="text-sm text-base-content/50" x-text="n.by + ' · ' + String(n.at).slice(0, 10)"></div>
+            <div class="whitespace-pre-wrap" x-text="n.note"></div>
+          </div>
+        </template>
+        <p x-show="!reviewsOf(tip.v).notes.length" class="text-base-content/50">No comments yet.</p>
+        <textarea id="variant-note" class="textarea textarea-bordered w-full text-base" rows="3"
+                  placeholder="What works, or what does not" x-model="noteDraft"
+                  @keydown.meta.enter="saveNote(tip.v)" @keydown.ctrl.enter="saveNote(tip.v)"></textarea>
+        <div class="flex items-center gap-3">
+          <button class="btn btn-primary btn-sm" :disabled="!noteDraft.trim() || !!reviewBusy" @click="saveNote(tip.v)">
+            <span x-show="!reviewBusy">Save comment</span>
+            <span x-show="reviewBusy" class="loading loading-spinner loading-xs"></span>
+          </button>
+          <span class="text-sm text-error" x-show="reviewError" x-text="reviewError"></span>
+        </div>
+      </div>
+    </template>
+  </div>
 </div>
 
 </body>

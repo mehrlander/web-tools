@@ -56,7 +56,7 @@ test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.sources.passages.path, P.passages);
   assert.equal(index.sources.variants.path, 'projects/text/variants.jsonl');
   assert.equal(index.sources.variants.sha, '2'.repeat(40));
-  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals', 'purposes']);
+  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals', 'purposes', 'reviews']);
   assert.deepEqual(index.proposals, [{ from: ID.families, to: ID['bill-section families'],
     repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }]);
 });
@@ -150,7 +150,7 @@ test('load reads the three files at their fixed paths, and caches per credential
   const a = await T.load(anon);
   const b = await T.load(anon);
   assert.equal(a, b, 'one read per client');
-  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants, P.purposes].sort());
+  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants, P.purposes, P.reviews].sort());
   assert.equal(a.summary.variants, 4);
   assert.equal(a.summary.proposals, 1);
   const other = fixtureGh({ token: 'other' });
@@ -245,4 +245,56 @@ test('load reads purposes.csv softly', async () => {
   assert.equal(loaded.purposes.accountant.kind, 'voice');
   assert.equal(loaded.sources.purposes.path, P.purposes);
   T.clear();
+});
+
+// reviews.jsonl: a reader's latest vote on a pair counts, every note is kept,
+// and a row that cannot be shown is skipped by name.
+const REVIEW = (o) => JSON.stringify({ from: ID.families, to: ID['bill-section families'], at: '2026-09-28T00:00:00Z', ...o });
+
+test('reviews.jsonl tallies each reader\'s latest vote and keeps every note', async () => {
+  const reviews = [
+    REVIEW({ by: 'a', vote: 'up' }),
+    REVIEW({ by: 'b', vote: 'down' }),
+    REVIEW({ by: 'a', vote: 'down' }),
+    REVIEW({ by: 'a', note: 'the second clause is the point' }),
+    REVIEW({ by: 'b', vote: '' }),
+  ].join('\n') + '\n';
+  const built = await T.build({ ...args(), files: { ...args().files, reviews } });
+  assert.deepEqual(built.warnings, []);
+  const r = T.reviewsFor(built, ID.families, ID['bill-section families']);
+  assert.deepEqual(r.up, []);
+  assert.deepEqual(r.down, ['a'], 'a later vote replaces an earlier one, and an empty vote withdraws');
+  assert.equal(r.voteOf('a'), 'down');
+  assert.equal(r.voteOf('b'), '');
+  assert.deepEqual(r.notes.map(n => n.note), ['the second clause is the point']);
+  const none = T.reviewsFor(index, ID.chrome, ID.decoration);
+  assert.deepEqual([none.up, none.down, none.notes], [[], [], []], 'no file reads as no reviews');
+});
+
+test('addReview moves the tally without a reload, and reviewLine writes Python\'s key order', async () => {
+  const built = await T.build(args());
+  const row = { to: ID['bill-section families'], from: ID.families, by: 'a', at: '2026-09-28T00:00:00Z', vote: 'up' };
+  assert.equal(T.reviewsFor(built, ID.families, ID['bill-section families']).up.length, 0);
+  T.addReview(built, row);
+  assert.deepEqual(T.reviewsFor(built, ID.families, ID['bill-section families']).up, ['a']);
+  const line = T.reviewLine(row);
+  assert.deepEqual(Object.keys(JSON.parse(line)), ['at', 'by', 'from', 'to', 'vote']);
+  assert.match(line, /^\{"at": "/, 'a space after each colon, as json.dumps writes it');
+});
+
+test('a review that cannot be shown is skipped and named', async () => {
+  const reviews = [
+    REVIEW({ by: 'a' }),
+    REVIEW({ by: 'a', vote: 'maybe' }),
+    JSON.stringify({ from: ID.chrome, to: ID.families, by: 'a', at: 'x', vote: 'up' }),
+    REVIEW({ vote: 'up' }),
+  ].join('\n') + '\n';
+  const built = await T.build({ ...args(), files: { ...args().files, reviews } });
+  assert.equal(built.reviews.length, 0);
+  assert.equal(built.warnings.length, 4);
+  assert.match(built.warnings.join('\n'), /neither a vote nor a note/);
+  assert.match(built.warnings.join('\n'), /not up, down or empty/);
+  assert.match(built.warnings.join('\n'), /a pair no variant holds/);
+  assert.match(built.warnings.join('\n'), /without a from, to, by and at/);
+  assert.equal(built.summary.variants, 4, 'the collection stands');
 });
