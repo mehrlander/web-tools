@@ -163,11 +163,10 @@ the failure.
 The canonical copy is `environment/setup.sh` in web-tools-private; the
 environment panel in claude.ai settings holds a paste of it. It must install
 `portable` at user scope, because plugins load at session start and a session
-rooted above the checkouts reads no project settings. It must also keep the
-user-scope `AskUserQuestion` deny until the plugin's guard is verified
-([extending.md](extending.md#pretooluse-the-askuserquestion-guard)). It does
-not write `~/.claude/CLAUDE.md`. The plugin refresher and the session-store
-default are plugin hooks.
+rooted above the checkouts reads no project settings. It writes nothing else:
+no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny. The plugin refresher,
+the `AskUserQuestion` guard and the session-store default are plugin hooks
+([extending.md](extending.md#pretooluse-the-askuserquestion-guard)).
 
 **If the installed plugin fails to load, its refresher cannot run.** Recover the
 session with `claude plugin marketplace update web-tools`, then
