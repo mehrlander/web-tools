@@ -2,7 +2,7 @@
 // right checkouts, and refuse to let one of them take the session down?
 //
 // The dispatcher is the missing glob for session-start scripts (see the header
-// of .claude/skills/hooks/session-dispatch.sh). Its whole contract is a
+// of skills/hooks/session-dispatch.sh). Its whole contract is a
 // filename rule, so the tests are about which files run and which do not,
 // plus the two failure shapes that must never reach the session: a script that
 // exits nonzero, and one that never returns.
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 const DISPATCH = join(
   dirname(fileURLToPath(import.meta.url)),
-  '..', '..', '.claude', 'skills', 'hooks', 'session-dispatch.sh'
+  '..', '..', 'skills', 'hooks', 'session-dispatch.sh'
 );
 
 // A workspace nested one level inside the temp dir, because the dispatcher also

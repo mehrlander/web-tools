@@ -215,7 +215,7 @@ test('the markdown preview scrolls on its pane, and its column is uncapped', () 
   // unlayered declaration beats a layered one whatever the specificity or
   // order; `!max-w-none` carries `!important` and reaches past the layer.
   // Reading that as "no utility can reach it" left the column centred at 506px
-  // for as long as it stood (daisy-alpine rule 3, fixed 2026-09-03).
+  // for as long as it stood (html-style rule 3, fixed 2026-09-03).
   //
   // Rendered as a string, so this reads it as one rather than mounting: show()
   // pulls marked from the CDN, which never resolves under jsdom.

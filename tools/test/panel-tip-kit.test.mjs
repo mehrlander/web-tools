@@ -1,4 +1,4 @@
-// kits/panel-tip.js — the panel-tip of the house popup rule (daisy-alpine mechanics.md,
+// kits/panel-tip.js — the panel-tip of the house popup rule (html-style mechanics.md,
 // "Title-tips and panel-tips"), held at the edges that decide whether a reader can get
 // out of one.
 //

@@ -60,7 +60,7 @@ component); the application's name, Web Tools, per `docs/APP.md`; **native** ver
 **embedded** views; **the page file**; and **nested/top-level document**.
 
 **3. A handful of definitional `chrome` sentences**, not a sweep. The defining
-uses are `skills/daisy-alpine/SKILL.md` rules 5 and 7 and `docs/showing.md`'s
+uses are `skills/html-style/SKILL.md` rules 5 and 7 and `docs/showing.md`'s
 nesting section.
 
 **4. A check, written from the residue.** A ban without one does not hold (home's
@@ -74,7 +74,7 @@ its exemptions from what survives step 2, not before.
 - `docs/showing.md`: three senses of `shell` in one nesting section
 - `docs/APP.md`: the application's name, which step 2 uses
 - `docs/SNAGS.md`: `live-term-wider-referent` origin
-- `skills/daisy-alpine/SKILL.md`: definitional chrome rules 5 and 7
+- `skills/html-style/SKILL.md`: definitional chrome rules 5 and 7
 - `lib/alpineComponents/fab.js`: leave alone; enumerated `chrome` is the counterexample
 - `tools/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned
 - task `promote-shortcuts-skill-to-plugin-5d74br`: cites this as the one-member-collective lesson

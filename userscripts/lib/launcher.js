@@ -29,7 +29,7 @@
 // tells below, then an observer that removes this one if the real launcher
 // appears within a few seconds.
 //
-// WHY IT IS HAND-STYLED. The house style (skills/daisy-alpine) governs pages
+// WHY IT IS HAND-STYLED. The house style (skills/html-style) governs pages
 // built here; this is markup injected into someone else's document, where
 // Tailwind has nothing to compile against and every CDN tag is the first thing
 // a Content-Security-Policy refuses. So the winter theme's tokens are written
@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'c9fa5d3';
-const BUILT = '2026-09-26T05:11:09Z';
+const BUILD = '8523816';
+const BUILT = '2026-09-27T15:52:28Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
