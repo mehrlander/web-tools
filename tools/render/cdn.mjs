@@ -587,6 +587,14 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
       // DecompressionStream reported the damage as "Failed to fetch"
       // (2026-09-18, the viewer's Proposals mode, now Variants, over home's drafts.jsonl.gz).
       const bytes = readFileSync(fp);
+      // The raw media type answers the file itself, as GitHub does. The
+      // budget-drs app's tenant reader asks for it and takes the body as the
+      // page; answered with the JSON envelope it mounted base64 text as the
+      // tenant and inlined nothing (found 2026-09-29, the selection probe R8).
+      if (/vnd\.github\.raw/.test(String(headers.accept || headers.Accept || ''))) {
+        return { kind: 'fulfill', contentType: 'application/vnd.github.raw; charset=utf-8',
+                 tag: `api ${name}/${rel} (raw)`, body: bytes };
+      }
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,
         body: JSON.stringify({

@@ -141,6 +141,14 @@ async function report(page, asked, c) {
     console.log(`       ran: ${ran || '(nothing stamped)'}`);
     for (const n of s.nested) console.log(`       frames a renderer at: ${n}`);
   }
+  if (c.id === 'R8') {
+    for (const f of page.frames()) {
+      const t = await f.evaluate(() => ({ href: location.href.slice(0, 40), title: document.title,
+        errs: [...document.querySelectorAll('[data-inline-error]')].map(e => e.getAttribute('data-inline-error')).slice(0, 2),
+        scripts: document.scripts.length, linkRewrite: typeof window.__linkRewrite })).catch(() => null);
+      if (t && /^blob:/.test(t.href)) console.log('    tenant: ' + JSON.stringify(t));
+    }
+  }
   if (c.readLibrary) {
     for (const f of page.frames()) {
       const got = await f.evaluate(() => {
@@ -159,9 +167,18 @@ async function report(page, asked, c) {
     (data[k] = data[k] || new Set()).add(a.path);
   }
   for (const [k, v] of Object.entries(data)) console.log(`       read ${k}: ${[...v].slice(0, 3).join(', ')}${v.size > 3 ? ` … (+${v.size - 3})` : ''}`);
-  // Just the component this experiment is about, wherever it ran from.
-  const comp = asked.filter(a => /alpineComponents\/map\.js$/.test(a.path));
-  if (c.id.startsWith('R9')) console.log(`       map.js requested: ${comp.map(a => a.repo + '@' + a.ref).join(', ') || 'never (served from the build)'}`);
+  // Every file a path entry names, wherever it was requested from: the evidence
+  // for an entry is the ref its file was asked at, whether or not it executed
+  // somewhere stamps can see (an inlined script does not pass through here).
+  const named = new URLSearchParams(c.q || '').getAll('refs').map(v => (v.match(/^[^@]+@[^:]+:(.+)$/) || [])[1]).filter(Boolean);
+  for (const p of named) {
+    const hits = asked.filter(a => a.path === p || (p.endsWith('/') && a.path.startsWith(p)));
+    console.log(`       entry ${p}: requested at ${[...new Set(hits.map(a => `d${a.depth} ${a.repo}@${a.ref}`))].join(', ') || 'never'}`);
+  }
+  if (c.id === 'R9b') {
+    const comp = asked.filter(a => /alpineComponents\/map\.js$/.test(a.path));
+    console.log(`       map.js requested: ${comp.map(a => a.repo + '@' + a.ref).join(', ') || 'never (served from the build)'}`);
+  }
 }
 
 for (const c of CASES) {
