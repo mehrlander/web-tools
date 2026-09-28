@@ -187,7 +187,7 @@ test('a facet the collection does not hold is dropped once the collection is rea
 test('the markup shows the four fields and never offers Apply', () => {
   assert.match(SRC, /x-show="pane === 'variants'"/);
   assert.match(SRC, /Search variants/);
-  assert.match(SRC, />Variant</);
+  assert.match(SRC, /x-init="lazyPair\(\$el, p\)"/, 'each row is the pair itself, drawn as it nears the viewport');
   assert.match(SRC, />Purpose</);
   assert.match(SRC, />Author</);
   assert.match(SRC, /prior work, not an automatic recommendation/);
@@ -201,8 +201,9 @@ test('the markup shows the four fields and never offers Apply', () => {
 });
 
 test('a variant with proposals shows a chip per target path, linking the basis', () => {
-  const chips = SRC.slice(SRC.indexOf('data-variant-proposals'));
-  assert.match(chips, /x-for="q in p\.proposals"/);
+  const chips = SRC.slice(SRC.indexOf('A chip per file this variant is proposed for'));
+  assert.match(chips, /x-for="q in \(p\.proposals \|\| \[\]\)"/);
+  assert.match(chips, /data-variant-proposals/);
   assert.match(chips, /x-text="q\.path"/, 'the chip names the target path');
   assert.match(chips, /:href="safeHref\(q\.basis\)"/, 'and links the basis');
   const { model } = harness();
@@ -262,5 +263,5 @@ test('the markup offers the deck door on the list, each group, and each text run
   assert.equal((SRC.match(/ph-cards-three/g) || []).length >= 3, true);
   assert.match(SRC, /@click="openVariantDeck\(variantRows\)"/);
   assert.match(SRC, /@click="openRunDeck\(r\)"/);
-  assert.match(SRC, /x-init="renderPair\(\$el, p\)"/, 'an open row shows the pair as md-diff draws it');
+  assert.match(SRC, /@click="openVariantDeck\(variantRows, variantRows\.indexOf\(p\)\)"/, 'a row opens the deck at itself');
 });
