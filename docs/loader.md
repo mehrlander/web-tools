@@ -90,7 +90,7 @@ URL (a page's own pin), then `window.__lib`, then the page's `?use=`, then
 ### Under the toss
 
 A page rendered by `pages/toss-render.html` has no query string of its own:
-it runs in a `blob:` frame. The renderer answers the page's reads of its own
+by default it runs in a `blob:` frame (top mode, below, is the exception). The renderer answers the page's reads of its own
 address instead, through a params shim, and it tells the page which Web Tools
 to load through three channels, each with one meaning:
 
@@ -125,6 +125,20 @@ whose `href` is the document's own. One ambiguity is inherent: in a `blob:`
 frame `location.search` is always empty, so a `URLSearchParams` built from
 any other empty string looks the same and gets the address's answers. A page
 that parses a string which may be empty should test it first.
+
+**Top mode (`?top`).** With `?top` and an address the link carries, the
+renderer builds the page as it would for a frame, with the same prelude,
+inlining and fetch shim, and then replaces its own document with it. The page
+then has a real query, of which the renderer owns some keys: `top`, the address
+(`gh`, or a route key), and the selection. So the params shim differs from a
+frame's: a `URLSearchParams` holding `top` is the page's address, and its reads
+skip the renderer's keys and answer the same `use` and `src` a frame's shim
+answers. A history shim keeps `top`, the address and the selection in every URL
+the page writes, so navigation, reload and Back keep the page and its versions.
+The channels in the table are stamped the same way, and `window.__tossTop`
+(`{ repo, ref, path, lib }`) replaces `window.__fabHosted`, since no renderer
+is on screen and the page mounts its own FAB. A forced width, a payload, and an
+address pasted into the renderer's panel keep the frame.
 
 The `gh-api.js` auto-bootstrap triggers on one signal:
 `window.__ghBlobBoot = { repo, ref }`, set by `entry.js` before either
@@ -173,9 +187,14 @@ at its write branch, never through the selection; its own parameter
 scripts and stylesheets and its relative `fetch()` (each resolved per path),
 and the Web Tools boot. `entry.js`, for the Web Tools ref and a path entry for
 `gh-api.js` itself. The `GH` client's reads (`get`, `bytes`, `ls`, `history`,
-`recentFiles`, `rawUrl`, `flatTree`). A pre-built bundle's cache, which steps
-aside for a path the selection names, so one changed file previews over an
-unchanged build. The web-tools app and home's budget-drs app forward the
+`recentFiles`, `rawUrl`, `flatTree`). A pre-built bundle's cache, which answers
+a read only when the read resolves to the ref the build was loaded at: the
+build's own repository, and a ref from `opts.ref`, else the client's
+`readRef(path)`, equal to the build's. Anything else goes to GitHub, so one
+changed file previews over an unchanged build and a pinned client never gets
+the build's copy. A build GitHub Pages served takes the default branch as its
+ref whatever was asked, since those are the bytes it holds; a page whose own
+resolve fell back to it then shows the unmet ask in the FAB. The web-tools app and home's budget-drs app forward the
 selection to every view and tenant they frame and every toss link they mint.
 Reads a page builds by hand take `GH.refFor(repo, path)`.
 

@@ -35,11 +35,11 @@ The FAB around a nested preview shows **both sides, attributed**: `detect()` col
 
 Invoking across the window boundary is handled rather than avoided, and [`tools/test/subject-actions.mjs`](../tools/test/subject-actions.mjs) is the statement of how.
 
-**A toss carries main's lib, including the FAB**: a branch change to `fab.js` shows only through a `?use=` pin on a deployed page.
+**A framed toss carries main's lib, including the FAB**: a branch change to `fab.js` shows through `?top`, where the page mounts its own, or a `?use=` pin.
 
 ## Picking versions inside a toss
 
-The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. [loader.md](loader.md#the-selection) has the rules.
+The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. `?top` makes the page the tab's own document, reaching its title and history. [loader.md](loader.md#the-selection) has the rules.
 
 ## Three reasons a change resists preview
 
@@ -53,7 +53,7 @@ is why the preamble is duplicated rather than shared. The toss reaches a change
 to it, since the toss serves the branch's page file whole; nothing reaches one to
 the **shell's** preamble, which is `toss-render.html` on main.
 
-**The document boundary.** A toss is two documents, and each creates its own `gh`
+**The document boundary.** A framed toss is two documents, and each creates its own `gh`
 whose ref every later load resolves against. The framed page's is pinned to the
 Web Tools ref the renderer resolved (the section above); the shell's is pinned
 to main. So anything the shell contributes
