@@ -2384,11 +2384,52 @@
           + `top:${Math.max(4, dnd.y - lb.top - this.LIFT - H - 18)}px`;
         const txt = lens.querySelector('[data-lens-text]');
         txt.style.width = md.clientWidth + 'px';
-        txt.style.transform = `translate(${W / 2 - (fx - mr.left) * S}px, ${H / 2 - (fy - mr.top) * S}px) scale(${S})`;
+        // WHERE THE DROP POINT IS IN THE COPY, measured rather than assumed.
+        // The copy does not lay out exactly as the page: card readings not on
+        // screen are left out of it, which shortens a card, and a first
+        // margin that collapses through the page's host does not collapse
+        // out of an absolutely placed box. Assumed, the lens sat half a line
+        // off on the phone. So the copy is laid out scaled at the origin, the
+        // drop offset is found in it by its data-src runs, and the copy is
+        // then moved so that point sits at the lens centre. The focus is
+        // taken relative to that offset's own caret on the page, which is
+        // what carries a gap's midpoint across too.
+        const pageAt = window.MdSurface.rectAt(md, tg.at);
+        txt.style.transform = `scale(${S})`;
+        const inCopy = this.copyCaret(txt, tg.at);
+        const box = lens.firstElementChild.getBoundingClientRect();
+        if (pageAt && inCopy) {
+          const px = inCopy.left + (fx - pageAt.left) * S;
+          const py = (inCopy.top + inCopy.bottom) / 2 + (fy - (pageAt.top + pageAt.bottom) / 2) * S;
+          txt.style.transform = `translate(${box.left + W / 2 - px}px, ${box.top + H / 2 - py}px) scale(${S})`;
+        } else {
+          txt.style.transform = `translate(${W / 2 - (fx - mr.left) * S}px, ${H / 2 - (fy - mr.top) * S}px) scale(${S})`;
+        }
         const c = lens.querySelector('[data-lens-caret]');
         c.style.cssText = tg.para
           ? `left:${H / 2}px;right:${H / 2}px;top:${H / 2 - 1.5}px;height:3px`
           : `left:${W / 2 - 1.5}px;width:3px;top:${H / 2 - lh * S * 0.42}px;height:${lh * S * 0.84}px`;
+      },
+      // The caret rect at a source offset inside the loupe's copy: the run
+      // stamped with the offset (data-src, copied from the page), or the end
+      // of the last run before it where the offset sits on markup.
+      copyCaret(root, at) {
+        let best = null;
+        for (const sp of root.querySelectorAll('[data-src]')) {
+          const n = sp.firstChild;
+          if (!n || n.nodeType !== 3) continue;
+          const s0 = +sp.dataset.src;
+          if (s0 > at) break;
+          best = { n, off: Math.min(at - s0, n.length) };
+        }
+        if (!best) return null;
+        const r = document.createRange();
+        const { n, off } = best;
+        if (off < n.length) { r.setStart(n, off); r.setEnd(n, off + 1); }
+        else { r.setStart(n, Math.max(0, off - 1)); r.setEnd(n, off); }
+        const b = r.getClientRects()[0] || r.getBoundingClientRect();
+        const x = off < n.length ? b.left : b.right;
+        return { left: x, top: b.top, bottom: b.bottom };
       },
       // The drop marker: a line across a gap, or a bar between two words.
       markTarget(tg, add, across, lb) {

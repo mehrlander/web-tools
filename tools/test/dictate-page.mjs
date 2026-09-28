@@ -1515,6 +1515,29 @@ try {
   });
   ok('a native drag over the text is taken, with the drop marker shown', dnd.over && dnd.marker, JSON.stringify(dnd));
   ok('and a loupe above the thumb shows the text there, with a line across the gap', /Second para/.test(dnd.loupe.text) && dnd.loupe.line, JSON.stringify(dnd.loupe));
+  // The loupe's caret sits on the drop point in its copy of the text, even
+  // below a card whose hidden original is taller than what shows. Reported
+  // from the phone: the lens ran half a line off, because the copy was
+  // assumed to lay out as the page does.
+  await reset();
+  const lensAt = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    c.$refs.view.scrollTop = 0;
+    c.d.text = '# Title\n\nFirst one. First two. Second para.\n\nThird para.\n'; c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint();
+    const at = c.text.indexOf('para.', c.text.indexOf('Third'));
+    const r = window.MdSurface.rectAt(md, at);
+    const dt = new DataTransfer(); dt.setData('text/plain', 'x');
+    const fire = (type) => md.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: r.left + 1, clientY: r.top + r.height / 2 }));
+    fire('dragstart'); fire('dragover');
+    const L = document.querySelector('[data-lens]');
+    const k = L.querySelector('[data-lens-caret]').getBoundingClientRect();
+    const p = c.copyCaret(L.querySelector('[data-lens-text]'), c.dnd.target.at);
+    fire('dragend');
+    return { dx: Math.round(p.left - (k.left + k.width / 2)), dy: Math.round((p.top + p.bottom) / 2 - (k.top + k.bottom) / 2) };
+  });
+  ok('the loupe\'s caret sits on the drop point in its copy, below a card with a taller original', Math.abs(lensAt.dx) <= 3 && Math.abs(lensAt.dy) <= 3, JSON.stringify(lensAt));
   // While words are held, a finger dragged on the text moves the caret in
   // parallel, as the target's own drag does, and drops nothing.
   await reset();
