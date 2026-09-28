@@ -65,8 +65,11 @@
     // form, the query that rode inside the gh value.
     const real = new URLSearchParams(q);
     real.delete('gh');
+    // Appended, not set: a key the page repeats keeps every value (set kept the
+    // first and dropped the rest, measured 2026-09-29 with two `refs` entries).
     const own = new URLSearchParams(oldPageQuery);
-    for (const [k, v] of real) if (!own.has(k)) own.set(k, v);
+    const oldKeys = new Set(own.keys());
+    for (const [k, v] of real) if (!oldKeys.has(k)) own.append(k, v);
     const asked = own.get('lib') || '';
     const lib = asked || (repo === HUB ? ref : 'main') || '';
 

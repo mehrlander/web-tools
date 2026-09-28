@@ -59,6 +59,11 @@ const S = [
   { id: 'S2', what: 'the same page with Web Tools at main', addr: `${WT}@page-br:pages/diff-tool.html`, q: 'lib=main' },
   { id: 'S3', what: 'the app at a branch, map view, then a view switch and a reload', addr: `${WT}@page-br:app/index.html`, q: 'view=map', history: true },
   { id: 'S4', what: 'three repositories: shortcut-tools page, private data, Web Tools', addr: `mehrlander/shortcut-tools@page-br:pages/library.html`, q: 'data=data-br&lib=lib-br' },
+  // The explicit-main case the S3 history check does not establish: the app at
+  // a branch with Web Tools pinned to main, navigated BY THE APP (its own
+  // syncUrl, which rebuilds its query from the address it reads), reloaded,
+  // then asked for the address of a hub view that names no ref.
+  { id: 'S5', what: 'the app at a branch with lib=main: app navigation, reload, a hub view', addr: `${WT}@page-br:app/index.html`, q: 'view=map&lib=main', appNav: true },
 ];
 // The URL each mode is opened at. F and A carry lib on the renderer's query;
 // B carries everything as real query parameters beside gh.
@@ -165,6 +170,34 @@ for (const s of S) {
       console.log(`     after pushState: ${after.slice(0, 120)}`);
       console.log(`     back: ${back.slice(0, 120)}`);
       console.log(`     after reload: page lib ${re.pageDoc && re.pageDoc.gh}, page sees view=${re.pageDoc && re.pageDoc.view}`);
+    }
+    if (s.appNav) {
+      // The document running the app: the top in B, the blob frame otherwise.
+      const appFrame = async () => {
+        for (const f of page.frames()) if (await f.evaluate(() => !!window.__shell).catch(() => false)) return f;
+        return null;
+      };
+      const state = async (label) => {
+        const f = await appFrame();
+        const d = f && await f.evaluate(() => ({
+          gh: window.gh && window.gh.ref, lib: window.__lib || null,
+          sees: new URLSearchParams(location.search).get('lib'),
+          view: window.__shell.view,
+          viewUrl: (() => { const sh = window.__shell; sh.appView = { key: 'probe', repo: 'mehrlander/web-tools', path: 'pages/diff-tool.html' }; return sh.appViewUrl; })(),
+        })).catch(e => ({ error: e.message.slice(0, 80) }));
+        console.log(`     ${label}: tab URL ${page.url().replace(base, '').slice(0, 110)}`);
+        console.log(`        app: lib ${d && d.gh}, __lib=${d && d.lib}, reads lib=${d && d.sees}, view=${d && d.view}`);
+        console.log(`        hub view with no ref -> ${d && (d.viewUrl || d.error)}`);
+      };
+      await state('loaded');
+      let f = await appFrame();
+      await f.evaluate(() => { window.__shell.goTools(); }).catch(e => console.log('     goTools threw: ' + e.message.slice(0, 80)));
+      await page.waitForTimeout(600);
+      await state('after the app navigates to Tools');
+      await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(9000);
+      await state('after reload');
+      await page.goBack().catch(() => {}); await page.waitForTimeout(1500);
+      console.log(`     back: ${page.url().replace(base, '').slice(0, 110)}`);
     }
     if (errors.length) console.log('     errors: ' + errors.slice(0, 2).join(' | '));
     await ctx.close();

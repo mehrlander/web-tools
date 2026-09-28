@@ -65,6 +65,7 @@
     "test:showing-selection": "node tools/test/showing-selection-probe.mjs",
     "test:showing-live": "node tools/test/showing-live-probe.mjs",
     "test:showing-modes": "node tools/test/showing-mode-compare.mjs",
+    "test:showing-refs": "node tools/test/showing-refs-probe.mjs",
     "test:toss-paste": "node tools/test/toss-paste.mjs",
     "test:typeahead": "node tools/test/app-typeahead.mjs",
     "test:toss-frame-focus": "node tools/test/toss-frame-focus.mjs",
