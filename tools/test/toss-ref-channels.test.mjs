@@ -4,12 +4,12 @@
 // addressHtml in pages/toss-render.html stamps a prelude into every page it
 // renders in address mode. Three things in it carry a ref:
 //
-//   use and lib   injected into the page's reads of its own address, both the
-//                 EFFECTIVE Web Tools ref libRef resolved: an explicit ?lib=
-//                 (the renderer's, else the page query's), else the page's
-//                 own ref for a page of web-tools, else main. Page boots read
-//                 one or the other: entry.js and the pre-built bundles `use`,
-//                 home's pages `lib`.
+//   use           injected into the page's reads of its own address: the
+//                 EFFECTIVE Web Tools ref libRef resolved, an explicit ask
+//                 (the renderer's ?lib=, else the page query's lib), else the
+//                 page's own ref for a page of web-tools, else main. entry.js
+//                 and the pre-built bundles read it. `lib` is never invented:
+//                 it reaches the page only from its own page query.
 //   window.__lib  stamped only when a version was ASKED for, so a page that
 //                 frames views of its own can pass a selection on without
 //                 mistaking a default for one.
@@ -71,31 +71,31 @@ const stamp = (html, name) => {
   return m ? JSON.parse(m[1]) : undefined;
 };
 
-test('a page of web-tools at a ref: __ref and the effective use and lib all name that ref; no __lib', () => {
+test('a page of web-tools at a ref: __ref and the effective use name that ref; no lib, no __lib', () => {
   const html = render({ owner: 'mehrlander', name: 'web-tools', ref: 'feature-b', path: 'pages/x.html', pageQuery: '' });
   assert.equal(stamp(html, '__ref'), 'feature-b');
-  assert.deepEqual(injected(html), { use: 'feature-b', lib: 'feature-b' });
+  assert.deepEqual(injected(html), { use: 'feature-b' }, 'the default travels as use only');
   assert.equal(stamp(html, '__lib'), undefined, 'nothing was asked for, so nothing is stamped');
   assert.match(html, /<base href="https:\/\/mehrlander\.github\.io\/web-tools\/pages\/">/);
   assert.match(html, /window\.__fabHosted=true/);
 });
 
-test('a page in another repo at a ref: __ref names its ref, use and lib name main', () => {
+test('a page in another repo at a ref: __ref names its ref, use names main', () => {
   const html = render({ owner: 'mehrlander', name: 'home', ref: 'feature-b', path: 'projects/p/page.html', pageQuery: 'view=x' });
   assert.equal(stamp(html, '__ref'), 'feature-b');
-  assert.deepEqual(injected(html), { view: 'x', use: 'main', lib: 'main' }, 'the page query rides; use is a web-tools ref, never this repo\'s');
+  assert.deepEqual(injected(html), { view: 'x', use: 'main' }, 'the page query rides; use is a web-tools ref, never this repo\'s');
   assert.equal(stamp(html, '__lib'), undefined);
 });
 
-test('an asked-for version reaches every channel, for any subject', () => {
+test('an asked-for version reaches use and __lib, for any subject', () => {
   const home = render({ owner: 'mehrlander', name: 'home', ref: 'feature-b', path: 'p.html', pageQuery: '' }, 'wt-branch');
   assert.equal(stamp(home, '__lib'), 'wt-branch');
   assert.equal(stamp(home, '__ref'), 'feature-b');
-  assert.deepEqual(injected(home), { use: 'wt-branch', lib: 'wt-branch' });
+  assert.deepEqual(injected(home), { use: 'wt-branch' }, 'the ask rides as use and as __lib');
   // A web-tools page and its library at two refs.
   const hub = render({ owner: 'mehrlander', name: 'web-tools', ref: 'feature-b', path: 'pages/x.html', pageQuery: '' }, 'wt-branch');
   assert.equal(stamp(hub, '__lib'), 'wt-branch');
-  assert.deepEqual(injected(hub), { use: 'wt-branch', lib: 'wt-branch' });
+  assert.deepEqual(injected(hub), { use: 'wt-branch' });
   // A `lib` in the page query is an ask too, and the renderer's own wins over it.
   const page = render({ owner: 'mehrlander', name: 'home', ref: 'feature-b', path: 'p.html', pageQuery: 'lib=old' });
   assert.equal(stamp(page, '__lib'), 'old');

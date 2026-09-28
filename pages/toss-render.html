@@ -899,18 +899,22 @@ document.addEventListener('click',function(e){
     // page that parses a string that may be empty should test it first; the
     // app's appViewAddress does (docs/loader.md, "Under the toss").
     //
-    // THREE CHANNELS, ONE RULE. `use` and `lib` answer the EFFECTIVE Web Tools
-    // ref, the one libRef resolved, since those are the two names page boots
-    // read it by (entry.js and the pre-built bundles read `use`, home's pages
-    // `lib`). window.__lib is stamped only when that ref was ASKED for, by this
-    // renderer's ?lib= or a `lib` in the page query, so a page that frames
-    // views of its own (an app) can tell a selection to pass on from a default
-    // each view re-derives for itself. window.__ref is the SUBJECT's own ref,
-    // for any subject. entry.js reads ?ref= on its import, then __lib, then
-    // use, then main, so the three never disagree about what a boot loads.
+    // THREE CHANNELS, ONE MEANING EACH. `use` answers the EFFECTIVE Web Tools
+    // ref, the one libRef resolved; entry.js and the pre-built bundles read it.
+    // `lib` is never invented: it reaches the page only when the page query
+    // really carries it, and window.__lib is stamped only when a version was
+    // ASKED for (this renderer's ?lib=, or that page-query `lib`). So a page
+    // that reads `lib` or __lib (home's pages, an app forwarding to its views,
+    // or another renderer framed by this one) sees a selection only when there
+    // is one, and derives its own default otherwise. Until 2026-09-29 `lib`
+    // was injected with the default too, and a renderer running another
+    // renderer read that default as an ask and imposed it on the page inside
+    // (the top-mode launcher probe caught it). window.__ref is the SUBJECT's own
+    // ref, for any subject. entry.js reads ?ref= on its import, then __lib, then
+    // use, then main, so the channels never disagree about what a boot loads.
     const injected = {};
     if (pageQuery) for (const [k, v] of new URLSearchParams(pageQuery)) injected[k] = v;
-    if (lib) { injected.use = lib; injected.lib = lib; }
+    if (lib) injected.use = lib;
     if (libAsked) prelude += '<script>window.__lib=' + JSON.stringify(libAsked) + ';<\/script>';
     if (ref) prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>';
     if (Object.keys(injected).length) {
@@ -1139,7 +1143,10 @@ document.addEventListener('click',function(e){
     // a `lib` the page query inside the address already carries, which is how
     // links minted before the renderer had one said it (home's budget-drs
     // pages read it), so those keep meaning what they meant.
-    const libAsked = queryParams.get('lib') || new URLSearchParams(pageQuery).get('lib') || '';
+    // An ask from outside this document counts too: a renderer framed by
+    // another renderer, or run by the top-mode launcher, has its ask stamped
+    // as window.__lib rather than on a query of its own.
+    const libAsked = queryParams.get('lib') || window.__lib || new URLSearchParams(pageQuery).get('lib') || '';
     const lib = libRef(owner + '/' + name, ref, libAsked);
     showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
@@ -1202,7 +1209,7 @@ document.addEventListener('click',function(e){
     // location.search read. The renderer ref is the map's (the app itself)
     // unless this renderer's ?lib= names another, since a viewer page is Web
     // Tools code; any @ref inside <env> is the ENVELOPE's ref, untouched here.
-    const viewerRef = queryParams.get('lib') || r.ref;
+    const viewerRef = queryParams.get('lib') || window.__lib || r.ref;
     await showAddress(`${r.repo}@${viewerRef}:${r.path}?src=${encodeURIComponent(env)}` + (frag ? '#' + frag : ''));
     // Re-emit the pretty route form for the "Link" action, not the resolved #gh=.
     tossLinkFn = async () => absUrl(`#${key}=${raw}`);

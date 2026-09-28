@@ -96,7 +96,8 @@ to load through three channels, each with one meaning:
 
 | Channel | Meaning | Set when |
 |---|---|---|
-| `use` and `lib`, answered by the shim | The effective Web Tools ref | Always, for a page with a ref to answer |
+| `use`, answered by the shim | The effective Web Tools ref | Always, for a page with a ref to answer |
+| `lib`, answered by the shim | The page query's own `lib`, never a default | The page query inside the address carries it |
 | `window.__lib` | A Web Tools version that was asked for | The renderer's own `?lib=<ref>` is set, or the page query inside the address carries `lib` |
 | `window.__ref` | The page's own repo ref | The address names a ref |
 
@@ -104,8 +105,11 @@ The effective ref is the explicit one when there is one: the renderer's
 `?lib=`, else the page query's `lib`. Otherwise it is the page's own ref for
 a page of this repo, and `main` for a page of any other repo, since that
 page's ref names a branch of a different repository. So a page tossed from
-another repo loads `main` unless the link says otherwise, whichever of `use`,
-`lib` and `window.__lib` its boot reads. A page that frames views of its own,
+another repo loads `main` unless the link says otherwise, whether its boot
+reads `use` or reads `lib` and then `window.__lib`. The renderer never
+invents a `lib`: a default answered under that name looked like a selection
+to anything that forwards selections, and a renderer run by another renderer
+imposed the outer default on the page inside (caught 2026-09-29). A page that frames views of its own,
 such as the app, reads `window.__lib` to tell a selection it must pass on
 from a default each view derives for itself. The web-tools app does this in
 `appViewAddress`: a view's own ref and `lib` win, then the app's page ref (for

@@ -22,7 +22,7 @@ Evidence carries one of three labels:
 | A page's data in other repositories | The page, by its own parameters (`library.html`: `?data=<ref>`), which the address's page query carries through untouched | Whatever the page chooses; some reads are pinned to main on purpose |
 | A view framed by the web-tools app | The view's own ref and `lib`, else the app's page ref (web-tools views) and the app's explicit Web Tools selection, `main` included | The view's own default |
 
-The renderer hands the Web Tools choice to the page by three channels, one meaning each (loader.md has the table): `use` and `lib` answer the effective ref, `window.__lib` is stamped only for an explicit selection, and `window.__ref` names the page's own repo ref. `lib/entry.js` reads `?ref=` on its import, then `window.__lib`, then `use`, then main.
+The renderer hands the Web Tools choice to the page by three channels, one meaning each (loader.md has the table): `use` answers the effective ref, `lib` and `window.__lib` carry only an explicit selection, and `window.__ref` names the page's own repo ref. `lib/entry.js` reads `?ref=` on its import, then `window.__lib`, then `use`, then main.
 
 The FAB checks the result. Its layer strip marks any layer whose loader booted a Web Tools version other than the one the rule gives it. Its "ignored" banner makes the same check inside a toss, where until 2026-09-28 it was switched off.
 
@@ -34,39 +34,89 @@ The FAB checks the result. Its layer strip marks any layer whose loader booted a
 | App at a branch, its views following it | `toss-render.html#gh=web-tools@<branch>:app/index.html?view=app&…` | Implemented on this branch. A web-tools view takes the app's branch; an explicit `?lib=`, `main` included, reaches every view | Harness X5b, X5c, X5d; unit tests |
 | A web-tools page and its Web Tools code at two refs | `toss-render.html?lib=<ref B>#gh=web-tools@<ref A>:pages/x.html` | Implemented | Harness X9p; unit tests |
 | A page from another repo with Web Tools at a branch | `toss-render.html?lib=<ref B>#gh=home@<ref A>:<path>` | Implemented. With no `?lib=` the page runs main; before, it was told its own repo's branch name, which live GitHub served from a same-named web-tools branch | Harness X2p, C9; live E9 |
-| A project page, Web Tools code and private-repository data at three refs | `toss-render.html?lib=<B>#gh=shortcut-tools@<A>:pages/library.html?data=<C>` | Works for the one real page that reads private data. Page at A, Web Tools at B, curated data consumed at C (the stamp was read back from the page's state), device folders at main by design | Harness X11. Live E9 reached the Web Tools boot at B; the proxy dropped the data reads |
+| A project page, Web Tools code and private-repository data at three refs | `toss-render.html?lib=<B>#gh=shortcut-tools@<A>:pages/library.html?data=<C>` | Works for the pages that let a link choose the private repository's ref (see the map section for which). Measured on `library.html`: page at A, Web Tools at B, curated data consumed at C (the stamp was read back from the page's state), device folders at main by design | Harness X11. Live E9 reached the Web Tools boot at B; the proxy dropped the data reads |
 | A viewer page from one branch showing content from another | `toss-render.html?lib=<B>#data=<repo>@<A>:<file>` | Implemented | Harness X8p; unit test |
 | A page on a pre-built bundle (`dist/web-tools.js`, `dist/app.js`, seven pages' own boots) | as above | The whole build at the effective ref. No single file inside a build is selectable, and none needs to be: any library state worth previewing exists as a commit whose build the hook keeps current | Harness X4, X6p |
 | A home page that picks its own build (`surfacer.html`) | as above | Always main's build; later loads follow the effective ref, so an explicit `?lib=` other than main mixes the two | Harness X4 |
 | Relative images, CSS `url()`, `import()`, `<iframe src>` in a tossed page | any | Load from the deployed site, main, whatever the address says; absent for a private repo | Harness C11 |
 | `lib/entry.js` itself | any | Always the deployed copy | Harness, every case |
 
-## What still separates a toss from a direct `?use=` link
+## Which resources follow which selection
 
-For a web-tools page with only `lib/` changed, the toss `toss-render.html#gh=web-tools@<ref>:pages/x.html` loads the same page file and the same library as `pages/x.html?use=<ref>`. It also reaches private repositories and changed page files, which `?use=` cannot. What `?use=` still has that a toss lacks:
+Measured in the harness unless marked read.
 
-1. **The FAB and the drawer at the branch.** A toss's FAB is the renderer's, from main; `?use=` on a deployed page runs the page's own FAB at the ref. Pinning the renderer is the shape that crashes an iPhone. Two ways forward: E1 finds a safe way to pin the renderer's FAB, or the renderer runs a trusted page as the top-level document (E6's top mode, measured in Chromium only).
-2. **The top-level document.** Title and icon are relayed today. History writes inside the frame are swallowed, so a reload loses the view. The iOS viewport, keyboard and home-screen behaviour are the page's only at the top level. Top mode addresses all of these; so would a history relay for the first two.
-3. **The generators.** `scripts/showing.py` still picks `?use=` for a change confined to `lib/`, and its tests say so. It should switch to the toss once item 1 is settled, since until then the switch trades a branch FAB for nothing.
-4. **Device confirmation.** No tap on the current renderer hosting a frame has been recorded since the loader changed on 2026-09-26 (E1, cell A).
+| Resource | Version |
+|---|---|
+| The page file | The address's ref |
+| The page's relative `<script src>` and `<link rel=stylesheet>` | The address's ref, inlined by the renderer. A frame only today: the top-mode prototype has no inliner, so production top mode must reuse the renderer's prelude (read) |
+| The page's relative `fetch()` GETs | The address's ref, through the renderer's fetch shim. Frame only today, as above |
+| The page's relative `<img>`, CSS `url()`, `import()`, `<iframe src>`, and a relative favicon | The deployed site, main, through the stamped `<base>`, in both modes |
+| `lib/entry.js` | The deployed site, always |
+| `lib/gh-api.js` and every `gh.load` file | The Web Tools selection: raw and the contents API at that ref, or Pages for main |
+| A pre-built bundle a page boots by `use` (`dist/app.js`, `dist/web-tools.js`, seven pages' own boots) | The Web Tools selection, whole. Files loaded after it follow the same ref |
+| `surfacer.html`'s bundle (home) | main's, whatever the selection; its later loads follow the selection |
+| A routed toss's viewer page | The Web Tools selection, else the route's ref |
+| The renderer itself, its FAB and its Alpine | main, in frame mode. In top mode there is no renderer on screen; the page's own FAB follows the Web Tools selection |
+| Another repository's data | The page's choice: an explicit parameter, the page's own ref by convention, or main by design (the map section) |
+| A view the web-tools app frames | The inheritance rules in the selection table |
 
-Relative assets and `entry.js` load from the deployed site on both routes, so neither is a reason to prefer `?use=`.
+## Closing the gap to a direct `?use=` link: two approaches, measured
+
+For a web-tools page with only `lib/` changed, a toss already loads what `pages/x.html?use=<ref>` loads, and it also reaches private repositories and changed page files. What it lacked, measured in `tools/test/showing-mode-compare.mjs` (E10) across four scenarios, with F as today's renderer:
+
+| Measured in Chromium, harness | F: frame | A: frame, the renderer's library at a chosen ref | B: top mode |
+|---|---|---|---|
+| The FAB on screen | main's | the chosen ref's | the page's own, at the page's Web Tools selection |
+| Tab title | "Toss · …" | "Toss · …" | the page's own |
+| Page and Web Tools chosen apart | yes | yes, plus a third choice for the renderer | yes |
+| A view switch (`pushState`), back, reload | the address is untouched; back leaves the page; reload loses the switch | as F | the address keeps the page's query; back returns to the prior view; reload keeps the switch |
+| The page sees the address in its own query | no | no | no: the `gh` entry is hidden from the page's reads and folded back into its history writes |
+| Three repositories (S4) | page A, Web Tools B, data C; FAB main | the same; FAB B | the same; FAB B, the page's own |
+
+**What A solves.** It solves only the drawer's version around a framed page. It adds a third version a user must understand (the renderer's, beside the page's and the Web Tools'), and it leaves title, history and the phone's viewport where F leaves them. On an iPhone it is the recorded crash shape unless E1 finds that loading the renderer's library by the native import at a ref survives (cell C).
+
+**What B solves.** It gives the page's own FAB at the Web Tools selection, its own title and icon, working history and reload, and, on a phone, the page's own viewport and keyboard. It keeps page and Web Tools independent without adding a third version: the FAB is Web Tools code, so it follows the Web Tools selection. **It also makes device verification possible before merge.** Once the top-mode page is on main, it can run any branch's page, including a branch's own renderer, as the top-level document (measured: a branch renderer launched this way framed a page at another branch, with each document at its own version).
+
+**What B costs.** The forced width (`?w=`) needs a frame; payloads (`#gz=`) must stay opaque in a frame; the renderer's own Link and re-address actions are not on screen (the page's FAB has its own render tab); a link in the page to another relative page leaves the preview for the deployed site, as it does in a frame. Its iPhone behaviour is unmeasured. A page that boots a branch library by the blob import and also hosts a frame (the app with a view open, or a branch renderer) is the recorded crash shape. A page with no frame is the shape the record says survives.
+
+**Recommendation for review: B, as a mode of the one render interface, chosen by the renderer.** A trusted page address runs top-level; payloads, forced widths and anything the renderer must stay around run in a frame, as today. The first step is small and verifiable: merge the two scratch pages on their own, since they change no production code, and use them on a phone to run the device checks below against this branch's code before anything else merges. A is not recommended. It is a narrower fix to one symptom, and it adds the version choice this work set out to hide.
+
+## iPhone: what can be checked before merge
+
+**What is possible now.**
+
+- **A faithful device check of the current deployed renderer** hosting a frame (the post-2026-09-26 baseline). Tap the FAB on any ordinary toss link. It needs no merge.
+- **Nothing that runs a branch's renderer, or a branch's page as the top-level document.** GitHub Pages serves only main, `raw.githubusercontent.com` serves HTML as text, a toss frames what it renders, and third-party render proxies are ruled out by the surfacing conventions. So a branch's renderer only ever runs nested, which is not the shape under question.
+
+**The smallest change that enables verification**: merge the two scratch pages, `pages/scratch/toss-top-probe.html` and `pages/scratch/shell-pin-probe.html`. Neither touches production code. After that, any branch's page or renderer can run top-level on the phone through the first. The second has to merge beside it rather than run through it, because its cell links are relative, and a relative link in a page run top-level resolves to the deployed site, not back to the launcher.
+
+**Device checks, in order**:
+
+1. Cell A: the deployed renderer, framing a page, survives a FAB tap. Possible now.
+2. Top mode, a page with no frame, Web Tools at a branch: the FAB opens. Expected to survive.
+3. Top mode, a page with a frame and Web Tools at a branch (the app with a view open, cell I): the risky shape.
+4. Top mode, the same page with `lib=main`: the native import with a frame. If this survives where check 3 dies, the blob import is the fatal part, and top mode can load a branch library some other way.
+5. Top mode, history on Safari: a view switch, back, reload, and `document.write` of module scripts.
+6. The shell-pin matrix, cells A to I, through the launcher, with cell D as the positive control.
 
 ## The map of repository selections
 
-**The real three-repository case.** No project page in `mehrlander/home` reads private data today. Two real pages cross into `mehrlander/web-tools-private`:
+**Which pages read private data, and at which ref.** Verified by search on 2026-09-29 across web-tools, home and shortcut-tools:
 
-- **The web-tools app.** It reads its registry at the default branch, and that is right: the registry is live shared state that crawls and devices write on main.
-- **The shortcut-tools library page.** It reads curated data at `?data=<ref>` and the folders the device writes at main, deliberately; reading those at the preview ref was the 2026-08-18 bug its comments record.
+- **Pages that read `mehrlander/web-tools-private`:** nine web-tools pages (`shortcuts`, `citations`, `dictate`, `shortcut-log`, `entities`, `session`, `shortcut-edit`, `session-context`, `show-repo/show-repo`), the app and its components, and three shortcut-tools pages (`library`, `token`, `push-shortcuts`). No page under `mehrlander/home/projects` reads it.
+- **Pages that let a link choose its ref:** three.
+  - `shortcut-tools/pages/library.html` takes `?data=<ref>` for its curated files and reads the folders the device writes at main, deliberately; reading those at the preview ref was the 2026-08-18 bug its comments record.
+  - `pages/entities.html` and `pages/citations.html` take `?data=<ref>`, else the page's own ref (`window.__ref`). That applies a web-tools ref to another repository on purpose: it relies on a session using the same branch name in every repository it touches.
+- **Pages that read it at main or the default branch:** the others. These include the app's registry and session store, which are live shared state that crawls and devices write on main.
 
-So the measured case is the library page (X11): its page, Web Tools and curated data at three refs, with the device folders at main. It works with existing parameters.
+So the measured three-repository case is `library.html` (X11), and it works with existing parameters.
 
 **What that rules out, and what it does not.** It rules out a *blind* override: a map applied to every read of a repository, which is the placement PR #823's draft named (the renderer's fetch shim rewriting the ref of any API read for a mapped repository). Nothing in a request says whether its `main` was chosen or defaulted, so the library page's device folders would move to the preview ref. It does not rule out two narrower forms:
 
 - **Scoped selections**: a map entry limited to paths, such as `web-tools-private@C:shortcuts/library.json,shortcuts/prune.json`. It works without the page's help, but the link then has to know which paths are curated, which is knowledge the page already holds. The scope drifts whenever the page reads a new file.
 - **Page cooperation**: the renderer carries a small map, `?refs=<repo>@<ref>,…`, and exposes it read-only as `window.__refs`; a page's curated reader consults it before its own default, and its pinned readers never do. It works for any page that opts in, needs no path knowledge in the link, and nests: the app would forward it the way it forwards `?lib=`.
 
-**Recommendation: no map yet, and page cooperation when one is needed.** Today the one page that reads another repository's data at a chosen ref already has a parameter, and the address carries it untouched. The web-tools app also forwards a view's own query, so the parameter survives nesting. A map buys one uniform name. That is worth adding when either of two things happens: a page reads two or more other repositories at chosen refs, or a view needs a selection its own query cannot carry. At that point the smallest form is the read-only `?refs=` → `window.__refs` above, with `?lib=` as its entry for Web Tools, which the renderer already treats as a selection to pass on. A blind override stays ruled out.
+**Recommendation: no map yet, and page cooperation when one is needed.** The three pages that choose another repository's ref already have a parameter, and the address carries it untouched. The web-tools app forwards a view's own query, so the parameter survives nesting. The same-branch-name convention in `entities.html` and `citations.html` is a cooperative selection already, keyed on the page's own ref. A map buys one uniform name, and it is worth adding when a page reads two or more other repositories at independently chosen refs, or when a view needs a selection its own query cannot carry. At that point the smallest form is the read-only `?refs=` → `window.__refs` above, with `?lib=` as its entry for Web Tools, which the renderer already treats as a selection to pass on. A path-scoped entry stays possible for a page that cannot cooperate. A blind override stays ruled out.
 
 ## PR #823, taken in
 
@@ -85,6 +135,7 @@ Where the two differed, the combined rule is this branch's, for one reason: a pa
 | E2 | Which ref a tossed page's library boots | Done; `toss-lib-ref.test.mjs`, `toss-ref-channels.test.mjs` |
 | E5 | Which ref every document asks for | Done; `showing-version-map.mjs` reports no wrong version on this branch |
 | E6 | Top mode | Chromium only, `toss-top-probe.mjs` |
+| E10 | Renderer version (A) against top mode (B), same scenarios | Done in Chromium, `showing-mode-compare.mjs`; the device half is the checks above |
 | E7 | A path address served by a 404 page | Needs a deploy |
 | E8 | Independent selection, read from what ran | Done; `showing-selection-probe.mjs`, cases X1 to X11 |
 | E9 | The same selections against live GitHub | Partly done, 2026-09-28, `showing-live-probe.mjs` through the sandbox's proxy. **The deployed renderer** booted a shortcut-tools page's Web Tools at `claude/doc-simplification-followups-n6ft2r`, a shortcut-tools branch name that web-tools also has, and GitHub served it: the cross-repo defect in its silent form. **This branch's renderer**, nested and given `?lib=<commit>`, booted the page's Web Tools at that commit. The proxy dropped later reads in every attempt, so the private data the page consumed is not established live; the harness has it (X11) |

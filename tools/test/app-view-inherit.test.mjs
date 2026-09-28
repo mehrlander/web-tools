@@ -105,9 +105,9 @@ test('inside a toss with ?lib=main, the app still forwards main to a view with n
   // The app, tossed at page-branch with the renderer's ?lib=main.
   const html = addressHtml('<!doctype html><html><head></head><body></body></html>',
     { owner: 'mehrlander', name: 'web-tools', ref: 'page-branch', path: 'app/index.html',
-      pageQuery: 'view=app', lib: 'main', libAsked: 'main' });
+      pageQuery: 'view=app&lib=main', lib: 'main', libAsked: 'main' });
   const { window } = new JSDOM(html, { runScripts: 'dangerously', url: 'https://mehrlander.github.io/' });
-  assert.equal(window.eval("new URLSearchParams('').get('lib')"), 'main', 'the shim is live in this realm');
+  assert.equal(window.eval("new URLSearchParams('').get('lib')"), 'main', 'the shim answers an empty parse with the page query');
   const fn = window.eval('(' + liftMethod('appViewAddress(v, ctx){') + ')');
   const got = fn({ repo: HUB, path: 'pages/diff-tool.html' }, { hub: HUB, appRef: 'page-branch', appLib: 'main' });
   window.close();

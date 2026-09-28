@@ -135,9 +135,10 @@ test('the renderer ?lib= picks a web-tools page library apart from the page ref'
 
 test('the renderer ?lib= reaches a cross-repo page too, under both names it reads', (t) => {
   const { lib, other } = libRefFor({ name: 'home', ref: 'claude/x', asked: 'claude/lib',
-    extra: "[new URLSearchParams(location.search).get('lib'), window.__lib, window.__ref]" });
+    extra: "[new URLSearchParams(location.search).get('use'), new URLSearchParams(location.search).get('lib') || window.__lib, window.__ref]" });
   assert.equal(lib, 'claude/lib');
-  assert.deepEqual([...other], ['claude/lib', 'claude/lib', 'claude/x'], 'lib and __lib name the library; __ref stays the page ref');
+  assert.deepEqual([...other], ['claude/lib', 'claude/lib', 'claude/x'],
+    'use and __lib name the library, and a page reading lib-then-__lib (home) finds it; __ref stays the page ref');
 });
 
 test('a page reads its own address through URL too', (t) => {
@@ -170,10 +171,27 @@ test('window.__lib is stamped only for a version that was asked for', (t) => {
   // pass on from a default each view re-derives. So the default must not wear
   // the stamp, while use and lib still answer it.
   const plain = libRefFor({ name: 'web-tools', ref: 'claude/x',
-    extra: "[window.__lib === undefined, new URLSearchParams(location.search).get('lib')]" });
-  assert.deepEqual([...plain.other], [true, 'claude/x']);
+    extra: "[window.__lib === undefined, new URLSearchParams(location.search).get('lib'), new URLSearchParams(location.search).get('use')]" });
+  assert.deepEqual([...plain.other], [true, null, 'claude/x'], 'a default travels as use only; lib is never invented');
   const asked = libRefFor({ name: 'web-tools', ref: 'claude/x', asked: 'main',
     extra: "[window.__lib, new URLSearchParams(location.search).get('use')]" });
   assert.deepEqual([...asked.other], ['main', 'main']);
   assert.equal(asked.lib, 'main', 'entry.js reads __lib ahead of use');
+});
+
+// A renderer run by another renderer (a nested toss, or the top-mode launcher)
+// reads its ask as `queryParams.get('lib') || window.__lib`. The outer one's
+// DEFAULT must not look like an ask there, or the inner renderer imposes it on
+// the page it frames: found 2026-09-29, when a branch renderer launched with
+// lib=main framed a page at page-br and booted it at main.
+const INNER_ASK = "new URLSearchParams(location.search).get('lib') || window.__lib || ''";
+
+test('a renderer framed by a renderer sees no ask when the outer one made none', () => {
+  const { other } = libRefFor({ name: 'web-tools', ref: 'branch-renderer', path: 'pages/toss-render.html', extra: INNER_ASK });
+  assert.equal(other, '');
+});
+
+test('an explicit ask reaches a renderer framed by a renderer, and so the page inside', () => {
+  const { other } = libRefFor({ name: 'web-tools', ref: 'branch-renderer', path: 'pages/toss-render.html', asked: 'main', extra: INNER_ASK });
+  assert.equal(other, 'main');
 });
