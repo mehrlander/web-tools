@@ -1,4 +1,4 @@
-// .claude/skills/tasks/build-board.py — the canonical board generator, bundled
+// skills/tasks/build-board.py — the canonical board generator, bundled
 // in the portable plugin and run by every tracker in the estate. A regression
 // here is silent and repo-wide, so the behavior worth pinning is the part with
 // branches: how `depends-on: <id>[, <id>...]` renders, and that a dormant task
@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseCsv } from '../build/registries-load.mjs';
 
-const GENERATOR = '.claude/skills/tasks/build-board.py';
+const GENERATOR = 'skills/tasks/build-board.py';
 
 // Render a board from an object of {id: frontmatter} and return its lines.
 function board(tasks) {

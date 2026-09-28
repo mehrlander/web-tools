@@ -10,7 +10,7 @@ resolution: promoted
 # Decide whether apple-shortcuts-actions belongs in the portable plugin
 
 The skill sits in `skills/`, the on-demand library, so it loads only when
-someone asks. The case for moving it to `.claude/skills/`, where the plugin
+someone asks. The case for moving it to `skills/`, where the plugin
 ships it and it fires ambiently, is that handing a user a tappable link that
 puts wired content on their clipboard is a general delivery mechanism rather
 than an Apple Shortcuts curiosity. It is the only route that reaches a phone's
@@ -65,7 +65,7 @@ The reasoning above is that record; closing this needs only your word.
 
 ## Related
 
-- `.claude/skills/apple-shortcuts-actions/SKILL.md`: the portable skill (moved from `skills/apple-shortcuts-actions/`)
+- `skills/apple-shortcuts-actions/SKILL.md`: the portable skill (moved from `skills/apple-shortcuts-actions/`)
 - `skills/README.md`: on-demand library vs plugin placement; PR #392 drift context
 - `.claude-plugin/marketplace.json`: how plugin skills track main
 - task `retire-shell-name-the-parts-r152bt`: cited worked example against a one-member collective
@@ -73,7 +73,7 @@ The reasoning above is that record; closing this needs only your word.
 
 ## Progress log
 - 2026-09-04: Skill count corrected, 16 to 15, in a refinement pass:
-  `.claude/skills/` holds 15 `SKILL.md` files plus a `hooks/` directory that is
+  `skills/` holds 15 `SKILL.md` files plus a `hooks/` directory that is
   not a skill, against 41 in the on-demand `skills/` library. The decision is
   untouched and still the whole task.
 - 2026-09-17: Marked awaiting the promote / leave / split ruling; the task is entirely that decision.

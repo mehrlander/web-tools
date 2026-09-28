@@ -43,7 +43,7 @@ Ruled out: deriving the session from the commit signature. Commits are SSH-signe
 
 ## Approach
 
-The working reference implementation is `sessions_for()` in `.claude/skills/in-flight/in-flight.py` (PR #297), with tests in `tools/test/in-flight.test.mjs` including a regression test for the count bleed. It reads local git; the estate needs the same logic over the API.
+The working reference implementation is `sessions_for()` in `skills/in-flight/in-flight.py` (PR #297), with tests in `tools/test/in-flight.test.mjs` including a regression test for the count bleed. It reads local git; the estate needs the same logic over the API.
 
 Open question, and the reason this is not a one-line change: where the commit messages come from. The activity cache (`lib/repo-activity-cache.js`) currently serializes `openPRs` only. Options, cheapest first:
 

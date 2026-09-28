@@ -126,7 +126,7 @@ elements, skip any inside a horizontally scrollable ancestor, or every carousel
 slide reports as a fault.
 
 This is what catches the two failures the house style prescribes against
-(`skills/daisy-alpine/SKILL.md`):
+(`skills/html-style/SKILL.md`):
 a scroll track without `min-w-0` claiming one viewport per slide, and a form
 control that stops short of its column.
 

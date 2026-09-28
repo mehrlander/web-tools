@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The plugin's copies of the traveling docs, under .claude/skills/default/.
+// The plugin's copies of the traveling docs, under skills/default/.
 //
 // docs/ is authoritative and these are copies by design: a session that
 // installed the portable plugin has them on disk, so loading the conventions
@@ -31,7 +31,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 export const VENDORED = ['SURFACING.md', 'surfacing-course.md', 'QUALIFIED-WRITING.md'];
 
 const src = (name) => path.join(repoRoot, 'docs', name);
-const dst = (name) => path.join(repoRoot, '.claude', 'skills', 'default', name);
+const dst = (name) => path.join(repoRoot, 'skills', 'default', name);
 
 const check = process.argv.includes('--check');
 const behind = [];

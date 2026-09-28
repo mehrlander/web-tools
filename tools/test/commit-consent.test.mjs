@@ -1,4 +1,4 @@
-// .claude/skills/hooks/commit-consent.py — the consent gate, which had no test
+// skills/hooks/commit-consent.py — the consent gate, which had no test
 // at all until this file.
 //
 // It refuses a commit, so every one of its answers costs a session a cycle, and
@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
-const GATE = join(repoRoot, '.claude/skills/hooks/commit-consent.py');
+const GATE = join(repoRoot, 'skills/hooks/commit-consent.py');
 
 function git(cwd, ...args) {
   return spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8' });
@@ -91,7 +91,7 @@ test('a vendored copy is not authored language, and cannot say so', () => {
   // place compares bytes.
   const body = '# Surfacing\n\nOne.\n';
   const next = '# Surfacing\n\nTwo.\n';
-  const copy = '.claude/skills/default/Surfacing.md';
+  const copy = 'skills/default/Surfacing.md';
   const out = gate({ 'docs/Surfacing.md': next, [copy]: body },
                    { [copy]: next }, 'Re-vendor\n');
   assert.equal(out.status, 0, out.err);
@@ -101,7 +101,7 @@ test('a copy that has drifted from its source is authored again, and is caught a
   // The boundary the rule needs, or `is_copy` would excuse every edit to a file
   // that merely shares a name with another. Same name, different bytes, so the
   // twin is not a twin.
-  const copy = '.claude/skills/default/Surfacing.md';
+  const copy = 'skills/default/Surfacing.md';
   const out = gate({ 'docs/Surfacing.md': '# Surfacing\n\nSource.\n', [copy]: '# Surfacing\n\nSource.\n' },
                    { [copy]: '# Surfacing\n\nDrifted on its own.\n' }, 'Edit the copy\n');
   assert.equal(out.status, 1, 'a drifted copy is an authored change');

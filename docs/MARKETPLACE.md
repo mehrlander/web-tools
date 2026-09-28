@@ -6,12 +6,13 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | the 16 skills explicitly listed under its `.claude/skills/` source in the marketplace catalog, cross-referenced one row per piece in [`portable.csv`](portable.csv) | The to-go bag: the conventions loader and its surfacing contract, the tracker operator, and the rest of the set. This file deliberately does not enumerate the roster: the catalog is the definition and the Distribution registry is its reader-facing crosswalk |
-| `daisy-alpine` | `/daisy-alpine:daisy-alpine` | The house style for pages, model-invocable so it fires on matching artifact work; the DaisyUI 5 + Tailwind 4 + Alpine.js mechanics ride beside it in `references/mechanics.md` |
+| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | The conventions loader, the tracker operator, the HTML house style, and the rest of the skill library. |
+
+Every skill's description sits in every session's context; the measured cost is in [environment/extending.md](environment/extending.md#context-cost).
 
 Plugin skills are namespaced by plugin name, so `/tasks` installed by hand and `/portable:tasks` installed by plugin coexist without conflict.
 
-Neither plugin declares a `version`, so every commit to `main` is a new version and consumers track the tip on auto-update. That matches the doctrine the raw-fetch hook already followed: the hub is always current, nothing is pinned. Pin a `version` (or a `ref` on the consumer side) only when a consumer needs stability.
+The plugin declares no `version`, so every commit to `main` is a new version, and the plugin's own `SessionStart` hook moves each session to it. Why a hook rather than marketplace auto-update is in [environment/container.md](environment/container.md). Pin a `version` (or a `ref` on the consumer side) only when a consumer needs stability.
 
 ## How to subscribe
 
@@ -32,8 +33,7 @@ Standing, for a repo (the committed form; cloud sessions install these at sessio
     }
   },
   "enabledPlugins": {
-    "portable@web-tools": true,
-    "daisy-alpine@web-tools": true
+    "portable@web-tools": true
   }
 }
 ```
@@ -41,7 +41,7 @@ Standing, for a repo (the committed form; cloud sessions install these at sessio
 ## Conventions for publishers
 
 - **One catalog per repo.** A project inside a repo publishes by adding an entry to its repo's catalog with a relative `source` path, not by minting its own marketplace.
-- **Scope the `source` to the subtree the plugin needs.** Install copies the whole source directory to the consumer's cache; a root-sourced plugin drags the entire repo along, and a directory that mixes shareable and repo-local files ships both. The `source` boundary is the sharing boundary, and it can only follow directory lines: draw it at the deepest directory that holds everything the plugin ships and nothing it doesn't, splitting the plugin into per-subtree entries when no single such directory exists. The entries here source `./.claude/skills` (not `./.claude`, whose `hooks/` and `settings.json` are this repo's own machinery) and `./skills/daisy-alpine` (not the whole skill library), not `./`.
+- **Scope the `source` to the subtree the plugin needs.** Install copies the whole source directory to the consumer's cache; a root-sourced plugin drags the entire repo along, and a directory that mixes shareable and repo-local files ships both. The `source` boundary is the sharing boundary, and it can only follow directory lines: draw it at the deepest directory that holds everything the plugin ships and nothing it doesn't, splitting the plugin into per-subtree entries when no single such directory exists. The entry here sources `./skills`, which holds the skills and their hooks. Sourcing `./.claude` or `./` would ship this repo's own hooks and settings too.
 - **`strict: false` when the files already live where the repo wants them.** The catalog entry is then the complete plugin definition and no `plugin.json` or file moves are needed.
 - **Validate before pushing:** `claude plugin validate .` from the repo root, and when in doubt install from the local path and inspect `~/.claude/plugins/cache/`.
 
@@ -57,11 +57,5 @@ to use it.
 
 ## Why the hooks ship here
 
-Eight pieces of the `portable` plugin run on their own rather than being invoked:
-the session dispatcher, the session recorder, the default-skill directive, the
-PR-subscribe hint, the MCP failure hint, the reading-column guard, the
-governing-docs warner, and the send-later guard. They ship in the plugin because
-the per-container settings file they would otherwise live in is provisioned
-fresh each session, so a hand-installed copy works for exactly one session and
-then vanishes. Mechanics and measurements:
+The plugin's hooks run on their own rather than being invoked; `skills/hooks/hooks.json` registers them. They ship in the plugin because it is the one channel that reaches every session: no session can read or edit the environment setup script, and a repo's project settings are not read when a session's root sits above the checkouts. Mechanics and measurements:
 [environment/extending.md](environment/extending.md).
