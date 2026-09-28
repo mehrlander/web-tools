@@ -147,7 +147,7 @@ test('an explicit sha rides the first PUT, with no read at all', async () => {
 // whole loop went inert. GitHub caches an API read in the browser for a minute,
 // so a refetch on the default fetch cache mode is handed back the same sha that
 // was just rejected, and four attempts converge on nothing. Measured
-// 2026-08-13 on a show-repo to-do check-off; see GH.FRESH in gh-api.js.
+// 2026-08-13 on a Web Tools to-do check-off; see GH.FRESH in gh-api.js.
 test('the conflict refetch reads past the HTTP cache', async () => {
   const { gh, reads } = makeGH({ failPuts: 1 });
   await gh.save('lists/todo.json', { items: [] });

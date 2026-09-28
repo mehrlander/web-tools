@@ -2,7 +2,7 @@
 id: retire-shell-name-the-parts-r152bt
 title: Retire `shell`, and name the parts instead of the collection
 status: backlog
-project: show-repo
+project: app
 opened: 2026-08-15
 size: M
 awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body
@@ -56,7 +56,7 @@ bodies and artifacts. The FAB's three-segment bar becomes two toggles.
 **2. Replace the other five senses** with words already in the same sentences:
 `window.__app` (the house pattern is `__<componentName>` and the body is
 `x-data="app()"`, so `__shell` is the only back-pointer not named for its
-component); the application's name per `docs/APP.md`'s split; **native** versus
+component); the application's name, Web Tools, per `docs/APP.md`; **native** versus
 **embedded** views; **the page file**; and **nested/top-level document**.
 
 **3. A handful of definitional `chrome` sentences**, not a sweep. The defining
@@ -72,7 +72,7 @@ its exemptions from what survives step 2, not before.
 
 - `app/index.html`: `?shell=` / `shellMode` live here; split into `?header=` and `?sidebar=`
 - `docs/showing.md`: three senses of `shell` in one nesting section
-- `docs/APP.md`: application naming split step 2 aligns with
+- `docs/APP.md`: the application's name, which step 2 uses
 - `docs/SNAGS.md`: `live-term-wider-referent` origin
 - `skills/daisy-alpine/SKILL.md`: definitional chrome rules 5 and 7
 - `lib/alpineComponents/fab.js`: leave alone; enumerated `chrome` is the counterexample

@@ -1,5 +1,5 @@
 // gh-api.test.mjs — unit tests for GH.recentFiles(): the batched-parallel
-// walk that feeds show-repo's sidebar Recent panel. gh-api.js is a plain ES
+// walk that feeds the app's sidebar Recent panel. gh-api.js is a plain ES
 // module whose window-only paths (console capture, jsDelivr bootstrap) are
 // guarded, so Node imports it directly; req() is stubbed with canned data.
 import test from 'node:test';

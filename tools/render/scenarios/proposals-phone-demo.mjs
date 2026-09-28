@@ -10,7 +10,7 @@ export default async (page) => {
       id, kind: 'set-json-field', repo, path: '.web-tools.json', field: 'scope', value,
       summary, why, caution, by: 'claude-code', authored: '2026-07-23',
       session: 'https://claude.ai/code/session_01XjvMeMaNZ3SZ6kTrLbJd49' });
-    const SHARED = 'A repo’s scope is the one-paragraph statement of what it holds and why it exists. show-repo’s Map view puts it on the repo’s card, so the estate reads as a set of purposes rather than a list of names; a repo without one shows a blank card. Four repos never got one, because the sessions that would have written them could not reach those repos. Drafted 2026-07-23 from the notes in home/repos.';
+    const SHARED = 'A repo’s scope is the one-paragraph statement of what it holds and why it exists. The app’s Map view puts it on the repo’s card, so the estate reads as a set of purposes rather than a list of names; a repo without one shows a blank card. Four repos never got one, because the sessions that would have written them could not reach those repos. Drafted 2026-07-23 from the notes in home/repos.';
     const files = {
       [REG]: {
         'proposals/pending/scope-chat-histories.json': rec('scope-chat-histories', 'mehrlander/chat-histories',

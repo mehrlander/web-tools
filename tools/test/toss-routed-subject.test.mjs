@@ -100,8 +100,8 @@ function harness({ routes, fail, query = '' } = {}) {
 test('an envelope address comes apart into repo, ref, and path', () => {
   assert.deepEqual(splitAddr('mehrlander/home:CLAUDE.md'),
     { repo: 'mehrlander/home', ref: '', path: 'CLAUDE.md' });
-  assert.deepEqual(splitAddr('mehrlander/web-tools@main:docs/show-repo.md'),
-    { repo: 'mehrlander/web-tools', ref: 'main', path: 'docs/show-repo.md' });
+  assert.deepEqual(splitAddr('mehrlander/web-tools@main:docs/APP.md'),
+    { repo: 'mehrlander/web-tools', ref: 'main', path: 'docs/APP.md' });
 });
 
 test('a slashed ref survives, since every session branch has one', () => {

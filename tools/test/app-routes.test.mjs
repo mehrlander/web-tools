@@ -1,4 +1,4 @@
-// docs/app-routes.csv: the show-repo app's own destinations stated as data,
+// docs/app-routes.csv: the Web Tools app's own destinations stated as data,
 // and lib/kits/route-activity.js, the fold that ranks them. Two things to hold.
 //
 // The MANIFEST has to agree with the router. app/index.html's VIEWS table is

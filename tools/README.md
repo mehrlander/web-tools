@@ -66,7 +66,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run pages-index` | Regenerate both catalogs of every page: [`pages/README.md`](../pages/README.md) (link-dense table) and [`pages/index.html`](../pages/index.html) (visual card index). A *catalog* generator, not part of the code pipeline below — see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages` | `pages-shots` then `pages-index` — refresh thumbnails and both catalogs in one step. |
 | `npm run graphql-schema [-- --check]` | Regenerate [`graphql/github-schema.pruned.graphql`](graphql/): fetch GitHub's published SDL (1.5 MB) and write only the slice `lib/gh-fetch.js`'s queries reach (~2 KB), so `npm test` can typecheck them offline. The **one generator that needs the network**, which is why it stays out of the commit hook and the derived-artifacts gate; the drift guard lives in [`test/graphql-schema.test.mjs`](test/graphql-schema.test.mjs) instead. Run it after editing a query. |
-| `node tools/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> --out <thumbs-dir>` | Shoot ANOTHER repo's `pages` catalog into the private thumb cache (`web-tools-private/thumbs/`), so show-repo's gallery can show clickable screenshots for that repo. Serves the source checkout, vendors CDN libs from this repo's `node_modules`. Not an npm script (it takes a target). |
+| `node tools/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> --out <thumbs-dir>` | Shoot ANOTHER repo's `pages` catalog into the private thumb cache (`web-tools-private/thumbs/`), so the app's gallery can show clickable screenshots for that repo. Serves the source checkout, vendors CDN libs from this repo's `node_modules`. Not an npm script (it takes a target). |
 
 Shared internals: [`render/cdn.mjs`](render/cdn.mjs) (URL → local
 classification, used by the renderer), [`build/graph.mjs`](build/graph.mjs)
@@ -318,7 +318,7 @@ delta. Nothing local reports it either, because the hook does not verify what it
 stamps; `docs-registry.test.mjs` catches it in CI, after the push. Three legs
 learned this separately and each left the finding as a comment on its own leg,
 which is how the fourth was free to repeat it in 2026-08-23. So it is stated
-here once: a new generator that writes under `docs/` goes above leg 3a, and one
+here once: a new generator that writes under `docs/` goes above leg docs-reach, and one
 that only reads goes wherever it likes.
 
 **And a leg has to stage the file it actually writes.** Every `git add` in the
@@ -370,12 +370,14 @@ Screenshots are slow (a Chromium render per page) and not byte-deterministic
 binary churn for every touched page on every commit. Instead the hook *warns*
 when a page's HTML changes without its thumbnail, and the refresh happens
 deliberately — `npm run pages-shots -- <changed pages…>` — as part of the
-session wrap-up ritual in the root `CLAUDE.md` ("Wrapping up"). Until then,
+session wrap-up, per the root `CLAUDE.md` ("Per-session refresh: thumbnails"). Until then,
 `pages/index.html` degrades gracefully: a missing thumb shows the
 "no screenshot" placeholder.
 
-Nothing is generated server-side: GitHub Pages serves `main` as-is, with no CI
-and no deploy build. GitHub's API, MCP writes, the web merge button, and other
+Nothing is generated server-side: GitHub Pages serves `main` as-is, with no
+deploy build. The one verification workflow, `.github/workflows/test.yml`, runs
+`npm test` on pull requests and pushes to `main`, except pushes limited to
+`pages/wsl-sync/data/**`. It reports results without committing changes. GitHub's API, MCP writes, the web merge button, and other
 server-side merges cannot execute a local checkout's hooks. Before a server
 merge, merge the current base into the branch in a ready local checkout, run
 `npm test`, and push the refreshed branch. Follow a printed

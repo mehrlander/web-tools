@@ -1,6 +1,6 @@
 // alpineComponents/branch-brief.js — mounted BY A HOST rather than as a page.
 //
-// show-repo's branch deck mounts one of these per slide, directly in the
+// The app's branch deck mounts one of these per slide, directly in the
 // shell's own Alpine. There was an iframe and a postMessage channel between
 // them until 2026-08-13, which cost a second boot of the whole library and
 // forced a hand-rolled swipe over a single live surface; both went when the

@@ -97,7 +97,7 @@ test('a long file peeks; only the reformat is skipped when it is huge', () => {
   // 86 KB doc must render, and a JSON too large to reformat must still show its
   // head rather than an error.
   const big = '# Title\n' + 'prose line\n'.repeat(20000);
-  const out = SP.body('docs/show-repo.md', big);
+  const out = SP.body('docs/APP.md', big);
   assert.equal(out.kind, 'markdown');
   assert.equal(out.text.split('\n')[0], '# Title');
   assert.equal(out.note, `first ${SP.LINES} of 20001 lines`);

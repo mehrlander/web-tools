@@ -2,7 +2,7 @@
 id: branch-page-as-navigation-adi9ha
 title: Make the branch page a navigation target, swipeable from the lists
 status: done
-project: show-repo
+project: app
 opened: 2026-07-26
 closed: 2026-07-31
 session: claude/project-pages-docs-udzi51

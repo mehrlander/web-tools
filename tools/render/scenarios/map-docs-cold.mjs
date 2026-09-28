@@ -20,7 +20,7 @@ const PHANTOMS = [
   ['web-tools/docs/html-style.md', 1, '2026-08-26'],
   ['web-tools/docs/SNAGS.m', 1, '2026-08-05'],
   ['web-tools/docs/TRACKER.m', 1, '2026-08-08'],
-  ['web-tools/docs/show-repo.m', 1, '2026-08-07'],
+  ['web-tools/docs/APP.m', 1, '2026-08-07'],
   ['web-tools/docs/pages.md', 1, '2026-08-14'],
 ];
 

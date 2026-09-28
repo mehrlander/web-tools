@@ -81,7 +81,7 @@ The report then ends in a collision verdict rather than a list. Only live branch
 
 ## Extending
 
-The script takes `--json` for a machine-readable finding, which is the hook for anything that wants to render this rather than read it: a show-repo panel, a session-start check that speaks only when something is live, a periodic sweep over the stale-claim list. Nothing consumes it yet.
+The script takes `--json` for a machine-readable finding, which is the hook for anything that wants to render this rather than read it: a Web Tools panel, a session-start check that speaks only when something is live, a periodic sweep over the stale-claim list. Nothing consumes it yet.
 
 The repair step is deliberately manual. If closing stale claims becomes routine and the judgment stops mattering, that is the moment to promote it to a `--fix` flag, not before.
 

@@ -47,8 +47,8 @@ Four things measured on one live session:
 
 - **The preview is 1,997 bytes**, and it ended partway into `CONVENTIONS.md`'s
   opening. Only the head of a payload is guaranteed to arrive, which is why
-  [`inject-conventions.sh`](../../.claude/skills/hooks/inject-conventions.sh)
-  prints its recovery block first and
+  `inject-conventions.sh`, the conventions injector since retired, printed its
+  recovery block first and
   [`session-dispatch.sh`](../../.claude/skills/hooks/session-dispatch.sh) prints
   its warning first.
 - **The cap is per hook entry, not across the event.** In the same session the
@@ -69,8 +69,7 @@ Four things measured on one live session:
 
 The exact ceiling is still undocumented. The bound is that the smallest
 persisted output in the session archive is 29.4 KB, so it sits at or below that;
-`session-dispatch.sh` guards at 28,000 and the injector derives its own budget
-from that number rather than carrying a second copy.
+`session-dispatch.sh` guards at 28,000 (`OUTPUT_BUDGET`).
 
 ## Git transport: a per-push size ceiling
 
