@@ -614,7 +614,7 @@
       openTip(kind, v, btn) {
         if (this.tip && this.tip.kind === kind && this.tip.v.id === v.id) return this.closeTip();
         const r = btn.getBoundingClientRect();
-        const w = Math.min(384, innerWidth - 16);
+        const w = Math.min(320, innerWidth - 16);
         this.noteDraft = '';
         this.tip = { kind, v, x: Math.max(8, Math.min(r.right - w, innerWidth - w - 8)), y: r.bottom + 6, w };
         this._tipRect = r;
@@ -1003,11 +1003,11 @@
               <span class="normal-case tracking-normal truncate" x-show="purposeDef(g.purpose)?.gloss"
                     x-text="purposeDef(g.purpose)?.gloss"></span>
             </h2>
-            <button class="btn btn-square btn-xs btn-ghost text-primary mb-0.5"
+            <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-10 max-sm:w-10"
                     :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
                     :title="'Read the ' + g.items.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
                     @click="openVariantDeck(g.items, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
-              <i class="ph ph-cards-three"></i>
+              <i class="ph ph-cards-three text-lg"></i>
             </button>
           </div>
 
@@ -1236,47 +1236,33 @@
   <!-- The one panel-tip: a variant's details, or its notes and a box to add
        one. Pinned by the click that opens it; panel-tip.js owns the ways out. -->
   <div x-ref="tip" x-show="tip" x-cloak role="dialog" aria-label="Variant"
-       class="fixed z-[1000] rounded-lg border border-base-300 bg-base-100 shadow-xl p-4 text-base leading-6 max-h-[70vh] overflow-y-auto"
+       class="fixed z-[1000] rounded-xl border border-base-300 bg-base-100 shadow-lg px-4 py-3 text-base leading-6 max-h-[60vh] overflow-y-auto"
        :style="tip ? `left:${tip.x}px;top:${tip.y}px;width:${tip.w}px` : ''">
     <div x-html="tipClose"></div>
     <template x-if="tip && tip.kind === 'info'">
-      <div class="grid gap-3 pr-6">
-        <div>
-          <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50">Purpose</div>
-          <div class="font-medium" x-text="tip.v.purpose"></div>
-          <div class="text-base-content/70" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></div>
-          <blockquote class="border-l-2 border-base-300 pl-3 mt-1" x-show="purposeDef(tip.v.purpose)?.prompt"
-                      x-text="purposeDef(tip.v.purpose)?.prompt"></blockquote>
-        </div>
-        <div>
-          <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50">Author</div>
-          <div x-text="tip.v.author"></div>
-        </div>
-        <div class="text-sm text-base-content/50 flex flex-wrap gap-x-3 gap-y-1">
-          <span>prior work, not an automatic recommendation</span>
-          <a class="link link-hover break-all" :href="'?pane=variants&variant=' + tip.v.id" x-text="tip.v.id"></a>
-        </div>
+      <div class="pr-6 grid gap-1.5">
+        <div><span class="font-medium" x-text="tip.v.purpose"></span><span class="text-base-content/50" x-text="' · ' + tip.v.author"></span></div>
+        <p class="text-base-content/70 text-pretty" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
+        <p class="text-base-content/70 text-pretty italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
       </div>
     </template>
     <template x-if="tip && tip.kind === 'note'">
-      <div class="grid gap-3">
-        <div class="text-sm font-semibold uppercase tracking-wide text-base-content/50 pr-6">Comments</div>
+      <div class="grid gap-2 pr-7">
         <template x-for="(n, k) in reviewsOf(tip.v).notes" :key="k">
-          <div class="border-l-2 border-base-300 pl-3">
-            <div class="text-sm text-base-content/50" x-text="n.by + ' · ' + String(n.at).slice(0, 10)"></div>
-            <div class="whitespace-pre-wrap" x-text="n.note"></div>
+          <div>
+            <span class="text-base-content/50" x-text="n.by + ':'"></span>
+            <span class="whitespace-pre-wrap" x-text="n.note"></span>
           </div>
         </template>
-        <p x-show="!reviewsOf(tip.v).notes.length" class="text-base-content/50">No comments yet.</p>
-        <textarea id="variant-note" class="textarea textarea-bordered w-full text-base" rows="3"
-                  placeholder="What works, or what does not" x-model="noteDraft"
+        <textarea id="variant-note" class="textarea textarea-bordered w-full text-base leading-6 min-h-0" rows="2"
+                  placeholder="Comment" x-model="noteDraft"
                   @keydown.meta.enter="saveNote(tip.v)" @keydown.ctrl.enter="saveNote(tip.v)"></textarea>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center justify-end gap-3">
+          <span class="text-sm text-error grow" x-show="reviewError" x-text="reviewError"></span>
           <button class="btn btn-primary btn-sm" :disabled="!noteDraft.trim() || !!reviewBusy" @click="saveNote(tip.v)">
-            <span x-show="!reviewBusy">Save comment</span>
+            <span x-show="!reviewBusy">Save</span>
             <span x-show="reviewBusy" class="loading loading-spinner loading-xs"></span>
           </button>
-          <span class="text-sm text-error" x-show="reviewError" x-text="reviewError"></span>
         </div>
       </div>
     </template>

@@ -188,9 +188,8 @@ test('the markup shows the four fields and never offers Apply', () => {
   assert.match(SRC, /x-show="pane === 'variants'"/);
   assert.match(SRC, /Search variants/);
   assert.match(SRC, /x-init="lazyPair\(\$el, p\)"/, 'each row is the pair itself, drawn as it nears the viewport');
-  assert.match(SRC, />Purpose</);
-  assert.match(SRC, />Author</);
-  assert.match(SRC, /prior work, not an automatic recommendation/);
+  assert.match(SRC, /x-text="tip\.v\.purpose"/, 'the details panel-tip names the purpose');
+  assert.match(SRC, /x-text="' · ' \+ tip\.v\.author"/, 'and the author');
   assert.match(SRC, /:id="'variant-' \+ p\.id"/, 'each stable variant address resolves to a DOM target');
   assert.doesNotMatch(SRC, />\s*apply\s*</i);
   assert.doesNotMatch(SRC, /lane|Provenance|Relocation|Evidence/, 'nothing the collection does not carry is drawn');
