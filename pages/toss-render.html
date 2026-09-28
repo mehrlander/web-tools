@@ -1341,7 +1341,10 @@ document.addEventListener('click',function(e){
     // as window.__lib rather than on a query of its own.
     const libAsked = SELECTED['mehrlander/web-tools'] || window.__lib || new URLSearchParams(pageQuery).get('lib') || '';
     const lib = libRef(repoKey, depOf(''), libAsked);
-    if (TOP) {
+    // Only an address the link carries runs top-level. One pasted into the
+    // panel has no URL to reload from, and pasted text reaches here with its
+    // payload in the fragment, which must stay opaque in a frame.
+    if (TOP && topHidden().some(k => k !== 'top' && param(k))) {
       topAddressInQuery(pageFrag);
       return writeTop(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
                                            top: { addr, repo: repoKey, path } }));

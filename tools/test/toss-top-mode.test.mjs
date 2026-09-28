@@ -113,4 +113,6 @@ test('the renderer never boots its own FAB in top mode', () => {
   assert.match(SRC, /if \(!window\.__tossTopMode\) try \{\s*\n\s*await import\('https:\/\/mehrlander\.github\.io\/web-tools\/lib\/entry\.js\?ref=main'\)/);
   assert.match(SRC, /const TOP = queryParams\.has\('top'\) && !queryParams\.has\('w'\);\n\s*window\.__tossTopMode = TOP;/,
     'top mode is decided before anything awaits, and a forced width keeps its frame');
+  assert.match(SRC, /if \(TOP && topHidden\(\)\.some\(k => k !== 'top' && param\(k\)\)\) \{/,
+    'only an address the link carries runs top-level; a paste keeps the frame');
 });
