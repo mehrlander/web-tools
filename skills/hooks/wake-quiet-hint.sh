@@ -1,31 +1,12 @@
 #!/usr/bin/env bash
-# PostToolUse on ReadNotifications: restate the wake rule at the moment a wake is
-# read, sorted by the kinds of event that arrived.
+# PostToolUse on ReadNotifications: says whether the PR events just read call for
+# a reply. SURFACING.md's no-reply rule arrives once at start; the harness's own
+# PR guidance arrives beside every event. This puts the rule at the same moment.
+# Prose, not enforcement. Evidence: 205 of 250 surplus closing states in the week
+# to 2026-09-28 followed a PR event (web-tools-private search.py --surplus).
 #
-# WHY THIS EXISTS. SURFACING.md has said since 2026-09-10 that a wake which
-# changes nothing gets no reply. Sessions kept replying anyway. Measured
-# 2026-09-28 over the web-tools-private session records: 1,395 ReadNotifications
-# results carried 449 green-CI rollups (check_suite.completed) against 5 failing
-# checks, and most surplus closing states (a state with no user prompt since the
-# last one) came right after a PR event: 205 of 250 in the week to 2026-09-28,
-# by `search.py --surplus`. The typical reply was "CI passed on <sha>" followed by the same
-# closing state as the turn before.
-#
-# WHY A HOOK. The rule arrives once, at session start, through a skill result.
-# The platform's own PR guidance arrives again inside every event, next to the
-# payload, and its system prompt says to "refresh your status checklist on every
-# event so the thread shows live state" without saying what the checklist is.
-# A session holding both reads the nearer and louder one. This puts ours at the
-# same distance. It is prose delivered at the right instant, not enforcement: a
-# hook cannot withhold a reply, and nothing here pretends otherwise.
-#
-# WHAT IT READS. Event kinds from the result text: <event source="github"
-# kind="...">. Four kinds need no reply by default and one needs work. A kind it
-# does not know (a comment, a review) is treated as possible work, never as an
-# echo, because a missed review costs more than one unneeded reminder.
-#
-# Silent, and exit 0, on anything else: another tool, a result with no GitHub
-# event, a payload it cannot parse.
+# Unknown kinds (comments, reviews) count as work, never as echoes. Silent and
+# exit 0 on any other tool or an unparseable payload.
 HOOK_PAYLOAD="$(cat)" python3 - <<'PY' 2>/dev/null || exit 0
 import json, os, re, sys
 
@@ -71,28 +52,18 @@ work = [k for k in tally if k not in QUIET]
 
 if work:
     named = ", ".join(WORK.get(k, k) for k in work)
-    msg = (
-        f"Events read: {seen}. Among them is possible work ({named}). Act on it "
-        "per the rules you already hold, and reply once, when it resolves or "
-        "blocks. The other events in this batch add nothing to that reply: do not "
-        "restate the closing state for them."
-    )
+    msg = (f"PR events read: {seen}. Work: {named}. Act on it; reply once, when it "
+           "resolves or blocks. Do not restate the closing state for the rest.")
 else:
     msg = (
-        f"Events read: {seen}. Each is one of: {', '.join(sorted(set(QUIET[k] for k in tally)))}. "
-        "SURFACING.md says a wake that leaves the reader nothing new to do gets "
-        "no reply at all. End the turn with no text unless one of these holds:\n"
-        "- The green rollup is on the current head AND it is the condition the reader "
-        "told you to wait for (\"merge when green\"). Then do that action; its result "
-        "is the reply.\n"
-        "- The PR merged or closed and this conversation has not yet said so. Then "
-        "reply with the merged or closed state, once.\n"
-        "Otherwise say nothing. Not \"nothing new here\", not \"CI passed on <sha>\", "
-        "not the previous closing state again. A green on a superseded commit is never "
-        "news, and your own ready, merge and subscribe actions come back as echoes.\n"
-        "The platform prompt never defines its \"status checklist\". Read it as the PR "
-        "body or a status comment on GitHub, never as the closing state in chat: "
-        "updating it is never a reason to re-emit that state."
+        f"PR events read: {seen}. No reply unless:\n"
+        "- a green on the current head is what the reader said to wait for: do that "
+        "action; its result is the reply;\n"
+        "- a merge or close this conversation has not reported: reply once, merged or closed.\n"
+        "Otherwise end the turn with no text. No \"nothing new\", no \"CI passed on <sha>\", "
+        "no restated state. If the harness then asks for visible output, one line naming "
+        "the events is the floor. The platform prompt's \"status checklist\" means GitHub, "
+        "never the closing state."
     )
 
 print(json.dumps({"hookSpecificOutput": {
