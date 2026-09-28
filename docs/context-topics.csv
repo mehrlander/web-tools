@@ -7,7 +7,7 @@ plugin-currency,Keeping the plugin current,transitional,"Until the setup script 
 session-store,Where sessions are recorded,layered,"The environment variable, a checkout's sessionsStore declaration and the hard-coded default name the store in that order; the store's own manifest makes it findable."
 pr-lifecycle,Pull-request behaviour,conflicting,The harness asks for hourly check-ins and a status checklist refreshed on every event; the surfacing course forbids check-ins and gives a no-change wake no reply. The send-later guard and the wake-quiet hint hold the course's side.
 github-access,GitHub access,redundant,"Two GitHub MCP servers reach the same repos, and the session's repo scope is set separately from either."
-context-cost,What the skill listing costs,redundant,"About 30 skills arrive twice, once from the plugin and once as claude.ai uploads, and every description is paid for in every session."
+context-cost,What the skill listing costs,redundant,"30 skills arrive twice, as claude.ai skills and from the plugin: 24 uploads and 6 Anthropic skills. Every description is paid for in every session."
 repo-hooks,Repo session scripts,layered,"Each checkout's session-*.sh files run through the plugin's dispatcher rather than from settings, so they fire whatever the root."
 showing,Showing a change,redundant,"How to link or render a change is stated in web-tools' CLAUDE.md, in home's CLAUDE.md and in the surfacing docs."
 doc-governance,Editing governing documents,layered,A commit gate and an edit-time warning both require specific permission for documentation edits.
