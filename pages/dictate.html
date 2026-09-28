@@ -2368,7 +2368,7 @@
           // Shaped like the platform's own: a capsule, a hairline edge, a soft
           // drop shadow, and a sheen across the top half, as glass has.
           lens.innerHTML = '<div class="relative w-full h-full overflow-hidden rounded-full bg-base-100 ring-[0.5px] ring-[color-mix(in_oklab,var(--color-base-content)_25%,transparent)] shadow-[0_10px_28px_-6px_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.12)]">'
-            + '<div data-lens-text class="absolute left-0 top-0 origin-top-left"></div>'
+            + '<div data-lens-text style="position:absolute;left:0;top:0;transform-origin:0 0"></div>'
             + '<div data-lens-caret data-caret-pulse class="absolute rounded-full bg-error"></div>'
             + '<div class="absolute inset-x-0 top-0 h-2/5 rounded-t-full bg-gradient-to-b from-[rgba(255,255,255,0.4)] to-[rgba(255,255,255,0)]"></div>'
             + '<div class="absolute inset-0 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),inset_0_-1px_2px_rgba(0,0,0,0.08)]"></div></div>';
@@ -2391,7 +2391,11 @@
         // out of an absolutely placed box. Assumed, the lens sat half a line
         // off on the phone. So the copy is laid out scaled at the origin, the
         // drop offset is found in it by its data-src runs, and the copy is
-        // then moved so that point sits at the lens centre. The focus is
+        // then moved so that point sits at the lens centre. Its position and
+        // transform origin are inline, not classes: a class new to the page
+        // exists only once Tailwind's browser build has written it, a frame
+        // later, and the origin moving after the measurement slid the text out
+        // of the lens. The focus is
         // taken relative to that offset's own caret on the page, which is
         // what carries a gap's midpoint across too.
         const pageAt = window.MdSurface.rectAt(md, tg.at);

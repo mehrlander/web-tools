@@ -1531,6 +1531,9 @@ try {
     const dt = new DataTransfer(); dt.setData('text/plain', 'x');
     const fire = (type) => md.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: r.left + 1, clientY: r.top + r.height / 2 }));
     fire('dragstart'); fire('dragover');
+    // Measured after the styles have had frames to land, and against the
+    // text too, not only against the measurement that placed it.
+    await new Promise((r) => setTimeout(r, 300));
     const L = document.querySelector('[data-lens]');
     const k = L.querySelector('[data-lens-caret]').getBoundingClientRect();
     const p = c.copyCaret(L.querySelector('[data-lens-text]'), c.dnd.target.at);
