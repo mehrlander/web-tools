@@ -1232,12 +1232,22 @@ try {
     (await docText()).includes('First two. Second para.\n\nThird para.'), JSON.stringify(await docText()));
   const closedMark = await page.evaluate(() => !!document.querySelector('[x-ref="md"] [data-md-break="closed"]'));
   ok('and the card shows the break it closed, since the words themselves did not change', closedMark);
-  // Going back through the card's own × , the way a reader would: one tap.
+  // Going back through the card's bar, the way a reader would: the number
+  // selects the card, the bar shows on it, and Remove takes the change back.
   const badge = await page.evaluate(() => { const b = document.querySelector('[x-ref="md"] [data-md-card-badge]');
     b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.touchscreen.tap(badge.x, badge.y);
   await page.waitForTimeout(250);
-  ok('one tap on the card\'s × restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
+  const bar = await page.evaluate(() => { const b = document.querySelector('[data-card-bar]'); if (!b) return null;
+    const card = document.querySelector('[x-ref="md"] [data-md-card="' + b.dataset.cardBar + '"]').getBoundingClientRect(), r = b.getBoundingClientRect();
+    const k = b.querySelector('[title^="Remove"]').getBoundingClientRect();
+    return { n: document.querySelectorAll('[data-card-bar]').length, straddles: r.top < card.bottom && r.bottom > card.bottom, right: Math.abs(r.right - card.right) < 16,
+             size: Math.round(k.height), x: k.left + k.width / 2, y: k.top + k.height / 2 }; });
+  ok('the number selects its card, and the card wears one bar on its bottom edge, at thumb size',
+    !!bar && bar.n === 1 && bar.straddles && bar.right && bar.size >= 30, JSON.stringify(bar));
+  await page.touchscreen.tap(bar.x, bar.y);
+  await page.waitForTimeout(250);
+  ok('and Remove on the bar restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
 
   // ── Found by review, 2026-09-27 ─────────────────────────────────────
   // Each of these failed on the page the review read.
@@ -1392,6 +1402,28 @@ try {
   await page.waitForTimeout(600);
   const cleared = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; return { text: c.text, dirty: c.dirty }; });
   ok('the unsaved dot offers Clear all edits, which puts the file back as GitHub holds it', cleared.text === PARA_DOC && !cleared.dirty, JSON.stringify(cleared));
+  // The bar follows the caret: in a card it shows there, with Info saying
+  // what the change was; outside every card there is none.
+  const info = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = c.text.replace('Third para.', 'Third para, rewritten.'); c.paint();
+    c.d.caretAt(c.text.indexOf('rewritten')); c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    const b = document.querySelector('[data-card-bar]');
+    const inCard = !!b;
+    b?.querySelector('[title="Info"]')?.click();
+    await new Promise((r) => setTimeout(r, 150));
+    const p = document.querySelector('[data-card-info]');
+    const out = { inCard, open: !!p && p.getClientRects().length > 0,
+      old: p?.querySelector('[data-info-old]')?.textContent, now: p?.querySelector('[data-info-now]')?.textContent };
+    c.cardInfo = null;
+    c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
+    out.outside = !document.querySelector('[data-card-bar]');
+    c.d.undo(); c.paint();
+    return out;
+  });
+  ok('with the caret in a card, the bar shows, and Info gives GitHub\'s copy and the text now; outside every card, no bar',
+    info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.outside, JSON.stringify(info));
   // The Changes face is retired; what it alone had, the count and a step
   // between changes, sits in the Rendered face's corner.
   const jump = await page.evaluate(async () => {

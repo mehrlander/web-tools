@@ -515,6 +515,9 @@
       _lastNative: '',          // native: the platform's selection as last seen, "a:b"
       get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
       delPop: null,             // a tapped removal: { text, at, x, y }
+      cardInfo: null,           // a card's Info panel: { i, old, now, ow, nw, x, y }
+      hoverCard: null,          // the card a mouse is over, for its bar
+      selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
       patchMenu: false,
       // File mode's Send: what rides, the edit as a patch or the whole file.
       sendWhat: 'patch',
@@ -691,7 +694,7 @@
           onText: (t) => {
             if (t !== this.text) this.mendArmed = false;
             // Words held for Move name offsets, and an edit moves them.
-            if (t !== this.text) { this.moveArm = null; this.moveAim = null; }
+            if (t !== this.text) { this.moveArm = null; this.moveAim = null; this.cardInfo = null; }
             // A CARRY IS OVER WHEN THE TEXT MOVES UNDER IT: its range names
             // the words it picked up, and a final result from the microphone
             // replaces exactly those. The drop's own edit arrives after the
@@ -2364,6 +2367,7 @@
         }
         // Where words dragged by the platform would land, and the loupe that
         // shows it above the thumb covering it (drawLens).
+        if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target)) this.drawCardBar(add, lb, vb);
         // Held words aimed by a tap on a gap show the same drop line.
         if (this.moveArm && this.moveAim && this.moveAim.para) this.markTarget(this.moveAim, add, across, lb);
         if (this.moveArm && this.rendered) this.markAim(add, lb, vb);
@@ -2806,9 +2810,11 @@
       // marked and open to typing. Its stops pill reads original, marked and
       // new; a sideways swipe moves the card's text with the finger and
       // settles on one (md-card-reading), a tap on a stop scrolls there, a
-      // tap on the original returns to marked, and its number, which wears
-      // an ×, discards the change: the card goes back to the original. One
-      // tap, no menu, because one undo brings it back.
+      // tap on the original returns to marked, and a tap on its number
+      // selects it. THE SELECTED CARD WEARS A BAR (drawCardBar): the card the
+      // caret is in, or the one picked by its number, or on a desk the one
+      // under the mouse. Only one at a time, so the document still reads as
+      // one.
       setCardReading(i, mode) {
         window.MdSurface.setReading(this.$refs.md, i, mode);
         this.paint();
@@ -2821,8 +2827,78 @@
         if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
         if (!badge) return;
-        const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
-        if (run) this.rejectCard(run);
+        const r = this.d && this.d.range;
+        this.selCard = { i: +badge.dataset.mdCardBadge, at: r ? r.start : -1 };
+        this.paint();
+      },
+      cardHover(e) {
+        const el = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-card]') : null;
+        const i = el ? +el.dataset.mdCard : null;
+        if (i !== this.hoverCard) { this.hoverCard = i; this.paintExtras(); }
+      },
+      // THE CARD BAR: its actions, drawn on the selected card's bottom-right
+      // corner and straddling its edge the way the number and the stops
+      // straddle the top one, but at thumb size, since these are meant to be
+      // tapped. It floats, so it costs the document no padding; while it
+      // shows it covers the line below the card. The shape is the convention
+      // and the buttons are the page's: here Info and Remove; a page reviewing
+      // someone else's text would put its votes and comments in the same bar,
+      // judgments first and the destructive one last, set apart.
+      drawCardBar(add, lb, vb) {
+        const md = this.$refs.md, r = this.d && this.d.range;
+        let el = this.hoverCard != null ? md.querySelector('[data-md-card="' + this.hoverCard + '"]') : null;
+        if (!el && this.selCard && r && r.start === this.selCard.at) el = md.querySelector('[data-md-card="' + this.selCard.i + '"]');
+        if (!el && r) {
+          const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
+          el = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-card]') || null;
+        }
+        if (!el || !md.contains(el)) return;
+        const i = +el.dataset.mdCard, b = el.getBoundingClientRect();
+        // A card running past the pane's foot has its bar held above the foot.
+        const floor = vb.bottom - 24;
+        if (b.bottom < vb.top + 24 || b.top > floor) return;
+        const bar = add('div', 'absolute z-30 flex items-center gap-1.5',
+          `right:${lb.right - b.right + 8}px;top:${Math.min(b.bottom, floor) - lb.top - 17}px`, 'seam');
+        bar.dataset.mdUi = ''; bar.dataset.cardBar = i;
+        const btn = (icon, label, fn, cls) => {
+          const k = document.createElement('button');
+          k.type = 'button'; k.title = label; k.setAttribute('aria-label', label); k.dataset.mdUi = '';
+          k.className = 'btn btn-circle btn-sm border border-base-300 bg-base-100 shadow-md ' + cls;
+          k.innerHTML = '<i class="ph ' + icon + ' text-lg"></i>';
+          this.keepFocus(k);
+          k.addEventListener('pointerdown', (e) => e.stopPropagation());
+          k.addEventListener('click', (e) => { e.stopPropagation(); fn(k); });
+          bar.appendChild(k);
+        };
+        btn('ph-info', 'Info', (k) => this.openCardInfo(i, k), '');
+        btn('ph-x', 'Remove this change', () => {
+          const run = window.MdSurface.cards(md)[i];
+          this.cardInfo = null; this.selCard = null;
+          if (run) this.rejectCard(run);
+        }, 'ml-1.5 text-error');
+        // THE LAUNCHER floats over the pane and can be dragged anywhere, so the
+        // bar is measured against it rather than kept a guessed distance off:
+        // where they would overlap, the bar slides left of it, still on the edge.
+        const fab = document.querySelector('[x-data="fab()"] [data-dom-shot-ignore]')?.getBoundingClientRect();
+        const br = bar.getBoundingClientRect();
+        if (fab && fab.width && br.left < fab.right && br.right > fab.left && br.top < fab.bottom && br.bottom > fab.top) {
+          bar.style.right = (lb.right - fab.left + 6) + 'px';
+        }
+      },
+      // What the change was: GitHub's copy, the text now, and the word count
+      // each way. Opened below its button, clamped to the screen.
+      openCardInfo(i, k) {
+        if (this.cardInfo && this.cardInfo.i === i) { this.cardInfo = null; return; }
+        const run = window.MdSurface.cards(this.$refs.md)[i];
+        if (!run) return;
+        const base = this.fileBase || '', t = this.text;
+        const old = run.filter((e) => e.oldRange).map((e) => base.slice(e.oldRange.start, e.oldRange.end).trimEnd()).join('\n\n');
+        const now = run.filter((e) => e.newRange).map((e) => t.slice(e.newRange.start, e.newRange.end).trimEnd()).join('\n\n');
+        const wc = (s) => (s.match(/\S+/g) || []).length;
+        const b = k.getBoundingClientRect(), w = Math.min(288, innerWidth - 16);
+        const below = b.bottom + 260 < innerHeight;
+        this.cardInfo = { i, old, now, ow: wc(old), nw: wc(now),
+          x: Math.max(8, Math.min(innerWidth - w - 8, b.right - w)), y: below ? b.bottom + 6 : Math.max(8, b.top - 266) };
       },
       // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone.
       // One undo still reaches the edit (loadFile). Offered from the unsaved
@@ -3618,6 +3694,7 @@
         <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
              :style="moveArm ? 'touch-action:none' : ''"
              @md-card-reading="setCardReading($event.detail.i, $event.detail.mode)"
+             @pointermove="cardHover($event)" @pointerleave="cardHover(null)"
              @contextmenu="native || $event.preventDefault()" @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
@@ -3643,6 +3720,26 @@
 
       <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
            since the buffer no longer holds them; this is where they are read. -->
+      <!-- A card's Info: what the change was. -->
+      <div x-show="cardInfo" x-cloak @click.outside="cardInfo = null" data-card-info
+           class="fixed z-50 w-72 card card-sm bg-base-100 border border-base-300 shadow-xl"
+           :style="cardInfo ? 'left:' + cardInfo.x + 'px;top:' + cardInfo.y + 'px' : ''">
+        <div class="card-body gap-2">
+          <div class="flex items-baseline gap-2 text-sm">
+            <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
+            <span class="opacity-60 tabular-nums" x-text="cardInfo ? cardInfo.ow + ' → ' + cardInfo.nw + ' words' : ''"></span>
+          </div>
+          <div class="text-xs opacity-60">GitHub's copy</div>
+          <div class="text-sm bg-error/10 rounded px-1.5 py-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words" data-info-old
+               x-text="cardInfo && (cardInfo.old || 'None: this text is new.')"></div>
+          <div class="text-xs opacity-60">Now</div>
+          <div class="text-sm bg-success/15 rounded px-1.5 py-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words" data-info-now
+               x-text="cardInfo && (cardInfo.now || 'None: this text was removed.')"></div>
+          <div class="card-actions justify-end">
+            <button class="btn btn-sm btn-ghost" @click="cardInfo = null">Close</button>
+          </div>
+        </div>
+      </div>
       <div x-show="delPop" x-cloak @click.outside="delPop = null"
            class="fixed z-50 w-72 card card-sm bg-base-100 border border-base-300 shadow-xl"
            :style="delPop ? 'left:' + delPop.x + 'px;top:' + delPop.y + 'px' : ''">
