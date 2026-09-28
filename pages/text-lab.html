@@ -475,6 +475,18 @@
 
       wordCount(s) { return (String(s || '').match(/\S+/g) || []).length },
 
+      // "owner/name:path" as the reader says it, and as an app address that
+      // opens the file in Files, a tap from its Variants reading.
+      shortLoc(loc) {
+        const i = String(loc).indexOf(':');
+        return `${loc.slice(0, i).split('/').pop()}/${loc.slice(i + 1)}`;
+      },
+      fileHref(loc) {
+        const i = String(loc).indexOf(':');
+        return `https://mehrlander.github.io/web-tools/app/?repo=${encodeURIComponent(loc.slice(0, i))}`
+          + `&file=${encodeURIComponent(loc.slice(i + 1))}`;
+      },
+
       // A pair drawn by md-diff, the renderer the file viewer uses, so the
       // three readings and the marks are the same everywhere.
       async renderPair(host, v) {
@@ -555,6 +567,11 @@
           h('span', { class: 'font-medium text-base-content/80' }, v.purpose || ''),
           h('span', {}, v.author || ''),
           h('span', { class: 'tabular-nums' }, `${this.wordCount(v.from?.text)} → ${this.wordCount(v.to?.text)} words`));
+        if (v.at && v.at.length) {
+          foot.append(h('a', { class: 'link link-hover font-mono text-sm truncate max-w-[18rem]', href: this.fileHref(v.at[0]),
+                               target: '_blank', rel: 'noopener' },
+            this.shortLoc(v.at[0]) + (v.at.length > 1 ? ` +${v.at.length - 1}` : '')));
+        }
         // A chip per file this variant is proposed for, linking the proposal's basis.
         for (const q of v.proposals || []) {
           foot.append(h('a', { class: 'badge badge-outline gap-1 font-mono', href: this.safeHref(q.basis) || '',
@@ -1244,6 +1261,14 @@
         <div><span class="font-medium" x-text="tip.v.purpose"></span><span class="text-base-content/50" x-text="' · ' + tip.v.author"></span></div>
         <p class="text-base-content/70 text-pretty" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
         <p class="text-base-content/70 text-pretty italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
+        <!-- Where the original stands, from home's occurrences snapshot. -->
+        <div class="grid gap-0.5 mt-1" x-show="tip.v.at && tip.v.at.length">
+          <template x-for="loc in (tip.v.at || [])" :key="loc">
+            <a class="link link-hover font-mono text-sm" :href="fileHref(loc)" target="_blank" rel="noopener"
+               x-text="shortLoc(loc).replace(/\//g, '/\u200b')"></a>
+          </template>
+        </div>
+        <p class="text-sm text-base-content/50" x-show="tip.v.at && !tip.v.at.length">Not found on main when last scanned.</p>
       </div>
     </template>
     <template x-if="tip && tip.kind === 'note'">

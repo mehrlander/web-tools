@@ -56,14 +56,14 @@ test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.sources.passages.path, P.passages);
   assert.equal(index.sources.variants.path, 'projects/text/variants.jsonl');
   assert.equal(index.sources.variants.sha, '2'.repeat(40));
-  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals', 'purposes', 'reviews']);
+  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals', 'purposes', 'reviews', 'occurrences']);
   assert.deepEqual(index.proposals, [{ from: ID.families, to: ID['bill-section families'],
     repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }]);
 });
 
 test('view is the one shape every surface reads', () => {
   const v = T.view(index, index.variants[0]);
-  assert.deepEqual(Object.keys(v), ['id', 'from', 'to', 'author', 'purpose', 'proposals']);
+  assert.deepEqual(Object.keys(v), ['id', 'from', 'to', 'author', 'purpose', 'proposals', 'at']);
   assert.equal(v.from.text, 'families');
   assert.equal(v.to.text, 'bill-section families');
   assert.equal(T.view(index, v.id).id, v.id, 'an id resolves to the same view');
@@ -150,7 +150,7 @@ test('load reads the three files at their fixed paths, and caches per credential
   const a = await T.load(anon);
   const b = await T.load(anon);
   assert.equal(a, b, 'one read per client');
-  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants, P.purposes, P.reviews].sort());
+  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants, P.purposes, P.reviews, P.occurrences].sort());
   assert.equal(a.summary.variants, 4);
   assert.equal(a.summary.proposals, 1);
   const other = fixtureGh({ token: 'other' });
@@ -297,4 +297,16 @@ test('a review that cannot be shown is skipped and named', async () => {
   assert.match(built.warnings.join('\n'), /a pair no variant holds/);
   assert.match(built.warnings.join('\n'), /without a from, to, by and at/);
   assert.equal(built.summary.variants, 4, 'the collection stands');
+});
+
+test('occurrences.json puts each original\'s files on its view, and absent is unknown rather than none', async () => {
+  const snap = JSON.stringify({ commits: { 'mehrlander/web-tools': 'a'.repeat(40) },
+    at: { [ID.families]: ['mehrlander/web-tools:docs/text-tools.md'] } });
+  const built = await T.build({ ...args(), files: { ...args().files, occurrences: snap } });
+  assert.deepEqual(T.view(built, built.variants[0]).at, ['mehrlander/web-tools:docs/text-tools.md']);
+  assert.deepEqual(T.view(built, built.variants[1]).at, [], 'scanned and not found');
+  assert.equal(T.view(index, index.variants[0]).at, null, 'no snapshot, no claim');
+  const bad = await T.build({ ...args(), files: { ...args().files, occurrences: '{nope' } });
+  assert.match(bad.warnings.join('\n'), /occurrences\.json is not JSON/);
+  assert.equal(T.view(bad, bad.variants[0]).at, null);
 });
