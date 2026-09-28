@@ -119,6 +119,20 @@
       // rule), so a page reading `lib` or __lib sees only a real selection.
       if (lib) injected.use = lib;
       const A = repo + (ref ? '@' + ref : '') + ':' + path;
+      // The link's selection, restored into every URL the page writes, or a
+      // page that writes ?view=x would drop it and a reload would lose it
+      // (measured 2026-09-29: this history shim kept only gh). What the
+      // page's URL carries is read before anything is restored: `lib` comes
+      // back when the page wrote none, and each `refs` entry unless the page
+      // wrote one for the same target (a repository, or a repository and a
+      // path). The renderer's ?top carries the same function, topKeepSource;
+      // tools/test/toss-top-mode.test.mjs holds the two to one behaviour.
+      const kept = [...real].filter(([k]) => k === 'refs' || k === 'lib');
+      const keepSource = 'function tgt(v){var m=String(v).match(/^([^/@:\\s]+\\/[^/@:\\s]+)@([^:]+?)(?::\\/*(.+))?$/);' +
+        'return m?m[1]+(m[3]?":"+m[3]:""):String(v);}' +
+        'function keep(q){var has={},mine={};K.forEach(function(p){has[p[0]]=q.has(p[0]);});' +
+        'q.getAll("refs").forEach(function(v){mine[tgt(v)]=1;});' +
+        'K.forEach(function(p){if(p[0]==="refs"?!mine[tgt(p[1])]:!has[p[0]])q.append(p[0],p[1]);});}';
       const prelude =
         `<base href="https://${owner}.github.io/${name}/${dir}">` +
         // __ref is the displayed file's version, stamped only when known, as
@@ -145,13 +159,15 @@
         `SP.forEach=function(f,t){return mine(this)?fe.call(clean(this),f,t):fe.call(this,f,t);};` +
         `})();<\/script>` +
         // History: whatever the page writes, the path stays this file's and
-        // gh=<address> leads the query; the page's query and fragment follow.
-        // Relative URLs resolve against the <base>, which is the deployed
-        // page's directory, so the target's own path is ignored.
-        `<script>(function(){var H=history,rs=H.replaceState,ps=H.pushState,A=${JSON.stringify(addr)},B=${JSON.stringify(location.pathname)};` +
+        // gh=<address> leads the query; the page's query and fragment follow,
+        // with the link's selection restored (keepSource, below). Relative
+        // URLs resolve against the <base>, which is the deployed page's
+        // directory, so the target's own path is ignored.
+        `<script>(function(){var H=history,rs=H.replaceState,ps=H.pushState,A=${JSON.stringify(addr)},B=${JSON.stringify(location.pathname)},` +
+        `K=${JSON.stringify(kept)};` + keepSource +
         `function map(u){if(u==null)return u;try{var t=new URL(String(u),document.baseURI);` +
         `if(t.origin!==location.origin&&t.origin!==new URL(document.baseURI).origin)return u;` +
-        `var q=new URLSearchParams(t.search);q.delete("gh");var s=q.toString();` +
+        `var q=new URLSearchParams(t.search);q.delete("gh");keep(q);var s=q.toString();` +
         `return location.origin+B+"?gh="+encodeURIComponent(A).replace(/%2F/g,"/").replace(/%40/g,"@").replace(/%3A/g,":")+(s?"&"+s:"")+t.hash;}catch(e){return u;}}` +
         `H.replaceState=function(s,t,u){return rs.call(H,s,t,map(u));};H.pushState=function(s,t,u){return ps.call(H,s,t,map(u));};})();<\/script>`;
       html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, x => x + prelude) : prelude + html;
