@@ -969,6 +969,22 @@ document.addEventListener('click',function(e){
       `SP.forEach=function(f,t){return mine(this)?fe.call(clean(this),f,t):fe.call(this,f,t);};` +
       `})();<\/script>`;
   }
+  // An address given in the fragment (?top#gh=…, ?top#data=…) moves into the
+  // query before the page is written, since at the top level the fragment is
+  // the page's own: left there, the page would read #gh=… as its hash, and its
+  // history writes, which keep only the query, would drop the address and lose
+  // the page on reload. The address's trailing #frag becomes the real hash.
+  function topAddressInQuery(pageFrag) {
+    if (!hashKey || !topHidden().includes(hashKey) || queryParams.has(hashKey)) return;
+    const value = hashKey === 'gh' && pageFrag ? hashValue.slice(0, -(pageFrag.length + 1)) : hashValue;
+    const rest = [...queryParams].filter(([k]) => k !== 'top');
+    for (const k of new Set(rest.map(([k]) => k))) queryParams.delete(k);
+    queryParams.set(hashKey, value);
+    for (const [k, v] of rest) queryParams.append(k, v);
+    const enc = s => encodeURIComponent(s).replace(/%2F/g, '/').replace(/%40/g, '@').replace(/%3A/g, ':');
+    const q = [...queryParams].map(([k, v]) => k === 'top' && !v ? 'top' : k + '=' + enc(v)).join('&');
+    history.replaceState(null, '', location.pathname + '?' + q + (hashKey === 'gh' && pageFrag ? '#' + pageFrag : ''));
+  }
   // Replace this document with the page. document.open keeps the window, so
   // what this renderer left on it is cleared first (its listeners are erased by
   // open itself); the page's prelude then stamps its own globals.
@@ -1325,8 +1341,11 @@ document.addEventListener('click',function(e){
     // as window.__lib rather than on a query of its own.
     const libAsked = SELECTED['mehrlander/web-tools'] || window.__lib || new URLSearchParams(pageQuery).get('lib') || '';
     const lib = libRef(repoKey, depOf(''), libAsked);
-    if (TOP) return writeTop(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
-                                                  top: { addr, repo: repoKey, path } }));
+    if (TOP) {
+      topAddressInQuery(pageFrag);
+      return writeTop(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
+                                           top: { addr, repo: repoKey, path } }));
+    }
     showTrusted(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });

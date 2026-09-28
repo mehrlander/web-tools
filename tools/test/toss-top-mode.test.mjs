@@ -86,6 +86,29 @@ test('a routed page keeps its route key, and reads its own envelope', () => {
   w.close();
 });
 
+// topAddressInQuery, run in the renderer's own window before the page is
+// written: an address in the fragment moves to the query.
+function moved(url, pageFrag = '') {
+  const w = new JSDOM('', { url }).window;
+  const run = new Function('window', 'history', 'location',
+    'const queryParams = new URLSearchParams(location.search);\n' +
+    'const readFragment = ' + (SRC.match(/function readFragment\([\s\S]*?\n {2}\}\n/) || [''])[0].replace(/^function readFragment/, 'function') + ';\n' +
+    'const [hashKey, hashValue] = readFragment(location.hash);\n' +
+    routes + hidden + lift('topAddressInQuery') + '\ntopAddressInQuery(' + JSON.stringify(pageFrag) + ');');
+  run(w, w.history, w.location);
+  const out = w.location.search + w.location.hash;
+  w.close();
+  return out;
+}
+
+test('an address given in the fragment moves to the query, and its own #frag becomes the hash', () => {
+  assert.equal(moved(R + '?top&refs=mehrlander/home@h#gh=mehrlander/web-tools@br:app/index.html?view=map#sec', 'sec'),
+    '?top&gh=mehrlander/web-tools@br:app/index.html%3Fview%3Dmap&refs=mehrlander/home@h#sec');
+  assert.equal(moved(R + '?top#data=mehrlander/home:a.csv'), '?top&data=mehrlander/home:a.csv');
+  assert.equal(moved(R + '?top&gh=mehrlander/web-tools:pages/x.html#sec'), '?top&gh=mehrlander/web-tools:pages/x.html#sec',
+    'an address already in the query is left alone, and so is a hash that is the page\'s');
+});
+
 test('the renderer never boots its own FAB in top mode', () => {
   assert.match(SRC, /if \(!window\.__tossTopMode\) try \{\s*\n\s*await import\('https:\/\/mehrlander\.github\.io\/web-tools\/lib\/entry\.js\?ref=main'\)/);
   assert.match(SRC, /const TOP = queryParams\.has\('top'\) && !queryParams\.has\('w'\);\n\s*window\.__tossTopMode = TOP;/,
