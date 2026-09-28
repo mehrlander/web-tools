@@ -39,7 +39,7 @@ Invoking across the window boundary is handled rather than avoided, and [`tools/
 
 ## Picking versions inside a toss
 
-The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. `?top` makes the page the tab's own document, reaching its title and history. [loader.md](loader.md#the-selection) has the rules.
+The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. `?top` makes the page the tab's own document. [loader.md](loader.md#the-selection) has the rules.
 
 ## Three reasons a change resists preview
 
