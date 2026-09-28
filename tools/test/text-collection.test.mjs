@@ -56,7 +56,7 @@ test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.sources.passages.path, P.passages);
   assert.equal(index.sources.variants.path, 'projects/text/variants.jsonl');
   assert.equal(index.sources.variants.sha, '2'.repeat(40));
-  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals']);
+  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals', 'purposes']);
   assert.deepEqual(index.proposals, [{ from: ID.families, to: ID['bill-section families'],
     repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }]);
 });
@@ -150,7 +150,7 @@ test('load reads the three files at their fixed paths, and caches per credential
   const a = await T.load(anon);
   const b = await T.load(anon);
   assert.equal(a, b, 'one read per client');
-  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants].sort());
+  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants, P.purposes].sort());
   assert.equal(a.summary.variants, 4);
   assert.equal(a.summary.proposals, 1);
   const other = fixtureGh({ token: 'other' });
@@ -210,5 +210,39 @@ test('without variants.jsonl the collection is unavailable, not empty', async ()
   T.clear();
   const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS } });
   await assert.rejects(T.load(gh), /unavailable \(the read returned 404\)/);
+  T.clear();
+});
+
+// purposes.csv defines each purpose word. It is advisory: a missing file is no
+// definitions, a malformed one costs its definitions and a warning, never the
+// collection.
+const PURPOSES = 'purpose,kind,prompt,gloss\n'
+  + 'qualify,instruction,,Qualify a claim.\n'
+  + 'accountant,voice,"Rewrite this as an accountant would: plain, exact, ""no"" metaphor.",Plain and exact.\n';
+
+test('purposes.csv is read into index.purposes, quoted fields and all', async () => {
+  const built = await T.build({ ...args(), files: { ...args().files, purposes: PURPOSES } });
+  assert.deepEqual(built.purposes.qualify, { kind: 'instruction', prompt: '', gloss: 'Qualify a claim.' });
+  assert.equal(built.purposes.accountant.prompt, 'Rewrite this as an accountant would: plain, exact, "no" metaphor.');
+  assert.deepEqual(built.warnings, []);
+  assert.deepEqual(index.purposes, {}, 'no file, no definitions, no warning');
+});
+
+test('a purposes.csv with the wrong header or a bad row warns and keeps the collection', async () => {
+  const bad = await T.build({ ...args(), files: { ...args().files, purposes: 'word,meaning\nqualify,x\n' } });
+  assert.deepEqual(bad.purposes, {});
+  assert.match(bad.warnings.join('\n'), /purposes\.csv: the header is not/);
+  assert.equal(bad.summary.variants, 4);
+  const dup = await T.build({ ...args(), files: { ...args().files, purposes: PURPOSES + 'qualify,instruction,,again\n' } });
+  assert.equal(dup.purposes.qualify.gloss, 'Qualify a claim.', 'the first row for a word stands');
+  assert.match(dup.warnings.join('\n'), /repeated one; the row was skipped/);
+});
+
+test('load reads purposes.csv softly', async () => {
+  T.clear();
+  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.variants]: VARIANTS, [P.purposes]: PURPOSES } });
+  const loaded = await T.load(gh);
+  assert.equal(loaded.purposes.accountant.kind, 'voice');
+  assert.equal(loaded.sources.purposes.path, P.purposes);
   T.clear();
 });
