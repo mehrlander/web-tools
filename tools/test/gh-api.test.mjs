@@ -180,3 +180,62 @@ test('an HTTP error is not a dropped connection and is not retried', async () =>
   }, () => assert.rejects(() => gh.req('contents/x.json'), /GitHub Error 409/));
   assert.equal(tries, 1, 'GitHub answered; the answer will not change in 600ms');
 });
+
+// ── req(): a cached answer in another reader's shape ─────────────────────────
+// GitHub tags every representation of a contents URL with one strong ETag, the
+// blob sha. After toss-render read skills/session-review/SKILL.md?ref=main with
+// the raw media type, Chromium revalidated the app's JSON read of that URL with
+// the raw copy's ETag, took GitHub's 304, and handed back the markdown, which
+// JSON.parse refused at its second hyphen (2026-09-28). The double below plays
+// that cache: any read it may answer from storage gets the raw copy, and only
+// a read that bypasses it reaches the JSON GitHub would send.
+const MD = '---\nname: session-review\n---\n# Session review\n';
+const typed = (type, body) => ({
+  ok: true, status: 200,
+  headers: { get: k => (k.toLowerCase() === 'content-type' ? type : null) },
+  text: async () => body,
+});
+const RAW = () => typed('application/vnd.github.raw+json; charset=utf-8', MD);
+const META = () => typed('application/json; charset=utf-8', JSON.stringify({
+  sha: 'bbfb', size: MD.length, html_url: 'u', encoding: 'base64',
+  content: Buffer.from(MD).toString('base64'),
+}));
+
+test('a raw copy served from the cache is re-read past it, and the file comes back', async () => {
+  const gh = new GH({ repo: 'mehrlander/web-tools' });
+  const modes = [];
+  const file = await withFetch(async (_url, init) => {
+    modes.push(init.cache ?? 'default');
+    return init.cache === 'reload' ? META() : RAW();
+  }, () => gh.get('skills/session-review/SKILL.md'));
+  assert.equal(file.text, MD);
+  assert.equal(file.sha, 'bbfb');
+  // 'no-cache' would revalidate with the stale ETag and earn the same 304.
+  assert.deepEqual(modes, ['default', 'reload'], 'one extra read, and it skips the validator');
+});
+
+test('a JSON answer costs no second read', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  const file = await withFetch(async () => { tries++; return META(); }, () => gh.get('SKILL.md'));
+  assert.equal(file.text, MD);
+  assert.equal(tries, 1);
+});
+
+test('a non-JSON answer that survives the reload names its type', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => { tries++; return RAW(); },
+    () => assert.rejects(() => gh.req('contents/SKILL.md?ref=main'),
+      // Not "No number after minus sign in JSON at position 1".
+      /GitHub answered GET contents\/SKILL\.md\?ref=main as application\/vnd\.github\.raw\+json, not JSON/));
+  assert.equal(tries, 2, 'one reload, not a loop');
+});
+
+test('a FRESH read already skipped the cache, so it is not repeated', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => { tries++; return RAW(); },
+    () => assert.rejects(() => gh.req('contents/SKILL.md', GH.FRESH), /not JSON/));
+  assert.equal(tries, 1);
+});
