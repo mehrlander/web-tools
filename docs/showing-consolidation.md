@@ -1,133 +1,98 @@
 # Showing: selecting versions in a toss
 
-A plan, drafted 2026-09-27 and revised twice on 2026-09-28. It began as a proposal to make the 🥏 toss the only public way to show a preview and to retire `?use=` from public use. **That is no longer the goal.** The objective since the third revision is narrower:
+A plan, drafted 2026-09-27 and revised four times by 2026-09-28. It is carried by PR #825, which also takes in the complementary work of PR #823.
 
-- keep `?use=` and every existing link working;
-- extend `pages/toss-render.html` so that one toss can select versions independently. For example: a project page from a home branch, its data from a web-tools-private branch, and Web Tools code from main or from another branch;
-- keep a surrounding app at main while previewing one changed piece inside it.
+**The objective**: expand `pages/toss-render.html` so that it can supersede `?use=` as the normal interface for rendering and previewing anything other than the deployed page. Existing `?use=` behaviour and links stay as they are. The third revision said that replacing `?use=` was no longer a goal. That misstated the owner's intent, and this revision corrects it: the aim is still that a toss link becomes the ordinary way to preview, with `?use=` kept working for the links that already exist.
 
-[showing.md](showing.md) explains the existing boundaries. This document traces what selects each version today, measures which selections already work, and recommends the smallest extension. It stays investigation: nothing here changes production code.
+[showing.md](showing.md) explains the boundaries. [loader.md](loader.md#under-the-toss) states how a toss hands a page its Web Tools version. This document records what selects each version, what the extension shipped, what still separates a toss from a direct `?use=` link, and the open question of a map of repository selections.
 
-Every finding carries one of three labels:
+Evidence carries one of three labels:
 
-- **Measured**: observed in headless Chromium through the render harness. The harness answers every ref from the working tree, so the probes make versions distinguishable in one of two ways. `showing-version-map.mjs` records the ref each request asked for. `showing-selection-probe.mjs` stamps every served JavaScript file with the repo, ref and path its URL named, so the report lists what each document *executed*.
-- **Read**: concluded from the code and not run.
-- **Device**: needs Safari on an iPhone, after merge.
+- **Harness**: headless Chromium through the local render harness, which answers every ref from the working tree. The probes make versions distinguishable by stamping every served script, and the JSON data a page reads, with the repo, ref and path its URL named, then reading the stamps back from each document. This evidence says which version each document asked for and ran. It does not say what GitHub returns.
+- **Live**: headless Chromium against GitHub itself, anonymously, which reaches public repositories only.
+- **Device**: Safari on an iPhone, after merge.
 
-## The loading boundaries
+## The selection rules, as shipped on this branch
 
-A toss has up to four kinds of thing in it, and each gets its version from a different place.
-
-| Layer | Where its version comes from today | Selectable independently? | Evidence |
-|---|---|---|---|
-| **Host**, `toss-render.html` and the FAB it mounts | GitHub Pages, so main. Its library comes through `entry.js`, main unless the host's own `?use=` is set, the shape that crashes the iPhone | only by the host's `?use=` | measured |
-| **Outer app, web-tools** (`app/index.html`) | Its HTML at the address's ref. Its code is `dist/app.js` at `use`, which the toss injects as the address's ref. Its data comes from its own readers (README, `.web-tools.json` and the board at main) plus `window.gh` (`pages/pages.csv` at the library's ref) | HTML and code, yes (X5, X6p); its data is mixed | measured (C4, X5) |
-| **Outer app, budget-drs** (`home`) | Its HTML and 46 own files at the address's ref; Web Tools at `?lib=`, else main. Each view it frames gets the app's own ref (`window.__ref`) | the app, yes; a view apart from the app, no | measured (X10, X10b) |
-| **Rendered page**: HTML | The address's `@ref` | yes | measured |
-| Page's relative `<script src>`, `<link>`, `fetch()` | Inlined, or rerouted, at the address's ref | follows the page | measured (C11) |
-| Page's relative `<img>`, CSS `url()`, `import()`, `<iframe src>` | The deployed site, through the stamped `<base>` | no | measured (C11) |
-| **Library, chain pages** | `lib/entry.js` always from Pages. `gh-api.js` and every `gh.load` at: `?ref=` on the page's own import URL, else `use`, else main. The toss injects `use` as the address's ref for every repo | for web-tools pages, only together with the page; home pages add their own `?lib=` | measured (C1, X1, X2, X3) |
-| **Library, builds** (`dist/web-tools.js`, `dist/app.js`, seven pages' blob boots) | The build at `use`, fetched whole. Files outside the build load at `gh.ref`, which is `use` or main. `surfacer.html` in home fetches main's build by commit and ignores `use` for the choice | the whole build, yes; single files inside it, no | measured (X4, X5, X6p) |
-| **Data** | Whatever the page decides. `window.gh` reads at the library's ref. A page's own `GH` readers use the page's parameters (`library.html`: `?data=`). Some reads are pinned deliberately | per page only | measured (X3), read |
-| **Nested views** | web-tools app: `appRef` picks the view's ref, and the view's library follows the view. budget-drs app: the app's ref | web-tools, yes (X5); budget-drs, no | measured |
-
-Two couplings matter most:
-
-1. **`use` means the address's ref for every repo.** That is right for a web-tools page. For any other repo's page it names the wrong repo's branch.
-2. **A view's version is tied to its container.** In the web-tools app a view's library follows the view. In the budget-drs app a view follows the app.
-
-## Which selections worked before the extension, measured
-
-| Want | Shipped behaviour | Case |
+| What | Picked by | Default |
 |---|---|---|
-| home page at a branch, Web Tools main | works | X1 |
-| home page at a branch, Web Tools at another branch | works through the page's own `?lib=` inside the address, for pages that implement it (the budget-drs pages) | X2 |
-| shortcut-tools page at a branch, its web-tools-private data at another branch | data works through the page's own `?data=`. Its library boots at the *shortcut-tools* branch name, which is wrong | X3 |
-| home page on the `dist/web-tools.js` build (surfacer) at a branch | the build is main's; `gh.ref` for files outside the build is the home branch name, which is wrong | X4 |
-| web-tools app at main, one view at a branch | works through `appRef`; the view's library is the view's ref | X5 |
-| web-tools app page at main, app code from a branch | works as the deployed `app/?use=<ref>`; a toss cannot say it | X6p |
-| budget-drs app at main, one view at a branch | not possible; a `viewRef` parameter is ignored | X10b |
-| A viewer page from one branch showing content from another | nested toss only | X8p |
-| A web-tools page at one ref, its library at another | only `?use=` on the deployed page, which forces the page file to main | X9p |
+| The page, and every file it reaches relatively | The address: `#gh=owner/repo@<ref>:<path>` | The repository's default branch |
+| The Web Tools code the page boots | The renderer's own `?lib=<ref>`, else a `lib` in the page query inside the address | A web-tools page: its own ref. Any other repo's page: main |
+| A routed toss's viewer page (`#data=`, `#pdf=`) | The renderer's `?lib=` | The route's declared ref, main |
+| A page's data in other repositories | The page, by its own parameters (`library.html`: `?data=<ref>`), which the address's page query carries through untouched | Whatever the page chooses; some reads are pinned to main on purpose |
+| A view framed by the web-tools app | The view's own ref and `lib`, else the app's page ref (web-tools views) and the app's explicit Web Tools selection, `main` included | The view's own default |
 
-Relative images, CSS `url()`, `import()` and `<iframe src>` are wrong in every row: they come from the deployed site (C11).
+The renderer hands the Web Tools choice to the page by three channels, one meaning each (loader.md has the table): `use` and `lib` answer the effective ref, `window.__lib` is stamped only for an explicit selection, and `window.__ref` names the page's own repo ref. `lib/entry.js` reads `?ref=` on its import, then `window.__lib`, then `use`, then main.
 
-## Builds
+The FAB checks the result. Its layer strip marks any layer whose loader booted a Web Tools version other than the one the rule gives it. Its "ignored" banner makes the same check inside a toss, where until 2026-09-28 it was switched off.
 
-Measured: under a build, each document executed the bundle as one stamped file and loaded no library file on its own (X4, X5, X6p). The build replaces `GH.prototype.get` for every cached path, on every `GH` instance and at any ref (read, `lib/build.js`). So a build is exactly one commit's library.
+## Scenarios
 
-- **A build can stay in use** whenever the library selection is a commit whose `dist/` is current. The commit hook rebuilds `dist/` with every commit that touches `lib/`, and `derived-artifacts.test.mjs` fails CI when a branch's build is stale. So a branch with a green check has a build that matches its `lib/`.
-- **Selecting another existing build is enough** whenever the library state you want exists as a commit: a branch, a tag or a SHA. Selecting it by `use` or `?lib=` swaps the whole build, and files loaded later follow the same ref.
-- **Individual-file overrides** are needed only to combine library files from two commits that no single commit contains: main's newest files plus one file from a branch that forked earlier. No measured case needs that. The cheaper answer is to make the commit: merge main into the branch. The hook rebuilds its build and CI checks it. A runtime override would have to bypass the build's cache, which serves every cached path whatever ref is asked for, and it would produce a combination nothing else has tested. Not recommended.
-- **One real mismatch:** a page that picks its build itself must also set the ref that later loads use. `surfacer.html` fetches main's build while `gh.ref` becomes the home branch (X4). Under the extension below `gh.ref` is main, which matches the build's branch but not its resolved commit.
+| Scenario | Link | State | Evidence |
+|---|---|---|---|
+| App shell at main, one view at a branch | `app/?view=app&appRepo=<repo>&appPath=<path>&appRef=<branch>`, deployed or tossed | Implemented; `appRef` existed before. The view's library follows the view's ref unless the app carries an explicit `?lib=` | Harness X5 |
+| App at a branch, its views following it | `toss-render.html#gh=web-tools@<branch>:app/index.html?view=app&…` | Implemented on this branch. A web-tools view takes the app's branch; an explicit `?lib=`, `main` included, reaches every view | Harness X5b, X5c, X5d; unit tests |
+| A web-tools page and its Web Tools code at two refs | `toss-render.html?lib=<ref B>#gh=web-tools@<ref A>:pages/x.html` | Implemented | Harness X9p; unit tests |
+| A page from another repo with Web Tools at a branch | `toss-render.html?lib=<ref B>#gh=home@<ref A>:<path>` | Implemented. With no `?lib=` the page runs main; before, it was told its own repo's branch name | Harness X2p, C9; live L1 |
+| A project page, Web Tools code and private-repository data at three refs | `toss-render.html?lib=<B>#gh=shortcut-tools@<A>:pages/library.html?data=<C>` | Works for the one real page that reads private data. Page at A, Web Tools at B, curated data consumed at C (the stamp was read back from the page's state), device folders at main by design | Harness X11. No live private read: anonymous access cannot reach web-tools-private |
+| A viewer page from one branch showing content from another | `toss-render.html?lib=<B>#data=<repo>@<A>:<file>` | Implemented | Harness X8p; unit test |
+| A page on a pre-built bundle (`dist/web-tools.js`, `dist/app.js`, seven pages' own boots) | as above | The whole build at the effective ref. No single file inside a build is selectable, and none needs to be: any library state worth previewing exists as a commit whose build the hook keeps current | Harness X4, X6p |
+| A home page that picks its own build (`surfacer.html`) | as above | Always main's build; later loads follow the effective ref, so an explicit `?lib=` other than main mixes the two | Harness X4 |
+| Relative images, CSS `url()`, `import()`, `<iframe src>` in a tossed page | any | Load from the deployed site, main, whatever the address says; absent for a private repo | Harness C11 |
+| `lib/entry.js` itself | any | Always the deployed copy | Harness, every case |
 
-## Two candidate interfaces
+## What still separates a toss from a direct `?use=` link
 
-**A. `?lib=<ref>` on the renderer.** One value: the Web Tools code for the framed page, and for the viewer page of a routed toss. By default it is the content's ref for a web-tools page and main for any other repo's page. The renderer passes it down as `use`, as `lib` and as `window.__lib`, which are the three names pages already read. Prototyped as an in-flight patch of about eight lines in `showing-selection-probe.mjs`:
+For a web-tools page with only `lib/` changed, the toss `toss-render.html#gh=web-tools@<ref>:pages/x.html` loads the same page file and the same library as `pages/x.html?use=<ref>`. It also reaches private repositories and changed page files, which `?use=` cannot. What `?use=` still has that a toss lacks:
 
-- X2p selects a home page's Web Tools from the renderer.
-- X3p gives the shortcut-tools page main's library while its own `?data=` still works.
-- X4p gives surfacer's later loads main.
-- X6p puts the app's page at main with its code from a branch.
-- X8p picks a viewer page apart from its content.
-- X9p picks a web-tools page and its library apart.
+1. **The FAB and the drawer at the branch.** A toss's FAB is the renderer's, from main; `?use=` on a deployed page runs the page's own FAB at the ref. Pinning the renderer is the shape that crashes an iPhone. Two ways forward: E1 finds a safe way to pin the renderer's FAB, or the renderer runs a trusted page as the top-level document (E6's top mode, measured in Chromium only).
+2. **The top-level document.** Title and icon are relayed today. History writes inside the frame are swallowed, so a reload loses the view. The iOS viewport, keyboard and home-screen behaviour are the page's only at the top level. Top mode addresses all of these; so would a history relay for the first two.
+3. **The generators.** `scripts/showing.py` still picks `?use=` for a change confined to `lib/`, and its tests say so. It should switch to the toss once item 1 is settled, since until then the switch trades a branch FAB for nothing.
+4. **Device confirmation.** No tap on the current renderer hosting a frame has been recorded since the loader changed on 2026-09-26 (E1, cell A).
 
-It reaches every chain page, every build that reads `use` (seven pages, the app, and the build's own bootstrap), every home page that reads `lib`, and the one home page that reads `use` (the doc-audit viewer).
+Relative assets and `entry.js` load from the deployed site on both routes, so neither is a reason to prefer `?use=`.
 
-**B. A map of repository selections**, for example `?refs=mehrlander/web-tools@x,mehrlander/web-tools-private@y`, with path-scoped exceptions. For the Web Tools key it does what A does. For data it needs a place to apply, and the only shared place is `GH.prototype.req`, which every read passes through. A global override there is wrong, and the code says why. `library.html` reads its curated data at `?data=` but reads the folders the device writes at main *deliberately*: reading them at the preview ref was the 2026-08-18 bug its comments record. A map applied at the reader would bring that bug back, and nothing in a `GH` instance says whether its `main` was chosen or defaulted. So data selection stays with the page. A map would only give pages one shared name to read (`window.__refs`), and today one page needs it, and it already has `?data=`, which works through the address unchanged (X3). No measured case needs path exceptions: a branch that changed Web Tools data carries main's code as of its fork, so selecting the whole branch is enough.
+## The map of repository selections
 
-**Recommendation: A.** Revisit B only when a second page needs cross-repo data selection, and then as a read-only object pages opt into, never as an override inside the reader. One naming hazard is worth noting now: `?data=` means a ref in `library.html` and a dataset key in the budget-drs app.
+**The real three-repository case.** No project page in `mehrlander/home` reads private data today. Two real pages cross into `mehrlander/web-tools-private`:
 
-## The smallest implementation
+- **The web-tools app.** It reads its registry at the default branch, and that is right: the registry is live shared state that crawls and devices write on main.
+- **The shortcut-tools library page.** It reads curated data at `?data=<ref>` and the folders the device writes at main, deliberately; reading those at the preview ref was the 2026-08-18 bug its comments record.
 
-1. **`toss-render.html`**: the `?lib=` extension as prototyped. The address grammar is unchanged, and `?use=` and every existing link keep working.
-2. **The params shim** answers only lookups of the page's own address, not every `URLSearchParams`. This fixes C10, where a page's `ref` parameter re-pinned the library.
-3. **The web-tools app** forwards the app's ref, and `?lib=`, to the views it frames when a view names no ref of its own. This fixes C5. The app is a build, so the change reaches readers when the app's build is rebuilt, which the hook does.
-4. **The budget-drs app** (in home), if "app at main, one view at a branch" is wanted there: a per-view ref parameter read by `embedView`. This is a change in home, not in the renderer.
-5. **Evidence**: the FAB's layer strip reads each framed document's `gh.ref` alongside the address's ref, so a mismatch shows. The strip already walks those same-origin windows.
+So the measured case is the library page (X11): its page, Web Tools and curated data at three refs, with the device folders at main. It works with existing parameters.
 
-**Landed on 2026-09-28**: steps 1, 2, 3 and 5. Step 4 is a change in home and is not made. Verification:
+**What that rules out, and what it does not.** It rules out a *blind* override: a map applied to every read of a repository, which is the placement PR #823's draft named (the renderer's fetch shim rewriting the ref of any API read for a mapped repository). Nothing in a request says whether its `main` was chosen or defaulted, so the library page's device folders would move to the preview ref. It does not rule out two narrower forms:
 
-- `toss-lib-ref.test.mjs` passes its three former `todo` cases as ordinary tests, plus new ones: the renderer's `?lib=` for a web-tools page and for another repo's page, a page reading its address through `URL`, and precedence.
-- `toss-routed-subject.test.mjs` checks that `?lib=` picks a viewer's ref while the subject keeps the file.
-- `fab-layers.test.mjs` checks the new mark.
-- Measured, `showing-version-map.mjs` reports no WRONG line: C5, C9 and C10 now run the intended version.
-- Measured, `showing-selection-probe.mjs`: a home page's own `?lib=` in the address still wins when the renderer names none (X2). The first cut of step 1 overrode it, and the probe caught that before commit. The app tossed at a branch frames its views at that branch (X5b) and hands its library to a home view (X5c). The FAB's layer strip reports the library each layer ran.
+- **Scoped selections**: a map entry limited to paths, such as `web-tools-private@C:shortcuts/library.json,shortcuts/prune.json`. It works without the page's help, but the link then has to know which paths are curated, which is knowledge the page already holds. The scope drifts whenever the page reads a new file.
+- **Page cooperation**: the renderer carries a small map, `?refs=<repo>@<ref>,…`, and exposes it read-only as `window.__refs`; a page's curated reader consults it before its own default, and its pinned readers never do. It works for any page that opts in, needs no path knowledge in the link, and nests: the app would forward it the way it forwards `?lib=`.
 
-Precedence, as shipped: the renderer's own `?lib=`, then a `lib` in the page query inside the address, then the rule (a web-tools page runs its own ref, any other page runs main).
+**Recommendation: no map yet, and page cooperation when one is needed.** Today the one page that reads another repository's data at a chosen ref already has a parameter, and the address carries it untouched. The web-tools app also forwards a view's own query, so the parameter survives nesting. A map buys one uniform name. That is worth adding when either of two things happens: a page reads two or more other repositories at chosen refs, or a view needs a selection its own query cannot carry. At that point the smallest form is the read-only `?refs=` → `window.__refs` above, with `?lib=` as its entry for Web Tools, which the renderer already treats as a selection to pass on. A blind override stays ruled out.
 
-**Limits that remain.**
+## PR #823, taken in
 
-- The host's FAB and Alpine are main's.
-- `lib/entry.js` is always the deployed copy.
-- Relative images, CSS `url()`, `import()` and iframes come from the deployed site until the inliner handles them.
-- `surfacer.html` picks main's build whatever `?lib=` says, unless it learns to read `lib`.
-- Data selection is per page.
-- A view nested inside an app sees only what its app forwards.
+- **The ref-switch fix**, as written: `ref-switch.js` addresses the page at the ref and no longer pins the renderer's own `?use=`. The same fix covers the header note in `show-repo.md` and the test.
+- **`entry.js` reading `window.__lib`** after its import pin and before `use`.
+- **The in-toss ignored check** (`ignoredUse` and `loaderRef` reading the framed page's loader, sampled until it boots), now computed by the rule the layer strip uses, so the banner and the strip cannot disagree.
+- **Its channel test**, rewritten to the combined rule.
 
-## What remains useful from the earlier rounds
-
-- **Still useful**:
-  - the probes: `toss-lib-ref.test.mjs` (E2), `showing-version-map.mjs` (E5), `showing-selection-probe.mjs` (E8);
-  - the harness fixes: real blob shas, the sha media type, and the warning about a stale local `main`;
-  - the correctness fixes now folded into steps 2 and 3;
-  - the finding that the ignored-version warning and the layer strip report what was asked, not what ran; step 5 starts on that.
-- **Optional, and no longer required by the objective**:
-  - top mode (E6), which replaces the renderer with the page to give it its own title, history and FAB at a ref;
-  - the shared render kit, which would remove the app's middle renderer document (about 775 KB read for a FAB that declines to mount);
-  - the path address (E7).
-
-  Each is worth doing only when its specific payoff is wanted.
-- **Still open but no longer on the path**: the iPhone matrix (E1, cells A to I). `?lib=` never pins the host, so it avoids the recorded crash shape. The matrix matters again only if the host's own FAB is ever to run a branch.
-- **Withdrawn**: retiring `?use=` from public use, a single link generator, and redirecting to a deployed `?use=` page.
+Where the two differed, the combined rule is this branch's, for one reason: a page should be told the one Web Tools ref it ought to load under every name it might read. PR #823 injected `use` only into web-tools pages. That fixed the cross-repo defect, but the pre-built pages and the doc-audit viewer read `use` and never `window.__lib`, so they would ignore an explicit `?lib=`. `window.__lib` keeps PR #823's meaning, an explicit selection, which is the signal the app needed to pass a selection on without mistaking a default for one.
 
 ## Experiments
 
 | Id | Question | Status |
 |---|---|---|
-| E1 | Which variable kills Safari's web process under a pinned host | Device, `pages/scratch/shell-pin-probe.html`; off the path |
-| E2 | Which ref a tossed page's library boots | Done; three defects held as `todo` in `toss-lib-ref.test.mjs` |
-| E5 | Which ref every document asks for, twelve cases | Done, `showing-version-map.mjs` |
-| E6 | Top mode in Chromium | Done, `toss-top-probe.mjs`; optional |
-| E7 | A path address served by a 404 page | Needs a deploy; optional |
-| E8 | Independent selection of page, library and data, by what executed | Done, `showing-selection-probe.mjs`, with the `?lib=` prototype |
+| E1 | Which variable kills Safari's web process under a pinned renderer; does the current renderer survive a FAB tap while framing (cell A) | Device, `pages/scratch/shell-pin-probe.html`, after merge |
+| E2 | Which ref a tossed page's library boots | Done; `toss-lib-ref.test.mjs`, `toss-ref-channels.test.mjs` |
+| E5 | Which ref every document asks for | Done; `showing-version-map.mjs` reports no wrong version on this branch |
+| E6 | Top mode | Chromium only, `toss-top-probe.mjs` |
+| E7 | A path address served by a 404 page | Needs a deploy |
+| E8 | Independent selection, read from what ran | Done; `showing-selection-probe.mjs`, cases X1 to X11 |
+| E9 | The same selections against live GitHub | Anonymous, public repositories only; see the PR |
+| — | Which inliner candidate empties the budget-drs app's panes | Open, from `app-frame-outruns-the-inliner` |
+
+## Earlier rounds
+
+- **Still useful**: the probes; the harness fixes (real blob shas, the sha media type, and the warning that a stale local `main` misreports `?ref=main`); the finding that the checks reported what was asked rather than what ran, which the FAB now reads directly.
+- **Optional, and possibly on the path to superseding `?use=`**: top mode (E6) and the path address (E7). Both answer items 1 and 2 above.
+- **Optional, not on the path**: a shared render kit to remove the app's middle renderer document.
+- **Withdrawn**: redirecting a toss to a deployed `?use=` page.

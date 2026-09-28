@@ -73,13 +73,48 @@ it loads through the contents API at the same ref either way:
   `nosniff`. A branch name is cache-safe this way: raw and the contents API
   are both fresh on a just-pushed branch.
 
-The unpinned route stays a native import rather than the blob route at main
-because a toss shell hosting a frame survives the first on iPhone and dies on
-the second, measured on the device and recorded in `scripts/showing.py`, with
-the mechanism unknown. `entry.js` itself is served from Pages so that any page
-on any origin can import it. jsDelivr's `/gh/` route was the no-`?use` default
+The unpinned route stays a native import rather than the blob route at main.
+The device measurement behind that (`SNAGS.md`, `shell-pin-kills-the-tab`)
+found that a toss shell pinned with `?use=<sha>` dies on an iPhone when it
+hosts a frame. It predates `entry.js`, and no cell has run the blob route at
+main, so whether the blob import or the shell's ref is the fatal part is
+open; `pages/scratch/shell-pin-probe.html` separates them. `entry.js` itself
+is served from Pages so that any page on any origin can import it. jsDelivr's `/gh/` route was the no-`?use` default
 until 2026-09-26 and is gone from live code: it cached a branch for about
 twelve hours and needed purges.
+
+**`entry.js` resolves its ref in this order:** `?ref=` on its own import
+URL (a page's own pin), then `window.__lib`, then the page's `?use=`, then
+`main`.
+
+### Under the toss
+
+A page rendered by `pages/toss-render.html` has no query string of its own:
+it runs in a `blob:` frame. The renderer answers the page's reads of its own
+address instead, through a params shim, and it tells the page which Web Tools
+to load through three channels, each with one meaning:
+
+| Channel | Meaning | Set when |
+|---|---|---|
+| `use` and `lib`, answered by the shim | The effective Web Tools ref | Always, for a page with a ref to answer |
+| `window.__lib` | A Web Tools version that was asked for | The renderer's own `?lib=<ref>` is set, or the page query inside the address carries `lib` |
+| `window.__ref` | The page's own repo ref | The address names a ref |
+
+The effective ref is the explicit one when there is one: the renderer's
+`?lib=`, else the page query's `lib`. Otherwise it is the page's own ref for
+a page of this repo, and `main` for a page of any other repo, since that
+page's ref names a branch of a different repository. So a page tossed from
+another repo loads `main` unless the link says otherwise, whichever of `use`,
+`lib` and `window.__lib` its boot reads. A page that frames views of its own,
+such as the app, reads `window.__lib` to tell a selection it must pass on
+from a default each view derives for itself.
+
+The shim answers only the page's reads of its own address:
+`new URLSearchParams(location.search)`, and the `searchParams` of a `URL`
+whose `href` is the document's own. One ambiguity is inherent: in a `blob:`
+frame `location.search` is always empty, so a `URLSearchParams` built from
+any other empty string looks the same and gets the address's answers. A page
+that parses a string which may be empty should test it first.
 
 The `gh-api.js` auto-bootstrap triggers on one signal:
 `window.__ghBlobBoot = { repo, ref }`, set by `entry.js` before either
@@ -425,11 +460,11 @@ routes this repo's own pages take, and no third:
   from GitHub Pages, then `gh.load()` each file, then `alpine-bundle.js` last
   when a loaded file registers an Alpine component. Every file after
   `entry.js` is fetched at main's tip through Pages and the contents API, on
-  the token the browser holds, and is current on the next load. A page tossed
-  from another repo carries that repo's ref in `?use=`, so it pins web-tools on
-  the import instead: `entry.js?ref=<ref>` takes precedence over the page
-  query. The budget-drs pages in `mehrlander/home` pass their `?lib=` this
-  way.
+  the token the browser holds, and is current on the next load. Tossed, the
+  page loads `main` unless the link asks for another version (see
+  [Under the toss](#under-the-toss)). A page may still pin the import itself:
+  `entry.js?ref=<ref>` wins over everything, and the budget-drs pages in
+  `mehrlander/home` pass their `?lib=` that way.
 - **The pre-build**, for a page that wants the library whole: resolve `main`
   to its commit through the commits API, fetch `dist/web-tools.js` from
   raw.githubusercontent at that SHA, and blob-import it, which is the app's
@@ -446,11 +481,12 @@ old render all day. Third-party libraries keep their CDN tags on both routes.
 
 Two things differ from a page in this repo:
 
-- **`?use=` is not the library's ref.** Under the toss shell and the
-  budget-drs app's frame, `?use=` and `window.__ref` name the ref of the repo
-  the page lives in. A consumer pins the library with `?lib=<branch|sha>`
-  instead, by the same raw + blob import as the `?use=` boot, and a frame
-  hands its answer down as `window.__lib`.
+- **`window.__ref` is the page's own repo ref, not the library's.** Under the
+  toss shell and the budget-drs app's frame it names the ref of the repo the
+  page lives in. The library's ref arrives as `use` and `lib` (and as
+  `window.__lib` when it was asked for), which is `main` unless a link says
+  otherwise. A consumer that picks its library itself reads `?lib=`, as the
+  budget-drs pages do.
 - **The page brings no Alpine tag.** A deferred CDN tag starts Alpine before
   the chain has registered anything; `alpine-bundle.js` starts it after. A
   framed page sets `data-no-fab` on `<html>`, since the FAB belongs to the

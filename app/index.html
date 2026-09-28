@@ -7405,31 +7405,58 @@ function app(){ return {
   // An app view's toss address, with whatever the subject's namespace holds
   // riding it as a ?query on the addressed path.
   //
-  // A VIEW THAT NAMES NO REF FOLLOWS THE APP'S VERSION. Tossed at a branch, the
-  // app used to frame its views at main, since the view address carried no
-  // ref and the renderer read that as the default branch: the app at a branch
-  // showed main's pages inside branch chrome (docs/showing-consolidation.md,
-  // case C5). So a web-tools view with no ref of its own takes the app's page
-  // ref (window.__ref, stamped by the renderer), and any view takes the app's
-  // Web Tools version as the renderer's ?lib= (window.__lib from a toss, or the
-  // deployed app's own ?use=). A view that names its ref (appRef) keeps it and
-  // its library, as before.
-  get appViewUrl(){
-    const v = this.appView;
+  // WHAT A VIEW INHERITS FROM THE APP, in appViewAddress below. Two
+  // selections, each with the same order: the view's own, then an explicit one
+  // of the app's, then the default the view derives for itself.
+  //
+  //   Page ref. A view that names a ref (appRef) keeps it. Otherwise a
+  //   web-tools view takes the app's own page ref when the app is tossed at a
+  //   branch (window.__ref), since the app at a branch framing main's pages
+  //   showed main inside branch chrome (docs/showing-consolidation.md, C5).
+  //   A view of another repo has no app ref to take and opens at its default.
+  //
+  //   Web Tools version. A `lib` in the view's own query wins, and the
+  //   renderer reads it there. Otherwise an EXPLICIT selection of the app's
+  //   rides as the renderer's ?lib=: window.__lib, which the renderer stamps
+  //   only when a version was asked for, or on the deployed app its own
+  //   ?use=, which is always an ask. It is forwarded even when it names main,
+  //   because main is a selection like any other: an app tossed at a branch
+  //   with ?lib=main, framing a web-tools view with no ref, addressed the view
+  //   at the branch and dropped the main, so the view defaulted its library to
+  //   the branch (reported against 70036ba). With no explicit selection
+  //   nothing rides, and the view derives its own default (a web-tools view
+  //   its own ref, any other main), the rule the renderer applies at every
+  //   level.
+  appViewAddress(v, ctx){
     if (!v || !v.repo || !v.path) return '';
-    let at = v.ref || '', lib = '';
-    if (!at) {
-      let appRef = '', appLib = '';
-      try { appRef = window.__ref || ''; appLib = window.__lib || new URLSearchParams(location.search).get('use') || ''; } catch (e) {}
-      if (v.repo === this.DEFAULT_REPO && appRef && appRef !== 'main') at = appRef;
-      if (appLib && appLib !== 'main' && appLib !== at) lib = appLib;
-    }
+    const hub = ctx.hub, appRef = ctx.appRef || '', appLib = ctx.appLib || '';
+    const at = v.ref || (v.repo === hub && appRef && appRef !== 'main' ? appRef : '');
+    // Only a query that exists is parsed. Inside a toss the renderer's params
+    // shim answers any EMPTY URLSearchParams with the app's own address,
+    // because that is what new URLSearchParams(location.search) looks like in
+    // a blob: frame; parsing an empty view query read the app's injected `lib`
+    // as the view's own and dropped the forward (caught by the selection probe,
+    // case X5d).
+    let own = '';
+    try { own = v.query ? (new URLSearchParams(v.query).get('lib') || '') : ''; } catch (e) {}
+    const lib = own ? '' : appLib;
     const ref = at ? '@' + at : '';
     // v.query only. A live subjectParams read here would hand the NEXT app view
     // the fragment belonging to the one before it.
     const q = v.query || '';
     return '../pages/toss-render.html' + (lib ? '?lib=' + encodeURIComponent(lib) : '') +
       '#gh=' + v.repo + ref + ':' + v.path + (q ? '?' + q : '');
+  },
+  // An app view's toss address. Tossed (the renderer stamps __fabHosted), the
+  // app's explicit selection is window.__lib; deployed, it is a real ?use=.
+  get appViewUrl(){
+    let appRef = '', appLib = '';
+    try {
+      const tossed = window.__fabHosted === true;
+      appRef = tossed ? (window.__ref || '') : '';
+      appLib = tossed ? (window.__lib || '') : (new URLSearchParams(location.search).get('use') || '');
+    } catch (e) {}
+    return this.appViewAddress(this.appView, { hub: this.DEFAULT_REPO, appRef, appLib });
   },
   // ── The app view's mark: what the tab, the bookmark and the tile carry ────
   //

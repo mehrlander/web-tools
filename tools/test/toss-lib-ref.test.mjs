@@ -61,9 +61,10 @@ assert.ok(refExpr, 'entry.js no longer declares `const ref = …;`');
 // exactly this way before it builds the prelude.
 function libRefFor({ owner = 'mehrlander', name, ref, path = 'pages/x.html', pageQuery = '', asked = null,
                      importUrl = 'https://mehrlander.github.io/web-tools/lib/entry.js', extra = '' }) {
-  const handed = libRef(owner + '/' + name, ref, asked || new URLSearchParams(pageQuery).get('lib'));
+  const libAsked = asked || new URLSearchParams(pageQuery).get('lib') || '';
+  const handed = libRef(owner + '/' + name, ref, libAsked);
   const html = addressHtml('<!doctype html><html><head></head><body></body></html>',
-    { owner, name, ref, path, pageQuery, lib: handed });
+    { owner, name, ref, path, pageQuery, lib: handed, libAsked });
   const { window } = new JSDOM(html, { runScripts: 'dangerously', url: 'https://mehrlander.github.io/' });
   const lib = window.eval(`(function(u){ return ${refExpr.replace(/import\.meta\.url/g, 'u')}; })`)(importUrl);
   const other = extra ? window.eval(extra) : undefined;
@@ -162,4 +163,17 @@ test('a page query `lib` still picks the library when the renderer says nothing'
 test('the renderer ?lib= wins over a page query `lib`', () => {
   const { lib } = libRefFor({ name: 'home', ref: 'claude/x', pageQuery: 'lib=claude/old', asked: 'claude/new' });
   assert.equal(lib, 'claude/new');
+});
+
+test('window.__lib is stamped only for a version that was asked for', (t) => {
+  // An app framing views of its own reads __lib to tell a selection it must
+  // pass on from a default each view re-derives. So the default must not wear
+  // the stamp, while use and lib still answer it.
+  const plain = libRefFor({ name: 'web-tools', ref: 'claude/x',
+    extra: "[window.__lib === undefined, new URLSearchParams(location.search).get('lib')]" });
+  assert.deepEqual([...plain.other], [true, 'claude/x']);
+  const asked = libRefFor({ name: 'web-tools', ref: 'claude/x', asked: 'main',
+    extra: "[window.__lib, new URLSearchParams(location.search).get('use')]" });
+  assert.deepEqual([...asked.other], ['main', 'main']);
+  assert.equal(asked.lib, 'main', 'entry.js reads __lib ahead of use');
 });

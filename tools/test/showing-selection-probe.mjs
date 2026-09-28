@@ -61,6 +61,10 @@ const CASES = [
     { addr: `${WT}@app-br:app/index.html?view=app&appRepo=${WT}&appPath=pages/diff-tool.html` }),
   X('X5c', 'the web-tools app tossed at a branch, a home view that names no ref',
     { q: '?lib=lib-br', addr: `${WT}@app-br:app/index.html?view=app&appRepo=mehrlander/home&appPath=projects/budget-drs/submittal/submittal.html` }),
+  X('X5d', 'the app tossed at a branch with ?lib=main, a web-tools view with no ref (the regression)',
+    { q: '?lib=main', addr: `${WT}@app-br:app/index.html?view=app&appRepo=${WT}&appPath=pages/diff-tool.html` }),
+  X('X11', 'three repositories: shortcut-tools page, web-tools-private data and Web Tools code at three refs',
+    { q: '?lib=lib-br', addr: `mehrlander/shortcut-tools@page-br:pages/library.html?data=data-br`, readLibrary: true }),
   X('X6p', 'the web-tools app\'s page at main, its code (dist/app.js) from a branch (prototype)',
     { proto: true, q: '?lib=lib-br', addr: `${WT}@main:app/index.html` }),
   X('X7', 'home doc-audit viewer, which reads `use` as the Web Tools ref, at a branch',
@@ -95,7 +99,24 @@ function origin(url) {
 const isJs = p => /\.(m?js)$/.test(p);
 const stamp = (o) => `\n;(window.__ran=window.__ran||[]).push(${JSON.stringify(`${o.repo}@${o.ref}:${o.path}`)});\n`;
 
+// Data is stamped too where it can carry a mark without breaking its reader: a
+// JSON object gains `__servedFrom`, which the probe then reads back out of the
+// page's own state, so the report says which version the page CONSUMED.
+function stampedData(o, r) {
+  const body = Buffer.isBuffer(r.body) ? r.body.toString('utf8') : String(r.body);
+  try {
+    const d = JSON.parse(body);
+    if (!d || typeof d.content !== 'string') return r.body;
+    const inner = JSON.parse(Buffer.from(d.content, 'base64').toString('utf8'));
+    if (!inner || typeof inner !== 'object' || Array.isArray(inner)) return r.body;
+    const tag = `${o.repo}@${o.ref}:${o.path}`;
+    if (inner.meta && typeof inner.meta === "object") inner.meta.__servedFrom = tag; else inner.__servedFrom = tag;
+    return JSON.stringify({ ...d, content: Buffer.from(JSON.stringify(inner)).toString('base64') });
+  } catch { return r.body; }
+}
+
 function stamped(o, r) {
+  if (o && /\.json$/.test(o.path) && r.kind === 'fulfill' && /json/.test(r.contentType || '')) return stampedData(o, r);
   if (!o || !isJs(o.path) || r.kind !== 'fulfill') return r.body;
   const body = Buffer.isBuffer(r.body) ? r.body.toString('utf8') : String(r.body);
   if (/json/.test(r.contentType || '')) {
@@ -174,6 +195,19 @@ for (const c of CASES) {
     } catch (e) { return ['error ' + e.message]; }
   });
   if (marks) console.log('    FAB layers: ' + marks.join(' | '));
+  // What the library page consumed: the stamp inside library.json, read back
+  // from the page's own Alpine state.
+  if (c.readLibrary) {
+    for (const f of page.frames()) {
+      const got = await f.evaluate(() => {
+        const el = [...document.querySelectorAll('[x-data]')].find(e => /library/.test(e.getAttribute('x-data')));
+        if (!el || !window.Alpine) return null;
+        const d = Alpine.$data(el);
+        return { meta: d.meta && d.meta.__servedFrom || null, rows: (d.rows || []).length, dataRef: d.DATA_REF, deviceRef: d.DEVICE_REF };
+      }).catch(() => null);
+      if (got) console.log('    library state: ' + JSON.stringify(got));
+    }
+  }
   // Data: non-JS reads of repos other than web-tools's own code, by depth.
   const data = {};
   for (const a of asked) {

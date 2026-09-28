@@ -39,8 +39,13 @@
   before <path> is unambiguous because git forbids ':' in ref names, and no
   @ref means the repo's default branch (and no ?use shim). Neither the ?query
   nor the #frag reaches the API: both are handed to the PAGE, by the shims
-  addressHtml assembles. A ?lib=<ref> on THIS page's query picks the Web Tools
-  code the framed page boots, apart from the page's own ref (libRef). The on-page field and a pasted
+  addressHtml assembles.
+
+  Host query (how to show, never what):
+    ?w=<px>      lay the subject out at that width (the forced-width section)
+    ?lib=<ref>   the Web Tools code the framed page boots, and a routed toss's
+                 viewer page, apart from the page's own ref (libRef, and the
+                 three channels addressHtml stamps) The on-page field and a pasted
   github.com/.../blob/<ref>/<path> URL both route here.
 
   Toss routes (typed content tosses, built on address mode):
@@ -856,7 +861,7 @@ document.addEventListener('click',function(e){
   // Web Tools ref from libRef, which are the two names page boots read it by.
   // Then the fetch shim, so the page's relative runtime fetches resolve from
   // the repo.
-  function addressHtml(text, { owner, name, ref, path, pageQuery, lib }) {
+  function addressHtml(text, { owner, name, ref, path, pageQuery, lib, libAsked }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
     // Singleton guard: the shell mounts the one fab for this viewport, so a
@@ -888,9 +893,25 @@ document.addEventListener('click',function(e){
     // So an instance answers when it came from a URL whose href IS this
     // document's, or, built directly, when it holds nothing of its own. An
     // instance from any other URL, or built from a non-empty string, never does.
+    // The one ambiguity left is inherent: location.search is always '' here, so
+    // new URLSearchParams('') built from some OTHER empty string is
+    // indistinguishable from the page reading its address, and answers it. A
+    // page that parses a string that may be empty should test it first; the
+    // app's appViewAddress does (docs/loader.md, "Under the toss").
+    //
+    // THREE CHANNELS, ONE RULE. `use` and `lib` answer the EFFECTIVE Web Tools
+    // ref, the one libRef resolved, since those are the two names page boots
+    // read it by (entry.js and the pre-built bundles read `use`, home's pages
+    // `lib`). window.__lib is stamped only when that ref was ASKED for, by this
+    // renderer's ?lib= or a `lib` in the page query, so a page that frames
+    // views of its own (an app) can tell a selection to pass on from a default
+    // each view re-derives for itself. window.__ref is the SUBJECT's own ref,
+    // for any subject. entry.js reads ?ref= on its import, then __lib, then
+    // use, then main, so the three never disagree about what a boot loads.
     const injected = {};
     if (pageQuery) for (const [k, v] of new URLSearchParams(pageQuery)) injected[k] = v;
-    if (lib) { injected.use = lib; injected.lib = lib; prelude += '<script>window.__lib=' + JSON.stringify(lib) + ';<\/script>'; }
+    if (lib) { injected.use = lib; injected.lib = lib; }
+    if (libAsked) prelude += '<script>window.__lib=' + JSON.stringify(libAsked) + ';<\/script>';
     if (ref) prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>';
     if (Object.keys(injected).length) {
       const P = JSON.stringify(injected);
@@ -1118,9 +1139,9 @@ document.addEventListener('click',function(e){
     // a `lib` the page query inside the address already carries, which is how
     // links minted before the renderer had one said it (home's budget-drs
     // pages read it), so those keep meaning what they meant.
-    const lib = libRef(owner + '/' + name, ref,
-      queryParams.get('lib') || new URLSearchParams(pageQuery).get('lib'));
-    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery, lib }),
+    const libAsked = queryParams.get('lib') || new URLSearchParams(pageQuery).get('lib') || '';
+    const lib = libRef(owner + '/' + name, ref, libAsked);
+    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
   }

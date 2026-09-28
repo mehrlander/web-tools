@@ -35,9 +35,17 @@ The FAB around a nested preview shows **both sides, attributed**: `detect()` col
 
 Invoking across the window boundary is handled rather than avoided, and [`tools/test/subject-actions.mjs`](../tools/test/subject-actions.mjs) is the statement of how.
 
-**A toss carries main's lib, including the FAB.** `toss-render.html` is served from main, so the shell around a tossed page comes from main whatever ref the `#gh=` address names, and the FAB you touch is the shell's: the renderer stamps `window.__fabHosted` into the framed page so the inner one declines to mount. A branch change to `lib/alpineComponents/fab.js` is therefore **not visible through a 🥏 link**, and nothing reports the mismatch, because nothing is wrong: the FAB's own `?use=`-was-ignored check does not fire, since no `?use=` was asked for.
+**A toss carries main's lib, including the FAB.** `toss-render.html` is served from main, so the shell around a tossed page comes from main whatever ref the `#gh=` address names, and the FAB you touch is the shell's: the renderer stamps `window.__fabHosted` into the framed page so the inner one declines to mount. A branch change to `lib/alpineComponents/fab.js` is therefore **not visible through a 🥏 link**. The FAB says so in its layer strip, which marks the shell row as main.
 
 **The route that does reach it is the `?use=` pin on a deployed page, with no toss in the address.** Pinning the shell as well was tried and is prohibited: see the document-boundary category below.
+
+## Picking versions inside a toss
+
+A toss selects two things separately. The `#gh=` address picks the **page** and every file the page reaches relatively, at the address's ref. The renderer's own query picks the **Web Tools code** the page boots: `?lib=<ref>`. With no `?lib=`, a web-tools page runs its own ref, because a page and the library it was written against are one commit, and a page of any other repo runs main, because its ref names a branch of a different repository. A `lib` in the page query inside the address still works, and the renderer's `?lib=` wins over it. How the choice reaches the page's boot is [loader.md](loader.md#under-the-toss)'s business.
+
+**An app hands its selections to the views it frames.** The web-tools app frames each promoted page through the renderer, so the address it builds is the only thing carrying the app's choices down a level. A view's own ref (`appRef`) and its own `lib` win. Otherwise a web-tools view takes the app's page ref, and any view takes an explicit Web Tools selection of the app's, `main` included; with none, the view derives its own default. The budget-drs app in `mehrlander/home` frames its views itself and gives each one the app's own ref; it has no per-view selection.
+
+**Data stays with the page.** A page's reads of another repository are the page's own choice, and some are pinned to main on purpose: the shortcut-tools library page reads its curated data at `?data=<ref>` but the folders the device writes always at main. So the renderer passes a page's query through untouched and never overrides a repository wholesale. The record of that assessment, and of the three-repository case it was measured on, is [showing-consolidation.md](showing-consolidation.md).
 
 ## Three reasons a change resists preview
 
@@ -53,7 +61,8 @@ the **shell's** preamble, which is `toss-render.html` on main.
 
 **The document boundary.** A toss is two documents, and each creates its own `gh`
 whose ref every later load resolves against. The framed page's is pinned to the
-addressed ref; the shell's is pinned to main. So anything the shell contributes
+Web Tools ref the renderer resolved (the section above); the shell's is pinned
+to main. So anything the shell contributes
 to the view, loaded at boot or on a tap, comes from main regardless of the
 address. Today that is the FAB and the Alpine bundle. This is not about the code
 being central: it is ordinary `lib/` code sitting in the other document, and the
@@ -70,7 +79,7 @@ row, whose reach the section above states.
 
 ## The invariant, and the shape of its absence
 
-Every page that boots lib honors `?use=`, and every one carries the FAB. The failure mode when that is only nearly true is silent rather than loud: a page that pins the ref in its own boot block and ignores the parameter loads default-branch code under a preview banner. So the FAB cross-checks `window.gh.ref` against the address and says plainly when `?use=` was ignored, which is the only thing standing between a stale preview and a confident reader.
+Every page that boots lib honors `?use=`, and every one carries the FAB. The failure mode when that is only nearly true is silent rather than loud: a page that pins the ref in its own boot block and ignores the parameter loads default-branch code under a preview banner. So the FAB cross-checks `window.gh.ref` against the address and says plainly when `?use=` was ignored, which is the only thing standing between a stale preview and a confident reader. Inside a toss it makes the same check on the framed page, against the Web Tools ref the renderer resolved for it, and marks each layer in the strip with the version that layer actually booted. Until 2026-09-28 the check switched itself off inside a toss, which is the route branch pages are handed over on.
 
 That is the general shape of every failure recorded on this page: not a link that errors, but a link that renders something plausible and wrong. A mechanism table can tell you which link to write. It cannot tell you that the one you wrote is quietly showing you last week, which is why the honesty rule ("only a page renders this way; for a kit or doc, ⭐ links the `[new]` blob") and the headless screenshot both survive the existence of the table.
 
