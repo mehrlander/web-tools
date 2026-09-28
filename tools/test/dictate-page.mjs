@@ -1365,15 +1365,14 @@ try {
     return { inHeader: vis(a), whole: !!a && a.scrollWidth <= a.clientWidth, name: a && a.innerText.trim(),
              faces: vis(head.querySelector('[data-faces]')), join: vis(head.querySelector('.join .ph-code')) };
   });
-  ok('in file mode the file\'s name sits whole in the one header, beside a single faces button',
+  ok('in file mode the file\'s name sits whole in the one header, beside a single faces toggle',
     hdr.inHeader && hdr.whole && !/[:@/]/.test(hdr.name) && hdr.faces && !hdr.join, JSON.stringify(hdr));
   const faceB = await page.evaluate(() => { const r = document.querySelector('[data-faces]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.touchscreen.tap(faceB.x, faceB.y);
-  await page.waitForTimeout(150);
-  await page.locator('[x-data="dictate"] button:visible', { hasText: 'Source' }).tap();
-  await page.waitForTimeout(200);
-  const toSource = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; return { view: c.view, open: c.faces }; });
-  ok('and the faces button opens the three by name, and a pick switches the view', toSource.view === 'source' && !toSource.open, JSON.stringify(toSource));
+  await page.waitForTimeout(250);
+  const toSource = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    return { view: c.view, icon: document.querySelector('[data-faces] i').className }; });
+  ok('and the faces button flips Rendered to Source, wearing the face on screen', toSource.view === 'source' && /ph-code/.test(toSource.icon), JSON.stringify(toSource));
   await page.setViewportSize({ width: 1024, height: PHONE.height });
   await page.waitForTimeout(200);
   const wide = await page.evaluate(() => { const head = document.querySelector('[x-data="dictate"] > div'), vis = (el) => !!el && el.getClientRects().length > 0;
@@ -1381,7 +1380,7 @@ try {
   await page.setViewportSize(PHONE);
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.setView('rendered'); });
   await page.waitForTimeout(200);
-  ok('with room, the header names the whole repo:path and shows the three faces side by side',
+  ok('with room, the header names the whole repo:path and shows the two faces side by side',
     /:.+\//.test(wide.name) && !wide.faces && wide.join, JSON.stringify(wide));
   // The unsaved mark is also the way to clear every edit.
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.text = c.text.replace('Third para.', 'Third para, edited.'); c.paint(); });
@@ -1393,6 +1392,20 @@ try {
   await page.waitForTimeout(600);
   const cleared = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; return { text: c.text, dirty: c.dirty }; });
   ok('the unsaved dot offers Clear all edits, which puts the file back as GitHub holds it', cleared.text === PARA_DOC && !cleared.dirty, JSON.stringify(cleared));
+  // The Changes face is retired; what it alone had, the count and a step
+  // between changes, sits in the Rendered face's corner.
+  const jump = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], vis = (el) => !!el && el.getClientRects().length > 0;
+    const pill = document.querySelector('[data-jump]'), none = vis(pill);
+    c.d.text = c.text.replace('First one.', 'First once.').replace('Third para.', 'Third paragraph.'); c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    const shown = vis(pill), label = pill.textContent.replace(/\s+/g, ' ').trim();
+    c.jumpCard(1); c.jumpCard(-1);
+    c.d.undo(); c.paint(); await new Promise((r) => setTimeout(r, 200));
+    return { none, shown, label, after: vis(pill), changesFace: !!document.querySelector('[x-data="dictate"] > div').querySelector('.ph-git-diff') };
+  });
+  ok('with two changes the corner counts them and steps between them, and with none it is gone; no Changes face remains',
+    !jump.none && jump.shown && jump.label === '2 changes' && !jump.after && !jump.changesFace, JSON.stringify(jump));
   // From the top: the check before this one scrolled the pane down.
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.$refs.view.scrollTop = 0; c.toggleNativeSel(); });
   await page.waitForTimeout(150);

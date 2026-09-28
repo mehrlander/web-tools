@@ -205,13 +205,15 @@
     THE TYPE IS SMALLER, 17px against 21, since a document is read at reading
     distance and a note is spoken at arm's length.
 
-    AND IT HAS THREE FACES, on a toggle in the file band. SOURCE is the buffer
-    as this page has always drawn it. RENDERED is the document as it reads, and
+    AND IT HAS TWO FACES, on a toggle in the header. SOURCE is the buffer as
+    this page has always drawn it. RENDERED is the document as it reads, and
     it is not a preview: kits/md-surface.js answers the same three questions
     Dictate.paint does (draw, point to offset, on the words or not) over the
     rendered markdown, so every gesture here works on it and every edit is still
-    an edit to the markdown string. CHANGES is kits/md-diff.js over the buffer
-    and what GitHub holds, read-only. A markdown file opens Rendered.
+    an edit to the markdown string. A markdown file opens Rendered. A third,
+    read-only CHANGES face (kits/md-diff.js) was retired on 2026-09-29: with
+    the change cards below it showed the same edit a second time, and what it
+    alone had, a count and next and previous, moved onto the Rendered face.
 
     TYPING WORKS IN THE RENDERED FACE TOO, through an invisible textarea that
     holds the caret's line of source (see startTyping). A wrapper such as
@@ -229,8 +231,9 @@
     back. A card's stops pill reads original, marked and new: original is
     GitHub's text, read-only; new is the text clean, still open to typing. A
     tap on a stop or a sideways swipe picks one, a tap on the original returns
-    to marked, and an edit forgets every original; its number offers Go back
-    to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
+    to marked, and an edit forgets every original; its number wears an × that
+    discards the change. A pill in the pane's corner counts the cards and
+    steps between them. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
 
     PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. Backspace at a
     paragraph's start joins it to the one above; a long press on the space
@@ -247,10 +250,9 @@
     caret, and a Move pill under a selection carries it to the next place
     tapped. Split then comes from the shifted ¶ at a caret. See nativeSync.
 
-    A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
-    in the Changes face: Reject this change puts that block back as GitHub has
-    it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
-    edit leaves by Send: a Claude Code session gets the patch with a line saying
+    A CHANGE IS DISCARDED FROM ITS OWN CARD, the × on its number, which puts
+    that block back as GitHub has it (mdDiff.revert). The whole edit leaves by
+    Send: a Claude Code session gets the patch with a line saying
     where it belongs, Share and Copy in the sheet's foot get the bare patch
     (`git apply` takes it). Copy in the bottom row copies the whole buffer.
 
@@ -493,7 +495,8 @@
       // through kits/md-surface.js, so the pad, the pins, the long press and the
       // voice all work on it. Source is the markdown itself; Changes is the
       // document against what GitHub holds, read-only.
-      view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
+      // A stored 'changes' is from before that face was retired, and opens Rendered.
+      view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ['source', 'rendered'].includes(ls.get(VIEW)) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
       mdReady: false, changesCount: 0,
       // Typing into the Rendered face: the sink has focus and the keyboard is up.
       typing: false, composing: false,
@@ -506,8 +509,7 @@
       // on the words would take focus from it.
       nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get('dictate:sel') === 'native',
       moveArm: null,            // native: the range the target picked up to move
-      moveAim: null,
-      faces: false,             // file mode, on a phone: the face list is open            // native: where a tap on the text aimed the held words
+      moveAim: null,            // native: where a tap on the text aimed the held words
       dnd: null,                // native: words the platform is dragging, and where they would land
       get moveReady() { this.beat; const r = this.d && this.d.range; return !!(this.native && !this.moveArm && r && r.start !== r.end); },
       _lastNative: '',          // native: the platform's selection as last seen, "a:b"
@@ -830,7 +832,7 @@
         this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
       },
 
-      // ── File mode: the three faces ────────────────────────────────────
+      // ── File mode: the two faces ──────────────────────────────────────
       // The renderers load on first use, so a blank page and a source-only
       // session pay nothing for them. Literal paths, so the pre-build carries
       // them all the same.
@@ -871,28 +873,7 @@
         if (layer) for (const n of [...layer.querySelectorAll('[data-md-surface],[data-edge],[data-mend]')]) n.remove();
         this.view = v;
         ls.set(VIEW, v);
-        if (v === 'changes') { await this.$nextTick(); await this.renderChanges(); return; }
         this.$nextTick(() => this.paint());
-      },
-      async renderChanges() {
-        const host = this.$refs.changes;
-        if (!host) return;
-        try {
-          await gh.load('kits/md-diff.js');
-          await gh.load('kits/row-menu.js');
-          this.d.flush();
-          // A change's own index opens what can be done to that change.
-          const menu = (chg) => [
-            { label: 'Reject this change', icon: 'ph-arrow-u-up-left', run: () => { this.rejectChange(chg); } },
-            ...(chg.newRange ? [{ label: 'Edit here', icon: 'ph-cursor-text', run: () => {
-              this.d.caretAt(chg.newRange.start); this.setView('rendered');
-            } }] : []),
-          ];
-          const h = await window.mdDiff.render(host, this.fileBase || '', this.text, { layout: 'swipe', menu });
-          this.changesCount = h?.count || 0;
-        } catch (e) {
-          host.textContent = 'Could not draw the changes: ' + (e?.message || e);
-        }
       },
       // One rewrite of the whole buffer, so one undo takes it back, and unsaved
       // until Save, so the reader looks before anything is committed. The rule
@@ -1220,7 +1201,7 @@
         const at = (cx, cy) => this.pointOffset(cx, cy);
         const lineOf = () => parseFloat(getComputedStyle(this.$refs.view).lineHeight) || 26;
         surface.addEventListener('pointerdown', (e) => {
-          if (this.edit || this.view === 'changes') return;
+          if (this.edit) return;
           // A card's number and label are controls, not text: no caret, no long press.
           if (e.target?.closest?.('[data-md-ui]')) { anchor = null; clear(); return; }
           // ANY TOUCH ON THE WORDS ENDS A PENDING STITCH. It was reported as
@@ -1884,7 +1865,6 @@
       // good costs three frames rather than a loop.
       paint(retry = 3) {
         this.beat++;
-        if (FILE && this.view === 'changes') return;
         if (this.rendered) {
           const md = this.$refs.md;
           if (!md.getClientRects().length) { if (retry > 0) requestAnimationFrame(() => this.paint(retry - 1)); return; }
@@ -1902,6 +1882,8 @@
             // the caret was hard to find in running text.
             caretWidth: this.precise ? 2 : 3,
           });
+          const n = this.showMarks ? md.querySelectorAll('[data-md-card]').length : 0;
+          if (n !== this.changesCount) this.changesCount = n;
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
           if (this.typing) this.syncSink();
@@ -2262,15 +2244,9 @@
       },
 
       // ── The edit as a patch ───────────────────────────────────────────
-      // Rejecting one change lives on that change's index in the Changes face
-      // (renderChanges); these are the whole edit, as a unified diff to copy or
-      // to hand to a Claude Code session.
-      async rejectChange(chg) {
-        this.d.text = window.mdDiff.revert(this.fileBase, this.text, chg);
-        const at = chg.newRange ? chg.newRange.start : chg.insertAt;
-        this.d.caretAt(Math.min(at, this.d.text.length));
-        await this.renderChanges();
-      },
+      // Discarding one change lives on its card (rejectCard); these are the
+      // whole edit, as a unified diff to copy or to hand to a Claude Code
+      // session.
       get patchText() {
         this.beat;
         // Only while the menu is open: Alpine evaluates the menu's bindings even
@@ -2859,6 +2835,17 @@
           { label: 'Clear all edits', icon: 'ph-x-circle', run: () => this.clearEdits() },
         ] });
       },
+      // The next card below the top of the pane, or the previous one above it,
+      // wrapping; brought to just under the top.
+      jumpCard(dir) {
+        const v = this.$refs.view, top = v.getBoundingClientRect().top;
+        const cards = [...this.$refs.md.querySelectorAll('[data-md-card]')];
+        if (!cards.length) return;
+        const at = cards.map((c) => c.getBoundingClientRect().top - top);
+        let k = dir > 0 ? at.findIndex((y) => y > 24) : at.findLastIndex((y) => y < 8);
+        if (k < 0) k = dir > 0 ? 0 : cards.length - 1;
+        v.scrollTo({ top: v.scrollTop + at[k] - 16, behavior: 'smooth' });
+      },
       rejectCard(run) {
         const e = run[0];
         this.d.text = window.mdDiff.revert(this.fileBase, this.text, run);
@@ -3397,7 +3384,7 @@
 
        IN FILE MODE THE FILE LINE LIVES HERE TOO, rather than in a second band
        under the header. The empty centre column takes the file's name and
-       whether it is unsaved, and the three faces join the right group. On a
+       whether it is unsaved, and the two faces join the right group. On a
        phone the name is the file's own (SKILL.md) and unsaved is a dot; from
        the sm breakpoint up, the whole repo@ref:path and the badge. The clock
        and word count give way on a phone, and the count moves to the menu. -->
@@ -3452,38 +3439,19 @@
     </div>
 
     <div class="flex items-center gap-0.5 justify-self-end col-start-3">
-      <!-- The three faces. On a phone ONE BUTTON, wearing the face on screen
-           and opening the three by name: side by side they took 96px of a
-           360px header and left the file's name one letter. From sm up there
-           is room, and they sit side by side as icons, titled for a hover. -->
-      <div x-show="file" class="relative sm:hidden" @click.outside="faces = false">
-        <button @click="faces = !faces" class="btn btn-ghost btn-md btn-square" title="Source, Rendered or Changes" data-faces>
-          <i class="ph text-xl" :class="{ source: 'ph-code', rendered: 'ph-eye', changes: 'ph-git-diff' }[view]"></i>
-        </button>
-        <div x-show="faces" x-cloak
-             class="absolute right-0 top-full mt-1 z-50 w-48 rounded-box border border-base-300 bg-base-100 shadow-xl py-1 flex flex-col">
-          <button @click="setView('source'); faces = false" class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200">
-            <i class="ph ph-code text-lg opacity-60"></i>Source<i x-show="view === 'source'" class="ph ph-check ml-auto text-lg text-success"></i>
-          </button>
-          <button @click="setView('rendered'); faces = false" class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200">
-            <i class="ph ph-eye text-lg opacity-60"></i>Rendered<i x-show="view === 'rendered'" class="ph ph-check ml-auto text-lg text-success"></i>
-          </button>
-          <button @click="setView('changes'); faces = false" class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200">
-            <i class="ph ph-git-diff text-lg opacity-60"></i>Changes
-            <span x-show="changesCount" class="font-mono text-sm opacity-40" x-text="changesCount"></span>
-            <i x-show="view === 'changes'" class="ph ph-check ml-auto text-lg text-success"></i>
-          </button>
-        </div>
-      </div>
+      <!-- The two faces. On a phone ONE BUTTON that flips between them and
+           wears the face on screen, since a pair took room the file's name
+           needs on a 360px header. From sm up, the pair side by side. -->
+      <button x-show="file" @click="setView(view === 'rendered' ? 'source' : 'rendered')" data-faces
+              class="sm:hidden btn btn-ghost btn-md btn-square"
+              :title="view === 'rendered' ? 'Rendered. Tap for the markdown source.' : 'Source. Tap for the rendered document.'">
+        <i class="ph text-xl" :class="view === 'rendered' ? 'ph-eye' : 'ph-code'"></i>
+      </button>
       <div x-show="file" class="join shrink-0 mr-1 hidden sm:inline-flex">
         <button @click="setView('source')" class="join-item btn btn-sm btn-square" :class="view === 'source' ? 'btn-active' : 'btn-ghost'"
                 title="Source: the markdown itself"><i class="ph ph-code text-base"></i></button>
         <button @click="setView('rendered')" class="join-item btn btn-sm btn-square" :class="view === 'rendered' ? 'btn-active' : 'btn-ghost'"
                 title="Rendered: the document as it reads, still editable by tap and voice"><i class="ph ph-eye text-base"></i></button>
-        <button @click="setView('changes')" class="join-item btn btn-sm" :class="(view === 'changes' ? 'btn-active' : 'btn-ghost') + (view === 'changes' && changesCount ? ' px-1.5 gap-0.5' : ' btn-square')"
-                title="Changes: this edit against what GitHub holds">
-          <i class="ph ph-git-diff text-base"></i><span x-show="view === 'changes' && changesCount" class="text-[10px]" x-text="changesCount"></span>
-        </button>
       </div>
       <button @click="undo()" :disabled="!canUndo" class="btn btn-ghost btn-md btn-square" title="Undo">
         <i class="ph ph-arrow-counter-clockwise text-xl"></i>
@@ -3689,11 +3657,16 @@
         </div>
       </div>
 
-      <!-- File mode's Changes face: the document against what GitHub holds,
-           drawn by kits/md-diff.js. Read-only, and above the text pane, so no
-           gesture meant for the words reaches through it. -->
-      <div x-show="file && view === 'changes'" x-cloak x-ref="changes"
-           class="absolute inset-0 overflow-y-auto px-4 py-3 bg-base-100 z-10"></div>
+      <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to
+           the next or the previous one, wrapping at the ends. It is what the
+           retired Changes face had that the cards did not. Bottom left, since
+           the launcher holds the bottom right. -->
+      <div x-show="file && rendered && showMarks && changesCount && !edit" x-cloak data-jump
+           class="absolute bottom-2 left-2 z-20 join rounded-full shadow-sm border border-base-300 bg-base-100/95">
+        <button @click="jumpCard(-1)" class="join-item btn btn-xs btn-ghost rounded-l-full px-1.5" title="Previous change"><i class="ph ph-caret-up"></i></button>
+        <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
+        <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost rounded-r-full px-1.5" title="Next change"><i class="ph ph-caret-down"></i></button>
+      </div>
 
       <!-- The keyboard half, and it has no controls of its own: blur or
            Escape is the way out, which is the keyboard's own gesture and the
@@ -3734,7 +3707,7 @@
        generous in the axis a thumb actually misses in. Tapped over and over
        inside one note, so they are the tall row, and being the tall row is
        what qualifies a control to be here. -->
-  <div x-show="!edit && !(file && view === 'changes') && !desk" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
+  <div x-show="!edit && !desk" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
     <template x-for="k in pad" :key="k.k">
       <button @pointerdown.prevent="key(k.k)" :title="k.t"
               class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl font-semibold"
