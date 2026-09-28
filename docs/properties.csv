@@ -205,6 +205,7 @@ context-sources,item,recorded,,value,column,yes,,value,the short name a reader k
 context-sources,repo,recorded,,none,column,yes,,locator,the owner/repo holding the source file; blank where the source is not a file in any repo
 context-sources,path,recorded,,none,column,yes,,locator,"the file or folder within repo that holds the source, or a copy of it"
 context-sources,defined_in,recorded,,none,column,yes,,value,"where a source that is not a repo file is set, such as a claude.ai settings page"
+context-sources,link,recorded,,none,column,yes,,locator,the claude.ai settings page where a source that is not a repo file is changed
 context-sources,arrives,recorded,,value,column,yes,instructions;skill-listing;skill;hook;settings;install;tool;message;continuity;none,label,"the mechanism that puts the source in front of the model, or none for a source that only configures one that does"
 context-sources,when,recorded,,value,column,yes,build;start;invoke;turn;event,label,"when it arrives: at environment build, at session start, when invoked, every turn, or on an event"
 context-sources,reach,recorded,,value,column,yes,every;checkout;root;invoke;pr,label,"which sessions it reaches: every session, one with the repo checked out, one rooted in the repo, one that invokes it, or one with a pull request open"

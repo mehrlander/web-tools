@@ -34,7 +34,8 @@ test('ids are unique across both halves', () => {
 test('every public row that names a web-tools file points at one that exists', () => {
   for (const r of rows.filter(r => r.repo === HUB)) {
     assert.ok(r.path, r.id + ': a web-tools row names its path');
-    assert.ok(existsSync(path.join(repoRoot, r.path)), r.id + ': ' + r.path + ' does not exist');
+    const file = r.path.split('#')[0];
+    assert.ok(existsSync(path.join(repoRoot, file)), r.id + ': ' + file + ' does not exist');
   }
 });
 
@@ -67,6 +68,11 @@ test('every topic a row names is declared, and every declared topic is used', ()
     if (!privText && !rows.some(r => String(r.topics).includes(k))) continue;
     assert.ok(used.has(k), 'topic "' + k + '" is declared and no row speaks to it');
   }
+});
+
+test('a settings link, where given, is a claude.ai page', () => {
+  for (const r of [...rows, ...privRows].filter(r => r.link))
+    assert.match(r.link, /^https:\/\/claude\.ai\//, r.id + ': link "' + r.link + '"');
 });
 
 test('tally keys have one of the two shapes the Measured lens joins on', () => {
