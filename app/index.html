@@ -1873,7 +1873,7 @@ html.dk-dragging main{transition:none !important}
       <template x-if="view==='files' && $store.browser.repo">
         <div class="grow min-h-0 flex flex-col px-4 lg:px-6 pt-4 pb-6">
           <template x-for="k in [$store.browser.repo + '@' + ($store.browser.ref || '') + '#' + filesKey]" :key="k">
-            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile })"></div>
+            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile, filter: filesFilter })"></div>
           </template>
         </div>
       </template>
@@ -5529,7 +5529,11 @@ function app(){ return {
     // an old ?view=files&path=docs link lands here on that folder. An open
     // file rides as `file`, which routeFromUrl hands to openFile.
     { key: 'files', open(u){ this.goFiles(u.path || '', ''); },
-      stamp(p){ if (this.filesPath) p.set('path', this.filesPath); if (this.filesFile) p.set('file', this.filesFile); } },
+      stamp(p){
+        if (this.filesPath) p.set('path', this.filesPath);
+        if (this.filesFile) p.set('file', this.filesFile);
+        if (this.filesFile && this.filesFilter) { p.set('col', this.filesFilter.col); p.set('find', this.filesFilter.find); }
+      } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
     { key: 'state', open(u){ this.goState(u.item); },
@@ -5676,7 +5680,7 @@ function app(){ return {
   // on a restore there is nothing left to try and the landing is the answer.
   async routeFromUrl(url){
     if (!url) return false;
-    if (url.file) { await this.openFile(url.file); return true; }
+    if (url.file) { await this.openFile(url.file, url.col && url.find ? { col: url.col, find: url.find } : null); return true; }
     const r = this.routeForUrl(url.view);
     if (!r || (r.when && !r.when(url))) return false;
     await r.open.call(this, url);
@@ -5691,6 +5695,9 @@ function app(){ return {
     if (!p.has('repo') && !p.has('file') && !p.has('view') && !p.has('app')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
              file: p.get('file'),
+             // A row narrowing on the file: ?col=<header>&find=<term>, the same
+             // pair home's submittal references carry. Only a table reads it.
+             col: p.get('col') || '', find: p.get('find') || '',
              // `?app=` names its own route, so it implies view=app: the dispatch
              // in routeFromUrl keys on url.view, and a short address that named
              // no view would find no row to open and fall through to the estate.
@@ -6078,17 +6085,20 @@ function app(){ return {
   // A file or a folder opens in the repo's Files view, at the ref being
   // browsed: the tree opens on the folder and the file beside it. Search is
   // for finding; these callers already know where the thing is.
-  openFile(path){
+  openFile(path, filter = null){
     const p = String(path || '').replace(/^\/+/, '');
-    this.goFiles(p.split('/').slice(0, -1).join('/'), p);
+    this.goFiles(p.split('/').slice(0, -1).join('/'), p, filter);
   },
   openFolder(path){ this.goFiles(String(path || '').replace(/^\/+|\/+$/g, ''), ''); },
   // The Files view's state is its address: the folder the tree opens on and
   // the file beside it. filesKey remounts the component when either changes,
   // since the component does not follow a scope change on its own.
-  filesPath: '', filesFile: '', filesKey: 0,
-  goFiles(path = '', file = ''){
+  // filesFilter narrows filesFile's table to rows, { col, find }; it belongs to
+  // that one file, so any other open clears it.
+  filesPath: '', filesFile: '', filesFilter: null, filesKey: 0,
+  goFiles(path = '', file = '', filter = null){
     this.filesPath = path; this.filesFile = file; this.filesKey++;
+    this.filesFilter = file && filter?.col && filter?.find ? { col: String(filter.col), find: String(filter.find) } : null;
     this.view = 'files';
     this.syncUrl();
   },

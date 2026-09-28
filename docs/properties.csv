@@ -200,3 +200,5 @@ run-methods,venues,recorded,,value,list,no,,value,the machines a person may run 
 run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
+map-tabs,gloss,recorded,,value,column,yes,,value,"the lede: what the rows at this address are, in one sentence, never what the reader can do with them"
+map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"

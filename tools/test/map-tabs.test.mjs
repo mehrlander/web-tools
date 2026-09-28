@@ -17,35 +17,43 @@
 // starts to rot. The shape assertions below are the whole of it: one sentence,
 // bounded, no second person, no imperative pointing at a control.
 //
-// The strip is generated from the same array, so a tab cannot be added without a
-// sentence. That is the load-bearing part: a convention nothing renders from is a
-// convention that lasts one session.
+// The sentences live in docs/map-tabs.csv, one row per address, since
+// 2026-09-28; the keys, labels and icons stay in the TABS and SUBVIEWS arrays the
+// strip is generated from. A tab still cannot be added without a sentence, but
+// the reason is now a gate rather than a shared literal: the CSV's row set must
+// equal the shell's MAP_ROUTES in both directions. That is the load-bearing part:
+// a convention nothing renders from is a convention that lasts one session.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
+import { parseCsv } from '../build/registries-load.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
+const shell = readFileSync(path.join(repoRoot, 'app', 'index.html'), 'utf8');
+const ROWS = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 'utf8'));
 
 // The literals live in a component that needs a browser to evaluate, so read
 // just their source blocks. Scoping matters now that Purpose, Growth, and Tests
 // are addressable subviews rather than entries in the top-level strip.
 const tabsBlock = src.match(/TABS:\s*\[([\s\S]*?)\r?\n\s*\],\r?\n\s*SUBVIEWS:/)?.[1] || '';
 const subviewsBlock = src.match(/SUBVIEWS:\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*SUBVIEW_PARENT:/)?.[1] || '';
-const ledePattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: '(ph-[a-z-]+)',\s*\n\s*g: '((?:[^'\\]|\\.)*)' \}/g;
 const optionPattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: '(ph-[a-z-]+)'/g;
-const ledesOf = block => [...block.matchAll(ledePattern)]
-  .map(m => ({ k: m[1], n: m[2], i: m[3], g: m[4].replace(/\\'/g, "'") }));
-const TABS = ledesOf(tabsBlock);
+const TABS = [...tabsBlock.matchAll(optionPattern)].map(m => ({ k: m[1], n: m[2], i: m[3] }));
 const SUBVIEWS = [...subviewsBlock.matchAll(optionPattern)]
   .map(m => ({ k: m[1], n: m[2], i: m[3] }));
 const parentBlock = src.match(/SUBVIEW_PARENT:\s*\{([^}]+)\}/)?.[1] || '';
 const SUBVIEW_PARENT = Object.fromEntries(
   [...parentBlock.matchAll(/(?:^|,)\s*([a-z]+): '([a-z]+)'(?=\s*(?:,|$))/g)]
     .map(m => [m[1], m[2]]));
-const LEDES = [...TABS, ...ledesOf(subviewsBlock)];
+// One lede per address, named by its key: the same string the shell validates
+// ?tab= against, so a failure names the address a reader would type.
+const LEDES = ROWS.map(r => ({ n: r.tab, g: r.gloss, narrative: r.narrative }));
+const routeKeys = name => (shell.match(new RegExp(`const ${name} = \\[([^\\]]+)\\]`))?.[1] || '')
+  .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 
 test('every tab in the strip is one entry in the array that generates it', () => {
   // 12 to 13 on 2026-09-05: the Kits tab. 13 to 14 on 2026-09-08: the Views tab.
@@ -74,16 +82,57 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /x-text="tabGloss"/, 'the lede is rendered from the selected tab');
 });
 
+test('docs/map-tabs.csv holds one row per Map address, and no other', () => {
+  assert.ok(MAP_ROUTES.length >= 15, 'MAP_ROUTES parsed short: ' + MAP_ROUTES.length);
+  const keys = ROWS.map(r => r.tab);
+  assert.equal(new Set(keys).size, keys.length, 'a tab key appears twice');
+  assert.deepEqual([...keys].sort(), [...MAP_ROUTES].sort(),
+    'every address the shell accepts has a row, and every row is an address');
+  for (const r of ROWS) assert.ok(r.narrative, `${r.tab}: no narrative`);
+});
+
+test('the lede comes from the CSV and links to its own row', () => {
+  assert.doesNotMatch(tabsBlock + subviewsBlock, /\bg: '/,
+    'a sentence is back in the array; it belongs in docs/map-tabs.csv');
+  assert.match(src, /const TAB_LEDES = 'docs\/map-tabs\.csv'/);
+  assert.match(src, /get tabGloss\(\)\{ return this\.tabLedes\?\.\[this\.mapTab\]\?\.gloss/,
+    'one row per address, so the lede is a lookup with no parent fallback');
+  assert.match(src, /openFile\(TAB_LEDES, \{ col: 'tab', find: this\.mapTab \}\)/,
+    'the link lands on the row, not the whole file');
+  // Tabulator's input header filter matches substrings, so a key inside
+  // another key lands on two rows. aims/claims is the one such pair, accepted
+  // because the filter text sits in the header box and the exact row comes
+  // first; exact matching would need a column-level change in
+  // kits/tabular-explorer.js that would also make a typed filter exact. A new
+  // pair fails here so it is a decision rather than an accident.
+  const overlaps = [];
+  for (const a of ROWS) for (const b of ROWS)
+    if (a !== b && b.tab.includes(a.tab)) overlaps.push(a.tab + '<' + b.tab);
+  assert.deepEqual(overlaps, ['aims<claims']);
+});
+
+test('the Map description points at the CSV instead of restating it', () => {
+  const desc = src.match(/description: '((?:[^'\\]|\\.)*)'/)?.[1] || '';
+  assert.match(desc, /docs\/map-tabs\.csv/);
+});
+
+test('a narrative is bounded, so the manual does not regrow in a cell', () => {
+  for (const t of LEDES) {
+    const words = t.narrative.split(/\s+/).length;
+    assert.ok(words <= 120, `${t.n}: narrative is ${words} words; cut it or move it to docs/views/map.md`);
+  }
+});
+
 test('reader labels clarify the stable route keys', () => {
   const distribution = TABS.find(t => t.k === 'set');
   assert.ok(distribution, 'the long-lived ?tab=set route remains declared');
   assert.equal(distribution.n, 'Distribution',
     'the reader sees the cross-repository purpose rather than the internal Portable name');
 
-  const kits = TABS.find(t => t.k === 'kits');
-  assert.match(kits?.g || '', /browser JavaScript/i,
+  const kits = ROWS.find(r => r.tab === 'kits');
+  assert.match(kits?.gloss || '', /browser JavaScript/i,
     'the Kits lede names the runtime that distinguishes a kit from a standalone script');
-  assert.match(kits?.g || '', /lib\/kits\/\*\.js/,
+  assert.match(kits?.gloss || '', /lib\/kits\/\*\.js/,
     'the lede names the exact shelf boundary the kits registry builds');
 });
 
