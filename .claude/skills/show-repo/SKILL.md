@@ -35,9 +35,11 @@ A stage link is **token-gated**, exactly like toss-render's `#gh=`: it works
 only for the token owner in a token-bearing browser. The Claude app's in-app
 browser keeps its own storage, so the token is not guaranteed there (historically
 absent, but it can be entered, after which the link works); treat it as possibly
-token-less. The token-less `#gz=`-style bundle form is contemplated, not built.
-For a reader you can't count on having a token, download the stage's concatenated
-bundle and `SendUserFile` it instead of sending a link.
+token-less. Pasted text is the exception: a stage holding only pasted text mints
+as `#gz=`, which carries the text in the link and needs no token (`stage.md`,
+"Content: the `&gz=` param"). For repo files and a reader you can't count on
+having a token, download the stage's concatenated bundle and `SendUserFile` it
+instead of sending a link.
 
 ## Fetch (primary path)
 
@@ -45,7 +47,7 @@ bundle and `SendUserFile` it instead of sending a link.
 curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/show-repo.md
 ```
 
-For stage work (the bench, the preview and its diff, save-as-surface, the
+For stage work (the bench, the preview and its diff, the
 `#stage=` grammar), fetch the stage's own reference the same way:
 
 ```bash

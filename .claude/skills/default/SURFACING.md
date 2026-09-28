@@ -54,7 +54,7 @@ The task marker 🎫, the session diff, and review the diff 🔍 follow [surfaci
 
 * **Hand over the artifact.** Send an artifact with `SendUserFile`, not a path. Images preview inline; HTML, zip, and audio download.
 
-Run `npm run showing` before handing over a render link, and paste the line it prints. It reads the branch's changed files and either names the page and mechanism that reach them, or reports that no link does.
+Run `npm run showing` before handing over a render link, and paste the line it prints. Re-run it for every link on every commit, and append nothing to what it prints: ask for a query with `--query` or a fragment with `--at`. It reads the branch's changed files and either names the page and mechanism that reach them, or reports that no link does.
 
 Uncommon ways to hand something over (lead with the live view, publish an artifact 📦, stage a fileset 🗂️, envelopes, an approval 🕹️ among them, data toss 📊, clipboard 📋/run 📲 links): follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
