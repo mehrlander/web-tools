@@ -638,6 +638,7 @@
             e.preventDefault();
             try { e.dataTransfer.dropEffect = 'move'; } catch {}
             this.dnd.target = this.dropAt(e.clientX, e.clientY, this.dnd);
+            this.dnd.x = e.clientX; this.dnd.y = e.clientY;
             this.paintExtras();
           });
           md.addEventListener('drop', (e) => {
@@ -1214,6 +1215,16 @@
           downAt = Date.now();
           // THE PLATFORM SELECTS, under the native option: no long press
           // here, no mouse drag, no carry by holding. Only the tap is ours.
+          // AND WHILE WORDS ARE HELD FOR A MOVE, a finger anywhere on the text
+          // is the target's pad: the caret moves in parallel with it, off to
+          // the side of the thumb rather than under it. A press that goes
+          // nowhere is still a tap, and the tap drops the words where it
+          // lands (pointerup, below).
+          if (this.native && this.moveArm && e.pointerType !== 'mouse' && this._padFrom) {
+            nearEdge = false; anchor = null; carry = null; clear();
+            this._padFrom(e, surface, null);
+            return;
+          }
           if (this.native) { nearEdge = this.nearSelEdge(x, y); anchor = null; carry = null; clear(); return; }
           held = e.target;
           if (held?.addEventListener) held.addEventListener('touchmove', holdMove, { passive: false });
@@ -1766,27 +1777,30 @@
           // this button. Measured against the raw thumb travel rather than the
           // accumulated virtual point, since the gain would call a 6px twitch
           // a 14px move at a flick.
-          const tapped = from.travel < 8;
+          const tapped = from.travel < 8, onTap = from.onTap, el = from.el;
           from = null;
           this.padDrag = false;
-          if (tapped) this.padTap();
+          if (tapped && onTap) onTap();
           const d = document;
           d.removeEventListener('pointermove', move, true);
           d.removeEventListener('pointerup', up, true);
           d.removeEventListener('pointercancel', up, true);
           d.removeEventListener('selectstart', noSelect, true);
           d.body.style.userSelect = ''; d.body.style.webkitUserSelect = ''; d.body.style.touchAction = '';
-          try { if (e) btn.releasePointerCapture(e.pointerId); } catch {}
+          try { if (e) el.releasePointerCapture(e.pointerId); } catch {}
         };
-        btn.addEventListener('pointerdown', (e) => {
-          if (this.edit || !this.d) return;      // the keyboard brings its own caret
+        // `el` is what took the press and `onTap` what a press that went
+        // nowhere means: the target's own tap for the button, nothing for the
+        // text (whose own tap handler has the release). See padFrom.
+        const start = (e, el, onTap) => {
+          if (this.edit || !this.d) return false;  // the keyboard brings its own caret
           const p = this.padPoint();
-          if (!p) return;
+          if (!p) return false;
           e.preventDefault();
           const cs = getComputedStyle(this.$refs.view);
           from = { x: p.x, y: p.y, y0: p.y, lx: e.clientX, ly: e.clientY, travel: 0,
                    lt: (typeof e.timeStamp === 'number' && e.timeStamp) || 0,
-                   line: parseFloat(cs.lineHeight) || 26 };
+                   line: parseFloat(cs.lineHeight) || 26, el, onTap };
           // The flag the text box reads to stand down. It has to: a capture can
           // be lost mid-gesture (a browser deciding the touch was a scroll) and
           // the box would then read the tail of a drag as a tap.
@@ -1805,8 +1819,11 @@
           d.addEventListener('pointerup', up, true);
           d.addEventListener('pointercancel', up, true);
           d.addEventListener('selectstart', noSelect, true);
-          try { btn.setPointerCapture(e.pointerId); } catch {}
-        });
+          try { el.setPointerCapture(e.pointerId); } catch {}
+          return true;
+        };
+        btn.addEventListener('pointerdown', (e) => { start(e, btn, () => this.padTap()); });
+        this._padFrom = start;
       },
 
       // `retry` is not a caller's parameter: it is how this defers itself once.
@@ -2303,8 +2320,30 @@
               `left:${x.left - lb.left}px;top:${x.top - lb.top}px;width:${x.width}px;height:${x.height}px`, 'seam');
           }
         }
-        // Where words dragged by the platform would land.
-        if (this.dnd && this.dnd.target) this.markTarget(this.dnd.target, add, across, lb);
+        // Where words dragged by the platform would land. The finger covers
+        // that place, so a chip above the thumb repeats it: the words either
+        // side of the drop, with the cursor between them.
+        if (this.dnd && this.dnd.target) {
+          this.markTarget(this.dnd.target, add, across, lb);
+          const t = this.d.text, at = this.dnd.target.at, tg = this.dnd.target;
+          const tail = (x) => x.replace(/\s+/g, ' ').trim();
+          const before = tail(t.slice(Math.max(0, at - 28), at)), after = tail(t.slice(at, at + 28));
+          const chip = add('div', 'absolute z-30 pointer-events-none max-w-[85%] whitespace-nowrap overflow-hidden rounded-lg border border-base-300 '
+            + 'bg-base-100 shadow-lg px-2 py-1 text-sm flex items-center gap-0.5', 'left:0;top:0', 'move');
+          chip.dataset.dropLoupe = '';
+          const part = (txt, cls) => { const n = chip.appendChild(document.createElement('span')); n.className = cls; n.textContent = txt; };
+          if (tg.para) {
+            part('\u00b6', 'text-primary font-semibold');
+            part((before ? '…' + before.slice(-24) + ' | ' : '') + 'new paragraph', 'opacity-70 truncate');
+          } else {
+            part(before ? '…' + before.slice(-20) : '', 'opacity-70 truncate text-right');
+            part('', 'inline-block w-[2px] h-4 bg-error shrink-0');
+            part(after ? after.slice(0, 20) + '…' : '', 'opacity-70 truncate');
+          }
+          const w = chip.offsetWidth, h = chip.offsetHeight;
+          chip.style.left = Math.max(8, Math.min(lb.width - w - 8, this.dnd.x - lb.left - w / 2)) + 'px';
+          chip.style.top = Math.max(0, this.dnd.y - lb.top - this.LIFT - h - 16) + 'px';
+        }
         const m = this.mover;
         if (!m) return;
         const tg = m.target;
@@ -3366,6 +3405,7 @@
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
         <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
+             :style="moveArm ? 'touch-action:none' : ''"
              @md-card-reading="setCardReading($event.detail.i, $event.detail.mode)"
              @contextmenu="native || $event.preventDefault()" @click="cardTap($event)"></div>
 

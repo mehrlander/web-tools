@@ -1502,11 +1502,30 @@ try {
     fire('dragstart');
     const over = !fire('dragover');
     const marker = !!document.querySelector('[data-move]');
+    const loupe = document.querySelector('[data-drop-loupe]')?.textContent || '';
     fire('drop'); fire('dragend');
     await new Promise((r) => setTimeout(r, 50));
-    return { over, marker, text: c.text };
+    return { over, marker, loupe, text: c.text };
   });
   ok('a native drag over the text is taken, with the drop marker shown', dnd.over && dnd.marker, JSON.stringify(dnd));
+  ok('and a chip above the thumb repeats where it would land', /new paragraph/.test(dnd.loupe), JSON.stringify(dnd.loupe));
+  // While words are held, a finger dragged on the text moves the caret in
+  // parallel, as the target's own drag does, and drops nothing.
+  await reset();
+  const pre = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.$refs.view.scrollTop = 0;
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); c.padTap();
+    const r = window.MdSurface.rectAt(c.$refs.md, c.text.indexOf('Third para.') + 2);
+    return { x: r.left, y: r.top + r.height / 2, caret: c.d.range.start }; });
+  await touch('pointerdown', pre.x, pre.y);
+  for (let k = 1; k <= 6; k++) await touch('pointermove', pre.x + k * 12, pre.y - k * 10);
+  await touch('pointerup', pre.x + 72, pre.y - 60);
+  await page.waitForTimeout(150);
+  const surfPad = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    return { caret: c.d.range.start, collapsed: c.d.range.start === c.d.range.end, held: !!c.moveArm, text: c.text }; });
+  ok('a drag on the text while words are held moves the caret and drops nothing',
+    surfPad.held && surfPad.collapsed && surfPad.caret !== pre.caret && surfPad.text === PARA_DOC, JSON.stringify({ ...surfPad, was: pre.caret }));
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.padTap(); });
   ok('and the drop moves the words, here onto a gap as their own paragraph', dnd.text.includes('Second para.\n\nFirst two.\n\nThird para.'), JSON.stringify(dnd.text));
   // The platform letting go without a tap does not leave a live range with
   // no highlight: it is written back.
