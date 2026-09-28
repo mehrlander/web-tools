@@ -12,12 +12,12 @@
 // entry.js's own ref expression is evaluated inside that realm. So the answers
 // are the shipped code's answers, not a model of them.
 //
-// The cases marked `todo` state the behaviour the plan asks for and do not hold
-// today. A todo that fails is reported, not counted as a failure, which is the
-// point: the suite records the defect without going red, and steps 1 and 2 of
-// the plan's smallest implementation are done when every todo here can drop its
-// marker. Each one also prints
-// what it observed, so the current answer is on the record in the test output.
+// Three cases were held as `todo` from 2026-09-27 until the renderer's ?lib=
+// and the scoped params shim landed on 2026-09-28: a cross-repo page booting a
+// web-tools ref named after its own repo's branch, a page query `ref`
+// re-pinning the library, and an unrelated URLSearchParams answering `use`.
+// They are ordinary tests now. Each case prints what it observed, so the
+// answer is on the record in the test output.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -46,8 +46,9 @@ function lift(name) {
   throw new Error(`unbalanced braces lifting ${name}`);
 }
 
-const addressHtml = new Function(
-  [lift('hashNavigationShim'), lift('fetchShim'), lift('addressHtml')].join('\n') + '; return addressHtml;')();
+const { addressHtml, libRef } = new Function(
+  [lift('hashNavigationShim'), lift('fetchShim'), lift('libRef'), lift('addressHtml')].join('\n') +
+  '; return { addressHtml, libRef };')();
 
 // entry.js's ref expression, read off the file so a change to its precedence
 // changes what this test evaluates. `import.meta.url` becomes a parameter.
@@ -56,10 +57,13 @@ assert.ok(refExpr, 'entry.js no longer declares `const ref = …;`');
 
 // Frame one tossed page: the prelude toss-render stamps into it, mounted in a
 // realm of its own, then entry.js's ref resolved inside that realm.
-function libRefFor({ owner = 'mehrlander', name, ref, path = 'pages/x.html', pageQuery = '',
+// `asked` is the renderer's own ?lib=; showAddress resolves it through libRef
+// exactly this way before it builds the prelude.
+function libRefFor({ owner = 'mehrlander', name, ref, path = 'pages/x.html', pageQuery = '', asked = null,
                      importUrl = 'https://mehrlander.github.io/web-tools/lib/entry.js', extra = '' }) {
+  const handed = libRef(owner + '/' + name, ref, asked || new URLSearchParams(pageQuery).get('lib'));
   const html = addressHtml('<!doctype html><html><head></head><body></body></html>',
-    { owner, name, ref, path, pageQuery });
+    { owner, name, ref, path, pageQuery, lib: handed });
   const { window } = new JSDOM(html, { runScripts: 'dangerously', url: 'https://mehrlander.github.io/' });
   const lib = window.eval(`(function(u){ return ${refExpr.replace(/import\.meta\.url/g, 'u')}; })`)(importUrl);
   const other = extra ? window.eval(extra) : undefined;
@@ -96,8 +100,7 @@ test('a cross-repo page that pins its import with ?ref= keeps its pin', (t) => {
 // the address names a shortcut-tools branch, and it is handed to the page as
 // `use`, which entry.js reads as a WEB-TOOLS ref: a 404 on raw, or, where the
 // same branch name exists in both repos, that web-tools branch in silence.
-test('a cross-repo page with a plain entry.js import boots web-tools main',
-  { todo: 'plan step 1: the renderer passes the Web Tools ref, main for another repo' }, (t) => {
+test('a cross-repo page with a plain entry.js import boots web-tools main', (t) => {
   const { lib } = libRefFor({ name: 'shortcut-tools', ref: 'claude/x', path: 'pages/library.html' });
   t.diagnostic(`observed lib ref: ${lib}`);
   assert.equal(lib, 'main');
@@ -106,18 +109,57 @@ test('a cross-repo page with a plain entry.js import boots web-tools main',
 // repo-atlas, shortcuts and shortcut-edit read a `ref` query of their own. The
 // patched get() answers the page query for EVERY URLSearchParams in the frame,
 // including the one entry.js builds from its own import URL.
-test('a page query `ref` does not re-pin the library',
-  { todo: 'plan step 2: scope the params shim to the page address, not the prototype' }, (t) => {
+test('a page query `ref` does not re-pin the library', (t) => {
   const { lib } = libRefFor({ name: 'web-tools', ref: 'claude/x', path: 'pages/repo-atlas.html',
     pageQuery: 'repo=mehrlander/home&ref=feature' });
   t.diagnostic(`observed lib ref: ${lib}`);
   assert.equal(lib, 'claude/x');
 });
 
-test('an unrelated URLSearchParams in the frame answers only its own keys',
-  { todo: 'plan step 2: scope the params shim to the page address, not the prototype' }, (t) => {
+test('an unrelated URLSearchParams in the frame answers only its own keys', (t) => {
   const { other } = libRefFor({ name: 'web-tools', ref: 'claude/x',
     extra: "new URLSearchParams('a=1').get('use')" });
   t.diagnostic(`observed get('use') on 'a=1': ${other}`);
   assert.equal(other, null);
+});
+
+// ── the renderer's ?lib= ─────────────────────────────────────────────────────
+// Added 2026-09-28: the Web Tools ref picked apart from the page's own ref.
+
+test('the renderer ?lib= picks a web-tools page library apart from the page ref', (t) => {
+  const { lib } = libRefFor({ name: 'web-tools', ref: 'claude/page', asked: 'claude/lib' });
+  t.diagnostic(`observed lib ref: ${lib}`);
+  assert.equal(lib, 'claude/lib');
+});
+
+test('the renderer ?lib= reaches a cross-repo page too, under both names it reads', (t) => {
+  const { lib, other } = libRefFor({ name: 'home', ref: 'claude/x', asked: 'claude/lib',
+    extra: "[new URLSearchParams(location.search).get('lib'), window.__lib, window.__ref]" });
+  assert.equal(lib, 'claude/lib');
+  assert.deepEqual([...other], ['claude/lib', 'claude/lib', 'claude/x'], 'lib and __lib name the library; __ref stays the page ref');
+});
+
+test('a page reads its own address through URL too', (t) => {
+  const { other } = libRefFor({ name: 'web-tools', ref: 'claude/x', pageQuery: 'view=stage',
+    extra: "new URL(location.href).searchParams.get('view')" });
+  assert.equal(other, 'stage');
+});
+
+test('with no explicit version the rule applies', () => {
+  assert.equal(libRef('mehrlander/home', 'claude/x', null), 'main');
+  assert.equal(libRef('mehrlander/web-tools', '', null), '');
+});
+
+test('a page query `lib` still picks the library when the renderer says nothing', (t) => {
+  // Links minted before the renderer had a ?lib= carried it in the page query
+  // (home's budget-drs pages read it). They must keep meaning what they meant.
+  const { lib, other } = libRefFor({ name: 'home', ref: 'claude/x', pageQuery: 'lib=claude/old',
+    extra: "new URLSearchParams(location.search).get('use')" });
+  assert.equal(lib, 'claude/old');
+  assert.equal(other, 'claude/old', 'a plain entry.js import reads the same version as use');
+});
+
+test('the renderer ?lib= wins over a page query `lib`', () => {
+  const { lib } = libRefFor({ name: 'home', ref: 'claude/x', pageQuery: 'lib=claude/old', asked: 'claude/new' });
+  assert.equal(lib, 'claude/new');
 });

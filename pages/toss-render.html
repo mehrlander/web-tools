@@ -39,7 +39,8 @@
   before <path> is unambiguous because git forbids ':' in ref names, and no
   @ref means the repo's default branch (and no ?use shim). Neither the ?query
   nor the #frag reaches the API: both are handed to the PAGE, by the shims
-  addressHtml assembles. The on-page field and a pasted
+  addressHtml assembles. A ?lib=<ref> on THIS page's query picks the Web Tools
+  code the framed page boots, apart from the page's own ref (libRef). The on-page field and a pasted
   github.com/.../blob/<ref>/<path> URL both route here.
 
   Toss routes (typed content tosses, built on address mode):
@@ -112,7 +113,7 @@
   <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
      href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
-    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width.
+    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, <code>?lib=ref</code> to run another Web Tools version.
   </p>
 </div>
 
@@ -835,13 +836,27 @@ document.addEventListener('click',function(e){
 })();<\/script>`;
   }
 
+  // WHICH WEB TOOLS THE FRAMED PAGE RUNS. The address picks the page and its
+  // own files; this picks the library code its boot loads, which is a separate
+  // question with a separate answer. `asked` is an explicit version: this
+  // renderer's own ?lib=, else a `lib` in the page query (showAddress). Unasked, a web-tools page runs the
+  // library at its own ref, since the page and the library it was written
+  // against are one commit, and any other repo's page runs main: its @ref names
+  // a branch of THAT repo, and handing it down as a web-tools ref pinned the
+  // library to a branch name web-tools may not have (docs/showing-consolidation.md,
+  // case C9). '' means say nothing, which leaves the page's boot on main.
+  function libRef(repo, ref, asked) {
+    return asked || (repo === 'mehrlander/web-tools' ? ref : 'main') || '';
+  }
+
   // The address-render recipe (toss-render is now the one renderer; the fab
   // navigates here rather than carrying its own overlay copy): <base> so
-  // relative URLs resolve on github.io, plus (when a ref was addressed) a shim
-  // so the page's own ?use= read returns that ref and its lib chain loads from
-  // the same place. Then the fetch shim, so the page's relative runtime fetches
-  // resolve from the repo.
-  function addressHtml(text, { owner, name, ref, path, pageQuery }) {
+  // relative URLs resolve on github.io, plus a shim so the page's own reads of
+  // its address answer the addressed ?query, and `use` and `lib` answer the
+  // Web Tools ref from libRef, which are the two names page boots read it by.
+  // Then the fetch shim, so the page's relative runtime fetches resolve from
+  // the repo.
+  function addressHtml(text, { owner, name, ref, path, pageQuery, lib }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
     // Singleton guard: the shell mounts the one fab for this viewport, so a
@@ -858,21 +873,36 @@ document.addEventListener('click',function(e){
       'H.pushState=function(){try{return ps.apply(H,arguments)}catch(e){}};' +
       '})();<\/script>';
     prelude += hashNavigationShim();
-    // Params shim: the srcdoc iframe has no location.search, so answer
-    // URLSearchParams lookups for the addressed ?query keys (the page's own
-    // deep links, e.g. ?view=stage) plus use=<ref> (the lib-chain pin, the
-    // shim's original job). Injected values only fill absent/empty keys, so a
-    // params string that really carries the key wins.
+    // Params shim: the frame is a blob: document with no location.search, so
+    // answer the page's reads of its own address for the addressed ?query keys
+    // (its deep links, e.g. ?view=stage) plus `use` and `lib`, the Web Tools
+    // ref. Injected values only fill absent/empty keys, so a params string that
+    // really carries the key wins.
+    //
+    // ONLY THE PAGE'S OWN ADDRESS ANSWERS. The patch sits on the prototype, so
+    // until 2026-09-28 every URLSearchParams in the frame answered too:
+    // entry.js reads a `ref` pin off its OWN import URL, and a page whose query
+    // carried `ref=` (repo-atlas) re-pinned the library to it (case C10). The
+    // two ways a page reads its address are `new URLSearchParams(location.search)`,
+    // which in this frame is empty, and `new URL(location.href).searchParams`.
+    // So an instance answers when it came from a URL whose href IS this
+    // document's, or, built directly, when it holds nothing of its own. An
+    // instance from any other URL, or built from a non-empty string, never does.
     const injected = {};
     if (pageQuery) for (const [k, v] of new URLSearchParams(pageQuery)) injected[k] = v;
-    if (ref) { injected.use = ref; prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>'; }
+    if (lib) { injected.use = lib; injected.lib = lib; prelude += '<script>window.__lib=' + JSON.stringify(lib) + ';<\/script>'; }
+    if (ref) prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>';
     if (Object.keys(injected).length) {
       const P = JSON.stringify(injected);
       prelude += '<script>(function(){var P=' + P + ',O=Object.prototype.hasOwnProperty,' +
-        'g=URLSearchParams.prototype.get,h=URLSearchParams.prototype.has;' +
-        'URLSearchParams.prototype.get=function(k){var v=g.call(this,k);' +
-        'return (v==null||v==="")&&O.call(P,k)?P[k]:v;};' +
-        'URLSearchParams.prototype.has=function(k){return h.call(this,k)||O.call(P,k);};' +
+        'S=URLSearchParams.prototype,g=S.get,h=S.has,ks=S.keys,K="__tossAddr",' +
+        'd=Object.getOwnPropertyDescriptor(URL.prototype,"searchParams");' +
+        'if(d&&d.get)Object.defineProperty(URL.prototype,"searchParams",{configurable:true,enumerable:d.enumerable,' +
+        'get:function(){var s=d.get.call(this);try{s[K]=this.href===location.href?1:-1;}catch(e){}return s;}});' +
+        'function mine(t){return t[K]===1||(t[K]!==-1&&ks.call(t).next().done);}' +
+        'S.get=function(k){var v=g.call(this,k);' +
+        'return (v==null||v==="")&&O.call(P,k)&&mine(this)?P[k]:v;};' +
+        'S.has=function(k){return h.call(this,k)||(O.call(P,k)&&mine(this));};' +
         '})();<\/script>';
     }
     prelude += fetchShim({ owner, name, ref, dir });
@@ -1084,7 +1114,13 @@ document.addEventListener('click',function(e){
     // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
     const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
-    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery }),
+    // An explicit version wins over the rule: this renderer's ?lib= first, then
+    // a `lib` the page query inside the address already carries, which is how
+    // links minted before the renderer had one said it (home's budget-drs
+    // pages read it), so those keep meaning what they meant.
+    const lib = libRef(owner + '/' + name, ref,
+      queryParams.get('lib') || new URLSearchParams(pageQuery).get('lib'));
+    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery, lib }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
   }
@@ -1142,9 +1178,11 @@ document.addEventListener('click',function(e){
     try { history.replaceState(null, '', location.pathname + location.search + '#' + key + '=' + raw); } catch (e) {}
     // Resolve onto address mode: render the renderer page and hand it the
     // envelope via ?src=, which the params shim delivers to the page's own
-    // location.search read. The renderer ref is the map's (the app itself);
-    // any @ref inside <env> is the ENVELOPE's ref, untouched here.
-    await showAddress(`${r.repo}@${r.ref}:${r.path}?src=${encodeURIComponent(env)}` + (frag ? '#' + frag : ''));
+    // location.search read. The renderer ref is the map's (the app itself)
+    // unless this renderer's ?lib= names another, since a viewer page is Web
+    // Tools code; any @ref inside <env> is the ENVELOPE's ref, untouched here.
+    const viewerRef = queryParams.get('lib') || r.ref;
+    await showAddress(`${r.repo}@${viewerRef}:${r.path}?src=${encodeURIComponent(env)}` + (frag ? '#' + frag : ''));
     // Re-emit the pretty route form for the "Link" action, not the resolved #gh=.
     tossLinkFn = async () => absUrl(`#${key}=${raw}`);
     // THE SUBJECT IS THE CONTENT, not the app showing it. showAddress stamps
@@ -1168,7 +1206,7 @@ document.addEventListener('click',function(e){
     if (!a) return;
     document.title = 'Toss · ' + a.path.split('/').pop() + (a.ref ? ' @ ' + a.ref : '');
     setSubject({ repo: a.repo, ref: a.ref, path: a.path, route: key,
-                 via: { repo: r.repo, ref: r.ref, path: r.path } });
+                 via: { repo: r.repo, ref: viewerRef, path: r.path } });
   }
 
   // owner/repo[@ref]:path, with any ?query and #frag trimmed off. The address

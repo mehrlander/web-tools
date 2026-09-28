@@ -17,14 +17,10 @@
 // version it requested. Data files are not stamped; for them the evidence is
 // the ref in the request.
 //
-// A PROTOTYPE, NOT A CHANGE. Cases marked `p` serve pages/toss-render.html with
-// an in-flight patch implementing the simplest extension under study: a `?lib=`
-// on the renderer's own query that names the Web Tools ref for the framed page
-// (injected as both `use` and `lib`, and as window.__lib), defaulting to the
-// content's ref for a web-tools page and to main for any other repo's page, and
-// also naming the viewer's ref for a routed toss. The committed file is
-// untouched; the patch lives below so the result can be compared with the
-// shipped behaviour case by case.
+// THE `p` CASES were an in-flight prototype of the renderer's ?lib= until
+// 2026-09-28, when it shipped in pages/toss-render.html; they now run the
+// shipped renderer like every other case, and keep their ids so the plan's
+// tables still point at them.
 //
 // Not part of `npm test` (needs a browser). Prints a report.
 
@@ -39,28 +35,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const argv = process.argv.slice(2);
 const only = argv.includes('--only') ? new Set(argv[argv.indexOf('--only') + 1].split(',')) : null;
 const WT = 'mehrlander/web-tools';
-
-// ── the prototype patch ───────────────────────────────────────────────────────
-// Two substitutions in the shipped renderer, each asserted to match so a change
-// to the renderer fails the probe loudly instead of silently testing nothing.
-const PATCHES = [
-  // addressHtml: the lib ref is the renderer's ?lib=, else the content's ref for
-  // a web-tools page, else main; it is handed down as `use`, `lib` and __lib.
-  [`if (ref) { injected.use = ref; prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\\/script>'; }`,
-   `{ const q = new URLSearchParams(location.search).get('lib');
-      const L = q || ((owner + '/' + name) === 'mehrlander/web-tools' ? ref : 'main') || '';
-      if (L) { injected.use = L; injected.lib = L; prelude += '<script>window.__lib=' + JSON.stringify(L) + ';<\\/script>'; } }
-    if (ref) { prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\\/script>'; }`],
-  // showRoute: a routed toss's viewer page is Web Tools code, so ?lib= picks it.
-  ["await showAddress(`${r.repo}@${r.ref}:${r.path}",
-   "await showAddress(`${r.repo}@${new URLSearchParams(location.search).get('lib') || r.ref}:${r.path}"],
-];
-const shipped = await readFile(path.join(root, 'pages/toss-render.html'), 'utf8');
-let patched = shipped;
-for (const [from, to] of PATCHES) {
-  if (!patched.includes(from)) { console.error('prototype patch no longer matches toss-render.html:\n  ' + from.slice(0, 90)); process.exit(2); }
-  patched = patched.replace(from, to);
-}
 
 // ── the cases ─────────────────────────────────────────────────────────────────
 // `q` is the renderer's own query; `addr` the #gh= address (or `hash` for a
@@ -83,6 +57,10 @@ const CASES = [
     { proto: true, addr: `mehrlander/home@page-br:projects/surfacer/app/surfacer.html` }),
   X('X5', 'the web-tools app at main, one app view at a branch (appRef, shipped)',
     { addr: `${WT}@main:app/index.html?view=app&appRepo=${WT}&appPath=pages/diff-tool.html&appRef=view-br` }),
+  X('X5b', 'the web-tools app tossed at a branch, a view that names no ref',
+    { addr: `${WT}@app-br:app/index.html?view=app&appRepo=${WT}&appPath=pages/diff-tool.html` }),
+  X('X5c', 'the web-tools app tossed at a branch, a home view that names no ref',
+    { q: '?lib=lib-br', addr: `${WT}@app-br:app/index.html?view=app&appRepo=mehrlander/home&appPath=projects/budget-drs/submittal/submittal.html` }),
   X('X6p', 'the web-tools app\'s page at main, its code (dist/app.js) from a branch (prototype)',
     { proto: true, q: '?lib=lib-br', addr: `${WT}@main:app/index.html` }),
   X('X7', 'home doc-audit viewer, which reads `use` as the Web Tools ref, at a branch',
@@ -137,8 +115,7 @@ function stamped(o, r) {
 const server = http.createServer(async (req, res) => {
   const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\//, '');
   try {
-    const body = rel === 'pages/toss-render.html' && req.headers['x-proto'] ? patched
-               : await readFile(path.join(root, rel));
+    const body = await readFile(path.join(root, rel));
     res.writeHead(200, { 'content-type': typeFor(rel) }); res.end(body);
   } catch { res.writeHead(404); res.end('not found'); }
 });
@@ -155,13 +132,7 @@ for (const c of CASES) {
 
   await page.route('**/*', async route => {
     const req = route.request(), url = req.url();
-    if (url.startsWith(base)) {
-      // The renderer itself: the patched copy for a prototype case.
-      if (c.proto && url.split('?')[0].split('#')[0].endsWith('/pages/toss-render.html') && req.frame() === page.mainFrame()) {
-        return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: patched });
-      }
-      return route.continue();
-    }
+    if (url.startsWith(base)) return route.continue();
     const o = origin(url);
     let f = null; try { f = req.frame(); } catch {}
     if (o) asked.push({ depth: f ? depthOf(f) : -1, ...o });
@@ -191,6 +162,18 @@ for (const c of CASES) {
     console.log(`    d${d} gh.ref=${s.gh} __lib=${s.lib} __ref=${s.ref}${s.webToolsRef ? ' __webToolsRef=' + s.webToolsRef : ''}`);
     console.log(`       ran: ${ran || '(nothing stamped)'}`);
   }
+  // What the host's FAB says about each layer: the ref it was asked for, the
+  // Web Tools version it booted, and whether that is the wrong one.
+  const marks = await page.evaluate(() => {
+    try {
+      const el = document.querySelector('[x-data^="fab"]');
+      const d = el && window.Alpine && Alpine.$data(el);
+      if (!d || !d.readLayers) return null;
+      return d.readLayers().map(L => (L.sealed ? 'sealed' : `${L.role}:${L.ref}` +
+        (L.lib ? ` ran ${L.lib.got}${d.layerLibWrong(L) ? ' WRONG, should run ' + L.lib.want : ''}` : '')));
+    } catch (e) { return ['error ' + e.message]; }
+  });
+  if (marks) console.log('    FAB layers: ' + marks.join(' | '));
   // Data: non-JS reads of repos other than web-tools's own code, by depth.
   const data = {};
   for (const a of asked) {

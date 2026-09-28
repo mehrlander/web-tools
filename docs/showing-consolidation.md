@@ -36,7 +36,7 @@ Two couplings matter most:
 1. **`use` means the address's ref for every repo.** That is right for a web-tools page. For any other repo's page it names the wrong repo's branch.
 2. **A view's version is tied to its container.** In the web-tools app a view's library follows the view. In the budget-drs app a view follows the app.
 
-## Which selections work today, measured
+## Which selections worked before the extension, measured
 
 | Want | Shipped behaviour | Case |
 |---|---|---|
@@ -85,6 +85,16 @@ It reaches every chain page, every build that reads `use` (seven pages, the app,
 3. **The web-tools app** forwards the app's ref, and `?lib=`, to the views it frames when a view names no ref of its own. This fixes C5. The app is a build, so the change reaches readers when the app's build is rebuilt, which the hook does.
 4. **The budget-drs app** (in home), if "app at main, one view at a branch" is wanted there: a per-view ref parameter read by `embedView`. This is a change in home, not in the renderer.
 5. **Evidence**: the FAB's layer strip reads each framed document's `gh.ref` alongside the address's ref, so a mismatch shows. The strip already walks those same-origin windows.
+
+**Landed on 2026-09-28**: steps 1, 2, 3 and 5. Step 4 is a change in home and is not made. Verification:
+
+- `toss-lib-ref.test.mjs` passes its three former `todo` cases as ordinary tests, plus new ones: the renderer's `?lib=` for a web-tools page and for another repo's page, a page reading its address through `URL`, and precedence.
+- `toss-routed-subject.test.mjs` checks that `?lib=` picks a viewer's ref while the subject keeps the file.
+- `fab-layers.test.mjs` checks the new mark.
+- Measured, `showing-version-map.mjs` reports no WRONG line: C5, C9 and C10 now run the intended version.
+- Measured, `showing-selection-probe.mjs`: a home page's own `?lib=` in the address still wins when the renderer names none (X2). The first cut of step 1 overrode it, and the probe caught that before commit. The app tossed at a branch frames its views at that branch (X5b) and hands its library to a home view (X5c). The FAB's layer strip reports the library each layer ran.
+
+Precedence, as shipped: the renderer's own `?lib=`, then a `lib` in the page query inside the address, then the rule (a web-tools page runs its own ref, any other page runs main).
 
 **Limits that remain.**
 
