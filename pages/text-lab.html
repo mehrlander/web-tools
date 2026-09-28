@@ -41,9 +41,20 @@
                  run time, or does not have it. A coverage grid leads the pane:
                  property by state, so the empty cells read as loudly as the
                  full ones.
-    runs         the five dated runs, each pointing at whatever it actually
+    runs         the dated runs, each pointing at whatever it actually
                  produced. A run with no page says "no page" instead of
                  pretending, which is the same honesty the probe log keeps.
+                 Text collection runs lead the pane: any folder under
+                 projects/text/runs/ that declares its documents in a
+                 files.jsonl, each opening as a deck of those documents.
+
+  Reading one at a time. The variants list is the index, and a deck is how it
+  is read: the house swipe-deck, with the same door (the cards glyph) every
+  other list here uses. Two decks. The filtered variants, one pair per slide in
+  md-diff's old/both/new swipe, so a variant reads exactly as it does in the
+  file viewer. And a text run's documents, one file per slide in the file
+  viewer's own Variants reading (kits/md-variants.js), so a pass is seen where
+  it lands rather than as loose pairs.
 
   Data contract. Everything is read live from mehrlander/home through the
   viewer's token (gh-api + gh-auth). This page holds no copy of the probe
@@ -66,6 +77,8 @@
     ?q=<text>    searches the variants.
     ?author=<name> and ?purpose=<word> filter variant rows.
     ?variant=<id> opens one variant and implies the variants pane.
+    ?deck=variants or ?deck=run:<dir>, with ?at=<n>, reopens a deck on a
+                 slide. The variants deck reads the filters beside it.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -155,6 +168,11 @@
       variantAuthor: params.get('author') || '',
       variantPurpose: params.get('purpose') || '',
       variantOpen: params.get('variant') || params.get('proposal') || '',
+      TEXT_RUNS: 'projects/text/runs',
+      textRuns: [],
+      textRunState: 'idle',
+      deckParam: params.get('deck') || '',
+      deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
       loading: true,
       error: '',
       framed: window.self !== window.top,
@@ -232,6 +250,7 @@
         this.syncPaneAddress();
         try {
           if (pane === 'variants') await this.loadVariants();
+          if (pane === 'runs') await this.loadTextRuns();
           if (pane === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
@@ -265,6 +284,10 @@
           this.variantIndex = await window.TextCollection.load(this.home);
           this.variantState = 'done';
           this.normalizeVariantParams();
+          if (this.deckParam === 'variants') {
+            this.deckParam = '';
+            this.openVariantDeck(this.variantRows, this.deckAt);
+          }
           if (this.variantOpen
               && !window.TextCollection.view(this.variantIndex, this.variantOpen)) {
             this.variantOpen = '';
@@ -401,6 +424,172 @@
         set('purpose', this.variantPurpose);
         set('variant', this.variantOpen);
         history.replaceState(null, '', url);
+      },
+
+      // ── Reading one at a time ─────────────────────────────────────────────
+      // Both decks keep their place in the address, so a slide can be linked
+      // and a reload lands where the reader was.
+      syncDeckAddress(deck, at = 0) {
+        const url = new URL(location.href);
+        if (deck) {
+          url.searchParams.set('deck', deck);
+          url.searchParams.set('at', String(at));
+        } else {
+          url.searchParams.delete('deck');
+          url.searchParams.delete('at');
+        }
+        history.replaceState(null, '', url);
+      },
+
+      // The filters in words, for the deck's subtitle.
+      variantScope() {
+        return [this.variantPurpose || 'every purpose', this.variantAuthor || 'every author',
+                this.variantQ.trim() && `"${this.variantQ.trim()}"`].filter(Boolean).join(' · ');
+      },
+
+      wordCount(s) { return (String(s || '').match(/\S+/g) || []).length },
+
+      // One line above a pair: purpose, author, length, and a chip per file
+      // it is proposed for. The same four facts the list row carries.
+      variantMeta(v) {
+        const h = window.swipeDeck.h;
+        const line = h('div', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs opacity-60 mb-4' },
+          h('span', { class: 'uppercase tracking-wide' }, v.purpose || ''),
+          h('span', {}, v.author || ''),
+          h('span', { class: 'tabular-nums' }, `${this.wordCount(v.from?.text)} → ${this.wordCount(v.to?.text)} words`));
+        for (const q of v.proposals || []) {
+          line.append(h('a', { class: 'badge badge-sm badge-outline gap-1', href: this.safeHref(q.basis) || '',
+                               target: '_blank', rel: 'noopener' },
+            h('i', { class: 'ph ph-seal-question' }), q.path));
+        }
+        return line;
+      },
+
+      // A pair drawn by md-diff, the renderer the file viewer uses, so the
+      // three readings and the marks are the same everywhere.
+      async renderPair(host, v) {
+        host.textContent = '';
+        try {
+          await gh.load('kits/md-diff.js');
+          await window.mdDiff.render(host, v.from?.text || '', v.to?.text || '', { strip: false });
+        } catch (e) {
+          host.textContent = `${e.message || e}`;
+        }
+      },
+
+      async openVariantDeck(rows, start = 0, label = '') {
+        if (!rows || !rows.length) return;
+        await gh.load('kits/swipe-deck.js');
+        const at = Math.min(Math.max(0, start), rows.length - 1);
+        window.swipeDeck.open({
+          count: rows.length,
+          start: at,
+          title: 'Variants',
+          subtitle: label || this.variantScope(),
+          icon: 'ph-flask',
+          innerClass: 'w-full min-w-0 mx-auto',
+          index: i => ({ title: this.variantPreview(rows[i].from?.text, 70),
+                         subtitle: `${rows[i].purpose} · ${rows[i].author}`,
+                         group: rows[i].purpose }),
+          render: (i, slide) => {
+            const doc = document.createElement('div');
+            slide.append(this.variantMeta(rows[i]), doc);
+            this.renderPair(doc, rows[i]);
+          },
+          onSlide: i => this.syncDeckAddress('variants', i),
+          onClose: () => this.syncDeckAddress(''),
+        });
+        this.syncDeckAddress('variants', at);
+      },
+
+      // Text collection runs: folders under projects/text/runs/ that name their
+      // documents in files.jsonl. A folder without one is a run of another
+      // kind and is not listed here.
+      async loadTextRuns() {
+        if (this.textRunState !== 'idle') return;
+        this.textRunState = 'loading';
+        try {
+          const dirs = (await this.home.req(`contents/${this.TEXT_RUNS}?ref=${encodeURIComponent(this.DATA_REF)}`))
+            .filter(d => d.type === 'dir').map(d => d.name).sort().reverse();
+          const found = await Promise.all(dirs.map(async name => {
+            const dir = `${this.TEXT_RUNS}/${name}`;
+            try {
+              const res = await this.home.get(`${dir}/files.jsonl`);
+              const files = res.text.split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
+              let title = name.slice(11).replace(/-/g, ' ');
+              try {
+                const readme = await this.home.get(`${dir}/README.md`);
+                title = (/^#\s+(.+)$/m.exec(readme.text) || [])[1] || title;
+              } catch (_) { /* a run without a README keeps its folder name */ }
+              return { name, dir, date: name.slice(0, 10), title, files,
+                       variants: files.reduce((n, f) => n + (f.variants || 0), 0) };
+            } catch (_) { return null; }
+          }));
+          this.textRuns = found.filter(Boolean);
+          this.textRunState = 'done';
+          const want = this.deckParam.startsWith('run:') ? this.deckParam.slice(4) : '';
+          const run = want && this.textRuns.find(r => r.name === want);
+          if (run) { this.deckParam = ''; this.openRunDeck(run, this.deckAt); }
+        } catch (e) {
+          this.textRunState = 'error';
+          this.error = `runs: ${e.message || e}`;
+        }
+      },
+
+      // One document per slide, drawn by the file viewer's Variants reading
+      // against the document as it stands on main, so the slide shows every
+      // variant the collection holds for it, this run's and any other's.
+      async openRunDeck(run, start = 0) {
+        await gh.load('kits/swipe-deck.js');
+        await gh.load('kits/md-variants.js');
+        await this.loadVariants();
+        const h = window.swipeDeck.h;
+        const files = run.files;
+        const at = Math.min(Math.max(0, start), files.length - 1);
+        window.swipeDeck.open({
+          count: files.length,
+          start: at,
+          title: run.title,
+          subtitle: `${run.date} · ${files.length} files · ${run.variants.toLocaleString()} variants`,
+          icon: 'ph-flask',
+          innerClass: 'w-full min-w-0 mx-auto',
+          index: i => ({ title: files[i].path.split('/').pop(),
+                         subtitle: `${files[i].repo.split('/').pop()}/${files[i].path}`,
+                         group: files[i].repo }),
+          render: (i, slide) => {
+            const f = files[i];
+            const head = h('div', { class: 'flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs mb-4' },
+              h('span', { class: 'font-medium' }, `${f.repo.split('/').pop()}/${f.path}`),
+              h('span', { class: 'opacity-60 tabular-nums' },
+                `${(f.words_before || 0).toLocaleString()} → ${(f.words_after || 0).toLocaleString()} words · ${f.variants} variants`));
+            const notes = h('details', { class: 'mb-5 text-base leading-7' },
+              h('summary', { class: 'cursor-pointer font-mono text-xs opacity-60' }, 'What changed, and what the audit restored'),
+              h('p', { class: 'mt-2 text-pretty' }, f.drafter || ''),
+              h('p', { class: 'mt-2 text-pretty opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
+            const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-20' }));
+            slide.append(head, notes, doc);
+            this.renderRunFile(doc, f);
+          },
+          onSlide: i => this.syncDeckAddress(`run:${run.name}`, i),
+          onClose: () => this.syncDeckAddress(''),
+        });
+        this.syncDeckAddress(`run:${run.name}`, at);
+      },
+
+      async renderRunFile(host, f) {
+        try {
+          const repo = new window.GH({ token: window.TOKEN || '', repo: f.repo, ref: 'main' });
+          // The frontmatter is stripped, as the file viewer's Variants reading
+          // strips it, or a skill's YAML renders as one bold heading.
+          const md = (await repo.get(f.path)).text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+          host.textContent = '';
+          await window.mdVariants.render(host, md, this.variantIndex, { file: { repo: f.repo, path: f.path }, strip: false });
+          if (!host.querySelector('.md-diff-change')) host.prepend(Object.assign(document.createElement('p'), {
+            className: 'font-mono text-xs opacity-60 mb-3',
+            textContent: 'No variant matches a paragraph of this file as it stands on main.' }));
+        } catch (e) {
+          host.textContent = `${f.repo}:${f.path}: ${e.message || e}`;
+        }
       },
 
       get resCounts() {
@@ -547,6 +736,12 @@
         </button>
         <span class="opacity-40 whitespace-nowrap tabular-nums"
               x-text="variantRows.length + ' of ' + variantTotal"></span>
+        <button x-show="variantRows.length" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+                :aria-label="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
+                :title="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
+                @click="openVariantDeck(variantRows)">
+          <i class="ph ph-cards-three text-lg"></i>
+        </button>
       </div>
 
       <div x-show="pane === 'probes'" class="flex items-baseline gap-x-5">
@@ -660,12 +855,20 @@
 
       <template x-for="g in variantGroups()" :key="g.purpose">
         <section class="mb-10">
-          <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300 flex items-baseline gap-2 min-w-0">
-            <span x-text="g.purpose"></span>
-            <span class="tabular-nums" x-text="g.items.length"></span>
-            <span class="normal-case tracking-normal truncate" x-show="purposeDef(g.purpose)?.gloss"
-                  x-text="purposeDef(g.purpose)?.gloss"></span>
-          </h2>
+          <div class="flex items-end gap-2 border-b border-base-300">
+            <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 grow flex items-baseline gap-2 min-w-0">
+              <span x-text="g.purpose"></span>
+              <span class="tabular-nums" x-text="g.items.length"></span>
+              <span class="normal-case tracking-normal truncate" x-show="purposeDef(g.purpose)?.gloss"
+                    x-text="purposeDef(g.purpose)?.gloss"></span>
+            </h2>
+            <button class="btn btn-square btn-xs btn-ghost text-primary mb-0.5"
+                    :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
+                    :title="'Read the ' + g.items.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
+                    @click="openVariantDeck(g.items, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
+              <i class="ph ph-cards-three"></i>
+            </button>
+          </div>
 
           <template x-for="p in g.items" :key="p.id">
             <article class="border-b border-base-200 scroll-mt-24"
@@ -698,7 +901,7 @@
               </button>
 
               <!-- A chip per file this variant is proposed for, linking the
-                   basis that makes the old text wrong there. Outside the row
+                   proposal's basis. Outside the row
                    button, since a link cannot sit inside one, and uncoloured,
                    since colour on this page is a probe's standing. -->
               <template x-if="p.proposals && p.proposals.length">
@@ -715,16 +918,7 @@
 
               <template x-if="variantOpen === p.id">
                 <div class="border-t border-base-300/60 px-1 sm:px-4 pt-5 pb-6 grid gap-6">
-                  <div class="grid lg:grid-cols-2 gap-6 lg:gap-10">
-                    <div class="min-w-0">
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Text</div>
-                      <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.from.text"></div>
-                    </div>
-                    <div class="min-w-0">
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Variant</div>
-                      <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.to.text"></div>
-                    </div>
-                  </div>
+                  <div class="min-w-0" x-init="renderPair($el, p)"></div>
 
                   <div class="grid sm:grid-cols-2 gap-5 border-t border-base-300/60 pt-5">
                     <div>
@@ -906,6 +1100,35 @@
 
     <!-- ── runs ───────────────────────────────────────────────────────── -->
     <section x-show="pane === 'runs'">
+      <template x-if="textRuns.length">
+        <section class="mb-10">
+          <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+            text collection<span class="ml-2 tabular-nums" x-text="textRuns.length"></span>
+          </h2>
+          <template x-for="r in textRuns" :key="r.name">
+            <article class="border-b border-base-300 py-5 flex items-start gap-5">
+              <div class="grow min-w-0">
+                <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
+                <div class="mt-1 font-mono text-xs opacity-40 tabular-nums"
+                     x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' variants'"></div>
+              </div>
+              <div class="flex items-center gap-3 font-mono text-xs shrink-0">
+                <a class="opacity-40 hover:opacity-100 transition-opacity"
+                   :href="treeUrl(r.dir)" target="_blank" rel="noopener">files<i class="ph ph-arrow-square-out ml-1"></i></a>
+                <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+                        :aria-label="'Read ' + r.files.length + ' files one at a time'"
+                        :title="'Read ' + r.files.length + ' files one at a time'"
+                        @click="openRunDeck(r)">
+                  <i class="ph ph-cards-three text-lg"></i>
+                </button>
+              </div>
+            </article>
+          </template>
+        </section>
+      </template>
+      <h2 x-show="textRuns.length" class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+        other runs<span class="ml-2 tabular-nums" x-text="RUNS.length"></span>
+      </h2>
       <template x-for="r in RUNS" :key="r.dir">
         <article class="border-b border-base-300 py-5 flex items-start gap-5">
           <div class="grow min-w-0">
