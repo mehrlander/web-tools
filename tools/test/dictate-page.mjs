@@ -1406,6 +1406,11 @@ try {
     return document.getSelection().toString();
   });
   ok('a range set by the page shows as the platform\'s selection', reflected === 'Second para.', JSON.stringify(reflected));
+  // The Rendered face's caret pulses, as the Source face's always has.
+  const pulse = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 50));
+    const k = document.querySelector('[data-md-surface="caret"]'); return k && getComputedStyle(k).animationName; });
+  ok('the rendered caret pulses', pulse === 'dictate-caret', JSON.stringify(pulse));
   // A long press is the platform's: the page takes no word and moves nothing.
   await reset();
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.caretAt(3); c.paint(); });
@@ -1502,13 +1507,14 @@ try {
     fire('dragstart');
     const over = !fire('dragover');
     const marker = !!document.querySelector('[data-move]');
-    const loupe = document.querySelector('[data-drop-loupe]')?.textContent || '';
+    const L = document.querySelector('[data-drop-loupe]'), lc = L && L.querySelector('[data-lens-caret]')?.getBoundingClientRect();
+    const loupe = { text: L ? L.textContent : '', line: !!lc && lc.width > lc.height, off: !!(L && L.querySelector('[data-md-off]')) };
     fire('drop'); fire('dragend');
     await new Promise((r) => setTimeout(r, 50));
     return { over, marker, loupe, text: c.text };
   });
   ok('a native drag over the text is taken, with the drop marker shown', dnd.over && dnd.marker, JSON.stringify(dnd));
-  ok('and a chip above the thumb repeats where it would land', /new paragraph/.test(dnd.loupe), JSON.stringify(dnd.loupe));
+  ok('and a loupe above the thumb shows the text there, with a line across the gap', /Second para/.test(dnd.loupe.text) && dnd.loupe.line, JSON.stringify(dnd.loupe));
   // While words are held, a finger dragged on the text moves the caret in
   // parallel, as the target's own drag does, and drops nothing.
   await reset();
