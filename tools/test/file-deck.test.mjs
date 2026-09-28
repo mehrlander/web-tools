@@ -92,7 +92,7 @@ const drivable = (d, width = 400) => {
 };
 const FILES = [
   { path: 'lib/kits/swipe-deck.js', status: 'modified', additions: 40, deletions: 3, patch: '@@ a' },
-  { path: 'docs/show-repo.md', status: 'modified', additions: 60, deletions: 1, patch: '@@ b' },
+  { path: 'docs/APP.md', status: 'modified', additions: 60, deletions: 1, patch: '@@ b' },
   { path: 'README.md', status: 'added', additions: 9, deletions: 0, patch: '@@ c' },
 ];
 const AT = { repo: 'me/tools', ref: 'claude/some-branch', base: 'main', baseName: 'main' };
@@ -111,7 +111,7 @@ test('the filename is the title and its directory is the crumb', async () => {
 test('start opens on a named file, which is what "read from here" needs', async () => {
   const d = window.fileDeck.open({ ...AT, files: FILES, start: 1, subtitle: 'b' });
   await tick(2);
-  assert.equal(head(d).title, 'show-repo.md');
+  assert.equal(head(d).title, 'APP.md');
   d.close(); await tick(4);
 });
 
@@ -225,7 +225,7 @@ test('back: true earns the chevron without a parent deck to drill from', async (
 
 test('the crumb does not say the same thing twice', async () => {
   // A host that names the branch AND drills from a deck titled the branch is
-  // the normal case (show-repo's branch deck does exactly that), so the
+  // the normal case (the app's branch deck does exactly that), so the
   // dedupe lives here rather than in every caller's knowledge of its parent.
   const parent = window.swipeDeck.open({ count: 2, title: 'claude/some-branch', render: () => {} });
   await tick(2);
@@ -266,7 +266,7 @@ test('the deck says what the reader is on, and keeps saying it', async () => {
 });
 
 test('a deck opened over a toss puts the toss back, rather than clearing it', async () => {
-  // show-repo can itself be running inside a toss, so the globals are borrowed
+  // The app can itself be running inside a toss, so the globals are borrowed
   // and returned rather than owned.
   const held = { repo: 'me/tools', ref: 'main', path: 'pages/app.html' };
   const frame = { name: 'the toss frame' };

@@ -4,7 +4,7 @@
 //   node tools/build/build.mjs <page-path>            -> dist/<page>.js
 //
 // The emit format lives in lib/build.js (window.buildKit.emit), shared with
-// the in-browser baker (kits/bundle.js) so the two can't drift. This Node entry
+// the in-browser baker (kits/export.js) so the two can't drift. This Node entry
 // supplies a statically-walked cache (tools/build/graph.mjs) and writes dist/.
 //
 // What it emits is NOT a rewritten graph: it's the real gh-api.js loader with

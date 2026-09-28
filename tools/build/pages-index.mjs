@@ -4,7 +4,7 @@
 //   pages/index.html  — the visual index: a card per page, screenshot preview with
 //                        a live-iframe / source toggle, on a light daisyUI theme.
 //   pages/pages.csv   — the same card model index.html embeds, standalone,
-//                        so show-repo can render the identical gallery from one source.
+//                        so the app can render the identical gallery from one source.
 //
 //   node tools/build/pages-index.mjs        -> writes both files
 //   node tools/build/pages-index.mjs --check -> exit 1 if either is stale (CI-friendly)
@@ -181,7 +181,7 @@ function buildMarkdown() {
 // by directory so the root pages lead and the nested folders (demos/, stories/,
 // drop/, …) and the external kit-demos fall into labeled sections — mirroring
 // README.md. The location chips key off each group's top-level segment. Item
-// hrefs/thumbs are relative to pages/; consumers a level deeper (show-repo)
+// hrefs/thumbs are relative to pages/; consumers a level deeper (the app)
 // rebase with a '../' prefix.
 function buildGroups() {
   const toItem = m => ({

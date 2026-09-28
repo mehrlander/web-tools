@@ -1,5 +1,5 @@
 // How content moves and renders (address grammar, delivery modes, toss
-// routes), rendered by show-repo's Map view in its Transport tab. This test is
+// routes), rendered by the app's Map view in its Transport tab. This test is
 // what lets the routes live in two places without drifting: docs/routes-routes.csv
 // owns the table, toss-render.html keeps an inlined literal so its critical
 // render path takes no fetch, and adding a route to one without the other fails
@@ -153,7 +153,7 @@ test('the fab knows every delivery mode, so it never reads one as a route key', 
 //
 // This block exists because 1,589 words of CLAUDE.md, 63% of the file, failed
 // to stop the session that was reading them from handing over the wrong link.
-// The rule moved into data the app renders (show-repo's Map view, Transport
+// The rule moved into data the app renders (the app's Map view, Transport
 // tab), and the doc points there instead of restating it. What the tests below
 // hold is the part that would rot silently: a row missing the field that says
 // what it CANNOT show is worse than no row, since the whole point of the table

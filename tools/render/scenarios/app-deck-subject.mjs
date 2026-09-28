@@ -30,7 +30,7 @@ export default async function (page, ctx) {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     // Two readable documents and one file that stays in the list, so the strip
     // has a position to be in and moving it is a real move.
-    const files = ['lib/kits/swipe-deck.js', 'docs/show-repo.md', 'docs/loader.md'];
+    const files = ['lib/kits/swipe-deck.js', 'docs/APP.md', 'docs/loader.md'];
     const patch = '@@ -1,3 +1,4 @@\n c\n-old\n+new\n+add\n';
     window.GH.prototype.compare = async (b, head) => ({
       ahead_by: 4, behind_by: 0, total_commits: 1,

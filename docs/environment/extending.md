@@ -188,7 +188,7 @@ Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sess
 
 #### PreToolUse: the AskUserQuestion guard
 
-*Added 2026-09-27.* [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) is meant to deny `AskUserQuestion` and tell the session to ask in prose. A plugin cannot ship `permissions.deny`: its `settings.json` honors only `agent` and `subagentStatusLine`. **Not verified:** whether `PreToolUse` fires for `AskUserQuestion`. Until a session rooted above the checkouts shows the guard refusing the tool, the setup script keeps the user-scope deny.
+*Added 2026-09-27.* [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) denies `AskUserQuestion` and tells the session to ask in prose. A plugin cannot ship `permissions.deny`: its `settings.json` honors only `agent` and `subagentStatusLine`. **Not verified:** whether `PreToolUse` fires for `AskUserQuestion`. The setup script writes no deny, so in a session rooted above the checkouts the guard is the only one. If an `AskUserQuestion` prompt appears in a session, the guard is not firing.
 
 ### LSP servers
 
@@ -221,7 +221,7 @@ This setup uses:
 
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
 
-  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the project row is dormant; the deny in force is the user-scope one the setup script writes. The plugin's `ask-question-guard.sh` is meant to replace it once verified. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
+  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the project row is dormant; the only guard is the plugin's `ask-question-guard.sh`. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
 - `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.

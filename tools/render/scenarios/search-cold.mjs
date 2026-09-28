@@ -21,7 +21,7 @@ export default async function (page) {
     window.TOKEN = 'stub';
     const PATHS = [
       'CLAUDE.md', 'README.md', 'package.json',
-      'docs/CONVENTIONS.md', 'docs/SURFACING.md', 'docs/show-repo.md',
+      'docs/CONVENTIONS.md', 'docs/SURFACING.md', 'docs/APP.md',
       'docs/envelopes/surface.md', 'docs/environment/capabilities.md',
       'lib/gh-api.js', 'lib/gh-boot.js', 'lib/kits/estate-search.js',
       'lib/alpineComponents/search-view.js', 'lib/alpineComponents/ref-picker.js',

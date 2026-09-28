@@ -63,7 +63,7 @@ by naming: not a document unread, but a question never asked.
 
 A session's identity is already bound to its branch. Sessions write a
 `Claude-Session:` commit trailer, the branch survey reads it, the activity cache
-carries it per branch, and show-repo's Branches view links it. So the estate can
+carries it per branch, and the app's Branches view links it. So the estate can
 already answer "which session produced this branch."
 
 Subscribing does not create that join and does not improve it. It adds the

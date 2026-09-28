@@ -2,7 +2,7 @@
 id: history-safe-toss-render-shim-hkih5m
 title: History-safe shim for toss-render address-mode renders
 status: done
-project: show-repo
+project: app
 opened: 2026-07-17
 closed: 2026-07-17
 ---

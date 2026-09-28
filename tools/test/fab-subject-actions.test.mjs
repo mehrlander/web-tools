@@ -144,7 +144,7 @@ test('a subject throw is reported as the subject\'s, not the drawer\'s', async (
 test('a { nav } return is not flashed as a message', async () => {
   // The navigation itself is a real-browser fact (jsdom has no navigation);
   // what is pinned here is that the FAB recognises the intent instead of
-  // treating the object as feedback, which is what let show-repo's bust-out
+  // treating the object as feedback, which is what let the app's bust-out
   // stop navigating its own frame.
   fab.outMsg = ''; fab.outError = '';
   const a = fab.takeGrid.flatMap(g => g.items).find(i => i.label === 'Out');

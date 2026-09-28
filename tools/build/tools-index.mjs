@@ -1,6 +1,6 @@
 // The derived half of docs/harness.csv, the harness registry.
 // (docs/tools.csv was taken: it is the curated Tools gallery manifest,
-// show-repo's Tools view, and has nothing to do with the tools/ folder.)
+// the app's Tools view, and has nothing to do with the tools/ folder.)
 //
 // tools/ and scripts/ are the two code layers docs/code-layers.md could name
 // but not account for: at the 2026-08-08 count, 57 of the repo's 94 harness

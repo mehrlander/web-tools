@@ -1,4 +1,4 @@
-// Drive show-repo's estate into the Sessions pane and the Lists pane with
+// Drive the app's estate into the Sessions pane and the Lists pane with
 // fixture data, so both can be shot without a GitHub token.
 //
 // The sandbox has no token and no network, so the estate's real loads all fail
@@ -56,9 +56,9 @@ const SESSIONS = [
     // 2 of the 238 on file open with a pasted list of links, and unstripped
     // the two clamped lines are an asterisk, a bracketed title and a URL.
     ask: '* [2025-27 Biennial Budget Instructions](https://ofm.wa.gov/budget/budget-instructions)\n* [Budget Development Manual](https://ofm.wa.gov/budget/manual)\n* [ABS User Guide](https://ofm.wa.gov/abs/guide)\n\nRead these and tell me which ones the submittal needs to cite.',
-    repos: [{ name: 'web-tools', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 572 },
-            { name: 'home', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 3 }],
-    branches: ['claude/show-repo-docs-surfacing-3sr7ab'],
+    repos: [{ name: 'web-tools', branch: 'claude/app-docs-surfacing-3sr7ab', lines: 572 },
+            { name: 'home', branch: 'claude/app-docs-surfacing-3sr7ab', lines: 3 }],
+    branches: ['claude/app-docs-surfacing-3sr7ab'],
     exchanges: 10, messages: 340, calls: 206, failures: 1, agents: 5,
     // Agent is IN this list, which is the case where the tools card says
     // nothing extra: the reader who taps the agents figure finds its line
@@ -247,13 +247,13 @@ const ATTENTION = [
 const ACTIVITY = {
   'mehrlander/web-tools': {
     defaultBranch: 'main', prReach: '',
-    openPRs: [{ number: 271, head: 'claude/show-repo-docs-surfacing-3sr7ab', draft: false,
+    openPRs: [{ number: 271, head: 'claude/app-docs-surfacing-3sr7ab', draft: false,
                 title: 'Surface the docs registry in the Map view', aheadBy: 8, behindBy: 0,
                 stats: { n: 14, added: 3, changed: 11, removed: 0, renamed: 0, split: true } }],
-    branchPRs: [{ number: 271, head: 'claude/show-repo-docs-surfacing-3sr7ab', state: 'open' },
+    branchPRs: [{ number: 271, head: 'claude/app-docs-surfacing-3sr7ab', state: 'open' },
                 { number: 262, head: 'claude/board-determinism-k2p1x', state: 'merged' }],
     scan: { branches: [
-      { name: 'claude/show-repo-docs-surfacing-3sr7ab', sha: 'a1', group: 'active',
+      { name: 'claude/app-docs-surfacing-3sr7ab', sha: 'a1', group: 'active',
         date: '2026-08-05T16:49:16Z', firstDate: '2026-08-04T09:00:00Z',
         subject: 'Render showing-mechanisms.csv in the Map view',
         nUnique: 14, nLanded: 0, nMissing: 0, nDiffers: 14 },
@@ -267,9 +267,9 @@ const ACTIVITY = {
   'mehrlander/home': {
     defaultBranch: 'main', prReach: '',
     openPRs: [],
-    branchPRs: [{ number: 118, head: 'claude/show-repo-docs-surfacing-3sr7ab', state: 'merged' }],
+    branchPRs: [{ number: 118, head: 'claude/app-docs-surfacing-3sr7ab', state: 'merged' }],
     scan: { branches: [
-      { name: 'claude/show-repo-docs-surfacing-3sr7ab', sha: 'c1', group: 'landed',
+      { name: 'claude/app-docs-surfacing-3sr7ab', sha: 'c1', group: 'landed',
         date: '2026-08-05T16:20:00Z', firstDate: '2026-08-05T14:00:00Z',
         subject: 'Point the conventions at the Map view',
         stats: { n: 3, added: 0, changed: 3, removed: 0, renamed: 0, split: true },
@@ -305,8 +305,8 @@ const RECORD = {
   session_id: 'b8fae678-1111-2222-3333-444455556666',
   agent_session: 'https://claude.ai/code/session_01SXuNTt',
   started: '2026-08-05T13:51:08Z', ended: '2026-08-05T16:49:16Z',
-  repos: [{ name: 'web-tools', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 572 },
-          { name: 'home', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 3 }],
+  repos: [{ name: 'web-tools', branch: 'claude/app-docs-surfacing-3sr7ab', lines: 572 },
+          { name: 'home', branch: 'claude/app-docs-surfacing-3sr7ab', lines: 3 }],
   opening_ask: 'We recently done some significant work on surfacing our documentation in the show repo app. Discuss where we are at with that.',
   exchanges: 10, assistant_messages: 340, calls_total: 206, failures: 1,
   files_total: 14, tokens: { input: 624, output: 337631, cache_read: 92466018, cache_write: 3979906 },
@@ -347,9 +347,9 @@ const RECORD = {
 const at = (t) => '2026-08-05T' + t + 'Z';
 const TURNS_RECORD = {
   ...RECORD,
-  opening_ask: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.',
+  opening_ask: 'We have done some significant work on surfacing our documentation in the Web Tools app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.',
   prompts: [
-    { at: at('13:51:08'), text: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.' },
+    { at: at('13:51:08'), text: 'We have done some significant work on surfacing our documentation in the Web Tools app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.' },
     { at: at('14:19:40'), text: 'Can we get the render line printed rather than remembered? I keep handing over the wrong link, and the section that was meant to stop it is the longest one in the file, so reading it is evidently not the thing that fixes this.' },
     { at: at('14:52:10'), text: 'Good. What does the honesty rule cost us if no script can supply it?' },
     { at: at('15:12:44'), text: '[3 images]' },
@@ -502,7 +502,7 @@ export default async function (page) {
   // with the one item on their control line whose width is a branch's data,
   // missing, which is the half of the row worth shooting.
   //
-  // The two branches cover the two cases. show-repo-docs-surfacing touches
+  // The two branches cover the two cases. app-docs-surfacing touches
   // lib/alpineComponents/estate.js, which nine routes declare, so it draws one
   // solid chip for the narrow file beside it and a ghosted chip per shared
   // route: the widest a tile ever gets, and the one that wraps. Board
@@ -519,7 +519,7 @@ export default async function (page) {
     } catch (e) { console.warn('route chips unavailable:', e.message); }
     st.routeJoinTried = true;
     st.routeBranchFiles = [
-      { repo: 'mehrlander/web-tools', name: 'claude/show-repo-docs-surfacing-3sr7ab', pr: 271,
+      { repo: 'mehrlander/web-tools', name: 'claude/app-docs-surfacing-3sr7ab', pr: 271,
         files: ['lib/alpineComponents/estate.js', 'lib/kits/route-activity.js', 'docs/showing.md'] },
       { repo: 'mehrlander/web-tools', name: 'claude/board-determinism-k2p1x', pr: 262,
         files: ['lib/alpineComponents/stage.js', 'tools/build/tracker-board.mjs'] },

@@ -1,4 +1,4 @@
-// Shared harness for show-repo's INLINE shell (the plain <script> block that
+// Shared harness for the app's INLINE shell (the plain <script> block that
 // defines app()). The shell is not a lib module, so tests get at it the way
 // routes-manifest.test.mjs gets at TOSS_ROUTES: read the page source. This
 // helper upgrades that from regex to execution, evaluating the block against

@@ -189,6 +189,8 @@ composition views. Demo:
 
 11. **Tailwind v4 layers its utilities; the typography stylesheet is unlayered, and unlayered wins.** `.prose{max-width:65ch}` therefore beats `.max-w-none` on the cascade-layer rule rather than on specificity, and nothing in the class list looks wrong. Reach for `!max-w-none`, or keep the 65ch measure on purpose and centre the column. Prefer `lib/kits/guide-render.js` for anything new, which brings its own CSS and sidesteps this; do not convert a working surface just for symmetry.
 
+12. **An `x-data` expression sees every registered component name.** Alpine injects each name passed to `Alpine.data` into the scope of an `x-data` expression, so a config that closes over host state, such as `x-data="refPicker({ repo: () => repo })"`, reads the `repo` component's factory when one is registered under that name, not the host's field. A callback built in that expression and invoked bare has `this` bound to the same scope proxy, and `$data` is that proxy too. Build a child mount's config in the host's `init()`, over a `self` captured there, and pass the stored object: `x-data="refPicker(pickerCfg.ref)"`.
+
 ## CDN Patterns
 
 Use jsDelivr `combine` to bundle multiple packages in a single request. Tailwind, DaisyUI, icons, and any other libraries go through jsDelivr. Alpine goes through unpkg; when plugins join, a jsDelivr combine keeps them one tag with core last.

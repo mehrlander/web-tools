@@ -177,7 +177,7 @@
           "label": "vendored copy",
           "gloss": "A second copy of the same two files inside the plugin payload folder, because the plugin ships ./.claude/skills and docs/ does not travel with it. Written by the commit hook, never by hand.",
           "where": "github.com/mehrlander/web-tools",
-          "upkeep": "pre-commit leg 1c copies docs/ and stages it",
+          "upkeep": "pre-commit leg plugin-copies copies docs/ and stages it",
           "freshness": "tip",
           "copy": true,
           "note": "created so the plugin payload, declared as ./.claude/skills, carries the documents docs/ cannot reach."
@@ -299,7 +299,7 @@
           "label": "vendored copy",
           "gloss": "A second copy of the same two files inside the plugin payload folder, because the plugin ships ./.claude/skills and docs/ does not travel with it. Written by the commit hook, never by hand.",
           "where": "github.com/mehrlander/web-tools",
-          "upkeep": "pre-commit leg 1c copies docs/ and stages it",
+          "upkeep": "pre-commit leg plugin-copies copies docs/ and stages it",
           "freshness": "tip",
           "copy": true,
           "goes": true,
@@ -431,7 +431,7 @@
         }
       ],
       "evidence": [
-        "The vendored copy is not hand-maintained, which the tracker task assumes: .githooks/pre-commit leg 1c rewrites and stages it in the same commit that touches docs/. The problem is lag between commits, caused by pinning, and no copy hygiene reaches it.",
+        "The vendored copy is not hand-maintained, which the tracker task assumes: .githooks/pre-commit leg plugin-copies rewrites and stages it in the same commit that touches docs/. The problem is lag between commits, caused by pinning, and no copy hygiene reaches it.",
         "12 of the 47 recorded sessions carrying both an @-import and an injection receipt for SURFACING.md had the two routes deliver different versions.",
         "The version the injector kept delivering, sha dc188a49, is SURFACING.md as of 2026-08-27. It was still arriving on 2026-09-01.",
         "This session's payload came to 28,026 bytes against the 28,000 ceiling and was cut. The 1,210-byte gap between the pinned copy and the tip is larger than the 26-byte overrun."

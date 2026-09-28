@@ -1,4 +1,4 @@
-// show-repo's swipe carousel: the two lists that have to agree.
+// The app's swipe carousel: the two lists that have to agree.
 //
 // A dashboard view is swipeable only if its container carries data-pane, since
 // that attribute is what the pager's element lookup keys on. estateNav is the

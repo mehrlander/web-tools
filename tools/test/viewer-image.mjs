@@ -13,7 +13,7 @@
 // Two claims, and the second is the one that would rot silently:
 //   1. a repo image renders, from bytes fetched at the addressed ref
 //   2. it OPENS in the image mode, over the host's blanket defaultMode
-//      ('raw' in show-repo's file view), which is what `exclusive` buys
+//      ('raw' in the app's file view), which is what `exclusive` buys
 //
 // The subject is pages/thumbs/toss-render.png, a real tracked PNG, read
 // through the working-tree stand-in for the contents API.

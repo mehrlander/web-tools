@@ -23,7 +23,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
-import { parse, render, suspects, tokens } from '../build/snags-index.mjs';
+import { markerCounts, parse, render, suspects, tokens } from '../build/snags-index.mjs';
 
 // A fixture in the file's real shape: the closing index marker, then entries.
 const doc = (body) => `[//]: # (/snags-index)\n\n${body}`;
@@ -125,4 +125,10 @@ test('the committed log is fully slugged, with no uncounted sighting', () => {
     'an entry was added in the old bold-lead shape; give it a `### slug: title` heading');
   assert.ok(entries.length > 25, `only ${entries.length} entries parsed; the format may have drifted`);
   assert.ok(entries.every(e => e.title), 'an entry heading has no title after its slug');
+});
+
+test('the committed log has one index-open and one index-close marker', () => {
+  const md = readFileSync(join(repoRoot, 'docs/SNAGS.md'), 'utf8');
+  assert.deepEqual(markerCounts(md), { open: 1, close: 1 },
+    'a merge duplicated an index marker; keep one of each and delete the stray rows');
 });
