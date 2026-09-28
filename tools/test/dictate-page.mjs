@@ -1535,7 +1535,39 @@ try {
   await page.waitForTimeout(300);
   const afterHandle = await readNow();
   ok('a sideways press-and-release, as a selection handle makes, does not turn the card', afterHandle.reading === 'inline', JSON.stringify(afterHandle));
-  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (c.nativeSel) c.toggleNativeSel(); });
+  // A real drag across a card, under the native option: the platform's
+  // selection takes the card's text once, not its three readings, and the
+  // track stays on the reading it was on. Reported from the phone.
+  const acrossCard = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    c.$refs.view.scrollTop = 0; c.d.caretAt(0); c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    const A = window.MdSurface.rectAt(md, c.text.indexOf('First one') + 1), B = window.MdSurface.rectAt(md, c.text.indexOf('Third para') + 3);
+    return { ax: A.left, ay: A.top + A.height / 2, bx: B.left, by: B.top + B.height / 2 };
+  });
+  await page.mouse.move(acrossCard.ax, acrossCard.ay); await page.mouse.down();
+  for (let k = 1; k <= 12; k++) await page.mouse.move(acrossCard.ax + (acrossCard.bx - acrossCard.ax) * k / 12, acrossCard.ay + (acrossCard.by - acrossCard.ay) * k / 12);
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  const afterAcross = await page.evaluate((i) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const t = c.$refs.md.querySelector('[data-md-card="' + i + '"] [data-md-track]'), s = document.getSelection().toString();
+    return { second: (s.match(/Second/g) || []).length, onInline: Math.abs(t.scrollLeft - t.clientWidth) < 2, reading: window.MdSurface.readingOf(c.$refs.md, i) }; }, cardAt.i);
+  ok('a drag across a card selects its text once and leaves its track where it was',
+    afterAcross.second === 1 && afterAcross.onInline && afterAcross.reading === 'inline', JSON.stringify(afterAcross));
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.precise = false; if (c.nativeSel) c.toggleNativeSel(); });
+  // The first card a page draws opens on its marked reading too. The track
+  // is not a scroller until the styles for its classes exist, which the
+  // browser build writes a frame after the node appears, so the position set
+  // at render was dropped and the card opened on the original.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.save(); });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2500);
+  await stub();
+  const fresh = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const t = c.$refs.md.querySelector('[data-md-track]');
+    return t && { left: t.scrollLeft, w: t.clientWidth, off: [...t.querySelectorAll('[data-md-off]')].every((l) => getComputedStyle(l).visibility === 'hidden') }; });
+  ok('the first card on a fresh page opens on its marked reading, the others hidden',
+    !!fresh && fresh.w > 0 && Math.abs(fresh.left - fresh.w) < 2 && fresh.off, JSON.stringify(fresh));
   }
 } finally {
   await browser.close();
