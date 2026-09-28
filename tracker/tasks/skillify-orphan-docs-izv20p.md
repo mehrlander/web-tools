@@ -42,7 +42,7 @@ tab drops accordingly. No net new prose. `npm test` green.
 ## Progress log
 - 2026-07-30 filed at the user's request while wrapping up the appendix work
   (PR #324). One conversion already shipped as the worked example:
-  `.claude/skills/sandbox-traps/`, which took the operative core of
+  `skills/sandbox-traps/`, which took the operative core of
   `environment/` and `github/` into a 601-word body with a 78-word trigger,
   against 11,189 words of source. Its source docs were deliberately left in
   place, because the claim that a skill replaces them is untested until it

@@ -34,7 +34,7 @@ const toCsv = (rows) => {
 // copies of .claude-plugin/marketplace.json anyway.
 const manifest = {
   items: [
-    { kind: 'skill', command: '/portable:tasks', path: '.claude/skills/tasks/SKILL.md', title: 'tasks', role: 'the tracker', use: 'plugin' },
+    { kind: 'skill', command: '/portable:tasks', path: 'skills/tasks/SKILL.md', title: 'tasks', role: 'the tracker', use: 'plugin' },
     { kind: 'doc', path: 'docs/CONVENTIONS.md', title: 'Working conventions', role: 'the conventions', use: 'live' },
     { kind: 'script', path: 'scripts/sunset-scan.py', title: 'sunset-scan.py', role: 'sunset markers', use: 'on-demand' },
   ],
@@ -67,6 +67,8 @@ const skillsCsv = readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'u
 const textFieldsCsv = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
 const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
+const ctxCsv = readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8');
+const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.csv'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
@@ -106,6 +108,8 @@ window.GH = class {
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
     if (p === 'docs/kits.csv') return { text: kitsCsv };
+    if (p === 'docs/context-sources.csv') return { text: ctxCsv };
+    if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
     return { text: toCsv(manifest.items) };
@@ -180,8 +184,8 @@ test('Distribution groups by delivery mode while every row keeps its artifact ty
 
 test('plugin-internal scripts cross-reference their parent skill, not Automation', async () => {
   const supportFiles = [
-    ['.claude/skills/tasks/build-board.py', 'tasks'],
-    ['.claude/skills/in-flight/in-flight.py', 'in-flight'],
+    ['skills/tasks/build-board.py', 'tasks'],
+    ['skills/in-flight/in-flight.py', 'in-flight'],
   ];
   const realSetTab = data.setTab;
   let openedTab = '';
@@ -841,8 +845,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'context']),
-    'Harness exposes Automation, Tests, and Context');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests']),
+    'Harness exposes Automation and Tests; Context is its own tab');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -893,21 +897,48 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   window.__shell = undefined;
 });
 
-test('a Context deep link opens under Harness with the shared graph in Map', async () => {
+test('Context is a top-level tab that renders the public circles and derives the overlaps', async () => {
   window.__shell = { mapTab: 'context', goMapTab: () => {} };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'map()');
   window.document.body.appendChild(el);
   Alpine.initTree(el);
-  await tick(2);
+  await tick(3);
   const state = Alpine.$data(el);
-  assert.equal(state.displayTab, 'harness');
-  assert.equal(state.contextSeen, true);
-  assert.match(state.contextEmbedUrl, /session-context\.html\?embed=1/);
+  assert.equal(state.displayTab, 'context', 'Context is its own tab, not a Harness subview');
+  assert.ok(state.ctxReg, 'the public registry loaded on the deep link');
+  const rows = window.Csv.rows(readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8'));
+  assert.equal(state.ctxReg.rows.length, rows.length, 'every public row is in the model');
+
+  // With no token the private circles say why they are empty, rather than
+  // rendering as circles that supply nothing.
+  const account = state.ctxCircles.find(c => c.key === 'account');
+  assert.equal(account.rows.length, 0);
+  assert.match(state.ctxGap(account), /token/);
+  assert.equal(state.ctxGap(state.ctxCircles.find(c => c.key === 'plugin')), '', 'a public circle has no gap line');
+
+  // Overlap membership is derived from the rows, never authored on the topic.
+  const ask = state.ctxOverlaps.find(o => o.topic === 'askuserquestion');
+  assert.ok(ask && ask.rows.length >= 2, 'the AskUserQuestion ban is spoken to by more than one source');
+  assert.ok(ask.rows.every(r => r.topicList.includes('askuserquestion')));
+  state.openCtxTopic('askuserquestion');
+  assert.equal(state.ctxLens, 'overlaps');
+  assert.equal(state.ctxOverlaps.length, 1, 'a chosen topic narrows the lens to itself');
+  state.ctxTopic = '';
+
+  // The tally joins by key, and "not measured" never reads as zero.
+  const wt = state.ctxReg.rows.find(r => r.tally === 'startup:web-tools/CLAUDE.md');
+  assert.equal(state.ctxTally(wt), '', 'no cache, no tally text');
+  state.docStartup = { 'web-tools/CLAUDE.md': { path: 'web-tools/CLAUDE.md', sessions: 12, receipt: 0, reconstructed: 12, last: '2026-09-27T00:00:00Z' },
+                       'stray/CLAUDE.md': { path: 'stray/CLAUDE.md', sessions: 3, receipt: 0, reconstructed: 3, last: '2026-09-20T00:00:00Z' } };
+  assert.equal(state.ctxTally(wt), '12 sessions');
+  const measured = state.ctxMeasuredStartup;
+  assert.equal(measured[0].row.id, 'wt-claude', 'a tallied file joins its registry row');
+  assert.equal(measured.find(m => m.path === 'stray/CLAUDE.md').row, null, 'an unclaimed file is flagged, not dropped');
+
   const section = el.querySelector('section[x-show="mapTab===\'context\'"]');
-  assert.ok(section.querySelector('iframe[title="Session context routes and record inspector"]'));
-  assert.ok([...section.querySelectorAll('button')].some(b => b.textContent.trim() === 'Automation'));
-  assert.ok([...section.querySelectorAll('a')].some(a => a.textContent.includes('Delivery history')));
+  assert.ok(section, 'the Context section exists');
+  assert.equal(section.querySelector('iframe'), null, 'the old embedded page is gone');
   window.__shell = undefined;
 });
 
@@ -1147,12 +1178,11 @@ test('the Map template holds no backtick', () => {
     'the template literal reaches its last section, so no stray backtick closed it early');
 });
 
-// The Skills tab, added 2026-08-19 for the one registry whose absence read as
-// coverage: the Portable tab renders the plugin's skills and this renders the
-// on-demand library, and the two sets share no member. The disjointness is the
-// assertion worth holding, because the moment they overlap the tab is a
-// duplicate rather than the only view of a population.
-test('Skills renders the library, which is disjoint from the plugin set', async () => {
+// The Skills tab, added 2026-08-19 when the plugin's skills and the on-demand
+// library were disjoint. Since 2026-09-27 the plugin carries the whole library,
+// so the assertion flipped: every library row must be a plugin skill, or the
+// manifest names a skill no session receives.
+test('Skills renders the library, and the plugin carries every row of it', async () => {
   assert.equal(data.skillsReg, null, 'the library is not fetched until the tab is opened');
   await data.loadSkillsReg();
   assert.equal(data.skillsErr, '');
@@ -1164,9 +1194,9 @@ test('Skills renders the library, which is disjoint from the plugin set', async 
   // one written for the test.
   const plugin = new Set(window.Csv.rows(readFileSync(path.join(repoRoot, 'docs', 'portable.csv'), 'utf8'))
     .filter(r => r.kind === 'skill').map(r => r.title));
-  const both = data.skillsReg.map(s => s.name).filter(n => plugin.has(n));
-  assert.equal(both.join(', '), '',
-    'a skill in both sets means this tab duplicates Portable: ' + both.join(', '));
+  const uncarried = data.skillsReg.map(s => s.name).filter(n => !plugin.has(n));
+  assert.equal(uncarried.join(', '), '',
+    'a library skill the plugin does not carry: ' + uncarried.join(', '));
 });
 
 test('the Skills search matches the trigger text, not only the slug', async () => {

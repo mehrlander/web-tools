@@ -15,7 +15,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
@@ -23,8 +23,11 @@ import { parseCsv } from '../build/registries-load.mjs';
 const skillsDir = path.join(repoRoot, 'skills');
 const manifest = { skills: parseCsv(readFileSync(path.join(skillsDir, 'manifest.csv'), 'utf8')) };
 
+// A directory without a SKILL.md is not a skill: hooks/ is the plugin's hook
+// bundle, which has shared this tree since 2026-09-27.
 const onDisk = readdirSync(skillsDir, { withFileTypes: true })
-  .filter(e => e.isDirectory()).map(e => e.name).sort();
+  .filter(e => e.isDirectory() && existsSync(path.join(skillsDir, e.name, 'SKILL.md')))
+  .map(e => e.name).sort();
 
 test('every skill directory has exactly one manifest row, and every row a directory', () => {
   const rows = manifest.skills.map(s => s.name);
@@ -46,7 +49,7 @@ test('every row carries a description', () => {
 test('the skill that fetches the library names this repo and this folder', () => {
   // The URL used to be copied into the manifest as `source`. It is stated by
   // load-skill, which is the thing that does the fetching, so it is read there.
-  const skill = readFileSync(path.join(repoRoot, '.claude/skills/load-skill/SKILL.md'), 'utf8');
+  const skill = readFileSync(path.join(repoRoot, 'skills/load-skill/SKILL.md'), 'utf8');
   assert.match(skill, /mehrlander\/web-tools\/main\/skills/,
     'the loader skill must name this repo and this folder; other repos fetch against it');
 });

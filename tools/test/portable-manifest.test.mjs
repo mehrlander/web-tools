@@ -15,6 +15,11 @@ const manifest = { items: parseCsv(readFileSync(path.join(repoRoot, 'docs', 'por
 // The harness registry owns the description of anything it carries.
 const harnessPaths = new Set(
   parseCsv(readFileSync(path.join(repoRoot, 'docs', 'harness.csv'), 'utf8')).map(t => t.path));
+// And the skills registry owns the description of every skill it lists, the
+// library skills the plugin took in on 2026-09-27 among them.
+const skillPaths = new Set(
+  parseCsv(readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'utf8'))
+    .filter(s => s.description).map(s => `skills/${s.name}/SKILL.md`));
 
 // The catalog used to carry `hub` and a `plugin` block, and this test asserted
 // them. Both were copies: .claude-plugin/marketplace.json is the file the
@@ -38,7 +43,7 @@ test('the set is typed and non-empty, and the plugins match the marketplace', ()
     // ownership gate in properties-registry.test.mjs now forbids. The Map view
     // joins the registry value for display, so the row is not left blank to a
     // reader. See docs/registries.md, "One owner per assertion".
-    assert.ok(it.role || harnessPaths.has(it.path),
+    assert.ok(it.role || harnessPaths.has(it.path) || skillPaths.has(it.path),
       it.path + ': needs a role, since no registry carries a description for it');
   }
 });
@@ -95,10 +100,10 @@ test('every explicitly registered portable skill resolves inside the plugin sour
 // check above: being physically inside `source` does not by itself expose a
 // skill when the marketplace carries a `skills` list.
 test('every skill directory on disk is a manifest skill item', () => {
-  const skillsDir = path.join(repoRoot, '.claude', 'skills');
+  const skillsDir = path.join(repoRoot, 'skills');
   const onDisk = readdirSync(skillsDir, { withFileTypes: true })
     .filter(e => e.isDirectory() && existsSync(path.join(skillsDir, e.name, 'SKILL.md')))
-    .map(e => `.claude/skills/${e.name}/SKILL.md`);
+    .map(e => `skills/${e.name}/SKILL.md`);
   const inManifest = new Set(manifest.items.filter(i => i.kind === 'skill').map(i => i.path));
   for (const p of onDisk) {
     assert.ok(inManifest.has(p), 'ships in the plugin but not catalogued: ' + p);

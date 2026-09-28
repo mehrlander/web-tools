@@ -1,5 +1,5 @@
 // tools/test/notes.test.mjs
-// The notes skill's writer (.claude/skills/notes/note.py), driven against a
+// The notes skill's writer (skills/notes/note.py), driven against a
 // throwaway store: a bare origin and a clone parked on another branch, which is
 // how a session's checkout of the store usually sits.
 
@@ -12,7 +12,7 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
-const NOTE = path.join(repoRoot, '.claude', 'skills', 'notes', 'note.py');
+const NOTE = path.join(repoRoot, 'skills', 'notes', 'note.py');
 const ENV = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'notes-'));
@@ -78,11 +78,11 @@ test('the store is found by the declaration on main, whatever branch the checkou
 });
 
 test('the skill is registered with the plugin and the portable index', () => {
-  assert.ok(readFileSync(path.join(repoRoot, '.claude', 'skills', 'notes', 'SKILL.md'), 'utf8')
+  assert.ok(readFileSync(path.join(repoRoot, 'skills', 'notes', 'SKILL.md'), 'utf8')
     .startsWith('---\nname: notes\n'));
   const market = JSON.parse(readFileSync(path.join(repoRoot, '.claude-plugin', 'marketplace.json'), 'utf8'));
   assert.ok(market.plugins.find((p) => p.name === 'portable').skills.includes('./notes'));
   const row = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'portable.csv'), 'utf8'))
-    .find((p) => p.path === '.claude/skills/notes/SKILL.md');
+    .find((p) => p.path === 'skills/notes/SKILL.md');
   assert.equal(row?.command, '/portable:notes');
 });

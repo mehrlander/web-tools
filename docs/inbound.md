@@ -206,7 +206,7 @@ not automatic, and do not describe it as automatic in any convention, because a
 reader who believes subscription is guaranteed will stop checking.
 
 Where it lives, built 2026-08-20: the `portable` plugin's hook folder, beside
-[`mcp-fail-hint.sh`](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/hooks/mcp-fail-hint.sh),
+[`mcp-fail-hint.sh`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/mcp-fail-hint.sh),
 as `pr-subscribe-hint.sh`, which is the identical shape (matcher on an MCP tool, payload off stdin,
 guidance out through `additionalContext`). Two reasons, and the second is the
 load-bearing one:

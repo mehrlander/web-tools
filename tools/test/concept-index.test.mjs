@@ -9,7 +9,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const VOCAB = join(dirname(fileURLToPath(import.meta.url)),
-  '../../.claude/skills/concept-index/vocab.py')
+  '../../skills/concept-index/vocab.py')
 
 function fixture () {
   const root = mkdtempSync(join(tmpdir(), 'concept-index-'))

@@ -462,7 +462,7 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
   // It is a data-title-tip since 2026-09-06, on the same element: this test was
   // written to keep the whole date reachable "for the phone truncation", and a
   // title reaches no phone at all, which is the defect the note tier exists to
-  // fix (daisy-alpine mechanics.md, "Title-tips and panel-tips"). What is held here is
+  // fix (html-style mechanics.md, "Title-tips and panel-tips"). What is held here is
   // the attachment point, which did not move.
   shell.view = 'sessions';
   data.sessionLens = 'list';

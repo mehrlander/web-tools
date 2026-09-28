@@ -21,7 +21,7 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { loadRegistries } from '../build/registries-load.mjs';
 
-const SKILL = '.claude/skills/content-registry/SKILL.md';
+const SKILL = 'skills/content-registry/SKILL.md';
 const skill = readFileSync(path.join(repoRoot, SKILL), 'utf8');
 const reg = loadRegistries(repoRoot);
 

@@ -49,7 +49,7 @@ Four things measured on one live session:
   opening. Only the head of a payload is guaranteed to arrive, which is why
   `inject-conventions.sh`, the conventions injector since retired, printed its
   recovery block first and
-  [`session-dispatch.sh`](../../.claude/skills/hooks/session-dispatch.sh) prints
+  [`session-dispatch.sh`](../../skills/hooks/session-dispatch.sh) prints
   its warning first.
 - **The cap is per hook entry, not across the event.** In the same session the
   dispatcher's 28,670-character payload was cut while a separate 298-character
