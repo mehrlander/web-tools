@@ -41,9 +41,17 @@
 
 import { readFileSync, existsSync, statSync, lstatSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
+
+// The git blob sha of some bytes, which is what the contents API reports as a
+// file's `sha`. gh-boot records it per loaded file (window.__ghFiles), and it
+// is the one piece of evidence that says WHICH version of a file ran. A
+// placeholder here would leave any check built on it untestable headlessly.
+export const blobSha = (bytes) =>
+  createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
 
 // Serialized git/trees body, built once per process (see the trees branch).
 let treeBodyCache = null;
@@ -511,7 +519,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
         tag: `api ${tail} @${u.searchParams.get('ref')}`,
         body: JSON.stringify({
           content: atRef.toString('base64'),
-          encoding: 'base64', sha: 'local', size: atRef.length, html_url: '',
+          encoding: 'base64', sha: blobSha(atRef), size: atRef.length, html_url: '',
         }),
       };
     }
@@ -538,7 +546,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${tail}`,
         body: JSON.stringify({
           content: bytes.toString('base64'),
-          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
+          encoding: 'base64', sha: blobSha(bytes), size: bytes.length, html_url: '',
         }),
       };
     }
@@ -583,7 +591,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,
         body: JSON.stringify({
           content: bytes.toString('base64'),
-          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
+          encoding: 'base64', sha: blobSha(bytes), size: bytes.length, html_url: '',
         }),
       };
     }

@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  toss-top-probe.html — experiment E6 of docs/showing-consolidation.md.
+
+  THE QUESTION. Some behaviour belongs to the top-level document only: the
+  tab's title and icon, the address bar and history, the FAB a page mounts for
+  itself, the viewport a phone gives a page. A toss frames the page, so none
+  of it is the page's own. Can the renderer instead REPLACE ITSELF with the
+  fetched page, so the page runs as the top-level document at the addressed
+  ref, without a frame and without a shell pin?
+
+  THE MECHANISM. Fetch the page at the ref, prepend the same prelude an
+  address-mode toss stamps (a <base>, the params shim, the ref), then
+  document.open / write / close. The document keeps this file's URL, so a
+  reload runs the probe again and re-renders at the same ref. The address
+  rides the QUERY (?gh=owner/repo@ref:path[?page query]), so the fragment is
+  the page's own, the way it would be on the deployed page.
+
+  Two things the frame never had to handle, both handled here:
+  - History. A relative replaceState('?view=x') resolves against the <base>,
+    which is the deployed page's directory: allowed (same origin) and wrong,
+    since a reload then lands on the deployed page. So the shim folds the
+    page's query into the ?gh= address and keeps the fragment as the page's.
+  - The lib ref. Injected as `use` only when the page is web-tools', which is
+    stage S1's rule rather than today's; any other repo's page gets main.
+
+  Not the proposal's renderer: a probe with no inliner, no fetch shim, no
+  allowlist beyond the owner check, and no payload mode. It exists to measure
+  what top-level execution buys and costs, headlessly and then on a phone.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toss top probe</title>
+</head>
+<body>
+<script type="module">
+  const OWNERS = ['mehrlander'];
+  const HUB = 'mehrlander/web-tools';
+
+  // ?gh= is read by slice, like toss-render's fragment: the page query inside
+  // it keeps its own '&'s.
+  const i = location.search.indexOf('gh=');
+  const addr = i === -1 ? '' : decodeURIComponent(location.search.slice(i + 3));
+  const m = addr.match(/^([^/@:]+)\/([^/@:]+)(?:@([^:]+))?:([^?]+)(?:\?(.*))?$/);
+
+  const fail = (msg) => { document.body.textContent = msg; document.title = 'top probe: ' + msg; };
+
+  if (!m) fail('expected ?gh=owner/repo[@ref]:path[?query]');
+  else if (!OWNERS.includes(m[1])) fail('owner not allowed: ' + m[1]);
+  else {
+    const [, owner, name, ref = '', path, pageQuery = ''] = m;
+    const repo = owner + '/' + name;
+    const headers = { Accept: 'application/vnd.github.raw+json' };
+    try { const t = localStorage.getItem('ghToken'); if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim(); } catch {}
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}` + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers });
+    if (!res.ok) fail(`${repo}@${ref}:${path} answered HTTP ${res.status}`);
+    else {
+      let html = await res.text();
+      // Raw media type, or the JSON envelope from a server that ignores it.
+      if (/^\s*\{/.test(html)) { try { const d = JSON.parse(html); if (d.content) html = new TextDecoder().decode(Uint8Array.from(atob(d.content.replace(/\s/g, '')), c => c.charCodeAt(0))); } catch {} }
+
+      const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+      const injected = Object.fromEntries(new URLSearchParams(pageQuery));
+      if (ref && repo === HUB) injected.use = ref;
+      const probePath = location.pathname;
+      const P = JSON.stringify(injected);
+      const prelude =
+        `<base href="https://${owner}.github.io/${name}/${dir}">` +
+        `<script>window.__ref=${JSON.stringify(ref || 'main')};window.__lib=${JSON.stringify(repo === HUB ? (ref || 'main') : 'main')};window.__tossTop=${JSON.stringify({ repo, ref: ref || 'main', path })};<\/script>` +
+        // The params shim, as address mode stamps it.
+        `<script>(function(){var P=${P},O=Object.prototype.hasOwnProperty,g=URLSearchParams.prototype.get,h=URLSearchParams.prototype.has;` +
+        `URLSearchParams.prototype.get=function(k){var v=g.call(this,k);return (v==null||v==="")&&O.call(P,k)?P[k]:v;};` +
+        `URLSearchParams.prototype.has=function(k){return h.call(this,k)||O.call(P,k);};})();<\/script>` +
+        // History folded into the address: the page's query becomes the ?gh=
+        // address's query, its fragment stays its own, and the path never moves.
+        `<script>(function(){var H=history,rs=H.replaceState,ps=H.pushState,A=${JSON.stringify(repo + (ref ? '@' + ref : '') + ':' + path)},B=${JSON.stringify(probePath)};/* absolute: a relative URL here resolves against the <base> */` +
+        `function map(u){if(u==null)return u;try{var t=new URL(String(u),document.baseURI);if(t.origin!==location.origin&&t.origin!==new URL(document.baseURI).origin)return u;` +
+        `var q=t.search.replace(/^\\?/,'');return location.origin+B+'?gh='+A+(q?'?'+q:'')+t.hash;}catch(e){return u;}}` +
+        `H.replaceState=function(s,t,u){return rs.call(H,s,t,map(u));};H.pushState=function(s,t,u){return ps.call(H,s,t,map(u));};})();<\/script>`;
+      html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, x => x + prelude) : prelude + html;
+      document.open();
+      document.write(html);
+      document.close();
+    }
+  }
+</script>
+</body>
+</html>

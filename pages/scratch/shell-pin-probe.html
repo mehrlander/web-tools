@@ -158,7 +158,9 @@
     document.getElementById('rows').innerHTML =
       Object.entries(CELLS).map(([id, s]) =>
         row(id, `${s.load} @ ${s.ref}${s.revoke ? '' : ', kept'}`, s.frame, `?case=${id}`)).join('') +
-      row('G', 'toss-render, ?use=sha', true, '#G');
+      row('G', 'toss-render, ?use=sha', true, '#G') +
+      row('H', 'top mode: page at sha, blob, no frame', false, '#H') +
+      row('I', 'top mode: app at sha, framing a view', true, '#I');
     document.getElementById('matrix').classList.remove('hidden');
   }
 
@@ -190,12 +192,27 @@
     // toss-render's own FAB, which clears the trail before this page could
     // read it. So G's row says only that it was opened, and its result is the
     // filed report carrying case G, or the absence of one.
-    document.querySelector('a[href="#G"]').addEventListener('click', async (e) => {
-      e.preventDefault();
-      const sha = await mainSha();
-      mark('G', 'opened');
-      location.href = `${PAGES}pages/toss-render.html?use=${sha}&case=G#gh=${REPO}@${sha}:pages/diff-tool.html`;
-    });
+    //
+    // H and I are the same shape of question for experiment E6: the page
+    // replaces the renderer (pages/scratch/toss-top-probe.html), so it runs as
+    // the top-level document with its OWN FAB, booted at the sha by the blob
+    // route. H has no frame anywhere, which the 2026-09-08 matrix says
+    // survives; I is the app with an app view open, which puts a frame back
+    // under a blob-booted top document. The case tag rides the page query,
+    // where the params shim hands it to the FAB's trail.
+    const OUT = {
+      G: sha => `${PAGES}pages/toss-render.html?use=${sha}&case=G#gh=${REPO}@${sha}:pages/diff-tool.html`,
+      H: sha => `${PAGES}pages/scratch/toss-top-probe.html?gh=${REPO}@${sha}:pages/diff-tool.html?case=H`,
+      I: sha => `${PAGES}pages/scratch/toss-top-probe.html?gh=${REPO}@${sha}:app/index.html?view=app&appRepo=${REPO}&appPath=pages/diff-tool.html&case=I`,
+    };
+    for (const [id, url] of Object.entries(OUT)) {
+      document.querySelector(`a[href="#${id}"]`).addEventListener('click', async (e) => {
+        e.preventDefault();
+        const sha = await mainSha();
+        mark(id, 'opened');
+        location.href = url(sha);
+      });
+    }
     document.getElementById('reset').onclick = () => { write({}); renderMatrix(); };
     document.getElementById('file').onclick = async () => {
       const note = document.getElementById('note');
