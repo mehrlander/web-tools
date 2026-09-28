@@ -1,5 +1,5 @@
 // tools/test/tend.test.mjs
-// Verifies the /tend portable skill (.claude/skills/tend/SKILL.md) and its cross-registration.
+// Verifies the /tend portable skill (skills/tend/SKILL.md) and its cross-registration.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,10 +8,10 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
-const SKILL_PATH = path.join(repoRoot, '.claude', 'skills', 'tend', 'SKILL.md');
+const SKILL_PATH = path.join(repoRoot, 'skills', 'tend', 'SKILL.md');
 
-test('.claude/skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a tiered process', () => {
-  assert.ok(existsSync(SKILL_PATH), '.claude/skills/tend/SKILL.md must exist on disk');
+test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a tiered process', () => {
+  assert.ok(existsSync(SKILL_PATH), 'skills/tend/SKILL.md must exist on disk');
   const content = readFileSync(SKILL_PATH, 'utf8');
   assert.ok(!content.includes('\u2014'), 'tend SKILL.md must contain zero em dashes');
   assert.match(content, /^---\r?\nname:\s*tend\b/, 'frontmatter must declare name: tend');
@@ -36,7 +36,7 @@ test('tend SKILL.md names commands and paths that exist', () => {
 });
 
 test('tasks skill treats a met Done-when as a delivery close, which tend acts on', () => {
-  const tasks = readFileSync(path.join(repoRoot, '.claude', 'skills', 'tasks', 'SKILL.md'), 'utf8');
+  const tasks = readFileSync(path.join(repoRoot, 'skills', 'tasks', 'SKILL.md'), 'utf8');
   assert.match(tasks, /delivery close, unattended/, 'tasks skill must classify a met Done-when close as unattended');
 });
 
@@ -63,8 +63,8 @@ test('docs/docs.csv does not contain docs/TENDING.md (relocated to home chron)',
 
 test('docs/portable.csv registers tend skill', () => {
   const portableCsv = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'portable.csv'), 'utf8'));
-  const skillRow = portableCsv.find(p => p.path === '.claude/skills/tend/SKILL.md');
-  assert.ok(skillRow, 'docs/portable.csv must contain a skill row for .claude/skills/tend/SKILL.md');
+  const skillRow = portableCsv.find(p => p.path === 'skills/tend/SKILL.md');
+  assert.ok(skillRow, 'docs/portable.csv must contain a skill row for skills/tend/SKILL.md');
   assert.equal(skillRow.kind, 'skill');
   assert.equal(skillRow.command, '/portable:tend');
   assert.equal(skillRow.use, 'plugin');
