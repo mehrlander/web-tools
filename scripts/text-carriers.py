@@ -75,6 +75,10 @@ def is_prose(v):
     toks = v.split()
     if sum(len(t) for t in toks) / len(toks) > 14:
         return False
+    # a mapping (key=value items, ';'-separated) is data, however wordy its
+    # keys: docs/map-tabs.csv's `refs` pairs a lede's phrases with paths
+    if all("=" in x for x in v.split(";") if x.strip()):
+        return False
     # a pipe- or semicolon-delimited list is a list, however long
     return v.count("|") < 3 and v.count(";") < 4
 

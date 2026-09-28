@@ -26,7 +26,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
@@ -79,7 +79,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /@click="setTab\(t\.k\)"/,
     'a top-level stop opens its own route, so Docs opens Inventory');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
-  assert.match(src, /x-text="tabGloss"/, 'the lede is rendered from the selected tab');
+  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the lede is rendered from the selected tab, in runs');
 });
 
 test('docs/map-tabs.csv holds one row per Map address, and no other', () => {
@@ -221,4 +221,26 @@ test('the ledes are distinct, so none is a template somebody filled in', () => {
   const opens = LEDES.map(t => t.g.split(/\s+/).slice(0, 3).join(' ').toLowerCase());
   assert.equal(new Set(opens).size, opens.length,
     'two ledes open with the same three words; write the second one about its own subject');
+});
+
+// A lede's links are data beside the sentence: `refs` is phrase=path pairs,
+// separated by ';'. Every phrase must occur in the sentence verbatim, or the
+// link silently never renders; every path must exist, or it opens nothing. A
+// folder ends in '/' because it opens the tree, not a file.
+test("a lede's links name phrases it contains and paths that exist", () => {
+  for (const r of ROWS) {
+    const pairs = (r.refs || '').split(';').filter(Boolean);
+    assert.ok(pairs.length <= 3, `${r.tab}: ${pairs.length} links; a lede is a sentence, not an index`);
+    let last = -1;
+    for (const p of pairs) {
+      const i = p.indexOf('=');
+      assert.ok(i > 0, `${r.tab}: '${p}' is not phrase=path`);
+      const [ph, to] = [p.slice(0, i), p.slice(i + 1)];
+      const at = r.gloss.indexOf(ph);
+      assert.ok(at >= 0, `${r.tab}: '${ph}' is not in the lede`);
+      assert.ok(at > last, `${r.tab}: '${ph}' overlaps or precedes the link before it`);
+      last = at + ph.length - 1;
+      assert.ok(existsSync(path.join(repoRoot, to.replace(/\/$/, ''))), `${r.tab}: ${to} does not exist`);
+    }
+  }
 });
