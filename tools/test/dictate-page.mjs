@@ -1665,6 +1665,47 @@ try {
   // release landed from its press, which is how a selection handle dragged
   // sideways across a card turned it over.
   {
+  // A DESK: a mouse that hovers. The upper keys are not drawn (the keyboard
+  // types them), Copy, the target and Send stay, and the formats are chords.
+  console.log('desk and shortcuts:');
+  await reset();
+  const C = () => document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+  const desk = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const vis = (el) => !!el && el.getClientRects().length > 0;
+    const dot = () => [...document.querySelectorAll('[data-dictate-ui] button')].find((b) => b.textContent.trim() === '.');
+    const before = vis(dot());
+    c.desk = true; await new Promise((r) => setTimeout(r, 100));
+    const out = { before, after: vis(dot()), copy: vis([...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Copy')),
+                  target: vis(document.querySelector('[data-target]')), list: !!document.querySelector('[data-shortcuts]') };
+    c.desk = false; await new Promise((r) => setTimeout(r, 100));
+    return out;
+  });
+  ok('on a desk the upper keys go, and Copy, the target and Send stay', desk.before && !desk.after && desk.copy && desk.target && desk.list, JSON.stringify(desk));
+  const sel = (w) => page.evaluate((w) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf(w); c.d.select(a, a + w.length); c.paint(); document.activeElement?.blur?.(); }, w);
+  const txt = () => page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].text);
+  await sel('Second para.'); await page.keyboard.press('Control+b');
+  const bold = await txt();
+  await sel('Third para.'); await page.keyboard.press('Control+e');
+  const code = await txt();
+  ok('Ctrl+B bolds the selection and Ctrl+E makes it code', bold.includes('**Second para.**') && code.includes('`Third para.`'), JSON.stringify(code));
+  await reset();
+  await sel('Second para.'); await page.keyboard.press('Control+Alt+Digit3');
+  const h3 = await txt();
+  await sel('Second para.'); await page.keyboard.press('Control+Alt+Digit3');
+  const h0 = await txt();
+  await sel('Third para.'); await page.keyboard.press('Control+Shift+Digit8');
+  const li = await txt();
+  ok('Ctrl+Alt+3 makes an h3 and again clears it, and Ctrl+Shift+8 makes a list item',
+    h3.includes('\n\n### Second para.\n\n') && h0.includes('\n\nSecond para.\n\n') && li.includes('\n\n- Third para.\n'), JSON.stringify({ h3, h0, li }));
+  // Send itself fetches the account's repositories, which fails late here and
+  // moves the page under the next section, so the chord is checked against a
+  // stand-in for openSend rather than by opening the sheet.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c._realSend = c.openSend; c.openSend = () => { c._sent = true; }; });
+  await page.keyboard.press('Control+Enter');
+  const sent = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.openSend = c._realSend; return !!c._sent; });
+  ok('and Ctrl+Enter opens Send', sent, String(sent));
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {
