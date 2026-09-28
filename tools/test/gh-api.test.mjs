@@ -239,3 +239,14 @@ test('a FRESH read already skipped the cache, so it is not repeated', async () =
     () => assert.rejects(() => gh.req('contents/SKILL.md', GH.FRESH), /not JSON/));
   assert.equal(tries, 1);
 });
+
+test('a JSON answer under another vnd.github label still parses', async () => {
+  // Only the file-body types trigger the re-read; a search's text-match JSON
+  // must not start throwing if GitHub ever labels it with its own name.
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  const out = await withFetch(async () => { tries++; return typed('application/vnd.github.text-match+json', '{"total_count":0}'); },
+    () => gh.req('/search/code?q=x'));
+  assert.deepEqual(out, { total_count: 0 });
+  assert.equal(tries, 1);
+});

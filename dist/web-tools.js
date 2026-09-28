@@ -294,9 +294,9 @@ class GH {
     // `---`. Every later revalidation earns another 304, so the mix-up outlives
     // max-age for as long as the file is unchanged.
     //
-    // req() parses every answer as JSON, and GitHub serves every JSON media
-    // type as application/json, so a vnd.github type here came from the cache
-    // rather than from GitHub answering this request. One read with 'reload'
+    // req() parses every answer as JSON, and GitHub answers a JSON Accept with
+    // application/json, so a raw or html type here came from the cache rather
+    // than from GitHub answering this request. One read with 'reload'
     // goes to the network without a validator and overwrites the entry.
     // 'no-cache' would still send the stale ETag, and 'no-store' repairs this
     // read while leaving the entry as it was. Held by tools/test/gh-api.test.mjs.
@@ -346,11 +346,13 @@ class GH {
     }
   }
 
-  // A GitHub-specific media type (vnd.github.raw, raw+json, html+json) on an
-  // answer req() will parse as JSON, or '' when the answer is JSON-shaped.
+  // The contents API's file-body media types (raw, raw+json, v3.raw, html+json),
+  // the ones measured to share the JSON answer's ETag, or '' for anything else.
+  // Narrow on purpose: a JSON media type that GitHub might label vnd.github
+  // (text-match+json, say) must still parse rather than throw.
   static _otherShape(res) {
     const type = String(res.headers?.get?.('content-type') || '').split(';')[0].trim();
-    return /^application\/vnd\.github\./i.test(type) ? type : '';
+    return /^application\/vnd\.github\.(v3\.)?(raw|html)\b/i.test(type) ? type : '';
   }
 
   // `opts` rides through to fetch, and the one that matters is `cache`.
