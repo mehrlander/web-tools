@@ -2,7 +2,7 @@
 // view, with the file (not the app) as the identity the drawer reports.
 //
 //   npm run shot -- pages/toss-render.html \
-//     --hash 'data=mehrlander/web-tools:docs/show-repo.md' \
+//     --hash 'data=mehrlander/web-tools:docs/APP.md' \
 //     --script tools/render/scenarios/routed-subject.mjs
 //
 // SHELL_MODE=branch  the working tree's toss-render, which re-stamps (default)

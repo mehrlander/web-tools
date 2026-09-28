@@ -738,7 +738,7 @@ test('with room beside the page, the expand opens the house reader instead of le
 
 test('with no host to dock it, the kit frames the reader and gives the width back', async () => {
   // A host that can dock installs __deckPane and owns the frame and the
-  // reflow (show-repo does). With none, the kit stands in for one: the reader
+  // reflow (the app does). With none, the kit stands in for one: the reader
   // takes a column, page scroll stays live, and the page reflows out from
   // under it rather than running beneath the text being annotated.
   handoffKits();

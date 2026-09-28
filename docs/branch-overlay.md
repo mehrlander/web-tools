@@ -3,13 +3,12 @@
 How the Web Tools app shows a branch's version of the estate: the overlay that
 substitutes a branch's files while you browse, the branch-detail takeover, the
 sidebar's second ref, the ref bar's in-place actions, and dropping a file on a
-branch. Split out of [show-repo.md](show-repo.md) on 2026-08-16; the shell that
-hosts it stays documented there, and the branch page itself
+branch. The app that hosts it is documented in [APP.md](APP.md), and the branch page itself
 (`pages/branch.html`) is the shareable single-branch address the surfacing
 conventions call the branch anchor.
 
 ```
-show-repo.html?overlay=<branch>
+app/?overlay=<branch>
 ```
 
 Previews the estate **as if `<branch>` were merged wherever it exists**. The
@@ -67,7 +66,7 @@ through main's deployed toss renderer:
 
 The outer `@<branch>` pins the shell (the code half); `?overlay=` pins the
 data half. After the shell change merges, the deployed form
-`show-repo.html?overlay=<branch>` does the same for data-only branches.
+`app/?overlay=<branch>` does the same for data-only branches.
 
 The honest limits, stated rather than implied: the overlay re-derives only
 the per-repo **manifests**; other main-derived artifacts (the activity and
@@ -143,7 +142,7 @@ while a branch in any other repo gets no row at all rather than a guess: routes
 are one page in one repo, and asking every other repo for a CSV it cannot have
 is a 404 per branch step for a question the repo's name already settled.
 
-Where the compare is deferred (in show-repo the crawl lends the head's numbers,
+Where the compare is deferred (in the app the crawl lends the head's numbers,
 so the diff waits for a tap) the row holds its place as the ask for that read.
 It renders as absent only when there is genuinely nothing, because a reader who
 cannot see the row concludes the branch changes no view.
@@ -228,7 +227,7 @@ the branch tip) run through `BranchStatus.pathStates`, and not awaited: the file
 list paints off the compare and the marks arrive a moment later. Two trees is
 about a fifth of what the compare it follows already spent, and it is paid once
 per branch per reading pass. A host that already knows the answer lends it
-(show-repo's crawl computed the same verdict for its row chip) on the same
+(the app's crawl computed the same verdict for its row chip) on the same
 provisional contract as `facts`, which makes the counts right in the first frame
 and the `missing` filter exact before any tree is read, since the crawl stored
 those paths themselves. Measuring anyway is what keeps a cold, unhosted
@@ -309,7 +308,7 @@ sampled `touchmove` at a lower resolution than the compositor does, called
 `preventDefault` so the browser had to wait for it, read no velocity at all
 (commit was `|dx| > min(90px, 22%)`, so a fast flick of 60px was rejected and a
 slow crawl of 100px committed), spent about 400 ms sliding one surface out and
-back in, and locked out a second swipe while it did. `show-repo.html`'s own
+back in, and locked out a second swipe while it did. `app/index.html`'s own
 dashboard pager is now the only hand-rolled swipe left in the app.
 
 **What the header carries.** The deck's slots take the takeover's chrome one for

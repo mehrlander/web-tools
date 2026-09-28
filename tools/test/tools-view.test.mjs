@@ -1,4 +1,4 @@
-// alpineComponents/tools.js — the curated Tools gallery inside show-repo.
+// alpineComponents/tools.js — the curated Tools gallery inside the app.
 // Logic-level tests with real Alpine under jsdom (bootstrap.mjs recipe): resolve
 // a manifest path (bare hub path vs qualified cross-repo ref), build the
 // render/thumb/source URLs the pages catalog conventions use, and load the

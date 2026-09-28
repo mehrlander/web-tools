@@ -1,4 +1,4 @@
-// show-repo's Board pane, reading the TYPED projection.
+// The app's Board pane, reading the TYPED projection.
 //
 // The pane used to fetch board.md and hand it to marked, so the app's
 // understanding of a tracker was a string: it could display the list and answer

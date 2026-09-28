@@ -1,4 +1,4 @@
-// alpineComponents/map.js — the Map view inside show-repo (formerly Portable).
+// alpineComponents/map.js — the Map view inside the app (formerly Portable).
 // Logic-level tests with real Alpine under jsdom (bootstrap.mjs recipe): the set
 // loads from the hub manifest through a stubbed GH. (Scope and adoption moved
 // onto the Repos card on 2026-08-03; their tests moved with them, to
@@ -75,7 +75,7 @@ const sessions = {
   generatedAt: '2026-08-06T12:00:00Z',
   count: 42,
   docAttention: [
-    { path: 'web-tools/docs/show-repo.md', sessions: 9, count: 31, last: '2026-08-05T20:00:00Z' },
+    { path: 'web-tools/docs/APP.md', sessions: 9, count: 31, last: '2026-08-05T20:00:00Z' },
     { path: 'home/docs/elsewhere.md', sessions: 7, count: 7, last: '2026-08-04T20:00:00Z' },
   ],
 };
@@ -699,11 +699,11 @@ test('readership joins the repo-qualified cache path to the hub-relative registr
   await data.loadDocReads();
 
   assert.equal(data.registry(), 'mehrlander/web-tools-private');
-  assert.equal(data.docReadKey('docs/show-repo.md'), 'web-tools/docs/show-repo.md');
+  assert.equal(data.docReadKey('docs/APP.md'), 'web-tools/docs/APP.md');
   assert.equal(data.docReadsSessions, 42);
-  assert.equal(data.docReadLabel({ path: 'docs/show-repo.md', reach: 'project' }), '9 reads');
-  assert.match(data.docReadHint({ path: 'docs/show-repo.md', reach: 'project' }), /9 of 42/);
-  assert.match(data.docReadHint({ path: 'docs/show-repo.md', reach: 'project' }), /shell reads/,
+  assert.equal(data.docReadLabel({ path: 'docs/APP.md', reach: 'project' }), '9 reads');
+  assert.match(data.docReadHint({ path: 'docs/APP.md', reach: 'project' }), /9 of 42/);
+  assert.match(data.docReadHint({ path: 'docs/APP.md', reach: 'project' }), /shell reads/,
     'the counting caveat moved from the retired standing paragraph into the title, and names both channels');
   // Another repo's docs/ file is in the same rollup and must not be read as this one's.
   assert.equal(data.docReadLabel({ path: 'docs/elsewhere.md', reach: 'orphan' }), '');

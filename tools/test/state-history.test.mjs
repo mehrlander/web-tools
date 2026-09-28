@@ -105,7 +105,7 @@ window.__shell = { REGISTRY_REPO: 'me/registry', hasToken: () => true };
 
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
-  // The duration column reads the `runs` ring through this kit, which show-repo
+  // The duration column reads the `runs` ring through this kit, which the app
   // loads ahead of the caches that write it. Without it the column is simply
   // absent, which is the intended degradation and not what these assertions are
   // about.

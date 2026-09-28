@@ -1,5 +1,5 @@
 path,namespace,gloss,lines,boot,demo,users,tested
-lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the show-repo shell on 2026-09-19 so the browser…",322,no,no,1,yes
+lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the app on 2026-09-19 so the browser and a headless…",322,no,no,1,yes
 lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5117,no,yes,17,yes
 lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier for AI assistants and human contributors across the estate.,156,yes,no,1,yes
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",384,no,no,7,yes

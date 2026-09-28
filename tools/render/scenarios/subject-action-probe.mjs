@@ -10,7 +10,7 @@
 //   2. document.hasFocus() in the frame. io.copy branches on it, and a click in
 //      the top document does not focus the child, so an io.copy-based action
 //      would register its "click to copy" listener on the wrong document.
-//   3. Which window `location.href = ...` navigates. show-repo's bust-out
+//   3. Which window `location.href = ...` navigates. The app's bust-out
 //      action is exactly that shape.
 //
 // The click has to land on the FAB launcher, not anywhere. toss-render's frame

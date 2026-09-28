@@ -1,4 +1,4 @@
-// Drive show-repo's project Board pane to a seeded, token-free state so the
+// Drive the app's project Board pane to a seeded, token-free state so the
 // TYPED read renders headlessly (the pane normally fetches board.csv over the
 // viewer's token, which the sandbox has neither of). Same tactic as
 // sidebar-projects.mjs: fill the shell's state directly, so the shot proves the
@@ -12,7 +12,7 @@
 
 const TASKS = [
   {
-    "title": "Budget-drs as a personal dashboard via show-repo; decide the repo split",
+    "title": "Budget-drs as a personal dashboard via the app; decide the repo split",
     "status": "backlog",
     "size": "L",
     "awaiting": "your call on the repo split; the estate surface repoint is not gated",

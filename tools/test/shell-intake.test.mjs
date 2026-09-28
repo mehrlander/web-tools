@@ -1,4 +1,4 @@
-// show-repo's app-wide intake gestures: the window drop (PR #443) and the
+// The app's app-wide intake gestures: the window drop (PR #443) and the
 // window paste beside it. Both shipped as shell code with their coverage in
 // stage.test.mjs, which holds the FOLD (what an arriving thing becomes) and
 // says nothing about the GESTURE (which events are taken, which are declined,

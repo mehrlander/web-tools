@@ -1265,7 +1265,7 @@ The generalization is worth more than the fix: **absence and zero must not
 serialize the same way**, and the test for it is to ask what the writer sends
 when its read throws.
 *(seen: 2026-08-17)*
-→ [show-repo.md](show-repo.md)'s activity-crawl section, and
+→ [show-repo.md](APP.md)'s activity-crawl section, and
 `mergeRepo` in [../lib/kits/repo-activity-cache.js](../lib/kits/repo-activity-cache.js)
 
 ### cached-read-feeds-a-write: a fresh-looking read hands back the sha it just replaced
@@ -1285,7 +1285,7 @@ it. The corrected move is mechanical, so it is worth stating as a rule: every
 review question is not "is this read hot" but "does this read feed a write".
 *(seen: 2026-08-13, 2026-08-16)*
 → `GH.FRESH` in [../lib/gh-api.js](../lib/gh-api.js), which carries the full
-measurement, and [show-repo.md](show-repo.md)'s crawl sections
+measurement, and [show-repo.md](APP.md)'s crawl sections
 
 ### app-shot-read-as-impossible: the app renders headless, with a scenario
 Ran `screenshot.mjs app/index.html` with a deep-link address, got a blank page
@@ -1321,7 +1321,7 @@ around it, so a link meant to show how the view sits IN the app has to say
 the app chrome missing, which is the documented behaviour answering a link that
 did not ask for what its sender described.
 *(seen: 2026-08-16, 2026-09-16)*
-→ [show-repo.md](show-repo.md), which states each view's address, and
+→ [show-repo.md](APP.md), which states each view's address, and
 [SURFACING.md](SURFACING.md)'s toss entry for the address grammar
 
 ### live-term-wider-referent: a house word reused for something bigger than it names
@@ -1386,7 +1386,7 @@ over a `self` captured there, and pass the stored object** (`x-data="child(picke
 `init()` runs in the ordinary component scope, where the injection is gone. Any
 config that merely names its own fields is unaffected; this bites exactly the
 configs that close over the host. *(seen: 2026-08-14)*
-→ [show-repo.md](show-repo.md), the Search view's scope controls
+→ [show-repo.md](APP.md), the Search view's scope controls
 
 **2026-08-14, the same collision reached through `this`.** A callback built in
 an x-data expression and invoked bare runs with `this` bound to the scope proxy,
@@ -1897,7 +1897,7 @@ rule is the general one and it is about search order, not CSS: **before styling
 a thing the estate already renders somewhere, read how the existing renderer
 does it.** The classes now live once, in `kits/guide-render.js`, at two sizes.
 *(seen: 2026-08-06)*
-→ [show-repo.md](show-repo.md)
+→ [show-repo.md](APP.md)
 
 ### hosted-closer-runs-main: a 🌿 closer is a hosted link, so it runs main's page
 This session added the
@@ -1927,7 +1927,7 @@ that must style content it did not author should ship a stylesheet, not a class
 list**, since the class list depends on a generation step it cannot verify.
 `kits/guide-render.js` injects one, and a test asserts the link rule exists.
 *(seen: 2026-08-07)*
-→ [show-repo.md](show-repo.md)
+→ [show-repo.md](APP.md)
 
 ### use-ref-stale-bundle: `?use=` served a stale bundle, and a comment said it could not
 A fix was

@@ -1,22 +1,20 @@
 # `.web-tools.json`: the repo manifest
 
 The manifest is how a repository tells the Web Tools app, and any other
-web-tools page, how to present it. This is its reference, split out of
-[show-repo.md](show-repo.md) on 2026-08-16: the file's contract, the
+web-tools page, how to present it. This is its reference: the file's contract, the
 membership rule, the config cache, errands, inbox and outbox, proposals,
-the repo menu, and editing the manifest from the shell. The field list itself
+the repo menu, and editing the manifest from the app. The field list itself
 stays data, one row per key in [manifest-fields.csv](manifest-fields.csv), held
 to the estate's real manifests by `tools/test/manifest-registry.test.mjs`; this
 doc is the prose around that registry, not a second copy of it.
 
-That registry is the structured stage under what was 3,000 words of prose field
-reference in show-repo.md: one row per key, with its type, the tool that reads
+That registry is the structured stage for the field reference: one row per key, with its type, the tool that reads
 it, and what it does. What stays in prose is the part a registry cannot carry,
 design rationale and cross-field behaviour. The gate checks every key present in
 a real manifest against a row, so a field that gets used without being written
-down is a test failure rather than a discovery three months later. `consumer` is
-the axis the prose kept muddling by saying "not a show-repo field" in passing:
-the file is shared, and which tool reads a key is a property of the key.
+down is a test failure rather than a discovery three months later. `consumer`
+records which tool reads each key: the file is shared, and which tool reads a
+key is a property of the key.
 
 It went flat on 2026-08-16. The members of an array or object key used to sit
 nested inside their parent's row, which meant the registry counted **20 rows while
@@ -26,10 +24,10 @@ a member has to be present, blank on a top-level key because that was never
 recorded.
 
 Root `.web-tools.json` is the repo's canonical **web-tools config file**.
-show-repo is one consumer: it reads the
+The Web Tools app is one consumer: it reads the
 `landing`, `pins`, and `stage` fields to decide how to present the repo. Those
 fields sit at the top level, not under a `showRepo` key, because they describe the
-repo in ways any web-tools page may read, not just this shell. The shell probes
+repo in ways any web-tools page may read, not just this app. The app probes
 the file once per `repo@ref` (a 404 means no config) and parses it as **data**,
 never executed. It is the only name read: the legacy `.show-repo.json` fallback
 was removed on its 2026-08-15 sunset, once the config cache showed every
@@ -207,7 +205,7 @@ invisible from the estate (the cache is a main-derived artifact) until it merges
 while the repo's own sidebar shows it as soon as you browse the branch; the
 **branch overlay** above previews the estate side live.
 
-**Two fields are not show-repo's.** `conventions` is read by the portable
+**Two fields are not the app's.** `conventions` is read by the portable
 conventions and `sessions` by a plugin hook outside any page. The registry's
 `consumer` column carries that distinction for every field, which is what the
 prose kept losing by noting it in passing on two entries.
@@ -236,7 +234,7 @@ in `order` on the membership, not in a second flag.
 
 ## Config cache (`state/configs.json`)
 
-With a token, show-repo keeps a **derived** cache of the account's repo configs
+With a token, the app keeps a **derived** cache of the account's repo configs
 in the registry repo, built by `lib/kits/repo-config-cache.js`. `refreshConfigCache`
 enumerates the account's repos (`gh.repos()`) and folds each one's
 `.web-tools.json` into `web-tools-private/state/configs.json`, appending a
@@ -372,7 +370,7 @@ for on the private side.
 The write-side counterpart to errands, built by `lib/kits/repo-proposals.js` and
 reviewed in the **Proposals** view (`?view=proposals`,
 `lib/alpineComponents/proposals.js`). A session that cannot reach a repo drops a
-proposed edit into the registry; show-repo shows it and commits it to the target
+proposed edit into the registry; the app shows it and commits it to the target
 with the user's token, on a two-tap confirm.
 
 A proposal writes to a repo the session could not reach, so **nothing is ever

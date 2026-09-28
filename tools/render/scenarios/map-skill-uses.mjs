@@ -19,7 +19,7 @@ const USES = [
   ['tasks', 59, 60], ['caption', 5, 5], ['dataviz', 5, 5], ['artifact-design', 4, 4],
   ['daisy-alpine', 4, 4], ['wa-fiscal-reports', 4, 4], ['drs-funds', 3, 4],
   ['web-tools', 3, 3], ['ios-clipboard', 2, 2], ['markers', 2, 2], ['reading-cfl', 2, 2],
-  ['search-chats', 2, 2], ['show-repo', 2, 2], ['succinct-text', 2, 2],
+  ['search-chats', 2, 2], ['web-tools-app', 2, 2], ['succinct-text', 2, 2],
   ['windows-powershell', 2, 2], ['apple-shortcuts-actions', 1, 1], ['in-flight', 1, 1],
   ['show-diff', 1, 1], ['skill-prefs', 1, 1], ['trawl', 1, 1], ['xlsx', 1, 1],
 ];

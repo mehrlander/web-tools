@@ -1,8 +1,8 @@
 // The reader tells the FAB sidebar which staged file is on screen, 2026-08-19.
 //
 // The drawer floats over the reader still aimed at whatever it was aimed at
-// before, which for the Stage view is the app shell: a reader six files into a
-// set they assembled had a Render tab naming show-repo and rooting its path
+// before, which for the Stage view is the app: a reader six files into a
+// set they assembled had a Render tab naming the app and rooting its path
 // picker there. The reader now announces on the subject channel
 // (lib/kits/subject-channel.js), so the drawer names the file being READ.
 //
@@ -86,7 +86,7 @@ export default async function (page) {
   await page.waitForTimeout(400);
 
   console.log('\n--- what the sidebar is aimed at ---');
-  console.log('  before anything is read (the app shell):');
+  console.log('  before anything is read (the app):');
   console.log('    ' + JSON.stringify(before));
   console.log('  reading a staged repo file:');
   console.log('    announced: ' + JSON.stringify(onRef.subject));

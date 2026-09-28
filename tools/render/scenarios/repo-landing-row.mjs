@@ -22,10 +22,10 @@ const CONFIG = {
   estate: true,
   landing: 'pages/index.html',
   pages: [
-    { path: 'app/index.html', label: 'show-repo' },
+    { path: 'app/index.html', label: 'Web Tools' },
     { path: 'pages/annotate.html', label: 'annotate' },
   ],
-  pins: ['docs/show-repo.md', 'lib/kits/'],
+  pins: ['docs/APP.md', 'lib/kits/'],
 };
 
 export default async (page) => {

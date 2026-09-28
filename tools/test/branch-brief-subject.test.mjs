@@ -38,7 +38,7 @@ const compare = {
 };
 
 // The options travel through a global rather than an object literal in the
-// x-data attribute, the way show-repo's branch deck passes them: the test needs
+// x-data attribute, the way the app's branch deck passes them: the test needs
 // a reference to the very object the component closed over, since `onSubject`
 // is the half under test here.
 const { window, problems } = makeWindow({
@@ -149,7 +149,7 @@ test('a deck over the page owns the subject, so the strip underneath stays quiet
 });
 
 test('framed, it reports upward instead of announcing', async () => {
-  // As a slide of show-repo's branch deck three of these are mounted at once
+  // As a slide of the app's branch deck three of these are mounted at once
   // and none can tell which the reader is on, so a framed view hands its
   // subject to the host and the host announces. The flag is driven directly
   // because the flag IS the guard: mounting a second framed view would need a

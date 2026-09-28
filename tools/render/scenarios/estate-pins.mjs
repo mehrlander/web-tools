@@ -43,7 +43,7 @@ export default async function (page) {
     const TODOS = {
       items: [
         { id: 't1', text: 'Wire the news dashboard panel', done: false, created_at: h(50) },
-        { id: 't2', text: 'Refresh the show-repo thumbnail', done: false, created_at: h(20) },
+        { id: 't2', text: 'Refresh the app thumbnail', done: false, created_at: h(20) },
       ],
     };
     const JOTS = {

@@ -1,142 +1,191 @@
 # The Web Tools app
 
-⭐ **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/)
+⭐ **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/) (append `?repo=owner/repo` to open a repo)
 
-One hosted page is the front door to the whole development estate. GitHub stays
-the system of record; the app is the operating surface over it, bringing the
-work scattered across repositories, branches, sessions, pages, and tools into
-view and making it continuable and operable from one place. This doc is the
-mission; [show-repo.md](show-repo.md) is the reference for the shell that
-delivers it, and [showing.md](showing.md) carries the one-line form of the
-problem it serves: something exists somewhere, and someone needs to look at it.
-
-## The name split
-
-**Web Tools** is the product name, used wherever a reader is addressed: the
-page title, the README's front door, the app's own address. **show-repo** is
-the shell's internal name and stays on the identifiers that key by it: the
-`consumer` column of [manifest-fields.csv](manifest-fields.csv), 55 of its 58
-rows and the largest holding by far; the reference doc; the skill that operates
-the shell (`.claude/skills/show-repo/`, typed as `/show-repo`); the redirect
-stub's path; and the tracker project tag. The old name records the app's origin
-as a repo viewer; the scope outgrew it.
-
-**The route registry was on that list and never belonged there.**
-[app-routes.csv](app-routes.csv) does not carry the string in any field: its
-twenty-one keys are `shell`, `landing`, `estate`, `stage` and the rest, each
-named for what its route shows. The recount on 2026-09-08 found the real
-holding to be `manifest-fields.csv`'s `consumer` column, which the list had
-never mentioned, so one sentence was wrong about the largest case and the
-absent one at once. Corrected the same day, along with
-[registries.csv](registries.csv), which described app-routes as
-`show-repo.html`'s VIEWS table: that table is real and is in `app/index.html`,
-while the file the row named redirects.
-
-**A slash command is an identifier, not a page a reader meets.** `/show-repo`
-is typed rather than read, the way a route key is, so the test it takes is
-accuracy: the skill operates the shell, and the shell is what the name denotes.
-Reading it as reader-facing and renaming it on that ground was proposed in this
-session and withdrawn on the same rule the rest of the list answers to.
-
-**A name is kept because it is accurate, or because someone outside holds it.
-Never because renaming would be expensive.** This sentence used to claim the
-name also stayed on "the component and harness filenames," and both halves had
-already stopped being true. The route registry above is the third correction of
-the same kind: a list of what holds a name goes wrong by not being recounted. The component is `app()`, renamed with the page when
-it moved to `app/index.html`; only the test files still carried the prefix, and
-they named a page path that redirects and a component that had never been called
-that in the file they read. They are `shell-*.test.mjs` now, after
-`window.__shell`, which is what the code itself calls the thing under test.
-
-The two reasons are not the same reason, and neither is a cost. The stub's path
-is held by 151 files elsewhere and by links saved on people's phones, so it
-cannot change and the alias absorbs that. Everything else on the list above is
-simply still true: `app-routes.csv`, the reference doc, and the tracker tag all
-name the shell, and the shell is what show-repo means.
-
-The version of this passage written on 2026-08-27 said the test was "whether
-renaming is expensive and invisible to a reader." Both halves were wrong.
-Expense is what a fix costs, not whether it is owed. And invisible is backwards:
-a name nobody reads is the cheapest one to correct, not the safest one to leave
-wrong. An inaccurate name is a defect at any price; the only question the price
-settles is how fast.
-
-**A chat reply, a caption, and a PR body address a reader,** so they take the
-product name. That is where the split fails, not in the tree: a session used
-the internal name in a reply on 2026-08-27 and the reader had to ask what it
-meant. Measured the same day, the tree held 1,022 occurrences across 238 files.
-Two were prose a reader meets: the README's `pages/` list, which re-filed the
-product among the workshop's outputs the address move had just taken it out of,
-and the shell component's `description`, which the Map view renders verbatim.
-Seventeen more were the test filenames and their references, which read as
-identifiers until anyone checked what they named. The rest are accurate or are
-records.
-
-**That count of two was wrong, and it missed the largest reader-facing use by
-far: every commit the app writes.** Twenty-four string literals across six files
-signed each write `via show-repo`, so 608 commits already in this estate carry
-the internal name on the line a reader meets most often (584 in
-web-tools-private, 23 in home, 1 here). A commit message is a caption on a
-change, which the paragraph above already puts on the product-name side of the
-split. The grep that found "two" had counted prose in documents and never
-looked at strings in code, which is where a name a reader meets is most likely
-to hide. The literals now read `via Web Tools`; nothing parses the phrase, so
-it was output only, and two test files asserting it were updated with them. The
-608 existing messages stand, because history is a record and a record keeps the
-name it was written with. Recounted 2026-09-08.
-
-**The address moved on 2026-08-16, the identifiers did not,** and the
-distinction is the whole of the decision. This doc first ruled that renaming
-"would break every saved deep link and buy nothing the prose split does not."
-That holds for **identifiers** that are still true: a `?view=` key, a registry
-key, and the project tag all name the shell, so there is nothing to correct. It
-does not hold for the **address**, and it never held for a name that had gone
-wrong. This sentence used to list the component name here and to justify the
-whole set on renaming being "expensive and invisible to a reader"; see the
-correction above. The app served
-from `pages/show-repo/show-repo.html` filed the product inside the catalog of
-the workshop's outputs, which it was never a member of, and made its front door
-the longest URL in the estate.
-
-So the page file moved to `app/index.html`, served at
-`https://mehrlander.github.io/web-tools/app/`, and the old path keeps a
-redirect stub that preserves the query and the fragment. The stub is
-load-bearing and permanent: 151 files in other repos name the old address and
-cannot be reached from here, and neither can a link already saved on someone's
-phone.
+Web Tools is one place to find, understand, and continue work across the
+development estate: its repositories, branches, sessions, pages, and tools.
+GitHub holds the content and history; the app layers over that record and does
+not replace it. The page is `app/index.html`.
 
 ## Durable goals
 
-Five, and a feature belongs in the app when it serves one of them. These are the app's. The estate's own mission and goals, about what the material must be rather than what the app does, are in [`aims.json`](aims.json) and render in Map → Docs → Purpose:
+A feature belongs in the app when it serves one of these goals:
 
-- **One front door.** The estate is legible from a single address; nothing
-  requires knowing which repo to open first.
-- **Surface, don't store.** The app brings work into view where it can be
-  encountered and used; the content stays in the repo that owns it.
-- **Wrap GitHub, never wall it.** Every view keeps a one-tap route to the
-  GitHub presentation of what it shows; the app layers over the record, it
-  does not replace it.
-- **Continuity.** Work stays understandable as it moves between sessions,
-  branches, repos, and venues; Activity's branch, session, guide, and chat
-  readings are this goal made literal.
-- **Action.** The app operates as well as shows: stage and move files, write
-  a repo's config, save a surface, keep the lists.
+- **One entry point.** Find work without first knowing which repo holds it.
+- **Content stays with its owner.** Bring work into view while keeping it in the
+  repo that owns it.
+- **Direct access to GitHub.** Every view keeps a one-tap link to GitHub's
+  presentation of its subject.
+- **Continuity.** Keep work understandable across sessions, branches, repos, and
+  venues.
+- **Action.** Continue the work: stage and transfer files, edit repo
+  configuration, and maintain lists.
 
-## The boundary
+The estate's goals are in [`aims.json`](aims.json), shown in Map → Docs →
+Purpose.
 
-A view whose subject is the estate is built into the shell; a view whose
-subject is content is an **app view** over the repo that owns it, promoted by
-that repo's `.web-tools.json`. The mechanics live in
-[show-repo.md](show-repo.md); the line is restated here because it is the
-product boundary, not only a UI convention.
+## Product boundary
 
-## Provenance
+Views of the estate are built into the app. Views of repository content are app
+views, declared by the owning repo in `.web-tools.json`
+([manifest.md](manifest.md)).
 
-Reframed 2026-08-16. The repo had been describing the app as one page among
-the workshop's outputs while its own data (the route registry, the showing
-doctrine, the estate views) already described an application; this doc updated
-the prose to match. The mission absorbed the Surfacer desktop project (home,
-`projects/surfacer/`), which stated the same North Star months earlier, a
-single place to see and act on the work agents leave behind, and went dormant
-while the browser shell grew the same views; its surface format survives as
-[envelopes/surface.md](envelopes/surface.md).
+The app browses and transfers files. `toss-render` runs pages. Artifacts publish
+snapshots to claude.ai ([artifacts.md](artifacts.md)).
+
+Keep the redirect at `pages/show-repo/show-repo.html`; saved links depend on it.
+
+## Token requirement
+
+Stage links (`#stage=`) and private-repo access require the browser's stored
+`ghToken`. The Claude app's browser may lack that token. State the requirement
+with every stage link. For a reader without a token, download the stage's
+concatenated bundle and send the file. Stage has no token-free `#gz=` form.
+
+## Addresses
+
+- `?repo=owner/repo[&ref=…]` opens a repo on its Overview. `?ref=` is
+  repo-scoped and stamps beside `repo`.
+- `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files
+  and docs are rows of [app-routes.csv](app-routes.csv).
+- Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State),
+  `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`,
+  `&window=`. A view leaves its default second key out of the URL.
+- `&shell=full|nav|none` sets how much chrome surrounds the view (below).
+- Retired keys still resolve: `activity` to Sessions, `portable` to Map,
+  `surfaces` to Stage, `landing` to the plain `?repo=` form.
+
+The app's `VIEWS` table is the router: each row names a key, how a link opens
+it, and what it stamps back. `routeFromUrl` dispatches through it and
+`deepLinkParams` stamps through it. **Adding a row is the whole of adding an
+addressable view**, plus its `app-routes.csv` row.
+[`shell-routing.test.mjs`](../tools/test/shell-routing.test.mjs) forbids
+comparing a view name inside the routing functions and re-parses every row's
+own stamp; [`app-routes.test.mjs`](../tools/test/app-routes.test.mjs) holds
+`VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo`
+key is dropped from addresses as redundant, except on its landing, which would
+otherwise have no address.
+
+## Navigation
+
+**Header.** The estate navigation (`estateNav`) lists Activity, Lists, Repos,
+Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow,
+one button each, from `sidebarAppViews`, the same list the sidebar renders; keep
+one list so the two cannot disagree. The rail (`rail: true` links) and the ref
+switch appear on desktop. Select a repo in Repos.
+
+**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg`
+and above, without changing the URL. Breadcrumbs show the app, repo, and
+non-default ref. Repo navigation lists views, projects, pins, and recents;
+estate navigation lists repos and app views.
+
+**Repo views.** Overview displays the README. Other views are Pages, Atlas,
+Config, Files, and Project. A declared landing page renders as an app view.
+
+**Display options.** `?shell=` controls the header and sidebar. It accompanies
+the view's address and has no `VIEWS` row.
+
+| Value | Header | Sidebar |
+| --- | --- | --- |
+| `full` | Shown | Open on wide screens; closed on phones |
+| `nav` | Shown | Closed; opened by the menu button |
+| `none` | Hidden | Closed; the launcher and FAB Render tab provide navigation |
+
+App views default to `nav`; other views default to `full`. Omit the default
+from the URL. Unknown values use `full`. `shell-routing.test.mjs` holds these
+rules. App views take their tab title and iOS Home Screen title and icon from
+toss-render's `toss-subject-mark` event.
+
+**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or
+SHA to reload the app through toss-render, pinning its page (`#gh=…@<ref>:…`)
+and library (`?use=<ref>`) to that ref and preserving the current deep link.
+Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the
+app ref.
+
+## Page controls
+
+The floating action button (FAB) reads three optional lists from page
+components:
+
+- `actions`: actions shown in the drawer.
+- `toggles`: `[{ key, label, icon, on, title, set }]`, controls on the Render
+  tab's width row, read on each paint.
+- `menu`: `[{ label, icon, run }]`, rows in the launcher's long-press menu, read
+  when opened (`readPageMenu()`). No description field.
+
+Read each element's own scope. `Alpine.$data(el)` merges scopes and makes nested
+components report the app's controls.
+
+## GitHub links
+
+Every new view must include its GitHub link.
+
+| Destination | Control |
+| --- | --- |
+| Repo menu (`lib/kits/github-links.js`) | Icon opens a list |
+| Repo or branch | Plain icon |
+| Manifest for a whole view | Icon and label at the header's far edge |
+| Exact file | Plain icon with source preview |
+
+Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
+the link and hover preview from the same address. The preview is
+`lib/kits/source-peek.js`, loaded by `gh-boot.js`; `SourcePeek.seed` supplies
+bytes already held. Previews do not open on touch. Checks: `x-blob.test.mjs` and
+`npm run test:peek-link`.
+
+## Shared gestures
+
+**Drop and paste.** `wireAppDrop` and `wireAppPaste` stage incoming content and
+open Stage. `window.StageIntake` interprets the input. The app's paste listener
+is the only window paste listener; do not add a second. On phones, the launcher
+menu and Stage's Paste button call `pasteAnywhere` →
+`StageIntake.takeClipboard`. Read the clipboard during the tap's user
+activation; await nothing first. Outside the app, the FAB parks clipboard
+content through `lib/kits/stage-handoff.js` for the app to collect at startup.
+
+**Expanded decks.** Swipe-deck takeovers fill the view pane at `lg` and above
+and the window below `lg`. CSS maps `--deck-left` and `--deck-top` at `lg` and
+above; `syncDeckFrame()` measures the header and decides whether the sidebar and
+header insets apply. Leaving the view calls the deck's `drop()` from
+`syncUrl()`.
+
+## Public browse
+
+`?view=public` (`lib/alpineComponents/public-browse.js`) lists and previews
+public repos without a token. `GH.flatTree()` makes one GitHub trees request;
+`GH.rawUrl()` supplies file URLs on raw.githubusercontent.com. Anonymous GitHub
+API access allows 60 requests per hour. Private repos return 404.
+
+## Transfer
+
+"Copy to repo" writes the staged fileset through `gh-transfer.js`.
+
+- **Destination:** `owner/repo`, `owner/repo:dir`, or `owner/repo@ref:dir`.
+  Omitted refs use the default branch.
+- **Confirmation:** two taps; copying onto the source is refused.
+- **Commit:** one Git Data API commit, base64 end to end, with up to twenty paths
+  in its message.
+- **Failures:** report and omit unreadable files; retry a moved ref three times
+  against its new tip.
+- **Limits:** files above the Contents API's 1 MB cap use `git/blobs/<sha>`
+  (`getRaw`). File modes are not preserved.
+
+## References
+
+| Subject | Reference |
+| --- | --- |
+| Views and forms | `doc` columns in [app-routes.csv](app-routes.csv) and [subjects.csv](subjects.csv) (under [views/](views/) and [forms/](forms/)) |
+| Stage and `#stage=` links | [stage.md](stage.md) |
+| Repo configuration | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
+| Branch overlays | [branch-overlay.md](branch-overlay.md) |
+| Choosing a presentation | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
+| Standalone changeset review | [review.html](../pages/review.html) |
+
+## Use from a Claude session
+
+- **Browse:** `…/app/?repo=owner/repo`, optionally with `&ref=` or
+  `&view=files&path=<dir>`. The bare app URL opens the estate.
+- **Stage 🗂️:** create a `#stage=` link using [stage.md](stage.md); state the
+  token requirement.
+- **Configure:** edit the repo's `.web-tools.json` using
+  [manifest.md](manifest.md).

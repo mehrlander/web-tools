@@ -147,7 +147,7 @@ test('every page loading a delegating module loads repo-address.js first', () =>
 });
 
 test('the pre-build boots url-params.js and repo-address.js before the components', () => {
-  // show-repo takes the bundle, whose components register and start Alpine
+  // The app takes the bundle, whose components register and start Alpine
   // during the import, before the page's own chain runs. So the bundle has to
   // carry the grammar and the param read in its boot list, not just in its
   // source cache: stage.js reads a stage link during init through both.
