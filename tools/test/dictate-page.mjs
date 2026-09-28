@@ -358,7 +358,7 @@ try {
   // The pad is pressed and dragged. The caret starts at the end (a null
   // range), so the first drag has to place one; dragging LEFT walks it back
   // through the buffer, which is the whole of what the control does.
-  const padBox = await page.locator('[data-dictate-ui] button:has(i.ph-crosshair)').boundingBox();
+  const padBox = await page.locator('[data-dictate-ui] button:has(i.ph-crosshair):visible').boundingBox();
   await page.mouse.move(padBox.x + padBox.width / 2, padBox.y + padBox.height / 2);
   await page.mouse.down();
   for (let i = 0; i < 14; i++) {
@@ -377,7 +377,7 @@ try {
   // THE TARGET'S TAP HALF. Tap it and the caret becomes one end of a
   // selection; the next tap in the text is the other end. Two taps for an
   // arbitrary range, where the long press gives only a word.
-  const target = page.locator('[data-dictate-ui] button:has(i.ph-crosshair)');
+  const target = page.locator('[data-dictate-ui] button:has(i.ph-crosshair):visible');
   const armed = () => page.evaluate(() =>
     document.querySelector('[x-data="dictate"]')._x_dataStack[0].armed);
   const targetRed = () => target.evaluate(el => el.className.includes('btn-error'));
@@ -1367,6 +1367,13 @@ try {
     const us = (el) => { const cs = getComputedStyle(el); return cs.webkitUserSelect || cs.userSelect; };
     return { on: c.native, attr: md.hasAttribute('data-native-sel'), p: us(md.querySelector('p')) };
   });
+  const fileTarget = await page.evaluate(() => {
+    const vis = (el) => el && el.getClientRects().length > 0;
+    const t = [...document.querySelectorAll('[data-dictate-ui] button:has(i.ph-crosshair), [data-target]')].filter(vis);
+    const b = document.querySelector('[data-target]').getBoundingClientRect();
+    return { shown: t.length, bottom: b.top > innerHeight / 2, centre: Math.abs(b.left + b.width / 2 - innerWidth / 2) };
+  });
+  ok('in file mode the one target is in the bottom row, on the centre line', fileTarget.shown === 1 && fileTarget.bottom && fileTarget.centre < 4, JSON.stringify(fileTarget));
   ok('the option makes the rendered words selectable by the platform', nat.on && nat.attr && nat.p === 'text', JSON.stringify(nat));
   const synced = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
@@ -1375,16 +1382,18 @@ try {
     document.getSelection().setBaseAndExtent(p.node, p.offset, q.node, q.offset);
     await new Promise((r) => setTimeout(r, 100));
     return { range: c.d.range, a, b, painted: !!document.querySelector('[data-md-surface="sel"]'),
-             pins: !!document.querySelector('[data-edge]'), move: !!document.querySelector('[data-move-native]') };
+             pins: !!document.querySelector('[data-edge]'), move: !!document.querySelector('[data-target] i.ph-arrows-out-cardinal') };
   });
   ok('the platform\'s selection becomes the buffer\'s range', synced.range && synced.range.start === synced.a && synced.range.end === synced.b, JSON.stringify(synced));
-  ok('and the page paints no selection or pins of its own, and offers Move', !synced.painted && !synced.pins && synced.move, JSON.stringify(synced));
-  // Move, then a tap in the gap below the first paragraph: the words land as
-  // a paragraph of their own.
-  const mv = await pillAt('Move');
-  if (mv) { await page.touchscreen.tap(mv.x, mv.y); await page.waitForTimeout(150); }
-  const armedPill = await pillAt('Tap where it goes');
-  ok('Move holds the words and says what the next tap does', !!armedPill);
+  ok('and the page paints no selection or pins of its own, and the target offers Move', !synced.painted && !synced.pins && synced.move, JSON.stringify(synced));
+  // The target, tapped, holds the words; a tap in the gap below the first
+  // paragraph then lands them as a paragraph of their own.
+  const tgt = await page.evaluate(() => { const r = document.querySelector('[data-target]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(tgt.x, tgt.y);
+  await page.waitForTimeout(150);
+  const heldArm = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    return { arm: c.moveArm, wash: !!document.querySelector('[data-seam].bg-primary\\/25'), lit: document.querySelector('[data-target]').classList.contains('btn-primary') }; });
+  ok('the target holds the words, keeps them washed, and lights', !!heldArm.arm && heldArm.wash && heldArm.lit, JSON.stringify(heldArm));
   const gN = await seamBelow('First one');
   await page.touchscreen.tap(gN.x, gN.y);
   await page.waitForTimeout(200);
@@ -1458,12 +1467,47 @@ try {
   const stale = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     const a = c.text.indexOf('First two'); c.d.select(a, a + 9); c.paint();
-    c.moveNative();
+    c.padTap();
     const armed = !!c.moveArm;
     c.d.text = 'Inserted. ' + c.text; await new Promise((r) => setTimeout(r, 50));
-    return { armed, after: c.moveArm, pill: !!document.querySelector('[data-move-native]') && document.querySelector('[data-move-native]').textContent };
+    return { armed, after: c.moveArm, wash: !!document.querySelector('[data-seam].bg-primary\\/25') };
   });
-  ok('an edit lets go of words held for Move', stale.armed && !stale.after && !/Tap where/.test(stale.pill || ''), JSON.stringify(stale));
+  ok('an edit lets go of words held for Move', stale.armed && !stale.after && !stale.wash, JSON.stringify(stale));
+  // The target aims too: held words go where the caret is when it is tapped
+  // again, and tapped twice without aiming they stay where they were.
+  await reset();
+  const aimed = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint();
+    c.padTap(); c.d.caretAt(c.text.indexOf('Third para.') + 11); c.paint(); c.padTap();
+    await new Promise((r) => setTimeout(r, 50));
+    const moved = c.text;
+    c.d.undo(); c.paint();
+    const b = c.text.indexOf('First two.'); c.d.select(b, b + 10); c.paint();
+    c.padTap(); c.padTap();
+    return { moved, stayed: c.text };
+  });
+  ok('the target drops held words at the caret it aimed', aimed.moved.includes('Third para. First two.') && aimed.moved.includes('First one.\n\nSecond'), JSON.stringify(aimed.moved));
+  ok('and two taps without aiming leave them where they were', aimed.stayed === PARA_DOC, JSON.stringify(aimed.stayed));
+  // THE PLATFORM'S OWN DRAG: a drop on the Rendered face moves the dragged
+  // words there. Synthetic drag events stand in for the phone's lift.
+  await reset();
+  const dnd = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md;
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint();
+    const dt = new DataTransfer(); dt.setData('text/plain', 'First two.');
+    const s = window.MdSurface.seams(md).find((x) => x.a.el.textContent.startsWith('Second'));
+    const r = md.getBoundingClientRect(), y = (s.top + s.bottom) / 2, x = r.left + r.width / 2;
+    const fire = (type) => md.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: x, clientY: y }));
+    fire('dragstart');
+    const over = !fire('dragover');
+    const marker = !!document.querySelector('[data-move]');
+    fire('drop'); fire('dragend');
+    await new Promise((r) => setTimeout(r, 50));
+    return { over, marker, text: c.text };
+  });
+  ok('a native drag over the text is taken, with the drop marker shown', dnd.over && dnd.marker, JSON.stringify(dnd));
+  ok('and the drop moves the words, here onto a gap as their own paragraph', dnd.text.includes('Second para.\n\nFirst two.\n\nThird para.'), JSON.stringify(dnd.text));
   // The platform letting go without a tap does not leave a live range with
   // no highlight: it is written back.
   await reset();

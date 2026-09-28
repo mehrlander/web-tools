@@ -504,7 +504,9 @@
       // while typing, where the sink owns the keyboard and a selection gesture
       // on the words would take focus from it.
       nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get('dictate:sel') === 'native',
-      moveArm: null,            // native: the range the Move pill picked up
+      moveArm: null,            // native: the range the target picked up to move
+      dnd: null,                // native: words the platform is dragging, and where they would land
+      get moveReady() { this.beat; const r = this.d && this.d.range; return !!(this.native && !this.moveArm && r && r.start !== r.end); },
       _lastNative: '',          // native: the platform's selection as last seen, "a:b"
       get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
       delPop: null,             // a tapped removal: { text, at, x, y }
@@ -617,6 +619,37 @@
 
       init() {
         document.addEventListener('selectionchange', () => this.nativeSync());
+        // THE PLATFORM'S OWN DRAG, under native selection: a phone lifts held
+        // selected words and a desktop drags them. The Rendered face is not a
+        // text field, so nothing would take the drop, and it is taken here:
+        // the dragover says where the words would land (the carry's marker),
+        // the drop moves them through the kit, one undo step.
+        this.$nextTick(() => {
+          const md = this.$refs.md;
+          if (!md) return;
+          md.addEventListener('dragstart', (e) => {
+            const r = this.d && this.d.range;
+            if (!this.native || !r || r.start === r.end) return;
+            this.dnd = { a: r.start, b: r.end, target: null };
+            try { e.dataTransfer.effectAllowed = 'copyMove'; } catch {}
+          });
+          md.addEventListener('dragover', (e) => {
+            if (!this.dnd) return;
+            e.preventDefault();
+            try { e.dataTransfer.dropEffect = 'move'; } catch {}
+            this.dnd.target = this.dropAt(e.clientX, e.clientY, this.dnd);
+            this.paintExtras();
+          });
+          md.addEventListener('drop', (e) => {
+            if (!this.dnd) return;
+            e.preventDefault();
+            const m = this.dnd, tg = this.dropAt(e.clientX, e.clientY, m);
+            this.dnd = null;
+            if (tg) this.d.move(m.a, m.b, tg.at, tg.para);
+            this.paint();
+          });
+          md.addEventListener('dragend', () => { if (this.dnd) { this.dnd = null; this.paint(); } });
+        });
         this.d = window.Dictate.create({
           lang: q.get('lang') || undefined,
           fix: (s) => this.autocorrect(s),
@@ -1736,7 +1769,7 @@
           const tapped = from.travel < 8;
           from = null;
           this.padDrag = false;
-          if (tapped) this.toggleAnchor();
+          if (tapped) this.padTap();
           const d = document;
           d.removeEventListener('pointermove', move, true);
           d.removeEventListener('pointerup', up, true);
@@ -2263,34 +2296,19 @@
             });
           }
         }
-        // NATIVE: a Move pill under the platform's selection, since holding
-        // it opens the callout rather than picking it up. Tapped, it holds the
-        // words and reads as a cancel until the next tap says where they go.
-        const nr = this.d && this.d.range;
-        if (this.native && !this.mover && (this.moveArm || (nr && nr.start !== nr.end))) {
-          const e = window.MdSurface.rectAt(this.$refs.md, this.moveArm ? this.moveArm.b : nr.end);
-          if (e && e.bottom > vb.top && e.bottom < vb.bottom - 60) {
-            const pill = add('button', 'absolute z-20 -translate-x-1/2 btn btn-xs rounded-full shadow gap-1 whitespace-nowrap '
-              + (this.moveArm ? 'btn-neutral' : 'btn-primary'),
-              `left:${Math.max(box.left - lb.left + 84, Math.min(box.right - lb.left - 84, e.left - lb.left))}px;top:${e.bottom - lb.top + 30}px`, 'seam');
-            pill.dataset.mdUi = '';
-            pill.dataset.moveNative = '';
-            pill.innerHTML = this.moveArm ? '<i class="ph ph-x"></i>Tap where it goes' : '<i class="ph ph-arrows-out-cardinal"></i>Move';
-            this.keepFocus(pill);
-            pill.addEventListener('click', (ev) => { ev.stopPropagation(); this.moveNative(); });
+        // NATIVE: words held for a move stay washed while the caret aims.
+        if (this.moveArm && this.rendered) {
+          for (const x of window.MdSurface.rects(this.$refs.md, this.moveArm.a, this.moveArm.b)) {
+            add('div', 'absolute pointer-events-none rounded-[2px] bg-primary/25',
+              `left:${x.left - lb.left}px;top:${x.top - lb.top}px;width:${x.width}px;height:${x.height}px`, 'seam');
           }
         }
+        // Where words dragged by the platform would land.
+        if (this.dnd && this.dnd.target) this.markTarget(this.dnd.target, add, across, lb);
         const m = this.mover;
         if (!m) return;
         const tg = m.target;
-        if (tg && tg.para) {
-          across(tg.y, 'move', 'border-t-[3px] border-primary rounded-full');
-        } else if (tg) {
-          const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, tg.at)
-                                  : window.Dictate.rectAt(this._host, tg.at);
-          if (r) add('div', 'absolute pointer-events-none w-[3px] rounded-full bg-primary',
-            `left:${r.left - lb.left - 1}px;top:${r.top - lb.top}px;height:${r.height || 20}px`, 'move');
-        }
+        if (tg) this.markTarget(tg, add, across, lb);
         // The carried words, drawn where they are aimed and KEPT INSIDE THE
         // PANE: a label hanging past the edge widens the page, and a phone
         // answers that by zooming the whole view out mid-drag (measured
@@ -2304,6 +2322,14 @@
         const gy = m.touch ? m.y - lb.top - this.LIFT - h : m.y - lb.top + 14;
         g.style.left = Math.max(8, Math.min(lb.width - w - 8, gx)) + 'px';
         g.style.top = Math.max(0, gy) + 'px';
+      },
+      // The drop marker: a line across a gap, or a bar between two words.
+      markTarget(tg, add, across, lb) {
+        if (tg.para) { across(tg.y, 'move', 'border-t-[3px] border-primary rounded-full'); return; }
+        const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, tg.at)
+                                : window.Dictate.rectAt(this._host, tg.at);
+        if (r) add('div', 'absolute pointer-events-none w-[3px] rounded-full bg-primary',
+          `left:${r.left - lb.left - 1}px;top:${r.top - lb.top}px;height:${r.height || 20}px`, 'move');
       },
       // INSIDE CODE A SPACE IS NOT A SENTENCE GAP: a split there cuts an inline
       // code span or a fenced block in two, so Split is not offered. Read off
@@ -2540,11 +2566,30 @@
         return (Math.abs(x - f.left) < 20 && y > f.top - 20 && y < f.bottom + 4)
           || (Math.abs(x - l.right) < 20 && y > l.top - 4 && y < l.bottom + 20);
       },
-      moveNative() {
-        const r = this.d.range;
-        if (this.moveArm) { this.moveArm = null; this.paint(); return; }
-        if (!r || r.start === r.end) return;
-        this.moveArm = { a: r.start, b: r.end };
+      // THE TARGET'S TAP. Under native selection, with words selected, it
+      // holds them for a move and puts the caret at their end for the pad to
+      // aim; held, it drops them at the caret. Otherwise the anchor, as ever.
+      padTap() {
+        if (this.native) {
+          if (this.moveArm) { this.dropAtCaret(); return; }
+          const r = this.d.range;
+          if (r && r.start !== r.end) { this.moveArm = { a: r.start, b: r.end }; this.d.caretAt(r.end); this.paint(); return; }
+        }
+        this.toggleAnchor();
+      },
+      dropAtCaret() {
+        const m = this.moveArm, t = this.d.text, r = this.d.range;
+        this.moveArm = null;
+        let i = r ? r.start : t.length;
+        // Inside a word, the nearer of its edges, as a dropped carry does.
+        if (/\S/.test(t[i - 1] || '') && /\S/.test(t[i] || '')) {
+          let s = i, e = i;
+          while (s > 0 && /\S/.test(t[s - 1])) s--;
+          while (e < t.length && /\S/.test(t[e])) e++;
+          i = i - s <= e - i ? s : e;
+        }
+        if (i < m.a || i > m.b) this.d.move(m.a, m.b, i, false);
+        else this.d.select(m.a, m.b);
         this.paint();
       },
       dropArmed(x, y) {
@@ -3107,8 +3152,8 @@
   <!-- ── The header ──────────────────────────────────────────────────────
        A THREE-COLUMN GRID, so the target lands on the viewport's centre line
        rather than on the midpoint of whatever space the two side groups leave
-       over. With flex spacers it drifts right, because the instruments on the
-       right are twice the width of the clock on the left.
+       over. In file mode the target is in the bottom row instead, between
+       Copy and Send, and the centre column stands empty.
 
        Left is the session (record, and how long it has run). Centre is the one
        control that AIMS. Right is the history and the menu. Backspace joins
@@ -3137,13 +3182,9 @@
          title="The next word you say will be capitalised (tap Shift again to cancel)"></i>
     </div>
 
-    <!-- THE TARGET, on the centre line. Two gestures on one button, because
-         they are one job: drag it and the caret moves, tap it and the caret
-         becomes one end of a selection whose other end is your next tap. Armed
-         it wears the ring an armed pin wears, which is this page's one word
-         for "live and pointed at the text". touch-action:none inline is what
-         makes the drag work rather than scrolling the page under it. -->
-    <button x-init="bindPad($el)" :disabled="edit" style="touch-action:none"
+    <!-- The target in the header, for a note; in file mode it is in the
+         bottom row. See the one there for what it does. -->
+    <button x-show="!file" x-init="bindPad($el)" :disabled="edit" style="touch-action:none"
             class="btn btn-md btn-square justify-self-center"
             :class="armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost')"
             :title="armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
@@ -3152,7 +3193,7 @@
       <i class="ph ph-crosshair text-xl"></i>
     </button>
 
-    <div class="flex items-center gap-0.5 justify-self-end">
+    <div class="flex items-center gap-0.5 justify-self-end col-start-3">
       <button @click="undo()" :disabled="!canUndo" class="btn btn-ghost btn-md btn-square" title="Undo">
         <i class="ph ph-arrow-counter-clockwise text-xl"></i>
       </button>
@@ -3547,6 +3588,32 @@
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="lead('copy')" title="Copy the words, to paste into a chat">
       <i class="ph ph-clipboard-text text-lg"></i>Copy
+    </button>
+    <!-- THE TARGET, IN FILE MODE, small and on the centre line between Copy
+         and Send, where a thumb rests. A note's row has four destinations and
+         no room for a fifth, so there it stays in the header. Two gestures on one button, because they are one job:
+         drag it and the caret moves, tap it and the caret becomes one end of
+         a selection whose other end is your next tap. Armed it wears the ring
+         an armed pin wears, which is this page's one word for "live and
+         pointed at the text". touch-action:none inline is what makes the drag
+         work rather than scrolling the page under it.
+
+         UNDER NATIVE SELECTION it is also the Move. With words selected it
+         lights, and a tap holds them: the held words stay washed, the caret
+         goes to their end, a drag of the target aims the caret, and a second
+         tap drops them there (a tap on the text drops them where it lands).
+         Tapping twice without aiming drops them where they were, which is the
+         cancel. -->
+    <button x-show="file" x-init="bindPad($el)" :disabled="edit" style="touch-action:none" data-target
+            class="btn h-12 min-h-0 w-12 px-0 shrink-0"
+            :class="moveArm ? 'btn-primary' : moveReady ? 'btn-primary btn-outline'
+                    : armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost bg-base-200')"
+            :title="moveArm ? 'Drag to aim where the words go, then tap here to drop them (tap twice to leave them)'
+                    : moveReady ? 'Tap to pick up the selected words and move them'
+                    : armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
+                    : armed ? 'The ' + armed + ' of the selection is armed. Tap here to put it down.'
+                    : 'Drag to move the cursor. Tap to start a selection from it.'">
+      <i class="ph text-xl" :class="moveArm || moveReady ? 'ph-arrows-out-cardinal' : 'ph-crosshair'"></i>
     </button>
     <!-- SEND, IN THE SLOT SHARE HELD, and it is the same button rather than a
          sixth one. Share was one destination among four and is now one row
