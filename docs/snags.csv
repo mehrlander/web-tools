@@ -7,6 +7,7 @@ daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/daisy-alpine/SKILL.md
+app-frame-outruns-the-inliner,the shell draws and every view is empty,2,2026-09-29,2026-09-17;2026-09-29,../scripts/showing.py
 shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,2,2026-09-28,2026-09-08;2026-09-28,
 marker-on-a-living-doc,annotated a doc instead of fixing it,2,2026-09-16,2026-08-06;2026-09-16,../skills/doc-craft/SKILL.md
 toss-lands-on-the-landing,"a render link opened the app, nowhere near the change",2,2026-09-16,2026-08-16;2026-09-16,APP.md
@@ -27,7 +28,6 @@ empty-params-answer-the-address,a framed page parsed an empty string and got its
 triage-bare-branch-name-reads-as-orphan,"every branch reported ""no merge base""",1,2026-09-25,2026-09-25,../.claude/skills/tend/SKILL.md#branches
 spawned-session-not-recorded,the recorder ran every idle and found nothing,1,2026-09-21,2026-09-21,environment/extending.md#sessionstart-the-sessions-store-directive
 subtree-touch-guard-kills-the-anchor,"a tap that produces nothing, not even an error",1,2026-09-20,2026-09-20,../lib/alpineComponents/fab.js;../tools/test/fab-menu.test.mjs
-app-frame-outruns-the-inliner,the shell draws and every view is empty,1,2026-09-17,2026-09-17,../scripts/showing.py
 app-shot-read-as-impossible,"the app renders headless, with a scenario",1,2026-09-16,2026-09-16,../tools/README.md
 conflicted-pr-queues-no-ci,the Checks tab is empty and CI is not slow,1,2026-09-16,2026-09-16,../.github/workflows/test.yml
 variant-plus-opacity-generates-nothing,"the rule was not faint, it was absent",1,2026-09-15,2026-09-15,

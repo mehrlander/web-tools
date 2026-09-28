@@ -39,7 +39,7 @@ Invoking across the window boundary is handled rather than avoided, and [`tools/
 
 ## Picking versions inside a toss
 
-The `#gh=` address picks the **page** and its relative files; the renderer's `?lib=<ref>` picks the **Web Tools code** it boots, else a web-tools page runs its own ref and any other page main. [loader.md](loader.md#under-the-toss) has the channels and how the app passes selections to its views. **Data stays with the page**, some of it pinned to main on purpose, so nothing overrides a repository wholesale ([showing-consolidation.md](showing-consolidation.md)).
+The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. [loader.md](loader.md#the-selection) has the rules.
 
 ## Three reasons a change resists preview
 

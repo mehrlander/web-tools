@@ -69,6 +69,8 @@ const CASES = [
     { wait: 16000, addr: `${APP}?view=map` }),
   C('R10', 'a routed viewer at a path entry, everything else at main',
     { q: refs(`${WT}@viewer-file-br:pages/data-view.html`), hash: `data=${HOME}:${CSV}` }),
+  C('R12', 'one gh.load file from another ref, the rest of the library at the viewer\'s',
+    { q: refs(`${WT}@viewer-br`, `${WT}@file-br:lib/alpineComponents/viewer.js`), hash: `data=${HOME}:${CSV}` }),
   C('R7', 'top mode: the app with the selection, navigated by the app, then reloaded',
     { top: true, wait: 12000, q: `lib=main&${refs(`${REG}@data-br`, `${HOME}@home-br`)}&view=map`, addr: APP }),
   C('R11', 'framed: the renderer reloaded keeps its selection',

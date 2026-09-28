@@ -45,8 +45,17 @@
     ?w=<px>      lay the subject out at that width (the forced-width section)
     ?lib=<ref>   the Web Tools code the framed page boots, and a routed toss's
                  viewer page, apart from the page's own ref (libRef, and the
-                 three channels addressHtml stamps) The on-page field and a pasted
-  github.com/.../blob/<ref>/<path> URL both route here.
+                 channels addressHtml stamps)
+    ?refs=owner/repo@<ref>[:path]
+                 repeatable: the ref to read a repository, one file, or a
+                 folder (`:dir/`) at, for whatever the displayed file's code
+                 reads. ?lib= is the mehrlander/web-tools entry spelled short.
+                 Stamped into the page as window.__refs and forwarded by the
+                 apps to the views they frame; never applied to this renderer's
+                 own code. docs/loader.md "The selection" has the rules.
+
+  The on-page field and a pasted github.com/.../blob/<ref>/<path> URL both
+  route here.
 
   Toss routes (typed content tosses, built on address mode):
     #<route>=<owner>/<repo>[@<ref>]:<path>
@@ -118,7 +127,7 @@
   <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
      href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
-    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, <code>?lib=ref</code> to run another Web Tools version.
+    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, <code>?lib=ref</code> to run another Web Tools version, <code>?refs=owner/repo@ref</code> (repeatable, or <code>@ref:path</code> for one file) to read a repository at another version.
   </p>
 </div>
 

@@ -99,7 +99,10 @@ to load through three channels, each with one meaning:
 | `use`, answered by the shim | The effective Web Tools ref | Always, for a page with a ref to answer |
 | `lib`, answered by the shim | The page query's own `lib`, never a default | The page query inside the address carries it |
 | `window.__lib` | A Web Tools version that was asked for | The renderer's own `?lib=<ref>` is set, or the page query inside the address carries `lib` |
-| `window.__ref` | The page's own repo ref | The address names a ref |
+| `window.__ref` | The version of the displayed file itself | The address names a ref, or the selection chose one for the file |
+| `window.__refs` | The link's selection, forwarded unchanged to nested views | Always; `{}` when the link asked for nothing |
+| `window.__refsImplied` | What this page implies: its repository at its address's ref, and the Web Tools version it boots. Never forwarded | Always |
+| `window.__refFor(repo, path)` | The resolver over the two above | Always |
 
 The effective ref is the explicit one when there is one: the renderer's
 `?lib=`, else the page query's `lib`. Otherwise it is the page's own ref for
@@ -130,6 +133,66 @@ route that is an opaque `blob:` URL. It sets the
 loader's `loadBase` to `lib/`, so every later `gh.load('kits/x.js')` resolves
 under `lib/`. A page that imports `gh-api.js` any other way sets no signal, so
 the bootstrap stays dormant and the page instantiates `GH` by hand.
+
+### The selection
+
+A link can say, for any repository the displayed file's code reads, which ref
+to read it at. The grammar is one repeatable query key, read on the renderer's
+own query, on a deployed page's query, and by the top-mode launcher:
+
+| Entry | Covers |
+|---|---|
+| `refs=owner/repo@ref` | the whole repository |
+| `refs=owner/repo@ref:path` | one file |
+| `refs=owner/repo@ref:dir/` | every file under the folder |
+
+`?lib=<ref>` on the renderer is the entry `mehrlander/web-tools@<ref>`, and
+`?use=<ref>` on a deployed page is the same entry. The address's `@ref` is the
+version of the displayed file alone.
+
+**Precedence, strongest first.**
+
+1. A ref the code names on purpose, `main` included (the exceptions below).
+2. For the displayed file: the address's `@ref`, else the selection for that file or its repository, else the default branch. That version is `window.__ref`.
+3. A page's own parameter for a repository (`?data=`), which the page reads before anything else.
+4. The selection: the longest matching path entry, then the repository's entry.
+5. What the page implies: its own repository at the ref its ADDRESS named (not a version a path entry gave the file alone), and for a web-tools page, the Web Tools it boots.
+6. The code's default.
+
+**Reads follow; writes do not.** A `GH` client whose caller named no ref
+(the key absent, not `''`) reads through `readRef(path)`, which consults the
+resolver. `gh.ref` keeps its meaning, the named ref or `main`, and is the only
+branch any write uses; `gh-store` reads its conflict sha at `gh.ref` too. An
+explicit ref pins every read, `main` and `''` included, and assigning `gh.ref`
+pins as naming it did. A boot client (`follow: true`) keeps its own ref and
+takes path entries only. A page that reads a file and writes it back reads it
+at its write branch, never through the selection; its own parameter
+(`?data=`) is the one thing that moves read and write together.
+
+**Where it is applied.** The renderer, for the displayed file, its inlined
+scripts and stylesheets and its relative `fetch()` (each resolved per path),
+and the Web Tools boot. `entry.js`, for the Web Tools ref and a path entry for
+`gh-api.js` itself. The `GH` client's reads (`get`, `bytes`, `ls`, `history`,
+`recentFiles`, `rawUrl`, `flatTree`). A pre-built bundle's cache, which steps
+aside for a path the selection names, so one changed file previews over an
+unchanged build. The web-tools app and home's budget-drs app forward the
+selection to every view and tenant they frame and every toss link they mint.
+Reads a page builds by hand take `GH.refFor(repo, path)`.
+
+**Kept on purpose, and why.**
+
+| Reads that name their ref | Why |
+|---|---|
+| The registry and session store in `mehrlander/web-tools-private` (state, caches, notes, errands, jots, sessions) | Live shared state that crawls, devices and sessions write on `main`; a preview must show the current state |
+| Device folders (`shortcuts/log`, `shortcuts/manifests`, `push-shortcuts`) | The device writes only to `main`; reading them at a preview ref was a real bug (2026-08-18) |
+| `shortcut-log.html`'s main-versus-branch scoring | A deliberate comparison |
+| Read-modify-write editors (`links`, `news`, `text-lab`, `dictate`, the library's prune ledger, `repo-proposals`) | What is read is written back; `?data=` moves both |
+| The app's Files view and config form | A visible, user-chosen browse ref that also targets writes |
+| `.web-tools.json` read for the shared config cache | Following a selection would bake a branch's config into shared state |
+| Errands, `file-review`'s comparison base, `gh-transfer` | Operations and comparisons, not previews |
+| `lib/entry.js`, bookmarklet and courier pointers | Bootstraps and deployed pointers |
+| The renderer's own code (its FAB and drawer) | Always `main`: a renderer running Web Tools at a chosen ref while hosting a frame is the recorded Safari crash shape |
+| The budget-drs appendix descriptors | `main` by default, the owner's live page; an explicit selection for that repository is honoured |
 
 ### What each piece contributes
 
@@ -492,12 +555,16 @@ old render all day. Third-party libraries keep their CDN tags on both routes.
 
 Two things differ from a page in this repo:
 
-- **`window.__ref` is the page's own repo ref, not the library's.** Under the
-  toss shell and the budget-drs app's frame it names the ref of the repo the
-  page lives in. The library's ref arrives as `use` and `lib` (and as
-  `window.__lib` when it was asked for), which is `main` unless a link says
-  otherwise. A consumer that picks its library itself reads `?lib=`, as the
-  budget-drs pages do.
+- **`window.__ref` is the displayed file's version, not the library's, and
+  not the ref to read siblings at.** Under the toss shell and the budget-drs
+  app's frame it names the version the page's own file was read at. A read of
+  another file in the page's repository asks the resolver,
+  `window.__refFor(repo, path)`, which answers a link's selection first and
+  then what the page implies ("The selection" above). The library's ref
+  arrives as `use` and `lib` (and as `window.__lib` when it was asked for),
+  which is `main` unless a link says otherwise. A consumer that picks its
+  library itself reads `?lib=`, then `window.__lib`, then the selection's
+  web-tools entry, as the budget-drs pages do.
 - **The page brings no Alpine tag.** A deferred CDN tag starts Alpine before
   the chain has registered anything; `alpine-bundle.js` starts it after. A
   framed page sets `data-no-fab` on `<html>`, since the FAB belongs to the
