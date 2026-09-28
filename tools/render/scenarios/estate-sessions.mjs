@@ -347,9 +347,9 @@ const RECORD = {
 const at = (t) => '2026-08-05T' + t + 'Z';
 const TURNS_RECORD = {
   ...RECORD,
-  opening_ask: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.',
+  opening_ask: 'We have done some significant work on surfacing our documentation in the Web Tools app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.',
   prompts: [
-    { at: at('13:51:08'), text: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.' },
+    { at: at('13:51:08'), text: 'We have done some significant work on surfacing our documentation in the Web Tools app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.' },
     { at: at('14:19:40'), text: 'Can we get the render line printed rather than remembered? I keep handing over the wrong link, and the section that was meant to stop it is the longest one in the file, so reading it is evidently not the thing that fixes this.' },
     { at: at('14:52:10'), text: 'Good. What does the honesty rule cost us if no script can supply it?' },
     { at: at('15:12:44'), text: '[3 images]' },
