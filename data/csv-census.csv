@@ -6,7 +6,7 @@ data/checks-reading/explanations.csv,82,17,71365,"[""repo"",""artifact"",""scrip
 data/column-primitives/2026-09-10-manifest-fields-pilot.csv,58,5,3493,"[""key"",""declared_type"",""primitive"",""cardinality"",""note""]"
 data/conventions-delivery/2026-09-13-reading.csv,168,8,15237,"[""record"",""day"",""started"",""verdict"",""hub_checkout"",""surfacing_in_context"",""hub_claude_md_sha"",""skill_calls""]"
 data/csv-census.csv,43,5,5155,"[""path"",""rows"",""columns"",""bytes"",""headers""]"
-data/design/content.csv,22,4,2476,"[""locator"",""creation_mode"",""analysis_use"",""description""]"
+data/design/content.csv,22,4,2533,"[""locator"",""creation_mode"",""analysis_use"",""description""]"
 data/report-layout/three-way-compare.csv,35,6,1738,"[""group"",""subgroup"",""item"",""version"",""year"",""value""]"
 docs/aims-goals.csv,5,3,380,"[""key"",""name"",""gloss""]"
 docs/aims-initiatives.csv,5,3,839,"[""key"",""name"",""gloss""]"
