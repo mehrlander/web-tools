@@ -1681,7 +1681,7 @@ try {
     c.desk = false; await new Promise((r) => setTimeout(r, 100));
     return out;
   });
-  ok('on a desk the upper keys go, and Copy, the target and Send stay', desk.before && !desk.after && desk.copy && desk.target && desk.list, JSON.stringify(desk));
+  ok('on a desk the upper keys and the target go, and Copy and Send stay', desk.before && !desk.after && desk.copy && !desk.target && desk.list, JSON.stringify(desk));
   const sel = (w) => page.evaluate((w) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     const a = c.text.indexOf(w); c.d.select(a, a + w.length); c.paint(); document.activeElement?.blur?.(); }, w);
   const txt = () => page.evaluate(() => document.querySelector('[x-data="dictate"]')._x_dataStack[0].text);

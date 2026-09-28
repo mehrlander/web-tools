@@ -3875,15 +3875,20 @@
          markers follow. Nothing lands until Move here is tapped, on the tag
          or on the target. Tapped without aiming, the words stay where they
          were. -->
-    <div x-show="file" class="join shrink-0">
+    <!-- Two buttons side by side, not a daisyUI join: a join squares its
+         members' inner corners by DOM position, and with the cancel hidden
+         the target was still its second member, square on one side.
+         NOT ON A DESK: a mouse points at the text itself, drags a selection
+         to move it, and has the arrow keys, so the pad has nothing to add. -->
+    <div x-show="file && !desk" class="flex gap-1 shrink-0">
       <button x-show="moveArm" @click="cancelMove()" data-move-cancel
-              class="btn join-item h-12 min-h-0 w-10 px-0 btn-ghost bg-base-200" title="Leave the words where they were">
+              class="btn h-12 min-h-0 w-10 px-0 btn-ghost bg-base-200" title="Leave the words where they were">
         <i class="ph ph-x text-lg"></i>
       </button>
       <button x-init="bindPad($el)" :disabled="edit" style="touch-action:none" data-target
-              class="btn join-item h-12 min-h-0 shrink-0"
+              class="btn h-12 min-h-0 shrink-0"
               :class="'w-12 px-0 ' + (moveArm ? 'btn-primary' : moveReady ? 'btn-primary btn-outline'
-                      : armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost bg-base-200'))"
+                      : armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost'))"
               :title="moveArm ? 'Drag here or on the text to aim, then tap to move the words there'
                       : moveReady ? 'Tap to pick up the selected words and move them'
                       : armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
