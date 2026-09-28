@@ -1232,14 +1232,12 @@ try {
     (await docText()).includes('First two. Second para.\n\nThird para.'), JSON.stringify(await docText()));
   const closedMark = await page.evaluate(() => !!document.querySelector('[x-ref="md"] [data-md-break="closed"]'));
   ok('and the card shows the break it closed, since the words themselves did not change', closedMark);
-  // Going back through the card's own number, the way a reader would.
+  // Going back through the card's own × , the way a reader would: one tap.
   const badge = await page.evaluate(() => { const b = document.querySelector('[x-ref="md"] [data-md-card-badge]');
     b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.touchscreen.tap(badge.x, badge.y);
   await page.waitForTimeout(250);
-  await page.locator('text=Go back to original').first().click();
-  await page.waitForTimeout(250);
-  ok('Go back to original on that card restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
+  ok('one tap on the card\'s × restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
 
   // ── Found by review, 2026-09-27 ─────────────────────────────────────
   // Each of these failed on the page the review read.
@@ -1385,6 +1383,16 @@ try {
   await page.waitForTimeout(200);
   ok('with room, the header names the whole repo:path and shows the three faces side by side',
     /:.+\//.test(wide.name) && !wide.faces && wide.join, JSON.stringify(wide));
+  // The unsaved mark is also the way to clear every edit.
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.text = c.text.replace('Third para.', 'Third para, edited.'); c.paint(); });
+  await page.waitForTimeout(150);
+  const dot = await page.evaluate(() => { const r = document.querySelector('[data-unsaved]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(dot.x, dot.y);
+  await page.waitForTimeout(200);
+  await page.locator('text=Clear all edits >> visible=true').first().click();
+  await page.waitForTimeout(600);
+  const cleared = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; return { text: c.text, dirty: c.dirty }; });
+  ok('the unsaved dot offers Clear all edits, which puts the file back as GitHub holds it', cleared.text === PARA_DOC && !cleared.dirty, JSON.stringify(cleared));
   // From the top: the check before this one scrolled the pane down.
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.$refs.view.scrollTop = 0; c.toggleNativeSel(); });
   await page.waitForTimeout(150);

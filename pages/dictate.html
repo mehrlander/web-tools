@@ -2830,8 +2830,9 @@
       // marked and open to typing. Its stops pill reads original, marked and
       // new; a sideways swipe moves the card's text with the finger and
       // settles on one (md-card-reading), a tap on a stop scrolls there, a
-      // tap on the original returns to marked, and its number offers the one
-      // thing left to decide: going back to the original for good.
+      // tap on the original returns to marked, and its number, which wears
+      // an ×, discards the change: the card goes back to the original. One
+      // tap, no menu, because one undo brings it back.
       setCardReading(i, mode) {
         window.MdSurface.setReading(this.$refs.md, i, mode);
         this.paint();
@@ -2843,12 +2844,19 @@
         const read = ev.target?.closest?.('[data-md-card-read]');
         if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
-        if (!badge || !window.rowMenu) return;
+        if (!badge) return;
         const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
-        if (!run) return;
-        const r = badge.getBoundingClientRect();
+        if (run) this.rejectCard(run);
+      },
+      // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone.
+      // One undo still reaches the edit (loadFile). Offered from the unsaved
+      // mark itself and from the menu.
+      clearEdits() { this.loadFile(true); },
+      unsavedTap(ev) {
+        if (!window.rowMenu) { this.clearEdits(); return; }
+        const r = ev.currentTarget.getBoundingClientRect();
         window.rowMenu.open({ x: r.left, y: r.bottom + 4, items: [
-          { label: 'Go back to original', icon: 'ph-arrow-u-up-left', run: () => { this.rejectCard(run); } },
+          { label: 'Clear all edits', icon: 'ph-x-circle', run: () => this.clearEdits() },
         ] });
       },
       rejectCard(run) {
@@ -3435,8 +3443,12 @@
         <span class="sm:hidden" x-text="fileName"></span><span class="hidden sm:inline" x-text="fileWhere"></span>
       </a>
       <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
-      <span x-show="dirty && !fileLoading" class="sm:hidden shrink-0 size-2 rounded-full bg-warning" title="Unsaved"></span>
-      <span x-show="dirty && !fileLoading" class="hidden sm:inline-flex badge badge-warning badge-sm shrink-0">unsaved</span>
+      <button x-show="dirty && !fileLoading" @click="unsavedTap($event)" data-unsaved
+              class="sm:hidden shrink-0 p-1.5 -m-1.5" title="Unsaved. Tap to clear all edits.">
+        <span class="block size-2 rounded-full bg-warning"></span>
+      </button>
+      <button x-show="dirty && !fileLoading" @click="unsavedTap($event)"
+              class="hidden sm:inline-flex badge badge-warning badge-sm shrink-0 cursor-pointer" title="Unsaved. Click to clear all edits.">unsaved</button>
     </div>
 
     <div class="flex items-center gap-0.5 justify-self-end col-start-3">
@@ -3506,10 +3518,11 @@
           </button>
           <!-- File mode's New: back to what GitHub holds, the local edit discarded.
                One step of undo still reaches the edit, as it does for New. -->
-          <button x-show="file" @click="loadFile(true)" :disabled="fileLoading"
+          <button x-show="file" @click="clearEdits(); menu = false" :disabled="fileLoading"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
-                  title="Discard the local edit and reopen the file as GitHub holds it">
-            <i class="ph ph-arrow-clockwise text-lg opacity-60"></i>Reload
+                  :title="dirty ? 'Discard every edit and reopen the file as GitHub holds it' : 'Reopen the file as GitHub holds it now'">
+            <i class="ph text-lg opacity-60" :class="dirty ? 'ph-x-circle' : 'ph-arrow-clockwise'"></i>
+            <span x-text="dirty ? 'Clear all edits' : 'Reload'"></span>
           </button>
           <button x-show="file" @click="unwrapLines()" :disabled="!!(fileLoading || blank)"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
@@ -3566,7 +3579,9 @@
        "Bring back" appears only on the second, and only where the arrival
        displaced something: it is the way back to the draft this page was
        holding, which an arrival replaces rather than joins (see init). -->
-  <div x-show="restored" class="shrink-0 px-4 py-1.5 text-sm bg-warning/10 flex items-center gap-2">
+  <!-- NOT IN FILE MODE: there the unsaved mark in the header already says the
+       words on screen are an edit, and tapping it clears them. -->
+  <div x-show="restored && !file" class="shrink-0 px-4 py-1.5 text-sm bg-warning/10 flex items-center gap-2">
     <i class="ph" :class="arrived ? 'ph-arrows-out' : 'ph-clock-counter-clockwise'"></i>
     <span x-show="!arrived">Picked up where you left off.</span>
     <span x-show="arrived" class="min-w-0 truncate"
@@ -3574,7 +3589,7 @@
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
     <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
             title="Put the draft this page was holding back above these words">Bring back</button>
-    <button @click="file ? loadFile(true) : clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
+    <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
   <!-- ── The text ────────────────────────────────────────────────────────
