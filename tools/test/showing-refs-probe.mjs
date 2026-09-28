@@ -73,6 +73,18 @@ const CASES = [
     { q: refs(`${WT}@viewer-br`, `${WT}@file-br:lib/alpineComponents/viewer.js`), hash: `data=${HOME}:${CSV}` }),
   C('R7', 'top mode: the app with the selection, navigated by the app, then reloaded',
     { top: true, wait: 12000, q: `lib=main&${refs(`${REG}@data-br`, `${HOME}@home-br`)}&view=map`, addr: APP }),
+  // The renderer's own top mode (?top): the same prelude, inliner, fetch shim
+  // and selection as a frame, with the page as the tab's document.
+  C('T1', 'renderer top mode: the app with the selection, navigated by the app, reloaded, Back',
+    { topRender: true, wait: 14000, q: `lib=main&${refs(`${REG}@data-br`, `${HOME}@home-br`)}&view=map`, addr: APP }),
+  C('T2', 'renderer top mode: a private home page whose relative scripts only the inliner can reach, one at another ref',
+    { topRender: true, wait: 20000, q: refs(`${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`),
+      addr: `${HOME}@page-br:projects/budget-drs/submittal/submittal.html` }),
+  C('T3', 'renderer top mode: a routed viewer, the CSV at one ref and the viewer at another',
+    { topRender: true, wait: 12000, q: refs(`${WT}@viewer-br`), hash: `data=${HOME}@csv-br:${CSV}` }),
+  C('T4', 'renderer top mode: the budget-drs app, its relative fetch and its framed tenant, one tenant file at another ref',
+    { topRender: true, wait: 25000, q: `${refs(`${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`)}&view=submittal`,
+      addr: `${HOME}@app-br:projects/budget-drs/app/view/app.html` }),
   C('R11', 'framed: the renderer reloaded keeps its selection',
     { reload: true, q: refs(`${HOME}@csv-br`, `${WT}@viewer-br`), hash: `data=${HOME}:${CSV}` }),
 ];
@@ -203,6 +215,7 @@ for (const c of CASES) {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.slice(0, 140)));
   const url = c.top ? `${base}/pages/scratch/toss-top-probe.html?gh=${c.addr}&${c.q}`
+    : c.topRender ? (c.hash ? `${base}/pages/toss-render.html?top&${c.q}&${c.hash}` : `${base}/pages/toss-render.html?top&gh=${c.addr}&${c.q}`)
     : `${base}/pages/toss-render.html${c.q ? '?' + c.q : ''}#${c.hash || 'gh=' + c.addr}`;
   try { await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(c.wait || 9000); }
   catch (e) { errors.push('goto: ' + e.message); }
@@ -215,7 +228,13 @@ for (const c of CASES) {
     console.log(`    after reload: ${page.url().replace(base, '')}`);
     await report(page, asked, c);
   }
-  if (c.top) {
+  if (c.topRender) {
+    const top = await page.evaluate(() => ({ frames: document.querySelectorAll('iframe').length, title: document.title,
+      topFlag: !!window.__tossTop, fabHosted: !!window.__fabHosted, gh: window.gh && window.gh.ref,
+      fabs: document.querySelectorAll('[x-data^="fab"]').length, sees: [...new URLSearchParams(location.search).keys()].join(',') })).catch(e => ({ error: e.message }));
+    console.log('    top document: ' + JSON.stringify(top));
+  }
+  if (c.top || (c.topRender && c.id === 'T1')) {
     const state = async (label) => {
       const d = await page.evaluate(() => {
         const sh = window.__shell, out = { refs: window.__refs || null, lib: window.__lib || null, view: sh && sh.view };
