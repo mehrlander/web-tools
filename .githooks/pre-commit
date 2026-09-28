@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # git pre-commit hook — keep every *deterministic* derived artifact in lockstep
-# with its source, in the same commit that changes the source:
+# with its source, in the same commit that changes the source. Three of the
+# legs, for the shape:
 #
 #   lib/ changed            -> npm run build:lib     -> stage dist/web-tools.js
 #   console/ changed        -> npm run build:console -> stage console/suite.js
 #   a catalogued .html      -> npm run pages-index   -> stage the three pages catalogs
 #
-# Both generators are deterministic, so a commit that didn't really change the
+# The full list is the `# --- leg` headers below, in the order they run:
+# `grep -n '# --- leg' .githooks/pre-commit`.
+#
+# Every generator is deterministic, so a commit that didn't really change the
 # source produces identical bytes (a no-op `git add`). Thumbnails
 # (pages/thumbs/*.png) are deliberately NOT regenerated here — screenshots are
 # slow and not byte-deterministic, so auto-regen would write binary churn on
