@@ -26,12 +26,15 @@ function buildKit() {
 
 // Emit a bundle holding one cached file and a trivial gh-boot, and import it.
 // `win` is the window the bundle's module sees at evaluation, or none.
-async function importBundle(win) {
-  const src = buildKit().emit({
+async function importBundle(win, { servedFrom } = {}) {
+  let src = buildKit().emit({
     ghApiSrc: read('lib/gh-api.js'),
     cache: { 'lib/x.js': 'FROM THE BUILD', 'lib/gh-boot.js': '/* boot */' },
     repo: WT, defaultRef: 'main',
   });
+  // A data: import has no https URL of its own; stand the module where a page
+  // would have fetched it from.
+  if (servedFrom) src = src.split('import.meta.url').join(JSON.stringify(servedFrom));
   if (win) globalThis.window = win; else delete globalThis.window;
   if (win) globalThis.location = win.location;
   try {
@@ -95,8 +98,23 @@ test('a path entry sends that one file to its own ref, over an unchanged build',
   delete globalThis.window;
 });
 
+test('a build GitHub Pages served is main\'s, whatever was asked (an importer\'s fallback)', async () => {
+  // home's surfacer asks for x, fails to resolve it, and imports the deployed
+  // build. The bytes are main's, so the build must not take x as its ref.
+  const win = { location: { search: '?use=x' }, __consoleLogs: [] };
+  const GH = await importBundle(win, { servedFrom: 'https://mehrlander.github.io/web-tools/dist/web-tools.js' });
+  assert.equal(win.gh.ref, 'main');
+  assert.equal(win.__bundleRef, 'main');
+  const follows = client(GH, { repo: WT });
+  assert.equal((await follows.gh.get('lib/x.js')).text, 'FROM THE NETWORK', 'the selection says x; the build is main, so x is read');
+  const main = client(GH, { repo: WT, ref: 'main' });
+  assert.equal((await main.gh.get('lib/x.js')).text, 'FROM THE BUILD');
+  delete globalThis.window;
+});
+
 test('the committed builds carry the rule', () => {
   for (const f of ['dist/app.js', 'dist/web-tools.js', 'dist/dictate.js']) {
     assert.match(read(f), /const __servesFromBuild = \(gh, p, opts\) =>/, f + ' predates the rule; rebuild it');
+    assert.match(read(f), /const deployed = String\(import\.meta\.url\)/, f + ' predates the Pages rule; rebuild it');
   }
 });

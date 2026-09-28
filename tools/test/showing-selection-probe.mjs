@@ -28,6 +28,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 
@@ -40,6 +41,7 @@ const WT = 'mehrlander/web-tools';
 // `q` is the renderer's own query; `addr` the #gh= address (or `hash` for a
 // route); `proto` serves the patched renderer.
 const X = (id, what, o) => ({ id, what, ...o });
+const PRIOR = spawnSync('git', ['-C', root, 'rev-parse', 'HEAD~1'], { encoding: 'utf8' }).stdout.trim();
 const CASES = [
   X('X1', 'home project page at a branch, nothing else said',
     { addr: `mehrlander/home@page-br:projects/budget-drs/submittal/submittal.html` }),
@@ -55,6 +57,11 @@ const CASES = [
     { addr: `mehrlander/home@page-br:projects/surfacer/app/surfacer.html` }),
   X('X4p', 'the same under the renderer rule',
     { proto: true, addr: `mehrlander/home@page-br:projects/surfacer/app/surfacer.html` }),
+  // A ref git knows, since the harness resolves a branch name through local
+  // history; an unknown one fails the resolve and falls back to the deployed
+  // build, which the build then reports as main.
+  X('X4b', 'the same with Web Tools selected: surfacer resolves the ask to a commit and boots that build',
+    { proto: true, q: '?lib=' + PRIOR, addr: `mehrlander/home@page-br:projects/surfacer/app/surfacer.html` }),
   X('X5', 'the web-tools app at main, one app view at a branch (appRef, shipped)',
     { addr: `${WT}@main:app/index.html?view=app&appRepo=${WT}&appPath=pages/diff-tool.html&appRef=view-br` }),
   X('X5b', 'the web-tools app tossed at a branch, a view that names no ref',
