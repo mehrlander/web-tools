@@ -6,9 +6,9 @@
 # changes nothing gets no reply. Sessions kept replying anyway. Measured
 # 2026-09-28 over the web-tools-private session records: 1,395 ReadNotifications
 # results carried 449 green-CI rollups (check_suite.completed) against 5 failing
-# checks, and about 80% of all surplus closing states (a state with no user
-# prompt since the last one) came right after a PR event, 208 of 253 in the week
-# to 2026-09-28. The typical reply was "CI passed on <sha>" followed by the same
+# checks, and most surplus closing states (a state with no user prompt since the
+# last one) came right after a PR event: 205 of 250 in the week to 2026-09-28,
+# by `search.py --surplus`. The typical reply was "CI passed on <sha>" followed by the same
 # closing state as the turn before.
 #
 # WHY A HOOK. The rule arrives once, at session start, through a skill result.
