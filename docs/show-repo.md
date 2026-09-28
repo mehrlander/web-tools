@@ -163,8 +163,10 @@ raw.githubusercontent for a file's bytes (`GH.rawUrl()`). Private repos 404.
 | Subject | Reference |
 | --- | --- |
 | the stage and the `#stage=` grammar | [stage.md](stage.md) |
-| `.web-tools.json`, the config cache, errands and proposals | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
-| the branch takeover and the overlay | [branch-overlay.md](branch-overlay.md) |
+| `.web-tools.json`, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
+| proposals | [views/proposals.md](views/proposals.md) |
+| the branch takeover | [forms/branch.md](forms/branch.md) |
+| the branch overlay and the sidebar's second ref | [branch-overlay.md](branch-overlay.md) |
 | which link shows what | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 
 **Boundary.** show-repo shows and moves files (🗂️ for a stage link).

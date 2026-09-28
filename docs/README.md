@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-14 by a skill, 27 by a page or component. The remaining 48 are
+14 by a skill, 27 by a page or component. The remaining 49 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -32,7 +32,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
-- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: the takeover, file substitution, the sidebar's second ref, and drop-on-a-branch
+- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: file substitution, the sidebar's second ref, and drop-on-a-branch
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
@@ -47,7 +47,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`kits.csv`](kits.csv) — the kits registry: every module on the kit shelf, its namespace, its own headline, and who loads it
 - [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, timing rules, and the load-build duality
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
-- [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, proposals, editing from the shell)
+- [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, editing from the shell)
 - [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
@@ -129,7 +129,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/forms/
 
-- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
+- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and the branch takeover
 - [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
 
 ## docs/github/
@@ -154,6 +154,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`todo.md`](views/todo.md) *(orphan)* — the Lists view: To-do, Jot and Pins, and the registry files behind them
 - [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
 - [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
+- [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
 
 11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

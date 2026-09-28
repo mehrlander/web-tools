@@ -99,8 +99,8 @@ The related rule that is not in doubt: a kit that wants Alpine reactivity does
 not become a component, it gets a component wrapper.
 [`lib/alpineComponents/cm-editor.js`](../lib/alpineComponents/cm-editor.js) over
 [`lib/kits/cm6.js`](../lib/kits/cm6.js) is the reference pair. The shape rules a
-`lib/` file must honor to load at all are in [`docs/loader.md`](loader.md), and
-[`lib/kits/README.md`](../lib/kits/README.md) carries the per-kit table.
+`lib/` file must honor to load at all are in [`docs/loader.md`](loader.md). The
+per-kit table is [`docs/kits.csv`](kits.csv), shown in the app's Kits tab.
 
 ### `lib/ops/`: added 2026-09-03
 
