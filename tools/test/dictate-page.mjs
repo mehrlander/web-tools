@@ -1359,6 +1359,32 @@ try {
   // produce; the handles and callout are the phone's to show.
   console.log('native selection:');
   await reset();
+  // FILE MODE HAS ONE HEADER: the file's name sits in it, whole, on a phone,
+  // and the three faces fold into one button that opens them by name.
+  const hdr = await page.evaluate(() => {
+    const head = document.querySelector('[x-data="dictate"] > div'), a = head.querySelector('a[href*="github.com"]');
+    const vis = (el) => !!el && el.getClientRects().length > 0;
+    return { inHeader: vis(a), whole: !!a && a.scrollWidth <= a.clientWidth, name: a && a.innerText.trim(),
+             faces: vis(head.querySelector('[data-faces]')), join: vis(head.querySelector('.join .ph-code')) };
+  });
+  ok('in file mode the file\'s name sits whole in the one header, beside a single faces button',
+    hdr.inHeader && hdr.whole && !/[:@/]/.test(hdr.name) && hdr.faces && !hdr.join, JSON.stringify(hdr));
+  const faceB = await page.evaluate(() => { const r = document.querySelector('[data-faces]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(faceB.x, faceB.y);
+  await page.waitForTimeout(150);
+  await page.locator('[x-data="dictate"] button:visible', { hasText: 'Source' }).tap();
+  await page.waitForTimeout(200);
+  const toSource = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; return { view: c.view, open: c.faces }; });
+  ok('and the faces button opens the three by name, and a pick switches the view', toSource.view === 'source' && !toSource.open, JSON.stringify(toSource));
+  await page.setViewportSize({ width: 1024, height: PHONE.height });
+  await page.waitForTimeout(200);
+  const wide = await page.evaluate(() => { const head = document.querySelector('[x-data="dictate"] > div'), vis = (el) => !!el && el.getClientRects().length > 0;
+    return { name: head.querySelector('a[href*="github.com"]').innerText.trim(), faces: vis(head.querySelector('[data-faces]')), join: vis(head.querySelector('.join .ph-code')) }; });
+  await page.setViewportSize(PHONE);
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.setView('rendered'); });
+  await page.waitForTimeout(200);
+  ok('with room, the header names the whole repo:path and shows the three faces side by side',
+    /:.+\//.test(wide.name) && !wide.faces && wide.join, JSON.stringify(wide));
   // From the top: the check before this one scrolled the pane down.
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.$refs.view.scrollTop = 0; c.toggleNativeSel(); });
   await page.waitForTimeout(150);
