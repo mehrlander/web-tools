@@ -640,7 +640,7 @@ regression and the three-link width chain
 `--deck-head` and `--deck-side` (`app/index.html` sets them); the charset and
 inline-deps findings (`toss-charset.mjs`, `toss-inline-deps.test.mjs`); the
 slide-retention DOM counts (`swipe-deck-stack.test.mjs` and
-[`branch-overlay.md`](branch-overlay.md)); the menu placement measurement, which
+[`forms/branch.md`](forms/branch.md)); the menu placement measurement, which
 is now restored to the code as a criterion rather than moved.
 
 **What a constant was measured against.** `DIM_SATURATE` and `DIM_ALPHA` in
