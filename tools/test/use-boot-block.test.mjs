@@ -81,8 +81,15 @@ test('a fetch that failed is never blob-imported', () => {
 const entry = readFileSync(path.join(repoRoot, 'lib/entry.js'), 'utf8')
   .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
 
+// The one page allowed its own copy: an instrument whose subject is the boot.
+// It takes entry.js's two routes apart to learn which one kills Safari's web
+// process under a toss shell (docs/showing-consolidation.md, experiment E1), so
+// routing it through entry.js would remove the variable it measures. Delete the
+// page, and this line, when E1 is settled.
+const BOOT_PROBES = new Set(['pages/scratch/shell-pin-probe.html']);
+
 test('no page hand-rolls the gh-api.js boot; the chain pages import lib/entry.js', () => {
-  const rolled = pages.filter(p => !p.rel.startsWith('archive/') &&
+  const rolled = pages.filter(p => !p.rel.startsWith('archive/') && !BOOT_PROBES.has(p.rel) &&
     /raw\.githubusercontent\.com\/[^`'"]*\/lib\/gh-api\.js/.test(p.src)).map(p => p.rel);
   assert.deepEqual(rolled, [],
     'a page fetches lib/gh-api.js itself; import lib/entry.js instead, which is the one copy');
