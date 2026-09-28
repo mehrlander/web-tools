@@ -81,7 +81,7 @@
       // Read-modify-write: read and save at one ref. The selection never moves
       // a file the page writes back; ?data= moves both together.
       DATA_REF: new URLSearchParams(location.search).get('data') || 'main',
-      SHOW_REPO: 'https://mehrlander.github.io/web-tools/app/',
+      APP_URL: 'https://mehrlander.github.io/web-tools/app/',
 
       home: null,
       board: { areas: [] },
@@ -169,7 +169,7 @@
       href(it) {
         if (!it.url) return null;                       // a reference with no address
         if (it.kind === 'snippet') return null;
-        if (it.kind === 'repo') return `${this.SHOW_REPO}?repo=${encodeURIComponent(it.url)}`;
+        if (it.kind === 'repo') return `${this.APP_URL}?repo=${encodeURIComponent(it.url)}`;
         return it.url;
       },
       linkable(it) { return !!this.href(it) || it.kind === 'snippet' },
