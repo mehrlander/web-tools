@@ -156,3 +156,36 @@ test('both table-drawing modes fill the box, not just one', () => {
     assert.match(src, /showHeaderFilter\(/, `the ${id} mode narrows invisibly`);
   }
 });
+
+// ── A row to land on, the counterpart of the narrowing ─────────────────────
+//
+// `at: { col, row }` keeps every row and scrolls to the one named. Added
+// 2026-09-28 for the Map lede's link, whose point is the sentence among its
+// neighbours, which a filter would hide.
+
+const fakeTable = (rows, log) => ({
+  on: (ev, fn) => { if (ev === 'tableBuilt') fn(); },
+  getRows: () => rows.map(d => ({ getData: () => d, getElement: () => null, d })),
+  scrollToRow: (r) => { log.push(r.d); return Promise.resolve(); },
+});
+
+test('a landing scrolls to the exact row, not a substring of it', async () => {
+  const log = [];
+  window.ViewRegistry.landRow(fakeTable([{ tab: 'claims' }, { tab: 'aims' }], log), { at: { col: 'tab', row: 'aims' } });
+  await tick();
+  assert.deepEqual(log, [{ tab: 'aims' }]);
+});
+
+test('a landing that matches nothing, or is half-specified, scrolls nowhere', async () => {
+  const log = [];
+  window.ViewRegistry.landRow(fakeTable([{ tab: 'set' }], log), { at: { col: 'tab', row: 'nope' } });
+  for (const bad of [undefined, {}, { at: {} }, { at: { col: 'tab' } }])
+    window.ViewRegistry.landRow(fakeTable([{ tab: 'set' }], log), bad);
+  await tick();
+  assert.deepEqual(log, []);
+});
+
+test('both table-drawing paths of the table mode land', () => {
+  const src = window.ViewRegistry.modules.find(m => m.id === 'table').after.toString();
+  assert.equal((src.match(/landRow\(/g) || []).length, 2, 'the explorer and the plain grid both call landRow');
+});

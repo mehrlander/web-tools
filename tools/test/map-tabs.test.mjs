@@ -97,18 +97,10 @@ test('the lede comes from the CSV and links to its own row', () => {
   assert.match(src, /const TAB_LEDES = 'docs\/map-tabs\.csv'/);
   assert.match(src, /get tabGloss\(\)\{ return this\.tabLedes\?\.\[this\.mapTab\]\?\.gloss/,
     'one row per address, so the lede is a lookup with no parent fallback');
-  assert.match(src, /openFile\(TAB_LEDES, \{ col: 'tab', find: this\.mapTab \}\)/,
-    'the link lands on the row, not the whole file');
-  // Tabulator's input header filter matches substrings, so a key inside
-  // another key lands on two rows. aims/claims is the one such pair, accepted
-  // because the filter text sits in the header box and the exact row comes
-  // first; exact matching would need a column-level change in
-  // kits/tabular-explorer.js that would also make a typed filter exact. A new
-  // pair fails here so it is a decision rather than an accident.
-  const overlaps = [];
-  for (const a of ROWS) for (const b of ROWS)
-    if (a !== b && b.tab.includes(a.tab)) overlaps.push(a.tab + '<' + b.tab);
-  assert.deepEqual(overlaps, ['aims<claims']);
+  // A landing, not a filter: the sentence is read among the others, so every
+  // row stays and this one is scrolled to and marked.
+  assert.match(src, /openFile\(TAB_LEDES, \{ col: 'tab', row: this\.mapTab \}\)/,
+    'the link lands on the row among the others');
 });
 
 test('the Map description points at the CSV instead of restating it', () => {

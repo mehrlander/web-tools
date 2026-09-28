@@ -229,11 +229,10 @@ test('the shell and a framed app already collide in the query, two ways', () => 
   const byRoute = framed.filter(k => routeKeys.has(k)).sort();
   const byOther = framed.filter(k => !routeKeys.has(k) && written.has(k)).sort();
 
-  // col and find joined on 2026-09-28, as the Files view's row narrowing. The
-  // same two names and the same meaning as home's references, and no collision
-  // under the split: the shell's pair rides in the query, a framed page's in
-  // the fragment.
-  assert.deepEqual(byRoute, ['col', 'find', 'tab', 'view'],
+  // col joined on 2026-09-28, with row, as the Files view's row landing. No
+  // collision under the split: the shell's col rides in the query, a framed
+  // page's in the fragment.
+  assert.deepEqual(byRoute, ['col', 'tab', 'view'],
     'the route table\'s own collisions moved; re-read the rule in url-params.js ' +
     'before concluding that non-conflicting names would have been fine');
   assert.deepEqual(byOther, ['q'],

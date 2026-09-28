@@ -455,31 +455,31 @@ test('the landing is the overview, and the gallery is its own view', () => {
     'a landing no longer displaces anything, so it turns nothing else on either');
 });
 
-// A row narrowing rides with the file it names: ?col=<header>&find=<term>, the
-// pair home's submittal references carry, and what the Map lede's link mints.
-// It belongs to that one file, so opening any other drops it.
-test('a row narrowing round-trips with its file and clears on the next open', () => {
-  const addr = '?repo=mehrlander/web-tools&file=docs/map-tabs.csv&col=tab&find=harness';
+// A row to land on rides with the file it names: ?col=<header>&row=<value>,
+// what the Map lede's link mints. It belongs to that one file, so opening any
+// other drops it.
+test('a row landing round-trips with its file and clears on the next open', () => {
+  const addr = '?repo=mehrlander/web-tools&file=docs/map-tabs.csv&col=tab&row=harness';
   const { shell: s } = makeShell({ search: addr, browserStore: {
     repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main', activeFile: null, path: '' } });
   const url = s.parseUrl();
   assert.equal(url.col, 'tab');
-  assert.equal(url.find, 'harness');
+  assert.equal(url.row, 'harness');
   s.routeFromUrl(url);
   assert.equal(s.view, 'files');
   assert.equal(s.filesFile, 'docs/map-tabs.csv');
-  assert.deepEqual(s.filesFilter, { col: 'tab', find: 'harness' });
+  assert.deepEqual(s.filesAt, { col: 'tab', row: 'harness' });
 
   const qs = new URLSearchParams(s.deepLinkParams(new URLSearchParams()).toString());
-  assert.equal(qs.get('col'), 'tab', 'the narrowing did not survive the stamp');
-  assert.equal(qs.get('find'), 'harness');
+  assert.equal(qs.get('col'), 'tab', 'the landing did not survive the stamp');
+  assert.equal(qs.get('row'), 'harness');
 
   s.openFile('docs/registries.csv');
-  assert.equal(s.filesFilter, null, 'a filter for one file carried onto another');
+  assert.equal(s.filesAt, null, 'a landing for one file carried onto another');
   const after = new URLSearchParams(s.deepLinkParams(new URLSearchParams()).toString());
-  assert.ok(!after.has('col') && !after.has('find'));
+  assert.ok(!after.has('col') && !after.has('row'));
 
-  // Half a pair narrows nothing, so it is not kept.
-  s.openFile('docs/map-tabs.csv', { col: 'tab', find: '' });
-  assert.equal(s.filesFilter, null);
+  // Half a pair names no row, so it is not kept.
+  s.openFile('docs/map-tabs.csv', { col: 'tab', row: '' });
+  assert.equal(s.filesAt, null);
 });
