@@ -75,7 +75,7 @@ Use "0. None." when nothing remains.
 Each phase begins only on the user's word.
 
 1. **Plan.** State the recommendation, options, and risks. End 🆚.
-2. **Apply.** Implement the chosen scope, update the guide and template, open a draft PR, and push. Wait for the checks the push started; do not close while they run. Continue until 🟢.
+2. **Apply.** Implement the chosen scope, update the guide and template, open a draft PR, and push. Do not claim green while checks run. Continue until 🟢.
 3. **Review.** Apply requested changes as they arrive. Propose merge only after confirming that no blocker, risk, or choice remains.
 4. **Wrap.** After explicit agreement to wrap: first run the repo's per-session refreshes, which its `CLAUDE.md` names; then inspect view, checks, and comments; resolve actionable failures and report external failures; sync the guide, commit, and push; stop before merge.
 5. **Merge.** After an explicit merge request, merge and wait for the merge event before announcing it. Reply 🟣. If this was the last workstream, immediately follow with ⚫.
