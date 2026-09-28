@@ -1,4 +1,4 @@
-// Drive show-repo's Stage → Diff lens into a rendered state for a pixel check:
+// Drive the app's Stage → Diff lens into a rendered state for a pixel check:
 // stage two local text items (a before/after edit, no token needed), switch to
 // the Diff tab, run the diff. Shows the diff table plus the review-prompts panel.
 export default async (page) => {

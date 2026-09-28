@@ -477,8 +477,8 @@ test('pathOf round-trips a row back to the store path it came from', () => {
 // no uniquifier to strip, and claiming a name for a session that has none.
 test('nameOf strips the claude/ prefix and the six-character uniquifier', () => {
   assert.equal(S.nameOf({ branches: ['claude/fab-naming-todqvq'] }), 'fab-naming');
-  assert.equal(S.nameOf({ branches: ['claude/show-repo-refresh-buttons-aklshi'] }),
-    'show-repo-refresh-buttons');
+  assert.equal(S.nameOf({ branches: ['claude/app-refresh-buttons-aklshi'] }),
+    'app-refresh-buttons');
   // A one-word slug still has a suffix to shed, and shedding it must not eat
   // the slug.
   assert.equal(S.nameOf({ branches: ['claude/x-1g5p9v'] }), 'x');

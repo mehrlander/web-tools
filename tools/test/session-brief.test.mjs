@@ -2,7 +2,7 @@
 //
 // The view was inside pages/session.html until 2026-08-27, where its only
 // possible host was that page. Lifting it into a component gave it a second
-// host, show-repo's Sessions pane, which mounts one per slide so a session can
+// host, the app's Sessions pane, which mounts one per slide so a session can
 // be swiped through the way a branch already is. That is the whole reason this
 // file exists, and the two things worth pinning follow from it:
 //
@@ -587,7 +587,7 @@ test('the kit that draws the title-tips is in the chain that loads them', () => 
 test('the page tells the brief that no embedder draws its header', () => {
   // `framed` on the PAGE means it sits in an iframe; `framed` on the BRIEF
   // means a host draws the title and the id. The first is true of a toss and
-  // the second is true only of show-repo's Sessions pane, which mounts the
+  // the second is true only of the app's Sessions pane, which mounts the
   // COMPONENT rather than this page. Passing one for the other left a tossed
   // session with no title and no id anywhere on screen.
   const page = readFileSync(path.join(repoRoot, 'pages/session.html'), 'utf8');

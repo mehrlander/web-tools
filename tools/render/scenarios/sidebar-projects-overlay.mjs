@@ -1,4 +1,4 @@
-// Drive show-repo's sidebar Repos index to a seeded, token-free state where
+// Drive the app's sidebar Repos index to a seeded, token-free state where
 // one repo declares `projects`, so the indented project rows render headlessly
 // (the index normally fills from the private registry's config cache over the
 // viewer's token, which the sandbox has neither of). Same tactic as

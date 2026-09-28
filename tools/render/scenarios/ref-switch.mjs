@@ -1,4 +1,4 @@
-// Drive show-repo's header ref switch to a seeded, token-free state, so the
+// Drive the app's header ref switch to a seeded, token-free state, so the
 // control renders headlessly. Its branch list normally comes from a GraphQL
 // scan over the viewer's token, which the sandbox has neither of; this stubs
 // window.GH so load() resolves against a fixed list. What the shot proves is
@@ -20,7 +20,7 @@
 //     --script tools/render/scenarios/ref-switch.mjs
 
 const BRANCHES = [
-  { name: 'claude/show-repo-branch-nav-xzttnt', date: '2026-08-01T14:00:00Z', ago: '2h', subject: 'The header ref switch', fileOid: 'x1' },
+  { name: 'claude/app-branch-nav-xzttnt', date: '2026-08-01T14:00:00Z', ago: '2h', subject: 'The header ref switch', fileOid: 'x1' },
   { name: 'claude/project-pages-docs-udzi51', date: '2026-07-31T22:00:00Z', ago: '18h', subject: 'Projects as first-class', fileOid: 'x2' },
   { name: 'main', date: '2026-07-31T20:00:00Z', ago: '20h', subject: 'Merge pull request #331', fileOid: 'd0' },
   { name: 'claude/portable-dispatcher-execution-n48vvd', date: '2026-07-30T09:00:00Z', ago: '2d', subject: 'Make the dispatcher loud', fileOid: 'd0' },

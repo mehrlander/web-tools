@@ -7,7 +7,7 @@
 // derived from the key rather than from the shape of the file.
 //
 // The registry replaces a 3,000-word prose field reference that sat inside
-// docs/show-repo.md. Prose could not be checked against anything, and the cost
+// docs/APP.md. Prose could not be checked against anything, and the cost
 // showed: `quickLink` was live in two of the estate's four manifests and
 // appeared in no field list at all. That is the failure this file exists to
 // make loud.

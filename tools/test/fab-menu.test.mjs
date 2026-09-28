@@ -14,7 +14,7 @@
 //   IT READS EACH ELEMENT'S OWN SCOPE. Alpine's $data returns the merged data
 //   STACK, so every component nested inside a contributor answers for the
 //   contributor's properties too. detect() carries a long note about the day
-//   that shipped fourteen copies of show-repo's contract; this read must not
+//   that shipped fourteen copies of the app's contract; this read must not
 //   reintroduce it one contract over.
 //
 //   A ROW THAT FAILS REPORTS. The menu closes before a row runs, so a throw or
@@ -52,7 +52,7 @@ async function mountFab() {
 }
 
 // A contributor mounted into the page the fab is floating over, exactly as
-// show-repo's shell is: a plain x-data whose scope carries `menu`.
+// the app is: a plain x-data whose scope carries `menu`.
 async function mountPage(html) {
   const host = doc.createElement('div');
   host.innerHTML = html;
@@ -87,7 +87,7 @@ test('with nothing declaring one, the menu is the built-in row alone', async () 
 test('a page contributes its rows, and they carry the side they came from', async () => {
   clearPages();
   const d = await mountFab();
-  // A fixture, not show-repo's actual row: what this file guards is the fab's
+  // A fixture, not the app's actual row: what this file guards is the fab's
   // READ of the contract, and the shell owns its own wording (shell-intake).
   await mountPage(`<div x-data="{ menu: [{ label: 'Do the thing', icon: 'ph-clipboard-text', run(){} }] }"></div>`);
   d.openFabMenu();
@@ -266,7 +266,7 @@ test('the home row aims at the deployed app, not at this view', async () => {
 test('a re-pointed shell goes home to its own base', async () => {
   clearPages();
   const d = await mountFab();
-  d.showRepoBase = 'https://example.test/app/';
+  d.appBase = 'https://example.test/app/';
   assert.equal(d.homeUrl, 'https://example.test/app/',
     'writing the address out a second time is how the two copies part');
 });

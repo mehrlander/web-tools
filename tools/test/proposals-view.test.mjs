@@ -69,7 +69,7 @@ window.__shell = { REGISTRY_REPO: REG, hasToken: () => true, loadProposalCount: 
 
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-proposals.js'), 'utf8'))();
 // The put-file pane diffs through the shared kit when it is present, which it
-// is wherever the view really runs (show-repo loads it in its own chain).
+// is wherever the view really runs (the app loads it in its own chain).
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/text-diff.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/proposals.js'), 'utf8'))();
 Alpine.store('toast', () => {});

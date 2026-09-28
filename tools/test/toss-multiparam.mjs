@@ -30,7 +30,7 @@ const QUERY = 'view=app&appRepo=mehrlander%2Fhome&appPath=projects/news/app.html
 const ADDR = `mehrlander/web-tools@main:${PROBE_PATH}?${QUERY}`;
 
 // Reports what the page's own deep-link read returns. A real page does exactly
-// this (show-repo's app view reads these three keys), so the probe is the read,
+// this (the app's app view reads these three keys), so the probe is the read,
 // with nothing else on it to fail.
 const PROBE_HTML = `<!doctype html><html><head><title>probe</title></head><body>
 <script>

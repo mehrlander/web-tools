@@ -20,6 +20,12 @@ import re, sys, json, hashlib
 # unindented sentences. The decimal guard below does not reach it, since that
 # one needs a digit on BOTH sides of the period. Same `\d+\.` as BULLET, so the
 # splitter and the guard agree on what a marker is.
+# The e.g., i.e., etc. and vs. substitutions are NOT length-preserving: each
+# replaces three or four characters with one. prose_units computes offsets on
+# the masked text and emits them against the original, so every unit after
+# one of these abbreviations in a block is shifted. The digit and list-marker
+# guards keep the length. Padding each token to the width it replaces would fix
+# it (docs/SNAGS.md, `guards-shift-the-offsets`).
 GUARD = [(r'\be\.g\.', '\x01'), (r'\bi\.e\.', '\x02'), (r'\betc\.', '\x03'),
          (r'\bvs\.', '\x04'), (r'(\d)\.(\d)', lambda m: m.group(1)+'\x05'+m.group(2)),
          (r'(?m)^([ \t]{0,3}\d+)\.(?=[ \t])', lambda m: m.group(1)+'\x05')]

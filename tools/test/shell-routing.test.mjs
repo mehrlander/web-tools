@@ -1,4 +1,4 @@
-// show-repo's view routing: the address a screen mints must be an address the
+// The app's view routing: the address a screen mints must be an address the
 // page can open.
 //
 // The shell used to state its view table THREE times, by hand: the dispatch
@@ -316,7 +316,7 @@ test('the FAB toggle contract is well formed, and its setter is the mode setter'
   // rather than left to be seen.
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   const [t, ...rest] = s.toggles;
-  assert.equal(rest.length, 0, 'show-repo contributes more than one toggle; the doc names one');
+  assert.equal(rest.length, 0, 'the app contributes more than one toggle; the doc names one');
   assert.ok(t.key && t.label && t.icon && typeof t.set === 'function',
     'the toggle row is missing key, label, icon, or set');
   assert.equal(t.on, true, 'the toggle does not start on, so the default state reads as the exceptional one');

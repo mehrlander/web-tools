@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ── Where the writing about this page lives ───────────────────────────────
-     THE CONTRACT IS docs/show-repo.md for the shell (routing, chrome, shared
+     THE CONTRACT IS docs/APP.md for the app (routing, chrome, shared
      gestures, boundaries), plus one document per view and per form, named in
      the `doc` column of docs/app-routes.csv and docs/subjects.csv. Those are
      the reader-facing account and the ones to update when behaviour changes.
@@ -16,7 +16,7 @@
      second one: if a passage is not about the code it sits beside, it belongs
      in the doc. -->
 <!-- ── GitHub jump-overs: the convention every view honours ──────────────────
-     GITHUB JUMP-OVERS: show-repo is a wrapper over GitHub, not a wall — every
+     GITHUB JUMP-OVERS: the app is a wrapper over GitHub, not a wall — every
      view keeps a one-tap route to the GitHub presentation of what it is showing.
      A jump-over for a FILE or a FOLDER is one link: the explorer's breadcrumb
      links the current folder (ghFolderUrl), the viewer's actions link the open
@@ -498,7 +498,7 @@ html.dk-dragging main{transition:none !important}
 
            It is deliberately NOT the Files view's ref picker. That one chooses
            which ref of the BROWSED repo you are reading; this one chooses which
-           ref of web-tools show-repo itself RUNS FROM, which is a different
+           ref of the app itself RUNS FROM, which is a different
            question with the same vocabulary, so the panel spells out the repo
            and path it acts on. The two are visually apart for the same reason:
            the ref picker lives in the Files toolbar beside the tree it filters,
@@ -2048,7 +2048,7 @@ function app(){ return {
 
   // THE FAB'S PASTE ROW IS NOT CONTRIBUTED ANY MORE. This is where the
   // `menu` contract's one and only row lived from 2026-08-19 to 2026-08-22:
-  // the app-wide paste, offered on the launcher's long press because a phone
+  // The app-wide paste, offered on the launcher's long press because a phone
   // has no other intake gesture and the drawer would spend the tap's user
   // activation getting itself open.
   //
@@ -2117,7 +2117,7 @@ function app(){ return {
   // place, so nothing needs a second escape hatch parked on the page.
   //
   // Named `shell` because that is already this app's word for the header and
-  // sidebar around a view (docs/show-repo.md leads with it, and window.__shell
+  // sidebar around a view (the ?shell= parameter in docs/APP.md, and window.__shell
   // is this object). `chrome` was the first name and was dropped: in a browser
   // the chrome is the BROWSER's, which is the one thing this cannot touch.
   // `frame` was dropped too, since the Render tab's width bar already means a
@@ -3262,7 +3262,7 @@ function app(){ return {
   // scan (lib/kits/branch-status.js) once and stores it, so the branches view and
   // the cross-repo Activity view render from the cache instead of a per-visit
   // fanout. The material-change gate keeps commits sparse; the watermark gate
-  // below keeps the calls sparse. See web-tools-private/DESIGN.md.
+  // below keeps the calls sparse. See docs/views/branches.md, "The activity cache".
   //
   // 30 MINUTES, down from 12 hours. The old number was set when every pass paid
   // for the whole estate whether or not anything had moved, and half a day was
@@ -3606,8 +3606,8 @@ function app(){ return {
   // Stop and so is always stale by design.
   //
   // Throttled shorter than the activity crawl and longer than nothing, since
-  // sessions accrue while you are not looking. See web-tools-private/DESIGN.md
-  // and its sessions/README.md.
+  // sessions accrue while you are not looking. See docs/views/sessions.md,
+  // "The sessions cache", and web-tools-private/sessions/README.md.
   //
   // 15 MINUTES, down from 3 hours. This crawl never had the activity crawl's
   // problem: it is incremental by blob sha, so a pass over a store where
@@ -4145,7 +4145,7 @@ function app(){ return {
   // lib/kits/route-join.js (which the suite can load, and this page cannot be).
   //
   // It is a read of ONE repo, and that is not an accident of scope: the routes
-  // are show-repo's own, and show-repo is this page. Nothing here crawls the
+  // are the app's own, and the app is this page. Nothing here crawls the
   // estate, which is why it sits outside the three crawl caches above rather
   // than beside them.
   ROUTES_REPO: 'mehrlander/web-tools',
@@ -4863,7 +4863,7 @@ function app(){ return {
     document.getElementById('sidebarCrumbs')?.__crumbBar?.setOpen(false);
   },
   // WHERE HOME IS. The same address lib/alpineComponents/fab.js carries as
-  // `showRepoBase` for its own Home row, held here too because the shell cannot
+  // `appBase` for its own Home row, held here too because the shell cannot
   // depend on a fab being mounted and the fab floats over pages that are not
   // this app. visit-log-wiring.test.mjs holds the two strings to each other, so
   // the duplicate is loud rather than silent.
@@ -5388,7 +5388,7 @@ function app(){ return {
     else if (key === 'open') this.goLanding();
   },
 
-  // Any repo@ref on GitHub. show-repo is a wrapper over GitHub, not a wall, so
+  // Any repo@ref on GitHub. The app is a wrapper over GitHub, not a wall, so
   // every view keeps a one-tap route to the GitHub presentation of what it is
   // showing; the sidebar's is the github button beside each Repos row, whose
   // first row this is. It takes a repo rather than reading the open one, since
@@ -7644,7 +7644,7 @@ function app(){ return {
   // (header visible, sidebar closed) for easy navigation, and this toggle offers
   // a fast 1-tap gesture to tuck the header away if they want the view bare.
   //
-  // fab.js's own description already claimed show-repo contributed this row,
+  // fab.js's own description already claimed the app contributed this row,
   // and it did not: nothing declared `menu` anywhere, so readPageMenu found
   // none. The claim is now true rather than deleted, since the reason it gave
   // was the right one.

@@ -4,7 +4,7 @@ _Generated from tasks/. Do not hand-edit._
 
 ## On deck
 - 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · L
-- 🎫 [Reach the take-away menu from show-repo's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
+- 🎫 [Reach the take-away menu from the app's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
 - 🎫 [Finish commentary trim: accuracy pass or paired fan-out](tasks/comment-trim-rule-first-b0o3bu.md) · M
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
@@ -23,7 +23,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
-- 🎫 [Split show-repo.md by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
+- 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
 - (none)

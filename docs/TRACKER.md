@@ -140,7 +140,7 @@ Run `<action>` for <the subject, in one line>.
 
 One line per task, each prefixed with the 🎫 task marker ([SURFACING.md](SURFACING.md) owns the marker), keyed by title (not id); in-progress lines also show the owning branch. Nothing else: an open tag is never rendered, per the two-layer rule above.
 
-**The title is a link to the task file**, `🎫 [title](tasks/<file>.md)`, so the board is a table of contents: the row says what the work is and one tap reaches the file. The href is relative to the **board's** folder, since that is the one base both consumers resolve against: GitHub renders `board.md` in place, and show-repo's board pane resolves a row's relative href against the board file's folder and opens the task in its viewer. It targets the file on disk rather than the `id` field, so a task whose id drifted from its filename still links to something that exists. A task's next step belongs in its Progress log, never in a frontmatter key. The board is a faithful projection of the task files. Regenerate and commit both rollups with any commit that changes what the board shows: status, owning branch, or an unmet dependency.
+**The title is a link to the task file**, `🎫 [title](tasks/<file>.md)`, so the board is a table of contents: the row says what the work is and one tap reaches the file. The href is relative to the **board's** folder, since that is the one base both consumers resolve against: GitHub renders `board.md` in place, and the Web Tools app's board pane resolves a row's relative href against the board file's folder and opens the task in its viewer. It targets the file on disk rather than the `id` field, so a task whose id drifted from its filename still links to something that exists. A task's next step belongs in its Progress log, never in a frontmatter key. The board is a faithful projection of the task files. Regenerate and commit both rollups with any commit that changes what the board shows: status, owning branch, or an unmet dependency.
 
 **Dependencies render only while they bite.** A task carrying `depends-on: <id>[, <id>...]` shows ` (needs: <blocker title>)`, resolved to each blocker's title because the id means nothing to a reader who did not write the task. Several unmet blockers join with `; `. The line is suppressed once a dependency is settled (`done` or `dormant`) and on a settled task, whose dependency is history either way. A `depends-on` pointing at an id no task file defines renders as such rather than silently vanishing, since a dangling reference is the one case worth interrupting for.
 
@@ -153,7 +153,7 @@ The same run writes **`board.csv`** and **`board-tags.csv`** beside `board.md`.
 | | Reader | Carries |
 | --- | --- | --- |
 | `board.md` | a session reading files, GitHub, a diff, a clone, chat | the human list, portable, no token needed |
-| `board.csv` | show-repo, and anything else machine-side | every recognized field per task, unrendered |
+| `board.csv` | the Web Tools app, and anything else machine-side | every recognized field per task, unrendered |
 | `board-tags.csv` | the same, for anything selecting on an unpromoted key | one row per (task, tag) pair |
 
 `board.md` is not optional and does not go away.

@@ -113,7 +113,7 @@ surfacing,use,recorded,,value,column,yes,,value,"what the primitive is for, in o
 surfacing,boundary,recorded,,none,column,yes,,value,where it stops working; carried wherever there is an edge to name
 surfacing,form,recorded,,none,column,yes,,value,"the concrete shape, where the primitive has one"
 manifest-fields,type,recorded,,value,column,yes,string;number;boolean;object;array;boolean|object;string|array;string|boolean,label,the JSON type the key takes
-manifest-fields,consumer,recorded,,value,column,yes,show-repo;portable;session-hook,label,"which tool reads the key: show-repo (the shell presents the repo), portable (the conventions read it and show-repo ignores it), session-hook (a plugin hook reads it outside any page)"
+manifest-fields,consumer,recorded,,value,column,yes,app;portable;session-hook,label,"which tool reads the key: app (the Web Tools app presents the repo), portable (the conventions read it and the app ignores it), session-hook (a plugin hook reads it outside any page)"
 manifest-fields,summary,recorded,,value,column,yes,,value,what the key does and who owns its value
 manifest-fields,status,recorded,,none,column,yes,deprecated,label,set only where a key is superseded but still parsed
 text-fields,audience,recorded,,value,column,yes,reader;editor,label,who the text under this field name is addressed to; the split that decides whether it belongs in a data file or in source

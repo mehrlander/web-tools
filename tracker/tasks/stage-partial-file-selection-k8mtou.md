@@ -36,13 +36,13 @@ smaller than a file, which is the same pressure
 - **The UI.** Selecting a range in the stage's file view, and showing that an
   item is partial rather than whole.
 
-Contract lives in `docs/show-repo.md` and `lib/alpineComponents/stage.js`
+Contract lives in `docs/stage.md` and `lib/alpineComponents/stage.js`
 (`StageLink`).
 
 ## Related
 
 - `lib/alpineComponents/stage.js`: `StageLink` and whole-file `#stage=` grammar
-- `docs/show-repo.md`: stage contract this would extend with ranges
+- `docs/stage.md`: stage contract this would extend with ranges
 - `lib/kits/brief.js`: consumer that inherits whole-file stage granularity
 - task `focus-a-ui-component-f0awt7`: same region-vs-file pressure from the UI side
 - PR #295: brief hand-off through the stage that made the gap visible

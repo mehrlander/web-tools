@@ -72,6 +72,15 @@ const CLOSE = '[//]: # (/snags-index)';
 const STOP = new Set(['a', 'an', 'the', 'is', 'it', 'in', 'on', 'of', 'to', 'and',
                       'not', 'no', 'as', 'at', 'by', 'for', 'with', 'that', 'this']);
 
+// The index sits between one OPEN and one CLOSE marker. A merge that
+// duplicates either leaves stray index rows in the log, and the rewrite below
+// replaces only the first span, so the debris survives every run. Refuse
+// rather than guess which span is the index.
+export const markerCounts = (md) => ({
+  open: md.split(OPEN).length - 1,
+  close: md.split(CLOSE).length - 1,
+});
+
 export const tokens = (slug) => slug.split('-').filter(t => t.length > 2 && !STOP.has(t));
 
 // One entry per `### slug: title`, with every date its *(seen: …)* line names.
@@ -201,6 +210,12 @@ export function suspects(entries) {
 // a log with no repeats in it.
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const md = await readFile(FILE, 'utf8');
+  const marks = markerCounts(md);
+  if (marks.open > 1 || marks.close > 1) {
+    console.error(`snags-index: docs/SNAGS.md has ${marks.open} index-open and ${marks.close} index-close markers; ` +
+      'keep one of each and delete the stray index rows between the extras.');
+    process.exit(1);
+  }
   const { entries, orphanSightings, malformed, unslugged } = parse(md);
   const block = render(entries);
   const table = csv(entries);

@@ -25,7 +25,7 @@ payload; [`pages/doc-growth.html`](../pages/doc-growth.html) reads it.
 It exists because documentation length is easy to worry about and hard to see.
 The first run against this repo answered the worry: of the 60 markdown files
 edited in five or more commits, the great majority end larger than they started,
-and `docs/show-repo.md` alone went from 5,279 words to 28,397 across 181 commits.
+and the app's reference doc alone went from 5,279 words to 28,397 across 181 commits.
 
 ## Pointing it at a repository
 

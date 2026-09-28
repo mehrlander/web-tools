@@ -1,7 +1,7 @@
 // The launcher's long-press menu on the app, showing its built-in rows: the
 // Note row (the verb once, its aims as icon buttons beside it), "Peek", "To
 // Stage", and "Home", each one line with no prose under it. The `menu`
-// contract has no contributor now that the paste is built in and show-repo's
+// contract has no contributor now that the paste is built in and the app's
 // header row is retired, so `contributed` is expected to be empty here and the
 // shape under test is those rows plus the one-line rule.
 //
