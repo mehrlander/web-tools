@@ -107,7 +107,10 @@ page's ref names a branch of a different repository. So a page tossed from
 another repo loads `main` unless the link says otherwise, whichever of `use`,
 `lib` and `window.__lib` its boot reads. A page that frames views of its own,
 such as the app, reads `window.__lib` to tell a selection it must pass on
-from a default each view derives for itself.
+from a default each view derives for itself. The web-tools app does this in
+`appViewAddress`: a view's own ref and `lib` win, then the app's page ref (for
+a web-tools view) and the app's explicit selection, `main` included, then the
+view's own default.
 
 The shim answers only the page's reads of its own address:
 `new URLSearchParams(location.search)`, and the `searchParams` of a `URL`
