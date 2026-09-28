@@ -26,12 +26,10 @@ recorded.
 Root `.web-tools.json` is the repo's canonical **web-tools config file**.
 The Web Tools app is one consumer: it reads the
 `landing`, `pins`, and `stage` fields to decide how to present the repo. Those
-fields sit at the top level, not under a `showRepo` key, because they describe the
-repo in ways any web-tools page may read, not just this app. The app probes
+fields sit at the top level, not under a tool-specific key, because they describe
+the repo in ways any web-tools page may read, not just this app. The app probes
 the file once per `repo@ref` (a 404 means no config) and parses it as **data**,
-never executed. It is the only name read: the legacy `.show-repo.json` fallback
-was removed on its 2026-08-15 sunset, once the config cache showed every
-configured repo already on the new name. Fields:
+never executed. It is the only config filename any reader uses. Fields:
 
 ```json
 {
@@ -526,10 +524,6 @@ token.
   bar sticks to the bottom of the scrolling pane at every width, since a button
   at the far end of three screens is a scroll each time you use it.
 - **One manifest name**: a save writes `.web-tools.json`, the only name read.
-  Both editors used to carry a migration path (read the legacy
-  `.show-repo.json`, flag it, and land the new name on save); it went with the
-  read fallback on the 2026-08-15 sunset, since a migration for zero repos is
-  a branch nobody can reach.
 - **Projects** (Config view only): the workspace list, `projects`, as its own
   section under the repo-level fields. It reconciles two facts that are easy to
   let drift apart. A project is **declared** by an entry in that array, which is
