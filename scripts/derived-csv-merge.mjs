@@ -19,6 +19,10 @@
 // `derived-field-conflicts-per-branch` (whose own pointer proposed this fix "if
 // it recurs") and `ci-run-silently-not-started`, which is at six sightings.
 //
+// Dropping the `words` column for generated rows would also end the conflict,
+// and it is the wrong fix: lib/alpineComponents/map.js weighs the reach bands
+// in the Map view's Docs tab by `words`, so the number has to stay.
+//
 // THE DECLARATION IT READS ALREADY EXISTED, which is what makes this safe
 // rather than clever. docs/properties.csv marks every registry column `computed`
 // (with the deriver that writes it) or `recorded` (authored by a person), and

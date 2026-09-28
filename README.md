@@ -215,7 +215,8 @@ On top of that, two collections by convention:
 - **Components** in `lib/alpineComponents/` are reusable UI pieces registered
   as `Alpine.data(...)`.
 - **Kits** in `lib/kits/` are logic libraries, not dependent on Alpine.
-  [kits/README.md](lib/kits/README.md) is the full list.
+  The [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits)
+  is the full list, built from [`docs/kits.csv`](docs/kits.csv).
 
 The same handful of concerns drove every piece of it:
 
@@ -252,9 +253,10 @@ Three docs go deeper:
   `load → build → bake → export` pipeline that snapshots a page's `gh.load`
   chain into a standalone offline artifact, with a byte-identical `verify-build`
   check).
-- **[lib/kits/README.md](lib/kits/README.md)**: the logic libraries. What
-  each kit exposes on `window`, with usage examples; the full list lives
-  there, not here.
+- **[lib/kits/README.md](lib/kits/README.md)**: the logic libraries. The
+  rule for what counts as a kit, the shape a kit file takes, and usage
+  examples for some kits. The full list is the
+  [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits).
 
 The shape of a loaded page in one block:
 

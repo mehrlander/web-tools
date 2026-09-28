@@ -154,3 +154,11 @@ test('an empty attached means the record cannot say, not that nothing was attach
   assert.deepEqual(rows.map((r) => r.name), ['web-tools']);
   assert.equal(rows[0].idle, false, 'never claim "attached but idle" from a record that cannot say');
 });
+
+test('sessionRepoTip supplies the title-tip body without repeating the lead name', () => {
+  const row = data.sessionRepoRows(MIXED)[1];
+  const tip = data.sessionRepoTip(row);
+  assert.doesNotMatch(tip, /^web-tools/);
+  assert.match(tip, /on main/);
+  assert.match(tip, /253 transcript lines/);
+});

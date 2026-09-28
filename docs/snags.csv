@@ -2,11 +2,12 @@ slug,title,count,last_seen,seen,targets
 backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",7,2026-09-10,2026-09-01;2026-09-01;2026-09-01;2026-09-01;2026-09-08;2026-09-10;2026-09-10,loader.md
 ci-run-silently-not-started,a commit sat in an open PR with no checks,6,2026-09-14,2026-08-06;2026-09-10;2026-09-10;2026-09-14;2026-09-14;2026-09-14,../.github/workflows/test.yml
 link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",4,2026-09-08,2026-08-18;2026-09-01;2026-09-07;2026-09-08,SURFACING.md
+derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,3,2026-09-14,2026-08-10;2026-09-14;2026-09-14,../CLAUDE.md;../scripts/derived-csv-merge.mjs
 daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026-07-28;2026-08-22;2026-09-08,../skills/daisy-alpine/references/mechanics.md
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/daisy-alpine/SKILL.md
-marker-on-a-living-doc,annotated a doc instead of fixing it,2,2026-09-16,2026-08-06;2026-09-16,CONVENTIONS.md
+marker-on-a-living-doc,annotated a doc instead of fixing it,2,2026-09-16,2026-08-06;2026-09-16,../skills/doc-craft/SKILL.md
 toss-lands-on-the-landing,"a render link opened the app, nowhere near the change",2,2026-09-16,2026-08-16;2026-09-16,APP.md
 csv-rewrite-restamps-every-line,a one-row edit that arrives as a whole-file diff,2,2026-09-10,2026-09-10;2026-09-10,
 orphan-reads-as-unreferenced,"a label about delivery, read as a claim about links",2,2026-09-10,2026-09-10;2026-09-10,../tools/build/docs-reach.mjs
@@ -45,9 +46,9 @@ toss-carries-no-page-address,"a render link that resolved, rendered, and opened 
 consumer-tag-outlives-the-merge,a lib file loaded by a plain `<script src>` at `@main` in another repo showed the old code a day after the merge,1,2026-09-04,2026-09-04,loader.md#consumers-in-other-repos
 shallow-clone-has-no-merge-base,"the render-link script reported ""nothing"" over a nine-file branch",1,2026-09-03,2026-09-03,
 pipe-eats-the-exit-code,"a runner that reports a fatal, read through a pipe that returns zero",1,2026-09-01,2026-09-01,environment/testing.md
-annotated-document-resists-edits,editing CONVENTIONS.md costs an annotation rebuild,1,2026-08-31,2026-08-31,
+annotated-document-resists-edits,editing CONVENTIONS.md costs an annotation rebuild,1,2026-08-31,2026-08-31,annotation.md
 corpus-artifact-stale-on-a-tree-that-exists-only-in-ci,"green locally, red on the PR",1,2026-08-31,2026-08-31,docs.csv
-guards-shift-the-offsets,three of segment.py's five guards are not length-preserving,1,2026-08-31,2026-08-31,
+guards-shift-the-offsets,three of segment.py's five guards are not length-preserving,1,2026-08-31,2026-08-31,../scripts/annotate/segment.py
 injection-budget-counts-the-checkout-path,"a green local run went red on CI, and the first diagnosis was wrong",1,2026-08-31,2026-08-31,environment/capabilities.md
 showing-blocks-a-new-page-on-its-own-favicon,a page added on the branch always trips the shell rule,1,2026-08-30,2026-08-30,showing.md;../scripts/showing.py
 crawl-is-the-only-clock,a merged manifest change did not reach the nav,1,2026-08-28,2026-08-28,manifest.md
@@ -60,7 +61,7 @@ ci-failure-above-the-log-tail,a red check whose reason sits 250k characters abov
 id-in-a-component-body,"two mounts, one id, and the second one renders into the first",1,2026-08-23,2026-08-23,../lib/alpineComponents/viewer.js;../tools/test/viewer-many.mjs
 test-supplies-the-missing-dependency,a green check over a feature nobody could reach,1,2026-08-23,2026-08-23,../tools/test/deck-dock-reflow.mjs
 showing-answers-commits-only,the render-link script called a staged branch empty,1,2026-08-22,2026-08-22,showing.md
-viewport-rule-blind-to-a-docked-pane,the pane narrowed and every breakpoint kept believing it had a desktop,1,2026-08-22,2026-08-22,branch-overlay.md
+viewport-rule-blind-to-a-docked-pane,the pane narrowed and every breakpoint kept believing it had a desktop,1,2026-08-22,2026-08-22,../skills/daisy-alpine/references/mechanics.md
 custom-scheme-needs-a-markdown-link,the one thing meant to be tapped rendered as text,1,2026-08-19,2026-08-19,markdown-in-chat.md#a-custom-url-scheme-needs-an-explicit-markdown-link;SURFACING.md
 nul-byte-truncates-grep,"one NUL in a source file bounds every `grep -rn` over it, silently",1,2026-08-19,2026-08-19,../lib/alpineComponents/estate.js
 pages-shots-vacuous-ok,a thumbnail refresh shot nothing and exited 0,1,2026-08-19,2026-08-19,../tools/build/pages-shots.mjs
@@ -72,7 +73,6 @@ fetched-ref-behind-remote,a merge preflight certifies a merge GitHub refuses,1,2
 silent-fallback-old-build,"the pixels do not change, and nothing says the file failed to load",1,2026-08-14,2026-08-14,loader.md
 stub-hides-the-wiring,a test that stubs a lazy dependency cannot see it go missing,1,2026-08-13,2026-08-13,loader.md
 page-skips-the-loader-ignores-use,a page outside the loader opts out of `?use=` with no error,1,2026-08-11,2026-08-11,loader.md
-derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,1,2026-08-10,2026-08-10,../CLAUDE.md;../scripts/derived-csv-merge.mjs
 runner-tag-documented-unused,"a convention in the contract, used once, re-derived from memory",1,2026-08-09,2026-08-09,TRACKER.md
 status-audit-skipped-index,the status audit silently dropped every marker in a file named `index.md`,1,2026-08-09,2026-08-09,
 venues-invisible-from-inside,a session inventories only the venues it can see from its own sandbox,1,2026-08-09,2026-08-09,venues.md

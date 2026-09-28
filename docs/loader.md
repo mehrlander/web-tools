@@ -348,17 +348,16 @@ anything we add:
 A short list of footguns to avoid when adding new files:
 
 - **Adding `import` / `export` to a file loaded via `gh.load()`.** Both are
-  invalid inside the loader's `new Function` body and throw at load — they
-  are *not* stripped (that rewriting was removed; see "The load mechanism").
-  Reach a global or use `await import(...)` instead.
-- **Expecting `gh.load()` to hand back a value.** It doesn't — it runs the
+  invalid inside the loader's `new Function` body and throw at load; they
+  are *not* stripped. Reach a global or use `await import(...)` instead.
+- **Expecting `gh.load()` to hand back a value.** It doesn't; it runs the
   file for side effects and discards the result. Expose via `window.X`,
   `Alpine.data(...)`, or a `GH.prototype` patch; if you genuinely need a
   returned value, that's `read()`, not `load()`.
 - **Computing a `gh.load(...)` path at runtime** (`gh.load(name)` or a
   template literal). It loads fine, but the static build walker only sees
   string-literal arguments, so a computed path is invisible to the build and
-  won't be cached — the offline page then silently falls back to the network
+  won't be cached, and the offline page then silently falls back to the network
   for it. Keep load paths literal; see [Load and build](#load-and-build-are-one-contract).
 - **Registering `alpine:init` handlers after `alpine-bundle.js` loads.**
   Race depends on Alpine's CDN speed; intermittent. The rule is: all
@@ -372,6 +371,11 @@ A short list of footguns to avoid when adding new files:
 - **Relying on `Alpine.store('…')` at file top level.** Stores only exist
   after `alpine-bundle.js`'s `alpine:init` listener runs. Access them inside
   `init()` / methods / getters, not at the top level of the file.
+- **A backtick inside an HTML or CSS comment in a template literal.**
+  The backtick ends the JavaScript string even though the embedded markup
+  treats it as a comment. Name the term in plain words and run `node --check`
+  before the build. [`lib-parses.test.mjs`](../tools/test/lib-parses.test.mjs)
+  also checks that loadable files compile as function bodies.
 
 ## Load and build are one contract
 
