@@ -940,15 +940,29 @@ document.addEventListener('click',function(e){
     }
     return { lead, kept };
   }
+  // What a URL the page writes gets back of the link's selection (K). What the
+  // page's URL carries is read BEFORE anything is restored: `lib` and `w` come
+  // back when the page wrote none, and each `refs` entry comes back unless the
+  // page wrote an entry for the same target (a repository, or a repository and
+  // a path). Until 2026-09-29 the loop asked q.has('refs') after each append,
+  // so restoring the first entry hid every later one: a page writing
+  // ?view=tools kept one repository's selection and lost the rest on reload.
+  function topKeepSource() {
+    return 'function tgt(v){var m=String(v).match(/^([^/@:\\s]+\\/[^/@:\\s]+)@([^:]+?)(?::\\/*(.+))?$/);' +
+      'return m?m[1]+(m[3]?":"+m[3]:""):String(v);}' +
+      'function keep(q){var has={},mine={};K.forEach(function(p){has[p[0]]=q.has(p[0]);});' +
+      'q.getAll("refs").forEach(function(v){mine[tgt(v)]=1;});' +
+      'K.forEach(function(p){if(p[0]==="refs"?!mine[tgt(p[1])]:!has[p[0]])q.append(p[0],p[1]);});}';
+  }
   function topHistoryShim() {
     const { lead, kept } = topOwned();
     return `<script>(function(){var H=history,rs=H.replaceState,ps=H.pushState,L=${JSON.stringify(lead)},` +
       `K=${JSON.stringify(kept)},X=${JSON.stringify(topHidden())},B=${JSON.stringify(location.pathname)};` +
       `function enc(a){return encodeURIComponent(a).replace(/%2F/g,"/").replace(/%40/g,"@").replace(/%3A/g,":");}` +
+      topKeepSource() +
       `function map(u){if(u==null)return u;try{var t=new URL(String(u),document.baseURI);` +
       `if(t.origin!==location.origin&&t.origin!==new URL(document.baseURI).origin)return u;` +
-      `var q=new URLSearchParams(t.search);X.forEach(function(k){q.delete(k);});` +
-      `K.forEach(function(p){if(!q.has(p[0]))q.append(p[0],p[1]);});` +
+      `var q=new URLSearchParams(t.search);X.forEach(function(k){q.delete(k);});keep(q);` +
       `var head=L.map(function(p){return p[0]==="top"&&!p[1]?"top":p[0]+"="+enc(p[1]);}).join("&"),s=q.toString();` +
       `return location.origin+B+"?"+head+(s?"&"+s:"")+t.hash;}catch(e){return u;}}` +
       `H.replaceState=function(s,t,u){return rs.call(H,s,t,map(u));};H.pushState=function(s,t,u){return ps.call(H,s,t,map(u));};})();<\/script>`;

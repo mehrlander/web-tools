@@ -206,6 +206,7 @@ E12, live):
 | A bundle asked for a file by a client pinned to another ref, by a read naming its ref, or for another repository (`bundle-selection.test.mjs`, a real emitted bundle) | each goes to GitHub; only a read resolving to the build's ref is served from it | |
 | A home page's own build (surfacer) with Web Tools selected (X4b), and with an ask that cannot be resolved (one run with an unknown ref; held since by `bundle-selection.test.mjs`) | the build at the selected commit, every layer agreeing. Unresolved, before the fix the build reported the ask while running main's code; after it, main's build reports main and the FAB flags the ask | |
 | The renderer's `?top`: the app navigated and reloaded, a private page's inlined scripts, a routed viewer, the budget-drs app and its tenant (T1 to T4) | as in a frame, with the tab's own title and history; each selection read at its ref | |
+| A page that writes its query without the selection (`?view=tools`), then reload, Back, and a reload at the Back entry, with two repositories, a file entry and a folder entry; through `?top` (T5) and the launcher (R7b) | every entry in the URL and in `window.__refs` at every step. Before the fix of 2026-09-29, `?top` kept the first `refs` entry and the launcher none, so a reload lost the rest; T1 and R7 had not shown it, because the app carries its whole query forward | |
 | One `gh.load` file, and a routed viewer page, from path entries (R12, R10) | that file alone moves | the frame carried the path entry; the load was cut off |
 | Reload, framed (R11), and top mode through the app's own navigation and a reload (R7) | the selection and `lib=main` survive; views carry it | |
 | The renderer's own code | `main` in every case | `main` |
@@ -249,9 +250,9 @@ Where the two differed, the combined rule is this branch's, for one reason: a pa
 | E1 | Which variable kills Safari's web process under a pinned renderer; does the current renderer survive a FAB tap while framing (cell A) | Device, `pages/scratch/shell-pin-probe.html`, after merge |
 | E2 | Which ref a tossed page's library boots | Done; `toss-lib-ref.test.mjs`, `toss-ref-channels.test.mjs` |
 | E5 | Which ref every document asks for | Done; `showing-version-map.mjs` reports no wrong version on this branch |
-| E6 | Top mode | Chromium only: the launcher in `toss-top-probe.mjs`; the renderer's own `?top` in `showing-refs-probe.mjs`, T1 to T4 |
+| E6 | Top mode | Chromium only: the launcher in `toss-top-probe.mjs`; the renderer's own `?top` in `showing-refs-probe.mjs`, T1 to T5 |
 | E10 | Renderer version (A) against top mode (B), same scenarios, and an explicit `lib=main` through navigation and reload (S5) | Done in Chromium, `showing-mode-compare.mjs`; the device half is the checks above |
-| E11 | One selection for every repository a target reads | Done in the harness on the committed code, `showing-refs-probe.mjs`, cases R1 to R12 and T1 to T4 |
+| E11 | One selection for every repository a target reads | Done in the harness on the committed code, `showing-refs-probe.mjs`, cases R1 to R12, R7b and T1 to T5 |
 | E12 | The same selection against live GitHub | Partial, `showing-refs-live.mjs`: the displayed files and the Web Tools boot at their selected commits; every data read cut off by the proxy |
 | E7 | A path address served by a 404 page | Needs a deploy |
 | E8 | Independent selection, read from what ran | Done; `showing-selection-probe.mjs`, cases X1 to X11 |

@@ -85,6 +85,18 @@ const CASES = [
   C('T4', 'renderer top mode: the budget-drs app, its relative fetch and its framed tenant, one tenant file at another ref',
     { topRender: true, wait: 25000, q: `${refs(`${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`)}&view=submittal`,
       addr: `${HOME}@app-br:projects/budget-drs/app/view/app.html` }),
+  // A page that writes its query WITHOUT the selection (the app carries its
+  // whole query forward, which is why T1 and R7 never saw this): two
+  // repositories, a file entry and a folder entry, then a reload, Back, and a
+  // reload at the entry Back reached. Review finding, 2026-09-29.
+  C('T5', 'renderer top mode: a bare page write, then reload and Back, keeps the whole selection',
+    { topRender: true, bareWrite: true, wait: 12000,
+      q: `lib=main&${refs(`${HOME}@home-br`, `${REG}@data-br`, `${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`, `${WT}@comp-br:lib/alpineComponents/`)}&view=map`,
+      addr: APP }),
+  C('R7b', 'the launcher: the same bare write, reload and Back',
+    { top: true, bareWrite: true, wait: 12000,
+      q: `lib=main&${refs(`${HOME}@home-br`, `${REG}@data-br`, `${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`, `${WT}@comp-br:lib/alpineComponents/`)}&view=map`,
+      addr: APP }),
   C('R11', 'framed: the renderer reloaded keeps its selection',
     { reload: true, q: refs(`${HOME}@csv-br`, `${WT}@viewer-br`), hash: `data=${HOME}:${CSV}` }),
 ];
@@ -259,6 +271,31 @@ for (const c of CASES) {
     await state('after reload');
     await page.goBack().catch(() => {}); await page.waitForTimeout(1500);
     console.log(`    back: ${page.url().replace(base, '').slice(0, 190)}`);
+  }
+  if (c.bareWrite) {
+    // Checked, not only printed: the tab's URL must carry every entry the link
+    // did, and the page must read all of them back as window.__refs.
+    const want = new URLSearchParams(c.q).getAll('refs').sort();
+    const wantKeys = want.length + 1;  // the entries, and lib=main as the web-tools entry
+    let bad = 0;
+    const check = async (label) => {
+      const got = new URL(page.url()).searchParams.getAll('refs').sort();
+      const n = await page.evaluate(() => Object.keys(window.__refs || {}).length).catch(() => -1);
+      const view = new URL(page.url()).searchParams.get('view');
+      const ok = JSON.stringify(got) === JSON.stringify(want) && (n === wantKeys || n === -1 && label.startsWith('after the'));
+      if (!ok) bad++;
+      console.log(`    ${ok ? 'ok  ' : 'LOST'} ${label}: view=${view} refs in URL ${got.length}/${want.length}, __refs keys ${n}/${wantKeys}`);
+    };
+    await check('loaded');
+    await page.evaluate(() => history.pushState(null, '', '?view=tools'));
+    await check('after the page writes ?view=tools');
+    await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(c.wait);
+    await check('after reload');
+    await page.goBack().catch(() => {}); await page.waitForTimeout(1500);
+    await check('after Back');
+    await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(c.wait);
+    await check('after reload at the Back entry');
+    console.log(`    ${bad ? 'FAIL: ' + bad + ' step(s) lost part of the selection' : 'PASS: the whole selection survived every step'}`);
   }
   if (errors.length) console.log('    errors: ' + [...new Set(errors)].slice(0, 3).join(' | '));
   await ctx.close();

@@ -33,17 +33,20 @@ function lift(name) {
 }
 const routes = (SRC.match(/const TOSS_ROUTES = \{[\s\S]*?\n {2}\};\n/) || [''])[0];
 const hidden = (SRC.match(/const topHidden = [^\n]*\n/) || [''])[0];
-assert.ok(routes && hidden, 'TOSS_ROUTES or topHidden moved');
+const selection = (SRC.match(/ {2}const parseRefs = [\s\S]*?\n {2}\}\)\(\);\n/) || [''])[0];
+assert.ok(routes && hidden && /const SELECTED = /.test(selection), 'TOSS_ROUTES, topHidden or the selection parse moved');
 
 // addressHtml as showAddress calls it in top mode, with the renderer's own
 // query in scope, since its keys are what the shims preserve.
 function topPage(rendererUrl, { owner = 'mehrlander', name = 'web-tools', ref = 'br', path = 'app/index.html', lib = 'br' } = {}) {
   const queryParams = new URL(rendererUrl).searchParams;
-  const build = new Function('queryParams', 'location',
-    'let SELECTED = {};\n' + lift('refForIn') + '\n' + (SRC.match(/const refForSource = [\s\S]*?;\n/) || [''])[0] +
-    routes + hidden + ['topOwned', 'topHistoryShim', 'topParamsShim', 'hashNavigationShim', 'fetchShim', 'libRef', 'addressHtml'].map(lift).join('\n') +
+  // The selection as the renderer parses it from its own query, so a URL the
+  // page wrote can be loaded again here and read back as window.__refs.
+  const build = new Function('queryParams', 'location', 'window',
+    selection + lift('refForIn') + '\n' + (SRC.match(/const refForSource = [\s\S]*?;\n/) || [''])[0] +
+    routes + hidden + ['topOwned', 'topKeepSource', 'topHistoryShim', 'topParamsShim', 'hashNavigationShim', 'fetchShim', 'libRef', 'addressHtml'].map(lift).join('\n') +
     '\nreturn addressHtml;');
-  const addressHtml = build(queryParams, new URL(rendererUrl));
+  const addressHtml = build(queryParams, new URL(rendererUrl), {});
   const html = addressHtml('<!doctype html><html><head></head><body></body></html>',
     { owner, name, ref, path, pageQuery: '', lib, libAsked: '', top: { addr: queryParams.get('gh'), repo: owner + '/' + name, path } });
   return new JSDOM(html, { runScripts: 'dangerously', url: rendererUrl }).window;
@@ -84,6 +87,72 @@ test('a routed page keeps its route key, and reads its own envelope', () => {
   assert.equal(w.location.search, '?top&data=mehrlander/home:a.csv&mode=table&refs=mehrlander%2Fweb-tools%40v');
   assert.equal(w.eval("new URLSearchParams(location.search).get('data')"), null, 'the route key is the renderer\'s');
   w.close();
+});
+
+// The review finding, 2026-09-29: a page that writes its query without the
+// selection's entries got back only the first `refs` entry, so a reload lost
+// every other repository. Several repositories, a file entry and a folder
+// entry, with `lib`, as a link would carry them.
+const SEL = ['mehrlander/home@home-br', 'mehrlander/web-tools-private@data-br',
+  'mehrlander/home@tenant-br:projects/budget-drs/submittal/link-rewrite.js',
+  'mehrlander/web-tools@comp-br:lib/alpineComponents/'];
+const SEL_URL = R + '?top&gh=mehrlander/web-tools@br:app/index.html&lib=main&' +
+  SEL.map(v => 'refs=' + v).join('&') + '&view=map';
+const SEL_REFS = {
+  'mehrlander/home': 'home-br', 'mehrlander/web-tools-private': 'data-br',
+  'mehrlander/home:projects/budget-drs/submittal/link-rewrite.js': 'tenant-br',
+  'mehrlander/web-tools:lib/alpineComponents/': 'comp-br', 'mehrlander/web-tools': 'main',
+};
+// What the tab's URL says, read without the page's shim.
+const urlRefs = w => new URL(w.location.href).searchParams.getAll('refs');
+
+test('a page write that carries no selection keeps every entry, and a reload reads all of them back', async () => {
+  const w = topPage(SEL_URL);
+  assert.deepEqual(JSON.parse(w.eval('JSON.stringify(window.__refs)')), SEL_REFS, 'loaded');
+  w.eval("history.pushState(null, '', '?view=tools')");
+  assert.deepEqual(urlRefs(w), SEL, 'every repository, file and folder entry survives the write');
+  assert.equal(new URL(w.location.href).searchParams.get('lib'), 'main');
+  assert.equal(new URL(w.location.href).searchParams.get('view'), 'tools');
+  const again = topPage(w.location.href);
+  assert.deepEqual(JSON.parse(again.eval('JSON.stringify(window.__refs)')), SEL_REFS, 'reloaded from the written URL');
+  again.close();
+  w.eval("history.replaceState(null, '', '?view=pages#top')");
+  assert.deepEqual(urlRefs(w), SEL, 'replaceState, the same');
+  w.eval('history.back()');
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(new URL(w.location.href).searchParams.get('view'), 'map', 'Back reached the loaded entry');
+  assert.deepEqual(urlRefs(w), SEL, 'and it carries the whole selection');
+  w.close();
+});
+
+test('an entry the page writes for a target is the page\'s; the link\'s other entries still come back', () => {
+  const w = topPage(SEL_URL);
+  w.eval("history.pushState(null, '', '?view=tools&refs=mehrlander/home@page-own')");
+  assert.deepEqual(urlRefs(w), ['mehrlander/home@page-own', ...SEL.slice(1)],
+    'the page\'s repository entry replaces the link\'s for that repository only; the file entry in the same repository is another target');
+  w.eval("history.pushState(null, '', '?view=tools&' + " + JSON.stringify(SEL.map(v => 'refs=' + v).join('&')) + ")");
+  assert.deepEqual(urlRefs(w), SEL, 'a page that carries its query forward is not given duplicates');
+  w.close();
+});
+
+// The launcher (pages/scratch/toss-top-probe.html, the device-test route
+// before this renderer is deployed) restores the selection with its own copy
+// of the function. Both copies, as each file ships them, against one table.
+test('the launcher restores the selection exactly as the renderer does', () => {
+  const LAUNCHER = fs.readFileSync(new URL('../../pages/scratch/toss-top-probe.html', import.meta.url), 'utf8');
+  const launcherSrc = new Function((LAUNCHER.match(/const keepSource = [\s\S]*?;\n/) || [''])[0] + 'return keepSource;')();
+  const rendererSrc = new Function(lift('topKeepSource') + 'return topKeepSource();')();
+  assert.match(launcherSrc, /function keep\(q\)/, 'the launcher\'s keepSource moved');
+  const K = [['lib', 'main'], ...SEL.map(v => ['refs', v])];
+  const run = src => written => {
+    const q = new URLSearchParams(written);
+    new Function('K', 'q', src + 'keep(q);')(K, q);
+    return q.toString();
+  };
+  const cases = ['view=tools', '', 'view=tools&lib=own', 'refs=mehrlander/home@page-own',
+    'refs=mehrlander/home@x:projects/budget-drs/submittal/link-rewrite.js&view=a', SEL.map(v => 'refs=' + v).join('&') + '&lib=main'];
+  for (const c of cases) assert.equal(run(launcherSrc)(c), run(rendererSrc)(c), 'written: ' + c);
+  assert.deepEqual(new URLSearchParams(run(launcherSrc)('view=tools')).getAll('refs'), SEL);
 });
 
 // topAddressInQuery, run in the renderer's own window before the page is
