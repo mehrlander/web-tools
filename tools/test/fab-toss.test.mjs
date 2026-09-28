@@ -673,3 +673,66 @@ test('every component the fab mounts, the fab loads, and the mount waits for it'
   assert.match(src, /\$watch\('open',[\s\S]{0,80}?ensurePicker\(\)/,
     'and the flag going true is what asks for it');
 });
+
+
+// ── the ignored-ref check, inside a toss ────────────────────────────────────
+//
+// Outside a toss the fab compares the ?use= in the address bar with this
+// window's gh.ref. Inside one that comparison is meaningless (this window's gh
+// is the host's, main by construction) and until 2026-09-28 the getter simply
+// returned '', which switched the check off on the route every branch page is
+// handed over on. The ask is now derived from the address and the answer read
+// off the frame's own loader.
+
+const HOST = 'https://localhost/test/';
+const frameWith = (ref) => ({ contentWindow: { gh: { ref } } });
+
+test('inside a toss, the ignored-ref check reads the frame\'s loader against the address', async () => {
+  window.history.replaceState(null, '', HOST);
+  // A hub page addressed at a branch whose boot block pinned main itself.
+  window.__tossSubject = { repo: 'mehrlander/web-tools', ref: 'feature-x', path: 'pages/thing.html' };
+  window.__tossFrame = frameWith('main');
+  const { el } = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const d = Alpine.$data(el);
+  try {
+    assert.equal(d.frameLoaderRef, 'main');
+    assert.equal(d.frameExpectedRef, 'feature-x', 'a hub page is expected at the addressed ref');
+    assert.equal(d.ignoredUse, 'feature-x', 'the address asked for feature-x and the loader booted main');
+    assert.equal(d.loaderRef, 'main', 'the readout names what actually runs');
+
+    // The loader honoring the injected ref is not a mismatch.
+    window.__tossFrame = frameWith('feature-x');
+    announce(window, { repo: 'mehrlander/web-tools', ref: 'feature-x', path: 'pages/thing.html' });
+    await tick();
+    assert.equal(d.ignoredUse, '');
+
+    // A page in another repo loads main by design: no ask, so no mismatch.
+    window.__tossFrame = frameWith('main');
+    announce(window, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    await tick();
+    assert.equal(d.frameExpectedRef, '');
+    assert.equal(d.ignoredUse, '');
+
+    // Unless the host query asked for a lib ref, which is then the ask.
+    window.history.replaceState(null, '', HOST + '?lib=feature-z');
+    announce(window, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    await tick();
+    assert.equal(d.frameExpectedRef, 'feature-z');
+    assert.equal(d.ignoredUse, 'feature-z');
+    window.__tossFrame = frameWith('feature-z');
+    announce(window, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    await tick();
+    assert.equal(d.ignoredUse, '');
+
+    // A frame whose loader has not booted yet is not a mismatch either.
+    window.__tossFrame = { contentWindow: {} };
+    announce(window, { repo: 'mehrlander/web-tools', ref: 'feature-x', path: 'pages/thing.html' });
+    await tick();
+    assert.equal(d.frameLoaderRef, '');
+    assert.equal(d.ignoredUse, '');
+  } finally {
+    window.history.replaceState(null, '', HOST);
+    window.__tossSubject = null; window.__tossFrame = null;
+    window.dispatchEvent(new window.CustomEvent('toss-subject'));
+  }
+});

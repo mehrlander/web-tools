@@ -42,6 +42,21 @@
   addressHtml assembles. The on-page field and a pasted
   github.com/.../blob/<ref>/<path> URL both route here.
 
+  The addressed ref reaches the framed page by three channels, and they are
+  not one channel with three names. `use` is injected into the page's
+  URLSearchParams reads only when the subject is this hub, mehrlander/web-tools,
+  where lib/entry.js reads it as the ref to load the library at. window.__ref
+  is stamped for any subject and names the SUBJECT repo's ref. window.__lib is
+  stamped only when the host query carries ?lib=<ref>, and names the web-tools
+  ref a page in another repo should load the library at (entry.js reads it
+  after its own ?ref= and before ?use=). Until 2026-09-28 `use` was injected
+  for every subject, so a page in another repo importing plain entry.js asked
+  for web-tools at a commit that repo does not have.
+
+  Host query (how to show, never what):
+    ?w=<px>      lay the subject out at that width (the forced-width section)
+    ?lib=<ref>   the web-tools ref for a subject outside the hub, as above
+
   Toss routes (typed content tosses, built on address mode):
     #<route>=<owner>/<repo>[@<ref>]:<path>
     e.g. #data=mehrlander/home@main:projects/budget-drs/data/rows.csv
@@ -112,7 +127,7 @@
   <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
      href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
-    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width.
+    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, or <code>?lib=&lt;ref&gt;</code> to load Web Tools at a ref inside a page from another repo.
   </p>
 </div>
 
@@ -157,6 +172,15 @@
   const [hashKey, hashValue] = readFragment(location.hash);
   const queryParams = new URLSearchParams(location.search);
   const param = k => (k === hashKey ? hashValue : null) ?? queryParams.get(k);
+
+  // The hub. `use` is a web-tools ref to lib/entry.js, so it is injected only
+  // into a page of this repo; a page elsewhere gets window.__ref and, when the
+  // host query says so, window.__lib.
+  const HUB = 'mehrlander/web-tools';
+  // ?lib=<ref> on the HOST query: the web-tools ref a framed page outside the
+  // hub loads the library at. Read beside ?w=, and like it never from inside
+  // the address: the address says what to show, the query says how.
+  const hostLib = (queryParams.get('lib') || '').trim();
 
   // Fragment-only navigation is same-document: this script wouldn't re-run
   // when the user follows a second toss link, so force a real reload.
@@ -841,7 +865,7 @@ document.addEventListener('click',function(e){
   // so the page's own ?use= read returns that ref and its lib chain loads from
   // the same place. Then the fetch shim, so the page's relative runtime fetches
   // resolve from the repo.
-  function addressHtml(text, { owner, name, ref, path, pageQuery }) {
+  function addressHtml(text, { owner, name, ref, path, pageQuery, lib }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
     // Singleton guard: the shell mounts the one fab for this viewport, so a
@@ -860,12 +884,17 @@ document.addEventListener('click',function(e){
     prelude += hashNavigationShim();
     // Params shim: the srcdoc iframe has no location.search, so answer
     // URLSearchParams lookups for the addressed ?query keys (the page's own
-    // deep links, e.g. ?view=stage) plus use=<ref> (the lib-chain pin, the
-    // shim's original job). Injected values only fill absent/empty keys, so a
-    // params string that really carries the key wins.
+    // deep links, e.g. ?view=stage) plus, for a page of the hub, use=<ref>
+    // (the lib-chain pin, the shim's original job). Injected values only fill
+    // absent/empty keys, so a params string that really carries the key wins.
     const injected = {};
     if (pageQuery) for (const [k, v] of new URLSearchParams(pageQuery)) injected[k] = v;
-    if (ref) { injected.use = ref; prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>'; }
+    // Three channels for the ref, kept apart (the head comment says why):
+    // __ref for any subject, `use` only for a page of the hub, __lib only when
+    // the host query asked for it.
+    if (ref) prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>';
+    if (ref && owner + '/' + name === HUB) injected.use = ref;
+    if (lib) prelude += '<script>window.__lib=' + JSON.stringify(lib) + ';<\/script>';
     if (Object.keys(injected).length) {
       const P = JSON.stringify(injected);
       prelude += '<script>(function(){var P=' + P + ',O=Object.prototype.hasOwnProperty,' +
@@ -1084,7 +1113,7 @@ document.addEventListener('click',function(e){
     // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
     const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
-    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery }),
+    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery, lib: hostLib }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
   }
@@ -1335,7 +1364,9 @@ document.addEventListener('click',function(e){
         'A ?w=<px> on its own query renders the subject at that width instead of the ' +
         'device\'s: the frame IS a viewport, so media queries and a boot-time innerWidth ' +
         'read both see it, and a width wider than the screen is scaled down to fit rather ' +
-        'than scrolled. The drawer\'s Render tab drives it through window.__tossWidth().',
+        'than scrolled. The drawer\'s Render tab drives it through window.__tossWidth(). ' +
+        'A ?lib=<ref> on the same query names the web-tools ref a framed page from another ' +
+        'repo loads the library at; a web-tools page takes its lib ref from the address itself.',
       // `group` files this with the FAB's other clipboard outputs instead of
       // standing apart: copying the address of what is on screen belongs beside
       // copying its HTML. "New toss" is retired; it only cleared the URL, which

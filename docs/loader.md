@@ -425,11 +425,14 @@ routes this repo's own pages take, and no third:
   from GitHub Pages, then `gh.load()` each file, then `alpine-bundle.js` last
   when a loaded file registers an Alpine component. Every file after
   `entry.js` is fetched at main's tip through Pages and the contents API, on
-  the token the browser holds, and is current on the next load. A page tossed
-  from another repo carries that repo's ref in `?use=`, so it pins web-tools on
-  the import instead: `entry.js?ref=<ref>` takes precedence over the page
-  query. The budget-drs pages in `mehrlander/home` pass their `?lib=` this
-  way.
+  the token the browser holds, and is current on the next load. `entry.js`
+  resolves its ref in this order: `?ref=` on the import URL, then
+  `window.__lib`, then the page's `?use=`, then `main`. The renderer stamps
+  `window.__lib` only when its own query carries `?lib=<ref>`, and injects
+  `use` only into a page of this repo, so a page tossed from another repo
+  loads `main` unless the link says otherwise; it still gets `window.__ref`
+  for its own repo's ref. The budget-drs pages in `mehrlander/home` pass
+  their own `?lib=` as `entry.js?ref=`, which wins over both.
 - **The pre-build**, for a page that wants the library whole: resolve `main`
   to its commit through the commits API, fetch `dist/web-tools.js` from
   raw.githubusercontent at that SHA, and blob-import it, which is the app's

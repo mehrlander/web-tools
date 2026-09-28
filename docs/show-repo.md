@@ -79,8 +79,12 @@ the iOS Home Screen title and icon, from the mark `toss-render` announces on
 
 **Ref switch** (`lib/alpineComponents/ref-switch.js`). A text box in the header:
 paste a branch, tag or sha and Enter reloads show-repo itself from that ref,
-through the toss renderer with the ref pinned on both halves (`?use=<ref>` and
-`#gh=…@<ref>:…`) and the current deep link carried along. It is not Search's
+through the toss renderer, addressing the page at that ref
+(`#gh=…@<ref>:…`, which also pins its lib) with the current deep link carried
+along. It puts no `?use=` on the renderer's own query: that pin kills Safari's
+web process on an iPhone whenever the renderer hosts a frame
+([`SNAGS.md`](SNAGS.md), `shell-pin-kills-the-tab`), so the drawer around a
+switched view is main's, and the fab's layer strip says so. It is not Search's
 `refPicker`, which picks a ref of the browsed repo. The FAB's Render tab reads
 the ref you landed on (picker, ref bar, the branch's PR guide).
 

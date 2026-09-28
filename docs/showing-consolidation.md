@@ -6,8 +6,9 @@ link keep working, and `pages/toss-render.html` is extended to cover the
 rendering and preview scenarios that matter.** Removing or replacing `?use=`
 is no longer a goal. Two earlier drafts proposed a `render/` endpoint, a
 shared recipe adopted by the app, keyless addresses and an automatic top-level
-handoff; what survives of them is listed at the end. Nothing here is
-implemented.
+handoff; what survives of them is listed at the end. Items 1 through 4 of
+[the extension](#the-smallest-coherent-extension) were implemented on this
+branch on 2026-09-28; items 5 and 6 are not.
 
 The mechanisms are the rows of [`showing-mechanisms.csv`](showing-mechanisms.csv);
 the reasoning behind the current boundaries is [`showing.md`](showing.md); the
