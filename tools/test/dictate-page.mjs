@@ -1394,10 +1394,20 @@ try {
   const heldArm = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     return { arm: c.moveArm, wash: !!document.querySelector('[data-seam].bg-primary\\/25'), lit: document.querySelector('[data-target]').classList.contains('btn-primary') }; });
   ok('the target holds the words, keeps them washed, and lights', !!heldArm.arm && heldArm.wash && heldArm.lit, JSON.stringify(heldArm));
+  const label = await page.evaluate(() => ({ text: [...document.querySelectorAll('[data-target] span')].filter((s) => s.getClientRects().length).map((s) => s.textContent).join(''),
+    cancel: document.querySelector('[data-move-cancel]').getClientRects().length > 0 }));
+  ok('held, the target reads Move here, with a cancel beside it', label.text === 'Move here' && label.cancel, JSON.stringify(label));
+  // A tap on the text aims and lands nothing; Move here lands them. A tap in
+  // the gap below the first paragraph makes them a paragraph of their own.
   const gN = await seamBelow('First one');
   await page.touchscreen.tap(gN.x, gN.y);
   await page.waitForTimeout(200);
-  ok('and the next tap drops them there', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
+  const aimOnly = await page.evaluate(() => ({ text: document.querySelector('[x-data="dictate"]')._x_dataStack[0].text, line: !!document.querySelector('[data-move]') }));
+  ok('a tap on the text while words are held aims them, shows the drop line, and moves nothing', aimOnly.text === PARA_DOC && aimOnly.line, JSON.stringify(aimOnly));
+  const tgt2 = await page.evaluate(() => { const r = document.querySelector('[data-target]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(tgt2.x, tgt2.y);
+  await page.waitForTimeout(200);
+  ok('and Move here drops them there', (await docText()).includes('First one.\n\nFirst two.\n\nSecond para.'), JSON.stringify(await docText()));
   // A range the page sets is written into the platform's selection.
   const reflected = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
@@ -1562,8 +1572,23 @@ try {
   ok('while words are held, a drag on the text is held from the page: start and moves cancelled', sheet.text.start && sheet.text.move, JSON.stringify(sheet));
   ok('a control keeps its tap but not its drag, and without words held nothing is cancelled',
     !sheet.control.start && sheet.control.move && !sheet.idle.start && !sheet.idle.move, JSON.stringify(sheet));
+  // The cancel leaves held words where they were, still selected.
+  await reset();
+  const cancelled = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const a = c.text.indexOf('First two.'); c.d.select(a, a + 10); c.paint(); c.padTap();
+    c.d.caretAt(c.text.indexOf('Third para.')); c.paint();
+    await new Promise((r) => setTimeout(r, 100));
+    document.querySelector('[data-move-cancel]').click();
+    await new Promise((r) => setTimeout(r, 100));
+    return { held: !!c.moveArm, text: c.text, sel: c.text.slice(c.d.range.start, c.d.range.end),
+             label: document.querySelector('[data-target] span').getClientRects().length > 0 };
+  });
+  ok('the cancel lets go of held words where they were, still selected', !cancelled.held && cancelled.text === PARA_DOC
+    && cancelled.sel === 'First two.' && !cancelled.label, JSON.stringify(cancelled));
   // While words are held, a finger dragged on the text moves the caret in
-  // parallel, as the target's own drag does, and drops nothing.
+  // parallel, as the target's own drag does, shows the loupe while it moves,
+  // and drops nothing.
   await reset();
   const pre = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     c.$refs.view.scrollTop = 0;
@@ -1572,12 +1597,15 @@ try {
     return { x: r.left, y: r.top + r.height / 2, caret: c.d.range.start }; });
   await touch('pointerdown', pre.x, pre.y);
   for (let k = 1; k <= 6; k++) await touch('pointermove', pre.x + k * 12, pre.y - k * 10);
+  const midLens = await page.evaluate(() => !!document.querySelector('[data-drop-loupe]'));
   await touch('pointerup', pre.x + 72, pre.y - 60);
   await page.waitForTimeout(150);
   const surfPad = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    return { caret: c.d.range.start, collapsed: c.d.range.start === c.d.range.end, held: !!c.moveArm, text: c.text }; });
+    return { caret: c.d.range.start, collapsed: c.d.range.start === c.d.range.end, held: !!c.moveArm, text: c.text,
+             lensAfter: !!document.querySelector('[data-drop-loupe]') }; });
   ok('a drag on the text while words are held moves the caret and drops nothing',
     surfPad.held && surfPad.collapsed && surfPad.caret !== pre.caret && surfPad.text === PARA_DOC, JSON.stringify({ ...surfPad, was: pre.caret }));
+  ok('and the loupe shows while the finger aims, gone when it lifts', midLens && !surfPad.lensAfter, JSON.stringify({ midLens, lensAfter: surfPad.lensAfter }));
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.padTap(); });
   ok('and the drop moves the words, here onto a gap as their own paragraph', dnd.text.includes('Second para.\n\nFirst two.\n\nThird para.'), JSON.stringify(dnd.text));
   // The platform letting go without a tap does not leave a live range with
