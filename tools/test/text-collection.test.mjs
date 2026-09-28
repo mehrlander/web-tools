@@ -56,14 +56,14 @@ test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.sources.passages.path, P.passages);
   assert.equal(index.sources.variants.path, 'projects/text/variants.jsonl');
   assert.equal(index.sources.variants.sha, '2'.repeat(40));
-  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals']);
+  assert.deepEqual(Object.keys(index.sources), ['passages', 'variants', 'proposals', 'purposes', 'reviews', 'occurrences']);
   assert.deepEqual(index.proposals, [{ from: ID.families, to: ID['bill-section families'],
     repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS }]);
 });
 
 test('view is the one shape every surface reads', () => {
   const v = T.view(index, index.variants[0]);
-  assert.deepEqual(Object.keys(v), ['id', 'from', 'to', 'author', 'purpose', 'proposals']);
+  assert.deepEqual(Object.keys(v), ['id', 'from', 'to', 'author', 'purpose', 'proposals', 'at']);
   assert.equal(v.from.text, 'families');
   assert.equal(v.to.text, 'bill-section families');
   assert.equal(T.view(index, v.id).id, v.id, 'an id resolves to the same view');
@@ -150,7 +150,7 @@ test('load reads the three files at their fixed paths, and caches per credential
   const a = await T.load(anon);
   const b = await T.load(anon);
   assert.equal(a, b, 'one read per client');
-  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants].sort());
+  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.passages, P.variants, P.purposes, P.reviews, P.occurrences].sort());
   assert.equal(a.summary.variants, 4);
   assert.equal(a.summary.proposals, 1);
   const other = fixtureGh({ token: 'other' });
@@ -211,4 +211,102 @@ test('without variants.jsonl the collection is unavailable, not empty', async ()
   const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS } });
   await assert.rejects(T.load(gh), /unavailable \(the read returned 404\)/);
   T.clear();
+});
+
+// purposes.csv defines each purpose word. It is advisory: a missing file is no
+// definitions, a malformed one costs its definitions and a warning, never the
+// collection.
+const PURPOSES = 'purpose,kind,prompt,gloss\n'
+  + 'qualify,instruction,,Qualify a claim.\n'
+  + 'accountant,voice,"Rewrite this as an accountant would: plain, exact, ""no"" metaphor.",Plain and exact.\n';
+
+test('purposes.csv is read into index.purposes, quoted fields and all', async () => {
+  const built = await T.build({ ...args(), files: { ...args().files, purposes: PURPOSES } });
+  assert.deepEqual(built.purposes.qualify, { kind: 'instruction', prompt: '', gloss: 'Qualify a claim.' });
+  assert.equal(built.purposes.accountant.prompt, 'Rewrite this as an accountant would: plain, exact, "no" metaphor.');
+  assert.deepEqual(built.warnings, []);
+  assert.deepEqual(index.purposes, {}, 'no file, no definitions, no warning');
+});
+
+test('a purposes.csv with the wrong header or a bad row warns and keeps the collection', async () => {
+  const bad = await T.build({ ...args(), files: { ...args().files, purposes: 'word,meaning\nqualify,x\n' } });
+  assert.deepEqual(bad.purposes, {});
+  assert.match(bad.warnings.join('\n'), /purposes\.csv: the header is not/);
+  assert.equal(bad.summary.variants, 4);
+  const dup = await T.build({ ...args(), files: { ...args().files, purposes: PURPOSES + 'qualify,instruction,,again\n' } });
+  assert.equal(dup.purposes.qualify.gloss, 'Qualify a claim.', 'the first row for a word stands');
+  assert.match(dup.warnings.join('\n'), /repeated one; the row was skipped/);
+});
+
+test('load reads purposes.csv softly', async () => {
+  T.clear();
+  const gh = fixtureGh({ blobs: { [P.passages]: PASSAGES, [P.variants]: VARIANTS, [P.purposes]: PURPOSES } });
+  const loaded = await T.load(gh);
+  assert.equal(loaded.purposes.accountant.kind, 'voice');
+  assert.equal(loaded.sources.purposes.path, P.purposes);
+  T.clear();
+});
+
+// reviews.jsonl: a reader's latest vote on a pair counts, every note is kept,
+// and a row that cannot be shown is skipped by name.
+const REVIEW = (o) => JSON.stringify({ from: ID.families, to: ID['bill-section families'], at: '2026-09-28T00:00:00Z', ...o });
+
+test('reviews.jsonl tallies each reader\'s latest vote and keeps every note', async () => {
+  const reviews = [
+    REVIEW({ by: 'a', vote: 'up' }),
+    REVIEW({ by: 'b', vote: 'down' }),
+    REVIEW({ by: 'a', vote: 'down' }),
+    REVIEW({ by: 'a', note: 'the second clause is the point' }),
+    REVIEW({ by: 'b', vote: '' }),
+  ].join('\n') + '\n';
+  const built = await T.build({ ...args(), files: { ...args().files, reviews } });
+  assert.deepEqual(built.warnings, []);
+  const r = T.reviewsFor(built, ID.families, ID['bill-section families']);
+  assert.deepEqual(r.up, []);
+  assert.deepEqual(r.down, ['a'], 'a later vote replaces an earlier one, and an empty vote withdraws');
+  assert.equal(r.voteOf('a'), 'down');
+  assert.equal(r.voteOf('b'), '');
+  assert.deepEqual(r.notes.map(n => n.note), ['the second clause is the point']);
+  const none = T.reviewsFor(index, ID.chrome, ID.decoration);
+  assert.deepEqual([none.up, none.down, none.notes], [[], [], []], 'no file reads as no reviews');
+});
+
+test('addReview moves the tally without a reload, and reviewLine writes Python\'s key order', async () => {
+  const built = await T.build(args());
+  const row = { to: ID['bill-section families'], from: ID.families, by: 'a', at: '2026-09-28T00:00:00Z', vote: 'up' };
+  assert.equal(T.reviewsFor(built, ID.families, ID['bill-section families']).up.length, 0);
+  T.addReview(built, row);
+  assert.deepEqual(T.reviewsFor(built, ID.families, ID['bill-section families']).up, ['a']);
+  const line = T.reviewLine(row);
+  assert.deepEqual(Object.keys(JSON.parse(line)), ['at', 'by', 'from', 'to', 'vote']);
+  assert.match(line, /^\{"at": "/, 'a space after each colon, as json.dumps writes it');
+});
+
+test('a review that cannot be shown is skipped and named', async () => {
+  const reviews = [
+    REVIEW({ by: 'a' }),
+    REVIEW({ by: 'a', vote: 'maybe' }),
+    JSON.stringify({ from: ID.chrome, to: ID.families, by: 'a', at: 'x', vote: 'up' }),
+    REVIEW({ vote: 'up' }),
+  ].join('\n') + '\n';
+  const built = await T.build({ ...args(), files: { ...args().files, reviews } });
+  assert.equal(built.reviews.length, 0);
+  assert.equal(built.warnings.length, 4);
+  assert.match(built.warnings.join('\n'), /neither a vote nor a note/);
+  assert.match(built.warnings.join('\n'), /not up, down or empty/);
+  assert.match(built.warnings.join('\n'), /a pair no variant holds/);
+  assert.match(built.warnings.join('\n'), /without a from, to, by and at/);
+  assert.equal(built.summary.variants, 4, 'the collection stands');
+});
+
+test('occurrences.json puts each original\'s files on its view, and absent is unknown rather than none', async () => {
+  const snap = JSON.stringify({ commits: { 'mehrlander/web-tools': 'a'.repeat(40) },
+    at: { [ID.families]: ['mehrlander/web-tools:docs/text-tools.md'] } });
+  const built = await T.build({ ...args(), files: { ...args().files, occurrences: snap } });
+  assert.deepEqual(T.view(built, built.variants[0]).at, ['mehrlander/web-tools:docs/text-tools.md']);
+  assert.deepEqual(T.view(built, built.variants[1]).at, [], 'scanned and not found');
+  assert.equal(T.view(index, index.variants[0]).at, null, 'no snapshot, no claim');
+  const bad = await T.build({ ...args(), files: { ...args().files, occurrences: '{nope' } });
+  assert.match(bad.warnings.join('\n'), /occurrences\.json is not JSON/);
+  assert.equal(T.view(bad, bad.variants[0]).at, null);
 });
