@@ -281,26 +281,42 @@ test('--at puts a fragment on a framed link', () => {
 });
 
 // ── The overlay (docs/loader.md, "The selection") ───────────────────────────
-// main plus the branch's changed files, as path entries on main's renderer. It
-// is offered only once main's renderer and build read path entries; until then
-// the lib case stays on ?use=, which --overlay no pins as the real git answer
-// would on a main that predates them.
-test('with main able to read path entries, a lib change is an overlay of its files on main', () => {
-  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes']);
+// Main at a pinned commit with the branch's changed files over it, offered only
+// when it is the merge preview: main changed none of those files since the
+// branch point, and the branch removes none. --overlay yes stands in for a main
+// whose renderer and build read path entries; --main-changed, --removed and
+// --behind stand in for the git facts.
+const BASE = 'b'.repeat(40);
+test('a lib change on a branch behind main, touching nothing main touched, is an overlay pinned to main', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/kits/other.js']);
   assert.equal(d.mechanism, 'overlay');
-  const app = d.links.find(l => l.page === 'app/index.html');
-  assert.equal(app.url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
-    + `?refs=mehrlander/web-tools@${ZERO}:lib/alpineComponents/estate.js`
-    + '#gh=mehrlander/web-tools:app/index.html',
-    'the page is main\'s (no @ref), the build is left out, and the one changed file rides as an entry');
+  assert.equal(d.links.find(l => l.page === 'app/index.html').url,
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+    + `?refs=mehrlander/web-tools@${BASE}&refs=mehrlander/web-tools@${ZERO}:lib/alpineComponents/estate.js`
+    + `#gh=mehrlander/web-tools@${BASE}:app/index.html`, 'main is pinned, the build left out, the one file over it');
+  assert.ok(d.why.some(w => /9 commit\(s\) behind main.*a merge would produce/.test(w)));
 });
 
-test('a changed page is addressed at the branch, with main under it and its other files over it', () => {
+test('main having changed an overlaid file refuses the overlay and says neither link is the merge', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/alpineComponents/estate.js']);
+  assert.equal(d.mechanism, 'use');
+  assert.ok(d.warnings.some(w => /main has changed 1 of this branch's files.*Neither link shows the merge/.test(w)));
+  assert.ok(d.why.some(w => /as it stands: 9 commit\(s\) behind main/.test(w)), 'the fallback does not claim to be the real thing');
+});
+
+test('a deleted or renamed file refuses the overlay', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--removed', 'lib/kits/old.js']);
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.ok(d.warnings.some(w => /deletes or renames lib\/kits\/old\.js/.test(w)));
+});
+
+test('a changed page is addressed at the branch, with pinned main under it and its other files over it', () => {
   const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes']);
   assert.equal(d.mechanism, 'overlay');
   assert.equal(d.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
-    + `?refs=mehrlander/web-tools@main&refs=mehrlander/web-tools@${ZERO}:lib/kits/branch-status.js`
+    + `?refs=mehrlander/web-tools@${BASE}&refs=mehrlander/web-tools@${ZERO}:lib/kits/branch-status.js`
     + `#gh=mehrlander/web-tools@${ZERO}:pages/diff-tool.html`);
+  assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
 });
 
 test('while main cannot read path entries, a lib change stays on ?use=', () => {
@@ -313,4 +329,12 @@ test('past the cap the overlay steps aside and says so', () => {
   const d = run(many, ['--overlay', 'yes']);
   assert.equal(d.mechanism, 'use');
   assert.ok(d.warnings.some(w => /past the overlay's 20/.test(w)));
+});
+
+test('a generated catalog both sides changed is read at main, named, and does not refuse the overlay', () => {
+  const d = run('lib/alpineComponents/estate.js,docs/tests.csv,dist/web-tools.js',
+    ['--overlay', 'yes', '--behind', '3', '--main-changed', 'docs/tests.csv']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.ok(!d.links[0].url.includes('docs/tests.csv'), 'a regenerated file is not overlaid');
+  assert.ok(d.why.some(w => /generated file\(s\).*docs\/tests\.csv.*read at main/.test(w)));
 });
