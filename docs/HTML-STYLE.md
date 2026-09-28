@@ -8,9 +8,8 @@ Tailwind and Alpine mechanics are beside it, in
 [`skills/daisy-alpine/references/mechanics.md`](../skills/daisy-alpine/references/mechanics.md).
 
 The names are stated here because the file did not carry them and could not be
-found by them: searching "style guide" across the estate returned
-[google-style-clarity](../skills/google-style-clarity/SKILL.md), which is the
-guide for **prose**, and searching "html style" returned nothing, the hyphen in
+found by them: searching "style guide" across the estate returned a guide for
+**prose**, and searching "html style" returned nothing, the hyphen in
 the filename splitting the phrase. **A document has to be findable by the words
 someone who has not read it would use**, which are rarely the words it uses about
 itself. That is why this path survives as a pointer rather than being deleted.
