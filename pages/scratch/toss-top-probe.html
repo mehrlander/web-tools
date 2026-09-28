@@ -1,0 +1,133 @@
+<!doctype html>
+<!--
+  toss-top-probe.html — top mode: the renderer replaces itself with the
+  selected page, so the page runs as the top-level document.
+  Experiments E6 and E10 of docs/showing-consolidation.md.
+
+  THE QUESTION. A toss frames its page, so the tab's title and icon, the
+  address bar and history, the viewport a phone gives a page, and the FAB all
+  belong to the renderer, whose code is main's. `?use=` on a deployed page has
+  all of those, at the ref, and nothing else a toss has. Can the renderer
+  instead fetch the page at its ref, prepend the same prelude a toss stamps,
+  and document.open / write / close itself into that page?
+
+  THE ADDRESS, and the one change from the first prototype. The address rides
+  the query as ONE key, `gh`, beside the page's own real parameters:
+
+    toss-top-probe.html?gh=owner/repo@ref:path[&lib=<ref>][&<page params>][#<page frag>]
+
+  so the page's query and fragment are its own, as on the deployed page. The
+  first prototype carried the page query INSIDE the gh value, and the app, which
+  writes its whole query back on every view change, copied the address into
+  itself until it nested (measured 2026-09-28). Now the prelude hides the `gh`
+  entry from the page's reads of its address, and folds it back into every
+  history write, so a page that rewrites its query keeps the address without
+  knowing it exists. The old form (page query inside the gh value) is still
+  read, for the device cells minted before this change.
+
+  THE VERSIONS, by the renderer's rule (docs/loader.md, "Under the toss"): the
+  page at the address's ref; Web Tools at `lib` if the link names it, else the
+  page's own ref for a web-tools page, else main. A real `lib` in the query
+  stays visible to the page, since it IS the version the page should load.
+
+  NOT THE PROPOSAL'S RENDERER: no inliner, no fetch shim, no payload mode, no
+  forced width. It exists to measure what top-level execution buys and costs,
+  headlessly and on a phone, and it is small enough to be the one file merged
+  to main that lets a branch's page, or a branch's renderer, run top-level on a
+  device before its own merge.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toss top probe</title>
+</head>
+<body>
+<script type="module">
+  const OWNERS = ['mehrlander'];
+  const HUB = 'mehrlander/web-tools';
+
+  // The address: `gh` read by slice up to the next '&' for the current form,
+  // or to the end for the old form whose page query rode inside the value.
+  const q = location.search.replace(/^\?/, '');
+  const raw = (q.match(/(?:^|&)gh=([^&]*)/) || [])[1] || '';
+  const addr = decodeURIComponent(raw);
+  const m = addr.match(/^([^/@:]+)\/([^/@:]+)(?:@([^:]+))?:([^?]+)(?:\?(.*))?$/);
+
+  const fail = (msg) => { document.body.textContent = msg; document.title = 'top probe: ' + msg; };
+
+  if (!m) fail('expected ?gh=owner/repo[@ref]:path');
+  else if (!OWNERS.includes(m[1])) fail('owner not allowed: ' + m[1]);
+  else {
+    const [, owner, name, ref = '', path, oldPageQuery = ''] = m;
+    const repo = owner + '/' + name;
+    // The page's own parameters: every real key but `gh`, plus, in the old
+    // form, the query that rode inside the gh value.
+    const real = new URLSearchParams(q);
+    real.delete('gh');
+    // Appended, not set: a key the page repeats keeps every value (set kept the
+    // first and dropped the rest, measured 2026-09-29 with two `refs` entries).
+    const own = new URLSearchParams(oldPageQuery);
+    const oldKeys = new Set(own.keys());
+    for (const [k, v] of real) if (!oldKeys.has(k)) own.append(k, v);
+    const asked = own.get('lib') || '';
+    const lib = asked || (repo === HUB ? ref : 'main') || '';
+
+    const headers = { Accept: 'application/vnd.github.raw+json' };
+    try { const t = localStorage.getItem('ghToken'); if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim(); } catch {}
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}` + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers });
+    if (!res.ok) fail(`${repo}@${ref}:${path} answered HTTP ${res.status}`);
+    else {
+      let html = await res.text();
+      // Raw media type, or the JSON envelope from a server that ignores it.
+      if (/^\s*\{/.test(html)) { try { const d = JSON.parse(html); if (d.content) html = new TextDecoder().decode(Uint8Array.from(atob(d.content.replace(/\s/g, '')), c => c.charCodeAt(0))); } catch {} }
+
+      const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+      // Only the parameters the page's own query does not carry are injected:
+      // the old form's page query, and `use`/`lib` when they are defaults.
+      const injected = {};
+      for (const [k, v] of own) if (!real.has(k)) injected[k] = v;
+      // `use` carries the effective ref; `lib` is never invented (the renderer's
+      // rule), so a page reading `lib` or __lib sees only a real selection.
+      if (lib) injected.use = lib;
+      const A = repo + (ref ? '@' + ref : '') + ':' + path;
+      const prelude =
+        `<base href="https://${owner}.github.io/${name}/${dir}">` +
+        `<script>window.__ref=${JSON.stringify(ref || 'main')};` +
+        (asked ? `window.__lib=${JSON.stringify(asked)};` : '') +
+        `window.__tossTop=${JSON.stringify({ repo, ref: ref || 'main', path, lib })};<\/script>` +
+        // The address stays out of the page's sight: every read of a params
+        // object that holds gh=<this address> skips that entry, and `use` and
+        // `lib` answer the defaults above where the page's query has none.
+        `<script>(function(){var P=${JSON.stringify(injected)},A=${JSON.stringify(addr)},O=Object.prototype.hasOwnProperty,` +
+        `S=URLSearchParams,SP=S.prototype,g=SP.get,ga=SP.getAll,h=SP.has,ks=SP.keys,ts=SP.toString,en=SP.entries,fe=SP.forEach;` +
+        `function mine(t){try{return ga.call(t,"gh").indexOf(A)!==-1;}catch(e){return false;}}` +
+        `function clean(t){var c=new S();for(var it=en.call(t),r=it.next();!r.done;r=it.next()){if(!(r.value[0]==="gh"&&r.value[1]===A))c.append(r.value[0],r.value[1]);}return c;}` +
+        `SP.get=function(k){if(mine(this)){if(k==="gh")return null;var v=g.call(this,k);return (v==null||v==="")&&O.call(P,k)?P[k]:v;}return g.call(this,k);};` +
+        `SP.has=function(k){if(mine(this)){if(k==="gh")return false;return h.call(this,k)||O.call(P,k);}return h.call(this,k);};` +
+        `SP.getAll=function(k){if(mine(this)&&k==="gh")return ga.call(this,k).filter(function(v){return v!==A;});return ga.call(this,k);};` +
+        `SP.toString=function(){return mine(this)?ts.call(clean(this)):ts.call(this);};` +
+        `SP.keys=function(){return mine(this)?ks.call(clean(this)):ks.call(this);};` +
+        `SP.entries=function(){return mine(this)?en.call(clean(this)):en.call(this);};` +
+        `SP[Symbol.iterator]=SP.entries;` +
+        `SP.forEach=function(f,t){return mine(this)?fe.call(clean(this),f,t):fe.call(this,f,t);};` +
+        `})();<\/script>` +
+        // History: whatever the page writes, the path stays this file's and
+        // gh=<address> leads the query; the page's query and fragment follow.
+        // Relative URLs resolve against the <base>, which is the deployed
+        // page's directory, so the target's own path is ignored.
+        `<script>(function(){var H=history,rs=H.replaceState,ps=H.pushState,A=${JSON.stringify(addr)},B=${JSON.stringify(location.pathname)};` +
+        `function map(u){if(u==null)return u;try{var t=new URL(String(u),document.baseURI);` +
+        `if(t.origin!==location.origin&&t.origin!==new URL(document.baseURI).origin)return u;` +
+        `var q=new URLSearchParams(t.search);q.delete("gh");var s=q.toString();` +
+        `return location.origin+B+"?gh="+encodeURIComponent(A).replace(/%2F/g,"/").replace(/%40/g,"@").replace(/%3A/g,":")+(s?"&"+s:"")+t.hash;}catch(e){return u;}}` +
+        `H.replaceState=function(s,t,u){return rs.call(H,s,t,map(u));};H.pushState=function(s,t,u){return ps.call(H,s,t,map(u));};})();<\/script>`;
+      html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, x => x + prelude) : prelude + html;
+      document.open();
+      document.write(html);
+      document.close();
+    }
+  }
+</script>
+</body>
+</html>
