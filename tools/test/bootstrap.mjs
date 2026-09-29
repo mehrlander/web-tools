@@ -57,7 +57,7 @@ export const KIT_IMPORTS = {
   // interop the constructor namespace lands on `.default`, which is the shape
   // the kit's `m.default ?? m` already expects from the CDN build.
   'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm': () => import('exceljs'),
-  'https://cdn.jsdelivr.net/npm/pako@2.1.0/+esm': () => import('pako'),
+  'https://cdn.jsdelivr.net/npm/pako@2.1.0/+esm': () => import('pako-git'),
 };
 
 // Run lib/kits/<name>.js against `window` (a plain object is fine for kits —

@@ -128,6 +128,7 @@
     "marked": "^18.0.6",
     "modern-screenshot": "^4.7.0",
     "pako": "^1.0.11",
+    "pako-git": "npm:pako@2.1.0",
     "papaparse": "^5.5.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.4.120",
