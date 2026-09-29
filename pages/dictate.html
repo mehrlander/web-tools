@@ -2437,6 +2437,7 @@
         // Where words dragged by the platform would land, and the loupe that
         // shows it above the thumb covering it (drawLens).
         if (this.rendered) this.markCardBar();
+        if (this.rendered && this.showMarks) this.markFormat(add, lb, vb);
         // Held words aimed by a tap on a gap show the same drop line.
         if (this.moveArm && this.moveAim && this.moveAim.para) this.markTarget(this.moveAim, add, across, lb);
         if (this.moveArm && this.rendered) this.markAim(add, lb, vb);
@@ -3007,17 +3008,79 @@
         this._infoWire = window.PanelTip.wire(el, { onClose: () => { this.cardInfo = null; }, label: 'card info',
           except: ['[data-md-card-act="info"]'], stale: pinned ? 'geometry' : true });
       },
-      openCardInfo(i, k, pinned = true) {
+      // A card's source, both sides: { s, a, line } for GitHub's copy (O) and
+      // the text now (N), each the span from its first entry to its last.
+      cardSpans(i) {
         const run = window.MdSurface.cards(this.$refs.md)[i];
-        if (!run) return;
-        const base = this.fileBase || '', t = this.text;
+        if (!run) return null;
         const span = (src, key) => {
           const rs = run.map((e) => e[key]).filter(Boolean);
-          if (!rs.length) return { s: '', line: 0 };
+          if (!rs.length) return { s: '', a: 0, line: 0 };
           const a = Math.min(...rs.map((r) => r.start)), b = Math.max(...rs.map((r) => r.end));
-          return { s: src.slice(a, b).trimEnd(), line: src.slice(0, a).split('\n').length };
+          return { s: src.slice(a, b).trimEnd(), a, line: src.slice(0, a).split('\n').length };
         };
-        const O = span(base, 'oldRange'), N = span(t, 'newRange');
+        return { O: span(this.fileBase || '', 'oldRange'), N: span(this.text, 'newRange') };
+      },
+      // CHANGES THE WORDS CANNOT SHOW, underlined where they are. The marks
+      // come from a word diff, so bold added, italics taken off, or a doubled
+      // space changed the file and marked nothing: the card read as unchanged.
+      // Here each card on its marked reading has its source compared by
+      // character, and what changed only in markers or spacing gets a dotted
+      // amber underline, on the overlay, so the rendered text is untouched.
+      //   paired markers (** __ * _ ` ~~) added or removed: the words between
+      //   spacing added or removed: the word after it
+      // Info names it exactly. A card whose character diff is a rewrite (many
+      // pieces) is left alone, since its words are already marked and a
+      // marker found in a rewrite is noise. Memoized by the two sources.
+      markFormat(add, lb, vb) {
+        const md = this.$refs.md, D = window.Diff;
+        if (!D || this.moveArm || this.mover) return;
+        const memo = (this._fmtMemo ||= new Map());
+        const n = window.MdSurface.cards(md).length;
+        for (let i = 0; i < n; i++) {
+          if (window.MdSurface.readingOf(md, i) !== 'inline') continue;
+          const sp = this.cardSpans(i);
+          if (!sp || !sp.O.s || !sp.N.s) continue;
+          const key = sp.O.s + '\u0000' + sp.N.s;
+          let found = memo.get(key);
+          if (!found) {
+            found = [];
+            const parts = D.diffChars(sp.O.s, sp.N.s);
+            if (parts.length <= 24) {
+              let at = 0; const marks = [];
+              for (const p of parts) {
+                const len = p.count ?? p.value.length;
+                if (p.added || p.removed) {
+                  if (/^(\*\*|__|\*|_|`|~~)$/.test(p.value)) marks.push({ v: p.value, at, added: !!p.added, len: p.added ? len : 0 });
+                  else if (/^[ \t]+$/.test(p.value)) {
+                    const m = /^\s*\S+/.exec(sp.N.s.slice(at + (p.added ? len : 0)));
+                    if (m) found.push([at + (p.added ? len : 0), at + (p.added ? len : 0) + m[0].length]);
+                  }
+                }
+                if (!p.removed) at += len;
+              }
+              // Markers pair in order, like with like: the first opens, the next closes.
+              for (let k = 0; k + 1 < marks.length; k++) {
+                const m = marks[k], e = marks[k + 1];
+                if (m.v === e.v && m.added === e.added && e.at > m.at + m.len) { found.push([m.at + m.len, e.at]); k++; }
+              }
+            }
+            memo.set(key, found);
+            if (memo.size > 200) memo.delete(memo.keys().next().value);
+          }
+          for (const [a, b] of found) {
+            for (const x of window.MdSurface.rects(md, sp.N.a + a, sp.N.a + b)) {
+              if (x.bottom < vb.top || x.top > vb.bottom) continue;
+              add('div', 'absolute pointer-events-none border-b-2 border-dotted border-amber-500',
+                `left:${x.left - lb.left}px;top:${x.bottom - lb.top - 1}px;width:${x.width}px;height:0`, 'seam').dataset.fmtMark = '';
+            }
+          }
+        }
+      },
+      openCardInfo(i, k, pinned = true) {
+        const sp = this.cardSpans(i);
+        if (!sp) return;
+        const { O, N } = sp;
         const wc = (s) => (s.match(/\S+/g) || []).length;
         const { rows, changed } = this.lineDiff(O.s, N.s, O.line || N.line, N.line || O.line);
         const bare = (s, re) => s.replace(re, '');

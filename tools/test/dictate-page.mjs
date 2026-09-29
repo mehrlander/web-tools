@@ -1421,6 +1421,7 @@ try {
     const p = document.querySelector('[data-card-info]');
     const raw = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"]') || [])].map((r) => r.dataset.raw).join('\n');
     const out = { inCard, open: !!p && p.getClientRects().length > 0, old: raw('del'), now: raw('ins'),
+      plainMarks: c.$refs.layer.querySelectorAll('[data-fmt-mark]').length,
       lit: [...(p?.querySelectorAll('[data-row="ins"] .rounded-sm') || [])].map((s) => s.textContent).join('|') };
     c.cardInfo = null;
     c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
@@ -1431,11 +1432,16 @@ try {
     c.d.text = c.text.replace('Third para.', 'Third **para**.'); c.paint();
     c.d.caretAt(c.d.text.indexOf('Third') + 2); c.paint();
     await new Promise((r) => setTimeout(r, 200));
+    // And the card says so in place: a dotted underline under the word the
+    // markers now wrap, and under nothing else.
+    const um = [...c.$refs.layer.querySelectorAll('[data-fmt-mark]')].map((u) => u.getBoundingClientRect());
+    const pa = c.d.text.indexOf('**para**') + 2, wr = window.MdSurface.rects(c.$refs.md, pa, pa + 4)[0];
+    const under = { n: um.length, fits: um.length === 1 && Math.abs(um[0].left - wr.left) < 2 && Math.abs(um[0].width - wr.width) < 2 && Math.abs(um[0].top - wr.bottom) < 4 };
     [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
       lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
-      ghost: !!p.querySelector('[data-wt-panel-tip-close]'), buttons: p.querySelectorAll('button').length };
+      ghost: !!p.querySelector('[data-wt-panel-tip-close]'), buttons: p.querySelectorAll('button').length, under };
     // Escape puts it away; there is no button to do it.
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise((r) => setTimeout(r, 50));
@@ -1447,6 +1453,8 @@ try {
     info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
   ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is a pinned panel-tip whose one button is the kit\'s ghost ✕, and Escape puts it away',
     info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.ghost && info.fmt.buttons === 1 && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
+  ok('and in the card, bold added puts one dotted underline under exactly the word, while a change of words puts none',
+    info.fmt.under.fits && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
   // HOVER OPENS INFO, where there is hover: unpinned, so with no ✕, and it
   // goes when the mouse is demonstrably elsewhere (kits/panel-tip.js).
   const infoBtn = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
