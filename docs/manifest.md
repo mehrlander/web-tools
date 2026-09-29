@@ -277,8 +277,25 @@ An errand with no `action` and no `run` asks for material only you have. `expect
 grades what arrives. A run with `outputSigned: true` wraps its output as an
 `errand-result/1` envelope, which a paste anywhere on the Stage routes to its
 errand. File `errands/requests/<id>.json` in the registry, with the fields in
-`lib/kits/errands.js`, and hand the user `?view=stage&errand=<id>`. Nothing runs
-until they tap, reads included. The answer lands at `errands/results/<id>.json`.
+`lib/kits/errands.js`, and hand the user `?view=stage&errand=<id>`. Nothing the
+Stage performs runs until they tap, reads included. The answer lands at
+`errands/results/<id>.json`.
+
+Two methods need no one at the Stage, because neither borrows the Stage's
+token:
+
+- **`workflow-run`** (venue `actions-hosted`) is a script run by
+  `.github/workflows/errand-browser.yml` on a GitHub-hosted runner, under the
+  job's own read-only token. The session dispatches it, reads the `RESULT`
+  line from the job log, and writes the result file itself. Use it for any
+  check a browser can make without a person: live GitHub, WebKit, Chromium.
+- **`device-link`** (venue `iphone`) is one link the person opens on the
+  device: `pages/scratch/toss-top-probe.html` with `probe=<id>` and a `steps=`
+  list. The page runs every step itself, shows its progress in a banner, and
+  writes `errands/results/<id>.json` with the token the device already holds.
+  Use it only for what a device alone can say, such as whether iOS keeps the
+  tab alive; `tools/test/probe-driver.mjs` checks the driver before a person
+  is asked to open anything.
 
 ## Inbox and outbox
 
