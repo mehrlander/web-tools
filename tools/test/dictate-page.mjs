@@ -1434,14 +1434,19 @@ try {
     [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
-      lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width) };
+      lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
+      close: !!p.querySelector('button') };
+    // Escape puts it away; there is no button to do it.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise((r) => setTimeout(r, 50));
+    out.fmt.escaped = c.cardInfo === null;
     c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
   ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
     info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
-  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width',
-    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^1 line changed/.test(info.fmt.sum) && info.fmt.w >= 340, JSON.stringify(info.fmt));
+  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width, with no Close button, and Escape puts it away',
+    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && !info.fmt.close && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
   // The Changes face is retired; what it alone had, the count and a step
   // between changes, sits in the Rendered face's corner.
   const jump = await page.evaluate(async () => {

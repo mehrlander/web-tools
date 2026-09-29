@@ -961,6 +961,8 @@
           && !e.target?.closest?.('input, textarea, select, [contenteditable]');
 
         addEventListener('keydown', (e) => {
+          // Escape puts away whichever popover is up, before anything else.
+          if (e.key === 'Escape' && (this.cardInfo || this.wordPop)) { this.cardInfo = null; this.wordPop = null; e.preventDefault(); e.stopPropagation(); return; }
           if (this.keyCard != null && mine(e) && this.cardKey(e)) return;
           if (mine(e) && this.shortcut(e)) return;
           // A character typed at the Rendered face with no keyboard open opens
@@ -2982,15 +2984,19 @@
         // Where, in the file as it is now: the added lines, or for a pure
         // removal the lines it came out of in GitHub's copy.
         const ch = rows.filter((r) => r.kind === 'ins'), lines = (ch.length ? ch : rows.filter((r) => r.kind === 'del')).map((r) => r.no);
-        const where = lines.length ? (lines[0] === lines[lines.length - 1] ? 'line ' + lines[0] : 'lines ' + lines[0] + '–' + lines[lines.length - 1]) : '';
+        // Said as a reader would: "line 28", or "3 lines, 28–31". The word
+        // count only when it moved, since "235 → 235 words" says nothing.
+        const a = lines[0], z = lines[lines.length - 1];
+        const where = !lines.length ? '' : changed === 1 || a === z ? 'line ' + a : changed + ' lines, ' + a + '–' + z;
+        const ow = wc(O.s), nw = wc(N.s);
         const b = k.getBoundingClientRect();
         const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
         const below = innerHeight - b.bottom > b.top;
-        this.cardInfo = { i, rows, kind, where, ow: wc(O.s), nw: wc(N.s), w,
-          sum: changed + (changed === 1 ? ' line' : ' lines') + ' changed · ' + wc(O.s) + ' → ' + wc(N.s) + ' words',
+        this.cardInfo = { i, rows, kind, w,
+          sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
           x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
           pos: below ? 'top:' + (b.bottom + 6) + 'px' : 'bottom:' + (innerHeight - b.top + 6) + 'px',
-          room: Math.max(160, (below ? innerHeight - b.bottom : b.top) - 130) };
+          room: Math.max(160, (below ? innerHeight - b.bottom : b.top) - 60) };
       },
       // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
       // segs: [{ t, cls }] }. A removed run facing an added one is paired line
@@ -3893,32 +3899,31 @@
 
       <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
            since the buffer no longer holds them; this is where they are read. -->
-      <!-- A card's Info: what the change was. -->
+      <!-- A card's Info: what the change was. A popover, so it goes the way
+           popovers go, with no button of its own: a tap anywhere else, the
+           card's info again, or Escape. One frame, a line saying where the
+           change is, and the lines themselves, the unchanged ones receding. -->
       <div x-show="cardInfo" x-cloak @click.outside="cardInfo = null" data-card-info
-           class="fixed z-50 card card-sm bg-base-100 border border-base-300 shadow-xl"
+           x-transition:enter="transition ease-out duration-150 motion-reduce:transition-none"
+           x-transition:enter-start="opacity-0 scale-[.98]" x-transition:enter-end="opacity-100 scale-100"
+           class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
-        <div class="card-body gap-2">
-          <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
-            <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
-            <span class="opacity-60 tabular-nums" x-text="cardInfo ? cardInfo.where : ''"></span>
-            <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
-            <span x-show="cardInfo && cardInfo.kind" data-info-kind
-                  class="rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
-          </div>
-          <div data-info-diff class="overflow-auto rounded border border-base-300 font-mono text-xs leading-5"
-               :style="cardInfo ? 'max-height:' + cardInfo.room + 'px' : ''">
-            <template x-for="(r, k) in (cardInfo ? cardInfo.rows : [])" :key="k">
-              <div class="grid grid-cols-[2.75rem_1rem_minmax(0,1fr)]" :data-row="r.kind" :data-raw="r.raw"
-                   :class="{ del: 'bg-error/10', ins: 'bg-success/15', same: '', gap: 'opacity-50 italic' }[r.kind]">
-                <span class="text-right pr-1.5 opacity-40 tabular-nums select-none" x-text="r.no"></span>
-                <span class="text-center opacity-60 select-none" x-text="r.sign"></span>
-                <span class="whitespace-pre-wrap break-words pr-1.5"><template x-for="(s, j) in r.segs" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
-              </div>
-            </template>
-          </div>
-          <div class="card-actions justify-end">
-            <button class="btn btn-sm btn-ghost" @click="cardInfo = null">Close</button>
-          </div>
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
+          <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
+          <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
+          <span x-show="cardInfo && cardInfo.kind" data-info-kind
+                class="ml-auto rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
+        </div>
+        <div data-info-diff class="overflow-auto py-1 font-mono text-xs leading-5"
+             :style="cardInfo ? 'max-height:' + cardInfo.room + 'px' : ''">
+          <template x-for="(r, k) in (cardInfo ? cardInfo.rows : [])" :key="k">
+            <div class="grid grid-cols-[2.75rem_1rem_minmax(0,1fr)]" :data-row="r.kind" :data-raw="r.raw"
+                 :class="{ del: 'bg-error/10', ins: 'bg-success/15', same: 'opacity-50', gap: 'opacity-40 italic' }[r.kind]">
+              <span class="text-right pr-1.5 opacity-40 tabular-nums select-none" x-text="r.no"></span>
+              <span class="text-center opacity-60 select-none" x-text="r.sign"></span>
+              <span class="whitespace-pre-wrap break-words pr-3"><template x-for="(s, j) in r.segs" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
+            </div>
+          </template>
         </div>
       </div>
       <!-- A tapped mark's undo, struck or added: an action, so it wears the
