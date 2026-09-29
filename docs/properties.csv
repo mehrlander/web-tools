@@ -236,6 +236,7 @@ doc-overlap-matches,target_line,computed,scripts/doc-overlap.py,value,column,yes
 doc-overlap-matches,target_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the other passage's word count; with words, what decides whether a pair involves a short passage"
 doc-overlap-matches,target_hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
 doc-overlap-matches,cosine,computed,scripts/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
+doc-overlap-gold,seed,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,the seed of the sample the row was drawn in; each sample is scored on its own
 doc-overlap-gold,stratum,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
 doc-overlap-gold,stratum_size,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs in the stratum, the numerator of the row weight"
 doc-overlap-gold,stratum_seats,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs drawn from the stratum, the denominator of the row weight"
