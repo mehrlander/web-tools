@@ -31,7 +31,7 @@ Shape:
 {
   "source": "https://raw.githubusercontent.com/mehrlander/web-tools/main/skills",
   "skills": [
-    { "name": "arriving-together", "description": "Apply the 'arriving together' framework..." },
+    { "name": "apple-shortcuts-actions", "description": "Compose Apple Shortcuts actions..." },
     { "name": "atomic-decomposition", "description": "Break a document into the claims it makes..." },
     ...
   ]
@@ -66,12 +66,12 @@ Fetch it, follow its instructions in the current session. Companion files (scrip
 
 Only fire this skill on explicit signals from the user. Examples:
 
-- "load skill arriving-together"
-- "load-skill arriving-together"
-- "/load-skill arriving-together"
-- "fetch the arriving-together skill"
-- "load my arriving-together skill"
-- "use my arriving-together skill for this"
+- "load skill succinct-text"
+- "load-skill succinct-text"
+- "/load-skill succinct-text"
+- "fetch the succinct-text skill"
+- "load my succinct-text skill"
+- "use my succinct-text skill for this"
 - "load skill X from source Y" (custom source)
 
 Do not fire on general topic overlap.
