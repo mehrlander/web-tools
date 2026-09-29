@@ -281,16 +281,28 @@ class GH {
   }
 
   async _fetchText(url, path, method, opts, idempotent) {
-    let res;
-    for (let attempt = 1; ; attempt++) {
-      try { res = await fetch(url, { headers: this.headers, ...opts }); break; }
-      catch (e) {
-        if (idempotent && attempt === 1) { await new Promise(r => setTimeout(r, 600)); continue; }
-        const err = new Error(`Network error on ${method} ${path}: ${e?.message || e}`);
-        err.status = 0;
-        err.cause = e;
-        throw err;
-      }
+    let res = await this._send(url, path, method, opts, idempotent);
+
+    // A CACHED ANSWER IN ANOTHER READER'S SHAPE. GitHub gives every
+    // representation of a contents URL one strong ETag, the blob sha: raw,
+    // raw+json, html+json and JSON alike (measured 2026-09-28). Another reader
+    // (toss-render, for one) asks the same URL for the raw media type, and
+    // Chromium keeps one cache entry per URL. When the stored copy is the raw
+    // one, the browser revalidates this JSON read with the raw copy's ETag,
+    // GitHub answers 304, and the file itself arrives as this read's body:
+    // "No number after minus sign in JSON" on a markdown file that opens with
+    // `---`. Every later revalidation earns another 304, so the mix-up outlives
+    // max-age for as long as the file is unchanged.
+    //
+    // req() parses every answer as JSON, and GitHub answers a JSON Accept with
+    // application/json, so a raw or html type here came from the cache rather
+    // than from GitHub answering this request. One read with 'reload'
+    // goes to the network without a validator and overwrites the entry.
+    // 'no-cache' would still send the stale ETag, and 'no-store' repairs this
+    // read while leaving the entry as it was. Held by tools/test/gh-api.test.mjs.
+    const bypassed = opts.cache === 'reload' || opts.cache === 'no-store';
+    if (res.ok && idempotent && !bypassed && GH._otherShape(res)) {
+      res = await this._send(url, path, method, { ...opts, cache: 'reload' }, idempotent);
     }
 
     if (!res.ok) {
@@ -312,8 +324,35 @@ class GH {
       err.status = res.status;
       throw err;
     }
+    // Still not JSON after a network read: say so, rather than let JSON.parse
+    // report a character position, or hand a raw .json file back as metadata.
+    const shape = GH._otherShape(res);
+    if (shape) throw new Error(`GitHub answered ${method} ${path} as ${shape}, not JSON`);
     // A test double may answer with json() alone; a real Response has both.
     return typeof res.text === 'function' ? res.text() : res.json().then(v => JSON.stringify(v));
+  }
+
+  // One fetch, retried once on a dropped connection when the call is a read.
+  async _send(url, path, method, init, idempotent) {
+    for (let attempt = 1; ; attempt++) {
+      try { return await fetch(url, { headers: this.headers, ...init }); }
+      catch (e) {
+        if (idempotent && attempt === 1) { await new Promise(r => setTimeout(r, 600)); continue; }
+        const err = new Error(`Network error on ${method} ${path}: ${e?.message || e}`);
+        err.status = 0;
+        err.cause = e;
+        throw err;
+      }
+    }
+  }
+
+  // The contents API's file-body media types (raw, raw+json, v3.raw, html+json),
+  // the ones measured to share the JSON answer's ETag, or '' for anything else.
+  // Narrow on purpose: a JSON media type that GitHub might label vnd.github
+  // (text-match+json, say) must still parse rather than throw.
+  static _otherShape(res) {
+    const type = String(res.headers?.get?.('content-type') || '').split(';')[0].trim();
+    return /^application\/vnd\.github\.(v3\.)?(raw|html)\b/i.test(type) ? type : '';
   }
 
   // `opts` rides through to fetch, and the one that matters is `cache`.
