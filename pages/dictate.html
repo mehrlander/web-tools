@@ -487,8 +487,9 @@
       file: FILE,
       fileSha: '', fileBase: null, fileErr: '', fileLoading: false,
       get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
+      // The line under the name on a phone: the repository and the folders.
+      get fileDir() { return FILE ? [FILE.repo.split('/')[1], ...FILE.path.split('/').slice(0, -1)].join('/') : ''; },
       get fileWhere() { return FILE ? FILE.repo.split('/')[1] + (FILE.ref ? '@' + FILE.ref : '') + ':' + FILE.path : ''; },
-      get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
       get fileUrl() { return FILE ? `https://github.com/${FILE.repo}/blob/${FILE.ref || 'HEAD'}/${FILE.path}` : ''; },
       // Which face of the file the pane shows. Rendered is where a markdown file
       // opens: the document as it reads, still aimed at by offset into its source
@@ -3451,7 +3452,8 @@
        IN FILE MODE THE FILE LINE LIVES HERE TOO, rather than in a second band
        under the header. The empty centre column takes the file's name and
        whether it is unsaved, and the two faces join the right group. On a
-       phone the name is the file's own (SKILL.md) and unsaved is a dot; from
+       phone the name is the file's own (SKILL.md), with the repository and
+       its folders on a small second line, and unsaved is a dot; from
        the sm breakpoint up, the whole repo@ref:path and the badge. The clock
        and word count give way on a phone, and the count moves to the menu. -->
   <div @pointerdown="headerTap($event)"
@@ -3493,7 +3495,13 @@
     <div x-show="file" class="flex items-center gap-1.5 min-w-0 px-1">
       <a :href="fileUrl" target="_blank" rel="noopener" :title="fileWhere"
          class="link link-hover truncate min-w-0 text-sm sm:font-mono">
-        <span class="sm:hidden" x-text="fileName"></span><span class="hidden sm:inline" x-text="fileWhere"></span>
+        <span class="sm:hidden flex flex-col min-w-0 leading-tight">
+          <span class="truncate" data-file-name x-text="fileName"></span>
+          <!-- Cut from the LEFT when it does not fit, so the folder nearest the
+               file is the part that shows: right-to-left for the ellipsis,
+               the path itself isolated left-to-right so its order holds. -->
+          <span class="truncate text-[11px] opacity-60 [direction:rtl] text-left" data-file-dir><bdi x-text="fileDir"></bdi></span>
+        </span><span class="hidden sm:inline" x-text="fileWhere"></span>
       </a>
       <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
       <button x-show="dirty && !fileLoading" @click="unsavedTap($event)" data-unsaved

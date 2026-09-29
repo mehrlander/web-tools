@@ -1375,11 +1375,13 @@ try {
   const hdr = await page.evaluate(() => {
     const head = document.querySelector('[x-data="dictate"] > div'), a = head.querySelector('a[href*="github.com"]');
     const vis = (el) => !!el && el.getClientRects().length > 0;
-    return { inHeader: vis(a), whole: !!a && a.scrollWidth <= a.clientWidth, name: a && a.innerText.trim(),
+    const nm = a && a.querySelector('[data-file-name]'), dir = a && a.querySelector('[data-file-dir]');
+    return { inHeader: vis(a), whole: !!nm && nm.scrollWidth <= nm.clientWidth, name: nm && nm.innerText.trim(), dir: dir && dir.innerText.trim(),
+             stacked: !!nm && !!dir && dir.getBoundingClientRect().top >= nm.getBoundingClientRect().bottom - 2,
              faces: vis(head.querySelector('[data-faces]')), join: vis(head.querySelector('.join .ph-code')) };
   });
-  ok('in file mode the file\'s name sits whole in the one header, beside a single faces toggle',
-    hdr.inHeader && hdr.whole && !/[:@/]/.test(hdr.name) && hdr.faces && !hdr.join, JSON.stringify(hdr));
+  ok('in file mode the file\'s name sits whole in the one header, the repository and folders on a line under it, beside a single faces toggle',
+    hdr.inHeader && hdr.whole && !/[:@/]/.test(hdr.name) && hdr.dir === 'web-tools/tools/test' && hdr.stacked && hdr.faces && !hdr.join, JSON.stringify(hdr));
   const faceB = await page.evaluate(() => { const r = document.querySelector('[data-faces]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.touchscreen.tap(faceB.x, faceB.y);
   await page.waitForTimeout(250);
@@ -1798,6 +1800,12 @@ try {
   await page.waitForTimeout(400);
   const mid = await readNow();
   ok('a drag that pauses with the finger down is not settled under it', mid.reading === 'new', JSON.stringify(mid));
+  // But the pill already lights the reading under the finger, before any
+  // settle: it used to wait for the release and the quiet spell after it.
+  const litMid = await page.evaluate((i) => { const b = document.querySelector('[data-md-card="' + i + '"] [data-md-card-read].font-medium');
+    return b && b.dataset.mdCardRead.split(':')[1]; }, cardAt.i);
+  const underMid = ['old', 'inline', 'new'][Math.round(mid.left / mid.w)];
+  ok('and its stops pill lights the reading under the finger while the finger is still down', litMid === underMid && litMid !== 'new', JSON.stringify({ litMid, underMid }));
   await touchAt('touchEnd');
   await page.waitForTimeout(900);
   const afterDrag = await readNow();
