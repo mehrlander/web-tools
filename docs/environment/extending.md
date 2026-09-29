@@ -186,6 +186,10 @@ Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sess
 
 *Added 2026-09-27.* [`refresh-plugin.sh`](../../skills/hooks/refresh-plugin.sh) moves `portable` to the tip of web-tools `main` each session and prints one line when the pin moves; its log is `/tmp/refresh-plugin.log`. Skills from the new pin appear within the session. Hooks that already fired at session start ran from the old pin. It cannot recover a pin that fails to load; [container.md](container.md#what-the-accounts-setup-script-must-do) has the recovery.
 
+#### SessionStart: the environment report
+
+*Added 2026-09-29.* [`environment-report.sh`](../../skills/hooks/environment-report.sh) reads `~/.claude/environment-setup.ran`, which the setup script writes, and prints the time and commit of the build. It compares the saved script with the one in the marketplace checkout of `main`, and when they differ it says to edit the environment settings to rebuild. It is silent when the file is absent. Coverage is [`tools/test/environment-report.test.mjs`](../../tools/test/environment-report.test.mjs).
+
 #### PreToolUse: the AskUserQuestion guard
 
 *Added 2026-09-27.* [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) denies `AskUserQuestion` and tells the session to ask in prose. A plugin cannot ship `permissions.deny`: its `settings.json` honors only `agent` and `subagentStatusLine`. **Not verified:** whether `PreToolUse` fires for `AskUserQuestion`. The setup script writes no deny, so in a session rooted above the checkouts the guard is the only one. If an `AskUserQuestion` prompt appears in a session, the guard is not firing.

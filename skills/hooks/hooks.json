@@ -36,6 +36,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/invoke-sessions.sh\""
           }
         ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/environment-report.sh\""
+          }
+        ]
       }
     ],
     "PreToolUse": [
