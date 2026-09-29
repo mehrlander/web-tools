@@ -1848,10 +1848,28 @@ try {
   const underMid = ['old', 'inline', 'new'][Math.round(mid.left / mid.w)];
   ok('and its stops pill lights the reading under the finger while the finger is still down', litMid === underMid && litMid !== 'new', JSON.stringify({ litMid, underMid }));
   await touchAt('touchEnd');
-  await page.waitForTimeout(900);
+  // The glide after the release is short and the reading is taken the moment
+  // it lands: a platform snap glide ran on for half a second on the phone,
+  // then waited out a quiet spell, and a quick second swipe fell into it.
+  const tEnd = Date.now();
+  const gliding = await page.evaluate((i) => document.querySelector('[data-md-card="' + i + '"] [data-md-track]')?.style.overflowX === 'hidden', cardAt.i);
+  let settledIn = null;
+  while (Date.now() - tEnd < 1500) { if ((await readNow()).reading === 'inline') { settledIn = Date.now() - tEnd; break; } await page.waitForTimeout(10); }
+  await page.waitForTimeout(300);
   const afterDrag = await readNow();
+  ok('the release glides itself, off the platform snap, and the reading is taken within 300ms', gliding && settledIn != null && settledIn < 300, JSON.stringify({ gliding, settledIn }));
   ok('a drag moves the text with the finger', mid.left < 2 * mid.w - 20, JSON.stringify(mid));
   ok('and the release settles on the next reading over', afterDrag.reading === 'inline' && Math.abs(afterDrag.left - afterDrag.w) < 2, JSON.stringify(afterDrag));
+  // A short, quick flick turns the card too, as the platform's snap did: a
+  // fifth of the way across, fast, goes on to the reading it points at.
+  await touchAt('touchStart', cardAt.x - 40);
+  for (let k = 1; k <= 3; k++) { await touchAt('touchMove', cardAt.x - 40 + k * 25); await page.waitForTimeout(16); }
+  await touchAt('touchEnd');
+  await page.waitForTimeout(500);
+  const flicked = await readNow();
+  ok('a short quick flick goes on to the next reading', flicked.reading === 'old' && flicked.left < 2, JSON.stringify(flicked));
+  await page.evaluate((i) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.pickReading(i, 'inline'); }, cardAt.i);
+  await page.waitForTimeout(400);
   // A press that travels sideways and lifts is no longer a swipe: under the
   // native option that is a selection handle, and it must leave the card be.
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (!c.nativeSel) c.toggleNativeSel(); });
