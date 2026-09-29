@@ -2,8 +2,9 @@
 
 `?view=map[&tab=<key>]` (`lib/alpineComponents/map.js`) makes the coordination
 layer inspectable. Most tabs render a hub registry; federated tabs assemble
-each repository's declarations. The FAB `description` in `map.js` states
-each tab's contents in full; the table below is the index.
+each repository's declarations. [map-tabs.csv](../map-tabs.csv) holds each
+address's lede and a longer account of the tab, one row per address, and the
+lede's ↗ opens that row; the table below is the index.
 
 The shell owns the tab (`MAP_TABS` and `MAP_SUBVIEWS` in `app/index.html`,
 validated before `map()` mounts). The default, `set`, stays out of the URL.
