@@ -1451,18 +1451,25 @@ try {
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
       lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
-      ghost: !!p.querySelector('[data-wt-panel-tip-close]'), buttons: p.querySelectorAll('button').length, under };
-    // Escape puts it away; there is no button to do it.
+      pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: p.querySelectorAll('button').length, under };
+    // No ✕, by the owner's choice: Escape puts it away, and so does a press
+    // anywhere outside it.
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise((r) => setTimeout(r, 50));
     out.fmt.escaped = c.cardInfo === null;
+    [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
+    await new Promise((r) => setTimeout(r, 150));
+    const reopened = !!c.cardInfo;
+    document.querySelector('header, [data-dictate-ui]')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 50));
+    out.fmt.pressedAway = reopened && c.cardInfo === null;
     c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
   ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
     info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
-  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is a pinned panel-tip whose one button is the kit\'s ghost ✕, and Escape puts it away',
-    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.ghost && info.fmt.buttons === 1 && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
+  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',
+    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.pinned && info.fmt.buttons === 0 && info.fmt.w >= 340 && info.fmt.escaped && info.fmt.pressedAway, JSON.stringify(info.fmt));
   ok('and in the card, bold added gives exactly the word a dotted underline of its own, which stays with the word when the text moves after the paint, while a change of words gets none',
     info.fmt.under.fits && info.fmt.under.moved && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
   // AN UNDERLINE, TAPPED, OFFERS THE RAW CHANGE AND ITS UNDO, as a mark does.

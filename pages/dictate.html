@@ -520,7 +520,6 @@
       wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }; an underline's adds { what, was, now, exact, hover, key }
       _onPop: false, _popLeave: null,
       cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
-      infoX: '',                // its ✕, from PanelTip.closeHTML(pinned)
       hoverCard: null,          // the card a mouse is over, for its bar
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
       keyCard: null,            // a desk's card taken by a click beside its words: keys turn it, no caret
@@ -3012,14 +3011,20 @@
       // kits/panel-tip.js owns the ways out and this owns the opening: hover
       // opens it unpinned where there is hover, and it closes when the
       // pointer is demonstrably elsewhere; a click pins it, and pinned it
-      // wears the kit's ghost ✕ and closes on that, Escape, a press outside,
-      // or a scroll. On a phone every tap pins, so the ✕ is always there.
+      // closes on Escape, a press outside, or a scroll.
+      //
+      // NO ✕, BY THE OWNER'S CHOICE (2026-09-29), and a deliberate departure
+      // from the rule, which draws the kit's ghost ✕ when pinned and on every
+      // screen with no hover. The rule's reason stands and is accepted here:
+      // a press outside lets the tap through to what was under it, so on a
+      // phone closing Info means finding somewhere safe to press. The page
+      // around a card is text more than controls, which is why the owner
+      // judged the trade worth it; revisit if that stops being true.
       hoverable() { return !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches); },
       pinInfo(pinned) {
         const el = this.$refs.info;
         if (!this.cardInfo || !el || !window.PanelTip) return;
         this.cardInfo.pinned = pinned;
-        this.infoX = window.PanelTip.closeHTML(pinned);
         // The kit's pointer guard would close a pinned panel the moment the
         // mouse left it, so a pinned one is wired without it.
         this._infoWire?.detach();
@@ -4096,8 +4101,8 @@
            since the buffer no longer holds them; this is where they are read. -->
       <!-- A card's Info: what the change was, as the house panel-tip (see
            openCardInfo). One frame, a line saying where the change is, and the
-           lines themselves, the unchanged ones receding. The ✕ is the kit's
-           ghost, drawn only when pinned or where nothing hovers. It arrives as
+           lines themselves, the unchanged ones receding. No ✕: it closes on a
+           press outside, Escape or a scroll (see openCardInfo). It arrives as
            every house tip does, the title-tip's 90ms fade and nothing more
            (kits/title-tip.js); the word pop below does the same. -->
       <div x-show="cardInfo" x-cloak x-ref="info" role="dialog" aria-label="Change info" data-card-info
@@ -4105,8 +4110,7 @@
            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
-        <div x-html="infoX"></div>
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 pl-3 py-1.5 border-b border-base-300 text-[13px]" :class="infoX ? 'pr-10' : 'pr-3'">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
           <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
           <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
           <span x-show="cardInfo && cardInfo.kind" data-info-kind
