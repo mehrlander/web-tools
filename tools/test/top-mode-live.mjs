@@ -127,14 +127,29 @@ for (const c of CASES) {
   console.log(`  drawer opened: ${opened}; drawer warnings: ${drawerNotes.length}`);
   drawerNotes.forEach(n => console.log('    ' + n));
 
+  // A reload as a person makes one: location.reload() in the page, then wait
+  // for a fresh document (the marker set on the old one is gone) that has
+  // booted. Playwright's page.reload() waits for a navigation event, and in
+  // WebKit, after Back to an entry the page pushed, that wait timed out on the
+  // first runner run (2026-09-29) while the question was whether the page came
+  // back at all. A step that fails is recorded, not thrown, so one engine's
+  // stall does not hide the steps after it.
+  const reload = async (label) => {
+    try {
+      await page.evaluate(() => { window.__probeOld = 1; location.reload(); }).catch(() => {});
+      await page.waitForFunction(() => !window.__probeOld && !!(window.gh && window.Alpine), null, { timeout: 60000 });
+      await check(label);
+    } catch (e) {
+      steps.push({ label, ok: false, error: e.message.split('\n')[0].slice(0, 160) });
+      console.log(`  LOST ${label}: the page did not come back (${e.message.split('\n')[0].slice(0, 100)})`);
+    }
+  };
   await page.evaluate(() => history.pushState(null, '', '?view=tools'));
   await check('after the page writes ?view=tools');
-  await page.reload({ waitUntil: 'domcontentloaded' }); await booted();
-  await check('after reload');
+  await reload('after reload');
   await page.goBack().catch(() => {}); await page.waitForTimeout(1500);
   await check('after Back');
-  await page.reload({ waitUntil: 'domcontentloaded' }); await booted();
-  await check('after reload at the Back entry');
+  await reload('after reload at the Back entry');
 
   const lost = steps.filter(s => !s.ok).length;
   const pass = up && opened && !lost && !drawerNotes.length;
