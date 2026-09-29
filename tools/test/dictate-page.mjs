@@ -1765,6 +1765,44 @@ try {
   await page.keyboard.press('Control+Enter');
   const sent = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.openSend = c._realSend; return !!c._sent; });
   ok('and Ctrl+Enter opens Send', sent, String(sent));
+  // A CARD FOR THE KEYS. A click beside a card's words takes the card with no
+  // caret, so the arrows turn it; reported from a desk, where the caret in the
+  // card walked the text and no key could swipe.
+  await reset();
+  const cardBox = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('Second para.', 'Second paragraph here.'); c.d.caretAt(c.text.indexOf('Second') + 3); c.paint();
+    await new Promise((r) => setTimeout(r, 250));
+    const card = c.$refs.md.querySelector('[data-md-card]'), r = card.getBoundingClientRect();
+    return { i: +card.dataset.mdCard, x: r.left + 3, y: r.top + r.height / 2 }; });
+  const keyState = () => page.evaluate((i) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const card = c.$refs.md.querySelector('[data-md-card="' + i + '"]');
+    const t = card && card.querySelector('[data-md-track]');
+    return { key: c.keyCard, reading: window.MdSurface.readingOf(c.$refs.md, i), at: t && ['old', 'inline', 'new'][Math.round(t.scrollLeft / t.clientWidth)], caret: !!c.$refs.layer.querySelector('[data-md-surface="caret"]'),
+             ring: !!card && card.classList.contains('ring-2'), typing: c.typing, text: c.text }; }, cardBox.i);
+  await page.mouse.click(cardBox.x, cardBox.y);
+  await page.waitForTimeout(250);
+  const taken = await keyState();
+  ok('on a desk a click beside a card\'s words takes the card, ringed, with no caret', taken.key === cardBox.i && taken.ring && !taken.caret && !taken.typing, JSON.stringify(taken));
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(400);
+  const kOld = await keyState();
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(400);
+  const kNew = await keyState();
+  await page.keyboard.press('x'); await page.waitForTimeout(100);
+  const kTyped = await keyState();
+  ok('and the arrows turn it: left to the original, right twice to the new text, and a letter types nothing',
+    kOld.reading === 'old' && kOld.at === 'old' && kNew.reading === 'new' && kNew.at === 'new' && kNew.key === cardBox.i && kTyped.text === kNew.text,
+    JSON.stringify({ kOld, kNew: { reading: kNew.reading, at: kNew.at, key: kNew.key }, same: kTyped.text === kNew.text }));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+  const kEsc = await keyState();
+  ok('Escape lets the card go and the caret comes back', kEsc.key === null && kEsc.caret && !kEsc.ring, JSON.stringify(kEsc));
+  const onWords = await page.evaluate((i) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const r = window.MdSurface.rectAt(c.$refs.md, c.text.indexOf('paragraph here') + 2); return { x: r.left, y: r.top + r.height / 2 }; }, cardBox.i);
+  await page.mouse.click(onWords.x, onWords.y); await page.waitForTimeout(200);
+  const kWords = await keyState();
+  ok('and a click on the words is an editor\'s click: a caret, no card taken', kWords.key === null && kWords.caret, JSON.stringify(kWords));
+  // Put the card back on its marked reading, which outlives a reset.
+  await page.evaluate((i) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; if (c.typing) c.stopTyping();
+    window.MdSurface.setReading(c.$refs.md, i, 'inline'); c.paint(); }, cardBox.i);
   // A MARKED WORD, TAPPED, OFFERS ITS UNDO: struck or added alike, one pill,
   // one word. Reported from the phone: a struck word opened a panel with two
   // buttons, and an added word offered nothing short of the keyboard.

@@ -519,6 +519,7 @@
       cardInfo: null,           // a card's Info panel: { i, old, now, ow, nw, x, y }
       hoverCard: null,          // the card a mouse is over, for its bar
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
+      keyCard: null,            // a desk's card taken by a click beside its words: keys turn it, no caret
       patchMenu: false,
       // File mode's Send: what rides, the edit as a patch or the whole file.
       sendWhat: 'patch',
@@ -695,7 +696,7 @@
           onText: (t) => {
             if (t !== this.text) this.mendArmed = false;
             // Words held for Move name offsets, and an edit moves them.
-            if (t !== this.text) { this.moveArm = null; this.moveAim = null; this.cardInfo = null; this.wordPop = null; }
+            if (t !== this.text) { this.moveArm = null; this.moveAim = null; this.cardInfo = null; this.wordPop = null; this.keyCard = null; }
             // A CARRY IS OVER WHEN THE TEXT MOVES UNDER IT: its range names
             // the words it picked up, and a final result from the microphone
             // replaces exactly those. The drop's own edit arrives after the
@@ -960,6 +961,7 @@
           && !e.target?.closest?.('input, textarea, select, [contenteditable]');
 
         addEventListener('keydown', (e) => {
+          if (this.keyCard != null && mine(e) && this.cardKey(e)) return;
           if (mine(e) && this.shortcut(e)) return;
           // A character typed at the Rendered face with no keyboard open opens
           // it, and focus moving inside keydown carries the character with it.
@@ -1417,6 +1419,10 @@
             if (Date.now() - downAt > 400 || nearEdge) { taps = 0; return; }
             if (this.moveArm) { taps = 0; this.aimArmed(e.clientX, e.clientY); return; }
           }
+          // A mouse beside a card's words takes the card for the keys, on any
+          // reading, before the original's tap below would turn it back.
+          const beside = card && e.pointerType === 'mouse' && !e.shiftKey && this.showMarks && this.besideWords(e);
+          if (beside) { taps = 0; this.takeCard(+beside.dataset.mdCard); return; }
           // The original takes no caret, so a tap on it returns the card to the
           // marked text, where the next tap, or a double, lands as usual.
           if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
@@ -1890,6 +1896,8 @@
             // Wider than the kit's 2px on a phone: at 2px, fading on the pulse,
             // the caret was hard to find in running text.
             caretWidth: this.precise ? 2 : 3,
+            // A card taken for the keys shows no caret; the range waits for Enter.
+            hideCaret: this.keyCard != null,
           });
           const n = this.showMarks ? md.querySelectorAll('[data-md-card]').length : 0;
           if (n !== this.changesCount) this.changesCount = n;
@@ -2021,6 +2029,7 @@
       // are sinkKey's. The model underneath is the same range the phone
       // drives, so dictation, the pad and the format keys see no difference.
       mouseClick(e) {
+        if (this.keyCard != null) this.keyCard = null;
         const t = Date.now(), c = this._clicks || {};
         const near = Math.abs((c.x ?? -99) - e.clientX) < 6 && Math.abs((c.y ?? -99) - e.clientY) < 6;
         const n = near && t - (c.t || 0) < 500 ? (c.n % 3) + 1 : 1;
@@ -2039,6 +2048,53 @@
         this.armed = null;
         this.paint();
         this.keepTyping();
+      },
+      // A CARD FOR THE KEYS, on a desk. A click in a change card's blank space,
+      // beside its words rather than on them, takes the card without a caret,
+      // so the arrows turn it rather than walk the text: left and right step
+      // through its readings, up and down go to the card before or after,
+      // Enter puts the caret back to edit, and Escape lets it go. A click on
+      // the words is an editor's click, as ever.
+      besideWords(e) {
+        const card = e.target?.closest?.('[data-md-card]');
+        if (!card || !this.$refs.md.contains(card) || e.target.closest('[data-md-ui]')) return null;
+        const x = e.clientX, y = e.clientY, w = document.createTreeWalker(card, NodeFilter.SHOW_TEXT), rg = document.createRange();
+        for (let n = w.nextNode(); n; n = w.nextNode()) {
+          if (!n.textContent.trim() || n.parentElement.closest('[data-md-ui]')) continue;
+          rg.selectNodeContents(n);
+          for (const q of rg.getClientRects()) if (x >= q.left - 2 && x <= q.right + 2 && y >= q.top - 2 && y <= q.bottom + 2) return null;
+        }
+        return card;
+      },
+      takeCard(i) {
+        const md = this.$refs.md, el = md.querySelector('[data-md-card="' + i + '"]');
+        if (!el) { this.keyCard = null; return; }
+        this.keyCard = i; this.selCard = null; this.wordPop = null;
+        if (this.typing) this.stopTyping(); else this.paint();
+        el.scrollIntoView({ block: 'nearest' });
+      },
+      cardKey(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey || this.composing) return false;
+        const md = this.$refs.md, i = this.keyCard, k = e.key;
+        const el = md.querySelector('[data-md-card="' + i + '"]');
+        if (!el) { this.keyCard = null; this.paint(); return false; }
+        if (k === 'ArrowLeft' || k === 'ArrowRight') {
+          // Set, not scrolled to: a key has no slide to show, and a scroll
+          // left for the snap to settle was re-snapped back to the reading it
+          // left when the card's layers changed under it (measured headless).
+          const modes = window.MdSurface.cardModes(md, i);
+          const j = modes.indexOf(window.MdSurface.readingOf(md, i)) + (k === 'ArrowRight' ? 1 : -1);
+          if (j >= 0 && j < modes.length) this.setCardReading(i, modes[j]);
+        } else if (k === 'ArrowUp' || k === 'ArrowDown') {
+          const n = md.querySelectorAll('[data-md-card]').length, j = i + (k === 'ArrowDown' ? 1 : -1);
+          if (j >= 0 && j < n) this.takeCard(j);
+        } else if (k === 'Escape') { this.keyCard = null; this.paint(); }
+        else if (k === 'Enter') { this.keyCard = null; this.startTyping(); }
+        // Typing while a card is held does nothing: Enter is the way in.
+        else if (k.length === 1 || k === 'Backspace' || k === 'Delete' || k === 'Tab') {}
+        else return false;
+        e.preventDefault(); e.stopPropagation();
+        return true;
       },
       // A collapsed range moves; with shift, the end away from the anchor does.
       extendTo(i, shift) {
@@ -2861,7 +2917,8 @@
         const md = this.$refs.md, r = this.d && this.d.range;
         let el = null;
         if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target)) {
-          el = this.hoverCard != null ? md.querySelector('[data-md-card="' + this.hoverCard + '"]') : null;
+          el = this.keyCard != null ? md.querySelector('[data-md-card="' + this.keyCard + '"]') : null;
+          if (!el && this.hoverCard != null) el = md.querySelector('[data-md-card="' + this.hoverCard + '"]');
           if (!el && this.selCard && r && r.start === this.selCard.at) el = md.querySelector('[data-md-card="' + this.selCard.i + '"]');
           if (!el && r) {
             const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
@@ -2873,6 +2930,10 @@
         // same card's at once rather than replaying that on each keystroke.
         const key = el ? el.dataset.mdCard : null, fresh = key !== this._barKey;
         this._barKey = key;
+        for (const card of md.querySelectorAll('[data-md-card]')) {
+          const k = this.keyCard != null && +card.dataset.mdCard === this.keyCard;
+          for (const c of ['ring-2', 'ring-amber-400', 'ring-offset-2', 'ring-offset-base-100']) card.classList.toggle(c, k);
+        }
         for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
           const on = !!el && bar.parentElement === el;
           if (on && !fresh) bar.classList.add('transition-none');
@@ -2887,7 +2948,7 @@
         const i = +btn.closest('[data-md-card]').dataset.mdCard;
         if (btn.dataset.mdCardAct === 'info') { this.openCardInfo(i, btn); return; }
         const run = window.MdSurface.cards(this.$refs.md)[i];
-        this.cardInfo = null; this.selCard = null;
+        this.cardInfo = null; this.selCard = null; this.keyCard = null;
         if (run) this.rejectCard(run);
       },
       // What the change was: GitHub's copy, the text now, and the word count
@@ -3643,7 +3704,8 @@
                listed where the rest of the page's options are. -->
           <div x-show="desk && file" data-shortcuts
                class="mx-3 mt-1 pt-2 border-t border-base-300 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-1 text-xs">
-            <template x-for="[c, what] in [['⌘B', 'Bold'], ['⌘E', 'Code'], ['⌘⌥1-3', 'Heading'], ['⌘⌥0', 'Paragraph'], ['⌘⇧8', 'List'], ['⌘↵', 'Send']]">
+            <template x-for="[c, what] in [['⌘B', 'Bold'], ['⌘E', 'Code'], ['⌘⌥1-3', 'Heading'], ['⌘⌥0', 'Paragraph'], ['⌘⇧8', 'List'], ['⌘↵', 'Send'],
+                                              ['Click', 'Beside a change: take it'], ['← →', 'Its readings'], ['↑ ↓', 'Other changes'], ['↵ Esc', 'Edit, let go']]">
               <div class="contents"><span class="font-mono opacity-60" x-text="chord(c)"></span><span x-text="what"></span></div>
             </template>
           </div>
