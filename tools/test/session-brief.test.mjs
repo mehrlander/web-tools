@@ -707,7 +707,7 @@ test('branchGroups groups session fileRows by repository and branch', async () =
   assert.equal(groups[0].repo, 'web-tools');
   assert.equal(groups[0].branch, 'feat/json-explorer');
   assert.equal(groups[0].files.length, 2);
-  assert.match(groups[0].branchUrl, /branch\.html#gh=web-tools@feat%2Fjson-explorer/);
+  assert.match(groups[0].branchUrl, /branch\.html#gh=me\/web-tools@feat%2Fjson-explorer/);
 
   assert.equal(groups[1].repo, 'other-repo');
   assert.equal(groups[1].branch, 'main');
