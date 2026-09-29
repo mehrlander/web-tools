@@ -104,9 +104,9 @@ test('an opted-out repo is silent, and the field is the declared one', () => {
   assert.equal(run(root), '', 'an explicit opt-out stops the asking');
 });
 
-test('a manifest without a CLAUDE.md is not a repo this asks anything of', () => {
-  const root = build('no-claude-md', { scratch: { '.web-tools.json': '{}' } });
-  assert.equal(run(root), '', 'no import channel means nothing to be missing');
+test('a session whose checkouts have no CLAUDE.md still gets the directive', () => {
+  const root = build('no-claude-md', { 'web-tools-private': { '.web-tools.json': '{}' } });
+  assert.match(run(root), /Invoke \/portable:default/, 'no CLAUDE.md is no delivery, so it must ask');
 });
 
 test('an import resolving to a file without the primitives does not count', () => {
