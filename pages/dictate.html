@@ -3142,6 +3142,8 @@
         const side = (drop, cls) => parts.filter((p) => !p[drop]).map((p) => ({ t: p.value, cls: p.added || p.removed ? cls : '' }));
         this.wordPop = { text: h.old, a: h.s[0], b: h.s[1], t: Date.now(), exact: true, hover, what: h.what,
           was: side('added', 'bg-error/30 rounded-sm'), now: side('removed', 'bg-success/35 rounded-sm'), key: h.s.join(':'),
+          // Above the words when below would run into the key rows.
+          pos: q.bottom + 130 > (this.$refs.view.getBoundingClientRect().bottom) ? 'bottom:' + (window.innerHeight - q.top + 6) + 'px' : null,
           x: Math.max(80, Math.min(window.innerWidth - 80, q.left + q.width / 2)), y: q.bottom + 6 };
       },
       openCardInfo(i, k, pinned = true) {
@@ -4116,7 +4118,7 @@
            @pointerleave="_onPop = false; if (wordPop && wordPop.hover) popLeave()"
            class="fixed z-50 -translate-x-1/2 select-none"
            :class="wordPop && wordPop.what && 'rounded-box border border-base-300 bg-base-100 shadow-lg p-2 grid gap-1.5 max-w-[min(22rem,calc(100vw-1rem))]'"
-           :style="wordPop ? 'left:' + wordPop.x + 'px;top:' + wordPop.y + 'px' : ''">
+           :style="wordPop ? 'left:' + wordPop.x + 'px;' + (wordPop.pos || 'top:' + wordPop.y + 'px') : ''">
         <template x-if="wordPop && wordPop.what">
           <div class="grid gap-0.5" data-fmt-raw>
             <div class="text-[11px] opacity-60" x-text="wordPop.what"></div>
