@@ -13,7 +13,7 @@ Qualify noun phrases to increase clarity, strengthen claims, highlight questions
 
 1. **Introduce before you refer.** Name the subject of a reply, section, or paragraph as it opens. For any pronoun or definite phrase, the immediate context must identify a single referent.
    *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
-2. **Use standard terms for a general audience.** Specialized topics develop shorthand terms, but we should avoid them and speak to an unfamiliar reader.
+2. **Use standard terms for a general audience.** Specialized topics develop shorthand terms, but avoid them and speak to an unfamiliar reader.
    *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
 3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
    *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
