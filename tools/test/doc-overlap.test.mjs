@@ -1,4 +1,4 @@
-// data/doc-overlap/ — the passage-embedding tables the Themes tab's Restated
+// data/doc-overlap/ — the passage-embedding tables the Themes tab's Related
 // lens reads, written by hand with scripts/doc-overlap.py.
 //
 // The model is not here and cannot be: the suite is browser-free and
@@ -31,7 +31,7 @@ const h12 = (s) => createHash('sha256').update(s, 'utf8').digest('hex').slice(0,
 test('the two tables have the columns the lens reads', () => {
   assert.deepEqual(Object.keys(docs[0]), ['path', 'sha', 'prose_words', 'passages', 'shingles']);
   assert.deepEqual(Object.keys(rows[0]), ['source', 'start', 'end', 'line', 'words', 'hash',
-    'target', 'target_start', 'target_end', 'target_line', 'target_hash', 'cosine']);
+    'target', 'target_start', 'target_end', 'target_line', 'target_words', 'target_hash', 'cosine']);
   assert.ok(docs.length > 100 && rows.length > 100, 'the tables parsed short');
 });
 
@@ -76,8 +76,8 @@ test('offsets cut the recorded text out of every file the scan still describes',
 test('the Map reads the tables and keeps the lens out of the shingle controls', () => {
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
   assert.match(src, /const OVERLAP_MATCHES = 'data\/doc-overlap\/matches\.csv'/);
-  assert.match(src, /\{ k: 'restated', n: 'Restated', i: 'ph-swap' \}/);
-  assert.match(src, /themeGraph && lens !== 'owners' && lens !== 'restated'/,
+  assert.match(src, /\{ k: 'related', n: 'Related', i: 'ph-swap' \}/);
+  assert.match(src, /themeGraph && lens !== 'owners' && lens !== 'related'/,
     'the shingle dial and its concern counts must not apply to the embedding lens');
   assert.match(src, /text\.slice\(start, end\)/, 'the lens cuts passages by UTF-16 offset, as this test does');
 });

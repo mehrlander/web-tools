@@ -233,6 +233,7 @@ doc-overlap-matches,hash,computed,scripts/doc-overlap.py,value,column,yes,,label
 doc-overlap-matches,target_start,computed,scripts/doc-overlap.py,value,column,yes,,locator,"start of the best-matching passage in the other file, in UTF-16 code units"
 doc-overlap-matches,target_end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of that passage, in UTF-16 code units"
 doc-overlap-matches,target_line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line that passage starts on
+doc-overlap-matches,target_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the other passage's word count; with words, what decides whether a pair involves a short passage"
 doc-overlap-matches,target_hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
 doc-overlap-matches,cosine,computed,scripts/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
 doc-overlap-gold,stratum,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
