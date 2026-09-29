@@ -4097,10 +4097,12 @@
       <!-- A card's Info: what the change was, as the house panel-tip (see
            openCardInfo). One frame, a line saying where the change is, and the
            lines themselves, the unchanged ones receding. The ✕ is the kit's
-           ghost, drawn only when pinned or where nothing hovers. -->
+           ghost, drawn only when pinned or where nothing hovers. It arrives as
+           every house tip does, the title-tip's 90ms fade and nothing more
+           (kits/title-tip.js); the word pop below does the same. -->
       <div x-show="cardInfo" x-cloak x-ref="info" role="dialog" aria-label="Change info" data-card-info
-           x-transition:enter="transition ease-out duration-150 motion-reduce:transition-none"
-           x-transition:enter-start="opacity-0 scale-[.98]" x-transition:enter-end="opacity-100 scale-100"
+           x-transition:enter="transition-opacity ease duration-[90ms] motion-reduce:transition-none"
+           x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
         <div x-html="infoX"></div>
@@ -4130,8 +4132,8 @@
            Undo, GitHub's then the text now with what changed lit, in a small
            card around the same button, since the rendered words cannot show it. -->
       <div x-show="wordPop" x-cloak data-word-pop
-           x-transition:enter="transition ease-[cubic-bezier(.34,1.56,.64,1)] duration-200 motion-reduce:transition-none"
-           x-transition:enter-start="opacity-0 scale-75 -translate-y-1" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+           x-transition:enter="transition-opacity ease duration-[90ms] motion-reduce:transition-none"
+           x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
            @pointerenter="_onPop = true; clearTimeout(_popLeave); _popLeave = null"
            @pointerleave="_onPop = false; if (wordPop && wordPop.hover) popLeave()"
