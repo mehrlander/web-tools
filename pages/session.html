@@ -240,8 +240,11 @@
         // session, so they are orthogonal to the three ways of naming one.
         const pane = pick('pane');
         const card = parseInt(pick('card'), 10);
+        // `now` names the ref the action message is read from, main by default.
+        const nowRef = pick('now');
         const at = { ...(['outline', 'files', 'raw'].includes(pane) ? { pane } : {}),
-                     ...(Number.isInteger(card) ? { start: card } : {}) };
+                     ...(Number.isInteger(card) ? { start: card } : {}),
+                     ...(nowRef ? { nowRef } : {}) };
         const gz = pick('gz');
         if (gz) return { kind: 'gz', gz, at };
         const id = pick('id');
