@@ -42,6 +42,8 @@
     "code-scan": "python3 scripts/unclaimed-code.py lib scripts tools",
     "doc-placement": "python3 scripts/doc-placement.py .",
     "code-shape": "python3 scripts/code-shape.py lib",
+    "test:top-mode-live": "node tools/test/top-mode-live.mjs",
+    "test:probe-driver": "node tools/test/probe-driver.mjs",
     "test:pdf": "node tools/test/pdf-kit-browser.mjs && node tools/test/pdf-ink-alignment.mjs",
     "test:pdf-versions": "node tools/test/pdf-version-probe.mjs",
     "test:pdf-flow-start": "node tools/test/pdf-flow-start.mjs",
