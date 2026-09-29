@@ -182,7 +182,7 @@ test('snapshot resolves one immutable revision before reading any source materia
   assert.equal(result.revision, REV);
   assert.equal(result.items[0].path, FILE);
   assert.equal(result.items[0].installs, 'Modules/Example/Example.psm1');
-  assert.equal(result.ledgerPath, P + '/data/observations.csv');
+  assert.equal(result.observationsPath, P + '/data/observations.csv');
   assert.equal(writes.length, 0);
 });
 
