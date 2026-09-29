@@ -1593,6 +1593,7 @@ html.dk-dragging main{transition:none !important}
                 </div>
                 <article x-show="!projectLoading && projectHtml"
                          class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                         @click="onReadmeClick($event)"
                          x-html="projectHtml"></article>
                 <p x-show="!projectLoading && !projectHtml" class="text-base-content/40 italic text-base py-8">
                   No README in this workspace on this ref. Open its files, or its board.
@@ -4631,11 +4632,19 @@ function app(){ return {
   // folder and open in the shell's viewer instead of dangling off the pane's
   // own URL. Absolute links (a PR, a compare) keep their default behavior.
   onBoardClick(e){
+    this.openRelativeLink(e, this.projectBoardFile.split('/').slice(0, -1).join('/'));
+  },
+  // The Overview's README, on the same terms: it sits at the workspace root, so
+  // its relative links resolve against the project folder. Without this a README
+  // link to a sibling file resolved against the app's own URL and landed on a 404.
+  onReadmeClick(e){
+    this.openRelativeLink(e, this.projectPath);
+  },
+  openRelativeLink(e, base){
     const a = e.target.closest('a');
     const href = a?.getAttribute('href');
     if (!href || /^(https?:|mailto:|#)/.test(href)) return;
     e.preventDefault();
-    const base = this.projectBoardFile.split('/').slice(0, -1).join('/');
     const path = this.resolveRepoRelative(base, href);
     if (!path) return;
     if (this.pinIsFile(path)) this.openFile(path); else this.openFolder(path);
