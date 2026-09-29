@@ -2841,8 +2841,9 @@
       // top edge (old, inline, new). Centred because a neighbouring card keeps
       // its own number at its left and its stops at its right, so a bar at the
       // centre of the edge clears both. It floats, so it costs the document no
-      // padding. The words are small; an invisible margin around each takes a
-      // thumb. The shape is the convention and the words are the page's: here
+      // padding. An invisible margin around each word takes a
+      // thumb. The words are 13px in a pill kept 22px tall: they take the room
+      // the padding had, so the pill does not grow. The shape is the convention and the words are the page's: here
       // info and remove; a page reviewing someone else's text would put its
       // votes and comments in the same pill, the destructive one last.
       drawCardBar(add, lb, vb) {
@@ -2858,13 +2859,13 @@
         // A card running past the pane's foot has its bar held above the foot.
         const floor = vb.bottom - 16;
         if (b.bottom < vb.top + 16 || b.top > floor) return;
-        const bar = add('div', 'absolute z-30 flex items-center rounded-full border border-base-300 bg-base-100 text-[10px] leading-none select-none',
+        const bar = add('div', 'absolute z-30 flex items-center rounded-full border border-base-300 bg-base-100 text-[13px] leading-none select-none',
           `left:0;top:${Math.min(b.bottom, floor) - lb.top - 10}px`, 'seam');
         bar.dataset.mdUi = ''; bar.dataset.cardBar = i;
         const word = (text, label, fn, cls) => {
           const k = document.createElement('button');
           k.type = 'button'; k.title = label; k.setAttribute('aria-label', label); k.dataset.mdUi = '';
-          k.className = "relative px-2.5 py-[5px] cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] " + cls;
+          k.className = "relative px-2.5 py-[3.5px] cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] " + cls;
           k.textContent = text;
           this.keepFocus(k);
           k.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -2873,7 +2874,7 @@
           return k;
         };
         word('info', 'Info', (k) => this.openCardInfo(i, k), 'text-base-content/60');
-        bar.appendChild(Object.assign(document.createElement('span'), { className: 'w-px h-2.5 bg-base-300' }));
+        bar.appendChild(Object.assign(document.createElement('span'), { className: 'w-px h-3 bg-base-300' }));
         word('remove', 'Remove this change', () => {
           const run = window.MdSurface.cards(md)[i];
           this.cardInfo = null; this.selCard = null;

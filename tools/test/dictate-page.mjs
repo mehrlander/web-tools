@@ -1243,9 +1243,10 @@ try {
     const k = b.querySelector('[title^="Remove"]'), kr = k.getBoundingClientRect(), hit = getComputedStyle(k, '::before');
     return { n: document.querySelectorAll('[data-card-bar]').length, straddles: r.top < card.bottom && r.bottom > card.bottom,
              centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2), words: b.textContent.replace(/\s+/g, ''),
+             h: Math.round(r.height), fs: parseFloat(getComputedStyle(b).fontSize),
              reach: Math.round(kr.height + 2 * Math.abs(parseFloat(hit.top) || 0)), x: kr.left + kr.width / 2, y: kr.top + kr.height / 2 }; });
-  ok('the number selects its card, and the card wears one pill, info and remove, centred on its bottom edge, with a tap reach of 40px or more',
-    !!bar && bar.n === 1 && bar.straddles && bar.centred < 3 && bar.words === 'inforemove' && bar.reach >= 40, JSON.stringify(bar));
+  ok('the number selects its card, and the card wears one pill, info and remove, centred on its bottom edge, 13px words in a pill no taller than 22px, with a tap reach of 40px or more',
+    !!bar && bar.n === 1 && bar.straddles && bar.centred < 3 && bar.words === 'inforemove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
   await page.touchscreen.tap(bar.x, bar.y);
   await page.waitForTimeout(250);
   ok('and Remove on the bar restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
