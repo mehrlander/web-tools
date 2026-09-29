@@ -184,6 +184,10 @@ def skeptic(args):
     sample_rows = {u['id']: u for u in csv.DictReader(open(run / 'sample.csv', encoding='utf-8'))}
     batch = {r['id']: r for r in load(run / f'batch-{args.batch}.jsonl')}
     reader = {r['id']: r for r in load(run / f'reader-{args.batch}.jsonl')}
+    # --rest sends every row the first pass did not, as `review`: used when
+    # the audit share overturned enough agreements that reader-only labels
+    # could not stand on their own.
+    done = {r['id'] for r in load(run / f'skeptic-in-{args.batch}.jsonl')} if args.rest else set()
     out = []
     for i, r in reader.items():
         u = sample_rows[i]
@@ -193,6 +197,8 @@ def skeptic(args):
                'conflict' if r['relation'] == 'conflict' else
                'fragment' if r['relation'] == 'fragment' else
                'audit' if u['audit'] == 'yes' else None)
+        if args.rest:
+            why = None if i in done else 'review'
         if not why:
             continue
         b = batch[i]
@@ -202,7 +208,8 @@ def skeptic(args):
                         reader={k: r[k] for k in ('relation', 'reading', 'consolidate', 'rationale')},
                         a_path=b['a_path'], a_line=b['a_line'], a_text=b['a_text'], a_before=a_pre, a_after=a_post,
                         b_path=b['b_path'], b_line=b['b_line'], b_text=b['b_text'], b_before=b_pre, b_after=b_post))
-    with (run / f'skeptic-in-{args.batch}.jsonl').open('w', encoding='utf-8') as f:
+    name = f'skeptic-in-r{args.batch}.jsonl' if args.rest else f'skeptic-in-{args.batch}.jsonl'
+    with (run / name).open('w', encoding='utf-8') as f:
         for o in out:
             f.write(json.dumps(o, ensure_ascii=False) + '\n')
     print(f'batch {args.batch}: {len(out)} rows for the skeptic ({Counter(o["sent"] for o in out)})')
@@ -303,6 +310,7 @@ def main():
     s.add_argument('--seed', type=int, default=20260929)
     c = sub.add_parser('check'); c.add_argument('batch'); c.add_argument('output'); c.add_argument('--skeptic', action='store_true')
     k = sub.add_parser('skeptic'); k.add_argument('--run', required=True); k.add_argument('--batch', type=int, required=True)
+    k.add_argument('--rest', action='store_true')
     m = sub.add_parser('merge'); m.add_argument('--run', required=True)
     sub.add_parser('score')
     args = ap.parse_args()
