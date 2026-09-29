@@ -23,6 +23,13 @@ if (!/^[0-9a-f]{40}$/.test(SHA)) { console.error('--sha <40-hex web-tools commit
 const PAGES = 'https://mehrlander.github.io/web-tools/';
 const LAUNCH = (page, q = 'view=map') => `${PAGES}pages/scratch/toss-top-probe.html?gh=mehrlander/web-tools@${SHA}:${page}&${q}`;
 const VARIANTS = [
+  // Controls first: if a page with none of our code dies on a reload, the
+  // variants below say nothing about top mode (2026-09-29: V0 to V5 all died,
+  // including the plain deployed app with no launcher and a reload with no
+  // history write, which is the pattern of an environment fault).
+  { id: 'C1', what: 'control: example.com, two reloads', url: 'https://example.com/', seq: ['reload', 'reload'] },
+  { id: 'C2', what: 'control: the deployed app, page.reload() instead of location.reload()', url: `${PAGES}app/index.html?view=map`, seq: ['preload', 'preload'] },
+  { id: 'C3', what: 'control: the deployed app, a fresh navigation instead of a reload', url: `${PAGES}app/index.html?view=map`, seq: ['goto', 'goto'] },
   { id: 'V0', what: 'the failing sequence: launcher, write, reload, Back, reload', url: LAUNCH('app/index.html'), seq: ['write', 'reload', 'back', 'reload'] },
   { id: 'V1', what: 'no launcher: the deployed app page itself, same sequence', url: `${PAGES}app/index.html?view=map`, seq: ['write', 'reload', 'back', 'reload'] },
   { id: 'V2', what: 'launcher, no page write: reload, reload', url: LAUNCH('app/index.html'), seq: ['reload', 'reload'] },
@@ -51,6 +58,7 @@ for (const v of VARIANTS) {
       if (s === 'write') await page.evaluate(() => history.pushState(null, '', '?view=tools'));
       else if (s === 'back') { await page.goBack().catch(() => {}); await page.waitForTimeout(1500); }
       else if (s === 'reload') { await page.evaluate(() => { window.__old = 1; location.reload(); }).catch(() => {}); await up(); await page.waitForTimeout(2500); }
+      else if (s === 'preload') { await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 }); await page.waitForTimeout(2500); }
       else if (s === 'goto') { const u = page.url(); await page.goto(u, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500); }
       trail.push(s + (dead ? ' (' + dead + ')' : ''));
       if (dead) break;
