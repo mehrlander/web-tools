@@ -3256,22 +3256,13 @@
         this._popLeave = setTimeout(() => { this._popLeave = null; if (this.wordPop && this.wordPop.hover && !this._onPop) this.wordPop = null; }, 220);
       },
       showFmtPop(hit, hover = false) {
-        const { h, q } = hit, t = this.text;
-        const now = t.slice(h.s[0], h.s[1]);
-        const vis = (s) => s.replace(/ /g, '·');
-        const spacing = /^space/.test(h.what);
-        // Spacing is shown as the whole run of spaces before the word, both
-        // sides, or a doubled space would read as a single one.
-        let st = h.s[0]; while (spacing && st > 0 && /[ \t]/.test(t[st - 1])) st--;
-        const pre = t.slice(st, h.s[0]), post = t.slice(h.s[1], h.u[1]);
-        const was = spacing ? vis(pre + h.old + post) : h.old, is = spacing ? vis(pre + now + post) : now;
-        const parts = window.Diff ? window.Diff.diffChars(was, is) : [{ value: was, removed: true }, { value: is, added: true }];
-        const side = (drop, cls) => parts.filter((p) => !p[drop]).map((p) => ({ t: p.value, cls: p.added || p.removed ? cls : '' }));
-        this.wordPop = { text: h.old, a: h.s[0], b: h.s[1], t: Date.now(), exact: true, hover, what: h.what,
-          was: side('added', 'bg-error/30 rounded-sm'), now: side('removed', 'bg-success/35 rounded-sm'), key: h.s.join(':'),
+        const { h, q } = hit;
+        this.wordPop = { text: h.old, a: h.s[0], b: h.s[1], t: Date.now(), exact: true, hover,
+          raw: this.rawSegs(h.s[0], h.s[1], h.old), key: h.s.join(':'),
           // Above the words when below would run into the key rows.
           pos: q.bottom + 130 > (this.$refs.view.getBoundingClientRect().bottom) ? 'bottom:' + (window.innerHeight - q.top + 6) + 'px' : null,
           x: Math.max(80, Math.min(window.innerWidth - 80, q.left + q.width / 2)), y: q.bottom + 6 };
+        this.fitPop();
       },
       openCardInfo(i, k, pinned = true) {
         const sp = this.cardSpans(i);
@@ -3403,9 +3394,42 @@
         const x = tx == null ? line.left + line.width / 2 : Math.max(line.left, Math.min(line.right, tx));
         this.showWordPop(del ? del.textContent : '', r[0], r[1], { left: x, width: 0, bottom: line.bottom });
       },
+      // THE CHANGE IN THE RAW MARKDOWN, which is what is being edited: one
+      // line of source around [a, b), GitHub's text struck in red and the
+      // text now in green, the context plain and dimmed. The same for every
+      // pop, a struck or added word or an underline, so a red beside a green
+      // shows which the undo is about, and bold added shows as the ** it is.
+      // Spaces are dotted only where they are the change itself.
+      rawSegs(a, b, old) {
+        const t = this.text, now = t.slice(a, b);
+        const ls = t.lastIndexOf('\n', a - 1) + 1, le0 = t.indexOf('\n', b), le = le0 < 0 ? t.length : le0;
+        let pre = t.slice(Math.max(ls, a - 28), a), post = t.slice(b, Math.min(le, b + 28));
+        if (a - 28 > ls) pre = '…' + pre.replace(/^\S*\s/, '');
+        if (b + 28 < le) post = post.replace(/\s\S*$/, '') + '…';
+        const D = window.Diff;
+        let parts = D ? D.diffChars(old, now) : [];
+        const same = parts.reduce((n, p) => n + (p.added || p.removed ? 0 : p.value.length), 0);
+        if (!D || same < 0.5 * Math.max(old.length, now.length)) parts = [{ value: old, removed: true }, { value: now, added: true }].filter((p) => p.value);
+        const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s;
+        return [{ t: pre, cls: 'opacity-60', k: '' },
+          ...parts.map((p) => p.removed ? { t: vis(p.value), cls: 'bg-error/20 text-error line-through decoration-[color-mix(in_oklab,var(--color-error)_50%,transparent)] rounded-sm', k: 'del' }
+            : p.added ? { t: vis(p.value), cls: 'bg-success/25 rounded-sm', k: 'add' } : { t: p.value, cls: '', k: '' }),
+          { t: post, cls: 'opacity-60', k: '' }].filter((s) => s.t);
+      },
       showWordPop(text, a, b, rect) {
-        this.wordPop = { text, a, b, t: Date.now(),
+        this.wordPop = { text, a, b, t: Date.now(), raw: this.rawSegs(a, b, text),
           x: Math.max(40, Math.min(window.innerWidth - 40, rect.left + rect.width / 2)), y: rect.bottom + 6 };
+        this.fitPop();
+      },
+      // Kept on screen once drawn: the pop is centred on the words and as
+      // wide as its line of source, so near an edge it slides inward.
+      fitPop() {
+        this.$nextTick(() => requestAnimationFrame(() => {
+          const el = document.querySelector('[data-word-pop]'), p = this.wordPop;
+          if (!el || !p) return;
+          const r = el.getBoundingClientRect(), W = window.innerWidth;
+          if (r.left < 8) p.x += 8 - r.left; else if (r.right > W - 8) p.x -= r.right - (W - 8);
+        }));
       },
       undoWord() {
         const p = this.wordPop;
@@ -4242,36 +4266,24 @@
           </div>
         </template>
       </div>
-      <!-- A tapped mark's undo, struck or added: an action, so it wears the
-           Split pill's blue rather than the cards' label style, under the
-           tapped line. The tap that opened it is ignored by the outside-click,
-           which otherwise arrives as the same gesture.
-           An underlined change (markFormat) puts its raw source above the
-           Undo, GitHub's then the text now with what changed lit, in a small
-           card around the same button, since the rendered words cannot show it. -->
+      <!-- A CHANGE'S POP, for a struck or added word or an underline: the
+           change in the raw markdown (rawSegs), one line of source with
+           GitHub's text struck red and the text now green, and beside it the
+           Undo, an action, so in the Split pill's blue. Under the tapped line,
+           or above when below is out of room. The tap that opened it is
+           ignored by the outside-click, which otherwise arrives as the same
+           gesture. -->
       <div x-show="wordPop" x-cloak data-word-pop
            x-transition:enter="transition-opacity ease duration-[90ms] motion-reduce:transition-none"
            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
            @pointerenter="_onPop = true; clearTimeout(_popLeave); _popLeave = null"
            @pointerleave="_onPop = false; if (wordPop && wordPop.hover) popLeave()"
-           class="fixed z-50 -translate-x-1/2 select-none"
-           :class="wordPop && wordPop.what && 'rounded-box border border-base-300 bg-base-100 shadow-lg p-2 grid gap-1.5 max-w-[min(22rem,calc(100vw-1rem))]'"
+           class="fixed z-50 -translate-x-1/2 select-none flex items-center gap-2 rounded-box border border-base-300 bg-base-100 shadow-lg p-1.5 max-w-[min(26rem,calc(100vw-1rem))]"
            :style="wordPop ? 'left:' + wordPop.x + 'px;' + (wordPop.pos || 'top:' + wordPop.y + 'px') : ''">
-        <template x-if="wordPop && wordPop.what">
-          <div class="grid gap-0.5" data-fmt-raw>
-            <div class="text-[11px] opacity-60" x-text="wordPop.what"></div>
-            <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 font-mono text-xs leading-5">
-              <span class="opacity-50 select-none">was</span>
-              <span class="break-words" data-fmt-was><template x-for="(s, j) in wordPop.was" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
-              <span class="opacity-50 select-none">now</span>
-              <span class="break-words" data-fmt-now><template x-for="(s, j) in wordPop.now" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
-            </div>
-          </div>
-        </template>
+        <code data-pop-raw class="min-w-0 font-mono text-xs leading-5 whitespace-pre-wrap break-words px-1"><template x-for="(s, j) in (wordPop ? wordPop.raw : [])" :key="j"><span :class="s.cls" :data-chg="s.k" x-text="s.t"></span></template></code>
         <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
-                class="btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"
-                :class="wordPop && wordPop.what && 'justify-self-end'"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
+                class="shrink-0 btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to

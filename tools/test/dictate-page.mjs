@@ -1493,21 +1493,22 @@ try {
     const pop = await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); if (!p || !p.getClientRects().length) return null;
       const lit = (sel) => [...p.querySelectorAll(sel + ' .rounded-sm')].map((s) => s.textContent).join('|');
       const b = p.querySelector('button').getBoundingClientRect();
-      return { what: p.querySelector('[data-fmt-raw] div')?.textContent, was: p.querySelector('[data-fmt-was]')?.textContent, now: p.querySelector('[data-fmt-now]')?.textContent,
-               litNow: lit('[data-fmt-now]'), btn: { x: b.left + b.width / 2, y: b.top + b.height / 2 } }; });
+      const chg = (k) => [...p.querySelectorAll('[data-pop-raw] [data-chg="' + k + '"]')].map((s) => s.textContent).join('|');
+      return { raw: p.querySelector('[data-pop-raw]')?.textContent, add: chg('add'), del: chg('del'), labels: /was|now|added/.test(p.textContent.replace(p.querySelector('[data-pop-raw]')?.textContent || '', '')),
+               btn: { x: b.left + b.width / 2, y: b.top + b.height / 2 } }; });
     if (pop) { await page.touchscreen.tap(pop.btn.x, pop.btn.y); await page.waitForTimeout(250); }
     return { pop, text: await docText() };
   };
   await reset();
   const boldU = await tapUnder('Third para.', 'Third **para**.');
-  ok('a tap on an underline opens its pop: what changed, the raw source was and now with the markers lit, and Undo restores GitHub\'s text',
-    boldU.pop && boldU.pop.what === 'bold added' && boldU.pop.was === 'para' && boldU.pop.now === '**para**' && boldU.pop.litNow === '**|**' && boldU.text === PARA_DOC, JSON.stringify(boldU));
+  ok('a tap on an underline opens its pop: the line of raw markdown with the added markers lit green, no labels, and Undo restores GitHub\'s text',
+    boldU.pop && boldU.pop.raw.includes('Third **para**.') && boldU.pop.add === '**|**' && !boldU.pop.del && !boldU.pop.labels && boldU.text === PARA_DOC, JSON.stringify(boldU));
   await reset();
   // A doubled space alone makes no card (the words and the rendering are
   // unchanged), so it is checked inside a card that bold made.
   const spaceU = await tapUnder('Second para.', '**Second**  para.', 0);
-  ok('and a doubled space in a card the same: underlined, shown with its dots, and undone exactly, the bold beside it kept',
-    spaceU.pop && spaceU.pop.what === 'space added' && /··/.test(spaceU.pop.now) && spaceU.text === PARA_DOC.replace('Second para.', '**Second** para.'), JSON.stringify(spaceU));
+  ok('and a doubled space in a card the same: underlined, the added space shown as a green dot, and undone exactly, the bold beside it kept',
+    spaceU.pop && spaceU.pop.add === '·' && spaceU.pop.raw.includes('**Second** ·para.') && spaceU.text === PARA_DOC.replace('Second para.', '**Second** para.'), JSON.stringify(spaceU));
   await reset();
   // HOVER OPENS INFO, where there is hover: unpinned, so with no ✕, and it
   // goes when the mouse is demonstrably elsewhere (kits/panel-tip.js).
@@ -1917,18 +1918,20 @@ try {
     if (!at) return { missing: pick };
     await page.touchscreen.tap(at.x, at.y);
     await page.waitForTimeout(300);
-    const pop = await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); return p && p.getClientRects().length > 0 ? p.textContent.trim() : null; });
+    const pop = await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); if (!p || !p.getClientRects().length) return null;
+      const chg = (k) => [...p.querySelectorAll('[data-pop-raw] [data-chg="' + k + '"]')].map((s) => s.textContent).join('|');
+      return { btn: p.querySelector('button').textContent.trim(), raw: p.querySelector('[data-pop-raw]').textContent, add: chg('add'), del: chg('del') }; });
     const k = await page.evaluate(() => { const b = document.querySelector('[data-word-pop] button'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
     if (k) await page.touchscreen.tap(k.x, k.y);
     await page.waitForTimeout(250);
     return { pop, text: await docText() };
   };
   const struck = await tapMarkAndUndo(['Second para.', 'Para.'], ['del', 'Second']);
-  ok('a tap on struck words offers one word, undo, and undo puts them back', struck.pop === 'Undo' && struck.text === PARA_DOC, JSON.stringify(struck));
+  ok('a tap on struck words shows them struck red in the raw line (here beside the green that replaced them) with Undo, and Undo puts them back', struck.pop && struck.pop.btn === 'Undo' && struck.pop.del.includes('Second') && struck.text === PARA_DOC, JSON.stringify(struck));
   const addedW = await tapMarkAndUndo(['First two.', 'First extra two.'], ['ins', 'extra']);
-  ok('a tap on added words offers the same undo, and undo takes them out, space and all', addedW.pop === 'Undo' && addedW.text === PARA_DOC, JSON.stringify(addedW));
+  ok('a tap on added words shows them green in the raw line beside the same Undo, which takes them out, space and all', addedW.pop && addedW.pop.btn === 'Undo' && addedW.pop.add.includes('extra') && !addedW.pop.del && addedW.text === PARA_DOC, JSON.stringify(addedW));
   const repl = await tapMarkAndUndo(['Third para.', 'Third page.'], ['ins', 'page']);
-  ok('undo on half of a replacement undoes the whole of it', repl.pop === 'Undo' && repl.text === PARA_DOC, JSON.stringify(repl));
+  ok('a replacement shows red and green together, and Undo on either half undoes the whole of it', repl.pop && repl.pop.btn === 'Undo' && repl.pop.del && repl.pop.add && repl.text === PARA_DOC, JSON.stringify(repl));
   // A mark that wraps has a box per line: the pill goes under the line tapped,
   // not under the union of them, whose centre was a line away on the phone.
   await reset();
@@ -1939,10 +1942,13 @@ try {
     if (!el) return null; const q = el.getClientRects()[0];
     return { x: q.left + Math.min(q.width / 2, 20), y: q.top + q.height / 2, bottom: q.bottom, lines: el.getClientRects().length }; });
   if (wrapAt) { await page.touchscreen.tap(wrapAt.x, wrapAt.y); await page.waitForTimeout(400); }
-  const wrapPop = wrapAt && await page.evaluate(() => { const b = document.querySelector('[data-word-pop] button'); if (!b || !b.getClientRects().length) return null;
-    const r = b.getBoundingClientRect(); return { top: Math.round(r.top), cx: Math.round(r.left + r.width / 2), bg: getComputedStyle(b).backgroundColor }; });
-  ok('on a mark that wraps, the undo sits under the line tapped, at the finger, and wears the action blue',
-    !!wrapPop && wrapPop.top >= wrapAt.bottom && wrapPop.top - wrapAt.bottom < 16 && Math.abs(wrapPop.cx - Math.max(40, wrapAt.x)) < 4 && !/255, 255, 255/.test(wrapPop.bg),
+  // The pop is as wide as its line of source and slides inward near an
+  // edge, so the check is that it sits just under the tapped line and spans
+  // the finger, not that its centre is exactly there.
+  const wrapPop = wrapAt && await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'), b = p && p.querySelector('button'); if (!b || !p.getClientRects().length) return null;
+    const r = p.getBoundingClientRect(); return { top: Math.round(r.top), left: Math.round(r.left), right: Math.round(r.right), bg: getComputedStyle(b).backgroundColor }; });
+  ok('on a mark that wraps, the pop sits under the line tapped, across the finger, and its Undo wears the action blue',
+    !!wrapPop && wrapPop.top >= wrapAt.bottom && wrapPop.top - wrapAt.bottom < 16 && wrapPop.left <= wrapAt.x && wrapPop.right >= wrapAt.x && !/255, 255, 255/.test(wrapPop.bg),
     JSON.stringify({ wrapAt, wrapPop }));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
