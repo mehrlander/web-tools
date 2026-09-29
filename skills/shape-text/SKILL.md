@@ -52,7 +52,7 @@ No specific process is prescribed, but iterative thinking is helpful. Good use o
 
 Levers dormant in markdown, where the renderer decides:
 
-- **Measure.** Cap prose columns near 66 characters (45 to 75), max-width in ch. Prose columns only: headings, tables, and full-bleed elements are exempt, and capping them makes a page look broken rather than considered.
+- **Measure.** Follow html-style rule 3: cap no text column; let the layout set the width.
 - **Leading.** line-height near 1.5 for body text.
 - **Space.** Proximity groups, separation divides. Whitespace carries hierarchy before any glyph changes.
 - **De-emphasis.** Build hierarchy by dimming the secondary (opacity, muted color) sooner than by enlarging the primary.
@@ -76,7 +76,7 @@ The category behind tab deck, collapsible tree, video, and PDF is the access mod
 
 ## When prose stays prose
 
-Consider cumulative force. An argument that builds, a narrative, a judgment weighing considerations: bullets assert a peer-hood these do not have, and extraction into a table strips the reasoning that connected the cells. Where a passage resists the map, hand off: arriving-together governs the sequencing of prose that stays prose; succinct-text executes the less-text fix.
+Consider cumulative force. An argument that builds, a narrative, a judgment weighing considerations: bullets assert a peer-hood these do not have, and extraction into a table strips the reasoning that connected the cells. Where a passage resists the map, hand off: QUALIFIED-WRITING governs the sequencing of prose that stays prose; succinct-text executes the less-text fix.
 
 ## Extending
 
