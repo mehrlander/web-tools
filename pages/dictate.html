@@ -517,7 +517,8 @@
       get moveReady() { this.beat; const r = this.d && this.d.range; return !!(this.native && !this.moveArm && r && r.start !== r.end); },
       _lastNative: '',          // native: the platform's selection as last seen, "a:b"
       get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
-      wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }
+      wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }; an underline's adds { what, was, now, exact, hover, key }
+      _onPop: false, _popLeave: null,
       cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
       infoX: '',                // its ✕, from PanelTip.closeHTML(pinned)
       hoverCard: null,          // the card a mouse is over, for its bar
@@ -1443,6 +1444,9 @@
           if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapMark(gone, e.clientX, e.clientY); return; }
           const added = this.rendered && e.target?.closest?.('ins');
           if (added && this.$refs.md.contains(added)) this.tapMark(added, e.clientX, e.clientY);
+          // An underlined change is the buffer's words too: the same pop, and
+          // the caret lands as usual.
+          else if (this.rendered && this.showMarks) { const f = this.fmtAt(e.clientX, e.clientY); if (f) this.showFmtPop(f); }
           const pin = e.target?.closest?.('[data-edge]');
           if (!pin && !surface.contains(e.target)) { taps = 0; return; }
           // ARMING ENDS A RUN. pointerdown already armed the pin, and counting
@@ -2914,6 +2918,20 @@
             if (this._infoOver === info && !(this.cardInfo && this.cardInfo.i === i)) this.openCardInfo(i, info, false);
           }, 140);
         }
+        // A resting mouse on an underline opens its pop, as on info; off the
+        // words and off the pop, a hover-opened one goes after the grace.
+        const fh = e && e.pointerType === 'mouse' && this.hoverable() && this.showMarks ? this.fmtAt(e.clientX, e.clientY) : null;
+        if (fh) {
+          clearTimeout(this._popLeave); this._popLeave = null;
+          const k = fh.h.s.join(':');
+          if (!(this.wordPop && this.wordPop.key === k) && this._fmtOver !== k) {
+            this._fmtOver = k; clearTimeout(this._fmtT);
+            this._fmtT = setTimeout(() => { if (this._fmtOver === k) this.showFmtPop(fh, true); }, 140);
+          }
+        } else {
+          this._fmtOver = null; clearTimeout(this._fmtT);
+          if (this.wordPop && this.wordPop.hover) this.popLeave();
+        }
         const el = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-card]') : null;
         const i = el ? +el.dataset.mdCard : null;
         if (i !== this.hoverCard) { this.hoverCard = i; this.markCardBar(); }
@@ -3036,46 +3054,95 @@
         const md = this.$refs.md, D = window.Diff;
         if (!D || this.moveArm || this.mover) return;
         const memo = (this._fmtMemo ||= new Map());
+        const hits = this._fmtHits = [];
         const n = window.MdSurface.cards(md).length;
         for (let i = 0; i < n; i++) {
           if (window.MdSurface.readingOf(md, i) !== 'inline') continue;
           const sp = this.cardSpans(i);
           if (!sp || !sp.O.s || !sp.N.s) continue;
           const key = sp.O.s + '\u0000' + sp.N.s;
+          // Each find: u, the words underlined; s, the span of the text now
+          // that an undo replaces; old, GitHub's text for that span; what, a
+          // word for the change. Offsets are relative to the card's source.
           let found = memo.get(key);
           if (!found) {
             found = [];
             const parts = D.diffChars(sp.O.s, sp.N.s);
             if (parts.length <= 24) {
-              let at = 0; const marks = [];
+              let at = 0, ot = 0; const marks = [];
+              const NAME = { '**': 'bold', '__': 'bold', '*': 'italics', '_': 'italics', '`': 'code', '~~': 'strikethrough' };
               for (const p of parts) {
                 const len = p.count ?? p.value.length;
                 if (p.added || p.removed) {
-                  if (/^(\*\*|__|\*|_|`|~~)$/.test(p.value)) marks.push({ v: p.value, at, added: !!p.added, len: p.added ? len : 0 });
+                  if (/^(\*\*|__|\*|_|`|~~)$/.test(p.value)) marks.push({ v: p.value, at, ot, added: !!p.added, len });
                   else if (/^[ \t]+$/.test(p.value)) {
-                    const m = /^\s*\S+/.exec(sp.N.s.slice(at + (p.added ? len : 0)));
-                    if (m) found.push([at + (p.added ? len : 0), at + (p.added ? len : 0) + m[0].length]);
+                    const e = at + (p.added ? len : 0), m = /^\s*\S+/.exec(sp.N.s.slice(e));
+                    if (m) found.push({ u: [e, e + m[0].length], s: [at, e], old: p.removed ? p.value : '',
+                      what: p.added ? 'space added' : 'space removed' });
                   }
                 }
                 if (!p.removed) at += len;
+                if (!p.added) ot += len;
               }
               // Markers pair in order, like with like: the first opens, the next closes.
               for (let k = 0; k + 1 < marks.length; k++) {
                 const m = marks[k], e = marks[k + 1];
-                if (m.v === e.v && m.added === e.added && e.at > m.at + m.len) { found.push([m.at + m.len, e.at]); k++; }
+                if (m.v !== e.v || m.added !== e.added) continue;
+                const s = m.added ? [m.at, e.at + e.len] : [m.at, e.at], o = m.added ? [m.ot, e.ot] : [m.ot, e.ot + e.len];
+                const u = m.added ? [m.at + m.len, e.at] : [m.at, e.at];
+                if (u[1] <= u[0]) continue;
+                found.push({ u, s, old: sp.O.s.slice(o[0], o[1]), what: NAME[m.v] + (m.added ? ' added' : ' removed') });
+                k++;
               }
             }
             memo.set(key, found);
             if (memo.size > 200) memo.delete(memo.keys().next().value);
           }
-          for (const [a, b] of found) {
-            for (const x of window.MdSurface.rects(md, sp.N.a + a, sp.N.a + b)) {
+          for (const f of found) {
+            const u0 = sp.N.a + f.u[0], u1 = sp.N.a + f.u[1];
+            hits.push({ u: [u0, u1], s: [sp.N.a + f.s[0], sp.N.a + f.s[1]], old: f.old, what: f.what });
+            for (const x of window.MdSurface.rects(md, u0, u1)) {
               if (x.bottom < vb.top || x.top > vb.bottom) continue;
               add('div', 'absolute pointer-events-none border-b-2 border-dotted border-amber-500',
                 `left:${x.left - lb.left}px;top:${x.bottom - lb.top - 1}px;width:${x.width}px;height:0`, 'seam').dataset.fmtMark = '';
             }
           }
         }
+      },
+      // The underlined change under a point, or null: its words' own boxes,
+      // not the nearest offset, so a tap beside the words is not a hit.
+      fmtAt(x, y) {
+        for (const h of this._fmtHits || []) {
+          for (const q of window.MdSurface.rects(this.$refs.md, h.u[0], h.u[1])) {
+            if (x >= q.left - 2 && x <= q.right + 2 && y >= q.top - 2 && y <= q.bottom + 2) return { h, q };
+          }
+        }
+        return null;
+      },
+      // AN UNDERLINE OPENS THE SAME POP AS A MARK, with the raw change above
+      // its Undo: GitHub's source and the source now, the markers lit, since
+      // the rendered words are the one place the change cannot be seen. A tap
+      // opens it anywhere; a resting mouse opens it where there is hover, and
+      // it goes again once the mouse has left both the words and the pop.
+      popLeave() {
+        if (this._popLeave) return;
+        this._popLeave = setTimeout(() => { this._popLeave = null; if (this.wordPop && this.wordPop.hover && !this._onPop) this.wordPop = null; }, 220);
+      },
+      showFmtPop(hit, hover = false) {
+        const { h, q } = hit, t = this.text;
+        const now = t.slice(h.s[0], h.s[1]);
+        const vis = (s) => s.replace(/ /g, '·');
+        const spacing = /^space/.test(h.what);
+        // Spacing is shown as the whole run of spaces before the word, both
+        // sides, or a doubled space would read as a single one.
+        let st = h.s[0]; while (spacing && st > 0 && /[ \t]/.test(t[st - 1])) st--;
+        const pre = t.slice(st, h.s[0]), post = t.slice(h.s[1], h.u[1]);
+        const was = spacing ? vis(pre + h.old + post) : h.old, is = spacing ? vis(pre + now + post) : now;
+        const parts = window.Diff ? window.Diff.diffChars(was, is) : [{ value: was, removed: true }, { value: is, added: true }];
+        const side = (drop, cls) => parts.filter((p) => !p[drop]).map((p) => ({ t: p.value, cls: p.added || p.removed ? cls : '' }));
+        this.wordPop = { text: h.old, a: h.s[0], b: h.s[1], t: Date.now(), exact: true, hover, what: h.what,
+          was: side('added', 'bg-error/30 rounded-sm'), now: side('removed', 'bg-success/35 rounded-sm'), key: h.s.join(':'),
+          x: Math.max(80, Math.min(window.innerWidth - 80, q.left + q.width / 2)), y: q.bottom + 6 };
       },
       openCardInfo(i, k, pinned = true) {
         const sp = this.cardSpans(i);
@@ -3218,7 +3285,8 @@
         let a = p.a, b = p.b;
         // Taking a word out leaves its space: of two spaces, or a space before
         // punctuation, one goes with it.
-        if (!p.text && t[a - 1] === ' ' && (t[b] === ' ' || /[.,;:!?)]/.test(t[b] || ''))) a--;
+        // An underline's undo is exact: its span is GitHub's own, spaces included.
+        if (!p.exact && !p.text && t[a - 1] === ' ' && (t[b] === ' ' || /[.,;:!?)]/.test(t[b] || ''))) a--;
         this.d.text = t.slice(0, a) + p.text + t.slice(b);
         this.d.caretAt(a + p.text.length);
         this.wordPop = null;
@@ -4036,15 +4104,33 @@
       <!-- A tapped mark's undo, struck or added: an action, so it wears the
            Split pill's blue rather than the cards' label style, under the
            tapped line. The tap that opened it is ignored by the outside-click,
-           which otherwise arrives as the same gesture. -->
+           which otherwise arrives as the same gesture.
+           An underlined change (markFormat) puts its raw source above the
+           Undo, GitHub's then the text now with what changed lit, in a small
+           card around the same button, since the rendered words cannot show it. -->
       <div x-show="wordPop" x-cloak data-word-pop
            x-transition:enter="transition ease-[cubic-bezier(.34,1.56,.64,1)] duration-200 motion-reduce:transition-none"
            x-transition:enter-start="opacity-0 scale-75 -translate-y-1" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
            @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
+           @pointerenter="_onPop = true; clearTimeout(_popLeave); _popLeave = null"
+           @pointerleave="_onPop = false; if (wordPop && wordPop.hover) popLeave()"
            class="fixed z-50 -translate-x-1/2 select-none"
+           :class="wordPop && wordPop.what && 'rounded-box border border-base-300 bg-base-100 shadow-lg p-2 grid gap-1.5 max-w-[min(22rem,calc(100vw-1rem))]'"
            :style="wordPop ? 'left:' + wordPop.x + 'px;top:' + wordPop.y + 'px' : ''">
+        <template x-if="wordPop && wordPop.what">
+          <div class="grid gap-0.5" data-fmt-raw>
+            <div class="text-[11px] opacity-60" x-text="wordPop.what"></div>
+            <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 font-mono text-xs leading-5">
+              <span class="opacity-50 select-none">was</span>
+              <span class="break-words" data-fmt-was><template x-for="(s, j) in wordPop.was" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
+              <span class="opacity-50 select-none">now</span>
+              <span class="break-words" data-fmt-now><template x-for="(s, j) in wordPop.now" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
+            </div>
+          </div>
+        </template>
         <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
-                class="btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
+                class="btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"
+                :class="wordPop && wordPop.what && 'justify-self-end'"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to

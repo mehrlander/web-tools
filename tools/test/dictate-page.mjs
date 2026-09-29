@@ -1455,6 +1455,35 @@ try {
     info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.ghost && info.fmt.buttons === 1 && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
   ok('and in the card, bold added puts one dotted underline under exactly the word, while a change of words puts none',
     info.fmt.under.fits && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
+  // AN UNDERLINE, TAPPED, OFFERS THE RAW CHANGE AND ITS UNDO, as a mark does.
+  const tapUnder = async (from, to, nth = 0) => {
+    const at = await page.evaluate(async ([from, to, nth]) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+      c.$refs.view.scrollTop = 0; c.d.text = c.text.replace(from, to); c.d.caretAt(0); c.paint();
+      await new Promise((r) => setTimeout(r, 250));
+      const u = c.$refs.layer.querySelectorAll('[data-fmt-mark]')[nth];
+      if (!u) return { dbg: { cards: c.$refs.md.querySelectorAll('[data-md-card]').length, hits: c._fmtHits } };
+      const r = u.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top - 6 }; }, [from, to, nth]);
+    if (!at || at.dbg) return { missing: true, dbg: at && at.dbg };
+    await page.touchscreen.tap(at.x, at.y); await page.waitForTimeout(350);
+    const pop = await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); if (!p || !p.getClientRects().length) return null;
+      const lit = (sel) => [...p.querySelectorAll(sel + ' .rounded-sm')].map((s) => s.textContent).join('|');
+      const b = p.querySelector('button').getBoundingClientRect();
+      return { what: p.querySelector('[data-fmt-raw] div')?.textContent, was: p.querySelector('[data-fmt-was]')?.textContent, now: p.querySelector('[data-fmt-now]')?.textContent,
+               litNow: lit('[data-fmt-now]'), btn: { x: b.left + b.width / 2, y: b.top + b.height / 2 } }; });
+    if (pop) { await page.touchscreen.tap(pop.btn.x, pop.btn.y); await page.waitForTimeout(250); }
+    return { pop, text: await docText() };
+  };
+  await reset();
+  const boldU = await tapUnder('Third para.', 'Third **para**.');
+  ok('a tap on an underline opens its pop: what changed, the raw source was and now with the markers lit, and Undo restores GitHub\'s text',
+    boldU.pop && boldU.pop.what === 'bold added' && boldU.pop.was === 'para' && boldU.pop.now === '**para**' && boldU.pop.litNow === '**|**' && boldU.text === PARA_DOC, JSON.stringify(boldU));
+  await reset();
+  // A doubled space alone makes no card (the words and the rendering are
+  // unchanged), so it is checked inside a card that bold made.
+  const spaceU = await tapUnder('Second para.', '**Second**  para.', 0);
+  ok('and a doubled space in a card the same: underlined, shown with its dots, and undone exactly, the bold beside it kept',
+    spaceU.pop && spaceU.pop.what === 'space added' && /··/.test(spaceU.pop.now) && spaceU.text === PARA_DOC.replace('Second para.', '**Second** para.'), JSON.stringify(spaceU));
+  await reset();
   // HOVER OPENS INFO, where there is hover: unpinned, so with no ✕, and it
   // goes when the mouse is demonstrably elsewhere (kits/panel-tip.js).
   const infoBtn = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
