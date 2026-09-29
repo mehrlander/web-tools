@@ -2836,14 +2836,15 @@
         const i = el ? +el.dataset.mdCard : null;
         if (i !== this.hoverCard) { this.hoverCard = i; this.paintExtras(); }
       },
-      // THE CARD BAR: its actions, drawn on the selected card's bottom-right
-      // corner and straddling its edge the way the number and the stops
-      // straddle the top one, but at thumb size, since these are meant to be
-      // tapped. It floats, so it costs the document no padding; while it
-      // shows it covers the line below the card. The shape is the convention
-      // and the buttons are the page's: here Info and Remove; a page reviewing
-      // someone else's text would put its votes and comments in the same bar,
-      // judgments first and the destructive one last, set apart.
+      // THE CARD BAR: the selected card's actions, as words in a small pill
+      // CENTRED ON ITS BOTTOM EDGE, in the vocabulary of the stops pill on its
+      // top edge (old, inline, new). Centred because a neighbouring card keeps
+      // its own number at its left and its stops at its right, so a bar at the
+      // centre of the edge clears both. It floats, so it costs the document no
+      // padding. The words are small; an invisible margin around each takes a
+      // thumb. The shape is the convention and the words are the page's: here
+      // info and remove; a page reviewing someone else's text would put its
+      // votes and comments in the same pill, the destructive one last.
       drawCardBar(add, lb, vb) {
         const md = this.$refs.md, r = this.d && this.d.range;
         let el = this.hoverCard != null ? md.querySelector('[data-md-card="' + this.hoverCard + '"]') : null;
@@ -2855,35 +2856,38 @@
         if (!el || !md.contains(el)) return;
         const i = +el.dataset.mdCard, b = el.getBoundingClientRect();
         // A card running past the pane's foot has its bar held above the foot.
-        const floor = vb.bottom - 24;
-        if (b.bottom < vb.top + 24 || b.top > floor) return;
-        const bar = add('div', 'absolute z-30 flex items-center gap-1.5',
-          `right:${lb.right - b.right + 8}px;top:${Math.min(b.bottom, floor) - lb.top - 17}px`, 'seam');
+        const floor = vb.bottom - 16;
+        if (b.bottom < vb.top + 16 || b.top > floor) return;
+        const bar = add('div', 'absolute z-30 flex items-center rounded-full border border-base-300 bg-base-100 text-[10px] leading-none select-none',
+          `left:0;top:${Math.min(b.bottom, floor) - lb.top - 10}px`, 'seam');
         bar.dataset.mdUi = ''; bar.dataset.cardBar = i;
-        const btn = (icon, label, fn, cls) => {
+        const word = (text, label, fn, cls) => {
           const k = document.createElement('button');
           k.type = 'button'; k.title = label; k.setAttribute('aria-label', label); k.dataset.mdUi = '';
-          k.className = 'btn btn-circle btn-sm border border-base-300 bg-base-100 shadow-md ' + cls;
-          k.innerHTML = '<i class="ph ' + icon + ' text-lg"></i>';
+          k.className = "relative px-2.5 py-[5px] cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] " + cls;
+          k.textContent = text;
           this.keepFocus(k);
           k.addEventListener('pointerdown', (e) => e.stopPropagation());
           k.addEventListener('click', (e) => { e.stopPropagation(); fn(k); });
           bar.appendChild(k);
+          return k;
         };
-        btn('ph-info', 'Info', (k) => this.openCardInfo(i, k), '');
-        btn('ph-x', 'Remove this change', () => {
+        word('info', 'Info', (k) => this.openCardInfo(i, k), 'text-base-content/60');
+        bar.appendChild(Object.assign(document.createElement('span'), { className: 'w-px h-2.5 bg-base-300' }));
+        word('remove', 'Remove this change', () => {
           const run = window.MdSurface.cards(md)[i];
           this.cardInfo = null; this.selCard = null;
           if (run) this.rejectCard(run);
-        }, 'ml-1.5 text-error');
+        }, 'text-error/70');
+        const w = bar.getBoundingClientRect().width;
+        let left = b.left + b.width / 2 - w / 2;
         // THE LAUNCHER floats over the pane and can be dragged anywhere, so the
         // bar is measured against it rather than kept a guessed distance off:
         // where they would overlap, the bar slides left of it, still on the edge.
         const fab = document.querySelector('[x-data="fab()"] [data-dom-shot-ignore]')?.getBoundingClientRect();
-        const br = bar.getBoundingClientRect();
-        if (fab && fab.width && br.left < fab.right && br.right > fab.left && br.top < fab.bottom && br.bottom > fab.top) {
-          bar.style.right = (lb.right - fab.left + 6) + 'px';
-        }
+        const top = Math.min(b.bottom, floor) - 10;
+        if (fab && fab.width && left < fab.right && left + w > fab.left && top < fab.bottom && top + 20 > fab.top) left = fab.left - w - 6;
+        bar.style.left = (Math.max(b.left + 4, left) - lb.left) + 'px';
       },
       // What the change was: GitHub's copy, the text now, and the word count
       // each way. Opened below its button, clamped to the screen.

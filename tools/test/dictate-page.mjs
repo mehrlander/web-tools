@@ -1240,11 +1240,12 @@ try {
   await page.waitForTimeout(250);
   const bar = await page.evaluate(() => { const b = document.querySelector('[data-card-bar]'); if (!b) return null;
     const card = document.querySelector('[x-ref="md"] [data-md-card="' + b.dataset.cardBar + '"]').getBoundingClientRect(), r = b.getBoundingClientRect();
-    const k = b.querySelector('[title^="Remove"]').getBoundingClientRect();
-    return { n: document.querySelectorAll('[data-card-bar]').length, straddles: r.top < card.bottom && r.bottom > card.bottom, right: Math.abs(r.right - card.right) < 16,
-             size: Math.round(k.height), x: k.left + k.width / 2, y: k.top + k.height / 2 }; });
-  ok('the number selects its card, and the card wears one bar on its bottom edge, at thumb size',
-    !!bar && bar.n === 1 && bar.straddles && bar.right && bar.size >= 30, JSON.stringify(bar));
+    const k = b.querySelector('[title^="Remove"]'), kr = k.getBoundingClientRect(), hit = getComputedStyle(k, '::before');
+    return { n: document.querySelectorAll('[data-card-bar]').length, straddles: r.top < card.bottom && r.bottom > card.bottom,
+             centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2), words: b.textContent.replace(/\s+/g, ''),
+             reach: Math.round(kr.height + 2 * Math.abs(parseFloat(hit.top) || 0)), x: kr.left + kr.width / 2, y: kr.top + kr.height / 2 }; });
+  ok('the number selects its card, and the card wears one pill, info and remove, centred on its bottom edge, with a tap reach of 40px or more',
+    !!bar && bar.n === 1 && bar.straddles && bar.centred < 3 && bar.words === 'inforemove' && bar.reach >= 40, JSON.stringify(bar));
   await page.touchscreen.tap(bar.x, bar.y);
   await page.waitForTimeout(250);
   ok('and Remove on the bar restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
