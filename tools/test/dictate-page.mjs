@@ -1435,7 +1435,7 @@ try {
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
       lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
-      close: !!p.querySelector('button') };
+      ghost: !!p.querySelector('[data-wt-panel-tip-close]'), buttons: p.querySelectorAll('button').length };
     // Escape puts it away; there is no button to do it.
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise((r) => setTimeout(r, 50));
@@ -1445,8 +1445,28 @@ try {
   });
   ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
     info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
-  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width, with no Close button, and Escape puts it away',
-    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && !info.fmt.close && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
+  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is a pinned panel-tip whose one button is the kit\'s ghost ✕, and Escape puts it away',
+    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.ghost && info.fmt.buttons === 1 && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
+  // HOVER OPENS INFO, where there is hover: unpinned, so with no ✕, and it
+  // goes when the mouse is demonstrably elsewhere (kits/panel-tip.js).
+  const infoBtn = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('Third para.', 'Third para, rewritten.'); c.d.caretAt(c.d.text.indexOf('rewritten')); c.paint();
+    await new Promise((r) => setTimeout(r, 250));
+    const b = [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[data-md-card-act="info"]');
+    const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  const infoNow = () => page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const x = document.querySelector('[data-card-info] [data-wt-panel-tip-close]');
+    return { open: !!c.cardInfo, pinned: !!(c.cardInfo && c.cardInfo.pinned), ghost: !!x && x.getClientRects().length > 0 }; });
+  // This browser has touch emulated and so reports no hover; the check is of
+  // what the page does where there is hover.
+  await page.evaluate(() => { window._mm = window.matchMedia;
+    window.matchMedia = (q) => /hover:\s*none/.test(q) ? { matches: false } : /hover:\s*hover/.test(q) ? { matches: true } : window._mm(q); });
+  await page.mouse.move(infoBtn.x, infoBtn.y); await page.waitForTimeout(400);
+  const hovered = await infoNow();
+  await page.mouse.move(5, 5); await page.mouse.move(8, 400); await page.waitForTimeout(500);
+  const left = await infoNow();
+  ok('a mouse resting on info opens it unpinned, with no ✕, and moving well away closes it', hovered.open && !hovered.pinned && !hovered.ghost && !left.open, JSON.stringify({ hovered, left }));
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; window.matchMedia = window._mm; c.cardInfo = null; c.d.undo(); c.paint(); });
   // The Changes face is retired; what it alone had, the count and a step
   // between changes, sits in the Rendered face's corner.
   const jump = await page.evaluate(async () => {

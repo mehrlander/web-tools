@@ -397,6 +397,8 @@
   // a literal path is what lets the pre-build carry it; it is 5k and does nothing
   // until asked.
   await gh.load('kits/md-unwrap.js');
+  // The house panel-tip's ways out (window.PanelTip), for a card's Info.
+  await gh.load('kits/panel-tip.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';
   const JOTS = 'lists/jots.json';
@@ -516,7 +518,8 @@
       _lastNative: '',          // native: the platform's selection as last seen, "a:b"
       get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
       wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }
-      cardInfo: null,           // a card's Info panel: { i, old, now, ow, nw, x, y }
+      cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
+      infoX: '',                // its ✕, from PanelTip.closeHTML(pinned)
       hoverCard: null,          // the card a mouse is over, for its bar
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
       keyCard: null,            // a desk's card taken by a click beside its words: keys turn it, no caret
@@ -961,7 +964,9 @@
           && !e.target?.closest?.('input, textarea, select, [contenteditable]');
 
         addEventListener('keydown', (e) => {
-          // Escape puts away whichever popover is up, before anything else.
+          // Escape puts away the undo pill, before anything else. Info's
+          // Escape is kits/panel-tip.js's; this only keeps it from also
+          // reaching a card held for the keys.
           if (e.key === 'Escape' && (this.cardInfo || this.wordPop)) { this.cardInfo = null; this.wordPop = null; e.preventDefault(); e.stopPropagation(); return; }
           if (this.keyCard != null && mine(e) && this.cardKey(e)) return;
           if (mine(e) && this.shortcut(e)) return;
@@ -2898,6 +2903,16 @@
         this.paint();
       },
       cardHover(e) {
+        // A mouse resting on a card's info opens it unpinned, after the
+        // house 140ms; moving off before then opens nothing.
+        const info = e && e.pointerType === 'mouse' && this.hoverable() ? e.target?.closest?.('[data-md-card-act="info"]') : null;
+        if (info !== this._infoOver) {
+          this._infoOver = info; clearTimeout(this._infoT);
+          if (info) this._infoT = setTimeout(() => {
+            const i = +info.closest('[data-md-card]').dataset.mdCard;
+            if (this._infoOver === info && !(this.cardInfo && this.cardInfo.i === i)) this.openCardInfo(i, info, false);
+          }, 140);
+        }
         const el = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-card]') : null;
         const i = el ? +el.dataset.mdCard : null;
         if (i !== this.hoverCard) { this.hoverCard = i; this.markCardBar(); }
@@ -2951,7 +2966,15 @@
       },
       cardAct(btn) {
         const i = +btn.closest('[data-md-card]').dataset.mdCard;
-        if (btn.dataset.mdCardAct === 'info') { this.openCardInfo(i, btn); return; }
+        // A click PINS Info: a hover-opened one stays, with its ✕; a pinned
+        // one closes; any other opens pinned, which is every tap on a phone.
+        if (btn.dataset.mdCardAct === 'info') {
+          const c = this.cardInfo;
+          if (c && c.i === i && !c.pinned) this.pinInfo(true);
+          else if (c && c.i === i) this.cardInfo = null;
+          else this.openCardInfo(i, btn, true);
+          return;
+        }
         const run = window.MdSurface.cards(this.$refs.md)[i];
         this.cardInfo = null; this.selCard = null; this.keyCard = null;
         if (run) this.rejectCard(run);
@@ -2964,8 +2987,27 @@
       // with spaces and tabs made visible there, and unchanged lines beyond
       // one either side fold. The header counts the lines and says when the
       // change is only whitespace, or only formatting.
-      openCardInfo(i, k) {
-        if (this.cardInfo && this.cardInfo.i === i) { this.cardInfo = null; return; }
+      //
+      // IT IS A PANEL-TIP, by the house rule (daisy-alpine mechanics.md,
+      // "Title-tips and panel-tips"): it scrolls, so it takes the pointer.
+      // kits/panel-tip.js owns the ways out and this owns the opening: hover
+      // opens it unpinned where there is hover, and it closes when the
+      // pointer is demonstrably elsewhere; a click pins it, and pinned it
+      // wears the kit's ghost ✕ and closes on that, Escape, a press outside,
+      // or a scroll. On a phone every tap pins, so the ✕ is always there.
+      hoverable() { return !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches); },
+      pinInfo(pinned) {
+        const el = this.$refs.info;
+        if (!this.cardInfo || !el || !window.PanelTip) return;
+        this.cardInfo.pinned = pinned;
+        this.infoX = window.PanelTip.closeHTML(pinned);
+        // The kit's pointer guard would close a pinned panel the moment the
+        // mouse left it, so a pinned one is wired without it.
+        this._infoWire?.detach();
+        this._infoWire = window.PanelTip.wire(el, { onClose: () => { this.cardInfo = null; }, label: 'card info',
+          except: ['[data-md-card-act="info"]'], stale: pinned ? 'geometry' : true });
+      },
+      openCardInfo(i, k, pinned = true) {
         const run = window.MdSurface.cards(this.$refs.md)[i];
         if (!run) return;
         const base = this.fileBase || '', t = this.text;
@@ -2997,6 +3039,7 @@
           x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
           pos: below ? 'top:' + (b.bottom + 6) + 'px' : 'bottom:' + (innerHeight - b.top + 6) + 'px',
           room: Math.max(160, (below ? innerHeight - b.bottom : b.top) - 60) };
+        this.$nextTick(() => this.pinInfo(pinned));
       },
       // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
       // segs: [{ t, cls }] }. A removed run facing an added one is paired line
@@ -3899,16 +3942,17 @@
 
       <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
            since the buffer no longer holds them; this is where they are read. -->
-      <!-- A card's Info: what the change was. A popover, so it goes the way
-           popovers go, with no button of its own: a tap anywhere else, the
-           card's info again, or Escape. One frame, a line saying where the
-           change is, and the lines themselves, the unchanged ones receding. -->
-      <div x-show="cardInfo" x-cloak @click.outside="cardInfo = null" data-card-info
+      <!-- A card's Info: what the change was, as the house panel-tip (see
+           openCardInfo). One frame, a line saying where the change is, and the
+           lines themselves, the unchanged ones receding. The ✕ is the kit's
+           ghost, drawn only when pinned or where nothing hovers. -->
+      <div x-show="cardInfo" x-cloak x-ref="info" role="dialog" aria-label="Change info" data-card-info
            x-transition:enter="transition ease-out duration-150 motion-reduce:transition-none"
            x-transition:enter-start="opacity-0 scale-[.98]" x-transition:enter-end="opacity-100 scale-100"
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
+        <div x-html="infoX"></div>
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 pl-3 py-1.5 border-b border-base-300 text-[13px]" :class="infoX ? 'pr-10' : 'pr-3'">
           <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
           <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
           <span x-show="cardInfo && cardInfo.kind" data-info-kind
