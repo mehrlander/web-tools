@@ -32,6 +32,7 @@ on:
     paths:
       - '.github/workflows/errand-browser.yml'
       - 'tools/test/top-mode-live.mjs'
+      - 'tools/test/webkit-reload-isolate.mjs'
 
 # Read-only: the job's token is handed to the pages as their GitHub token, so
 # it must be able to do nothing but read.
@@ -75,3 +76,14 @@ jobs:
             node tools/test/top-mode-live.mjs --sha "$SHA" --engine "$e" --root under-test || status=1
           done
           exit $status
+
+      # Diagnostic, reported and never failing the job: which ingredient of
+      # the WebKit death at a reload after Back is the one it needs.
+      - name: WebKit reload isolation
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git -C under-test rev-parse HEAD)
+          node tools/test/webkit-reload-isolate.mjs --sha "$SHA" --engine webkit
