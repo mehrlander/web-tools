@@ -515,7 +515,7 @@
       get moveReady() { this.beat; const r = this.d && this.d.range; return !!(this.native && !this.moveArm && r && r.start !== r.end); },
       _lastNative: '',          // native: the platform's selection as last seen, "a:b"
       get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
-      delPop: null,             // a tapped removal: { text, at, x, y }
+      wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }
       cardInfo: null,           // a card's Info panel: { i, old, now, ow, nw, x, y }
       hoverCard: null,          // the card a mouse is over, for its bar
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
@@ -695,7 +695,7 @@
           onText: (t) => {
             if (t !== this.text) this.mendArmed = false;
             // Words held for Move name offsets, and an edit moves them.
-            if (t !== this.text) { this.moveArm = null; this.moveAim = null; this.cardInfo = null; }
+            if (t !== this.text) { this.moveArm = null; this.moveAim = null; this.cardInfo = null; this.wordPop = null; }
             // A CARRY IS OVER WHEN THE TEXT MOVES UNDER IT: its range names
             // the words it picked up, and a final result from the microphone
             // replaces exactly those. The drop's own edit arrives after the
@@ -1422,9 +1422,14 @@
           if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
             taps = 0; this.pickReading(+card.dataset.mdCard, 'inline'); return;
           }
-          // A struck word is the base's, not the buffer's: tapping it offers it back.
+          // A MARKED WORD, TAPPED, OFFERS ITS UNDO, struck or added alike: one
+          // pill, one word, so "no thanks" never needs the keyboard. A struck
+          // word is the base's, not the buffer's, so the tap stops there; an
+          // added word is the buffer's, so the tap also places the caret.
           const gone = this.rendered && e.target?.closest?.('del');
-          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapRemoved(gone); return; }
+          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapMark(gone); return; }
+          const added = this.rendered && e.target?.closest?.('ins');
+          if (added && this.$refs.md.contains(added)) this.tapMark(added);
           const pin = e.target?.closest?.('[data-edge]');
           if (!pin && !surface.contains(e.target)) { taps = 0; return; }
           // ARMING ENDS A RUN. pointerdown already armed the pin, and counting
@@ -2919,13 +2924,47 @@
         this.d.caretAt(Math.min(e.newRange ? e.newRange.start : e.insertAt, this.d.text.length));
         this.paint();
       },
-      // A tapped struck word: where it would go back is the caret the tap would
-      // have placed, which is just before it.
-      tapRemoved(del) {
-        const at = window.MdSurface.offsetAt(this.$refs.md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
-        const b = del.getBoundingClientRect();
-        this.delPop = { text: del.textContent, at: at ?? 0, with: null, by: '',
-                        x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
+      // THE UNDO OF ONE MARK. Every undo is one replacement, [a, b) of the
+      // buffer by `text`: a struck word goes back in at the caret its tap
+      // would have placed (just before it), an added word comes out, and a
+      // struck word right against an added one is a REPLACEMENT, which undoes
+      // as a pair from either side, since keeping half of it is a third text
+      // nobody wrote.
+      insRange(ins) {
+        const md = this.$refs.md;
+        const a = window.MdSurface.offsetOf(md, ins, 0, 'start'), b = window.MdSurface.offsetOf(md, ins, ins.childNodes.length, 'end');
+        return a == null || b == null ? null : [Math.min(a, b), Math.max(a, b)];
+      },
+      tapMark(el) {
+        const md = this.$refs.md, isDel = el.tagName === 'DEL';
+        const next = (n, dir) => { let x = dir > 0 ? n.nextSibling : n.previousSibling;
+          while (x && x.nodeType === 3 && !x.textContent) x = dir > 0 ? x.nextSibling : x.previousSibling; return x; };
+        const mate = next(el, isDel ? 1 : -1), pair = mate && mate.tagName === (isDel ? 'INS' : 'DEL') && md.contains(mate) ? mate : null;
+        const del = isDel ? el : pair, ins = isDel ? pair : el;
+        let r = ins ? this.insRange(ins) : null;
+        if (!r) {
+          if (!del) return;
+          const at = window.MdSurface.offsetAt(md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
+          r = [at ?? 0, at ?? 0];
+        }
+        this.showWordPop(del ? del.textContent : '', r[0], r[1], el.getBoundingClientRect());
+      },
+      showWordPop(text, a, b, rect) {
+        this.wordPop = { text, a, b, t: Date.now(),
+          x: Math.max(40, Math.min(window.innerWidth - 40, rect.left + rect.width / 2)), y: rect.bottom + 6 };
+      },
+      undoWord() {
+        const p = this.wordPop;
+        if (!p) return;
+        const t = this.d.text;
+        let a = p.a, b = p.b;
+        // Taking a word out leaves its space: of two spaces, or a space before
+        // punctuation, one goes with it.
+        if (!p.text && t[a - 1] === ' ' && (t[b] === ' ' || /[.,;:!?)]/.test(t[b] || ''))) a--;
+        this.d.text = t.slice(0, a) + p.text + t.slice(b);
+        this.d.caretAt(a + p.text.length);
+        this.wordPop = null;
+        this.paint();
       },
 
       // ── The change marks ──────────────────────────────────────────────
@@ -2942,26 +2981,15 @@
         try { document.getSelection().removeAllRanges(); } catch {}
         this.paint();
       },
-      // A removal's wedge was tapped: show what went, with a way to put it back.
+      // A removal's wedge was tapped: the same undo pill as a struck word.
       delTap(e) {
         const w = e.target?.closest?.('[data-md-del]');
         if (!w) return;
         e.preventDefault(); e.stopPropagation();
         const d = window.MdSurface.removals(this.$refs.md)[+w.getAttribute('data-md-del')];
         if (!d) return;
-        const b = w.getBoundingClientRect();
-        this.delPop = { text: d.text, at: d.at, with: d.with || null,
-                        by: d.with ? this.d.text.slice(d.with[0], d.with[1]) : '', x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
-      },
-      restoreRemoval() {
-        const p = this.delPop;
-        if (!p) return;
-        const t = this.d.text;
-        const [a, b] = p.with || [p.at, p.at];
-        this.d.text = t.slice(0, a) + p.text + t.slice(b);
-        this.d.caretAt(a + p.text.length);
-        this.delPop = null;
-        this.paint();
+        const [a, b] = d.with || [d.at, d.at];
+        this.showWordPop(d.text, a, b, w.getBoundingClientRect());
       },
 
       // ── Formatting, file mode ─────────────────────────────────────────
@@ -3738,18 +3766,15 @@
           </div>
         </div>
       </div>
-      <div x-show="delPop" x-cloak @click.outside="delPop = null"
-           class="fixed z-50 w-72 card card-sm bg-base-100 border border-base-300 shadow-xl"
-           :style="delPop ? 'left:' + delPop.x + 'px;top:' + delPop.y + 'px' : ''">
-        <div class="card-body gap-2">
-          <div class="text-xs opacity-60">Removed since GitHub's copy</div>
-          <div class="text-base line-through decoration-[var(--color-error)] bg-error/10 rounded px-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words" x-text="delPop?.text"></div>
-          <div x-show="delPop?.by" class="text-sm"><span class="opacity-60">Replaced by </span><span class="bg-success/20 rounded px-1" x-text="delPop?.by"></span></div>
-          <div class="card-actions justify-end">
-            <button class="btn btn-sm btn-ghost" @click="delPop = null">Close</button>
-            <button class="btn btn-sm btn-primary" @click="restoreRemoval()"><i class="ph ph-arrow-u-up-left"></i>Put back</button>
-          </div>
-        </div>
+      <!-- A tapped mark's undo, struck or added: one word in the cards' pill
+           style, under the mark. The tap that opened it is ignored by the
+           outside-click, which otherwise arrives as the same gesture. -->
+      <div x-show="wordPop" x-cloak data-word-pop
+           @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
+           class="fixed z-50 -translate-x-1/2 flex items-center rounded-full border border-base-300 bg-base-100 shadow-sm text-[13px] leading-none select-none"
+           :style="wordPop ? 'left:' + wordPop.x + 'px;top:' + wordPop.y + 'px' : ''">
+        <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
+                class="relative px-2.5 py-[3.5px] text-error/70 cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-3 before:content-['']">undo</button>
       </div>
 
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to

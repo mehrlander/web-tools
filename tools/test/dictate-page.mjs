@@ -1765,6 +1765,32 @@ try {
   await page.keyboard.press('Control+Enter');
   const sent = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.openSend = c._realSend; return !!c._sent; });
   ok('and Ctrl+Enter opens Send', sent, String(sent));
+  // A MARKED WORD, TAPPED, OFFERS ITS UNDO: struck or added alike, one pill,
+  // one word. Reported from the phone: a struck word opened a panel with two
+  // buttons, and an added word offered nothing short of the keyboard.
+  console.log('mark undo:');
+  const tapMarkAndUndo = async (edit, pick) => {
+    await reset();
+    await page.evaluate((edit) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+      c.$refs.view.scrollTop = 0; c.d.text = c.text.replace(edit[0], edit[1]); c.d.caretAt(0); c.paint(); }, edit);
+    await page.waitForTimeout(250);
+    const at = await page.evaluate((pick) => { const el = [...document.querySelectorAll('[x-ref="md"] ' + pick[0])].find((x) => x.textContent.includes(pick[1]));
+      if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, pick);
+    if (!at) return { missing: pick };
+    await page.touchscreen.tap(at.x, at.y);
+    await page.waitForTimeout(300);
+    const pop = await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); return p && p.getClientRects().length > 0 ? p.textContent.trim() : null; });
+    const k = await page.evaluate(() => { const b = document.querySelector('[data-word-pop] button'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    if (k) await page.touchscreen.tap(k.x, k.y);
+    await page.waitForTimeout(250);
+    return { pop, text: await docText() };
+  };
+  const struck = await tapMarkAndUndo(['Second para.', 'Para.'], ['del', 'Second']);
+  ok('a tap on struck words offers one word, undo, and undo puts them back', struck.pop === 'undo' && struck.text === PARA_DOC, JSON.stringify(struck));
+  const addedW = await tapMarkAndUndo(['First two.', 'First extra two.'], ['ins', 'extra']);
+  ok('a tap on added words offers the same undo, and undo takes them out, space and all', addedW.pop === 'undo' && addedW.text === PARA_DOC, JSON.stringify(addedW));
+  const repl = await tapMarkAndUndo(['Third para.', 'Third page.'], ['ins', 'page']);
+  ok('undo on half of a replacement undoes the whole of it', repl.pop === 'undo' && repl.text === PARA_DOC, JSON.stringify(repl));
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {
