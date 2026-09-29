@@ -439,7 +439,10 @@ async function loadPayload(q) {
     return r.json();
   }
   const [repoRef, path] = src.split(':');
-  const [repo, ref = 'main'] = repoRef.split('@');
+  // No @ref: the selection's ref for that file (a renderer stamps
+  // __refFor), else main.
+  const [repo, named] = repoRef.split('@');
+  const ref = named || (window.__refFor && window.__refFor(repo, path)) || 'main';
   let token = '';
   try { token = localStorage.getItem('ghToken') || ''; } catch {}
   const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${ref}`, {

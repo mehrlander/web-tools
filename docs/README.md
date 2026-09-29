@@ -12,12 +12,12 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-12 by a skill, 28 by a page or component. The remaining 51 are
+12 by a skill, 28 by a page or component. The remaining 52 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
 
-- [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, product boundary, addresses, and what every view shares
+- [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, and the name split
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
@@ -31,7 +31,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
-- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: file substitution, the sidebar's second ref, and drop-on-a-branch
+- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: the takeover, file substitution, the sidebar's second ref, and drop-on-a-branch
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
@@ -46,7 +46,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`kits.csv`](kits.csv) — the kits registry: every module on the kit shelf, its namespace, its own headline, and who loads it
 - [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, timing rules, and the load-build duality
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
-- [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, editing from the shell)
+- [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, proposals, editing from the shell)
 - [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
@@ -64,7 +64,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — why the showing boundaries sit where they are: the frame and the record behind routes.json
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
-- [`stage.md`](stage.md) — the stage: the bench, intake, the walkable preview and diff, Out, and the #stage= link grammar
+- [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
 - [`surfacing-course.md`](surfacing-course.md) — the guide-PR lifecycle: the PR body as a workstream’s running record, its template, and the six phases
 - [`surfacing-extended.md`](surfacing-extended.md) — the ways of handing something over that most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
 - [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
@@ -87,6 +87,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
 - [`context.md`](context.md) *(orphan)* — the frame for the context registry: its two halves, the circles, overlap verdicts, and the session-store join
+- [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
 
 ## docs/doc-craft-specimens/
 
@@ -130,7 +131,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/forms/
 
-- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and the branch takeover
+- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
 - [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
 
 ## docs/github/

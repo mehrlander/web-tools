@@ -29,8 +29,9 @@
   Accent discipline: `accent` marks a chapter the reading repos also discuss,
   and means nothing else on the page.
 
-  Both sources are private and token-gated; ?use= pins the lib chain and
-  window.__ref carries the branch through to both data reads.
+  Both sources are private and token-gated; ?use= pins the lib chain. Each
+  data read takes ?data= (both repos, as before), else the link's selection
+  for that repo (refs=owner/repo@ref), else main.
 -->
 <style>
   [x-cloak]{display:none!important}
@@ -51,9 +52,12 @@
       BILLS_PATH: 'bills/index/citation-index.json',
       REGISTRY: 'mehrlander/web-tools-private',
       REG_PATH: 'state/entities.json',
-      // Same rule as entities.html: a branch preview reads that branch's data.
-      DATA_REF: new URLSearchParams(location.search).get('data')
-                || window.__ref || 'main',
+      // Per repo, never window.__ref (this page's own web-tools version):
+      // ?data= for both, else the selection for that repo, else main.
+      BILLS_REF: new URLSearchParams(location.search).get('data')
+                 || window.GH?.refFor?.('mehrlander/wa-bills', 'bills/index/citation-index.json') || 'main',
+      REG_REF: new URLSearchParams(location.search).get('data')
+               || window.GH?.refFor?.('mehrlander/web-tools-private', 'state/entities.json') || 'main',
 
       bills: null, rcwByRepo: {}, loading: true, error: '', regError: '',
       q: '', only: 'joined',   // joined | all
@@ -61,17 +65,17 @@
 
       async init() {
         try {
-          const b = new window.GH({ token: window.TOKEN || '', repo: this.BILLS, ref: this.DATA_REF });
+          const b = new window.GH({ token: window.TOKEN || '', repo: this.BILLS, ref: this.BILLS_REF });
           this.bills = JSON.parse((await b.get(this.BILLS_PATH)).text);
         } catch (e) {
-          this.error = `${e.message || e} (${this.BILLS}@${this.DATA_REF} ${this.BILLS_PATH})`;
+          this.error = `${e.message || e} (${this.BILLS}@${this.BILLS_REF} ${this.BILLS_PATH})`;
           this.loading = false; return;
         }
         // The reading half is optional: without it the page still lists the
         // corpus, it just cannot mark the join. Failing soft keeps one
         // token-gated read from taking the whole page down.
         try {
-          const r = new window.GH({ token: window.TOKEN || '', repo: this.REGISTRY, ref: this.DATA_REF });
+          const r = new window.GH({ token: window.TOKEN || '', repo: this.REGISTRY, ref: this.REG_REF });
           this.rcwByRepo = JSON.parse((await r.get(this.REG_PATH)).text).rcwByRepo || {};
         } catch (e) {
           this.regError = 'reading-side counts unavailable; the join column is blank';
@@ -217,7 +221,7 @@
   <footer class="px-4 py-1.5 bg-base-100 border-t border-base-300 flex items-center gap-3 text-xs opacity-50">
     <span x-show="bills" x-text="`${bills?.chapters} chapters · ${bills?.biennia?.length} biennia`"></span>
     <a class="link link-hover ml-auto"
-       :href="`https://github.com/${BILLS}/blob/${DATA_REF}/${BILLS_PATH}`">index</a>
+       :href="`https://github.com/${BILLS}/blob/${BILLS_REF}/${BILLS_PATH}`">index</a>
   </footer>
 
   <dialog x-ref="info" class="modal">

@@ -66,7 +66,9 @@
   const fetchText = async (spec) => {
     const s = parseSpec(spec);
     if (!s.repo) return (await gh.get(s.path)).text;
-    const at = s.ref ? `?ref=${encodeURIComponent(s.ref)}` : '';
+    // No @ref: the selection's ref for this file, else the default branch.
+    const ref = s.ref || window.GH.refFor(s.repo, s.path);
+    const at = ref ? `?ref=${encodeURIComponent(ref)}` : '';
     const data = await gh.req(`/repos/${s.repo}/contents/${s.path}${at}`);
     if (Array.isArray(data)) throw new Error('that path is a directory, not a file');
     const content = data.content || (await gh.req(`/repos/${s.repo}/git/blobs/${data.sha}`)).content;
@@ -76,7 +78,7 @@
   const blobUrl = (spec) => {
     const s = parseSpec(spec);
     const repo = s.repo || 'mehrlander/web-tools';
-    return `https://github.com/${repo}/blob/${s.ref || 'main'}/${s.path}`;
+    return `https://github.com/${repo}/blob/${s.ref || window.GH?.refFor?.(repo, s.path) || 'main'}/${s.path}`;
   };
 
   window.annotatePage = () => ({

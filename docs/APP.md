@@ -56,7 +56,7 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 App views default to `nav`; other views default to `full`. Omit the default from the URL. Unknown values use `full`. `shell-routing.test.mjs` holds these rules. App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
 
-**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render, pinning its page (`#gh=…@<ref>:…`) and library (`?use=<ref>`) to that ref and preserving the current deep link. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref.
+**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (SNAGS.md, `shell-pin-kills-the-tab`); the drawer around a switched view is therefore main's, and the FAB's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
 
 ## Page controls
 

@@ -46,6 +46,8 @@
     Alpine.data('news', () => ({
       // ── data contract ────────────────────────────────────────────────────
       REPO: 'mehrlander/home',
+      // Read-modify-write: read and save at one ref. The selection never moves
+      // a file the page writes back; ?data= moves both together.
       DATA_REF: new URLSearchParams(location.search).get('data') || 'main',
 
       // ── state ────────────────────────────────────────────────────────────

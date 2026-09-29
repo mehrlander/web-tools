@@ -3,12 +3,13 @@
 // Two things are worth holding here, and both are the kind that read as
 // obviously right and are easy to get wrong.
 //
-// THE ADDRESS carries the ref TWICE, in the query and in the fragment, because
-// they pin different halves: ?use= pins the renderer's own lib chain (its fab,
-// its peek) and #gh= addresses the page. A switch that pinned only the fragment
-// would render the branch's page inside the deployed shell, which is the exact
-// confusion CLAUDE.md records costing two rounds of "I looked and it isn't
-// there". So the shape is asserted, not assumed.
+// THE ADDRESS carries the ref ONCE, in the fragment, and no ?use= on the
+// renderer's query. The @<ref> addresses the page and pins its lib, since
+// toss-render injects use=<ref> into a page of the hub; a query pin on the
+// renderer itself kills Safari's web process on an iPhone whenever the renderer
+// hosts a frame (SNAGS.md, shell-pin-kills-the-tab), and this component minted
+// it for twenty days after scripts/showing.py stopped. So the shape is asserted
+// in both directions: the fragment carries the ref, and the query carries none.
 //
 // THE RIDING READ comes from ?use= rather than window.gh.ref, and it has to work
 // identically in a toss, where there is no location.search and the value arrives
@@ -56,18 +57,18 @@ async function mount(extra = '') {
   return { data: Alpine.$data(el), el };
 }
 
-test('the switch address pins the ref on both halves and carries the page query', () => {
+test('the switch address carries the ref in the fragment, no shell pin, and the page query', () => {
   const url = rideUrl({ repo: REPO, path: PATH, ref: 'claude/thing', query: 'repo=mehrlander/home&view=files' });
   assert.equal(url,
-    RENDERER + '?use=claude%2Fthing#gh=' + REPO + '@claude/thing:' + PATH +
+    RENDERER + '#gh=' + REPO + '@claude/thing:' + PATH +
     '?repo=mehrlander/home&view=files');
 
-  // Fragment-only would render the branch's page inside the deployed shell.
-  assert.ok(url.indexOf('?use=') < url.indexOf('#gh='), 'the pin is a real query, not part of the fragment');
+  // The crashing shape: a ?use= on the renderer's own query.
+  assert.doesNotMatch(url, /toss-render\.html\?use=/, 'the renderer query must carry no pin');
 
   // No query, no trailing '?': a bare address must stay bare.
   assert.equal(rideUrl({ repo: REPO, path: PATH, ref: 'x' }),
-    RENDERER + '?use=x#gh=' + REPO + '@x:' + PATH);
+    RENDERER + '#gh=' + REPO + '@x:' + PATH);
   // A leading '?' from a caller that kept it is absorbed, not doubled.
   assert.ok(rideUrl({ repo: REPO, path: PATH, ref: 'x', query: '?a=1' }).endsWith(PATH + '?a=1'));
   // Nothing to address without a ref.
@@ -212,7 +213,7 @@ test('going somewhere leaves the top document, and the default branch means goin
 
     data.go('claude/other');
     assert.equal(went.pop(), RENDERER +
-      '?use=claude%2Fother#gh=' + REPO + '@claude/other:' + PATH + '?view=stage');
+      '#gh=' + REPO + '@claude/other:' + PATH + '?view=stage');
 
     // Picking the default branch is not a toss at main; it is the way out.
     data.go('main');
@@ -225,12 +226,12 @@ test('going somewhere leaves the top document, and the default branch means goin
     data.typed = '  claude/pasted  '; data.dirty = true;
     data.goTyped();
     assert.equal(went.pop(), RENDERER +
-      '?use=claude%2Fpasted#gh=' + REPO + '@claude/pasted:' + PATH + '?view=stage');
+      '#gh=' + REPO + '@claude/pasted:' + PATH + '?view=stage');
 
     // One tap from cold: load, then go.
     await data.goNewest();
     assert.equal(went.pop(), RENDERER +
-      '?use=claude%2Fnewest-thing#gh=' + REPO + '@claude/newest-thing:' + PATH + '?view=stage');
+      '#gh=' + REPO + '@claude/newest-thing:' + PATH + '?view=stage');
   } finally { setSearch(''); }
 });
 
