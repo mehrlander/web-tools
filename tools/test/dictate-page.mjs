@@ -1832,6 +1832,27 @@ try {
   ok('a drag across a card selects its text once and leaves its track where it was',
     afterAcross.second === 1 && afterAcross.onInline && afterAcross.reading === 'inline', JSON.stringify(afterAcross));
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.precise = false; if (c.nativeSel) c.toggleNativeSel(); });
+  // A swipe settling rebuilds the cards, and the page stays where it was.
+  // Reported from the phone: settling a card sent the reader to the top, as
+  // the emptied document let the scroller clamp to zero mid-rebuild.
+  const held = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], v = c.$refs.view, md = c.$refs.md;
+    const saved = { base: c.fileBase, text: c.text };
+    const long = PARA => PARA + Array.from({ length: 40 }, (_, k) => 'Filler paragraph number ' + k + ' to give the pane a scroll.').join('\n\n') + '\n';
+    c.fileBase = long(saved.base);
+    c.d.text = c.fileBase.replace('Filler paragraph number 20 ', 'Filler paragraph, changed, number 20 '); c.paint();
+    await new Promise((r) => setTimeout(r, 300));
+    const card = md.querySelector('[data-md-card]');
+    card.scrollIntoView({ block: 'center' }); await new Promise((r) => setTimeout(r, 100));
+    const before = v.scrollTop;
+    md.dispatchEvent(new CustomEvent('md-card-reading', { detail: { i: +card.dataset.mdCard, mode: 'new' } }));
+    await new Promise((r) => setTimeout(r, 300));
+    const after = v.scrollTop;
+    c.fileBase = saved.base; c.d.text = saved.text; c.paint();
+    return { before, after };
+  });
+  ok('a swipe settling on another reading leaves the page where it was, not at the top',
+    held.before > 200 && Math.abs(held.after - held.before) < 4, JSON.stringify(held));
   // The first card a page draws opens on its marked reading too. The track
   // is not a scroller until the styles for its classes exist, which the
   // browser build writes a frame after the node appears, so the position set
