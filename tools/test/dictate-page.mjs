@@ -1238,15 +1238,16 @@ try {
     b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.touchscreen.tap(badge.x, badge.y);
   await page.waitForTimeout(250);
-  const bar = await page.evaluate(() => { const b = document.querySelector('[data-card-bar]'); if (!b) return null;
-    const card = document.querySelector('[x-ref="md"] [data-md-card="' + b.dataset.cardBar + '"]').getBoundingClientRect(), r = b.getBoundingClientRect();
+  const bar = await page.evaluate(() => { const shown = [...document.querySelectorAll('[data-md-card-bar]')].filter((x) => !x.classList.contains('invisible'));
+    const b = shown[0]; if (!b) return null;
+    const card = b.closest('[data-md-card]').getBoundingClientRect(), r = b.getBoundingClientRect();
     const k = b.querySelector('[title^="Remove"]'), kr = k.getBoundingClientRect(), hit = getComputedStyle(k, '::before');
-    return { n: document.querySelectorAll('[data-card-bar]').length, straddles: r.top < card.bottom && r.bottom > card.bottom,
+    return { n: shown.length, inCard: !!b.closest('[data-md-card]'), straddles: r.top < card.bottom && r.bottom > card.bottom,
              centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2), words: b.textContent.replace(/\s+/g, ''),
              h: Math.round(r.height), fs: parseFloat(getComputedStyle(b).fontSize),
              reach: Math.round(kr.height + 2 * Math.abs(parseFloat(hit.top) || 0)), x: kr.left + kr.width / 2, y: kr.top + kr.height / 2 }; });
   ok('the number selects its card, and the card wears one pill, info and remove, centred on its bottom edge, 13px words in a pill no taller than 22px, with a tap reach of 40px or more',
-    !!bar && bar.n === 1 && bar.straddles && bar.centred < 3 && bar.words === 'inforemove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
+    !!bar && bar.n === 1 && bar.inCard && bar.straddles && bar.centred < 3 && bar.words === 'inforemove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
   await page.touchscreen.tap(bar.x, bar.y);
   await page.waitForTimeout(250);
   ok('and Remove on the bar restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
@@ -1411,7 +1412,7 @@ try {
     c.d.text = c.text.replace('Third para.', 'Third para, rewritten.'); c.paint();
     c.d.caretAt(c.text.indexOf('rewritten')); c.paint();
     await new Promise((r) => setTimeout(r, 200));
-    const b = document.querySelector('[data-card-bar]');
+    const b = [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'));
     const inCard = !!b;
     b?.querySelector('[title="Info"]')?.click();
     await new Promise((r) => setTimeout(r, 150));
@@ -1420,7 +1421,7 @@ try {
       old: p?.querySelector('[data-info-old]')?.textContent, now: p?.querySelector('[data-info-now]')?.textContent };
     c.cardInfo = null;
     c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
-    out.outside = !document.querySelector('[data-card-bar]');
+    out.outside = ![...document.querySelectorAll('[data-md-card-bar]')].some((x) => !x.classList.contains('invisible'));
     c.d.undo(); c.paint();
     return out;
   });
@@ -1430,6 +1431,7 @@ try {
   // between changes, sits in the Rendered face's corner.
   const jump = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], vis = (el) => !!el && el.getClientRects().length > 0;
+    await new Promise((r) => setTimeout(r, 150));   // the counter hides on Alpine's next render
     const pill = document.querySelector('[data-jump]'), none = vis(pill);
     c.d.text = c.text.replace('First one.', 'First once.').replace('Third para.', 'Third paragraph.'); c.paint();
     await new Promise((r) => setTimeout(r, 200));

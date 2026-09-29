@@ -1875,7 +1875,7 @@
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
             overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover && !this.native, reach: 0,
-            base: this.fileBase, marks: false, track: this.showMarks,
+            base: this.fileBase, marks: false, track: this.showMarks, cardActions: this.CARD_ACTIONS,
             // Under the native option the platform draws the selection, unless
             // Move has picked it up, when the page holds it until the drop.
             selection: !this.native || !!this.moveArm,
@@ -2367,7 +2367,7 @@
         }
         // Where words dragged by the platform would land, and the loupe that
         // shows it above the thumb covering it (drawLens).
-        if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target)) this.drawCardBar(add, lb, vb);
+        if (this.rendered) this.markCardBar();
         // Held words aimed by a tap on a gap show the same drop line.
         if (this.moveArm && this.moveAim && this.moveAim.para) this.markTarget(this.moveAim, add, across, lb);
         if (this.moveArm && this.rendered) this.markAim(add, lb, vb);
@@ -2811,7 +2811,7 @@
       // new; a sideways swipe moves the card's text with the finger and
       // settles on one (md-card-reading), a tap on a stop scrolls there, a
       // tap on the original returns to marked, and a tap on its number
-      // selects it. THE SELECTED CARD WEARS A BAR (drawCardBar): the card the
+      // selects it. THE SELECTED CARD SHOWS ITS PILL (markCardBar): the card the
       // caret is in, or the one picked by its number, or on a desk the one
       // under the mouse. Only one at a time, so the document still reads as
       // one.
@@ -2823,6 +2823,8 @@
         if (!window.MdSurface.showReading(this.$refs.md, i, mode)) this.setCardReading(i, mode);
       },
       cardTap(ev) {
+        const act = ev.target?.closest?.('[data-md-card-act]');
+        if (act) { this.cardAct(act); return; }
         const read = ev.target?.closest?.('[data-md-card-read]');
         if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
@@ -2834,61 +2836,44 @@
       cardHover(e) {
         const el = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-card]') : null;
         const i = el ? +el.dataset.mdCard : null;
-        if (i !== this.hoverCard) { this.hoverCard = i; this.paintExtras(); }
+        if (i !== this.hoverCard) { this.hoverCard = i; this.markCardBar(); }
       },
-      // THE CARD BAR: the selected card's actions, as words in a small pill
-      // CENTRED ON ITS BOTTOM EDGE, in the vocabulary of the stops pill on its
-      // top edge (old, inline, new). Centred because a neighbouring card keeps
-      // its own number at its left and its stops at its right, so a bar at the
-      // centre of the edge clears both. It floats, so it costs the document no
-      // padding. An invisible margin around each word takes a
-      // thumb. The words are 13px in a pill kept 22px tall: they take the room
-      // the padding had, so the pill does not grow. The shape is the convention and the words are the page's: here
-      // info and remove; a page reviewing someone else's text would put its
-      // votes and comments in the same pill, the destructive one last.
-      drawCardBar(add, lb, vb) {
+      // THE CARD PILL: the selected card's actions, as the words "info" and
+      // "remove" in a small pill centred on its bottom edge. kits/md-surface.js
+      // draws one in every card, hidden, from `cardActions`; this shows the
+      // selected card's and hides the rest. Being in the card, it scrolls with
+      // the text rather than being moved on each scroll. Centred because a
+      // neighbouring card keeps its number at its left and its stops at its
+      // right. The shape is the convention and the words are the page's: a
+      // page reviewing someone else's text would put its votes and comments
+      // in the same pill, the destructive one last.
+      CARD_ACTIONS: [
+        { act: 'info', text: 'info', title: 'Info', cls: 'text-base-content/60' },
+        { act: 'remove', text: 'remove', title: 'Remove this change', cls: 'text-error/70' },
+      ],
+      markCardBar() {
         const md = this.$refs.md, r = this.d && this.d.range;
-        let el = this.hoverCard != null ? md.querySelector('[data-md-card="' + this.hoverCard + '"]') : null;
-        if (!el && this.selCard && r && r.start === this.selCard.at) el = md.querySelector('[data-md-card="' + this.selCard.i + '"]');
-        if (!el && r) {
-          const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
-          el = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-card]') || null;
+        let el = null;
+        if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target)) {
+          el = this.hoverCard != null ? md.querySelector('[data-md-card="' + this.hoverCard + '"]') : null;
+          if (!el && this.selCard && r && r.start === this.selCard.at) el = md.querySelector('[data-md-card="' + this.selCard.i + '"]');
+          if (!el && r) {
+            const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
+            el = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-card]') || null;
+          }
         }
-        if (!el || !md.contains(el)) return;
-        const i = +el.dataset.mdCard, b = el.getBoundingClientRect();
-        // A card running past the pane's foot has its bar held above the foot.
-        const floor = vb.bottom - 16;
-        if (b.bottom < vb.top + 16 || b.top > floor) return;
-        const bar = add('div', 'absolute z-30 flex items-center rounded-full border border-base-300 bg-base-100 text-[13px] leading-none select-none',
-          `left:0;top:${Math.min(b.bottom, floor) - lb.top - 10}px`, 'seam');
-        bar.dataset.mdUi = ''; bar.dataset.cardBar = i;
-        const word = (text, label, fn, cls) => {
-          const k = document.createElement('button');
-          k.type = 'button'; k.title = label; k.setAttribute('aria-label', label); k.dataset.mdUi = '';
-          k.className = "relative px-2.5 py-[3.5px] cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] " + cls;
-          k.textContent = text;
-          this.keepFocus(k);
-          k.addEventListener('pointerdown', (e) => e.stopPropagation());
-          k.addEventListener('click', (e) => { e.stopPropagation(); fn(k); });
-          bar.appendChild(k);
-          return k;
-        };
-        word('info', 'Info', (k) => this.openCardInfo(i, k), 'text-base-content/60');
-        bar.appendChild(Object.assign(document.createElement('span'), { className: 'w-px h-3 bg-base-300' }));
-        word('remove', 'Remove this change', () => {
-          const run = window.MdSurface.cards(md)[i];
-          this.cardInfo = null; this.selCard = null;
-          if (run) this.rejectCard(run);
-        }, 'text-error/70');
-        const w = bar.getBoundingClientRect().width;
-        let left = b.left + b.width / 2 - w / 2;
-        // THE LAUNCHER floats over the pane and can be dragged anywhere, so the
-        // bar is measured against it rather than kept a guessed distance off:
-        // where they would overlap, the bar slides left of it, still on the edge.
-        const fab = document.querySelector('[x-data="fab()"] [data-dom-shot-ignore]')?.getBoundingClientRect();
-        const top = Math.min(b.bottom, floor) - 10;
-        if (fab && fab.width && left < fab.right && left + w > fab.left && top < fab.bottom && top + 20 > fab.top) left = fab.left - w - 6;
-        bar.style.left = (Math.max(b.left + 4, left) - lb.left) + 'px';
+        for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
+          const on = !!el && bar.parentElement === el;
+          bar.classList.toggle('invisible', !on);
+          if (!bar.__kept) { bar.__kept = true; for (const k of bar.querySelectorAll('button')) this.keepFocus(k); }
+        }
+      },
+      cardAct(btn) {
+        const i = +btn.closest('[data-md-card]').dataset.mdCard;
+        if (btn.dataset.mdCardAct === 'info') { this.openCardInfo(i, btn); return; }
+        const run = window.MdSurface.cards(this.$refs.md)[i];
+        this.cardInfo = null; this.selCard = null;
+        if (run) this.rejectCard(run);
       },
       // What the change was: GitHub's copy, the text now, and the word count
       // each way. Opened below its button, clamped to the screen.
