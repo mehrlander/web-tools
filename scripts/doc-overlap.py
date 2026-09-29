@@ -185,7 +185,8 @@ def main():
                                  line=src['line'], words=src['words'], hash=src['hash'],
                                  target=docs[b]['path'], target_start=tgt['start'],
                                  target_end=tgt['end'], target_line=tgt['line'],
-                                 target_hash=tgt['hash'], cosine=f'{s:.3f}'))
+                                 target_words=tgt['words'], target_hash=tgt['hash'],
+                                 cosine=f'{s:.3f}'))
     rows.sort(key=lambda r: (r['source'], r['start'], r['target']))
 
     args.out.mkdir(parents=True, exist_ok=True)

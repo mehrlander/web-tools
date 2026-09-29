@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gold set for the Restated lens: hand-labelled passage pairs that score a cutoff.
+"""Gold set for the Related lens: hand-labelled passage pairs that score a cutoff.
 
 scripts/doc-overlap.py nominates passage pairs by cosine. What it cannot say is
 whether a nominated pair restates, merely shares a subject, or contradicts. This
@@ -95,6 +95,22 @@ def sample(args):
                              cosine=f"{p['cosine']:.3f}",
                              literal='yes' if tuple(sorted((ka[0], kb[0]))) in lit else 'no',
                              short='yes' if min(words) < 20 else 'no'))
+    if args.long_only:
+        # A second sample scores thresholds chosen on the first, over the
+        # population the lens now shows by default: both passages 20+ words.
+        universe = [u for u in universe if u['short'] == 'no']
+    if (GOLD / 'gold.csv').exists():
+        # Held out from every earlier sample, by file and passage hash, so a
+        # pair whose label informed a choice cannot also score it.
+        import hashlib
+        h = lambda t: hashlib.sha256(t.encode('utf-8')).hexdigest()[:12]
+        seen = {frozenset([(g['a_path'], g['a_hash']), (g['b_path'], g['b_hash'])])
+                for g in csv.DictReader(open(GOLD / 'gold.csv', encoding='utf-8'))}
+        before = len(universe)
+        universe = [u for u in universe if frozenset([
+            (u['a_path'], h(cut(u['a_path'], u['a_start'], u['a_end']))),
+            (u['b_path'], h(cut(u['b_path'], u['b_start'], u['b_end'])))]) not in seen]
+        print(f'held out {before - len(universe)} pairs already labelled')
     cells = defaultdict(list)
     for u in universe:
         cells[(band(float(u['cosine'])), u['literal'], u['short'])].append(u)
@@ -112,11 +128,12 @@ def sample(args):
         chosen += pick
     rng.shuffle(chosen)
     for i, u in enumerate(chosen):
-        u['id'] = f'g{i:03d}'
+        u['id'] = f'{args.prefix}{i:03d}'
+        u['seed'] = args.seed
         u['audit'] = 'yes' if rng.random() < 0.1 else 'no'
     run = Path(args.run)
     run.mkdir(parents=True, exist_ok=True)
-    cols = ['id', 'stratum', 'stratum_size', 'stratum_seats', 'audit', 'cosine', 'literal', 'short',
+    cols = ['id', 'seed', 'stratum', 'stratum_size', 'stratum_seats', 'audit', 'cosine', 'literal', 'short',
             'a_path', 'a_start', 'a_end', 'a_line', 'b_path', 'b_start', 'b_end', 'b_line']
     with (run / 'sample.csv').open('w', newline='', encoding='utf-8') as f:
         w = csv.DictWriter(f, fieldnames=cols, lineterminator='\n')
@@ -199,6 +216,10 @@ def skeptic(args):
                'audit' if u['audit'] == 'yes' else None)
         if args.rest:
             why = None if i in done else 'review'
+        elif args.all:
+            # Full review from the start: the first-pass reason where there
+            # is one, `review` for the rest, in one batch per skeptic.
+            why = why or 'review'
         if not why:
             continue
         b = batch[i]
@@ -215,7 +236,7 @@ def skeptic(args):
     print(f'batch {args.batch}: {len(out)} rows for the skeptic ({Counter(o["sent"] for o in out)})')
 
 
-GOLD_COLS = ['id', 'stratum', 'stratum_size', 'stratum_seats', 'audit', 'cosine', 'literal', 'short',
+GOLD_COLS = ['id', 'seed', 'stratum', 'stratum_size', 'stratum_seats', 'audit', 'cosine', 'literal', 'short',
              'a_path', 'a_start', 'a_end', 'a_line', 'a_hash', 'b_path', 'b_start', 'b_end', 'b_line', 'b_hash',
              'reader_relation', 'reader_confidence', 'rationale', 'sent', 'verdict', 'note',
              'relation', 'reading', 'consolidate']
@@ -242,6 +263,17 @@ def merge(args):
                  sent=s['sent'] if s else '', verdict=s['verdict'] if s else '', note=s['note'] if s else '')
         final = s or r
         u.update(relation=final['relation'], reading=final['reading'], consolidate=final['consolidate'])
+    # The file is precious and grows by sample: rows from other seeds are kept
+    # exactly as they are, and this run's seed replaces only its own rows.
+    seed = rows[0]['seed']
+    kept = []
+    if (GOLD / 'gold.csv').exists():
+        for u in csv.DictReader(open(GOLD / 'gold.csv', encoding='utf-8')):
+            u.setdefault('seed', '20260929')
+            u['seed'] = u['seed'] or '20260929'
+            if u['seed'] != seed:
+                kept.append(u)
+    rows = kept + rows
     rows.sort(key=lambda u: u['id'])
     GOLD.mkdir(parents=True, exist_ok=True)
     with (GOLD / 'gold.csv').open('w', newline='', encoding='utf-8') as f:
@@ -253,6 +285,8 @@ def merge(args):
 
 def score(args):
     g = list(csv.DictReader(open(GOLD / 'gold.csv', encoding='utf-8')))
+    if args.seed:
+        g = [u for u in g if u['seed'] == str(args.seed)]
     # Horvitz-Thompson: a row stands for stratum_size / stratum_seats pairs.
     wt = lambda u: int(u['stratum_size']) / int(u['stratum_seats'])
     out = []
@@ -317,11 +351,14 @@ def main():
     sub = ap.add_subparsers(dest='cmd', required=True)
     s = sub.add_parser('sample'); s.add_argument('--run', required=True); s.add_argument('--n', type=int, default=160)
     s.add_argument('--seed', type=int, default=20260929)
+    s.add_argument('--prefix', default='g', help='id prefix, one per sample')
+    s.add_argument('--long-only', action='store_true', help='only pairs whose passages are both 20+ words')
     c = sub.add_parser('check'); c.add_argument('batch'); c.add_argument('output'); c.add_argument('--skeptic', action='store_true')
     k = sub.add_parser('skeptic'); k.add_argument('--run', required=True); k.add_argument('--batch', type=int, required=True)
     k.add_argument('--rest', action='store_true')
+    k.add_argument('--all', action='store_true', help='send every row, first-pass reason kept')
     m = sub.add_parser('merge'); m.add_argument('--run', required=True)
-    sub.add_parser('score')
+    o = sub.add_parser('score'); o.add_argument('--seed', type=int, help='score one sample only')
     args = ap.parse_args()
     dict(sample=sample, check=check, skeptic=skeptic, merge=merge, score=score)[args.cmd](args)
 
