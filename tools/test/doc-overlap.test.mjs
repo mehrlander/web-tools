@@ -81,3 +81,32 @@ test('the Map reads the tables and keeps the lens out of the shingle controls', 
     'the shingle dial and its concern counts must not apply to the embedding lens');
   assert.match(src, /text\.slice\(start, end\)/, 'the lens cuts passages by UTF-16 offset, as this test does');
 });
+
+// data/doc-overlap/gold-set/gold.csv — the hand-labelled sample that scores the
+// cutoff (scripts/doc-overlap-gold.py; the method is the gold-set skill). The
+// file is precious: a rerun of its agents would label a different set, so it is
+// never regenerated, only checked. More labels come from a new seed.
+const goldPath = path.join(dir, 'gold-set', 'gold.csv');
+
+test('the gold set carries its labels in their domains, and each passage still cuts where recorded', () => {
+  if (!existsSync(goldPath)) return;
+  const gold = parseCsv(readFileSync(goldPath, 'utf8'));
+  assert.ok(gold.length >= 100, 'the gold set parsed short');
+  const RELATIONS = ['same', 'summary', 'related', 'conflict', 'unrelated', 'fragment'];
+  let checked = 0;
+  for (const g of gold) {
+    assert.ok(RELATIONS.includes(g.relation) && RELATIONS.includes(g.reader_relation), `${g.id}: relation`);
+    for (const k of ['reading', 'consolidate']) assert.ok(['yes', 'no'].includes(g[k]), `${g.id}: ${k}`);
+    if (g.consolidate === 'yes') assert.ok(['same', 'summary'].includes(g.relation), `${g.id}: consolidate needs same or summary`);
+    if (g.verdict) assert.equal(g.verdict === 'confirm', g.relation === g.reader_relation, `${g.id}: verdict and relation disagree`);
+    assert.ok(+g.stratum_seats >= 1 && +g.stratum_seats <= +g.stratum_size, `${g.id}: sampling weight`);
+    for (const s of ['a', 'b']) {
+      const p = path.join(repoRoot, g[s + '_path']);
+      if (!existsSync(p)) continue;
+      const text = readFileSync(p, 'utf8').slice(+g[s + '_start'], +g[s + '_end']);
+      if (h12(text) === g[s + '_hash']) checked++;
+    }
+  }
+  // Files move on; a gold row outlives its offsets. Most should still cut.
+  assert.ok(checked > gold.length, `only ${checked} of ${gold.length * 2} gold passages still cut where recorded`);
+});
