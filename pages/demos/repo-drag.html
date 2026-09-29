@@ -119,7 +119,9 @@
           document.querySelectorAll('[data-type="breadcrumb"] li, [data-type="folder"] li').forEach(el => el.remove());
           this.currentPath = path; this.items = []; this.directories = []; this.byId = {};
           try {
-            const data = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, { headers: this.getHeaders() }).then(r => r.json());
+            // The selection's ref when a renderer stamped one, else the default branch.
+            const at = (window.__refFor && window.__refFor(REPO, path)) || '';
+            const data = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}${at ? '?ref=' + encodeURIComponent(at) : ''}`, { headers: this.getHeaders() }).then(r => r.json());
             if (!Array.isArray(data)) return;
             data.forEach(item => {
               const id = `${item.type}:${item.path}`;

@@ -36,6 +36,10 @@ function lift(signature) {
 const splitAddrSrc = lift('splitAddr(addr)');
 const showRouteSrc = lift('showRoute(key, raw)');
 const setSubjectSrc = lift('setSubject(s)');
+// showRoute resolves the viewer page through the renderer's selection.
+const refForInSrc = lift('refForIn(E, I, repo, path, pathOnly)');
+const parseRefsSrc = (src.match(/const parseRefs = [\s\S]*?\n {2}\};\n/) || [''])[0];
+assert.ok(parseRefsSrc, 'parseRefs not found in ' + PAGE);
 
 const splitAddr = new Function(splitAddrSrc + '\n  return splitAddr;')();
 
@@ -43,7 +47,7 @@ const splitAddr = new Function(splitAddrSrc + '\n  return splitAddr;')();
 // name they close over is a parameter, so nothing here is a stand-in for logic
 // under test: the module-level `let`s (tossLinkFn, cancelIconWatch) are
 // redeclared because a lifted function cannot reach the page's.
-function harness({ routes, fail } = {}) {
+function harness({ routes, fail, query = '' } = {}) {
   const log = { subjects: [], titles: [], addresses: [], empty: [], events: [], marks: [] };
   // Every setSubject fires this, so listening is how the harness sees each
   // stamp land, the page's own re-stamp included. Recording inside the
@@ -56,8 +60,13 @@ function harness({ routes, fail } = {}) {
   const build = new Function(
     'window', 'document', 'history', 'frame', 'TOSS_ROUTES', 'CustomEvent',
     'showAddress', 'showEmpty', 'splitFrag', 'absUrl', 'setFavicon', 'adoptSubjectIcon', 'baseIcon',
-    'clearMark',
+    'clearMark', 'queryParams',
     `let tossLinkFn = null, cancelIconWatch = null;
+     ${refForInSrc}
+     ${parseRefsSrc}
+     // The renderer's SELECTED, built from its query the way the page builds it.
+     const SELECTED = parseRefs(queryParams.getAll('refs'), {});
+     if (queryParams.get('lib')) SELECTED['mehrlander/web-tools'] = queryParams.get('lib');
      ${splitAddrSrc}
      ${setSubjectSrc}
      ${showRouteSrc}
@@ -91,6 +100,8 @@ function harness({ routes, fail } = {}) {
       // setSubject clears the host's mark alongside its own; recorded so the
       // reset is visible here rather than merely tolerated.
       () => log.marks.push('cleared'),
+      // The renderer's own query; `?lib=` there picks the viewer page's ref.
+      new URLSearchParams(query),
     ),
   };
 }
@@ -186,4 +197,16 @@ test('a failed fetch leaves no subject rather than a file that never rendered', 
   assert.equal(h.window.__tossSubject, null,
     'the re-stamp must not invent a subject showAddress declined to mount');
   assert.deepEqual(h.log.titles, [], 'and the tab is not retitled for it either');
+});
+
+test('the renderer ?lib= picks the viewer page ref, and the subject keeps the file', async () => {
+  // A viewer page is Web Tools code, so the one switch for Web Tools code picks
+  // it too; the envelope's own @ref is untouched, and `via` names the viewer
+  // version that actually rendered.
+  const h = harness({ query: '?lib=claude/viewer' });
+  await h.showRoute('data', 'mehrlander/home@claude/data:rows.csv');
+  assert.match(h.log.addresses[0], /^mehrlander\/web-tools@claude\/viewer:pages\/data-view\.html\?src=/);
+  const s = h.window.__tossSubject;
+  assert.equal(s.ref, 'claude/data');
+  assert.equal(s.via.ref, 'claude/viewer');
 });

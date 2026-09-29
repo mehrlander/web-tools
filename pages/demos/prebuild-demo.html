@@ -12,7 +12,8 @@
   // fetch + blob-import from raw.githubusercontent (not jsDelivr's /gh/ CDN,
   // whose branch-tip listing lags a fresh push ~12h), with cache: 'no-store' so a
   // moving branch ref is not served from the HTTP cache.
-  const ref = new URLSearchParams(location.search).get('use');
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);

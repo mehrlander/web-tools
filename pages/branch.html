@@ -97,7 +97,8 @@
   window.__depsReady = new Promise(r => { window.__depsDone = r; });
 </script>
 <script type="module">
-  const ref = new URLSearchParams(location.search).get('use');
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -367,8 +368,9 @@
           }
           if (src) {
             const spec = window.DataPayload?.parseSpec?.(src);
+            // No @ref in src: the read follows the link's selection, else main.
             const g = new window.GH({ token: window.TOKEN, repo: spec?.repo || 'mehrlander/web-tools',
-                                      ref: spec?.ref || 'main' });
+                                      ...(spec?.ref ? { ref: spec.ref } : {}) });
             const f = await g.get(spec?.path || src);
             return window.BranchBrief.readAuthored(JSON.parse(f.text));
           }

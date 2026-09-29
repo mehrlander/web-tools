@@ -104,6 +104,9 @@
       ROOT: 'projects/local-models',
       INSTRUMENTS: 'projects/text/INSTRUMENTS.md',
       TOSS: 'https://mehrlander.github.io/web-tools/pages/toss-render.html',
+      // Read-modify-write: this page reads home and saves back to it, so the
+      // read stays on the write branch. The selection never moves a file the
+      // page writes back; ?data= moves both together.
       DATA_REF: params.get('data') || 'main',
 
       PANES: ['probes', 'variants', 'instruments', 'resources', 'runs'],
@@ -771,7 +774,8 @@
 
       async renderRunFile(host, f) {
         try {
-          const repo = new window.GH({ token: window.TOKEN || '', repo: f.repo, ref: 'main' });
+          // Read-only, so no ref: the file follows the page's selection.
+          const repo = new window.GH({ token: window.TOKEN || '', repo: f.repo });
           // The frontmatter is stripped, as the file viewer's Variants reading
           // strips it, or a skill's YAML renders as one bold heading.
           const md = (await repo.get(f.path)).text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
@@ -835,7 +839,7 @@
         if (loc.startsWith('pip:')) return `https://pypi.org/project/${loc.slice(4)}/`;
         if (loc.startsWith('nltk:')) return '';
         const [repo, path] = loc.split(':');
-        const ref = repo === this.REPO ? this.DATA_REF : 'main';
+        const ref = repo === this.REPO ? this.DATA_REF : (window.GH?.refFor?.(repo, path) || 'main');
         return `https://github.com/${repo}/blob/${ref}/${path}`;
       },
       resourceLabel(loc) {

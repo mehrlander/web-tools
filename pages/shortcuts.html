@@ -168,7 +168,8 @@ const SE = window.ShortcutEvidence;
 // ?ref= points the catalog and the install links at a branch of shortcut-tools,
 // so a chain can be reviewed here before it reaches main. It is separate from
 // ?use=, which pins this page's own library chain; the two repos move apart.
-const REF     = q.get('ref') || 'main';
+// Absent ?ref=, a link's refs=mehrlander/shortcut-tools@<ref> answers.
+const REF     = q.get('ref') || window.GH.refFor('mehrlander/shortcut-tools') || 'main';
 const CHAINS  = 'mehrlander/shortcut-tools';
 const PRIVATE = 'mehrlander/web-tools-private';
 const CATALOG = `https://raw.githubusercontent.com/${CHAINS}/${REF}/catalog.json`;
@@ -177,6 +178,7 @@ const BLOB    = f => `https://github.com/${CHAINS}/blob/${REF}/workflows/${f}`;
 const LOGS    = 40;   // enough history for build freshness; older runs say nothing new
 
 const el = id => document.getElementById(id);
+// main: device state is written there by the phone, not previewed.
 const priv = new window.GH({ repo: PRIVATE, ref: 'main' });
 
 // A private repo you cannot see answers 404, not 401, and gh-auth only takes

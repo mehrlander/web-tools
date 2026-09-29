@@ -318,7 +318,7 @@
       m.setAttribute('content', parts.concat('maximum-scale=1').join(', '));
     }
   } catch {}
-  const ref = q.get('use');
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   // THE PAGE ADOPTS ITS OWN PRE-BUILD (dist/dictate.js), and the reason is
   // arrival time on a phone rather than bytes. The gh.load chain below is a
   // WATERFALL: each await is a round trip that cannot start until the one
@@ -701,6 +701,7 @@
         let held = null;
         try { held = JSON.parse(ls.get(FILE_DRAFT) || 'null'); } catch {}
         try {
+          // Read-modify-write: pinned to the ref the save PUTs to, never the selection.
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
           const res = await gh2.get(FILE.path, window.GH.FRESH);
           this.fileBase = res.text;
