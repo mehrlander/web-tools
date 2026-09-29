@@ -6,9 +6,11 @@
 // docs/map-tabs.csv and the FAB's to docs/fab.md on 2026-09-28, and each string
 // now says what the component is and where the account lives.
 //
-// The bound is set above the longest remaining string (ref-switch.js, 140 words
-// on that date) rather than fitted to it, so it catches a manual regrowing and
-// not an ordinary edit.
+// The bound is set above the longest remaining string rather than fitted to
+// it, so it catches a manual regrowing and not an ordinary edit. It was 150
+// against ref-switch.js at 140 words; an ordinary edit on main took that string
+// to 155 on 2026-09-29, and the bound went to 200, well under the 1,000 and
+// 2,100 words the two manuals had reached.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +19,7 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 const dir = path.join(repoRoot, 'lib', 'alpineComponents');
-const LIMIT = 150;
+const LIMIT = 200;
 
 // A description is a string literal or several joined with +. Read the literals
 // and join them; anything else (a variable, a call) is reported, not guessed at.
