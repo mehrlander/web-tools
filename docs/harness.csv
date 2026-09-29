@@ -5,6 +5,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,376,git:pre-commit,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through scripts/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists",.github/workflows,133,ci:push+repository_dispatch+schedule+workflow_dispatch,no,no,no
+.github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,90,ci:workflow_dispatch+pull_request,no,yes,yes
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,116,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
 scripts/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",scripts,225,npm:activity-refresh,no,no,yes
@@ -40,7 +41,7 @@ scripts/showing.py,"decide which render link, if any, shows what a branch change
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
 scripts/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",scripts,269,argv,no,yes,yes
 scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,no,yes
-scripts/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",scripts,539,argv,no,yes,yes
+scripts/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",scripts,541,argv,no,yes,yes
 scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",scripts,187,npm:code-scan,no,yes,no
 scripts/userscript-stub.py,,scripts,217,argv,no,yes,yes
 scripts/xlsx-picker-sweep.mjs,,scripts,104,imported,yes,yes,yes
