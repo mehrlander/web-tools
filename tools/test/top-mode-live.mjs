@@ -134,9 +134,20 @@ for (const c of CASES) {
   // first runner run (2026-09-29) while the question was whether the page came
   // back at all. A step that fails is recorded, not thrown, so one engine's
   // stall does not hide the steps after it.
+  // IN WEBKIT, A NAVIGATION STANDS IN FOR THE RELOAD. On the runner, WebKit's
+  // page dies after reloading our pages, main's plain app included, while
+  // example.com reloads cleanly and fresh navigations to the app survive
+  // (webkit-reload-isolate.mjs, controls C1 to C3, 2026-09-29). Whether iPhone
+  // Safari does the same is the device's to say. The selection question is
+  // the same either way: does the URL the page wrote bring the whole
+  // selection back. So WebKit navigates to the current URL, and its step
+  // labels say so.
+  const navigates = ENGINE === 'webkit';
   const reload = async (label) => {
+    if (navigates) label = label.replace('reload', 'navigation to the same URL');
     try {
-      await page.evaluate(() => { window.__probeOld = 1; location.reload(); }).catch(() => {});
+      if (navigates) { await page.evaluate(() => { window.__probeOld = 1; }); await page.goto(page.url(), { waitUntil: 'domcontentloaded', timeout: 45000 }); }
+      else await page.evaluate(() => { window.__probeOld = 1; location.reload(); }).catch(() => {});
       await page.waitForFunction(() => !window.__probeOld && !!(window.gh && window.Alpine), null, { timeout: 60000 });
       await check(label);
     } catch (e) {
