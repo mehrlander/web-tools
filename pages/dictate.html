@@ -3101,10 +3101,29 @@
           for (const f of found) {
             const u0 = sp.N.a + f.u[0], u1 = sp.N.a + f.u[1];
             hits.push({ u: [u0, u1], s: [sp.N.a + f.s[0], sp.N.a + f.s[1]], old: f.old, what: f.what });
+            // WHERE THE WORDS ARE ONE ELEMENT (the bold, italic or code the
+            // markers made), the underline is that element's own decoration,
+            // so it moves with the text. An overlay measured at paint stayed
+            // where the words had been when the text shifted afterwards, a
+            // late style reflowing it: reported on a desk, the underline ran
+            // on past "demonstrated" into the next word.
+            const p = window.MdSurface.domPoint(md, u0, 'start'), pn = p && (p.node.nodeType === 1 ? p.node : p.node.parentElement);
+            const own = pn && pn.closest && pn.closest('strong, em, code, del, b, i, s');
+            if (own && md.contains(own) && own.textContent.length === u1 - u0) {
+              own.classList.add('underline', 'decoration-dotted', 'decoration-amber-500', 'decoration-2', 'underline-offset-4');
+              own.dataset.fmtMark = '';
+              continue;
+            }
             for (const x of window.MdSurface.rects(md, u0, u1)) {
               if (x.bottom < vb.top || x.top > vb.bottom) continue;
               add('div', 'absolute pointer-events-none border-b-2 border-dotted border-amber-500',
                 `left:${x.left - lb.left}px;top:${x.bottom - lb.top - 1}px;width:${x.width}px;height:0`, 'seam').dataset.fmtMark = '';
+            }
+            // The rest are drawn, so they are drawn again once late styles
+            // have landed, the same two frames and a beat the kit waits.
+            if (!this._fmtAgain) {
+              this._fmtAgain = true;
+              requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => { this.paintExtras(); this._fmtAgain = false; }, 120)));
             }
           }
         }

@@ -1421,7 +1421,7 @@ try {
     const p = document.querySelector('[data-card-info]');
     const raw = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"]') || [])].map((r) => r.dataset.raw).join('\n');
     const out = { inCard, open: !!p && p.getClientRects().length > 0, old: raw('del'), now: raw('ins'),
-      plainMarks: c.$refs.layer.querySelectorAll('[data-fmt-mark]').length,
+      plainMarks: new Set([...c.$refs.layer.querySelectorAll('[data-fmt-mark]'), ...c.$refs.md.querySelectorAll('[data-fmt-mark]')]).size,
       lit: [...(p?.querySelectorAll('[data-row="ins"] .rounded-sm') || [])].map((s) => s.textContent).join('|') };
     c.cardInfo = null;
     c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
@@ -1434,9 +1434,19 @@ try {
     await new Promise((r) => setTimeout(r, 200));
     // And the card says so in place: a dotted underline under the word the
     // markers now wrap, and under nothing else.
-    const um = [...c.$refs.layer.querySelectorAll('[data-fmt-mark]')].map((u) => u.getBoundingClientRect());
+    // The word the markers make is one element, so the underline is its own
+    // decoration, which moves with the text; nothing is drawn over it.
+    const um = [...new Set([...c.$refs.md.querySelectorAll('[data-fmt-mark]'), ...c.$refs.layer.querySelectorAll('[data-fmt-mark]')])];
     const pa = c.d.text.indexOf('**para**') + 2, wr = window.MdSurface.rects(c.$refs.md, pa, pa + 4)[0];
-    const under = { n: um.length, fits: um.length === 1 && Math.abs(um[0].left - wr.left) < 2 && Math.abs(um[0].width - wr.width) < 2 && Math.abs(um[0].top - wr.bottom) < 4 };
+    const ub = um[0] && um[0].getBoundingClientRect(), cs = um[0] && getComputedStyle(um[0]);
+    // Text that moves after the paint, as a late style moved it on a desk,
+    // takes the underline with it: nothing is repainted here.
+    c.$refs.md.style.letterSpacing = '3px'; await new Promise((r) => setTimeout(r, 60));
+    const moved = um[0] && (() => { const a = um[0].getBoundingClientRect(), w = window.MdSurface.rects(c.$refs.md, pa, pa + 4)[0];
+      return Math.abs(a.left - w.left) < 2 && Math.abs(a.width - w.width) < 2 && Math.abs(a.width - ub.width) > 4; })();
+    c.$refs.md.style.letterSpacing = '';
+    const under = { n: um.length, moved, own: !!um[0] && c.$refs.md.contains(um[0]), style: cs && cs.textDecorationStyle,
+      fits: um.length === 1 && Math.abs(ub.left - wr.left) < 2 && Math.abs(ub.width - wr.width) < 2 && cs.textDecorationLine.includes('underline') && cs.textDecorationStyle === 'dotted' };
     [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
@@ -1453,16 +1463,17 @@ try {
     info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
   ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is a pinned panel-tip whose one button is the kit\'s ghost ✕, and Escape puts it away',
     info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.ghost && info.fmt.buttons === 1 && info.fmt.w >= 340 && info.fmt.escaped, JSON.stringify(info.fmt));
-  ok('and in the card, bold added puts one dotted underline under exactly the word, while a change of words puts none',
-    info.fmt.under.fits && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
+  ok('and in the card, bold added gives exactly the word a dotted underline of its own, which stays with the word when the text moves after the paint, while a change of words gets none',
+    info.fmt.under.fits && info.fmt.under.moved && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
   // AN UNDERLINE, TAPPED, OFFERS THE RAW CHANGE AND ITS UNDO, as a mark does.
   const tapUnder = async (from, to, nth = 0) => {
     const at = await page.evaluate(async ([from, to, nth]) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
       c.$refs.view.scrollTop = 0; c.d.text = c.text.replace(from, to); c.d.caretAt(0); c.paint();
       await new Promise((r) => setTimeout(r, 250));
-      const u = c.$refs.layer.querySelectorAll('[data-fmt-mark]')[nth];
-      if (!u) return { dbg: { cards: c.$refs.md.querySelectorAll('[data-md-card]').length, hits: c._fmtHits } };
-      const r = u.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top - 6 }; }, [from, to, nth]);
+      // By the hits, in order, each at the middle of its words' first box.
+      const h = (c._fmtHits || [])[nth];
+      if (!h) return { dbg: { cards: c.$refs.md.querySelectorAll('[data-md-card]').length, hits: c._fmtHits } };
+      const r = window.MdSurface.rects(c.$refs.md, h.u[0], h.u[1])[0]; return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [from, to, nth]);
     if (!at || at.dbg) return { missing: true, dbg: at && at.dbg };
     await page.touchscreen.tap(at.x, at.y); await page.waitForTimeout(350);
     const pop = await page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); if (!p || !p.getClientRects().length) return null;
