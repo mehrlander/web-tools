@@ -1419,16 +1419,29 @@ try {
     b?.querySelector('[title="Info"]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     const p = document.querySelector('[data-card-info]');
-    const out = { inCard, open: !!p && p.getClientRects().length > 0,
-      old: p?.querySelector('[data-info-old]')?.textContent, now: p?.querySelector('[data-info-now]')?.textContent };
+    const raw = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"]') || [])].map((r) => r.dataset.raw).join('\n');
+    const out = { inCard, open: !!p && p.getClientRects().length > 0, old: raw('del'), now: raw('ins'),
+      lit: [...(p?.querySelectorAll('[data-row="ins"] .rounded-sm') || [])].map((s) => s.textContent).join('|') };
     c.cardInfo = null;
     c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
     out.outside = ![...document.querySelectorAll('[data-md-card-bar]')].some((x) => !x.classList.contains('invisible'));
     c.d.undo(); c.paint();
+    // A change the marks cannot show, bold added: Info names it and lights
+    // exactly the markers, and says it is formatting only.
+    c.d.text = c.text.replace('Third para.', 'Third **para**.'); c.paint();
+    c.d.caretAt(c.d.text.indexOf('Third') + 2); c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
+    await new Promise((r) => setTimeout(r, 150));
+    out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
+      lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width) };
+    c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
-  ok('with the caret in a card, the bar shows, and Info gives GitHub\'s copy and the text now; outside every card, no bar',
-    info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.outside, JSON.stringify(info));
+  ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
+    info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
+  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width',
+    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^1 line changed/.test(info.fmt.sum) && info.fmt.w >= 340, JSON.stringify(info.fmt));
   // The Changes face is retired; what it alone had, the count and a step
   // between changes, sits in the Rendered face's corner.
   const jump = await page.evaluate(async () => {
