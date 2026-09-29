@@ -17,7 +17,6 @@ skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,"measurement fan-out:
 skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,compose Apple Shortcuts actions and hand them over as a tappable paste-in link for the device clipboard,plugin
 skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: prune settled branches, close shipped tasks, harvest PR threads, and nominate snags, bringing the owner only the choices that need commitment",plugin
 skill,/portable:notes,skills/notes/SKILL.md,notes,"leave, reply to and read notes: short, signed observations addressed to a repo, branch, file, pull request, task, snag, or another note",plugin
-skill,/portable:arriving-together,skills/arriving-together/SKILL.md,arriving-together,,plugin
 skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
