@@ -1427,9 +1427,9 @@
           // word is the base's, not the buffer's, so the tap stops there; an
           // added word is the buffer's, so the tap also places the caret.
           const gone = this.rendered && e.target?.closest?.('del');
-          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapMark(gone); return; }
+          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapMark(gone, e.clientX, e.clientY); return; }
           const added = this.rendered && e.target?.closest?.('ins');
-          if (added && this.$refs.md.contains(added)) this.tapMark(added);
+          if (added && this.$refs.md.contains(added)) this.tapMark(added, e.clientX, e.clientY);
           const pin = e.target?.closest?.('[data-edge]');
           if (!pin && !surface.contains(e.target)) { taps = 0; return; }
           // ARMING ENDS A RUN. pointerdown already armed the pin, and counting
@@ -2868,9 +2868,18 @@
             el = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-card]') || null;
           }
         }
+        // It grows in when the selection reaches a new card, and a repaint
+        // (which rebuilds every card, so every bar is born hidden) shows the
+        // same card's at once rather than replaying that on each keystroke.
+        const key = el ? el.dataset.mdCard : null, fresh = key !== this._barKey;
+        this._barKey = key;
         for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
           const on = !!el && bar.parentElement === el;
-          bar.classList.toggle('invisible', !on);
+          if (on && !fresh) bar.classList.add('transition-none');
+          // A bar just built has no style to transition from until it is laid out.
+          else if (on) void bar.offsetWidth;
+          for (const c of ['invisible', 'opacity-0', 'scale-75']) bar.classList.toggle(c, !on);
+          if (on && !fresh) requestAnimationFrame(() => bar.classList.remove('transition-none'));
           if (!bar.__kept) { bar.__kept = true; for (const k of bar.querySelectorAll('button')) this.keepFocus(k); }
         }
       },
@@ -2935,7 +2944,10 @@
         const a = window.MdSurface.offsetOf(md, ins, 0, 'start'), b = window.MdSurface.offsetOf(md, ins, ins.childNodes.length, 'end');
         return a == null || b == null ? null : [Math.min(a, b), Math.max(a, b)];
       },
-      tapMark(el) {
+      // THE PILL GOES UNDER THE FINGER: at the tap's x, below the line the tap
+      // was on. A mark that wraps has one box per line, and its bounding box
+      // is their union, whose centre can be a line away from anything tapped.
+      tapMark(el, tx, ty) {
         const md = this.$refs.md, isDel = el.tagName === 'DEL';
         const next = (n, dir) => { let x = dir > 0 ? n.nextSibling : n.previousSibling;
           while (x && x.nodeType === 3 && !x.textContent) x = dir > 0 ? x.nextSibling : x.previousSibling; return x; };
@@ -2947,7 +2959,10 @@
           const at = window.MdSurface.offsetAt(md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
           r = [at ?? 0, at ?? 0];
         }
-        this.showWordPop(del ? del.textContent : '', r[0], r[1], el.getBoundingClientRect());
+        const rs = [...el.getClientRects()], dy = (q) => ty < q.top ? q.top - ty : ty > q.bottom ? ty - q.bottom : 0;
+        const line = ty == null || !rs.length ? el.getBoundingClientRect() : rs.reduce((m, q) => dy(q) < dy(m) ? q : m);
+        const x = tx == null ? line.left + line.width / 2 : Math.max(line.left, Math.min(line.right, tx));
+        this.showWordPop(del ? del.textContent : '', r[0], r[1], { left: x, width: 0, bottom: line.bottom });
       },
       showWordPop(text, a, b, rect) {
         this.wordPop = { text, a, b, t: Date.now(),
@@ -3766,15 +3781,18 @@
           </div>
         </div>
       </div>
-      <!-- A tapped mark's undo, struck or added: one word in the cards' pill
-           style, under the mark. The tap that opened it is ignored by the
-           outside-click, which otherwise arrives as the same gesture. -->
+      <!-- A tapped mark's undo, struck or added: an action, so it wears the
+           Split pill's blue rather than the cards' label style, under the
+           tapped line. The tap that opened it is ignored by the outside-click,
+           which otherwise arrives as the same gesture. -->
       <div x-show="wordPop" x-cloak data-word-pop
+           x-transition:enter="transition ease-[cubic-bezier(.34,1.56,.64,1)] duration-200 motion-reduce:transition-none"
+           x-transition:enter-start="opacity-0 scale-75 -translate-y-1" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
            @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
-           class="fixed z-50 -translate-x-1/2 flex items-center rounded-full border border-base-300 bg-base-100 shadow-sm text-[13px] leading-none select-none"
+           class="fixed z-50 -translate-x-1/2 select-none"
            :style="wordPop ? 'left:' + wordPop.x + 'px;top:' + wordPop.y + 'px' : ''">
         <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
-                class="relative px-2.5 py-[3.5px] text-error/70 cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-3 before:content-['']">undo</button>
+                class="btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to

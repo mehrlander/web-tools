@@ -1786,11 +1786,26 @@ try {
     return { pop, text: await docText() };
   };
   const struck = await tapMarkAndUndo(['Second para.', 'Para.'], ['del', 'Second']);
-  ok('a tap on struck words offers one word, undo, and undo puts them back', struck.pop === 'undo' && struck.text === PARA_DOC, JSON.stringify(struck));
+  ok('a tap on struck words offers one word, undo, and undo puts them back', struck.pop === 'Undo' && struck.text === PARA_DOC, JSON.stringify(struck));
   const addedW = await tapMarkAndUndo(['First two.', 'First extra two.'], ['ins', 'extra']);
-  ok('a tap on added words offers the same undo, and undo takes them out, space and all', addedW.pop === 'undo' && addedW.text === PARA_DOC, JSON.stringify(addedW));
+  ok('a tap on added words offers the same undo, and undo takes them out, space and all', addedW.pop === 'Undo' && addedW.text === PARA_DOC, JSON.stringify(addedW));
   const repl = await tapMarkAndUndo(['Third para.', 'Third page.'], ['ins', 'page']);
-  ok('undo on half of a replacement undoes the whole of it', repl.pop === 'undo' && repl.text === PARA_DOC, JSON.stringify(repl));
+  ok('undo on half of a replacement undoes the whole of it', repl.pop === 'Undo' && repl.text === PARA_DOC, JSON.stringify(repl));
+  // A mark that wraps has a box per line: the pill goes under the line tapped,
+  // not under the union of them, whose centre was a line away on the phone.
+  await reset();
+  const wrapAt = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('First two.', 'First two and then a good many more words added here so it wraps.'); c.d.caretAt(0); c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    const el = [...c.$refs.md.querySelectorAll('ins')].find((x) => x.getClientRects().length > 1);
+    if (!el) return null; const q = el.getClientRects()[0];
+    return { x: q.left + Math.min(q.width / 2, 20), y: q.top + q.height / 2, bottom: q.bottom, lines: el.getClientRects().length }; });
+  if (wrapAt) { await page.touchscreen.tap(wrapAt.x, wrapAt.y); await page.waitForTimeout(400); }
+  const wrapPop = wrapAt && await page.evaluate(() => { const b = document.querySelector('[data-word-pop] button'); if (!b || !b.getClientRects().length) return null;
+    const r = b.getBoundingClientRect(); return { top: Math.round(r.top), cx: Math.round(r.left + r.width / 2), bg: getComputedStyle(b).backgroundColor }; });
+  ok('on a mark that wraps, the undo sits under the line tapped, at the finger, and wears the action blue',
+    !!wrapPop && wrapPop.top >= wrapAt.bottom && wrapPop.top - wrapAt.bottom < 16 && Math.abs(wrapPop.cx - Math.max(40, wrapAt.x)) < 4 && !/255, 255, 255/.test(wrapPop.bg),
+    JSON.stringify({ wrapAt, wrapPop }));
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {
