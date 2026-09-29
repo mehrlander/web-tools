@@ -2932,7 +2932,10 @@
         this._barKey = key;
         for (const card of md.querySelectorAll('[data-md-card]')) {
           const k = this.keyCard != null && +card.dataset.mdCard === this.keyCard;
-          for (const c of ['ring-2', 'ring-amber-400', 'ring-offset-2', 'ring-offset-base-100']) card.classList.toggle(c, k);
+          // The card's own border turns amber, nothing drawn outside it: a
+          // second ring made the card read as a text field, which it is not.
+          // Important, since the kit sets the border's colour per card.
+          card.classList.toggle('border-amber-400!', k);
         }
         for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
           const on = !!el && bar.parentElement === el;

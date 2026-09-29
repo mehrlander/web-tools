@@ -1778,11 +1778,11 @@ try {
     const card = c.$refs.md.querySelector('[data-md-card="' + i + '"]');
     const t = card && card.querySelector('[data-md-track]');
     return { key: c.keyCard, reading: window.MdSurface.readingOf(c.$refs.md, i), at: t && ['old', 'inline', 'new'][Math.round(t.scrollLeft / t.clientWidth)], caret: !!c.$refs.layer.querySelector('[data-md-surface="caret"]'),
-             ring: !!card && card.classList.contains('ring-2'), typing: c.typing, text: c.text }; }, cardBox.i);
+             ring: !!card && /0\.828 0\.189/.test(getComputedStyle(card).borderTopColor) && getComputedStyle(card).boxShadow === 'none', typing: c.typing, text: c.text }; }, cardBox.i);
   await page.mouse.click(cardBox.x, cardBox.y);
   await page.waitForTimeout(250);
   const taken = await keyState();
-  ok('on a desk a click beside a card\'s words takes the card, ringed, with no caret', taken.key === cardBox.i && taken.ring && !taken.caret && !taken.typing, JSON.stringify(taken));
+  ok('on a desk a click beside a card\'s words takes the card, its own border amber and no ring outside it, with no caret', taken.key === cardBox.i && taken.ring && !taken.caret && !taken.typing, JSON.stringify(taken));
   await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(400);
   const kOld = await keyState();
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(400);
