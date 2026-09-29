@@ -1143,9 +1143,16 @@ try {
   // a long press inside a selection that then carries it.
   console.log('paragraphs:');
   const PARA_DOC = '# Title\n\nFirst one. First two.\n\nSecond para.\n\nThird para.\n';
-  await page.route('**/repos/mehrlander/web-tools/contents/tools/test/para-fixture.md*', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-      content: Buffer.from(PARA_DOC).toString('base64'), encoding: 'base64', sha: 'para', size: PARA_DOC.length }) }));
+  await page.route('**/repos/mehrlander/web-tools/contents/tools/test/para-fixture.md*', (route) => {
+    // A write to the fixture (Apply, Save) is logged like any other write.
+    if (route.request().method() === 'PUT') {
+      const body = JSON.parse(route.request().postData() || '{}');
+      writes.push({ url: route.request().url(), message: body.message, text: Buffer.from(body.content || '', 'base64').toString('utf8') });
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ content: { sha: 'applied' } }) });
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      content: Buffer.from(PARA_DOC).toString('base64'), encoding: 'base64', sha: 'para', size: PARA_DOC.length }) });
+  });
   await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('dictate')) localStorage.removeItem(k); });
   await open('?file=mehrlander/web-tools:tools/test/para-fixture.md');
   await page.waitForFunction(() => document.querySelector('[x-ref="md"] p'), null, { timeout: 10000 });
@@ -1246,8 +1253,8 @@ try {
              centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2), words: b.textContent.replace(/\s+/g, ''),
              h: Math.round(r.height), fs: parseFloat(getComputedStyle(b).fontSize),
              reach: Math.round(kr.height + 2 * Math.abs(parseFloat(hit.top) || 0)), x: kr.left + kr.width / 2, y: kr.top + kr.height / 2 }; });
-  ok('the number selects its card, and the card wears one pill, info and remove, centred on its bottom edge, 13px words in a pill no taller than 22px, with a tap reach of 40px or more',
-    !!bar && bar.n === 1 && bar.inCard && bar.straddles && bar.centred < 3 && bar.words === 'inforemove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
+  ok('the number selects its card, and the card wears one pill, info, confirm and remove, centred on its bottom edge, 13px words in a pill no taller than 22px, with a tap reach of 40px or more',
+    !!bar && bar.n === 1 && bar.inCard && bar.straddles && bar.centred < 3 && bar.words === 'infoconfirmremove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
   await page.touchscreen.tap(bar.x, bar.y);
   await page.waitForTimeout(250);
   ok('and Remove on the bar restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
@@ -1530,7 +1537,7 @@ try {
     const pill = document.querySelector('[data-jump]'), none = vis(pill);
     c.d.text = c.text.replace('First one.', 'First once.').replace('Third para.', 'Third paragraph.'); c.paint();
     await new Promise((r) => setTimeout(r, 200));
-    const shown = vis(pill), label = pill.textContent.replace(/\s+/g, ' ').trim();
+    const shown = vis(pill), label = pill.querySelector('span').textContent.replace(/\s+/g, ' ').trim();
     c.jumpCard(1); c.jumpCard(-1);
     c.d.undo(); c.paint(); await new Promise((r) => setTimeout(r, 200));
     return { none, shown, label, after: vis(pill), changesFace: !!document.querySelector('[x-data="dictate"] > div').querySelector('.ph-git-diff') };
@@ -1937,6 +1944,47 @@ try {
   ok('on a mark that wraps, the undo sits under the line tapped, at the finger, and wears the action blue',
     !!wrapPop && wrapPop.top >= wrapAt.bottom && wrapPop.top - wrapAt.bottom < 16 && Math.abs(wrapPop.cx - Math.max(40, wrapAt.x)) < 4 && !/255, 255, 255/.test(wrapPop.bg),
     JSON.stringify({ wrapAt, wrapPop }));
+  // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
+  // Apply, and Apply commits GitHub's copy with only the confirmed cards'
+  // changes, carrying each one's note; the rest stay as edits.
+  console.log('confirm and apply:');
+  await reset();
+  const conf = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, vis = (el) => !!el && el.getClientRects().length > 0;
+    c.token = c.token || 'test-token';
+    c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('First one.', 'First once.').replace('Third para.', 'Third paragraph.'); c.d.caretAt(0); c.paint();
+    await new Promise((r) => setTimeout(r, 250));
+    const third = () => [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('paragraph'));
+    const btn = () => third().querySelector('[data-md-card-act="confirm"]');
+    const state = async () => { await new Promise((r) => setTimeout(r, 120)); const b = third().querySelector('[data-md-card-badge]');
+      return { word: btn().textContent, green: b.classList.contains('bg-success!'), apply: vis(document.querySelector('[data-apply]')) ? document.querySelector('[data-apply]').textContent.trim() : null, n: c.confirmedCount }; };
+    btn().click(); const on = await state();
+    btn().click(); const off = await state();
+    btn().click(); await state();
+    c.d.text = c.text.replace('Third paragraph.', 'Third paragraphs.'); c.paint(); const edited = await state();
+    c.d.text = c.text.replace('Third paragraphs.', 'Third paragraph.'); c.paint(); await state();
+    btn().click(); await state();
+    const i = +third().dataset.mdCard;
+    c.openCardInfo(i, btn(), true); await new Promise((r) => setTimeout(r, 150));
+    const note = document.querySelector('[data-info-note]');
+    note.value = 'Clearer.'; note.dispatchEvent(new Event('input', { bubbles: true }));
+    c.cardInfo = null;
+    return { on, off, edited, noted: !!note };
+  });
+  ok('confirm marks the card, green number and "confirmed ✓", and brings Apply 1; the same word takes it back', conf.on.word === 'confirmed ✓' && conf.on.green && /^Apply 1\b/.test(conf.on.apply || '') && conf.off.word === 'confirm' && !conf.off.green && conf.off.apply === null, JSON.stringify(conf));
+  ok('editing a confirmed card lets the confirmation lapse', conf.edited.n === 0 && conf.edited.word === 'confirm', JSON.stringify(conf.edited));
+  const before = writes.length;
+  await page.evaluate(() => document.querySelector('[data-apply]').click());
+  await page.waitForTimeout(400);
+  const applied = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    return { base: c.fileBase, text: c.text, cards: c.changesCount, n: c.confirmedCount }; });
+  const w = writes[writes.length - 1];
+  const want = PARA_DOC.replace('Third para.', 'Third paragraph.');
+  ok('Apply commits GitHub\'s copy with only the confirmed change, the note in the message, and the other edit stays as an edit',
+    writes.length === before + 1 && w.text === want && /^Apply 1 change to /.test(w.message) && w.message.includes('Clearer.')
+      && applied.base === want && applied.text.includes('First once.') && applied.cards === 1 && applied.n === 0,
+    JSON.stringify({ w, applied }));
+  await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = {}; c.confirmed = {}; }, PARA_DOC);
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {

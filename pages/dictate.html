@@ -501,6 +501,9 @@
       // A stored 'changes' is from before that face was retired, and opens Rendered.
       view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ['source', 'rendered'].includes(ls.get(VIEW)) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
       mdReady: false, changesCount: 0,
+      confirmed: {},            // card key -> that card's text when confirmed; Apply commits these
+      notes: {},                // card key -> the reader's note, which rides in the commit message
+      applying: false,
       // Typing into the Rendered face: the sink has focus and the keyboard is up.
       typing: false, composing: false,
       // Marks for what changed since GitHub's copy, drawn over the Rendered
@@ -816,10 +819,12 @@
           this.fileBase = res.text;
           if (held && typeof held.text === 'string' && held.text !== res.text) {
             this.fileSha = held.sha || res.sha;
+            this.confirmed = held.confirmed || {}; this.notes = held.notes || {};
             this.d.text = held.text;
             this.restored = held.text.length;
           } else {
             this.fileSha = res.sha;
+            this.confirmed = {}; this.notes = {};
             this.d.text = res.text;
             this.restored = 0;
           }
@@ -911,12 +916,16 @@
         this.saving = FILE.repo;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
-          const body = { message: `Edit ${this.fileName} via dictate`, content: b64(text), sha: this.fileSha };
+          // The notes left on cards ride in the message, as Apply's do.
+          const md = this.$refs.md, n = this.rendered && md ? window.MdSurface.cards(md).length : 0, noted = [];
+          for (let i = 0; i < n; i++) { const k = this.cardId(i); if (k && this.notes[k]) noted.push('- ' + (this.cardSpans(i).N.s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)') + '\n  ' + this.notes[k].replace(/\n/g, '\n  ')); }
+          const body = { message: `Edit ${this.fileName} via dictate` + (noted.length ? '\n\n' + noted.join('\n') : ''), content: b64(text), sha: this.fileSha };
           if (FILE.ref) body.branch = FILE.ref;
           const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
           this.fileSha = res.content.sha;
           this.fileBase = text;
           this.restored = 0;
+          this.confirmed = {}; this.notes = {};
           ls.del(FILE_DRAFT);
           this.paint();             // the base moved, so the change marks clear
           Alpine.store('toast')('check', 'Saved ' + this.fileWhere, 'alert-success', 3200);
@@ -1048,7 +1057,8 @@
         if (FILE) {
           // Before the file has loaded, the buffer is not an edit of anything.
           if (this.fileBase === null) return;
-          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha })) : ls.del(FILE_DRAFT);
+          // The confirmations and notes ride with the draft they belong to.
+          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha, confirmed: this.confirmed, notes: this.notes })) : ls.del(FILE_DRAFT);
           return;
         }
         this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT);
@@ -2946,6 +2956,7 @@
       // in the same pill, the destructive one last.
       CARD_ACTIONS: [
         { act: 'info', text: 'info', title: 'Info', cls: 'text-base-content/60' },
+        { act: 'confirm', text: 'confirm', title: 'Confirm this change for Apply', cls: 'text-success' },
         { act: 'remove', text: 'remove', title: 'Remove this change', cls: 'text-error/70' },
       ],
       markCardBar() {
@@ -2972,6 +2983,7 @@
           // Important, since the kit sets the border's colour per card.
           card.classList.toggle('border-amber-400!', k);
         }
+        this.markConfirmed();
         for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
           const on = !!el && bar.parentElement === el;
           if (on && !fresh) bar.classList.add('transition-none');
@@ -2982,10 +2994,101 @@
           if (!bar.__kept) { bar.__kept = true; for (const k of bar.querySelectorAll('button')) this.keepFocus(k); }
         }
       },
+      // ── Confirm, then Apply ───────────────────────────────────────────
+      // A CARD IS CONFIRMED FOR APPLY, and Apply commits the confirmed cards
+      // together, one commit, to the branch the file was opened from. The
+      // two steps are the confirmation: confirming is local and taken back by
+      // the same word, and nothing reaches GitHub until Apply. Owner's design,
+      // 2026-09-29: reject is per change (the word pop's Undo), commit is per
+      // card, never part of one.
+      //
+      // A card is known by a key that survives edits elsewhere: where its
+      // GitHub text starts ('o' + offset), or for a card that only adds, the
+      // text it adds. A confirmation holds the card's text as confirmed, and
+      // lapses when that text changes, so what is applied is what was seen.
+      cardId(i) {
+        const run = window.MdSurface.cards(this.$refs.md)[i], sp = this.cardSpans(i);
+        if (!run || !sp) return null;
+        const o = run.filter((e) => e.oldRange);
+        return o.length ? 'o' + Math.min(...o.map((e) => e.oldRange.start)) : 'a:' + sp.N.s;
+      },
+      toggleConfirm(i) {
+        const k = this.cardId(i), sp = this.cardSpans(i);
+        if (!k) return;
+        if (this.confirmed[k] != null) delete this.confirmed[k]; else this.confirmed[k] = sp.N.s;
+        this.confirmed = { ...this.confirmed };
+        this.save(); this.paintExtras();
+      },
+      get confirmedCount() { return Object.keys(this.confirmed).length; },
+      get fileRef() { return FILE ? FILE.ref || '' : ''; },
+      // Each paint: confirmations whose card changed or went lapse, and the
+      // confirmed cards wear it, a green number and "confirmed" in the pill.
+      markConfirmed() {
+        const md = this.$refs.md, n = window.MdSurface.cards(md).length, now = {};
+        for (let i = 0; i < n; i++) { const k = this.cardId(i); if (k) now[k] = { i, s: this.cardSpans(i).N.s }; }
+        let lapsed = false;
+        for (const k of Object.keys(this.confirmed)) if (!now[k] || now[k].s !== this.confirmed[k]) { delete this.confirmed[k]; lapsed = true; }
+        if (lapsed) { this.confirmed = { ...this.confirmed }; this.save(); }
+        const on = new Set(Object.keys(this.confirmed).map((k) => now[k].i));
+        for (const card of md.querySelectorAll('[data-md-card]')) {
+          const c = on.has(+card.dataset.mdCard);
+          card.dataset.confirmed = c ? '1' : '';
+          const b = card.querySelector('[data-md-card-badge]');
+          if (b) for (const x of ['bg-success!', 'text-success-content!', 'border-success!']) b.classList.toggle(x, c);
+          const a = card.querySelector('[data-md-card-act="confirm"]');
+          if (a) { a.textContent = c ? 'confirmed ✓' : 'confirm'; a.title = c ? 'Confirmed for Apply; tap to take it back' : 'Confirm this change for Apply'; }
+        }
+      },
+      // APPLY: GitHub's copy with the confirmed cards' changes in it, which is
+      // the text now with every OTHER card taken back (mdDiff.revert, the same
+      // take-back as remove), from the last card up so each revert's
+      // positions still hold. One commit; then that is the base, so the
+      // applied cards go and the rest stay as edits, keeping their notes.
+      async applyConfirmed() {
+        if (!FILE || this.applying || !this.confirmedCount) return;
+        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: nothing applied', 'alert-error', 5000); return; }
+        const md = this.$refs.md, runs = window.MdSurface.cards(md), base = this.fileBase, t = this.text;
+        const cards = runs.map((run, i) => ({ run, i, k: this.cardId(i), sp: this.cardSpans(i) }));
+        const pos = (c) => { const e = c.run.find((x) => x.newRange) || c.run[0]; return e.newRange ? e.newRange.start : (e.insertAt ?? 0); };
+        let next = t;
+        for (const c of [...cards].sort((a, b) => pos(b) - pos(a))) if (this.confirmed[c.k] == null) next = window.mdDiff.revert(base, next, c.run);
+        const applied = cards.filter((c) => this.confirmed[c.k] != null);
+        const first = (s) => (s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)');
+        const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)) + (this.notes[c.k] ? '\n  ' + this.notes[c.k].replace(/\n/g, '\n  ') : ''));
+        const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n');
+        // Notes on the cards that stay are carried to their new keys by their texts.
+        const kept = cards.filter((c) => this.confirmed[c.k] == null && this.notes[c.k]).map((c) => ({ o: c.sp.O.s, n: c.sp.N.s, note: this.notes[c.k] }));
+        this.applying = true;
+        try {
+          const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
+          const body = { message, content: b64(next), sha: this.fileSha };
+          if (FILE.ref) body.branch = FILE.ref;
+          const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
+          this.fileSha = res.content.sha;
+          this.fileBase = next;
+          this.confirmed = {}; this.notes = {};
+          this.paint();
+          const m = window.MdSurface.cards(md).length;
+          for (let i = 0; i < m; i++) {
+            const sp = this.cardSpans(i), hit = kept.find((x) => x.o === sp.O.s && x.n === sp.N.s);
+            if (hit) this.notes[this.cardId(i)] = hit.note;
+          }
+          this.notes = { ...this.notes };
+          this.save();
+          Alpine.store('toast')('check', `Applied ${applied.length} to ${this.fileWhere}`, 'alert-success', 3200);
+        } catch (e) {
+          const conflict = e?.status === 409 || e?.status === 422;
+          Alpine.store('toast')('warning', conflict
+            ? 'Not applied: the file changed on GitHub after you opened it. Reload, then confirm again.'
+            : 'Not applied: ' + (e?.message || e), 'alert-error', 8000);
+        }
+        this.applying = false;
+      },
       cardAct(btn) {
         const i = +btn.closest('[data-md-card]').dataset.mdCard;
         // A click PINS Info: a hover-opened one stays, with its ✕; a pinned
         // one closes; any other opens pinned, which is every tap on a phone.
+        if (btn.dataset.mdCardAct === 'confirm') { this.toggleConfirm(i); return; }
         if (btn.dataset.mdCardAct === 'info') {
           const c = this.cardInfo;
           if (c && c.i === i && !c.pinned) this.pinInfo(true);
@@ -3190,7 +3293,7 @@
         const b = k.getBoundingClientRect();
         const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
         const below = innerHeight - b.bottom > b.top;
-        this.cardInfo = { i, rows, kind, w,
+        this.cardInfo = { i, rows, kind, w, key: this.cardId(i),
           sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
           x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
           pos: below ? 'top:' + (b.bottom + 6) + 'px' : 'bottom:' + (innerHeight - b.top + 6) + 'px',
@@ -4127,6 +4230,17 @@
             </div>
           </template>
         </div>
+        <!-- A NOTE ON THE CHANGE, kept with the draft and carried into the
+             commit message of whatever lands it, Apply or Save, under the
+             change's opening words. -->
+        <template x-if="cardInfo && cardInfo.key">
+          <div class="border-t border-base-300 px-3 py-2">
+            <textarea data-info-note rows="1" placeholder="Add a note for the commit"
+                      class="textarea textarea-ghost w-full min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                      :value="notes[cardInfo.key] || ''" @focus="cardInfo.pinned || pinInfo(true)"
+                      @input="notes[cardInfo.key] = $event.target.value.trim() ? $event.target.value : undefined; if (notes[cardInfo.key] === undefined) delete notes[cardInfo.key]; save()"></textarea>
+          </div>
+        </template>
       </div>
       <!-- A tapped mark's undo, struck or added: an action, so it wears the
            Split pill's blue rather than the cards' label style, under the
@@ -4168,7 +4282,15 @@
            class="absolute bottom-2 left-2 z-20 join rounded-full shadow-sm border border-base-300 bg-base-100/95">
         <button @click="jumpCard(-1)" class="join-item btn btn-xs btn-ghost rounded-l-full px-1.5" title="Previous change"><i class="ph ph-caret-up"></i></button>
         <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
-        <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost rounded-r-full px-1.5" title="Next change"><i class="ph ph-caret-down"></i></button>
+        <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost px-1.5" :class="confirmedCount ? '' : 'rounded-r-full'" title="Next change"><i class="ph ph-caret-down"></i></button>
+        <!-- Apply, the second step: shown once a card is confirmed, naming
+             how many and the branch they will be committed to. -->
+        <button x-show="confirmedCount" x-cloak @click="applyConfirmed()" :disabled="applying" data-apply
+                class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
+                :title="'Commit the confirmed changes to ' + (file ? fileWhere : '')">
+          <i class="ph ph-check-circle"></i>
+          <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
+        </button>
       </div>
 
       <!-- The keyboard half, and it has no controls of its own: blur or
