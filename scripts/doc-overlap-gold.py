@@ -290,6 +290,15 @@ def score(args):
         f = lambda cond: P(sum(wt(u) for u in rows if cond(u)) / W)
         out.append(f'| {L} | {len(rows)} | {f(lambda u: u["relation"] in RESTATES)} | '
                    f'{f(lambda u: u["reading"] == "yes")} | {f(lambda u: u["consolidate"] == "yes")} |')
+    out.append('\nBy whether the shorter passage is under 20 words (weighted):\n')
+    out.append('| short | pairs | restates | unrelated | worth reading |')
+    out.append('|---|---|---|---|---|')
+    for S in ('yes', 'no'):
+        rows = [u for u in g if u['short'] == S]
+        W = sum(wt(u) for u in rows) or 1
+        f = lambda cond: P(sum(wt(u) for u in rows if cond(u)) / W)
+        out.append(f'| {S} | {len(rows)} | {f(lambda u: u["relation"] in RESTATES)} | '
+                   f'{f(lambda u: u["relation"] == "unrelated")} | {f(lambda u: u["reading"] == "yes")} |')
     rev = [u for u in g if u['verdict']]
     by = defaultdict(lambda: [0, 0])
     for u in rev:

@@ -235,3 +235,29 @@ doc-overlap-matches,target_end,computed,scripts/doc-overlap.py,value,column,yes,
 doc-overlap-matches,target_line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line that passage starts on
 doc-overlap-matches,target_hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
 doc-overlap-matches,cosine,computed,scripts/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
+doc-overlap-gold,stratum,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
+doc-overlap-gold,stratum_size,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs in the stratum, the numerator of the row weight"
+doc-overlap-gold,stratum_seats,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs drawn from the stratum, the denominator of the row weight"
+doc-overlap-gold,audit,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the seed flagged the row for an audit of an agreement before the run
+doc-overlap-gold,cosine,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"the pair's cosine in matches.csv, the higher direction"
+doc-overlap-gold,literal,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
+doc-overlap-gold,short,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
+doc-overlap-gold,a_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
+doc-overlap-gold,a_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,a_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,a_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,a_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,b_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
+doc-overlap-gold,b_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,b_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,b_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,b_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,reader_relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,"the reader agent's relation, blind to the cosine"
+doc-overlap-gold,reader_confidence,recorded,,value,column,yes,high;medium;low,label,the reader agent's confidence
+doc-overlap-gold,rationale,recorded,,value,column,yes,,value,the reader agent's one-clause reason
+doc-overlap-gold,sent,computed,scripts/doc-overlap-gold.py,value,column,yes,disagree;conflict;fragment;audit;review,label,why the row reached a skeptic
+doc-overlap-gold,verdict,recorded,,value,column,yes,confirm;overturn,label,the skeptic agent's verdict on the reader's relation
+doc-overlap-gold,note,recorded,,value,column,yes,,value,"the skeptic agent's reason, quoting the words that decide it"
+doc-overlap-gold,relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,the final relation: the skeptic's
+doc-overlap-gold,reading,recorded,,value,column,yes,yes;no,label,whether seeing one passage beside the other helps a reader
+doc-overlap-gold,consolidate,recorded,,value,column,yes,yes;no,label,whether one passage could be replaced by a link to the other
