@@ -96,7 +96,7 @@ test('the snags index and registry match docs/SNAGS.md', () => {
 
 test('the tracker board matches tracker/tasks/', () => {
   const r = spawnSync('python3',
-    ['.claude/skills/tasks/build-board.py', 'tracker/tasks', 'tracker/board.md', '--check'],
+    ['skills/tasks/build-board.py', 'tracker/tasks', 'tracker/board.md', '--check'],
     { cwd: repoRoot, encoding: 'utf8' });
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'build-board --check failed');
 });
@@ -107,7 +107,7 @@ test('the tracker board matches tracker/tasks/', () => {
 // test flaky rather than false, which is the harder failure to diagnose.
 test('the board generator is byte-deterministic', () => {
   const run = () => spawnSync('python3',
-    ['.claude/skills/tasks/build-board.py', 'tracker/tasks', 'tracker/board.md'],
+    ['skills/tasks/build-board.py', 'tracker/tasks', 'tracker/board.md'],
     { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONHASHSEED: 'random' } });
   // Both CSV projections, since the fixed column order and the tag sort are
   // separate guarantees and either could drift alone.

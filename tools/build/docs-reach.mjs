@@ -74,7 +74,7 @@
 //
 // Reach counts files; `words` weighs them, and the two disagree. Measured
 // 2026-08-05: the 17 orphans are 40% of the folder's files but 16.7% of its
-// words, while docs/show-repo.md alone is 22%. A tab that could filter to the
+// words, while docs/APP.md alone is 22%. A tab that could filter to the
 // orphans in one tap and could not show that split was answering the smaller
 // question loudly. Bloat and unreachability are different failures, and a
 // registry that carries only one of them will keep pointing at the tail.
@@ -127,8 +127,8 @@ const SKILL_DIRS = ['.claude/skills', 'skills'];
 // above: registries-reach.mjs must mean the same thing by "the app".
 //
 // `app/` joined the list on 2026-08-19, and its absence is the shape of error
-// this constant will keep producing: PR #441 moved the show-repo shell from
-// pages/show-repo.html to app/index.html, and nothing here moved with it, so
+// this constant will keep producing: PR #441 moved the app from
+// a page under pages/ to app/index.html, and nothing here moved with it, so
 // for eleven days the scanners read the app without reading the app's own
 // shell. Two registries wore the `no app surface` warning while
 // app/index.html fetched them by name, and docs/text-content.md read `orphan`

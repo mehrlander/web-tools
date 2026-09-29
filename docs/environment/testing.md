@@ -126,7 +126,7 @@ elements, skip any inside a horizontally scrollable ancestor, or every carousel
 slide reports as a fault.
 
 This is what catches the two failures the house style prescribes against
-(`skills/daisy-alpine/SKILL.md`):
+(`skills/html-style/SKILL.md`):
 a scroll track without `min-w-0` claiming one viewport per slide, and a form
 control that stops short of its column.
 
@@ -358,7 +358,7 @@ behind it was real and is easy to repeat: open a page, inspect the stylesheets,
 and `.animate-spin` and `.rotate-180` genuinely have no rule while `.truncate`
 does. The wrong part was the inference. Nothing has toggled yet, so the rule has
 not been generated yet; it appears when the class does. Measured on
-`show-repo`, before and after toggling `animate-spin rotate-180` onto a live
+the Web Tools app, before and after toggling `animate-spin rotate-180` onto a live
 element:
 
 | | `.truncate` | `.animate-spin` | `@keyframes spin` | `.rotate-180` |

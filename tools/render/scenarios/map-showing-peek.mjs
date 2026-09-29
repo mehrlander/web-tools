@@ -1,4 +1,4 @@
-// Open show-repo's Map view on the Transport tab and hold the pointer over one
+// Open the app's Map view on the Transport tab and hold the pointer over one
 // of its exact-file jump-overs, so the reworked header and the source peek both
 // render headlessly. The tab is public (it reads the hub's docs/routes.json),
 // so this needs no token: the sandbox's contents-API shim serves the manifest

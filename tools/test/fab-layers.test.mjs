@@ -365,3 +365,41 @@ test('the glyph slot names the layer, and the off-ref mark still takes it', asyn
   assert.match(d.layerIcon({ role: 'app', ref: 'claude/x' }), /ph-disc text-warning/,
     'branch code cannot hide behind an identity glyph');
 });
+
+// ── What a layer ran, beside what it was asked for (2026-09-28) ─────────────
+// The row's ref is what the address asked for. The framed document's own
+// loader says what it booted, and a preview that looks right while running
+// another Web Tools version is the case the strip exists to expose.
+
+test('a framed page that booted the Web Tools ref it was handed is not marked', async () => {
+  const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const subject = { repo: 'mehrlander/home', ref: 'claude/x', path: 'projects/p.html' };
+  const kid = Object.assign(blobWin(), { gh: { ref: 'main' }, __lib: 'main' });
+  const layers = d.readLayers({ frames: [kid], __tossSubject: subject, location: { href: 'x' } });
+  const page = layers.at(-1);
+  assert.deepEqual({ ...page.lib }, { got: 'main', want: 'main' });
+  assert.equal(d.layerLibWrong(page), false);
+});
+
+test('a framed page that booted another Web Tools ref is marked, and says which', async () => {
+  // The shipped defect this catches: a cross-repo page whose boot took the
+  // other repo's branch name as a web-tools ref.
+  const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const subject = { repo: 'mehrlander/shortcut-tools', ref: 'claude/x', path: 'pages/library.html' };
+  const kid = Object.assign(blobWin(), { gh: { ref: 'claude/x' } });
+  const layers = d.readLayers({ frames: [kid], __tossSubject: subject, location: { href: 'x' } });
+  const page = layers.at(-1);
+  assert.equal(d.layerLibWrong(page), true, 'no __lib handed down, so the rule applies: main for another repo');
+  assert.match(d.layerIcon(page), /ph-warning/);
+  assert.match(d.layerTitle(page), /Web Tools claude\/x, but this layer should run main/);
+});
+
+test('a web-tools page is judged against its own ref, and a page with no loader is not judged', async () => {
+  const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const wt = { repo: 'mehrlander/web-tools', ref: 'claude/x', path: 'pages/diff-tool.html' };
+  const ok = d.readLayers({ frames: [Object.assign(blobWin(), { gh: { ref: 'claude/x' } })], __tossSubject: wt, location: { href: 'x' } });
+  assert.equal(d.layerLibWrong(ok.at(-1)), false);
+  const bare = d.readLayers({ frames: [blobWin()], __tossSubject: wt, location: { href: 'x' } });
+  assert.equal(bare.at(-1).lib, null);
+  assert.equal(d.layerLibWrong(bare.at(-1)), false);
+});

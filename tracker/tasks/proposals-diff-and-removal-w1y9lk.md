@@ -4,7 +4,7 @@ title: Two gaps the proposal channel showed on first use
 status: done
 closed: 2026-08-02
 session: claude/web-tools-project-tracker-reo5qo
-project: show-repo
+project: app
 opened: 2026-07-28
 ---
 # Two gaps the proposal channel showed on first use

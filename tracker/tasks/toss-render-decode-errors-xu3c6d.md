@@ -2,7 +2,7 @@
 id: toss-render-decode-errors-xu3c6d
 title: Structural response decode + differentiated errors in toss-render
 status: done
-project: show-repo
+project: app
 opened: 2026-07-17
 closed: 2026-07-17
 ---

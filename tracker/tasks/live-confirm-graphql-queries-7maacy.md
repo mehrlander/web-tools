@@ -2,7 +2,7 @@
 id: live-confirm-graphql-queries-7maacy
 title: Live-confirm the BranchSessions query
 status: done
-project: show-repo
+project: app
 opened: 2026-07-26
 closed: 2026-09-18
 size: XS

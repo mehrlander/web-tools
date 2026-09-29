@@ -154,3 +154,44 @@ test('an empty attached means the record cannot say, not that nothing was attach
   assert.deepEqual(rows.map((r) => r.name), ['web-tools']);
   assert.equal(rows[0].idle, false, 'never claim "attached but idle" from a record that cannot say');
 });
+
+test('sessionRepoTip supplies the title-tip body without repeating the lead name', () => {
+  const row = data.sessionRepoRows(MIXED)[1];
+  const tip = data.sessionRepoTip(row);
+  assert.doesNotMatch(tip, /^web-tools/);
+  assert.match(tip, /on main/);
+  assert.match(tip, /253 transcript lines/);
+});
+
+// ── Position against main (record schema 13, row version 23) ───────────────
+// The recorder measures each checkout's merge base with main and the commits
+// either side of it. The tip phrases the counts in git's own words and names
+// the base; it says nothing for a record that predates the measurement, and
+// says the measurement failed where git could not answer.
+
+test('the tip and the note carry a checkout position against main', () => {
+  const row = {
+    repos: [{ name: 'web-tools', branch: 'claude/x', lines: 40,
+              base: 'a1b2c3d', behind_main: 5, ahead_base: 3 }],
+    attached: ['home', 'web-tools'],
+    branches: ['claude/x'],
+  };
+  const [home, wt] = plain(data.sessionRepoRows(row));
+  assert.equal(data.sessionRepoTip(wt),
+    'on claude/x · 40 transcript lines ran here · 3 ahead, 5 behind main (base a1b2c3d)');
+  assert.match(data.sessionRepoNote(wt), /3 ahead, 5 behind main \(base a1b2c3d\)/);
+  // An idle checkout was never measured, so it gets no position.
+  assert.equal(data.sessionRepoPosition(home), '');
+});
+
+test('a null base says the measurement failed; an older row says nothing', () => {
+  const measured = plain(data.sessionRepoRows({ repos: [{ name: 'web-tools', branch: 'claude/x',
+    lines: 2, base: null, behind_main: null, ahead_base: null }], branches: [] }))[0];
+  assert.equal(data.sessionRepoPosition(measured), 'no merge base with main found');
+  assert.match(data.sessionRepoTip(measured), /no merge base with main found/);
+
+  const older = plain(data.sessionRepoRows(MIXED))[1];
+  assert.equal('base' in older, false, 'a row version before 23 carries no base key');
+  assert.equal(data.sessionRepoPosition(older), '');
+  assert.doesNotMatch(data.sessionRepoTip(older), /main \(base|merge base/);
+});

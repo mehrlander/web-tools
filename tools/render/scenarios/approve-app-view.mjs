@@ -8,10 +8,10 @@
 // Two things this exists to show, and the second is why it is a scenario rather
 // than a bare --query address.
 //
-// An app view opens at shell=none by design (docs/show-repo.md, "?shell="): the
-// reader who addressed a promoted page by name asked for the page, not for the
-// app around it. So a link handed over to show how the view sits IN the app
-// has to say shell=full, and one that omits it correctly renders the page bare.
+// An app view opens at shell=nav by default (docs/APP.md, "Display options"):
+// the header shows and the sidebar starts closed. So a link handed over to show
+// how the view sits IN the app says shell=full, and one meant to show the page
+// bare says shell=none.
 // That is what a reader reported on 2026-09-16 after being given the bare form.
 //
 // And the estate sidebar reads configs.json through the viewer's token, which a

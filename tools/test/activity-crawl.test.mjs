@@ -1,5 +1,5 @@
 // The activity crawl as a kit: lib/kits/activity-crawl.js, the per-repo pass the
-// show-repo shell used to hold inline and now shares with the headless runner
+// app used to hold inline and now shares with the headless runner
 // (scripts/activity-crawl.mjs), so a merge to main can refresh state/activity.json
 // without a browser.
 //

@@ -2,7 +2,7 @@
 id: collapse-quicklinks-projection-80oprp
 title: Collapse quickLinks into a projection of the repos manifest
 status: done
-project: show-repo
+project: app
 opened: 2026-07-17
 closed: 2026-07-28
 session: claude/tracker-status-cjogjn

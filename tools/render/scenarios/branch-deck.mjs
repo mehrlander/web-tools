@@ -38,7 +38,7 @@ export default async function (page, ctx) {
   await page.waitForTimeout(600);
 
   const out = await page.evaluate(async () => {
-    const files = ['lib/kits/swipe-deck.js', 'lib/kits/file-deck.js', 'docs/show-repo.md'];
+    const files = ['lib/kits/swipe-deck.js', 'lib/kits/file-deck.js', 'docs/APP.md'];
     const patch = '@@ -1,3 +1,4 @@\n context\n-old line\n+new line\n+added\n';
     window.GH.prototype.compare = async (b, head) => ({
       ahead_by: 4, behind_by: 0, total_commits: 1,

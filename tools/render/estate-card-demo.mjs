@@ -2,7 +2,7 @@
 //
 // The estate is cross-repo and token-gated, and the headless interceptor only
 // answers for web-tools (tools/render/cdn.mjs REPO) and deliberately does not
-// impersonate /user. So a plain shot of show-repo shows the signed-out single
+// impersonate /user. So a plain shot of the app shows the signed-out single
 // card, which cannot show what a real card looks like. This seeds the mounted
 // component with entries and an activity map instead, which is enough for a
 // layout read: the card's markup does not care where its entry came from.

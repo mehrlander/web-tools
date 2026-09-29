@@ -2,7 +2,7 @@
 id: show-repo-edit-web-tools-json-ygramz
 title: Retire .show-repo.json, delete the legacy file on migrate, drop the read fallback
 status: done
-project: show-repo
+project: app
 opened: 2026-07-15
 closed: 2026-08-15
 session: claude/centralize-file-viewer-search-en30ye

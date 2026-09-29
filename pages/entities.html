@@ -11,7 +11,7 @@
 <!--
   entities.html — what each repo names, from a standard recognizer.
 
-  Built to docs/HTML-STYLE.md. The three rules that shaped it, since a first
+  Built to skills/html-style. The three rules that shaped it, since a first
   draft broke all three:
 
     No stat cards. The header carries one compact line, and it carries a
@@ -70,17 +70,13 @@
 
       // Which ref of the registry to read the index from.
       //
-      // `window.__ref` is what toss-render injects when it serves this page
-      // from a branch, and defaulting to it is the point: a branch preview
-      // should read that branch's data without anyone remembering a
-      // parameter. This is the data-side twin of the `?use=` trap in
-      // CLAUDE.md. `?use=` pins the code a page loads and says nothing about
-      // the data it fetches, so a page previewed from a branch was reading
-      // main's index and 404ing whenever the index had not merged yet.
-      // Explicit `?data=` still wins, for reading one ref's data through
-      // another ref's code.
+      // Explicit `?data=` wins, for reading one ref's data through another
+      // ref's code. Otherwise the link's selection for the registry repo
+      // (`refs=mehrlander/web-tools-private@<ref>`), else main. Not
+      // `window.__ref`: that is this page's own version in web-tools, and a
+      // web-tools branch says nothing about which registry branch to read.
       DATA_REF: new URLSearchParams(location.search).get('data')
-                || window.__ref || 'main',
+                || window.GH?.refFor?.('mehrlander/web-tools-private', 'state/entities.json') || 'main',
 
       idx: null, loading: true, error: '',
       view: 'extracted', repo: 'home', label: 'ORG', hideFlagged: false,

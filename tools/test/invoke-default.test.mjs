@@ -1,4 +1,4 @@
-// .claude/skills/hooks/invoke-default.sh — the SessionStart directive that
+// skills/hooks/invoke-default.sh — the SessionStart directive that
 // fires when the surfacing conventions did not arrive on their own.
 //
 // The failure this guards is silence in the wrong direction, and it has both
@@ -24,7 +24,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { repoRoot } from './bootstrap.mjs';
 
-const HOOK = path.join(repoRoot, '.claude/skills/hooks/invoke-default.sh');
+const HOOK = path.join(repoRoot, 'skills/hooks/invoke-default.sh');
 const SURFACING = readFileSync(path.join(repoRoot, 'docs/SURFACING.md'), 'utf8');
 const WRITING = readFileSync(path.join(repoRoot, 'docs/QUALIFIED-WRITING.md'), 'utf8');
 // The contract is two documents, so a fixture that delivers must carry both.
@@ -136,7 +136,7 @@ test('the plugin registers it as its OWN SessionStart entry, not inside the disp
   // SessionStart hook in the same session arrived whole. Folded in, this would
   // be the first thing truncated on a heavy session, which is the exact failure
   // that retired the injection channel.
-  const hooks = JSON.parse(readFileSync(path.join(repoRoot, '.claude/skills/hooks/hooks.json'), 'utf8'));
+  const hooks = JSON.parse(readFileSync(path.join(repoRoot, 'skills/hooks/hooks.json'), 'utf8'));
   const entries = hooks.hooks.SessionStart;
   const commands = entries.map(e => e.hooks.map(h => h.command).join(' '));
   const mine = commands.filter(c => c.includes('invoke-default.sh'));

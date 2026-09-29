@@ -153,7 +153,7 @@ test('drill: the parent is the head of the child’s breadcrumb', async () => {
 // Building lazily was only half the job: `built[i]` never cleared, so a deck
 // retained every slide the reader had ever visited. Free when a slide is inert
 // DOM, and not free at all when it is a live app. Measured 2026-08-13 by
-// stepping show-repo's branch deck through twelve branches of a fourteen-file
+// stepping the app's branch deck through twelve branches of a fourteen-file
 // changeset: twelve mounted branch views, 168 mounted file cards, and the DOM
 // climbing 7,100 → 25,160 nodes, monotonically. Zero network requests over the
 // same eleven steps, so it was never a download; it just got slower the longer

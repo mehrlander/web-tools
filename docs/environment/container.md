@@ -114,17 +114,14 @@ The CLI answers "Restart to apply changes," and the [plugin documentation](https
 worth stating plainly, because it is the obvious fix and it fails quietly. The
 setup script runs when the snapshot is built, not when a session starts, so its
 `claude plugin update` pins the version current on build day and every later
-session restores that result. The measurement is direct: a setup script whose
-first act is an unconditional heredoc into `~/.claude/CLAUDE.md` left that file
-dated 2026-07-28 02:08 in a container booted 2026-07-30 19:31, alongside a plugin
-pin from the same instant. A script that has not run cannot refresh anything.
+session restores that result (measured 2026-07-30 from file dates in a booted
+container).
 
-What runs every session is a `SessionStart` hook, and the setup script is the
-right place to write one, since `~/.claude/settings.json` rides the snapshot and
-therefore persists. That inverts the roles: the setup script installs the
-refresher once, and the refresher tracks the tip on every boot. Match
-`startup|resume`, not `startup` alone: reopening an expired session provisions a
-fresh environment, and that fires `resume`.
+What runs every session is a `SessionStart` hook. The setup script installs the
+plugin once; the plugin's refresher, `skills/hooks/refresh-plugin.sh`, moves it
+to the tip every session. Its hooks match `startup|resume`, not `startup` alone,
+because reopening an expired session provisions a fresh environment and fires
+`resume`.
 
 **The documentation and the measurement disagree about what a mid-session update
 reaches, and the disagreement is the whole risk in that design.** The hooks
@@ -161,47 +158,37 @@ container's `node_modules/` was dated 2026-07-28, and `npm test` failed one test
 When a suite fails locally on a missing package, check the dates before believing
 the failure.
 
-### What the account's setup script writes, and why none of it moves
+### What the account's setup script must do
 
-*(read 2026-09-14)*
+The environment settings in claude.ai hold one line, which fetches and runs
+[`scripts/environment-setup.sh`](../../scripts/environment-setup.sh) from this
+repo's `main`:
 
-Five things, in this order: `~/.claude/CLAUDE.md`, the marketplace registration
-for `mehrlander/web-tools`, a user-scope install of `portable` and
-`daisy-alpine`, `~/.claude/hooks/refresh-portable.sh`, and a Python block that
-adds `AskUserQuestion` to `permissions.deny` and registers the refresher on
-`startup|resume`. It touches no repository, so nothing it writes is version
-controlled or reviewable.
+```
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/scripts/environment-setup.sh | bash
+```
 
-**Each piece looks movable into a repository and none of it is**, which is worth
-recording because the attempt is the obvious next thought.
+The script lives here because the setup script cannot reach a private repo. It
+installs `portable` at user scope, because plugins load at session start and a
+session rooted above the checkouts reads no project settings. It then saves its
+own text, the commit it came from and when it ran to
+`~/.claude/environment-setup.ran`, which the plugin's environment report prints
+from at every session start
+([extending.md](extending.md#sessionstart-the-environment-report)). It writes
+no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
 
-- *The deny cannot become project settings.* A multi-repo session's project root
-  sits above the checkouts, so project scope is not read at all; the measurement
-  and its proof are in [extending.md](extending.md).
-- *The install cannot be left to the refresher.* `claude plugin install -s user`
-  is what writes `enabledPlugins`, and plugins load at session start alongside
-  hooks, so a build that skipped it would leave the first session after a rebuild
-  with no plugins rather than stale ones.
-- *The refresher cannot move into the plugin.* It exists to recover a plugin that
-  is stale or failing to load, and a plugin that installs but does not load is an
-  observed failure in this estate, visible only to `claude plugin list`. A
-  recovery mechanism that lives inside the thing it recovers is not one.
+Changing the script does not rebuild the environment. A rebuild runs whatever
+is on `main` at that moment, and happens when the owner edits the environment
+settings or the cached build expires.
 
-**The script leaves no trace of itself in the container.** Searched 2026-09-14:
-no copy on disk, no build log carrying it, and nothing outside the checkouts
-containing the string `plugin marketplace add`. Exactly three of its outputs
-reach a session: the text of `~/.claude/CLAUDE.md`, which arrives as User-scope
-instructions; the refresher's standard output, which is the one line naming a
-moved pin; and the effects of `settings.json`, never its contents. Comments
-inside any of those files reach nothing, so the script cannot be made legible to
-a session by explaining itself.
+**If the installed plugin fails to load, its refresher cannot run.** Recover the
+session with `claude plugin marketplace update web-tools`, then
+`claude plugin update --scope user portable@web-tools` and `/reload-plugins`.
+For later sessions the owner edits the environment settings, which forces a
+rebuild.
 
-**What closes that gap is a record rather than an explanation.** The script's
-last lines write `~/.claude/env-manifest.txt`, naming the build time, the files
-it wrote, what it put into `settings.json`, and which plugins it installed at
-which scope. It cannot drift, because the run that applies the changes is the run
-that describes them. A session that does not find the file is running on a
-snapshot built before 2026-09-14, when those lines were added.
+If `portable` loads, ignore a `daisy-alpine ... FAILED` line from the old
+refresher; it names the retired plugin.
 
 ## The session transcript
 

@@ -2,7 +2,7 @@
 id: render-large-files-toss-render-xm9ex7
 title: Render files over 1 MB in toss-render and the shell viewers
 status: done
-project: show-repo
+project: app
 opened: 2026-07-17
 closed: 2026-07-17
 ---

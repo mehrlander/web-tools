@@ -1,4 +1,4 @@
-// Drive show-repo's sidebar Repos index to a seeded, token-free state and open
+// Drive the app's sidebar Repos index to a seeded, token-free state and open
 // one of the two menus a row carries, so the pair renders headlessly: the index
 // is normally filled from the private registry's config cache over the viewer's
 // token, which the sandbox has neither of. Fills `estateRepos`/`estateConfigs`

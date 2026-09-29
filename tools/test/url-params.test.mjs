@@ -118,7 +118,7 @@ test('both renderer pages read their inputs through the helper', () => {
 
 // ── subject(): which half of an address belongs to the page being framed ────
 //
-// The rule show-repo's shell settled on, and the reason it is a rule rather
+// The rule the app settled on, and the reason it is a rule rather
 // than a list: the framer owns the query, the subject owns the fragment. A
 // shared namespace needs a reserved list on both sides, the two sides live in
 // different repos, and nothing compares them, so the next key either one adds

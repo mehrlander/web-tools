@@ -177,7 +177,7 @@ test('a host lends what it knows, and only until the compare answers', () => {
   assert.equal(lent.sessionsFrom, 'facts');
   assert.equal(lent.sessionsExact, false, 'a host that claims nothing is not taken to claim exact');
 
-  // A host that ran the compare itself says so, and is believed: show-repo's
+  // A host that ran the compare itself says so, and is believed: the app's
   // crawl reads each open PR through the same compareFields this page uses.
   const exact = BB.assemble({ repo: 'acme/w', branch: 'f', base: 'main', compare: null,
                               facts: { ...facts, sessionsExact: true } });

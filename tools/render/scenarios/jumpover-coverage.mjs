@@ -15,7 +15,7 @@
 
 const RECENT = [
   { path: 'lib/kits/source-peek.js', age: '2h' },
-  { path: 'docs/show-repo.md', age: '2h' },
+  { path: 'docs/APP.md', age: '2h' },
   { path: 'lib/alpineComponents/map.js', age: '3h' },
   { path: 'tracker/board.md', age: '1d' },
 ];
@@ -59,7 +59,7 @@ export default async (page) => {
     window.__shell.recent = recent;
   }, RECENT);
   await page.waitForTimeout(600);
-  const icon = page.locator('aside a[data-peek$="show-repo.md"]').first();
+  const icon = page.locator('aside a[data-peek$="APP.md"]').first();
   await icon.locator('xpath=..').hover();
   await icon.hover();
   await page.waitForTimeout(1600);

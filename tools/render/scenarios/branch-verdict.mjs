@@ -25,7 +25,7 @@ export default async function (page, ctx) {
     // Three landed, three differing, two missing. The tip and the base agree on
     // the first three, hold different bytes for the next three, and the base
     // has never seen the last two.
-    const landed  = ['docs/show-repo.md', 'lib/kits/branch-status.js', 'pages/branch.html'];
+    const landed  = ['docs/APP.md', 'lib/kits/branch-status.js', 'pages/branch.html'];
     const differs = ['lib/alpineComponents/estate.js', 'docs/branch-overlay.md', 'tools/test/branch-status.test.mjs'];
     const missing = ['tracker/tasks/0031-fund-splits.md', 'projects/budget-drs/data/design/LAYERS.md'];
     const all = [...landed, ...differs, ...missing];

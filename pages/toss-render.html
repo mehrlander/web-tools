@@ -39,8 +39,28 @@
   before <path> is unambiguous because git forbids ':' in ref names, and no
   @ref means the repo's default branch (and no ?use shim). Neither the ?query
   nor the #frag reaches the API: both are handed to the PAGE, by the shims
-  addressHtml assembles. The on-page field and a pasted
-  github.com/.../blob/<ref>/<path> URL both route here.
+  addressHtml assembles.
+
+  Host query (how to show, never what):
+    ?w=<px>      lay the subject out at that width (the forced-width section)
+    ?lib=<ref>   the Web Tools code the framed page boots, and a routed toss's
+                 viewer page, apart from the page's own ref (libRef, and the
+                 channels addressHtml stamps)
+    ?top         run a trusted address as this tab's own document instead of a
+                 frame: the page's title, icon, history, viewport and FAB, with
+                 the same prelude, inlining and fetch shim a frame gets. The
+                 address then rides the query as ?gh= beside the page's own
+                 parameters. Not with ?w=, and never for a payload.
+    ?refs=owner/repo@<ref>[:path]
+                 repeatable: the ref to read a repository, one file, or a
+                 folder (`:dir/`) at, for whatever the displayed file's code
+                 reads. ?lib= is the mehrlander/web-tools entry spelled short.
+                 Stamped into the page as window.__refs and forwarded by the
+                 apps to the views they frame; never applied to this renderer's
+                 own code. docs/loader.md "The selection" has the rules.
+
+  The on-page field and a pasted github.com/.../blob/<ref>/<path> URL both
+  route here.
 
   Toss routes (typed content tosses, built on address mode):
     #<route>=<owner>/<repo>[@<ref>]:<path>
@@ -112,7 +132,7 @@
   <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
      href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
-    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width.
+    URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, <code>?lib=ref</code> to run another Web Tools version, <code>?refs=owner/repo@ref</code> (repeatable, or <code>@ref:path</code> for one file) to read a repository at another version.
   </p>
 </div>
 
@@ -156,6 +176,69 @@
   }
   const [hashKey, hashValue] = readFragment(location.hash);
   const queryParams = new URLSearchParams(location.search);
+
+  // THE SELECTION (docs/loader.md, "The selection"). A link can name, for any
+  // repository the rendered file's code reads, the ref to read it at:
+  // repeatable refs=owner/repo@ref, or @ref:path for one file, or @ref:dir/
+  // for a folder. `lib=` is the web-tools entry spelled short. An outer
+  // document's selection (the top-mode launcher running this renderer) is
+  // inherited, and this query wins over it. SELECTED holds only what a link
+  // asked for; it is stamped into the page as window.__refs and is what a
+  // page forwards to the views it opens.
+  const parseRefs = (values, into) => {
+    for (const v of values) {
+      const m = String(v).match(/^([^/@:\s]+\/[^/@:\s]+)@([^:]+?)(?::(.+))?$/);
+      if (m) into[m[3] ? m[1] + ':' + m[3].replace(/^\/+/, '') : m[1]] = m[2];
+    }
+    return into;
+  };
+  const SELECTED = (() => {
+    const E = Object.assign({}, window.__refs || {});
+    parseRefs(queryParams.getAll('refs'), E);
+    if (queryParams.get('lib')) E['mehrlander/web-tools'] = queryParams.get('lib');
+    return E;
+  })();
+  // The selection is for the PAGE, never for this renderer's own code (its FAB
+  // and drawer). A renderer running Web Tools at a chosen ref while it hosts a
+  // frame is the shape recorded as killing Safari's tab (docs/SNAGS.md,
+  // shell-pin-kills-the-tab), so this document's own globals are emptied here,
+  // before its FAB boots, and the boot below imports entry.js at main.
+  window.__refs = {};
+  window.__refsImplied = {};
+
+  // TOP MODE (?top): the page becomes this tab's document instead of a frame
+  // inside it, so its own title, icon, history, viewport and FAB are the
+  // tab's. The address rides the query as `gh`, beside the page's own real
+  // parameters, and the same prelude a frame gets (the <base>, the fetch shim,
+  // the inliner's output, the selection) is written in with the page. Set here,
+  // before anything awaits, because the FAB boot below is a separate module
+  // that must not start in a document about to be replaced.
+  // A forced width (?w=) needs the frame it lays the page out in, so it keeps
+  // one; so does a payload (#gz=, #html=), which must stay opaque-origin and
+  // never reaches showAddress.
+  const TOP = queryParams.has('top') && !queryParams.has('w');
+  window.__tossTopMode = TOP;
+  // The resolver, one function for this renderer and for the page it mounts,
+  // whose prelude receives its source (refForSource). Path entries first,
+  // longest match wins, then the repository's entry, then what the page
+  // implies. gh-api.js and the launcher carry the same function;
+  // tools/test/refs-select.test.mjs holds the copies to one behaviour.
+  function refForIn(E, I, repo, path, pathOnly) {
+    var own = Object.prototype.hasOwnProperty;
+    repo = String(repo || ''); path = String(path == null ? '' : path).replace(/^\/+/, '');
+    var best = '', n = -1;
+    for (var k in E) {
+      if (!own.call(E, k)) continue;
+      var i = k.indexOf(':');
+      if (i < 0 || k.slice(0, i) !== repo) continue;
+      var p = k.slice(i + 1);
+      if (p.length > n && (p === path || (p.charAt(p.length - 1) === '/' && path.slice(0, p.length) === p))) { best = E[k]; n = p.length; }
+    }
+    if (best || pathOnly) return best;
+    return (own.call(E, repo) && E[repo]) || (own.call(I, repo) && I[repo]) || '';
+  }
+  const refForSource = 'function(repo,path,pathOnly){return (' + refForIn.toString() +
+    ')(window.__refs||{},window.__refsImplied||{},repo,path,pathOnly);}';
   const param = k => (k === hashKey ? hashValue : null) ?? queryParams.get(k);
 
   // Fragment-only navigation is same-document: this script wouldn't re-run
@@ -580,7 +663,7 @@
   // ── Handing the subject's MARK up: how the page names and pictures itself ─
   //
   // Whoever framed this render may have a tab of its own to fill, and the
-  // subject is what that tab is showing. show-repo's app view is the case: a
+  // subject is what that tab is showing. The app's app view is the case: a
   // page some repo promoted, framed through here, whose address is a
   // destination rather than a preview.
   //
@@ -793,7 +876,8 @@ window.fetch=function(input,init){try{
   var m=((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
   if(url&&m==='GET'&&!/^[a-z][a-z0-9+.-]*:/i.test(url)&&url.slice(0,2)!=='//'&&url.charAt(0)!=='/'&&url.charAt(0)!=='#'){
     var rp=new URL(url,'https://_/'+D).pathname.slice(1);
-    var api='https://api.github.com/repos/'+O+'/'+N+'/contents/'+rp+(R?('?ref='+encodeURIComponent(R)):'');
+    var at=(window.__refFor&&window.__refFor(O+'/'+N,rp))||R;
+    var api='https://api.github.com/repos/'+O+'/'+N+'/contents/'+rp+(at?('?ref='+encodeURIComponent(at)):'');
     var h={Accept:'application/vnd.github.raw+json'};var a=tok();if(a)h.Authorization=a;
     return real(api,{headers:h}).then(function(r){if(!r.ok)return r;
       if(!isJson(r))return r.arrayBuffer().then(function(buf){return wrap(buf,rp);});
@@ -835,47 +919,211 @@ document.addEventListener('click',function(e){
 })();<\/script>`;
   }
 
+  // TOP MODE'S TWO SHIMS, where a frame's differ. The page's address is this
+  // tab's real query, and this renderer owns some of its keys: `top`, the
+  // address (`gh`, or a route key such as `data`), and the selection (`refs`,
+  // `lib`) and width (`w`). History: whatever the page writes, the path stays
+  // this renderer's, `top` and the address lead the query, and the selection
+  // is kept when the page's own write leaves it out, so a view switch, Back and
+  // a reload all keep the page and its versions. Relative URLs resolve against
+  // the <base>, the deployed page's directory, so the target's own path is not
+  // this document's. Params: a URLSearchParams holding `top` is the page's
+  // address, and its reads skip `top` and the address key and answer the
+  // defaults (`use`, a routed page's `src`) a frame's shim answers.
+  // A function, not a constant: TOSS_ROUTES is declared further down.
+  const topHidden = () => ['top', 'gh', ...Object.keys(TOSS_ROUTES)];
+  function topOwned() {
+    const lead = [], kept = [];
+    for (const [k, v] of queryParams) {
+      if (topHidden().includes(k)) lead.push([k, v]);
+      else if (k === 'refs' || k === 'lib' || k === 'w') kept.push([k, v]);
+    }
+    return { lead, kept };
+  }
+  // What a URL the page writes gets back of the link's selection (K). What the
+  // page's URL carries is read BEFORE anything is restored: `lib` and `w` come
+  // back when the page wrote none, and each `refs` entry comes back unless the
+  // page wrote an entry for the same target (a repository, or a repository and
+  // a path). Until 2026-09-29 the loop asked q.has('refs') after each append,
+  // so restoring the first entry hid every later one: a page writing
+  // ?view=tools kept one repository's selection and lost the rest on reload.
+  function topKeepSource() {
+    return 'function tgt(v){var m=String(v).match(/^([^/@:\\s]+\\/[^/@:\\s]+)@([^:]+?)(?::\\/*(.+))?$/);' +
+      'return m?m[1]+(m[3]?":"+m[3]:""):String(v);}' +
+      'function keep(q){var has={},mine={};K.forEach(function(p){has[p[0]]=q.has(p[0]);});' +
+      'q.getAll("refs").forEach(function(v){mine[tgt(v)]=1;});' +
+      'K.forEach(function(p){if(p[0]==="refs"?!mine[tgt(p[1])]:!has[p[0]])q.append(p[0],p[1]);});}';
+  }
+  function topHistoryShim() {
+    const { lead, kept } = topOwned();
+    return `<script>(function(){var H=history,rs=H.replaceState,ps=H.pushState,L=${JSON.stringify(lead)},` +
+      `K=${JSON.stringify(kept)},X=${JSON.stringify(topHidden())},B=${JSON.stringify(location.pathname)};` +
+      `function enc(a){return encodeURIComponent(a).replace(/%2F/g,"/").replace(/%40/g,"@").replace(/%3A/g,":");}` +
+      topKeepSource() +
+      `function map(u){if(u==null)return u;try{var t=new URL(String(u),document.baseURI);` +
+      `if(t.origin!==location.origin&&t.origin!==new URL(document.baseURI).origin)return u;` +
+      `var q=new URLSearchParams(t.search);X.forEach(function(k){q.delete(k);});keep(q);` +
+      `var head=L.map(function(p){return p[0]==="top"&&!p[1]?"top":p[0]+"="+enc(p[1]);}).join("&"),s=q.toString();` +
+      `return location.origin+B+"?"+head+(s?"&"+s:"")+t.hash;}catch(e){return u;}}` +
+      `H.replaceState=function(s,t,u){return rs.call(H,s,t,map(u));};H.pushState=function(s,t,u){return ps.call(H,s,t,map(u));};})();<\/script>`;
+  }
+  function topParamsShim(injected) {
+    return `<script>(function(){var P=${JSON.stringify(injected)},X=${JSON.stringify(topHidden())},O=Object.prototype.hasOwnProperty,` +
+      `S=URLSearchParams,SP=S.prototype,g=SP.get,ga=SP.getAll,h=SP.has,ks=SP.keys,ts=SP.toString,en=SP.entries,fe=SP.forEach;` +
+      `function mine(t){try{return h.call(t,"top");}catch(e){return false;}}` +
+      `function hid(k){return X.indexOf(k)!==-1;}` +
+      `function clean(t){var c=new S();for(var it=en.call(t),r=it.next();!r.done;r=it.next()){if(!hid(r.value[0]))c.append(r.value[0],r.value[1]);}return c;}` +
+      `SP.get=function(k){if(mine(this)){if(hid(k))return null;var v=g.call(this,k);return (v==null||v==="")&&O.call(P,k)?P[k]:v;}return g.call(this,k);};` +
+      `SP.has=function(k){if(mine(this)){if(hid(k))return false;return h.call(this,k)||O.call(P,k);}return h.call(this,k);};` +
+      `SP.getAll=function(k){if(mine(this)&&hid(k))return [];return ga.call(this,k);};` +
+      `SP.toString=function(){return mine(this)?ts.call(clean(this)):ts.call(this);};` +
+      `SP.keys=function(){return mine(this)?ks.call(clean(this)):ks.call(this);};` +
+      `SP.entries=function(){return mine(this)?en.call(clean(this)):en.call(this);};` +
+      `SP[Symbol.iterator]=SP.entries;` +
+      `SP.forEach=function(f,t){return mine(this)?fe.call(clean(this),f,t):fe.call(this,f,t);};` +
+      `})();<\/script>`;
+  }
+  // An address given in the fragment (?top#gh=…, ?top#data=…) moves into the
+  // query before the page is written, since at the top level the fragment is
+  // the page's own: left there, the page would read #gh=… as its hash, and its
+  // history writes, which keep only the query, would drop the address and lose
+  // the page on reload. The address's trailing #frag becomes the real hash.
+  function topAddressInQuery(pageFrag) {
+    if (!hashKey || !topHidden().includes(hashKey) || queryParams.has(hashKey)) return;
+    const value = hashKey === 'gh' && pageFrag ? hashValue.slice(0, -(pageFrag.length + 1)) : hashValue;
+    const rest = [...queryParams].filter(([k]) => k !== 'top');
+    for (const k of new Set(rest.map(([k]) => k))) queryParams.delete(k);
+    queryParams.set(hashKey, value);
+    for (const [k, v] of rest) queryParams.append(k, v);
+    const enc = s => encodeURIComponent(s).replace(/%2F/g, '/').replace(/%40/g, '@').replace(/%3A/g, ':');
+    const q = [...queryParams].map(([k, v]) => k === 'top' && !v ? 'top' : k + '=' + enc(v)).join('&');
+    history.replaceState(null, '', location.pathname + '?' + q + (hashKey === 'gh' && pageFrag ? '#' + pageFrag : ''));
+  }
+  // Replace this document with the page. document.open keeps the window, so
+  // what this renderer left on it is cleared first (its listeners are erased by
+  // open itself); the page's prelude then stamps its own globals.
+  function writeTop(html) {
+    for (const k of ['__tossSubject', '__tossNavigate', '__tossRoute', '__tossLeave', '__tossPayload',
+                     '__refs', '__refsImplied', '__refFor', '__lib', '__ref'])
+      try { delete window[k]; } catch (e) { window[k] = undefined; }
+    document.open();
+    document.write(html);
+    document.close();
+  }
+
+  // WHICH WEB TOOLS THE FRAMED PAGE RUNS. The address picks the page and its
+  // own files; this picks the library code its boot loads, which is a separate
+  // question with a separate answer. `asked` is an explicit version: this
+  // renderer's own ?lib=, else a `lib` in the page query (showAddress). Unasked, a web-tools page runs the
+  // library at its own ref, since the page and the library it was written
+  // against are one commit, and any other repo's page runs main: its @ref names
+  // a branch of THAT repo, and handing it down as a web-tools ref pinned the
+  // library to a branch name web-tools may not have (docs/showing-consolidation.md,
+  // case C9). '' means say nothing, which leaves the page's boot on main.
+  function libRef(repo, ref, asked) {
+    return asked || (repo === 'mehrlander/web-tools' ? ref : 'main') || '';
+  }
+
   // The address-render recipe (toss-render is now the one renderer; the fab
   // navigates here rather than carrying its own overlay copy): <base> so
-  // relative URLs resolve on github.io, plus (when a ref was addressed) a shim
-  // so the page's own ?use= read returns that ref and its lib chain loads from
-  // the same place. Then the fetch shim, so the page's relative runtime fetches
-  // resolve from the repo.
-  function addressHtml(text, { owner, name, ref, path, pageQuery }) {
+  // relative URLs resolve on github.io, plus a shim so the page's own reads of
+  // its address answer the addressed ?query, and `use` and `lib` answer the
+  // Web Tools ref from libRef, which are the two names page boots read it by.
+  // Then the fetch shim, so the page's relative runtime fetches resolve from
+  // the repo.
+  function addressHtml(text, { owner, name, ref, depRef, path, pageQuery, lib, libAsked, top }) {
+    // `ref` is the displayed file's version; `depRef` the ref the rest of its
+    // repository defaults to (showAddress's depOf). One unless a path entry
+    // chose the file's version alone.
+    if (depRef === undefined) depRef = ref;
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
+    // The selection, before anything the page runs: what the link asked for
+    // (forwarded by the page to its views), what this page implies (its own
+    // repository at the version it was read at, and the Web Tools version it
+    // boots; never forwarded), and the resolver over both. Stamped even when
+    // empty, so gh-api.js in the frame never re-reads a selection off the
+    // params shim, whose `use` answers an implied default, not an ask.
+    const implied = {};
+    if (depRef) implied[owner + '/' + name] = depRef;
+    if (lib) implied['mehrlander/web-tools'] = implied['mehrlander/web-tools'] || lib;
+    prelude += '<script>window.__refs=' + JSON.stringify(SELECTED) + ';window.__refsImplied=' +
+      JSON.stringify(implied) + ';window.__refFor=' + refForSource + ';<\/script>';
     // Singleton guard: the shell mounts the one fab for this viewport, so a
-    // fab in the rendered page sees __fabHosted and declines to mount.
-    prelude += '<script>window.__fabHosted=true;<\/script>';
+    // fab in the rendered page sees __fabHosted and declines to mount. In top
+    // mode there is no shell on screen and the page's own FAB is the one.
+    if (!top) prelude += '<script>window.__fabHosted=true;<\/script>';
+    else prelude += '<script>window.__tossTop=' + JSON.stringify({ repo: top.repo, ref: ref || 'main', path: top.path, lib: lib || 'main' }) + ';<\/script>';
     // History-safe shim: a relative history.replaceState/pushState resolves
     // against the stamped <base> (github.io), which matches neither the frame's
     // blob: document URL nor the about:srcdoc it used before, so it throws a
     // SecurityError and kills hash-routing pages mid view switch. Wrap both so
     // a failed call is a no-op instead of an exception.
-    prelude += '<script>(function(){var H=window.history;if(!H)return;' +
+    if (!top) prelude += '<script>(function(){var H=window.history;if(!H)return;' +
       'var rs=H.replaceState,ps=H.pushState;' +
       'H.replaceState=function(){try{return rs.apply(H,arguments)}catch(e){}};' +
       'H.pushState=function(){try{return ps.apply(H,arguments)}catch(e){}};' +
       '})();<\/script>';
+    else prelude += topHistoryShim();
     prelude += hashNavigationShim();
-    // Params shim: the srcdoc iframe has no location.search, so answer
-    // URLSearchParams lookups for the addressed ?query keys (the page's own
-    // deep links, e.g. ?view=stage) plus use=<ref> (the lib-chain pin, the
-    // shim's original job). Injected values only fill absent/empty keys, so a
-    // params string that really carries the key wins.
+    // Params shim: the frame is a blob: document with no location.search, so
+    // answer the page's reads of its own address for the addressed ?query keys
+    // (its deep links, e.g. ?view=stage) plus `use` and `lib`, the Web Tools
+    // ref. Injected values only fill absent/empty keys, so a params string that
+    // really carries the key wins.
+    //
+    // ONLY THE PAGE'S OWN ADDRESS ANSWERS. The patch sits on the prototype, so
+    // until 2026-09-28 every URLSearchParams in the frame answered too:
+    // entry.js reads a `ref` pin off its OWN import URL, and a page whose query
+    // carried `ref=` (repo-atlas) re-pinned the library to it (case C10). The
+    // two ways a page reads its address are `new URLSearchParams(location.search)`,
+    // which in this frame is empty, and `new URL(location.href).searchParams`.
+    // So an instance answers when it came from a URL whose href IS this
+    // document's, or, built directly, when it holds nothing of its own. An
+    // instance from any other URL, or built from a non-empty string, never does.
+    // The one ambiguity left is inherent: location.search is always '' here, so
+    // new URLSearchParams('') built from some OTHER empty string is
+    // indistinguishable from the page reading its address, and answers it. A
+    // page that parses a string that may be empty should test it first; the
+    // app's appViewAddress does (docs/loader.md, "Under the toss").
+    //
+    // THREE CHANNELS, ONE MEANING EACH. `use` answers the EFFECTIVE Web Tools
+    // ref, the one libRef resolved; entry.js and the pre-built bundles read it.
+    // `lib` is never invented: it reaches the page only when the page query
+    // really carries it, and window.__lib is stamped only when a version was
+    // ASKED for (this renderer's ?lib=, or that page-query `lib`). So a page
+    // that reads `lib` or __lib (home's pages, an app forwarding to its views,
+    // or another renderer framed by this one) sees a selection only when there
+    // is one, and derives its own default otherwise. Until 2026-09-29 `lib`
+    // was injected with the default too, and a renderer running another
+    // renderer read that default as an ask and imposed it on the page inside
+    // (the top-mode launcher probe caught it). window.__ref is the SUBJECT's own
+    // ref, for any subject. entry.js reads ?ref= on its import, then __lib, then
+    // use, then main, so the channels never disagree about what a boot loads.
     const injected = {};
     if (pageQuery) for (const [k, v] of new URLSearchParams(pageQuery)) injected[k] = v;
-    if (ref) { injected.use = ref; prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>'; }
-    if (Object.keys(injected).length) {
+    if (lib) injected.use = lib;
+    if (libAsked) prelude += '<script>window.__lib=' + JSON.stringify(libAsked) + ';<\/script>';
+    if (ref) prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>';
+    if (top) {
+      // The page's address is this tab's real query, so the frame's scoped shim
+      // does not apply; the top shim hides this renderer's `gh` and `top` from
+      // the page's reads and answers the defaults a frame's shim answers.
+      prelude += topParamsShim(injected);
+    } else if (Object.keys(injected).length) {
       const P = JSON.stringify(injected);
       prelude += '<script>(function(){var P=' + P + ',O=Object.prototype.hasOwnProperty,' +
-        'g=URLSearchParams.prototype.get,h=URLSearchParams.prototype.has;' +
-        'URLSearchParams.prototype.get=function(k){var v=g.call(this,k);' +
-        'return (v==null||v==="")&&O.call(P,k)?P[k]:v;};' +
-        'URLSearchParams.prototype.has=function(k){return h.call(this,k)||O.call(P,k);};' +
+        'S=URLSearchParams.prototype,g=S.get,h=S.has,ks=S.keys,K="__tossAddr",' +
+        'd=Object.getOwnPropertyDescriptor(URL.prototype,"searchParams");' +
+        'if(d&&d.get)Object.defineProperty(URL.prototype,"searchParams",{configurable:true,enumerable:d.enumerable,' +
+        'get:function(){var s=d.get.call(this);try{s[K]=this.href===location.href?1:-1;}catch(e){}return s;}});' +
+        'function mine(t){return t[K]===1||(t[K]!==-1&&ks.call(t).next().done);}' +
+        'S.get=function(k){var v=g.call(this,k);' +
+        'return (v==null||v==="")&&O.call(P,k)&&mine(this)?P[k]:v;};' +
+        'S.has=function(k){return h.call(this,k)||(O.call(P,k)&&mine(this));};' +
         '})();<\/script>';
     }
-    prelude += fetchShim({ owner, name, ref, dir });
+    prelude += fetchShim({ owner, name, ref: depRef, dir });
     if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
     if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + prelude + '</head>');
     return '<head>' + prelude + '</head>' + text;
@@ -988,7 +1236,8 @@ document.addEventListener('click',function(e){
   function resolveRepoPath(dir, u) {
     try { return new URL(u, 'https://_/' + dir).pathname.slice(1); } catch (e) { return null; }
   }
-  async function inlineRelativeDeps(text, { owner, name, ref, path }) {
+  async function inlineRelativeDeps(text, { owner, name, ref, path, refOf }) {
+    const at = p => (refOf && refOf(p)) || ref;
     let doc;
     try { doc = new DOMParser().parseFromString(text, 'text/html'); } catch (e) { return text; }
     if (!doc || !doc.documentElement) return text;
@@ -1002,7 +1251,7 @@ document.addEventListener('click',function(e){
       if (!p) return;
       jobs.push((async () => {
         try {
-          const code = await ghText(owner, name, ref, p);
+          const code = await ghText(owner, name, at(p), p);
           const s = doc.createElement('script');
           for (const a of el.attributes) if (a.name !== 'src') s.setAttribute(a.name, a.value);
           s.textContent = escapeClose(code, 'script');
@@ -1018,7 +1267,7 @@ document.addEventListener('click',function(e){
       if (!p) return;
       jobs.push((async () => {
         try {
-          const css = await ghText(owner, name, ref, p);
+          const css = await ghText(owner, name, at(p), p);
           const st = doc.createElement('style');
           if (el.getAttribute('media')) st.setAttribute('media', el.getAttribute('media'));
           st.textContent = escapeClose(css, 'style');
@@ -1048,6 +1297,15 @@ document.addEventListener('click',function(e){
     if (hi !== -1) { pageFrag = path.slice(hi + 1); path = path.slice(0, hi); }
     const qi = path.indexOf('?');
     if (qi !== -1) { pageQuery = path.slice(qi + 1); path = path.slice(0, qi); }
+    // THE DISPLAYED FILE AND ITS DEPENDENCIES ARE TWO VERSIONS. The file is read
+    // at the address's @ref; with none, where the selection puts it (a path
+    // entry for it, else its repository's entry); with neither, the default
+    // branch. That ref is the page's own version, stamped as window.__ref.
+    // Everything else the page reads from its repository follows the
+    // selection first and falls back to that version (depOf below).
+    const repoKey = owner + '/' + name;
+    const addrRef = ref || '';
+    if (!ref) ref = refForIn(SELECTED, {}, repoKey, path);
     if (!OWNERS.includes(owner)) {
       return showEmpty('Address mode renders same-origin with token access, so it only accepts ' +
         OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
@@ -1083,8 +1341,29 @@ document.addEventListener('click',function(e){
     }
     // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
-    const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
-    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery }),
+    // A dependency's ref: the selection for it, else the ref the ADDRESS named.
+    // Not the file's own version when a path entry chose that: an entry naming
+    // one file is not an ask for the rest of its repository.
+    const depOf = p => refForIn(SELECTED, {}, repoKey, p) || addrRef;
+    const baked = await inlineRelativeDeps(text, { owner, name, ref, path, refOf: depOf });
+    // An explicit version wins over the rule: this renderer's ?lib= first, then
+    // a `lib` the page query inside the address already carries, which is how
+    // links minted before the renderer had one said it (home's budget-drs
+    // pages read it), so those keep meaning what they meant.
+    // An ask from outside this document counts too: a renderer framed by
+    // another renderer, or run by the top-mode launcher, has its ask stamped
+    // as window.__lib rather than on a query of its own.
+    const libAsked = SELECTED['mehrlander/web-tools'] || window.__lib || new URLSearchParams(pageQuery).get('lib') || '';
+    const lib = libRef(repoKey, depOf(''), libAsked);
+    // Only an address the link carries runs top-level. One pasted into the
+    // panel has no URL to reload from, and pasted text reaches here with its
+    // payload in the fragment, which must stay opaque in a frame.
+    if (TOP && topHidden().some(k => k !== 'top' && param(k))) {
+      topAddressInQuery(pageFrag);
+      return writeTop(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
+                                           top: { addr, repo: repoKey, path } }));
+    }
+    showTrusted(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
   }
@@ -1118,7 +1397,7 @@ document.addEventListener('click',function(e){
   //
   // The fab never needed this because a fab inside the frame declines to mount
   // (__fabHosted) and the one that runs is this document's own, already at the
-  // top. The app is the case that broke it: show-repo's sidebar mark grew a
+  // top. The app is the case that broke it: the app's sidebar mark grew a
   // "Home" row, and inside a toss that row is running in the framed document.
   // Reported from a phone as "it reloads but it doesn't navigate", which is
   // exactly the shape of a blocked top navigation falling back to reloading the
@@ -1142,9 +1421,15 @@ document.addEventListener('click',function(e){
     try { history.replaceState(null, '', location.pathname + location.search + '#' + key + '=' + raw); } catch (e) {}
     // Resolve onto address mode: render the renderer page and hand it the
     // envelope via ?src=, which the params shim delivers to the page's own
-    // location.search read. The renderer ref is the map's (the app itself);
-    // any @ref inside <env> is the ENVELOPE's ref, untouched here.
-    await showAddress(`${r.repo}@${r.ref}:${r.path}?src=${encodeURIComponent(env)}` + (frag ? '#' + frag : ''));
+    // location.search read. The renderer ref is the map's (the app itself)
+    // unless this renderer's ?lib= names another, since a viewer page is Web
+    // Tools code; any @ref inside <env> is the ENVELOPE's ref, untouched here.
+    // A path entry naming the viewer page alone is left to showAddress to
+    // resolve, so it stays an entry for that file and not an address for the
+    // whole repository; anything else names the viewer's ref in the address.
+    const onlyFile = refForIn(SELECTED, {}, r.repo, r.path, true);
+    const viewerRef = refForIn(SELECTED, {}, r.repo, r.path) || window.__lib || r.ref;
+    await showAddress(`${r.repo}${onlyFile ? '' : '@' + viewerRef}:${r.path}?src=${encodeURIComponent(env)}` + (frag ? '#' + frag : ''));
     // Re-emit the pretty route form for the "Link" action, not the resolved #gh=.
     tossLinkFn = async () => absUrl(`#${key}=${raw}`);
     // THE SUBJECT IS THE CONTENT, not the app showing it. showAddress stamps
@@ -1168,7 +1453,7 @@ document.addEventListener('click',function(e){
     if (!a) return;
     document.title = 'Toss · ' + a.path.split('/').pop() + (a.ref ? ' @ ' + a.ref : '');
     setSubject({ repo: a.repo, ref: a.ref, path: a.path, route: key,
-                 via: { repo: r.repo, ref: r.ref, path: r.path } });
+                 via: { repo: r.repo, ref: viewerRef, path: r.path } });
   }
 
   // owner/repo[@ref]:path, with any ?query and #frag trimmed off. The address
@@ -1203,7 +1488,11 @@ document.addEventListener('click',function(e){
   // mode's trade, and what gives its repo links a token), so it is rendering
   // content nobody vetted. Its markdown preview goes through DOMPurify for
   // that reason; its html preview is sandboxed, and raw/code escape.
-  const DATA_VIEWER = 'mehrlander/web-tools@main:pages/data-view.html';
+  // The viewer is a web-tools page, so its version is the selection's for it
+  // (a path entry, else the web-tools entry, which ?lib= spells), else main,
+  // the same resolution a routed toss gives its viewer (showRoute).
+  const DATA_VIEWER_REPO = 'mehrlander/web-tools', DATA_VIEWER_PATH = 'pages/data-view.html';
+  const dataViewerRef = () => refForIn(SELECTED, {}, DATA_VIEWER_REPO, DATA_VIEWER_PATH) || window.__lib || 'main';
 
   // A whole document goes to the frame; a fragment does not. `<div>x</div>` is
   // better read as code-plus-preview in the viewer than mounted as a page, and
@@ -1226,15 +1515,16 @@ document.addEventListener('click',function(e){
   // the frame stays reachable (take actions, Inspect) and every claim about a
   // repo file is dropped.
   async function showData(text) {
-    await showAddress(DATA_VIEWER + '#gz=' + await gzipB64(text));
+    const onlyFile = refForIn(SELECTED, {}, DATA_VIEWER_REPO, DATA_VIEWER_PATH, true);
+    const viewerRef = dataViewerRef();
+    await showAddress(DATA_VIEWER_REPO + (onlyFile ? '' : '@' + viewerRef) + ':' + DATA_VIEWER_PATH + '#gz=' + await gzipB64(text));
     // Only when something actually mounted: showAddress's failure path clears
     // the subject on its way to the panel, and a re-stamp would resurrect one
     // for a render that is not on screen.
     if (!window.__tossSubject) return;
     document.title = 'Toss · clipboard';
-    const [repo, path] = DATA_VIEWER.split('@main:');
     setSubject({ local: true, label: 'Clipboard', path: '', route: 'data',
-                 via: { repo, ref: 'main', path } });
+                 via: { repo: DATA_VIEWER_REPO, ref: viewerRef, path: DATA_VIEWER_PATH } });
   }
 
   // A pasted image has no modes to switch between, so it needs no viewer: a
@@ -1423,8 +1713,9 @@ document.addEventListener('click',function(e){
   // Mount the FAB toolbox. Runs after the render logic above, and the FAB
   // self-loads its own kits, so a blocked CDN degrades to render-only rather
   // than breaking the page. ?use=<ref> pins this shell's lib chain.
-  try {
-    await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  // Not in top mode: the page is the tab's document and boots its own.
+  if (!window.__tossTopMode) try {
+    await import('https://mehrlander.github.io/web-tools/lib/entry.js?ref=main');
     await gh.load('alpineComponents/fab.js');
     await gh.load('alpine-bundle.js');
   } catch (e) {

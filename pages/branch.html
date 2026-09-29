@@ -97,7 +97,8 @@
   window.__depsReady = new Promise(r => { window.__depsDone = r; });
 </script>
 <script type="module">
-  const ref = new URLSearchParams(location.search).get('use');
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -173,7 +174,7 @@
      document, so reading it scrolled the branch name, the facts strip and
      every control away.
 
-     `dvh` rather than `vh`: the page is a tenant (show-repo's branch-detail
+     `dvh` rather than `vh`: the page is a tenant (the app's branch-detail
      takeover embeds it), and inside a frame `dvh` measures the frame. This is
      an `h-dvh` flex column, NOT `fixed inset-0`, which is the shape the house
      style reserves for a known top-level page. -->
@@ -183,7 +184,7 @@
   <!-- The masthead stands down inside a frame, the same courtesy links.html
        pays its embedder. Standalone use is unchanged.
 
-       This used to name show-repo's branch-detail takeover as the embedder,
+       This used to name the app's branch-detail takeover as the embedder,
        which stopped being true on 2026-08-13 when the takeover swapped its
        iframe for a direct mount of the component. The only page-level
        embedder left is the toss. This flag is still the page's own and still
@@ -311,7 +312,7 @@
         // masthead above stands down. The brief's `framed` says something
         // else: that a HOST draws the branch name and the state, so the view
         // need not repeat them, AND that it is a slide rather than a page, so
-        // it takes the single-scroller shape. That is true of show-repo's
+        // it takes the single-scroller shape. That is true of the app's
         // branch deck, which mounts the COMPONENT with framed: true. It is
         // true of nothing that embeds this PAGE: the takeover stopped using an
         // iframe on 2026-08-13, so the only embedder left is the toss, and the
@@ -367,8 +368,9 @@
           }
           if (src) {
             const spec = window.DataPayload?.parseSpec?.(src);
+            // No @ref in src: the read follows the link's selection, else main.
             const g = new window.GH({ token: window.TOKEN, repo: spec?.repo || 'mehrlander/web-tools',
-                                      ref: spec?.ref || 'main' });
+                                      ...(spec?.ref ? { ref: spec.ref } : {}) });
             const f = await g.get(spec?.path || src);
             return window.BranchBrief.readAuthored(JSON.parse(f.text));
           }
