@@ -33,8 +33,9 @@ column of them is a category nobody has stated.
 ### `lib/` root or `lib/kits/`: settled 2026-08-07
 
 **One place for logic.** Every file that registers a `window` namespace is a kit.
-`lib/` root holds the loader, the files extending its prototype, and the boot
-bundles, and nothing else. Decided by the user on 2026-08-07 against three
+`lib/` root holds the loader (`gh-api.js`, and `entry.js`, the import that
+brings it in), the files extending its prototype, and the boot bundles, and
+nothing else. Decided by the user on 2026-08-07 against three
 alternatives, all of which are recorded in
 [`pages/guides/code-layers.html`](../pages/guides/code-layers.html); the
 migration is owned by
@@ -98,8 +99,8 @@ The related rule that is not in doubt: a kit that wants Alpine reactivity does
 not become a component, it gets a component wrapper.
 [`lib/alpineComponents/cm-editor.js`](../lib/alpineComponents/cm-editor.js) over
 [`lib/kits/cm6.js`](../lib/kits/cm6.js) is the reference pair. The shape rules a
-`lib/` file must honor to load at all are in [`docs/loader.md`](loader.md), and
-[`lib/kits/README.md`](../lib/kits/README.md) carries the per-kit table.
+`lib/` file must honor to load at all are in [`docs/loader.md`](loader.md). The
+per-kit table is [`docs/kits.csv`](kits.csv), shown in the app's Kits tab.
 
 ### `lib/ops/`: added 2026-09-03
 

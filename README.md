@@ -2,7 +2,7 @@
 
 Two things live here: the **Web Tools app**, the front door to the development estate, and the workshop that builds it, browser-based tools with a focus on working with data.
 
-⭐ **[Open the Web Tools app →](https://mehrlander.github.io/web-tools/app/)**: browse any repo, stage and move files between repos, read cross-repo activity, and reach the tools. [docs/APP.md](docs/APP.md) states the mission; show-repo is the shell's internal name, and [docs/show-repo.md](docs/show-repo.md) is its reference. The [pages index](https://mehrlander.github.io/web-tools/pages/) lists every page with screenshots, live previews, and source links.
+⭐ **[Open the Web Tools app →](https://mehrlander.github.io/web-tools/app/)**: browse any repo, stage and move files between repos, read cross-repo activity, and reach the tools. [docs/APP.md](docs/APP.md) states the mission and is the app's reference. The [pages index](https://mehrlander.github.io/web-tools/pages/) lists every page with screenshots, live previews, and source links.
 
 [Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), and [development checkout](#development-checkout), plus the parts used to build them.
 
@@ -89,12 +89,12 @@ new bookmark.
   generates a token-filled copy for you — handy on mobile.
 - [`launcher`](bookmarklets/launcher.js): the Web Tools launcher on whatever
   page you run it on, the bookmarklet half of
-  [`userscripts/launcher.user.js`](userscripts/README.md); both load one body
-  from jsDelivr at a pinned commit.
+  [`userscripts/launcher.user.js`](userscripts/README.md); both load one body,
+  the bookmarklet from GitHub Pages and the userscript from raw.
 - [`toss-render`](bookmarklets/toss-render.js): from any github.com file (blob)
   page, renders that file as live HTML 🥏. Reads the file text from the page
-  itself (so private repos work), stamps a `<base>` so relative assets resolve
-  via jsDelivr, gzips it, and navigates to
+  itself (so private repos work), stamps a `<base>` at the repo's GitHub Pages
+  site so relative assets resolve there, gzips it, and navigates to
   [toss-render](https://mehrlander.github.io/web-tools/pages/toss-render.html) with the
   result packed into the `#gz=` fragment (the fragment never reaches the
   server, dodging the ~8KB URL cap GitHub Pages' edge enforces on query
@@ -215,7 +215,8 @@ On top of that, two collections by convention:
 - **Components** in `lib/alpineComponents/` are reusable UI pieces registered
   as `Alpine.data(...)`.
 - **Kits** in `lib/kits/` are logic libraries, not dependent on Alpine.
-  [kits/README.md](lib/kits/README.md) is the full list.
+  The [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits)
+  is the full list, built from [`docs/kits.csv`](docs/kits.csv).
 
 The same handful of concerns drove every piece of it:
 
@@ -252,32 +253,20 @@ Three docs go deeper:
   `load → build → bake → export` pipeline that snapshots a page's `gh.load`
   chain into a standalone offline artifact, with a byte-identical `verify-build`
   check).
-- **[lib/kits/README.md](lib/kits/README.md)**: the logic libraries. What
-  each kit exposes on `window`, with usage examples; the full list lives
-  there, not here.
+- **[lib/kits/README.md](lib/kits/README.md)**: the logic libraries. The
+  rule for what counts as a kit, the shape a kit file takes, and usage
+  examples for some kits. The full list is the
+  [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits).
 
 The shape of a loaded page in one block:
 
 ```html
 <script type="module">
-  // gh-api.js's auto-bootstrap instantiates window.gh and chains gh-boot.js,
-  // which auto-loads gh-auth.js, gh-fetch.js, kits/console.js, and
-  // vanilla-bundle.js. The page just calls gh.load() from here on.
-  //   - No ?use: import from jsDelivr @main (cache-stable, this repo's one CDN
-  //     entry point); the bootstrap parses owner/repo/ref from that import URL.
-  //   - ?use=<ref>: fetch gh-api.js from raw.githubusercontent (no branch-tip
-  //     lag) and blob-import it, handing repo/ref via window.__ghBlobBoot since
-  //     a blob: import URL has no ref to parse.
-  const ref = new URLSearchParams(location.search).get('use');
-  if (ref) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`);
-    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  // entry.js boots window.gh and chains gh-boot.js, which auto-loads
+  // gh-auth.js, gh-fetch.js, kits/console.js, and vanilla-bundle.js. The page
+  // just calls gh.load() from here on. ?use=<branch|tag|sha> pins everything
+  // entry.js loads to a ref; defaults to main.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 
   // Publish the chain as window.__pageBoot: gh-boot's FAB timer awaits it
   // before starting its own Alpine, so a chain slower than the timer (a phone
@@ -293,9 +282,9 @@ The shape of a loaded page in one block:
 </script>
 ```
 
-The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any page that adopts the convention. A branch name is cache-safe: the `?use=` boot fetches `gh-api.js` from `raw.githubusercontent` (no branch-tip cache) and blob-imports it, and everything `gh-api.js` then loads comes fresh through the contents API at that ref, so no SHA is needed. jsDelivr is used only for the no-`?use` `@main` default, which is cache-stable and shared.
+The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any loader page. A branch name is cache-safe: under `?use=`, [`lib/entry.js`](lib/entry.js) fetches `gh-api.js` from `raw.githubusercontent` (a five-minute cache, fetched `no-store`) and blob-imports it, and everything `gh-api.js` then loads comes fresh through the contents API at that ref, so no SHA is needed. With no `?use=`, `entry.js` imports main's `gh-api.js` natively from GitHub Pages instead; [docs/loader.md](docs/loader.md) has why the two routes differ.
 
-`?use=` covers the *loaded code* but not the page's own HTML/boot script, which is pinned to whatever main serves. To preview branch edits to the HTML shell itself, the FAB's "Render page" box fetches the current page's HTML as text via the contents API at the branch you pick from the dropdown — private-safe, and dodging jsDelivr's `text/plain` Content-Type on `/gh/` HTML — then hosts it in an overlay iframe via `srcdoc`. Because an `srcdoc` document's `location` has no query string, the host stamps a small prelude into the fetched HTML so the embedded page's runtime tracks the chosen ref: it sets `window.__ref` (read it directly if you like) and patches `URLSearchParams.get('use')` to return that ref, so any page already following the `?use=` convention picks it up unmodified. A `<base>` is stamped in too so the page's relative links resolve against its real directory.
+`?use=` covers the *loaded code* but not the page's own HTML/boot script, which is pinned to whatever main serves. To preview branch edits to the HTML shell itself, the FAB's "Render page" box fetches the current page's HTML as text via the contents API at the branch you pick from the dropdown — private-safe — then hosts it in an overlay iframe via `srcdoc`. Because an `srcdoc` document's `location` has no query string, the host stamps a small prelude into the fetched HTML so the embedded page's runtime tracks the chosen ref: it sets `window.__ref` (read it directly if you like) and patches `URLSearchParams.get('use')` to return that ref, so any page already following the `?use=` convention picks it up unmodified. A `<base>` is stamped in too so the page's relative links resolve against its real directory.
 
 Recent pages that make good templates:
 

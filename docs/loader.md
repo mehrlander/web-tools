@@ -39,25 +39,11 @@ Every loader-based page's `<head>` looks like this, with minor variation:
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href=".../daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script type="module">
-  // ?use=<branch|tag|sha> picks which ref the bundle loads from; defaults to main.
-  // gh-api.js auto-bootstraps (sets window.gh, chains gh-boot.js), so the page just
-  // chains gh.load() calls below. By the time the import resolves, gh-boot has
-  // already loaded gh-auth.js, gh-fetch.js, kits/console.js, and
-  // vanilla-bundle.js; gh-store.js stays opt-in.
-  //   - No ?use: import from jsDelivr @main; the bootstrap parses repo/ref from
-  //     that import URL (import.meta.url).
-  //   - ?use=<ref>: fetch gh-api.js from raw.githubusercontent (no branch-tip lag)
-  //     and blob-import it, handing repo/ref via window.__ghBlobBoot.
-  const ref = new URLSearchParams(location.search).get('use');
-  if (ref) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`);
-    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
+  // entry.js imports gh-api.js at that ref, which sets window.gh and chains
+  // gh-boot.js, so by the time the import resolves gh-auth.js, gh-fetch.js,
+  // kits/console.js, and vanilla-bundle.js are loaded; gh-store.js stays opt-in.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 
   // await gh.load('gh-store.js');                // optional: write methods
 
@@ -72,24 +58,160 @@ The page body then has `<body x-data="app()" x-init="init()">` and the
 components each use `x-data="repo()"`, `x-data="mention()"`,
 `x-data="viewer()"`.
 
-The `?use=` convention is opt-in per page. Pages that adopt it gain a runtime
-ref-pinning hatch: append `?use=<branch|tag|sha>` to the URL and every file
-loaded after `gh-api.js` comes from that ref instead of main. The HTML itself
-still comes from GitHub Pages on main; only the runtime-loaded files are
-ref-pinned. A branch name is cache-safe: the `?use=` boot fetches `gh-api.js`
-from `raw.githubusercontent` (no branch-tip cache) and blob-imports it, and
-`gh-api.js` then loads the rest through the contents API at that ref, both
-fresh on a just-pushed branch. jsDelivr serves only the no-`?use` `@main`
-default, which is cache-stable and shared.
+Every loader page gets the `?use=` hatch from `lib/entry.js`: append
+`?use=<branch|tag|sha>` to the URL and every file loaded after `gh-api.js`
+comes from that ref instead of main. The HTML itself, and `entry.js`, still
+come from GitHub Pages on main; only the runtime-loaded files are ref-pinned.
+`entry.js` brings `gh-api.js` in by one of two routes, and everything after
+it loads through the contents API at the same ref either way:
 
-The `gh-api.js` auto-bootstrap triggers on either signal: an import URL with an
-`@<ref>` segment pointing at `lib/gh-api.js` (the jsDelivr path), or
-`window.__ghBlobBoot = { repo, ref }` set before a blob-import (the `?use=`
-path, where `import.meta.url` is an opaque `blob:` URL). Either way it sets the
+- **Main** (no `?use=`): a native import of `gh-api.js` from beside
+  `entry.js` on GitHub Pages, which serves JavaScript as JavaScript with a
+  ten-minute cache.
+- **Any other ref** (`?use=<ref>`): that ref's `gh-api.js` from `raw.githubusercontent`,
+  fetched `no-store` and blob-imported, since raw serves `text/plain` with
+  `nosniff`. A branch name is cache-safe this way: raw and the contents API
+  are both fresh on a just-pushed branch.
+
+The unpinned route stays a native import rather than the blob route at main.
+The device measurement behind that (`SNAGS.md`, `shell-pin-kills-the-tab`)
+found that a toss shell pinned with `?use=<sha>` dies on an iPhone when it
+hosts a frame. It predates `entry.js`, and no cell has run the blob route at
+main, so whether the blob import or the shell's ref is the fatal part is
+open; `pages/scratch/shell-pin-probe.html` separates them. `entry.js` itself
+is served from Pages so that any page on any origin can import it. jsDelivr's `/gh/` route was the no-`?use` default
+until 2026-09-26 and is gone from live code: it cached a branch for about
+twelve hours and needed purges.
+
+**`entry.js` resolves its ref in this order:** `?ref=` on its own import
+URL (a page's own pin), then `window.__lib`, then the page's `?use=`, then
+`main`.
+
+### Under the toss
+
+A page rendered by `pages/toss-render.html` has no query string of its own:
+by default it runs in a `blob:` frame (top mode, below, is the exception). The renderer answers the page's reads of its own
+address instead, through a params shim, and it tells the page which Web Tools
+to load through three channels, each with one meaning:
+
+| Channel | Meaning | Set when |
+|---|---|---|
+| `use`, answered by the shim | The effective Web Tools ref | Always, for a page with a ref to answer |
+| `lib`, answered by the shim | The page query's own `lib`, never a default | The page query inside the address carries it |
+| `window.__lib` | A Web Tools version that was asked for | The renderer's own `?lib=<ref>` is set, or the page query inside the address carries `lib` |
+| `window.__ref` | The version of the displayed file itself | The address names a ref, or the selection chose one for the file |
+| `window.__refs` | The link's selection, forwarded unchanged to nested views | Always; `{}` when the link asked for nothing |
+| `window.__refsImplied` | What this page implies: its repository at its address's ref, and the Web Tools version it boots. Never forwarded | Always |
+| `window.__refFor(repo, path)` | The resolver over the two above | Always |
+
+The effective ref is the explicit one when there is one: the renderer's
+`?lib=`, else the page query's `lib`. Otherwise it is the page's own ref for
+a page of this repo, and `main` for a page of any other repo, since that
+page's ref names a branch of a different repository. So a page tossed from
+another repo loads `main` unless the link says otherwise, whether its boot
+reads `use` or reads `lib` and then `window.__lib`. The renderer never
+invents a `lib`: a default answered under that name looked like a selection
+to anything that forwards selections, and a renderer run by another renderer
+imposed the outer default on the page inside (caught 2026-09-29). A page that frames views of its own,
+such as the app, reads `window.__lib` to tell a selection it must pass on
+from a default each view derives for itself. The web-tools app does this in
+`appViewAddress`: a view's own ref and `lib` win, then the app's page ref (for
+a web-tools view) and the app's explicit selection, `main` included, then the
+view's own default.
+
+The shim answers only the page's reads of its own address:
+`new URLSearchParams(location.search)`, and the `searchParams` of a `URL`
+whose `href` is the document's own. One ambiguity is inherent: in a `blob:`
+frame `location.search` is always empty, so a `URLSearchParams` built from
+any other empty string looks the same and gets the address's answers. A page
+that parses a string which may be empty should test it first.
+
+**Top mode (`?top`).** With `?top` and an address the link carries, the
+renderer builds the page as it would for a frame, with the same prelude,
+inlining and fetch shim, and then replaces its own document with it. The page
+then has a real query, of which the renderer owns some keys: `top`, the address
+(`gh`, or a route key), and the selection. So the params shim differs from a
+frame's: a `URLSearchParams` holding `top` is the page's address, and its reads
+skip the renderer's keys and answer the same `use` and `src` a frame's shim
+answers. A history shim keeps `top`, the address and the selection in every URL
+the page writes, so navigation, reload and Back keep the page and its versions.
+The channels in the table are stamped the same way, and `window.__tossTop`
+(`{ repo, ref, path, lib }`) replaces `window.__fabHosted`, since no renderer
+is on screen and the page mounts its own FAB. A forced width, a payload, and an
+address pasted into the renderer's panel keep the frame.
+
+The `gh-api.js` auto-bootstrap triggers on one signal:
+`window.__ghBlobBoot = { repo, ref }`, set by `entry.js` before either
+import. A signal rather than parsing `import.meta.url`, because on the `?use=`
+route that is an opaque `blob:` URL. It sets the
 loader's `loadBase` to `lib/`, so every later `gh.load('kits/x.js')` resolves
-under `lib/`. Older pages that hard-code the bundle URL without `@<ref>` and set
-no `__ghBlobBoot` are unaffected: neither signal matches, so the bootstrap
-stays dormant and the page instantiates `GH` by hand.
+under `lib/`. A page that imports `gh-api.js` any other way sets no signal, so
+the bootstrap stays dormant and the page instantiates `GH` by hand.
+
+### The selection
+
+A link can say, for any repository the displayed file's code reads, which ref
+to read it at. The grammar is one repeatable query key, read on the renderer's
+own query, on a deployed page's query, and by the top-mode launcher:
+
+| Entry | Covers |
+|---|---|
+| `refs=owner/repo@ref` | the whole repository |
+| `refs=owner/repo@ref:path` | one file |
+| `refs=owner/repo@ref:dir/` | every file under the folder |
+
+`?lib=<ref>` on the renderer is the entry `mehrlander/web-tools@<ref>`, and
+`?use=<ref>` on a deployed page is the same entry. The address's `@ref` is the
+version of the displayed file alone.
+
+**Precedence, strongest first.**
+
+1. A ref the code names on purpose, `main` included (the exceptions below).
+2. For the displayed file: the address's `@ref`, else the selection for that file or its repository, else the default branch. That version is `window.__ref`.
+3. A page's own parameter for a repository (`?data=`), which the page reads before anything else.
+4. The selection: the longest matching path entry, then the repository's entry.
+5. What the page implies: its own repository at the ref its ADDRESS named (not a version a path entry gave the file alone), and for a web-tools page, the Web Tools it boots.
+6. The code's default.
+
+**Reads follow; writes do not.** A `GH` client whose caller named no ref
+(the key absent, not `''`) reads through `readRef(path)`, which consults the
+resolver. `gh.ref` keeps its meaning, the named ref or `main`, and is the only
+branch any write uses; `gh-store` reads its conflict sha at `gh.ref` too. An
+explicit ref pins every read, `main` and `''` included, and assigning `gh.ref`
+pins as naming it did. A boot client (`follow: true`) keeps its own ref and
+takes path entries only. A page that reads a file and writes it back reads it
+at its write branch, never through the selection; its own parameter
+(`?data=`) is the one thing that moves read and write together.
+
+**Where it is applied.** The renderer, for the displayed file, its inlined
+scripts and stylesheets and its relative `fetch()` (each resolved per path),
+and the Web Tools boot. `entry.js`, for the Web Tools ref and a path entry for
+`gh-api.js` itself. The `GH` client's reads (`get`, `bytes`, `ls`, `history`,
+`recentFiles`, `rawUrl`, `flatTree`). A pre-built bundle's cache, which answers
+a read only when the read resolves to the ref the build was loaded at: the
+build's own repository, and a ref from `opts.ref`, else the client's
+`readRef(path)`, equal to the build's. Anything else goes to GitHub, so one
+changed file previews over an unchanged build and a pinned client never gets
+the build's copy. A build GitHub Pages served takes the default branch as its
+ref whatever was asked, since those are the bytes it holds; a page whose own
+resolve fell back to it then shows the unmet ask in the FAB. The web-tools app and home's budget-drs app forward the
+selection to every view and tenant they frame and every toss link they mint.
+Reads a page builds by hand take `GH.refFor(repo, path)`.
+
+**Kept on purpose, and why.**
+
+| Reads that name their ref | Why |
+|---|---|
+| The registry and session store in `mehrlander/web-tools-private` (state, caches, notes, errands, jots, sessions) | Live shared state that crawls, devices and sessions write on `main`; a preview must show the current state |
+| Device folders (`shortcuts/log`, `shortcuts/manifests`, `push-shortcuts`) | The device writes only to `main`; reading them at a preview ref was a real bug (2026-08-18) |
+| `shortcut-log.html`'s main-versus-branch scoring | A deliberate comparison |
+| Read-modify-write editors (`links`, `news`, `text-lab`, `dictate`, the library's prune ledger, `repo-proposals`) | What is read is written back; `?data=` moves both |
+| The app's Files view and config form | A visible, user-chosen browse ref that also targets writes |
+| `.web-tools.json` read for the shared config cache | Following a selection would bake a branch's config into shared state |
+| Errands, `file-review`'s comparison base, `gh-transfer` | Operations and comparisons, not previews |
+| `lib/entry.js`, bookmarklet and courier pointers | Bootstraps and deployed pointers |
+| The renderer's own code (its FAB and drawer) | Always `main`: a renderer running Web Tools at a chosen ref while hosting a frame is the recorded Safari crash shape |
+| The budget-drs appendix descriptors | `main` by default, the owner's live page; an explicit selection for that repository is honoured |
 
 ### What each piece contributes
 
@@ -99,19 +221,20 @@ stays dormant and the page instantiates `GH` by hand.
   request/cache plumbing. Read methods (`ls / repos / history / parseUrl / …`)
   live in `gh-fetch.js`, which patches them onto `GH.prototype`; write methods live in `gh-store.js`; token resolution
   lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
-  `GH.prototype` in place. **Auto-bootstrap:** when imported from a
-  `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/lib/gh-api.js` URL, the file parses
-  owner/repo/ref out of `import.meta.url`, instantiates `window.gh`, sets
+  `GH.prototype` in place. **Auto-bootstrap:** when `window.__ghBlobBoot`
+  names a repo and ref, the file instantiates `window.gh`, sets
   `window.__bundleRef`, sets `loadBase` to `lib/`, and chains `gh-boot.js`.
-  Pages can then skip `new GH(...)` and augmentation boilerplate by reading
-  `?use=` from the page URL and embedding it in the bundle's import URL.
-- `gh-boot.js` — the startup list, kept out of `gh-api.js` so new entries
-  don't require purging the loader from the jsDelivr cache. Loaded by the
+- `lib/entry.js` — the page's one import, from GitHub Pages. Reads `?use=`,
+  sets `window.__ghBlobBoot`, and imports `gh-api.js` by one of the two routes
+  above. Always main's copy, which is why it holds nothing but the boot.
+- `gh-boot.js` — the startup list, kept out of `gh-api.js` so the loader
+  itself changes rarely. Loaded by the
   auto-bootstrap. Its `BOOT` manifest is the unconditional sequence, declared
   as data so the cost of starting a page can be read without reading the boot
-  function; as of 2026-09-08 it runs eight, in this order: `vanilla-bundle.js`,
+  function; it runs, in this order: `vanilla-bundle.js`,
   `gh-auth.js`, `gh-fetch.js`, `kits/repo-address.js`, `kits/source-peek.js`,
-  `kits/traffic.js`, `kits/claude-mark.js` and `kits/console.js` (structured
+  `kits/traffic.js`, `kits/claude-mark.js`, `kits/assistant-mark.js` and
+  `kits/console.js` (structured
   console retention; see [kits/README.md](../lib/kits/README.md)). Read `BOOT`
   itself rather than this list, which is a copy. A separate `FAB_BOOT` carries
   the conditional standing equipment. It
@@ -168,7 +291,7 @@ stays dormant and the page instantiates `GH` by hand.
 ### The ambient surface
 
 What the boot chain leaves on `window`, in one place. A bootstrap page
-(the `@<ref>` jsDelivr import) gets all of it without loading anything
+(the `entry.js` import) gets all of it without loading anything
 itself; a page that instantiates `GH` by hand gets only what it loads.
 
 | Global | Installed by | What it is |
@@ -350,17 +473,16 @@ anything we add:
 A short list of footguns to avoid when adding new files:
 
 - **Adding `import` / `export` to a file loaded via `gh.load()`.** Both are
-  invalid inside the loader's `new Function` body and throw at load — they
-  are *not* stripped (that rewriting was removed; see "The load mechanism").
-  Reach a global or use `await import(...)` instead.
-- **Expecting `gh.load()` to hand back a value.** It doesn't — it runs the
+  invalid inside the loader's `new Function` body and throw at load; they
+  are *not* stripped. Reach a global or use `await import(...)` instead.
+- **Expecting `gh.load()` to hand back a value.** It doesn't; it runs the
   file for side effects and discards the result. Expose via `window.X`,
   `Alpine.data(...)`, or a `GH.prototype` patch; if you genuinely need a
   returned value, that's `read()`, not `load()`.
 - **Computing a `gh.load(...)` path at runtime** (`gh.load(name)` or a
   template literal). It loads fine, but the static build walker only sees
   string-literal arguments, so a computed path is invisible to the build and
-  won't be cached — the offline page then silently falls back to the network
+  won't be cached, and the offline page then silently falls back to the network
   for it. Keep load paths literal; see [Load and build](#load-and-build-are-one-contract).
 - **Registering `alpine:init` handlers after `alpine-bundle.js` loads.**
   Race depends on Alpine's CDN speed; intermittent. The rule is: all
@@ -374,6 +496,11 @@ A short list of footguns to avoid when adding new files:
 - **Relying on `Alpine.store('…')` at file top level.** Stores only exist
   after `alpine-bundle.js`'s `alpine:init` listener runs. Access them inside
   `init()` / methods / getters, not at the top level of the file.
+- **A backtick inside an HTML or CSS comment in a template literal.**
+  The backtick ends the JavaScript string even though the embedded markup
+  treats it as a comment. Name the term in plain words and run `node --check`
+  before the build. [`lib-parses.test.mjs`](../tools/test/lib-parses.test.mjs)
+  also checks that loadable files compile as function bodies.
 
 ## Load and build are one contract
 
@@ -391,8 +518,8 @@ So the contract has two readings:
   contents API, freshest-wins, ref-pinnable with `?use=<ref>`. Edit a file in
   `lib/`, reload, see it. This is what the rest of this doc describes.
 - **Build** (delivery): the reachable set of own-code files is frozen into
-  `dist/<page>.js`, which a page adopts by pointing its `gh-api.js` import at
-  the local build instead of jsDelivr. `bake` goes one further and inlines
+  `dist/<page>.js`, which a page adopts by importing the local build instead
+  of `entry.js`. `bake` goes one further and inlines
   that into the page's HTML, so the page opens with zero own-code network. The
   build still honors `?use=<ref>` (an explicit ref falls through to the
   network), so a built page can be re-pinned for review.
@@ -423,33 +550,41 @@ commands, and the byte-identical `verify-build` guarantee — lives in
 A page in another repository that uses a `lib/` file takes the same two
 routes this repo's own pages take, and no third:
 
-- **The chain**, for a page that wants a few files: import `gh-api.js` from
-  jsDelivr at `@main`, then `gh.load()` each file, then `alpine-bundle.js`
-  last when a loaded file registers an Alpine component. `gh-api.js` is the
-  one file that comes through the CDN's branch cache (the purge rule in
-  `CLAUDE.md` covers it, and `gh-boot.js` is split out so it rarely changes);
-  every file after it is fetched at main's tip through the contents API, on
-  the token the browser holds, and is current on the next load.
+- **The chain**, for a page that wants a few files: import `lib/entry.js`
+  from GitHub Pages, then `gh.load()` each file, then `alpine-bundle.js` last
+  when a loaded file registers an Alpine component. Every file after
+  `entry.js` is fetched at main's tip through Pages and the contents API, on
+  the token the browser holds, and is current on the next load. Tossed, the
+  page loads `main` unless the link asks for another version (see
+  [Under the toss](#under-the-toss)). A page may still pin the import itself:
+  `entry.js?ref=<ref>` wins over everything, and the budget-drs pages in
+  `mehrlander/home` pass their `?lib=` that way.
 - **The pre-build**, for a page that wants the library whole: resolve `main`
   to its commit through the commits API, fetch `dist/web-tools.js` from
   raw.githubusercontent at that SHA, and blob-import it, which is the app's
   own `?use=` boot in `app/index.html`. A SHA is an address no cache can hold
   stale.
 
-**Not a plain `<script src>` at `@main`.** jsDelivr caches a branch URL
-twelve hours at the edge and tells the browser to keep it seven days, and a
-purge reaches only the edge. Measured 2026-09-04: PR #584 merged at 09:35 and
-the budget-drs submittal page in `mehrlander/home`, loading `viewer.js` that
-way, showed the old render all day. A plain tag is for a demo or a throwaway
-page, and for third-party libraries, which keep their CDN tags on both routes.
+**Not a plain `<script src>` for a `lib/` file.** Raw cannot back one (its
+`nosniff`), and GitHub Pages can only for main, which would skip `?use=`. That
+is why `entry.js` is the only file a page loads by URL. The host used before,
+jsDelivr, also cached a branch URL twelve hours at the edge and told the
+browser to keep it seven days. Measured 2026-09-04: PR #584 merged at 09:35 and the budget-drs
+submittal page in `mehrlander/home`, loading `viewer.js` that way, showed the
+old render all day. Third-party libraries keep their CDN tags on both routes.
 
 Two things differ from a page in this repo:
 
-- **`?use=` is not the library's ref.** Under the toss shell and the
-  budget-drs app's frame, `?use=` and `window.__ref` name the ref of the repo
-  the page lives in. A consumer pins the library with `?lib=<branch|sha>`
-  instead, by the same raw + blob import as the `?use=` boot, and a frame
-  hands its answer down as `window.__lib`.
+- **`window.__ref` is the displayed file's version, not the library's, and
+  not the ref to read siblings at.** Under the toss shell and the budget-drs
+  app's frame it names the version the page's own file was read at. A read of
+  another file in the page's repository asks the resolver,
+  `window.__refFor(repo, path)`, which answers a link's selection first and
+  then what the page implies ("The selection" above). The library's ref
+  arrives as `use` and `lib` (and as `window.__lib` when it was asked for),
+  which is `main` unless a link says otherwise. A consumer that picks its
+  library itself reads `?lib=`, then `window.__lib`, then the selection's
+  web-tools entry, as the budget-drs pages do.
 - **The page brings no Alpine tag.** A deferred CDN tag starts Alpine before
   the chain has registered anything; `alpine-bundle.js` starts it after. A
   framed page sets `data-no-fab` on `<html>`, since the FAB belongs to the

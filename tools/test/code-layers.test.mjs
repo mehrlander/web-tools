@@ -12,8 +12,8 @@
 //     is the stronger commitment);
 //   - Alpine.data beats a window namespace (ref-switch.js, stage.js, viewer.js
 //     each register one beside their component and stay components);
-//   - the loader (gh-api.js defines GH itself) and the *-bundle.js boot bundles
-//     are root by definition.
+//   - the loader (gh-api.js defines GH itself, and entry.js is the one import
+//     that brings it in) and the *-bundle.js boot bundles are root by definition.
 // Boot membership is deliberately NOT tested here: it is a cost, not a
 // structure, and lives in gh-boot.js's declared BOOT manifest.
 
@@ -40,9 +40,11 @@ test('lib/kits/: nothing extends GH.prototype', () => {
     'kit(s) extend GH.prototype; scaffolding belongs in lib/ root (docs/code-layers.md)');
 });
 
+const isLoader = r => r.path === 'lib/gh-api.js' || r.path === 'lib/entry.js';
+
 test('lib/ root: only the loader, prototype extenders, and boot bundles', () => {
   for (const r of rows.filter(r => r.layer === 'lib')) {
-    if (r.path === 'lib/gh-api.js') continue; // the loader: defines GH
+    if (isLoader(r)) continue; // gh-api.js defines GH; entry.js imports it
     if (isBundle(r)) continue;
     assert.ok(extendsProto(r),
       `${r.path} sits in lib/ root but does not extend GH.prototype; ` +
@@ -50,7 +52,7 @@ test('lib/ root: only the loader, prototype extenders, and boot bundles', () => 
     // A root file may also register a namespace (gh-auth.js), but never only that.
   }
   const strays = rows.filter(r => r.layer === 'lib' && !extendsProto(r) &&
-    !isBundle(r) && r.path !== 'lib/gh-api.js' && registersNamespace(r));
+    !isBundle(r) && !isLoader(r) && registersNamespace(r));
   assert.deepEqual(strays.map(r => r.path), []);
 });
 

@@ -184,8 +184,7 @@ test('repoOf reads the target repo out of every address form we use', () => {
   assert.equal(T.repoOf('https://api.github.com/repos/mehrlander/home/contents/x?ref=main'), 'mehrlander/home');
   assert.equal(T.repoOf('https://api.github.com/repos/o/r/commits/abc'), 'o/r');
   assert.equal(T.repoOf('https://raw.githubusercontent.com/o/r/main/f.js'), 'o/r');
-  assert.equal(T.repoOf('https://cdn.jsdelivr.net/gh/o/r@main/lib/x.js'), 'o/r');
-  assert.equal(T.repoOf('https://data.jsdelivr.com/v1/packages/gh/o/r@main?structure=flat'), 'o/r');
+  assert.equal(T.repoOf('https://o.github.io/r/lib/entry.js'), 'o/r');
   // A GraphQL POST names its repo in the body, and the ledger does not read
   // bodies. Null, not a guess.
   assert.equal(T.repoOf('https://api.github.com/graphql'), null);

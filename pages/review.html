@@ -10,7 +10,7 @@
 
 <!--
   review.html — the caption, as a page: a branch changeset (or one file)
-  presented for reading. Where toss-render RUNS a page and show-repo MOVES
+  presented for reading. Where toss-render RUNS a page and the app MOVES
   files, this page REVIEWS them: content at a ref, the diff against a base,
   and the outbound links, per file.
 
@@ -35,7 +35,7 @@
   base that advanced after branching does not pollute the branch's own diff;
   single-file mode diffs against the base tip (no compare call is made).
 
-  Honesty and auth: like toss-render #gh= and show-repo #stage=, a link to a
+  Honesty and auth: like toss-render #gh= and the app #stage=, a link to a
   private repo or un-deployed branch renders only in a browser holding the
   viewer's ghToken (gh-auth.js resolves it from localStorage and raises the
   token prompt on 401/403). Public repos read anonymously. Compare API limits
@@ -64,7 +64,8 @@
   window.__depsReady = new Promise(r => { window.__depsDone = r; });
 </script>
 <script type="module">
-  const ref = new URLSearchParams(location.search).get('use');
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -371,7 +372,7 @@ function reviewApp() { return {
 
   // The file deck: the same cards, one per slide, in the house swipe deck
   // (kits/file-deck.js). This page is a root, so it opens as a root deck and
-  // its ✕ returns here; inside show-repo's branch takeover the same call
+  // its ✕ returns here; inside the app's branch takeover the same call
   // drills. Loaded on first use, so a visit that only scans the list pays
   // nothing for it.
   async openFileDeck(path) {

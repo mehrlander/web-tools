@@ -126,6 +126,32 @@ test('summarize carries `attached`, and an older record gets [] not a guess', ()
   assert.deepEqual(S.summarize(record(), 'x').attached, []);
 });
 
+test('summarize carries each repo position against main, keeping null apart from absent', () => {
+  // Record schema 13. The recorder writes null where git could not answer (a
+  // shallow clone past the fork point, most often) and leaves the keys out of
+  // every record before 13. The row keeps that split, so the tip can tell a
+  // session that was measured from one that never was.
+  const row = S.summarize(record({ schema: 13, repos: [
+    { name: 'home', lines: 3, branch: 'claude/x', head: 'def5678',
+      base: null, behind_main: null, ahead_base: null },
+    { name: 'web-tools', lines: 572, branch: 'claude/x', head: 'abc1234',
+      base: '1111111', behind_main: 5, ahead_base: 3 },
+  ] }), 'x');
+  assert.deepEqual(row.repos[1], {
+    name: 'web-tools', branch: 'claude/x', lines: 572,
+    base: '1111111', behind_main: 5, ahead_base: 3,
+  });
+  assert.deepEqual(row.repos[0], {
+    name: 'home', branch: 'claude/x', lines: 3,
+    base: null, behind_main: null, ahead_base: null,
+  });
+
+  // An older record has no keys, and the row adds none: no null standing in
+  // for "not recorded", and `head` still stays out of the lean row.
+  assert.deepEqual(S.summarize(record(), 'x').repos[0],
+    { name: 'web-tools', branch: 'claude/sessions-tab-3j05zm', lines: 572 });
+});
+
 test('summarize ranks tools and files busiest-first, ties by name', () => {
   const row = S.summarize(record(), 'x');
   assert.deepEqual(row.tools[0], ['Bash', 132]);
@@ -477,8 +503,8 @@ test('pathOf round-trips a row back to the store path it came from', () => {
 // no uniquifier to strip, and claiming a name for a session that has none.
 test('nameOf strips the claude/ prefix and the six-character uniquifier', () => {
   assert.equal(S.nameOf({ branches: ['claude/fab-naming-todqvq'] }), 'fab-naming');
-  assert.equal(S.nameOf({ branches: ['claude/show-repo-refresh-buttons-aklshi'] }),
-    'show-repo-refresh-buttons');
+  assert.equal(S.nameOf({ branches: ['claude/app-refresh-buttons-aklshi'] }),
+    'app-refresh-buttons');
   // A one-word slug still has a suffix to shed, and shedding it must not eat
   // the slug.
   assert.equal(S.nameOf({ branches: ['claude/x-1g5p9v'] }), 'x');

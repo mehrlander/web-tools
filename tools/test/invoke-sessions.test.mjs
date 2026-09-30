@@ -1,4 +1,4 @@
-// .claude/skills/hooks/invoke-sessions.sh — the SessionStart directive that
+// skills/hooks/invoke-sessions.sh — the SessionStart directive that
 // fires when a session should be recorded and its store is not checked out.
 //
 // The failure this guards was measured on 2026-09-21: a task-spawned session
@@ -19,7 +19,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { repoRoot } from './bootstrap.mjs';
 
-const HOOK = path.join(repoRoot, '.claude/skills/hooks/invoke-sessions.sh');
+const HOOK = path.join(repoRoot, 'skills/hooks/invoke-sessions.sh');
 
 // Fixtures go INSIDE one temp root, never beside it: the hook scans the
 // project root's siblings on purpose.
@@ -65,16 +65,21 @@ test('a store declared without its runner does not count as checked out', () => 
   assert.notEqual(run(root), '', 'session-record.sh would decline this store too, so the directive still applies');
 });
 
-test('no pointer anywhere means the session was never meant to be recorded', () => {
+// Since 2026-09-27 the hook names the owner's store itself when nothing else
+// does: web-tools working with web-tools-private is built in, so the setup
+// script no longer has to set SESSIONS_STORE_REPO.
+const DEFAULT_STORE = /mehrlander\/web-tools-private/;
+
+test('no pointer anywhere falls back to the built-in store', () => {
   const root = build('no-pointer', { home: { '.web-tools.json': '{"conventions":"optout"}', 'CLAUDE.md': '# x\n' } });
-  assert.equal(run(root), '', 'not every session participates, and nothing declared this one should');
+  assert.match(run(root), DEFAULT_STORE, 'the hard-coded store speaks when nothing declared one');
 });
 
 // The shape a task-spawned session actually starts in: no checkout at all, so
 // no manifest can speak. The environment variable is the only voice it has.
 test('SESSIONS_STORE_REPO speaks for a session with no checkout at all', () => {
   const empty = path.join(tmp, 'does-not-exist');
-  assert.equal(run(empty), '', 'a missing root with no env var says nothing');
+  assert.match(run(empty), DEFAULT_STORE, 'a missing root with no env var gets the built-in store');
   assert.match(run(empty, { SESSIONS_STORE_REPO: 'owner/store' }), /owner\/store/,
     'with the env var set, the directive fires with nothing on disk');
 });
@@ -97,13 +102,13 @@ test('the search is root, children and siblings, like the Stop hook', () => {
 
 test('a malformed manifest and a non-string pointer fail soft', () => {
   const bad = build('bad-json', { home: { '.web-tools.json': '{not json' } });
-  assert.equal(run(bad), '', 'unparseable is not a pointer');
+  assert.match(run(bad), DEFAULT_STORE, 'unparseable is not a pointer, so the built-in store speaks');
   const wrong = build('wrong-type', { home: { '.web-tools.json': '{"sessionsStore":42}' } });
-  assert.equal(run(wrong), '', 'a pointer is an owner/repo string or nothing');
+  assert.match(run(wrong), DEFAULT_STORE, 'a pointer is an owner/repo string or nothing');
 });
 
 test('the plugin registers it as its OWN SessionStart entry, not inside the dispatcher', () => {
-  const hooks = JSON.parse(readFileSync(path.join(repoRoot, '.claude/skills/hooks/hooks.json'), 'utf8'));
+  const hooks = JSON.parse(readFileSync(path.join(repoRoot, 'skills/hooks/hooks.json'), 'utf8'));
   const entries = hooks.hooks.SessionStart;
   const commands = entries.map(e => e.hooks.map(h => h.command).join(' '));
   const mine = commands.filter(c => c.includes('invoke-sessions.sh'));

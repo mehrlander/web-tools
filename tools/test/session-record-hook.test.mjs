@@ -1,4 +1,4 @@
-// .claude/skills/hooks/session-record.sh: the Stop hook the portable plugin
+// skills/hooks/session-record.sh: the Stop hook the portable plugin
 // ships. It fires on every turn of every session that installs the plugin, in
 // repos that have nothing to do with session recording, so the behavior worth
 // pinning is not "it records" but "it stays out of the way": find the store when
@@ -15,7 +15,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const HOOK = '.claude/skills/hooks/session-record.sh';
+const HOOK = 'skills/hooks/session-record.sh';
 const PAYLOAD = JSON.stringify({
   session_id: 'abcdef12-0000-0000-0000-000000000000',
   transcript_path: '/does/not/matter.jsonl',

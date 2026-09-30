@@ -9,9 +9,7 @@
 <script type="module">
   // The chain boot, so the FAB arrives and the kit is fetched at the ref under
   // preview. row-menu pulls kits/io.js itself, at load time, for the clipboard.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/row-menu.js');
   // The deck item is in the menu only where record-deck is already loaded, so a
   // host that wants it loads it. This page does; the plain table below does not.

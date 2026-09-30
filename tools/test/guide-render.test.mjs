@@ -93,13 +93,13 @@ test('bodyClass names the shared base and the drawer modifier', () => {
 // ── splitting a ref from a path ─────────────────────────────────────────────
 
 test('a slashed branch splits on the known ref, not on the first slash', () => {
-  const refs = ['main', 'claude/show-repo-progress-b8l63x'];
-  assert.deepEqual(G.splitBlobRef('claude/show-repo-progress-b8l63x/lib/a.js', refs),
-    { ref: 'claude/show-repo-progress-b8l63x', path: 'lib/a.js' });
+  const refs = ['main', 'claude/app-progress-b8l63x'];
+  assert.deepEqual(G.splitBlobRef('claude/app-progress-b8l63x/lib/a.js', refs),
+    { ref: 'claude/app-progress-b8l63x', path: 'lib/a.js' });
   // Without the branch list there is no way to know, and the fallback is the
   // first segment: wrong here, right for a sha, a tag, or an unslashed branch.
-  assert.deepEqual(G.splitBlobRef('claude/show-repo-progress-b8l63x/lib/a.js', []),
-    { ref: 'claude', path: 'show-repo-progress-b8l63x/lib/a.js' });
+  assert.deepEqual(G.splitBlobRef('claude/app-progress-b8l63x/lib/a.js', []),
+    { ref: 'claude', path: 'app-progress-b8l63x/lib/a.js' });
   assert.deepEqual(G.splitBlobRef('main/lib/a.js', refs), { ref: 'main', path: 'lib/a.js' });
 });
 

@@ -109,7 +109,7 @@ def nearest_ten(step):
 # itself, or it boots through gh-boot.js, which injects one. A file that is not
 # a standalone page (a component, a kit, a doc) renders inside whichever page
 # hosts it and answers for nothing on its own.
-REACHES = re.compile(r'@theme inline|gh-api\.js|gh-boot|dist/web-tools\.js'
+REACHES = re.compile(r'@theme inline|lib/entry\.js|gh-api\.js|gh-boot|dist/web-tools\.js'
                      r'|dist/app\.js|dist/dictate\.js')
 LOADS_TAILWIND = re.compile(r'tailwindcss/browser')
 

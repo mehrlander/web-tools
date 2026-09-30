@@ -1,4 +1,4 @@
-// alpineComponents/tools.js — the curated Tools gallery inside show-repo.
+// alpineComponents/tools.js — the curated Tools gallery inside the app.
 // Logic-level tests with real Alpine under jsdom (bootstrap.mjs recipe): resolve
 // a manifest path (bare hub path vs qualified cross-repo ref), build the
 // render/thumb/source URLs the pages catalog conventions use, and load the
@@ -64,8 +64,8 @@ test('mounts and loads the curated manifest with no startup warnings', () => {
   assert.deepEqual(problems, []);
   assert.ok(data.description.length > 0);
   assert.deepEqual(getLog.sort(), [
-    ['mehrlander/web-tools', 'main', 'docs/tools.csv'],
-    ['mehrlander/web-tools', 'main', 'pages/pages.csv'],
+    ['mehrlander/web-tools', undefined, 'docs/tools.csv'],
+    ['mehrlander/web-tools', undefined, 'pages/pages.csv'],
   ]);
   assert.equal(data.items.length, 3);
 });
@@ -81,11 +81,11 @@ test('resolve: bare path means the hub at main; qualified ref overrides', () => 
 });
 
 test('render/thumb/source URLs follow the page catalog\'s conventions', () => {
-  // Bare hub path at main: hosted github.io + jsDelivr thumb + blob source.
+  // Bare hub path at main: hosted github.io + raw thumb + blob source.
   assert.equal(data.renderUrl('pages/diff-tool.html'),
     'https://mehrlander.github.io/web-tools/pages/diff-tool.html');
   assert.equal(data.thumbUrl('pages/diff-tool.html'),
-    'https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/pages/thumbs/diff-tool.png');
+    'https://raw.githubusercontent.com/mehrlander/web-tools/main/pages/thumbs/diff-tool.png');
   assert.equal(data.codeUrl('pages/diff-tool.html'),
     'https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html');
   // A mehrlander repo off its default ref routes through toss-render #gh=.

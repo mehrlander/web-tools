@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ── Where the writing about this page lives ───────────────────────────────
-     THE CONTRACT IS docs/show-repo.md for the shell (routing, chrome, shared
+     THE CONTRACT IS docs/APP.md for the app (routing, chrome, shared
      gestures, boundaries), plus one document per view and per form, named in
      the `doc` column of docs/app-routes.csv and docs/subjects.csv. Those are
      the reader-facing account and the ones to update when behaviour changes.
@@ -16,7 +16,7 @@
      second one: if a passage is not about the code it sits beside, it belongs
      in the doc. -->
 <!-- ── GitHub jump-overs: the convention every view honours ──────────────────
-     GITHUB JUMP-OVERS: show-repo is a wrapper over GitHub, not a wall — every
+     GITHUB JUMP-OVERS: the app is a wrapper over GitHub, not a wall — every
      view keeps a one-tap route to the GitHub presentation of what it is showing.
      A jump-over for a FILE or a FOLDER is one link: the explorer's breadcrumb
      links the current folder (ghFolderUrl), the viewer's actions link the open
@@ -103,7 +103,12 @@
   // by SHA, an address that cannot move and that the HTTP cache may keep; a
   // SHA given directly skips the resolve, and a failed resolve falls back to
   // the uncached fetch by name.
-  const ref = new URLSearchParams(location.search).get('use');
+  // The web-tools entry of the page's selection: `?use=`, or a `refs=` entry
+  // naming this repository (docs/loader.md, "The selection"). A renderer
+  // answers `use` for a framed app; gh-api.js inside the bundle installs the
+  // rest of the selection once it runs.
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     let sha = /^[0-9a-f]{40}$/.test(ref) ? ref : '';
     if (!sha) {
@@ -173,6 +178,8 @@
   // The installation ledger's derivation and its one write, behind the
   // project view's Installation pill.
   await gh.load('kits/installation.js');
+  // The state icons the Overview shares with the shortcut views.
+  await gh.load('kits/sync-status.js');
   await gh.load('kits/powershell-workspace.js');
   await gh.load('kits/powershell-language.js');
   await gh.load('kits/powershell-editor.js');
@@ -496,7 +503,7 @@ html.dk-dragging main{transition:none !important}
 
            It is deliberately NOT the Files view's ref picker. That one chooses
            which ref of the BROWSED repo you are reading; this one chooses which
-           ref of web-tools show-repo itself RUNS FROM, which is a different
+           ref of the app itself RUNS FROM, which is a different
            question with the same vocabulary, so the panel spells out the repo
            and path it acts on. The two are visually apart for the same reason:
            the ref picker lives in the Files toolbar beside the tree it filters,
@@ -1586,6 +1593,7 @@ html.dk-dragging main{transition:none !important}
                 </div>
                 <article x-show="!projectLoading && projectHtml"
                          class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                         @click="onReadmeClick($event)"
                          x-html="projectHtml"></article>
                 <p x-show="!projectLoading && !projectHtml" class="text-base-content/40 italic text-base py-8">
                   No README in this workspace on this ref. Open its files, or its board.
@@ -1871,7 +1879,7 @@ html.dk-dragging main{transition:none !important}
       <template x-if="view==='files' && $store.browser.repo">
         <div class="grow min-h-0 flex flex-col px-4 lg:px-6 pt-4 pb-6">
           <template x-for="k in [$store.browser.repo + '@' + ($store.browser.ref || '') + '#' + filesKey]" :key="k">
-            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile })"></div>
+            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile, at: filesAt })"></div>
           </template>
         </div>
       </template>
@@ -1952,6 +1960,22 @@ const notify = (msg, cls='alert-error', icon='warning') => {
 // a page that lives in another repo: home owns the news promotion while the
 // renderer stays in web-tools. Resolve against the declaring repo/ref into
 // { repo, ref, path } for the toss-render #gh= address and the GitHub blob link.
+// A selection object (window.__refs: {"owner/repo": ref, "owner/repo:path": ref})
+// as the values of repeatable refs= parameters, `owner/repo@ref[:path]`, the
+// grammar lib/gh-api.js and pages/toss-render.html read. A repository in
+// `skip` loses its repository-wide entry only; its path entries still travel.
+function selectionEntries(refs, skip){
+  const enc = x => encodeURIComponent(String(x)).replace(/%2F/g, '/');
+  const out = [];
+  for (const [k, ref] of Object.entries(refs || {})) {
+    if (!ref) continue;
+    const i = k.indexOf(':');
+    if (i < 0) { if (!(skip || []).includes(k)) out.push(k + '@' + enc(ref)); }
+    else out.push(k.slice(0, i) + '@' + enc(ref) + ':' + enc(k.slice(i + 1)));
+  }
+  return out;
+}
+
 function resolveCatalogPath(rawPath, declRepo, declRef){
   const m = String(rawPath || '').match(/^([\w.-]+\/[\w.-]+)(?:@([\w./-]+))?:(.+)$/);
   if (m) return { repo: m[1], ref: m[2] || '', path: m[3] };
@@ -1970,9 +1994,9 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // ?tab= param before the component mounts. Aims remains ?tab=aims under Docs
 // as Purpose, Growth remains ?tab=growth under Docs, and Tests remains
 // ?tab=tests under Harness, so old links still land on the exact reading they
-// named even though none needs a top-level stop. Context joins Harness here.
-const MAP_TABS = ['set', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'data', 'views', 'registries'];
-const MAP_SUBVIEWS = ['aims', 'growth', 'tests', 'context'];
+// named even though none needs a top-level stop.
+const MAP_TABS = ['set', 'context', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'data', 'views', 'registries'];
+const MAP_SUBVIEWS = ['aims', 'growth', 'tests'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
@@ -2046,7 +2070,7 @@ function app(){ return {
 
   // THE FAB'S PASTE ROW IS NOT CONTRIBUTED ANY MORE. This is where the
   // `menu` contract's one and only row lived from 2026-08-19 to 2026-08-22:
-  // the app-wide paste, offered on the launcher's long press because a phone
+  // The app-wide paste, offered on the launcher's long press because a phone
   // has no other intake gesture and the drawer would spend the tap's user
   // activation getting itself open.
   //
@@ -2104,9 +2128,9 @@ function app(){ return {
   //
   // It also keeps the ADDRESS minimal in both directions, since the stamp
   // compares against this rather than against a constant: `?app=budget-drs`
-  // carries no `shell` key and opens bare, and turning the header on there
-  // stamps `shell=full`, which is the honest reading of a screen showing the
-  // app's chrome around a promoted page.
+  // carries no `shell` key and opens with nav chrome, and turning the header off there
+  // stamps `shell=none`, which is the honest reading of a screen showing the
+  // promoted page bare.
   //
   // `none` is not a trap: the FAB's Render tab carries this as a bar (the
   // `modes` contract below), beside the ref and width bars, since which ref,
@@ -2115,7 +2139,7 @@ function app(){ return {
   // place, so nothing needs a second escape hatch parked on the page.
   //
   // Named `shell` because that is already this app's word for the header and
-  // sidebar around a view (docs/show-repo.md leads with it, and window.__shell
+  // sidebar around a view (the ?shell= parameter in docs/APP.md, and window.__shell
   // is this object). `chrome` was the first name and was dropped: in a browser
   // the chrome is the BROWSER's, which is the one thing this cannot touch.
   // `frame` was dropped too, since the Render tab's width bar already means a
@@ -2125,7 +2149,7 @@ function app(){ return {
   // because the two answer different questions: what was asked for, and what
   // this screen opens as when nothing was.
   _shellChoice: '',
-  get defaultShellMode(){ return this.view === 'app' ? 'none' : 'full'; },
+  get defaultShellMode(){ return this.view === 'app' ? 'nav' : 'full'; },
   get shellMode(){ return this._shellChoice || this.defaultShellMode; },
 
   // Whether the sidebar is showing. One boolean at every width, which is the
@@ -2817,7 +2841,9 @@ function app(){ return {
     const out = [];
     for (const d of decls) {
       try {
-        const gh = new window.GH({ token: window.TOKEN, repo: d.repo, ref: d.ref || 'main' });
+        // A board names its ref when it means one; otherwise the read follows
+        // the page's selection for that repository, then main.
+        const gh = new window.GH({ token: window.TOKEN, repo: d.repo, ...(d.ref ? { ref: d.ref } : {}) });
         const board = JSON.parse((await gh.get(d.path)).text);
         for (const a of (board.areas || [])) {
           for (const it of (a.items || [])) {
@@ -3260,7 +3286,7 @@ function app(){ return {
   // scan (lib/kits/branch-status.js) once and stores it, so the branches view and
   // the cross-repo Activity view render from the cache instead of a per-visit
   // fanout. The material-change gate keeps commits sparse; the watermark gate
-  // below keeps the calls sparse. See web-tools-private/DESIGN.md.
+  // below keeps the calls sparse. See docs/views/branches.md, "The activity cache".
   //
   // 30 MINUTES, down from 12 hours. The old number was set when every pass paid
   // for the whole estate whether or not anything had moved, and half a day was
@@ -3604,8 +3630,8 @@ function app(){ return {
   // Stop and so is always stale by design.
   //
   // Throttled shorter than the activity crawl and longer than nothing, since
-  // sessions accrue while you are not looking. See web-tools-private/DESIGN.md
-  // and its sessions/README.md.
+  // sessions accrue while you are not looking. See docs/views/sessions.md,
+  // "The sessions cache", and web-tools-private/sessions/README.md.
   //
   // 15 MINUTES, down from 3 hours. This crawl never had the activity crawl's
   // problem: it is incremental by blob sha, so a pass over a store where
@@ -3631,8 +3657,9 @@ function app(){ return {
   async _readSessionTitles(){
     const S = window.RepoSessionsCache;
     try {
-      const gh = new window.GH({ token: window.TOKEN, repo: S.TITLES_REPO, ref: 'main' });
-      const pick = S.newestExport(await gh.req('contents/' + S.TITLES_DIR));
+      // Read-only titles: the selection for the export store, else main.
+      const gh = new window.GH({ token: window.TOKEN, repo: S.TITLES_REPO });
+      const pick = S.newestExport(await gh.req('contents/' + S.TITLES_DIR + '?ref=' + encodeURIComponent(gh.readRef(S.TITLES_DIR + '/'))));
       if (!pick) return null;
       const byId = S.parseTitles((await gh.get(pick.path)).text);
       // An export that parsed to nothing is a broken export, not an empty one:
@@ -4143,7 +4170,7 @@ function app(){ return {
   // lib/kits/route-join.js (which the suite can load, and this page cannot be).
   //
   // It is a read of ONE repo, and that is not an accident of scope: the routes
-  // are show-repo's own, and show-repo is this page. Nothing here crawls the
+  // are the app's own, and the app is this page. Nothing here crawls the
   // estate, which is why it sits outside the three crawl caches above rather
   // than beside them.
   ROUTES_REPO: 'mehrlander/web-tools',
@@ -4164,7 +4191,9 @@ function app(){ return {
   // `use` through toss-render's params shim, so one read covers the deployed
   // page, a ?use= preview, and a tossed branch alike.
   get routesRef(){
-    try { return new URLSearchParams(location.search).get('use') || 'main'; }
+    // The page's selection for this repository: a deployed ?use= or refs=
+    // entry, or what a renderer implies for the version the app booted.
+    try { return window.GH?.refFor?.('mehrlander/web-tools') || new URLSearchParams(location.search).get('use') || 'main'; }
     catch { return 'main'; }
   },
 
@@ -4603,11 +4632,19 @@ function app(){ return {
   // folder and open in the shell's viewer instead of dangling off the pane's
   // own URL. Absolute links (a PR, a compare) keep their default behavior.
   onBoardClick(e){
+    this.openRelativeLink(e, this.projectBoardFile.split('/').slice(0, -1).join('/'));
+  },
+  // The Overview's README, on the same terms: it sits at the workspace root, so
+  // its relative links resolve against the project folder. Without this a README
+  // link to a sibling file resolved against the app's own URL and landed on a 404.
+  onReadmeClick(e){
+    this.openRelativeLink(e, this.projectPath);
+  },
+  openRelativeLink(e, base){
     const a = e.target.closest('a');
     const href = a?.getAttribute('href');
     if (!href || /^(https?:|mailto:|#)/.test(href)) return;
     e.preventDefault();
-    const base = this.projectBoardFile.split('/').slice(0, -1).join('/');
     const path = this.resolveRepoRelative(base, href);
     if (!path) return;
     if (this.pinIsFile(path)) this.openFile(path); else this.openFolder(path);
@@ -4861,7 +4898,7 @@ function app(){ return {
     document.getElementById('sidebarCrumbs')?.__crumbBar?.setOpen(false);
   },
   // WHERE HOME IS. The same address lib/alpineComponents/fab.js carries as
-  // `showRepoBase` for its own Home row, held here too because the shell cannot
+  // `appBase` for its own Home row, held here too because the shell cannot
   // depend on a fab being mounted and the fab floats over pages that are not
   // this app. visit-log-wiring.test.mjs holds the two strings to each other, so
   // the duplicate is loud rather than silent.
@@ -4878,7 +4915,7 @@ function app(){ return {
   // Measured in a headless toss rather than reasoned about.
   get offMainRef(){
     let pin = '';
-    try { pin = new URLSearchParams(location.search).get('use') || ''; } catch (e) { return false; }
+    try { pin = window.GH?.refFor?.('mehrlander/web-tools') || new URLSearchParams(location.search).get('use') || ''; } catch (e) { return false; }
     return !!pin && pin !== 'main';
   },
   // `owner/repo@ref` with the owner dropped, which is the crumb trail's own
@@ -5386,7 +5423,7 @@ function app(){ return {
     else if (key === 'open') this.goLanding();
   },
 
-  // Any repo@ref on GitHub. show-repo is a wrapper over GitHub, not a wall, so
+  // Any repo@ref on GitHub. The app is a wrapper over GitHub, not a wall, so
   // every view keeps a one-tap route to the GitHub presentation of what it is
   // showing; the sidebar's is the github button beside each Repos row, whose
   // first row this is. It takes a repo rather than reading the open one, since
@@ -5403,7 +5440,8 @@ function app(){ return {
     const use = new URLSearchParams(location.search).get('use');
     let u = '../pages/repo-atlas.html?repo=' + encodeURIComponent(s.repo || this.DEFAULT_REPO);
     if (use) u += '&use=' + encodeURIComponent(use);
-    return u;
+    const sel = this.selectionParams(['mehrlander/web-tools']);
+    return sel ? u + '&' + sel : u;
   },
 
   // ── The view table ────────────────────────────────────────────────────────
@@ -5527,7 +5565,11 @@ function app(){ return {
     // an old ?view=files&path=docs link lands here on that folder. An open
     // file rides as `file`, which routeFromUrl hands to openFile.
     { key: 'files', open(u){ this.goFiles(u.path || '', ''); },
-      stamp(p){ if (this.filesPath) p.set('path', this.filesPath); if (this.filesFile) p.set('file', this.filesFile); } },
+      stamp(p){
+        if (this.filesPath) p.set('path', this.filesPath);
+        if (this.filesFile) p.set('file', this.filesFile);
+        if (this.filesFile && this.filesAt) { p.set('col', this.filesAt.col); p.set('row', this.filesAt.row); }
+      } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
     { key: 'state', open(u){ this.goState(u.item); },
@@ -5650,7 +5692,7 @@ function app(){ return {
   // ANY row can stamp must be here, or the address carries it out of the only
   // screen that means it. tools/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
-  VIEW_KEYS: ['file', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
+  VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
               'session', 'set', 'lens', 'grain',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
@@ -5674,7 +5716,7 @@ function app(){ return {
   // on a restore there is nothing left to try and the landing is the answer.
   async routeFromUrl(url){
     if (!url) return false;
-    if (url.file) { await this.openFile(url.file); return true; }
+    if (url.file) { await this.openFile(url.file, url.col && url.row ? { col: url.col, row: url.row } : null); return true; }
     const r = this.routeForUrl(url.view);
     if (!r || (r.when && !r.when(url))) return false;
     await r.open.call(this, url);
@@ -5689,6 +5731,9 @@ function app(){ return {
     if (!p.has('repo') && !p.has('file') && !p.has('view') && !p.has('app')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
              file: p.get('file'),
+             // A row to land on in the file: ?col=<header>&row=<value>. Every
+             // row stays; the table scrolls to the one whose cell matches.
+             col: p.get('col') || '', row: p.get('row') || '',
              // `?app=` names its own route, so it implies view=app: the dispatch
              // in routeFromUrl keys on url.view, and a short address that named
              // no view would find no row to open and fall through to the estate.
@@ -6076,17 +6121,20 @@ function app(){ return {
   // A file or a folder opens in the repo's Files view, at the ref being
   // browsed: the tree opens on the folder and the file beside it. Search is
   // for finding; these callers already know where the thing is.
-  openFile(path){
+  openFile(path, at = null){
     const p = String(path || '').replace(/^\/+/, '');
-    this.goFiles(p.split('/').slice(0, -1).join('/'), p);
+    this.goFiles(p.split('/').slice(0, -1).join('/'), p, at);
   },
   openFolder(path){ this.goFiles(String(path || '').replace(/^\/+|\/+$/g, ''), ''); },
   // The Files view's state is its address: the folder the tree opens on and
   // the file beside it. filesKey remounts the component when either changes,
   // since the component does not follow a scope change on its own.
-  filesPath: '', filesFile: '', filesKey: 0,
-  goFiles(path = '', file = ''){
+  // filesAt names the row of filesFile's table to land on, { col, row }; it
+  // belongs to that one file, so any other open clears it.
+  filesPath: '', filesFile: '', filesAt: null, filesKey: 0,
+  goFiles(path = '', file = '', at = null){
     this.filesPath = path; this.filesFile = file; this.filesKey++;
+    this.filesAt = file && at?.col && at?.row ? { col: String(at.col), row: String(at.row) } : null;
     this.view = 'files';
     this.syncUrl();
   },
@@ -7402,14 +7450,78 @@ function app(){ return {
   },
   // An app view's toss address, with whatever the subject's namespace holds
   // riding it as a ?query on the addressed path.
-  get appViewUrl(){
-    const v = this.appView;
+  //
+  // WHAT A VIEW INHERITS FROM THE APP, in appViewAddress below. Two
+  // selections, each with the same order: the view's own, then an explicit one
+  // of the app's, then the default the view derives for itself.
+  //
+  //   Page ref. A view that names a ref (appRef) keeps it. Otherwise a
+  //   web-tools view takes the app's own page ref when the app is tossed at a
+  //   branch (window.__ref), since the app at a branch framing main's pages
+  //   showed main inside branch chrome (docs/showing-consolidation.md, C5).
+  //   A view of another repo has no app ref to take and opens at its default.
+  //
+  //   Web Tools version. A `lib` in the view's own query wins, and the
+  //   renderer reads it there. Otherwise an EXPLICIT selection of the app's
+  //   rides as the renderer's ?lib=: window.__lib, which the renderer stamps
+  //   only when a version was asked for, or on the deployed app its own
+  //   ?use=, which is always an ask. It is forwarded even when it names main,
+  //   because main is a selection like any other: an app tossed at a branch
+  //   with ?lib=main, framing a web-tools view with no ref, addressed the view
+  //   at the branch and dropped the main, so the view defaulted its library to
+  //   the branch (reported against 70036ba). With no explicit selection
+  //   nothing rides, and the view derives its own default (a web-tools view
+  //   its own ref, any other main), the rule the renderer applies at every
+  //   level.
+  appViewAddress(v, ctx){
     if (!v || !v.repo || !v.path) return '';
-    const ref = v.ref ? '@' + v.ref : '';
+    const hub = ctx.hub, appRef = ctx.appRef || '', appLib = ctx.appLib || '', refs = ctx.refs || {};
+    // A hub view with no ref of its own is DISPLAYED at the app's own version:
+    // a view is a displayed file like the app, not one of its dependencies, so
+    // a selection for the hub's dependencies (refs=, or ?lib=main) does not move
+    // it; that selection rides along below and decides what the view loads.
+    const at = v.ref || (v.repo === hub && appRef && appRef !== 'main' ? appRef : '');
+    // Only a query that exists is parsed. Inside a toss the renderer's params
+    // shim answers any EMPTY URLSearchParams with the app's own address,
+    // because that is what new URLSearchParams(location.search) looks like in
+    // a blob: frame; parsing an empty view query read the app's injected `lib`
+    // as the view's own and dropped the forward (caught by the selection probe,
+    // case X5d).
+    let own = '';
+    try { own = v.query ? (new URLSearchParams(v.query).get('lib') || '') : ''; } catch (e) {}
+    const lib = own ? '' : appLib;
+    const ref = at ? '@' + at : '';
     // v.query only. A live subjectParams read here would hand the NEXT app view
     // the fragment belonging to the one before it.
     const q = v.query || '';
-    return '../pages/toss-render.html#gh=' + v.repo + ref + ':' + v.path + (q ? '?' + q : '');
+    // THE SELECTION TRAVELS WHOLE (docs/loader.md, "The selection"): every
+    // entry the link asked for, path entries included, rides to the view's
+    // renderer as refs=. The web-tools repository entry rides as ?lib=, which
+    // already yields to a view's own `lib`. What the app merely implies
+    // (window.__refsImplied) never travels; the view implies its own.
+    const fwd = selectionEntries(refs, [hub]).map(e => 'refs=' + e);
+    if (lib) fwd.unshift('lib=' + encodeURIComponent(lib));
+    return '../pages/toss-render.html' + (fwd.length ? '?' + fwd.join('&') : '') +
+      '#gh=' + v.repo + ref + ':' + v.path + (q ? '?' + q : '');
+  },
+  // An app view's toss address. Tossed (a renderer stamps __fabHosted; the
+  // top-mode launcher stamps __tossTop), the app's explicit selection is
+  // window.__lib; deployed, it is a real ?use=.
+  get appViewUrl(){
+    let appRef = '', appLib = '', refs = {};
+    try {
+      const tossed = window.__fabHosted === true || !!window.__tossTop;
+      appRef = tossed ? (window.__ref || '') : '';
+      appLib = tossed ? (window.__lib || '') : (new URLSearchParams(location.search).get('use') || '');
+      refs = window.__refs || {};
+    } catch (e) {}
+    return this.appViewAddress(this.appView, { hub: this.DEFAULT_REPO, appRef, appLib, refs });
+  },
+  // The page's selection as query parameters for a link to another page:
+  // `refs=owner/repo@ref[:path]&…`, leaving out the repositories in `skip`.
+  selectionParams(skip){
+    try { return selectionEntries(window.__refs || {}, skip || []).map(e => 'refs=' + e).join('&'); }
+    catch (e) { return ''; }
   },
   // ── The app view's mark: what the tab, the bookmark and the tile carry ────
   //
@@ -7637,15 +7749,12 @@ function app(){ return {
     }];
   },
 
-  // The SAME switch, on the launcher's long-press menu, because the Render tab
-  // is the wrong and only place for it on the view that needs it most. An app
-  // view opens at shellMode 'none' by design, so it arrives with no header on
-  // screen and no clue that a header exists; finding the way back meant knowing
-  // which of the drawer's four tabs holds it, and then spotting one word at the
-  // end of the width-preset row. Reported from a phone on 2026-09-08 by a
-  // reader who knew the control existed and still could not find it.
+  // The SAME switch, on the launcher's long-press menu, so a reader can easily
+  // hide or show the header on any view. An app view defaults to 'nav' mode
+  // (header visible, sidebar closed) for easy navigation, and this toggle offers
+  // a fast 1-tap gesture to tuck the header away if they want the view bare.
   //
-  // fab.js's own description already claimed show-repo contributed this row,
+  // fab.js's own description already claimed the app contributed this row,
   // and it did not: nothing declared `menu` anywhere, so readPageMenu found
   // none. The claim is now true rather than deleted, since the reason it gave
   // was the right one.
@@ -8034,7 +8143,7 @@ function gallery(){
           if (p.path) {
             const s = Alpine.store('browser');
             const g = (p.repo === s.repo && (!p.ref || p.ref === s.ref))
-              ? s.gh : new window.GH({ token: window.TOKEN, repo: p.repo, ref: p.ref || 'main' });
+              ? s.gh : new window.GH({ token: window.TOKEN, repo: p.repo, ...(p.ref ? { ref: p.ref } : {}) });
             p.source = (await g.get(p.path)).text;
           } else p.source = await (await fetch(p.href)).text();
         }

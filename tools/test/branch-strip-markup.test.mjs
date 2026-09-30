@@ -1,5 +1,5 @@
 // tools/test/branch-strip-markup.test.mjs: verify toss render page strips,
-// changed views routes, and standard data-note tooltips.
+// changed views routes, and standard data-title-tip tooltips.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -58,13 +58,13 @@ test('estate.js branchRowBody renders frisbee dropdown button and omits staging 
   assert.ok(body.includes('branchRoutes(row)'), 'has branchRoutes conditional');
   assert.ok(
     body.includes('<i class="ph ph-signpost text-base text-base-content/40 shrink-0"') &&
-    body.includes('data-note="Views this branch changes" data-note-bare></i>'),
-    'signpost icon carries standard data-note and data-note-bare'
+    body.includes('data-title-tip="Views this branch changes" data-title-tip-bare></i>'),
+    'signpost icon carries standard data-title-tip and data-title-tip-bare'
   );
   assert.ok(
-    body.includes(':data-note="rt.label + (rt.url ? \', on this branch: \' : \', on main (no tip crawled): \')') &&
-    body.includes('+ rt.hits.join(\', \')" data-note-bare'),
-    'route chips use :data-note and data-note-bare instead of :title'
+    body.includes(':data-title-tip="rt.label + (rt.url ? \', on this branch: \' : \', on main (no tip crawled): \')') &&
+    body.includes('+ rt.hits.join(\', \')" data-title-tip-bare'),
+    'route chips use :data-title-tip and data-title-tip-bare instead of :title'
   );
 
   // 3. No title or :title attributes remain in branchRowBody
@@ -72,30 +72,30 @@ test('estate.js branchRowBody renders frisbee dropdown button and omits staging 
   assert.deepEqual(
     titleAttrMatches,
     [],
-    'all title and :title attributes in branchRowBody are replaced with data-note or aria-label'
+    'all title and :title attributes in branchRowBody are replaced with data-title-tip or aria-label'
   );
 
   // 4. No em dash in branchRowBody
   assert.ok(!body.includes('\u2014'), 'no em dash in branchRowBody');
 });
 
-test('branch-brief.js Look row aligns toss render pages and uses data-note tooltips', () => {
+test('branch-brief.js Look row aligns toss render pages and uses data-title-tip tooltips', () => {
   assert.ok(
-    branchBriefSrc.includes('data-note="What this branch changes, as something to open" data-note-bare'),
-    'signpost icon in branch-brief uses data-note'
+    branchBriefSrc.includes('data-title-tip="What this branch changes, as something to open" data-title-tip-bare'),
+    'signpost icon in branch-brief uses data-title-tip'
   );
   assert.ok(
-    branchBriefSrc.includes(':data-note="c.title" data-note-bare'),
-    'route chips in branch-brief use :data-note'
+    branchBriefSrc.includes(':data-title-tip="c.title" data-title-tip-bare'),
+    'route chips in branch-brief use :data-title-tip'
   );
   assert.ok(
-    branchBriefSrc.includes('data-note="Pages this branch changed, rendered via toss"') &&
-    branchBriefSrc.includes('data-note-bare>🥏</span>'),
+    branchBriefSrc.includes('data-title-tip="Pages this branch changed, rendered via toss"') &&
+    branchBriefSrc.includes('data-title-tip-bare>🥏</span>'),
     'leading frisbee icon before pageChips in branch-brief'
   );
   assert.ok(
-    branchBriefSrc.includes(':data-note="t.title" data-note-bare'),
-    'page chips in branch-brief use :data-note'
+    branchBriefSrc.includes(':data-title-tip="t.title" data-title-tip-bare'),
+    'page chips in branch-brief use :data-title-tip'
   );
   assert.ok(
     !branchBriefSrc.includes('x-text="t.mark"'),
@@ -103,15 +103,15 @@ test('branch-brief.js Look row aligns toss render pages and uses data-note toolt
   );
 });
 
-test('session-brief.js page strip aligns toss render pages with leading frisbee icon and data-note', () => {
+test('session-brief.js page strip aligns toss render pages with leading frisbee icon and data-title-tip', () => {
   assert.ok(
-    sessionBriefSrc.includes('data-note="Pages this session changed, rendered via toss"') &&
-    sessionBriefSrc.includes('data-note-bare>🥏</span>'),
+    sessionBriefSrc.includes('data-title-tip="Pages this session changed, rendered via toss"') &&
+    sessionBriefSrc.includes('data-title-tip-bare>🥏</span>'),
     'leading frisbee icon in session-brief page chips'
   );
   assert.ok(
-    sessionBriefSrc.includes(':data-note="t.title" data-note-bare'),
-    'page chips in session-brief use :data-note'
+    sessionBriefSrc.includes(':data-title-tip="t.title" data-title-tip-bare'),
+    'page chips in session-brief use :data-title-tip'
   );
   assert.ok(
     !sessionBriefSrc.includes('x-text="t.mark"'),

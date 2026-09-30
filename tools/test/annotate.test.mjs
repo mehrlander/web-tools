@@ -130,6 +130,43 @@ test('saveJot appends one jot through fresh-read → mutate → save', async () 
   assert.ok(jot.id.startsWith('j'));
 });
 
+test('saveNotes writes each annotation with words as a note about the file, a quote as its anchor', async () => {
+  loadKit('repo-address.js', { window });
+  loadKit('notes.js', { window });
+  let file = { text: '', sha: null };
+  const puts = [];
+  window.TOKEN = 't0ken';
+  window.GH = class {
+    static toBase64 = (s) => Buffer.from(s).toString('base64');
+    constructor(opts) { this.repo = opts.repo; this.ref = opts.ref; }
+    async get() { if (!file.sha) { const e = new Error('missing'); e.status = 404; throw e; } return { ...file }; }
+    async req(p, opts) {
+      if (p === '/user') return { login: 'me' };
+      puts.push(this.repo + ' ' + p);
+      file = { text: Buffer.from(JSON.parse(opts.body).content, 'base64').toString(), sha: 's' + puts.length };
+      return { content: { sha: file.sha } };
+    }
+  };
+  A.enable({ doc });
+  const subject = A.subject;
+  A.subject = { title: 'x', url: 'https://github.com/o/r/blob/main/docs/sample.md' };
+  A.clear();
+  A.add({ type: 'text', quote: { exact: 'the words', prefix: 'before ', suffix: ' after' }, display: 'the words', label: '' }, 'about these words');
+  A.add({ type: 'page' }, '');
+  A.add({ type: 'page' }, 'about the page');
+  const saved = await A.saveNotes();
+  assert.equal(saved.length, 2, 'the annotation with no words is not a note');
+  const lines = file.text.trim().split('\n').map(l => JSON.parse(l));
+  assert.equal(lines.length, 2);
+  assert.ok(lines.every(n => n.about === 'o/r:docs/sample.md' && n.author === 'me'));
+  assert.equal(lines[0].anchor.exact, 'the words');
+  assert.equal(lines[1].anchor, undefined);
+  assert.ok(puts.every(p => p === 'mehrlander/web-tools-private contents/notes/notes.jsonl'));
+  A.subject = { title: 'x', url: 'https://example.com/elsewhere' };
+  await assert.rejects(A.saveNotes(), /no repo address/);
+  A.subject = subject;
+});
+
 test('a two-bullet selection serializes clean: edges trimmed, markers restored', () => {
   // Reproduces the first field test (2026-08-08): selecting across two <li>s
   // from the whitespace before the first one produced a quote opening with
@@ -701,7 +738,7 @@ test('with room beside the page, the expand opens the house reader instead of le
 
 test('with no host to dock it, the kit frames the reader and gives the width back', async () => {
   // A host that can dock installs __deckPane and owns the frame and the
-  // reflow (show-repo does). With none, the kit stands in for one: the reader
+  // reflow (the app does). With none, the kit stands in for one: the reader
   // takes a column, page scroll stays live, and the page reflows out from
   // under it rather than running beneath the text being annotated.
   handoffKits();
@@ -2714,7 +2751,7 @@ test('copy rides the header beside the readings, so it needs no word at all', ()
 
   // The footer keeps only what is neither a reading nor a format.
   const acts = [...S.setActs.querySelectorAll('button')].map(b => b.textContent);
-  assert.deepEqual(acts, ['Save jot', 'Clear']);
+  assert.deepEqual(acts, ['Save jot', 'Save notes', 'Clear']);
   assert.ok(!acts.some(t => /markdown|JSON/i.test(t)), 'no format is named twice over');
   A.clear();
   A.disable();

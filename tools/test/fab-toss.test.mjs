@@ -673,3 +673,64 @@ test('every component the fab mounts, the fab loads, and the mount waits for it'
   assert.match(src, /\$watch\('open',[\s\S]{0,80}?ensurePicker\(\)/,
     'and the flag going true is what asks for it');
 });
+
+
+// ── the ignored-version check, inside a toss ────────────────────────────────
+//
+// Outside a toss the fab compares the ?use= in the address bar with this
+// window's gh.ref. Inside one that comparison is meaningless (this window's gh
+// is the host's, main by construction), and until 2026-09-28 the getter simply
+// returned '', which switched the check off on the route every branch page is
+// handed over on. PR #823 turned it back on; this is that check on the rule
+// the layer strip uses (_libOf): the ask is the frame's window.__lib when the
+// renderer stamped one (a version was asked for), else the page's own ref for
+// a page of web-tools, else main. The answer is the frame's own loader.
+
+const HOST = 'https://localhost/test/';
+const frameWith = (ref, lib) => ({ contentWindow: Object.assign({ gh: { ref } }, lib ? { __lib: lib } : {}) });
+const reread = async (d, subject) => { announce(window, subject); await tick(); d._sampleFrameLoader(); await tick(); };
+
+test('inside a toss, the ignored-version check reads the frame loader against the resolved ask', async () => {
+  window.history.replaceState(null, '', HOST);
+  window.__tossSubject = { repo: 'mehrlander/web-tools', ref: 'feature-x', path: 'pages/thing.html' };
+  window.__tossFrame = frameWith('main');
+  const { el } = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const d = Alpine.$data(el);
+  try {
+    d._sampleFrameLoader(); await tick();
+    // A web-tools page at a branch whose boot block pinned main itself.
+    assert.equal(d.ignoredUse, 'feature-x', 'the page asked for feature-x and the loader booted main');
+    assert.equal(d.loaderRef, 'main', 'the readout names what actually runs');
+
+    window.__tossFrame = frameWith('feature-x');
+    await reread(d, { repo: 'mehrlander/web-tools', ref: 'feature-x', path: 'pages/thing.html' });
+    assert.equal(d.ignoredUse, '', 'honoring the ref is not a mismatch');
+
+    // A page in another repo runs main by the rule, whatever its own ref.
+    window.__tossFrame = frameWith('main');
+    await reread(d, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    assert.equal(d.ignoredUse, '');
+    // Booting its own repo's branch name instead is the shipped defect (C9).
+    window.__tossFrame = frameWith('feature-y');
+    await reread(d, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    assert.equal(d.ignoredUse, 'main');
+
+    // An asked-for version is the ask, for any subject.
+    window.__tossFrame = frameWith('main', 'feature-z');
+    await reread(d, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    assert.equal(d.ignoredUse, 'feature-z');
+    window.__tossFrame = frameWith('feature-z', 'feature-z');
+    await reread(d, { repo: 'mehrlander/home', ref: 'feature-y', path: 'pages/thing.html' });
+    assert.equal(d.ignoredUse, '');
+
+    // A frame whose loader has not booted yet is not a mismatch either.
+    window.__tossFrame = { contentWindow: {} };
+    await reread(d, { repo: 'mehrlander/web-tools', ref: 'feature-x', path: 'pages/thing.html' });
+    assert.equal(d.frameLib, null);
+    assert.equal(d.ignoredUse, '');
+  } finally {
+    window.history.replaceState(null, '', HOST);
+    window.__tossSubject = null; window.__tossFrame = null;
+    window.dispatchEvent(new window.CustomEvent('toss-subject'));
+  }
+});

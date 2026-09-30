@@ -459,10 +459,10 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
   // two tooltips for one gesture, saying different things. The day is one
   // token right of the coloured edge it explains, and already had a title.
   //
-  // It is a data-note since 2026-09-06, on the same element: this test was
+  // It is a data-title-tip since 2026-09-06, on the same element: this test was
   // written to keep the whole date reachable "for the phone truncation", and a
   // title reaches no phone at all, which is the defect the note tier exists to
-  // fix (daisy-alpine mechanics.md, "Notes and cards"). What is held here is
+  // fix (html-style mechanics.md, "Title-tips and panel-tips"). What is held here is
   // the attachment point, which did not move.
   shell.view = 'sessions';
   data.sessionLens = 'list';
@@ -475,9 +475,9 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
   const card = [...doc.querySelectorAll('div.border-l-4')].find(d => d.querySelector('.tabular-nums'));
   assert.ok(card, 'the row drew');
   assert.equal(card.getAttribute('title'), null, 'no title on the card');
-  assert.equal(card.getAttribute('data-note'), null, 'and no note on it either');
+  assert.equal(card.getAttribute('data-title-tip'), null, 'and no note on it either');
   const day = card.querySelector('span.tabular-nums');
-  const t = day.getAttribute('data-note') || '';
+  const t = day.getAttribute('data-title-tip') || '';
   assert.ok(t.startsWith('2026-08-05'), 'the whole date is still there for the phone truncation: ' + t);
   assert.match(t, /branch/i, 'and the legend rides with it');
 });

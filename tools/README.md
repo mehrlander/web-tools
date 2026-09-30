@@ -7,9 +7,10 @@ facts these build on.
 
 Everything here resolves the same two networks of dependencies to local files:
 
-- **Own code** — the page's first jsDelivr `/gh/` import of `gh-api.js`, then
-  every `gh.load()` after it via the GitHub contents API → the on-disk working
-  tree (so a render reflects branch edits, not what `main` serves; no token).
+- **Own code** — the page's `lib/entry.js` import from GitHub Pages, the
+  `gh-api.js` it fetches from raw.githubusercontent, then every `gh.load()`
+  after it via the GitHub contents API → the on-disk working tree (so a render
+  reflects branch edits, not what `main` serves; no token).
 - **Third-party libs** — Tailwind / daisyUI / Phosphor / Alpine off jsDelivr +
   unpkg → npm-installed copies under `node_modules`.
 
@@ -65,7 +66,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run pages-index` | Regenerate both catalogs of every page: [`pages/README.md`](../pages/README.md) (link-dense table) and [`pages/index.html`](../pages/index.html) (visual card index). A *catalog* generator, not part of the code pipeline below — see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages` | `pages-shots` then `pages-index` — refresh thumbnails and both catalogs in one step. |
 | `npm run graphql-schema [-- --check]` | Regenerate [`graphql/github-schema.pruned.graphql`](graphql/): fetch GitHub's published SDL (1.5 MB) and write only the slice `lib/gh-fetch.js`'s queries reach (~2 KB), so `npm test` can typecheck them offline. The **one generator that needs the network**, which is why it stays out of the commit hook and the derived-artifacts gate; the drift guard lives in [`test/graphql-schema.test.mjs`](test/graphql-schema.test.mjs) instead. Run it after editing a query. |
-| `node tools/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> --out <thumbs-dir>` | Shoot ANOTHER repo's `pages` catalog into the private thumb cache (`web-tools-private/thumbs/`), so show-repo's gallery can show clickable screenshots for that repo. Serves the source checkout, vendors CDN libs from this repo's `node_modules`. Not an npm script (it takes a target). |
+| `node tools/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> --out <thumbs-dir>` | Shoot ANOTHER repo's `pages` catalog into the private thumb cache (`web-tools-private/thumbs/`), so the app's gallery can show clickable screenshots for that repo. Serves the source checkout, vendors CDN libs from this repo's `node_modules`. Not an npm script (it takes a target). |
 
 Shared internals: [`render/cdn.mjs`](render/cdn.mjs) (URL → local
 classification, used by the renderer), [`build/graph.mjs`](build/graph.mjs)
@@ -119,10 +120,9 @@ is fully offline-capable.
 
 The build and the runtime loader **optimize opposite things**. `gh.load` exists
 for freshness — edit a file, see it immediately — fetching own code through the
-contents API (not jsDelivr) precisely to dodge CDN caching. The build is the
-opposite: a *delivery snapshot*, regenerated on demand, not polled. So the build
-should never go back onto jsDelivr (that reintroduces the 12h branch-tip cache the
-loader was written to avoid). Its caching-free homes are:
+contents API precisely to dodge CDN caching. The build is the opposite: a
+*delivery snapshot*, regenerated on demand, not polled. Its caching-free homes
+are:
 
 - **Inlined into HTML** (see "bake", below) — nothing to fetch; the code is in the
   document.
@@ -133,8 +133,8 @@ loader was written to avoid). Its caching-free homes are:
 A page adopts the build by swapping one line — its loader import:
 
 ```js
-// gh-for-review (unchanged): runtime loads from the CDN at ?use=<ref>
-await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+// gh-for-review (unchanged): runtime loads at ?use=<ref>, else main
+await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 // the build (offline / production twin): same chain, served from the inlined cache
 await import('../dist/diff-tool.js');
 ```
@@ -182,7 +182,7 @@ whole chain and writes one line:
 
 ```js
 // loader (dev / freshness): per-file, ref-pinnable, network for own code
-await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 // pre-build (delivery / simplicity): whole library, one fetch, no own-code network
 await import('../dist/web-tools.js');
 ```
@@ -193,10 +193,9 @@ ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
 instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
 Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` re-pins the bundle to
 that ref for review. It does so by **fetch + blob-import from
-raw.githubusercontent**, not jsDelivr's `/gh/` CDN: raw serves public files
-anonymously with permissive CORS and no branch-tip cache, so a fresh push
-previews immediately (jsDelivr's `/gh/` listing lags ~12h, which used to make a
-just-pushed branch preview stale). A blob URL imports despite raw's `text/plain`
+raw.githubusercontent**, the same route `lib/entry.js` takes: raw serves public
+files anonymously with permissive CORS and a five-minute cache, so a fresh push
+previews immediately. A blob URL imports despite raw's `text/plain`
 type because the blob sets its own JS type, and the bundle is one self-contained
 module (no internal imports), so blob-import is clean and a branch name is
 cache-safe (no SHA needed). The no-`?use` path stays the same-origin Pages
@@ -229,8 +228,7 @@ Both artifacts are committed and held to `lib/` by the commit hook and by
 half of that gate.
 
 **Staying current.** `dist/web-tools.js` is **committed** (the one exception to
-the gitignored `dist/`) and served same-origin by Pages — never back onto
-jsDelivr, whose cache the loader exists to dodge. It's held to
+the gitignored `dist/`) and served same-origin by Pages. It's held to
 `lib/` by the commit-time hook (see [The refresh model](#the-refresh-model)).
 The build is deterministic (sorted cache + sorted boot, no date stamp), so it
 only shows a diff when `lib/` actually changed. Don't hand-edit
@@ -299,7 +297,7 @@ changes touch:
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
-| `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `.claude/skills/default/` |
+| `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 
 Most of these files are generated whole. Four are not. `docs/docs.csv`,
@@ -320,7 +318,7 @@ delta. Nothing local reports it either, because the hook does not verify what it
 stamps; `docs-registry.test.mjs` catches it in CI, after the push. Three legs
 learned this separately and each left the finding as a comment on its own leg,
 which is how the fourth was free to repeat it in 2026-08-23. So it is stated
-here once: a new generator that writes under `docs/` goes above leg 3a, and one
+here once: a new generator that writes under `docs/` goes above leg docs-reach, and one
 that only reads goes wherever it likes.
 
 **And a leg has to stage the file it actually writes.** Every `git add` in the
@@ -372,12 +370,14 @@ Screenshots are slow (a Chromium render per page) and not byte-deterministic
 binary churn for every touched page on every commit. Instead the hook *warns*
 when a page's HTML changes without its thumbnail, and the refresh happens
 deliberately — `npm run pages-shots -- <changed pages…>` — as part of the
-session wrap-up ritual in the root `CLAUDE.md` ("Wrapping up"). Until then,
+session wrap-up, per the root `CLAUDE.md` ("Per-session refresh: thumbnails"). Until then,
 `pages/index.html` degrades gracefully: a missing thumb shows the
 "no screenshot" placeholder.
 
-Nothing is generated server-side: GitHub Pages serves `main` as-is, with no CI
-and no deploy build. GitHub's API, MCP writes, the web merge button, and other
+Nothing is generated server-side: GitHub Pages serves `main` as-is, with no
+deploy build. The one verification workflow, `.github/workflows/test.yml`, runs
+`npm test` on pull requests and pushes to `main`, except pushes limited to
+`pages/wsl-sync/data/**`. It reports results without committing changes. GitHub's API, MCP writes, the web merge button, and other
 server-side merges cannot execute a local checkout's hooks. Before a server
 merge, merge the current base into the branch in a ready local checkout, run
 `npm test`, and push the refreshed branch. Follow a printed

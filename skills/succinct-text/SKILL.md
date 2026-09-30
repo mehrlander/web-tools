@@ -54,9 +54,10 @@ Build the crosswalk against the *original*, claim by claim. For each claim, name
 ## Traps
 
  * **Structural trope:** Ensure lists and contrasts ("X, not Y") are conceptually rigorous, not just snappy formatting. Flip the contrast: does the thesis wince? If not, the frame is empty.
- * **Narrative thread:** Delete prose that narrates the writing process ("now we see").
- * **Unchecked guard:** Before cautioning against a case, confirm the case arises.
+ * **Narrative thread:** Avoid prose that narrates the writing process ("now we see").
+ * **Unchecked guard:** Before cautioning against a case, confirm it happens.
  * **Over-claims:** Use possibility ("can be," "may") unless defending a measured frequency.
+ * **Explanatory prose:** Give the framework, not the explainer.
 
 ## Guardrails
 

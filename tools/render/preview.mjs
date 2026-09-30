@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Headless preview harness. Loads a page from the working tree under JSDOM,
 // intercepts every external <script>/<link> URL that resolves to repo
-// content (jsdelivr /gh/, raw.githubusercontent.com, GitHub contents API)
+// content (GitHub Pages, raw.githubusercontent.com, GitHub contents API)
 // and serves it from local files instead. Then waits for Alpine to mount
 // and reports which x-data containers actually got their template injected
 // by their component's init().
@@ -76,7 +76,7 @@ function rewriteRemoteImports(text) {
 }
 
 // Read an own-repo file from the working tree, with kit dynamic imports rewritten.
-// Shared by every own-code branch (jsdelivr /gh/, raw, contents API) so a render
+// Shared by every own-code branch (Pages, raw, contents API) so a render
 // reflects branch edits and the same rewrite applies however the file is fetched.
 function readOwnCode(relPath) {
   const fp = path.join(repoRoot, relPath);
@@ -87,10 +87,10 @@ function readOwnCode(relPath) {
 function resolveRequest(request) {
   const u = new URL(request.url);
 
-  // Repo content via jsdelivr GH (with optional @ref)
-  if (u.host === 'cdn.jsdelivr.net' && u.pathname.startsWith(`/gh/${REPO}`)) {
-    const tail = u.pathname.slice(`/gh/${REPO}`.length).replace(/^@[^/]+/, '');
-    const relPath = decodeURIComponent(tail).replace(/^\//, '');
+  // Repo content via GitHub Pages (lib/entry.js, the page's one import)
+  const [pagesOwner, pagesName] = REPO.split('/');
+  if (u.host === `${pagesOwner}.github.io` && u.pathname.startsWith(`/${pagesName}/`)) {
+    const relPath = decodeURIComponent(u.pathname.slice(pagesName.length + 2));
     const code = readOwnCode(relPath);
     if (code != null) {
       intercepts.push(`HIT  ${request.url} -> ${relPath}`);

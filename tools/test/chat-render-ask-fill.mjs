@@ -72,7 +72,7 @@ const PAGE = `<!doctype html><html data-theme="light"><head><meta charset="utf-8
 </head><body><div id="card" class="flex flex-col"></div>
 <script type="module">
   try {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
+    await import('https://mehrlander.github.io/web-tools/lib/entry.js');
     await gh.load('kits/url-params.js');
     await gh.load('kits/proof.js');
     await gh.load('kits/swipe-deck.js');
