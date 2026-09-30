@@ -62,6 +62,7 @@ its class:
 | --- | --- |
 | open | `head.ref` of an open pull request. Excluded. |
 | merged-tip | Tip SHA equals `head.sha` of a merged pull request. |
+| closed-tip | Tip SHA equals `head.sha` of a pull request closed without merging. |
 | ancestor | `git rev-list --count origin/<b> --not origin/main` prints `0`. |
 | content-settled | `python3 scripts/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
@@ -71,10 +72,17 @@ its class:
   `git push origin --delete <b>`. Until
   `git grep -q prFallback origin/main -- lib/kits/branch-brief.js` succeeds,
   propose instead.
-- **Propose:** delete a content-settled branch, or an ancestor with no pull
-  request, giving its last commit date.
-- **Owner only:** a novel branch. Report its origin (`Claude-Session` trailer
-  or pull request) and its novel files.
+- **Propose:** delete a content-settled or closed-tip branch, or an ancestor
+  with no pull request, giving its last commit date. Delete a novel branch
+  whose residue `main` has since rewritten or retired, naming what superseded it.
+- **Owner only:** any other novel branch. Report its origin (`Claude-Session`
+  trailer or pull request) and its novel files, grouping a session's branches
+  across repos. Lead with any session the session store's
+  `state/sessions.json` records as 🟣 Merged or ⚫ Done.
+
+A novel branch's residue is the lines it added
+(`git diff -U0 <merge-base> origin/<b> -- <path>`) that
+`git show origin/main:<path>` lacks.
 
 Link by pull request: `pages/branch.html#gh=<owner>/<repo>&pr=<n>`.
 
@@ -92,12 +100,15 @@ premises against the tree, not only its body.
 
 Read `## Open threads` in merged pull requests, back to the previous tend pass
 or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;
-check each against `main`.
+check each against `main`. Read open pull requests too, testing each head as
+Branches does.
 
-- **Act:** report threads `main` has since resolved.
+- **Act:** report threads `main` has since resolved, and open pull requests
+  whose head `main` already carries.
 - **Propose:** a task for a live thread.
 - **Owner only:** design direction; closing or merging any pull request. Do
-  not edit merged bodies.
+  not edit merged bodies. Nominate an open pull request nobody is moving, with
+  a one-line reason.
 
 ## Snags
 
