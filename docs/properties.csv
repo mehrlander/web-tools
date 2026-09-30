@@ -19,7 +19,7 @@ tests,boot_smoke,computed,tools/build/tests-index.mjs,counted,column,no,,label,"
 harness,role,recorded,,counted,column,yes,,value,what the file is for; blanks are counted rather than hidden
 harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;scripts/annotate;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
 harness,lines,computed,tools/build/tools-index.mjs,value,column,yes,,value,file length
-harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
+harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
 harness,emits,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
 harness,named,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
 harness,tested,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ exercises it
@@ -212,7 +212,7 @@ context-sources,reach,recorded,,value,column,yes,every;checkout;root;invoke;pr,l
 context-sources,read,recorded,,value,column,yes,yes;copy;no,label,"whether a session can read the source itself: yes, only through a committed copy, or not at all"
 context-sources,change,recorded,,value,column,yes,pr;owner;session;none,label,"who can change it: anyone through a pull request, only the owner in a settings page, the session itself, or nobody"
 context-sources,evidence,recorded,,value,column,yes,receipt;reconstructed;recorded;none,label,"how we know it arrived: the delivering script says so, a hook reconstructs it, the session record captures it, or nothing records it"
-context-sources,status,recorded,,value,column,yes,current;retiring;planned,label,"current, retiring once the setup script is replaced, or planned"
+context-sources,status,recorded,,value,column,yes,current;retiring;planned,label,"current, retiring (still present, with its replacement already live), or planned"
 context-sources,tally,recorded,,none,column,yes,,locator,"the key this source has in the session store tally: startup:<path> for an instruction file, skill:<name> for a skill"
 context-sources,topics,recorded,,none,column,yes,,label,"the overlap topics this source speaks to, semicolon separated, each a row in docs/context-topics.csv"
 context-sources,gloss,recorded,,value,column,yes,,value,one sentence on what the source does
