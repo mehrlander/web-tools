@@ -3411,9 +3411,14 @@
         const same = parts.reduce((n, p) => n + (p.added || p.removed ? 0 : p.value.length), 0);
         if (!D || same < 0.5 * Math.max(old.length, now.length)) parts = [{ value: old, removed: true }, { value: now, added: true }].filter((p) => p.value);
         const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s;
+        // A long change is shown by its ends: the pop is a glance at the
+        // edit, and a sentence-long insertion printed whole filled a phone
+        // screen. Changed text keeps 40 characters of its start and 20 of its
+        // end, unchanged text between changes 12 either side.
+        const cut = (s, head, tail) => s.length > head + tail + 3 ? s.slice(0, head).replace(/\s\S*$/, '') + ' … ' + s.slice(-tail).replace(/^\S*\s/, '') : s;
         return [{ t: pre, cls: 'opacity-60', k: '' },
-          ...parts.map((p) => p.removed ? { t: vis(p.value), cls: 'bg-error/20 text-error line-through decoration-[color-mix(in_oklab,var(--color-error)_50%,transparent)] rounded-sm', k: 'del' }
-            : p.added ? { t: vis(p.value), cls: 'bg-success/25 rounded-sm', k: 'add' } : { t: p.value, cls: '', k: '' }),
+          ...parts.map((p) => p.removed ? { t: vis(cut(p.value, 40, 20)), cls: 'bg-error/20 text-error line-through decoration-[color-mix(in_oklab,var(--color-error)_50%,transparent)] rounded-sm', k: 'del' }
+            : p.added ? { t: vis(cut(p.value, 40, 20)), cls: 'bg-success/25 rounded-sm', k: 'add' } : { t: cut(p.value, 12, 12), cls: '', k: '' }),
           { t: post, cls: 'opacity-60', k: '' }].filter((s) => s.t);
       },
       showWordPop(text, a, b, rect) {
@@ -4268,22 +4273,28 @@
       </div>
       <!-- A CHANGE'S POP, for a struck or added word or an underline: the
            change in the raw markdown (rawSegs), one line of source with
-           GitHub's text struck red and the text now green, and beside it the
+           GitHub's text struck red and the text now green, and under it the
            Undo, an action, so in the Split pill's blue. Under the tapped line,
            or above when below is out of room. The tap that opened it is
            ignored by the outside-click, which otherwise arrives as the same
-           gesture. -->
+           gesture.
+           w-max, AND IT MATTERS: a fixed box placed by its left edge and then
+           pulled back by half its width is laid out in the room to the right
+           of that edge, so near the middle of a phone it was squeezed to a
+           column a word wide. max-content, capped by the screen, lets the
+           line of source take the width it needs. -->
+
       <div x-show="wordPop" x-cloak data-word-pop
            x-transition:enter="transition-opacity ease duration-[90ms] motion-reduce:transition-none"
            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
            @pointerenter="_onPop = true; clearTimeout(_popLeave); _popLeave = null"
            @pointerleave="_onPop = false; if (wordPop && wordPop.hover) popLeave()"
-           class="fixed z-50 -translate-x-1/2 select-none flex items-center gap-2 rounded-box border border-base-300 bg-base-100 shadow-lg p-1.5 max-w-[min(26rem,calc(100vw-1rem))]"
+           class="fixed z-50 -translate-x-1/2 select-none grid gap-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-2 max-w-[min(26rem,calc(100vw-1rem))]"
            :style="wordPop ? 'left:' + wordPop.x + 'px;' + (wordPop.pos || 'top:' + wordPop.y + 'px') : ''">
         <code data-pop-raw class="min-w-0 font-mono text-xs leading-5 whitespace-pre-wrap break-words px-1"><template x-for="(s, j) in (wordPop ? wordPop.raw : [])" :key="j"><span :class="s.cls" :data-chg="s.k" x-text="s.t"></span></template></code>
         <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
-                class="shrink-0 btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
+                class="justify-self-end btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to

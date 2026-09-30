@@ -1931,6 +1931,28 @@ try {
   const addedW = await tapMarkAndUndo(['First two.', 'First extra two.'], ['ins', 'extra']);
   ok('a tap on added words shows them green in the raw line beside the same Undo, which takes them out, space and all', addedW.pop && addedW.pop.btn === 'Undo' && addedW.pop.add.includes('extra') && !addedW.pop.del && addedW.text === PARA_DOC, JSON.stringify(addedW));
   const repl = await tapMarkAndUndo(['Third para.', 'Third page.'], ['ins', 'page']);
+  // A LONG CHANGE ON A PHONE, reported 2026-09-30: the pop, placed from the
+  // middle of the screen, was squeezed to a column a word wide and printed
+  // the whole insertion down the screen. It takes the width its line needs,
+  // shortens a long change to its ends, and puts Undo under the line.
+  const longPop = await (async () => {
+    await reset();
+    const at = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+      c.$refs.view.scrollTop = 0;
+      c.d.text = c.text.replace('Second para.', 'Second read the situation the skill answers, a constraint or an opportunity, stating the forces either way.'); c.d.caretAt(0); c.paint();
+      await new Promise((r) => setTimeout(r, 250));
+      const el = [...c.$refs.md.querySelectorAll('ins')].find((x) => x.textContent.includes('constraint')); if (!el) return null;
+      const r = el.getClientRects()[0]; return { x: r.left + Math.min(r.width / 2, 60), y: r.top + r.height / 2 }; });
+    if (!at) return null;
+    await page.touchscreen.tap(at.x, at.y); await page.waitForTimeout(350);
+    return page.evaluate(() => { const p = document.querySelector('[data-word-pop]'); if (!p || !p.getClientRects().length) return null;
+      const r = p.getBoundingClientRect(), code = p.querySelector('[data-pop-raw]').getBoundingClientRect(), b = p.querySelector('button').getBoundingClientRect();
+      return { w: Math.round(r.width), vw: innerWidth, lines: Math.round(code.height / 20), below: b.top >= code.bottom - 1, inView: r.left >= 0 && r.right <= innerWidth,
+               cut: p.querySelector('[data-pop-raw]').textContent.includes(' … ') }; });
+  })();
+  ok('on a phone a long change\'s pop takes the width it needs, shortens the change to its ends, stays on screen, and puts Undo under the line',
+    !!longPop && longPop.w >= 0.75 * (longPop.vw - 16) && longPop.lines <= 5 && longPop.below && longPop.inView && longPop.cut, JSON.stringify(longPop));
+  await reset();
   ok('a replacement shows red and green together, and Undo on either half undoes the whole of it', repl.pop && repl.pop.btn === 'Undo' && repl.pop.del && repl.pop.add && repl.text === PARA_DOC, JSON.stringify(repl));
   // A mark that wraps has a box per line: the pill goes under the line tapped,
   // not under the union of them, whose centre was a line away on the phone.
