@@ -4301,10 +4301,12 @@
            and all, and marks none of them, so read cold it passed for the
            file as GitHub holds it (asked from the phone, 2026-09-30). While
            the text differs from GitHub's, a green badge floats top right under
-           the header; a tap goes to Rendered, where the edits are marked. -->
+           the header; a tap goes to Rendered, where the edits are marked. It
+           glows, and the glow alone breathes (a pseudo-element on the pulse), so
+           the words hold still; with reduced motion the glow simply stays. -->
       <button x-show="file && !rendered && dirty && !edit" x-cloak data-source-edits
               @click="setView('rendered')" title="This is your text with your edits. Tap to see them marked."
-              class="absolute top-2 right-2 z-20 badge badge-sm badge-success gap-1 shadow cursor-pointer">
+              class="absolute top-2 right-2 z-20 badge badge-sm badge-success gap-1 cursor-pointer shadow-[0_0_10px_1px_color-mix(in_oklab,var(--color-success)_55%,transparent)] before:absolute before:-inset-1 before:rounded-full before:content-[''] before:pointer-events-none before:shadow-[0_0_14px_4px_color-mix(in_oklab,var(--color-success)_45%,transparent)] before:animate-[pulse_2.4s_ease-in-out_infinite] motion-reduce:before:animate-none">
         <i class="ph ph-pencil-simple-line"></i>with edits
       </button>
 
