@@ -5,7 +5,7 @@ description: Revise documentation so each edit serves its critical objective and
 
 # Doc Craft
 
-Documentation guides a living system. When successful, it delivers insight where needed and is unheard otherwise. Improvement is deceptively challenging. Any edit changes what future participants are likely to notice and do, what they must hold in mind, and what someone must keep consistent later. A passage can become clearer while the system becomes harder to understand and govern.
+Documentation guides a living system. When successful, it delivers insight where needed and nothing otherwise. Improvement is deceptively challenging. Any edit changes what future participants are likely to notice and do, what they must hold in mind, and what someone must keep consistent later. A passage can become clearer while the system becomes harder to understand and govern.
 
 The burden on any edit is higher than is typically recognized. The inclination is to patch: close a gap from the immediate perspective, but each patch erodes the integrity of the whole. While it spotlights every contour of its own point, the audience leaves. Ideally, every change would reconsider all relevant context, but review is expensive and churn is itself costly.
 
