@@ -36,6 +36,7 @@ the link-dense text twin of the visual index above.
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |
 | `pip-steps` | Floating steps | [view](https://mehrlander.github.io/web-tools/pages/pip-steps.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html) |
+| `pivot-table` | Excel Pivot Table Viewer | [view](https://mehrlander.github.io/web-tools/pages/pivot-table.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html) |
 | `probe-snap` | Probe snap | [view](https://mehrlander.github.io/web-tools/pages/probe-snap.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html) |
 | `probe-window` | Probe window | [view](https://mehrlander.github.io/web-tools/pages/probe-window.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html) |
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
