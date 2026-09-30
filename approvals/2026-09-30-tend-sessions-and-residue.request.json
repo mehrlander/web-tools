@@ -1,0 +1,52 @@
+{
+ "manifest": {
+  "name": "tend: read novel branches by session, settle closed and superseded ones, and see open PRs",
+  "created_at": "2026-09-30T04:14:39Z",
+  "schema": {
+   "name": "surface",
+   "version": 2
+  },
+  "profile": {
+   "name": "approval",
+   "version": 1
+  }
+ },
+ "context": {
+  "id": "2026-09-30-tend-sessions-and-residue",
+  "kind": "documentation",
+  "reply_to": "mehrlander/web-tools:approvals",
+  "repo": "mehrlander/web-tools",
+  "base": "cc3da5c0ff9284ce4cded39e933bd43b7324f85d",
+  "occasion": "correction",
+  "session": "https://claude.ai/code/session_018zLjDiYWN7u98oYx17M8LX",
+  "rationale": "A census of the four estate repos on 2026-09-30 applied tend's Branches tests and found 99 novel branches with no open pull request. tend sends every novel branch to you, but two readings it lacks settled 45 of them: 13 head a pull request closed without merging, 23 carry only commits pushed after their pull request merged, and 9 have most of their added lines on main already. It also reads branches one at a time, so a session whose work landed in one repo and stranded in another reads as unrelated rows, and it never looks at open pull requests: Branches excludes their branches and the Pull requests stream reads only merged ones, which left eleven drafts untouched for more than a month outside every stream. You approved this revision in outline in chat; the consent gate holds the wording until you have read it. Approve, approve with edits, or return it.\n\nNO BRANCH DIFF FOR THIS: the gate holds the file uncommitted, so the item carries its whole patch. Read the patch pane."
+ },
+ "items": [
+  {
+   "id": "p1",
+   "title": "skills/tend/SKILL.md",
+   "type": "file",
+   "target": {
+    "source": {
+     "repository": "mehrlander/web-tools"
+    },
+    "path": "skills/tend/SKILL.md"
+   },
+   "commentary": "Branches gains a closed-tip class, proposed for deletion because the pull request keeps the commits and offers Restore branch. Every novel branch now gets two readings before it reaches you: only the commits after a merged pull request count, and the residue (added lines main lacks) is read against main, so a branch main has rewritten or retired is proposed for deletion rather than handed over. Novel branches are reported by session, reading closing states from state/sessions.json where the store is checked out; a session that closed Merged or Done with a novel branch comes first. Pull requests now reads open pull requests, reports those main already carries, and nominates stale ones for you to close.",
+   "related": [
+    {
+     "item": "scripts/stranded-triage.py",
+     "relation": "the content-settled test the new readings follow"
+    },
+    {
+     "item": "skills/sessions/SKILL.md",
+     "relation": "defines the session-record store the new paragraph reads"
+    }
+   ],
+   "change": {
+    "status": "modified",
+    "patch": "@@ -60,8 +60,9 @@ its class:\n \n | Class | Test |\n | --- | --- |\n-| open | `head.ref` of an open pull request. Excluded. |\n+| open | `head.ref` of an open pull request. Excluded; Pull requests reads it. |\n | merged-tip | Tip SHA equals `head.sha` of a merged pull request. |\n+| closed-tip | Tip SHA equals `head.sha` of a pull request closed without merging. |\n | ancestor | `git rev-list --count origin/<b> --not origin/main` prints `0`. |\n | content-settled | `python3 scripts/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |\n | novel | Anything else, including anything a shallow clone leaves undecided. |\n@@ -72,9 +73,29 @@ its class:\n   `git grep -q prFallback origin/main -- lib/kits/branch-brief.js` succeeds,\n   propose instead.\n - **Propose:** delete a content-settled branch, or an ancestor with no pull\n-  request, giving its last commit date.\n-- **Owner only:** a novel branch. Report its origin (`Claude-Session` trailer\n-  or pull request) and its novel files.\n+  request, giving its last commit date. Delete a closed-tip branch, naming the\n+  pull request, which keeps its commits and offers Restore branch. Delete a\n+  novel branch whose residue `main` has rewritten or retired, saying where in\n+  one line.\n+- **Owner only:** a novel branch whose residue still says something `main`\n+  does not. Report it under its session, with its novel files.\n+\n+Read every novel branch before reporting it:\n+\n+- **After a merge.** If the branch heads a merged pull request, only the\n+  commits after that pull request's `head.sha` are novel. Report those.\n+- **Residue.** For each novel path, take the lines the branch added\n+  (`git diff -U0 <merge-base> origin/<b> -- <path>`) and drop those present in\n+  `git show origin/main:<path>`. What is left is the residue. Read it against\n+  `main`.\n+\n+Report novel branches by session, not by branch. The `Claude-Session` trailer\n+names the session, and one session's branches in several repos are one item.\n+Where the session-record store is checked out (the checkout whose\n+`.web-tools.json` declares `sessions`), `state/sessions.json` holds each\n+session's branches and closing state. Name first a session that closed 🟣\n+Merged or ⚫ Done with a novel branch: its record says the work is finished and\n+the branch says it is not.\n \n Link by pull request: `pages/branch.html#gh=<owner>/<repo>&pr=<n>`.\n \n@@ -94,10 +115,15 @@ Read `## Open threads` in merged pull requests, back to the previous tend pass\n or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;\n check each against `main`.\n \n-- **Act:** report threads `main` has since resolved.\n+Read open pull requests too, since Branches excludes their branches. Apply the\n+Branches tests and readings to each head, and note when it last moved.\n+\n+- **Act:** report threads `main` has since resolved, and open pull requests\n+  whose head `main` already carries.\n - **Propose:** a task for a live thread.\n - **Owner only:** design direction; closing or merging any pull request. Do\n-  not edit merged bodies.\n+  not edit merged bodies. Nominate an open pull request that `main` has\n+  overtaken or that nobody has moved, with a one-line reason.\n \n ## Snags\n \n"
+   }
+  }
+ ]
+}
