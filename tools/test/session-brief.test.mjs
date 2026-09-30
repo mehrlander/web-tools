@@ -171,7 +171,7 @@ test('a unit word rides only the values that do not name themselves', () => {
   // calls.
   const units = Object.fromEntries(lent().strip.map(f => [f.k, f.unit]));
   assert.deepEqual(units,
-    { day: '', ran: '', calls: 'calls', failures: 'failed', repos: '' });
+    { day: '', ran: '', calls: 'tool calls', failures: 'failed', repos: '' });
 });
 
 test('the strip counts a zero rather than dropping it, and drops what is absent', () => {
