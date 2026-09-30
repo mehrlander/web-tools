@@ -4297,6 +4297,17 @@
                 class="justify-self-end btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
+      <!-- THE SOURCE FACE SAYS WHOSE TEXT IT IS. It shows the text now, edits
+           and all, and marks none of them, so read cold it passed for the
+           file as GitHub holds it (asked from the phone, 2026-09-30). While
+           the text differs from GitHub's, a green badge floats top right under
+           the header; a tap goes to Rendered, where the edits are marked. -->
+      <button x-show="file && !rendered && dirty && !edit" x-cloak data-source-edits
+              @click="setView('rendered')" title="This is your text with your edits. Tap to see them marked."
+              class="absolute top-2 right-2 z-20 badge badge-sm badge-success gap-1 shadow cursor-pointer">
+        <i class="ph ph-pencil-simple-line"></i>with edits
+      </button>
+
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to
            the next or the previous one, wrapping at the ends. It is what the
            retired Changes face had that the cards did not. Bottom left, since

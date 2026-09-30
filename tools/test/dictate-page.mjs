@@ -1972,6 +1972,23 @@ try {
   ok('on a mark that wraps, the pop sits under the line tapped, across the finger, and its Undo wears the action blue',
     !!wrapPop && wrapPop.top >= wrapAt.bottom && wrapPop.top - wrapAt.bottom < 16 && wrapPop.left <= wrapAt.x && wrapPop.right >= wrapAt.x && !/255, 255, 255/.test(wrapPop.bg),
     JSON.stringify({ wrapAt, wrapPop }));
+  // THE SOURCE FACE SAYS WHOSE TEXT IT IS: with edits, a badge says so and a
+  // tap goes to Rendered, where they are marked; with none, no badge.
+  await reset();
+  const srcBadge = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], vis = (el) => !!el && el.getClientRects().length > 0;
+    const b = () => document.querySelector('[data-source-edits]');
+    await c.setView('source'); await new Promise((r) => setTimeout(r, 150));
+    const clean = vis(b());
+    c.d.text = c.text.replace('Third para.', 'Third paragraph.'); c.paint(); await new Promise((r) => setTimeout(r, 150));
+    const edited = vis(b()) ? b().textContent.trim() : null;
+    b().click(); await new Promise((r) => setTimeout(r, 200));
+    const after = { view: c.view, badge: vis(b()) };
+    c.d.undo(); c.paint();
+    return { clean, edited, after };
+  });
+  ok('in Source, edited text wears a "with edits" badge that goes to Rendered; unedited text wears none',
+    !srcBadge.clean && srcBadge.edited === 'with edits' && srcBadge.after.view === 'rendered' && !srcBadge.after.badge, JSON.stringify(srcBadge));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
   // changes, carrying each one's note; the rest stay as edits.
