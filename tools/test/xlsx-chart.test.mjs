@@ -9,7 +9,7 @@ import { loadKit } from './bootstrap.mjs';
 const { JSDOM } = jsdomPkg;
 globalThis.DOMParser = new JSDOM('').window.DOMParser;
 const { xlsxKit } = loadKit('xlsx');
-const ambient = {};
+const ambient = { xlsxKit };
 new Function('window', readFileSync(new URL('../../lib/vanilla-bundle.js', import.meta.url), 'utf8'))(ambient);
 const { xlsxChartKit } = loadKit('xlsx-chart', { window: ambient });
 // This unchanged specimen was opened in native Excel and exported on Sept 24.
@@ -123,4 +123,79 @@ test('invalid or excessively dense axis intervals terminate with a fallback', ()
   for (const valueAxis of [{ min: 0, max: 0 }, { min: 0, max: 10, majorUnit: 0 }, { min: 0, max: 10, majorUnit: 0.000001 }]) {
     assert.equal(svg({ ...line, valueAxis }).documentElement.getAttribute('data-chart-status'), 'unsupported');
   }
+});
+
+// ---- legends, colours and tick labels ----------------------------------------
+// Small charts written inline, so each case states the one element it is about.
+const NS = 'xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"';
+const lit = (vals, spPr = '', extra = '') => `<c:ser><c:idx val="0"/><c:tx><c:v>S</c:v></c:tx>${spPr}${extra}` +
+  `<c:cat><c:strLit><c:ptCount val="${vals.length}"/>${vals.map((_, i) => `<c:pt idx="${i}"><c:v>C${i}</c:v></c:pt>`).join('')}</c:strLit></c:cat>` +
+  `<c:val><c:numLit><c:ptCount val="${vals.length}"/>${vals.map((v, i) => `<c:pt idx="${i}"><c:v>${v}</c:v></c:pt>`).join('')}</c:numLit></c:val></c:ser>`;
+const chartXml = (kind, ser, legendPos) => {
+  const body = kind === 'pie' ? `<c:pieChart>${ser}</c:pieChart>`
+    : kind === 'line' ? `<c:lineChart><c:grouping val="standard"/>${ser}</c:lineChart><c:catAx/><c:valAx/>`
+    : `<c:barChart><c:barDir val="${kind === 'bar' ? 'bar' : 'col'}"/><c:grouping val="clustered"/>${ser}</c:barChart><c:catAx/><c:valAx/>`;
+  const legend = legendPos ? `<c:legend><c:legendPos val="${legendPos}"/></c:legend>` : '';
+  return `<c:chartSpace ${NS}><c:chart><c:plotArea>${body}</c:plotArea>${legend}</c:chart></c:chartSpace>`;
+};
+const legendBoxes = (chart, w = 480, h = 280) => {
+  const doc = new JSDOM(xlsxChartKit.renderSvg(chart, w, h), { contentType: 'image/svg+xml' }).window.document;
+  return [...doc.querySelectorAll('[data-legend-item] text')].map(t => ({ x: Number(t.getAttribute('x')), y: Number(t.getAttribute('y')), text: t.textContent }));
+};
+
+test('a legend is drawn inside the frame in every position Excel writes', () => {
+  for (const [kind, pos] of [['col', 'b'], ['col', 't'], ['col', 'l'], ['col', 'r'], ['line', 'b'], ['pie', 'b'], ['bar', 'r'], ['bar', 'b']]) {
+    const labels = legendBoxes(xlsxKit.parseChartXml(chartXml(kind, lit([1, 2, 3]), pos)));
+    assert.ok(labels.length > 0, `${kind} legend at ${pos} is drawn`);
+    for (const l of labels) {
+      assert.ok(l.x > 0 && l.x < 480 && l.y > 0 && l.y < 280, `${kind} legend at ${pos} sits inside 480x280: ${JSON.stringify(l)}`);
+    }
+    if (pos === 'b') assert.ok(labels.every(l => l.y > 240), `${kind} bottom legend sits at the bottom`);
+    if (pos === 't') assert.ok(labels.every(l => l.y < 50), `${kind} top legend sits at the top`);
+  }
+  assert.equal(legendBoxes(xlsxKit.parseChartXml(chartXml('col', lit([1, 2, 3])))).length, 0, 'no c:legend, no legend');
+});
+
+test('a bar or slice takes its fill, never its outline; a line takes its stroke', () => {
+  const redFill = '<a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>';
+  const whiteLine = '<a:ln><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln>';
+  assert.equal(xlsxKit.parseChartXml(chartXml('col', lit([1, 2], `<c:spPr>${redFill}${whiteLine}</c:spPr>`))).series[0].color, '#ff0000');
+  assert.equal(xlsxKit.parseChartXml(chartXml('col', lit([1, 2], `<c:spPr>${redFill}<a:ln><a:noFill/></a:ln></c:spPr>`))).series[0].color, '#ff0000');
+  const stroke = '<c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="00AA00"/></a:solidFill></a:ln></c:spPr>';
+  assert.equal(xlsxKit.parseChartXml(chartXml('line', lit([1, 2], stroke))).series[0].color, '#00aa00');
+});
+
+test('theme colours resolve against the workbook theme, with Excel lightening applied', () => {
+  const theme = ['#ffffff', '#000000', '#e8e8e8', '#0e2841', '#156082', '#e97132', '#196b24', '#0f9ed5', '#a02b93', '#4ea72e'];
+  const accent2 = '<c:spPr><a:solidFill><a:schemeClr val="accent2"/></a:solidFill></c:spPr>';
+  assert.equal(xlsxKit.parseChartXml(chartXml('col', lit([1], accent2)), theme).series[0].color, '#e97132');
+  // "Accent 1, Lighter 40%" as Excel writes it: luminance scaled by 60%, then 40% added.
+  const lighter = '<c:spPr><a:solidFill><a:schemeClr val="accent1"><a:lumMod val="60000"/><a:lumOff val="40000"/></a:schemeClr></a:solidFill></c:spPr>';
+  const light = xlsxKit.parseChartXml(chartXml('col', lit([1], lighter)), theme).series[0].color;
+  assert.match(light, /^#[0-9a-f]{6}$/);
+  assert.ok(parseInt(light.slice(1, 3), 16) > 0x15, `lightened accent 1 is lighter: ${light}`);
+  // A series with no colour takes the workbook's accents, not a built-in guess.
+  assert.deepEqual(line.autoColors.slice(0, 2), ['#4f81bd', '#c0504d'], 'the fixture carries the Office 2007 theme');
+  const auto = xlsxKit.parseChartXml(chartXml('col', lit([1, 2])), theme);
+  const doc = new JSDOM(xlsxChartKit.renderSvg(auto, 480, 280), { contentType: 'image/svg+xml' }).window.document;
+  assert.ok([...doc.querySelectorAll('svg svg rect')].every(r => r.getAttribute('fill') === '#156082'));
+});
+
+test('a pie varies colour by point and honours a point fill', () => {
+  const dPt = '<c:dPt><c:idx val="1"/><c:spPr><a:solidFill><a:srgbClr val="123456"/></a:solidFill></c:spPr></c:dPt>';
+  const pie = xlsxKit.parseChartXml(chartXml('pie', lit([1, 2, 3], '', dPt), 'r'));
+  assert.equal(pie.varyColors, true, 'varyColors defaults on for a pie');
+  const doc = new JSDOM(xlsxChartKit.renderSvg(pie, 480, 280), { contentType: 'image/svg+xml' }).window.document;
+  const fills = [...doc.querySelectorAll('path')].map(p => p.getAttribute('fill'));
+  assert.deepEqual(fills, [xlsxChartKit.EXCEL_PALETTE[0], '#123456', xlsxChartKit.EXCEL_PALETTE[2]]);
+});
+
+test('tick labels follow the axis number format, locale tags included', () => {
+  const f = xlsxChartKit.formatValue;
+  assert.equal(f(2000, '"$"#,##0'), '$2,000');
+  assert.equal(f(1500, '[$-409]#,##0'), '1,500', 'a locale tag is not a currency sign');
+  assert.equal(f(1234.5, '#,##0.00'), '1,234.50');
+  assert.equal(f(0.125, '0.00%'), '12.50%');
+  assert.equal(f(2100, 'General'), '2100');
+  assert.equal(f(2100, ''), '2100');
 });

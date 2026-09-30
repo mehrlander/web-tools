@@ -98,6 +98,19 @@ try {
   await page.screenshot({ path: shotPivotBlue, fullPage: false });
   console.log(`  Saved screenshot: ${shotPivotBlue}`);
 
+  // The pivot theme picker from #791: a choice repaints the PivotTable headers
+  // and leaves the Excel Table header rule alone.
+  console.log('2b. Testing the pivot theme picker (Forest Green)...');
+  await page.selectOption('[data-xl-theme]', 'green');
+  await page.waitForTimeout(500);
+  const greenBg = await page.evaluate(() => {
+    const td = document.querySelector('[data-sheet="stage"] td.pvt-hdr');
+    return td ? getComputedStyle(td).backgroundColor : '';
+  });
+  ok('Theme change updates pivot header background to green', greenBg === 'rgb(30, 94, 58)', greenBg);
+  await page.selectOption('[data-xl-theme]', 'blue');
+  await page.waitForTimeout(300);
+
   // Switch to RawData
   console.log('3. Inspecting RawData table (ListObject)...');
   const rawTabBtn = page.locator('[data-sheet="tabs"] button:has-text("RawData")');
