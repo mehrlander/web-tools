@@ -388,7 +388,9 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     const [owner, name] = REPO.split('/');
     if (host === `${owner}.github.io` && u.pathname.startsWith(`/${name}/`)) {
       const rel = decodeURIComponent(u.pathname.slice(name.length + 2));
-      const fp = path.join(repoRoot, rel);
+      // A directory is its index.html, as Pages serves it (app/ is the app).
+      let fp = path.join(repoRoot, rel);
+      if (existsSync(fp) && statSync(fp).isDirectory()) fp = path.join(fp, 'index.html');
       if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `pages ${rel}` };
       return { kind: 'empty', contentType: 'application/octet-stream', tag: `MISS pages ${rel}` };
     }
