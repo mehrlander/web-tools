@@ -12,7 +12,7 @@ The tracker's mechanics live only in `docs/TRACKER.md`: the task file schema, th
 
 Add a `task-tracker` skill that closes this gap, modeled on the existing skills:
 
-- Closest analog is `caption` (`.claude/skills/caption/SKILL.md`): a self-contained skill that owns one mechanical job. The task-tracker skill should likewise own the tracker's operations directly (file a task, claim a task, regenerate and commit the board) rather than only pointing at the doc.
+- Closest analog is `caption` (`skills/caption/SKILL.md`): a self-contained skill that owns one mechanical job. The task-tracker skill should likewise own the tracker's operations directly (file a task, claim a task, regenerate and commit the board) rather than only pointing at the doc.
 - `web-tools-conventions` is the doc-loader analog if the lighter approach is preferred: a thin skill that loads `docs/TRACKER.md` into context on the right triggers.
 - Triggers: "add a task", "file a task", "claim a task", "check the tracker", "regenerate the board", and similar.
 

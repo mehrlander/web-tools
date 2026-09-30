@@ -47,9 +47,9 @@ Four things measured on one live session:
 
 - **The preview is 1,997 bytes**, and it ended partway into `CONVENTIONS.md`'s
   opening. Only the head of a payload is guaranteed to arrive, which is why
-  [`inject-conventions.sh`](../../.claude/skills/hooks/inject-conventions.sh)
-  prints its recovery block first and
-  [`session-dispatch.sh`](../../.claude/skills/hooks/session-dispatch.sh) prints
+  `inject-conventions.sh`, the conventions injector since retired, printed its
+  recovery block first and
+  [`session-dispatch.sh`](../../skills/hooks/session-dispatch.sh) prints
   its warning first.
 - **The cap is per hook entry, not across the event.** In the same session the
   dispatcher's 28,670-character payload was cut while a separate 298-character
@@ -69,8 +69,7 @@ Four things measured on one live session:
 
 The exact ceiling is still undocumented. The bound is that the smallest
 persisted output in the session archive is 29.4 KB, so it sits at or below that;
-`session-dispatch.sh` guards at 28,000 and the injector derives its own budget
-from that number rather than carrying a second copy.
+`session-dispatch.sh` guards at 28,000 (`OUTPUT_BUDGET`).
 
 ## Git transport: a per-push size ceiling
 
@@ -187,6 +186,20 @@ gets. `raw.githubusercontent.com`, `api.github.com` and `cdn.jsdelivr.net` all
 fail with `net::ERR_CONNECTION_RESET`, whether the proxy is passed through
 Playwright's `proxy:` option or `--proxy-server`, with `ignoreHTTPSErrors` and
 `--ignore-certificate-errors` set. The cause was not chased.
+
+**Re-measured 2026-09-29: the browser now has egress, and it is unreliable.**
+Through Playwright's `proxy:` option, Chromium reached Pages, raw, the contents
+API and jsDelivr, and the proxy authenticated GitHub API calls (a 15,000-request
+budget, private repositories readable). But one to three requests per page load
+died with `net::ERR_TOO_MANY_RETRIES`, over HTTP/2 and still with
+`--disable-http2`, scattered across hosts, and the proxy's own
+`recentRelayFailures` named none of them; one contents read answered 403. A
+loopback page server does not work alongside it: Chromium sent the page load to
+the proxy despite a `bypass`, and the proxy answered 405. What worked is serving
+the page by interception at a stand-in `https://` origin and letting every other
+request go live ([`tools/test/showing-refs-live.mjs`](../../tools/test/showing-refs-live.mjs)).
+So a live run can confirm what a page asked for and where it booted; a complete
+page load is not something to count on.
 
 That asymmetry is the load-bearing half. A repo page cannot be booted as-is in
 the headless browser, and not because a CDN is denied: the browser has no egress

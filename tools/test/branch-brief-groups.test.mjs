@@ -560,7 +560,7 @@ test('the head says which copy of the page is running, from the loader', () => {
 // masthead stands down. `framed` on the BRIEF means a host draws the branch
 // name and the state, and that the view is a slide rather than a page, so it
 // takes the single-scroller shape. The first is true of a toss; the second is
-// true only of show-repo's deck, which mounts the COMPONENT rather than either
+// true only of the app's deck, which mounts the COMPONENT rather than either
 // page.
 //
 // Passing one for the other is not a cosmetic slip: every roomy: class sits
@@ -596,7 +596,7 @@ test('neither page hands the brief its own iframe test', () => {
 test('every standalone host of this component declares the roomy variant', () => {
   const dir = path.join(repoRoot, 'pages');
   // A PAGE that mounts this component is standalone by construction: the only
-  // framed host is show-repo's deck, which mounts it from estate.js and never
+  // framed host is the app's deck, which mounts it from estate.js and never
   // from pages/. So the test is the mount, full stop. It also filtered on the
   // absence of `framed: true` for one commit, which read PROSE rather than
   // code and went quiet the moment a comment mentioned the flag by name.

@@ -1,4 +1,4 @@
-// .claude/skills/hooks/send-later-guard.sh — the PreToolUse refusal that stops a
+// skills/hooks/send-later-guard.sh — the PreToolUse refusal that stops a
 // session scheduling its own PR check-in.
 //
 // The failure has both halves, the way the invoke-default directive does. A guard that
@@ -25,9 +25,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
-const HOOK = path.join(repoRoot, '.claude/skills/hooks/send-later-guard.sh');
+const HOOK = path.join(repoRoot, 'skills/hooks/send-later-guard.sh');
 const HOOKS_JSON = JSON.parse(
-  readFileSync(path.join(repoRoot, '.claude/skills/hooks/hooks.json'), 'utf8'));
+  readFileSync(path.join(repoRoot, 'skills/hooks/hooks.json'), 'utf8'));
 
 // Both spellings observed in mehrlander/web-tools-private sessions/ on 2026-09-13.
 const NAMES = [

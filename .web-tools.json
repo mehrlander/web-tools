@@ -4,7 +4,7 @@
   "group": "core",
   "order": 11,
   "note": "Home of the Web Tools app, the browser tools and kits, and the portable conventions.",
-  "scope": "The public hub: the Web Tools app (the show-repo shell), the browser tools and kits, and the portable conventions every repo pulls. Public on purpose, since conventions are not secret and a public hub is what lets private repos fetch them with no credentials at session start.",
+  "scope": "The public hub: the Web Tools app, the browser tools and kits, and the portable conventions every repo pulls. Public on purpose, since conventions are not secret and a public hub is what lets private repos fetch them with no credentials at session start.",
   "tracker": "tracker/board.md",
   "growth": "data/doc-growth/web-tools.json",
   "data": { "census": "data/csv-census.csv" },
@@ -35,6 +35,16 @@
       "icon": "ph-seal-check",
       "order": 50,
       "slug": "approve"
+    },
+    {
+      "path": "pages/text-lab.html",
+      "title": "Text Lab",
+      "note": "The estate's text-analysis, NLP work, and retained proposals catalog.",
+      "appView": true,
+      "viewLabel": "Text Lab",
+      "icon": "ph-flask",
+      "order": 60,
+      "slug": "text-lab"
     }
   ],
   "stage": {

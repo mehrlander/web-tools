@@ -10,7 +10,7 @@
 
 <!--
   text-lab.html — the estate's text-analysis and NLP work as one reading
-  surface. Five panes over one subject: what we tried, the retained proposals we
+  surface. Five panes over one subject: what we tried, the variants we
   retained, what we read with, what we read against, and what came out.
 
   Named Text LAB, not Text Instruments. That name collided twice: with Texas
@@ -24,13 +24,14 @@
                  what it opens. Failures are recorded at the same weight as
                   successes, so the standing counts lead the header rather than
                   being tucked behind a total.
-    proposals    The shared Text collection, read from its committed files
-                 in home (passages.jsonl and proposals.jsonl):
-                 every proposed edit, as passage, replacement, author, and
-                 purpose.
+    variants     The shared Text collection, read from its committed files
+                 in home (passages.jsonl, variants.jsonl, proposals.jsonl):
+                 every variant, as passage, alternative wording, author, and
+                 purpose, with a chip naming each file a variant has been
+                 proposed for, linked to the proposal's basis.
                  Searchable, filterable by author and purpose, addressable by
-                 proposal id. It does not claim that a proposal applies to
-                 the document a reader has open, and nothing here applies one.
+                 variant id. A variant does not claim to apply to the
+                 document a reader has open, and nothing here applies one.
     instruments  projects/text/INSTRUMENTS.md, rendered. Organised by
                  unit of analysis (word, term of art, named entity, speaker,
                  sentence, document), because that is the question a session
@@ -40,9 +41,27 @@
                  run time, or does not have it. A coverage grid leads the pane:
                  property by state, so the empty cells read as loudly as the
                  full ones.
-    runs         the five dated runs, each pointing at whatever it actually
+    runs         the dated runs, each pointing at whatever it actually
                  produced. A run with no page says "no page" instead of
                  pretending, which is the same honesty the probe log keeps.
+                 Text collection runs lead the pane: any folder under
+                 projects/text/runs/ that declares its documents in a
+                 files.jsonl, each opening as a deck of those documents.
+
+  Reviewing. Under every pair, in the list and in both decks, one line carries
+  the variant's facts and a reader's three acts: vote it up, vote it down, and
+  comment. Each act is one line appended to home's projects/text/reviews.jsonl
+  through the viewer's token, written straight to the ref being read, the way
+  approve.html writes a verdict. The details that used to sit behind a row's
+  expander are a panel-tip (kits/panel-tip.js), opened from the same line.
+
+  Reading one at a time. The variants list is the index, and a deck is how it
+  is read: the house swipe-deck, with the same door (the cards glyph) every
+  other list here uses. Two decks. The filtered variants, one pair per slide in
+  md-diff's old/both/new swipe, so a variant reads exactly as it does in the
+  file viewer. And a text run's documents, one file per slide in the file
+  viewer's own Variants reading (kits/md-variants.js), so a pass is seen where
+  it lands rather than as loose pairs.
 
   Data contract. Everything is read live from mehrlander/home through the
   viewer's token (gh-api + gh-auth). This page holds no copy of the probe
@@ -62,9 +81,13 @@
     ?use=<ref>   pins this page's own lib chain to a ref.
     ?data=<ref>  pins which ref of home is read (defaults to main).
     ?pane=<name> opens one pane.
-    ?q=<text>    searches the proposal projection.
-    ?author=<name> and ?purpose=<word> filter proposal rows.
-    ?proposal=<id> opens one proposal and implies the proposals pane.
+    ?q=<text>    searches the variants.
+    ?author=<name> and ?purpose=<word> filter variant rows.
+    ?variant=<id> opens one variant and implies the variants pane.
+    ?deck=variants or ?deck=run:<dir>, with ?at=<n>, reopens a deck on a
+                 slide. The variants deck reads the filters beside it.
+    ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
+                 read and the address is rewritten to the new form.
 -->
 
 <style>[x-cloak]{display:none!important}</style>
@@ -72,16 +95,7 @@
 <script type="module">
  try {
   const params = new URLSearchParams(location.search);
-  const ref = params.get('use');
-  if (ref) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('gh-auth.js');
 
   document.addEventListener('alpine:init', () => {
@@ -90,9 +104,19 @@
       ROOT: 'projects/local-models',
       INSTRUMENTS: 'projects/text/INSTRUMENTS.md',
       TOSS: 'https://mehrlander.github.io/web-tools/pages/toss-render.html',
+      // Read-modify-write: this page reads home and saves back to it, so the
+      // read stays on the write branch. The selection never moves a file the
+      // page writes back; ?data= moves both together.
       DATA_REF: params.get('data') || 'main',
 
-      PANES: ['probes', 'proposals', 'instruments', 'resources', 'runs'],
+      PANES: ['probes', 'variants', 'instruments', 'resources', 'runs'],
+      PANE_META: {
+        probes:      { label: 'Probes',      icon: 'ph-test-tube' },
+        variants:    { label: 'Variants',    icon: 'ph-git-diff' },
+        instruments: { label: 'Instruments', icon: 'ph-toolbox' },
+        resources:   { label: 'Resources',   icon: 'ph-books' },
+        runs:        { label: 'Runs',        icon: 'ph-play-circle' },
+      },
 
       // The page's only coloured dimension.
       STANDINGS: {
@@ -143,7 +167,8 @@
       },
 
       home: null,
-      pane: params.get('proposal') ? 'proposals' : (params.get('pane') || 'probes'),
+      pane: (params.get('variant') || params.get('proposal')) ? 'variants'
+        : params.get('pane') === 'proposals' ? 'variants' : (params.get('pane') || 'probes'),
       probes: [],
       concept: '',
       filterStanding: '',
@@ -153,27 +178,45 @@
       resources: [],
       rate: '',
       filterState: '',
-      proposalIndex: null,
-      proposalState: 'idle',
-      proposalError: '',
-      proposalQ: params.get('q') || '',
-      proposalAuthor: params.get('author') || '',
-      proposalPurpose: params.get('purpose') || '',
-      proposalOpen: params.get('proposal') || '',
+      variantIndex: null,
+      variantState: 'idle',
+      variantError: '',
+      variantQ: params.get('q') || '',
+      variantAuthor: params.get('author') || '',
+      variantPurpose: params.get('purpose') || '',
+      variantOpen: params.get('variant') || params.get('proposal') || '',
+      me: '',
+      tip: null,
+      tipClose: '',
+      noteDraft: '',
+      reviewBusy: '',
+      reviewError: '',
+      TEXT_RUNS: 'projects/text/runs',
+      textRuns: [],
+      textRunState: 'idle',
+      deckParam: params.get('deck') || '',
+      deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
       loading: true,
       error: '',
       framed: window.self !== window.top,
 
       async init() {
         document.getElementById('boot')?.remove();
-        this.normalizeProposalParams();
+        gh.load('kits/panel-tip.js').then(() => {
+          if (!window.PanelTip || !this.$refs?.tip) return;
+          this.tipClose = window.PanelTip.closeHTML(true);
+          window.PanelTip.wire(this.$refs.tip, { onClose: () => this.closeTip(), except: ['[data-tip-btn]'] });
+          if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.placeTip()).observe(this.$refs.tip);
+        }).catch(() => {});
+        this.migrateLegacyAddress();
+        this.normalizeVariantParams();
         this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
         try {
           const res = await this.home.get(`${this.ROOT}/probes/probes.json`);
           this.probes = JSON.parse(res.text).probes
             .sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
         } catch (e) {
-          this.error = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
+          this.error = `${e.message || e} (${this.REPO}@${this.DATA_REF})`;
         }
         this.loading = false;
         // Whatever ?pane= asked for, not just the one that used to need it:
@@ -235,7 +278,8 @@
         this.pane = pane;
         this.syncPaneAddress();
         try {
-          if (pane === 'proposals') await this.loadProposals();
+          if (pane === 'variants') await this.loadVariants();
+          if (pane === 'runs') await this.loadTextRuns();
           if (pane === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
@@ -260,105 +304,133 @@
 
       // The collection's two files, read by the shared kit that the FAB and the
       // file viewer also read, so every surface has one answer.
-      async loadProposals() {
-        if (this.proposalState === 'loading' || this.proposalState === 'done') return;
-        this.proposalState = 'loading';
-        this.proposalError = '';
+      async loadVariants() {
+        if (this.variantState === 'loading' || this.variantState === 'done') return;
+        this.variantState = 'loading';
+        this.variantError = '';
         try {
           await gh.load('kits/text-collection.js');
-          this.proposalIndex = await window.TextCollection.load(this.home);
-          this.proposalState = 'done';
-          this.normalizeProposalParams();
-          if (this.proposalOpen
-              && !window.TextCollection.view(this.proposalIndex, this.proposalOpen)) {
-            this.proposalOpen = '';
-            this.syncProposalAddress();
+          this.variantIndex = await window.TextCollection.load(this.home);
+          this.variantState = 'done';
+          this.normalizeVariantParams();
+          if (this.deckParam === 'variants') {
+            this.deckParam = '';
+            this.openVariantDeck(this.variantRows, this.deckAt);
           }
-          // A proposal ID is a visible address, not merely an expanded row. Do
+          if (this.variantOpen
+              && !window.TextCollection.view(this.variantIndex, this.variantOpen)) {
+            this.variantOpen = '';
+            this.syncVariantAddress();
+          }
+          // A variant ID is a visible address, not merely an expanded row. Do
           // this only after the initial load, so opening a row by hand does not
           // make the list jump under the reader.
-          const addressed = this.proposalOpen;
+          const addressed = this.variantOpen;
           if (addressed) this.$nextTick(() => {
-            if (this.proposalOpen !== addressed) return;
-            document.getElementById(`proposal-${addressed}`)
+            if (this.variantOpen !== addressed) return;
+            document.getElementById(`variant-${addressed}`)
               ?.scrollIntoView({ block: 'start' });
           });
         } catch (e) {
-          this.proposalError = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
-          this.proposalState = 'error';
+          this.variantError = `${e.message || e} (${this.REPO}@${this.DATA_REF})`;
+          this.variantState = 'error';
         }
       },
 
-      get proposalRows() {
-        if (!this.proposalIndex || !window.TextCollection) return [];
-        const rows = window.TextCollection.search(this.proposalIndex, {
-          q: this.proposalQ,
-          author: this.proposalAuthor,
-          purpose: this.proposalPurpose,
+      get variantRows() {
+        if (!this.variantIndex || !window.TextCollection) return [];
+        const rows = window.TextCollection.search(this.variantIndex, {
+          q: this.variantQ,
+          author: this.variantAuthor,
+          purpose: this.variantPurpose,
         });
-        // A direct proposal address remains visible even when stale filters
+        // A direct variant address remains visible even when stale filters
         // also rode in the URL. The id is the stronger, exact address.
-        if (this.proposalOpen && !rows.some(row => row.id === this.proposalOpen)) {
-          const selected = window.TextCollection.view(this.proposalIndex, this.proposalOpen);
+        if (this.variantOpen && !rows.some(row => row.id === this.variantOpen)) {
+          const selected = window.TextCollection.view(this.variantIndex, this.variantOpen);
           if (selected) return [selected, ...rows];
         }
         return rows;
       },
 
-      get proposalTotal() {
-        if (!this.proposalIndex) return 0;
-        return this.proposalIndex.summary?.proposals
-          || this.proposalIndex.proposals?.length || 0;
+      get variantTotal() {
+        if (!this.variantIndex) return 0;
+        return this.variantIndex.summary?.variants
+          || this.variantIndex.variants?.length || 0;
       },
 
       // The facets are what the collection holds, counted, most common first.
-      proposalFacet(kind) {
-        const counts = this.proposalIndex?.summary?.[kind === 'author' ? 'by_author' : 'by_purpose'] || {};
+      variantFacet(kind) {
+        const counts = this.variantIndex?.summary?.[kind === 'author' ? 'by_author' : 'by_purpose'] || {};
         return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
           .map(([key, n]) => ({ key, n }));
       },
-      proposalGroups() {
-        const rows = this.proposalRows;
-        return this.proposalFacet('purpose')
+      // A purpose word's definition from purposes.csv, or null when the word
+      // has none: the gloss says what the word means, the prompt is the exact
+      // instruction its variants were written under, when one was recorded.
+      purposeDef(word) {
+        return this.variantIndex?.purposes?.[word] || null;
+      },
+      variantGroups() {
+        const rows = this.variantRows;
+        return this.variantFacet('purpose')
           .map(({ key }) => ({ purpose: key, items: rows.filter(row => row.purpose === key) }))
           .filter(group => group.items.length);
       },
 
-      proposalPreview(value, limit = 190) {
+      variantPreview(value, limit = 190) {
         const text = String(value || '').replace(/\s+/g, ' ').trim();
         if (text.length <= limit) return text;
         const cut = text.slice(0, limit).replace(/\s+\S*$/, '');
         return `${cut || text.slice(0, limit)}…`;
       },
 
-      toggleProposal(id) {
-        this.proposalOpen = this.proposalOpen === id ? '' : id;
-        this.syncProposalAddress();
+      // A basis is a PR or commit URL; anything else gets no link.
+      safeHref(value) {
+        return /^https?:\/\//.test(String(value || '')) ? value : null;
       },
 
-      setProposalFilter(kind, value) {
-        if (kind === 'author') this.proposalAuthor = value;
-        if (kind === 'purpose') this.proposalPurpose = value;
-        this.proposalOpen = '';
-        this.syncProposalAddress();
+      toggleVariant(id) {
+        this.variantOpen = this.variantOpen === id ? '' : id;
+        this.syncVariantAddress();
+      },
+
+      setVariantFilter(kind, value) {
+        if (kind === 'author') this.variantAuthor = value;
+        if (kind === 'purpose') this.variantPurpose = value;
+        this.variantOpen = '';
+        this.syncVariantAddress();
         this.shut();
       },
 
       // A facet the collection does not hold is dropped, so a stale address
       // shows the whole list rather than an empty one. Before the load, only a
       // blank is known to be valid.
-      normalizeProposalParams() {
-        if (!this.proposalIndex) return;
-        const author = this.proposalFacet('author').some(row => row.key === this.proposalAuthor)
-          ? this.proposalAuthor : '';
-        const purpose = this.proposalFacet('purpose').some(row => row.key === this.proposalPurpose)
-          ? this.proposalPurpose : '';
-        if (author === this.proposalAuthor && purpose === this.proposalPurpose) return;
-        this.proposalAuthor = author;
-        this.proposalPurpose = purpose;
+      normalizeVariantParams() {
+        if (!this.variantIndex) return;
+        const author = this.variantFacet('author').some(row => row.key === this.variantAuthor)
+          ? this.variantAuthor : '';
+        const purpose = this.variantFacet('purpose').some(row => row.key === this.variantPurpose)
+          ? this.variantPurpose : '';
+        if (author === this.variantAuthor && purpose === this.variantPurpose) return;
+        this.variantAuthor = author;
+        this.variantPurpose = purpose;
         const url = new URL(location.href);
         if (!author) url.searchParams.delete('author');
         if (!purpose) url.searchParams.delete('purpose');
+        history.replaceState(null, '', url);
+      },
+
+      // The rows were called proposals until 2026-09-27, and addresses minted
+      // then still arrive. The pane and the open row are already read from
+      // either name above; this rewrites the address to the new one.
+      migrateLegacyAddress() {
+        const url = new URL(location.href);
+        const legacy = url.searchParams.get('proposal');
+        if (!legacy && url.searchParams.get('pane') !== 'proposals') return;
+        url.searchParams.delete('proposal');
+        if (legacy && !url.searchParams.get('variant')) url.searchParams.set('variant', legacy);
+        url.searchParams.set('pane', 'variants');
         history.replaceState(null, '', url);
       },
 
@@ -366,21 +438,358 @@
         const url = new URL(location.href);
         if (this.pane === 'probes') url.searchParams.delete('pane');
         else url.searchParams.set('pane', this.pane);
-        if (this.pane !== 'proposals') url.searchParams.delete('proposal');
+        if (this.pane !== 'variants') url.searchParams.delete('variant');
         history.replaceState(null, '', url);
       },
 
-      syncProposalAddress() {
+      syncVariantAddress() {
         const url = new URL(location.href);
-        url.searchParams.set('pane', 'proposals');
+        url.searchParams.set('pane', 'variants');
         const set = (key, value) => value
           ? url.searchParams.set(key, value)
           : url.searchParams.delete(key);
-        set('q', this.proposalQ.trim());
-        set('author', this.proposalAuthor);
-        set('purpose', this.proposalPurpose);
-        set('proposal', this.proposalOpen);
+        set('q', this.variantQ.trim());
+        set('author', this.variantAuthor);
+        set('purpose', this.variantPurpose);
+        set('variant', this.variantOpen);
         history.replaceState(null, '', url);
+      },
+
+      // ── Reading one at a time ─────────────────────────────────────────────
+      // Both decks keep their place in the address, so a slide can be linked
+      // and a reload lands where the reader was.
+      syncDeckAddress(deck, at = 0) {
+        const url = new URL(location.href);
+        if (deck) {
+          url.searchParams.set('deck', deck);
+          url.searchParams.set('at', String(at));
+        } else {
+          url.searchParams.delete('deck');
+          url.searchParams.delete('at');
+        }
+        history.replaceState(null, '', url);
+      },
+
+      // The filters in words, for the deck's subtitle.
+      variantScope() {
+        return [this.variantPurpose || 'every purpose', this.variantAuthor || 'every author',
+                this.variantQ.trim() && `"${this.variantQ.trim()}"`].filter(Boolean).join(' · ');
+      },
+
+      wordCount(s) { return (String(s || '').match(/\S+/g) || []).length },
+
+      // "owner/name:path" as the reader says it, and as an app address that
+      // opens the file in Files, a tap from its Variants reading.
+      shortLoc(loc) {
+        const i = String(loc).indexOf(':');
+        return `${loc.slice(0, i).split('/').pop()}/${loc.slice(i + 1)}`;
+      },
+      fileHref(loc) {
+        const i = String(loc).indexOf(':');
+        return `https://mehrlander.github.io/web-tools/app/?repo=${encodeURIComponent(loc.slice(0, i))}`
+          + `&file=${encodeURIComponent(loc.slice(i + 1))}`;
+      },
+
+      // A pair drawn by md-diff, the renderer the file viewer uses, so the
+      // three readings and the marks are the same everywhere.
+      async renderPair(host, v) {
+        host.textContent = '';
+        try {
+          await gh.load('kits/md-diff.js');
+          await window.mdDiff.render(host, v.from?.text || '', v.to?.text || '', { strip: false });
+        } catch (e) {
+          host.textContent = `${e.message || e}`;
+        }
+      },
+
+      // ── Reviews ───────────────────────────────────────────────────────────
+      async whoami() {
+        if (this.me) return this.me;
+        try { this.me = (await this.home.req('/user'))?.login || ''; } catch (_) { this.me = ''; }
+        return this.me;
+      },
+
+      reviewsOf(v) {
+        const T = window.TextCollection;
+        return T && this.variantIndex ? T.reviewsFor(this.variantIndex, v.from.passage_id, v.to.passage_id)
+          : { up: [], down: [], notes: [], voteOf: () => '' };
+      },
+
+      // One act, one appended line. A vote repeated takes itself back.
+      async review(v, patch) {
+        if (this.reviewBusy) return false;
+        this.reviewBusy = v.id;
+        this.reviewError = '';
+        this.refreshActions(v.id);
+        try {
+          await this.whoami();
+          if (!this.me) throw new Error('Reviewing needs a GitHub token that can write to mehrlander/home.');
+          await gh.load('gh-store.js');
+          const T = window.TextCollection;
+          const row = { from: v.from.passage_id, to: v.to.passage_id, by: this.me, at: new Date().toISOString() };
+          if ('vote' in patch) row.vote = this.reviewsOf(v).voteOf(this.me) === patch.vote ? '' : patch.vote;
+          if (patch.note) row.note = patch.note;
+          const path = T.PATHS.reviews;
+          let text = '', sha;
+          try {
+            const cur = await this.home.get(path, window.GH.FRESH);
+            text = cur.text; sha = cur.sha;
+          } catch (e) { if (e?.status !== 404) throw e; }
+          if (text && !text.endsWith('\n')) text += '\n';
+          const what = row.vote !== undefined ? (row.vote || 'withdraw vote') : 'note';
+          await this.home.save(path, text + T.reviewLine(row) + '\n',
+            `Text review: ${what} on variant ${v.id.slice(0, 12)}`, sha ? { sha } : {});
+          T.addReview(this.variantIndex, row);
+          return true;
+        } catch (e) {
+          this.reviewError = e.message || String(e);
+          return false;
+        } finally {
+          this.reviewBusy = '';
+          this.refreshActions(v.id);
+        }
+      },
+
+      async saveNote(v) {
+        const note = this.noteDraft.trim();
+        if (!note) return;
+        if (await this.review(v, { note })) this.noteDraft = '';
+      },
+
+      // The line under a pair: its facts, then the three acts and the details.
+      // Built as DOM rather than template because the decks are DOM, so the
+      // list and both decks draw one line from one function.
+      variantFoot(v, { deckAt = null } = {}) {
+        const h = window.swipeDeck?.h || ((tag, attrs = {}, ...kids) => {
+          const e = document.createElement(tag);
+          for (const [k, val] of Object.entries(attrs)) e.setAttribute(k, val);
+          for (const k of kids.flat()) if (k) e.append(k);
+          return e;
+        });
+        const foot = h('div', { class: 'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-base text-base-content/60' },
+          h('span', { class: 'font-medium text-base-content/80' }, v.purpose || ''),
+          h('span', {}, v.author || ''),
+          h('span', { class: 'tabular-nums' }, `${this.wordCount(v.from?.text)} → ${this.wordCount(v.to?.text)} words`));
+        if (v.at && v.at.length) {
+          foot.append(h('a', { class: 'link link-hover font-mono text-sm truncate max-w-[18rem]', href: this.fileHref(v.at[0]),
+                               target: '_blank', rel: 'noopener' },
+            this.shortLoc(v.at[0]) + (v.at.length > 1 ? ` +${v.at.length - 1}` : '')));
+        }
+        // A chip per file this variant is proposed for, linking the proposal's basis.
+        for (const q of v.proposals || []) {
+          foot.append(h('a', { class: 'badge badge-outline gap-1 font-mono', href: this.safeHref(q.basis) || '',
+                               target: '_blank', rel: 'noopener' }, h('i', { class: 'ph ph-seal-question' }), q.path));
+        }
+        foot.append(h('span', { class: 'grow' }), this.variantActions(v, { deckAt }));
+        return foot;
+      },
+
+      variantActions(v, o = {}) {
+        const h = window.swipeDeck?.h;
+        const r = this.reviewsOf(v);
+        const mine = this.me ? r.voteOf(this.me) : '';
+        const busy = this.reviewBusy === v.id;
+        const box = document.createElement('span');
+        box.className = 'inline-flex items-center gap-0.5';
+        box.dataset.actions = v.id;
+        box._v = v; box._o = o;
+        const btn = (icon, label, n, on, fn, extra = '') => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = `btn btn-ghost btn-sm gap-1 px-2 max-sm:h-10 ${extra}`;
+          b.setAttribute('aria-label', label);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          b.dataset.tipBtn = '';
+          b.innerHTML = `<i class="${on ? 'ph-fill' : 'ph'} ${icon} text-lg"></i>`
+            + (n ? `<span class="tabular-nums">${n}</span>` : '');
+          if (busy) b.disabled = true;
+          b.addEventListener('click', (e) => fn(e.currentTarget));
+          return b;
+        };
+        box.append(
+          btn('ph-thumbs-up', 'Vote up', r.up.length, mine === 'up', () => this.review(v, { vote: 'up' })),
+          btn('ph-thumbs-down', 'Vote down', r.down.length, mine === 'down', () => this.review(v, { vote: 'down' })),
+          btn('ph-chat-circle', 'Comment', r.notes.length, false, (b) => this.openTip('note', v, b)),
+          btn('ph-info', 'Details', 0, false, (b) => this.openTip('info', v, b)));
+        if (o.deckAt != null) {
+          box.append(btn('ph-cards-three', 'Read from here, one at a time', 0, false,
+            () => this.openVariantDeck(this.variantRows, o.deckAt), 'text-primary'));
+        }
+        if (this.reviewError && this.reviewTarget === v.id) {
+          box.append(Object.assign(document.createElement('span'), { className: 'text-sm text-error ml-2', textContent: this.reviewError }));
+        }
+        return box;
+      },
+
+      refreshActions(id) {
+        this.reviewTarget = id;
+        for (const el of document.querySelectorAll(`[data-actions="${id}"]`)) {
+          el.replaceWith(this.variantActions(el._v, el._o));
+        }
+      },
+
+      // The details and the notes open as a pinned panel-tip beside the
+      // button, clamped to the screen and flipped above when there is no
+      // room below.
+      openTip(kind, v, btn) {
+        if (this.tip && this.tip.kind === kind && this.tip.v.id === v.id) return this.closeTip();
+        const r = btn.getBoundingClientRect();
+        const w = Math.min(320, innerWidth - 16);
+        this.noteDraft = '';
+        this.tip = { kind, v, x: Math.max(8, Math.min(r.right - w, innerWidth - w - 8)), y: r.bottom + 6, w };
+        this._tipRect = r;
+        if (kind === 'note') this.$nextTick(() => this.$refs.tip?.querySelector('textarea')?.focus({ preventScroll: true }));
+      },
+
+      // Below the button when it fits, above when it does not, and inside the
+      // screen either way. Run by a ResizeObserver, since the panel's body
+      // arrives after the open and its height is not known until it has.
+      placeTip() {
+        const el = this.$refs.tip, r = this._tipRect;
+        if (!el || !this.tip || !r) return;
+        const hgt = el.offsetHeight;
+        const below = r.bottom + 6;
+        const y = below + hgt <= innerHeight - 8 ? below
+          : r.top - 6 - hgt >= 8 ? r.top - 6 - hgt : Math.max(8, innerHeight - hgt - 8);
+        if (y !== this.tip.y) this.tip.y = y;
+      },
+      closeTip() { this.tip = null; this.noteDraft = ''; },
+
+      // A row draws its pair when it comes within a screen of the viewport,
+      // once. One observer serves the whole list.
+      lazyPair(host, v) {
+        if (typeof IntersectionObserver !== 'function') return this.renderPair(host, v);
+        if (!this._pairObserver) {
+          this._pairObserver = new IntersectionObserver(entries => {
+            for (const e of entries) {
+              if (!e.isIntersecting) continue;
+              this._pairObserver.unobserve(e.target);
+              const row = e.target._variant;
+              if (row) this.renderPair(e.target, row);
+            }
+          }, { rootMargin: '800px 0px' });
+        }
+        host._variant = v;
+        this._pairObserver.observe(host);
+      },
+
+      async openVariantDeck(rows, start = 0, label = '') {
+        if (!rows || !rows.length) return;
+        await gh.load('kits/swipe-deck.js');
+        const at = Math.min(Math.max(0, start), rows.length - 1);
+        window.swipeDeck.open({
+          count: rows.length,
+          start: at,
+          title: 'Variants',
+          subtitle: label || this.variantScope(),
+          icon: 'ph-flask',
+          innerClass: 'w-full min-w-0 mx-auto',
+          index: i => ({ title: this.variantPreview(rows[i].from?.text, 70),
+                         subtitle: `${rows[i].purpose} · ${rows[i].author}`,
+                         group: rows[i].purpose }),
+          render: (i, slide) => {
+            const doc = document.createElement('div');
+            slide.append(doc, this.variantFoot(rows[i]));
+            this.renderPair(doc, rows[i]);
+          },
+          onSlide: i => this.syncDeckAddress('variants', i),
+          onClose: () => this.syncDeckAddress(''),
+        });
+        this.syncDeckAddress('variants', at);
+      },
+
+      // Text collection runs: folders under projects/text/runs/ that name their
+      // documents in files.jsonl. A folder without one is a run of another
+      // kind and is not listed here.
+      async loadTextRuns() {
+        if (this.textRunState !== 'idle') return;
+        this.textRunState = 'loading';
+        try {
+          const dirs = (await this.home.req(`contents/${this.TEXT_RUNS}?ref=${encodeURIComponent(this.DATA_REF)}`))
+            .filter(d => d.type === 'dir').map(d => d.name).sort().reverse();
+          const found = await Promise.all(dirs.map(async name => {
+            const dir = `${this.TEXT_RUNS}/${name}`;
+            try {
+              const res = await this.home.get(`${dir}/files.jsonl`);
+              const files = res.text.split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
+              let title = name.slice(11).replace(/-/g, ' ');
+              try {
+                const readme = await this.home.get(`${dir}/README.md`);
+                title = (/^#\s+(.+)$/m.exec(readme.text) || [])[1] || title;
+              } catch (_) { /* a run without a README keeps its folder name */ }
+              return { name, dir, date: name.slice(0, 10), title, files,
+                       variants: files.reduce((n, f) => n + (f.variants || 0), 0) };
+            } catch (_) { return null; }
+          }));
+          this.textRuns = found.filter(Boolean);
+          this.textRunState = 'done';
+          const want = this.deckParam.startsWith('run:') ? this.deckParam.slice(4) : '';
+          const run = want && this.textRuns.find(r => r.name === want);
+          if (run) { this.deckParam = ''; this.openRunDeck(run, this.deckAt); }
+        } catch (e) {
+          this.textRunState = 'error';
+          this.error = `runs: ${e.message || e}`;
+        }
+      },
+
+      // One document per slide, drawn by the file viewer's Variants reading
+      // against the document as it stands on main, so the slide shows every
+      // variant the collection holds for it, this run's and any other's.
+      async openRunDeck(run, start = 0) {
+        await gh.load('kits/swipe-deck.js');
+        await gh.load('kits/md-variants.js');
+        await this.loadVariants();
+        const h = window.swipeDeck.h;
+        const files = run.files;
+        const at = Math.min(Math.max(0, start), files.length - 1);
+        window.swipeDeck.open({
+          count: files.length,
+          start: at,
+          title: run.title,
+          subtitle: `${run.date} · ${files.length} files · ${run.variants.toLocaleString()} variants`,
+          icon: 'ph-flask',
+          innerClass: 'w-full min-w-0 mx-auto',
+          index: i => ({ title: files[i].path.split('/').pop(),
+                         subtitle: `${files[i].repo.split('/').pop()}/${files[i].path}`,
+                         group: files[i].repo }),
+          render: (i, slide) => {
+            const f = files[i];
+            const head = h('div', { class: 'flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs mb-4' },
+              h('span', { class: 'font-medium' }, `${f.repo.split('/').pop()}/${f.path}`),
+              h('span', { class: 'opacity-60 tabular-nums' },
+                `${(f.words_before || 0).toLocaleString()} → ${(f.words_after || 0).toLocaleString()} words · ${f.variants} variants`));
+            const notes = h('details', { class: 'mb-5 text-base leading-7' },
+              h('summary', { class: 'cursor-pointer font-mono text-xs opacity-60' }, 'What changed, and what the audit restored'),
+              h('p', { class: 'mt-2 text-pretty' }, f.drafter || ''),
+              h('p', { class: 'mt-2 text-pretty opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
+            const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-20' }));
+            slide.append(head, notes, doc);
+            this.renderRunFile(doc, f);
+          },
+          onSlide: i => this.syncDeckAddress(`run:${run.name}`, i),
+          onClose: () => this.syncDeckAddress(''),
+        });
+        this.syncDeckAddress(`run:${run.name}`, at);
+      },
+
+      async renderRunFile(host, f) {
+        try {
+          // Read-only, so no ref: the file follows the page's selection.
+          const repo = new window.GH({ token: window.TOKEN || '', repo: f.repo });
+          // The frontmatter is stripped, as the file viewer's Variants reading
+          // strips it, or a skill's YAML renders as one bold heading.
+          const md = (await repo.get(f.path)).text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+          host.textContent = '';
+          await window.mdVariants.render(host, md, this.variantIndex, {
+            file: { repo: f.repo, path: f.path }, strip: false,
+            actions: v => this.variantActions(v),
+          });
+          if (!host.querySelector('.md-diff-change')) host.prepend(Object.assign(document.createElement('p'), {
+            className: 'font-mono text-xs opacity-60 mb-3',
+            textContent: 'No variant matches a paragraph of this file as it stands on main.' }));
+        } catch (e) {
+          host.textContent = `${f.repo}:${f.path}: ${e.message || e}`;
+        }
       },
 
       get resCounts() {
@@ -430,7 +839,7 @@
         if (loc.startsWith('pip:')) return `https://pypi.org/project/${loc.slice(4)}/`;
         if (loc.startsWith('nltk:')) return '';
         const [repo, path] = loc.split(':');
-        const ref = repo === this.REPO ? this.DATA_REF : 'main';
+        const ref = repo === this.REPO ? this.DATA_REF : (window.GH?.refFor?.(repo, path) || 'main');
         return `https://github.com/${repo}/blob/${ref}/${path}`;
       },
       resourceLabel(loc) {
@@ -481,237 +890,170 @@
 <div x-data="textInstruments" x-cloak>
 
   <!-- ── chrome ───────────────────────────────────────────────────────────
-       Sticky rather than fixed: this page is a tenant, embedded as an app
-       view in show-repo, and a fixed root measures against the outer viewport
-       inside a narrower frame. -->
-  <!-- TWO BANDS, not one wrapping row.
-       The header used to put the title, the tabs, the counts and a dropdown in
-       a single flex-wrap line. On a phone that stacked into three rows of
-       identical lowercase monospace at one size, and four grey words at the top
-       of a framed page read as a stylesheet that failed to load rather than as
-       chrome. The bands separate the two kinds of control: what you are looking
-       at, then what you are filtering it by. -->
-  <header class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
-
-    <div class="px-5 sm:px-7 flex items-center gap-x-4 sm:gap-x-6 overflow-x-auto">
-      <h1 x-show="!framed" class="font-serif text-xl sm:text-2xl tracking-tight py-2.5 shrink-0">Text Lab</h1>
-      <nav class="flex gap-4 sm:gap-6 text-sm shrink-0">
-        <template x-for="key in PANES" :key="key">
-          <button class="py-2.5 -mb-px border-b-2 whitespace-nowrap transition-colors"
-                  :class="pane === key ? 'border-base-content font-medium' : 'border-transparent opacity-40 hover:opacity-70'"
-                  @click="showPane(key)" x-text="key"></button>
-        </template>
-      </nav>
+       The Web Tools app views' idiom (Search, Map): a pill strip of tabs with
+       icons, then the pane's own controls as ordinary form controls, a
+       bordered search box, a count, a badge rail for the one facet worth
+       switching often, and a bordered select for the rest. Normal flow, not
+       fixed: this page is a tenant, framed as an app view. The title shows
+       only when the page stands alone; framed, the app's header names it. -->
+  <header class="px-4 sm:px-6 pt-4 pb-3 flex flex-col gap-3 border-b border-base-200">
+    <div x-show="!framed" class="flex items-center gap-2">
+      <i class="ph ph-flask text-xl text-base-content/50"></i>
+      <h1 class="text-lg font-semibold">Text Lab</h1>
     </div>
 
-    <!-- The counts are the filter: a number that does nothing is a stat card
-         with the border removed. The number sits tight against its own word,
-         with the gap BETWEEN pairs five times the gap inside one, because the
-         old spacing was equal both ways and four buttons read as one sentence
-         ("4 worked 6 mixed 5 failed 1 open"). -->
-    <div class="px-5 sm:px-7 py-2 border-t border-base-200 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs">
-
-      <div x-show="pane === 'proposals'" class="flex items-center gap-3 grow min-w-[14rem]">
-        <label class="flex items-center gap-2 grow min-w-0">
-          <i class="ph ph-magnifying-glass opacity-30 shrink-0"></i>
-          <input class="bg-transparent outline-none min-w-0 grow placeholder:text-base-content/30"
-                 aria-label="Search proposals" placeholder="search text, replacement, author, or purpose"
-                 x-model="proposalQ"
-                 @input.debounce.250ms="proposalOpen = ''; syncProposalAddress()"
-                 @keydown.escape="proposalQ = ''; proposalOpen = ''; syncProposalAddress()">
-        </label>
-        <button x-show="proposalQ" class="opacity-40 hover:opacity-100"
-                aria-label="Clear proposal search"
-                @click="proposalQ = ''; proposalOpen = ''; syncProposalAddress()">
-          <i class="ph ph-x"></i>
+    <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit flex-wrap" role="tablist">
+      <template x-for="key in PANES" :key="key">
+        <button role="tab" @click="showPane(key)" :aria-selected="pane === key"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                :class="pane === key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+          <i class="ph text-lg" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
         </button>
-        <span class="opacity-40 whitespace-nowrap tabular-nums"
-              x-text="proposalRows.length + ' of ' + proposalTotal"></span>
-      </div>
-
-      <div x-show="pane === 'probes'" class="flex items-baseline gap-x-5">
-        <template x-for="key in ['worked','mixed','failed','open']" :key="key">
-          <button class="hover:opacity-100 transition-opacity whitespace-nowrap"
-                  :class="filterStanding === key ? [STANDINGS[key].text, 'opacity-100', 'font-medium'] : 'opacity-40'"
-                  @click="filterStanding = filterStanding === key ? '' : key">
-            <span class="tabular-nums" x-text="counts[key]"></span><span class="ml-1" x-text="key"></span>
-          </button>
-        </template>
-      </div>
-
-      <div x-show="pane === 'resources'" class="flex items-baseline gap-x-5">
-        <template x-for="key in ['held','fetched','absent']" :key="key">
-          <button class="hover:opacity-100 transition-opacity whitespace-nowrap"
-                  :class="filterState === key ? [STATES[key].text, 'opacity-100', 'font-medium'] : 'opacity-40'"
-                  @click="filterState = filterState === key ? '' : key">
-            <span class="tabular-nums" x-text="resCounts[key]"></span><span class="ml-1" x-text="key"></span>
-          </button>
-        </template>
-      </div>
-
-      <div class="grow"></div>
-
-      <template x-for="kind in ['purpose', 'author']" :key="kind">
-        <div x-show="pane === 'proposals'" class="dropdown" :class="kind === 'author' && 'dropdown-end'">
-          <div tabindex="0" role="button"
-               class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
-               :class="(kind === 'author' ? proposalAuthor : proposalPurpose) && 'opacity-100 font-medium'">
-            <span x-text="(kind === 'author' ? proposalAuthor : proposalPurpose) || ('all ' + kind + 's')"></span>
-            <i class="ph ph-caret-down"></i>
-          </div>
-          <ul tabindex="0" class="dropdown-content menu flex-nowrap bg-base-100 border border-base-300 rounded-box z-30 w-64 shadow-lg">
-            <li><a class="font-mono text-xs" @click="setProposalFilter(kind, '')" x-text="'all ' + kind + 's'"></a></li>
-            <template x-for="row in proposalFacet(kind)" :key="row.key">
-              <li>
-                <a class="font-mono text-xs justify-between"
-                   :class="(kind === 'author' ? proposalAuthor : proposalPurpose) === row.key && 'font-medium'"
-                   @click="setProposalFilter(kind, row.key)">
-                  <span x-text="row.key"></span>
-                  <span class="opacity-40" x-text="row.n"></span>
-                </a>
-              </li>
-            </template>
-          </ul>
-        </div>
       </template>
+    </div>
 
-      <div x-show="pane === 'resources'" class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
-             :class="rate && 'opacity-100 font-medium'">
-          <span x-text="rate || 'all properties'"></span>
-          <i class="ph ph-caret-down"></i>
-        </div>
-        <ul tabindex="0" class="dropdown-content menu flex-nowrap bg-base-100 border border-base-300 rounded-box z-30 w-72 max-h-[70vh] overflow-y-auto shadow-lg">
-          <li><a class="font-mono text-xs" @click="rate = ''; shut()">all properties</a></li>
-          <template x-for="[name, n] in rates" :key="name">
-            <li>
-              <a class="font-mono text-xs justify-between" :class="rate === name && 'font-medium'"
-                 @click="rate = name; shut()">
-                <span x-text="name"></span>
-                <span class="opacity-40" x-text="n"></span>
-              </a>
-            </li>
-          </template>
-        </ul>
-      </div>
+    <!-- variants: search, count, the deck door, author -->
+    <div x-show="pane === 'variants'" class="flex items-center gap-3 flex-wrap">
+      <label class="input input-sm input-bordered flex items-center gap-2 grow max-w-md">
+        <i class="ph ph-magnifying-glass opacity-40"></i>
+        <input type="search" class="grow" data-find-box
+               aria-label="Search variants" placeholder="search text, variant, author, or purpose"
+               x-model="variantQ"
+               @input.debounce.250ms="variantOpen = ''; syncVariantAddress()"
+               @keydown.escape="variantQ = ''; variantOpen = ''; syncVariantAddress()">
+      </label>
+      <span class="text-sm whitespace-nowrap">
+        <span class="font-semibold text-lg tabular-nums" x-text="variantRows.length.toLocaleString()"></span>
+        <span class="text-base-content/50"
+              x-text="variantRows.length === variantTotal ? ' variants' : ' of ' + variantTotal.toLocaleString() + ' variants'"></span>
+      </span>
+      <button x-show="variantRows.length" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+              :aria-label="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
+              :title="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
+              @click="openVariantDeck(variantRows)">
+        <i class="ph ph-cards-three text-lg"></i>
+      </button>
+      <select id="variant-author" class="select select-bordered select-sm w-auto max-w-[16rem]" aria-label="Author"
+              :value="variantAuthor" @change="setVariantFilter('author', $event.target.value)">
+        <option value="">Every author</option>
+        <template x-for="row in variantFacet('author')" :key="row.key">
+          <option :value="row.key" :selected="variantAuthor === row.key" x-text="row.key + ' (' + row.n.toLocaleString() + ')'"></option>
+        </template>
+      </select>
+    </div>
 
-      <div x-show="pane === 'probes'" class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
-             :class="concept && 'opacity-100 font-medium'">
-          <span x-text="concept || 'all concepts'"></span>
-          <i class="ph ph-caret-down"></i>
-        </div>
-        <ul tabindex="0" class="dropdown-content menu flex-nowrap bg-base-100 border border-base-300 rounded-box z-30 w-72 max-h-[70vh] overflow-y-auto shadow-lg">
-          <li><a class="font-mono text-xs" @click="concept = ''; shut()">all concepts</a></li>
-          <template x-for="[name, n] in concepts" :key="name">
-            <li>
-              <a class="font-mono text-xs justify-between" :class="concept === name && 'font-medium'"
-                 @click="concept = name; shut()">
-                <span x-text="name"></span>
-                <span class="opacity-40" x-text="n"></span>
-              </a>
-            </li>
-          </template>
-        </ul>
-      </div>
+    <!-- purposes as a rail, as Search shows repos: few, and switched often -->
+    <div x-show="pane === 'variants' && variantIndex" class="flex flex-wrap items-center gap-1">
+      <button @click="setVariantFilter('purpose', '')"
+              class="badge cursor-pointer transition-opacity"
+              :class="!variantPurpose ? 'badge-primary' : 'badge-ghost opacity-50'">All</button>
+      <template x-for="row in variantFacet('purpose')" :key="row.key">
+        <button @click="setVariantFilter('purpose', variantPurpose === row.key ? '' : row.key)"
+                class="badge cursor-pointer gap-1 transition-opacity"
+                :class="variantPurpose === row.key ? 'badge-primary' : variantPurpose ? 'badge-ghost opacity-40' : 'badge-ghost'"
+                :title="purposeDef(row.key)?.gloss || row.key">
+          <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
+        </button>
+      </template>
+    </div>
+
+    <!-- probes: the standings are the filter, then concepts -->
+    <div x-show="pane === 'probes'" class="flex flex-wrap items-center gap-1">
+      <template x-for="key in ['worked','mixed','failed','open']" :key="key">
+        <button class="badge badge-sm cursor-pointer gap-1 transition-opacity"
+                :class="filterStanding === key ? [STANDINGS[key].text, 'badge-outline', 'font-medium'] : 'badge-ghost'"
+                @click="filterStanding = filterStanding === key ? '' : key">
+          <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
+        </button>
+      </template>
+      <select id="probe-concept" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Concept"
+              x-model="concept">
+        <option value="">Every concept</option>
+        <template x-for="[name, n] in concepts" :key="name">
+          <option :value="name" x-text="name + ' (' + n + ')'"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- resources: the states are the filter, then properties -->
+    <div x-show="pane === 'resources'" class="flex flex-wrap items-center gap-1">
+      <template x-for="key in ['held','fetched','absent']" :key="key">
+        <button class="badge badge-sm cursor-pointer gap-1 transition-opacity"
+                :class="filterState === key ? [STATES[key].text, 'badge-outline', 'font-medium'] : 'badge-ghost'"
+                @click="filterState = filterState === key ? '' : key">
+          <span class="tabular-nums" x-text="resCounts[key]"></span><span x-text="key"></span>
+        </button>
+      </template>
+      <select id="resource-rate" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Property"
+              x-model="rate">
+        <option value="">Every property</option>
+        <template x-for="[name, n] in rates" :key="name">
+          <option :value="name" x-text="name + ' (' + n + ')'"></option>
+        </template>
+      </select>
     </div>
   </header>
 
-  <main class="px-5 sm:px-7 py-7 mx-auto"
-        :class="pane === 'proposals' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
+  <main class="px-4 sm:px-6 py-5 mx-auto"
+        :class="pane === 'variants' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
 
     <div x-show="pane === 'probes' && loading" class="py-24 text-center">
       <span class="loading loading-dots loading-md opacity-20"></span>
     </div>
-    <div x-show="error && pane !== 'proposals'" class="font-mono text-sm text-error py-6" x-text="error"></div>
+    <div x-show="error && pane !== 'variants'" class="font-mono text-sm text-error py-6" x-text="error"></div>
 
-    <!-- ── proposals ────────────────────────────────────────────────────
-         The collection, one row per proposed edit: text, replacement,
-         author, purpose. It can be inspected here; applying one remains a
-         separate decision against a current occurrence. -->
-    <section x-show="pane === 'proposals'">
-      <div x-show="proposalState === 'idle' || proposalState === 'loading'" class="py-24 text-center">
+    <!-- ── variants ─────────────────────────────────────────────────────
+         The collection, one row per variant: text, variant, author,
+         purpose, and a chip per file it has been proposed for. It can be
+         inspected here; applying one remains a separate decision against a
+         current occurrence. -->
+    <section x-show="pane === 'variants'">
+      <div x-show="variantState === 'idle' || variantState === 'loading'" class="py-24 text-center">
         <span class="loading loading-dots loading-md opacity-20"></span>
       </div>
 
-      <div x-show="proposalState === 'error'"
-           class="font-mono text-sm text-error py-6 break-words" x-text="proposalError"></div>
+      <div x-show="variantState === 'error'"
+           class="font-mono text-sm text-error py-6 break-words" x-text="variantError"></div>
 
-      <template x-for="g in proposalGroups()" :key="g.purpose">
+      <template x-for="g in variantGroups()" :key="g.purpose">
         <section class="mb-10">
-          <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
-            <span x-text="g.purpose"></span>
-            <span class="ml-2 tabular-nums" x-text="g.items.length"></span>
-          </h2>
+          <div class="flex items-end gap-2 border-b border-base-300">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/50 pb-1 grow flex items-baseline gap-2 min-w-0">
+              <span x-text="g.purpose"></span>
+              <span class="tabular-nums" x-text="g.items.length"></span>
+              <span class="normal-case tracking-normal truncate" x-show="purposeDef(g.purpose)?.gloss"
+                    x-text="purposeDef(g.purpose)?.gloss"></span>
+            </h2>
+            <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-10 max-sm:w-10"
+                    :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
+                    :title="'Read the ' + g.items.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
+                    @click="openVariantDeck(g.items, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
+              <i class="ph ph-cards-three text-lg"></i>
+            </button>
+          </div>
 
+          <!-- Each row IS the pair, drawn by md-diff as the deck and the file
+               viewer draw it, so the list reads as a long document of changes
+               rather than as previews to open. Rows render as they near the
+               viewport, since the collection runs to thousands. -->
           <template x-for="p in g.items" :key="p.id">
-            <article class="border-b border-base-200 scroll-mt-24"
-                     :id="'proposal-' + p.id"
-                     :class="proposalOpen === p.id && 'bg-base-200/30'">
-              <button class="w-full text-left py-5" @click="toggleProposal(p.id)">
-                <span class="grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 sm:gap-5 items-start">
-                  <span class="min-w-0">
-                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Text</span>
-                    <span class="block text-lg leading-7 text-pretty"
-                          x-text="proposalPreview(p.from.text)"></span>
-                  </span>
-                  <span class="sm:pt-7 opacity-25 justify-self-center">
-                    <i class="ph ph-arrow-down sm:hidden"></i>
-                    <i class="ph ph-arrow-right hidden sm:inline"></i>
-                  </span>
-                  <span class="min-w-0">
-                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Proposed replacement</span>
-                    <span class="block text-lg leading-7 text-pretty font-medium"
-                          x-text="proposalPreview(p.to.text)"></span>
-                  </span>
-                </span>
-
-                <span class="mt-2 flex items-center gap-2 font-mono text-xs opacity-40 min-w-0">
-                  <span class="uppercase tracking-wide" x-text="p.purpose"></span>
-                  <span>·</span>
-                  <span class="truncate" x-text="p.author"></span>
-                  <i class="ph shrink-0 ml-auto" :class="proposalOpen === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
-                </span>
-              </button>
-
-              <template x-if="proposalOpen === p.id">
-                <div class="border-t border-base-300/60 px-1 sm:px-4 pt-5 pb-6 grid gap-6">
-                  <div class="grid lg:grid-cols-2 gap-6 lg:gap-10">
-                    <div class="min-w-0">
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Text</div>
-                      <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.from.text"></div>
-                    </div>
-                    <div class="min-w-0">
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Proposed replacement</div>
-                      <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.to.text"></div>
-                    </div>
-                  </div>
-
-                  <div class="grid sm:grid-cols-2 gap-5 border-t border-base-300/60 pt-5">
-                    <div>
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40">Purpose</div>
-                      <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.purpose"></div>
-                    </div>
-                    <div>
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40">Author</div>
-                      <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.author"></div>
-                    </div>
-                  </div>
-
-                  <div class="font-mono text-xs opacity-40 border-t border-base-300/60 pt-3 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>prior work, not an automatic recommendation</span>
-                    <span class="break-all" x-text="p.id"></span>
-                  </div>
-                </div>
-              </template>
+            <article class="py-4 border-b border-base-200 scroll-mt-24"
+                     :id="'variant-' + p.id"
+                     :class="variantOpen === p.id && 'bg-base-200/30'">
+              <div class="min-w-0" x-init="lazyPair($el, p)">
+                <div class="text-lg leading-7 text-pretty text-base-content/50" x-text="variantPreview(p.from.text, 300)"></div>
+              </div>
+              <!-- The facts and the acts, under the pair, as in both decks. A
+                   proposal chip rides this line too (data-variant-proposals). -->
+              <div data-variant-proposals x-init="$el.replaceWith(variantFoot(p, { deckAt: variantRows.indexOf(p) }))"></div>
             </article>
           </template>
         </section>
       </template>
 
-      <p x-show="proposalState === 'done' && !proposalRows.length"
+      <p x-show="variantState === 'done' && !variantRows.length"
          class="py-16 text-center font-mono text-xs opacity-40">
-        no proposal carries that combination
+        no variant carries that combination
       </p>
     </section>
 
@@ -863,6 +1205,35 @@
 
     <!-- ── runs ───────────────────────────────────────────────────────── -->
     <section x-show="pane === 'runs'">
+      <template x-if="textRuns.length">
+        <section class="mb-10">
+          <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+            text collection<span class="ml-2 tabular-nums" x-text="textRuns.length"></span>
+          </h2>
+          <template x-for="r in textRuns" :key="r.name">
+            <article class="border-b border-base-300 py-5 flex items-start gap-5">
+              <div class="grow min-w-0">
+                <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
+                <div class="mt-1 font-mono text-xs opacity-40 tabular-nums"
+                     x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' variants'"></div>
+              </div>
+              <div class="flex items-center gap-3 font-mono text-xs shrink-0">
+                <a class="opacity-40 hover:opacity-100 transition-opacity"
+                   :href="treeUrl(r.dir)" target="_blank" rel="noopener">files<i class="ph ph-arrow-square-out ml-1"></i></a>
+                <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+                        :aria-label="'Read ' + r.files.length + ' files one at a time'"
+                        :title="'Read ' + r.files.length + ' files one at a time'"
+                        @click="openRunDeck(r)">
+                  <i class="ph ph-cards-three text-lg"></i>
+                </button>
+              </div>
+            </article>
+          </template>
+        </section>
+      </template>
+      <h2 x-show="textRuns.length" class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+        other runs<span class="ml-2 tabular-nums" x-text="RUNS.length"></span>
+      </h2>
       <template x-for="r in RUNS" :key="r.dir">
         <article class="border-b border-base-300 py-5 flex items-start gap-5">
           <div class="grow min-w-0">
@@ -882,6 +1253,49 @@
     </section>
 
   </main>
+
+  <!-- The one panel-tip: a variant's details, or its notes and a box to add
+       one. Pinned by the click that opens it; panel-tip.js owns the ways out. -->
+  <div x-ref="tip" x-show="tip" x-cloak role="dialog" aria-label="Variant"
+       class="fixed z-[1000] rounded-xl border border-base-300 bg-base-100 shadow-lg px-4 py-3 text-base leading-6 max-h-[60vh] overflow-y-auto"
+       :style="tip ? `left:${tip.x}px;top:${tip.y}px;width:${tip.w}px` : ''">
+    <div x-html="tipClose"></div>
+    <template x-if="tip && tip.kind === 'info'">
+      <div class="pr-6 grid gap-1.5">
+        <div><span class="font-medium" x-text="tip.v.purpose"></span><span class="text-base-content/50" x-text="' · ' + tip.v.author"></span></div>
+        <p class="text-base-content/70 text-pretty" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
+        <p class="text-base-content/70 text-pretty italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
+        <!-- Where the original stands, from home's occurrences snapshot. -->
+        <div class="grid gap-0.5 mt-1" x-show="tip.v.at && tip.v.at.length">
+          <template x-for="loc in (tip.v.at || [])" :key="loc">
+            <a class="link link-hover font-mono text-sm" :href="fileHref(loc)" target="_blank" rel="noopener"
+               x-text="shortLoc(loc).replace(/\//g, '/\u200b')"></a>
+          </template>
+        </div>
+        <p class="text-sm text-base-content/50" x-show="tip.v.at && !tip.v.at.length">Not found on main when last scanned.</p>
+      </div>
+    </template>
+    <template x-if="tip && tip.kind === 'note'">
+      <div class="grid gap-2 pr-7">
+        <template x-for="(n, k) in reviewsOf(tip.v).notes" :key="k">
+          <div>
+            <span class="text-base-content/50" x-text="n.by + ':'"></span>
+            <span class="whitespace-pre-wrap" x-text="n.note"></span>
+          </div>
+        </template>
+        <textarea id="variant-note" class="textarea textarea-bordered w-full text-base leading-6 min-h-0" rows="2"
+                  placeholder="Comment" x-model="noteDraft"
+                  @keydown.meta.enter="saveNote(tip.v)" @keydown.ctrl.enter="saveNote(tip.v)"></textarea>
+        <div class="flex items-center justify-end gap-3">
+          <span class="text-sm text-error grow" x-show="reviewError" x-text="reviewError"></span>
+          <button class="btn btn-primary btn-sm" :disabled="!noteDraft.trim() || !!reviewBusy" @click="saveNote(tip.v)">
+            <span x-show="!reviewBusy">Save</span>
+            <span x-show="reviewBusy" class="loading loading-spinner loading-xs"></span>
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
 </div>
 
 </body>

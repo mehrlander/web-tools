@@ -4,7 +4,7 @@ title: Split docs/show-repo.md along the app's structure
 status: done
 closed: 2026-08-16
 opened: 2026-08-16
-project: show-repo
+project: app
 size: L
 session: claude/web-tools-app-concept-crg8sl
 ---

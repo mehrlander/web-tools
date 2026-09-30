@@ -9,9 +9,7 @@
 <script type="module">
   // The chain boot, so the FAB arrives and the kit is fetched at the ref the
   // page is being previewed from.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/land.js');
   document.body.dataset.ready = '1';
   document.getElementById('consts').textContent =

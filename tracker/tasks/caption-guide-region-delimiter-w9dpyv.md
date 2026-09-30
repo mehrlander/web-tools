@@ -29,7 +29,7 @@ Worked example of the alternative in place: PR #303's body.
 - **Recognition must accept both forms.** Every PR body already carrying the HTML
   comments would orphan its region otherwise. Write only the surviving form.
 - Two files specify the delimiter and both need it: `docs/SURFACING.md` (the
-  guide-body template) and `.claude/skills/caption/SKILL.md` (the sync
+  guide-body template) and `skills/caption/SKILL.md` (the sync
   instruction). Check `scripts/build-merge-guide.py` too, since it harvests guide
   regions out of merged PR bodies and will meet both forms in the wild.
 - Constraint worth writing down beside the new form: it is a markdown reference

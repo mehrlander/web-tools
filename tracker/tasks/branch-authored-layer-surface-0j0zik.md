@@ -41,7 +41,7 @@ Reading a v2 profile in the estate is gated on the v1→v2 reader migration; thi
 - 2026-08-07: Closed on `claude/make-work-conventions-b74b4t` (PR #371). The
   decision: branch-review/1 is THE format /caption emits; the plain
   branch-brief shape stays accepted by the page reader as a hand-authoring
-  convenience only. The emitter is `.claude/skills/caption/build-branch-review.mjs`
+  convenience only. The emitter is `skills/caption/build-branch-review.mjs`
   (git-derived compare and changes, both-schema validation before emitting,
   --link gzips the surface into the 🌿 fragment), documented in the caption
   skill. The first real instance is recorded on PR #371 (comment of

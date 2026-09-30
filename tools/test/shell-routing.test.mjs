@@ -1,4 +1,4 @@
-// show-repo's view routing: the address a screen mints must be an address the
+// The app's view routing: the address a screen mints must be an address the
 // page can open.
 //
 // The shell used to state its view table THREE times, by hand: the dispatch
@@ -204,20 +204,20 @@ test('the shell mode round-trips, and only when it is not the default', () => {
 // latched default follows the reader OUT of the app view and leaves the estate
 // dashboard with no nav and only the fab as the way back.
 
-test('an app view opens bare and every other route keeps its header', () => {
+test('an app view opens with nav chrome and every other route keeps full chrome', () => {
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   for (const v of ['map', 'estate', 'landing', 'search']) {
     s.view = v;
     assert.equal(s.shellMode, 'full', `?view=${v} must keep the app's own chrome`);
   }
   s.view = 'app';
-  assert.equal(s.shellMode, 'none', 'a promoted page is the page, not the app around it');
+  assert.equal(s.shellMode, 'nav', 'an app view defaults to nav chrome for integrated navigation');
 });
 
 test('the shell comes back on leaving the app view, with nothing to clear', () => {
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   s.view = 'app';
-  assert.equal(s.shellMode, 'none');
+  assert.equal(s.shellMode, 'nav');
   s.view = 'estate';
   assert.equal(s.shellMode, 'full',
     'a latched default would strand the dashboard with no nav');
@@ -230,17 +230,17 @@ test('the address carries the mode only where it differs from the view default',
   s.appView = { key: 'me/home:a.html', slug: 'budget-drs', repo: 'me/home', path: 'a.html' };
 
   assert.equal(s.deepLinkParams(new URLSearchParams()).toString(), 'app=budget-drs',
-    'the bare address already means "no shell"; stamping it would say it twice');
+    'the bare address already means "nav shell"; stamping it would say it twice');
 
-  // Turning the header ON is now the departure from the default, so THAT is
+  // Turning the header OFF or to full is now the departure from the default, so THAT is
   // what the address records.
-  s.setShellMode('full');
+  s.setShellMode('none');
   const qs = s.deepLinkParams(new URLSearchParams());
-  assert.equal(qs.get('shell'), 'full', 'the app view with chrome is the linkable exception');
+  assert.equal(qs.get('shell'), 'none', 'the app view without chrome is the linkable exception');
 
   // And back: the address self-heals to the short form rather than keeping a
   // key that now agrees with the default.
-  s.setShellMode('none');
+  s.setShellMode('nav');
   assert.equal(s.deepLinkParams(new URLSearchParams()).has('shell'), false);
 });
 
@@ -259,10 +259,10 @@ test('toggling back to the default is not a choice, so it does not follow you ou
   s.syncUrl = () => {};
   s.view = 'app';
 
-  s.setShellMode('full');
-  assert.equal(s.shellMode, 'full', 'the header is on, which IS a choice here');
   s.setShellMode('none');
-  assert.equal(s._shellChoice, '', 'and turning it off again agrees with the default');
+  assert.equal(s.shellMode, 'none', 'the header is off, which IS a choice here');
+  s.setShellMode('nav');
+  assert.equal(s._shellChoice, '', 'and turning it back to nav agrees with the default');
 
   s.view = 'estate';
   assert.equal(s.shellMode, 'full', 'so the dashboard gets its nav back');
@@ -316,7 +316,7 @@ test('the FAB toggle contract is well formed, and its setter is the mode setter'
   // rather than left to be seen.
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   const [t, ...rest] = s.toggles;
-  assert.equal(rest.length, 0, 'show-repo contributes more than one toggle; the doc names one');
+  assert.equal(rest.length, 0, 'the app contributes more than one toggle; the doc names one');
   assert.ok(t.key && t.label && t.icon && typeof t.set === 'function',
     'the toggle row is missing key, label, icon, or set');
   assert.equal(t.on, true, 'the toggle does not start on, so the default state reads as the exceptional one');
@@ -453,4 +453,33 @@ test('the landing is the overview, and the gallery is its own view', () => {
   assert.equal(lv.path, 'site/index.html');
   assert.equal(withLanding.shell.showPagesNav, false,
     'a landing no longer displaces anything, so it turns nothing else on either');
+});
+
+// A row to land on rides with the file it names: ?col=<header>&row=<value>,
+// what the Map lede's link mints. It belongs to that one file, so opening any
+// other drops it.
+test('a row landing round-trips with its file and clears on the next open', () => {
+  const addr = '?repo=mehrlander/web-tools&file=docs/map-tabs.csv&col=tab&row=harness';
+  const { shell: s } = makeShell({ search: addr, browserStore: {
+    repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main', activeFile: null, path: '' } });
+  const url = s.parseUrl();
+  assert.equal(url.col, 'tab');
+  assert.equal(url.row, 'harness');
+  s.routeFromUrl(url);
+  assert.equal(s.view, 'files');
+  assert.equal(s.filesFile, 'docs/map-tabs.csv');
+  assert.deepEqual(s.filesAt, { col: 'tab', row: 'harness' });
+
+  const qs = new URLSearchParams(s.deepLinkParams(new URLSearchParams()).toString());
+  assert.equal(qs.get('col'), 'tab', 'the landing did not survive the stamp');
+  assert.equal(qs.get('row'), 'harness');
+
+  s.openFile('docs/registries.csv');
+  assert.equal(s.filesAt, null, 'a landing for one file carried onto another');
+  const after = new URLSearchParams(s.deepLinkParams(new URLSearchParams()).toString());
+  assert.ok(!after.has('col') && !after.has('row'));
+
+  // Half a pair names no row, so it is not kept.
+  s.openFile('docs/map-tabs.csv', { col: 'tab', row: '' });
+  assert.equal(s.filesAt, null);
 });

@@ -7,12 +7,10 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // ?use=<branch|tag|sha> overrides which ref the modules load from; defaults
-  // to main. The same ref is handed to demo.mount as `base`, so the kit each
-  // proof frame injects (kits/compression.js) comes from the matching ref.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to
+  // main. demo.mount reads the kit each proof frame injects
+  // (kits/compression.js) through the same loader, so it matches.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/cm6.js');
   await gh.load('kits/proof.js');
   await gh.load('kits/vanilla-demo.js');
@@ -153,7 +151,6 @@ console.log(r.output.slice(0, 58) + '…');`
     sectionsEl: document.getElementById('sections'),
     displayEl: document.getElementById('display-ctrl'),
     legendEl: document.getElementById('legend'),
-    base,
   });
 </script>
 </head>

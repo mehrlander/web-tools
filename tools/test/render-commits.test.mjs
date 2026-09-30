@@ -45,3 +45,12 @@ test('an absent commit is a 404, not a pass-through', () => {
 test('another repo\'s commits still pass through', () => {
   assert.equal(R('https://api.github.com/repos/someone/else/commits').kind, 'continue');
 });
+
+// The sha media type, which the app's ?use= boot and the shell-pin probe use to
+// resolve a branch name. Answered as JSON, the whole document became the ref.
+test('commits/<ref> honors the sha media type with the bare sha', () => {
+  const r = resolveCdn(API + '/main', repoRoot, null, { accept: 'application/vnd.github.sha' });
+  assert.equal(r.kind, 'fulfill');
+  assert.equal(r.body, head);
+  assert.equal(JSON.parse(R(API + '/main').body).sha, head, 'the JSON shape is unchanged without it');
+});

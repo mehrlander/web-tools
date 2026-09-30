@@ -1,8 +1,8 @@
 # Showing: getting a thing in front of a viewer
 
-The estate answers one question in a dozen ways: **something exists somewhere, and someone needs to look at it.** [SURFACING.md](SURFACING.md) is the etiquette that decides what to hand over; the Web Tools app ([APP.md](APP.md) the mission, [show-repo.md](show-repo.md) the shell's reference) is what you hand it from. The one-line split, since "surfacing" and "showing" are near-synonyms in ordinary English and this only holds if it is stated: **surfacing decides what to hand over; showing is what makes it openable.**
+The estate answers one question in a dozen ways: **something exists somewhere, and someone needs to look at it.** [SURFACING.md](SURFACING.md) is the etiquette that decides what to hand over; the Web Tools app ([APP.md](APP.md)) is what you hand it from. The one-line split, since "surfacing" and "showing" are near-synonyms in ordinary English and this only holds if it is stated: **surfacing decides what to hand over; showing is what makes it openable.**
 
-> **The reference is the app, not this file.** Every mechanism, the address to write for each, what it reaches and misses, its trap, and the rule for picking one are rows in [`docs/showing-mechanisms.csv`](showing-mechanisms.csv); the three axes they are indexed by and the picker rules are the `showing` block of [`docs/routes.json`](routes.json), except the subject axis, which is a registry of its own, [`docs/subjects.csv`](subjects.csv), since two tables key into it. All of it renders in show-repo's **Map view, Showing tab**.
+> **The reference is the app, not this file.** Every mechanism, the address to write for each, what it reaches and misses, its trap, and the rule for picking one are rows in [`docs/showing-mechanisms.csv`](showing-mechanisms.csv); the three axes they are indexed by and the picker rules are the `showing` block of [`docs/routes.json`](routes.json), except the subject axis, which is a registry of its own, [`docs/subjects.csv`](subjects.csv), since two tables key into it. All of it renders in the app's **Map view, Showing tab**.
 
 What stays here is what no row can hold: why the boundaries are where they are, and the relations between rows.
 
@@ -17,7 +17,7 @@ This is the part worth understanding rather than looking up, because it explains
 
 So a change that is *both* in a page's own inline shell *and* aimed at the top-level document is reachable by neither, and the escape is not a better link but **moving the code**: in a lib module, `?use=` reaches it, since that is the only mechanism swapping code without swapping which document is on top.
 
-The `?use=` half of that table is a consequence of the loader, not a fact about showing. [`loader.md`](loader.md) owns it: what the parameter swaps, why a branch name is cache-safe, the raw-versus-jsDelivr split, and the `window.__ghBlobBoot` global. Read it there rather than here.
+The `?use=` half of that table is a consequence of the loader, not a fact about showing. [`loader.md`](loader.md) owns it: what the parameter swaps, why a branch name is cache-safe, the Pages-versus-raw split, and the `window.__ghBlobBoot` global. Read it there rather than here.
 
 ## What nesting reaches, and what it cannot
 
@@ -35,9 +35,11 @@ The FAB around a nested preview shows **both sides, attributed**: `detect()` col
 
 Invoking across the window boundary is handled rather than avoided, and [`tools/test/subject-actions.mjs`](../tools/test/subject-actions.mjs) is the statement of how.
 
-**A toss carries main's lib, including the FAB.** `toss-render.html` is served from main, so the shell around a tossed page comes from main whatever ref the `#gh=` address names, and the FAB you touch is the shell's: the renderer stamps `window.__fabHosted` into the framed page so the inner one declines to mount. A branch change to `lib/alpineComponents/fab.js` is therefore **not visible through a 🥏 link**, and nothing reports the mismatch, because nothing is wrong: the FAB's own `?use=`-was-ignored check does not fire, since no `?use=` was asked for.
+**A framed toss carries main's lib, including the FAB**: a branch change to `fab.js` shows through `?top`, where the page mounts its own, or a `?use=` pin.
 
-**The route that does reach it is the `?use=` pin on a deployed page, with no toss in the address.** Pinning the shell as well was tried and is prohibited: see the document-boundary category below.
+## Picking versions inside a toss
+
+The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. `?top` makes the page the tab's own document. [loader.md](loader.md#the-selection) has the rules.
 
 ## Three reasons a change resists preview
 
@@ -51,9 +53,10 @@ is why the preamble is duplicated rather than shared. The toss reaches a change
 to it, since the toss serves the branch's page file whole; nothing reaches one to
 the **shell's** preamble, which is `toss-render.html` on main.
 
-**The document boundary.** A toss is two documents, and each creates its own `gh`
+**The document boundary.** A framed toss is two documents, and each creates its own `gh`
 whose ref every later load resolves against. The framed page's is pinned to the
-addressed ref; the shell's is pinned to main. So anything the shell contributes
+Web Tools ref the renderer resolved (the section above); the shell's is pinned
+to main. So anything the shell contributes
 to the view, loaded at boot or on a tap, comes from main regardless of the
 address. Today that is the FAB and the Alpine bundle. This is not about the code
 being central: it is ordinary `lib/` code sitting in the other document, and the
@@ -70,7 +73,7 @@ row, whose reach the section above states.
 
 ## The invariant, and the shape of its absence
 
-Every page that boots lib honors `?use=`, and every one carries the FAB. The failure mode when that is only nearly true is silent rather than loud: a page that pins the ref in its own boot block and ignores the parameter loads default-branch code under a preview banner. So the FAB cross-checks `window.gh.ref` against the address and says plainly when `?use=` was ignored, which is the only thing standing between a stale preview and a confident reader.
+Every page that boots lib honors `?use=`, and every one carries the FAB. The failure mode when that is only nearly true is silent rather than loud: a page that pins the ref in its own boot block and ignores the parameter loads default-branch code under a preview banner. So the FAB cross-checks `window.gh.ref` against the address and says plainly when `?use=` was ignored, which is the only thing standing between a stale preview and a confident reader. Inside a toss it checks the framed page against the ref the renderer resolved, and marks any layer that booted another.
 
 That is the general shape of every failure recorded on this page: not a link that errors, but a link that renders something plausible and wrong. A mechanism table can tell you which link to write. It cannot tell you that the one you wrote is quietly showing you last week, which is why the honesty rule ("only a page renders this way; for a kit or doc, ⭐ links the `[new]` blob") and the headless screenshot both survive the existence of the table.
 

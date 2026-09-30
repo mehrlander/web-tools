@@ -7,12 +7,10 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // ?use=<branch|tag|sha> picks the ref; handed to demo.mount as `base` so the
-  // alpine-bundle.js injected into each proof frame matches. The bundle
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref, including
+  // the alpine-bundle.js demo.mount injects into each proof frame. The bundle
   // self-boots Alpine, so each frame is a fully independent Alpine page.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/cm6.js');
   await gh.load('kits/proof.js');
   await gh.load('kits/vanilla-demo.js');
@@ -139,7 +137,6 @@
     sectionsEl: document.getElementById('sections'),
     displayEl: document.getElementById('display-ctrl'),
     legendEl: document.getElementById('legend'),
-    base,
   });
 </script>
 </head>

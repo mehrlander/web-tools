@@ -215,7 +215,7 @@ test('the markdown preview scrolls on its pane, and its column is uncapped', () 
   // unlayered declaration beats a layered one whatever the specificity or
   // order; `!max-w-none` carries `!important` and reaches past the layer.
   // Reading that as "no utility can reach it" left the column centred at 506px
-  // for as long as it stood (daisy-alpine rule 3, fixed 2026-09-03).
+  // for as long as it stood (html-style rule 3, fixed 2026-09-03).
   //
   // Rendered as a string, so this reads it as one rather than mounting: show()
   // pulls marked from the CDN, which never resolves under jsdom.
@@ -245,8 +245,8 @@ test('markdown offers a separate full-width History reading', () => {
   data.file = 'docs/history.md';
   data.content = '# Passage history\n\nCurrent wording.\n';
   const ids = data.availableModes.map(mode => mode.id);
-  assert.ok(ids.includes('proposals'));
-  assert.ok(ids.includes('history'), 'history is not folded into proposal semantics');
+  assert.ok(ids.includes('variants'));
+  assert.ok(ids.includes('history'), 'history is not folded into variant semantics');
   const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
   assert.equal(mod.icon, 'ph-clock-counter-clockwise');
   const doc = new window.DOMParser().parseFromString(mod.render(data.fileContext), 'text/html');
@@ -328,7 +328,7 @@ test('a PDF offers the pdf mode, with raw still one tap away', () => {
 });
 
 test('the pdf mode is exclusive: it beats a host blanket default of raw', () => {
-  // show-repo's file view sets defaultMode 'raw', which is right for the only
+  // The app's file view sets defaultMode 'raw', which is right for the only
   // kind of file it used to have and wrong for a PDF. Before this mode existed
   // that produced a pane of replacement characters, which is what `exclusive`
   // is here to prevent, exactly as it does for images.

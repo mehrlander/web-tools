@@ -120,7 +120,7 @@
              kit grafts the source's own bytes back in -->
         <div x-show="available.length || refused.length" class="flex flex-col gap-2">
           <span class="font-semibold">Carry over<i class="ph ph-info ml-1 opacity-50"
-            data-note="A writer models none of these, so the kit copies the original's own parts into the rebuilt package."></i></span>
+            data-title-tip="A writer models none of these, so the kit copies the original's own parts into the rebuilt package."></i></span>
           <ul class="menu bg-base-100 rounded-box p-1 gap-0.5">
             <template x-for="g in available" :key="g.id">
               <li>
@@ -200,7 +200,7 @@
                     <tr :class="r.short && 'bg-warning/10'">
                       <td>
                         <span x-text="r.label"></span>
-                        <i x-show="r.note" class="ph ph-info ml-1 opacity-40" :data-note="r.note"></i>
+                        <i x-show="r.note" class="ph ph-info ml-1 opacity-40" :data-title-tip="r.note"></i>
                       </td>
                       <td><span class="badge badge-xs"
                             :class="{ 'badge-ghost': r.by === 'writer', 'badge-info': r.by === 'graft', 'badge-neutral': r.by === 'dropped' }"
@@ -266,23 +266,13 @@
   // The repo's standard boot. ?use=<ref> pins the chain to a branch so an
   // edit can be previewed before it is on main, exactly as the other
   // loader-based pages do.
-  const useRef = new URLSearchParams(location.search).get('use');
-  if (useRef) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref: useRef };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${useRef}/lib/gh-api.js`,
-                          { cache: 'no-store' });
-    if (!r.ok) throw new Error(`?use=${useRef}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 
   // The reader first: kits/xlsx-write.js reads window.xlsxKit and refuses to
   // run without it, which is the dependency stated rather than assumed.
   await gh.load('kits/xlsx.js');
   await gh.load('kits/xlsx-write.js');
-  await gh.load('kits/note.js');
+  await gh.load('kits/title-tip.js');
   await gh.load('alpineComponents/xlsx-picker.js');
   await gh.load('alpine-bundle.js');
 </script>

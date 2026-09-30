@@ -6,7 +6,7 @@
 // The Node twin of the FAB's "Fully offline" mode: same shared emit + bake
 // (lib/build.js), fed by the static graph instead of runtime __loadedScripts.
 // This is code-only — it inlines the gh.load chain so the page boots with no
-// network. The browser path (kits/bundle.js) additionally zips the read() data
+// network. The browser path (kits/export.js) additionally zips the read() data
 // beside it; bake here assumes the page carries no page-relative data, or that the
 // HTML will sit with its data (as the offline zip lays it out).
 

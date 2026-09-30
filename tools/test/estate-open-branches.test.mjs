@@ -708,7 +708,7 @@ test('closing clears the shell at once, whatever the deck does next', async () =
 const SESSION_ROW = () => ({
   id: 's1', exchanges: 12, messages: 48, calls: 431, failures: 3,
   filesTotal: 62, tools: [['Bash', 210], ['Edit', 96], ['Read', 71]],
-  files: [['lib/alpineComponents/estate.js', 24], ['docs/show-repo.md', 9]],
+  files: [['lib/alpineComponents/estate.js', 24], ['docs/APP.md', 9]],
   tokens: { output: 84200, input: 1900, cache_read: 7400000, cache_write: 120000 },
 });
 
@@ -801,7 +801,7 @@ test('the files card carries paths, and marks them as paths', () => {
   data.openSessionCard(row, 'files', null);
   assert.equal(data.rowCardSummary.count, 62);
   assert.deepEqual(plain_(data.rowCard.rows.map(r => r.label)),
-    ['lib/alpineComponents/estate.js', 'docs/show-repo.md']);
+    ['lib/alpineComponents/estate.js', 'docs/APP.md']);
   assert.ok(data.rowCard.rows.every(r => r.mono), 'a path is set in mono, like every other path');
   // 62 opened, 2 listed: the head must not shrink to the list's length, which
   // is what the branch row's cards had to be taught the hard way.

@@ -1,4 +1,4 @@
-// .claude/skills/tasks/build-board.py — the canonical board generator, bundled
+// skills/tasks/build-board.py — the canonical board generator, bundled
 // in the portable plugin and run by every tracker in the estate. A regression
 // here is silent and repo-wide, so the behavior worth pinning is the part with
 // branches: how `depends-on: <id>[, <id>...]` renders, and that a dormant task
@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseCsv } from '../build/registries-load.mjs';
 
-const GENERATOR = '.claude/skills/tasks/build-board.py';
+const GENERATOR = 'skills/tasks/build-board.py';
 
 // Render a board from an object of {id: frontmatter} and return its lines.
 function board(tasks) {
@@ -150,7 +150,7 @@ test('the owning branch and the dependency render in a stable order, and nothing
 // The 🎫 marker's form is `🎫 [title](url)` (SURFACING.md): the title is the
 // link, so the board reads as a table of contents and one tap reaches the task
 // that holds the why and the progress log. This was the one place in the estate
-// emitting a bare 🎫, which also left show-repo's board pane resolving relative
+// emitting a bare 🎫, which also left the app's board pane resolving relative
 // hrefs that no board contained.
 test('every row links its title to the task file', () => {
   const md = board({ 'a-000001': { title: 'Only task', status: 'backlog' } });
@@ -189,7 +189,7 @@ test('brackets in a title are escaped rather than breaking the link', () => {
 
 // The href is relative to the BOARD's folder, not the cwd, because that is the
 // one base both consumers resolve against: GitHub renders board.md in place,
-// and show-repo's onBoardClick resolves against the board file's folder.
+// and the app's onBoardClick resolves against the board file's folder.
 test('the href is relative to the board, not the tasks directory', () => {
   const dir = mkdtempSync(join(tmpdir(), 'board-'));
   try {
@@ -280,7 +280,7 @@ test('awaiting survives a colon in its value', () => {
 
 // ── board.csv and board-tags.csv, the typed projection ─────────────────────
 // Emitted from the same run as board.md so the three cannot drift. They exist
-// so show-repo never has to parse the rendered board to recover a field it
+// so the app never has to parse the rendered board to recover a field it
 // could have been handed. Two files because a task carries two grains: the
 // recognized keys are one row per task, the open tags one row per pair, and a
 // CSV holds one table.

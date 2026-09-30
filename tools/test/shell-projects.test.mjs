@@ -267,6 +267,34 @@ test('resolveRepoRelative folds board links onto repo-root paths', () => {
   assert.equal(shell.resolveRepoRelative(base, ''), '');
 });
 
+test('onReadmeClick opens a README link in the viewer, resolved against the project folder', () => {
+  // The Overview renders the workspace README, whose relative links name its
+  // siblings. They must reach the shell's viewer, not the app's own URL.
+  const { shell } = makeShell();
+  shell.projectPath = 'projects/a';
+  const opened = [];
+  shell.openFile = p => opened.push(['file', p]);
+  shell.openFolder = p => opened.push(['folder', p]);
+  const click = href => {
+    let prevented = false;
+    const a = { getAttribute: () => href };
+    shell.onReadmeClick({ target: { closest: () => a }, preventDefault: () => { prevented = true; } });
+    return prevented;
+  };
+  assert.equal(click('rules.csv'), true);
+  assert.equal(click('lenses/x.md'), true);
+  assert.equal(click('proposals/'), true);
+  assert.equal(click('../text/README.md'), true);
+  assert.equal(click('https://example.com/a'), false, 'an absolute link keeps its default');
+  assert.equal(click('#top'), false, 'an in-page anchor keeps its default');
+  assert.deepEqual(opened, [
+    ['file', 'projects/a/rules.csv'],
+    ['file', 'projects/a/lenses/x.md'],
+    ['folder', 'projects/a/proposals'],
+    ['file', 'projects/text/README.md'],
+  ]);
+});
+
 test('projectGithubUrl points at the folder, at the ref a row tap would browse', () => {
   // The real link builder, so the encoding contract is exercised rather than
   // restated: lib/kits/github-links.js only assigns onto window.

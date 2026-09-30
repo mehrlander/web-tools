@@ -256,7 +256,7 @@ export default async function (page) {
   if (/activity cache refresh/.test(head)) bad('the header still carries the request name rather than the file');
   if (/build-and-check paragraph/.test(prose)) bad("the item's commentary is still drawn above the document");
   if (/Answers to/.test(prose)) bad('the related links are still drawn above the document');
-  if (!/show-repo\.md/.test(next)) bad('the header did not follow the reader to the next file');
+  if (!/APP\.md/.test(next)) bad('the header did not follow the reader to the next file');
   // THE SLIDE IS THE DOCUMENT AND THE HEADER IS THE FILE'S. Under `hosted` the
   // card draws no row at all, so the readout and the layout toggle have nowhere
   // in the slide to go and the kit floats its own strip instead. Both halves

@@ -3,7 +3,7 @@
 // node_modules, so the resource rows, their states and their sizes are whatever
 // this render actually cost. The API band cannot be real (there is no token
 // here and no GitHub reachable), so it is seeded with a crawl of the shape
-// show-repo's activity pass produces.
+// the app's activity pass produces.
 //
 //   npm run shot -- app/index.html --script tools/render/scenarios/fab-traffic.mjs
 //

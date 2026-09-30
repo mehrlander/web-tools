@@ -141,7 +141,7 @@ test('the read separates body prose from chrome, and counts runs', async () => {
   assert.equal(mixed.chrome, 2, 'button and link words land in chrome');
   assert.equal(mixed.words, r.words, 'and are kept out of the body count');
   assert.match(mixed.visible, /Save Open/,
-    'proposal lookup keeps visible chrome even though prose figures exclude it');
+    'variant lookup keeps visible chrome even though prose figures exclude it');
 
   // The separator is the markup's, never the reader's. Two controls written
   // without a space between them render without one, and inventing one made
@@ -158,13 +158,13 @@ test('the read separates body prose from chrome, and counts runs', async () => {
   const linkOnly = d._textRead(docWith('<a href="#">bill-section families</a>'));
   assert.equal(linkOnly.body, '');
   assert.equal(linkOnly.visible, 'bill-section families',
-    'a selected link is still a proposal subject even when it is not prose');
+    'a selected link is still a variant subject even when it is not prose');
 
   const hidden = d._textRead(docWith(`<p>Reader text.</p>
     <p hidden>hidden attribute</p><p aria-hidden="true">aria ghost</p>
     <p x-cloak>cloaked ghost</p><p style="display:none">inactive pane</p>`));
   assert.equal(hidden.visible, 'Reader text.',
-    'proposal lookup excludes hidden and inactive text the reader cannot see');
+    'variant lookup excludes hidden and inactive text the reader cannot see');
 });
 
 test('a block boundary ends a sentence; an inline element does not', async () => {
@@ -461,7 +461,7 @@ test('a tree failure degrades the answer rather than ending it', async () => {
   assert.match(d.textMatchError, /not checked against the tree/);
 });
 
-test('match and retained proposals run with the read, without another tap', async () => {
+test('match and retained variants run with the read, without another tap', async () => {
   const d = await mountFab();
   let matched = 0, revised = 0;
   d.textMatchRun = async function () { matched++; };
@@ -469,28 +469,28 @@ test('match and retained proposals run with the read, without another tap', asyn
   d.textScan();
   assert.equal(matched, 1, 'opening the tab looks paths up; a button gate hid the answer ' +
     'behind a decision nobody had the information to make');
-  assert.equal(revised, 1, 'the same read looks up retained proposals without another gate');
+  assert.equal(revised, 1, 'the same read looks up retained variants without another gate');
 });
 
-const proposalView = (id, from, to) => ({
+const variantView = (id, from, to) => ({
   id,
   from: { passage_id: 'from-' + id, text: from },
   to: { passage_id: 'to-' + id, text: to },
   author: 'guarded editorial pass', purpose: 'qualify',
 });
 
-test('retained proposals use the private home collection and match the exact text only', async () => {
+test('retained variants use the private home collection and match the exact text only', async () => {
   const d = await mountFab();
-  const exact = proposalView('exact', 'families', 'bill-section families');
-  const second = proposalView('again', 'families', 'the families');
+  const exact = variantView('exact', 'families', 'bill-section families');
+  const second = variantView('again', 'families', 'the families');
   const answer = { selection: { text: 'families' }, exact: [exact, second],
-    warnings: ['Retained proposals are prior work on the same string, not recommendations for this selection.'] };
+    warnings: ['Retained variants are prior work on the same string, not recommendations for this selection.'] };
   let options = null, address = null;
   window.GH = function (o) { address = o; };
   window.TOKEN = 'stale-page-boot-token';
   window.ghAuth = { resolve: () => 'current-saved-token' };
   window.TextCollection = {
-    load: async (_gh, o) => { options = o; return { proposals: [exact, second] }; },
+    load: async (_gh, o) => { options = o; return { variants: [exact, second] }; },
     lookup: (_index, text, o) => {
       assert.equal(text, 'families');
       assert.equal(o, undefined, 'exact is the only match made; nothing fuzzier is asked for');
@@ -507,7 +507,7 @@ test('retained proposals use the private home collection and match the exact tex
     'hidden Alpine bindings still evaluate');
   assert.equal(address.token, 'current-saved-token');
   assert.equal(address.repo, 'mehrlander/home');
-  assert.equal(address.ref, 'main');
+  assert.equal(address.ref, undefined, 'no ref named: the read follows the selection');
   assert.equal(options.quiet, true, 'an optional background read cannot replace the host page');
   assert.equal(d.textPriorState, 'done');
   assert.equal(d.textPrior.selection.text, answer.selection.text);
@@ -543,7 +543,7 @@ test('a later prior-revision scan wins when an earlier request settles last', as
   assert.equal(d.textPriorState, 'done');
 });
 
-test('a proposal-index failure is isolated from the local text read', async () => {
+test('a collection failure is isolated from the local text read', async () => {
   const d = await mountFab();
   const stats = { body: 'families', visible: 'families', words: 1 };
   window.GH = function () {};
@@ -556,13 +556,13 @@ test('a proposal-index failure is isolated from the local text read', async () =
   assert.equal(d.textStats.words, stats.words);
 });
 
-test('a token change clears private proposal state before the next account read', async () => {
+test('a token change clears private collection state before the next account read', async () => {
   assert.match(AUTH_SRC, /window\.TOKEN = token/,
     'the app-wide credential follows the centralized account control');
   assert.match(AUTH_SRC, /window\.GH\.memoClear\?\.\(\)/,
     'GitHub response memoization cannot cross the account boundary');
   assert.match(AUTH_SRC, /window\.TextCollection\?\.clear\?\.\(\)/,
-    'the private proposal projection cannot cross the account boundary');
+    'the private collection cannot cross the account boundary');
   assert.match(AUTH_SRC, /new CustomEvent\('web-tools:token-changed'\)/,
     'mounted private-data surfaces are told to discard their view');
   assert.match(REPO_SRC, /window\.ghAuth\.save\(t\)[\s\S]*?location\.reload\(\)/,
@@ -585,17 +585,17 @@ test('a token change clears private proposal state before the next account read'
     'an old in-flight lookup can no longer repaint the drawer');
 });
 
-test('the retained-proposal pane is inspect-only and routes collection browsing to Text Lab', () => {
-  const start = SRC.indexOf('Retained proposals');
+test('the retained-variant pane is inspect-only and routes collection browsing to Text Lab', () => {
+  const start = SRC.indexOf('Retained variants');
   const end = SRC.indexOf('>Body</div>', start);
   const pane = SRC.slice(start, end);
-  assert.ok(start > 0 && end > start, 'the retained-proposal block leads the Body figures');
+  assert.ok(start > 0 && end > start, 'the retained-variant block leads the Body figures');
   assert.match(SRC, /Exact source text/);
   assert.doesNotMatch(SRC, /Same string found/, 'containment was a third match rule and is gone');
-  assert.match(SRC, /text-lab\.html\?pane=proposals/);
-  assert.match(pane, /x-text="p\.author"/, 'the pane names who proposed it');
+  assert.match(SRC, /text-lab\.html\?pane=variants/);
+  assert.match(pane, /x-text="p\.author"/, 'the pane names who wrote it');
   assert.doesNotMatch(pane, /historical patient|catalog source/, 'no provenance block: the collection records none');
-  assert.doesNotMatch(pane, /@click="[^"]*apply/i, 'the drawer inspects proposals but cannot apply them');
+  assert.doesNotMatch(pane, /@click="[^"]*apply/i, 'the drawer inspects variants but cannot apply them');
 });
 
 test('an unreadable document is a null, not a throw', async () => {

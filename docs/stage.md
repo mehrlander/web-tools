@@ -1,12 +1,10 @@
 # The stage: the Web Tools app's working surface
 
 The stage is where a cross-repo fileset is assembled, read, compared, saved,
-and sent. This is its reference, split out of [show-repo.md](show-repo.md) on
-2026-08-16, where it was the buried middle of the corpus's largest document;
-the `#stage=` link is also a surfacing primitive in
-[SURFACING.md](SURFACING.md) ("Stage a fileset").
-The shell that renders it stays documented in show-repo.md; the honesty caveat
-there (a `#stage=` link is token-gated) applies to every handoff.
+and sent. This is its reference; the `#stage=` link is also a surfacing
+primitive in [SURFACING.md](SURFACING.md) ("Stage a fileset").
+The app that renders it is documented in [APP.md](APP.md); the token
+requirement there (a `#stage=` link is token-gated) applies to every handoff.
 
 The stage is `store.stage`, a list of `{repo, ref, path}` refs (plus local items
 from drops). One stage sits above any repo, since every item carries its own
@@ -171,7 +169,7 @@ the reader's header, which **focuses instead of adding a pill**, since its
 subject is a staged file rather than a flavor of the paste on the bar.
 
 **The stage is also the transform workbench's door.** The workbench
-(`lib/alpineComponents/transform-workbench.js`) has shipped inside show-repo
+(`lib/alpineComponents/transform-workbench.js`) has shipped inside the app
 since the pre-build began globbing `lib/alpineComponents`, booting on every load
 with nothing ever mounting it: reachable only as a Tools gallery card opening the
 standalone page in another tab. `StageIntake.transformKindOf(item)` names what
@@ -450,7 +448,7 @@ Stage-view actions:
   **The reader says which file is on screen, and the sidebar follows it.** The
   FAB drawer floats over the reader still aimed at whatever it was aimed at
   before, which for the Stage view is the app shell: a reader six files into a
-  set they assembled had a Render tab naming `show-repo` and rooting its path
+  set they assembled had a Render tab naming the app page and rooting its path
   picker there. So the reader announces on the subject channel
   ([`kits/subject-channel.js`](../lib/kits/subject-channel.js), the one
   toss-render stamps and [`kits/file-deck.js`](../lib/kits/file-deck.js) already
@@ -659,6 +657,14 @@ PY
 
 The same base64url step without the gzip is what `&prompts=` takes.
 
+### Short text: the `#take=` param
+
+`#take=<percent-encoded text>` carries one piece of text with no gzip, and
+`name=` optionally names it. `take` is always the last param and runs to the end
+of the fragment, so a `name` goes before it. It exists because an iPhone
+shortcut can URL-encode but not gzip. The text goes through the same fold as a
+paste, and a reload of the same link does not stage it twice.
+
 ### Commentary: the `&prompts=` param
 
 `prompts=` is a base64url'd JSON list of `{label, ask}` review asks, authored
@@ -700,7 +706,7 @@ whole lines.
 (same keys: `stage`, `gz`, `prompts`, `mode`, `cmp`, `view`, `dest`). The
 fragment stays the default and the private form; the query fallback is what lets
 a stage ride a context that eats the `#`: a `toss-render` srcdoc (whose params
-shim answers `?query` lookups, so `…show-repo.html?stage=…&mode=diff` renders a
+shim answers `?query` lookups, so `…app/index.html?stage=…&mode=diff` renders a
 staged diff inside the toss), an email or chat that strips the fragment, a deep
 link. When minting a query-form link into a toss `#gh=` address, encode the
 inner `&` separators as `%26` so the toss's own hash parser keeps them inside

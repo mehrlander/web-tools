@@ -1,11 +1,11 @@
 ---
 id: brief-from-the-pages-gallery-7d4031
-title: Reach the take-away menu from show-repo's Pages gallery
+title: Reach the take-away menu from the app's Pages gallery
 status: backlog
 opened: 2026-07-26
 size: S
 ---
-# Reach the take-away menu from show-repo's Pages gallery
+# Reach the take-away menu from the app's Pages gallery
 
 The Pages gallery (the inline `gallery()` in `app/index.html`)
 is where a person is already looking at pages, so it is the natural place to

@@ -75,6 +75,10 @@ def is_prose(v):
     toks = v.split()
     if sum(len(t) for t in toks) / len(toks) > 14:
         return False
+    # a mapping (key=value items, ';'-separated) is data, however wordy its
+    # keys: docs/map-tabs.csv's `refs` pairs a lede's phrases with paths
+    if all("=" in x for x in v.split(";") if x.strip()):
+        return False
     # a pipe- or semicolon-delimited list is a list, however long
     return v.count("|") < 3 and v.count(";") < 4
 
@@ -269,11 +273,13 @@ def load_vocab(root, override=None):
 
 # Names that are a value, not prose about a value: an identifier, a caption, or
 # a typed cell that happens to run long. Off-vocabulary is not a finding for
-# these, because they were never trying to be one of the nine.
+# these, because they were never trying to be one of the nine. `rules` is
+# docs/run-methods.csv's semicolon list of constraints, declared a list in
+# docs/properties.csv; it crossed the word threshold when two methods joined.
 VALUE_FIELD = re.compile(
     r"^(.*_)?(title|name|label|id|key|path|url|agency|fund|item|section|step|form|"
     r"unit|grain|measure|values?|column_roles|primary_key|reads|via|maps|"
-    r"applies_to|carrier|host|from|verdict|deliverable|authoritative|target|record_owner|instead_of|aliases)$", re.I
+    r"applies_to|carrier|host|from|verdict|deliverable|authoritative|target|record_owner|instead_of|aliases|rules)$", re.I
 )
 
 

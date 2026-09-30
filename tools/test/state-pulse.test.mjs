@@ -371,7 +371,7 @@ test('the rail uses data-rail-cursor and no native title attribute', () => {
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'state-view.js'), 'utf8');
   const rail = src.slice(src.indexOf('const TICKS ='), src.indexOf('// THE CARD for the tick'));
   assert.doesNotMatch(rail, /:title=/, 'the rail must not use native title tooltips');
-  assert.match(rail, /data-rail-cursor\s+data-note-bare/, 'the rail carries a note cursor');
+  assert.match(rail, /data-rail-cursor\s+data-title-tip-bare/, 'the rail carries a note cursor');
   assert.doesNotMatch(src, /\$\{PEEK\(/, 'the inline card under the rail is removed');
 });
 
@@ -410,8 +410,8 @@ test('peekAt updates data-rail-cursor attributes and clearPeek clears it', () =>
 
   data.peekAt(row('activity'), 24, ev);
   assert.ok(cur.style.left.endsWith('%'), 'cursor left style is set as percentage');
-  assert.ok(attrs['data-note-title'], 'data-note-title is set on cursor');
-  assert.ok(attrs['data-note'], 'data-note is set on cursor');
+  assert.ok(attrs['data-title-tip-lead'], 'data-title-tip-lead is set on cursor');
+  assert.ok(attrs['data-title-tip'], 'data-title-tip is set on cursor');
 
   data.clearPeek();
   assert.equal(data.peek, null);

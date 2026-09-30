@@ -2,7 +2,7 @@
 id: fab-capture-button-f6q38m
 title: Persist FAB captures, the write path to state/captures/
 status: backlog
-project: show-repo
+project: app
 opened: 2026-07-26
 size: S
 ---

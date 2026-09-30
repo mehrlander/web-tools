@@ -302,6 +302,113 @@ def classify(paths):
     return b
 
 
+# THE OVERLAY (docs/loader.md, "The selection"): main at a pinned commit, with
+# this branch's changed files read at the branch's commit over it, as
+# refs=owner/repo@sha:path entries on the renderer.
+#
+# WHAT IT SHOWS, AND WHEN THAT IS A MERGE PREVIEW. An overlay replaces whole
+# files. It equals what a merge would produce only when main has changed none
+# of those files since the branch point (otherwise the overlay drops main's
+# edits to them) and the branch deletes or renames none (an overlay cannot take
+# a file away). Under those two conditions it is the merge preview, and it is
+# the one worth having when the branch lags main: previewed as it stands, a
+# branch 97 commits behind silently reverts every file main changed since
+# (measured on the open PRs, 2026-09-29). When either condition fails, no link
+# shows the merge, and this says so and links the branch as it stands, which
+# is at least what it claims to be. Composing versions by hand with refs= stays
+# available; only the automatic choice is held to the claim.
+#
+# Generated files (dist/) are left out: the page boots main's build, and each
+# changed library file steps around that build's cache on its own entry, which
+# is what a rebuild at merge would contain.
+#
+# Only when main can read it. The link goes to the DEPLOYED renderer, so this
+# asks main's own renderer and build whether they understand path entries,
+# rather than trusting this branch's copy of them.
+OVERLAY_CAP = 20
+TEST_BASE_SHA = "b" * 40
+
+# Files a merge regenerates rather than takes from either side: the builds,
+# the files the commit hook writes whole (tools/README.md, "The refresh
+# model"), and the catalogs .gitattributes merges with the derived-csv driver.
+# Neither side's copy is what the merge produces, so an overlay reads main's
+# and says so, and they do not count against it as files main also changed.
+WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
+                   "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
+                   ".claude/skills/default/")
+
+def derived_paths():
+    try:
+        text = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    return {l.split()[0] for l in text.splitlines() if "merge=derived-csv" in l and l.split()}
+
+def is_derived(p, derived=None):
+    return p.startswith(WHOLE_GENERATED) or p in (derived if derived is not None else derived_paths())
+
+def overlay_ready(base, use_git, forced=None):
+    if forced is not None:
+        return forced
+    if not use_git:
+        return False
+    r = sh("git", "show", f"{base}:pages/toss-render.html")
+    b = sh("git", "show", f"{base}:lib/build.js")
+    return bool(r and "getAll('refs')" in r and b and "__servesFromBuild" in b)
+
+def overlay_entries(slug, sha, paths, skip=()):
+    derived = derived_paths()
+    return [f"{slug}@{sha}:{p}" for p in sorted(paths)
+            if not is_derived(p, derived) and p not in skip]
+
+def overlay_plan(base, sha, paths, use_git, lag=None, removed=None, behind=None):
+    """Whether an overlay of `paths` on main is the merge preview. Reads git, or,
+    for tests, the --main-changed / --removed / --behind fixtures."""
+    derived = derived_paths()
+    own = [p for p in paths if not is_derived(p, derived)]
+    if use_git:
+        base_sha = sh("git", "rev-parse", base)
+        mb = sh("git", "merge-base", base, sha)
+        main_changed = set(sh("git", "diff", "--name-only", f"{mb}..{base}").splitlines()) if mb else set()
+        status = sh("git", "diff", "--name-status", "-M", f"{mb}..{sha}").splitlines() if mb else []
+        gone = [l.split("\t")[1] for l in status if l[:1] in ("D", "R") and "\t" in l]
+        n_behind = int(sh("git", "rev-list", "--count", f"{sha}..{base}") or 0)
+        known = bool(mb)
+    else:
+        base_sha, main_changed, gone = TEST_BASE_SHA, set(lag or []), list(removed or [])
+        n_behind, known = behind or 0, True
+    overlap = sorted(p for p in own if p in main_changed)
+    gone = sorted(p for p in gone if not is_derived(p, derived))
+    regenerated = sorted(p for p in paths if is_derived(p, derived))
+    return {"known": known, "base_sha": base_sha, "behind": n_behind, "overlap": overlap, "removed": gone,
+            "regenerated": regenerated,
+            "ok": known and bool(base_sha) and not overlap and not gone}
+
+def overlay_why(plan, n):
+    short = plan["base_sha"][:7]
+    gen = (f" The {len(plan['regenerated'])} generated file(s) the branch also changed ("
+           + ", ".join(plan["regenerated"][:3]) + ("…" if len(plan["regenerated"]) > 3 else "")
+           + ") are read at main: a merge regenerates them rather than taking either copy.") if plan.get("regenerated") else ""
+    if plan["behind"]:
+        return (f"Main at {short}, with this branch's {n} changed file(s) read at the branch's commit over it. "
+                f"The branch is {plan['behind']} commit(s) behind main, main has changed none of those files since "
+                f"the branch point, and the branch removes or renames none, so for those files this is the tree a merge would produce." + gen)
+    return (f"Main at {short}, with this branch's {n} changed file(s) over it: the branch is current with main, "
+            f"so for those files this is the branch itself." + gen)
+
+def overlay_refusal(plan):
+    if not plan["known"]:
+        return "the branch point could not be read (a shallow clone?), so whether an overlay is the merge is unknown: this links the branch as it stands."
+    if plan["removed"]:
+        return ("the branch deletes or renames " + ", ".join(plan["removed"][:4]) + ("…" if len(plan["removed"]) > 4 else "")
+                + ", which an overlay cannot remove from main: this links the branch as it stands, which is not the merge either if it lags main.")
+    return (f"main has changed {len(plan['overlap'])} of this branch's files since it branched ("
+            + ", ".join(plan["overlap"][:4]) + ("…" if len(plan["overlap"]) > 4 else "")
+            + "), and an overlay replaces whole files, so it would drop main's edits to them; the branch as it stands, "
+            f"{plan['behind']} commit(s) behind, lacks main's other changes. Neither link shows the merge: merge main into "
+            "the branch, push, and re-run. This links the branch as it stands.")
+
+
 def top_level_hits(text):
     found = []
     for line in text.splitlines():
@@ -313,7 +420,8 @@ def top_level_hits(text):
     return found
 
 
-def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
+def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=None,
+         lag=None, removed=None, behind=None):
     slug = repo_slug()
     hosted = hosted_ok()
     facts = ref_facts(ref) if use_git else {"sha": ref, "branch": "", "pushed": True}
@@ -347,6 +455,20 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
             return decision("none", [(p, None) for p in b["shell"]], sha, slug, hosted, why, warn, facts, at, query)
         why.append("a page's own file changed, which ?use= never swaps: Pages serves the page file from the default branch.")
         subjects = [(p, None) for p in b["shell"]]
+        entries = overlay_entries(slug, sha, paths, skip=set(b["shell"]))
+        plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
+        if overlay_ready(base, use_git, overlay):
+            if len(entries) > OVERLAY_CAP:
+                warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}: this links the branch as it stands instead"
+                            + (f", {plan['behind']} commit(s) behind main, without main's later changes." if plan["known"] and plan["behind"] else "."))
+            elif not plan["ok"]:
+                warn.append(overlay_refusal(plan))
+            else:
+                why.append(overlay_why(plan, len(entries) + len(b["shell"])) + " The page is the branch's; everything else it reads is main's unless the branch changed it.")
+                return decision("overlay", subjects, sha, slug, hosted, why, warn, facts, at, query,
+                                entries=[f"{slug}@{plan['base_sha']}"] + entries, page_ref=sha)
+        elif plan["known"] and plan["behind"]:
+            warn.append(f"the branch is {plan['behind']} commit(s) behind main, so this shows it as it stands, without main's later changes.")
         return decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at, query)
 
     # Lib, which is the case that gets called wrong.
@@ -375,11 +497,27 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
             if page != "app/index.html" or not keys:
                 subjects.append((page, None, "gh.load"))
         carried = sorted(set(prebuilt) - direct - {s[0] for s in subjects})
-        why.append("only lib/ or dist/ changed, and a page's own file is untouched, so the deployed page loading the branch's lib is the real thing.")
         if not subjects and carried:
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
-        d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
+        entries = overlay_entries(slug, sha, paths)
+        ready = overlay_ready(base, use_git, overlay)
+        plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
+        if ready and len(entries) <= OVERLAY_CAP and plan["ok"]:
+            why.append("only lib/ or dist/ changed, so the page is main's. " + overlay_why(plan, len(entries)))
+            d = decision("overlay", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query,
+                         entries=[f"{slug}@{plan['base_sha']}"] + entries, page_ref=plan["base_sha"])
+        else:
+            if ready and len(entries) <= OVERLAY_CAP:
+                warn.append(overlay_refusal(plan))
+            if plan["known"] and plan["behind"]:
+                why.append(f"only lib/ or dist/ changed, and a page's own file is untouched, so this pins the branch's lib as it stands: "
+                           f"{plan['behind']} commit(s) behind main, so main's later library changes are absent from it.")
+            else:
+                why.append("only lib/ or dist/ changed, and a page's own file is untouched, so the deployed page loading the branch's lib is the real thing.")
+            if len(entries) > OVERLAY_CAP:
+                warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}, so this pins the whole branch instead.")
+            d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
         for l, s3 in zip(d["links"], subjects):
             l["via"] = s3[2]
         if carried:
@@ -477,7 +615,7 @@ MCP_URL_CAP = 150
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
-def address(mech, page, sha, slug, view=None, at="", query=""):
+def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref=""):
     base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
@@ -529,6 +667,16 @@ def address(mech, page, sha, slug, view=None, at="", query=""):
             q += ("&" if q else "?") + query.lstrip("?&")
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
                 f"#gh={slug}@{sha}:{page}{q}{frag}")
+    if mech == "overlay":
+        # The renderer is main's; the selection rides on ITS query as refs=, and
+        # the page is addressed at the branch only when the page itself changed.
+        sel = "&".join("refs=" + e for e in (entries or []))
+        at_ref = f"@{page_ref}" if page_ref else ""
+        vq = f"?view={view}" if view else ""
+        if query:
+            vq += ("&" if vq else "?") + query.lstrip("?&")
+        return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html" + (f"?{sel}" if sel else "")
+                + f"#gh={slug}{at_ref}:{page}{vq}{frag}")
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
                 f"#gh={slug}@{sha}:pages/<the page to render>.html")
@@ -547,10 +695,10 @@ def routes_on_hash(page):
         return False
 
 
-GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏"}
+GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏"}
 
 
-def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query=""):
+def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref=""):
     if not hosted and mech in ("use",):
         warn.append("this repo serves no pages, so ?use= has nothing to pin: use the toss instead.")
         mech = "toss-gh"
@@ -563,7 +711,7 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         + "): pass --at '<fragment>' to put an address on the link, e.g. "
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
-    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query)} for p, v in subjects]
+    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
     over = [l for l in links if len(l["url"]) >= MCP_URL_CAP]
     if over:
         warn.append(f"{len(over)} link(s) run {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
@@ -623,6 +771,10 @@ def main():
                          "than on a hash (e.g. --query 'view=sessions'). Without it a link to such "
                          "a page opens whichever view it defaults to.")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--overlay", choices=["yes", "no"], help="(for tests) treat main's renderer as reading refs= path entries, or not, instead of asking git")
+    ap.add_argument("--main-changed", default="", help="(for tests, with --files) the files main changed since the branch point")
+    ap.add_argument("--removed", default="", help="(for tests, with --files) the files the branch deletes or renames")
+    ap.add_argument("--behind", type=int, default=0, help="(for tests, with --files) how many commits the branch lags main")
     ap.add_argument("--root", help="the checkout to read (default: the git toplevel of the current "
                                    "directory, else this repo); another repo's pages come from its "
                                    ".web-tools.json `showing` block")
@@ -639,10 +791,14 @@ def main():
         # A stated file set pins the SHA too, so a test's expected output does
         # not move with the branch.
         paths = [p for p in a.files.split(",") if p]
-        d = pick(paths, a.base, "0" * 40, use_git=False, diff=diff, at=a.at, query=a.query)
+        d = pick(paths, a.base, "0" * 40, use_git=False, diff=diff, at=a.at, query=a.query,
+                 overlay=None if a.overlay is None else a.overlay == "yes",
+                 lag=[x for x in a.main_changed.split(",") if x], removed=[x for x in a.removed.split(",") if x],
+                 behind=a.behind)
     else:
         try:
-            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at, query=a.query)
+            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at, query=a.query,
+                     overlay=None if a.overlay is None else a.overlay == "yes")
         except GitFailed as e:
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
