@@ -399,6 +399,10 @@
   await gh.load('kits/md-unwrap.js');
   // The house panel-tip's ways out (window.PanelTip), for a card's Info.
   await gh.load('kits/panel-tip.js');
+  // The house title-tip (window.TitleTip): every [data-title-tip] works,
+  // markup written later included. A fact never rides in a `title`, which
+  // no phone shows (html-style rule 11).
+  await gh.load('kits/title-tip.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';
   const JOTS = 'lists/jots.json';
@@ -3036,7 +3040,14 @@
           const b = card.querySelector('[data-md-card-badge]');
           if (b) for (const x of ['bg-success!', 'text-success-content!', 'border-success!']) b.classList.toggle(x, c);
           const a = card.querySelector('[data-md-card-act="confirm"]');
-          if (a) { a.textContent = c ? 'confirmed ✓' : 'confirm'; a.title = c ? 'Confirmed for Apply; tap to take it back' : 'Confirm this change for Apply'; }
+          if (a) {
+            a.textContent = c ? 'confirmed ✓' : 'confirm';
+            // A title-tip, not a `title`: this is what the word does, and a
+            // phone would never have shown it.
+            a.removeAttribute('title'); a.dataset.titleTipBare = '';
+            a.dataset.titleTip = c ? 'Confirmed for Apply. Tap to take it back; editing the change also takes it back.'
+                                   : 'Confirm this change for the next Apply. Nothing is sent to GitHub yet.';
+          }
         }
       },
       // APPLY: GitHub's copy with the confirmed cards' changes in it, which is
@@ -3988,8 +3999,8 @@
       <!-- The armed capital has nothing on screen to show yet: the word it
            applies to has not been said. So it wears the ring red the pins and
            the target wear, which is this page's one word for "live". -->
-      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error"
-         title="The next word you say will be capitalised (tap Shift again to cancel)"></i>
+      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error" data-title-tip-bare
+         data-title-tip="The next word you say will be capitalised (tap Shift again to cancel)"></i>
     </div>
 
     <!-- The target in the header, for a note; in file mode it is in the
@@ -4140,7 +4151,7 @@
     <i class="ph" :class="arrived ? 'ph-arrows-out' : 'ph-clock-counter-clockwise'"></i>
     <span x-show="!arrived">Picked up where you left off.</span>
     <span x-show="arrived" class="min-w-0 truncate"
-          :title="arrivedFrom ? 'Sent from ' + arrivedFrom : 'Sent from a composer on another page'"
+          :data-title-tip="arrivedFrom ? 'Sent from ' + arrivedFrom : 'Sent from a composer on another page'"
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
     <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
             title="Put the draft this page was holding back above these words">Bring back</button>
@@ -4306,7 +4317,7 @@
            text shade, an inset ring at a quarter strength), the owner's pick of
            three mocked on 2026-09-30 over a solid fill with a breathing glow. -->
       <button x-show="file && !rendered && dirty && !edit" x-cloak data-source-edits
-              @click="setView('rendered')" title="This is your text with your edits. Tap to see them marked."
+              @click="setView('rendered')" data-title-tip-bare data-title-tip="Your text, including your edits. Tap to see them marked."
               class="absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer bg-emerald-500/10 text-emerald-700 ring-1 ring-inset ring-emerald-600/25">
         <i class="ph ph-pencil-simple-line"></i>with edits
       </button>
@@ -4324,7 +4335,7 @@
              how many and the branch they will be committed to. -->
         <button x-show="confirmedCount" x-cloak @click="applyConfirmed()" :disabled="applying" data-apply
                 class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
-                :title="'Commit the confirmed changes to ' + (file ? fileWhere : '')">
+                data-title-tip-bare :data-title-tip="'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit, with their notes.'">
           <i class="ph ph-check-circle"></i>
           <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
         </button>

@@ -1981,14 +1981,14 @@ try {
     await c.setView('source'); await new Promise((r) => setTimeout(r, 150));
     const clean = vis(b());
     c.d.text = c.text.replace('Third para.', 'Third paragraph.'); c.paint(); await new Promise((r) => setTimeout(r, 150));
-    const edited = vis(b()) ? b().textContent.trim() : null;
+    const edited = vis(b()) ? b().textContent.trim() : null, tip = b().dataset.titleTip, title = b().getAttribute('title');
     b().click(); await new Promise((r) => setTimeout(r, 200));
     const after = { view: c.view, badge: vis(b()) };
     c.d.undo(); c.paint();
-    return { clean, edited, after };
+    return { clean, edited, after, tip, title };
   });
   ok('in Source, edited text wears a "with edits" badge that goes to Rendered; unedited text wears none',
-    !srcBadge.clean && srcBadge.edited === 'with edits' && srcBadge.after.view === 'rendered' && !srcBadge.after.badge, JSON.stringify(srcBadge));
+    !srcBadge.clean && srcBadge.edited === 'with edits' && /including your edits/.test(srcBadge.tip) && !srcBadge.title && srcBadge.after.view === 'rendered' && !srcBadge.after.badge, JSON.stringify(srcBadge));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
   // changes, carrying each one's note; the rest stay as edits.
@@ -2002,7 +2002,9 @@ try {
     const third = () => [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('paragraph'));
     const btn = () => third().querySelector('[data-md-card-act="confirm"]');
     const state = async () => { await new Promise((r) => setTimeout(r, 120)); const b = third().querySelector('[data-md-card-badge]');
-      return { word: btn().textContent, green: b.classList.contains('bg-success!'), apply: vis(document.querySelector('[data-apply]')) ? document.querySelector('[data-apply]').textContent.trim() : null, n: c.confirmedCount }; };
+      const ap = document.querySelector('[data-apply]');
+      return { word: btn().textContent, green: b.classList.contains('bg-success!'), apply: vis(ap) ? ap.textContent.trim() : null, n: c.confirmedCount,
+               tip: btn().dataset.titleTip, title: btn().getAttribute('title'), applyTip: ap.dataset.titleTip, applyTitle: ap.getAttribute('title') }; };
     btn().click(); const on = await state();
     btn().click(); const off = await state();
     btn().click(); await state();
@@ -2017,6 +2019,9 @@ try {
     return { on, off, edited, noted: !!note };
   });
   ok('confirm marks the card, green number and "confirmed ✓", and brings Apply 1; the same word takes it back', conf.on.word === 'confirmed ✓' && conf.on.green && /^Apply 1\b/.test(conf.on.apply || '') && conf.off.word === 'confirm' && !conf.off.green && conf.off.apply === null, JSON.stringify(conf));
+  ok('confirm, confirmed and Apply say what they do in title-tips, never in a `title`',
+    /Nothing is sent to GitHub yet/.test(conf.off.tip) && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit, with their notes\.$/.test(conf.on.applyTip)
+      && !conf.on.title && !conf.off.title && !conf.on.applyTitle, JSON.stringify({ on: conf.on, off: conf.off }));
   ok('editing a confirmed card lets the confirmation lapse', conf.edited.n === 0 && conf.edited.word === 'confirm', JSON.stringify(conf.edited));
   const before = writes.length;
   await page.evaluate(() => document.querySelector('[data-apply]').click());
