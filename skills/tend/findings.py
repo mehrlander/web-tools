@@ -21,7 +21,7 @@ subject branch has not moved.
 Usage:
   findings.py candidates [--json]          mechanical selection: what to investigate
   findings.py add <file.json|->            one finding object, or a list of them
-  findings.py update <id> <file.json|->    {"text": "what changed", "finding": {...}}
+  findings.py update <id> <file.json|->    {"text": "what changed", "finding": {...}}; "title" in it retitles
   findings.py list [--all] [--json]        folded findings, open unless --all
   findings.py check [--all] [--json]       witness verdicts: ok, changed, broken, unverifiable
 """
@@ -72,7 +72,7 @@ def fold(notes):
             continue
         cur = {k: f0[k] for k in FIELDS if k in f0}
         status = f0.get("status") or ("settled" if cur.get("kind") == "settled" else "open")
-        assessed, comments, updates = root["at"], [], []
+        assessed, comments, updates, title = root["at"], [], [], root["text"]
         for r in sorted(flat(root["id"]), key=lambda n: n["at"]):
             u = r.get("finding")
             if not isinstance(u, dict):
@@ -84,9 +84,11 @@ def fold(notes):
             status = u.get("status") or ("settled" if u.get("kind") == "settled" else status)
             if "witnesses" in u:
                 assessed = r["at"]
+            if u.get("title"):
+                title = u["title"]
             updates.append(r)
         subjects = list(dict.fromkeys([root["about"], *cur.get("subjects", [])]))
-        found.append({"id": root["id"], "at": root["at"], "author": root["author"], "title": root["text"],
+        found.append({"id": root["id"], "at": root["at"], "author": root["author"], "title": title,
                       **cur, "subjects": subjects, "status": status, "open": status not in CLOSED,
                       "assessedAt": assessed, "updates": len(updates), "comments": len(comments)})
     return found
