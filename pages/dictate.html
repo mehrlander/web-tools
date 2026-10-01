@@ -2916,14 +2916,24 @@
         if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
         if (!badge) return;
-        const r = this.d && this.d.range;
-        this.selCard = { i: +badge.dataset.mdCardBadge, at: r ? r.start : -1 };
+        const r = this.d && this.d.range, i = +badge.dataset.mdCardBadge;
+        this.selCard = { i, at: r ? r.start : -1 };
         this.paint();
+        this.infoTap(i, badge);
+      },
+      // INFO LIVES ON THE CARD'S NUMBER (owner's call, 2026-10-01; it was a
+      // word in the pill). A click PINS it: a hover-opened one stays; a pinned
+      // one closes; any other opens pinned, which is every tap on a phone.
+      infoTap(i, el) {
+        const c = this.cardInfo;
+        if (c && c.i === i && !c.pinned) this.pinInfo(true);
+        else if (c && c.i === i) this.cardInfo = null;
+        else this.openCardInfo(i, el, true);
       },
       cardHover(e) {
-        // A mouse resting on a card's info opens it unpinned, after the
+        // A mouse resting on a card's number opens its Info unpinned, after the
         // house 140ms; moving off before then opens nothing.
-        const info = e && e.pointerType === 'mouse' && this.hoverable() ? e.target?.closest?.('[data-md-card-act="info"]') : null;
+        const info = e && e.pointerType === 'mouse' && this.hoverable() ? e.target?.closest?.('[data-md-card-badge]') : null;
         if (info !== this._infoOver) {
           this._infoOver = info; clearTimeout(this._infoT);
           if (info) this._infoT = setTimeout(() => {
@@ -2949,8 +2959,8 @@
         const i = el ? +el.dataset.mdCard : null;
         if (i !== this.hoverCard) { this.hoverCard = i; this.markCardBar(); }
       },
-      // THE CARD PILL: the selected card's actions, as the words "info" and
-      // "remove" in a small pill centred on its bottom edge. kits/md-surface.js
+      // THE CARD PILL: the selected card's actions, as the words "confirm" and
+      // "remove" in a small pill (Info is the card's number) centred on its bottom edge. kits/md-surface.js
       // draws one in every card, hidden, from `cardActions`; this shows the
       // selected card's and hides the rest. Being in the card, it scrolls with
       // the text rather than being moved on each scroll. Centred because a
@@ -2959,7 +2969,6 @@
       // page reviewing someone else's text would put its votes and comments
       // in the same pill, the destructive one last.
       CARD_ACTIONS: [
-        { act: 'info', text: 'info', title: 'Info', cls: 'text-base-content/60' },
         { act: 'confirm', text: 'confirm', title: 'Confirm this change for Apply', cls: 'text-success' },
         { act: 'remove', text: 'remove', title: 'Remove this change', cls: 'text-error/70' },
       ],
@@ -3046,7 +3055,7 @@
             // phone would never have shown it.
             a.removeAttribute('title'); a.dataset.titleTipBare = '';
             a.dataset.titleTip = c ? 'Confirmed for Apply. Tap to take it back; editing the change also takes it back.'
-                                   : 'Confirm this change for the next Apply. Nothing is sent to GitHub yet.';
+                                   : 'Accept this change (can undo).';
           }
         }
       },
@@ -3100,13 +3109,6 @@
         // A click PINS Info: a hover-opened one stays, with its ✕; a pinned
         // one closes; any other opens pinned, which is every tap on a phone.
         if (btn.dataset.mdCardAct === 'confirm') { this.toggleConfirm(i); return; }
-        if (btn.dataset.mdCardAct === 'info') {
-          const c = this.cardInfo;
-          if (c && c.i === i && !c.pinned) this.pinInfo(true);
-          else if (c && c.i === i) this.cardInfo = null;
-          else this.openCardInfo(i, btn, true);
-          return;
-        }
         const run = window.MdSurface.cards(this.$refs.md)[i];
         this.cardInfo = null; this.selCard = null; this.keyCard = null;
         if (run) this.rejectCard(run);
@@ -3143,7 +3145,11 @@
         // mouse left it, so a pinned one is wired without it.
         this._infoWire?.detach();
         this._infoWire = window.PanelTip.wire(el, { onClose: () => { this.cardInfo = null; }, label: 'card info',
-          except: ['[data-md-card-act="info"]'], stale: pinned ? 'geometry' : true });
+          // Hover-opened, the card itself counts as near, since reaching the
+          // panel from the number means crossing the card; pinned, a press on
+          // the card is outside like any other.
+          except: pinned ? ['[data-md-card-badge]'] : ['[data-md-card-badge]', '[data-md-card="' + this.cardInfo.i + '"]'],
+          stale: pinned ? 'geometry' : true });
       },
       // A card's source, both sides: { s, a, line } for GitHub's copy (O) and
       // the text now (N), each the span from its first entry to its last.
@@ -3292,13 +3298,17 @@
         const a = lines[0], z = lines[lines.length - 1];
         const where = !lines.length ? '' : changed === 1 || a === z ? 'line ' + a : changed + ' lines, ' + a + '–' + z;
         const ow = wc(O.s), nw = wc(N.s);
-        const b = k.getBoundingClientRect();
+        // Above or below the CARD, not its number: the number sits on the
+        // card's top edge, and a panel hung from it covered the very change
+        // it describes.
+        const b = (k.closest && k.closest('[data-md-card]') || k).getBoundingClientRect();
         const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
         const below = innerHeight - b.bottom > b.top;
         this.cardInfo = { i, rows, kind, w, key: this.cardId(i),
           sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
           x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
-          pos: below ? 'top:' + (b.bottom + 6) + 'px' : 'bottom:' + (innerHeight - b.top + 6) + 'px',
+          // 16px clear of the card, past the pills that straddle its edges.
+          pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px',
           room: Math.max(160, (below ? innerHeight - b.bottom : b.top) - 60) };
         this.$nextTick(() => this.pinInfo(pinned));
       },

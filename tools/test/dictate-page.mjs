@@ -1253,8 +1253,8 @@ try {
              centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2), words: b.textContent.replace(/\s+/g, ''),
              h: Math.round(r.height), fs: parseFloat(getComputedStyle(b).fontSize),
              reach: Math.round(kr.height + 2 * Math.abs(parseFloat(hit.top) || 0)), x: kr.left + kr.width / 2, y: kr.top + kr.height / 2 }; });
-  ok('the number selects its card, and the card wears one pill, info, confirm and remove, centred on its bottom edge, 13px words in a pill no taller than 22px, with a tap reach of 40px or more',
-    !!bar && bar.n === 1 && bar.inCard && bar.straddles && bar.centred < 3 && bar.words === 'infoconfirmremove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
+  ok('the number selects its card, and the card wears one pill, confirm and remove, centred on its bottom edge, 13px words in a pill no taller than 22px, with a tap reach of 40px or more',
+    !!bar && bar.n === 1 && bar.inCard && bar.straddles && bar.centred < 3 && bar.words === 'confirmremove' && bar.fs >= 13 && bar.h <= 22 && bar.reach >= 40, JSON.stringify(bar));
   await page.touchscreen.tap(bar.x, bar.y);
   await page.waitForTimeout(250);
   ok('and Remove on the bar restores the document exactly', (await docText()) === PARA_DOC, JSON.stringify(await docText()));
@@ -1423,7 +1423,7 @@ try {
     await new Promise((r) => setTimeout(r, 200));
     const b = [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'));
     const inCard = !!b;
-    b?.querySelector('[title="Info"]')?.click();
+    b?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     const p = document.querySelector('[data-card-info]');
     const raw = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"]') || [])].map((r) => r.dataset.raw).join('\n');
@@ -1454,7 +1454,7 @@ try {
     c.$refs.md.style.letterSpacing = '';
     const under = { n: um.length, moved, own: !!um[0] && c.$refs.md.contains(um[0]), style: cs && cs.textDecorationStyle,
       fits: um.length === 1 && Math.abs(ub.left - wr.left) < 2 && Math.abs(ub.width - wr.width) < 2 && cs.textDecorationLine.includes('underline') && cs.textDecorationStyle === 'dotted' };
-    [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
+    [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
       lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
@@ -1464,7 +1464,7 @@ try {
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise((r) => setTimeout(r, 50));
     out.fmt.escaped = c.cardInfo === null;
-    [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[title="Info"]')?.click();
+    [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     const reopened = !!c.cardInfo;
     document.querySelector('header, [data-dictate-ui]')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
@@ -1515,7 +1515,7 @@ try {
   const infoBtn = await page.evaluate(async () => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('Third para.', 'Third para, rewritten.'); c.d.caretAt(c.d.text.indexOf('rewritten')); c.paint();
     await new Promise((r) => setTimeout(r, 250));
-    const b = [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.querySelector('[data-md-card-act="info"]');
+    const b = [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]');
     const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   const infoNow = () => page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
     const x = document.querySelector('[data-card-info] [data-wt-panel-tip-close]');
@@ -1528,7 +1528,7 @@ try {
   const hovered = await infoNow();
   await page.mouse.move(5, 5); await page.mouse.move(8, 400); await page.waitForTimeout(500);
   const left = await infoNow();
-  ok('a mouse resting on info opens it unpinned, with no ✕, and moving well away closes it', hovered.open && !hovered.pinned && !hovered.ghost && !left.open, JSON.stringify({ hovered, left }));
+  ok("a mouse resting on a card's number opens its Info unpinned, with no ✕, and moving well away closes it", hovered.open && !hovered.pinned && !hovered.ghost && !left.open, JSON.stringify({ hovered, left }));
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; window.matchMedia = window._mm; c.cardInfo = null; c.d.undo(); c.paint(); });
   // The Changes face is retired; what it alone had, the count and a step
   // between changes, sits in the Rendered face's corner.
@@ -2020,7 +2020,7 @@ try {
   });
   ok('confirm marks the card, green number and "confirmed ✓", and brings Apply 1; the same word takes it back', conf.on.word === 'confirmed ✓' && conf.on.green && /^Apply 1\b/.test(conf.on.apply || '') && conf.off.word === 'confirm' && !conf.off.green && conf.off.apply === null, JSON.stringify(conf));
   ok('confirm, confirmed and Apply say what they do in title-tips, never in a `title`',
-    /Nothing is sent to GitHub yet/.test(conf.off.tip) && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit, with their notes\.$/.test(conf.on.applyTip)
+    conf.off.tip === 'Accept this change (can undo).' && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit, with their notes\.$/.test(conf.on.applyTip)
       && !conf.on.title && !conf.off.title && !conf.on.applyTitle, JSON.stringify({ on: conf.on, off: conf.off }));
   ok('editing a confirmed card lets the confirmation lapse', conf.edited.n === 0 && conf.edited.word === 'confirm', JSON.stringify(conf.edited));
   const before = writes.length;
