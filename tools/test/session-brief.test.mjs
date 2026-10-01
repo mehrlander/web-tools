@@ -54,7 +54,9 @@ const facts = {
 // tallies cannot say which came first.
 const log = [];
 const gets = () => log.filter(l => l.startsWith('get:'));
-const trees = () => log.filter(l => l.startsWith('tree:'));
+// The store's tree listing, which is what the once-only rule is about. A
+// standalone mount also lists each repo's calls/ folder, a different read.
+const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/calls'));
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
@@ -169,7 +171,7 @@ test('a unit word rides only the values that do not name themselves', () => {
   // calls.
   const units = Object.fromEntries(lent().strip.map(f => [f.k, f.unit]));
   assert.deepEqual(units,
-    { day: '', ran: '', calls: 'calls', failures: 'failed', repos: '' });
+    { day: '', ran: '', calls: 'tool calls', failures: 'failed', repos: '' });
 });
 
 test('the strip counts a zero rather than dropping it, and drops what is absent', () => {
@@ -707,7 +709,7 @@ test('branchGroups groups session fileRows by repository and branch', async () =
   assert.equal(groups[0].repo, 'web-tools');
   assert.equal(groups[0].branch, 'feat/json-explorer');
   assert.equal(groups[0].files.length, 2);
-  assert.match(groups[0].branchUrl, /branch\.html#gh=web-tools@feat%2Fjson-explorer/);
+  assert.match(groups[0].branchUrl, /branch\.html#gh=me\/web-tools@feat%2Fjson-explorer/);
 
   assert.equal(groups[1].repo, 'other-repo');
   assert.equal(groups[1].branch, 'main');
