@@ -3314,18 +3314,18 @@
       },
       // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
       // segs: [{ t, cls }] }. A removed run facing an added one is paired line
-      // by line and diffed within; by character where the two lines are
-      // mostly alike, else by word, so a rewrite does not shatter into
-      // letters. `changed` counts lines as the larger side of each hunk.
+      // by line and diffed within by wordParts, the page's own marking, so
+      // the panel and the card agree. `changed` counts lines as the larger
+      // side of each hunk.
       lineDiff(a, b, oNo, nNo) {
         const D = window.Diff, rows = [];
         const split = (v) => { const x = v.split('\n'); if (x[x.length - 1] === '') x.pop(); return x; };
-        const vis = (s) => s.replace(/ /g, '·').replace(/\t/g, '→') || '⏎';
+        // Spaces are dotted only where they are the whole change, as in the pops.
+        const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s || '⏎';
         const whole = (kind, l, no) => rows.push({ kind, no, sign: kind === 'del' ? '−' : '+', raw: l,
           segs: [l.trim() ? { t: l, cls: '' } : { t: '⏎ blank line', cls: 'opacity-60' }] });
         const pair = (x, y) => {
-          const same = D.diffChars(x, y).reduce((n, p) => n + (p.added || p.removed ? 0 : p.value.length), 0);
-          const parts = same >= 0.6 * Math.max(x.length, y.length) ? D.diffChars(x, y) : D.diffWordsWithSpace(x, y);
+          const parts = this.wordParts(x, y);
           const side = (drop, hl) => parts.filter((p) => !p[drop]).map((p) => (p.added || p.removed) ? { t: vis(p.value), cls: hl } : { t: p.value, cls: '' });
           return [side('added', 'bg-error/35 rounded-sm'), side('removed', 'bg-success/40 rounded-sm')];
         };
@@ -3421,16 +3421,29 @@
       // pop, a struck or added word or an underline, so a red beside a green
       // shows which the undo is about, and bold added shows as the ** it is.
       // Spaces are dotted only where they are the change itself.
+      // ONE DIFF FOR EVERY VIEW OF A CHANGE (owner, 2026-10-01). The card
+      // marks words with mdDiff.runs: a word diff whose short unchanged gaps
+      // between two changes fold into them. Info and the pops used a character
+      // diff where two lines were mostly alike, and a rewrite came out as
+      // letters ("kind" against "knowing") beside a card marking whole words.
+      // Here is runs again, as jsdiff-shaped parts, for both. The exception
+      // is a change only in markers or spacing, which the card shows as
+      // markFormat's dotted underline, found by character: that comparison
+      // is the card's mechanism there, and a word diff would light all of
+      // "**para**." for two pairs of asterisks.
+      wordParts(x, y) {
+        const bare = (s) => s.replace(/[\s*_`~]+/g, '');
+        if (x !== y && bare(x) === bare(y)) return window.Diff.diffChars(x, y);
+        return window.mdDiff.runs(x, y).flatMap((r) => r.type === 'equal' ? [{ value: r.text }]
+          : [{ value: r.o, removed: true }, { value: r.n, added: true }].filter((p) => p.value));
+      },
       rawSegs(a, b, old) {
         const t = this.text, now = t.slice(a, b);
         const ls = t.lastIndexOf('\n', a - 1) + 1, le0 = t.indexOf('\n', b), le = le0 < 0 ? t.length : le0;
         let pre = t.slice(Math.max(ls, a - 28), a), post = t.slice(b, Math.min(le, b + 28));
         if (a - 28 > ls) pre = '…' + pre.replace(/^\S*\s/, '');
         if (b + 28 < le) post = post.replace(/\s\S*$/, '') + '…';
-        const D = window.Diff;
-        let parts = D ? D.diffChars(old, now) : [];
-        const same = parts.reduce((n, p) => n + (p.added || p.removed ? 0 : p.value.length), 0);
-        if (!D || same < 0.5 * Math.max(old.length, now.length)) parts = [{ value: old, removed: true }, { value: now, added: true }].filter((p) => p.value);
+        const parts = window.Diff ? this.wordParts(old, now) : [{ value: old, removed: true }, { value: now, added: true }].filter((p) => p.value);
         const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s;
         // A long change is shown by its ends: the pop is a glance at the
         // edit, and a sentence-long insertion printed whole filled a phone

@@ -1473,8 +1473,27 @@ try {
     c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
+  // One diff for every view of a change: Info lights the same pieces the card
+  // marks. A character diff here once lit "Third" against "Tired" letter by
+  // letter beside a card marking the whole words.
+  const agree = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    c.d.text = c.text.replace('Third para.', 'Tired pair, then more.'); c.paint();
+    await new Promise((r) => setTimeout(r, 200));
+    const card = [...c.$refs.md.querySelectorAll('[data-md-card]')].find((k) => k.querySelector('.md-diff-del, .md-diff-ins'));
+    const mark = (cls) => [...(card?.querySelectorAll(cls) || [])].map((e) => e.textContent.trim()).filter(Boolean);
+    card?.querySelector('[data-md-card-badge]')?.click();
+    await new Promise((r) => setTimeout(r, 150));
+    const p = document.querySelector('[data-card-info]');
+    const lit = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"] .rounded-sm') || [])].map((e) => e.textContent.trim()).filter(Boolean);
+    const out = { card: { del: mark('.md-diff-del'), ins: mark('.md-diff-ins') }, info: { del: lit('del'), ins: lit('ins') } };
+    c.cardInfo = null; c.d.undo(); c.paint();
+    return out;
+  });
+  ok('Info lights the same pieces of a rewrite that the card marks, word for word, not letter by letter',
+    agree.card.del.length > 0 && JSON.stringify(agree.card) === JSON.stringify(agree.info), JSON.stringify(agree));
   ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
-    info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ',·rewritten' && info.outside, JSON.stringify(info));
+    info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ', rewritten' && info.outside, JSON.stringify(info));
   ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',
     info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.pinned && info.fmt.buttons === 0 && info.fmt.w >= 340 && info.fmt.escaped && info.fmt.pressedAway, JSON.stringify(info.fmt));
   ok('and in the card, bold added gives exactly the word a dotted underline of its own, which stays with the word when the text moves after the paint, while a change of words gets none',
