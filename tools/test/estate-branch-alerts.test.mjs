@@ -78,6 +78,25 @@ test('the record is found by branch name when the commits name no session', () =
   assert.ok(data.branchAlert(row('claude/no-trailer')));
 });
 
+test('a session read only off the branch tip is not the branch\'s session', () => {
+  // The 2026-10-01 false positive: a branch cut from main and never committed
+  // to, whose tip is a squash merge carrying another session's trailer.
+  const record = rec('Z', 'done', 'claude/somewhere-else');
+  seed({
+    branches: [{ name: 'codex/cut-from-main', group: 'active', date: DATE,
+                 sessions: [SESS('Z')], sessionsExact: false }],
+    sessions: [record],
+  });
+  assert.equal(data.branchAlert(row('codex/cut-from-main')), null);
+  // The same session named by a compare's unique commits is the branch's own.
+  seed({
+    branches: [{ name: 'codex/cut-from-main', group: 'active', date: DATE,
+                 sessions: [SESS('Z')], sessionsExact: true }],
+    sessions: [record],
+  });
+  assert.ok(data.branchAlert(row('codex/cut-from-main')));
+});
+
 test('a closed PR is a decision and an open one is work in flight: neither alerts', () => {
   seed({
     branches: [{ name: 'claude/closed', group: 'stranded', date: DATE },
