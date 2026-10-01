@@ -1,21 +1,21 @@
 diff --git a/data/csv-census.csv b/data/csv-census.csv
-index bdaa767a..11e4ee42 100644
+index 01edfb59..a42357ec 100644
 --- a/data/csv-census.csv
 +++ b/data/csv-census.csv
 @@ -13,20 +13,20 @@ data/report-layout/three-way-compare.csv,35,6,1738,"[""group"",""subgroup"",""it
  docs/aims-goals.csv,5,3,380,"[""key"",""name"",""gloss""]"
  docs/aims-initiatives.csv,5,3,839,"[""key"",""name"",""gloss""]"
  docs/aims-reading.csv,5,4,378,"[""repo"",""path"",""private"",""gloss""]"
--docs/app-routes.csv,24,12,12728,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""doc"",""tabs"",""alias"",""reads""]"
-+docs/app-routes.csv,24,12,12749,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""doc"",""tabs"",""alias"",""reads""]"
+-docs/app-routes.csv,24,12,12402,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""doc"",""tabs"",""alias"",""reads""]"
++docs/app-routes.csv,24,12,12423,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""doc"",""tabs"",""alias"",""reads""]"
  docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis"",""declared""]"
  docs/context-sources.csv,28,17,6389,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss""]"
  docs/context-topics.csv,12,4,2579,"[""topic"",""label"",""verdict"",""gloss""]"
  docs/direct-to-main.csv,9,6,1560,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
 -docs/docs.csv,119,7,30327,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
-+docs/docs.csv,120,7,30572,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
++docs/docs.csv,120,7,30571,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
  docs/harness.csv,298,8,57579,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
- docs/kits.csv,103,8,13202,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
+ docs/kits.csv,103,8,13213,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
  docs/manifest-fields.csv,75,6,19524,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
  docs/map-tabs.csv,16,4,10081,"[""tab"",""gloss"",""refs"",""narrative""]"
  docs/owners.csv,11,4,1677,"[""subject"",""kind"",""applies_to"",""authoritative""]"
@@ -71,19 +71,19 @@ index a13a6340..be37963a 100644
  11 shared statements are registered in
  [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).
 diff --git a/docs/app-routes.csv b/docs/app-routes.csv
-index f4f74ad4..8c05e092 100644
+index f5daeba9..1abda741 100644
 --- a/docs/app-routes.csv
 +++ b/docs/app-routes.csv
 @@ -20,6 +20,6 @@ tools,?view=tools,Tools,Tools,estate,The curated gallery of utility pages.,docs/
  search,?view=search,Search,Search,estate,"Find files and records: search names at any ref under any folder, search contents, grep the session records, search the chat archive's catalog, and read a hit in place.",lib/alpineComponents/path-picker.js;lib/alpineComponents/ref-picker.js;lib/alpineComponents/search-view.js;lib/alpineComponents/viewer.js;lib/kits/chat-archive.js;lib/kits/estate-search.js;lib/kits/session-index.js,"The ?view= key is `search`, its name since the view was a results list. It was labelled Files from the retirement of the per-repo tree walk until 2026-09-24, when browsing returned to a Files view of its own (`files`) and this one went back to searching. Two of the four lanes search a CORPUS rather than the repos (Sessions, Chats) and so take no repo, ref or folder; the controls that name those stand down together under them.",docs/views/search.md,,,files;sessions;titles
  state,?view=state,State,Activity,estate,"What the estate keeps derived, when each cache was last checked, and what the estate itself did in the last day or week, as a rail of one tick per commit and per session active.",lib/alpineComponents/state-view.js;lib/kits/crawl-runs.js,"Activity's last pill since 2026-08-23. It was a nav stop of its own, which put the estate's motion in two places: this pane answers whether the other pills are current, and that question is asked of them.",docs/views/state.md,,,
  proposals,?view=proposals,Proposals,Proposals,estate,Pending cross-repo edits awaiting a confirm; shown in the nav only while something waits.,lib/alpineComponents/proposals.js;lib/kits/repo-proposals.js,,docs/views/proposals.md,,,
--tending,?view=tending,Tending,Tending,estate,"Findings from tending passes: useful work that never reached the owner, a question only the owner can answer, efforts that overlap, and what is settled, each linked to the branches, pull requests, tasks, snags and sessions it concerns. Witnesses are checked against GitHub on sight, so a finding whose grounds moved says so.",lib/alpineComponents/tending.js;lib/kits/findings.js;skills/tend/findings.py,A comment never closes a finding; only Handled (a reply carrying finding.status resolved) does. The Activity panes show the same open findings beside their subjects.,,,,
-+tending,?view=tending,Tending,Tending,estate,"Findings from tending passes: useful work that never reached the owner, a question only the owner can answer, efforts that overlap, and what is settled, each linked to the branches, pull requests, tasks, snags and sessions it concerns. Witnesses are checked against GitHub on sight, so a finding whose grounds moved says so.",lib/alpineComponents/tending.js;lib/kits/findings.js;skills/tend/findings.py,A comment never closes a finding; only Handled (a reply carrying finding.status resolved) does. The Activity panes show the same open findings beside their subjects.,docs/views/tending.md,,,
+-tending,?view=tending,Tending,Tending,estate,"Findings from tending passes, each linked to the branches, pull requests, tasks, snags and sessions it concerns, with its witnesses checked against GitHub on load.",lib/alpineComponents/tending.js;lib/kits/findings.js;skills/tend/findings.py,,,,,
++tending,?view=tending,Tending,Tending,estate,"Findings from tending passes, each linked to the branches, pull requests, tasks, snags and sessions it concerns, with its witnesses checked against GitHub on load.",lib/alpineComponents/tending.js;lib/kits/findings.js;skills/tend/findings.py,,docs/views/tending.md,,,
  public,?view=public,Public browse,Public browse,shell,The tokenless read of any public repo.,lib/alpineComponents/public-browse.js,,docs/APP.md,,,
  app,?app=<slug> | ?app=owner/repo[@ref]:path | ?view=app&appRepo=<owner/repo>&appPath=<path>,App view,App view,shell,"A page some repo promotes, rendered live through toss-render; one address, many destinations.",pages/toss-render.html,"Not a screen this repo draws: the shell frames whatever page the address names. Three spellings, one destination; the short form is what stamp() writes when the open page declares a slug. A deep link into the framed page rides the FRAGMENT, which is the subject's namespace (the shell's is the query), with ?on= as the query fallback for a context that eats the '#'. See lib/kits/url-params.js subject(). The open view takes the tab too: its name leads the title and the framed page's own icon replaces the hex nut on both the favicon and the apple-touch link, announced up by toss-render on toss-subject-mark. The shell default for app views is `nav` (header visible, sidebar collapsed), so ?app=<slug> opens with the app chrome for smooth navigation without stamping shell=nav.",docs/APP.md,,,
 diff --git a/docs/docs.csv b/docs/docs.csv
-index 6fc0fb55..5ebd8a9c 100644
+index 2a165540..9c522c53 100644
 --- a/docs/docs.csv
 +++ b/docs/docs.csv
 @@ -1,9 +1,9 @@
@@ -129,7 +129,7 @@ index 6fc0fb55..5ebd8a9c 100644
  docs/tools.csv,"which pages the Tools view shows, and the icon each is given",living,app,6,"authored crosswalk over the page catalog; title and description are joined at render time, never copied",docs/tools.json
  docs/venues.md,"the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split",measured,project,832,"dated observations about products that move; re-probe the attended column rather than rewriting from memory, and carry the date. CONVENTIONS.md names it in an always-loaded paragraph, which is what gives it reach at all",
 -docs/views/branches.md,"the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it",living,orphan,520,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
-+docs/views/branches.md,"the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it",living,orphan,566,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
++docs/views/branches.md,"the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it",living,orphan,518,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
  docs/views/chats.md,"the Chats view: the chat archive read one month at a time, with its staleness banner",living,orphan,192,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
  docs/views/estate.md,"the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog",living,orphan,407,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
  docs/views/map.md,"the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)",living,orphan,407,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
@@ -142,7 +142,7 @@ index 6fc0fb55..5ebd8a9c 100644
  docs/fab.md,"the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule",living,app,2306,"authored, edited in place; moved from fab.js's description string 2026-09-28",
  docs/map-tabs.csv,the Map view's per-address ledes and the longer account of each tab,living,app,1460,authored; gated by tools/test/map-tabs.test.mjs and rendered as the lede under the Map tab strip,
  docs/views/proposals.md,"the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm",living,orphan,2046,"authored, edited in place; moved from manifest.md 2026-09-28",
-+docs/views/tending.md,"the Tending view: findings from tending passes stored as notes, how one changes, how witnesses are checked, and where Activity shows them",living,skill,1018,"authored, edited in place; named by its row in app-routes.csv",
++docs/views/tending.md,"the Tending view: findings from tending passes stored as notes, how one changes, how witnesses are checked, and where Activity shows them",living,skill,431,"authored, edited in place; named by its row in app-routes.csv",
  docs/context-sources.csv,"the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it",living,app,359,authored; its private half lives in web-tools-private environment/context-sources.csv; held by context-sources.test.mjs,
  docs/context-topics.csv,"the topics two or more context sources speak to, each with a verdict on whether the overlap is by design",living,app,344,authored; held by context-sources.test.mjs,
  docs/context.md,"where a context-registry row goes, how topics and tally join it, and what the gate checks",living,orphan,120,owner of the context registry's prose; the rows are the record,
@@ -342,175 +342,129 @@ index 4cee963b..01ca1c01 100644
 +docs/SNAGS.md,skills/phosphor-icons/SKILL.md,3,,measure the element's width before suspecting the state that controls it;reads as a logic bug and gets debugged as one,10,188
 +docs/SNAGS.md,docs/views/branches.md,3,,lib kits repo activity cache js lib kits repo activity cache js,10,188
 diff --git a/docs/views/branches.md b/docs/views/branches.md
-index b2fe8900..a7c3abd5 100644
+index b2fe8900..5cedc3dd 100644
 --- a/docs/views/branches.md
 +++ b/docs/views/branches.md
-@@ -8,14 +8,16 @@ activity cache. `&detail=` opens one branch's form
+@@ -8,7 +8,7 @@ activity cache. `&detail=` opens one branch's form
  ## The list
  
  - **Scope chips** are `BRANCH_SCOPES` in `estate.js`, each with its own `note`;
 -  the default is Recent. Open, Abandoned and Unrecorded ignore the time window.
-+  the default is Recent. Only Recent has a time window. **Findings** lists the
-+  rows an open tending finding names ([tending.md](tending.md#beside-the-subjects)).
++  the default is Recent. Only Recent has a time window.
    **Repo chips** narrow to one repo without changing the counts.
  - **A row** is tinted by what became of its PR (ready, draft, merged, closed
    unmerged, never proposed, or `PR ?` past the PR index's reach, `prReach`). Its
-   action line, in order: the repo chip (the repo's own menu), the GitHub menu
-   (every row opens github.com, except Copy branch name), the session mark, the
-   Files route, Stage, then route chips. The arrows (commits ahead and behind)
--  hold the right edge.
-+  hold the right edge. An open tending finding about the branch, or about a
-+  pull request it heads, adds a line under the row that opens the finding.
- - **Counts open cards.** Files changed, new and missing, and the two arrows,
-   each open a panel: the head count, a shape digest from the cache, then the
-   file list and patches from one compare through `BranchBrief`'s memo. A card's
-@@ -26,7 +28,8 @@ activity cache. `&detail=` opens one branch's form
-   spans more than the branch.
- 
- The Repos cards borrow the same cache for their rollups; the abandoned count is
--computed from the same rows as the chip, so the two cannot disagree.
-+computed from the same rows as the chip, so the two cannot disagree. A card's
-+findings count is the open findings touching the repo by any subject.
- 
- ## The activity cache
- 
 diff --git a/docs/views/tending.md b/docs/views/tending.md
 new file mode 100644
-index 00000000..c831f355
+index 00000000..9476f518
 --- /dev/null
 +++ b/docs/views/tending.md
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,55 @@
 +# Tending (`?view=tending`)
 +
-+The **Tending** view lists what tending passes concluded about the estate's
-+work: branches, pull requests, tracker tasks, snags and session records. Its
-+unit is a **finding**, not an alert. A finding names the subjects it concerns,
-+says why it matters, recommends a next step, and isolates the one choice that
-+needs the owner, when there is one. Component:
-+`lib/alpineComponents/tending.js`. Record and fold: `lib/kits/findings.js`.
++The **Tending** view lists the findings tending passes wrote about the estate's
++branches, pull requests, tracker tasks, snags and session records. Component:
++`lib/alpineComponents/tending.js`; fold and witness comparison:
++`lib/kits/findings.js`.
 +
 +## The record
 +
-+A finding is a note in the registry's notes store (`notes/notes.jsonl`, the
-+[notes skill](../../skills/notes/SKILL.md)) that carries a `finding` object:
++A finding is a note ([notes skill](../../skills/notes/SKILL.md)) carrying a
++`finding` object:
 +
 +| Field | Holds |
 +| --- | --- |
-+| `kind` | Provisional vocabulary: `unreached` (useful work that never reached the owner), `answer` (one specific answer needed), `overlap` (separate efforts that could be brought together), `superseded` (the work landed or was overtaken elsewhere). The view labels these and shows any other kind by name. |
-+| `subjects` | Locators for everything the finding concerns: `owner/repo#N`, `owner/repo@branch`, `owner/repo:path` for a task or file, `owner/repo:docs/SNAGS.md#slug`, and a session's record file in the registry. The note's `about` is the first subject. |
-+| `why`, `next`, `choice` | Why it matters, the recommended next step, and the owner's question with a recommendation. A step only the owner may take, such as closing a pull request, is a `choice`. |
-+| `evidence` | Short verifiable facts: commits, files, pull requests, dates. |
-+| `witnesses` | Pinned references ([locators.md](../locators.md)), including things outside the subjects whose change would change the conclusion (table below). |
++| `kind` | `unreached`, `answer`, `overlap` or `superseded` ([tend skill](../../skills/tend/SKILL.md#findings)). Provisional: the view shows any other kind by name. |
++| `subjects` | Locators for everything it concerns, a session's record file included. The note's `about` is the first. |
++| `why`, `next`, `choice` | Why it matters, the next step, and the owner's question with a recommendation. |
++| `evidence` | Short verifiable facts. |
++| `witnesses` | Pinned references ([locators.md](../locators.md)) the conclusion rests on, inside the subjects or not. |
 +
-+**An assessment is not the work.** A finding is open while it carries an
-+outstanding `next` or `choice`, whatever its kind: "this pull request was
-+overtaken" is a finished assessment and an unfinished job until someone closes
-+the pull request. It is settled when nothing remains, either because the
-+assessment needed no action or because a reply records it done.
++A finding is **open** while it carries a `next` or a `choice`, whatever its
++kind, until a reply sets its status. Only a reply carrying `finding` changes it,
++replacing each field it carries: a pass sets `status: "settled"` with `did`, or
++`status: "open"` with a new `next`; the owner's **Handled** sets
++`status: "resolved"` and **Reopen** reverses it. A reply without `finding` is a
++comment and changes nothing.
 +
-+**Only a reply that carries `finding` changes a finding.** A tending pass
-+reassesses by replying with new fields or witnesses; it settles one with
-+`status: "settled"` and `did` (what was done), or renews attention with
-+`status: "open"` and a new `next`. The owner closes one from the view with
-+**Handled** (`status: "resolved"`) and reverses that with **Reopen**. A reply
-+without `finding` is a comment: it is listed in the finding's history and
-+changes nothing, however recent. An update replaces each field it carries
-+whole.
++| Witness | Changed when |
++| --- | --- |
++| `owner/repo@ref` + `sha` | the branch tip is another commit |
++| `owner/repo@ref` + `contains` | the ref no longer contains the commit (pin `main` this way, never by its tip) |
++| `owner/repo@ref:path` + `sha` | the blob or tree at the path differs |
++| `owner/repo#N` + `state` | the state differs, or an open pull request was updated since |
 +
-+| Witness | Pins | Changed when |
-+| --- | --- | --- |
-+| `owner/repo@ref` with `sha` | a branch's tip | the tip is another commit; broken if the branch is gone |
-+| `owner/repo@ref` with `contains` | a commit the ref must contain | the ref no longer contains it (`main` is pinned this way, never by its tip) |
-+| `owner/repo@ref:path` with `sha` | the blob or tree at that path | the object at that path differs; broken if the path is gone |
-+| `owner/repo#N` with `state` | a pull request's state | the state differs, or an open one was updated since |
-+
-+The browser and `findings.py check` apply this one rule, stated once as cases
-+in `tools/test/findings.test.mjs`.
++A ref or path that is gone reads broken. The view and `findings.py check` share
++this rule; the cases in `tools/test/findings.test.mjs` hold both to it.
 +
 +## The view
 +
-+- **Attention** holds every finding with work outstanding, a question for the
-+  owner first, then by kind and newest, **and any settled finding whose
-+  evidence has since changed**, marked so, until a pass reassesses it.
-+  **Settled** holds the rest, newest first, each saying what closed it:
-+  nothing left to do, what tending did, or the owner's words.
-+- A finding reads as a row: kind, title, the owner's call, the outstanding
-+  next step, and its subjects as links (a pull request to GitHub, a branch to
-+  the branch page, a session to its row in Sessions, a task or snag to its
-+  file).
-+- **A tap opens it:** why it matters, the evidence, each witness with its
-+  verdict, the history (found, advanced, settled, handled, reopened, comments),
-+  and the reply box with Handled, Reopen and Comment.
-+- **Every finding's witnesses are checked on sight**, settled ones included:
-+  a branch tip through the branches API, `contains` through the compare API,
-+  a path through its folder's contents listing (which reports the blob or tree
-+  sha `git rev-parse` would), and a pull request through the pulls API. A
-+  witness that moved or broke puts **Changed since assessed** (or **Settled,
-+  but changed since**) at the top of the finding, naming it.
++**Attention** holds the open findings, a choice first, plus any settled finding
++whose witnesses changed, until a pass reassesses it. **Settled** holds the
++rest, each saying what closed it. The view checks every finding's witnesses on
++load and names a changed one at the top of its finding.
++`&tab=settled` opens Settled; `&item=<note id>` opens one finding.
 +
-+`?view=tending&tab=settled` opens Settled; `&item=<note id>` opens one finding
-+with its details. A repo filter handed in from a Repos card is not stamped.
-+
-+## Beside the subjects
-+
-+The Activity panes show the same open findings where their subjects appear:
-+
-+- **Branches:** a line under each row an open finding names, by the branch or
-+  by a pull request it heads, opening the finding here. The **Findings** scope
-+  lists exactly those rows.
-+- **Sessions:** the same line under a session whose record a finding names.
-+- **Repos:** a count on each card of open findings touching the repo, by any
-+  subject, opening this view narrowed to it.
++Activity shows open findings beside their subjects: a line under the Branches
++and Sessions rows they name, the Branches **Findings** scope, and a count on
++each Repos card. Each opens the finding here.
 +
 +## Where findings come from
 +
-+A tending pass (the [tend skill](../../skills/tend/SKILL.md)) selects
-+candidates mechanically, investigates them, and writes findings with
-+`skills/tend/findings.py`:
-+
-+| Command | Does |
-+| --- | --- |
-+| `candidates` | Selects from `state/activity.json` and `state/sessions.json`: sessions that ended finished while their branch did not land, pull requests whose description holds a ✴️ ask, pull requests idle 30 days, non-Claude pull requests marked ready and idle. A candidate counts as covered only while the finding that names it holds: if one of its subjects moved after the assessment, it is due again, settled or not. |
-+| `add` | Validates and writes a finding, refusing a witness that pins nothing checkable. |
-+| `update` | Writes a reassessment as a reply carrying `finding`. |
-+| `list` | Folds the findings: open ones, or every one with `--all`. |
-+| `check` | Observes every witness of every finding, settled ones included (`--open` narrows), from the checkouts beside the store and the crawl's cache, and names the findings whose evidence moved. |
-+
-+The selection signals choose what to investigate. They are never shown as
-+findings themselves.
++A tending pass ([tend skill](../../skills/tend/SKILL.md)) writes them with
++`skills/tend/findings.py` (`candidates`, `add`, `update`, `list`, `check`; usage
++in its docstring). Its selection signals choose what to investigate and never
++appear as findings.
 diff --git a/skills/notes/SKILL.md b/skills/notes/SKILL.md
-index a5f0016b..b4cde2f5 100644
+index a5f0016b..3ba36a5c 100644
 --- a/skills/notes/SKILL.md
 +++ b/skills/notes/SKILL.md
-@@ -29,6 +29,12 @@ One JSON line per note in the store's `notes.jsonl`:
+@@ -3,20 +3,20 @@ name: notes
+ description: >-
+   Leave or read notes: short, signed, dated observations addressed to a
+   subject (a repo, branch, file, pull request, task, snag, or another note),
+-  kept in the estate's notes store and never edited. Use when a session has a
+-  finding about a work item that belongs to no other record, when the owner or
+-  another skill says to note something, when replying to or correcting an
+-  earlier note, or when asked what notes exist about a subject.
++  kept in the estate's notes store and never edited. Use when a session has an
++  observation about a work item that belongs to no other record, when the
++  owner or another skill says to note something, when replying to or
++  correcting an earlier note, or when asked what notes exist about a subject.
+ ---
+ 
+ # notes
+ 
+ ## Premise
+ 
+-Sessions and agents find things about work items that belong in no document:
+-a branch's origin, a thread resolved on main, a trap met on the way. A note
+-gives each finding a place, addressed to what it concerns, where the next
+-reader of that subject finds it.
++Sessions and agents learn things about work items that belong in no document:
++a branch's origin, a thread resolved on main. A note gives each observation a
++place, addressed to what it concerns, where the next reader of that subject
++finds it.
+ 
+ ## Goal and output
+ 
+@@ -29,6 +29,11 @@ One JSON line per note in the store's `notes.jsonl`:
  `anchor` is optional: a text-quote anchor (`exact`, `prefix`, `suffix`), for a
  note about a passage.
  
-+`finding` is optional: a tending pass's conclusion about one or more subjects
-+(fields in [`docs/views/tending.md`](../../docs/views/tending.md), written by
-+`skills/tend/findings.py`). A finding changes only through a reply that itself
-+carries `finding`. A reply without one is a comment and never changes the
-+finding's status, however recent.
++`finding` marks a tending conclusion
++([`docs/views/tending.md`](../../docs/views/tending.md)). Change one with
++`skills/tend/findings.py update`; a plain reply is a comment and changes
++nothing.
 +
  | Subject | `about` |
  | --- | --- |
  | repo | `owner/repo` |
-@@ -59,8 +65,8 @@ siblings; `--store` overrides. Writes go to the store's `main` by git plumbing,
- so the checkout's own branch does not matter.
- 
- In the browser, `lib/kits/notes.js` reads and appends the same file. The Lists
--view and the branch page show notes, and the annotation kit saves annotations
--as notes.
-+view and the branch page show notes, the annotation kit saves annotations as
-+notes, and the Tending view lists findings through `lib/kits/findings.js`.
- 
- ## Key insights
- 
 diff --git a/skills/tend/SKILL.md b/skills/tend/SKILL.md
-index 7f2cff7a..5ae2e943 100644
+index 7f2cff7a..24935029 100644
 --- a/skills/tend/SKILL.md
 +++ b/skills/tend/SKILL.md
-@@ -1,11 +1,12 @@
+@@ -1,11 +1,10 @@
  ---
  name: tend
  description: >-
@@ -520,46 +474,33 @@ index 7f2cff7a..5ae2e943 100644
 -  and bringing the owner only the choices that need commitment. Run when the
 -  owner invokes /tend.
 +  Cultivate a workspace toward recognized objectives: investigate branches,
-+  pull requests, trackers and snags, and store each conclusion as a finding
-+  the Web Tools Tending view shows (work that never reached the owner, a
-+  question only the owner can answer, efforts that overlap, and what is
-+  settled), acting on what is settled and bringing the owner only the choices
-+  that need commitment. Run when the owner invokes /tend.
++  pull requests, trackers and snags, store each conclusion as a finding the
++  Web Tools Tending view shows, and bring the owner only the choices that need
++  commitment. Run when the owner invokes /tend.
  disable-model-invocation: true
  ---
  
-@@ -15,7 +16,9 @@ disable-model-invocation: true
- 
- Tending is the cultivation of a workspace toward recognized objectives. It
- clears paths, prunes dead ends, and carries work forward. It readies the owner
--to see the vital choice and commit.
-+to see the vital choice and commit. A pass leaves its conclusions in the
-+repository as findings, where the Tending view and the Activity panes surface
-+them; a conclusion that lives only in a reply has not been delivered.
- 
- ## Principles
- 
-@@ -27,30 +30,64 @@ to see the vital choice and commit.
-    reduce what the owner must carry. Carry the investigation through.
+@@ -24,33 +23,58 @@ to see the vital choice and commit.
+    backlog debt require the owner's deliberate choice.
+ 2. **Clarification is reliably valuable.** Proving whether work has landed,
+    connecting orphaned work to its origin, and testing relevant assumptions
+-   reduce what the owner must carry. Carry the investigation through.
++   reduce what the owner must carry.
  3. **Answer questions; do not mint them.** Transferring unfinished analysis is
     the failure: raw uncertainties, speculative edge cases, or unexamined
--   choices handed to the owner are friction masquerading as diligence. Bring a
--   question only when investigation establishes a consequential choice that
+    choices handed to the owner are friction masquerading as diligence. Bring a
+    question only when investigation establishes a consequential choice that
 -   requires the owner's judgment. Define its terms and say why it matters.
 -4. **A finding is a note about its subject,** left with `/portable:notes`. A
 -   trap still goes in its `docs/SNAGS.md` entry. Where no notes store is
 -   reachable, the finding goes in the reply. Create no other record to hold a
 -   finding.
-+   choices handed to the owner are friction masquerading as diligence. "Land
-+   or drop?" is unfinished analysis until the pass has established what the
-+   work holds, what main lacks, and what landing would cost. Bring a question
-+   only when investigation establishes a consequential choice that requires
-+   the owner's judgment, and recommend an answer.
++   requires the owner's judgment, and recommend an answer.
 +4. **A finding is stored, linked to its subjects.** Write it with
-+   `findings.py` into the notes store (`/portable:notes`); one finding may name
-+   several branches, pull requests, tasks, snags or sessions. A trap still goes
-+   in its `docs/SNAGS.md` entry. Create no other record to hold a finding.
-+   Where no notes store is reachable, the finding goes in the reply.
++   `findings.py` into the notes store (`/portable:notes`), naming every subject
++   it concerns. A trap still goes in its `docs/SNAGS.md` entry. Create no other
++   record to hold a finding; where no notes store is reachable, it goes in the
++   reply.
  
  ## Process
  
@@ -571,43 +512,33 @@ index 7f2cff7a..5ae2e943 100644
 -3. **Propose** the *Propose* tier as one numbered batch, and close 🟢.
 -4. **On green light,** execute, then offer the next layer. Close 🟢 if anything
 -   is proposed, ⚪ if nothing remains.
-+Tend runs in a Claude Code cloud session. Propose only what that session can
-+carry out; it cannot delete branches. `findings.py` sits beside this file;
-+[`docs/views/tending.md`](../../docs/views/tending.md) states the record.
++Tend deletes no branch and proposes no deletion. `findings.py` sits beside
++this file; [`docs/views/tending.md`](../../docs/views/tending.md) states the
++record.
 +
-+1. **Reassess.** `findings.py check` reads every finding, settled ones
-+   included, and names those whose witnesses changed. Reread each and reply
-+   with `findings.py update`: revise it, confirm it with fresh witnesses, or
-+   renew attention on a settled one (`status: "open"` and a new `next`). An
-+   update replaces each field it carries whole, so a revised `evidence` or
-+   `title` drops what the change disproved.
-+2. **Select.** `findings.py candidates` lists what the mechanical signals raise
-+   and marks a candidate covered only while the finding naming it holds; a
-+   subject that moved since the assessment makes it due again. Each stream
-+   below adds its own. A signal is a reason to investigate, never a finding.
-+3. **Investigate** each uncovered candidate until the conclusion would survive
-+   the owner's first question.
-+4. **Write** one finding per conclusion with `findings.py add`: every subject,
++1. **Reassess.** `findings.py check` names the findings whose witnesses
++   changed. Reread each and reply with `findings.py update`: revise it, confirm
++   it with fresh witnesses, or renew attention on a settled one
++   (`status: "open"`, a new `next`). An update replaces each field it carries,
++   so send whole lists.
++2. **Select.** `findings.py candidates` lists what mechanical signals raise and
++   marks those a holding finding covers. Each stream below adds its own. A
++   signal is a reason to investigate, never a finding.
++3. **Investigate** each candidate not marked covered until the conclusion
++   would survive the owner's first question.
++4. **Write** one finding per conclusion with `findings.py add`: its subjects,
 +   why it matters, a next step concrete enough to execute, a choice only where
 +   principle 3 allows one, evidence, and witnesses. A step only the owner may
 +   take, such as closing a pull request, is a choice with a recommendation.
 +   Witnesses include what lies outside the subjects, such as main's copy of a
-+   file the work was compared against, so step 1 sees changes the subjects
-+   never show. Pin each one checkably: a path by its object sha, a branch by
-+   its tip, `main` by a commit it `contains`, a pull request by its state.
-+5. **Act** on each stream's *Act* tier. A finding stays open while its step is
-+   outstanding, so record the step done as an update (`status: "settled"`,
-+   `did`), on the finding it advanced.
++   file the work was compared against; `findings.py add` refuses a pin it
++   cannot check and says how to pin it.
++5. **Act** on each stream's *Act* tier, and record each step done on the
++   finding it advanced (`findings.py update`, `status: "settled"`, `did`).
 +6. **Reply** with what the Tending view gained and the choices it isolates.
-+   Close 🟢 if any finding waits on the owner, ⚪ if none does.
- 
- Act unasked only on a mechanical test. Whether something deserves the owner's
--attention is judgment: read it and nominate with a one-line reason, never by a
--count or a fixed window. Where the venue restricts pushes (a Claude Code web
--session pushes only to its own branch), propose every deletion. Read GitHub
--through the GitHub MCP, not `gh` or `curl`.
-+attention is judgment: write it as a finding, never decide it by a count or a
-+fixed window. Read GitHub through the GitHub MCP, not `gh` or `curl`.
++
++Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
++`gh` or `curl`.
 +
 +## Findings
 +
@@ -616,14 +547,18 @@ index 7f2cff7a..5ae2e943 100644
 +| `unreached` | Useful work never reached the owner. *Next* says how to land it. |
 +| `answer` | One specific answer from the owner decides it. *Choice* states it. |
 +| `overlap` | Separate efforts could be brought together. *Next* says how. |
-+| `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. Open while a step such as closing its pull request remains. |
-+
-+The kinds are provisional. Add one to `KINDS` in `findings.py` when a pass
-+reaches a conclusion none of them fits.
++| `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. |
+ 
+-Act unasked only on a mechanical test. Whether something deserves the owner's
+-attention is judgment: read it and nominate with a one-line reason, never by a
+-count or a fixed window. Where the venue restricts pushes (a Claude Code web
+-session pushes only to its own branch), propose every deletion. Read GitHub
+-through the GitHub MCP, not `gh` or `curl`.
++The kinds are provisional; add one to `KINDS` in `findings.py` when none fits.
  
  ## Branches
  
-@@ -60,31 +97,19 @@ its class:
+@@ -60,31 +84,19 @@ its class:
  
  | Class | Test |
  | --- | --- |
@@ -653,7 +588,7 @@ index 7f2cff7a..5ae2e943 100644
 -`git show origin/main:<path>` lacks.
 -
 -Link by pull request: `pages/branch.html#gh=<owner>/<repo>&pr=<n>`.
-+- **Act:** report the settled classes as counts. They need nothing further.
++- **Act:** report the settled classes as counts.
 +- **Find:** a novel branch. Its residue is the lines it added
 +  (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
 +  `git show origin/main:<path>` lacks. Name its origin (`Claude-Session`
@@ -662,7 +597,7 @@ index 7f2cff7a..5ae2e943 100644
  
  ## Trackers
  
-@@ -93,29 +118,28 @@ premises against the tree, not only its body.
+@@ -93,8 +105,9 @@ premises against the tree, not only its body.
  
  - **Act:** close a task whose `## Done when` a merged pull request meets; add
    `## Related` entries; drop a `depends-on:` id that is done or missing.
@@ -674,14 +609,9 @@ index 7f2cff7a..5ae2e943 100644
  
  ## Pull requests
  
--Read `## Open threads` in merged pull requests, back to the previous tend pass
--or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;
--check each against `main`. Read open pull requests too, testing each head as
--Branches does.
-+Read open pull requests, testing each head as Branches does, and `## Open
-+threads` in merged pull requests back to the previous pass or as far as
-+threads stay live; state the window. 🟢 and 🟡 items are open; check each
-+against `main`.
+@@ -103,19 +116,17 @@ or as far as threads stay live, and state the window. 🟢 and 🟡 items are op
+ check each against `main`. Read open pull requests too, testing each head as
+ Branches does.
  
 -- **Act:** report threads `main` has since resolved, and open pull requests
 -  whose head `main` already carries.
@@ -707,7 +637,7 @@ index 7f2cff7a..5ae2e943 100644
 +  no fix in place), and entries the index flags as overlapping.
 +- **Propose:** a task for a snag that still bites.
 diff --git a/tools/test/tend.test.mjs b/tools/test/tend.test.mjs
-index e4df60cc..4c17c5d5 100644
+index e4df60cc..e3a2388b 100644
 --- a/tools/test/tend.test.mjs
 +++ b/tools/test/tend.test.mjs
 @@ -21,7 +21,7 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a
@@ -719,7 +649,7 @@ index e4df60cc..4c17c5d5 100644
      assert.match(content, new RegExp(`\\*\\*${tier}:\\*\\*`), `must place actions in the ${tier} tier`);
    }
    assert.match(content, /\*\*Owner only:\*\*/, 'must name what only the owner decides');
-@@ -29,12 +29,23 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a
+@@ -29,12 +29,21 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a
  
  test('tend SKILL.md names commands and paths that exist', () => {
    const content = readFileSync(SKILL_PATH, 'utf8');
@@ -730,8 +660,6 @@ index e4df60cc..4c17c5d5 100644
    }
  });
  
-+// A pass writes what it concludes as findings, and it cannot delete branches,
-+// so no tier may offer a deletion (2026-10-01: tend runs in a cloud session).
 +test('tend writes findings with its own script and offers no branch deletion', () => {
 +  const content = readFileSync(SKILL_PATH, 'utf8');
 +  assert.ok(existsSync(path.join(repoRoot, 'skills', 'tend', 'findings.py')), 'skills/tend/findings.py must exist');
