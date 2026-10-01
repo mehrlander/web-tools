@@ -47,13 +47,9 @@ print(json.dumps({"hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": (
-        "Scheduled self check-ins are refused here. A subscribed PR already wakes this "
-        "session on a comment, a review or a check result, so a timed return adds nothing "
-        "and its usual finding is that main moved, which is not work until the reader is "
-        "back. Do not re-try this call and do not route around it.\n\n"
-        "End the turn instead. If the PR is red or conflicted, fix it now rather than "
-        "later. If something genuinely needs a clock (a cron errand, a reminder the reader "
-        "asked for), create_trigger is open and appropriate; say what it is for."
+        "Refused: PR events already wake this session, and a timed check-in usually "
+        "finds only that main moved. Do not retry or route around it. End the turn; fix a "
+        "red or conflicted PR now. For a reminder the reader asked for, use create_trigger."
     ),
 }}))
 PY
