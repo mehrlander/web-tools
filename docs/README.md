@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-12 by a skill, 31 by a page or component. The remaining 53 are
+12 by a skill, 33 by a page or component. The remaining 53 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -90,6 +90,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
 - [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
 - [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
+- [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
+- [`policy-topics.csv`](policy-topics.csv) — the topics and areas the policy catalog is grouped by
 
 ## docs/doc-craft-specimens/
 

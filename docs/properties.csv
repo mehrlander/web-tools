@@ -263,3 +263,17 @@ doc-overlap-gold,note,recorded,,value,column,yes,,value,"the skeptic agent's rea
 doc-overlap-gold,relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,the final relation: the skeptic's
 doc-overlap-gold,reading,recorded,,value,column,yes,yes;no,label,whether seeing one passage beside the other helps a reader
 doc-overlap-gold,consolidate,recorded,,value,column,yes,yes;no,label,whether one passage could be replaced by a link to the other
+policy-topics,domain,recorded,,value,column,yes,prose;surfacing;architecture;work;app;ui,label,"the area a topic belongs to, the first level of the tree"
+policy-topics,title,recorded,,value,column,yes,,value,the topic's name as the rail shows it
+policy-topics,gloss,recorded,,value,column,yes,,value,what the rules under the topic govern
+policies,topic_id,recorded,,value,column,yes,,label,the topic in docs/policy-topics.csv the rule sits under
+policies,level,recorded,,value,column,yes,principle;policy;standard,label,"the rule's depth: a principle other rules serve, a decision, or a standard's checkable form"
+policies,statement,recorded,,value,column,yes,,value,"the rule in one sentence, standing alone"
+policies,canonical_doc,recorded,,none,column,yes,,locator,the file that states the rule; blank where no web-tools document was found stating it
+policies,quoted,recorded,,none,column,yes,,value,a verbatim passage of canonical_doc that states the rule; the suite finds it in that file
+policies,since,recorded,,none,column,yes,,value,"the date the cited document gives for the rule's adoption, where it gives one"
+policies,intent_class,recorded,,value,column,yes,user-mandate;dialogue-ratified;model-extrapolated;organic-precedent;unknown,label,"who set the rule: the owner by instruction, the owner and a model in dialogue, a model alone, settled practice, or unknown"
+policies,origin_session,recorded,,none,column,yes,,locator,the session record in web-tools-private where the rule was set
+policies,user_prompt_quote,recorded,,none,column,yes,,value,the owner's words in that session establishing the rule
+policies,enforcement,recorded,,none,column,yes,,locator,"the test, hook, script or npm command that holds the rule, where the document names one that exists"
+policies,status,recorded,,value,column,yes,lead;sourced;checked,label,"lead: a quote on the row is unverified; sourced: quoted is found in canonical_doc; checked: confirmed by a second reading"

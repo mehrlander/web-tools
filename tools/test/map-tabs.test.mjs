@@ -66,8 +66,9 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   // 10 to 11: Data aggregates the declared CSV inventories.
   assert.equal(TABS.length, 12, 'twelve top-level tabs, or this test is reading the wrong literal');
-  assert.equal(SUBVIEWS.length, 5, 'Docs carries three choices and Harness two');
-  assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', tests: 'harness' });
+  // 5 to 6 on 2026-10-01: Policy joined Docs, the rules the documentation settles.
+  assert.equal(SUBVIEWS.length, 6, 'Docs carries four choices and Harness two');
+  assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', policy: 'docs', tests: 'harness' });
   assert.deepEqual(SUBVIEWS.slice(0, 3).map(s => [s.k, s.n]),
     [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth']],
     'Docs leads with its inventory; Purpose and Growth keep their established route keys');

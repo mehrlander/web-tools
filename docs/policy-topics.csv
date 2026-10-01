@@ -1,0 +1,32 @@
+topic_id,domain,title,gloss
+prose/style,prose,Qualified writing,"How sentences are built: qualified noun phrases, referents introduced first, no em dashes"
+prose/vocabulary,prose,Terms and vocabulary,"Which words are banned, controlled, or must be declared before use"
+prose/doctrine,prose,Directives and assertions,"Who may add a binding rule to a document, and on what approval"
+prose/docs,prose,Documents,"How living documents and records are written, revised and kept apart"
+prose/skills,prose,Skill authoring,"How a SKILL.md is written, triggered and packaged"
+surfacing/closing-states,surfacing,Replies and closing states,"The shape of a reply: its closing state, its order, when a wake gets none"
+surfacing/links,surfacing,Links and rendering,"Which link shows a change, how references are written, and what renders a page"
+surfacing/pull-requests,surfacing,Branches and pull requests,"Branch modes, the PR body as a running record, merge gates, and life after merge"
+surfacing/attribution,surfacing,Assistant identity,How each assistant marks its branches and commits
+surfacing/ci-markers,surfacing,CI messages,When an assistant stays silent about CI that changed nothing
+architecture/repos,architecture,Repositories and distribution,"What lives in which repository, and how conventions travel through the plugin"
+architecture/layers,architecture,"Authored, derived and captured",The three kinds of material and how each is kept
+architecture/code,architecture,Code layers,"Which folder a file of code belongs in, and what each layer may depend on"
+architecture/loader,architecture,Loading and the pre-build,"The gh.load contract, the pre-build, and vendored dependencies"
+architecture/derived,architecture,Derived artifacts and hooks,"Generated files, the commit hook that owns them, and the checks behind it"
+architecture/registries,architecture,Registries and columns,"What a registry is, how its columns are declared, and what the suite holds it to"
+architecture/ownership,architecture,One owner per statement,Each statement or assertion has exactly one authoritative home
+architecture/content,architecture,Content classification,"How each artifact is classified as supplied, mechanical or authored"
+architecture/locators,architecture,Locators and annotation,"How a reference points into a file, and how annotations attach"
+work/tracking,work,Tracker and tasks,"When a task is filed, how it is shaped, and where tracker state commits"
+work/review,work,Review and coordination,"Repo review, work in flight, tending, and notes between sessions"
+work/evaluation,work,Gold sets,How a classifier is scored against an independently labeled sample
+work/sandbox,work,Sandbox diagnosis,How a session reads failures in the cloud sandbox before concluding
+app/shell,app,App shell and configuration,"What the Web Tools app is for, its addresses, and the .web-tools.json manifest"
+app/views,app,Views,"What individual views show, read and write"
+app/stage,app,Stage and envelopes,"The stage fileset transport, envelopes, and published artifacts"
+app/branch,app,Branch page,"The branch page, its file deck, and the branch overlay"
+app/proposals,app,Proposals,How a proposed change to a repository is recorded and delivered
+ui/daisy-components,ui,Page house style,"What a page looks like: layout, components, and what it never carries"
+ui/typography,ui,Type and text measure,"Type sizes, text width and wrapping on a page"
+ui/ios,ui,iOS behavior,"What Safari on iPhone allows for drags, sheets and haptics"

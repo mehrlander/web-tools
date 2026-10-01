@@ -16,6 +16,7 @@ validated before `map()` mounts). The default, `set`, stays out of the URL.
 | Surfacing | [surfacing.csv](../surfacing.csv), indexing [SURFACING.md](../SURFACING.md) | `surfacing-manifest.test.mjs`, `surfacing-lead-anchor.test.mjs` |
 | Showing | [showing-mechanisms.csv](../showing-mechanisms.csv), [routes-modes.csv](../routes-modes.csv), [routes-routes.csv](../routes-routes.csv), [routes.json](../routes.json) | `routes-manifest.test.mjs` |
 | Docs: Inventory (`docs`), Purpose (`aims`), Growth (`growth`) | [docs.csv](../docs.csv); [aims.json](../aims.json) and its CSVs; `data/doc-growth/*.json` | `docs-registry.test.mjs` |
+| Docs: Policy (`policy`) | [policies.csv](../policies.csv); [policy-topics.csv](../policy-topics.csv) | `policies-registry.test.mjs` |
 | Themes (`claims`) | [themes.csv](../themes.csv), [owners.csv](../owners.csv) | `owners-registry.test.mjs`, `derived-artifacts.test.mjs` |
 | Harness: Automation (`harness`), Tests (`tests`), Context (`context`) | [harness.csv](../harness.csv), [tests.csv](../tests.csv), `pages/session-context.html` | `tests-registry.test.mjs`, `derived-artifacts.test.mjs` |
 | Kits | [kits.csv](../kits.csv) | `kits-register.test.mjs` |
