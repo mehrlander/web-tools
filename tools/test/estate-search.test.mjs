@@ -77,6 +77,7 @@ await startAlpine(window, [
   'lib/kits/repo-sessions-cache.js',
   'lib/kits/chat-archive.js',
   'lib/kits/session-index.js',
+  'lib/kits/file-index.js',
   'lib/kits/estate-search.js',
 ]);
 const ES = window.EstateSearch;
@@ -482,4 +483,38 @@ test('chats: without the archive kit the lane says so rather than answering empt
     await assert.rejects(() => ES.chats({ q: 'x', repo: ARCHIVE, token: 'tkn' }),
       /chat archive kit has not loaded/);
   } finally { window.chatArchive = kit; }
+});
+
+// ── The file-name index (state/files.json) ─────────────────────────────────
+
+test('indexNames: one read of the registry index answers every repo, scoped to the members asked for', async () => {
+  ES.reset();
+  FILES['state/files.json'] = { generatedAt: '2026-10-01T00:00:00Z', repos: {
+    'me/wt': { sha: '1', dirs: { 'data/design': ['content.csv'] } },
+    'me/priv': { sha: '2', dirs: { '': ['DESIGN.md', 'README.md'] } },
+    'me/hidden': { sha: '3', dirs: { '': ['design.txt'] } },
+  } };
+  TREE_CALLS = [];
+  const res = await ES.indexNames({ q: 'design', registry: REGISTRY, token: 'tkn', repos: ['me/wt', 'me/priv'] });
+  // Joined: the hits come back from the jsdom realm, whose arrays fail a
+  // strict deepEqual on the prototype alone.
+  assert.equal(res.hits.map(h => h.repo + ':' + h.path).join(' '), 'me/priv:DESIGN.md me/wt:data/design/content.csv');
+  assert.equal(res.total, 2);
+  assert.equal(res.at, '2026-10-01T00:00:00Z');
+  assert.equal(TREE_CALLS.length, 0, 'no tree read: the index is the answer');
+  assert.equal(ES.stats().fileIndex, true);
+  delete FILES['state/files.json'];
+});
+
+test('indexNames: a registry with no index answers null, so the caller falls back to tree reads', async () => {
+  ES.reset();
+  assert.equal(await ES.indexNames({ q: 'design', registry: REGISTRY, token: 'tkn' }), null);
+  assert.equal(await ES.fileIndex({ registry: REGISTRY, token: 'tkn' }), null);
+});
+
+test('setFileIndex: what the crawl wrote is what the next search reads', async () => {
+  ES.reset();
+  ES.setFileIndex({ repos: { 'me/a': { sha: '9', dirs: { '': ['fresh.md'] } } } });
+  const res = await ES.indexNames({ q: 'fresh', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.hits.map(h => h.path).join(' '), 'fresh.md');
 });

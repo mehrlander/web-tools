@@ -8,7 +8,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,90,ci:workflow_dispatch+pull_request,no,yes,yes
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,116,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
-scripts/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",scripts,225,npm:activity-refresh,no,no,yes
+scripts/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",scripts,266,npm:activity-refresh,no,no,yes
 scripts/annotate/check.py,,scripts/annotate,82,imported,no,yes,yes
 scripts/annotate/materialize.py,,scripts/annotate,174,imported,yes,yes,yes
 scripts/annotate/ops.py,,scripts/annotate,355,imported,no,yes,yes
@@ -61,7 +61,7 @@ skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of we
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,89,hook:Stop,no,yes,yes
-skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,74,hook:PostToolUse,no,no,yes
+skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,73,hook:PostToolUse,no,no,yes
 skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",skills/hooks,48,hook:PostToolUse,no,no,no
 tools/build/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",tools/build,153,imported,no,yes,yes
 tools/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,tools/build,53,npm:bake,yes,yes,no

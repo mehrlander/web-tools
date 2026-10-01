@@ -148,6 +148,9 @@
   // shared with scripts/activity-crawl.mjs so CI and this page crawl alike.
   // After branch-status and the builders, since it calls both.
   await gh.load('kits/activity-crawl.js');
+  // The estate's file names (window.FileIndex), a leg of the same crawl: it
+  // gates on the default-branch tips the activity pass has just read.
+  await gh.load('kits/file-index.js');
   // What wrote a commit, read off the commit (window.WriteKinds). Beside the
   // activity cache because it classifies exactly what that cache stores.
   await gh.load('kits/write-kinds.js');
@@ -782,24 +785,29 @@ html.dk-dragging main{transition:none !important}
          deep link they mirror. -->
     <!-- ── The finder: one input, always ready ─────────────────────────────
          Directly under the crumb bar, above the scroll area so its results
-         panel (the crumb menu's anchored idiom) overlays the lists rather
-         than pushing them. The query's shape picks the lane: #123 finds an
-         open PR estate-wide and opens the branch-detail takeover; @ is
+         panel takes the sidebar's height while it has rows, and the lists
+         below step aside until it closes. The query's shape picks the lane:
+         #123 finds an open PR estate-wide and opens the branch-detail
+         takeover; @ is
          repo-then-file NAVIGATION (pick a repo, walk or fuzzy-match its
          tree, open the file); a pasted owner/repo[@ref]:path or repo@branch
          address resolves exactly, with no suggestions; +idea jots
-         explicitly; plain text matches repos, the nav, file names from
-         cached trees, and PR titles, with tap-gated deeper passes: an
-         estate-wide file-name pass, file CONTENTS via the code-search API,
-         and a client-side grep of the captured session records. The last
+         explicitly; plain text matches repos, the nav, file names in every
+         estate repo (the registry's state/files.json), and PR titles, grouped
+         under a heading per kind, with tap-gated deeper passes: file
+         CONTENTS via the code-search API, and a client-side grep of the
+         captured session records. The last
          row is always "Jot this", so a query that found
          nothing is kept rather than lost. Sits in the SIDEBAR, not the
          header: out and ready on a wide screen, one tap on a phone,
          where the header's nav already scrolls and its right end is already
          spoken for. Full lane doc in quick-find.js. -->
-    <div class="px-3 pt-2 shrink-0" x-data="quickFind()"></div>
+    <div class="px-3 pt-2 flex flex-col min-h-0" :class="$store.finder?.open ? 'flex-1' : 'shrink-0'" x-data="quickFind()"></div>
 
-    <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+    <!-- Steps aside while the finder's results show: they take this list's
+         height rather than floating over it (lib/alpineComponents/quick-find.js,
+         the `finder` store). -->
+    <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3" x-show="!$store.finder?.open">
       <!-- Estate-context sidebar. Two repo-sourced sections, both token-gated
            (empty and hidden when unauthed): the Repos index on top, then the
            app views. The app views also ride in the header now, behind the
@@ -3626,6 +3634,11 @@ function app(){ return {
         await this.saveFold(reg, A.CACHE_PATH, next,
                             'Update activity cache (state/activity.json)', base);
       }
+      // The file-name index rides every pass, changed or not: its gate is each
+      // member's default-branch tip, which `next` now holds, so a quiet estate
+      // costs it one read of state/files.json and nothing else.
+      await this._crawlFiles(members, next)
+        .catch(e => console.warn('file index refresh:', e?.message || e));
       // `doc` rides the summary so a view that re-reads this file on the refresh
       // event does not have to: it is 370 KB and the crawl is holding it
       // already. Measured 2026-08-17, one refresh read state/activity.json
@@ -3635,6 +3648,55 @@ function app(){ return {
       console.warn('activity cache refresh:', e?.message || e);
       return { total: members.length, changed: [], failed, skipped, error: e?.message || String(e) };
     }
+  },
+
+  // ── File names: state/files.json (lib/kits/file-index.js) ─────────────
+  // One recursive tree read per member whose default-branch tip moved since
+  // the stored entry; every other entry carries. The tips come from the
+  // activity document the caller just built, so this leg makes no call to
+  // learn whether a repo moved. Two at a time, the activity crawl's own repo
+  // pool, since a truncated repo walks its subtrees one call after another.
+  async _crawlFiles(members, act){
+    const F = window.FileIndex;
+    if (!F || !members?.length) return null;
+    const t0 = Date.now();
+    const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+    let base = await this.readForFold(reg, F.CACHE_PATH);
+    const prev = base?.doc || null;
+    const fetched = {}, failed = [];
+    let i = 0, calls = 0;
+    const one = async () => {
+      while (i < members.length){
+        const repo = members[i++];
+        const head = act?.repos?.[repo]?.recentCommits?.[0]?.sha || '';
+        try {
+          const e = await F.crawlRepo(repo, head, {
+            makeGH: (r) => new window.GH({ token: window.TOKEN, repo: r }),
+            prev: prev?.repos?.[repo] || null,
+          });
+          if (e) { fetched[repo] = e; calls += e.carried ? 0 : (e.calls || 0); }
+        } catch(e){ failed.push(repo); console.warn('file index', repo, e?.message || e); }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(this.ACTIVITY_REPO_POOL, members.length) }, one));
+    const next = F.buildIndex(prev, fetched, members, new Date().toISOString());
+    const changed = F.changedRepos(prev, next);
+    if (!changed.length) return { changed, failed, doc: prev };
+    next.runs = window.CrawlRuns?.push(prev?.runs, {
+      at: new Date().toISOString(), ms: Date.now() - t0,
+      checked: members.length, changed: changed.length, failed: failed.length, calls,
+    }) ?? prev?.runs;
+    // Fresh read just before the write, as the activity fold does: the tree
+    // reads above can take a while on a cold index.
+    base = await this.readForFold(reg, F.CACHE_PATH);
+    // Saved as its own text (one line per folder) rather than through
+    // saveFold's 2-space dump, and noted as the document, not the text, so a
+    // lagging read reconciles to something with `repos` in it.
+    const res = await reg.save(F.CACHE_PATH, F.serialize(next),
+                               'Update file index (state/files.json)', { sha: base?.sha });
+    window.LastWrite?.note(this.REGISTRY_REPO, F.CACHE_PATH, next, res?.content?.sha);
+    window.EstateSearch?.setFileIndex?.(next);
+    return { changed, failed, doc: next };
   },
 
   // ── Sessions aggregate: fold the registry's captured session records into a
