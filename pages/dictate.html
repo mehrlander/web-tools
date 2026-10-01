@@ -3092,6 +3092,10 @@
         const pos = (c) => { const e = c.run.find((x) => x.newRange) || c.run[0]; return e.newRange ? e.newRange.start : (e.insertAt ?? 0); };
         let next = t;
         for (const c of [...cards].sort((a, b) => pos(b) - pos(a))) if (this.confirmed[c.k] == null) next = window.mdDiff.revert(base, next, c.run);
+        // And what no card shows (a re-wrap, spacing, a blank line between
+        // unchanged paragraphs) goes back to GitHub's, so the commit holds the
+        // confirmed cards and nothing else.
+        next = window.mdDiff.restoreUnchanged(base, next, { items: true });
         const applied = cards.filter((c) => this.confirmed[c.k] != null);
         const first = (s) => (s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)');
         const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)) + (this.notes[c.k] ? '\n  ' + this.notes[c.k].replace(/\n/g, '\n  ') : ''));
@@ -3126,8 +3130,6 @@
       },
       cardAct(btn) {
         const i = +btn.closest('[data-md-card]').dataset.mdCard;
-        // A click PINS Info: a hover-opened one stays, with its ✕; a pinned
-        // one closes; any other opens pinned, which is every tap on a phone.
         if (btn.dataset.mdCardAct === 'confirm') { this.toggleConfirm(i); return; }
         const run = window.MdSurface.cards(this.$refs.md)[i];
         this.cardInfo = null; this.selCard = null; this.keyCard = null;

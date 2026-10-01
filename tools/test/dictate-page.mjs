@@ -2035,7 +2035,9 @@ try {
   const conf = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, vis = (el) => !!el && el.getClientRects().length > 0;
     c.token = c.token || 'test-token';
-    c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('First one.', 'First once.').replace('Third para.', 'Third paragraph.'); c.d.caretAt(0); c.paint();
+    // 'Second  para.' is a doubled space: a change no card shows, which
+    // Apply must leave out of the commit as it leaves out an unconfirmed card.
+    c.$refs.view.scrollTop = 0; c.d.text = c.text.replace('First one.', 'First once.').replace('Second para.', 'Second  para.').replace('Third para.', 'Third paragraph.'); c.d.caretAt(0); c.paint();
     await new Promise((r) => setTimeout(r, 250));
     const third = () => [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('paragraph'));
     const btn = () => third().querySelector('[data-md-card-act="confirm"]');
@@ -2068,9 +2070,9 @@ try {
     return { base: c.fileBase, text: c.text, cards: c.changesCount, n: c.confirmedCount }; });
   const w = writes[writes.length - 1];
   const want = PARA_DOC.replace('Third para.', 'Third paragraph.');
-  ok('Apply commits GitHub\'s copy with only the confirmed change, the note in the message, and the other edit stays as an edit',
+  ok('Apply commits GitHub\'s copy with only the confirmed change, the note in the message, and the other edits, a card and a doubled space no card shows, stay as edits',
     writes.length === before + 1 && w.text === want && /^Apply 1 change to /.test(w.message) && w.message.includes('Clearer.')
-      && applied.base === want && applied.text.includes('First once.') && applied.cards === 1 && applied.n === 0,
+      && applied.base === want && applied.text.includes('First once.') && applied.text.includes('Second  para.') && applied.cards === 1 && applied.n === 0,
     JSON.stringify({ w, applied }));
   await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = {}; c.confirmed = {}; }, PARA_DOC);
   console.log('card track:');

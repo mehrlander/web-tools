@@ -113,3 +113,23 @@ test('an item between two items of its list keeps the list spacing, not a paragr
   const structure = items.find((x) => x.textContent.includes('Structure.'));
   assert.ok(!structure.className.includes('mt-0'), 'the first keeps its margin above');
 });
+
+test('what no card shows goes back to GitHub\'s text: a re-wrap, a doubled space, extra blank lines', () => {
+  const R = mdDiff.restoreUnchanged;
+  // Edits a card cannot show, beside one it can.
+  const text = BASE
+    .replace('Intro paragraph here.', 'Intro paragraph\nhere.')
+    .replace('Middle paragraph.', 'Middle  paragraph.')
+    .replace('Middle paragraph.\n\n', 'Middle paragraph.\n\n\n')
+    .replace('Closing paragraph.', 'Closing words.');
+  paint(text);
+  assert.equal(M.cards(host).length, 1, 'only the word change is a card');
+  const want = BASE.replace('Closing paragraph.', 'Closing words.');
+  assert.equal(R(BASE, text, { items: true }), want, 'the card kept, the rest restored');
+  // As Apply does it: the unconfirmed card reverted, then the rest restored.
+  assert.equal(R(BASE, mdDiff.revert(BASE, text, M.cards(host)[0]), { items: true }), BASE, 'nothing confirmed, nothing changed');
+  // A gap beside a changed block is the change's own.
+  const moved = BASE.replace('- **Register.** Terse and dry.\n', '- **Register.** Terse and dry.\n\nA new paragraph.\n');
+  assert.equal(R(BASE, moved, { items: true }), moved, 'an added paragraph keeps its blank line');
+  assert.equal(R(BASE, BASE, { items: true }), BASE);
+});
