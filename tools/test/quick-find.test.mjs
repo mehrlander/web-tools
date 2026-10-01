@@ -79,6 +79,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
   'lib/kits/session-index.js',
+  'lib/kits/file-index.js',
   'lib/kits/estate-search.js',
   'lib/alpineComponents/quick-find.js',
 ]);
@@ -315,4 +316,92 @@ test('searchSessions answers from the index and hits open via web-tools:open-ses
   data.act(data.rows.find(r => r.kind === 'clear'));
   assert.equal(data.sess_, null);
   assert.ok(data.rows.some(r => r.kind === 'sess-gate'));
+});
+
+// ── The file index and the grouped answer ──────────────────────────────────
+// The registry's state/files.json (lib/kits/file-index.js) feeds the file lane
+// for every estate repo at once. Each test arms it and the last one disarms it,
+// so the tree-fallback tests above keep the world they were written for.
+
+async function armIndex(repos) {
+  FILES['state/files.json'] = { generatedAt: '2026-10-01T00:00:00Z', repos };
+  window.EstateSearch.reset();
+  data._idxAsked = false;
+  await data.ensureIndex();
+}
+
+test('with an index, file names come from every estate repo, under a Files heading, with no gate', async () => {
+  await armIndex({
+    'me/tools': { sha: '1', dirs: { 'data/design': ['content.csv'] } },
+    'me/home': { sha: '2', dirs: { 'app/lifecycle': ['DESIGN.md'], '': ['design-notes.md'] } },
+    // Not an estate member here (hidden, say): the index holds it, the finder
+    // does not show it.
+    'me/secret': { sha: '3', dirs: { '': ['design.txt'] } },
+  });
+  data.q = 'design';
+  const files = data.sections.find(s => s.id === 'files');
+  assert.equal(files.title, 'Files');
+  assert.deepEqual(j(files.rows.map(r => r.repo + ':' + r.path)),
+    ['me/home:app/lifecycle/DESIGN.md', 'me/home:design-notes.md', 'me/tools:data/design/content.csv']);
+  assert.equal(files.total, 3);
+  assert.equal(data.rows.some(r => r.kind === 'deep'), false, 'the index replaces the every-repo tap');
+});
+
+test('the headings come in reading order, and only where a lane found something', async () => {
+  data.q = 'design';
+  assert.deepEqual(j(data.sections.map(s => s.id)), ['files', 'further', 'keep']);
+  data.q = 'home';
+  assert.deepEqual(j(data.sections.map(s => s.id)).slice(0, 1), ['go']);
+  assert.equal(data.sections[0].title, 'Go to');
+});
+
+test('a long answer shows six, then "+N more" opens thirty, then the Search view takes the rest', async () => {
+  const many = Array.from({ length: 40 }, (_, i) => 'note-' + String(i).padStart(2, '0') + '.md');
+  await armIndex({ 'me/tools': { sha: '1', dirs: { notes: many } } });
+  data.q = 'note';
+  let files = data.sections.find(s => s.id === 'files');
+  assert.equal(files.total, 40);
+  assert.equal(files.rows.filter(r => r.kind === 'file').length, 6);
+  const more = files.rows.find(r => r.kind === 'more');
+  assert.equal(more.label, '34 more');
+  data.act(more);
+  files = data.sections.find(s => s.id === 'files');
+  assert.equal(files.rows.filter(r => r.kind === 'file').length, 30);
+  const all = files.rows.find(r => r.kind === 'search-names');
+  assert.equal(all.label, 'All 40 in Search');
+  shell._searched.length = 0;
+  data.act(all);
+  assert.deepEqual(j(shell._searched), [{ q: 'note', mode: 'names' }]);
+});
+
+test('a folder the index holds as a count answers as the folder, and opens in Search', async () => {
+  await armIndex({ 'me/tools': { sha: '1', dirs: { 'bills/texts': 2997 } } });
+  data.q = 'texts';
+  const row = data.rows.find(r => r.kind === 'folder');
+  assert.equal(row.sub, 'tools · 2,997 files');
+  shell._searched.length = 0;
+  data.act(row);
+  assert.deepEqual(j(shell._searched), [{ q: '', mode: 'names', repo: 'me/tools', path: 'bills/texts' }]);
+});
+
+test('the finder store says when results show, so the sidebar list can step aside', async () => {
+  data.q = 'texts';
+  await Alpine.nextTick();
+  assert.equal(Alpine.store('finder').open, true);
+  data.q = '';
+  await Alpine.nextTick();
+  assert.equal(Alpine.store('finder').open, false);
+});
+
+test('with no index the lane falls back to cached trees and the tap gate', async () => {
+  delete FILES['state/files.json'];
+  window.EstateSearch.reset();
+  data._idxAsked = false;
+  await data.ensureIndex();
+  assert.equal(data.idx_, false);
+  data.trees_ = {};
+  await data.ensureTree('me/tools');
+  data.q = 'gh-api';
+  assert.ok(data.rows.some(r => r.kind === 'file' && r.path === 'lib/gh-api.js'));
+  assert.ok(data.rows.some(r => r.kind === 'deep'));
 });
