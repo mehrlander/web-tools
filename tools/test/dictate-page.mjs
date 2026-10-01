@@ -1378,32 +1378,35 @@ try {
   console.log('native selection:');
   await reset();
   // FILE MODE HAS ONE HEADER: the file's name sits in it, whole, on a phone,
-  // and the three faces fold into one button that opens them by name.
+  // and no face buttons beside it: the faces are the pill under the header.
   const hdr = await page.evaluate(() => {
     const head = document.querySelector('[x-data="dictate"] > div'), a = head.querySelector('a[href*="github.com"]');
     const vis = (el) => !!el && el.getClientRects().length > 0;
     const nm = a && a.querySelector('[data-file-name]'), dir = a && a.querySelector('[data-file-dir]');
     return { inHeader: vis(a), whole: !!nm && nm.scrollWidth <= nm.clientWidth, name: nm && nm.innerText.trim(), dir: dir && dir.innerText.trim(),
              stacked: !!nm && !!dir && dir.getBoundingClientRect().top >= nm.getBoundingClientRect().bottom - 2,
-             faces: vis(head.querySelector('[data-faces]')), join: vis(head.querySelector('.join .ph-code')) };
+             faceBtn: [...head.querySelectorAll('.ph-eye, .ph-code')].some(vis), pill: vis(document.querySelector('[data-faces-pill]')) };
   });
-  ok('in file mode the file\'s name sits whole in the one header, the repository and folders on a line under it, beside a single faces toggle',
-    hdr.inHeader && hdr.whole && !/[:@/]/.test(hdr.name) && hdr.dir === 'web-tools/tools/test' && hdr.stacked && hdr.faces && !hdr.join, JSON.stringify(hdr));
-  const faceB = await page.evaluate(() => { const r = document.querySelector('[data-faces]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  await page.touchscreen.tap(faceB.x, faceB.y);
+  ok('in file mode the file\'s name sits whole in the one header, the repository and folders on a line under it, with no face buttons beside it',
+    hdr.inHeader && hdr.whole && !/[:@/]/.test(hdr.name) && hdr.dir === 'web-tools/tools/test' && hdr.stacked && !hdr.faceBtn && hdr.pill, JSON.stringify(hdr));
+  const pillB = await page.evaluate(() => { const r = document.querySelector('[data-faces-pill]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(pillB.x, pillB.y);
+  await page.waitForTimeout(200);
+  const rawB = await page.evaluate(() => { const r = document.querySelector('[data-face="raw-after"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.touchscreen.tap(rawB.x, rawB.y);
   await page.waitForTimeout(250);
   const toSource = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    return { view: c.view, icon: document.querySelector('[data-faces] i').className }; });
-  ok('and the faces button flips Rendered to Source, wearing the face on screen', toSource.view === 'source' && /ph-code/.test(toSource.icon), JSON.stringify(toSource));
+    return { view: c.view, label: document.querySelector('[data-faces-pill]').textContent.trim(), open: c.facesOpen }; });
+  ok('the faces pill opens its panel, and Raw · after is the Source view, named on the pill', toSource.view === 'source' && toSource.label === 'Raw · after' && !toSource.open, JSON.stringify(toSource));
   await page.setViewportSize({ width: 1024, height: PHONE.height });
   await page.waitForTimeout(200);
   const wide = await page.evaluate(() => { const head = document.querySelector('[x-data="dictate"] > div'), vis = (el) => !!el && el.getClientRects().length > 0;
-    return { name: head.querySelector('a[href*="github.com"]').innerText.trim(), faces: vis(head.querySelector('[data-faces]')), join: vis(head.querySelector('.join .ph-code')) }; });
+    return { name: head.querySelector('a[href*="github.com"]').innerText.trim(), faceBtn: [...head.querySelectorAll('.ph-eye, .ph-code')].some(vis) }; });
   await page.setViewportSize(PHONE);
-  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.setView('rendered'); });
+  await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.setFace('changes'); });
   await page.waitForTimeout(200);
-  ok('with room, the header names the whole repo:path and shows the two faces side by side',
-    /:.+\//.test(wide.name) && !wide.faces && wide.join, JSON.stringify(wide));
+  ok('with room, the header names the whole repo:path, and still has no face buttons',
+    /:.+\//.test(wide.name) && !wide.faceBtn, JSON.stringify(wide));
   // The unsaved mark is also the way to clear every edit.
   await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.d.text = c.text.replace('Third para.', 'Third para, edited.'); c.paint(); });
   await page.waitForTimeout(150);
@@ -1994,23 +1997,36 @@ try {
   ok('on a mark that wraps, the pop sits under the line tapped, across the finger, and its Undo wears the action blue',
     !!wrapPop && wrapPop.top >= wrapAt.bottom && wrapPop.top - wrapAt.bottom < 16 && wrapPop.left <= wrapAt.x && wrapPop.right >= wrapAt.x && !/255, 255, 255/.test(wrapPop.bg),
     JSON.stringify({ wrapAt, wrapPop }));
-  // THE SOURCE FACE SAYS WHOSE TEXT IT IS: with edits, a badge says so and a
-  // tap goes to Rendered, where they are marked; with none, no badge.
+  // THE FIVE FACES: the pill names the face on screen, green while the text
+  // differs from GitHub's; the before faces show GitHub's copy and nothing to
+  // edit, and the text changing under one brings the text now back.
   await reset();
-  const srcBadge = await page.evaluate(async () => {
+  const faces = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], vis = (el) => !!el && el.getClientRects().length > 0;
-    const b = () => document.querySelector('[data-source-edits]');
-    await c.setView('source'); await new Promise((r) => setTimeout(r, 150));
-    const clean = vis(b());
-    c.d.text = c.text.replace('Third para.', 'Third paragraph.'); c.paint(); await new Promise((r) => setTimeout(r, 150));
-    const edited = vis(b()) ? b().textContent.trim() : null, tip = b().dataset.titleTip, title = b().getAttribute('title');
-    b().click(); await new Promise((r) => setTimeout(r, 200));
-    const after = { view: c.view, badge: vis(b()) };
-    c.d.undo(); c.paint();
-    return { clean, edited, after, tip, title };
+    const pill = () => document.querySelector('[data-faces-pill]'), wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await c.setFace('raw-after'); await wait(150);
+    const clean = { label: pill().textContent.trim(), green: /emerald/.test(pill().className) };
+    c.d.text = c.text.replace('Third para.', 'Third paragraph.'); c.paint(); await wait(150);
+    const edited = { label: pill().textContent.trim(), green: /emerald/.test(pill().className) };
+    await c.setFace('rendered-before'); await wait(150);
+    const rb = { shown: vis(document.querySelector('[data-before="rendered"]')), old: document.querySelector('[data-before="rendered"]').textContent.includes('Third para.'),
+                 md: vis(c.$refs.md), jump: vis(document.querySelector('[data-jump]')), label: pill().textContent.trim() };
+    await c.setFace('raw-before'); await wait(150);
+    const raw = { text: document.querySelector('[data-before="raw"]').textContent === c.fileBase, body: vis(c.$refs.body) };
+    c.d.text = c.text.replace('Third paragraph.', 'Third paragraph, again.'); c.paint(); await wait(150);
+    const back = { before: c.before, face: c.face };
+    await c.setFace('rendered-after'); await wait(150);
+    const plain = { cards: c.$refs.md.querySelectorAll('[data-md-card]').length, marks: c.showMarks };
+    await c.setFace('changes'); await wait(200);
+    const changes = { cards: c.$refs.md.querySelectorAll('[data-md-card]').length };
+    c.d.text = c.fileBase; c.paint();
+    return { clean, edited, rb, raw, back, plain, changes };
   });
-  ok('in Source, edited text wears a "with edits" badge that goes to Rendered; unedited text wears none',
-    !srcBadge.clean && srcBadge.edited === 'with edits' && /including your edits/.test(srcBadge.tip) && !srcBadge.title && srcBadge.after.view === 'rendered' && !srcBadge.after.badge, JSON.stringify(srcBadge));
+  ok('the faces pill names the face, green with edits; before shows GitHub\'s copy alone, an edit brings the text back, and Changes and Rendered · after are the cards on and off',
+    faces.clean.label === 'Raw · after' && !faces.clean.green && faces.edited.green
+    && faces.rb.shown && faces.rb.old && !faces.rb.md && !faces.rb.jump && faces.rb.label === 'Rendered · before'
+    && faces.raw.text && !faces.raw.body && faces.back.before === null && faces.back.face === 'raw-after'
+    && faces.plain.cards === 0 && !faces.plain.marks && faces.changes.cards > 0, JSON.stringify(faces));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
   // changes, carrying each one's note; the rest stay as edits.

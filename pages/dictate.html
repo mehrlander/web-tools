@@ -233,7 +233,7 @@
     tap on a stop or a sideways swipe picks one, a tap on the original returns
     to marked, and an edit forgets every original; its number wears an × that
     discards the change. A pill in the pane's corner counts the cards and
-    steps between them. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
+    steps between them. The faces pill's Rendered · after shows the text without them. kits/md-surface.js (tracked) draws them.
 
     PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. Backspace at a
     paragraph's start joins it to the one above; a long press on the space
@@ -513,6 +513,16 @@
       // Marks for what changed since GitHub's copy, drawn over the Rendered
       // face (kits/md-surface.js). On unless the reader turned them off.
       showMarks: ls.get('dictate:marks') !== '0',
+      // The faces pill: which before face is showing (GitHub's copy, 'raw' or
+      // 'rendered'), or null for the text now; and whether its panel is open.
+      before: null, beforeHtml: '', beforeCls: '', facesOpen: false,
+      FACES: {
+        changes: { label: 'Changes', icon: 'ph-highlighter' },
+        'rendered-before': { label: 'Rendered · before', icon: 'ph-eye' },
+        'rendered-after': { label: 'Rendered · after', icon: 'ph-eye' },
+        'raw-before': { label: 'Raw · before', icon: 'ph-code' },
+        'raw-after': { label: 'Raw · after', icon: 'ph-code' },
+      },
       // THE PLATFORM'S OWN SELECTION, as an option: Native selection in the
       // menu, or ?sel=native. See nativeSync. Rendered face only, and not
       // while typing, where the sink owns the keyboard and a selection gesture
@@ -534,6 +544,11 @@
       // File mode's Send: what rides, the edit as a patch or the whole file.
       sendWhat: 'patch',
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
+      get isMd() { return !!FILE && /\.(md|markdown)$/i.test(FILE.path); },
+      get face() {
+        if (this.before) return this.before + '-before';
+        return this.view === 'source' ? 'raw-after' : this.showMarks ? 'changes' : 'rendered-after';
+      },
       get dirty() {
         this.beat;
         return !!FILE && this.fileBase !== null && (this.edit ? this.draft : this.text) !== this.fileBase;
@@ -1903,6 +1918,10 @@
       // no pins about half the time. Bounded, so a host that is hidden for
       // good costs three frames rather than a loop.
       paint(retry = 3) {
+        if (this.before) {
+          if (this.text === this._beforeText) return;
+          this.before = null;
+        }
         this.beat++;
         if (this.rendered) {
           const md = this.$refs.md;
@@ -3488,12 +3507,35 @@
         this.paint();
       },
 
-      // ── The change marks ──────────────────────────────────────────────
-      toggleMarks() {
-        this.showMarks = !this.showMarks;
+      // ── The faces ─────────────────────────────────────────────────────
+      // Changes and Rendered-after are the Rendered view with the change
+      // cards on and off; Raw-after is Source. A before face hides the text
+      // now behind GitHub's copy and draws nothing else, and the text changing
+      // under it (a phrase dictated, an undo) brings the text back: paint()
+      // drops the before face first, so nothing lands unseen.
+      async setFace(f) {
+        this.facesOpen = false;
+        if (f.endsWith('-before')) {
+          if (this.edit) this.editClose();
+          if (this.typing) this.stopTyping();
+          const kind = f.split('-')[0];
+          if (kind === 'rendered') {
+            if (!(await this.ensureMd())) return;
+            this.beforeHtml = window.mdDoc.html(this.fileBase || '', { proseClass: '' });
+            this.beforeCls = this.$refs.md.className;
+          }
+          const layer = this.$refs.layer;
+          if (layer) for (const n of [...layer.querySelectorAll('[data-md-surface],[data-edge],[data-mend]')]) n.remove();
+          this.cardInfo = null; this.wordPop = null;
+          this._beforeText = this.text;
+          this.before = kind;
+          return;
+        }
+        this.before = null;
+        if (f === 'raw-after') return this.setView('source');
+        this.showMarks = f === 'changes';
         ls.set('dictate:marks', this.showMarks ? '1' : '0');
-        this.menu = false;
-        this.paint();
+        await this.setView('rendered');
       },
       toggleNativeSel() {
         this.nativeSel = !this.nativeSel;
@@ -4062,20 +4104,6 @@
     </div>
 
     <div class="flex items-center gap-0.5 justify-self-end col-start-3">
-      <!-- The two faces. On a phone ONE BUTTON that flips between them and
-           wears the face on screen, since a pair took room the file's name
-           needs on a 360px header. From sm up, the pair side by side. -->
-      <button x-show="file" @click="setView(view === 'rendered' ? 'source' : 'rendered')" data-faces
-              class="sm:hidden btn btn-ghost btn-md btn-square"
-              :title="view === 'rendered' ? 'Rendered. Tap for the markdown source.' : 'Source. Tap for the rendered document.'">
-        <i class="ph text-xl" :class="view === 'rendered' ? 'ph-eye' : 'ph-code'"></i>
-      </button>
-      <div x-show="file" class="join shrink-0 mr-1 hidden sm:inline-flex">
-        <button @click="setView('source')" class="join-item btn btn-sm btn-square" :class="view === 'source' ? 'btn-active' : 'btn-ghost'"
-                title="Source: the markdown itself"><i class="ph ph-code text-base"></i></button>
-        <button @click="setView('rendered')" class="join-item btn btn-sm btn-square" :class="view === 'rendered' ? 'btn-active' : 'btn-ghost'"
-                title="Rendered: the document as it reads, still editable by tap and voice"><i class="ph ph-eye text-base"></i></button>
-      </div>
       <button @click="undo()" :disabled="!canUndo" class="btn btn-ghost btn-md btn-square" title="Undo">
         <i class="ph ph-arrow-counter-clockwise text-xl"></i>
       </button>
@@ -4119,12 +4147,6 @@
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
                   title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
             <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
-          </button>
-          <button x-show="file" @click="toggleMarks()"
-                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Show each changed block as a card: the change marked in place, swipe for the original or the clean text">
-            <i class="ph ph-highlighter text-lg opacity-60"></i>Track changes
-            <i x-show="showMarks" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
           <button x-show="file" @click="toggleNativeSel()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
@@ -4234,12 +4256,16 @@
                 placeholder="Type instead"></textarea>
 
       <div x-show="!edit" x-ref="view" data-dictate-view class="absolute inset-0 overflow-y-auto px-4 py-3" @scroll="paint()">
-        <div x-show="!rendered" class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
+        <div x-show="!rendered && !before" class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
              x-ref="body" @contextmenu.prevent></div>
+        <!-- The before faces: GitHub's copy, drawn and never edited. -->
+        <div x-show="before === 'raw'" x-cloak data-before="raw" x-text="fileBase"
+             class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em] text-[17px]"></div>
+        <div x-show="before === 'rendered'" x-cloak data-before="rendered" x-html="beforeHtml" :class="beforeCls"></div>
         <!-- File mode's Rendered face. Its classes are set once from
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
-        <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
+        <div x-show="rendered && !before" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
              :style="moveArm ? 'touch-action:none' : ''"
              @md-card-reading="setCardReading($event.detail.i, $event.detail.mode)"
              @pointermove="cardHover($event)" @pointerleave="cardHover(null)"
@@ -4334,25 +4360,54 @@
                 class="justify-self-end btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
-      <!-- THE SOURCE FACE SAYS WHOSE TEXT IT IS. It shows the text now, edits
-           and all, and marks none of them, so read cold it passed for the
-           file as GitHub holds it (asked from the phone, 2026-09-30). While
-           the text differs from GitHub's, a green badge floats top right under
-           the header; a tap goes to Rendered, where the edits are marked. Its
-           look is the flat badge with a border (a translucent tint, a deeper
-           text shade, an inset ring at a quarter strength), the owner's pick of
-           three mocked on 2026-09-30 over a solid fill with a breathing glow. -->
-      <button x-show="file && !rendered && dirty && !edit" x-cloak data-source-edits
-              @click="setView('rendered')" data-title-tip-bare data-title-tip="Your text, including your edits. Tap to see them marked."
-              class="absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer bg-emerald-500/10 text-emerald-700 ring-1 ring-inset ring-emerald-600/25">
-        <i class="ph ph-pencil-simple-line"></i>with edits
-      </button>
+      <!-- THE FACES, ONE PILL (owner, 2026-10-01). Top right under the
+           header, it names the face on screen and opens the five by name:
+           Changes, the main one, the text now with each change a card; then
+           Rendered and Raw, each before (GitHub's copy, read-only) and after
+           (the text now). It replaced the header's eye button, which flipped
+           only between Rendered and Source, and the menu's Track changes,
+           which was the Changes and Rendered-after pair under another name.
+           Green while the text differs from GitHub's, the flat badge with a
+           border the owner picked on 2026-09-30, on a solid ground because it
+           floats over the document; plain when the two agree. A file that is
+           not markdown has no rendered faces, and shows the pill only while
+           there is a before to differ from. -->
+      <div x-show="file && !edit && (isMd || dirty)" x-cloak data-faces class="absolute top-2 right-2 z-30"
+           @click.outside="facesOpen = false" @keydown.escape.window="facesOpen = false">
+        <button type="button" @click="facesOpen = !facesOpen" data-faces-pill
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ring-1 ring-inset"
+                :class="dirty ? 'bg-[color-mix(in_oklab,var(--color-success)_10%,var(--color-base-100))] text-emerald-700 ring-emerald-600/25' : 'bg-base-100 text-base-content/70 ring-[var(--color-base-300)]'">
+          <i class="ph" :class="FACES[face].icon"></i><span x-text="FACES[face].label"></span><i class="ph ph-caret-down text-[10px] opacity-70"></i>
+        </button>
+        <div x-show="facesOpen" x-transition.opacity.duration.90ms data-faces-panel
+             class="absolute right-0 top-full mt-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-1.5 text-sm grid gap-1">
+          <button x-show="isMd" type="button" @click="setFace('changes')" data-face="changes"
+                  class="flex items-center gap-2 rounded-field px-2.5 py-1.5 text-left cursor-pointer hover:bg-base-200"
+                  :class="face === 'changes' && 'bg-base-200 font-medium'"><i class="ph ph-highlighter"></i>Changes</button>
+          <div class="grid grid-cols-[auto_1fr_1fr] items-center gap-1">
+            <span></span><span class="px-2.5 text-xs text-base-content/60">Before</span><span class="px-2.5 text-xs text-base-content/60">After</span>
+            <template x-for="row in (isMd ? ['rendered', 'raw'] : ['raw'])" :key="row">
+              <div class="contents">
+                <span class="pl-1 pr-2 text-xs text-base-content/60" x-text="row === 'raw' ? 'Raw' : 'Rendered'"></span>
+                <template x-for="when in ['before', 'after']" :key="when">
+                  <button type="button" @click="setFace(row + '-' + when)" :data-face="row + '-' + when"
+                          class="flex items-center justify-center rounded-field px-2.5 py-1.5 cursor-pointer hover:bg-base-200"
+                          :class="face === row + '-' + when && 'bg-base-200 font-medium'">
+                    <i class="ph" :class="row === 'raw' ? 'ph-code' : 'ph-eye'"></i>
+                  </button>
+                </template>
+              </div>
+            </template>
+          </div>
+          <p class="px-2.5 pb-0.5 text-xs text-base-content/60 max-w-[15rem]">Before is GitHub's copy, read-only. After is your text.</p>
+        </div>
+      </div>
 
       <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to
            the next or the previous one, wrapping at the ends. It is what the
            retired Changes face had that the cards did not. Bottom left, since
            the launcher holds the bottom right. -->
-      <div x-show="file && rendered && showMarks && changesCount && !edit" x-cloak data-jump
+      <div x-show="file && rendered && showMarks && changesCount && !edit && !before" x-cloak data-jump
            class="absolute bottom-2 left-2 z-20 join rounded-full shadow-sm border border-base-300 bg-base-100/95">
         <button @click="jumpCard(-1)" class="join-item btn btn-xs btn-ghost rounded-l-full px-1.5" title="Previous change"><i class="ph ph-caret-up"></i></button>
         <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
