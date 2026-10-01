@@ -175,6 +175,8 @@
     ?lang=en-US               recognition language, default the browser's
     ?use=<ref>                pin the lib chain to a branch for previewing
     ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
+    ?sel=native|painted       which selection, for this visit only; the
+                              menu's choice otherwise, native by default
 
   FILE MODE opens an existing file instead of a blank page, so the same pad,
   voice and keyboard revise a document rather than start a note. Added
@@ -244,11 +246,15 @@
     In a change card, a gray bar in the text marks where a paragraph break was
     closed, or in the original, where one will be opened.
 
-    NATIVE SELECTION, a menu option (or ?sel=native), hands selecting in the
-    Rendered face to the platform: its long press, handles and callout. The
-    buffer's range follows the platform's selection, a tap still places the
-    caret, and a Move pill under a selection carries it to the next place
-    tapped. Split then comes from the shifted ¶ at a caret. See nativeSync.
+    THE PLATFORM SELECTS, by default since 2026-10-01 (an option from 09-27):
+    selecting in the Rendered face is its long press, handles and callout on
+    a phone, and its drag, double click and shift-click on a desk. The
+    buffer's range follows the platform's selection, a tap or a click still
+    places the caret, and a Move pill under a selection carries it to the
+    next place tapped. Split then comes from the shifted ¶ at a caret. On a
+    desk a click no longer opens typing; the first key does. The page's own
+    painted selection with its pins is Native selection unchecked in the
+    menu, or ?sel=painted. See nativeSync.
 
     A CHANGE IS DISCARDED FROM ITS OWN CARD, the × on its number, which puts
     that block back as GitHub has it (mdDiff.revert). The whole edit leaves by
@@ -426,6 +432,10 @@
   const ASIDE = 'dictate:aside';
   const GRANT = 'dictate:granted';
   const VIEW = 'dictate:view';
+  // Which selection: 'native' (the default) or 'painted'. A new key on
+  // 2026-10-01, when native became the default, so a 'painted' left under the
+  // old 'dictate:sel' by trying the option before then holds nobody back.
+  const SEL = 'dictate:selection';
 
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -539,11 +549,16 @@
         'raw-before': { label: 'Raw · before', icon: 'ph-code' },
         'raw-after': { label: 'Raw · after', icon: 'ph-code' },
       },
-      // THE PLATFORM'S OWN SELECTION, as an option: Native selection in the
-      // menu, or ?sel=native. See nativeSync. Rendered face only, and not
+      // THE PLATFORM'S OWN SELECTION IS THE DEFAULT, on a phone and a desk
+      // alike: the owner's call on 2026-10-01, the option having proved the
+      // better of the two since it arrived on 09-27. The page's own painted
+      // selection, with its pins, stays one tap away (Native selection
+      // unchecked in the menu, or ?sel=painted for one visit) until it is
+      // either retired or kept. See nativeSync. Rendered face only, and not
       // while typing, where the sink owns the keyboard and a selection gesture
-      // on the words would take focus from it.
-      nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get('dictate:sel') === 'native',
+      // on the words would take focus from it; on a desk a mouse press ends
+      // typing for that reason (bind, pointerdown) and the next key starts it again.
+      nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get(SEL) !== 'painted',
       moveArm: null,            // native: the range the target picked up to move
       moveAim: null,            // native: where a tap on the text aimed the held words
       dnd: null,                // native: words the platform is dragging, and where they would land
@@ -1053,10 +1068,16 @@
           if (e.key === 'Escape' && (this.cardInfo || this.wordPop)) { this.cardInfo = null; this.wordPop = null; e.preventDefault(); e.stopPropagation(); return; }
           if (this.keyCard != null && mine(e) && this.cardKey(e)) return;
           if (mine(e) && this.shortcut(e)) return;
+          // UNDER THE NATIVE SELECTION A DESK IS NOT TYPING UNTIL IT TYPES (a
+          // click no longer opens it), so the keys the sink would handle, the
+          // travel keys and undo, redo and select-all, are handed to it from
+          // here, and the editing keys open typing the way a character does.
+          const travel = /^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(e.key) || ((e.ctrlKey || e.metaKey) && /^[zZya]$/.test(e.key));
+          if (this.rendered && !this.typing && this.nativeSel && this.d && mine(e) && travel) { this.sinkKey(e); if (e.defaultPrevented) return; }
           // A character typed at the Rendered face with no keyboard open opens
           // it, and focus moving inside keydown carries the character with it.
-          if (this.rendered && !this.typing && this.d && mine(e) && e.key.length === 1
-              && !e.ctrlKey && !e.metaKey && !e.altKey) this.startTyping();
+          if (this.rendered && !this.typing && this.d && mine(e) && !e.ctrlKey && !e.metaKey && !e.altKey
+              && (e.key.length === 1 || (this.nativeSel && /^(Backspace|Delete|Enter)$/.test(e.key)))) this.startTyping();
           if (e.repeat) return;                 // a held key is not a tap
           tap = (e.key === 'Control' || e.key === 'Shift') && mine(e) ? e.key : null;
         }, true);
@@ -1320,6 +1341,13 @@
           // do the extending, so the handles are furniture for a job the
           // platform already does. The selection stays painted.
           if (e.pointerType === 'mouse') { this.precise = true; }
+          // A MOUSE PRESS ENDS TYPING UNDER THE NATIVE SELECTION, so the
+          // platform can select: while typing the sink holds the focus, and a
+          // selection drawn in the words needs it back in the document. The
+          // next key typed starts typing again (bindKeys), over whatever the
+          // mouse selected. Without this a desk kept the native selection only
+          // until its first click, which opened typing for good.
+          if (this.nativeSel && e.pointerType === 'mouse' && this.typing && this.rendered) this.stopTyping();
           x = e.clientX; y = e.clientY; long = false; word = null;
           unhold();
           downAt = Date.now();
@@ -1515,7 +1543,9 @@
           // and reading one as a tap would drop a caret over what it made.
           // With words picked up by Move, the tap aims them; Move here lands them.
           if (this.native) {
-            if (Date.now() - downAt > 400 || nearEdge) { taps = 0; return; }
+            // A mouse has no long press and no handles: its click is a click,
+            // however long it was held and wherever it landed.
+            if (e.pointerType !== 'mouse' && (Date.now() - downAt > 400 || nearEdge)) { taps = 0; return; }
             if (this.moveArm) { taps = 0; this.aimArmed(e.clientX, e.clientY); return; }
           }
           // A mouse beside a card's words takes the card for the keys, on any
@@ -2157,7 +2187,9 @@
         else this.extendTo(i, e.shiftKey);
         this.armed = null;
         this.paint();
-        this.keepTyping();
+        // Under the native selection a click places the caret and no more:
+        // typing starts on the first key, so the mouse stays the platform's.
+        if (!this.nativeSel) this.keepTyping();
       },
       // A CARD FOR THE KEYS, on a desk. A click in a change card's blank space,
       // beside its words rather than on them, takes the card without a caret,
@@ -2997,6 +3029,13 @@
         if (!window.MdSurface.showReading(this.$refs.md, i, mode)) this.setCardReading(i, mode);
       },
       cardTap(ev) {
+        // A LINK IN THE DOCUMENT IS TEXT HERE, not a way out: this face is an
+        // editor. A click on one followed its href, which is written relative
+        // to the file on GitHub and resolved against this page, so it left the
+        // editor for an address that does not exist (measured 2026-10-01 with
+        // either selection). The click still places the caret, as on any word.
+        const link = ev.target?.closest?.('a[href]');
+        if (link && this.$refs.md.contains(link)) ev.preventDefault();
         const act = ev.target?.closest?.('[data-md-card-act]');
         if (act) { this.cardAct(act); return; }
         const read = ev.target?.closest?.('[data-md-card-read]');
@@ -3189,10 +3228,13 @@
         // card's action pill's colour, the one pill that acts. Words and no
         // icon, "+ note" or "note" once there is one, the owner's pick of four
         // shot side by side (an icon with "Add note", this, a solid fill, and
-        // bare text on the outline). The ::before widens what a thumb can hit.
+        // bare text on the outline). The ::before widens what a thumb can hit,
+        // sideways and upward only: reaching 8px down it covered the first
+        // line's opening words, so a click meant for the caret there opened the
+        // note instead (measured 2026-10-01 on a desk).
         const BASE = 'absolute -top-[13px] -left-[2px] z-10 h-[18px] px-1.5 flex items-center rounded-full border border-amber-400 '
           + 'text-[12px] font-medium leading-none whitespace-nowrap select-none cursor-pointer '
-          + "before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] ";
+          + "before:absolute before:-inset-x-1 before:-top-2 before:bottom-0 before:content-[''] ";
         for (const k of want) {
           const wrap = md.querySelector('[data-md-block="' + k + '"]');
           if (!wrap) continue;
@@ -3828,7 +3870,7 @@
       },
       toggleNativeSel() {
         this.nativeSel = !this.nativeSel;
-        ls.set('dictate:sel', this.nativeSel ? 'native' : 'painted');
+        ls.set(SEL, this.nativeSel ? 'native' : 'painted');
         this.menu = false; this.moveArm = null; this._lastNative = '';
         try { document.getSelection().removeAllRanges(); } catch {}
         this.paint();
@@ -4479,7 +4521,7 @@
           </button>
           <button x-show="file" @click="toggleNativeSel()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Select words with the phone's own long press and handles, instead of the page's pins. Rendered view only.">
+                  title="Select with the browser's own long press and handles, or the mouse: the default. Unchecked, the page's own selection with its pins. Rendered view only.">
             <i class="ph ph-cursor-text text-lg opacity-60"></i>Native selection
             <i x-show="nativeSel" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>

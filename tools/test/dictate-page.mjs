@@ -50,12 +50,17 @@ const ctx = await browser.newContext({ viewport: PHONE, hasTouch: true, isMobile
 // context does not reach a page that already exists, which is why Drop sat
 // disabled the first time this ran.
 await ctx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+// THE PAINTED SELECTION, for the checks written against it. The platform's
+// selection is the page's default since 2026-10-01; everything here before
+// "native by default" below was written when the painted one was, and its
+// toggles turn native on from painted. Only where nothing has chosen yet.
+await ctx.addInitScript(() => { try { if (localStorage.getItem('dictate:selection') == null) localStorage.setItem('dictate:selection', 'painted'); } catch {} });
 const page = await ctx.newPage();
 
 // A correction list with two entries. Everything the page writes is caught
 // rather than sent.
 const writes = [];
-await page.route('**/*', route => {
+const routeAll = (route) => {
   const url = route.request().url();
   // Only the page's OWN reads and writes are caught here. Everything else on
   // api.github.com is the lib chain fetching its own files, which resolveCdn
@@ -85,7 +90,8 @@ await page.route('**/*', route => {
   if (r.kind === 'continue') return route.continue();
   if (r.kind === 'empty') return route.fulfill({ status: 200, contentType: r.contentType, body: '' });
   return route.fulfill({ status: 200, contentType: r.contentType, body: r.body });
-});
+};
+await page.route('**/*', routeAll);
 page.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
 
 // The stub goes in AFTER load, since the kit resolves its constructor lazily
@@ -2342,6 +2348,78 @@ try {
     return t && { left: t.scrollLeft, w: t.clientWidth, off: [...t.querySelectorAll('[data-md-off]')].every((l) => getComputedStyle(l).visibility === 'hidden') }; });
   ok('the first card on a fresh page opens on its marked reading, the others hidden',
     !!fresh && fresh.w > 0 && Math.abs(fresh.left - fresh.w) < 2 && fresh.off, JSON.stringify(fresh));
+  }
+
+  // NATIVE BY DEFAULT: with nothing chosen, the platform selects, on a phone
+  // and on a desk. On a desk that only holds if a click places the caret
+  // without opening typing, a press while typing ends it, and the keys a
+  // textarea would handle still work with none open. A link in the document
+  // is text, and the note badge's reach stops short of the first line.
+  console.log('native by default:');
+  const fresh2 = async (opts) => {
+    const cx = await browser.newContext(opts);
+    await cx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+    const pg = await cx.newPage();
+    await pg.route('**/*', routeAll);
+    pg.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
+    await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:docs/annotation.md`, { waitUntil: 'domcontentloaded' });
+    await pg.waitForFunction(() => { const c = document.querySelector('[x-data="dictate"]')?._x_dataStack?.[0]; return c && c.rendered && document.querySelector('[data-md-block]'); }, null, { timeout: 15000 });
+    await pg.waitForTimeout(400);
+    return { cx, pg };
+  };
+  {
+    const { cx, pg } = await fresh2({ viewport: PHONE, hasTouch: true, isMobile: true });
+    const phone = await pg.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+      return { nativeSel: c.nativeSel, native: c.native, stored: localStorage.getItem('dictate:selection') }; });
+    ok('with nothing chosen, a phone selects with the platform', phone.nativeSel && phone.native && phone.stored === null, JSON.stringify(phone));
+    await cx.close();
+  }
+  {
+    const { cx, pg } = await fresh2({ viewport: { width: 1280, height: 800 } });
+    const C = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';
+    const st = () => pg.evaluate(`(() => { const x = ${C}, s = document.getSelection(); return { sel: s.toString(), a: x.d.range.start, b: x.d.range.end,
+      native: x.native, typing: x.typing, painted: document.querySelectorAll('[data-md-surface="sel"]').length }; })()`);
+    const at = (k, line = 0) => pg.evaluate(`(() => { const ps = ${C}.$refs.md.querySelectorAll('[data-md-block] p'), p = ps[Math.min(${k}, ps.length - 1)];
+      const r = [...p.querySelector('[data-src]').getClientRects()][${line}] || p.querySelector('[data-src]').getBoundingClientRect(); return { x: r.left, y: r.top, h: r.height, w: r.width }; })()`);
+    const p1 = await at(1);
+    await pg.mouse.click(p1.x + 30, p1.y + p1.h / 2); await pg.waitForTimeout(200);
+    const click = await st();
+    await pg.mouse.move(p1.x + 30, p1.y + p1.h / 2); await pg.mouse.down(); await pg.mouse.move(p1.x + 260, p1.y + p1.h / 2, { steps: 8 }); await pg.mouse.up(); await pg.waitForTimeout(250);
+    const drag = await st();
+    ok('on a desk a click places the caret without opening typing, and a drag selects with the platform, the page painting none',
+      click.native && !click.typing && click.a === click.b && drag.native && drag.sel.length > 10 && drag.b - drag.a > 10 && drag.painted === 0, JSON.stringify({ click, drag }));
+    const p2 = await at(2);
+    await pg.mouse.dblclick(p2.x + 30, p2.y + p2.h / 2); await pg.waitForTimeout(200);
+    const word = await pg.evaluate(`(() => { const x = ${C}; return x.text.slice(x.d.range.start, x.d.range.end); })()`);
+    const len0 = await pg.evaluate(`${C}.text.length`);
+    await pg.keyboard.type('Q'); await pg.waitForTimeout(250);
+    const typed = await pg.evaluate(`(() => { const x = ${C}; return { delta: x.text.length - ${len0}, typing: x.typing }; })()`);
+    ok('a double click takes a word, and the first key typed opens typing over it', word.length > 1 && typed.typing && typed.delta === 1 - word.length, JSON.stringify({ word, typed }));
+    const p3 = await at(3);
+    await pg.mouse.click(p3.x + 30, p3.y + p3.h / 2); await pg.waitForTimeout(200);
+    const after = await st();
+    const a0 = after.a;
+    await pg.keyboard.press('ArrowRight'); await pg.keyboard.press('ArrowRight'); await pg.waitForTimeout(150);
+    const moved = await st();
+    ok('a click while typing ends it and places the caret; the arrows travel with no typing open',
+      !after.typing && after.native && after.a === after.b && moved.a === a0 + 2 && !moved.typing, JSON.stringify({ after, moved }));
+    await pg.mouse.dblclick(p3.x + 30, p3.y + p3.h / 2); await pg.waitForTimeout(200);
+    const w2 = await pg.evaluate(`(() => { const x = ${C}; return { n: x.d.range.end - x.d.range.start, len: x.text.length }; })()`);
+    await pg.keyboard.press('Backspace'); await pg.waitForTimeout(250);
+    const bs = await pg.evaluate(`${C}.text.length`);
+    ok('backspace on a selection with no typing open deletes it', w2.n > 1 && bs === w2.len - w2.n, JSON.stringify({ w2, bs }));
+    const link = await pg.evaluate(`(() => { const l = ${C}.$refs.md.querySelector('a[href]'); const r = l.getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; })()`);
+    const url0 = pg.url();
+    await pg.mouse.click(link.x, link.y); await pg.waitForTimeout(400);
+    ok('a click on a link in the document stays on the page, as a click on any word', pg.url() === url0, pg.url());
+    // The mouse rests on a paragraph, which puts its badge up, and a click on
+    // that paragraph's first word places the caret rather than opening a note.
+    const p4 = await at(99);
+    await pg.mouse.move(p4.x + 20, p4.y + p4.h / 2); await pg.waitForTimeout(150);
+    await pg.mouse.click(p4.x + 20, p4.y + p4.h / 2); await pg.waitForTimeout(200);
+    const first = await pg.evaluate(`(() => { const x = ${C}; return { info: !!x.cardInfo, badge: !!x.$refs.md.querySelector('[data-block-hover] [data-md-block-badge]'), caret: x.d.range.start === x.d.range.end }; })()`);
+    ok('with a paragraph\'s badge up, a click on its first word places the caret and opens no note', first.badge && !first.info && first.caret, JSON.stringify(first));
+    await cx.close();
   }
 } finally {
   await browser.close();
