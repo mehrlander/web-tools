@@ -92,6 +92,7 @@ tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,too
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",tools/render,370,npm:preview,yes,yes,yes
+tools/render/scenarios/activity-alerts.mjs,,tools/render/scenarios,24,driver,no,no,no
 tools/render/scenarios/activity-chrome-probe.mjs,,tools/render/scenarios,80,driver,no,no,no
 tools/render/scenarios/activity-fake.mjs,seed fake activity data so the token-gated Open view renders for a shot,tools/render/scenarios,111,driver,no,no,no
 tools/render/scenarios/activity-pr-abandoned.mjs,the same seed opened on the Abandoned scope chip,tools/render/scenarios,11,driver,no,no,no
