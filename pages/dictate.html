@@ -205,13 +205,15 @@
     THE TYPE IS SMALLER, 17px against 21, since a document is read at reading
     distance and a note is spoken at arm's length.
 
-    AND IT HAS THREE FACES, on a toggle in the file band. SOURCE is the buffer
-    as this page has always drawn it. RENDERED is the document as it reads, and
+    AND IT HAS TWO FACES, on a toggle in the header. SOURCE is the buffer as
+    this page has always drawn it. RENDERED is the document as it reads, and
     it is not a preview: kits/md-surface.js answers the same three questions
     Dictate.paint does (draw, point to offset, on the words or not) over the
     rendered markdown, so every gesture here works on it and every edit is still
-    an edit to the markdown string. CHANGES is kits/md-diff.js over the buffer
-    and what GitHub holds, read-only. A markdown file opens Rendered.
+    an edit to the markdown string. A markdown file opens Rendered. A third,
+    read-only CHANGES face (kits/md-diff.js) was retired on 2026-09-29: with
+    the change cards below it showed the same edit a second time, and what it
+    alone had, a count and next and previous, moved onto the Rendered face.
 
     TYPING WORKS IN THE RENDERED FACE TOO, through an invisible textarea that
     holds the caret's line of source (see startTyping). A wrapper such as
@@ -229,13 +231,28 @@
     back. A card's stops pill reads original, marked and new: original is
     GitHub's text, read-only; new is the text clean, still open to typing. A
     tap on a stop or a sideways swipe picks one, a tap on the original returns
-    to marked, and an edit forgets every original; its number offers Go back
-    to original. Track changes in the menu turns the cards off. kits/md-surface.js (tracked) draws them.
+    to marked, and an edit forgets every original; its number wears an × that
+    discards the change. A pill in the pane's corner counts the cards and
+    steps between them. The faces pill's Rendered · after shows the text without them. kits/md-surface.js (tracked) draws them.
 
-    A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
-    in the Changes face: Reject this change puts that block back as GitHub has
-    it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
-    edit leaves by Send: a Claude Code session gets the patch with a line saying
+    PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. Backspace at a
+    paragraph's start joins it to the one above; a long press on the space
+    between two sentences offers Split; a long press inside a selection (a
+    drag, under a mouse) carries it, to between two words or onto a gap as a
+    paragraph of its own. Each is one undo step, in kits/dictate.js (join,
+    split, move); the methods beside paintExtras below say how they are drawn.
+    In a change card, a gray bar in the text marks where a paragraph break was
+    closed, or in the original, where one will be opened.
+
+    NATIVE SELECTION, a menu option (or ?sel=native), hands selecting in the
+    Rendered face to the platform: its long press, handles and callout. The
+    buffer's range follows the platform's selection, a tap still places the
+    caret, and a Move pill under a selection carries it to the next place
+    tapped. Split then comes from the shifted ¶ at a caret. See nativeSync.
+
+    A CHANGE IS DISCARDED FROM ITS OWN CARD, the × on its number, which puts
+    that block back as GitHub has it (mdDiff.revert). The whole edit leaves by
+    Send: a Claude Code session gets the patch with a line saying
     where it belongs, Share and Copy in the sheet's foot get the bare patch
     (`git apply` takes it). Copy in the bottom row copies the whole buffer.
 
@@ -274,6 +291,15 @@
 }
 [data-dictate-ui] textarea, [data-dictate-ui] input {
   -webkit-touch-callout: default; -webkit-user-select: text; user-select: text;
+}
+/* NATIVE SELECTION (the menu's option) hands the Rendered face's words back to
+   the platform: its long press, its handles, its callout. Controls in the
+   cards stay out of it, so a selection never picks up a pill's label. */
+[data-dictate-ui] [data-native-sel], [data-dictate-ui] [data-native-sel] * {
+  -webkit-touch-callout: default; -webkit-user-select: text; user-select: text;
+}
+[data-dictate-ui] [data-native-sel] [data-md-ui], [data-dictate-ui] [data-native-sel] [data-md-ui] * {
+  -webkit-user-select: none; user-select: none;
 }
 
 /* A PIN IS FURNITURE WHILE ANYTHING IS DRIVING IT, the pad or the pin's own
@@ -371,6 +397,12 @@
   // a literal path is what lets the pre-build carry it; it is 5k and does nothing
   // until asked.
   await gh.load('kits/md-unwrap.js');
+  // The house panel-tip's ways out (window.PanelTip), for a card's Info.
+  await gh.load('kits/panel-tip.js');
+  // The house title-tip (window.TitleTip): every [data-title-tip] works,
+  // markup written later included. A fact never rides in a `title`, which
+  // no phone shows (html-style rule 11).
+  await gh.load('kits/title-tip.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';
   const JOTS = 'lists/jots.json';
@@ -461,6 +493,8 @@
       file: FILE,
       fileSha: '', fileBase: null, fileErr: '', fileLoading: false,
       get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
+      // The line under the name on a phone: the repository and the folders.
+      get fileDir() { return FILE ? [FILE.repo.split('/')[1], ...FILE.path.split('/').slice(0, -1)].join('/') : ''; },
       get fileWhere() { return FILE ? FILE.repo.split('/')[1] + (FILE.ref ? '@' + FILE.ref : '') + ':' + FILE.path : ''; },
       get fileUrl() { return FILE ? `https://github.com/${FILE.repo}/blob/${FILE.ref || 'HEAD'}/${FILE.path}` : ''; },
       // Which face of the file the pane shows. Rendered is where a markdown file
@@ -468,18 +502,53 @@
       // through kits/md-surface.js, so the pad, the pins, the long press and the
       // voice all work on it. Source is the markdown itself; Changes is the
       // document against what GitHub holds, read-only.
-      view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
+      // A stored 'changes' is from before that face was retired, and opens Rendered.
+      view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ['source', 'rendered'].includes(ls.get(VIEW)) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
       mdReady: false, changesCount: 0,
+      confirmed: {},            // card key -> that card's text when confirmed; Apply commits these
+      notes: {},                // card key -> the reader's note, which rides in the commit message
+      applying: false,
       // Typing into the Rendered face: the sink has focus and the keyboard is up.
       typing: false, composing: false,
       // Marks for what changed since GitHub's copy, drawn over the Rendered
       // face (kits/md-surface.js). On unless the reader turned them off.
       showMarks: ls.get('dictate:marks') !== '0',
-      delPop: null,             // a tapped removal: { text, at, x, y }
+      // The faces pill: which before face is showing (GitHub's copy, 'raw' or
+      // 'rendered'), or null for the text now; and whether its panel is open.
+      before: null, beforeHtml: '', beforeCls: '', facesOpen: false,
+      FACES: {
+        changes: { label: 'Changes', icon: 'ph-highlighter' },
+        'rendered-before': { label: 'Rendered · before', icon: 'ph-eye' },
+        'rendered-after': { label: 'Rendered · after', icon: 'ph-eye' },
+        'raw-before': { label: 'Raw · before', icon: 'ph-code' },
+        'raw-after': { label: 'Raw · after', icon: 'ph-code' },
+      },
+      // THE PLATFORM'S OWN SELECTION, as an option: Native selection in the
+      // menu, or ?sel=native. See nativeSync. Rendered face only, and not
+      // while typing, where the sink owns the keyboard and a selection gesture
+      // on the words would take focus from it.
+      nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get('dictate:sel') === 'native',
+      moveArm: null,            // native: the range the target picked up to move
+      moveAim: null,            // native: where a tap on the text aimed the held words
+      dnd: null,                // native: words the platform is dragging, and where they would land
+      get moveReady() { this.beat; const r = this.d && this.d.range; return !!(this.native && !this.moveArm && r && r.start !== r.end); },
+      _lastNative: '',          // native: the platform's selection as last seen, "a:b"
+      get native() { return this.nativeSel && this.rendered && !this.typing && !this.edit; },
+      wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }; an underline's adds { what, was, now, exact, hover, key }
+      _onPop: false, _popLeave: null,
+      cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
+      hoverCard: null,          // the card a mouse is over, for its bar
+      selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
+      keyCard: null,            // a desk's card taken by a click beside its words: keys turn it, no caret
       patchMenu: false,
       // File mode's Send: what rides, the edit as a patch or the whole file.
       sendWhat: 'patch',
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
+      get isMd() { return !!FILE && /\.(md|markdown)$/i.test(FILE.path); },
+      get face() {
+        if (this.before) return this.before + '-before';
+        return this.view === 'source' ? 'raw-after' : this.showMarks ? 'changes' : 'rendered-after';
+      },
       get dirty() {
         this.beat;
         return !!FILE && this.fileBase !== null && (this.edit ? this.draft : this.text) !== this.fileBase;
@@ -584,6 +653,59 @@
       },
 
       init() {
+        document.addEventListener('selectionchange', () => this.nativeSync());
+        // THE PLATFORM'S OWN DRAG, under native selection: a phone lifts held
+        // selected words and a desktop drags them. The Rendered face is not a
+        // text field, so nothing would take the drop, and it is taken here:
+        // the dragover says where the words would land (the carry's marker),
+        // the drop moves them through the kit, one undo step.
+        this.$nextTick(() => {
+          const md = this.$refs.md;
+          if (!md) return;
+          md.addEventListener('dragstart', (e) => {
+            const r = this.d && this.d.range;
+            if (!this.native || !r || r.start === r.end) return;
+            this.dnd = { a: r.start, b: r.end, target: null };
+            try { e.dataTransfer.effectAllowed = 'copyMove'; } catch {}
+          });
+          md.addEventListener('dragover', (e) => {
+            if (!this.dnd) return;
+            e.preventDefault();
+            try { e.dataTransfer.dropEffect = 'move'; } catch {}
+            this.dnd.target = this.dropAt(e.clientX, e.clientY, this.dnd);
+            this.dnd.x = e.clientX; this.dnd.y = e.clientY;
+            this.paintExtras();
+          });
+          md.addEventListener('drop', (e) => {
+            if (!this.dnd) return;
+            e.preventDefault();
+            const m = this.dnd, tg = this.dropAt(e.clientX, e.clientY, m);
+            this.dnd = null;
+            if (tg) this.d.move(m.a, m.b, tg.at, tg.para);
+            this.paint();
+          });
+          md.addEventListener('dragend', () => { if (this.dnd) { this.dnd = null; this.paint(); } });
+          // WHILE WORDS ARE HELD FOR A MOVE, NOTHING ELSE MAY TAKE A DRAG, and
+          // above all not the sheet an iPhone presents this page in, which
+          // closes on a downward drag (docs/ios-sheet-drags.md). Holding is a
+          // deliberate opening act, the one thing that note says a scrolling
+          // pane needs before it can hold a drag at all, so here the whole page
+          // takes variant D: a cancelled touchstart, so no scroll begins, and a
+          // cancelled touchmove on the node the touch started on, since a
+          // listener on an ancestor goes quiet if that node is rebuilt. A
+          // control keeps its touchstart, or its tap would be lost with it, and
+          // loses only its touchmove, which a tap does not need.
+          this.$el.addEventListener('touchstart', (ev) => {
+            if (!this.moveArm || !this.native) return;
+            const t = ev.target;
+            if (!t?.closest?.('button, input, textarea, select, a, [data-md-ui]')) ev.preventDefault();
+            const hold = (m) => m.preventDefault();
+            const off = () => { t.removeEventListener('touchmove', hold); t.removeEventListener('touchend', off); t.removeEventListener('touchcancel', off); };
+            t.addEventListener('touchmove', hold, { passive: false });
+            t.addEventListener('touchend', off);
+            t.addEventListener('touchcancel', off);
+          }, { passive: false });
+        });
         this.d = window.Dictate.create({
           lang: q.get('lang') || undefined,
           fix: (s) => this.autocorrect(s),
@@ -598,6 +720,16 @@
           // is why nothing here has to special-case the jump.
           onText: (t) => {
             if (t !== this.text) this.mendArmed = false;
+            // Words held for Move name offsets, and an edit moves them.
+            if (t !== this.text) { this.moveArm = null; this.moveAim = null; this.cardInfo = null; this.wordPop = null; this.keyCard = null; }
+            // A CARRY IS OVER WHEN THE TEXT MOVES UNDER IT: its range names
+            // the words it picked up, and a final result from the microphone
+            // replaces exactly those. The drop's own edit arrives after the
+            // carry has ended, so it never cancels itself.
+            // Only a change that reaches the carried words ends it: words
+            // appended further on leave the range naming what it named.
+            const mv = this.mover;
+            if (mv && t !== this.text && t.slice(mv.a, mv.b) !== this.text.slice(mv.a, mv.b)) { this.mover = null; this.stopEdgeScroll(); }
             this.text = t; this.heard(); this.save(); this.paint();
           },
           onInterim: (t) => { this.interim = t; this.heard(); this.paint(); },
@@ -707,10 +839,12 @@
           this.fileBase = res.text;
           if (held && typeof held.text === 'string' && held.text !== res.text) {
             this.fileSha = held.sha || res.sha;
+            this.confirmed = held.confirmed || {}; this.notes = held.notes || {};
             this.d.text = held.text;
             this.restored = held.text.length;
           } else {
             this.fileSha = res.sha;
+            this.confirmed = {}; this.notes = {};
             this.d.text = res.text;
             this.restored = 0;
           }
@@ -731,7 +865,7 @@
         this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
       },
 
-      // ── File mode: the three faces ────────────────────────────────────
+      // ── File mode: the two faces ──────────────────────────────────────
       // The renderers load on first use, so a blank page and a source-only
       // session pay nothing for them. Literal paths, so the pre-build carries
       // them all the same.
@@ -772,28 +906,7 @@
         if (layer) for (const n of [...layer.querySelectorAll('[data-md-surface],[data-edge],[data-mend]')]) n.remove();
         this.view = v;
         ls.set(VIEW, v);
-        if (v === 'changes') { await this.$nextTick(); await this.renderChanges(); return; }
         this.$nextTick(() => this.paint());
-      },
-      async renderChanges() {
-        const host = this.$refs.changes;
-        if (!host) return;
-        try {
-          await gh.load('kits/md-diff.js');
-          await gh.load('kits/row-menu.js');
-          this.d.flush();
-          // A change's own index opens what can be done to that change.
-          const menu = (chg) => [
-            { label: 'Reject this change', icon: 'ph-arrow-u-up-left', run: () => { this.rejectChange(chg); } },
-            ...(chg.newRange ? [{ label: 'Edit here', icon: 'ph-cursor-text', run: () => {
-              this.d.caretAt(chg.newRange.start); this.setView('rendered');
-            } }] : []),
-          ];
-          const h = await window.mdDiff.render(host, this.fileBase || '', this.text, { layout: 'swipe', menu });
-          this.changesCount = h?.count || 0;
-        } catch (e) {
-          host.textContent = 'Could not draw the changes: ' + (e?.message || e);
-        }
       },
       // One rewrite of the whole buffer, so one undo takes it back, and unsaved
       // until Save, so the reader looks before anything is committed. The rule
@@ -823,12 +936,16 @@
         this.saving = FILE.repo;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
-          const body = { message: `Edit ${this.fileName} via dictate`, content: b64(text), sha: this.fileSha };
+          // The notes left on cards ride in the message, as Apply's do.
+          const md = this.$refs.md, n = this.rendered && md ? window.MdSurface.cards(md).length : 0, noted = [];
+          for (let i = 0; i < n; i++) { const k = this.cardId(i); if (k && this.notes[k]) noted.push('- ' + (this.cardSpans(i).N.s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)') + '\n  ' + this.notes[k].replace(/\n/g, '\n  ')); }
+          const body = { message: `Edit ${this.fileName} via dictate` + (noted.length ? '\n\n' + noted.join('\n') : ''), content: b64(text), sha: this.fileSha };
           if (FILE.ref) body.branch = FILE.ref;
           const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
           this.fileSha = res.content.sha;
           this.fileBase = text;
           this.restored = 0;
+          this.confirmed = {}; this.notes = {};
           ls.del(FILE_DRAFT);
           this.paint();             // the base moved, so the change marks clear
           Alpine.store('toast')('check', 'Saved ' + this.fileWhere, 'alert-success', 3200);
@@ -876,6 +993,12 @@
           && !e.target?.closest?.('input, textarea, select, [contenteditable]');
 
         addEventListener('keydown', (e) => {
+          // Escape puts away the undo pill, before anything else. Info's
+          // Escape is kits/panel-tip.js's; this only keeps it from also
+          // reaching a card held for the keys.
+          if (e.key === 'Escape' && (this.cardInfo || this.wordPop)) { this.cardInfo = null; this.wordPop = null; e.preventDefault(); e.stopPropagation(); return; }
+          if (this.keyCard != null && mine(e) && this.cardKey(e)) return;
+          if (mine(e) && this.shortcut(e)) return;
           // A character typed at the Rendered face with no keyboard open opens
           // it, and focus moving inside keydown carries the character with it.
           if (this.rendered && !this.typing && this.d && mine(e) && e.key.length === 1
@@ -954,7 +1077,8 @@
         if (FILE) {
           // Before the file has loaded, the buffer is not an edit of anything.
           if (this.fileBase === null) return;
-          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha })) : ls.del(FILE_DRAFT);
+          // The confirmations and notes ride with the draft they belong to.
+          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha, confirmed: this.confirmed, notes: this.notes })) : ls.del(FILE_DRAFT);
           return;
         }
         this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT);
@@ -1072,6 +1196,9 @@
         // down. Its presence is what turns the rest of the gesture into an
         // extension rather than a fresh selection. See the move handler.
         let word = null;
+        // Native selection: when the press began, and whether it began on the
+        // end of a live selection, where the platform's handle is.
+        let downAt = 0, nearEdge = false;
 
         // ── Holding the iOS sheet for the length of a long-press drag ─────
         // The pad and the pins can carry `touch-action: none` because neither
@@ -1105,7 +1232,9 @@
         // touch drag it protected: nothing now becomes a selection without a
         // long press first, and by the time a press has taken its word there
         // is a `word` to gate on.
-        const holdMove = (ev) => { if (word || dragging) ev.preventDefault(); };
+        const holdMove = (ev) => { if (word || dragging || this.mover) ev.preventDefault(); };
+        // A mouse press inside the selection: a drag from here carries it.
+        let carry = null;
         const unhold = () => {
           if (!held) return;
           held.removeEventListener('touchmove', holdMove, { passive: false });
@@ -1115,7 +1244,7 @@
         const at = (cx, cy) => this.pointOffset(cx, cy);
         const lineOf = () => parseFloat(getComputedStyle(this.$refs.view).lineHeight) || 26;
         surface.addEventListener('pointerdown', (e) => {
-          if (this.edit || this.view === 'changes') return;
+          if (this.edit) return;
           // A card's number and label are controls, not text: no caret, no long press.
           if (e.target?.closest?.('[data-md-ui]')) { anchor = null; clear(); return; }
           // ANY TOUCH ON THE WORDS ENDS A PENDING STITCH. It was reported as
@@ -1124,16 +1253,38 @@
           // tap changes none. Whatever this gesture turns out to be, a caret,
           // a word, the keyboard, it is the reader looking somewhere else.
           this.mendArmed = false;
+          this.splitPick = null;
           // A mouse or a keyboard means the pins can go: drag and shift-click
           // do the extending, so the handles are furniture for a job the
           // platform already does. The selection stays painted.
           if (e.pointerType === 'mouse') { this.precise = true; }
           x = e.clientX; y = e.clientY; long = false; word = null;
           unhold();
+          downAt = Date.now();
+          // THE PLATFORM SELECTS, under the native option: no long press
+          // here, no mouse drag, no carry by holding. Only the tap is ours.
+          // AND WHILE WORDS ARE HELD FOR A MOVE, a finger anywhere on the text
+          // is the target's pad: the caret moves in parallel with it, off to
+          // the side of the thumb rather than under it. A press that goes
+          // nowhere is still a tap, and the tap drops the words where it
+          // lands (pointerup, below).
+          if (this.native && this.moveArm && e.pointerType !== 'mouse' && this._padFrom) {
+            nearEdge = false; anchor = null; carry = null; clear();
+            this._padFrom(e, surface, null);
+            return;
+          }
+          if (this.native) { nearEdge = this.nearSelEdge(x, y); anchor = null; carry = null; clear(); return; }
           held = e.target;
           if (held?.addEventListener) held.addEventListener('touchmove', holdMove, { passive: false });
           anchor = this.hits(x, y) ? at(x, y) : null;
+          // PRESSED INSIDE THE SELECTION, a mouse is picking it up rather than
+          // starting a new one: the drag below carries it if the press moves.
+          const sr = this.d.range;
+          carry = e.pointerType === 'mouse' && anchor != null && sr && sr.start !== sr.end
+            && anchor >= sr.start && anchor <= sr.end ? { a: sr.start, b: sr.end, id: e.pointerId } : null;
+          if (carry) anchor = null;
           clear();
+          if (carry) return;
           timer = setTimeout(() => {
             timer = null; long = true;
             // OFF the words a held finger is not an aim that missed, it is a
@@ -1141,10 +1292,18 @@
             if (!this.hits(x, y)) { this.editOpen(); return; }
             const i = at(x, y);
             if (i == null) return;
+            // HELD INSIDE THE SELECTION, a finger picks it up, the way the
+            // platform does: the words follow the finger until it lifts.
+            const cur = this.d.range;
+            if (e.pointerType !== 'mouse' && cur && cur.start !== cur.end && i >= cur.start && i <= cur.end) {
+              this.startMove(cur.start, cur.end, x, y, true);
+              return;
+            }
             this.d.selectWordAt(i); this.armed = null;
             // REMEMBER THE WORD, because the finger has not lifted and what it
             // does next decides whether this gesture is over.
             const r = this.d.range;
+            if (r && r.start === r.end && this.d.canSplit(r.start) && !this.inCode(r.start)) this.splitPick = r.start;
             word = r && r.start !== r.end ? { start: r.start, end: r.end } : null;
             this.paint();
           }, 450);
@@ -1153,6 +1312,13 @@
           const far = Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10;
           if (timer && far) clear();
           if (!e.buttons) return;
+          if (this.mover) { this.moveTo(e.clientX, e.clientY); return; }
+          if (carry && far) {
+            try { surface.setPointerCapture(carry.id); } catch {}
+            this.startMove(carry.a, carry.b, e.clientX, e.clientY, false);
+            carry = null;
+            return;
+          }
 
           // ── A LONG PRESS THAT KEEPS GOING IS ONE GESTURE ────────────────
           // The press takes the word; carrying on past it extends from the
@@ -1234,12 +1400,17 @@
         // it anyway.
         surface.addEventListener('mousedown', (e) => { if (this.typing) e.preventDefault(); });
         surface.addEventListener('pointercancel', () => {
-          clear(); anchor = null; dragging = false; word = null; this.pinDrag = null; unhold();
+          clear(); anchor = null; dragging = false; word = null; carry = null; this.pinDrag = null; unhold();
+          this.cancelMove();
         });
         (this.$refs.layer || surface).addEventListener('pointerup', (e) => {
           clear();
           word = null;
+          carry = null;
           unhold();
+          // A CARRY ENDS WHERE IT IS DROPPED, and claims the release: nothing
+          // below may read it as a tap.
+          if (this.mover) { taps = 0; this.dropMove(); return; }
           // A drag claims its own release: the tap logic below would read it as
           // a click and drop a caret where the selection just finished.
           //
@@ -1272,21 +1443,39 @@
           // move handler uses, and the count resets so a scroll cannot become
           // the first half of a double.
           if (e.target?.closest?.('[data-md-ui]')) { taps = 0; return; }
-          // A SIDEWAYS SWIPE ON A CARD steps through its stops: left toward
-          // new, right toward the original. The card carries touch-action:pan-y,
-          // so the drag reaches here.
+          // A sideways swipe on a card is the card's own scroll (md-surface,
+          // the snap track), settled into a reading by md-card-reading. It
+          // arrives here, if at all, as a release far from its press.
           const card = this.rendered && e.target?.closest?.('[data-md-card]');
-          const dx = e.clientX - x, dy = e.clientY - y;
-          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard, dx < 0 ? 1 : -1); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
+          // Under the native option a long press was the platform selecting,
+          // and a press on a selection's end was its handle: neither is a tap,
+          // and reading one as a tap would drop a caret over what it made.
+          // With words picked up by Move, the tap aims them; Move here lands them.
+          if (this.native) {
+            if (Date.now() - downAt > 400 || nearEdge) { taps = 0; return; }
+            if (this.moveArm) { taps = 0; this.aimArmed(e.clientX, e.clientY); return; }
+          }
+          // A mouse beside a card's words takes the card for the keys, on any
+          // reading, before the original's tap below would turn it back.
+          const beside = card && e.pointerType === 'mouse' && !e.shiftKey && this.showMarks && this.besideWords(e);
+          if (beside) { taps = 0; this.takeCard(+beside.dataset.mdCard); return; }
           // The original takes no caret, so a tap on it returns the card to the
           // marked text, where the next tap, or a double, lands as usual.
           if (card && window.MdSurface.readingOf(this.$refs.md, +card.dataset.mdCard) === 'old') {
-            taps = 0; this.setCardReading(+card.dataset.mdCard, 'inline'); return;
+            taps = 0; this.pickReading(+card.dataset.mdCard, 'inline'); return;
           }
-          // A struck word is the base's, not the buffer's: tapping it offers it back.
+          // A MARKED WORD, TAPPED, OFFERS ITS UNDO, struck or added alike: one
+          // pill, one word, so "no thanks" never needs the keyboard. A struck
+          // word is the base's, not the buffer's, so the tap stops there; an
+          // added word is the buffer's, so the tap also places the caret.
           const gone = this.rendered && e.target?.closest?.('del');
-          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapRemoved(gone); return; }
+          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapMark(gone, e.clientX, e.clientY); return; }
+          const added = this.rendered && e.target?.closest?.('ins');
+          if (added && this.$refs.md.contains(added)) this.tapMark(added, e.clientX, e.clientY);
+          // An underlined change is the buffer's words too: the same pop, and
+          // the caret lands as usual.
+          else if (this.rendered && this.showMarks) { const f = this.fmtAt(e.clientX, e.clientY); if (f) this.showFmtPop(f); }
           const pin = e.target?.closest?.('[data-edge]');
           if (!pin && !surface.contains(e.target)) { taps = 0; return; }
           // ARMING ENDS A RUN. pointerdown already armed the pin, and counting
@@ -1483,6 +1672,12 @@
       // A fine pointer from the start, so a desktop never sees the pins it would
       // only lose at the first click; any mouse press sets it too.
       precise: !!(window.matchMedia && matchMedia('(pointer: fine)').matches),
+      // A DESK: a mouse that hovers, read once at load. Unlike `precise`,
+      // which a single mouse press turns on, this does not change under the
+      // reader, so the on-screen keys do not vanish mid-session on a phone.
+      // A desk has a keyboard, which types every key of the upper row, so
+      // that row is not drawn and the formats move to shortcuts (shortcut).
+      desk: !!(window.matchMedia && matchMedia('(pointer: fine) and (hover: hover)').matches),
 
       // ── One armed state, three ways in ────────────────────────────────
       // `armed` is the whole aiming state and it has four values: null, the
@@ -1640,6 +1835,10 @@
           const i = this.pointOffset(from.x, cy);
           if (i == null) return;
           if (this.pinned) this.d.moveEdge(this.armed, i); else this.d.caretAt(i);
+          // Aiming held words: the pad's caret replaces a tapped aim. No loupe:
+          // the pad moves the caret off to the side of the finger, so nothing
+          // is under it to magnify, and a lens would cover the view being aimed.
+          if (this.moveArm) this.moveAim = null;
           this.paint();
         };
         const up = (e) => {
@@ -1648,27 +1847,30 @@
           // this button. Measured against the raw thumb travel rather than the
           // accumulated virtual point, since the gain would call a 6px twitch
           // a 14px move at a flick.
-          const tapped = from.travel < 8;
+          const tapped = from.travel < 8, onTap = from.onTap, el = from.el;
           from = null;
           this.padDrag = false;
-          if (tapped) this.toggleAnchor();
+          if (tapped && onTap) onTap();
           const d = document;
           d.removeEventListener('pointermove', move, true);
           d.removeEventListener('pointerup', up, true);
           d.removeEventListener('pointercancel', up, true);
           d.removeEventListener('selectstart', noSelect, true);
           d.body.style.userSelect = ''; d.body.style.webkitUserSelect = ''; d.body.style.touchAction = '';
-          try { if (e) btn.releasePointerCapture(e.pointerId); } catch {}
+          try { if (e) el.releasePointerCapture(e.pointerId); } catch {}
         };
-        btn.addEventListener('pointerdown', (e) => {
-          if (this.edit || !this.d) return;      // the keyboard brings its own caret
+        // `el` is what took the press and `onTap` what a press that went
+        // nowhere means: the target's own tap for the button, nothing for the
+        // text (whose own tap handler has the release). See padFrom.
+        const start = (e, el, onTap) => {
+          if (this.edit || !this.d) return false;  // the keyboard brings its own caret
           const p = this.padPoint();
-          if (!p) return;
+          if (!p) return false;
           e.preventDefault();
           const cs = getComputedStyle(this.$refs.view);
           from = { x: p.x, y: p.y, y0: p.y, lx: e.clientX, ly: e.clientY, travel: 0,
                    lt: (typeof e.timeStamp === 'number' && e.timeStamp) || 0,
-                   line: parseFloat(cs.lineHeight) || 26 };
+                   line: parseFloat(cs.lineHeight) || 26, el, onTap };
           // The flag the text box reads to stand down. It has to: a capture can
           // be lost mid-gesture (a browser deciding the touch was a scroll) and
           // the box would then read the tail of a drag as a tap.
@@ -1687,8 +1889,11 @@
           d.addEventListener('pointerup', up, true);
           d.addEventListener('pointercancel', up, true);
           d.addEventListener('selectstart', noSelect, true);
-          try { btn.setPointerCapture(e.pointerId); } catch {}
-        });
+          try { el.setPointerCapture(e.pointerId); } catch {}
+          return true;
+        };
+        btn.addEventListener('pointerdown', (e) => { start(e, btn, () => this.padTap()); });
+        this._padFrom = start;
       },
 
       // `retry` is not a caller's parameter: it is how this defers itself once.
@@ -1714,22 +1919,38 @@
       // no pins about half the time. Bounded, so a host that is hidden for
       // good costs three frames rather than a loop.
       paint(retry = 3) {
+        if (this.before) {
+          if (this.text === this._beforeText) return;
+          this.before = null;
+        }
         this.beat++;
-        if (FILE && this.view === 'changes') return;
         if (this.rendered) {
           const md = this.$refs.md;
           if (!md.getClientRects().length) { if (retry > 0) requestAnimationFrame(() => this.paint(retry - 1)); return; }
           window.MdSurface.paint(md, {
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
-            overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
-            base: this.fileBase, marks: false, track: this.showMarks,
+            overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover && !this.native, reach: 0,
+            base: this.fileBase, marks: false, track: this.showMarks, cardActions: this.CARD_ACTIONS,
+            // Under the native option the platform draws the selection, unless
+            // Move has picked it up, when the page holds it until the drop.
+            selection: !this.native || !!this.moveArm,
             // Red is the phone's precision caret; a mouse gets the text's own color.
             caret: this.precise ? 'var(--color-base-content)' : null,
+            // Wider than the kit's 2px on a phone: at 2px, fading on the pulse,
+            // the caret was hard to find in running text.
+            caretWidth: this.precise ? 2 : 3,
+            // A card taken for the keys shows no caret; the range waits for Enter.
+            hideCaret: this.keyCard != null,
           });
+          const n = this.showMarks ? md.querySelectorAll('[data-md-card]').length : 0;
+          if (n !== this.changesCount) this.changesCount = n;
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
           if (this.typing) this.syncSink();
+          if (!this.native) this.moveArm = null;
+          if (this.nativeSel) this.nativeReflect();
+          this.paintExtras();
           return;
         }
         if (!this._host) return;
@@ -1763,7 +1984,7 @@
           // selection to a caret. The keyboard button carries a selection
           // across intact, so two pins were suddenly drawn on top of the
           // textarea's own native one, marking the same words twice.
-          handles: !this.precise && !this.edit,
+          handles: !this.precise && !this.edit && !this.mover,
           // NO STALK. The armed pin was pushed out on one, first 36px and then
           // 18, to keep the thumb off the words it was aiming at. THE DRAG'S
           // VERTICAL DEADBAND does that instead, and does it better: the
@@ -1789,6 +2010,7 @@
         // of a drag, which is the one moment it is for.
         const layer = this.$refs.layer;
         if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
+        this.paintExtras();
       },
 
       // ── The pad ───────────────────────────────────────────────────────
@@ -1851,6 +2073,7 @@
       // are sinkKey's. The model underneath is the same range the phone
       // drives, so dictation, the pad and the format keys see no difference.
       mouseClick(e) {
+        if (this.keyCard != null) this.keyCard = null;
         const t = Date.now(), c = this._clicks || {};
         const near = Math.abs((c.x ?? -99) - e.clientX) < 6 && Math.abs((c.y ?? -99) - e.clientY) < 6;
         const n = near && t - (c.t || 0) < 500 ? (c.n % 3) + 1 : 1;
@@ -1869,6 +2092,53 @@
         this.armed = null;
         this.paint();
         this.keepTyping();
+      },
+      // A CARD FOR THE KEYS, on a desk. A click in a change card's blank space,
+      // beside its words rather than on them, takes the card without a caret,
+      // so the arrows turn it rather than walk the text: left and right step
+      // through its readings, up and down go to the card before or after,
+      // Enter puts the caret back to edit, and Escape lets it go. A click on
+      // the words is an editor's click, as ever.
+      besideWords(e) {
+        const card = e.target?.closest?.('[data-md-card]');
+        if (!card || !this.$refs.md.contains(card) || e.target.closest('[data-md-ui]')) return null;
+        const x = e.clientX, y = e.clientY, w = document.createTreeWalker(card, NodeFilter.SHOW_TEXT), rg = document.createRange();
+        for (let n = w.nextNode(); n; n = w.nextNode()) {
+          if (!n.textContent.trim() || n.parentElement.closest('[data-md-ui]')) continue;
+          rg.selectNodeContents(n);
+          for (const q of rg.getClientRects()) if (x >= q.left - 2 && x <= q.right + 2 && y >= q.top - 2 && y <= q.bottom + 2) return null;
+        }
+        return card;
+      },
+      takeCard(i) {
+        const md = this.$refs.md, el = md.querySelector('[data-md-card="' + i + '"]');
+        if (!el) { this.keyCard = null; return; }
+        this.keyCard = i; this.selCard = null; this.wordPop = null;
+        if (this.typing) this.stopTyping(); else this.paint();
+        el.scrollIntoView({ block: 'nearest' });
+      },
+      cardKey(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey || this.composing) return false;
+        const md = this.$refs.md, i = this.keyCard, k = e.key;
+        const el = md.querySelector('[data-md-card="' + i + '"]');
+        if (!el) { this.keyCard = null; this.paint(); return false; }
+        if (k === 'ArrowLeft' || k === 'ArrowRight') {
+          // Set, not scrolled to: a key has no slide to show, and a scroll
+          // left for the snap to settle was re-snapped back to the reading it
+          // left when the card's layers changed under it (measured headless).
+          const modes = window.MdSurface.cardModes(md, i);
+          const j = modes.indexOf(window.MdSurface.readingOf(md, i)) + (k === 'ArrowRight' ? 1 : -1);
+          if (j >= 0 && j < modes.length) this.setCardReading(i, modes[j]);
+        } else if (k === 'ArrowUp' || k === 'ArrowDown') {
+          const n = md.querySelectorAll('[data-md-card]').length, j = i + (k === 'ArrowDown' ? 1 : -1);
+          if (j >= 0 && j < n) this.takeCard(j);
+        } else if (k === 'Escape') { this.keyCard = null; this.paint(); }
+        else if (k === 'Enter') { this.keyCard = null; this.startTyping(); }
+        // Typing while a card is held does nothing: Enter is the way in.
+        else if (k.length === 1 || k === 'Backspace' || k === 'Delete' || k === 'Tab') {}
+        else return false;
+        e.preventDefault(); e.stopPropagation();
+        return true;
       },
       // A collapsed range moves; with shift, the end away from the anchor does.
       extendTo(i, shift) {
@@ -1893,8 +2163,37 @@
       // sink holds only the caret's line, so travel is computed here against the
       // render: left and right by MdSurface.step (markup skipped), up and down
       // by the caret's screen position, keeping the column it started from.
+      // THE SHORTCUTS, for any keyboard, a desk's or one paired to a phone.
+      // The formats are file mode's shifted keys under the chords Google Docs
+      // and Notion use for them, and Send is the chord chat apps send with.
+      //   ⌘/Ctrl B       bold            ⌘/Ctrl E        inline code
+      //   ⌘/Ctrl ⌥ 1-6   heading level   ⌘/Ctrl ⌥ 0      plain paragraph
+      //   ⌘/Ctrl ⇧ 8     list item       ⌘/Ctrl Enter    Send
+      // Digits are read off e.code, since ⌥ and ⇧ change e.key.
+      // A chord as this platform names it: the Mac's symbols, or Ctrl+ Alt+
+      // Shift+ elsewhere.
+      chord(c) {
+        return /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent) ? c
+          : c.replace('⌘', 'Ctrl+').replace('⌥', 'Alt+').replace('⇧', 'Shift+').replace('↵', 'Enter');
+      },
+      shortcut(e) {
+        if (!(e.ctrlKey || e.metaKey) || !this.d || this.composing) return false;
+        const c = e.code || '', dig = /^Digit(\d)$/.exec(c);
+        let k = null;
+        if (e.key === 'Enter' && !e.altKey && !e.shiftKey) { e.preventDefault(); this.openSend(); return true; }
+        if (!FILE) return false;
+        if (!e.altKey && !e.shiftKey && c === 'KeyB') k = 'B';
+        else if (!e.altKey && !e.shiftKey && c === 'KeyE') k = '`';
+        else if (!e.altKey && e.shiftKey && c === 'Digit8') k = '•';
+        else if (e.altKey && !e.shiftKey && dig && +dig[1] <= 6) k = 'H' + dig[1];
+        if (!k) return false;
+        e.preventDefault();
+        this.format(k);
+        return true;
+      },
       sinkKey(e) {
         if (!this.rendered || this.composing || !this.d) return;
+        if (this.shortcut(e)) { this.syncSink(true); this.revealCaret(); return; }
         const mod = e.ctrlKey || e.metaKey, k = e.key, t = this.d.text, md = this.$refs.md;
         const r = this.d.range || { start: t.length, end: t.length };
         const done = () => { e.preventDefault(); this.armed = null; this.syncSink(true); this.paint(); this.revealCaret(); };
@@ -2054,15 +2353,9 @@
       },
 
       // ── The edit as a patch ───────────────────────────────────────────
-      // Rejecting one change lives on that change's index in the Changes face
-      // (renderChanges); these are the whole edit, as a unified diff to copy or
-      // to hand to a Claude Code session.
-      async rejectChange(chg) {
-        this.d.text = window.mdDiff.revert(this.fileBase, this.text, chg);
-        const at = chg.newRange ? chg.newRange.start : chg.insertAt;
-        this.d.caretAt(Math.min(at, this.d.text.length));
-        await this.renderChanges();
-      },
+      // Discarding one change lives on its card (rejectCard); these are the
+      // whole edit, as a unified diff to copy or to hand to a Claude Code
+      // session.
       get patchText() {
         this.beat;
         // Only while the menu is open: Alpine evaluates the menu's bindings even
@@ -2103,38 +2396,1016 @@
         this.patchMenu = false;
       },
 
+      // ── Paragraphs: the seam between two, and carrying words across ──
+      // The Rendered view draws a document block by block, so the gap between
+      // two paragraphs was nowhere a finger could aim. It is a drop target now.
+      // Joining needs no target: backspace at a paragraph's start joins it to
+      // the one above with a space (kits/dictate.js join). A Join pill on a
+      // tapped gap was tried and dropped as a second route to the same edit.
+      // The shifted ¶ splits at the caret.
+      //
+      // HOLD A SELECTION AND DRAG IT to move the words (kits/dictate.js
+      // move). A touch picks the selection up with the same long press that
+      // otherwise takes a word, pressed INSIDE what is already selected; a
+      // mouse picks it up by dragging it. The drop marker says where it will
+      // land: a bar between two words, or a line across the gap between two
+      // paragraphs, which lands the words as a paragraph of their own. So a
+      // sentence carried out to the gap below is a split, and a paragraph
+      // carried onto the end of the one above is a join. A touch aims a
+      // little above the finger, where the carried words are drawn, so the
+      // finger does not cover the place it is pointing at.
+      // A LONG PRESS ON THE SPACE BETWEEN TWO WORDS places a caret, as it
+      // always has; where a paragraph could be cut there, a Split pill rides
+      // under it. Spent by the next touch. There is no Join pill: ⌫ at the
+      // start of a paragraph joins it to the one above, with a space.
+      splitPick: null,
+      mover: null,
+      seamsNow() {
+        return FILE && this.rendered && !this.edit && window.MdSurface?.seams
+          ? window.MdSurface.seams(this.$refs.md) : [];
+      },
+      seamAtPoint(x, y, pad = 6) {
+        const md = this.$refs.md?.getBoundingClientRect();
+        if (!md || x < md.left || x > md.right) return null;
+        return this.seamsNow().find((s) => y >= s.top - pad && y <= s.bottom + pad) || null;
+      },
+      // Drawn into the pin layer, after every paint, since both follow the
+      // layout: a scroll, a re-render or a keyboard all move them.
+      paintExtras() {
+        const layer = this.$refs.layer;
+        if (!layer) return;
+        for (const n of [...layer.querySelectorAll('[data-seam],[data-move]')]) n.remove();
+        const doc = layer.ownerDocument, lb = layer.getBoundingClientRect();
+        const vb = this.$refs.view.getBoundingClientRect();
+        const box = (this.rendered ? this.$refs.md : this._host)?.getBoundingClientRect();
+        if (!box) return;
+        const add = (tag, cls, css, mark) => {
+          const n = doc.createElement(tag);
+          n.className = cls; n.style.cssText = css; n.dataset[mark] = '';
+          layer.appendChild(n);
+          return n;
+        };
+        const across = (y, mark, cls) => add('div', 'absolute pointer-events-none ' + cls,
+          `left:${box.left - lb.left}px;width:${box.width}px;top:${y - lb.top - 1}px`, mark);
+        if (this.splitPick != null && !this.mover) {
+          const at = this.splitPick;
+          const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, at) : window.Dictate.rectAt(this._host, at);
+          if (!r || !this.d.canSplit(at) || (this.d.range && this.d.range.start !== at)) this.splitPick = null;
+          else if (r.bottom > vb.top && r.bottom < vb.bottom - 30) {
+            const pill = add('button', 'absolute z-20 -translate-x-1/2 btn btn-xs btn-primary rounded-full shadow gap-1',
+              `left:${Math.max(box.left - lb.left + 36, Math.min(box.right - lb.left - 36, r.left - lb.left))}px;top:${r.bottom - lb.top + 6}px`, 'seam');
+            pill.dataset.mdUi = '';
+            pill.innerHTML = '<i class="ph ph-arrows-out-line-vertical"></i>Split';
+            this.keepFocus(pill);
+            pill.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.splitPick = null;
+              if (this.d.split(at)) this.paint(); else this.paintExtras();
+            });
+          }
+        }
+        // NATIVE: words held for a move stay washed while the caret aims.
+        if (this.moveArm && this.rendered) {
+          for (const x of window.MdSurface.rects(this.$refs.md, this.moveArm.a, this.moveArm.b)) {
+            add('div', 'absolute pointer-events-none rounded-[2px] bg-primary/25',
+              `left:${x.left - lb.left}px;top:${x.top - lb.top}px;width:${x.width}px;height:${x.height}px`, 'seam');
+          }
+        }
+        // Where words dragged by the platform would land, and the loupe that
+        // shows it above the thumb covering it (drawLens).
+        if (this.rendered) this.markCardBar();
+        if (this.rendered && this.showMarks) this.markFormat(add, lb, vb);
+        // Held words aimed by a tap on a gap show the same drop line.
+        if (this.moveArm && this.moveAim && this.moveAim.para) this.markTarget(this.moveAim, add, across, lb);
+        if (this.moveArm && this.rendered) this.markAim(add, lb, vb);
+        if (this.dnd && this.dnd.target) { this.markTarget(this.dnd.target, add, across, lb); this.drawLens(this.dnd, lb); }
+        else layer.querySelector('[data-lens]')?.remove();
+        const m = this.mover;
+        if (!m) return;
+        const tg = m.target;
+        if (tg) this.markTarget(tg, add, across, lb);
+        // The carried words, drawn where they are aimed and KEPT INSIDE THE
+        // PANE: a label hanging past the edge widens the page, and a phone
+        // answers that by zooming the whole view out mid-drag (measured
+        // headless: the viewport grew from 844 to 896 and everything fixed to
+        // it jumped).
+        const g = add('div', 'absolute z-30 pointer-events-none max-w-[75%] truncate rounded-lg border border-base-300 '
+          + 'bg-base-100/95 shadow-lg px-2 py-1 text-sm' + (tg ? '' : ' opacity-60'), 'left:0;top:0', 'move');
+        g.textContent = m.text;
+        const w = g.offsetWidth, h = g.offsetHeight;
+        const gx = m.touch ? m.x - lb.left - w / 2 : m.x - lb.left + 14;
+        const gy = m.touch ? m.y - lb.top - this.LIFT - h : m.y - lb.top + 14;
+        g.style.left = Math.max(8, Math.min(lb.width - w - 8, gx)) + 'px';
+        g.style.top = Math.max(0, gy) + 'px';
+      },
+      // WHERE HELD WORDS WILL LAND, pointed at from both sides: yellow
+      // wedges above and below the caret (or the middle of a gap's drop
+      // line), and on whichever side has room, a small Move here tag that
+      // lands them. The tag is the confirm, at the place it confirms.
+      markAim(add, lb, vb) {
+        const md = this.$refs.md, tg = this.moveAim, r = this.d && this.d.range;
+        if (!r) return;
+        let x, top, bot;
+        if (tg && tg.para) { const mr = md.getBoundingClientRect(); x = mr.left + mr.width / 2; top = bot = tg.y; }
+        else {
+          const c = window.MdSurface.rectAt(md, r.start);
+          if (!c) return;
+          x = c.left; top = c.top; bot = c.bottom;
+        }
+        if (bot < vb.top || top > vb.bottom) return;
+        const X = x - lb.left;
+        const wedge = (y, icon) => add('i', 'ph-fill ' + icon + ' absolute pointer-events-none text-amber-400 text-2xl leading-none -translate-x-1/2 drop-shadow',
+          `left:${X}px;top:${y}px`, 'seam');
+        wedge(top - lb.top - 22, 'ph-caret-down');
+        wedge(bot - lb.top - 2, 'ph-caret-up');
+        // And the caret holds still: its pulse fades it to a fifth, which is
+        // the moment it is hardest to find.
+        const k = this.$refs.layer.querySelector('[data-md-surface="caret"]');
+        if (k) k.style.animation = 'none';
+        // Below unless that would run under the bottom of the pane.
+        const below = bot + 60 < vb.bottom;
+        const tag = add('button', 'absolute z-30 -translate-x-1/2 btn btn-sm rounded-full shadow-lg gap-1 whitespace-nowrap border-amber-500 bg-amber-400 text-black',
+          `left:${Math.max(56, Math.min(lb.width - 56, X))}px;top:${below ? bot - lb.top + 20 : top - lb.top - 54}px`, 'seam');
+        tag.dataset.mdUi = ''; tag.dataset.moveHere = '';
+        tag.innerHTML = '<i class="ph-bold ph-check"></i>Move here';
+        this.keepFocus?.(tag);
+        tag.addEventListener('pointerdown', (e) => e.stopPropagation());
+        tag.addEventListener('click', (e) => { e.stopPropagation(); if (this.moveArm) this.dropAtCaret(); });
+      },
+      // THE LOUPE. A drop point is under the finger that is dragging to it,
+      // so a lens above the thumb shows it: the rendered text around the drop
+      // point, enlarged, with the pulsing caret (or, over a gap, a line) at
+      // its centre. The text is a
+      // copy of the Rendered face made once per drag, with the card readings
+      // not on screen left out, so each dragover only moves it.
+      drawLens(dnd, lb) {
+        const layer = this.$refs.layer, md = this.$refs.md, tg = dnd.target;
+        const S = 1.7, W = 248, H = 84;
+        const mr = md.getBoundingClientRect();
+        let fx, fy, lh;
+        if (tg.para) { fx = Math.max(mr.left + W / (2 * S), Math.min(mr.right - W / (2 * S), dnd.x)); fy = tg.y; lh = 0; }
+        else {
+          const r = window.MdSurface.rectAt(md, tg.at);
+          if (!r) return;
+          fx = r.left; fy = r.top + r.height / 2; lh = r.height || 24;
+        }
+        let lens = layer.querySelector('[data-lens]');
+        if (!lens) {
+          lens = document.createElement('div');
+          lens.dataset.lens = ''; lens.dataset.dropLoupe = '';
+          lens.setAttribute('aria-hidden', 'true');
+          lens.className = 'absolute z-40 pointer-events-none';
+          // Shaped like the platform's own: a capsule, a hairline edge, a soft
+          // drop shadow, and a sheen across the top half, as glass has.
+          lens.innerHTML = '<div class="relative w-full h-full overflow-hidden rounded-full bg-base-100 ring-[0.5px] ring-[color-mix(in_oklab,var(--color-base-content)_25%,transparent)] shadow-[0_10px_28px_-6px_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.12)]">'
+            + '<div data-lens-text style="position:absolute;left:0;top:0;transform-origin:0 0"></div>'
+            + '<div data-lens-caret data-caret-pulse class="absolute rounded-full bg-error"></div>'
+            + '<div class="absolute inset-x-0 top-0 h-2/5 rounded-t-full bg-gradient-to-b from-[rgba(255,255,255,0.4)] to-[rgba(255,255,255,0)]"></div>'
+            + '<div class="absolute inset-0 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),inset_0_-1px_2px_rgba(0,0,0,0.08)]"></div></div>';
+          const txt = lens.querySelector('[data-lens-text]');
+          txt.className += ' ' + md.className;
+          txt.innerHTML = md.innerHTML;
+          for (const n of txt.querySelectorAll('[data-md-off], [data-md-ui]')) n.remove();
+          for (const n of txt.querySelectorAll('[data-md-track]')) n.className = '';
+          layer.appendChild(lens);
+        }
+        lens.style.cssText = `width:${W}px;height:${H}px;`
+          + `left:${Math.max(8, Math.min(lb.width - W - 8, dnd.x - lb.left - W / 2))}px;`
+          + `top:${Math.max(4, dnd.y - lb.top - this.LIFT - H - 18)}px`;
+        const txt = lens.querySelector('[data-lens-text]');
+        txt.style.width = md.clientWidth + 'px';
+        // WHERE THE DROP POINT IS IN THE COPY, measured rather than assumed.
+        // The copy does not lay out exactly as the page: card readings not on
+        // screen are left out of it, which shortens a card, and a first
+        // margin that collapses through the page's host does not collapse
+        // out of an absolutely placed box. Assumed, the lens sat half a line
+        // off on the phone. So the copy is laid out scaled at the origin, the
+        // drop offset is found in it by its data-src runs, and the copy is
+        // then moved so that point sits at the lens centre. Its position and
+        // transform origin are inline, not classes: a class new to the page
+        // exists only once Tailwind's browser build has written it, a frame
+        // later, and the origin moving after the measurement slid the text out
+        // of the lens. The focus is
+        // taken relative to that offset's own caret on the page, which is
+        // what carries a gap's midpoint across too.
+        const pageAt = window.MdSurface.rectAt(md, tg.at);
+        txt.style.transform = `scale(${S})`;
+        const inCopy = this.copyCaret(txt, tg.at);
+        const box = lens.firstElementChild.getBoundingClientRect();
+        if (pageAt && inCopy) {
+          const px = inCopy.left + (fx - pageAt.left) * S;
+          const py = (inCopy.top + inCopy.bottom) / 2 + (fy - (pageAt.top + pageAt.bottom) / 2) * S;
+          txt.style.transform = `translate(${box.left + W / 2 - px}px, ${box.top + H / 2 - py}px) scale(${S})`;
+        } else {
+          txt.style.transform = `translate(${W / 2 - (fx - mr.left) * S}px, ${H / 2 - (fy - mr.top) * S}px) scale(${S})`;
+        }
+        const c = lens.querySelector('[data-lens-caret]');
+        c.style.cssText = tg.para
+          ? `left:${H / 2}px;right:${H / 2}px;top:${H / 2 - 1.5}px;height:3px`
+          : `left:${W / 2 - 1.5}px;width:3px;top:${H / 2 - lh * S * 0.42}px;height:${lh * S * 0.84}px`;
+      },
+      // The caret rect at a source offset inside the loupe's copy: the run
+      // stamped with the offset (data-src, copied from the page), or the end
+      // of the last run before it where the offset sits on markup.
+      copyCaret(root, at) {
+        let best = null;
+        for (const sp of root.querySelectorAll('[data-src]')) {
+          const n = sp.firstChild;
+          if (!n || n.nodeType !== 3) continue;
+          const s0 = +sp.dataset.src;
+          if (s0 > at) break;
+          best = { n, off: Math.min(at - s0, n.length) };
+        }
+        if (!best) return null;
+        const r = document.createRange();
+        const { n, off } = best;
+        if (off < n.length) { r.setStart(n, off); r.setEnd(n, off + 1); }
+        else { r.setStart(n, Math.max(0, off - 1)); r.setEnd(n, off); }
+        const b = r.getClientRects()[0] || r.getBoundingClientRect();
+        const x = off < n.length ? b.left : b.right;
+        return { left: x, top: b.top, bottom: b.bottom };
+      },
+      // The drop marker: a line across a gap, or a bar between two words.
+      markTarget(tg, add, across, lb) {
+        if (tg.para) { across(tg.y, 'move', 'border-t-[3px] border-primary rounded-full'); return; }
+        const r = this.rendered ? window.MdSurface.rectAt(this.$refs.md, tg.at)
+                                : window.Dictate.rectAt(this._host, tg.at);
+        if (r) add('div', 'absolute pointer-events-none w-[3px] rounded-full bg-primary',
+          `left:${r.left - lb.left - 1}px;top:${r.top - lb.top}px;height:${r.height || 20}px`, 'move');
+      },
+      // INSIDE CODE A SPACE IS NOT A SENTENCE GAP: a split there cuts an inline
+      // code span or a fenced block in two, so Split is not offered. Read off
+      // the source: an odd count of backticks before the offset on its line,
+      // or an odd count of fence lines before it in the file.
+      inCode(i) {
+        const t = this.d.text, ls = t.lastIndexOf('\n', i - 1) + 1;
+        if (((t.slice(ls, i).match(/`/g) || []).length) % 2) return true;
+        // An indented code block: a run of lines indented four spaces or a
+        // tab, opened by a blank line, and not under a list item, where the
+        // same indent is a continuation paragraph.
+        const ind = /^(?: {4}|\t)/;
+        if (ind.test(t.slice(ls))) {
+          const above = t.slice(0, ls).split('\n').slice(0, -1);
+          let k = above.length - 1;
+          while (k >= 0 && ind.test(above[k]) && above[k].trim()) k--;
+          if (k < 0 || !above[k].trim()) {
+            while (k >= 0 && (!above[k].trim() || ind.test(above[k]))) k--;
+            if (k < 0 || !/^[^\S\n]*(?:[-*+]|\d+[.)])[^\S\n]/.test(above[k])) return true;
+          }
+        }
+        // Inside a fence: an opening ``` or ~~~ is closed only by its own kind.
+        let open = null;
+        for (const m of t.slice(0, ls).matchAll(/^[ \t]*(`{3,}|~{3,})/gm)) {
+          if (!open) open = m[1][0];
+          else if (m[1][0] === open) open = null;
+        }
+        return !!open;
+      },
+      // A PILL MUST NOT TAKE FOCUS. While the keyboard is up, the press on it
+      // would blur the typing sink; the blur ends typing and repaints, which
+      // rebuilds the pill before the tap lands, so the tap did nothing and the
+      // keyboard closed. The press is refused focus; the click still fires.
+      keepFocus(node) {
+        const stop = (e) => e.preventDefault();
+        node.addEventListener('pointerdown', stop);
+        node.addEventListener('mousedown', stop);
+      },
+      // How far above a finger the carried words are drawn and aimed.
+      LIFT: 44,
+      startMove(a, b, x, y, touch) {
+        this.splitPick = null;
+        // A mouse carry starts only once the pointer has left the slop, so it
+        // is already moving; a touch carry starts at the press and is not.
+        this.mover = { a, b, text: this.d.text.slice(a, b).trim(), x, y, x0: x, y0: y, moved: !touch, touch, target: null };
+        this.armed = null; this.pinDrag = null;
+        // Repainted once so the pins come off: the words are lifted, and a
+        // handle left on them would read as a second thing to drag.
+        this.paint();
+        this.moveTo(x, y);
+      },
+      moveTo(x, y) {
+        const m = this.mover;
+        if (!m) return;
+        m.x = x; m.y = y;
+        // NOTHING IS AIMED UNTIL THE FINGER MOVES. A touch aims above the
+        // finger, so a target taken at the press would sit on the line above
+        // the words, and a long press let go where it began would drop them
+        // there. Inside the same slop the tap uses, the words are only lifted.
+        if (!m.moved) {
+          if (Math.hypot(x - m.x0, y - m.y0) <= 10) { m.target = null; this.paintExtras(); return; }
+          m.moved = true;
+        }
+        this.edgeScroll(y);
+        m.target = this.dropAt(x, m.touch ? y - this.LIFT : y);
+        this.paintExtras();
+      },
+      // WHERE A DROP AT A POINT LANDS: a paragraph break (the gap between two
+      // blocks, above the first, below the last, or a blank line in the
+      // source), else the nearer edge of the word under it. Null when it
+      // would land inside the words being carried.
+      dropAt(x, y, m = this.mover) {
+        const t = this.d.text;
+        // The aim stays inside the pane: above the finger near the top is
+        // over the file bar, and a gap scrolled out of sight is no place to
+        // drop words the reader cannot see land.
+        const vb = this.$refs.view.getBoundingClientRect();
+        y = Math.max(vb.top + 2, Math.min(vb.bottom - 2, y));
+        if (this.rendered) {
+          const s = this.seamAtPoint(x, y, 4);
+          const mid = s && (s.top + s.bottom) / 2;
+          if (s && mid >= vb.top && mid <= vb.bottom) return { at: s.at, para: true, y: mid };
+          const bs = window.MdSurface.blocks(this.$refs.md);
+          if (bs.length) {
+            const f = bs[0].el.getBoundingClientRect(), l = bs[bs.length - 1].el.getBoundingClientRect();
+            if (y < f.top) return { at: 0, para: true, y: f.top - 6 };
+            if (y > l.bottom) return { at: t.length, para: true, y: l.bottom + 6 };
+          }
+        }
+        let i = this.pointOffset(x, y);
+        // A word target out of sight (the nearest text to a point in the gap
+        // at the top is the end of the paragraph scrolled away) steps inward
+        // until it lands on text the reader can see.
+        if (this.rendered) {
+          for (let k = 0; k < 6 && i != null; k++) {
+            const r = window.MdSurface.rectAt(this.$refs.md, i);
+            if (!r || (r.top >= vb.top - 2 && r.bottom <= vb.bottom + 2)) break;
+            y += r.top < vb.top ? 12 : -12;
+            i = this.pointOffset(x, y);
+          }
+        }
+        if (i == null) return null;
+        if (!this.rendered && t[i - 1] === '\n' && (t[i] === '\n' || i >= t.length)) {
+          const r = window.Dictate.rectAt(this._host, Math.max(0, i - 1));
+          return { at: i, para: true, y: r ? r.bottom + (r.height || 20) / 2 : y };
+        }
+        if (/\S/.test(t[i - 1] || '') && /\S/.test(t[i] || '')) {
+          let s = i, e = i;
+          while (s > 0 && /\S/.test(t[s - 1])) s--;
+          while (e < t.length && /\S/.test(t[e])) e++;
+          i = i - s <= e - i ? s : e;
+        }
+        return i >= m.a && i <= m.b ? null : { at: i, para: false };
+      },
+      // Held near the top or bottom of the pane, the pane scrolls, so a drop
+      // can reach a paragraph off screen. THE SPEED RAMPS WITH THE SQUARE OF
+      // THE DEPTH into the edge band: a linear ramp ran at 200px a second a
+      // few pixels in, which is where a reader aiming at the last visible
+      // line already is, and carried a headless drop to the end of the file.
+      edgeScroll(y) {
+        const v = this.$refs.view, r = v.getBoundingClientRect(), z = 48;
+        const d = y < r.top + z ? y - (r.top + z) : y > r.bottom - z ? y - (r.bottom - z) : 0;
+        const k = Math.min(1, Math.abs(d) / z);
+        this._edgeV = Math.sign(d) * k * k * 16;
+        if (!d) { this.stopEdgeScroll(); return; }
+        if (this._edgeT) return;
+        const step = () => {
+          if (!this.mover || !this._edgeV) { this._edgeT = null; return; }
+          v.scrollTop += this._edgeV;
+          const m = this.mover;
+          m.target = this.dropAt(m.x, m.touch ? m.y - this.LIFT : m.y);
+          this.paintExtras();
+          this._edgeT = requestAnimationFrame(step);
+        };
+        this._edgeT = requestAnimationFrame(step);
+      },
+      stopEdgeScroll() {
+        if (this._edgeT) cancelAnimationFrame(this._edgeT);
+        this._edgeT = null; this._edgeV = 0;
+      },
+      dropMove() {
+        const m = this.mover;
+        this.mover = null;
+        this.stopEdgeScroll();
+        if (m && m.moved && m.target) this.d.move(m.a, m.b, m.target.at, m.target.para);
+        this.paint();
+      },
+      cancelMove() {
+        if (!this.mover) return;
+        this.mover = null;
+        this.stopEdgeScroll();
+        this.paint();
+      },
+
+      // ── Native selection ──────────────────────────────────────────────
+      // THE OPTION HANDS SELECTING TO THE PLATFORM. The words are made
+      // selectable (the stylesheet's data-native-sel rule), the page stops
+      // painting a selection and its pins, and the platform's long press and
+      // handles make one. The buffer follows it: every selectionchange inside
+      // the Rendered face is read back through the map (MdSurface.offsetOf)
+      // into d.range, so dictation, the keys and backspace act on it as on a
+      // painted one. The other way round, a range the page sets (undo, a
+      // drop) is written into the platform's selection (nativeReflect).
+      //
+      // WHAT IT GIVES UP. The page's long press did three jobs and the
+      // platform's does one. Taking a word is the platform's now. Split on a
+      // held space goes: a tap and the shifted ¶ split at the caret. Carrying
+      // by holding goes too, since a held selection opens the callout, so a
+      // Move pill rides under the selection: tap it, then tap where the words
+      // go, between two words or in the gap between paragraphs.
+      nativeRange() {
+        const sel = document.getSelection(), md = this.$refs.md;
+        if (!sel || !sel.rangeCount || sel.isCollapsed) return null;
+        const r = sel.getRangeAt(0);
+        if (!md.contains(r.startContainer) || !md.contains(r.endContainer)) return null;
+        const a = window.MdSurface.offsetOf(md, r.startContainer, r.startOffset, 'start');
+        const b = window.MdSurface.offsetOf(md, r.endContainer, r.endOffset, 'end');
+        return a == null || b == null || a >= b ? null : { a, b };
+      },
+      // `_lastNative` is the platform's selection as last read or written
+      // here, as "a:b" or '' for none. A selectionchange that reads the same
+      // is this page's own write coming back, and is not adopted: adopting it
+      // is how a range set on markup drifted a character wider each round.
+      nativeSync() {
+        if (!this.native) return;
+        const n = this.nativeRange(), k = n ? n.a + ':' + n.b : '';
+        if (k === this._lastNative) return;
+        this._lastNative = k;
+        const cur = this.d.range;
+        // THE PLATFORM LET GO without a tap (a press it kept, a handle
+        // nudged off): the range is still live, so it is written back rather
+        // than left unhighlighted for the next words to overwrite unseen. A
+        // real tap places the caret, and that paint takes the selection away.
+        if (!n) { if (cur && cur.start !== cur.end && !this.moveArm) this.paint(); return; }
+        // A new selection made while words are held for Move replaces them.
+        this.moveArm = null;
+        if (cur && cur.start === n.a && cur.end === n.b) return;
+        this._fromNative = true;
+        this.d.select(n.a, n.b); this.armed = null; this.splitPick = null;
+        this.paint();
+        this._fromNative = false;
+      },
+      nativeReflect() {
+        if (this._fromNative) return;
+        const sel = document.getSelection(), md = this.$refs.md, r = this.d.range;
+        if (!sel) return;
+        if (this.native && r && r.start !== r.end && !this.moveArm) {
+          const n = this.nativeRange();
+          // The platform moved first and its selectionchange is still queued
+          // (a handle drag, with a repaint from the microphone in between):
+          // the platform is right, and writing the old range back would pull
+          // the handle out from under the finger.
+          if (n && n.a + ':' + n.b !== this._lastNative) { this.nativeSync(); return; }
+          if (n && n.a === r.start && n.b === r.end) return;
+          const p = window.MdSurface.domPoint(md, r.start, 'start'), q = window.MdSurface.domPoint(md, r.end, 'end');
+          if (p && q) { try { sel.setBaseAndExtent(p.node, p.offset, q.node, q.offset); } catch {} }
+          const w = this.nativeRange();
+          this._lastNative = w ? w.a + ':' + w.b : '';
+        } else if (sel.rangeCount && !sel.isCollapsed && md.contains(sel.anchorNode)) {
+          sel.removeAllRanges();
+          this._lastNative = '';
+        }
+      },
+      // Near either end of the platform's selection, where its handles are.
+      nearSelEdge(x, y) {
+        const sel = document.getSelection();
+        if (!sel || !sel.rangeCount || sel.isCollapsed || !this.$refs.md.contains(sel.anchorNode)) return false;
+        const rs = [...sel.getRangeAt(0).getClientRects()].filter((r) => r.width);
+        if (!rs.length) return false;
+        const f = rs[0], l = rs[rs.length - 1];
+        // The start's knob sits above its line and the end's below, so each
+        // zone reaches past its own line on that side only, not into the
+        // line beside it where a tap is a tap.
+        return (Math.abs(x - f.left) < 20 && y > f.top - 20 && y < f.bottom + 4)
+          || (Math.abs(x - l.right) < 20 && y > l.top - 4 && y < l.bottom + 20);
+      },
+      // THE TARGET'S TAP. Under native selection, with words selected, it
+      // holds them for a move and puts the caret at their end for the pad to
+      // aim; held, it drops them at the caret. Otherwise the anchor, as ever.
+      padTap() {
+        if (this.native) {
+          if (this.moveArm) { this.dropAtCaret(); return; }
+          const r = this.d.range;
+          if (r && r.start !== r.end) { this.moveArm = { a: r.start, b: r.end }; this.moveAim = null; this.d.caretAt(r.end); this.paint(); return; }
+        }
+        this.toggleAnchor();
+      },
+      // A tap on the text while words are held AIMS: the caret goes where
+      // they would land, and a gap is kept as a gap (moveAim, drawn as the
+      // drop line) so Move here makes them a paragraph of their own there.
+      aimArmed(x, y) {
+        const tg = this.dropAt(x, y, this.moveArm);
+        this.moveAim = tg || null;
+        if (tg) this.d.caretAt(tg.at);
+        this.paint();
+      },
+      cancelMove() {
+        const m = this.moveArm;
+        this.moveArm = null; this.moveAim = null;
+        if (m) this.d.select(m.a, m.b);
+        this.paint();
+      },
+      dropAtCaret() {
+        const m = this.moveArm, tg = this.moveAim, t = this.d.text, r = this.d.range;
+        this.moveArm = null; this.moveAim = null;
+        if (tg) { this.d.move(m.a, m.b, tg.at, tg.para); this.paint(); return; }
+        let i = r ? r.start : t.length;
+        // Inside a word, the nearer of its edges, as a dropped carry does.
+        if (/\S/.test(t[i - 1] || '') && /\S/.test(t[i] || '')) {
+          let s = i, e = i;
+          while (s > 0 && /\S/.test(t[s - 1])) s--;
+          while (e < t.length && /\S/.test(t[e])) e++;
+          i = i - s <= e - i ? s : e;
+        }
+        if (i < m.a || i > m.b) this.d.move(m.a, m.b, i, false);
+        else this.d.select(m.a, m.b);
+        this.paint();
+      },
+
       // ── The change cards ──────────────────────────────────────────────
       // Each run of blocks that differs from GitHub's copy is one card in the
       // Rendered face (kits/md-surface.js, tracked), shown with its change
       // marked and open to typing. Its stops pill reads original, marked and
-      // new; a tap on a stop or a sideways swipe picks one, a tap on the
-      // original returns to marked, and its number offers the one thing left
-      // to decide: going back to the original for good.
+      // new; a sideways swipe moves the card's text with the finger and
+      // settles on one (md-card-reading), a tap on a stop scrolls there, a
+      // tap on the original returns to marked, and a tap on its number
+      // selects it. THE SELECTED CARD SHOWS ITS PILL (markCardBar): the card the
+      // caret is in, or the one picked by its number, or on a desk the one
+      // under the mouse. Only one at a time, so the document still reads as
+      // one.
       setCardReading(i, mode) {
         window.MdSurface.setReading(this.$refs.md, i, mode);
         this.paint();
-        // On touch the reading slides in over 200ms, and the caret and pins
-        // are measured, so they are measured again once it has landed.
-        setTimeout(() => this.paint(), 240);
       },
-      swipeCard(i, step) {
-        const md = this.$refs.md;
-        const modes = window.MdSurface.cardModes(md, i);
-        if (modes.length < 2) return;
-        const k = Math.max(0, Math.min(modes.length - 1, modes.indexOf(window.MdSurface.readingOf(md, i)) + step));
-        this.setCardReading(i, modes[k]);
+      pickReading(i, mode) {
+        if (!window.MdSurface.showReading(this.$refs.md, i, mode)) this.setCardReading(i, mode);
       },
       cardTap(ev) {
+        const act = ev.target?.closest?.('[data-md-card-act]');
+        if (act) { this.cardAct(act); return; }
         const read = ev.target?.closest?.('[data-md-card-read]');
-        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.setCardReading(+i, m); return; }
+        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
-        if (!badge || !window.rowMenu) return;
-        const run = window.MdSurface.cards(this.$refs.md)[+badge.dataset.mdCardBadge];
-        if (!run) return;
-        const r = badge.getBoundingClientRect();
+        if (!badge) return;
+        const r = this.d && this.d.range, i = +badge.dataset.mdCardBadge;
+        this.selCard = { i, at: r ? r.start : -1 };
+        this.paint();
+        this.infoTap(i, badge);
+      },
+      // INFO LIVES ON THE CARD'S NUMBER (owner's call, 2026-10-01; it was a
+      // word in the pill). A click PINS it: a hover-opened one stays; a pinned
+      // one closes; any other opens pinned, which is every tap on a phone.
+      infoTap(i, el) {
+        const c = this.cardInfo;
+        if (c && c.i === i && !c.pinned) this.pinInfo(true);
+        else if (c && c.i === i) this.cardInfo = null;
+        else this.openCardInfo(i, el, true);
+      },
+      cardHover(e) {
+        // A mouse resting on a card's number opens its Info unpinned, after the
+        // house 140ms; moving off before then opens nothing.
+        const info = e && e.pointerType === 'mouse' && this.hoverable() ? e.target?.closest?.('[data-md-card-badge]') : null;
+        if (info !== this._infoOver) {
+          this._infoOver = info; clearTimeout(this._infoT);
+          if (info) this._infoT = setTimeout(() => {
+            const i = +info.closest('[data-md-card]').dataset.mdCard;
+            if (this._infoOver === info && !(this.cardInfo && this.cardInfo.i === i)) this.openCardInfo(i, info, false);
+          }, 140);
+        }
+        // A resting mouse on an underline opens its pop, as on info; off the
+        // words and off the pop, a hover-opened one goes after the grace.
+        const fh = e && e.pointerType === 'mouse' && this.hoverable() && this.showMarks ? this.fmtAt(e.clientX, e.clientY) : null;
+        if (fh) {
+          clearTimeout(this._popLeave); this._popLeave = null;
+          const k = fh.h.s.join(':');
+          if (!(this.wordPop && this.wordPop.key === k) && this._fmtOver !== k) {
+            this._fmtOver = k; clearTimeout(this._fmtT);
+            this._fmtT = setTimeout(() => { if (this._fmtOver === k) this.showFmtPop(fh, true); }, 140);
+          }
+        } else {
+          this._fmtOver = null; clearTimeout(this._fmtT);
+          if (this.wordPop && this.wordPop.hover) this.popLeave();
+        }
+        const el = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-card]') : null;
+        const i = el ? +el.dataset.mdCard : null;
+        if (i !== this.hoverCard) { this.hoverCard = i; this.markCardBar(); }
+      },
+      // THE CARD PILL: the selected card's actions, as the words "confirm" and
+      // "remove" in a small pill (Info is the card's number) centred on its bottom edge. kits/md-surface.js
+      // draws one in every card, hidden, from `cardActions`; this shows the
+      // selected card's and hides the rest. Being in the card, it scrolls with
+      // the text rather than being moved on each scroll. Centred because a
+      // neighbouring card keeps its number at its left and its stops at its
+      // right. The shape is the convention and the words are the page's: a
+      // page reviewing someone else's text would put its votes and comments
+      // in the same pill, the destructive one last.
+      CARD_ACTIONS: [
+        { act: 'confirm', text: 'confirm', title: 'Confirm this change for Apply', cls: 'text-success' },
+        { act: 'remove', text: 'remove', title: 'Remove this change', cls: 'text-error/70' },
+      ],
+      markCardBar() {
+        const md = this.$refs.md, r = this.d && this.d.range;
+        let el = null;
+        if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target)) {
+          el = this.keyCard != null ? md.querySelector('[data-md-card="' + this.keyCard + '"]') : null;
+          if (!el && this.hoverCard != null) el = md.querySelector('[data-md-card="' + this.hoverCard + '"]');
+          if (!el && this.selCard && r && r.start === this.selCard.at) el = md.querySelector('[data-md-card="' + this.selCard.i + '"]');
+          if (!el && r) {
+            const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
+            el = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-card]') || null;
+          }
+        }
+        // It grows in when the selection reaches a new card, and a repaint
+        // (which rebuilds every card, so every bar is born hidden) shows the
+        // same card's at once rather than replaying that on each keystroke.
+        const key = el ? el.dataset.mdCard : null, fresh = key !== this._barKey;
+        this._barKey = key;
+        for (const card of md.querySelectorAll('[data-md-card]')) {
+          const k = this.keyCard != null && +card.dataset.mdCard === this.keyCard;
+          // The card's own border turns amber, nothing drawn outside it: a
+          // second ring made the card read as a text field, which it is not.
+          // Important, since the kit sets the border's colour per card.
+          card.classList.toggle('border-amber-400!', k);
+        }
+        this.markConfirmed();
+        for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
+          const on = !!el && bar.parentElement === el;
+          if (on && !fresh) bar.classList.add('transition-none');
+          // A bar just built has no style to transition from until it is laid out.
+          else if (on) void bar.offsetWidth;
+          for (const c of ['invisible', 'opacity-0', 'scale-75']) bar.classList.toggle(c, !on);
+          if (on && !fresh) requestAnimationFrame(() => bar.classList.remove('transition-none'));
+          if (!bar.__kept) { bar.__kept = true; for (const k of bar.querySelectorAll('button')) this.keepFocus(k); }
+        }
+      },
+      // ── Confirm, then Apply ───────────────────────────────────────────
+      // A CARD IS CONFIRMED FOR APPLY, and Apply commits the confirmed cards
+      // together, one commit, to the branch the file was opened from. The
+      // two steps are the confirmation: confirming is local and taken back by
+      // the same word, and nothing reaches GitHub until Apply. Owner's design,
+      // 2026-09-29: reject is per change (the word pop's Undo), commit is per
+      // card, never part of one.
+      //
+      // A card is known by a key that survives edits to it and elsewhere:
+      // where its GitHub text starts ('o' + offset), or for a card that only
+      // adds, the line just above it ('a@'). That card's own text was its key
+      // until 2026-10-01, so an edit to it orphaned its note. A confirmation
+      // holds the card's text as confirmed, and lapses when that text
+      // changes, so what is applied is what was seen.
+      cardId(i) {
+        const run = window.MdSurface.cards(this.$refs.md)[i], sp = this.cardSpans(i);
+        if (!run || !sp) return null;
+        const o = run.filter((e) => e.oldRange);
+        if (o.length) return 'o' + Math.min(...o.map((e) => e.oldRange.start));
+        const above = this.text.slice(0, sp.N.a).replace(/\s+$/, '');
+        return 'a@' + above.slice(above.lastIndexOf('\n') + 1);
+      },
+      toggleConfirm(i) {
+        const k = this.cardId(i), sp = this.cardSpans(i);
+        if (!k) return;
+        if (this.confirmed[k] != null) delete this.confirmed[k]; else this.confirmed[k] = sp.N.s;
+        this.confirmed = { ...this.confirmed };
+        this.save(); this.paintExtras();
+      },
+      get confirmedCount() { return Object.keys(this.confirmed).length; },
+      get fileRef() { return FILE ? FILE.ref || '' : ''; },
+      // Each paint: confirmations whose card changed or went lapse, and the
+      // confirmed cards wear it, a green number and "confirmed" in the pill.
+      markConfirmed() {
+        const md = this.$refs.md, n = window.MdSurface.cards(md).length, now = {};
+        for (let i = 0; i < n; i++) { const k = this.cardId(i); if (k) now[k] = { i, s: this.cardSpans(i).N.s }; }
+        let lapsed = false;
+        for (const k of Object.keys(this.confirmed)) if (!now[k] || now[k].s !== this.confirmed[k]) { delete this.confirmed[k]; lapsed = true; }
+        if (lapsed) { this.confirmed = { ...this.confirmed }; this.save(); }
+        const on = new Set(Object.keys(this.confirmed).map((k) => now[k].i));
+        for (const card of md.querySelectorAll('[data-md-card]')) {
+          const c = on.has(+card.dataset.mdCard);
+          card.dataset.confirmed = c ? '1' : '';
+          const b = card.querySelector('[data-md-card-badge]');
+          if (b) for (const x of ['bg-success!', 'text-success-content!', 'border-success!']) b.classList.toggle(x, c);
+          const a = card.querySelector('[data-md-card-act="confirm"]');
+          if (a) {
+            a.textContent = c ? 'confirmed ✓' : 'confirm';
+            // A title-tip, not a `title`: this is what the word does, and a
+            // phone would never have shown it.
+            a.removeAttribute('title'); a.dataset.titleTipBare = '';
+            a.dataset.titleTip = c ? 'Confirmed for Apply. Tap to take it back; editing the change also takes it back.'
+                                   : 'Accept this change (can undo).';
+          }
+        }
+      },
+      // APPLY: GitHub's copy with the confirmed cards' changes in it, which is
+      // the text now with every OTHER card taken back (mdDiff.revert, the same
+      // take-back as remove), from the last card up so each revert's
+      // positions still hold. One commit; then that is the base, so the
+      // applied cards go and the rest stay as edits, keeping their notes.
+      async applyConfirmed() {
+        if (!FILE || this.applying || !this.confirmedCount) return;
+        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: nothing applied', 'alert-error', 5000); return; }
+        const md = this.$refs.md, runs = window.MdSurface.cards(md), base = this.fileBase, t = this.text;
+        const cards = runs.map((run, i) => ({ run, i, k: this.cardId(i), sp: this.cardSpans(i) }));
+        const pos = (c) => { const e = c.run.find((x) => x.newRange) || c.run[0]; return e.newRange ? e.newRange.start : (e.insertAt ?? 0); };
+        let next = t;
+        for (const c of [...cards].sort((a, b) => pos(b) - pos(a))) if (this.confirmed[c.k] == null) next = window.mdDiff.revert(base, next, c.run);
+        // And what no card shows (a re-wrap, spacing, a blank line between
+        // unchanged paragraphs) goes back to GitHub's, so the commit holds the
+        // confirmed cards and nothing else.
+        next = window.mdDiff.restoreUnchanged(base, next, { items: true });
+        const applied = cards.filter((c) => this.confirmed[c.k] != null);
+        const first = (s) => (s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)');
+        const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)) + (this.notes[c.k] ? '\n  ' + this.notes[c.k].replace(/\n/g, '\n  ') : ''));
+        const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n');
+        // Notes on the cards that stay are carried to their new keys by their texts.
+        const kept = cards.filter((c) => this.confirmed[c.k] == null && this.notes[c.k]).map((c) => ({ o: c.sp.O.s, n: c.sp.N.s, note: this.notes[c.k] }));
+        this.applying = true;
+        try {
+          const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
+          const body = { message, content: b64(next), sha: this.fileSha };
+          if (FILE.ref) body.branch = FILE.ref;
+          const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
+          this.fileSha = res.content.sha;
+          this.fileBase = next;
+          this.confirmed = {}; this.notes = {};
+          this.paint();
+          const m = window.MdSurface.cards(md).length;
+          for (let i = 0; i < m; i++) {
+            const sp = this.cardSpans(i), hit = kept.find((x) => x.o === sp.O.s && x.n === sp.N.s);
+            if (hit) this.notes[this.cardId(i)] = hit.note;
+          }
+          this.notes = { ...this.notes };
+          this.save();
+          Alpine.store('toast')('check', `Applied ${applied.length} to ${this.fileWhere}`, 'alert-success', 3200);
+        } catch (e) {
+          const conflict = e?.status === 409 || e?.status === 422;
+          Alpine.store('toast')('warning', conflict
+            ? 'Not applied: the file changed on GitHub after you opened it. Reload, then confirm again.'
+            : 'Not applied: ' + (e?.message || e), 'alert-error', 8000);
+        }
+        this.applying = false;
+      },
+      cardAct(btn) {
+        const i = +btn.closest('[data-md-card]').dataset.mdCard;
+        if (btn.dataset.mdCardAct === 'confirm') { this.toggleConfirm(i); return; }
+        const run = window.MdSurface.cards(this.$refs.md)[i];
+        this.cardInfo = null; this.selCard = null; this.keyCard = null;
+        if (run) this.rejectCard(run);
+      },
+      // WHAT THE CHANGE WAS, line by line in the markdown source, since a
+      // change the rendered marks cannot show (bold added, an indent, a
+      // doubled space) left the card looking unchanged and the two copies side
+      // by side left the reader to find it. Each changed line is numbered as
+      // the file numbers it, the characters that changed are lit within it,
+      // with spaces and tabs made visible there, and unchanged lines beyond
+      // one either side fold. The header counts the lines and says when the
+      // change is only whitespace, or only formatting.
+      //
+      // IT IS A PANEL-TIP, by the house rule (daisy-alpine mechanics.md,
+      // "Title-tips and panel-tips"): it scrolls, so it takes the pointer.
+      // kits/panel-tip.js owns the ways out and this owns the opening: hover
+      // opens it unpinned where there is hover, and it closes when the
+      // pointer is demonstrably elsewhere; a click pins it, and pinned it
+      // closes on Escape, a press outside, or a scroll.
+      //
+      // NO ✕, BY THE OWNER'S CHOICE (2026-09-29), and a deliberate departure
+      // from the rule, which draws the kit's ghost ✕ when pinned and on every
+      // screen with no hover. The rule's reason stands and is accepted here:
+      // a press outside lets the tap through to what was under it, so on a
+      // phone closing Info means finding somewhere safe to press. The page
+      // around a card is text more than controls, which is why the owner
+      // judged the trade worth it; revisit if that stops being true.
+      hoverable() { return !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches); },
+      pinInfo(pinned) {
+        const el = this.$refs.info;
+        if (!this.cardInfo || !el || !window.PanelTip) return;
+        this.cardInfo.pinned = pinned;
+        // The kit's pointer guard would close a pinned panel the moment the
+        // mouse left it, so a pinned one is wired without it.
+        this._infoWire?.detach();
+        this._infoWire = window.PanelTip.wire(el, { onClose: () => { this.cardInfo = null; }, label: 'card info',
+          // Hover-opened, the card itself counts as near, since reaching the
+          // panel from the number means crossing the card; pinned, a press on
+          // the card is outside like any other.
+          except: pinned ? ['[data-md-card-badge]'] : ['[data-md-card-badge]', '[data-md-card="' + this.cardInfo.i + '"]'],
+          stale: pinned ? 'geometry' : true });
+      },
+      // A card's source, both sides: { s, a, line } for GitHub's copy (O) and
+      // the text now (N), each the span from its first entry to its last.
+      cardSpans(i) {
+        const run = window.MdSurface.cards(this.$refs.md)[i];
+        if (!run) return null;
+        const span = (src, key) => {
+          const rs = run.map((e) => e[key]).filter(Boolean);
+          if (!rs.length) return { s: '', a: 0, line: 0 };
+          const a = Math.min(...rs.map((r) => r.start)), b = Math.max(...rs.map((r) => r.end));
+          return { s: src.slice(a, b).trimEnd(), a, line: src.slice(0, a).split('\n').length };
+        };
+        return { O: span(this.fileBase || '', 'oldRange'), N: span(this.text, 'newRange') };
+      },
+      // CHANGES THE WORDS CANNOT SHOW, underlined where they are. The marks
+      // come from a word diff, so bold added, italics taken off, or a doubled
+      // space changed the file and marked nothing: the card read as unchanged.
+      // Here each card on its marked reading has its source compared by
+      // character, and what changed only in markers or spacing gets a dotted
+      // amber underline, on the overlay, so the rendered text is untouched.
+      //   paired markers (** __ * _ ` ~~) added or removed: the words between
+      //   spacing added or removed: the word after it
+      // Info names it exactly. A card whose character diff is a rewrite (many
+      // pieces) is left alone, since its words are already marked and a
+      // marker found in a rewrite is noise. Memoized by the two sources.
+      markFormat(add, lb, vb) {
+        const md = this.$refs.md, D = window.Diff;
+        if (!D || this.moveArm || this.mover) return;
+        const memo = (this._fmtMemo ||= new Map());
+        const hits = this._fmtHits = [];
+        const n = window.MdSurface.cards(md).length;
+        for (let i = 0; i < n; i++) {
+          if (window.MdSurface.readingOf(md, i) !== 'inline') continue;
+          const sp = this.cardSpans(i);
+          if (!sp || !sp.O.s || !sp.N.s) continue;
+          const key = sp.O.s + '\u0000' + sp.N.s;
+          // Each find: u, the words underlined; s, the span of the text now
+          // that an undo replaces; old, GitHub's text for that span; what, a
+          // word for the change. Offsets are relative to the card's source.
+          let found = memo.get(key);
+          if (!found) {
+            found = [];
+            const parts = D.diffChars(sp.O.s, sp.N.s);
+            if (parts.length <= 24) {
+              let at = 0, ot = 0; const marks = [];
+              const NAME = { '**': 'bold', '__': 'bold', '*': 'italics', '_': 'italics', '`': 'code', '~~': 'strikethrough' };
+              for (const p of parts) {
+                const len = p.count ?? p.value.length;
+                if (p.added || p.removed) {
+                  if (/^(\*\*|__|\*|_|`|~~)$/.test(p.value)) marks.push({ v: p.value, at, ot, added: !!p.added, len });
+                  else if (/^[ \t]+$/.test(p.value)) {
+                    const e = at + (p.added ? len : 0), m = /^\s*\S+/.exec(sp.N.s.slice(e));
+                    if (m) found.push({ u: [e, e + m[0].length], s: [at, e], old: p.removed ? p.value : '',
+                      what: p.added ? 'space added' : 'space removed' });
+                  }
+                }
+                if (!p.removed) at += len;
+                if (!p.added) ot += len;
+              }
+              // Markers pair in order, like with like: the first opens, the next closes.
+              for (let k = 0; k + 1 < marks.length; k++) {
+                const m = marks[k], e = marks[k + 1];
+                if (m.v !== e.v || m.added !== e.added) continue;
+                const s = m.added ? [m.at, e.at + e.len] : [m.at, e.at], o = m.added ? [m.ot, e.ot] : [m.ot, e.ot + e.len];
+                const u = m.added ? [m.at + m.len, e.at] : [m.at, e.at];
+                if (u[1] <= u[0]) continue;
+                found.push({ u, s, old: sp.O.s.slice(o[0], o[1]), what: NAME[m.v] + (m.added ? ' added' : ' removed') });
+                k++;
+              }
+            }
+            memo.set(key, found);
+            if (memo.size > 200) memo.delete(memo.keys().next().value);
+          }
+          for (const f of found) {
+            const u0 = sp.N.a + f.u[0], u1 = sp.N.a + f.u[1];
+            hits.push({ u: [u0, u1], s: [sp.N.a + f.s[0], sp.N.a + f.s[1]], old: f.old, what: f.what });
+            // WHERE THE WORDS ARE ONE ELEMENT (the bold, italic or code the
+            // markers made), the underline is that element's own decoration,
+            // so it moves with the text. An overlay measured at paint stayed
+            // where the words had been when the text shifted afterwards, a
+            // late style reflowing it: reported on a desk, the underline ran
+            // on past "demonstrated" into the next word.
+            const p = window.MdSurface.domPoint(md, u0, 'start'), pn = p && (p.node.nodeType === 1 ? p.node : p.node.parentElement);
+            const own = pn && pn.closest && pn.closest('strong, em, code, del, b, i, s');
+            if (own && md.contains(own) && own.textContent.length === u1 - u0) {
+              own.classList.add('underline', 'decoration-dotted', 'decoration-amber-500', 'decoration-2', 'underline-offset-4');
+              own.dataset.fmtMark = '';
+              continue;
+            }
+            for (const x of window.MdSurface.rects(md, u0, u1)) {
+              if (x.bottom < vb.top || x.top > vb.bottom) continue;
+              add('div', 'absolute pointer-events-none border-b-2 border-dotted border-amber-500',
+                `left:${x.left - lb.left}px;top:${x.bottom - lb.top - 1}px;width:${x.width}px;height:0`, 'seam').dataset.fmtMark = '';
+            }
+            // The rest are drawn, so they are drawn again once late styles
+            // have landed, the same two frames and a beat the kit waits.
+            if (!this._fmtAgain) {
+              this._fmtAgain = true;
+              requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => { this.paintExtras(); this._fmtAgain = false; }, 120)));
+            }
+          }
+        }
+      },
+      // The underlined change under a point, or null: its words' own boxes,
+      // not the nearest offset, so a tap beside the words is not a hit.
+      fmtAt(x, y) {
+        for (const h of this._fmtHits || []) {
+          for (const q of window.MdSurface.rects(this.$refs.md, h.u[0], h.u[1])) {
+            if (x >= q.left - 2 && x <= q.right + 2 && y >= q.top - 2 && y <= q.bottom + 2) return { h, q };
+          }
+        }
+        return null;
+      },
+      // AN UNDERLINE OPENS THE SAME POP AS A MARK, with the raw change above
+      // its Undo: GitHub's source and the source now, the markers lit, since
+      // the rendered words are the one place the change cannot be seen. A tap
+      // opens it anywhere; a resting mouse opens it where there is hover, and
+      // it goes again once the mouse has left both the words and the pop.
+      popLeave() {
+        if (this._popLeave) return;
+        this._popLeave = setTimeout(() => { this._popLeave = null; if (this.wordPop && this.wordPop.hover && !this._onPop) this.wordPop = null; }, 220);
+      },
+      showFmtPop(hit, hover = false) {
+        const { h, q } = hit;
+        this.wordPop = { text: h.old, a: h.s[0], b: h.s[1], t: Date.now(), exact: true, hover,
+          raw: this.rawSegs(h.s[0], h.s[1], h.old), key: h.s.join(':'),
+          // Above the words when below would run into the key rows.
+          pos: q.bottom + 130 > (this.$refs.view.getBoundingClientRect().bottom) ? 'bottom:' + (window.innerHeight - q.top + 6) + 'px' : null,
+          x: Math.max(80, Math.min(window.innerWidth - 80, q.left + q.width / 2)), y: q.bottom + 6 };
+        this.fitPop();
+      },
+      openCardInfo(i, k, pinned = true) {
+        const sp = this.cardSpans(i);
+        if (!sp) return;
+        const { O, N } = sp;
+        const wc = (s) => (s.match(/\S+/g) || []).length;
+        const { rows, changed } = this.lineDiff(O.s, N.s, O.line || N.line, N.line || O.line);
+        const bare = (s, re) => s.replace(re, '');
+        const kind = O.s === N.s ? '' : bare(O.s, /\s+/g) === bare(N.s, /\s+/g) ? 'whitespace only'
+          : bare(O.s, /[\s*_`~#>]+/g) === bare(N.s, /[\s*_`~#>]+/g) ? 'formatting only' : '';
+        // Where, in the file as it is now: the added lines, or for a pure
+        // removal the lines it came out of in GitHub's copy.
+        const ch = rows.filter((r) => r.kind === 'ins'), lines = (ch.length ? ch : rows.filter((r) => r.kind === 'del')).map((r) => r.no);
+        // Said as a reader would: "line 28", or "3 lines, 28–31". The word
+        // count only when it moved, since "235 → 235 words" says nothing.
+        const a = lines[0], z = lines[lines.length - 1];
+        const where = !lines.length ? '' : changed === 1 || a === z ? 'line ' + a : changed + ' lines, ' + a + '–' + z;
+        const ow = wc(O.s), nw = wc(N.s);
+        // Above or below the CARD, not its number: the number sits on the
+        // card's top edge, and a panel hung from it covered the very change
+        // it describes.
+        const b = (k.closest && k.closest('[data-md-card]') || k).getBoundingClientRect();
+        const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
+        const below = innerHeight - b.bottom > b.top;
+        this.cardInfo = { i, rows, kind, w, key: this.cardId(i),
+          sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
+          x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
+          // 16px clear of the card, past the pills that straddle its edges.
+          pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px',
+          // The diff scrolls past a quarter of the screen (owner, 2026-10-01):
+          // capped only by the room beside the card, a long paragraph's panel
+          // covered most of a phone and the card with it.
+          room: Math.max(120, Math.min(Math.round(innerHeight / 4), (below ? innerHeight - b.bottom : b.top) - 60)) };
+        this.$nextTick(() => this.pinInfo(pinned));
+      },
+      // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
+      // segs: [{ t, cls }] }. A removed run facing an added one is paired line
+      // by line and diffed within by wordParts, the page's own marking, so
+      // the panel and the card agree. `changed` counts lines as the larger
+      // side of each hunk.
+      lineDiff(a, b, oNo, nNo) {
+        const D = window.Diff, rows = [];
+        const split = (v) => { const x = v.split('\n'); if (x[x.length - 1] === '') x.pop(); return x; };
+        // Spaces are dotted only where they are the whole change, as in the pops.
+        const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s || '⏎';
+        const whole = (kind, l, no) => rows.push({ kind, no, sign: kind === 'del' ? '−' : '+', raw: l,
+          segs: [l.trim() ? { t: l, cls: '' } : { t: '⏎ blank line', cls: 'opacity-60' }] });
+        const pair = (x, y) => {
+          const parts = this.wordParts(x, y);
+          const side = (drop, hl) => parts.filter((p) => !p[drop]).map((p) => (p.added || p.removed) ? { t: vis(p.value), cls: hl } : { t: p.value, cls: '' });
+          return [side('added', 'bg-error/35 rounded-sm'), side('removed', 'bg-success/40 rounded-sm')];
+        };
+        let o = oNo, n = nNo, changed = 0;
+        const parts = D ? D.diffLines(a ? a + '\n' : '', b ? b + '\n' : '') : [];
+        for (let k = 0; k < parts.length; k++) {
+          const p = parts[k];
+          if (!p.added && !p.removed) { for (const l of split(p.value)) rows.push({ kind: 'same', no: n++, sign: '', raw: l, segs: [{ t: l, cls: '' }] }), o++; continue; }
+          const del = p.removed ? split(p.value) : [], q = p.removed && parts[k + 1]?.added ? parts[++k] : (p.added ? p : null);
+          const ins = q ? split(q.value) : [];
+          changed += Math.max(del.length, ins.length);
+          const dRows = [], iRows = [];
+          for (let j = 0; j < Math.max(del.length, ins.length); j++) {
+            if (j < del.length && j < ins.length) { const [ds, is] = pair(del[j], ins[j]); dRows.push([del[j], ds]); iRows.push([ins[j], is]); }
+            else if (j < del.length) dRows.push([del[j], null]); else iRows.push([ins[j], null]);
+          }
+          for (const [l, segs] of dRows) segs ? rows.push({ kind: 'del', no: o, sign: '−', raw: l, segs }) : whole('del', l, o), o++;
+          for (const [l, segs] of iRows) segs ? rows.push({ kind: 'ins', no: n, sign: '+', raw: l, segs }) : whole('ins', l, n), n++;
+        }
+        // Unchanged lines more than one away from a change fold into a count.
+        const near = rows.map((r, k) => r.kind !== 'same' || [-1, 1].some((d) => rows[k + d] && rows[k + d].kind !== 'same'));
+        const out = [];
+        for (let k = 0; k < rows.length; k++) {
+          if (near[k]) { out.push(rows[k]); continue; }
+          let m = k; while (m < rows.length && !near[m]) m++;
+          out.push({ kind: 'gap', no: '', sign: '', raw: '', segs: [{ t: '⋯ ' + (m - k) + (m - k === 1 ? ' unchanged line' : ' unchanged lines'), cls: '' }] });
+          k = m - 1;
+        }
+        return { rows: out, changed };
+      },
+      // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone.
+      // One undo still reaches the edit (loadFile). Offered from the unsaved
+      // mark itself and from the menu.
+      clearEdits() { this.loadFile(true); },
+      unsavedTap(ev) {
+        if (!window.rowMenu) { this.clearEdits(); return; }
+        const r = ev.currentTarget.getBoundingClientRect();
         window.rowMenu.open({ x: r.left, y: r.bottom + 4, items: [
-          { label: 'Go back to original', icon: 'ph-arrow-u-up-left', run: () => { this.rejectCard(run); } },
+          { label: 'Clear all edits', icon: 'ph-x-circle', run: () => this.clearEdits() },
         ] });
+      },
+      // The next card below the top of the pane, or the previous one above it,
+      // wrapping; brought to just under the top.
+      jumpCard(dir) {
+        const v = this.$refs.view, top = v.getBoundingClientRect().top;
+        const cards = [...this.$refs.md.querySelectorAll('[data-md-card]')];
+        if (!cards.length) return;
+        const at = cards.map((c) => c.getBoundingClientRect().top - top);
+        let k = dir > 0 ? at.findIndex((y) => y > 24) : at.findLastIndex((y) => y < 8);
+        if (k < 0) k = dir > 0 ? 0 : cards.length - 1;
+        v.scrollTo({ top: v.scrollTop + at[k] - 16, behavior: 'smooth' });
       },
       rejectCard(run) {
         const e = run[0];
@@ -2142,42 +3413,153 @@
         this.d.caretAt(Math.min(e.newRange ? e.newRange.start : e.insertAt, this.d.text.length));
         this.paint();
       },
-      // A tapped struck word: where it would go back is the caret the tap would
-      // have placed, which is just before it.
-      tapRemoved(del) {
-        const at = window.MdSurface.offsetAt(this.$refs.md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
-        const b = del.getBoundingClientRect();
-        this.delPop = { text: del.textContent, at: at ?? 0, with: null, by: '',
-                        x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
+      // THE UNDO OF ONE MARK. Every undo is one replacement, [a, b) of the
+      // buffer by `text`: a struck word goes back in at the caret its tap
+      // would have placed (just before it), an added word comes out, and a
+      // struck word right against an added one is a REPLACEMENT, which undoes
+      // as a pair from either side, since keeping half of it is a third text
+      // nobody wrote.
+      insRange(ins) {
+        const md = this.$refs.md;
+        const a = window.MdSurface.offsetOf(md, ins, 0, 'start'), b = window.MdSurface.offsetOf(md, ins, ins.childNodes.length, 'end');
+        return a == null || b == null ? null : [Math.min(a, b), Math.max(a, b)];
       },
-
-      // ── The change marks ──────────────────────────────────────────────
-      toggleMarks() {
-        this.showMarks = !this.showMarks;
-        ls.set('dictate:marks', this.showMarks ? '1' : '0');
-        this.menu = false;
+      // THE PILL GOES UNDER THE FINGER: at the tap's x, below the line the tap
+      // was on. A mark that wraps has one box per line, and its bounding box
+      // is their union, whose centre can be a line away from anything tapped.
+      tapMark(el, tx, ty) {
+        const md = this.$refs.md, isDel = el.tagName === 'DEL';
+        const next = (n, dir) => { let x = dir > 0 ? n.nextSibling : n.previousSibling;
+          while (x && x.nodeType === 3 && !x.textContent) x = dir > 0 ? x.nextSibling : x.previousSibling; return x; };
+        const mate = next(el, isDel ? 1 : -1), pair = mate && mate.tagName === (isDel ? 'INS' : 'DEL') && md.contains(mate) ? mate : null;
+        const del = isDel ? el : pair, ins = isDel ? pair : el;
+        let r = ins ? this.insRange(ins) : null;
+        if (!r) {
+          if (!del) return;
+          const at = window.MdSurface.offsetAt(md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
+          r = [at ?? 0, at ?? 0];
+        }
+        const rs = [...el.getClientRects()], dy = (q) => ty < q.top ? q.top - ty : ty > q.bottom ? ty - q.bottom : 0;
+        const line = ty == null || !rs.length ? el.getBoundingClientRect() : rs.reduce((m, q) => dy(q) < dy(m) ? q : m);
+        const x = tx == null ? line.left + line.width / 2 : Math.max(line.left, Math.min(line.right, tx));
+        this.showWordPop(del ? del.textContent : '', r[0], r[1], { left: x, width: 0, bottom: line.bottom });
+      },
+      // THE CHANGE IN THE RAW MARKDOWN, which is what is being edited: one
+      // line of source around [a, b), GitHub's text struck in red and the
+      // text now in green, the context plain and dimmed. The same for every
+      // pop, a struck or added word or an underline, so a red beside a green
+      // shows which the undo is about, and bold added shows as the ** it is.
+      // Spaces are dotted only where they are the change itself.
+      // ONE DIFF FOR EVERY VIEW OF A CHANGE (owner, 2026-10-01). The card
+      // marks words with mdDiff.runs: a word diff whose short unchanged gaps
+      // between two changes fold into them. Info and the pops used a character
+      // diff where two lines were mostly alike, and a rewrite came out as
+      // letters ("kind" against "knowing") beside a card marking whole words.
+      // Here is runs again, as jsdiff-shaped parts, for both. The exception
+      // is a change only in markers or spacing, which the card shows as
+      // markFormat's dotted underline, found by character: that comparison
+      // is the card's mechanism there, and a word diff would light all of
+      // "**para**." for two pairs of asterisks.
+      wordParts(x, y) {
+        const bare = (s) => s.replace(/[\s*_`~]+/g, '');
+        if (x !== y && bare(x) === bare(y)) return window.Diff.diffChars(x, y);
+        return window.mdDiff.runs(x, y).flatMap((r) => r.type === 'equal' ? [{ value: r.text }]
+          : [{ value: r.o, removed: true }, { value: r.n, added: true }].filter((p) => p.value));
+      },
+      rawSegs(a, b, old) {
+        const t = this.text, now = t.slice(a, b);
+        const ls = t.lastIndexOf('\n', a - 1) + 1, le0 = t.indexOf('\n', b), le = le0 < 0 ? t.length : le0;
+        let pre = t.slice(Math.max(ls, a - 28), a), post = t.slice(b, Math.min(le, b + 28));
+        if (a - 28 > ls) pre = '…' + pre.replace(/^\S*\s/, '');
+        if (b + 28 < le) post = post.replace(/\s\S*$/, '') + '…';
+        const parts = window.Diff ? this.wordParts(old, now) : [{ value: old, removed: true }, { value: now, added: true }].filter((p) => p.value);
+        const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s;
+        // A long change is shown by its ends: the pop is a glance at the
+        // edit, and a sentence-long insertion printed whole filled a phone
+        // screen. Changed text keeps 40 characters of its start and 20 of its
+        // end, unchanged text between changes 12 either side.
+        const cut = (s, head, tail) => s.length > head + tail + 3 ? s.slice(0, head).replace(/\s\S*$/, '') + ' … ' + s.slice(-tail).replace(/^\S*\s/, '') : s;
+        return [{ t: pre, cls: 'opacity-60', k: '' },
+          ...parts.map((p) => p.removed ? { t: vis(cut(p.value, 40, 20)), cls: 'bg-error/20 text-error line-through decoration-[color-mix(in_oklab,var(--color-error)_50%,transparent)] rounded-sm', k: 'del' }
+            : p.added ? { t: vis(cut(p.value, 40, 20)), cls: 'bg-success/25 rounded-sm', k: 'add' } : { t: cut(p.value, 12, 12), cls: '', k: '' }),
+          { t: post, cls: 'opacity-60', k: '' }].filter((s) => s.t);
+      },
+      showWordPop(text, a, b, rect) {
+        this.wordPop = { text, a, b, t: Date.now(), raw: this.rawSegs(a, b, text),
+          x: Math.max(40, Math.min(window.innerWidth - 40, rect.left + rect.width / 2)), y: rect.bottom + 6 };
+        this.fitPop();
+      },
+      // Kept on screen once drawn: the pop is centred on the words and as
+      // wide as its line of source, so near an edge it slides inward.
+      fitPop() {
+        this.$nextTick(() => requestAnimationFrame(() => {
+          const el = document.querySelector('[data-word-pop]'), p = this.wordPop;
+          if (!el || !p) return;
+          const r = el.getBoundingClientRect(), W = window.innerWidth;
+          if (r.left < 8) p.x += 8 - r.left; else if (r.right > W - 8) p.x -= r.right - (W - 8);
+        }));
+      },
+      undoWord() {
+        const p = this.wordPop;
+        if (!p) return;
+        const t = this.d.text;
+        let a = p.a, b = p.b;
+        // Taking a word out leaves its space: of two spaces, or a space before
+        // punctuation, one goes with it.
+        // An underline's undo is exact: its span is GitHub's own, spaces included.
+        if (!p.exact && !p.text && t[a - 1] === ' ' && (t[b] === ' ' || /[.,;:!?)]/.test(t[b] || ''))) a--;
+        this.d.text = t.slice(0, a) + p.text + t.slice(b);
+        this.d.caretAt(a + p.text.length);
+        this.wordPop = null;
         this.paint();
       },
-      // A removal's wedge was tapped: show what went, with a way to put it back.
+
+      // ── The faces ─────────────────────────────────────────────────────
+      // Changes and Rendered-after are the Rendered view with the change
+      // cards on and off; Raw-after is Source. A before face hides the text
+      // now behind GitHub's copy and draws nothing else, and the text changing
+      // under it (a phrase dictated, an undo) brings the text back: paint()
+      // drops the before face first, so nothing lands unseen.
+      async setFace(f) {
+        this.facesOpen = false;
+        if (f.endsWith('-before')) {
+          if (this.edit) this.editClose();
+          if (this.typing) this.stopTyping();
+          const kind = f.split('-')[0];
+          if (kind === 'rendered') {
+            if (!(await this.ensureMd())) return;
+            this.beforeHtml = window.mdDoc.html(this.fileBase || '', { proseClass: '' });
+            this.beforeCls = this.$refs.md.className;
+          }
+          const layer = this.$refs.layer;
+          if (layer) for (const n of [...layer.querySelectorAll('[data-md-surface],[data-edge],[data-mend]')]) n.remove();
+          this.cardInfo = null; this.wordPop = null;
+          this._beforeText = this.text;
+          this.before = kind;
+          return;
+        }
+        this.before = null;
+        if (f === 'raw-after') return this.setView('source');
+        this.showMarks = f === 'changes';
+        ls.set('dictate:marks', this.showMarks ? '1' : '0');
+        await this.setView('rendered');
+      },
+      toggleNativeSel() {
+        this.nativeSel = !this.nativeSel;
+        ls.set('dictate:sel', this.nativeSel ? 'native' : 'painted');
+        this.menu = false; this.moveArm = null; this._lastNative = '';
+        try { document.getSelection().removeAllRanges(); } catch {}
+        this.paint();
+      },
+      // A removal's wedge was tapped: the same undo pill as a struck word.
       delTap(e) {
         const w = e.target?.closest?.('[data-md-del]');
         if (!w) return;
         e.preventDefault(); e.stopPropagation();
         const d = window.MdSurface.removals(this.$refs.md)[+w.getAttribute('data-md-del')];
         if (!d) return;
-        const b = w.getBoundingClientRect();
-        this.delPop = { text: d.text, at: d.at, with: d.with || null,
-                        by: d.with ? this.d.text.slice(d.with[0], d.with[1]) : '', x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
-      },
-      restoreRemoval() {
-        const p = this.delPop;
-        if (!p) return;
-        const t = this.d.text;
-        const [a, b] = p.with || [p.at, p.at];
-        this.d.text = t.slice(0, a) + p.text + t.slice(b);
-        this.d.caretAt(a + p.text.length);
-        this.delPop = null;
-        this.paint();
+        const [a, b] = d.with || [d.at, d.at];
+        this.showWordPop(d.text, a, b, w.getBoundingClientRect());
       },
 
       // ── Formatting, file mode ─────────────────────────────────────────
@@ -2209,10 +3591,14 @@
         if (le < 0) le = t.length;
         const lines = t.slice(ls, le).split('\n');
         let block;
-        if (k === 'H') {
+        if (k[0] === 'H') {
           const m = /^(#{1,6})\s+/.exec(lines[0]);
           const level = m ? m[1].length : 0;
-          const next = level === 0 ? '## ' : level === 2 ? '### ' : '';
+          // 'H' cycles as the key does; 'H0'..'H6' (the shortcuts) set a
+          // level, and asking for the level a line already has clears it.
+          const want = k.length > 1 ? +k[1] : null;
+          const next = want != null ? (want && want !== level ? '#'.repeat(want) + ' ' : '')
+            : level === 0 ? '## ' : level === 2 ? '### ' : '';
           lines[0] = next + lines[0].replace(/^#{1,6}\s+/, '');
           block = lines.join('\n');
         } else {
@@ -2653,16 +4039,25 @@
   <!-- ── The header ──────────────────────────────────────────────────────
        A THREE-COLUMN GRID, so the target lands on the viewport's centre line
        rather than on the midpoint of whatever space the two side groups leave
-       over. With flex spacers it drifts right, because the instruments on the
-       right are twice the width of the clock on the left.
+       over. In file mode the target is in the bottom row instead, between
+       Copy and Send, and the centre column stands empty.
 
        Left is the session (record, and how long it has run). Centre is the one
        control that AIMS. Right is the history and the menu. Backspace joins
        undo and redo rather than staying in the bottom row: it undoes a word
-       the way undo undoes an act, and the three read as one group. -->
+       the way undo undoes an act, and the three read as one group.
+
+       IN FILE MODE THE FILE LINE LIVES HERE TOO, rather than in a second band
+       under the header. The empty centre column takes the file's name and
+       whether it is unsaved, and the two faces join the right group. On a
+       phone the name is the file's own (SKILL.md), with the repository and
+       its folders on a small second line, and unsaved is a dot; from
+       the sm breakpoint up, the whole repo@ref:path and the badge. The clock
+       and word count give way on a phone, and the count moves to the menu. -->
   <div @pointerdown="headerTap($event)"
-       class="shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-1 px-1 min-h-14
-              border-b border-base-300 pt-[env(safe-area-inset-top)]">
+       class="shrink-0 grid items-center gap-1 px-1 min-h-14
+              border-b border-base-300 pt-[env(safe-area-inset-top)]"
+       :class="file ? 'grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-[1fr_auto_1fr]'">
 
     <div class="flex items-center gap-1 justify-self-start">
       <!-- RECORD, and the state readout as well as the switch: red and pulsing
@@ -2674,22 +4069,18 @@
               :title="listening ? 'Recording. Tap to stop.' : 'Start listening'">
         <i class="ph text-xl" :class="(listening ? 'ph-microphone animate-pulse' : 'ph-microphone-slash')"></i>
       </button>
-      <span class="font-mono text-sm opacity-40 tabular-nums" x-text="started ? clock : ''"></span>
-      <span class="font-mono text-sm opacity-40 tabular-nums" x-text="words + 'w'"></span>
+      <span class="font-mono text-sm opacity-40 tabular-nums" :class="file && 'hidden sm:inline'" x-text="started ? clock : ''"></span>
+      <span class="font-mono text-sm opacity-40 tabular-nums" :class="file && 'hidden sm:inline'" x-text="words + 'w'"></span>
       <!-- The armed capital has nothing on screen to show yet: the word it
            applies to has not been said. So it wears the ring red the pins and
            the target wear, which is this page's one word for "live". -->
-      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error"
-         title="The next word you say will be capitalised (tap Shift again to cancel)"></i>
+      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error" data-title-tip-bare
+         data-title-tip="The next word you say will be capitalised (tap Shift again to cancel)"></i>
     </div>
 
-    <!-- THE TARGET, on the centre line. Two gestures on one button, because
-         they are one job: drag it and the caret moves, tap it and the caret
-         becomes one end of a selection whose other end is your next tap. Armed
-         it wears the ring an armed pin wears, which is this page's one word
-         for "live and pointed at the text". touch-action:none inline is what
-         makes the drag work rather than scrolling the page under it. -->
-    <button x-init="bindPad($el)" :disabled="edit" style="touch-action:none"
+    <!-- The target in the header, for a note; in file mode it is in the
+         bottom row. See the one there for what it does. -->
+    <button x-show="!file" x-init="bindPad($el)" :disabled="edit" style="touch-action:none"
             class="btn btn-md btn-square justify-self-center"
             :class="armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost')"
             :title="armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
@@ -2697,8 +4088,29 @@
                     : 'Drag to move the cursor. Tap to start a selection from it.'">
       <i class="ph ph-crosshair text-xl"></i>
     </button>
+    <!-- Which file, and whether the buffer differs from it. The name links to
+         GitHub, the only place a reader can check what Save would overwrite. -->
+    <div x-show="file" class="flex items-center gap-1.5 min-w-0 px-1">
+      <a :href="fileUrl" target="_blank" rel="noopener" :title="fileWhere"
+         class="link link-hover truncate min-w-0 text-sm sm:font-mono">
+        <span class="sm:hidden flex flex-col min-w-0 leading-tight">
+          <span class="truncate" data-file-name x-text="fileName"></span>
+          <!-- Cut from the LEFT when it does not fit, so the folder nearest the
+               file is the part that shows: right-to-left for the ellipsis,
+               the path itself isolated left-to-right so its order holds. -->
+          <span class="truncate text-[11px] opacity-60 [direction:rtl] text-left" data-file-dir><bdi x-text="fileDir"></bdi></span>
+        </span><span class="hidden sm:inline" x-text="fileWhere"></span>
+      </a>
+      <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
+      <button x-show="dirty && !fileLoading" @click="unsavedTap($event)" data-unsaved
+              class="sm:hidden shrink-0 p-1.5 -m-1.5" title="Unsaved. Tap to clear all edits.">
+        <span class="block size-2 rounded-full bg-warning"></span>
+      </button>
+      <button x-show="dirty && !fileLoading" @click="unsavedTap($event)"
+              class="hidden sm:inline-flex badge badge-warning badge-sm shrink-0 cursor-pointer" title="Unsaved. Click to clear all edits.">unsaved</button>
+    </div>
 
-    <div class="flex items-center gap-0.5 justify-self-end">
+    <div class="flex items-center gap-0.5 justify-self-end col-start-3">
       <button @click="undo()" :disabled="!canUndo" class="btn btn-ghost btn-md btn-square" title="Undo">
         <i class="ph ph-arrow-counter-clockwise text-xl"></i>
       </button>
@@ -2732,21 +4144,22 @@
           </button>
           <!-- File mode's New: back to what GitHub holds, the local edit discarded.
                One step of undo still reaches the edit, as it does for New. -->
-          <button x-show="file" @click="loadFile(true)" :disabled="fileLoading"
+          <button x-show="file" @click="clearEdits(); menu = false" :disabled="fileLoading"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
-                  title="Discard the local edit and reopen the file as GitHub holds it">
-            <i class="ph ph-arrow-clockwise text-lg opacity-60"></i>Reload
+                  :title="dirty ? 'Discard every edit and reopen the file as GitHub holds it' : 'Reopen the file as GitHub holds it now'">
+            <i class="ph text-lg opacity-60" :class="dirty ? 'ph-x-circle' : 'ph-arrow-clockwise'"></i>
+            <span x-text="dirty ? 'Clear all edits' : 'Reload'"></span>
           </button>
           <button x-show="file" @click="unwrapLines()" :disabled="!!(fileLoading || blank)"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
                   title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
             <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
           </button>
-          <button x-show="file" @click="toggleMarks()"
+          <button x-show="file" @click="toggleNativeSel()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Show each changed block as a card: the change marked in place, swipe for the original or the clean text">
-            <i class="ph ph-highlighter text-lg opacity-60"></i>Track changes
-            <i x-show="showMarks" class="ph ph-check ml-auto text-lg text-success"></i>
+                  title="Select words with the phone's own long press and handles, instead of the page's pins. Rendered view only.">
+            <i class="ph ph-cursor-text text-lg opacity-60"></i>Native selection
+            <i x-show="nativeSel" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
@@ -2759,6 +4172,17 @@
             <i class="ph ph-book-open text-lg opacity-60"></i>Autocorrect
             <span class="ml-auto font-mono text-sm opacity-40" x-text="corrections.length"></span>
           </button>
+          <div x-show="file" class="sm:hidden px-3 pt-1.5 pb-0.5 font-mono text-[11px] opacity-30"
+               x-text="words + ' words'"></div>
+          <!-- On a desk the upper keys are not drawn, so their shortcuts are
+               listed where the rest of the page's options are. -->
+          <div x-show="desk && file" data-shortcuts
+               class="mx-3 mt-1 pt-2 border-t border-base-300 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-1 text-xs">
+            <template x-for="[c, what] in [['⌘B', 'Bold'], ['⌘E', 'Code'], ['⌘⌥1-3', 'Heading'], ['⌘⌥0', 'Paragraph'], ['⌘⇧8', 'List'], ['⌘↵', 'Send'],
+                                              ['Click', 'Beside a change: take it'], ['← →', 'Its readings'], ['↑ ↓', 'Other changes'], ['↵ Esc', 'Edit, let go']]">
+              <div class="contents"><span class="font-mono opacity-60" x-text="chord(c)"></span><span x-text="what"></span></div>
+            </template>
+          </div>
           <div x-show="d && d.relaunches" class="px-3 pt-1.5 pb-0.5 font-mono text-[11px] opacity-30"
                x-text="(d ? d.relaunches : 0) + ' relaunches'"></div>
         </div>
@@ -2776,37 +4200,17 @@
        "Bring back" appears only on the second, and only where the arrival
        displaced something: it is the way back to the draft this page was
        holding, which an arrival replaces rather than joins (see init). -->
-  <div x-show="restored" class="shrink-0 px-4 py-1.5 text-sm bg-warning/10 flex items-center gap-2">
+  <!-- NOT IN FILE MODE: there the unsaved mark in the header already says the
+       words on screen are an edit, and tapping it clears them. -->
+  <div x-show="restored && !file" class="shrink-0 px-4 py-1.5 text-sm bg-warning/10 flex items-center gap-2">
     <i class="ph" :class="arrived ? 'ph-arrows-out' : 'ph-clock-counter-clockwise'"></i>
     <span x-show="!arrived">Picked up where you left off.</span>
     <span x-show="arrived" class="min-w-0 truncate"
-          :title="arrivedFrom ? 'Sent from ' + arrivedFrom : 'Sent from a composer on another page'"
+          :data-title-tip="arrivedFrom ? 'Sent from ' + arrivedFrom : 'Sent from a composer on another page'"
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
     <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
             title="Put the draft this page was holding back above these words">Bring back</button>
-    <button @click="file ? loadFile(true) : clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
-  </div>
-  <!-- FILE MODE'S ONE LINE: which file, and whether the buffer differs from
-       it. The name links to GitHub, the only place a reader can check what
-       Save would overwrite. -->
-  <div x-show="file" class="shrink-0 px-4 py-1.5 text-sm border-b border-base-300 flex items-center gap-2 min-w-0">
-    <i class="ph ph-file-text opacity-60 shrink-0"></i>
-    <a :href="fileUrl" target="_blank" rel="noopener" class="link link-hover font-mono truncate min-w-0"
-       :title="fileWhere" x-text="fileWhere"></a>
-    <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
-    <span x-show="dirty" class="badge badge-warning badge-sm shrink-0">unsaved</span>
-    <!-- The three faces. Icons, since the band is one line on a phone; the
-         titles name them for a reader who hovers or long-presses. -->
-    <div class="join ml-auto shrink-0">
-      <button @click="setView('source')" class="join-item btn btn-xs" :class="view === 'source' ? 'btn-active' : 'btn-ghost'"
-              title="Source: the markdown itself"><i class="ph ph-code text-sm"></i></button>
-      <button @click="setView('rendered')" class="join-item btn btn-xs" :class="view === 'rendered' ? 'btn-active' : 'btn-ghost'"
-              title="Rendered: the document as it reads, still editable by tap and voice"><i class="ph ph-eye text-sm"></i></button>
-      <button @click="setView('changes')" class="join-item btn btn-xs" :class="view === 'changes' ? 'btn-active' : 'btn-ghost'"
-              title="Changes: this edit against what GitHub holds">
-        <i class="ph ph-git-diff text-sm"></i><span x-show="view === 'changes' && changesCount" class="text-[10px]" x-text="changesCount"></span>
-      </button>
-    </div>
+    <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
   <!-- ── The text ────────────────────────────────────────────────────────
@@ -2859,12 +4263,20 @@
                 placeholder="Type instead"></textarea>
 
       <div x-show="!edit" x-ref="view" data-dictate-view class="absolute inset-0 overflow-y-auto px-4 py-3" @scroll="paint()">
-        <div x-show="!rendered" class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
+        <div x-show="!rendered && !before" class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
              x-ref="body" @contextmenu.prevent></div>
+        <!-- The before faces: GitHub's copy, drawn and never edited. -->
+        <div x-show="before === 'raw'" x-cloak data-before="raw" x-text="fileBase"
+             class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em] text-[17px]"></div>
+        <div x-show="before === 'rendered'" x-cloak data-before="rendered" x-html="beforeHtml" :class="beforeCls"></div>
         <!-- File mode's Rendered face. Its classes are set once from
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
-        <div x-show="rendered" x-ref="md" :class="precise && 'cursor-text'" @contextmenu.prevent @click="cardTap($event)"></div>
+        <div x-show="rendered && !before" x-ref="md" :class="precise && 'cursor-text'" :data-native-sel="native ? '' : null"
+             :style="moveArm ? 'touch-action:none' : ''"
+             @md-card-reading="setCardReading($event.detail.i, $event.detail.mode)"
+             @pointermove="cardHover($event)" @pointerleave="cardHover(null)"
+             @contextmenu="native || $event.preventDefault()" @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes
@@ -2889,25 +4301,129 @@
 
       <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
            since the buffer no longer holds them; this is where they are read. -->
-      <div x-show="delPop" x-cloak @click.outside="delPop = null"
-           class="fixed z-50 w-72 card card-sm bg-base-100 border border-base-300 shadow-xl"
-           :style="delPop ? 'left:' + delPop.x + 'px;top:' + delPop.y + 'px' : ''">
-        <div class="card-body gap-2">
-          <div class="text-xs opacity-60">Removed since GitHub's copy</div>
-          <div class="text-base line-through decoration-[var(--color-error)] bg-error/10 rounded px-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words" x-text="delPop?.text"></div>
-          <div x-show="delPop?.by" class="text-sm"><span class="opacity-60">Replaced by </span><span class="bg-success/20 rounded px-1" x-text="delPop?.by"></span></div>
-          <div class="card-actions justify-end">
-            <button class="btn btn-sm btn-ghost" @click="delPop = null">Close</button>
-            <button class="btn btn-sm btn-primary" @click="restoreRemoval()"><i class="ph ph-arrow-u-up-left"></i>Put back</button>
+      <!-- A card's Info: what the change was, as the house panel-tip (see
+           openCardInfo). One frame, a line saying where the change is, and the
+           lines themselves, the unchanged ones receding. No ✕: it closes on a
+           press outside, Escape or a scroll (see openCardInfo). It arrives as
+           every house tip does, the title-tip's 90ms fade and nothing more
+           (kits/title-tip.js); the word pop below does the same. -->
+      <div x-show="cardInfo" x-cloak x-ref="info" role="dialog" aria-label="Change info" data-card-info
+           x-transition:enter="transition-opacity ease duration-[90ms] motion-reduce:transition-none"
+           x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+           class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
+           :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
+          <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
+          <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
+          <span x-show="cardInfo && cardInfo.kind" data-info-kind
+                class="ml-auto rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
+        </div>
+        <div data-info-diff class="overflow-auto overscroll-contain py-1 font-mono text-xs leading-5"
+             :style="cardInfo ? 'max-height:' + cardInfo.room + 'px' : ''">
+          <template x-for="(r, k) in (cardInfo ? cardInfo.rows : [])" :key="k">
+            <div class="grid grid-cols-[2.75rem_1rem_minmax(0,1fr)]" :data-row="r.kind" :data-raw="r.raw"
+                 :class="{ del: 'bg-error/10', ins: 'bg-success/15', same: 'opacity-50', gap: 'opacity-40 italic' }[r.kind]">
+              <span class="text-right pr-1.5 opacity-40 tabular-nums select-none" x-text="r.no"></span>
+              <span class="text-center opacity-60 select-none" x-text="r.sign"></span>
+              <span class="whitespace-pre-wrap break-words pr-3"><template x-for="(s, j) in r.segs" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
+            </div>
+          </template>
+        </div>
+        <!-- A NOTE ON THE CHANGE, kept with the draft and carried into the
+             commit message of whatever lands it, Apply or Save, under the
+             change's opening words. -->
+        <template x-if="cardInfo && cardInfo.key">
+          <div class="border-t border-base-300 px-3 py-2">
+            <textarea data-info-note rows="1" placeholder="Add a note for the commit"
+                      class="textarea textarea-ghost w-full min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                      :value="notes[cardInfo.key] || ''" @focus="cardInfo.pinned || pinInfo(true)"
+                      @input="notes[cardInfo.key] = $event.target.value.trim() ? $event.target.value : undefined; if (notes[cardInfo.key] === undefined) delete notes[cardInfo.key]; save()"></textarea>
           </div>
+        </template>
+      </div>
+      <!-- A CHANGE'S POP, for a struck or added word or an underline: the
+           change in the raw markdown (rawSegs), one line of source with
+           GitHub's text struck red and the text now green, and under it the
+           Undo, an action, so in the Split pill's blue. Under the tapped line,
+           or above when below is out of room. The tap that opened it is
+           ignored by the outside-click, which otherwise arrives as the same
+           gesture.
+           w-max, AND IT MATTERS: a fixed box placed by its left edge and then
+           pulled back by half its width is laid out in the room to the right
+           of that edge, so near the middle of a phone it was squeezed to a
+           column a word wide. max-content, capped by the screen, lets the
+           line of source take the width it needs. -->
+
+      <div x-show="wordPop" x-cloak data-word-pop
+           x-transition:enter="transition-opacity ease duration-[90ms] motion-reduce:transition-none"
+           x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+           @click.outside="if (wordPop && Date.now() - wordPop.t > 400) wordPop = null"
+           @pointerenter="_onPop = true; clearTimeout(_popLeave); _popLeave = null"
+           @pointerleave="_onPop = false; if (wordPop && wordPop.hover) popLeave()"
+           class="fixed z-50 -translate-x-1/2 select-none grid gap-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-2 max-w-[min(26rem,calc(100vw-1rem))]"
+           :style="wordPop ? 'left:' + wordPop.x + 'px;' + (wordPop.pos || 'top:' + wordPop.y + 'px') : ''">
+        <code data-pop-raw class="min-w-0 font-mono text-xs leading-5 whitespace-pre-wrap break-words px-1"><template x-for="(s, j) in (wordPop ? wordPop.raw : [])" :key="j"><span :class="s.cls" :data-chg="s.k" x-text="s.t"></span></template></code>
+        <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
+                class="justify-self-end btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
+      </div>
+
+      <!-- THE FACES, ONE PILL (owner, 2026-10-01). Top right under the
+           header, it names the face on screen and opens the five by name:
+           Changes, the main one, the text now with each change a card; then
+           Rendered and Raw, each before (GitHub's copy, read-only) and after
+           (the text now), as two rows of a Before|After pair. It replaced the header's eye button, which flipped
+           only between Rendered and Source, and the menu's Track changes,
+           which was the Changes and Rendered-after pair under another name.
+           Green while the text differs from GitHub's, the flat badge with a
+           border the owner picked on 2026-09-30, on a solid ground because it
+           floats over the document; plain when the two agree. A file that is
+           not markdown has no rendered faces, and shows the pill only while
+           there is a before to differ from. -->
+      <div x-show="file && !edit && (isMd || dirty)" x-cloak data-faces class="absolute top-2 right-2 z-30"
+           @click.outside="facesOpen = false" @keydown.escape.window="facesOpen = false">
+        <button type="button" @click="facesOpen = !facesOpen" data-faces-pill
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ring-1 ring-inset"
+                :class="dirty ? 'bg-[color-mix(in_oklab,var(--color-success)_10%,var(--color-base-100))] text-emerald-700 ring-emerald-600/25' : 'bg-base-100 text-base-content/70 ring-[var(--color-base-300)]'">
+          <i class="ph" :class="FACES[face].icon"></i><span x-text="FACES[face].label"></span><i class="ph ph-caret-down text-[10px] opacity-70"></i>
+        </button>
+        <div x-show="facesOpen" x-transition.opacity.duration.90ms data-faces-panel
+             class="absolute right-0 top-full mt-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-1.5 text-sm grid gap-1">
+          <button x-show="isMd" type="button" @click="setFace('changes')" data-face="changes"
+                  class="flex items-center gap-2 rounded-field px-2.5 py-1.5 text-left cursor-pointer hover:bg-base-200"
+                  :class="face === 'changes' && 'bg-base-200 font-medium'"><i class="ph ph-highlighter"></i>Changes</button>
+          <template x-for="row in (isMd ? ['rendered', 'raw'] : ['raw'])" :key="row">
+            <div class="flex items-center justify-between gap-3 pl-2.5">
+              <span class="text-base-content/70" x-text="row === 'raw' ? 'Raw' : 'Rendered'"></span>
+              <div class="join">
+                <template x-for="when in ['before', 'after']" :key="when">
+                  <button type="button" @click="setFace(row + '-' + when)" :data-face="row + '-' + when"
+                          class="join-item btn btn-xs h-7 px-2.5 font-normal" :class="face === row + '-' + when ? 'btn-active' : 'btn-ghost'"
+                          x-text="when === 'before' ? 'Before' : 'After'"></button>
+                </template>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 
-      <!-- File mode's Changes face: the document against what GitHub holds,
-           drawn by kits/md-diff.js. Read-only, and above the text pane, so no
-           gesture meant for the words reaches through it. -->
-      <div x-show="file && view === 'changes'" x-cloak x-ref="changes"
-           class="absolute inset-0 overflow-y-auto px-4 py-3 bg-base-100 z-10"></div>
+      <!-- THE CHANGES, COUNTED: how many cards the edit makes, and a step to
+           the next or the previous one, wrapping at the ends. It is what the
+           retired Changes face had that the cards did not. Bottom left, since
+           the launcher holds the bottom right. -->
+      <div x-show="file && rendered && showMarks && changesCount && !edit && !before" x-cloak data-jump
+           class="absolute bottom-2 left-2 z-20 join rounded-full shadow-sm border border-base-300 bg-base-100/95">
+        <button @click="jumpCard(-1)" class="join-item btn btn-xs btn-ghost rounded-l-full px-1.5" title="Previous change"><i class="ph ph-caret-up"></i></button>
+        <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
+        <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost px-1.5" :class="confirmedCount ? '' : 'rounded-r-full'" title="Next change"><i class="ph ph-caret-down"></i></button>
+        <!-- Apply, the second step: shown once a card is confirmed, naming
+             how many and the branch they will be committed to. -->
+        <button x-show="confirmedCount" x-cloak @click="applyConfirmed()" :disabled="applying" data-apply
+                class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
+                data-title-tip-bare :data-title-tip="'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit, with their notes.'">
+          <i class="ph ph-check-circle"></i>
+          <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
+        </button>
+      </div>
 
       <!-- The keyboard half, and it has no controls of its own: blur or
            Escape is the way out, which is the keyboard's own gesture and the
@@ -2948,7 +4464,7 @@
        generous in the axis a thumb actually misses in. Tapped over and over
        inside one note, so they are the tall row, and being the tall row is
        what qualifies a control to be here. -->
-  <div x-show="!edit && !(file && view === 'changes')" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
+  <div x-show="!edit && !desk" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
     <template x-for="k in pad" :key="k.k">
       <button @pointerdown.prevent="key(k.k)" :title="k.t"
               class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl font-semibold"
@@ -3086,6 +4602,46 @@
             :class="lead('copy')" title="Copy the words, to paste into a chat">
       <i class="ph ph-clipboard-text text-lg"></i>Copy
     </button>
+    <!-- THE TARGET, IN FILE MODE, small and on the centre line between Copy
+         and Send, where a thumb rests. A note's row has four destinations and
+         no room for a fifth, so there it stays in the header. Two gestures on one button, because they are one job:
+         drag it and the caret moves, tap it and the caret becomes one end of
+         a selection whose other end is your next tap. Armed it wears the ring
+         an armed pin wears, which is this page's one word for "live and
+         pointed at the text". touch-action:none inline is what makes the drag
+         work rather than scrolling the page under it.
+
+         UNDER NATIVE SELECTION it is also the Move, in two steps that say
+         what they are. With words selected it lights, and a tap holds them:
+         the held words stay washed, a cancel appears beside the target, and
+         yellow wedges above and below the caret point at where the words
+         would go, with a small Move here tag (markAim). Then aim: drag the
+         target, or drag or tap anywhere on the text, and the caret and its
+         markers follow. Nothing lands until Move here is tapped, on the tag
+         or on the target. Tapped without aiming, the words stay where they
+         were. -->
+    <!-- Two buttons side by side, not a daisyUI join: a join squares its
+         members' inner corners by DOM position, and with the cancel hidden
+         the target was still its second member, square on one side.
+         NOT ON A DESK: a mouse points at the text itself, drags a selection
+         to move it, and has the arrow keys, so the pad has nothing to add. -->
+    <div x-show="file && !desk" class="flex gap-1 shrink-0">
+      <button x-show="moveArm" @click="cancelMove()" data-move-cancel
+              class="btn h-12 min-h-0 w-10 px-0 btn-ghost bg-base-200" title="Leave the words where they were">
+        <i class="ph ph-x text-lg"></i>
+      </button>
+      <button x-init="bindPad($el)" :disabled="edit" style="touch-action:none" data-target
+              class="btn h-12 min-h-0 shrink-0"
+              :class="'w-12 px-0 ' + (moveArm ? 'btn-primary' : moveReady ? 'btn-primary btn-outline'
+                      : armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost'))"
+              :title="moveArm ? 'Drag here or on the text to aim, then tap to move the words there'
+                      : moveReady ? 'Tap to pick up the selected words and move them'
+                      : armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
+                      : armed ? 'The ' + armed + ' of the selection is armed. Tap here to put it down.'
+                      : 'Drag to move the cursor. Tap to start a selection from it.'">
+        <i class="ph text-xl" :class="moveArm || moveReady ? 'ph-arrows-out-cardinal' : 'ph-crosshair'"></i>
+      </button>
+    </div>
     <!-- SEND, IN THE SLOT SHARE HELD, and it is the same button rather than a
          sixth one. Share was one destination among four and is now one row
          inside this one, beside the two that start a session somewhere. That
@@ -3111,7 +4667,7 @@
     <button @click="openSend()" :disabled="blank && !file"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="file ? (dirty ? 'btn-primary' : 'btn-ghost bg-base-200') : lead('send')"
-            :title="file ? 'Save it, share it, or send the edit somewhere that can act on it' : 'Share it, or send it somewhere that can act on it'">
+            :title="(file ? 'Save it, share it, or send the edit somewhere that can act on it' : 'Share it, or send it somewhere that can act on it') + (desk ? ' (' + chord('⌘↵') + ')' : '')">
       <i class="ph ph-paper-plane-tilt text-lg"></i>Send
     </button>
     <button x-show="!file" @click="jot()" :disabled="blank || !!saving"
