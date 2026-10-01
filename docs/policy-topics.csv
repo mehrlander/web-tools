@@ -1,0 +1,13 @@
+topic_id,domain,title,gloss
+prose/style,prose,Qualified writing and density,High density prose rules and avoiding narrative bloat
+prose/vocabulary,prose,Banned phrases and terminology,Terms banned as attractive nuisances or ambiguous jargon
+prose/doctrine,prose,Directives and assertions,Rules restricting assistants from inventing doctrine without approval
+architecture/layers,architecture,Three layer doctrine,The split between authored source and derived state and captured sessions
+architecture/registries,architecture,Registry data format,Rules governing format and structure of committed registries
+architecture/ownership,architecture,Single statement ownership,One canonical owner per statement and typed repetition controls
+surfacing/closing-states,surfacing,Closing states and turns,One closing glyph per user ask and eliminating surplus turns
+surfacing/ci-markers,surfacing,CI status and marker silencing,Silencing assistant messages when CI checks cause no substantive change
+surfacing/links,surfacing,Toss routes and showing links,Mechanisms and routes for making content openable and inspectable
+surfacing/attribution,surfacing,Assistant attribution and identity,Branch prefixes and commit trailers identifying assistant authors
+ui/daisy-components,ui,Component design and house style,DaisyUI and Alpine.js component conventions
+ui/typography,ui,Layout and text measure,Rules on text wrapping and viewport balance

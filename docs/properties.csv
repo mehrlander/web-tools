@@ -200,3 +200,14 @@ run-methods,venues,recorded,,value,list,no,,value,the machines a person may run 
 run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
+policy-topics,domain,recorded,,value,column,yes,prose;architecture;surfacing;ui,label,the high-level estate domain the topic belongs to
+policy-topics,title,recorded,,value,column,yes,,value,the human-readable title of the policy topic
+policy-topics,gloss,recorded,,value,column,yes,,value,a concise summary of what this policy topic governs
+policies,topic_id,recorded,,value,column,yes,,value,the parent policy topic this rule belongs to
+policies,statement,recorded,,value,column,yes,,value,"the normative, imperative policy directive"
+policies,intent_class,recorded,,value,column,yes,user-mandate;dialogue-ratified;model-extrapolated;organic-precedent,label,the provenance classification along the intentionality spectrum
+policies,canonical_doc,recorded,,value,column,yes,,locator,the authoritative file in the repository that carries the explanatory doc
+policies,origin_session,recorded,,none,column,yes,,value,the private session identifier where this decision originated or was formulated
+policies,user_prompt_quote,recorded,,none,column,yes,,value,the explicit user prompt excerpt establishing human intent
+policies,enforcement,recorded,,value,column,yes,,value,"how this policy is held to reality: an automated test or manual tending"
+policies,status,recorded,,value,column,yes,active;provisional;stale,label,the lifecycle state of the policy directive
