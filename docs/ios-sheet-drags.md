@@ -145,7 +145,9 @@ with the skip selector above; it arms the cursor pad, the annotator card's drag
 handle, and the region cover. The launcher in
 [`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js) carries the same
 through an Alpine binding. [`pages/dictate.html`](../pages/dictate.html) carries
-its own copy for its cursor pad and its selection pins. Path 2 is
+its own copy for its cursor pad and its selection pins, and applies it to the
+whole page while words are held for a move (controls keep their `touchstart`).
+Path 2 is
 `overscroll-behavior: contain` on the composer's two scrolling boxes, its
 editor, and the fab drawer's panes.
 
