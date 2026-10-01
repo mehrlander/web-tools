@@ -63,7 +63,7 @@ by naming: not a document unread, but a question never asked.
 
 A session's identity is already bound to its branch. Sessions write a
 `Claude-Session:` commit trailer, the branch survey reads it, the activity cache
-carries it per branch, and show-repo's Branches view links it. So the estate can
+carries it per branch, and the app's Branches view links it. So the estate can
 already answer "which session produced this branch."
 
 Subscribing does not create that join and does not improve it. It adds the
@@ -206,7 +206,7 @@ not automatic, and do not describe it as automatic in any convention, because a
 reader who believes subscription is guaranteed will stop checking.
 
 Where it lives, built 2026-08-20: the `portable` plugin's hook folder, beside
-[`mcp-fail-hint.sh`](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/hooks/mcp-fail-hint.sh),
+[`mcp-fail-hint.sh`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/mcp-fail-hint.sh),
 as `pr-subscribe-hint.sh`, which is the identical shape (matcher on an MCP tool, payload off stdin,
 guidance out through `additionalContext`). Two reasons, and the second is the
 load-bearing one:

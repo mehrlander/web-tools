@@ -428,3 +428,32 @@ test('the Excel look is asked for per note, so it cannot leak to the page', () =
   const html = drawWith(commented());
   assert.doesNotMatch(html, /#wt-title-tip\{/, 'the bare panel selector would restyle every note there is');
 });
+
+// A cell with one written edge keeps the gridlines on its other sides, as Excel
+// draws them. The sheet paints gridlines as each td's right and bottom border,
+// so writing `border-right:none` for an unset side erased them.
+test('styleCss paints only the edges a border record writes', () => {
+  const css = R.styleCss({ border: { top: null, right: null, bottom: { style: 'thin', color: '#000000' }, left: null } });
+  assert.match(css, /border-bottom:1px solid #000000/);
+  assert.doesNotMatch(css, /border-(top|right|left)/, 'an unset side leaves the gridline alone');
+});
+
+// The pivot theme picker #791 shipped: a mount with a theme callback carries it,
+// a mount without one (the filtered grid) does not.
+test('sheet tabs are daisyUI tabs, and the pivot theme picker rides the sheet mount only', () => {
+  const sheets = [{ key: 'sheet1', s: { name: 'Alpha', cellCount: 1 } }, { key: 'sheet2', s: { name: 'Beta', cellCount: 2 } }];
+  const withPicker = window.document.createElement('div');
+  let picked = null;
+  R.mountSheetTabs(withPicker, sheets, () => {}, (theme) => { picked = theme; });
+  assert.deepEqual([...withPicker.querySelectorAll('button')].map(b => b.className.split(' ')[0]), ['tab', 'tab']);
+  const select = withPicker.querySelector('[data-xl-theme]');
+  assert.ok(select, 'the sheet view keeps its theme picker');
+  select.value = 'green';
+  select.dispatchEvent(new window.Event('change'));
+  assert.equal(picked.thBg, R.SHEET_THEMES.green.thBg);
+
+  const plain = window.document.createElement('div');
+  R.mountSheetTabs(plain, sheets, () => {});
+  assert.equal(plain.querySelector('[data-xl-theme]'), null);
+  assert.equal(plain.querySelectorAll('button').length, 2);
+});

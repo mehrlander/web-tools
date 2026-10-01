@@ -36,4 +36,4 @@ Expanding does two jobs at once, and only one is expensive:
 
   **The cards became a list.** One bordered container with hairline rows, no per-card border and no gap. Thirty boxes with spacing between them spent vertical space on borders carrying no information, which is what made the list hard to scan in the first place.
 
-  **Two things this cost, both recorded:** the first cut truncated the directory with CSS `direction: rtl`, which handed the string to the bidi algorithm and rendered `.claude/skills/caption/` as `/claude/skills/caption.`; and nothing in the suite covered this component at all, so `tools/test/file-review-card.test.mjs` is new and pins the fetch discipline, the elision, and the bar.
+  **Two things this cost, both recorded:** the first cut truncated the directory with CSS `direction: rtl`, which handed the string to the bidi algorithm and rendered `skills/caption/` as `/claude/skills/caption.`; and nothing in the suite covered this component at all, so `tools/test/file-review-card.test.mjs` is new and pins the fetch discipline, the elision, and the bar.

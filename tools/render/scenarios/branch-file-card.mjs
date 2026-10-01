@@ -60,7 +60,7 @@ export default async function (page, ctx) {
         mk('lib/kits/file-card.js', 'added', 212, 0),
         mk('lib/alpineComponents/estate.js', 'modified', 148, 41),
         mk('lib/kits/branch-status.js', 'modified', 74, 12),
-        mk('docs/show-repo.md', 'modified', 43, 13),
+        mk('docs/APP.md', 'modified', 43, 13),
         mk('app/index.html', 'modified', 9, 4),
         mk('tools/test/estate-open-branches.test.mjs', 'modified', 38, 6),
         mk('docs/docs.csv', 'modified', 2, 2),

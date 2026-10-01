@@ -1,7 +1,7 @@
 // A COLD pages/branch.html: the branch view with NO host lending it anything,
 // which is the half of the two-host contract the other scenarios never shoot.
 // Every other branch driver here (branch-panes, branch-verdict, branch-deck,
-// branch-takeover) opens the takeover inside app/index.html, where show-repo's
+// branch-takeover) opens the takeover inside app/index.html, where the app's
 // crawl lends `facts` and a `scan` and the compare waits for a tap. This mounts
 // the same component as a page, where nothing is lent and the compare is read
 // up front.
@@ -35,7 +35,7 @@ export default async function (page) {
     const patch = '@@ -1,2 +1,3 @@\n a\n-b\n+c\n';
     // Three landed, three differing, two missing, the same partition
     // branch-verdict.mjs uses: a strip showing one chip proves nothing.
-    const landed  = ['docs/show-repo.md', 'lib/kits/branch-status.js', 'pages/branch.html'];
+    const landed  = ['docs/APP.md', 'lib/kits/branch-status.js', 'pages/branch.html'];
     const differs = ['lib/alpineComponents/estate.js', 'docs/branch-overlay.md', 'tools/test/branch-status.test.mjs'];
     const missing = ['tracker/tasks/0031-fund-splits.md', 'projects/budget-drs/data/design/LAYERS.md'];
     const all = [...landed, ...differs, ...missing];

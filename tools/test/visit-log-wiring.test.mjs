@@ -222,10 +222,10 @@ test('the mark opens a menu, and Home on main appears only off the default ref',
 
 // THE SHELL MUST ALREADY HAVE WHAT THESE TESTS STUB, and this guard exists
 // because the first version of them did not check. `goHomeOnMain` called
-// `this._go(this.showRepoBase)`, lifted from fab.js where both of those live;
+// `this._go(this.appBase)`, lifted from fab.js where both of those live;
 // the shell had neither. The tests passed anyway: one INSTALLED `_go` before
 // calling the method under test, and the assertion compared `went` against
-// `shell.showRepoBase`, which was undefined on both sides. So a dead row and a
+// `shell.appBase`, which was undefined on both sides. So a dead row and a
 // green suite, until it was tapped on a phone. A stub may stand in for a
 // method; it may never conjure one.
 function goCapture(shell) {
@@ -243,10 +243,10 @@ test("the shell owns the address Home on main goes to, and it matches the fab's"
   // The fab carries the same address for its own Home row, for pages that are
   // not this app. Two copies, held to each other here so the duplicate is loud.
   const fab = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
-  const m = fab.match(/showRepoBase: '([^']+)'/);
-  assert.ok(m, "the fab's showRepoBase was not found");
+  const m = fab.match(/appBase: '([^']+)'/);
+  assert.ok(m, "the fab's appBase was not found");
   assert.equal(shell.APP_HOME, m[1],
-    'app/index.html APP_HOME and fab.js showRepoBase name different homes');
+    'app/index.html APP_HOME and fab.js appBase name different homes');
 });
 
 test('off the default ref, Home on main leaves for the deployed app', () => {

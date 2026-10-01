@@ -79,7 +79,7 @@
     // spec: 'owner/repo@ref:path' or a path in this repo
     const m = String(spec).match(/^([\w.-]+\/[\w.-]+)(?:@([^:]+))?:(.+)$/);
     if (!m) return (await gh.get(spec)).text;
-    const data = await gh.req(`/repos/${m[1]}/contents/${m[3]}?ref=${encodeURIComponent(m[2] || 'main')}`);
+    const data = await gh.req(`/repos/${m[1]}/contents/${m[3]}?ref=${encodeURIComponent(m[2] || window.GH.refFor(m[1], m[3]) || 'main')}`);
     return gh.decode(data.content);
   };
 

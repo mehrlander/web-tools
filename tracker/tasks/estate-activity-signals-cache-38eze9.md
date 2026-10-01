@@ -2,7 +2,7 @@
 id: estate-activity-signals-cache-38eze9
 title: Estate activity signals from a registry activity cache
 status: done
-project: show-repo
+project: app
 opened: 2026-07-17
 session: claude/branches-view-api-caching-ef4l5d
 closed: 2026-07-26

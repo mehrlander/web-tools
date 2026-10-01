@@ -1,6 +1,6 @@
 # Testing HTML/JS in the sandbox
 
-*(verified 2026-09-24)*
+*(verified 2026-09-29)*
 
 How to exercise a page or component in the Claude Code web sandbox. This file
 states current truth only; superseded methods and discovery stories live in git
@@ -93,14 +93,16 @@ npm run shot -- pages/repo-atlas.html --query "repo=mehrlander/web-tools"
 
 - `esm.sh` / `cdnjs` modules aren't vendored, so `kits/cm6.js` (CodeMirror)
   doesn't mount in any harness.
-- **The typography plugin is not available (2026-08-01).** `@tailwindcss/typography`
-  publishes no `dist/typography.min.css` in its npm tarball, though jsDelivr
-  serves one, so `cdn.mjs` has nothing to resolve and any page loading it
-  renders **unstyled prose**. A markdown preview therefore looks wider and
-  flatter in a shot than in a browser. Vendor the file into
-  `node_modules/@tailwindcss/typography/dist/` (curl it from jsDelivr) when the
-  shot is *about* prose; `node_modules` is gitignored, so it does not survive
-  the container.
+- **The typography plugin resolves through an alias.** No version of
+  `@tailwindcss/typography` since 0.5.0 publishes `dist/typography.min.css`, and
+  jsDelivr answers the versionless URL with 0.5.0's copy. So a browser loads
+  0.5.0 while `node_modules` holds the current plugin. From 2026-08-01 until the
+  alias landed, every shot of a prose surface rendered **unstyled prose**. Now
+  package.json installs 0.5.0 a second time as `typography-dist`, and
+  `PKG_ALIAS` in `tools/render/cdn.mjs` maps the CDN path onto it. `npm run
+  setup` installs it, so nothing is vendored by hand. The log line for a page
+  loading it should read `combine N/N` with no `MISS`. The trip is logged as
+  `headless-shot-prose-flat` in [SNAGS.md](../SNAGS.md).
 
   This one was worth writing down for how it failed rather than for the gap
   itself. `readSpec` falls back to a package's declared entry when the request's
@@ -126,7 +128,7 @@ elements, skip any inside a horizontally scrollable ancestor, or every carousel
 slide reports as a fault.
 
 This is what catches the two failures the house style prescribes against
-(`skills/daisy-alpine/SKILL.md`):
+(`skills/html-style/SKILL.md`):
 a scroll track without `min-w-0` claiming one viewport per slide, and a form
 control that stops short of its column.
 
@@ -358,7 +360,7 @@ behind it was real and is easy to repeat: open a page, inspect the stylesheets,
 and `.animate-spin` and `.rotate-180` genuinely have no rule while `.truncate`
 does. The wrong part was the inference. Nothing has toggled yet, so the rule has
 not been generated yet; it appears when the class does. Measured on
-`show-repo`, before and after toggling `animate-spin rotate-180` onto a live
+the Web Tools app, before and after toggling `animate-spin rotate-180` onto a live
 element:
 
 | | `.truncate` | `.animate-spin` | `@keyframes spin` | `.rotate-180` |

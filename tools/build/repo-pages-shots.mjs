@@ -3,7 +3,7 @@
 // the web-tools-private thumb cache. The web-tools sibling of pages-shots.mjs:
 // that one shoots this repo's own pages/ tree into pages/thumbs/ (committed,
 // public); this one shoots a different repo's declared `pages` (its
-// .web-tools.json catalog) into a private cache show-repo reads token-gated.
+// .web-tools.json catalog) into a private cache the app reads token-gated.
 //
 //   node tools/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> \
 //        --out <thumbs-dir> [page-path ...]
@@ -53,7 +53,7 @@ function parseArgs(argv) {
   return o;
 }
 
-// Mirror of show-repo's resolveCatalogPath: an entry path is either a bare
+// Mirror of the app's resolveCatalogPath: an entry path is either a bare
 // in-repo path or an `owner/repo[@ref]:path` cross-repo address.
 function resolveCatalogPath(rawPath, declRepo) {
   const m = String(rawPath || '').match(/^([\w.-]+\/[\w.-]+)(?:@([\w./-]+))?:(.+)$/);

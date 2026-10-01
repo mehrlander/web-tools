@@ -1,5 +1,5 @@
-// .claude/skills/hooks/reading-column.py — a Tailwind class that narrows text
-// to a reading column (daisy-alpine rule 3), plus the guard hook that refuses
+// skills/hooks/reading-column.py — a Tailwind class that narrows text
+// to a reading column (html-style rule 3), plus the guard hook that refuses
 // one at edit time.
 //
 // What is pinned here is the CLASSIFIER, the guard's decision, and the repo's
@@ -35,7 +35,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const hooks = path.join(repoRoot, '.claude', 'skills', 'hooks');
+const hooks = path.join(repoRoot, 'skills', 'hooks');
 const script = path.join(hooks, 'reading-column.py');
 const guard = path.join(hooks, 'reading-column-guard.sh');
 
@@ -167,7 +167,7 @@ test('the repo narrows no text to a reading column', () => {
 // The rule and the check have to name the same sizes, or the skill is
 // describing a gate that does not exist.
 test('the skill names exactly the sizes the scanner enforces', () => {
-  const skill = readFileSync(path.join(repoRoot, 'skills', 'daisy-alpine', 'SKILL.md'), 'utf8');
+  const skill = readFileSync(path.join(repoRoot, 'skills', 'html-style', 'SKILL.md'), 'utf8');
   const rule = skill.split('**3. Don\'t narrow text to a reading column.**')[1].split('**4.')[0];
   for (const cls of ['max-w-prose', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'container mx-auto', 'max-w-none']) {
     assert.ok(rule.includes(cls), `rule 3 does not name ${cls}`);
@@ -224,7 +224,7 @@ test('the arbitrary form takes the same opt-out as the named one', () => {
 });
 
 test('rule 3 names the arbitrary form, since the gate now refuses it', () => {
-  const skill = readFileSync(path.join(repoRoot, 'skills', 'daisy-alpine', 'SKILL.md'), 'utf8');
+  const skill = readFileSync(path.join(repoRoot, 'skills', 'html-style', 'SKILL.md'), 'utf8');
   const rule = skill.split('**3. Don\'t narrow text to a reading column.**')[1].split('**4.')[0];
   for (const cls of ['max-w-[64ch]', 'max-w-[920px]']) {
     assert.ok(rule.includes(cls), `rule 3 does not name ${cls}`);

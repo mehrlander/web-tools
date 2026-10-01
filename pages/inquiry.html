@@ -38,7 +38,8 @@
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
-  const ref = new URLSearchParams(location.search).get('use');
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -217,7 +218,8 @@ document.addEventListener('alpine:init', () => {
           const [addr, ...rest] = src.split(':');
           const path = rest.join(':');
           const [repo, ref] = addr.split('@');
-          this.env = JSON.parse((await new GH({ token: tokenNow(), repo, ref: ref || '' }).get(path)).text);
+          // A read-only instance: no @ref follows the selection. The answer write below keeps its own ref.
+          this.env = JSON.parse((await new GH({ token: tokenNow(), repo, ...(ref ? { ref } : {}) }).get(path)).text);
         } else {
           this.error = 'No envelope. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }

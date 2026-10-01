@@ -1,4 +1,4 @@
-// kits/title-tip.js — the title-tip of the house popup rule (daisy-alpine mechanics.md,
+// kits/title-tip.js — the title-tip of the house popup rule (html-style mechanics.md,
 // "Title-tips and panel-tips"), held at the edges that decide whether a fact reaches
 // the reader at all.
 //

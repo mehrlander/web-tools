@@ -1,0 +1,13 @@
+topic,label,verdict,gloss
+askuserquestion,The AskUserQuestion ban,layered,"A prose rule in home's CLAUDE.md, a deny in two repos' project settings that is read only when that repo is the root, and the plugin guard, which reaches every session."
+writing-rules,Writing rules,redundant,"The account preferences and QUALIFIED-WRITING.md both state rules about plain words and the em dash, in different wordings."
+house-style,The HTML house style,conflicting,"The plugin's html-style skill and an older claude.ai upload named daisy-alpine both reach Code sessions and describe the same stack differently; the preferences restate it a third time."
+conventions-delivery,How the conventions arrive,redundant,"The plugin delivers them; each repo's CLAUDE.md also explains that delivery, so one mechanism is described in several places."
+plugin-currency,Keeping the plugin current,layered,"The setup script installs the plugin when the environment is built, the plugin's own refresher moves it to main's tip each session, and the environment report says when the setup script itself has changed on main."
+session-store,Where sessions are recorded,layered,"The hooks read SESSIONS_STORE_REPO, a checkout's sessionsStore declaration and the hard-coded default, in that order; the setup script no longer sets the variable, so the declaration or the default decides. The store's own manifest makes it findable."
+pr-lifecycle,Pull-request behaviour,layered,"The harness's own PR instructions, the account's automatic draft PRs, the surfacing course and the send-later guard all shape what a session does with a PR."
+github-access,GitHub access,redundant,"Two GitHub MCP servers reach the same repos, and the session's repo scope is set separately from either."
+context-cost,What the skill listing costs,redundant,"About 30 skills arrive twice, once from the plugin and once as claude.ai uploads, and every description is paid for in every session."
+repo-hooks,Repo session scripts,layered,"Each checkout's session-*.sh files run through the plugin's dispatcher rather than from settings, so they fire whatever the root."
+showing,Showing a change,redundant,"How to link or render a change is stated in web-tools' CLAUDE.md, in home's CLAUDE.md and in the surfacing docs."
+doc-governance,Editing governing documents,layered,"A commit gate and an edit-time warning both require specific permission for documentation edits."

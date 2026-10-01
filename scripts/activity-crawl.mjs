@@ -7,7 +7,7 @@
 //   npm run activity-refresh -- --all [--dry-run]
 //
 // The crawl itself is lib/kits/activity-crawl.js and the fold is
-// lib/kits/repo-activity-cache.js, both of them the same files show-repo loads,
+// lib/kits/repo-activity-cache.js, both of them the same files the app loads,
 // so this is a second CALLER and not a second crawler. What is local to this
 // file is the part the shell keeps in the page: which repos to crawl, reading
 // the prior cache, and the commit.

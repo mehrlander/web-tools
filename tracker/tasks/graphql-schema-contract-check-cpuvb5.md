@@ -2,7 +2,7 @@
 id: graphql-schema-contract-check-cpuvb5
 title: Check GraphQL query shape offline against GitHub's published schema
 status: done
-project: show-repo
+project: app
 opened: 2026-07-26
 closed: 2026-07-30
 session: claude/web-tools-tracker-review-bw48ga

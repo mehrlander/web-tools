@@ -615,7 +615,8 @@ document.addEventListener('alpine:init', () => Alpine.data('pdfInspect', () => (
     // reaches every instance and a private repo resolves without passing it.
     const want = this.pageInHash();
     await this.open(async () => {
-      const { bytes } = await new GH({ repo: a.repo, ref: a.ref }).bytes(a.path);
+      // An address with no ref follows the link's selection for that repo.
+      const { bytes } = await new GH({ repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).bytes(a.path);
       return bytes;
     }, `fetching ${a.path.split('/').pop()}`);
     // After `parse`, which sets pageNum to 1 unconditionally, and only when

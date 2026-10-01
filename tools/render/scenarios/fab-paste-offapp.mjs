@@ -28,7 +28,7 @@ export default async function (page) {
       stageHost: !!d._stageHost(),
       warmed: { io: !!window.io?.pasteItems, handoff: !!window.StageHandoff },
       stageComponentPulled: !!window.StageIntake,
-      goesTo: d.showRepoBase + '?view=stage',
+      goesTo: d.appBase + '?view=stage',
     };
   });
   console.log('\n--- the paste row, off the app ---\n  ' + JSON.stringify(out) + '\n');

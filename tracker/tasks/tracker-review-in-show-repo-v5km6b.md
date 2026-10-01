@@ -2,7 +2,7 @@
 id: tracker-review-in-show-repo-v5km6b
 title: Tracker review in show-repo, over a typed board projection
 status: done
-project: show-repo
+project: app
 opened: 2026-08-03
 closed: 2026-08-03
 session: claude/budget-drs-tracker-assessment-fwa13q

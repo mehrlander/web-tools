@@ -1,4 +1,4 @@
-// Drive show-repo's Branches or Sessions pane into the mid-crawl state for a
+// Drive the app's Branches or Sessions pane into the mid-crawl state for a
 // shot. Seeds the pane's list first (the same token-free cache fill those two
 // scenarios already do), then writes the shell's busy flag and its progress
 // slot by hand: the real crawl needs the private registry and a token, neither

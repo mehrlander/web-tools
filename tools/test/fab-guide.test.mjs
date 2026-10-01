@@ -66,10 +66,10 @@ test('openTarget re-aims what can be rendered and leaves everything else alone',
   assert.equal(page.url, RENDERER + '#gh=mehrlander/web-tools@claude/thing:app/index.html');
   assert.equal(page.label, 'index.html');
 
-  const md = d.openTarget(blob('claude/thing', 'docs/show-repo.md'));
+  const md = d.openTarget(blob('claude/thing', 'docs/APP.md'));
   assert.equal(md.kind, 'read');
-  assert.equal(md.url, RENDERER + '#data=mehrlander/web-tools@claude/thing:docs/show-repo.md');
-  assert.equal(md.label, 'show-repo.md');
+  assert.equal(md.url, RENDERER + '#data=mehrlander/web-tools@claude/thing:docs/APP.md');
+  assert.equal(md.label, 'APP.md');
 
   // Data files the viewer can actually open get the same treatment.
   assert.equal(d.openTarget(blob('main', 'a/b.csv')).kind, 'read');
@@ -105,7 +105,7 @@ test('the guide renders the PR body, re-aims its links, and lifts the renderable
       body: [
         'Lead sentence.',
         '- [new](' + blob('claude/thing', 'app/index.html') + ')',
-        '- [doc](' + blob('claude/thing', 'docs/show-repo.md') + ')',
+        '- [doc](' + blob('claude/thing', 'docs/APP.md') + ')',
         // A guide names each file at BOTH refs by convention ([new] and [main]),
         // which is what made the strip list every file twice.
         '- [main](' + blob('main', 'app/index.html') + ')',
@@ -124,7 +124,7 @@ test('the guide renders the PR body, re-aims its links, and lifts the renderable
   const doc2 = new window.DOMParser().parseFromString(d.prBodyHtml, 'text/html');
   const hrefs = [...doc2.querySelectorAll('a')].map(a => a.getAttribute('href'));
   assert.equal(hrefs[0], RENDERER + '#gh=mehrlander/web-tools@claude/thing:app/index.html');
-  assert.equal(hrefs[1], RENDERER + '#data=mehrlander/web-tools@claude/thing:docs/show-repo.md');
+  assert.equal(hrefs[1], RENDERER + '#data=mehrlander/web-tools@claude/thing:docs/APP.md');
   assert.equal(hrefs[2], RENDERER + '#gh=mehrlander/web-tools@main:app/index.html',
     'the prose re-aims both refs, since the sentence around each says which is which');
   assert.equal(hrefs[3], blob('claude/thing', 'lib/fab.js'), 'a source link is left as source');
@@ -133,7 +133,7 @@ test('the guide renders the PR body, re-aims its links, and lifts the renderable
     'renderable links stay in place; the one that resolves nowhere opens away');
   assert.deepEqual(links.slice(0, 3).map(a => a.getAttribute('data-render-addr')), [
     'mehrlander/web-tools@claude/thing:app/index.html',
-    'mehrlander/web-tools@claude/thing:docs/show-repo.md',
+    'mehrlander/web-tools@claude/thing:docs/APP.md',
     'mehrlander/web-tools@main:app/index.html',
   ], 'each stamped with the address the delegated handler looks up');
 
@@ -143,14 +143,14 @@ test('the guide renders the PR body, re-aims its links, and lifts the renderable
   d.goTarget = t => went.push(t.addr);
   const ev = (hit) => ({ preventDefault() {}, target: { closest: () => hit } });
   d.onGuideClick(ev(links[1]));
-  assert.deepEqual(went, ['mehrlander/web-tools@claude/thing:docs/show-repo.md']);
+  assert.deepEqual(went, ['mehrlander/web-tools@claude/thing:docs/APP.md']);
   d.onGuideClick(ev(null));
   assert.equal(went.length, 1, 'a tap on prose that is not a link does nothing');
 
   // The strip is deduped BY FILE, not by URL: one row per file, at the ref on
   // display. Spread first, since the component builds its arrays in the jsdom
   // realm and a bare deepEqual would compare two Array prototypes.
-  assert.deepEqual([...d.prTargets].map(t => t.label), ['index.html', 'show-repo.md']);
+  assert.deepEqual([...d.prTargets].map(t => t.label), ['index.html', 'APP.md']);
   assert.equal(d.prTargets[0].ref, 'claude/thing', 'the ref on display wins the slot');
 
   // Rendering is keyed to the PR, so a second call is not a second parse.
@@ -241,7 +241,7 @@ test('the github mark is a menu over the ref on display, with the file rows firs
   assert.equal(rows.find(r => r.key === 'fileCommits').url,
     'https://github.com/mehrlander/web-tools/commits/claude/thing/app/index.html');
 
-  // With it, the repo rows come from the one list show-repo's sidebar uses.
+  // With it, the repo rows come from the one list the app's sidebar uses.
   window.GithubLinks = {
     rows: (repo, opts) => [{ key: 'home', label: 'Repository', icon: 'ph-house', url: 'X' + opts.ref }],
   };
@@ -561,7 +561,7 @@ test('under a route, every take label describes the document a take would get', 
       assert.doesNotMatch(r.desc, /CLAUDE\.md/, r.key + ' names the file, not the document');
       assert.doesNotMatch(r.desc, /claude\/thing/, r.key + ' names the subject ref, not via');
     }
-    assert.match(rows.find(r => r.key === 'stage').desc, /at main, on show-repo/);
+    assert.match(rows.find(r => r.key === 'stage').desc, /at main, in the app/);
     assert.match(rows.find(r => r.key === 'export').desc, /^data-view\.html/);
     assert.match(rows.find(r => r.key === 'render').desc, /data-view\.html/);
   } finally { window.__tossSubject = null; }

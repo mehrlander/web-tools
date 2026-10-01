@@ -76,10 +76,12 @@
   const fetchText = async spec => {
     const s = DataPayload.parseSpec(spec);
     if (!s) return (await gh.get(spec)).text;
-    // An address with no @ref parses as '' now, and the contents API resolves
-    // the repo's default branch when the parameter is absent. Sending an empty
+    // An address with no @ref parses as '' now; it reads where the link's
+    // selection puts the file. Still none, and the contents API resolves the
+    // repo's default branch when the parameter is absent. Sending an empty
     // one instead is not the same request, so omit it.
-    const at = s.ref ? `?ref=${encodeURIComponent(s.ref)}` : '';
+    const ref = s.ref || window.GH.refFor(s.repo, s.path);
+    const at = ref ? `?ref=${encodeURIComponent(ref)}` : '';
     const data = await gh.req(`/repos/${s.repo}/contents/${s.path}${at}`);
     if (Array.isArray(data)) throw new Error('that path is a directory, not a file');
     const content = data.content || (await gh.req(`/repos/${s.repo}/git/blobs/${data.sha}`)).content;

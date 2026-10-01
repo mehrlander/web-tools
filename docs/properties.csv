@@ -17,9 +17,9 @@ tests,method,computed,tools/build/tests-index.mjs,value,column,yes,kit;alpine;sp
 tests,runner,computed,tools/build/tests-index.mjs,value,column,yes,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
 tests,boot_smoke,computed,tools/build/tests-index.mjs,counted,column,no,,label,"which assertions only check a component mounts, as indices into assertion_names; the property is per assertion, so a file-level count is the length rather than the record. Blank on the same browser-driven checks, for the same reason"
 harness,role,recorded,,counted,column,yes,,value,what the file is for; blanks are counted rather than hidden
-harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;scripts/annotate;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;.claude/skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
+harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;scripts/annotate;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
 harness,lines,computed,tools/build/tools-index.mjs,value,column,yes,,value,file length
-harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
+harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
 harness,emits,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
 harness,named,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
 harness,tested,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ exercises it
@@ -51,20 +51,20 @@ pages,title,computed,tools/build/pages-index.mjs,value,column,yes,,value,"the pa
 pages,note,computed,tools/build/pages-index.mjs,counted,column,yes,,value,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
 pages,thumb,computed,tools/build/pages-index.mjs,value,column,yes,,locator,"the committed screenshot path; refreshed once per session, never by the commit hook"
 pages,code,computed,tools/build/pages-index.mjs,value,column,yes,,locator,the GitHub blob URL for the page source
-tracker-tasks,title,computed,.claude/skills/tasks/build-board.py,value,column,yes,,value,"the task's short imperative, read from its frontmatter"
-tracker-tasks,status,computed,.claude/skills/tasks/build-board.py,value,column,yes,backlog;in-progress;blocked;done;dormant,label,where the task sits. Domain owned by docs/TRACKER.md
-tracker-tasks,opened,computed,.claude/skills/tasks/build-board.py,value,column,yes,,value,the date the task was filed
-tracker-tasks,closed,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,"the date it was completed; absent while open, which is not a blank to count"
-tracker-tasks,file,computed,.claude/skills/tasks/build-board.py,value,column,yes,,locator,the task file this row is derived from
-tracker-tasks,href,computed,.claude/skills/tasks/build-board.py,value,column,yes,,locator,the blob URL the board and the caption link to
-tracker-tasks,lastActivity,computed,.claude/skills/tasks/build-board.py,counted,column,yes,,value,"the date of the newest progress-log line. Blank on a task filed without one, which the board generator allows and the tasks template does not produce; the blank is the honest reading of 'filed, nothing logged yet' and is worth counting"
-tracker-tasks,logEntries,computed,.claude/skills/tasks/build-board.py,value,column,yes,,label,how many progress-log lines the task carries
-tracker-tasks,session,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,"the branch that owns the task while it is in progress, or completed it"
-tracker-tasks,project,computed,.claude/skills/tasks/build-board.py,none,column,yes,,label,"the workspace a task belongs to, where the repo scopes them"
-tracker-tasks,size,computed,.claude/skills/tasks/build-board.py,none,column,yes,XS;S;M;L;XL;?,label,"effort calibrated to the session. Domain owned by docs/TRACKER.md; optional by design, and carried on a minority of tasks"
-tracker-tasks,depends-on,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,"the task ids this one waits on, comma separated; absent means none. Replaced `track` on 2026-08-23"
-tracker-tasks,awaiting,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,free text naming what is holding the task; cleared by hand
-tracker-tasks,blockedBy,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,the task or condition a blocked row names
+tracker-tasks,title,computed,skills/tasks/build-board.py,value,column,yes,,value,"the task's short imperative, read from its frontmatter"
+tracker-tasks,status,computed,skills/tasks/build-board.py,value,column,yes,backlog;in-progress;blocked;done;dormant,label,where the task sits. Domain owned by docs/TRACKER.md
+tracker-tasks,opened,computed,skills/tasks/build-board.py,value,column,yes,,value,the date the task was filed
+tracker-tasks,closed,computed,skills/tasks/build-board.py,none,column,yes,,value,"the date it was completed; absent while open, which is not a blank to count"
+tracker-tasks,file,computed,skills/tasks/build-board.py,value,column,yes,,locator,the task file this row is derived from
+tracker-tasks,href,computed,skills/tasks/build-board.py,value,column,yes,,locator,the blob URL the board and the caption link to
+tracker-tasks,lastActivity,computed,skills/tasks/build-board.py,counted,column,yes,,value,"the date of the newest progress-log line. Blank on a task filed without one, which the board generator allows and the tasks template does not produce; the blank is the honest reading of 'filed, nothing logged yet' and is worth counting"
+tracker-tasks,logEntries,computed,skills/tasks/build-board.py,value,column,yes,,label,how many progress-log lines the task carries
+tracker-tasks,session,computed,skills/tasks/build-board.py,none,column,yes,,value,"the branch that owns the task while it is in progress, or completed it"
+tracker-tasks,project,computed,skills/tasks/build-board.py,none,column,yes,,label,"the workspace a task belongs to, where the repo scopes them"
+tracker-tasks,size,computed,skills/tasks/build-board.py,none,column,yes,XS;S;M;L;XL;?,label,"effort calibrated to the session. Domain owned by docs/TRACKER.md; optional by design, and carried on a minority of tasks"
+tracker-tasks,depends-on,computed,skills/tasks/build-board.py,none,column,yes,,value,"the task ids this one waits on, comma separated; absent means none. Replaced `track` on 2026-08-23"
+tracker-tasks,awaiting,computed,skills/tasks/build-board.py,none,column,yes,,value,free text naming what is holding the task; cleared by hand
+tracker-tasks,blockedBy,computed,skills/tasks/build-board.py,none,column,yes,,value,the task or condition a blocked row names
 routes-modes,form,recorded,,value,column,yes,,value,"the address shape, e.g. #gz=<base64url of gzipped HTML>"
 routes-modes,carries,recorded,,value,column,yes,inline;reference,label,whether the payload rides in the URL or is fetched
 routes-modes,trust,recorded,,value,column,yes,trusted;untrusted;n/a,label,"how the renderer treats what arrives. n/a is the data route, which hands bytes to a viewer rather than executing a page, so the question does not arise"
@@ -113,7 +113,7 @@ surfacing,use,recorded,,value,column,yes,,value,"what the primitive is for, in o
 surfacing,boundary,recorded,,none,column,yes,,value,where it stops working; carried wherever there is an edge to name
 surfacing,form,recorded,,none,column,yes,,value,"the concrete shape, where the primitive has one"
 manifest-fields,type,recorded,,value,column,yes,string;number;boolean;object;array;boolean|object;string|array;string|boolean,label,the JSON type the key takes
-manifest-fields,consumer,recorded,,value,column,yes,show-repo;portable;session-hook,label,"which tool reads the key: show-repo (the shell presents the repo), portable (the conventions read it and show-repo ignores it), session-hook (a plugin hook reads it outside any page)"
+manifest-fields,consumer,recorded,,value,column,yes,app;portable;session-hook,label,"which tool reads the key: app (the Web Tools app presents the repo), portable (the conventions read it and the app ignores it), session-hook (a plugin hook reads it outside any page)"
 manifest-fields,summary,recorded,,value,column,yes,,value,what the key does and who owns its value
 manifest-fields,status,recorded,,none,column,yes,deprecated,label,set only where a key is superseded but still parsed
 text-fields,audience,recorded,,value,column,yes,reader;editor,label,who the text under this field name is addressed to; the split that decides whether it belongs in a data file or in source
@@ -159,8 +159,8 @@ repetitions,relation,recorded,,value,column,yes,copy;paraphrase;pointer;live rea
 repetitions,check,recorded,,counted,column,yes,,value,"the test holding this repetition to its owner; blank where nothing does, which is the honest state the table exists to show"
 vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means, in the terms a reader picking among them needs"
 vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
-tracker-tags,tag,computed,.claude/skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
-tracker-tags,value,computed,.claude/skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
+tracker-tags,tag,computed,skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
+tracker-tags,value,computed,skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
 snags,title,computed,tools/build/snags-index.mjs,value,column,yes,,value,"the snag's one-line symptom, read off its heading"
 snags,seen,computed,tools/build/snags-index.mjs,none,list,no,,value,"every date the snag was hit, oldest first; an undated entry is empty, not absent"
 snags,count,computed,tools/build/snags-index.mjs,value,column,yes,,label,"how many times it bit, the field the recurrence rule turns on"
@@ -196,7 +196,70 @@ subjects,doc,recorded,,none,column,yes,,locator,the document for the form that d
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
 subjects,icon,recorded,,value,column,yes,,value,the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal
 subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
-run-methods,venues,recorded,,value,list,no,,value,the machines a person may run this method's script on; an errand's run.venue must be one
-run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted,value,how the script's output comes back; filled into run.outputReturn when a record omits it
+run-methods,venues,recorded,,value,list,no,,value,"the machines this method's script runs on, a person's or a hosted runner; an errand's run.venue must be one"
+run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted;job-log;self-filed,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
+context-sources,circle,recorded,,value,column,yes,account;environment;user;plugin;repo;session,label,"where the source is defined, outermost first: the claude.ai account, the cloud environment, user scope in the container, the portable plugin, a checked-out repo, or the session itself"
+context-sources,item,recorded,,value,column,yes,,value,the short name a reader knows the source by
+context-sources,repo,recorded,,none,column,yes,,locator,the owner/repo holding the source file; blank where the source is not a file in any repo
+context-sources,path,recorded,,none,column,yes,,locator,"the file or folder within repo that holds the source, or a copy of it"
+context-sources,defined_in,recorded,,none,column,yes,,value,"where a source that is not a repo file is set, such as a claude.ai settings page"
+context-sources,link,recorded,,none,column,yes,,locator,the claude.ai settings page where a source that is not a repo file is changed
+context-sources,arrives,recorded,,value,column,yes,instructions;skill-listing;skill;hook;settings;install;tool;message;continuity;none,label,"the mechanism that puts the source in front of the model, or none for a source that only configures one that does"
+context-sources,when,recorded,,value,column,yes,build;start;invoke;turn;event,label,"when it arrives: at environment build, at session start, when invoked, every turn, or on an event"
+context-sources,reach,recorded,,value,column,yes,every;checkout;root;invoke;pr,label,"which sessions it reaches: every session, one with the repo checked out, one rooted in the repo, one that invokes it, or one with a pull request open"
+context-sources,read,recorded,,value,column,yes,yes;copy;no,label,"whether a session can read the source itself: yes, only through a committed copy, or not at all"
+context-sources,change,recorded,,value,column,yes,pr;owner;session;none,label,"who can change it: anyone through a pull request, only the owner in a settings page, the session itself, or nobody"
+context-sources,evidence,recorded,,value,column,yes,receipt;reconstructed;recorded;none,label,"how we know it arrived: the delivering script says so, a hook reconstructs it, the session record captures it, or nothing records it"
+context-sources,status,recorded,,value,column,yes,current;retiring;planned,label,"current, retiring (still present, with its replacement already live), or planned"
+context-sources,tally,recorded,,none,column,yes,,locator,"the key this source has in the session store tally: startup:<path> for an instruction file, skill:<name> for a skill"
+context-sources,topics,recorded,,none,column,yes,,label,"the overlap topics this source speaks to, semicolon separated, each a row in docs/context-topics.csv"
+context-sources,gloss,recorded,,value,column,yes,,value,one sentence on what the source does
+context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it
+context-topics,verdict,recorded,,value,column,yes,layered;redundant;conflicting;transitional,label,"whether the overlap is layered by design, redundant, conflicting, or transitional while a replacement lands"
+context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the topic, in a sentence or two"
+map-tabs,gloss,recorded,,value,column,yes,,value,"the lede: what the rows at this address are, in one sentence, never what the reader can do with them"
+map-tabs,refs,recorded,,counted,list,no,,locator,"the lede's links: phrase=path pairs, each phrase a verbatim span of the lede and each path the file or folder (ending in /) it opens"
+map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
+doc-overlap-docs,sha,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
+doc-overlap-docs,prose_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"
+doc-overlap-docs,passages,computed,scripts/doc-overlap.py,value,column,yes,,value,how many passages the file was cut into
+doc-overlap-docs,shingles,computed,scripts/doc-overlap.py,value,column,yes,,value,"distinct 10-word shingles in the file, the denominator of its literal share"
+doc-overlap-matches,end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of the source passage, in UTF-16 code units"
+doc-overlap-matches,line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line the source passage starts on
+doc-overlap-matches,words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the source passage's word count, what it adds to its file's share"
+doc-overlap-matches,hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the source passage text
+doc-overlap-matches,target_start,computed,scripts/doc-overlap.py,value,column,yes,,locator,"start of the best-matching passage in the other file, in UTF-16 code units"
+doc-overlap-matches,target_end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of that passage, in UTF-16 code units"
+doc-overlap-matches,target_line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line that passage starts on
+doc-overlap-matches,target_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the other passage's word count; with words, what decides whether a pair involves a short passage"
+doc-overlap-matches,target_hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
+doc-overlap-matches,cosine,computed,scripts/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
+doc-overlap-gold,seed,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,the seed of the sample the row was drawn in; each sample is scored on its own
+doc-overlap-gold,stratum,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
+doc-overlap-gold,stratum_size,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs in the stratum, the numerator of the row weight"
+doc-overlap-gold,stratum_seats,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs drawn from the stratum, the denominator of the row weight"
+doc-overlap-gold,audit,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the seed flagged the row for an audit of an agreement before the run
+doc-overlap-gold,cosine,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"the pair's cosine in matches.csv, the higher direction"
+doc-overlap-gold,literal,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
+doc-overlap-gold,short,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
+doc-overlap-gold,a_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
+doc-overlap-gold,a_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,a_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,a_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,a_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,b_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
+doc-overlap-gold,b_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,b_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,b_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,b_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,reader_relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,"the reader agent's relation, blind to the cosine"
+doc-overlap-gold,reader_confidence,recorded,,value,column,yes,high;medium;low,label,the reader agent's confidence
+doc-overlap-gold,rationale,recorded,,value,column,yes,,value,the reader agent's one-clause reason
+doc-overlap-gold,sent,computed,scripts/doc-overlap-gold.py,value,column,yes,disagree;conflict;fragment;audit;review,label,why the row reached a skeptic
+doc-overlap-gold,verdict,recorded,,value,column,yes,confirm;overturn,label,the skeptic agent's verdict on the reader's relation
+doc-overlap-gold,note,recorded,,value,column,yes,,value,"the skeptic agent's reason, quoting the words that decide it"
+doc-overlap-gold,relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,the final relation: the skeptic's
+doc-overlap-gold,reading,recorded,,value,column,yes,yes;no,label,whether seeing one passage beside the other helps a reader
+doc-overlap-gold,consolidate,recorded,,value,column,yes,yes;no,label,whether one passage could be replaced by a link to the other

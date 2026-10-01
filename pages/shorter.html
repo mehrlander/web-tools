@@ -317,12 +317,12 @@ function shorter() {
     },
 
     // An addressed payload, or a plain path in the hub repo. The parse is
-    // ShorterPayload's, so the '' ref (meaning the repo's default branch)
-    // stays in one place rather than being restated here.
+    // ShorterPayload's; a '' ref names none, so the read follows the link's
+    // selection for that repo, else main. Read-only, so nothing pins.
     async fetchSpec(spec, raw) {
       const g = spec
-        ? new window.GH({ token: window.TOKEN, repo: spec.repo, ref: spec.ref })
-        : new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools', ref: 'main' });
+        ? new window.GH({ token: window.TOKEN, repo: spec.repo, ...(spec.ref ? { ref: spec.ref } : {}) })
+        : new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
       return (await g.get(spec ? spec.path : String(raw || ''))).text;
     },
     async gunzipB64url(s) {

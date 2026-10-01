@@ -6,7 +6,7 @@
 
 ## The Web Tools app
 
-[docs/APP.md](docs/APP.md) is the product frame: mission, goals, and the name split (**Web Tools** where a reader is addressed; **show-repo** on files, routes, and the tracker project).
+[docs/APP.md](docs/APP.md) is the product frame and the app's reference: mission, goals, boundary, addresses, and what every view shares. The product is **Web Tools**, or the Web Tools app.
 
 ## Showing: which link shows what
 

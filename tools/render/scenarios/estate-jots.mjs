@@ -25,8 +25,8 @@ export default async function (page) {
     const TODOS = {
       items: [
         { id: 't1', text: 'Wire the news dashboard panel', done: false, created_at: h(50) },
-        { id: 't2', text: 'Refresh the show-repo thumbnail', done: false, created_at: h(20) },
-        { id: 't3', text: 'Migrate the legacy .show-repo.json readers', done: true, created_at: h(80), done_at: h(6) },
+        { id: 't2', text: 'Refresh the app thumbnail', done: false, created_at: h(20) },
+        { id: 't3', text: 'Migrate the legacy config readers', done: true, created_at: h(80), done_at: h(6) },
       ],
     };
     const JOTS = {
