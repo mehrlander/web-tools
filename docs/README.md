@@ -88,7 +88,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address ledes and the longer account of each tab
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
-- [`context.md`](context.md) *(orphan)* — the frame for the context registry: its two halves, the circles, overlap verdicts, and the session-store join
+- [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
 - [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
 
 ## docs/doc-craft-specimens/

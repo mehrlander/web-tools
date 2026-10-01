@@ -249,7 +249,7 @@ per-repo write flows (add-to-estate, the placement editor) read a repo's **live*
 config, not this cache, whenever they
 operate on that repo. Stage history falls out for free: a repo's declared
 `stage.files` lives in its config, so versioning the config versions the declared
-stage. Layer model: `web-tools-private/DESIGN.md`.
+stage. Layer model: `web-tools-private/README.md`, "Three layers".
 
 ## Errands (`errands/requests` → `errands/results`)
 

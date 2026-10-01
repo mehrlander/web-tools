@@ -81,7 +81,8 @@ The pairing is an inference, not a record. A paragraph split in two is paired
 with the part that shares more words. A paragraph moved to another file has no
 history, because git records a deletion and an addition. A third collection
 file, `revisions.jsonl`, held these connections until 2026-09-22;
-`projects/text/DESIGN.md` in `mehrlander/home` explains why git replaced it.
+the one-list run in `mehrlander/home`
+(`projects/text/runs/2026-09-22-one-list/README.md`) records why git replaced it.
 
 ## Where variants and proposals come from
 

@@ -18,6 +18,7 @@ the link-dense text twin of the visual index above.
 | `audit-render` | Audit render | [view](https://mehrlander.github.io/web-tools/pages/audit-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html) |
 | `bench` | Bench | [view](https://mehrlander.github.io/web-tools/pages/bench.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/bench.html) |
 | `branch` | Branch | [view](https://mehrlander.github.io/web-tools/pages/branch.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/branch.html) |
+| `call` | Call | [view](https://mehrlander.github.io/web-tools/pages/call.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/call.html) |
 | `chat-results` | Chat Search Results | [view](https://mehrlander.github.io/web-tools/pages/chat-results.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html) |
 | `citations` | Citations | [view](https://mehrlander.github.io/web-tools/pages/citations.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/citations.html) |
 | `compression-helper` | Compression Helper (v5) | [view](https://mehrlander.github.io/web-tools/pages/compression-helper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html) |

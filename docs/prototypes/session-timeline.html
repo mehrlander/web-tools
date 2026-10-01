@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Prototype for the Context view: one session drawn in time, lanes by who wrote the words, and for any moment the nearest instruction from each author.">
+<title>Session Timeline</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+</head>
+<body class="bg-base-100 text-base-content min-h-dvh" x-data="timeline()" @keydown.window.arrow-left="step(-1)" @keydown.window.arrow-right="step(1)">
+<!-- Prototype for a session-level companion to the Map view's Context tab,
+     whose When lens places every registry source by the moment it arrives. Timings are synthetic, shaped on
+     the 2026-09 records (PR wakes, a superseded green, a merge echo, one
+     compaction); no private session is published. The same lanes could be
+     drawn from one recorded session, lane by circle. -->
+<header class="sticky top-0 z-20 border-b border-base-300 bg-base-100 px-4 sm:px-7 py-3 flex items-center gap-3 flex-wrap">
+  <span class="text-xs uppercase tracking-widest text-base-content/70">Web Tools</span>
+  <span class="text-base-content/30" aria-hidden="true">/</span>
+  <h1 class="text-lg font-semibold">Session context · timeline</h1>
+  <span class="badge badge-sm badge-outline">prototype · synthetic timings</span>
+  <span class="grow"></span>
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" class="toggle toggle-sm toggle-primary" x-model="hint"> Wake hint
+  </label>
+  <div class="join">
+    <button class="btn btn-sm join-item btn-ghost" @click="step(-1)" aria-label="Previous event"><i class="ph ph-caret-left"></i></button>
+    <span class="btn btn-sm join-item btn-ghost pointer-events-none font-mono" x-text="'event ' + (eventIndex + 1) + ' / ' + events.length"></span>
+    <button class="btn btn-sm join-item btn-ghost" @click="step(1)" aria-label="Next event"><i class="ph ph-caret-right"></i></button>
+  </div>
+</header>
+
+<main class="px-4 sm:px-7 pt-6 pb-10">
+  <div class="text-xs uppercase tracking-widest text-base-content/70 mb-1">Circles in time · one session · the nearest instruction at each moment</div>
+  <h2 class="text-3xl font-semibold tracking-tight text-balance mb-6">What is nearest when a session acts</h2>
+
+  <!-- The diagram. Lanes are authors; x is minutes since the session began. -->
+  <section class="border-y border-base-300 py-4" aria-label="Session timeline">
+    <div class="grid grid-cols-1 sm:grid-cols-[8.5rem_minmax(0,1fr)] gap-x-4">
+      <div class="hidden sm:block"></div>
+      <div class="relative h-6 mb-1">
+        <template x-for="h in [0,1,2,3,4]" :key="h">
+          <span class="absolute -translate-x-1/2 font-mono text-xs text-base-content/60" :style="'left:' + pct(h * 60)" x-text="h + 'h'"></span>
+        </template>
+        <span class="absolute -translate-x-1/2 badge badge-warning badge-xs" :style="'left:' + pct(COMPACT)">compaction</span>
+      </div>
+
+      <template x-for="lane in lanes" :key="lane.id">
+        <div class="contents">
+          <div class="flex items-baseline gap-2 sm:block pt-3 sm:pt-4">
+            <div class="text-base font-semibold" x-text="lane.name"></div>
+            <div class="font-mono text-xs text-base-content/60" x-text="lane.routes"></div>
+          </div>
+          <div class="relative border-t border-base-300 py-2 flex flex-col gap-1.5">
+            <span class="absolute inset-y-0 w-px bg-warning" :style="'left:' + pct(COMPACT)"></span>
+            <span class="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-primary/70" :style="'left:' + pct(now)"></span>
+            <template x-for="(track, ti) in lane.tracks" :key="lane.id + ti">
+              <div class="relative h-7">
+                <template x-for="(it, k) in visible(track)" :key="lane.id + ti + ':' + k">
+                  <div class="contents">
+                    <template x-if="it.to !== undefined">
+                      <div class="absolute top-1 bottom-1 rounded border px-2 flex items-center text-xs truncate"
+                           :class="bandClass(it)" :style="'left:' + pct(it.at) + ';width:' + pct(it.to - it.at)"
+                           x-text="it.label"></div>
+                    </template>
+                    <template x-if="it.to === undefined && it.kind === 'tool'">
+                      <span class="absolute top-2.5 h-2 w-px bg-base-content/30" :style="'left:' + pct(it.at)"></span>
+                    </template>
+                    <template x-if="it.to === undefined && it.kind !== 'tool'">
+                      <button class="absolute top-0 -translate-x-1/2 h-7 w-7 flex items-center justify-center rounded-full"
+                              :class="iconClass(it)" :style="'left:' + pct(it.at)"
+                              :disabled="!it.event" @click="pick(it.event)"
+                              :aria-label="it.label + ' at ' + clock(it.at)">
+                        <i class="ph text-lg" :class="it.icon"></i>
+                      </button>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div class="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-xs text-base-content/70">
+      <span><i class="ph ph-info"></i> event guidance</span>
+      <span><i class="ph ph-bell-simple"></i> reminder</span>
+      <span><i class="ph ph-book-open"></i> skill</span>
+      <span><i class="ph ph-lightning"></i> hook</span>
+      <span><i class="ph ph-x-circle rounded-full bg-warning text-warning-content"></i> no directive after compaction</span>
+      <span><i class="ph ph-chat-teardrop-text"></i> prompt</span>
+      <span><span class="inline-block h-2 w-px bg-base-content/40 align-middle"></span> tool result</span>
+      <span><i class="ph ph-check-circle"></i> checks green</span>
+      <span><i class="ph ph-git-merge"></i> merged</span>
+      <span><i class="ph ph-chat-circle"></i> reply</span>
+      <span><i class="ph ph-chat-circle-dots rounded-full bg-warning text-warning-content"></i> reply to a wake with nothing new</span>
+      <span><i class="ph ph-git-commit"></i> commit</span>
+      <span><span class="inline-block h-3 w-px bg-warning align-middle"></span> compaction</span>
+      <span class="text-primary"><span class="inline-block h-3 w-0.5 bg-primary align-middle"></span> selected moment</span>
+    </div>
+  </section>
+
+  <!-- For the selected moment: the newest words from each author. -->
+  <section class="mt-7 border-t-2 border-primary pt-5" aria-live="polite">
+    <div class="flex items-baseline gap-3 flex-wrap mb-5">
+      <span class="font-mono text-sm text-primary" x-text="clock(now)"></span>
+      <h3 class="text-xl font-semibold" x-text="current.label"></h3>
+      <span class="text-sm text-base-content/70" x-text="current.note"></span>
+    </div>
+    <div class="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] sm:grid-cols-[8.5rem_minmax(0,1fr)_7rem_7rem_8rem] gap-x-4 text-base">
+      <div class="hidden sm:contents text-xs uppercase tracking-widest text-base-content/70">
+        <span class="pb-2">Lane</span><span class="pb-2">Nearest words</span><span class="pb-2">Arrived</span><span class="pb-2">Ago</span><span class="pb-2">Tool results since</span>
+      </div>
+      <template x-for="row in nearest" :key="row.author">
+        <div class="contents">
+          <span class="py-3 border-t border-base-300 font-semibold" x-text="row.author"></span>
+          <span class="py-3 border-t border-base-300 text-pretty" :class="row.closest ? 'text-primary' : ''">
+            <span x-text="row.words"></span>
+            <span class="block sm:hidden font-mono text-xs text-base-content/60 mt-1" x-text="clock(row.at) + ' · ' + ago(row.at) + ' · ' + row.tools + ' tool results since'"></span>
+            <span class="inline-block mt-1 rounded bg-warning/30 px-1.5 text-sm" x-show="row.flag" x-text="row.flag"></span>
+          </span>
+          <span class="hidden sm:block py-3 border-t border-base-300 font-mono text-sm" x-text="clock(row.at)"></span>
+          <span class="hidden sm:block py-3 border-t border-base-300 font-mono text-sm" x-text="ago(row.at)"></span>
+          <span class="hidden sm:block py-3 border-t border-base-300 font-mono text-sm" x-text="row.tools"></span>
+        </div>
+      </template>
+    </div>
+  </section>
+</main>
+
+<script>
+const T = 240, COMPACT = 140;
+const prompts = [0, 24, 52, 79, 118, 148, 172, 203];
+const asks = ['build the edit page', 'make the buttons work', 'smaller fold arrows', 'fold on a tap anywhere', 'add a reason note', 'note flush left', 'try it on the phone', 'merge when green'];
+const commits = [20, 43, 70, 96, 126, 131, 160, 190, 199];
+// PR events. kind drives the icon; note is the harness's reading of it.
+const events = [
+  {at:23,  kind:'subscribed', label:'Subscription confirmed', note:'echo of the session\'s own subscribe call', icon:'ph-bell-ringing'},
+  {at:34,  kind:'green', label:'Checks green', note:'head at the time', icon:'ph-check-circle'},
+  {at:56,  kind:'green', label:'Checks green', note:'head at the time', icon:'ph-check-circle'},
+  {at:83,  kind:'green', label:'Checks green', note:'head at the time', icon:'ph-check-circle'},
+  {at:108, kind:'green', label:'Checks green', note:'head at the time', icon:'ph-check-circle'},
+  {at:138, kind:'green', label:'Checks green', note:'a superseded commit: the head moved at 2:11', icon:'ph-check-circle'},
+  {at:144, kind:'green', label:'Checks green', note:'head, four minutes after compaction', icon:'ph-check-circle'},
+  {at:173, kind:'green', label:'Checks green', note:'head', icon:'ph-check-circle'},
+  {at:208, kind:'green', label:'Checks green', note:'the condition the person set at 3:23: merge when green', icon:'ph-check-circle', awaited:true},
+  {at:216, kind:'ready', label:'Ready for review', note:'echo of the session\'s own action', icon:'ph-eye'},
+  {at:226, kind:'merged', label:'Merged', note:'echo: the merge was already reported at 3:29', icon:'ph-git-merge'},
+];
+// Replies: one after each prompt, one after each wake. A wake reply is
+// surplus unless the wake released an action the person asked for.
+const replies = [
+  ...prompts.map(t => ({at:t + 3, kind:'answer'})),
+  ...events.map(e => ({at:e.at + 1, kind:e.awaited ? 'answer' : 'surplus'})),
+];
+const tools = Array.from({length:96}, (_, i) => 1 + i * 2.45).filter(t => t < T && !prompts.includes(Math.round(t)));
+
+function timeline() {
+  return {
+    COMPACT, events, hint:false, eventIndex:6,
+    get now() { return this.events[this.eventIndex].at; },
+    get current() { return this.events[this.eventIndex]; },
+    get lanes() {
+      const ev = this.events;
+      return [
+        {id:'harness', name:'Harness', routes:'the session circle', tracks:[
+          [{at:0, to:T, label:'System prompt · PR posture, check-ins, status on every event', trace:'uncaptured'}],
+          [...ev.map(e => ({at:e.at, kind:'guidance', icon:'ph-info', label:'Event guidance', event:e})),
+           ...[60, 120, 180].map(t => ({at:t, kind:'reminder', icon:'ph-bell-simple', label:'System reminder'}))],
+        ]},
+        {id:'repo', name:'Repos', routes:'checked-out repos', tracks:[
+          [{at:0, to:T, label:'CLAUDE.md · repo contract', trace:'reconstructed'}],
+        ]},
+        {id:'plugin', name:'Plugin', routes:'portable plugin', tracks:[
+          [{at:4, to:COMPACT, label:'SURFACING.md via /portable:default · a wake that changes nothing gets no reply', trace:'observed'},
+           {at:COMPACT, to:T, label:'summary only?', trace:'partial'}],
+          [{at:0, kind:'hook', icon:'ph-lightning', label:'invoke-default directive'},
+           {at:4, kind:'skill', icon:'ph-book-open', label:'/portable:default'},
+           {at:22, kind:'hook', icon:'ph-lightning', label:'pr-subscribe-hint'},
+           {at:COMPACT, kind:'missing', icon:'ph-x-circle', label:'SessionStart compact: invoke-default not registered'},
+           ...(this.hint ? ev.map(e => ({at:e.at, kind:'hint', icon:'ph-lightning', label:'wake-quiet hint', event:e})) : [])],
+        ]},
+        {id:'person', name:'Messages', routes:'the session circle', tracks:[
+          prompts.map(t => ({at:t, kind:'prompt', icon:'ph-chat-teardrop-text', label:'Prompt'})),
+        ]},
+        {id:'world', name:'Tools and events', routes:'the session circle', tracks:[
+          tools.map(t => ({at:t, kind:'tool', label:'Tool result'})),
+          ev.map(e => ({at:e.at, kind:'event', icon:e.icon, label:e.label, event:e})),
+        ]},
+        {id:'trace', name:'Trace', routes:'durable output', tracks:[
+          replies.map(r => ({at:r.at, kind:r.kind === 'surplus' ? 'surplus' : 'reply', icon:r.kind === 'surplus' ? 'ph-chat-circle-dots' : 'ph-chat-circle', label:r.kind === 'surplus' ? 'Reply to a wake with nothing new' : 'Reply'})),
+          commits.map(t => ({at:t, kind:'commit', icon:'ph-git-commit', label:'Commit'})),
+        ]},
+      ];
+    },
+    visible(track) { return track; },
+    pct(t) { return (t / T * 100).toFixed(3) + '%'; },
+    clock(t) { return Math.floor(t / 60) + ':' + String(Math.round(t % 60)).padStart(2, '0'); },
+    ago(t) { const d = Math.round(this.now - t); return d === 0 ? 'in the event' : d + ' min'; },
+    toolsSince(t) { return tools.filter(x => x > t && x <= this.now).length; },
+    pick(e) { if (e) this.eventIndex = this.events.indexOf(e); },
+    step(d) { this.eventIndex = Math.min(this.events.length - 1, Math.max(0, this.eventIndex + d)); },
+    near(it) { return it.at <= this.now && this.now - it.at < 0.5; },
+    bandClass(it) {
+      const on = it.at <= this.now && this.now <= it.to;
+      const edge = {uncaptured:'border-dotted', reconstructed:'border-dashed', partial:'border-dashed opacity-60', observed:'border-solid'}[it.trace];
+      return edge + ' ' + (on ? 'border-base-content/40 bg-base-200 text-base-content/80' : 'border-base-content/20 text-base-content/50');
+    },
+    iconClass(it) {
+      if ((it.kind === 'hint' || it.kind === 'guidance' || it.kind === 'event') && it.at === this.now) return 'text-primary bg-primary/10';
+      if (it.kind === 'surplus' || it.kind === 'missing') return 'bg-warning text-warning-content';
+      return 'text-base-content/60 ' + (it.event ? 'hover:bg-base-200' : '');
+    },
+    get nearest() {
+      const t = this.now, e = this.current;
+      const lastPrompt = Math.max(...prompts.filter(p => p <= t));
+      const rows = [
+        {author:'Harness', at:t, words:'Event guidance beside the payload: ' + (e.kind === 'green' ? 'continue if you were waiting on CI' : e.kind === 'merged' ? 'treat this as the final outcome' : 'this is what changed on the PR'), closest:!this.hint},
+        this.hint
+          ? {author:'Plugin', at:t, words:'wake-quiet hint: ' + (e.awaited ? 'the awaited green releases the merge; its result is the reply' : 'end the turn with no text'), closest:true}
+          : {author:'Plugin', at:4, words:'SURFACING.md: a wake that changes nothing gets no reply', flag:t > COMPACT ? 'delivered before compaction; no directive re-delivers it' : ''},
+        {author:'Messages', at:lastPrompt, words:asks[prompts.indexOf(lastPrompt)]},
+        {author:'Tools and events', at:t, words:e.label + ': ' + e.note},
+      ];
+      return rows.map(r => ({...r, tools:this.toolsSince(r.at)}));
+    },
+  };
+}
+</script>
+</body>
+</html>
