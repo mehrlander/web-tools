@@ -4364,7 +4364,7 @@
            header, it names the face on screen and opens the five by name:
            Changes, the main one, the text now with each change a card; then
            Rendered and Raw, each before (GitHub's copy, read-only) and after
-           (the text now). It replaced the header's eye button, which flipped
+           (the text now), as two rows of a Before|After pair. It replaced the header's eye button, which flipped
            only between Rendered and Source, and the menu's Track changes,
            which was the Changes and Rendered-after pair under another name.
            Green while the text differs from GitHub's, the flat badge with a
@@ -4384,22 +4384,18 @@
           <button x-show="isMd" type="button" @click="setFace('changes')" data-face="changes"
                   class="flex items-center gap-2 rounded-field px-2.5 py-1.5 text-left cursor-pointer hover:bg-base-200"
                   :class="face === 'changes' && 'bg-base-200 font-medium'"><i class="ph ph-highlighter"></i>Changes</button>
-          <div class="grid grid-cols-[auto_1fr_1fr] items-center gap-1">
-            <span></span><span class="px-2.5 text-xs text-base-content/60">Before</span><span class="px-2.5 text-xs text-base-content/60">After</span>
-            <template x-for="row in (isMd ? ['rendered', 'raw'] : ['raw'])" :key="row">
-              <div class="contents">
-                <span class="pl-1 pr-2 text-xs text-base-content/60" x-text="row === 'raw' ? 'Raw' : 'Rendered'"></span>
+          <template x-for="row in (isMd ? ['rendered', 'raw'] : ['raw'])" :key="row">
+            <div class="flex items-center justify-between gap-3 pl-2.5">
+              <span class="text-base-content/70" x-text="row === 'raw' ? 'Raw' : 'Rendered'"></span>
+              <div class="join">
                 <template x-for="when in ['before', 'after']" :key="when">
                   <button type="button" @click="setFace(row + '-' + when)" :data-face="row + '-' + when"
-                          class="flex items-center justify-center rounded-field px-2.5 py-1.5 cursor-pointer hover:bg-base-200"
-                          :class="face === row + '-' + when && 'bg-base-200 font-medium'">
-                    <i class="ph" :class="row === 'raw' ? 'ph-code' : 'ph-eye'"></i>
-                  </button>
+                          class="join-item btn btn-xs h-7 px-2.5 font-normal" :class="face === row + '-' + when ? 'btn-active' : 'btn-ghost'"
+                          x-text="when === 'before' ? 'Before' : 'After'"></button>
                 </template>
               </div>
-            </template>
-          </div>
-          <p class="px-2.5 pb-0.5 text-xs text-base-content/60 max-w-[15rem]">Before is GitHub's copy, read-only. After is your text.</p>
+            </div>
+          </template>
         </div>
       </div>
 
