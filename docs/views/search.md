@@ -1,61 +1,53 @@
 # Search and Files
 
-**Search** (`?view=search`, `lib/alpineComponents/search-view.js`) finds files
-and records and reads a hit in place. **Files** (`?view=files`, a repo view, and
-a project's Files tab; `lib/alpineComponents/file-browser.js`) walks one
-scope's tree beside the open file. Search finds; Files browses. Pins, recents,
-Docs and the sidebar finder's file hits open in Files at the file's folder
-(`?view=files&path=&file=`).
+**Search** finds files and records across the estate and opens a hit in place.
+**Files**, a repo view and a project's Files tab, walks one repo's folders
+beside the open file. Search finds; Files browses. Pins, recents, Docs and the
+sidebar finder's file hits open in Files at the file's folder.
 
 ## Modes
 
-All four share the sidebar finder's core, [`lib/kits/estate-search.js`](../../lib/kits/estate-search.js):
-one implementation and one cache.
-
-| Mode | Reaches | Misses |
+| Mode | Finds | Misses |
 | --- | --- | --- |
-| **Names** | repo trees at any ref, under any folder | anything inside a file |
-| **Contents** | full text, through the code-search API | non-default branches, unindexed pushes, files over ~384 KB, past ten calls a minute |
-| **Sessions** | captured session records (asks, prompts, replies) | anything not captured |
-| **Chats** | the chat archive's catalog: each chat's title, tags, and hand or machine summary, every month (about 10 MB, once per session) | the words spoken in a chat; full text is chat-histories' `tools/search_chats.py` |
+| **Names** | file names in any repo, branch or folder | anything inside a file; with no repo chosen, files pushed since the estate's file list was last refreshed, and the files inside a folder of more than 2,000 |
+| **Contents** | text inside files, through GitHub's code search | branches other than the default, pushes GitHub has not indexed yet, files over about 384 KB, more than ten searches a minute |
+| **Sessions** | what was asked and answered in captured sessions | anything not captured |
+| **Chats** | each chat's title, tags and summary, every month | the words spoken in a chat, which chat-histories' `tools/search_chats.py` searches |
 
-In Names, a query is a recursive match and an empty query under a repo is one
-level of the tree (`EstateSearch.names`, `EstateSearch.level`, both off one
-cached tree). An empty query with no repo scope is the only dead state.
+In Names, typing matches anywhere in the chosen scope, and an empty box under a
+repo lists that folder one level at a time.
 
-## Scopes and address
+## Scopes and links
 
-- Repo: a single-select rail. Switching repo drops the ref and the folder.
-- Ref: `refPicker` (`lib/alpineComponents/ref-picker.js`), the estate's only
-  branch picker. It returns the default branch as `''`, never by name.
-- Folder: `pathPicker` in `dir` mode. In Contents the scope rides the API's
-  `path:` qualifier.
-- A bare arrival lists the repo the shell is browsing.
-- `?view=search&sq=&smode=&srepo=&sref=&spath=&sfile=` round-trips the screen;
-  `sfile` is an `owner/repo[@ref]:path` address. The row stamps on any field.
+- **Repo:** one, or none for every repo. Switching repo clears the branch and
+  the folder.
+- **Branch:** any branch; blank means the default.
+- **Folder:** narrows Names and Contents to one folder.
+- Opening Search with nothing chosen lists the repo you were browsing.
+- The address carries the query, mode, repo, branch, folder and open file, so a
+  link reopens the same screen.
 
 ## Reading a hit
 
-The shared viewer (`viewer.js`, embedded with `bindStore:false`) opens the hit
-beside the results, or in place of them on a phone, in the mode its type
-deserves (raw past 300 KB). It carries the file's own `origin`, so its links
-point at the hit's repo and ref, and reading a hit never switches the browsed
-repo. **Refresh caches** is `EstateSearch.reset`.
+A hit opens beside the results, or in place of them on a phone, in the reader
+its file type suits (raw text past 300 KB). Its links point at the hit's own
+repo and branch, and reading it never changes the repo you are browsing.
+**Refresh caches** forgets the file lists and session records this page has
+read, so the next search reads them fresh.
 
 ## Compare copy
 
 For a PowerShell or XAML file open in Search, **Compare copy** takes pasted
-text, a dropped file or a chosen file and compares it in the Stage against a
-pinned revision. [`lib/kits/file-correspondence.js`](../../lib/kits/file-correspondence.js)
-owns the rules:
+text, a dropped file or a chosen file, and compares it in the Stage against a
+pinned revision.
 
-- A `# @file <repo-relative path>` line names the PowerShell file; conflicting
-  declarations are refused. XAML uses the open file.
-- Decoding: UTF-8 and BOM-marked UTF-16 automatically; UTF-16 and Windows-1252
-  by choice. An undecodable file is an error.
-- A difference caused only by line endings is labelled; the exact-match
-  observation stays strict.
-- Checks and unfinished submissions live in browser IndexedDB, exportable as
-  JSON. Clearing site data removes them. Nothing here writes the repository;
-  recording an installation is the Project view's
-  ([project.md](project.md)).
+- A `# @file <repo-relative path>` line names which PowerShell file the copy
+  is; two different declarations are refused. XAML compares against the open
+  file.
+- UTF-8 and UTF-16 with a byte-order mark are read automatically; plain UTF-16
+  and Windows-1252 by choice. A file that decodes as neither is an error.
+- A copy that differs only in line endings says so, and still does not count as
+  an exact match.
+- Checks and unfinished submissions are kept in this browser and export as
+  JSON; clearing site data removes them. Nothing here writes to a repository;
+  recording an installation belongs to the Project view ([project.md](project.md)).
