@@ -197,7 +197,8 @@ test('the two sub-tab encodings, counted', () => {
   // own origin, and a second sub-address grammar for one destination would be
   // the more expensive answer.
   // 18 to 19: the Map gained its Data inventory tab.
-  assert.equal(params, 19, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 19 to 20: the Map gained its Policy tab under Docs.
+  assert.equal(params, 20, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
@@ -404,6 +405,16 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
   assert.ok(stage, 'the stage route is declared');
   assert.equal(R.viewUrl(stage, 'abc123'),
     'https://mehrlander.github.io/web-tools/app/?use=abc123&view=stage');
+});
+
+test('routesTouched identifies sub-tabs for map view and viewUrl encodes them', () => {
+  const touched = R.routesTouched(manifest, ['docs/policies.csv']);
+  const mapRoute = touched.on.find(r => r.key === 'map');
+  assert.ok(mapRoute, 'map route touched');
+  assert.equal(mapRoute.tab, 'policy');
+  assert.equal(mapRoute.tabLabel, 'Policy');
+  assert.equal(R.viewUrl(mapRoute, 'branch1'),
+    'https://mehrlander.github.io/web-tools/app/?use=branch1&view=map&tab=policy');
 });
 
 // The same address scripts/showing.py writes for the lib-only case, and the
