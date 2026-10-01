@@ -635,6 +635,29 @@ test('html() returns the body alone when the caller owns the container', () => {
   assert.match(out, /data-md-scroll/, 'the table is still contained');
 });
 
+// YAML frontmatter, reported from the Dictate page on 2026-09-30: marked drew
+// the opening --- as a rule and made the fields above the closing one a
+// heading, so a skill opened on a line and its description in large bold.
+test('html() shows leading YAML frontmatter as a code block, not a rule and a heading', () => {
+  const src = '---\nname: skill-prefs\ndescription: "Standing preferences."\n---\n\n# Skill Prefs\n\nBody.\n';
+  const box = window.document.createElement('div');
+  box.innerHTML = mdDoc.html(src, { proseClass: '' });
+  const pre = box.querySelector('pre[data-frontmatter]');
+  assert.ok(pre, 'the frontmatter is a marked code block');
+  assert.equal(pre.textContent.trim(), 'name: skill-prefs\ndescription: "Standing preferences."', 'carried verbatim');
+  assert.ok(pre.classList.contains('whitespace-pre-wrap'), 'and it wraps, since a description is one long line');
+  assert.equal(box.querySelector('hr'), null, 'no rule');
+  assert.equal(box.querySelectorAll('h1, h2').length, 1, 'the only heading is the document\'s own');
+  assert.equal(box.querySelector('h1').textContent, 'Skill Prefs');
+});
+
+test('html() leaves a document that opens with a real rule alone', () => {
+  const box = window.document.createElement('div');
+  box.innerHTML = mdDoc.html('---\n\nA paragraph after a rule.\n', { proseClass: '' });
+  assert.ok(box.querySelector('hr'), 'the rule stays a rule');
+  assert.equal(box.querySelector('pre'), null);
+});
+
 // ── The markdown hierarchy, which is not the DOM's ──────────────────────────
 // A rendered document carries two structures and they disagree: `### Under
 // first` is INSIDE `## First` in markdown and its flat sibling in the DOM.

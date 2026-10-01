@@ -1,0 +1,89 @@
+name: Errand · browser
+
+# The `workflow-run` errand method (docs/run-methods.csv): browser checks that
+# need live GitHub and an engine this sandbox lacks, run on a GitHub-hosted
+# runner with no person in the loop. A Claude Code session dispatches it and
+# reads the RESULT lines back from the job log; the errand it serves, if any,
+# is named by the `errand` input and closed by that session.
+#
+# The first check is tools/test/top-mode-live.mjs: top mode through the
+# deployed launcher and the renderer under test, in WebKit (Safari's engine)
+# and Chromium, against live GitHub.
+#
+# A pull request that changes this file or the probe runs it against the PR's
+# own head, so the mechanism is proven before it lands.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'web-tools branch or commit whose pages are under test'
+        required: false
+        default: 'main'
+      engines:
+        description: 'Space-separated engines: webkit, chromium'
+        required: false
+        default: 'webkit chromium'
+      errand:
+        description: 'The errand id this run serves (echoed into the log)'
+        required: false
+        default: ''
+  pull_request:
+    paths:
+      - '.github/workflows/errand-browser.yml'
+      - 'tools/test/top-mode-live.mjs'
+      - 'tools/test/webkit-reload-isolate.mjs'
+
+# Read-only: the job's token is handed to the pages as their GitHub token, so
+# it must be able to do nothing but read.
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      # The code under test, beside the probe. A dispatched run names it; a
+      # pull request tests its own head.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.head.sha }}
+          path: under-test
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      # package-lock.json is gitignored here, so install from package.json.
+      - run: npm install --no-audit --no-fund
+
+      - run: npx playwright install --with-deps webkit chromium
+
+      - name: Top mode, live
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ENGINES: ${{ github.event_name == 'workflow_dispatch' && inputs.engines || 'webkit chromium' }}
+          ERRAND: ${{ inputs.errand }}
+        run: |
+          echo "errand: ${ERRAND:-none}"
+          SHA=$(git -C under-test rev-parse HEAD)
+          echo "under test: $SHA"
+          status=0
+          for e in $ENGINES; do
+            node tools/test/top-mode-live.mjs --sha "$SHA" --engine "$e" --root under-test || status=1
+          done
+          exit $status
+
+      # Diagnostic, reported and never failing the job: which ingredient of
+      # the WebKit death at a reload after Back is the one it needs.
+      - name: WebKit reload isolation
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git -C under-test rev-parse HEAD)
+          node tools/test/webkit-reload-isolate.mjs --sha "$SHA" --engine webkit

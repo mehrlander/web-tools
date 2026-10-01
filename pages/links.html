@@ -78,6 +78,8 @@
     Alpine.data('links', () => ({
       REPO: 'mehrlander/home',
       PATH: 'links/board.json',
+      // Read-modify-write: read and save at one ref. The selection never moves
+      // a file the page writes back; ?data= moves both together.
       DATA_REF: new URLSearchParams(location.search).get('data') || 'main',
       APP_URL: 'https://mehrlander.github.io/web-tools/app/',
 

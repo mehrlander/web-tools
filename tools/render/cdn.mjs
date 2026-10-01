@@ -21,7 +21,7 @@
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
 //
-// resolveCdn(url, repoRoot, ref?) classifies a request URL and returns one of:
+// resolveCdn(url, repoRoot, ref?, headers?) classifies a request URL and returns one of:
 // (ref is the render's --ref value, used to strip a slashed branch name from a
 // raw.githubusercontent own-code URL; optional, only the raw case reads it.)
 //   { kind:'fulfill', body, contentType }  serve these local bytes
@@ -41,9 +41,17 @@
 
 import { readFileSync, existsSync, statSync, lstatSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
+
+// The git blob sha of some bytes, which is what the contents API reports as a
+// file's `sha`. gh-boot records it per loaded file (window.__ghFiles), and it
+// is the one piece of evidence that says WHICH version of a file ran. A
+// placeholder here would leave any check built on it untestable headlessly.
+export const blobSha = (bytes) =>
+  createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
 
 // Serialized git/trees body, built once per process (see the trees branch).
 let treeBodyCache = null;
@@ -309,13 +317,20 @@ const commitJson = (fields, files) => {
 };
 const FMT = '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%cn%x1f%cI%x1f%B%x1e';
 const json = (status, body, tag) => ({ kind: 'fulfill', status, contentType: 'application/json; charset=utf-8', tag, body: JSON.stringify(body) });
-function localCommits(u, root) {
+function localCommits(u, root, accept = '') {
   const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 << 20 });
   const rev = (r) => (!r || r === 'main' || r === 'HEAD') ? 'HEAD' : r;
   const one = u.pathname.match(/\/commits\/([^/]+)$/);
   if (one) {
     const r = git('show', '--no-patch', FMT, rev(decodeURIComponent(one[1])));
     if (r.status !== 0) return json(404, { message: 'No commit found for SHA: ' + one[1] }, `api commit ${one[1]} (absent)`);
+    // The sha media type answers the bare 40 hex characters and nothing else.
+    // The app's ?use= boot resolves a branch name this way, and so does the
+    // shell-pin probe; answered as JSON, both read the whole document as a ref.
+    if (/vnd\.github\.sha/.test(accept)) {
+      return { kind: 'fulfill', status: 200, contentType: 'application/vnd.github.sha; charset=utf-8',
+               tag: `api commit ${one[1].slice(0, 7)} (sha)`, body: r.stdout.split('\x1f')[0].trim() };
+    }
     const num = git('show', '--numstat', '--format=', rev(decodeURIComponent(one[1]))).stdout.trim();
     const files = num ? num.split('\n').map(l => {
       const [a, d, filename] = l.split('\t');
@@ -334,7 +349,7 @@ function localCommits(u, root) {
   return json(200, list, `api commits${q.get('path') ? ' ' + q.get('path') : ''}`);
 }
 
-export function resolveCdn(rawUrl, repoRoot, ref) {
+export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
   const host = u.host;
@@ -418,7 +433,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   // does: the checkout is the ref being rendered.
   if (host === 'api.github.com' && /^\/repos\/[^/]+\/[^/]+\/commits(\/[^/]+)?$/.test(u.pathname)
       && u.pathname.startsWith(`/repos/${REPO}/commits`)) {
-    return localCommits(u, repoRoot);
+    return localCommits(u, repoRoot, headers.accept || headers.Accept || '');
   }
 
   // --- Own repo tree: git/trees/<ref> (the Pages lens scan) ---
@@ -506,7 +521,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         tag: `api ${tail} @${u.searchParams.get('ref')}`,
         body: JSON.stringify({
           content: atRef.toString('base64'),
-          encoding: 'base64', sha: 'local', size: atRef.length, html_url: '',
+          encoding: 'base64', sha: blobSha(atRef), size: atRef.length, html_url: '',
         }),
       };
     }
@@ -533,7 +548,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${tail}`,
         body: JSON.stringify({
           content: bytes.toString('base64'),
-          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
+          encoding: 'base64', sha: blobSha(bytes), size: bytes.length, html_url: '',
         }),
       };
     }
@@ -574,11 +589,19 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
       // DecompressionStream reported the damage as "Failed to fetch"
       // (2026-09-18, the viewer's Proposals mode, now Variants, over home's drafts.jsonl.gz).
       const bytes = readFileSync(fp);
+      // The raw media type answers the file itself, as GitHub does. The
+      // budget-drs app's tenant reader asks for it and takes the body as the
+      // page; answered with the JSON envelope it mounted base64 text as the
+      // tenant and inlined nothing (found 2026-09-29, the selection probe R8).
+      if (/vnd\.github\.raw/.test(String(headers.accept || headers.Accept || ''))) {
+        return { kind: 'fulfill', contentType: 'application/vnd.github.raw; charset=utf-8',
+                 tag: `api ${name}/${rel} (raw)`, body: bytes };
+      }
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,
         body: JSON.stringify({
           content: bytes.toString('base64'),
-          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
+          encoding: 'base64', sha: blobSha(bytes), size: bytes.length, html_url: '',
         }),
       };
     }

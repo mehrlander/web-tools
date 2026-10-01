@@ -218,6 +218,7 @@ const NEED_TOKEN =
   + 'Storage here is per-app: a token saved in Safari is not visible inside the Shortcuts sheet, '
   + 'so this may need entering once in each place you open the page.';
 
+// main: the device log folder is written there by the phone, not previewed.
 const log = new window.GH({ repo: LOG, ref: 'main' });
 
 // The number of actions in one workflow plist, or null when it will not parse
@@ -262,6 +263,7 @@ const lineDiff = (a, b) => {
   while (j < m) out.push({ t: '+', s: b[j++] });
   return out;
 };
+// main: the build scoring compares each logged ref against main deliberately.
 const tools = new window.GH({ repo: TOOLS, ref: 'main' });
 const p2 = n => String(n).padStart(2, '0');
 const dayKey = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;

@@ -47,6 +47,121 @@
   const OWNERS = ['mehrlander'];
   const HUB = 'mehrlander/web-tools';
 
+  // THE SELF-DRIVING CHECK (?probe=<errand id>&steps=…), the `device-link`
+  // errand method in docs/run-methods.csv. A person opens one link on the device
+  // and does nothing else: this runs in the page it launched, walks the steps,
+  // shows where it is in a banner, and closes the errand by writing
+  // errands/results/<id>.json with the device's stored token. Steps:
+  //   fab       open the FAB drawer as a tap does and wait; armed first, so a
+  //             tab that dies here is recorded as `died` when Safari reloads it
+  //   write     the page writes ?view=tools without the selection
+  //   reload    reload the tab (the run resumes from sessionStorage)
+  //   back      history Back
+  //   go:<q>    replace the page's query with <q> and reload
+  // Every step records whether the URL and window.__refs still carry the whole
+  // selection the link named. Serialized into the page, so it is self-contained.
+  function probeDriver(cfg) {
+    var KEY = 'probe:' + cfg.id;
+    var load = function () { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
+    var save = function (s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} };
+    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+    var s = load();
+    if (!s || s.done) s = { i: 0, log: [], started: new Date().toISOString() };
+    var banner = function (text, tone) {
+      var b = document.getElementById('probe-banner');
+      if (!b) {
+        b = document.createElement('div'); b.id = 'probe-banner';
+        b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2147483647;padding:14px 16px;' +
+          'font:600 17px/1.35 -apple-system,system-ui,sans-serif;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+        (document.body || document.documentElement).appendChild(b);
+      }
+      b.style.background = tone === 'ok' ? '#15803d' : tone === 'bad' ? '#b91c1c' : '#1d4ed8';
+      b.textContent = text;
+    };
+    var snap = function (label, extra) {
+      var got = new URL(location.href).searchParams.getAll('refs').slice().sort();
+      var want = cfg.sel.slice().sort();
+      var keys = Object.keys(window.__refs || {}).length;
+      var e = { step: label, refsKept: JSON.stringify(got) === JSON.stringify(want),
+                refs: got.length + '/' + want.length, refsKeys: keys,
+                frames: document.querySelectorAll('iframe').length };
+      for (var k in extra || {}) e[k] = extra[k];
+      s.log.push(e); save(s);
+      return e;
+    };
+    var booted = async function () {
+      for (var t = 0; t < 120; t++) {
+        if (window.gh && window.Alpine && document.querySelector('[x-data^="fab"]')) return true;
+        await wait(500);
+      }
+      return false;
+    };
+    var fileResult = async function () {
+      var failed = s.log.filter(function (e) { return e.refsKept === false || e.died || e.opened === false; });
+      var rec = { id: cfg.id, closedAt: new Date().toISOString(), ok: true, answered: true,
+        pass: failed.length === 0, method: 'device-link', ua: navigator.userAgent,
+        started: s.started, steps: s.log,
+        message: failed.length ? failed.length + ' step(s) failed: ' + failed.map(function (e) { return e.step; }).join(', ')
+                               : 'every step passed' };
+      try {
+        var G = window.GH, g = new G({ repo: cfg.registry, ref: '' });
+        if (typeof g.save !== 'function' && window.gh && window.gh.load) await window.gh.load('gh-store.js');
+        await g.save('errands/results/' + cfg.id + '.json', rec, 'errand result: ' + cfg.id + ' (device)');
+        banner((rec.pass ? 'Done: every check passed. ' : 'Done: ' + rec.message + '. ') + 'Result filed; nothing else to do.', rec.pass ? 'ok' : 'bad');
+      } catch (e) {
+        banner('Checks finished but the result could not be filed (' + String(e && e.message || e).slice(0, 80) +
+          '). Screenshot this and send it.', 'bad');
+        var pre = document.createElement('pre'); pre.textContent = JSON.stringify(rec, null, 1);
+        pre.style.cssText = 'position:fixed;left:0;right:0;top:80px;bottom:0;overflow:auto;background:#fff;z-index:2147483646;font:12px monospace;padding:8px';
+        document.body.appendChild(pre);
+      }
+    };
+    var run = async function () {
+      banner('Automated check ' + cfg.id + ': loading…');
+      var up = await booted();
+      if (s.armed) { snap(s.armed, { died: true }); s.armed = null; s.i++; save(s); }
+      if (!up && s.i === 0) snap('boot', { booted: false });
+      while (s.i < cfg.steps.length) {
+        var step = cfg.steps[s.i];
+        banner('Automated check ' + (s.i + 1) + ' of ' + cfg.steps.length + ': ' + step + '. Leave the phone as it is.');
+        if (step === 'fab') {
+          s.armed = 'fab'; save(s);
+          var el = document.querySelector('[x-data^="fab"]');
+          var d = el && window.Alpine && window.Alpine.$data(el);
+          if (d) { if (typeof d.toggle === 'function') d.toggle(); else d.open = true; }
+          await wait(4000);
+          s.armed = null;
+          snap('fab', { opened: !!(d && (d.open || d.opened)) });
+          if (d && d.open && typeof d.toggle === 'function') d.toggle();
+          s.i++; save(s);
+        } else if (step === 'write') {
+          history.pushState(null, '', '?view=tools'); await wait(500);
+          snap('write'); s.i++; save(s);
+        } else if (step === 'back') {
+          history.back(); await wait(2000);
+          snap('back'); s.i++; save(s);
+        } else if (step === 'reload' || step.indexOf('go:') === 0) {
+          s.i++; s.pendingSnap = step.indexOf('go:') === 0 ? 'go' : 'reload'; save(s);
+          if (step === 'reload') location.reload();
+          else { history.replaceState(null, '', '?' + step.slice(3)); location.reload(); }
+          return;
+        } else { snap(step, { unknown: true }); s.i++; save(s); }
+      }
+      s.done = true; save(s);
+      await fileResult();
+    };
+    var start = async function () {
+      if (s.pendingSnap) {
+        var label = s.pendingSnap; s.pendingSnap = null; await booted();
+        // A `go` that opens a view mounts its frame after boot; give it time.
+        for (var t = 0; label === 'go' && t < 30 && !document.querySelector('iframe'); t++) await wait(500);
+        snap(label);
+      }
+      await run();
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  }
+
   // The address: `gh` read by slice up to the next '&' for the current form,
   // or to the end for the old form whose page query rode inside the value.
   const q = location.search.replace(/^\?/, '');
@@ -127,7 +242,9 @@
       // wrote one for the same target (a repository, or a repository and a
       // path). The renderer's ?top carries the same function, topKeepSource;
       // tools/test/toss-top-mode.test.mjs holds the two to one behaviour.
-      const kept = [...real].filter(([k]) => k === 'refs' || k === 'lib');
+      // probe and steps (the self-driving check, below) are kept the same way,
+      // or a page write mid-run would drop the driver's own instructions.
+      const kept = [...real].filter(([k]) => ['refs', 'lib', 'probe', 'steps'].includes(k));
       const keepSource = 'function tgt(v){var m=String(v).match(/^([^/@:\\s]+\\/[^/@:\\s]+)@([^:]+?)(?::\\/*(.+))?$/);' +
         'return m?m[1]+(m[3]?":"+m[3]:""):String(v);}' +
         'function keep(q){var has={},mine={};K.forEach(function(p){has[p[0]]=q.has(p[0]);});' +
@@ -170,7 +287,15 @@
         `var q=new URLSearchParams(t.search);q.delete("gh");keep(q);var s=q.toString();` +
         `return location.origin+B+"?gh="+encodeURIComponent(A).replace(/%2F/g,"/").replace(/%40/g,"@").replace(/%3A/g,":")+(s?"&"+s:"")+t.hash;}catch(e){return u;}}` +
         `H.replaceState=function(s,t,u){return rs.call(H,s,t,map(u));};H.pushState=function(s,t,u){return ps.call(H,s,t,map(u));};})();<\/script>`;
-      html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, x => x + prelude) : prelude + html;
+      // The self-driving check, when the link asks for one (probeDriver, below).
+      const probe = real.get('probe') || '';
+      const driver = /^[a-z0-9][a-z0-9-]{0,79}$/.test(probe)
+        ? `<script>(${probeDriver.toString()})(${JSON.stringify({
+            id: probe, sel: real.getAll('refs'), registry: 'mehrlander/web-tools-private',
+            steps: (real.get('steps') || 'fab,write,reload,back,reload').split(',').filter(Boolean),
+          }).replace(/</g, '\\u003c')});<\/script>`
+        : '';
+      html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, x => x + prelude + driver) : prelude + driver + html;
       document.open();
       document.write(html);
       document.close();

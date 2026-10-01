@@ -119,14 +119,12 @@ for repo in cands:
             optout = (json.loads(reads(cfg)) or {}).get("conventions") == "optout"
         except (ValueError, AttributeError):
             optout = False
-    # A CLAUDE.md is REQUIRED to be named, and a manifest is not enough. The
-    # import is the delivery channel, so a checkout without a CLAUDE.md has no
-    # channel to be missing and nothing to prod it about. Found by running
-    # this against a project root whose siblings were 42 scratch clones left by
-    # scripts/showing.py, each carrying a .web-tools.json and no CLAUDE.md: the
-    # first cut named six of them and read as though the session had 42 repos
-    # out of step. The manifest still speaks, but only to opt a repo out.
-    if not optout and os.path.isfile(claude_md):
+    # Every repo counts, with or without a CLAUDE.md: a folder with a .git, a
+    # CLAUDE.md or a manifest. Until 2026-09-29 a repo without a CLAUDE.md was
+    # skipped, which silenced the prompt in sessions whose only checkouts had
+    # none, such as one holding just web-tools-private.
+    is_repo = any(os.path.exists(os.path.join(repo, n)) for n in (".git", "CLAUDE.md", ".web-tools.json"))
+    if is_repo and not optout:
         needing.append(os.path.basename(repo))
 
 if delivered or not needing:

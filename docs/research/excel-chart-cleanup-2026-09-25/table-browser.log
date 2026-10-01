@@ -1,0 +1,18 @@
+1. Loading Demonstration-Workbooks.xlsx in data-view.html...
+2. Inspecting PivotSummary sheet...
+  ok    Pivot headers marked with .pvt-hdr
+  ok    Pivot headers have light blue background (rgb(200, 225, 238))
+  ok    Pivot headers have black text color
+  ok    Pivot subtotals marked with .pvt-subtotal
+  ok    Pivot grand total has double bottom border
+  ok    Pivot row hierarchy parent toggles present
+  Saved screenshot: [XLSX_PREVIEW_DIR]\rendered-pivot-summary-blue.png
+3. Inspecting RawData table (ListObject)...
+  ok    Table headers marked with .tbl-hdr
+  ok    Table headers have NO forced light blue header color
+  ok    Table headers are bold
+  ok    Table headers carry filter dropdown carets
+  ok    Table total row marked with .tbl-total
+  Saved screenshot: [XLSX_PREVIEW_DIR]\rendered-raw-data-table.png
+
+ALL VISUAL TESTS PASSED!

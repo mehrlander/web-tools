@@ -105,8 +105,13 @@ test('entry.js hands gh-api a repo and the fetched ref, before the import, and c
   assert.ok(m, 'entry.js sets no __ghBlobBoot');
   assert.match(m[1], /\brepo\b/, 'without repo, gh-api builds /repos//contents/… and the page renders blank');
   assert.match(m[1], /\bref\b/, 'without ref, gh-api does not know which ref it was fetched at');
-  assert.match(entry, /raw\.githubusercontent\.com\/\$\{repo\}\/\$\{ref\}\/lib\/gh-api\.js/,
-    'the fetch must read the same repo and ref the boot object names');
+  // The fetch reads the boot ref, unless the page's selection names gh-api.js
+  // itself (or lib/) at another ref: a path entry, which previews one file over
+  // an otherwise unchanged library (docs/loader.md, "The selection").
+  assert.match(entry, /raw\.githubusercontent\.com\/\$\{repo\}\/\$\{apiRef\}\/lib\/gh-api\.js/,
+    'the fetch must read the repo the boot object names, at apiRef');
+  assert.match(entry, /const apiRef = sel\[repo \+ ':lib\/gh-api\.js'\] \|\| sel\[repo \+ ':lib\/'\] \|\| ref;/,
+    'apiRef is a path entry for gh-api.js, else the boot ref itself');
   const set = entry.indexOf('__ghBlobBoot');
   const imp = entry.search(/await\s+import\s*\(/);
   assert.ok(set >= 0 && imp > set, 'gh-api reads __ghBlobBoot at module scope, so it must be set first');

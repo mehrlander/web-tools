@@ -158,7 +158,7 @@ const XLSX_URI = 'data:application/vnd.openxmlformats;base64,' + window.btoa('PK
 // Either mode's strip: the sheet render and the grid publish the same contract
 // and wear the same tab row under different data attributes.
 const tabs = () => [...wbRoot.querySelectorAll('[data-sheet="tabs"] button, [data-xlsx="tabs"] button')];
-const activeTab = () => tabs().findIndex(b => b.classList.contains('btn-active'));
+const activeTab = () => tabs().findIndex(b => b.classList.contains('tab-active'));
 
 test('a workbook opens on the sheet render with its first sheet drawn', async () => {
   await wbData.show('book.xlsx', XLSX_URI, { local: true });

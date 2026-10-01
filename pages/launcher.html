@@ -160,7 +160,10 @@
 function launcherSetup() {
   // Canonical source of the bootstrap. ?use=<ref> lets you build from a branch's
   // version of bookmarklets/popup-launcher.js while testing launcher changes.
-  const CANON = { repo: 'mehrlander/web-tools', ref: new URLSearchParams(location.search).get('use') || 'main' };
+  // A renderer's stamped selection (__refFor) answers first.
+  const CANON = { repo: 'mehrlander/web-tools',
+    ref: (window.__refFor && window.__refFor('mehrlander/web-tools', 'bookmarklets/popup-launcher.js'))
+         || new URLSearchParams(location.search).get('use') || 'main' };
 
   // Byte-for-byte fallback of bookmarklets/popup-launcher.js, used only if the
   // API is unreachable. Keep in sync with that file.
@@ -169,6 +172,8 @@ function launcherSetup() {
   const escJs = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
   return {
+    // main stays: this ref is baked into the bookmarklet, a deployed pointer,
+    // and the popup list is read at it so the list matches what will run.
     token: '', repo: 'mehrlander/web-tools', ref: 'main',
     show: false, remember: false, copied: false, hintDrag: false,
     template: EMBEDDED_BOOTSTRAP, liveSource: false,

@@ -108,7 +108,10 @@ test('a wrapper goes when its last character does, and not before', () => {
 test('backspace at a line start drops its marker, or joins the block before', () => {
   assert.deepEqual(M().backspace('## Head', 3), { text: 'Head', caret: 0 });
   assert.deepEqual(M().backspace('- item', 2), { text: 'item', caret: 0 });
-  assert.deepEqual(M().backspace('one\n\ntwo', 5), { text: 'onetwo', caret: 3 });
+  assert.deepEqual(M().backspace('one\n\ntwo', 5), { text: 'one two', caret: 4 },
+    'two paragraphs join with a space, not glued into one word');
+  assert.deepEqual(M().backspace('one \n\ntwo', 6), { text: 'one two', caret: 4 },
+    'and a space already there is not doubled');
   assert.equal(M().backspace('## Head', 5), null, 'mid-line is an ordinary backspace');
 });
 
@@ -176,7 +179,7 @@ test('the patch applies with git and reproduces the edit byte for byte', async (
 // Tracked: the edit drawn as cards in the document, one card per run of
 // changed blocks, marked as a whole. Removed words are shown and never mapped,
 // so every stamped run is still the buffer's text.
-test('tracked render draws each run of changes as one card and maps only the buffer', async () => {
+test('tracked render draws each changed paragraph as its own card and maps only the buffer', async () => {
   window.Diff = (await import('diff')).default ?? (await import('diff'));
   window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
@@ -185,10 +188,11 @@ test('tracked render draws each run of changes as one card and maps only the buf
   host.__mdKey = null; host.__readings = {};
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   const cards = [...host.querySelectorAll('[data-md-card]')];
-  assert.equal(cards.length, 2, 'the changed and removed blocks side by side are one card, the added one another');
-  assert.equal(window.MdSurface.cards(host)[0].map((e) => e.kind).join(), 'changed,removed');
-  assert.deepEqual([...host.querySelectorAll('del')].map((d) => d.textContent.trim()), ['canonical', 'Gone para.'],
-    'the run is marked as a whole, so a block taken out beside a changed one is struck where it stood');
+  assert.equal(cards.length, 3, 'a changed, a removed and an added paragraph that share no words are three cards');
+  assert.deepEqual(window.MdSurface.cards(host).map((r) => r.map((e) => e.kind).join()), ['changed', 'removed', 'added']);
+  assert.deepEqual([...host.querySelectorAll('del')].map((d) => d.textContent.trim()), ['canonical']);
+  assert.equal(cards[1].querySelector('[data-md-reading="inline"] [data-md-ghost]').textContent.trim(), 'Gone para.',
+    'a block taken out is struck whole in a card of its own, where it stood');
   assert.ok(![...host.querySelectorAll('del [data-src], [data-md-ghost] [data-src], [data-md-ui] [data-src]')].length,
     'removed words, removed blocks and card controls carry no offset');
   for (const sp of host.querySelectorAll('[data-src]')) {
@@ -197,14 +201,14 @@ test('tracked render draws each run of changes as one card and maps only the buf
   }
   assert.deepEqual([...host.querySelectorAll('[data-md-card="0"] [data-md-card-read]')].map((b) => b.textContent),
     ['old', 'inline', 'new'], 'a run with both sides carries all three stops');
-  assert.deepEqual(window.MdSurface.cardModes(host, 1), ['inline'], 'a run that only adds has one reading, and no pill');
-  assert.ok(!host.querySelector('[data-md-card="1"] [data-md-card-read]'));
+  assert.deepEqual(window.MdSurface.cardModes(host, 2), ['inline'], 'a run that only adds has one reading, and no pill');
+  assert.ok(!host.querySelector('[data-md-card="2"] [data-md-card-read]'));
   window.MdSurface.setReading(host, 0, 'new');
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   assert.ok(!host.querySelector('[data-md-card="0"] [data-md-reading="new"] del'), 'new is the text clean');
-  assert.ok(host.querySelector('[data-md-card="0"] [data-md-reading="inline"].invisible'),
-    'the other readings stay in the card, invisible, so it keeps the tallest one\'s height');
-  assert.equal(host.querySelectorAll('[data-md-card="0"] [data-md-reading]:not(.invisible) [data-src]').length,
+  assert.ok(host.querySelector('[data-md-card="0"] [data-md-track] > [data-md-reading="inline"][data-md-off]'),
+    'the other readings stay in the card, side by side on its track, so it keeps the tallest one\'s height');
+  assert.equal(host.querySelectorAll('[data-md-card="0"] [data-md-reading]:not([data-md-off]) [data-src]').length,
     host.querySelectorAll('[data-md-card="0"] [data-src]').length, 'only the reading on screen is mapped');
   assert.ok(host.querySelector('[data-md-card="0"] [data-src]'), 'and it takes the caret');
   const typedNew = text.replace('Added para.', 'Added para!');
@@ -216,16 +220,54 @@ test('tracked render draws each run of changes as one card and maps only the buf
   window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
   assert.equal(window.MdSurface.readingOf(host, 0), 'old');
   const ghost = host.querySelector('[data-md-card="0"] [data-md-ghost]').textContent;
-  assert.ok(ghost.includes('canonical') && ghost.includes('Gone para'), 'old shows the whole run from the base, unmapped');
+  assert.ok(ghost.includes('canonical') && !ghost.includes('Gone para'), 'old shows the card\'s own paragraph from the base, unmapped');
   assert.ok(!host.querySelector('[data-md-card="0"] [data-src]'), 'the original takes no caret');
   const typed = text.replace('Same para.', 'Same para!');
   window.MdSurface.paint(host, { text: typed, base, track: true, overlay: window.document.getElementById('box') });
   assert.equal(window.MdSurface.readingOf(host, 0), 'inline', 'an edit returns a card on the original to the marked text');
-  assert.equal(window.mdDiff.revert(base, text, window.MdSurface.cards(host)[0]).split('Same')[0], base.split('Same')[0],
-    'a card goes back to the original as a whole');
+  assert.equal(window.mdDiff.revert(base, text, window.MdSurface.cards(host)[0]),
+    '# Title\n\nThe canonical source is here.\n\nSame para.\n\nAdded para.\n', 'a card goes back to the original as a whole');
   host.__mdKey = null;
   window.MdSurface.paint(host, { text, base: text, track: true, overlay: window.document.getElementById('box') });
   assert.equal(host.querySelectorAll('[data-md-card]').length, 0, 'no change, no cards');
+});
+
+// The native selection option reads the platform's Selection through this:
+// its ends are DOM points, which have to land on the same offsets a tap does.
+test('a DOM point maps to its source offset and back', () => {
+  const host = window.document.getElementById('host');
+  const text = '# T\n\nOne **two** three.\n\nFour.\n';
+  host.__mdKey = null;
+  window.MdSurface.paint(host, { text, overlay: window.document.getElementById('box') });
+  for (const at of [text.indexOf('One'), text.indexOf('two') + 1, text.indexOf('three'), text.indexOf('Four.') + 5]) {
+    const p = window.MdSurface.domPoint(host, at);
+    assert.ok(p, `a point for ${at}`);
+    assert.equal(window.MdSurface.offsetOf(host, p.node, p.offset), at, `round trip at ${at}`);
+  }
+  const para = host.querySelectorAll('p')[0];
+  assert.equal(window.MdSurface.offsetOf(host, para, para.childNodes.length), text.indexOf(' three.') + 7,
+    'past an element\'s last child is the end of its last run');
+  assert.equal(window.MdSurface.offsetOf(host, window.document.body, 0), null, 'outside the host is nothing');
+  // Found by review, 2026-09-27: a Selection's ends are often (element, k),
+  // the point BEFORE child k. An end there must not take child k with it,
+  // and a start there must not reach back into the block before.
+  const four = host.querySelectorAll('p')[1];
+  assert.equal(window.MdSurface.offsetOf(host, four, 0, 'end'), text.indexOf(' three.') + 7,
+    'a selection ending at the head of the next paragraph ends where the last one did');
+  assert.equal(window.MdSurface.offsetOf(host, para, 0, 'start'), text.indexOf('One'),
+    'a selection starting at a paragraph\'s head starts at its first word');
+  const strong = para.querySelector('strong');
+  assert.equal(window.MdSurface.offsetOf(host, para, [...para.childNodes].indexOf(strong), 'start'), text.indexOf('two'),
+    'a start before the bold starts at its word, not at the text before it');
+  assert.equal(window.MdSurface.offsetOf(host, para, [...para.childNodes].indexOf(strong) + 1, 'end'), text.indexOf('two') + 3,
+    'an end after the bold ends at its word');
+  // A page-set range starting between blocks (the H key's `## ` sits there)
+  // lands on the next word, not on the end of the block before.
+  const at = text.indexOf('\n\nFour') + 1;
+  const p = window.MdSurface.domPoint(host, at, 'start');
+  assert.equal(window.MdSurface.offsetOf(host, p.node, p.offset, 'start'), text.indexOf('Four'), 'start between blocks goes forward');
+  const q = window.MdSurface.domPoint(host, at, 'end');
+  assert.equal(window.MdSurface.offsetOf(host, q.node, q.offset, 'end'), text.indexOf(' three.') + 7, 'an end there goes back');
 });
 
 // A one-word heading retyped shares no word with its old self; it is still
@@ -238,4 +280,60 @@ test('a retyped heading pairs with its old self, and a typo pairs by letters', (
   assert.ok(two.some((e) => e.kind === 'changed' && e.old === '# Surfacing'), 'same kind, close letters: paired');
   const cross = window.mdDiff.align('# Setup\n', '```\nsetap\n```\n').filter((e) => e.kind !== 'same');
   assert.deepEqual(cross.map((e) => e.kind).sort(), ['added', 'removed'], 'a heading never pairs with a fence');
+});
+
+// A word diff cannot see a paragraph break: two paragraphs joined have the
+// same words as before. The card marks the break itself, struck where one was
+// closed and green where one was opened, and neither mark takes the caret.
+test('a paragraph break is traced by a seam in the reading that runs the paragraphs together', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const host = window.document.getElementById('host');
+  const box = window.document.getElementById('box');
+  const base = '# T\n\nOne ends here.\n\nTwo starts here.\n\nTail.\n';
+  const joined = '# T\n\nOne ends here. Two starts here.\n\nTail.\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text: joined, base, track: true, overlay: box });
+  const closed = host.querySelector('[data-md-reading="inline"] [data-md-break="closed"]');
+  assert.ok(closed, 'the join is marked');
+  assert.equal(closed.closest('[data-md-seam]').textContent, 'Two', 'the seam rises at the first word after the old break');
+  assert.ok(!closed.textContent && closed.hasAttribute('data-md-ui'), 'the mark holds no text, and is a control the caret skips');
+  assert.ok(!host.querySelector('[data-md-reading="inline"] del'), 'no ¶ is struck, the seam says it');
+  assert.equal(host.querySelectorAll('[data-md-reading="new"] [data-md-seam]').length, 1, 'new is traced too');
+  assert.ok(!host.querySelector('[data-md-reading="old"] [data-md-seam], [data-md-gap]'), 'the original shows its break and marks nothing');
+  const split = '# T\n\nOne ends\n\nhere.\n\nTwo starts here.\n\nTail.\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text: split, base, track: true, overlay: box });
+  const opened = host.querySelector('[data-md-reading="old"] [data-md-break="opened"]');
+  assert.ok(opened, 'the split is marked');
+  assert.equal(opened.closest('[data-md-seam]').textContent, 'here.', 'in the original, where it will divide');
+  assert.ok(!host.querySelector('[data-md-reading="inline"] [data-md-seam], [data-md-reading="new"] [data-md-seam], [data-md-gap]'),
+    'the readings that show the break mark nothing');
+  assert.ok(!host.querySelector('[data-md-reading="inline"] .md-diff-ins'), 'no green ¶, and nothing else added');
+  for (const sp of host.querySelectorAll('[data-src]')) {
+    const s = +sp.dataset.src, t = sp.firstChild.data;
+    assert.equal(split.slice(s, s + t.length), t, `run at ${s} is still the buffer's text`);
+  }
+});
+
+// Found by review, 2026-09-27: a join is usually followed by lower-casing the
+// word after it, and the join's mark has to survive that; and a break opened
+// out of a list item is marked in the original at the word that left it.
+test('a closed break is still marked when the word after it changed too', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const host = window.document.getElementById('host'), box = window.document.getElementById('box');
+  const base = 'One two.\n\nThree four.\n';
+  for (const text of ['One two. three four.\n', 'One two. four.\n']) {
+    host.__mdKey = null; host.__readings = {};
+    window.MdSurface.paint(host, { text, base, track: true, overlay: box });
+    assert.equal(host.querySelectorAll('[data-md-break="closed"]').length, 1, JSON.stringify(text));
+  }
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text: '- Para one\n\ntwo.\n\nTail.\n', base: 'Para one two.\n\nTail.\n', track: true, overlay: box });
+  const opened = host.querySelector('[data-md-reading="old"] [data-md-break="opened"]');
+  assert.ok(opened, 'the split is marked');
+  assert.equal(opened.closest('[data-md-seam]').textContent, 'two.', 'at the word that left the item');
 });

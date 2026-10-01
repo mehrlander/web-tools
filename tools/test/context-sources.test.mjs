@@ -26,6 +26,18 @@ const privPath = path.join(repoRoot, '..', 'web-tools-private', 'environment', '
 const privText = existsSync(privPath) ? readFileSync(privPath, 'utf8') : null;
 const privRows = privText ? parseCsv(privText) : [];
 
+test('every row has exactly the header\'s columns, so an unquoted comma cannot split a row', () => {
+  for (const [name, text] of [['docs/context-sources.csv', srcText], ['docs/context-topics.csv', read('docs/context-topics.csv')], ...(privText ? [['private half', privText]] : [])]) {
+    const width = header(text).split(',').length;
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    for (const line of lines) {
+      let n = 1, q = false;
+      for (const ch of line) { if (ch === '"') q = !q; else if (ch === ',' && !q) n++; }
+      assert.equal(n, width, name + ': ' + line.slice(0, 60));
+    }
+  }
+});
+
 test('ids are unique across both halves', () => {
   const ids = [...rows, ...privRows].map(r => r.id);
   assert.equal(new Set(ids).size, ids.length, 'a context source id appears twice');

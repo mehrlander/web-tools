@@ -160,18 +160,31 @@ the failure.
 
 ### What the account's setup script must do
 
-The canonical copy is `environment/setup.sh` in web-tools-private; the
-environment panel in claude.ai settings holds a paste of it. It must install
-`portable` at user scope, because plugins load at session start and a session
-rooted above the checkouts reads no project settings. It writes nothing else:
-no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny. The plugin refresher,
-the `AskUserQuestion` guard and the session-store default are plugin hooks
-([extending.md](extending.md#pretooluse-the-askuserquestion-guard)).
+The environment settings in claude.ai hold one line, which fetches and runs
+[`scripts/environment-setup.sh`](../../scripts/environment-setup.sh) from this
+repo's `main`:
+
+```
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/scripts/environment-setup.sh | bash
+```
+
+The script lives here because the setup script cannot reach a private repo. It
+installs `portable` at user scope, because plugins load at session start and a
+session rooted above the checkouts reads no project settings. It then saves its
+own text, the commit it came from and when it ran to
+`~/.claude/environment-setup.ran`, which the plugin's environment report prints
+from at every session start
+([extending.md](extending.md#sessionstart-the-environment-report)). It writes
+no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
+
+Changing the script does not rebuild the environment. A rebuild runs whatever
+is on `main` at that moment, and happens when the owner edits the environment
+settings or the cached build expires.
 
 **If the installed plugin fails to load, its refresher cannot run.** Recover the
 session with `claude plugin marketplace update web-tools`, then
 `claude plugin update --scope user portable@web-tools` and `/reload-plugins`.
-For later sessions the owner edits any byte of the setup script, which forces a
+For later sessions the owner edits the environment settings, which forces a
 rebuild.
 
 If `portable` loads, ignore a `daisy-alpine ... FAILED` line from the old
