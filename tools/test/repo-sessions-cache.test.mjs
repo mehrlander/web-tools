@@ -1515,3 +1515,72 @@ test('beats survive the prose cut, because the list draws them on every row', ()
   assert.ok(!('turns' in lean), 'the prose does not');
   assert.ok(!S.PROSE_KEYS.includes('beats'));
 });
+
+// ── Topics, joined from web-tools-private's state/session-topics.json ────────
+// The follow-up's rollup is joined on read by the pane, so the join has to be
+// safe to repeat: a re-join with a newer rollup must replace, and a row the
+// rollup stopped naming must lose what it carried rather than keep a stale
+// summary.
+
+const TOPICS_DOC = {
+  version: 1,
+  sessions: {
+    d456b017: { title: 'Share Sheet Shortcut', topics: ['shortcuts', 'share-sheet', 7], summary: 'Wired it.' },
+    ca1777ac: { title: '', topics: [], summary: '' },
+  },
+};
+
+test('withTopics joins title, topics and summary by short id, prefixed', () => {
+  const rows = [{ id: 'd456b017', day: '2026-09-24' }, { id: 'ffffffff', day: '2026-09-30' }];
+  const [a, b] = S.withTopics(rows, TOPICS_DOC);
+  assert.deepEqual(a.topics, ['shortcuts', 'share-sheet']);
+  assert.equal(a.topicTitle, 'Share Sheet Shortcut');
+  assert.equal(a.topicSummary, 'Wired it.');
+  assert.equal(b, rows[1], 'a row the rollup does not name is returned as is');
+  assert.equal(rows[0].topics, undefined, 'the input rows are not mutated');
+});
+
+test('withTopics drops empty fields, and a re-join replaces or clears', () => {
+  const [empty] = S.withTopics([{ id: 'ca1777ac' }], TOPICS_DOC);
+  assert.deepEqual(Object.keys(empty), ['id'], 'an entry with nothing in it adds nothing');
+  const joined = S.withTopics([{ id: 'd456b017' }], TOPICS_DOC);
+  const newer = { sessions: { d456b017: { title: 'Renamed', topics: ['apple-shortcuts'] } } };
+  const [again] = S.withTopics(joined, newer);
+  assert.equal(again.topicTitle, 'Renamed');
+  assert.deepEqual(again.topics, ['apple-shortcuts']);
+  assert.equal(again.topicSummary, undefined, 'a summary the newer rollup lacks does not survive');
+  const [gone] = S.withTopics(joined, { sessions: {} });
+  assert.deepEqual(Object.keys(gone), ['id']);
+  const [unread] = S.withTopics(joined, null);
+  assert.deepEqual(Object.keys(unread), ['id'], 'no rollup means no topics, not the last ones seen');
+});
+
+test('labelOf: the export title, then Gemini\'s, then the branch slug', () => {
+  const base = { id: 'd456b017', repos: [{ name: 'web-tools', branch: 'claude/share-sheet-shortcut-x1y2z3' }] };
+  assert.equal(S.labelOf({ ...base, title: 'Owner title', topicTitle: 'Gemini title' }), 'Owner title');
+  assert.equal(S.labelOf({ ...base, topicTitle: 'Gemini title' }), 'Gemini title');
+  assert.equal(S.labelOf(base), S.nameOf(base));
+});
+
+test('the text box reaches topics, the Gemini title and the summary', () => {
+  const [row] = S.withTopics([{ id: 'd456b017', ask: 'Build it' }], TOPICS_DOC);
+  assert.ok(S.matches(row, 'share-sheet'));
+  assert.ok(S.matches(row, 'share sheet'), 'a hyphenated topic answers to its spaced form');
+  assert.ok(S.matches(row, 'wired'));
+  assert.ok(S.matches(row, 'shortcut'));
+  assert.ok(!S.matches({ id: 'd456b017', ask: 'Build it' }, 'share-sheet'), 'and an unjoined row does not');
+});
+
+test('topicCounts: sessions per topic, newest day, busiest first then by name', () => {
+  const rows = [
+    { day: '2026-09-24', topics: ['shortcuts', 'share-sheet'] },
+    { day: '2026-09-30', topics: ['shortcuts', 'shortcuts'] },
+    { day: '2026-09-28', topics: ['budget'] },
+    { day: '2026-09-29' },
+  ];
+  assert.deepEqual(S.topicCounts(rows), [
+    { topic: 'shortcuts', count: 2, last: '2026-09-30' },
+    { topic: 'budget', count: 1, last: '2026-09-28' },
+    { topic: 'share-sheet', count: 1, last: '2026-09-24' },
+  ]);
+});
