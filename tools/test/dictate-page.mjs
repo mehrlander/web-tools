@@ -1143,6 +1143,9 @@ try {
   // a long press inside a selection that then carries it.
   console.log('paragraphs:');
   const PARA_DOC = '# Title\n\nFirst one. First two.\n\nSecond para.\n\nThird para.\n';
+  // What the fixture serves, swapped for a check that needs GitHub's copy to
+  // have moved under a draft.
+  let served = { text: PARA_DOC, sha: 'para' };
   await page.route('**/repos/mehrlander/web-tools/contents/tools/test/para-fixture.md*', (route) => {
     // A write to the fixture (Apply, Save) is logged like any other write.
     if (route.request().method() === 'PUT') {
@@ -1151,7 +1154,7 @@ try {
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ content: { sha: 'applied' } }) });
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-      content: Buffer.from(PARA_DOC).toString('base64'), encoding: 'base64', sha: 'para', size: PARA_DOC.length }) });
+      content: Buffer.from(served.text).toString('base64'), encoding: 'base64', sha: served.sha, size: served.text.length }) });
   });
   await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('dictate')) localStorage.removeItem(k); });
   await open('?file=mehrlander/web-tools:tools/test/para-fixture.md');
@@ -2029,7 +2032,8 @@ try {
     && faces.plain.cards === 0 && !faces.plain.marks && faces.changes.cards > 0, JSON.stringify(faces));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
-  // changes, carrying each one's note; the rest stay as edits.
+  // changes; the rest stay as edits. A note is not commit text: it stays on
+  // the page, moved onto the applied text.
   console.log('confirm and apply:');
   await reset();
   const conf = await page.evaluate(async () => {
@@ -2060,35 +2064,141 @@ try {
   });
   ok('confirm marks the card, green number and "confirmed ✓", and brings Apply 1; the same word takes it back', conf.on.word === 'confirmed ✓' && conf.on.green && /^Apply 1\b/.test(conf.on.apply || '') && conf.off.word === 'confirm' && !conf.off.green && conf.off.apply === null, JSON.stringify(conf));
   ok('confirm, confirmed and Apply say what they do in title-tips, never in a `title`',
-    conf.off.tip === 'Accept this change (can undo).' && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit, with their notes\.$/.test(conf.on.applyTip)
+    conf.off.tip === 'Accept this change (can undo).' && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit\.$/.test(conf.on.applyTip)
       && !conf.on.title && !conf.off.title && !conf.on.applyTitle, JSON.stringify({ on: conf.on, off: conf.off }));
   ok('editing a confirmed card lets the confirmation lapse', conf.edited.n === 0 && conf.edited.word === 'confirm', JSON.stringify(conf.edited));
   const before = writes.length;
   await page.evaluate(() => document.querySelector('[data-apply]').click());
   await page.waitForTimeout(400);
   const applied = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    return { base: c.fileBase, text: c.text, cards: c.changesCount, n: c.confirmedCount }; });
+    return { base: c.fileBase, text: c.text, cards: c.changesCount, n: c.confirmedCount,
+             notes: c.notes.map((n) => ({ text: n.text, exact: n.exact, at: n.o == null ? null : c.fileBase.slice(n.o, n.e) })) }; });
   const w = writes[writes.length - 1];
   const want = PARA_DOC.replace('Third para.', 'Third paragraph.');
-  ok('Apply commits GitHub\'s copy with only the confirmed change, the note in the message, and the other edits, a card and a doubled space no card shows, stay as edits',
-    writes.length === before + 1 && w.text === want && /^Apply 1 change to /.test(w.message) && w.message.includes('Clearer.')
+  ok('Apply commits GitHub\'s copy with only the confirmed change, and the other edits, a card and a doubled space no card shows, stay as edits',
+    writes.length === before + 1 && w.text === want && /^Apply 1 change to /.test(w.message)
       && applied.base === want && applied.text.includes('First once.') && applied.text.includes('Second  para.') && applied.cards === 1 && applied.n === 0,
     JSON.stringify({ w, applied }));
-  await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = {}; c.confirmed = {}; }, PARA_DOC);
+  ok('the note is not in the commit message; it stays on the page, on the applied text, quoting it',
+    !w.message.includes('Clearer.') && applied.notes.length === 1 && applied.notes[0].text === 'Clearer.'
+      && applied.notes[0].at === 'Third paragraph.' && applied.notes[0].exact === 'Third paragraph.', JSON.stringify({ message: w.message, notes: applied.notes }));
+  await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = []; c.confirmed = {}; }, PARA_DOC);
   // A card that only adds keeps its note through an edit to its own text,
   // while a confirmation of it lapses, as any confirmation does.
   await reset();
   const addNote = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
     c.d.text = c.text.replace('Second para.\n', 'Second para.\n\nAn added line.\n'); c.paint(); await wait(200);
-    const k0 = c.cardId(0); c.notes = { [k0]: 'Why it is here.' }; c.toggleConfirm(0); await wait(50);
+    const u0 = c.unitsNow().find((u) => u.card === 0);
+    c.notes = [window.DictateRecord.make(u0, c.fileBase, c.text, 'Why it is here.')]; c.toggleConfirm(0); await wait(50);
     c.d.text = c.text.replace('An added line.', 'An added line, reworded.'); c.paint(); await wait(200);
-    const k1 = c.cardId(0), out = { k0, k1, note: c.notes[k1] || null, confirmed: c.confirmedCount };
-    c.notes = {}; c.confirmed = {}; c.d.text = c.fileBase; c.paint();
+    const u1 = c.unitsNow().find((u) => u.card === 0), held = c.notesAt(u1.o);
+    const out = { note: held[0] ? held[0].text : null, quote: c.liveNotes()[0].exact, confirmed: c.confirmedCount };
+    c.notes = []; c.confirmed = {}; c.d.text = c.fileBase; c.paint();
     return out;
   });
-  ok('a card that only adds keeps its note when its text is edited, and its confirmation lapses',
-    addNote.k0 === addNote.k1 && addNote.note === 'Why it is here.' && addNote.confirmed === 0, JSON.stringify(addNote));
+  ok('a card that only adds keeps its note when its text is edited, the note quoting the text as it reads now, and its confirmation lapses',
+    addNote.note === 'Why it is here.' && addNote.quote === 'An added line, reworded.' && addNote.confirmed === 0, JSON.stringify(addNote));
+  // NOTES ON BLOCKS: the caret in an unchanged paragraph marks it, its badge
+  // opens a note, and the note is a record kept apart from the edit: on an
+  // unchanged file, through a reload, Clear all edits, a move on GitHub and a
+  // Save, and out in the record Send hands over.
+  console.log('notes on blocks:');
+  await reset();
+  const blockNote = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    c.notes = []; c.confirmed = {}; c.hoverBlock = null; c.hoverCard = null; c.selCard = null; c.cardInfo = null;
+    c.d.text = c.fileBase; c.paint(); await wait(120);
+    const para = () => [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Second para'));
+    c.d.caretAt(+para().querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
+    const wrap = para().closest('[data-md-block]'), badge = wrap.querySelector('[data-md-block-badge]');
+    const out = { outlined: wrap.dataset.blockOn != null, lit: md.querySelectorAll('[data-block-on]').length, badge: !!badge,
+      inMargin: !!badge && badge.getBoundingClientRect().right <= para().getBoundingClientRect().left + 2,
+      overflow: c.$refs.view.scrollWidth - c.$refs.view.clientWidth };
+    badge.click(); await wait(200);
+    const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
+    out.title = info.querySelector('.font-medium').textContent; out.sum = info.querySelector('[data-info-sum]').textContent;
+    out.diff = !!info.querySelector('[data-info-diff]').getClientRects().length; out.focused = document.activeElement === f;
+    f.value = 'Is this still true?'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+    out.same = document.querySelector('[data-info-note]') === f;
+    const key = Object.keys(localStorage).find((k) => k.startsWith('dictate:file:'));
+    const held = JSON.parse(localStorage.getItem(key) || 'null');
+    out.held = held && { text: held.text, notes: (held.notes || []).map((n) => n.text), base: held.base, sha: c.baseSha };
+    c.cardInfo = null; c.d.caretAt(0); c.paint(); await wait(150);
+    const m = para().closest('[data-md-block]').querySelector('[data-md-block-badge]');
+    out.mark = !!m && m.hasAttribute('data-noted') && !m.classList.contains('border');
+    c.d.text = c.text.replace('Second para.', 'Second para, edited.'); c.paint(); await wait(200);
+    const card = [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('edited'));
+    out.cardMark = !!card && !!card.querySelector('[data-md-card-badge] [data-note-mark]');
+    c.openCardInfo(+card.dataset.mdCard, card.querySelector('[data-md-card-badge]'), true); await wait(150);
+    out.cardNote = document.querySelector('[data-info-note]').value;
+    c.cardInfo = null;
+    c.d.text = c.fileBase; c.paint(); await wait(150);
+    out.back = !!md.querySelector('[data-md-block-badge][data-noted]');
+    return out;
+  });
+  ok('the caret in an unchanged paragraph outlines that block alone, its badge in the margin, nothing scrolling sideways',
+    blockNote.outlined && blockNote.lit === 1 && blockNote.badge && blockNote.inMargin && blockNote.overflow === 0, JSON.stringify(blockNote));
+  ok('its badge opens the panel named for the block and where it is, no diff, the note field focused and kept as the note is made',
+    blockNote.title === 'Paragraph' && blockNote.sum === 'line 5' && !blockNote.diff && blockNote.focused && blockNote.same, JSON.stringify(blockNote));
+  ok('a note on a file with no edit is kept: the draft holds the note, the blob it is anchored in, and no text',
+    !!blockNote.held && blockNote.held.text === null && blockNote.held.notes.join() === 'Is this still true?' && blockNote.held.base === blockNote.held.sha, JSON.stringify(blockNote.held));
+  ok('the noted block keeps its mark with the caret gone; edited, its card carries the mark and its Info the note; taken back, the note is on the block again',
+    blockNote.mark && blockNote.cardMark && blockNote.cardNote === 'Is this still true?' && blockNote.back, JSON.stringify(blockNote));
+  const kept = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const on = () => c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))).join();
+    await c.loadFile(); await wait(150);
+    const out = { reload: on(), text: c.text === c.fileBase };
+    c.d.text = c.text.replace('Third para.', 'Third para, edited.'); c.paint(); await wait(100);
+    await c.loadFile(true); await wait(150);
+    out.cleared = { edit: c.text === c.fileBase, notes: on() };
+    return out;
+  });
+  ok('the note comes back on a reload, and Clear all edits drops the edit and keeps the note',
+    kept.reload === 'Second para.' && kept.text && kept.cleared.edit && kept.cleared.notes === 'Second para.', JSON.stringify(kept));
+  served = { text: PARA_DOC.replace('# Title\n\n', '# Title\n\nA paragraph someone added on GitHub.\n\n'), sha: 'moved' };
+  const moved = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await c.loadFile(); await wait(150);
+    return { notes: c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))), base: c.baseSha };
+  });
+  ok('when GitHub\'s copy moved under the note, it is found again by its quote', moved.notes.join() === 'Second para.' && moved.base === 'moved', JSON.stringify(moved));
+  served = { text: PARA_DOC, sha: 'para' };
+  const sentRec = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await c.loadFile(); await wait(150);
+    c.token = c.token || 'test-token';
+    c.d.text = c.text.replace('Third para.', 'Third para, saved.'); c.paint(); await wait(100);
+    // No account list: the identity read it makes is not answered here, and
+    // a refused one puts up the token wall over the whole page.
+    c.repoList = []; c.openSend(); await wait(100);
+    const out = { what: c.sendWhat, md: c.sharePayload, count: document.querySelector('[data-send-count]').textContent };
+    c.recordAs = 'json'; await wait(20);
+    try { out.json = JSON.parse(c.sharePayload); } catch (e) { out.json = String(e); }
+    c.recordAs = 'md'; c.sendOpen = false;
+    await c.saveFile(); await wait(150);
+    out.after = c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))).join();
+    return out;
+  });
+  const sw = writes[writes.length - 1];
+  ok('Send opens on the record when there are notes: markdown with the note under its passage, JSON a dictate/1 record',
+    sentRec.what === 'record' && sentRec.count === '1 change · 1 note' && sentRec.md.includes('## Note · line 5\n> Second para.\n\n**Note:** Is this still true?')
+      && sentRec.json.kind === 'dictate/1' && sentRec.json.notes[0].lines.start === 5 && sentRec.json.changes[0].new === 'Third para, saved.', JSON.stringify(sentRec));
+  ok('Save commits the edit with no note in the message, and the note stays on its paragraph',
+    sw.message === 'Edit para-fixture.md via dictate' && sentRec.after === 'Second para.', JSON.stringify({ message: sw.message, after: sentRec.after }));
+  const legacy = await page.evaluate(async (doc) => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const key = Object.keys(localStorage).find((k) => k.startsWith('dictate:file:'));
+    localStorage.setItem(key, JSON.stringify({ text: doc.replace('Second para.', 'Second para, old draft.'), sha: 'para', confirmed: {},
+      notes: { ['o' + doc.indexOf('Second para.')]: 'A note from before.' } }));
+    await c.loadFile(); await wait(300);
+    const out = c.notes.map((n) => [n.text, c.fileBase.slice(n.o, n.e)]);
+    c.notes = []; c.confirmed = {}; c.d.text = c.fileBase; c.paint(); c.save();
+    return out;
+  }, PARA_DOC);
+  ok('a draft from before notes were records keeps its note, now a record on the same card',
+    legacy.length === 1 && legacy[0][0] === 'A note from before.' && legacy[0][1] === 'Second para.', JSON.stringify(legacy));
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {
