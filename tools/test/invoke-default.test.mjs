@@ -144,7 +144,11 @@ test('the plugin registers it as its OWN SessionStart entry, not inside the disp
   assert.equal(commands.filter(c => c.includes('session-dispatch.sh') && c.includes('invoke-default.sh')).length,
     0, 'it does not share an entry with the dispatcher, so it does not share a budget');
   assert.match(mine[0], /\$\{CLAUDE_PLUGIN_ROOT\}/, 'addressed through the plugin root, like its siblings');
-  for (const e of entries) assert.equal(e.matcher, 'startup|resume', 'both entries fire on the same two events');
+  // Compaction drops the conventions from context with nothing on disk changed,
+  // so this is the one session-start hook that has to fire again on it.
+  const own = entries.find(e => e.hooks.some(h => h.command.includes('invoke-default.sh')));
+  assert.equal(own.matcher, 'startup|resume|compact', 'fires again after a compaction');
+  for (const e of entries.filter(e => e !== own)) assert.equal(e.matcher, 'startup|resume', 'the other session-start hooks fire on the same two events');
 });
 
 test('the directive fits the preview a truncated hook payload leaves', () => {
