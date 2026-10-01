@@ -7,12 +7,13 @@ opens the session form ([forms/session.md](../forms/session.md)); a branch chip
 opens that branch's form at `pages/branch.html`.
 
 **Address.** `&session=<short id>` (the open record), `&set=<ids>` (a scope of
-short ids, comma-separated; `sessionSetIds` owns the grammar), `&lens=`
-(`list` default, `table`, `stars`, `repos`), `&grain=` (`session` default,
+short ids, comma-separated; `sessionSetIds` owns the grammar), `&topic=<topic>`
+(the sessions carrying one topic), `&lens=` (`list` default, `table`, `stars`,
+`repos`, `counts`, `topics`), `&grain=` (`session` default,
 `branch`, `edge` for session-and-branch pairs). Defaults stay out of the URL.
 
 **Rows.** Day, short id (the record's filename stem, which is what `search.py
---show` takes), branches, opening ask, and counts: turns, tool calls, failures,
+--show` takes), branches, opening ask, topics, and counts: turns, tool calls, failures,
 files, output tokens. Each count opens a card built from the record the row
 already holds (`rowCardSummary`), so cards cost no fetch. Scope chips are Day, Week,
 Month, **Snagged** (any session with a failing tool call) and All; repo chips
@@ -40,3 +41,6 @@ the per-session records the Stop hook publishes under `sessions/`.
 - Two rollups: `attention` over each row's busiest files, and `docAttention`
   over each row's complete `docs/` slice, which feeds the Map's readership
   column. `fileAttention(rows, cap, field)` computes both.
+- Topics, with a title and summary, are not cached: the pane joins them on read
+  from `state/session-topics.json` in the same registry, whose format
+  web-tools-private's `sessions/topics/README.md` owns.
