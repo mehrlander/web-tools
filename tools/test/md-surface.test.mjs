@@ -337,3 +337,23 @@ test('a closed break is still marked when the word after it changed too', async 
   assert.ok(opened, 'the split is marked');
   assert.equal(opened.closest('[data-md-seam]').textContent, 'two.', 'at the word that left the item');
 });
+
+// Drawn block by block (`blocks`, which pages/dictate.html asks for even with
+// nothing changed), a reference link has its definition in another block.
+test('block by block, an unchanged document is one unit per block, and a reference link still resolves', async () => {
+  window.Diff = window.Diff || ((await import('diff')).default ?? (await import('diff')));
+  if (!window.mdDiff) new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const text = '# Title\n\nSee [the guide][g] for more.\n\n- one\n- two, per [the guide][g]\n\n[g]: https://example.com/guide\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text, base: text, track: true, blocks: true, overlay: window.document.getElementById('box') });
+  assert.equal(host.querySelectorAll('[data-md-card]').length, 0, 'nothing changed, no cards');
+  assert.equal(host.querySelectorAll('[data-md-block]').length, window.MdSurface.units(host).length, 'one wrap per unit');
+  assert.deepEqual([...host.querySelectorAll('a')].map((a) => a.getAttribute('href')), ['https://example.com/guide', 'https://example.com/guide'],
+    'the definition sits in a block of its own and both links still find it');
+  for (const sp of host.querySelectorAll('[data-src]')) {
+    const s0 = +sp.dataset.src, t = sp.firstChild.data;
+    assert.equal(text.slice(s0, s0 + t.length), t, `run at ${s0}`);
+  }
+  window.MdSurface.paint(host, { text, base: text, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(host.querySelectorAll('[data-md-block]').length, 0, 'without `blocks` an unchanged document still renders whole');
+});
