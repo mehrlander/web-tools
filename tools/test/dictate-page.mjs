@@ -1486,12 +1486,15 @@ try {
     await new Promise((r) => setTimeout(r, 150));
     const p = document.querySelector('[data-card-info]');
     const lit = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"] .rounded-sm') || [])].map((e) => e.textContent.trim()).filter(Boolean);
-    const out = { card: { del: mark('.md-diff-del'), ins: mark('.md-diff-ins') }, info: { del: lit('del'), ins: lit('ins') } };
+    const dv = p?.querySelector('[data-info-diff]');
+    const out = { card: { del: mark('.md-diff-del'), ins: mark('.md-diff-ins') }, info: { del: lit('del'), ins: lit('ins') },
+      cap: !!dv && parseFloat(dv.style.maxHeight) <= Math.max(120, Math.round(innerHeight / 4)) && getComputedStyle(dv).overflowY === 'auto' };
     c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
   ok('Info lights the same pieces of a rewrite that the card marks, word for word, not letter by letter',
     agree.card.del.length > 0 && JSON.stringify(agree.card) === JSON.stringify(agree.info), JSON.stringify(agree));
+  ok('Info\'s diff is held to a quarter of the screen and scrolls past it', agree.cap, JSON.stringify(agree));
   ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
     info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ', rewritten' && info.outside, JSON.stringify(info));
   ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',

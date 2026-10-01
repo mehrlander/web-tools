@@ -3309,7 +3309,10 @@
           x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
           // 16px clear of the card, past the pills that straddle its edges.
           pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px',
-          room: Math.max(160, (below ? innerHeight - b.bottom : b.top) - 60) };
+          // The diff scrolls past a quarter of the screen (owner, 2026-10-01):
+          // capped only by the room beside the card, a long paragraph's panel
+          // covered most of a phone and the card with it.
+          room: Math.max(120, Math.min(Math.round(innerHeight / 4), (below ? innerHeight - b.bottom : b.top) - 60)) };
         this.$nextTick(() => this.pinInfo(pinned));
       },
       // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
@@ -4282,7 +4285,7 @@
           <span x-show="cardInfo && cardInfo.kind" data-info-kind
                 class="ml-auto rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
         </div>
-        <div data-info-diff class="overflow-auto py-1 font-mono text-xs leading-5"
+        <div data-info-diff class="overflow-auto overscroll-contain py-1 font-mono text-xs leading-5"
              :style="cardInfo ? 'max-height:' + cardInfo.room + 'px' : ''">
           <template x-for="(r, k) in (cardInfo ? cardInfo.rows : [])" :key="k">
             <div class="grid grid-cols-[2.75rem_1rem_minmax(0,1fr)]" :data-row="r.kind" :data-raw="r.raw"
