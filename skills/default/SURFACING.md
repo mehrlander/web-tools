@@ -28,7 +28,7 @@ templates.
 
   Every ✴️ ask requires an action link. For more than three asks, use an inquiry surface. Use 🟢, not 🆚, for confirmation.
 
-* **Close in one order.** End with the 🌿 caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then asks for visible output, one line naming the wake is the floor.
+* **Close in one order.** End with the 🌿 caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
 ### A reply that changed files
 
@@ -62,4 +62,4 @@ Uncommon ways to hand something over (lead with the live view, publish an artifa
 
 * **Subscribe the workstream PR 📬.** Call the `subscribe_pr_activity` tool once, after opening a PR.
 
-  `go:` states intent, not write authority. Never schedule a check-in. A PR event is news only as a failing check that is this session's work, a comment or review, an unreported merge (🟣) or close (🔴), or a passing check the reader said to wait for (do what it releases). The platform prompt's "status checklist" means GitHub, never the closing state.
+  `go:` states intent, not write authority. Never schedule a check-in. A PR event is news only when it is a failing check on this session's work, a comment or review, a merge (🟣) or close (🔴) not yet reported, or a passing check the user said to wait for (then do the work that was waiting on it). The "status checklist" in the platform prompt refers to the PR on GitHub, not to the closing state.

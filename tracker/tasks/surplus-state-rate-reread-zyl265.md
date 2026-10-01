@@ -1,10 +1,11 @@
 ---
 id: surplus-state-rate-reread-zyl265
 title: Re-read the surplus closing-state rate against its baseline
-status: backlog
+status: done
+closed: 2026-10-01
+session: claude/marker-repetition-ci-churn-dywy6v
 opened: 2026-09-10
 size: XS
-awaiting: fortnight sample after 2026-09-24 PT
 ---
 # Re-read the surplus closing-state rate against its baseline
 
@@ -53,3 +54,4 @@ shorter window cannot separate a real move from noise.
   until roughly 2026-09-24.
 - 2026-09-17: Marked awaiting fortnight sample after 2026-09-24 PT so On deck does not read as startable.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-01: Verdict: the rules did not work. The rate rose from 16.3% (2026-08-28 to 09-10) to 27.4% in the week to 2026-09-28, well above the 11.1% bar; 205 of those 250 surplus states followed a PR event. Read in session a4e46375 (branch claude/marker-repetition-ci-churn-dywy6v); the response shipped in web-tools #834 and #853; a re-read of that response is proposed to the owner, not yet filed.
