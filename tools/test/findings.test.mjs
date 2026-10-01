@@ -1,11 +1,4 @@
-// Findings: what a tending pass concluded, kept as notes (lib/kits/findings.js).
-//
-// The two rules the owner set on 2026-10-01, held here:
-//   an ordinary note must not clear a finding: only a reply that carries
-//   `finding` changes its status;
-//   reassessment must see changes elsewhere: a finding's witnesses may lie
-//   outside its subjects, and a moved witness reads as changed even when no
-//   subject did.
+// lib/kits/findings.js: the fold and the witness comparison (docs/views/tending.md).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -79,9 +72,8 @@ test('a reassessment replaces fields and moves the assessment date only with new
   assert.equal(g.witnesses.length, 1);
 });
 
-// An assessment is not the work (owner review, 2026-10-01): a finding that
-// concludes "overtaken, close the PR" is finished thinking and unfinished
-// work, so it stays open until the step is done or the owner handles it.
+// A finding with a step left stays open until the step is done or the owner
+// handles it, whatever its kind.
 const OVERTAKEN = {
   id: 'nover', at: '2026-10-01T10:00:00Z', author: 'claude/x', about: 'acme/widget#758',
   text: 'PR 758 already landed inside 762',
@@ -194,10 +186,8 @@ test('open findings read a question for the owner first, then by kind', () => {
   assert.deepEqual(plain(order.map(f => f.id)), ['c', 'd', 'b', 'a']);
 });
 
-// The browser's comparison and the command line's are one rule, stated once as
-// these cases (named in lib/kits/findings.js and skills/tend/findings.py). Both
-// must give every case the verdict it names; findings.py reads them from a
-// file this test writes.
+// One set of cases for both comparisons; findings.py reads them from a file
+// this test writes.
 const WITNESS_CASES = [
   {
     "name": "branch tip unchanged",

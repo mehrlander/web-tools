@@ -1,23 +1,15 @@
-// The Tending view over the REAL notes store, checking its witnesses ITSELF.
-//
-// SHOT_GIT_API (tools/render/cdn.mjs) answers the view's GitHub reads from the
-// checkouts beside this one, at origin's copy of each ref: the notes store
-// from web-tools-private's main, folder listings with git's real object shas,
-// branch tips, compares, and pull-request state from the crawl's cache. So the
-// component loads the store and runs its own observe() and compare(), as on a
-// phone, with nothing injected. Fetch the checkouts first so origin is current.
+// The Tending view over the real notes store, checking its witnesses itself
+// against SHOT_GIT_API's answers (tools/render/cdn.mjs). Fetch the sibling
+// checkouts first so origin is current.
 //
 //   python3 skills/tend/findings.py check --json > /tmp/verdicts.json
 //   TENDING_VERDICTS=/tmp/verdicts.json npm run shot -- app/index.html --width 390 --height 844 \
 //     --script tools/render/scenarios/tending-findings.mjs
 //
-// With TENDING_VERDICTS, the browser's verdict for every witness is compared
-// with the command line's and the result written to TENDING_PARITY (default
-// tools/.preview/tending-parity.json); a mismatch is also logged as a console
-// error, so it lands in the shot log.
-//
-// Optional: TENDING_TAB=settled, TENDING_OPEN=<id,id> (details open),
-// TENDING_SCROLL=<id> (scroll that finding to the top).
+// With TENDING_VERDICTS, each witness's browser verdict is compared with the
+// command line's and written to TENDING_PARITY (default
+// tools/.preview/tending-parity.json); a mismatch is also a console error.
+// Optional: TENDING_TAB=settled, TENDING_OPEN=<id,id>, TENDING_SCROLL=<id>.
 import fs from 'node:fs';
 import path from 'node:path';
 

@@ -1,31 +1,10 @@
 #!/usr/bin/env python3
 """Findings: what a tending pass concluded, stored as notes, and when to look again.
 
-A finding is a note (skills/notes/note.py) carrying a `finding` object:
-
-  {"id": "n…", "at": "…", "author": "…", "about": "<first subject>", "text": "<title>",
-   "finding": {"kind": "unreached|answer|overlap|superseded", "subjects": [...],
-               "why": "…", "next": "…", "choice": "…", "evidence": [...],
-               "witnesses": [{"ref": "<locator>", "sha"|"contains"|"state": "…", "why": "…"}]}}
-
-An assessment is not the work. A finding stays open while it carries an
-outstanding `next` or `choice`, whatever its kind, and is settled only when
-nothing remains: the assessment needed no action, or a reply says it was done.
-A finding changes only through a reply that carries `finding` (`update` below,
-or the owner's resolution from the Tending view). A reply without it is a
-comment and never changes status. lib/kits/findings.js folds the same way.
-
-Witnesses are what the conclusion rests on, pinned (docs/locators.md):
-
-  owner/repo@ref       + sha       the ref's tip is that commit
-  owner/repo@ref       + contains  the ref contains that commit
-  owner/repo@ref:path  + sha       the blob or tree at that path is that object
-  owner/repo#N         + state     the pull request is in that state (open: and not updated since)
-
-`check` observes each from the checkouts beside the store and compares with
-compare() below, the same rule as the browser's (held together by
-the shared cases in tools/test/findings.test.mjs). It reads settled findings too: a
-changed witness under a settled finding is exactly the case a pass must see.
+docs/views/tending.md states the record and its lifecycle; lib/kits/findings.js
+folds and compares the same way, held to it by tools/test/findings.test.mjs.
+`check` observes witnesses from the checkouts beside the store and the crawl's
+cache, settled findings included.
 
 Usage:
   findings.py candidates [--json]          mechanical selection: what to investigate

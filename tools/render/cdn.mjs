@@ -500,14 +500,11 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
 
   // --- The estate's evidence, from git, when a render asks for it ---------
   //
-  // SHOT_GIT_API=1 answers the reads a finding's witnesses need (a branch
-  // tip, a compare, a pull request's state, and a contents read AT A REF, file
-  // or folder, with git's real object shas) from the checkouts beside this
-  // one, at origin's copy of the ref. Off by default, because the rules above
-  // serve sibling contents from the working tree on purpose, so a render shows
-  // uncommitted work; a check of recorded evidence wants the opposite.
-  // tools/render/scenarios/tending-findings.mjs turns it on, which is what lets
-  // the Tending view verify witnesses itself in a real browser.
+  // SHOT_GIT_API=1 answers the reads a finding's witnesses need (branch tip,
+  // compare, pull request state, contents at a ref with git's object shas)
+  // from origin's refs in the sibling checkouts. Off by default: the rules
+  // above serve the working tree so a render shows uncommitted work, and a
+  // witness check needs the recorded objects. tending-findings.mjs sets it.
   if (host === 'api.github.com' && process.env.SHOT_GIT_API) {
     const hit = gitEvidence(u, repoRoot);
     if (hit) return hit;

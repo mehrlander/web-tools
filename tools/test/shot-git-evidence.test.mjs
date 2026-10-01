@@ -1,13 +1,6 @@
-// tools/render/cdn.mjs, SHOT_GIT_API: the headless browser's answers to the
-// reads a finding's witnesses need, taken from git at the ref asked for. The
-// Tending view's own observe() is verified in Chromium against these answers
-// (tools/render/scenarios/tending-findings.mjs), so they have to be git's real
-// objects: a folder listing whose shas are the blob and tree shas
-// `git rev-parse <ref>:<path>` prints, a compare whose status says which side
-// contains which, and a branch tip. Off by default, so every other shot keeps
-// serving the working tree.
-//
-// Run against this checkout at HEAD, which exists however shallow the clone.
+// tools/render/cdn.mjs, SHOT_GIT_API: answers taken from git at the ref asked
+// for, which the Tending view's observe() is verified against in Chromium
+// (tools/render/scenarios/tending-findings.mjs). Run against this checkout's HEAD.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

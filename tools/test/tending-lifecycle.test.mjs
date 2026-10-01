@@ -1,19 +1,6 @@
-// A finding's whole life, through the real command line (skills/tend/findings.py
-// and skills/notes/note.py) against a scratch notes store and a scratch
-// evidence repo, each pushed to a bare remote in a temp folder:
-//
-//   found, with work outstanding;
-//   a comment, which changes nothing;
-//   evidence outside the subjects changes, and check names it;
-//   reassessed and settled, with what was done;
-//   the evidence changes again: the settled finding is due, by check (which
-//     reads settled findings by default) and by candidate selection (which
-//     no longer treats it as covering a subject that has moved);
-//   attention renewed; then the owner's resolution, in the record shape the
-//     Tending view writes.
-//
-// At every step the browser's fold (lib/kits/findings.js) reads the same store
-// and must agree with the command line's on status and outstanding work.
+// One finding's life through the real command line (findings.py, note.py)
+// against scratch repos, with the browser's fold (lib/kits/findings.js)
+// agreeing with the command line's at every step.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

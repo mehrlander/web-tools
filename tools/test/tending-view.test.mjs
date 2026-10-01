@@ -1,15 +1,6 @@
-// The Tending view (lib/alpineComponents/tending.js), mounted against a stub
-// registry and a stub GitHub API, so the component's own observe() runs: the
-// requests it makes are the ones a phone makes, and their answers go through
-// the kit's compare().
-//
-// What it holds:
-//   Attention keeps every finding with work outstanding, whatever its kind, and
-//   the outstanding step is on the row without a tap;
-//   a settled finding whose evidence moved comes back to Attention;
-//   a file is compared by its pinned object, read through its parent folder's
-//   listing, so a change made before the finding was recorded still shows;
-//   Comment keeps a finding open, Handled closes it, Reopen brings it back.
+// The Tending view (lib/alpineComponents/tending.js) mounted against a stub
+// registry and a stub GitHub API, so its own observe() and the kit's compare()
+// run on the requests a phone would make.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

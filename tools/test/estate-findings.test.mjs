@@ -1,13 +1,5 @@
-// Findings beside their subjects: what a tending pass concluded, on the
-// Activity rows and Repos cards it concerns.
-//
-// These replaced a mechanical alert (2026-09-30 to 2026-10-01, "the session
-// said done, the branch never had a pull request") that any note newer than
-// the branch's last commit cleared. Two things changed and both are held here:
-// a row shows a FINDING, written by a tending pass with its reasons, rather
-// than a rule's verdict; and a plain note on the branch leaves it in place.
-// Only a reply carrying `finding` (a reassessment, or the owner's Handled in
-// the Tending view) takes it off the row.
+// Findings on the Activity rows and Repos cards they concern. A plain note on a
+// branch leaves its finding in place.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
