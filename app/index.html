@@ -782,24 +782,29 @@ html.dk-dragging main{transition:none !important}
          deep link they mirror. -->
     <!-- ── The finder: one input, always ready ─────────────────────────────
          Directly under the crumb bar, above the scroll area so its results
-         panel (the crumb menu's anchored idiom) overlays the lists rather
-         than pushing them. The query's shape picks the lane: #123 finds an
-         open PR estate-wide and opens the branch-detail takeover; @ is
+         panel takes the sidebar's height while it has rows, and the lists
+         below step aside until it closes. The query's shape picks the lane:
+         #123 finds an open PR estate-wide and opens the branch-detail
+         takeover; @ is
          repo-then-file NAVIGATION (pick a repo, walk or fuzzy-match its
          tree, open the file); a pasted owner/repo[@ref]:path or repo@branch
          address resolves exactly, with no suggestions; +idea jots
-         explicitly; plain text matches repos, the nav, file names from
-         cached trees, and PR titles, with tap-gated deeper passes: an
-         estate-wide file-name pass, file CONTENTS via the code-search API,
-         and a client-side grep of the captured session records. The last
+         explicitly; plain text matches repos, the nav, file names in every
+         estate repo (the registry's state/files.json), and PR titles, grouped
+         under a heading per kind, with tap-gated deeper passes: file
+         CONTENTS via the code-search API, and a client-side grep of the
+         captured session records. The last
          row is always "Jot this", so a query that found
          nothing is kept rather than lost. Sits in the SIDEBAR, not the
          header: out and ready on a wide screen, one tap on a phone,
          where the header's nav already scrolls and its right end is already
          spoken for. Full lane doc in quick-find.js. -->
-    <div class="px-3 pt-2 shrink-0" x-data="quickFind()"></div>
+    <div class="px-3 pt-2 flex flex-col min-h-0" :class="$store.finder?.open ? 'flex-1' : 'shrink-0'" x-data="quickFind()"></div>
 
-    <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+    <!-- Steps aside while the finder's results show: they take this list's
+         height rather than floating over it (lib/alpineComponents/quick-find.js,
+         the `finder` store). -->
+    <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3" x-show="!$store.finder?.open">
       <!-- Estate-context sidebar. Two repo-sourced sections, both token-gated
            (empty and hidden when unauthed): the Repos index on top, then the
            app views. The app views also ride in the header now, behind the
