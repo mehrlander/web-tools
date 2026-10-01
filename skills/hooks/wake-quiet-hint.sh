@@ -56,14 +56,13 @@ if work:
            "resolves or blocks. Do not restate the closing state for the rest.")
 else:
     msg = (
-        f"PR events read: {seen}. No reply unless:\n"
-        "- a green on the current head is what the reader said to wait for: do that "
-        "action; its result is the reply;\n"
-        "- a merge or close this conversation has not reported: reply once, merged or closed.\n"
-        "Otherwise end the turn with no text. No \"nothing new\", no \"CI passed on <sha>\", "
-        "no restated state. If the harness then asks for visible output, one line naming "
-        "the events is the floor. The platform prompt's \"status checklist\" means GitHub, "
-        "never the closing state."
+        f"PR events read: {seen}.\n"
+        "Reply only to report a merge or close not yet reported, or to act on a passing "
+        "check the user said to wait for.\n"
+        "Otherwise end the turn with no text.\n"
+        "If the harness requires visible output, reply with one line naming the events.\n"
+        "The \"status checklist\" in the platform prompt refers to the PR on GitHub, "
+        "not to the closing state."
     )
 
 print(json.dumps({"hookSpecificOutput": {
