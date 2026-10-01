@@ -1,0 +1,726 @@
+diff --git a/data/csv-census.csv b/data/csv-census.csv
+index 3e359233..38880fc4 100644
+--- a/data/csv-census.csv
++++ b/data/csv-census.csv
+@@ -13,18 +13,18 @@ data/report-layout/three-way-compare.csv,35,6,1738,"[""group"",""subgroup"",""it
+ docs/aims-goals.csv,5,3,380,"[""key"",""name"",""gloss""]"
+ docs/aims-initiatives.csv,5,3,839,"[""key"",""name"",""gloss""]"
+ docs/aims-reading.csv,5,4,378,"[""repo"",""path"",""private"",""gloss""]"
+-docs/app-routes.csv,24,12,12679,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""doc"",""tabs"",""alias"",""reads""]"
++docs/app-routes.csv,24,12,12700,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""doc"",""tabs"",""alias"",""reads""]"
+ docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis"",""declared""]"
+ docs/context-sources.csv,28,17,6389,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss""]"
+ docs/context-topics.csv,12,4,2579,"[""topic"",""label"",""verdict"",""gloss""]"
+ docs/direct-to-main.csv,9,6,1560,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
+-docs/docs.csv,117,7,29859,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
++docs/docs.csv,118,7,30104,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
+ docs/harness.csv,298,8,57579,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
+ docs/kits.csv,103,8,13202,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
+ docs/manifest-fields.csv,75,6,19524,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
+ docs/map-tabs.csv,15,4,9372,"[""tab"",""gloss"",""refs"",""narrative""]"
+ docs/owners.csv,11,4,1677,"[""subject"",""kind"",""applies_to"",""authoritative""]"
+-docs/portable.csv,95,6,11296,"[""kind"",""command"",""path"",""title"",""role"",""use""]"
++docs/portable.csv,95,6,11331,"[""kind"",""command"",""path"",""title"",""role"",""use""]"
+ docs/properties.csv,264,10,39634,"[""registry"",""property"",""mode"",""deriver"",""required"",""form"",""exclusive"",""values"",""column_primitive"",""gloss""]"
+ docs/registries.csv,41,15,18415,"[""id"",""path"",""key"",""identity"",""membership"",""inherits"",""target"",""scope"",""span"",""fields"",""gate"",""area"",""title"",""gloss"",""renders_in""]"
+ docs/repetitions.csv,18,4,3215,"[""subject"",""where"",""relation"",""check""]"
+@@ -37,7 +37,7 @@ docs/showing-mechanisms.csv,9,11,6286,"[""key"",""glyph"",""label"",""form"",""s
+ docs/snags.csv,112,6,15242,"[""slug"",""title"",""count"",""last_seen"",""seen"",""targets""]"
+ docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""detect"",""icon"",""gloss""]"
+ docs/surfacing.csv,22,7,7741,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
+-docs/tests.csv,366,8,390036,"[""path"",""kind"",""protects"",""assertions"",""method"",""runner"",""boot_smoke"",""assertion_names""]"
++docs/tests.csv,366,8,390107,"[""path"",""kind"",""protects"",""assertions"",""method"",""runner"",""boot_smoke"",""assertion_names""]"
+ docs/text-fields.csv,13,5,3999,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
+ docs/themes.csv,67,7,26805,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
+ docs/tools.csv,5,2,190,"[""path"",""icon""]"
+diff --git a/docs/APP.md b/docs/APP.md
+index bf1b3ac7..708ac23e 100644
+--- a/docs/APP.md
++++ b/docs/APP.md
+@@ -40,7 +40,7 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
+ 
+ ## Navigation
+ 
+-**Header.** The estate navigation (`estateNav`) lists Activity, Lists, Repos, Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow, one button each, from `sidebarAppViews`, the same list the sidebar renders; keep one list so the two cannot disagree. The rail (`rail: true` links) and the ref switch appear on desktop. Select a repo in Repos.
++**Header.** The estate navigation (`estateNav`) lists Activity, Tending, Lists, Repos, Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow, one button each, from `sidebarAppViews`, the same list the sidebar renders; keep one list so the two cannot disagree. The rail (`rail: true` links) and the ref switch appear on desktop. Select a repo in Repos.
+ 
+ **Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos and app views.
+ 
+diff --git a/docs/README.md b/docs/README.md
+index 54b7dee6..0d87af8b 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -12,7 +12,7 @@ must stay correct.
+ 
+ **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
+ 2 arrive in every session's context, 19 are named by CLAUDE.md,
+-12 by a skill, 31 by a page or component. The remaining 53 are
++13 by a skill, 31 by a page or component. The remaining 53 are
+ marked *(orphan)* below: nothing points at them except this index.
+ 
+ ## docs/
+@@ -164,6 +164,7 @@ marked *(orphan)* below: nothing points at them except this index.
+ - [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
+ - [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
+ - [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
++- [`tending.md`](views/tending.md) — the Tending view: findings from tending passes stored as notes, how one changes, how witnesses are checked, and where Activity shows them
+ 
+ 11 shared statements are registered in
+ [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).
+diff --git a/docs/app-routes.csv b/docs/app-routes.csv
+index 5e673f2d..4ac37d12 100644
+--- a/docs/app-routes.csv
++++ b/docs/app-routes.csv
+@@ -20,6 +20,6 @@ tools,?view=tools,Tools,Tools,estate,The curated gallery of utility pages.,docs/
+ search,?view=search,Search,Search,estate,"Find files and records: search names at any ref under any folder, search contents, grep the session records, search the chat archive's catalog, and read a hit in place.",lib/alpineComponents/path-picker.js;lib/alpineComponents/ref-picker.js;lib/alpineComponents/search-view.js;lib/alpineComponents/viewer.js;lib/kits/chat-archive.js;lib/kits/estate-search.js;lib/kits/session-index.js,"The ?view= key is `search`, its name since the view was a results list. It was labelled Files from the retirement of the per-repo tree walk until 2026-09-24, when browsing returned to a Files view of its own (`files`) and this one went back to searching. Two of the four lanes search a CORPUS rather than the repos (Sessions, Chats) and so take no repo, ref or folder; the controls that name those stand down together under them.",docs/views/search.md,,,files;sessions;titles
+ state,?view=state,State,Activity,estate,"What the estate keeps derived, when each cache was last checked, and what the estate itself did in the last day or week, as a rail of one tick per commit and per session active.",lib/alpineComponents/state-view.js;lib/kits/crawl-runs.js,"Activity's last pill since 2026-08-23. It was a nav stop of its own, which put the estate's motion in two places: this pane answers whether the other pills are current, and that question is asked of them.",docs/views/state.md,,,
+ proposals,?view=proposals,Proposals,Proposals,estate,Pending cross-repo edits awaiting a confirm; shown in the nav only while something waits.,lib/alpineComponents/proposals.js;lib/kits/repo-proposals.js,,docs/views/proposals.md,,,
+-tending,?view=tending,Tending,Tending,estate,"Findings from tending passes: useful work that never reached the owner, a question only the owner can answer, efforts that overlap, and what is settled, each linked to the branches, pull requests, tasks, snags and sessions it concerns. Witnesses are checked against GitHub on sight, so a finding whose grounds moved says so.",lib/alpineComponents/tending.js;lib/kits/findings.js;skills/tend/findings.py,A comment never closes a finding; only Handled (a reply carrying finding.status resolved) does. The Activity panes show the same open findings beside their subjects.,,,,
++tending,?view=tending,Tending,Tending,estate,"Findings from tending passes: useful work that never reached the owner, a question only the owner can answer, efforts that overlap, and what is settled, each linked to the branches, pull requests, tasks, snags and sessions it concerns. Witnesses are checked against GitHub on sight, so a finding whose grounds moved says so.",lib/alpineComponents/tending.js;lib/kits/findings.js;skills/tend/findings.py,A comment never closes a finding; only Handled (a reply carrying finding.status resolved) does. The Activity panes show the same open findings beside their subjects.,docs/views/tending.md,,,
+ public,?view=public,Public browse,Public browse,shell,The tokenless read of any public repo.,lib/alpineComponents/public-browse.js,,docs/APP.md,,,
+ app,?app=<slug> | ?app=owner/repo[@ref]:path | ?view=app&appRepo=<owner/repo>&appPath=<path>,App view,App view,shell,"A page some repo promotes, rendered live through toss-render; one address, many destinations.",pages/toss-render.html,"Not a screen this repo draws: the shell frames whatever page the address names. Three spellings, one destination; the short form is what stamp() writes when the open page declares a slug. A deep link into the framed page rides the FRAGMENT, which is the subject's namespace (the shell's is the query), with ?on= as the query fallback for a context that eats the '#'. See lib/kits/url-params.js subject(). The open view takes the tab too: its name leads the title and the framed page's own icon replaces the hex nut on both the favicon and the apple-touch link, announced up by toss-render on toss-subject-mark. The shell default for app views is `nav` (header visible, sidebar collapsed), so ?app=<slug> opens with the app chrome for smooth navigation without stamping shell=nav.",docs/APP.md,,,
+diff --git a/docs/docs.csv b/docs/docs.csv
+index 9fff34f9..03c34c89 100644
+--- a/docs/docs.csv
++++ b/docs/docs.csv
+@@ -1,9 +1,9 @@
+ path,subject,status,reach,words,maintenance,formerly
+-docs/APP.md,"the Web Tools app: mission, durable goals, and the name split",living,project,1398,"authored; revised on deliberate reframing, not per feature",
++docs/APP.md,"the Web Tools app: mission, durable goals, and the name split",living,project,1399,"authored; revised on deliberate reframing, not per feature",
+ docs/CONSTELLATION.md,the portable kernel of the what-goes-where doctrine,living,app,1298,"authored; the argument is the content, so no data file applies",
+ docs/MARKETPLACE.md,the plugin marketplace: how the set is published and subscribed to,living,project,582,authored; deliberately does not enumerate the roster (it points at the catalog instead),
+ docs/QUALIFIED-WRITING.md,"the prose rules: qualify noun phrases, introduce before you refer, no em dashes",living,injected,300,"authored, edited in place; split out of CLAUDE.md 2026-09-11, and from 2026-09-12 delivered only by the portable plugin (the conventions nudge prods, /portable:default loads) rather than by an @-import; vendored copy byte-gated (derived-artifacts.test.mjs)",CLAUDE.md#qualified-writing
+-docs/README.md,the docs folder's front door: the generated index of this registry,living,skill,2220,"generated from docs.csv by tools/build/docs-readme.mjs (commit hook plus the derived-artifacts gate); edit the registry, never this file",
++docs/README.md,the docs folder's front door: the generated index of this registry,living,skill,2245,"generated from docs.csv by tools/build/docs-readme.mjs (commit hook plus the derived-artifacts gate); edit the registry, never this file",
+ docs/SNAGS.md,"the friction log: one line per snag, symptom then corrected move",living,project,25021,"authored; append-on-trip, entries updated on recurrence, graduation to the tracker on the third bite",
+ docs/SURFACING.md,the surfacing primitives: the chat-handoff mechanics every reply uses,living,injected,841,"authored, edited in place; delivered by the portable plugin rather than an @-import from 2026-09-12; the guide-PR course split out to surfacing-course.md 2026-09-10; vendored copy byte-gated (derived-artifacts.test.mjs, added 2026-09-11; the earlier claim named a test that checks link targets instead)",
+ docs/TRACKER.md,"the opt-in cross-session project tracker: schema, ids, board",living,project,4401,"authored, edited in place; the schema the tasks skill implements, held to it by review alone",
+@@ -18,7 +18,7 @@ docs/code-layers.md,the code layers and the admission rule that sorts a new file
+ docs/column-primitives.md,"the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position",living,orphan,1598,"authored; the doctrine above column_domain, with a dated pilot beside it in data/column-primitives/",
+ docs/delivery.json,historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context,measured,app,2939,"hand-authored per snapshot; environment-dependent, so no hook restamps it and no test holds it. pages/delivery.html renders it.",
+ docs/doc-growth.md,"the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie",living,orphan,1745,"authored; the numbers it cites are regenerated by the script, not kept true by hand",
+-docs/docs.csv,"the documentation registry: what each file under docs/ is, on four axes",living,skill,3512,"authored, except reach and words; held to the derivation by tools/test/docs-registry.test.mjs",docs/docs.json
++docs/docs.csv,"the documentation registry: what each file under docs/ is, on four axes",living,skill,3543,"authored, except reach and words; held to the derivation by tools/test/docs-registry.test.mjs",docs/docs.json
+ docs/envelopes/README.md,"the content-envelope family: members, shared grammar, and the sibling decision",living,orphan,1070,authored; carries its dated decisions inline with their reversal triggers,
+ docs/envelopes/chat-results.md,the chat-results envelope contract,living,app,860,"authored; prose contract for pages/chat-results.html, which links it from its header, and named by the envelope primitive; no schema beside it as surface.md has",
+ docs/envelopes/data-view.md,the data-view envelope contract,living,orphan,1264,"authored; prose contract for the data route, named by the surfacing primitives; no schema beside it",
+@@ -58,7 +58,7 @@ docs/manifest.md,"the .web-tools.json manifest: the file's contract and the regi
+ docs/markdown-in-chat.md,working visually with markdown in a chat client on a phone,measured,skill,1588,"authored; findings established empirically, re-probe on a new client",
+ docs/owners.csv,"for a statement the coordination layer repeats, its one authoritative file",living,app,186,"authored; held by tools/test/owners-registry.test.mjs, which checks every locator still resolves",
+ docs/pdf-structure.md,recovering structure from a PDF in the browser: what the kit does and honestly does not,living,orphan,4198,"authored, edited in place; the reference half of lib/kits/pdf.js, linked from the surfacing primitives' PDF entry; its tolerances are empirical and undated",
+-docs/portable.csv,"the portable set: what travels to another repo, and how a consumer takes it",living,project,769,authored crosswalk; typed and held to disk by portable-manifest.test.mjs,docs/portable.json
++docs/portable.csv,"the portable set: what travels to another repo, and how a consumer takes it",living,project,775,authored crosswalk; typed and held to disk by portable-manifest.test.mjs,docs/portable.json
+ docs/powershell-workspace.md,"the PowerShell Code workspace: exact browser drafts, pinned GitHub source, deliberate publication and installation handoff",living,orphan,608,"authored; updated with workspace behavior; snapshot, draft, publication and editor guarantees are exercised by the PowerShell unit suites and browser harnesses",
+ docs/properties.csv,"every column of every registry: what it means, how it arises, and what it may hold",living,app,3724,"authored; the same gate, both ways: an undeclared column fails, and a declared property missing from its file fails",docs/properties.json
+ docs/registries.csv,"every registry the estate declares: its file, target, scope, and gate",living,project,1940,"authored; held to the files it governs by tools/test/properties-registry.test.mjs, which since 2026-08-16 reaches this file too",
+@@ -76,14 +76,14 @@ docs/stage.md,"the stage: bench and Saved, intake, the walkable preview and diff
+ docs/surfacing-course.md,"the guide-PR lifecycle: the PR body as a workstream’s running record, its template, and the six phases",living,project,1017,"authored; split out of SURFACING.md 2026-09-10 so the injected half carries only what every reply needs, and delivered by the pr-subscribe-hint hook at PR creation; vendored copy byte-gated (portable-manifest.test.mjs)",docs/SURFACING.md#the-surfacing-course
+ docs/surfacing-extended.md,"the ways of handing something over that most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks",living,project,1089,authored; split out of SURFACING.md 2026-09-07 so the injected half fits the delivery channel. Membership stays gated through the pointer bullets SURFACING.md keeps for each one,
+ docs/surfacing.csv,the gated index of the surfacing primitives SURFACING.md defines,living,app,1081,authored; membership held two-way against the prose by surfacing-manifest.test.mjs,docs/surfacing.json
+-docs/tests.csv,"the test registry: every check, its kind, and what breaks if it is deleted",living,app,59609,"derived by npm run tests-index except protects, which is authored; held by tests-registry.test.mjs",docs/tests.json
++docs/tests.csv,"the test registry: every check, its kind, and what breaks if it is deleted",living,app,59620,"derived by npm run tests-index except protects, which is authored; held by tests-registry.test.mjs",docs/tests.json
+ docs/text-content.md,"the estate's authored text: whether the data files holding it are organized, and how much never reached one",measured,orphan,6313,"re-derive with scripts/embedded-prose.py and scripts/text-carriers.py; every figure is a command away, and the date in the opening line is what the numbers are as of",
+ docs/text-fields.csv,the names a prose-bearing CSV column or JSON key may take,living,app,581,"authored; held to the registries by tools/test/properties-registry.test.mjs. Uncounted until 2026-08-16, when the registry widened to .csv and found it",
+ docs/text-tools.md,"the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not",living,orphan,829,"authored; carries its own honest assessment, so a later reader is not left to infer the limits from a feature description",
+ docs/themes.csv,"the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial",measured,app,3915,"regenerate with npm run themes-graph; byte-deterministic, so the commit hook restamps it on any .md change and derived-artifacts.test.mjs holds it. Its source is the whole corpus, so a base-branch commit touching any markdown makes it stale on the PR's merge commit while the branch itself is green: merge main in and restamp (SNAGS: corpus-artifact-stale-on-a-tree-that-exists-only-in-ci)",docs/themes.json
+ docs/tools.csv,"which pages the Tools view shows, and the icon each is given",living,app,6,"authored crosswalk over the page catalog; title and description are joined at render time, never copied",docs/tools.json
+ docs/venues.md,"the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split",measured,project,832,"dated observations about products that move; re-probe the attended column rather than rewriting from memory, and carry the date. CONVENTIONS.md names it in an always-loaded paragraph, which is what gives it reach at all",
+-docs/views/branches.md,"the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it",living,orphan,520,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
++docs/views/branches.md,"the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it",living,orphan,566,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
+ docs/views/chats.md,"the Chats view: the chat archive read one month at a time, with its staleness banner",living,orphan,192,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
+ docs/views/estate.md,"the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog",living,orphan,407,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
+ docs/views/map.md,"the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)",living,orphan,397,"authored, edited in place; split from show-repo.md 2026-09-24 and named by its row in app-routes.csv or subjects.csv",
+@@ -108,10 +108,11 @@ docs/run-methods.csv,how a person runs an errand's script: the venues each metho
+ docs/csv-census.md,"the per-repository tracked-CSV inventory: adoption, index measurements and Map reading",living,app,381,authored contract; generator behavior is checked by csv-census.test.mjs and Map intake by map-federated.test.mjs,
+ docs/research/excel-chart-cleanup-2026-09-25/README.md,"Excel chart semantics and PivotTable cleanup evidence from September 25, 2026",record,orphan,1389,authored implementation record; retained with specimens and repeatable checks,
+ docs/research/excel-chart-cleanup-2026-09-25/verification.json,browser verification results and workbook/source hashes for the Excel cleanup,record,orphan,372,captured by tools/test/verify-excel-cleanup.mjs; retain this dated run,
+-docs/locators.md,"locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)",living,skill,1690,authored; the parsers and checkers it names are the source of truth for behavior,
++docs/locators.md,"locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)",living,skill,1714,authored; the parsers and checkers it names are the source of truth for behavior,
+ docs/fab.md,"the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule",living,app,2306,"authored, edited in place; moved from fab.js's description string 2026-09-28",
+ docs/map-tabs.csv,the Map view's per-address ledes and the longer account of each tab,living,app,1361,authored; gated by tools/test/map-tabs.test.mjs and rendered as the lede under the Map tab strip,
+ docs/views/proposals.md,"the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm",living,orphan,2046,"authored, edited in place; moved from manifest.md 2026-09-28",
++docs/views/tending.md,"the Tending view: findings from tending passes stored as notes, how one changes, how witnesses are checked, and where Activity shows them",living,skill,1018,"authored, edited in place; named by its row in app-routes.csv",
+ docs/context-sources.csv,"the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it",living,app,359,authored; its private half lives in web-tools-private environment/context-sources.csv; held by context-sources.test.mjs,
+ docs/context-topics.csv,"the topics two or more context sources speak to, each with a verdict on whether the overlap is by design",living,app,344,authored; held by context-sources.test.mjs,
+ docs/context.md,"where a context-registry row goes, how topics and tally join it, and what the gate checks",living,orphan,120,owner of the context registry's prose; the rows are the record,
+diff --git a/docs/locators.md b/docs/locators.md
+index e43e170f..9fde98a5 100644
+--- a/docs/locators.md
++++ b/docs/locators.md
+@@ -18,6 +18,7 @@ relation. The shapes in use today are all references in this sense:
+ | Record | Source | Target | Relation |
+ | --- | --- | --- | --- |
+ | A note (`web-tools-private/notes/notes.jsonl`, [notes skill](../.claude/skills/notes/SKILL.md)) | the note | its `about` locator, plus an optional quote anchor | comments on |
++| A finding (a note carrying `finding`, [tending.md](views/tending.md)) | the finding | each subject, followed; each witness, pinned | concludes about; rests on |
+ | A standoff ([annotation.md](annotation.md)) | the standoff file | a document, by character spans and the document's `sha256` | annotates |
+ | A text proposal (`home/projects/text/proposals.jsonl`) | one passage id | another passage id | proposes a rewrite of |
+ | An errand's `for` field, also read as `task` ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)) | the errand | a tracker task | serves |
+diff --git a/docs/portable.csv b/docs/portable.csv
+index f0738ed4..15ed4de8 100644
+--- a/docs/portable.csv
++++ b/docs/portable.csv
+@@ -15,7 +15,7 @@ skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,"re
+ skill,/portable:scour,skills/scour/SKILL.md,scour,"acquisition fan-out: send agents to gather source material that does not exist locally, and map who says what about a subject across the open web",plugin
+ skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,"measurement fan-out: build an independently labeled sample that scores a classifier or extractor for correctness, blind readers plus an adversarial skeptic plus a scoring script, and decide from the scorecard whether the program should change",plugin
+ skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,compose Apple Shortcuts actions and hand them over as a tappable paste-in link for the device clipboard,plugin
+-skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: prune settled branches, close shipped tasks, harvest PR threads, and nominate snags, bringing the owner only the choices that need commitment",plugin
++skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: investigate branches, pull requests, trackers and snags, and store each conclusion as a finding the Tending view shows, bringing the owner only the choices that need commitment",plugin
+ skill,/portable:notes,skills/notes/SKILL.md,notes,"leave, reply to and read notes: short, signed observations addressed to a repo, branch, file, pull request, task, snag, or another note",plugin
+ skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
+ skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
+diff --git a/docs/tests.csv b/docs/tests.csv
+index 373132e6..78116875 100644
+--- a/docs/tests.csv
++++ b/docs/tests.csv
+@@ -298,7 +298,7 @@ tools/test/swipe-deck-subheader.test.mjs,behavior,"swipe-deck's subheader slot:
+ tools/test/swipe-deck-width.test.mjs,behavior,"A deck slide stays exactly one track wide, so cards are not cut off and the pager lands on the card it names.",4,read,suite,,"a slide is exactly one track wide, and its inner can shrink;the track cannot exceed its cell;the takeover panel caps its single column;innerClass adds to the width classes rather than replacing them"
+ tools/test/tabular-explorer.test.mjs,behavior,"Tabular data exploration and column profiling: numeric and accounting currency coercion, distribution histograms, 5-number statistics, and TabularExplorer navigation and pivot lifecycle.",5,alpine,suite,,"declared columns survive empty datasets and retain source labels;explorer uses explicit labels safely in grid, Columns, Pivot, filters and CSV download;DataProfile.parseNum parses numbers, currencies, and accounting negatives;DataProfile.analyze profiles empty, numeric, categorical, and text columns;TabularExplorer.mount builds navigation, columns schema matrix, and pivot stages"
+ tools/test/take-honesty.test.mjs,behavior,"The take grid's honesty before a copy is taken: without these the LLM row silently copies megabytes on the app (the old path-regex gate matched nothing at its current address), and the HTML row calls a page that renders nowhere else a finished artifact.",5,alpine,suite,,"brief.plan sizes the own modules off the ledger and stays under the cap on an ordinary page;brief.plan refuses over the cap by size, not by path, and assemble names the figure;a missing ledger estimates zero rather than throwing, so the row still renders;exporter.relRefs counts what resolves only against the page's own location;renderCopy reports relative refs on a chainless page and none on a baked one"
+-tools/test/tend.test.mjs,gate,"The /tend skill keeps its doctrine boundary, its four streams and three tiers, names only paths that exist, and stays registered; the tasks skill keeps the delivery close tend acts on.",7,read,suite,,"skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a tiered process;tend SKILL.md names commands and paths that exist;tasks skill treats a met Done-when as a delivery close, which tend acts on;relative markdown links in tend SKILL.md resolve on disk;docs/docs.csv does not contain docs/TENDING.md (relocated to home chron);docs/portable.csv registers tend skill;.claude-plugin/marketplace.json registers ./tend in portable plugin skills"
++tools/test/tend.test.mjs,gate,"The /tend skill keeps its doctrine boundary, its four streams and three tiers, names only paths that exist, and stays registered; the tasks skill keeps the delivery close tend acts on.",8,read,suite,,"skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a tiered process;tend SKILL.md names commands and paths that exist;tend writes findings with its own script and offers no branch deletion;tasks skill treats a met Done-when as a delivery close, which tend acts on;relative markdown links in tend SKILL.md resolve on disk;docs/docs.csv does not contain docs/TENDING.md (relocated to home chron);docs/portable.csv registers tend skill;.claude-plugin/marketplace.json registers ./tend in portable plugin skills"
+ tools/test/tending-lifecycle.test.mjs,behavior,"A finding's lifecycle through the real command line: a comment changes nothing, a moved witness outside the subjects is named, a settled finding becomes due again when its evidence or subject later moves, and the browser's fold agrees with the command line's at every step.",6,alpine,suite,,"found: open, with work outstanding, every witness holding;a comment changes nothing;evidence outside the subjects changes, and check names it;reassessed and settled with what was done\; the refreshed witness holds;a later change makes the settled finding due, by check and by candidates;attention renewed, then the owner resolves it in the shape the view writes"
+ tools/test/tending-view.test.mjs,behavior,"The Tending view itself: Attention and Settled lists, the changed-since-assessed mark from a moved witness, and Comment versus Handled versus Reopen as written to the notes store.",7,alpine,suite,,"Attention holds outstanding work and changed settled findings\; Settled holds the rest;an overtaken finding with a step left shows the step on the row, unopened;a file changed before the finding was recorded reads as changed, through its folder listing;a settled finding whose ground moved comes back, saying so\; a holding one stays settled;Comment writes a reply without finding, and the finding stays open;Handled writes a resolution, and the finding moves to Settled with the owner's words;Reopen brings a handled finding back"
+ tools/test/tests-registry.test.mjs,gate,"Every test file has a row saying what it protects, the derived fields match disk, and no browser check is left with nothing to run it.",12,read,suite,,"every test file has exactly one row, and every row exists;every row is typed, and the kind vocabulary is closed;the declared derivation matches the files on disk;every counted assertion has a name;a non-suite check reports no assertion count rather than zero;every smoke index addresses a real assertion;protects says what breaks, and does not become an inventory;protects says more than ""it mounts"" when the file does more;the unexamined count is reported;every browser check is owned by an npm script;every kind of check carries a gloss that says what the kind means;tools/test holds only tests and its declared helpers"
+diff --git a/docs/themes.csv b/docs/themes.csv
+index 4cee963b..01ca1c01 100644
+--- a/docs/themes.csv
++++ b/docs/themes.csv
+@@ -1,68 +1,68 @@
+ a,b,w,rule,quoted,shingle,scanned
+-docs/SURFACING.md,skills/default/SURFACING.md,863,true,surfacing use these rules when chat is the only output channel the canonical source is mehrlander web tools at docs surfacing md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults apply repo and branch scoped rules per workstream substituting the current repo in url templates surfacing primitives every reply closing state use exactly one last understandable without the preceding message write the glyph at the start of the line with the name in bold as shown ready to continue you have a clear path to proceed approved or implied by user interest ready to assess go means report back not implement pending waiting on an action answer or dependency choice needed two competing changes assess recommend and name the choice needs you only the reader can supply what is needed provide an action link for every ask attention a concrete problem must be settled before proceeding clean exit nothing remains here the reader decides whether to wrap up merged this branch merged state what shipped in one line closed this branch closed unmerged state why in one line done every workstream merged or closed and nothing remains open nothing follows short answer the question is answered and nothing is proposed restate the question in bold followed by the answer every ask requires an action link for more than three asks use an inquiry surface use not for confirmation close in one order end with the caption render line then the state include a state when no files changed a wake a nudge stop hook finished job pr event or moved base that leaves the reader nothing new gets no reply if the harness then requires visible output reply with one line naming the wake a reply that changed files branch anchor the first reply that changes files begins with working branch branch name url code changes use github flow on a branch with assistant prefixes claude codex gemini grok shared coordination state task trackers personal lists session logs crawl caches uses real time mode directly on main include assistant commit trailers per surfacing course md surfacing course md reference is a link use caption url for anything the reader can open label touched source new unchanged source main and changes diff give a renderable page its or reserve file line for grep and debugging surfacing caption use branch pages branch html gh owner repo branch n files this turn commit sha calculate n with git diff origin main head name only wc l omit this turn on a single commit branch mention files in prose only when something non obvious must be said about them token less readers and mcp url caps take the fallbacks in surfacing extended md https github com mehrlander web;mehrlander web tools blob main docs surfacing extended md obtain an ref sha with git rev parse head and confirm it was pushed with git rev parse origin branch show pixels for a visual change inspect and include a headless screenshot measure scrollwidth for horizontal overflow hand over the artifact send an artifact with senduserfile not a path images preview inline html zip and audio download run npm run showing before handing over a render link and paste the line it prints re run it for every link on every commit and append nothing to what it prints ask for a query with query or a fragment with at it reads the branch's changed files and either names the page and mechanism that reach them or reports that no link does uncommon ways to hand something over lead with the live view publish an artifact stage a fileset envelopes an approval among them data toss clipboard run links follow surfacing extended md https github com mehrlander web tools blob main docs surfacing extended md open the branch use pages branch html gh owner repo branch base ref or gh owner repo pr n for a pr's head and base add file path to open a file or pane files to open the file list guide pointer use pr n body synced only when this turn rewrote the guide region otherwise use body not synced do not carry the marker forward from an earlier reply the task marker the session diff and review the diff follow surfacing extended md https github com mehrlander web;mehrlander web tools blob main docs surfacing extended md pr events subscribe the workstream pr call the subscribe pr activity tool once after opening a pr go states intent not write authority never schedule a check in a pr event is news only when it is a failing check on this session's work a comment or review a merge or close not yet reported or a passing check the user said to wait for then do the work that was waiting on it the status checklist in the platform prompt refers to the pr on github not to the closing state,10,187
+-docs/surfacing-course.md,skills/default/surfacing-course.md,832,true,the surfacing course the guide pr lifecycle the pr body as a workstream's running record and the phases it moves through surfacing md surfacing md holds the primitives and is injected into every session this file is not and is delivered by the pr subscribe hint hook at the moment a pr is opened which is when the course first applies the two modes github flow and real time we operate in two modes github flow branch pr the standard route for code tooling features and documentation changes live on a branch follow the pr guide lifecycle below and merge via pull request real time direct to main for shared state that concurrent sessions and tools rely on as live truth task trackers personal capture lists session telemetry and crawl caches these commit straight to main and push to github as you go so everyone stays synchronized in real time see direct to main csv direct to main csv for the registry of writers and paths assistant identity and attribution four ai assistants contribute across this ecosystem each assistant identifies its work using its dedicated branch prefix and commit attribution so the web tools activity view and automated crawlers can classify work accurately a commit or branch that carries no assistant prefix or trailer is unclassified not human read as human it stated a finding the classifier never made on 2026 09 18 four gemini branches went out without the prefix and the activity view reported them as a person's work a branch that predates this table or went out without its prefix is declared by a row in assistant branches csv assistant branches csv with the basis for the claim the activity view reads declarations only and guesses nothing two rules hold for every assistant whichever tool it runs in preflight before a pull request in web tools npm run preflight checkout setup the derived artifact refresh then the suite in home python3 tools lint conventions py and bash tools verify artifacts sh twelve of fifteen gemini branches in september 2026 ended red on the derived artifact gate because the commit hook never ran in their checkout the failing check names the command that repairs it a red check is not mergeable whoever opened the pr batch output is a run not a pr against the documents an overnight pass that proposes changes across many documents lands in home as a run under projects text runs date name where the text collection admits it as variants it never opens a pull request that edits the documents it proposes changes to maintain the pr body as the workstream's current state and durable record open a draft pr on the first push body sync is manual after each push that materially changes state rewrite the guide region through this course no hook or ci keeps it synchronized pr template the guide region is bounded by guide and guide these are link labels rather than html comments which the github mcp strips on readback read either form and emit this one content and automation keep the guide region below about 250 lines do not list files diff statistics or ci results there put session context that belongs nowhere else in the guide or a pr comment never in a tracker task make asks in the reply and copy them into the pr body update the guide after every push that materially changes state rewriting only between the markers with update pull request verify urls first with python3 scripts mcp link safe py check body md ask binary decisions as question yes no followed by the recommendation and consequence do not create your own action item if automation can perform it do it now if only the user can make it correct discovered facts immediately add a new thread choice or risk before continuing work on a new fork close threads as implemented or declined retain resolved decisions only when marked resolved rewrite stale pr body narrative do not treat it as authority merge current branch changes from tool or agent updates including subagent handoffs before updating the guide lifecycle each phase begins only on the user's word 1 plan state the recommendation options and risks end 2 apply implement the chosen scope update the guide and template open a draft pr and push do not claim green while checks run continue until 3 review apply requested changes as they arrive propose merge only after confirming that no blocker risk or choice remains 4 wrap after explicit agreement to wrap first run the repo's per session refreshes which its claude md names then inspect view checks and comments resolve actionable failures and report external failures sync the guide commit and push stop before merge 5 merge after an explicit merge request merge and wait for the merge event before announcing it reply if this was the last workstream immediately follow with 6 abandon after an explicit request close the pr unmerged and reply merging ends the branch open a new pr for further edits,10,187
+-docs/QUALIFIED-WRITING.md,skills/default/QUALIFIED-WRITING.md,297,true,qualified writing use these rules for every piece of prose a session writes documents commit messages pull request bodies tracker tasks and chat replies alike the canonical source is mehrlander web tools at docs qualified writing md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults qualify noun phrases to increase clarity strengthen claims highlight questions and support narrative direction no em dashes use colons commas semicolons parentheses or new sentences 1 introduce before you refer name the subject of a reply section or paragraph as it opens for any pronoun or definite phrase the immediate context must identify a single referent not this exacerbated the problem but the delayed handoff increased the reporting errors 2 use standard terms for a general audience specialized topics develop shorthand terms but avoid them and speak to an unfamiliar reader not the log keeps two properties but incidents csv has two columns 3 extend from what has been established develop the current point or clearly name the earlier point you are resuming not the solution is to increase funding but since the 2m budget gap cannot be closed by contract renegotiation we turn to increased funding 4 qualify noun phrases attach the words that say which one whose or how many of what avoid a bare this or it a bare quantifier is another common case not both are good but both restructuring proposals are good 5 qualify rather than explain a qualifier costs a word or two but earns gratitude and saves time it is about identification not elaboration and careful use can make explanation unnecessary not the figures in italics which should be read as projections rather than booked amounts total 4m but the projected figures total 4m,10,187
+-gold-set/09.02-Decision-Package-Addendum.md,gold-set/11.01-Central-Service-Fund-Split-Form.md,185,true,cell format records a workbook wide table it shrinks when a sheet goes because the writer prunes the records nothing uses so this row measures the table and not the fidelity defined names the writer emits every name workbook global so a sheet local name keeps its reference and loses its scope a name whose reference points at a dropped sheet is listed below calc chain entries dropped deliberately it is a recalculation order cache whose every index moves when a sheet goes so the workbook sets fullcalconload instead and excel rebuilds it printer settings per sheet and nothing carries it the writer models no page setup binary and no graft claims it the loss is invisible until someone prints;in source is the whole workbook kept sheets is that count restricted to the sheets you kept which is what a lossless rebuild would produce and it is blank for anything the package owns rather than a sheet in output is the same reader run over the result cells the writer did not re emit;package check every relationship resolves every rels target is in the zip every part is typed every index is in range why this file is in the gold set the,10,187
+-gold-set/11.01-Central-Service-Fund-Split-Form.md,gold-set/15.02-TECM-Template.md,156,true,cell format records a workbook wide table it shrinks when a sheet goes because the writer prunes the records nothing uses so this row measures the table and not the fidelity defined names the writer emits every name workbook global so a sheet local name keeps its reference and loses its scope a name whose reference points at a dropped sheet is listed below;parts xlsm in source is the whole workbook kept sheets is that count restricted to the sheets you kept which is what a lossless rebuild would produce and it is blank for anything the package owns rather than a sheet in output is the same reader run over the result cells the writer did not re emit;package check every relationship resolves every rels target is in the zip every part is typed every index is in range why this file is in the gold set the,10,187
+-gold-set/09.02-Decision-Package-Addendum.md,gold-set/15.02-TECM-Template.md,152,true,cell format records a workbook wide table it shrinks when a sheet goes because the writer prunes the records nothing uses so this row measures the table and not the fidelity defined names the writer emits every name workbook global so a sheet local name keeps its reference and loses its scope a name whose reference points at a dropped sheet is listed below;in source is the whole workbook kept sheets is that count restricted to the sheets you kept which is what a lossless rebuild would produce and it is blank for anything the package owns rather than a sheet in output is the same reader run over the result cells the writer did not re emit;printer settings per sheet and nothing carries it the writer models no page setup binary and no graft claims it the loss is invisible until someone prints graft log writer 2 of,10,187
+-data/doc-overlap/gold-set/2026-09-29-held-out-scorecard.md,data/doc-overlap/gold-set/2026-09-29-scorecard.md,37,,every passage pair at cosine 0 75 weighted share of each relation by cosine band at each cutoff of the pairs it shows weighted by whether the two files also share 3 shingles weighted by whether the shorter passage is under 20 words weighted skeptic;figures regenerated by python3 scripts doc overlap gold py score,10,187
+-docs/environment/testing.md,docs/headless-vendoring.md,30,true,import alpinejs dist module esm js never bare alpinejs the package has no exports map cjs interop double wraps the default export and the symptom is alpine start is not a function;ignore certificate errors curl node python use the system bundle and don't need it the flag,10,187
+-docs/environment/capabilities.md,skills/scour/SKILL.md,27,true,every subagent's full turn by turn transcript is a real file at claude projects session subagents agent id jsonl holding every tool call with its arguments;link structure because webfetch returns a small model's answer rather than the page's markdown;the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content,10,187
+-docs/SNAGS.md,docs/text-content.md,26,true,swipe deck js documents fourteen options where the code reads twenty and omits three keys from the return it describes stage js;a second agent per file told only to find where the first was wrong found eleven defects;toss render html 's header restates three arguments its own per site comments own,10,187
+-skills/default/QUALIFIED-WRITING.md,skills/default/SURFACING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,187
+-docs/SURFACING.md,skills/default/QUALIFIED-WRITING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,187
+-docs/SNAGS.md,skills/html-style/references/mechanics.md,20,,build a child mount's config in the host's init over a self captured there and pass the stored object x data;tailwind v4 then defaults border color to currentcolor v3 defaulted to gray 200;defines 207 classes on a semantic colour across 25 families and,10,187
+-docs/QUALIFIED-WRITING.md,skills/default/SURFACING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,187
+-docs/QUALIFIED-WRITING.md,docs/SURFACING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,187
+-docs/environment/capabilities.md,skills/sandbox-traps/SKILL.md,17,true,a push carries only the objects the remote lacks so a smaller commit is a smaller push split a large addition across;the branch and any draft pr come up on the first small push,10,187
+-skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,16,true,a highly relevant cluster can sit behind a page that scores low on its own and a crawler that always stops;our exponent was measured on shallow reads of already known relevant sources;leads harvested from a business association return more business associations,10,187
+-skills/atomic-decomposition/SKILL.md,skills/source-anchored-writing/SKILL.md,16,,as true y itself causal and sequence links because led to after which assert a relationship the;hide in plainer prose characterizations stated as fact the troubled program asserts trouble the;announce themselves a figure a date a dollar amount a named quote,10,187
+-docs/loader.md,tools/README.md,15,,the build still honors use ref an explicit ref falls through to the network so a built page can be re pinned for review,10,187
+-docs/SNAGS.md,docs/loader.md,15,,pr 584 merged at 09 35 and the budget drs submittal page in mehrlander home;by forcing url params js and repo address js into the auto boot chain;run after alpine has walked the dom and called init every kit,10,187
+-docs/CONSTELLATION.md,skills/default/surfacing-course.md,15,,for shared state that concurrent sessions and tools rely on as live truth task trackers personal capture lists session telemetry and crawl caches;to main and push to github as you go so,10,187
+-docs/CONSTELLATION.md,docs/surfacing-course.md,15,,for shared state that concurrent sessions and tools rely on as live truth task trackers personal capture lists session telemetry and crawl caches;to main and push to github as you go so,10,187
+-skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,14,,from a session in the target repo then commit and push skills register at session start so;mcp github get file contents with owner mehrlander repo web tools path;skill becomes invocable in sessions started from a branch that contains it,10,187
+-docs/APP.md,skills/web-tools-app/SKILL.md,13,true,a stage holding only pasted text mints as gz which carries the text in the link and needs no token stage md,10,187
+-pages/wsl-sync/IMPORT.md,sites/lawfilesext.leg.wa.gov/IMPORT.md,12,,import provenance imported from mehrlander wa bills https github com mehrlander wa bills at commit c3a9f4a on 2026 05 07 files,10,187
+-docs/github/github-surfacing.md,skills/sandbox-traps/SKILL.md,12,,mid session with add repo has full git access through the proxy but no web interface branch or pull request controls,10,187
+-docs/environment/container.md,skills/sandbox-traps/SKILL.md,11,true,a file's apparent first commit is the graft boundary rather than its creation and git log s finds nothing earlier,10,187
+-docs/TRACKER.md,skills/tasks/SKILL.md,11,,if the procedure is not a skill yet writing the skill is part of filing the task;entry to restamp a fact add a new entry that corrects it,10,187
+-docs/SNAGS.md,skills/html-style/SKILL.md,11,,session loaded the bundled dataviz skill whose form heuristic offers a stat tile or hero number as a legitimate answer,10,187
+-pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,10,,1 html each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,187
+-skills/gold-set/SKILL.md,skills/scour/SKILL.md,9,,live in docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,187
+-docs/SNAGS.md,docs/environment/testing.md,9,,since 0 5 0 publishes dist typography min css and jsdelivr answers the versionless url;the point is what the page does on load at that fragment,10,187
+-skills/html-style/SKILL.md,skills/html-style/references/mechanics.md,8,,js https github com mehrlander web tools blob main lib kits title tip js;github com mehrlander web tools blob main lib kits panel tip js,10,187
+-pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,187
+-pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,187
+-docs/surfacing-extended.md,skills/shortcut-links/SKILL.md,8,,markdown in chat md https github com mehrlander web tools blob main docs markdown in chat md,10,187
+-docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup script https code claude com docs en claude code on the web environment caching,10,187
+-docs/envelopes/workbook-extract.md,lib/kits/README.md,8,,per item rows against total plus truncated say whether that item is short of what the;pages data view html pages data view html with no,10,187
+-docs/envelopes/data-view.md,docs/envelopes/shorter.md,8,true,payload js which decides what it is rather than asking bare is any;two shapes no declaration a payload is read by lib kits;lib kits data payload js lib kits data payload js,10,187
+-docs/envelopes/README.md,docs/envelopes/workbook-extract.md,8,true,with no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,187
+-CLAUDE.md,docs/showing.md,7,true,only a page renders this way for a kit or doc links the new blob and,10,187
+-docs/loader.md,docs/showing-consolidation.md,6,,history shim keeps top the address and the selection in every url the page writes,10,187
+-docs/forms/branch.md,skills/default/SURFACING.md,6,,gh owner repo branch base ref or gh owner repo pr n for a pr's,10,187
+-docs/environment/capabilities.md,skills/gold-set/SKILL.md,6,,conform it is the agent tool equivalent of workflow's schema option and it is committed,10,187
+-docs/envelopes/surface.md,docs/stage.md,6,,surface files and the bench could promote its working set into one both went;is still true a year later with no tool running,10,187
+-docs/envelopes/README.md,lib/kits/README.md,6,true,discriminator is structural rather than a kind check so a superset kind is already admitted,10,187
+-docs/SURFACING.md,docs/forms/branch.md,6,,gh owner repo branch base ref or gh owner repo pr n for a pr's,10,187
+-skills/docx/SKILL.md,skills/pptx/SKILL.md,5,,pdf conversion auto configured for sandboxed environments via scripts office soffice py poppler pdftoppm,10,187
+-lib/kits/README.md,popups/data-shelf.md,5,,page in cfg types the canonical set of valid type names lives;ui metadata for each type label badge exec lives on the,10,187
+-docs/envelopes/data-view.md,docs/environment/testing.md,5,,tools render scenarios data view item mjs tools render scenarios data view item mjs,10,187
+-docs/code-layers.md,lib/ops/README.md,5,,tools test code layers test mjs tools test code layers test mjs;an op is one file that is one value a single,10,187
+-README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,187
+-docs/inbound.md,docs/venues.md,4,,an inbound channel with no venue behind it is a message nobody reads,10,187
+-docs/favicons/README.md,docs/text-content.md,4,,were picked against real icons on a light and a dark tab strip,10,187
+-docs/code-layers.md,lib/kits/README.md,4,,tools test code layers test mjs holds the boundary in all three directions,10,187
+-pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,187
+-gold-set/README.md,gold-set/RESULTS.md,3,,tools test xlsx write test mjs tools test xlsx write test mjs,10,187
+-docs/surfacing-extended.md,skills/default/surfacing-course.md,3,,and is injected into every session this file is not and is,10,187
+-docs/surfacing-course.md,docs/surfacing-extended.md,3,,and is injected into every session this file is not and is,10,187
+-docs/github/mcp.md,docs/surfacing-extended.md,3,,a url of 150 characters or more is wrapped in backticks and,10,187
+-docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,187
+-docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a call and to the text it carries,10,187
+-docs/column-primitives.md,docs/text-content.md,3,,https github com mehrlander home blob main projects budget drs data design,10,187
+-docs/code-layers.md,tools/README.md,3,true,still overlap on their default path only the overlay posture distinguishes them,10,187
+-docs/artifacts.md,skills/web-tools-app/SKILL.md,3,,the claude app's in app browser keeps its own storage so the,10,187
+-docs/SNAGS.md,skills/phosphor-icons/SKILL.md,3,,measure the element's width before suspecting the state that controls it;reads as a logic bug and gets debugged as one,10,187
+-docs/SNAGS.md,docs/views/branches.md,3,,lib kits repo activity cache js lib kits repo activity cache js,10,187
++docs/SURFACING.md,skills/default/SURFACING.md,863,true,surfacing use these rules when chat is the only output channel the canonical source is mehrlander web tools at docs surfacing md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults apply repo and branch scoped rules per workstream substituting the current repo in url templates surfacing primitives every reply closing state use exactly one last understandable without the preceding message write the glyph at the start of the line with the name in bold as shown ready to continue you have a clear path to proceed approved or implied by user interest ready to assess go means report back not implement pending waiting on an action answer or dependency choice needed two competing changes assess recommend and name the choice needs you only the reader can supply what is needed provide an action link for every ask attention a concrete problem must be settled before proceeding clean exit nothing remains here the reader decides whether to wrap up merged this branch merged state what shipped in one line closed this branch closed unmerged state why in one line done every workstream merged or closed and nothing remains open nothing follows short answer the question is answered and nothing is proposed restate the question in bold followed by the answer every ask requires an action link for more than three asks use an inquiry surface use not for confirmation close in one order end with the caption render line then the state include a state when no files changed a wake a nudge stop hook finished job pr event or moved base that leaves the reader nothing new gets no reply if the harness then requires visible output reply with one line naming the wake a reply that changed files branch anchor the first reply that changes files begins with working branch branch name url code changes use github flow on a branch with assistant prefixes claude codex gemini grok shared coordination state task trackers personal lists session logs crawl caches uses real time mode directly on main include assistant commit trailers per surfacing course md surfacing course md reference is a link use caption url for anything the reader can open label touched source new unchanged source main and changes diff give a renderable page its or reserve file line for grep and debugging surfacing caption use branch pages branch html gh owner repo branch n files this turn commit sha calculate n with git diff origin main head name only wc l omit this turn on a single commit branch mention files in prose only when something non obvious must be said about them token less readers and mcp url caps take the fallbacks in surfacing extended md https github com mehrlander web;mehrlander web tools blob main docs surfacing extended md obtain an ref sha with git rev parse head and confirm it was pushed with git rev parse origin branch show pixels for a visual change inspect and include a headless screenshot measure scrollwidth for horizontal overflow hand over the artifact send an artifact with senduserfile not a path images preview inline html zip and audio download run npm run showing before handing over a render link and paste the line it prints re run it for every link on every commit and append nothing to what it prints ask for a query with query or a fragment with at it reads the branch's changed files and either names the page and mechanism that reach them or reports that no link does uncommon ways to hand something over lead with the live view publish an artifact stage a fileset envelopes an approval among them data toss clipboard run links follow surfacing extended md https github com mehrlander web tools blob main docs surfacing extended md open the branch use pages branch html gh owner repo branch base ref or gh owner repo pr n for a pr's head and base add file path to open a file or pane files to open the file list guide pointer use pr n body synced only when this turn rewrote the guide region otherwise use body not synced do not carry the marker forward from an earlier reply the task marker the session diff and review the diff follow surfacing extended md https github com mehrlander web;mehrlander web tools blob main docs surfacing extended md pr events subscribe the workstream pr call the subscribe pr activity tool once after opening a pr go states intent not write authority never schedule a check in a pr event is news only when it is a failing check on this session's work a comment or review a merge or close not yet reported or a passing check the user said to wait for then do the work that was waiting on it the status checklist in the platform prompt refers to the pr on github not to the closing state,10,188
++docs/surfacing-course.md,skills/default/surfacing-course.md,832,true,the surfacing course the guide pr lifecycle the pr body as a workstream's running record and the phases it moves through surfacing md surfacing md holds the primitives and is injected into every session this file is not and is delivered by the pr subscribe hint hook at the moment a pr is opened which is when the course first applies the two modes github flow and real time we operate in two modes github flow branch pr the standard route for code tooling features and documentation changes live on a branch follow the pr guide lifecycle below and merge via pull request real time direct to main for shared state that concurrent sessions and tools rely on as live truth task trackers personal capture lists session telemetry and crawl caches these commit straight to main and push to github as you go so everyone stays synchronized in real time see direct to main csv direct to main csv for the registry of writers and paths assistant identity and attribution four ai assistants contribute across this ecosystem each assistant identifies its work using its dedicated branch prefix and commit attribution so the web tools activity view and automated crawlers can classify work accurately a commit or branch that carries no assistant prefix or trailer is unclassified not human read as human it stated a finding the classifier never made on 2026 09 18 four gemini branches went out without the prefix and the activity view reported them as a person's work a branch that predates this table or went out without its prefix is declared by a row in assistant branches csv assistant branches csv with the basis for the claim the activity view reads declarations only and guesses nothing two rules hold for every assistant whichever tool it runs in preflight before a pull request in web tools npm run preflight checkout setup the derived artifact refresh then the suite in home python3 tools lint conventions py and bash tools verify artifacts sh twelve of fifteen gemini branches in september 2026 ended red on the derived artifact gate because the commit hook never ran in their checkout the failing check names the command that repairs it a red check is not mergeable whoever opened the pr batch output is a run not a pr against the documents an overnight pass that proposes changes across many documents lands in home as a run under projects text runs date name where the text collection admits it as variants it never opens a pull request that edits the documents it proposes changes to maintain the pr body as the workstream's current state and durable record open a draft pr on the first push body sync is manual after each push that materially changes state rewrite the guide region through this course no hook or ci keeps it synchronized pr template the guide region is bounded by guide and guide these are link labels rather than html comments which the github mcp strips on readback read either form and emit this one content and automation keep the guide region below about 250 lines do not list files diff statistics or ci results there put session context that belongs nowhere else in the guide or a pr comment never in a tracker task make asks in the reply and copy them into the pr body update the guide after every push that materially changes state rewriting only between the markers with update pull request verify urls first with python3 scripts mcp link safe py check body md ask binary decisions as question yes no followed by the recommendation and consequence do not create your own action item if automation can perform it do it now if only the user can make it correct discovered facts immediately add a new thread choice or risk before continuing work on a new fork close threads as implemented or declined retain resolved decisions only when marked resolved rewrite stale pr body narrative do not treat it as authority merge current branch changes from tool or agent updates including subagent handoffs before updating the guide lifecycle each phase begins only on the user's word 1 plan state the recommendation options and risks end 2 apply implement the chosen scope update the guide and template open a draft pr and push do not claim green while checks run continue until 3 review apply requested changes as they arrive propose merge only after confirming that no blocker risk or choice remains 4 wrap after explicit agreement to wrap first run the repo's per session refreshes which its claude md names then inspect view checks and comments resolve actionable failures and report external failures sync the guide commit and push stop before merge 5 merge after an explicit merge request merge and wait for the merge event before announcing it reply if this was the last workstream immediately follow with 6 abandon after an explicit request close the pr unmerged and reply merging ends the branch open a new pr for further edits,10,188
++docs/QUALIFIED-WRITING.md,skills/default/QUALIFIED-WRITING.md,297,true,qualified writing use these rules for every piece of prose a session writes documents commit messages pull request bodies tracker tasks and chat replies alike the canonical source is mehrlander web tools at docs qualified writing md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults qualify noun phrases to increase clarity strengthen claims highlight questions and support narrative direction no em dashes use colons commas semicolons parentheses or new sentences 1 introduce before you refer name the subject of a reply section or paragraph as it opens for any pronoun or definite phrase the immediate context must identify a single referent not this exacerbated the problem but the delayed handoff increased the reporting errors 2 use standard terms for a general audience specialized topics develop shorthand terms but avoid them and speak to an unfamiliar reader not the log keeps two properties but incidents csv has two columns 3 extend from what has been established develop the current point or clearly name the earlier point you are resuming not the solution is to increase funding but since the 2m budget gap cannot be closed by contract renegotiation we turn to increased funding 4 qualify noun phrases attach the words that say which one whose or how many of what avoid a bare this or it a bare quantifier is another common case not both are good but both restructuring proposals are good 5 qualify rather than explain a qualifier costs a word or two but earns gratitude and saves time it is about identification not elaboration and careful use can make explanation unnecessary not the figures in italics which should be read as projections rather than booked amounts total 4m but the projected figures total 4m,10,188
++gold-set/09.02-Decision-Package-Addendum.md,gold-set/11.01-Central-Service-Fund-Split-Form.md,185,true,cell format records a workbook wide table it shrinks when a sheet goes because the writer prunes the records nothing uses so this row measures the table and not the fidelity defined names the writer emits every name workbook global so a sheet local name keeps its reference and loses its scope a name whose reference points at a dropped sheet is listed below calc chain entries dropped deliberately it is a recalculation order cache whose every index moves when a sheet goes so the workbook sets fullcalconload instead and excel rebuilds it printer settings per sheet and nothing carries it the writer models no page setup binary and no graft claims it the loss is invisible until someone prints;in source is the whole workbook kept sheets is that count restricted to the sheets you kept which is what a lossless rebuild would produce and it is blank for anything the package owns rather than a sheet in output is the same reader run over the result cells the writer did not re emit;package check every relationship resolves every rels target is in the zip every part is typed every index is in range why this file is in the gold set the,10,188
++gold-set/11.01-Central-Service-Fund-Split-Form.md,gold-set/15.02-TECM-Template.md,156,true,cell format records a workbook wide table it shrinks when a sheet goes because the writer prunes the records nothing uses so this row measures the table and not the fidelity defined names the writer emits every name workbook global so a sheet local name keeps its reference and loses its scope a name whose reference points at a dropped sheet is listed below;parts xlsm in source is the whole workbook kept sheets is that count restricted to the sheets you kept which is what a lossless rebuild would produce and it is blank for anything the package owns rather than a sheet in output is the same reader run over the result cells the writer did not re emit;package check every relationship resolves every rels target is in the zip every part is typed every index is in range why this file is in the gold set the,10,188
++gold-set/09.02-Decision-Package-Addendum.md,gold-set/15.02-TECM-Template.md,152,true,cell format records a workbook wide table it shrinks when a sheet goes because the writer prunes the records nothing uses so this row measures the table and not the fidelity defined names the writer emits every name workbook global so a sheet local name keeps its reference and loses its scope a name whose reference points at a dropped sheet is listed below;in source is the whole workbook kept sheets is that count restricted to the sheets you kept which is what a lossless rebuild would produce and it is blank for anything the package owns rather than a sheet in output is the same reader run over the result cells the writer did not re emit;printer settings per sheet and nothing carries it the writer models no page setup binary and no graft claims it the loss is invisible until someone prints graft log writer 2 of,10,188
++data/doc-overlap/gold-set/2026-09-29-held-out-scorecard.md,data/doc-overlap/gold-set/2026-09-29-scorecard.md,37,,every passage pair at cosine 0 75 weighted share of each relation by cosine band at each cutoff of the pairs it shows weighted by whether the two files also share 3 shingles weighted by whether the shorter passage is under 20 words weighted skeptic;figures regenerated by python3 scripts doc overlap gold py score,10,188
++docs/environment/testing.md,docs/headless-vendoring.md,30,true,import alpinejs dist module esm js never bare alpinejs the package has no exports map cjs interop double wraps the default export and the symptom is alpine start is not a function;ignore certificate errors curl node python use the system bundle and don't need it the flag,10,188
++docs/environment/capabilities.md,skills/scour/SKILL.md,27,true,every subagent's full turn by turn transcript is a real file at claude projects session subagents agent id jsonl holding every tool call with its arguments;link structure because webfetch returns a small model's answer rather than the page's markdown;the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content,10,188
++docs/SNAGS.md,docs/text-content.md,26,true,swipe deck js documents fourteen options where the code reads twenty and omits three keys from the return it describes stage js;a second agent per file told only to find where the first was wrong found eleven defects;toss render html 's header restates three arguments its own per site comments own,10,188
++skills/default/QUALIFIED-WRITING.md,skills/default/SURFACING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,188
++docs/SURFACING.md,skills/default/QUALIFIED-WRITING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,188
++docs/SNAGS.md,skills/html-style/references/mechanics.md,20,,build a child mount's config in the host's init over a self captured there and pass the stored object x data;tailwind v4 then defaults border color to currentcolor v3 defaulted to gray 200;defines 207 classes on a semantic colour across 25 families and,10,188
++docs/QUALIFIED-WRITING.md,skills/default/SURFACING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,188
++docs/QUALIFIED-WRITING.md,docs/SURFACING.md,20,true,md the portable plugin's default skill loads the byte matched copy shipped beside it and fetches this source only as a fallback local claude md rules override these defaults,10,188
++docs/environment/capabilities.md,skills/sandbox-traps/SKILL.md,17,true,a push carries only the objects the remote lacks so a smaller commit is a smaller push split a large addition across;the branch and any draft pr come up on the first small push,10,188
++skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,16,true,a highly relevant cluster can sit behind a page that scores low on its own and a crawler that always stops;our exponent was measured on shallow reads of already known relevant sources;leads harvested from a business association return more business associations,10,188
++skills/atomic-decomposition/SKILL.md,skills/source-anchored-writing/SKILL.md,16,,as true y itself causal and sequence links because led to after which assert a relationship the;hide in plainer prose characterizations stated as fact the troubled program asserts trouble the;announce themselves a figure a date a dollar amount a named quote,10,188
++docs/loader.md,tools/README.md,15,,the build still honors use ref an explicit ref falls through to the network so a built page can be re pinned for review,10,188
++docs/SNAGS.md,docs/loader.md,15,,pr 584 merged at 09 35 and the budget drs submittal page in mehrlander home;by forcing url params js and repo address js into the auto boot chain;run after alpine has walked the dom and called init every kit,10,188
++docs/CONSTELLATION.md,skills/default/surfacing-course.md,15,,for shared state that concurrent sessions and tools rely on as live truth task trackers personal capture lists session telemetry and crawl caches;to main and push to github as you go so,10,188
++docs/CONSTELLATION.md,docs/surfacing-course.md,15,,for shared state that concurrent sessions and tools rely on as live truth task trackers personal capture lists session telemetry and crawl caches;to main and push to github as you go so,10,188
++skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,14,,from a session in the target repo then commit and push skills register at session start so;mcp github get file contents with owner mehrlander repo web tools path;skill becomes invocable in sessions started from a branch that contains it,10,188
++docs/APP.md,skills/web-tools-app/SKILL.md,13,true,a stage holding only pasted text mints as gz which carries the text in the link and needs no token stage md,10,188
++pages/wsl-sync/IMPORT.md,sites/lawfilesext.leg.wa.gov/IMPORT.md,12,,import provenance imported from mehrlander wa bills https github com mehrlander wa bills at commit c3a9f4a on 2026 05 07 files,10,188
++docs/github/github-surfacing.md,skills/sandbox-traps/SKILL.md,12,,mid session with add repo has full git access through the proxy but no web interface branch or pull request controls,10,188
++docs/environment/container.md,skills/sandbox-traps/SKILL.md,11,true,a file's apparent first commit is the graft boundary rather than its creation and git log s finds nothing earlier,10,188
++docs/TRACKER.md,skills/tasks/SKILL.md,11,,if the procedure is not a skill yet writing the skill is part of filing the task;entry to restamp a fact add a new entry that corrects it,10,188
++docs/SNAGS.md,skills/html-style/SKILL.md,11,,session loaded the bundled dataviz skill whose form heuristic offers a stat tile or hero number as a legitimate answer,10,188
++pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,10,,1 html each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,188
++skills/gold-set/SKILL.md,skills/scour/SKILL.md,9,,live in docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,188
++docs/SNAGS.md,docs/environment/testing.md,9,,since 0 5 0 publishes dist typography min css and jsdelivr answers the versionless url;the point is what the page does on load at that fragment,10,188
++skills/html-style/SKILL.md,skills/html-style/references/mechanics.md,8,,js https github com mehrlander web tools blob main lib kits title tip js;github com mehrlander web tools blob main lib kits panel tip js,10,188
++pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,188
++pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,188
++docs/surfacing-extended.md,skills/shortcut-links/SKILL.md,8,,markdown in chat md https github com mehrlander web tools blob main docs markdown in chat md,10,188
++docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup script https code claude com docs en claude code on the web environment caching,10,188
++docs/envelopes/workbook-extract.md,lib/kits/README.md,8,,per item rows against total plus truncated say whether that item is short of what the;pages data view html pages data view html with no,10,188
++docs/envelopes/data-view.md,docs/envelopes/shorter.md,8,true,payload js which decides what it is rather than asking bare is any;two shapes no declaration a payload is read by lib kits;lib kits data payload js lib kits data payload js,10,188
++docs/envelopes/README.md,docs/envelopes/workbook-extract.md,8,true,with no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,188
++CLAUDE.md,docs/showing.md,7,true,only a page renders this way for a kit or doc links the new blob and,10,188
++docs/loader.md,docs/showing-consolidation.md,6,,history shim keeps top the address and the selection in every url the page writes,10,188
++docs/forms/branch.md,skills/default/SURFACING.md,6,,gh owner repo branch base ref or gh owner repo pr n for a pr's,10,188
++docs/environment/capabilities.md,skills/gold-set/SKILL.md,6,,conform it is the agent tool equivalent of workflow's schema option and it is committed,10,188
++docs/envelopes/surface.md,docs/stage.md,6,,surface files and the bench could promote its working set into one both went;is still true a year later with no tool running,10,188
++docs/envelopes/README.md,lib/kits/README.md,6,true,discriminator is structural rather than a kind check so a superset kind is already admitted,10,188
++docs/SURFACING.md,docs/forms/branch.md,6,,gh owner repo branch base ref or gh owner repo pr n for a pr's,10,188
++skills/docx/SKILL.md,skills/pptx/SKILL.md,5,,pdf conversion auto configured for sandboxed environments via scripts office soffice py poppler pdftoppm,10,188
++lib/kits/README.md,popups/data-shelf.md,5,,page in cfg types the canonical set of valid type names lives;ui metadata for each type label badge exec lives on the,10,188
++docs/envelopes/data-view.md,docs/environment/testing.md,5,,tools render scenarios data view item mjs tools render scenarios data view item mjs,10,188
++docs/code-layers.md,lib/ops/README.md,5,,tools test code layers test mjs tools test code layers test mjs;an op is one file that is one value a single,10,188
++README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,188
++docs/inbound.md,docs/venues.md,4,,an inbound channel with no venue behind it is a message nobody reads,10,188
++docs/favicons/README.md,docs/text-content.md,4,,were picked against real icons on a light and a dark tab strip,10,188
++docs/code-layers.md,lib/kits/README.md,4,,tools test code layers test mjs holds the boundary in all three directions,10,188
++pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,188
++gold-set/README.md,gold-set/RESULTS.md,3,,tools test xlsx write test mjs tools test xlsx write test mjs,10,188
++docs/surfacing-extended.md,skills/default/surfacing-course.md,3,,and is injected into every session this file is not and is,10,188
++docs/surfacing-course.md,docs/surfacing-extended.md,3,,and is injected into every session this file is not and is,10,188
++docs/github/mcp.md,docs/surfacing-extended.md,3,,a url of 150 characters or more is wrapped in backticks and,10,188
++docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,188
++docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a call and to the text it carries,10,188
++docs/column-primitives.md,docs/text-content.md,3,,https github com mehrlander home blob main projects budget drs data design,10,188
++docs/code-layers.md,tools/README.md,3,true,still overlap on their default path only the overlay posture distinguishes them,10,188
++docs/artifacts.md,skills/web-tools-app/SKILL.md,3,,the claude app's in app browser keeps its own storage so the,10,188
++docs/SNAGS.md,skills/phosphor-icons/SKILL.md,3,,measure the element's width before suspecting the state that controls it;reads as a logic bug and gets debugged as one,10,188
++docs/SNAGS.md,docs/views/branches.md,3,,lib kits repo activity cache js lib kits repo activity cache js,10,188
+diff --git a/docs/views/branches.md b/docs/views/branches.md
+index b2fe8900..a7c3abd5 100644
+--- a/docs/views/branches.md
++++ b/docs/views/branches.md
+@@ -8,14 +8,16 @@ activity cache. `&detail=` opens one branch's form
+ ## The list
+ 
+ - **Scope chips** are `BRANCH_SCOPES` in `estate.js`, each with its own `note`;
+-  the default is Recent. Open, Abandoned and Unrecorded ignore the time window.
++  the default is Recent. Only Recent has a time window. **Findings** lists the
++  rows an open tending finding names ([tending.md](tending.md#beside-the-subjects)).
+   **Repo chips** narrow to one repo without changing the counts.
+ - **A row** is tinted by what became of its PR (ready, draft, merged, closed
+   unmerged, never proposed, or `PR ?` past the PR index's reach, `prReach`). Its
+   action line, in order: the repo chip (the repo's own menu), the GitHub menu
+   (every row opens github.com, except Copy branch name), the session mark, the
+   Files route, Stage, then route chips. The arrows (commits ahead and behind)
+-  hold the right edge.
++  hold the right edge. An open tending finding about the branch, or about a
++  pull request it heads, adds a line under the row that opens the finding.
+ - **Counts open cards.** Files changed, new and missing, and the two arrows,
+   each open a panel: the head count, a shape digest from the cache, then the
+   file list and patches from one compare through `BranchBrief`'s memo. A card's
+@@ -26,7 +28,8 @@ activity cache. `&detail=` opens one branch's form
+   spans more than the branch.
+ 
+ The Repos cards borrow the same cache for their rollups; the abandoned count is
+-computed from the same rows as the chip, so the two cannot disagree.
++computed from the same rows as the chip, so the two cannot disagree. A card's
++findings count is the open findings touching the repo by any subject.
+ 
+ ## The activity cache
+ 
+diff --git a/docs/views/tending.md b/docs/views/tending.md
+new file mode 100644
+index 00000000..c831f355
+--- /dev/null
++++ b/docs/views/tending.md
+@@ -0,0 +1,98 @@
++# Tending (`?view=tending`)
++
++The **Tending** view lists what tending passes concluded about the estate's
++work: branches, pull requests, tracker tasks, snags and session records. Its
++unit is a **finding**, not an alert. A finding names the subjects it concerns,
++says why it matters, recommends a next step, and isolates the one choice that
++needs the owner, when there is one. Component:
++`lib/alpineComponents/tending.js`. Record and fold: `lib/kits/findings.js`.
++
++## The record
++
++A finding is a note in the registry's notes store (`notes/notes.jsonl`, the
++[notes skill](../../skills/notes/SKILL.md)) that carries a `finding` object:
++
++| Field | Holds |
++| --- | --- |
++| `kind` | Provisional vocabulary: `unreached` (useful work that never reached the owner), `answer` (one specific answer needed), `overlap` (separate efforts that could be brought together), `superseded` (the work landed or was overtaken elsewhere). The view labels these and shows any other kind by name. |
++| `subjects` | Locators for everything the finding concerns: `owner/repo#N`, `owner/repo@branch`, `owner/repo:path` for a task or file, `owner/repo:docs/SNAGS.md#slug`, and a session's record file in the registry. The note's `about` is the first subject. |
++| `why`, `next`, `choice` | Why it matters, the recommended next step, and the owner's question with a recommendation. A step only the owner may take, such as closing a pull request, is a `choice`. |
++| `evidence` | Short verifiable facts: commits, files, pull requests, dates. |
++| `witnesses` | Pinned references ([locators.md](../locators.md)), including things outside the subjects whose change would change the conclusion (table below). |
++
++**An assessment is not the work.** A finding is open while it carries an
++outstanding `next` or `choice`, whatever its kind: "this pull request was
++overtaken" is a finished assessment and an unfinished job until someone closes
++the pull request. It is settled when nothing remains, either because the
++assessment needed no action or because a reply records it done.
++
++**Only a reply that carries `finding` changes a finding.** A tending pass
++reassesses by replying with new fields or witnesses; it settles one with
++`status: "settled"` and `did` (what was done), or renews attention with
++`status: "open"` and a new `next`. The owner closes one from the view with
++**Handled** (`status: "resolved"`) and reverses that with **Reopen**. A reply
++without `finding` is a comment: it is listed in the finding's history and
++changes nothing, however recent. An update replaces each field it carries
++whole.
++
++| Witness | Pins | Changed when |
++| --- | --- | --- |
++| `owner/repo@ref` with `sha` | a branch's tip | the tip is another commit; broken if the branch is gone |
++| `owner/repo@ref` with `contains` | a commit the ref must contain | the ref no longer contains it (`main` is pinned this way, never by its tip) |
++| `owner/repo@ref:path` with `sha` | the blob or tree at that path | the object at that path differs; broken if the path is gone |
++| `owner/repo#N` with `state` | a pull request's state | the state differs, or an open one was updated since |
++
++The browser and `findings.py check` apply this one rule, stated once as cases
++in `tools/test/findings.test.mjs`.
++
++## The view
++
++- **Attention** holds every finding with work outstanding, a question for the
++  owner first, then by kind and newest, **and any settled finding whose
++  evidence has since changed**, marked so, until a pass reassesses it.
++  **Settled** holds the rest, newest first, each saying what closed it:
++  nothing left to do, what tending did, or the owner's words.
++- A finding reads as a row: kind, title, the owner's call, the outstanding
++  next step, and its subjects as links (a pull request to GitHub, a branch to
++  the branch page, a session to its row in Sessions, a task or snag to its
++  file).
++- **A tap opens it:** why it matters, the evidence, each witness with its
++  verdict, the history (found, advanced, settled, handled, reopened, comments),
++  and the reply box with Handled, Reopen and Comment.
++- **Every finding's witnesses are checked on sight**, settled ones included:
++  a branch tip through the branches API, `contains` through the compare API,
++  a path through its folder's contents listing (which reports the blob or tree
++  sha `git rev-parse` would), and a pull request through the pulls API. A
++  witness that moved or broke puts **Changed since assessed** (or **Settled,
++  but changed since**) at the top of the finding, naming it.
++
++`?view=tending&tab=settled` opens Settled; `&item=<note id>` opens one finding
++with its details. A repo filter handed in from a Repos card is not stamped.
++
++## Beside the subjects
++
++The Activity panes show the same open findings where their subjects appear:
++
++- **Branches:** a line under each row an open finding names, by the branch or
++  by a pull request it heads, opening the finding here. The **Findings** scope
++  lists exactly those rows.
++- **Sessions:** the same line under a session whose record a finding names.
++- **Repos:** a count on each card of open findings touching the repo, by any
++  subject, opening this view narrowed to it.
++
++## Where findings come from
++
++A tending pass (the [tend skill](../../skills/tend/SKILL.md)) selects
++candidates mechanically, investigates them, and writes findings with
++`skills/tend/findings.py`:
++
++| Command | Does |
++| --- | --- |
++| `candidates` | Selects from `state/activity.json` and `state/sessions.json`: sessions that ended finished while their branch did not land, pull requests whose description holds a ✴️ ask, pull requests idle 30 days, non-Claude pull requests marked ready and idle. A candidate counts as covered only while the finding that names it holds: if one of its subjects moved after the assessment, it is due again, settled or not. |
++| `add` | Validates and writes a finding, refusing a witness that pins nothing checkable. |
++| `update` | Writes a reassessment as a reply carrying `finding`. |
++| `list` | Folds the findings: open ones, or every one with `--all`. |
++| `check` | Observes every witness of every finding, settled ones included (`--open` narrows), from the checkouts beside the store and the crawl's cache, and names the findings whose evidence moved. |
++
++The selection signals choose what to investigate. They are never shown as
++findings themselves.
+diff --git a/skills/notes/SKILL.md b/skills/notes/SKILL.md
+index a5f0016b..b4cde2f5 100644
+--- a/skills/notes/SKILL.md
++++ b/skills/notes/SKILL.md
+@@ -29,6 +29,12 @@ One JSON line per note in the store's `notes.jsonl`:
+ `anchor` is optional: a text-quote anchor (`exact`, `prefix`, `suffix`), for a
+ note about a passage.
+ 
++`finding` is optional: a tending pass's conclusion about one or more subjects
++(fields in [`docs/views/tending.md`](../../docs/views/tending.md), written by
++`skills/tend/findings.py`). A finding changes only through a reply that itself
++carries `finding`. A reply without one is a comment and never changes the
++finding's status, however recent.
++
+ | Subject | `about` |
+ | --- | --- |
+ | repo | `owner/repo` |
+@@ -59,8 +65,8 @@ siblings; `--store` overrides. Writes go to the store's `main` by git plumbing,
+ so the checkout's own branch does not matter.
+ 
+ In the browser, `lib/kits/notes.js` reads and appends the same file. The Lists
+-view and the branch page show notes, and the annotation kit saves annotations
+-as notes.
++view and the branch page show notes, the annotation kit saves annotations as
++notes, and the Tending view lists findings through `lib/kits/findings.js`.
+ 
+ ## Key insights
+ 
+diff --git a/skills/tend/SKILL.md b/skills/tend/SKILL.md
+index 7f2cff7a..5ae2e943 100644
+--- a/skills/tend/SKILL.md
++++ b/skills/tend/SKILL.md
+@@ -1,11 +1,12 @@
+ ---
+ name: tend
+ description: >-
+-  Cultivate a workspace toward recognized objectives: prune settled branches,
+-  reconcile the tracker with what shipped, harvest open threads from merged
+-  pull requests, and nominate snags that still bite, acting on what is settled
+-  and bringing the owner only the choices that need commitment. Run when the
+-  owner invokes /tend.
++  Cultivate a workspace toward recognized objectives: investigate branches,
++  pull requests, trackers and snags, and store each conclusion as a finding
++  the Web Tools Tending view shows (work that never reached the owner, a
++  question only the owner can answer, efforts that overlap, and what is
++  settled), acting on what is settled and bringing the owner only the choices
++  that need commitment. Run when the owner invokes /tend.
+ disable-model-invocation: true
+ ---
+ 
+@@ -15,7 +16,9 @@ disable-model-invocation: true
+ 
+ Tending is the cultivation of a workspace toward recognized objectives. It
+ clears paths, prunes dead ends, and carries work forward. It readies the owner
+-to see the vital choice and commit.
++to see the vital choice and commit. A pass leaves its conclusions in the
++repository as findings, where the Tending view and the Activity panes surface
++them; a conclusion that lives only in a reply has not been delivered.
+ 
+ ## Principles
+ 
+@@ -27,30 +30,64 @@ to see the vital choice and commit.
+    reduce what the owner must carry. Carry the investigation through.
+ 3. **Answer questions; do not mint them.** Transferring unfinished analysis is
+    the failure: raw uncertainties, speculative edge cases, or unexamined
+-   choices handed to the owner are friction masquerading as diligence. Bring a
+-   question only when investigation establishes a consequential choice that
+-   requires the owner's judgment. Define its terms and say why it matters.
+-4. **A finding is a note about its subject,** left with `/portable:notes`. A
+-   trap still goes in its `docs/SNAGS.md` entry. Where no notes store is
+-   reachable, the finding goes in the reply. Create no other record to hold a
+-   finding.
++   choices handed to the owner are friction masquerading as diligence. "Land
++   or drop?" is unfinished analysis until the pass has established what the
++   work holds, what main lacks, and what landing would cost. Bring a question
++   only when investigation establishes a consequential choice that requires
++   the owner's judgment, and recommend an answer.
++4. **A finding is stored, linked to its subjects.** Write it with
++   `findings.py` into the notes store (`/portable:notes`); one finding may name
++   several branches, pull requests, tasks, snags or sessions. A trap still goes
++   in its `docs/SNAGS.md` entry. Create no other record to hold a finding.
++   Where no notes store is reachable, the finding goes in the reply.
+ 
+ ## Process
+ 
+-`/tend` tends the four streams below. `/tend <stream>` tends one: any named
+-work stream, such as `snags`, a project folder, or a pull request.
+-
+-1. **Survey** every stream. Change nothing.
+-2. **Act** on each stream's *Act* tier, and report it.
+-3. **Propose** the *Propose* tier as one numbered batch, and close 🟢.
+-4. **On green light,** execute, then offer the next layer. Close 🟢 if anything
+-   is proposed, ⚪ if nothing remains.
++Tend runs in a Claude Code cloud session. Propose only what that session can
++carry out; it cannot delete branches. `findings.py` sits beside this file;
++[`docs/views/tending.md`](../../docs/views/tending.md) states the record.
++
++1. **Reassess.** `findings.py check` reads every finding, settled ones
++   included, and names those whose witnesses changed. Reread each and reply
++   with `findings.py update`: revise it, confirm it with fresh witnesses, or
++   renew attention on a settled one (`status: "open"` and a new `next`). An
++   update replaces each field it carries whole, so a revised `evidence` or
++   `title` drops what the change disproved.
++2. **Select.** `findings.py candidates` lists what the mechanical signals raise
++   and marks a candidate covered only while the finding naming it holds; a
++   subject that moved since the assessment makes it due again. Each stream
++   below adds its own. A signal is a reason to investigate, never a finding.
++3. **Investigate** each uncovered candidate until the conclusion would survive
++   the owner's first question.
++4. **Write** one finding per conclusion with `findings.py add`: every subject,
++   why it matters, a next step concrete enough to execute, a choice only where
++   principle 3 allows one, evidence, and witnesses. A step only the owner may
++   take, such as closing a pull request, is a choice with a recommendation.
++   Witnesses include what lies outside the subjects, such as main's copy of a
++   file the work was compared against, so step 1 sees changes the subjects
++   never show. Pin each one checkably: a path by its object sha, a branch by
++   its tip, `main` by a commit it `contains`, a pull request by its state.
++5. **Act** on each stream's *Act* tier. A finding stays open while its step is
++   outstanding, so record the step done as an update (`status: "settled"`,
++   `did`), on the finding it advanced.
++6. **Reply** with what the Tending view gained and the choices it isolates.
++   Close 🟢 if any finding waits on the owner, ⚪ if none does.
+ 
+ Act unasked only on a mechanical test. Whether something deserves the owner's
+-attention is judgment: read it and nominate with a one-line reason, never by a
+-count or a fixed window. Where the venue restricts pushes (a Claude Code web
+-session pushes only to its own branch), propose every deletion. Read GitHub
+-through the GitHub MCP, not `gh` or `curl`.
++attention is judgment: write it as a finding, never decide it by a count or a
++fixed window. Read GitHub through the GitHub MCP, not `gh` or `curl`.
++
++## Findings
++
++| Kind | Means |
++| --- | --- |
++| `unreached` | Useful work never reached the owner. *Next* says how to land it. |
++| `answer` | One specific answer from the owner decides it. *Choice* states it. |
++| `overlap` | Separate efforts could be brought together. *Next* says how. |
++| `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. Open while a step such as closing its pull request remains. |
++
++The kinds are provisional. Add one to `KINDS` in `findings.py` when a pass
++reaches a conclusion none of them fits.
+ 
+ ## Branches
+ 
+@@ -60,31 +97,19 @@ its class:
+ 
+ | Class | Test |
+ | --- | --- |
+-| open | `head.ref` of an open pull request. Excluded. |
++| open | `head.ref` of an open pull request. Read under Pull requests. |
+ | merged-tip | Tip SHA equals `head.sha` of a merged pull request. |
+ | closed-tip | Tip SHA equals `head.sha` of a pull request closed without merging. |
+ | ancestor | `git rev-list --count origin/<b> --not origin/main` prints `0`. |
+ | content-settled | `python3 scripts/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |
+ | novel | Anything else, including anything a shallow clone leaves undecided. |
+ 
+-- **Act:** delete a merged-tip branch, or an ancestor branch that heads a
+-  merged or closed pull request: re-read the tip with `git ls-remote`, then
+-  `git push origin --delete <b>`. Until
+-  `git grep -q prFallback origin/main -- lib/kits/branch-brief.js` succeeds,
+-  propose instead.
+-- **Propose:** delete a content-settled or closed-tip branch, or an ancestor
+-  with no pull request, giving its last commit date. Delete a novel branch
+-  whose residue `main` has since rewritten or retired, naming what superseded it.
+-- **Owner only:** any other novel branch. Report its origin (`Claude-Session`
+-  trailer or pull request) and its novel files, grouping a session's branches
+-  across repos. Lead with any session the session store's
+-  `state/sessions.json` records as 🟣 Merged or ⚫ Done.
+-
+-A novel branch's residue is the lines it added
+-(`git diff -U0 <merge-base> origin/<b> -- <path>`) that
+-`git show origin/main:<path>` lacks.
+-
+-Link by pull request: `pages/branch.html#gh=<owner>/<repo>&pr=<n>`.
++- **Act:** report the settled classes as counts. They need nothing further.
++- **Find:** a novel branch. Its residue is the lines it added
++  (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
++  `git show origin/main:<path>` lacks. Name its origin (`Claude-Session`
++  trailer, session record, or pull request) as subjects, and group a
++  session's branches across repos into one finding.
+ 
+ ## Trackers
+ 
+@@ -93,29 +118,28 @@ premises against the tree, not only its body.
+ 
+ - **Act:** close a task whose `## Done when` a merged pull request meets; add
+   `## Related` entries; drop a `depends-on:` id that is done or missing.
+-- **Propose:** close a stale `in-progress` claim (`in-flight` skill); reframe,
+-  split, or supersede a task; file a new one.
++- **Find:** a stale `in-progress` claim (`in-flight` skill), a task the tree
++  already satisfies, two tasks after one outcome.
++- **Propose:** reframe, split, or supersede a task; file a new one.
+ 
+ ## Pull requests
+ 
+-Read `## Open threads` in merged pull requests, back to the previous tend pass
+-or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;
+-check each against `main`. Read open pull requests too, testing each head as
+-Branches does.
++Read open pull requests, testing each head as Branches does, and `## Open
++threads` in merged pull requests back to the previous pass or as far as
++threads stay live; state the window. 🟢 and 🟡 items are open; check each
++against `main`.
+ 
+-- **Act:** report threads `main` has since resolved, and open pull requests
+-  whose head `main` already carries.
+-- **Propose:** a task for a live thread.
++- **Find:** an open pull request `main` has overtaken, one holding work `main`
++  lacks, one whose ✴️ ask `main` has since answered, one nobody is moving, and
++  a live thread.
+ - **Owner only:** design direction; closing or merging any pull request. Do
+-  not edit merged bodies. Nominate an open pull request nobody is moving, with
+-  a one-line reason.
++  not edit merged bodies.
+ 
+ ## Snags
+ 
+ The `×N` count in `docs/SNAGS.md` orders the reading and triggers nothing.
+ 
+ - **Act:** log a trap this pass hits, as an entry or a date on its owner.
+-- **Propose:** a task for a snag that still bites: no task cites its slug
+-  (`git grep <slug> origin/main -- tracker/tasks`), its entry records no fix
+-  in place, and a later session would otherwise rediscover it. Also propose
+-  folding entries the index flags as overlapping.
++- **Find:** a snag that still bites (no task cites its slug, its entry records
++  no fix in place), and entries the index flags as overlapping.
++- **Propose:** a task for a snag that still bites.
+diff --git a/tools/test/tend.test.mjs b/tools/test/tend.test.mjs
+index e4df60cc..4c17c5d5 100644
+--- a/tools/test/tend.test.mjs
++++ b/tools/test/tend.test.mjs
+@@ -21,7 +21,7 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a
+   for (const stream of ['Branches', 'Trackers', 'Pull requests', 'Snags']) {
+     assert.match(content, new RegExp(`^## ${stream}$`, 'm'), `must define the ${stream} stream`);
+   }
+-  for (const tier of ['Act', 'Propose']) {
++  for (const tier of ['Act', 'Find', 'Propose']) {
+     assert.match(content, new RegExp(`\\*\\*${tier}:\\*\\*`), `must place actions in the ${tier} tier`);
+   }
+   assert.match(content, /\*\*Owner only:\*\*/, 'must name what only the owner decides');
+@@ -29,12 +29,23 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a
+ 
+ test('tend SKILL.md names commands and paths that exist', () => {
+   const content = readFileSync(SKILL_PATH, 'utf8');
+-  for (const p of ['scripts/stranded-triage.py', 'lib/kits/branch-brief.js', 'docs/SNAGS.md']) {
++  for (const p of ['scripts/stranded-triage.py', 'docs/SNAGS.md', 'docs/views/tending.md']) {
+     assert.ok(content.includes(p), `tend SKILL.md should name ${p}`);
+     assert.ok(existsSync(path.join(repoRoot, p)), `${p} named by tend SKILL.md must exist`);
+   }
+ });
+ 
++// A pass writes what it concludes as findings, and it cannot delete branches,
++// so no tier may offer a deletion (2026-10-01: tend runs in a cloud session).
++test('tend writes findings with its own script and offers no branch deletion', () => {
++  const content = readFileSync(SKILL_PATH, 'utf8');
++  assert.ok(existsSync(path.join(repoRoot, 'skills', 'tend', 'findings.py')), 'skills/tend/findings.py must exist');
++  for (const cmd of ['findings.py check', 'findings.py candidates', 'findings.py add', 'findings.py update']) {
++    assert.ok(content.includes(cmd), `tend SKILL.md should name ${cmd}`);
++  }
++  assert.doesNotMatch(content, /push origin --delete|delete a (?:merged|novel|content)/, 'no tier may offer a branch deletion');
++});
++
+ test('tasks skill treats a met Done-when as a delivery close, which tend acts on', () => {
+   const tasks = readFileSync(path.join(repoRoot, 'skills', 'tasks', 'SKILL.md'), 'utf8');
+   assert.match(tasks, /delivery close, unattended/, 'tasks skill must classify a met Done-when close as unattended');
