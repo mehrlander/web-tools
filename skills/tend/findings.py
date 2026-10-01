@@ -4,26 +4,36 @@
 A finding is a note (skills/notes/note.py) carrying a `finding` object:
 
   {"id": "n…", "at": "…", "author": "…", "about": "<first subject>", "text": "<title>",
-   "finding": {"kind": "unreached|answer|overlap|settled|…", "subjects": [...],
+   "finding": {"kind": "unreached|answer|overlap|superseded", "subjects": [...],
                "why": "…", "next": "…", "choice": "…", "evidence": [...],
-               "witnesses": [{"ref": "<locator>", "sha"|"state"|"updated": "…", "why": "…"}]}}
+               "witnesses": [{"ref": "<locator>", "sha"|"contains"|"state": "…", "why": "…"}]}}
 
+An assessment is not the work. A finding stays open while it carries an
+outstanding `next` or `choice`, whatever its kind, and is settled only when
+nothing remains: the assessment needed no action, or a reply says it was done.
 A finding changes only through a reply that carries `finding` (`update` below,
 or the owner's resolution from the Tending view). A reply without it is a
-comment and never changes status. lib/kits/findings.js is the browser's half
-and folds the same way.
+comment and never changes status. lib/kits/findings.js folds the same way.
 
-Witnesses are what the conclusion rests on, pinned (docs/locators.md): a branch
-tip, a file or folder on a ref, a pull request's state. `check` compares each
-with what holds now, so a pass knows which findings to reassess even when the
-subject branch has not moved.
+Witnesses are what the conclusion rests on, pinned (docs/locators.md):
+
+  owner/repo@ref       + sha       the ref's tip is that commit
+  owner/repo@ref       + contains  the ref contains that commit
+  owner/repo@ref:path  + sha       the blob or tree at that path is that object
+  owner/repo#N         + state     the pull request is in that state (open: and not updated since)
+
+`check` observes each from the checkouts beside the store and compares with
+compare() below, the same rule as the browser's (held together by
+the shared cases in tools/test/findings.test.mjs). It reads settled findings too: a
+changed witness under a settled finding is exactly the case a pass must see.
 
 Usage:
   findings.py candidates [--json]          mechanical selection: what to investigate
   findings.py add <file.json|->            one finding object, or a list of them
-  findings.py update <id> <file.json|->    {"text": "what changed", "finding": {...}}; "title" in it retitles
+  findings.py update <id> <file.json|->    {"text": "what changed", "finding": {...}}
   findings.py list [--all] [--json]        folded findings, open unless --all
-  findings.py check [--all] [--json]       witness verdicts: ok, changed, broken, unverifiable
+  findings.py check [--open] [--json]      witness verdicts for every finding (open only with --open)
+  findings.py vectors <file.json>          compare() over shared cases, for the parity test
 """
 
 import argparse
@@ -37,7 +47,8 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "notes"))
 import note  # noqa: E402  (skills/notes/note.py, the store's one writer)
 
-KINDS = ("answer", "unreached", "overlap", "settled")
+KINDS = ("answer", "unreached", "overlap", "superseded")
+LEGACY_KINDS = ("settled",)          # the first records' word for superseded
 FIELDS = ("kind", "subjects", "why", "next", "choice", "evidence", "witnesses")
 CLOSED = {"settled", "resolved"}
 DONE_STATES = {"merged", "done", "clean"}
@@ -53,6 +64,10 @@ def load_json(arg):
 
 
 # ── Fold: the same reading as lib/kits/findings.js ────────────────────────────
+def derived(cur):
+    return "open" if (cur.get("next") or cur.get("choice")) else "settled"
+
+
 def fold(notes):
     kids = {}
     for n in notes:
@@ -71,30 +86,51 @@ def fold(notes):
         if not isinstance(f0, dict) or root["about"].startswith("note:"):
             continue
         cur = {k: f0[k] for k in FIELDS if k in f0}
-        status = f0.get("status") or ("settled" if cur.get("kind") == "settled" else "open")
-        assessed, comments, updates, title = root["at"], [], [], root["text"]
+        explicit = f0.get("status") or ""
+        assessed, comments, updates, title, did = root["at"], 0, 0, root["text"], ""
         for r in sorted(flat(root["id"]), key=lambda n: n["at"]):
             u = r.get("finding")
             if not isinstance(u, dict):
-                comments.append(r)
+                comments += 1
                 continue
             for k in FIELDS:
                 if k in u:
                     cur[k] = u[k]
-            status = u.get("status") or ("settled" if u.get("kind") == "settled" else status)
+            explicit = u.get("status") or explicit
             if "witnesses" in u:
                 assessed = r["at"]
             if u.get("title"):
                 title = u["title"]
-            updates.append(r)
+            if u.get("did"):
+                did = u["did"]
+            updates += 1
+        status = explicit or derived(cur)
         subjects = list(dict.fromkeys([root["about"], *cur.get("subjects", [])]))
+        is_open = status not in CLOSED
         found.append({"id": root["id"], "at": root["at"], "author": root["author"], "title": title,
-                      **cur, "subjects": subjects, "status": status, "open": status not in CLOSED,
-                      "assessedAt": assessed, "updates": len(updates), "comments": len(comments)})
+                      **cur, "subjects": subjects, "status": status, "open": is_open,
+                      "outstanding": is_open and bool(cur.get("next") or cur.get("choice")),
+                      "did": did, "assessedAt": assessed, "updates": updates, "comments": comments})
     return found
 
 
 # ── Writing ──────────────────────────────────────────────────────────────────
+def witness_errors(w):
+    ref = str(w.get("ref", ""))
+    if not note.LOCATOR.match(ref):
+        return [f"witness ref is not a locator: {ref!r}"]
+    kind, repo, at, path = parse_ref(ref)
+    if kind == "pr" and not w.get("state"):
+        return [f"{ref}: a pull request witness records its state"]
+    if kind == "path" and not w.get("sha"):
+        return [f"{ref}: pin the object (git rev-parse origin/<ref>:<path>), so a change made before recording still shows"]
+    if kind == "branch" and not (w.get("sha") or w.get("contains")):
+        return [f"{ref}: pin the tip with sha, or what it must contain with contains"]
+    if kind == "branch" and w.get("sha") and at in ("main", "master"):
+        return [f"{ref}: main moves on every merge; pin what it must contain with contains, not its tip"]
+    return []
+
+
 def validate(f):
     errs = []
     if f.get("kind") not in KINDS:
@@ -109,13 +145,12 @@ def validate(f):
             errs.append(f"subject is not a locator: {s!r}")
     if not str(f.get("why", "")).strip():
         errs.append("a finding needs a why")
-    if f.get("kind") != "settled" and not str(f.get("next", "")).strip():
-        errs.append("an open finding needs a recommended next step")
-    if f.get("kind") == "settled" and not (f.get("evidence") or f.get("witnesses")):
-        errs.append("a settled finding needs evidence or witnesses, so it can be checked")
+    if f.get("kind") != "superseded" and not (str(f.get("next", "")).strip() or str(f.get("choice", "")).strip()):
+        errs.append("an open finding needs a recommended next step or a choice")
+    if f.get("kind") == "superseded" and not (f.get("evidence") or f.get("witnesses")):
+        errs.append("a superseded finding needs evidence or witnesses, so it can be checked")
     for w in f.get("witnesses") or []:
-        if not note.LOCATOR.match(str(w.get("ref", ""))):
-            errs.append(f"witness ref is not a locator: {w.get('ref')!r}")
+        errs += witness_errors(w)
     return errs
 
 
@@ -137,32 +172,20 @@ def update(repo, store, fid, u, author):
     body = u.get("finding") or {}
     if not text or not isinstance(body, dict) or not body:
         raise SystemExit('findings.py: an update is {"text": "what changed", "finding": {...}}')
+    if body.get("status") == "settled" and not body.get("did") and body.get("next", None) is None:
+        raise SystemExit("findings.py: settling a finding with work outstanding needs `did`, "
+                         "or `next: \"\"` when the assessment found nothing to do")
+    errs = [e for w in body.get("witnesses") or [] for e in witness_errors(w)]
+    if body.get("kind") and body["kind"] not in KINDS:
+        errs.append(f"kind {body['kind']!r} is not one of {', '.join(KINDS)}")
+    if errs:
+        raise SystemExit("findings.py: " + "\n  ".join(errs))
     n = {"id": note.new_id(), "at": now(), "author": author, "about": f"note:{fid}", "text": text, "finding": body}
     note.append(repo, store, n)
     return n["id"]
 
 
-# ── Witnesses ────────────────────────────────────────────────────────────────
-def checkouts(store_repo):
-    """owner/repo -> local checkout, for the checkouts beside the store."""
-    out, base = {}, os.path.dirname(os.path.abspath(store_repo))
-    for d in sorted(os.listdir(base)):
-        p = os.path.join(base, d)
-        r = subprocess.run(["git", "-C", p, "remote", "get-url", "origin"], capture_output=True, text=True)
-        m = re.search(r"github\.com[/:]([\w.-]+/[\w.-]+?)(?:\.git)?/?$", r.stdout.strip())
-        if r.returncode == 0 and m:
-            out[m.group(1)] = p
-    return out
-
-
-def activity(repo, store_repo):
-    r = note.git(store_repo, "show", "origin/main:state/activity.json", check=False)
-    try:
-        return (json.loads(r.stdout).get("repos") or {}).get(repo, {}) if r.returncode == 0 else {}
-    except ValueError:
-        return {}
-
-
+# ── Witnesses: observe, then compare ─────────────────────────────────────────
 def parse_ref(ref):
     m = re.match(r"^([\w.-]+/[\w.-]+)#(\d+)$", ref)
     if m:
@@ -174,51 +197,143 @@ def parse_ref(ref):
     return ("path" if path else "branch"), repo, at or "main", path
 
 
-def check_witness(w, assessed, local, store_repo):
+def same(a, b):
+    return bool(a) and bool(b) and (a.startswith(b) or b.startswith(a))
+
+
+def compare(w, seen):
+    """The rule lib/kits/findings.js compare() states, line for line."""
+    kind, repo, at, path = parse_ref(str(w.get("ref", "")))
+    if kind == "branch" and w.get("contains"):
+        kind = "contains"
+    if not seen or seen.get("error"):
+        return "unverifiable", (seen or {}).get("error", "")
+    if kind == "branch":
+        if seen.get("missing"):
+            return "broken", "the branch is gone"
+        if not w.get("sha") or not seen.get("sha"):
+            return "unverifiable", "no pinned tip"
+        return ("ok", "") if same(w["sha"], seen["sha"]) else ("changed", "tip is now " + seen["sha"][:7])
+    if kind == "contains":
+        if seen.get("missing"):
+            return "broken", "the ref or commit is gone"
+        return ("ok", "") if seen.get("contained") else ("changed", f"{at} no longer contains {str(w['contains'])[:7]}")
+    if kind == "path":
+        if seen.get("missing"):
+            return "broken", "the path is gone"
+        if w.get("sha"):
+            if not seen.get("sha"):
+                return "unverifiable", "no current object"
+            if same(w["sha"], seen["sha"]):
+                return "ok", ""
+            return "changed", "now " + seen["sha"][:7] + (", " + seen["detail"] if seen.get("detail") else "")
+        c = (seen.get("commits") or [None])[0]
+        return ("changed", "changed by " + str(c["sha"])[:7] + (": " + c["message"] if c.get("message") else "")) if c else ("ok", "")
+    if kind == "pr":
+        if not seen.get("state"):
+            return "unverifiable", ""
+        if w.get("state") and w["state"] != seen["state"]:
+            return "changed", "now " + seen["state"]
+        if seen["state"] == "open" and w.get("updated") and seen.get("updated") and seen["updated"] > w["updated"]:
+            return "changed", "updated " + seen["updated"][:10]
+        return "ok", ""
+    return "unverifiable", "unreadable ref"
+
+
+def checkouts(store_repo):
+    """owner/repo -> local checkout, for the checkouts beside the store.
+    FINDINGS_CHECKOUTS ({"owner/repo": "/path"}) names others, as a test does."""
+    if os.environ.get("FINDINGS_CHECKOUTS"):
+        return json.loads(os.environ["FINDINGS_CHECKOUTS"])
+    out, base = {}, os.path.dirname(os.path.abspath(store_repo))
+    for d in sorted(os.listdir(base)):
+        p = os.path.join(base, d)
+        r = subprocess.run(["git", "-C", p, "remote", "get-url", "origin"], capture_output=True, text=True)
+        m = re.search(r"github\.com[/:]([\w.-]+/[\w.-]+?)(?:\.git)?/?$", r.stdout.strip())
+        if r.returncode == 0 and m:
+            out[m.group(1)] = p
+    return out
+
+
+_activity, _fetched = {}, set()
+
+
+def activity(repo, store_repo):
+    if store_repo not in _activity:
+        r = note.git(store_repo, "show", "origin/main:state/activity.json", check=False)
+        try:
+            _activity[store_repo] = (json.loads(r.stdout).get("repos") or {}) if r.returncode == 0 else {}
+        except ValueError:
+            _activity[store_repo] = {}
+    return _activity[store_repo].get(repo)
+
+
+def fetch(co, at):
+    if (co, at) not in _fetched:
+        note.git(co, "fetch", "-q", "origin", at, check=False)
+        _fetched.add((co, at))
+
+
+def observe(w, assessed, local, store_repo):
+    """What holds now for one witness, in the shape the browser observes."""
     kind, repo, at, path = parse_ref(str(w.get("ref", "")))
     co = local.get(repo)
     if kind == "pr":
         a = activity(repo, store_repo)
+        if a is None:
+            return {"error": "repo not in the activity cache"}
         hit = next((p for p in (a.get("openPRs") or []) if p.get("number") == at), None)
-        state = ("open" if hit else None)
-        hit = hit or next((p for p in (a.get("branchPRs") or []) if p.get("number") == at), None)
-        if not hit:
-            # Merged is the one state a pull request never leaves, so a witness
-            # that recorded it holds even past the cache's PR index.
-            if w.get("state") == "merged":
-                return "ok", "merged, which is final"
-            return "unverifiable", "not in the activity cache's PR index"
-        state = state or hit.get("state")
-        if w.get("state") and state and w["state"] != state:
-            return "changed", f"now {state}"
-        if w.get("updated") and hit.get("updatedAt", "") > w["updated"]:
-            return "changed", f"updated {hit['updatedAt'][:10]}"
-        return "ok", ""
-    if kind == "branch":
-        target = co or f"https://github.com/{repo}"
-        r = subprocess.run(["git", "-C", co, "ls-remote", "origin", f"refs/heads/{at}"] if co
-                           else ["git", "ls-remote", target, f"refs/heads/{at}"], capture_output=True, text=True)
+        if hit:
+            return {"state": "open", "updated": hit.get("updatedAt", "")}
+        hit = next((p for p in (a.get("branchPRs") or []) if p.get("number") == at and p.get("state") != "open"), None)
+        if hit:
+            return {"state": hit.get("state"), "updated": hit.get("updatedAt", "")}
+        # Not open now, since the crawl lists every open PR (activity-crawl reads
+        # up to 30 per repo, so a full list proves nothing), and past the PR
+        # index: merged stays merged, closed stays closed unless it reopened,
+        # which would put it back in openPRs.
+        if len(a.get("openPRs") or []) >= 30:
+            return {"error": "the cache's open PR list is full, so absence proves nothing"}
+        if w.get("state") in ("merged", "closed"):
+            return {"state": w["state"]}
+        return {"state": "not open"}
+    if not co:
+        if kind == "branch" and not w.get("contains"):
+            r = subprocess.run(["git", "ls-remote", f"https://github.com/{repo}", f"refs/heads/{at}"],
+                               capture_output=True, text=True)
+            if r.returncode == 0:
+                sha = (r.stdout.split() or [""])[0]
+                return {"sha": sha} if sha else {"missing": True}
+        return {"error": f"{repo} is not checked out beside the store"}
+    if kind == "branch" and not w.get("contains"):
+        r = subprocess.run(["git", "-C", co, "ls-remote", "origin", f"refs/heads/{at}"], capture_output=True, text=True)
         if r.returncode:
-            return "unverifiable", r.stderr.strip()[:80]
+            return {"error": r.stderr.strip()[:80]}
         sha = (r.stdout.split() or [""])[0]
-        if not sha:
-            return "broken", "the branch is gone"
-        if w.get("sha") and not (sha.startswith(w["sha"]) or w["sha"].startswith(sha)):
-            return "changed", f"tip is now {sha[:7]}"
-        return "ok", ""
+        return {"sha": sha} if sha else {"missing": True}
+    fetch(co, at)
+    if note.git(co, "rev-parse", "--verify", "-q", f"origin/{at}", check=False).returncode:
+        return {"missing": True}
+    if kind == "branch":   # contains
+        if note.git(co, "cat-file", "-e", f"{w['contains']}^{{commit}}", check=False).returncode:
+            return {"missing": True}
+        anc = note.git(co, "merge-base", "--is-ancestor", w["contains"], f"origin/{at}", check=False).returncode
+        return {"contained": anc == 0}
     if kind == "path":
-        if not co:
-            return "unverifiable", f"{repo} is not checked out beside the store"
-        note.git(co, "fetch", "-q", "origin", at, check=False)
+        if not w.get("sha"):
+            log = note.git(co, "log", "--format=%H%x09%s", f"--since={assessed}", f"origin/{at}", "--", path, check=False)
+            rows = [l.split("\t", 1) for l in log.stdout.splitlines() if l.strip()]
+            return {"commits": [{"sha": s, "message": m} for s, m in rows]}
         r = note.git(co, "rev-parse", f"origin/{at}:{path}", check=False)
         if r.returncode:
-            return "broken", "the path is gone"
-        if w.get("sha"):
-            sha = r.stdout.strip()
-            return ("ok", "") if sha.startswith(w["sha"]) or w["sha"].startswith(sha) else ("changed", f"now {sha[:7]}")
-        log = note.git(co, "log", "-1", "--format=%h %s", f"--since={assessed}", f"origin/{at}", "--", path, check=False)
-        return ("changed", log.stdout.strip()) if log.stdout.strip() else ("ok", "")
-    return "unverifiable", "unreadable ref"
+            return {"missing": True}
+        sha = r.stdout.strip()
+        detail = ""
+        if not same(sha, w["sha"]):
+            last = note.git(co, "log", "-1", "--format=%h %s", f"origin/{at}", "--", path, check=False).stdout.strip()
+            detail = ("last touched by " + last[:80]) if last else ""
+        return {"sha": sha, "detail": detail}
+    return {"error": "unreadable ref"}
 
 
 # ── Candidates: the mechanical half ──────────────────────────────────────────
@@ -281,7 +396,21 @@ def candidates(store_repo):
                 add_c("sinking", [loc], f"idle {idle}d, {p.get('behindBy')} commits behind")
             if p["head"].startswith(NON_CLAUDE) and not p.get("draft") and (idle or 0) >= 3:
                 add_c("unreviewed-laptop", [loc], f"{p['head'].split('/')[0]} PR marked ready, idle {idle}d")
-    return out
+    return out, act
+
+
+def subject_moved(s, since, act):
+    """When a subject itself moved after `since`, per the activity cache, else ''."""
+    m = re.match(r"^([\w.-]+/[\w.-]+)(?:#(\d+)|@([^\s:]+))$", s)
+    if not m or m.group(1) not in act:
+        return ""
+    e = act[m.group(1)]
+    if m.group(2):
+        n = int(m.group(2))
+        p = next((p for p in (e.get("openPRs") or []) + (e.get("branchPRs") or []) if p.get("number") == n), None)
+        return p.get("updatedAt", "") if p and p.get("updatedAt", "") > since else ""
+    b = next((b for b in (e.get("scan") or {}).get("branches") or [] if b["name"] == m.group(3)), None)
+    return b.get("date", "") if b and b.get("date", "") > since else ""
 
 
 def main(argv):
@@ -293,27 +422,39 @@ def main(argv):
     a = sub.add_parser("add"); a.add_argument("file")
     u = sub.add_parser("update"); u.add_argument("id"); u.add_argument("file")
     li = sub.add_parser("list"); li.add_argument("--all", action="store_true"); li.add_argument("--json", action="store_true")
-    ch = sub.add_parser("check"); ch.add_argument("--all", action="store_true"); ch.add_argument("--json", action="store_true")
+    ch = sub.add_parser("check"); ch.add_argument("--open", action="store_true"); ch.add_argument("--json", action="store_true")
+    v = sub.add_parser("vectors"); v.add_argument("file")
     args = ap.parse_args(argv)
-    repo, store = note.find_store(args.store)
 
+    if args.cmd == "vectors":
+        cases = load_json(args.file)["cases"]
+        print(json.dumps([{"name": x["name"], "verdict": compare(x["witness"], x["seen"])[0]} for x in cases]))
+        return
+
+    repo, store = note.find_store(args.store)
     if args.cmd == "candidates":
-        # A candidate some finding already names is covered: reassess it through
-        # `check`, not by investigating it again from scratch.
-        cover = {}
-        for f in fold(note.read_notes(repo, store)):
-            for s in f["subjects"]:
-                cover.setdefault(s, f["id"])
-        cs = candidates(repo)
+        # A candidate some finding already names is covered only while that
+        # finding still holds: if a subject moved after the assessment, the
+        # finding is due again, settled or not. `check` covers witnesses.
+        found = fold(note.read_notes(repo, store))
+        cs, act = candidates(repo)
         for x in cs:
-            x["covered"] = next((cover[s] for s in x["subjects"] if s in cover), "")
+            x["covered"], x["moved"] = "", ""
+            for f in found:
+                hit = [s for s in x["subjects"] if s in f["subjects"]]
+                if hit:
+                    x["covered"] = f["id"]
+                    x["moved"] = next((m for s in hit for m in [subject_moved(s, f["assessedAt"], act)] if m), "")
+                    break
         if args.json:
             print(json.dumps(cs, indent=1, ensure_ascii=False))
         else:
             for x in cs:
-                mark = f"  [covered by {x['covered']}]" if x["covered"] else ""
+                mark = (f"  [reassess {x['covered']}: moved {x['moved'][:10]}]" if x["moved"]
+                        else f"  [covered by {x['covered']}]" if x["covered"] else "")
                 print(f"{x['signal']:18} {x['subjects'][0]}  {x['why']}{mark}")
-            print(f"{len(cs)} candidates, {sum(1 for x in cs if not x['covered'])} not yet covered by a finding")
+            due = sum(1 for x in cs if not x["covered"] or x["moved"])
+            print(f"{len(cs)} candidates, {due} to investigate or reassess")
     elif args.cmd == "add":
         author = args.author or note.default_author()
         data = load_json(args.file)
@@ -322,17 +463,24 @@ def main(argv):
     elif args.cmd == "update":
         print(update(repo, store, args.id, load_json(args.file), args.author or note.default_author()))
     else:
-        fs = [f for f in fold(note.read_notes(repo, store)) if args.all or f["open"]]
-        if args.cmd == "check":
+        found = fold(note.read_notes(repo, store))
+        if args.cmd == "list":
+            fs = [f for f in found if args.all or f["open"]]
+        else:
+            fs = [f for f in found if f["open"] or not args.open]
             local = checkouts(repo)
             for f in fs:
-                f["verdicts"] = [dict(zip(("ref", "verdict", "detail"), (w.get("ref"), *check_witness(w, f["assessedAt"], local, repo))))
-                                 for w in f.get("witnesses") or []]
+                f["verdicts"] = []
+                for w in f.get("witnesses") or []:
+                    verdict, detail = compare(w, observe(w, f["assessedAt"], local, repo))
+                    f["verdicts"].append({"ref": w.get("ref"), "verdict": verdict, "detail": detail})
+                f["moved"] = [v for v in f["verdicts"] if v["verdict"] in ("changed", "broken")]
         if args.json:
             print(json.dumps(fs, indent=1, ensure_ascii=False))
             return
         for f in fs:
-            print(f"{f['id']}  {f['status']:8} {f.get('kind', ''):9}  {f['title']}")
+            due = " REASSESS" if f.get("moved") else ""
+            print(f"{f['id']}  {f['status']:8} {f.get('kind', ''):10}{due}  {f['title']}")
             for v in f.get("verdicts", []):
                 if v["verdict"] != "ok":
                     print(f"    {v['verdict']:12} {v['ref']}  {v['detail']}")

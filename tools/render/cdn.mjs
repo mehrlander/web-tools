@@ -349,6 +349,93 @@ function localCommits(u, root, accept = '') {
   return json(200, list, `api commits${q.get('path') ? ' ' + q.get('path') : ''}`);
 }
 
+// SHOT_GIT_API's answers (see its call in resolveCdn). Returns null for a
+// request it does not own, so every other rule still applies.
+function gitEvidence(u, repoRoot) {
+  const m = /^\/repos\/([^/]+)\/([^/]+)\/(branches|compare|pulls|contents|commits)(?:\/(.*))?$/.exec(u.pathname);
+  if (!m) return null;
+  const [, owner, name, what, rest = ''] = m;
+  const root = `${owner}/${name}` === REPO ? repoRoot : path.join(repoRoot, '..', name);
+  if (!existsSync(path.join(root, '.git'))) return null;
+  const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 << 20 });
+  const json = (body, tag, status = 200) => ({ kind: 'fulfill', status, contentType: 'application/json; charset=utf-8',
+                                              tag: 'git-api ' + tag, body: JSON.stringify(body) });
+  const missing = (tag) => json({ message: 'Not Found' }, 'MISS ' + tag, 404);
+  const commitOf = (ref) => {
+    for (const c of [`refs/remotes/origin/${ref}`, ref]) {
+      const r = git('rev-parse', '--verify', '-q', `${c}^{commit}`);
+      if (r.status === 0) return r.stdout.trim();
+    }
+    return '';
+  };
+  const dec = decodeURIComponent;
+  if (what === 'branches') {
+    const sha = commitOf(dec(rest));
+    return sha ? json({ name: dec(rest), commit: { sha } }, `${name} branch ${dec(rest)}`) : missing(`${name} branch ${dec(rest)}`);
+  }
+  if (what === 'compare') {
+    const [base, head] = dec(rest).split('...');
+    const b = commitOf(base), h = commitOf(head);
+    if (!b || !h) return missing(`${name} compare ${rest}`);
+    const count = (range) => +git('rev-list', '--count', range).stdout.trim() || 0;
+    const ahead = count(`${b}..${h}`), behind = count(`${h}..${b}`);
+    const status = b === h ? 'identical' : behind === 0 ? 'ahead' : ahead === 0 ? 'behind' : 'diverged';
+    return json({ status, ahead_by: ahead, behind_by: behind }, `${name} compare ${status}`);
+  }
+  if (what === 'pulls') {
+    // Pull requests are not in git; the crawl's cache in the registry is the
+    // nearest record, which is also what findings.py check reads.
+    const store = path.join(repoRoot, '..', 'web-tools-private');
+    const r = spawnSync('git', ['-C', store, 'show', 'origin/main:state/activity.json'], { encoding: 'utf8', maxBuffer: 256 << 20 });
+    let e = null;
+    try { e = (JSON.parse(r.stdout).repos || {})[`${owner}/${name}`]; } catch {}
+    const n = +rest;
+    const open = e && (e.openPRs || []).find(p => p.number === n);
+    if (open) return json({ number: n, state: 'open', merged_at: null, updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
+    const last = e && (e.branchPRs || []).find(p => p.number === n && p.state !== 'open');
+    if (last) return json({ number: n, state: last.state === 'merged' ? 'closed' : last.state,
+                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null,
+                            updated_at: last.updatedAt || '' }, `${name} pull ${n} ${last.state}`);
+    return missing(`${name} pull ${n}`);
+  }
+  const ref = u.searchParams.get('ref') || u.searchParams.get('sha') || '';
+  if (!ref) return null;
+  const at = commitOf(ref);
+  if (!at) return null;
+  if (what === 'contents') {
+    const rel = dec(rest).replace(/\/$/, '');
+    const spec = rel ? `${at}:${rel}` : `${at}^{tree}`;
+    const type = git('cat-file', '-t', spec).stdout.trim();
+    if (type === 'tree') {
+      const entries = git('ls-tree', spec).stdout.split('\n').filter(Boolean).map(line => {
+        const [meta, nm] = line.split('\t');
+        const [, kind, sha] = meta.split(' ');
+        return { name: nm, path: rel ? `${rel}/${nm}` : nm, type: kind === 'tree' ? 'dir' : 'file', sha, size: 0 };
+      });
+      return json(entries, `${name} dir ${rel || '/'} @${ref}`);
+    }
+    if (type === 'blob') {
+      const bytes = spawnSync('git', ['-C', root, 'show', spec], { maxBuffer: 64 << 20 }).stdout;
+      return json({ content: bytes.toString('base64'), encoding: 'base64', sha: git('rev-parse', spec).stdout.trim(),
+                    size: bytes.length }, `${name} ${rel} @${ref}`);
+    }
+    return missing(`${name} ${rel} @${ref}`);
+  }
+  if (what === 'commits' && !rest) {
+    const p = u.searchParams.get('path');
+    const args = ['log', `-${+(u.searchParams.get('per_page') || 30)}`, '--format=%H%x09%cI%x09%s'];
+    if (u.searchParams.get('since')) args.push(`--since=${u.searchParams.get('since')}`);
+    args.push(at);
+    if (p) args.push('--', p);
+    const rows = git(...args).stdout.split('\n').filter(Boolean).map(l => {
+      const [sha, date, message] = l.split('\t');
+      return { sha, commit: { message, committer: { date } } };
+    });
+    return json(rows, `${name} commits ${p || ''} @${ref}`);
+  }
+  return null;
+}
+
 export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
@@ -409,6 +496,21 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
       if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `pages ${rel}` };
       return { kind: 'empty', contentType: 'application/octet-stream', tag: `MISS pages ${rel}` };
     }
+  }
+
+  // --- The estate's evidence, from git, when a render asks for it ---------
+  //
+  // SHOT_GIT_API=1 answers the reads a finding's witnesses need (a branch
+  // tip, a compare, a pull request's state, and a contents read AT A REF, file
+  // or folder, with git's real object shas) from the checkouts beside this
+  // one, at origin's copy of the ref. Off by default, because the rules above
+  // serve sibling contents from the working tree on purpose, so a render shows
+  // uncommitted work; a check of recorded evidence wants the opposite.
+  // tools/render/scenarios/tending-findings.mjs turns it on, which is what lets
+  // the Tending view verify witnesses itself in a real browser.
+  if (host === 'api.github.com' && process.env.SHOT_GIT_API) {
+    const hit = gitEvidence(u, repoRoot);
+    if (hit) return hit;
   }
 
   // --- Own repo metadata: /repos/<REPO> (identity-free page boots) ---

@@ -70,10 +70,17 @@ test('a finding about a pull request shows on the row of the branch it heads', (
   seed({
     branches: [{ name: 'gemini/doc-craft', group: 'active', date: DATE }],
     openPRs: [{ head: 'gemini/doc-craft', number: 758, title: 'Doc craft', draft: false }],
-    notes: [finding('n2', ['acme/widget#758'], { kind: 'settled' })],
+    notes: [finding('n2', ['acme/widget#758'], { kind: 'superseded', next: '', evidence: ['in 762'] })],
   });
-  // Settled findings are not open, so they leave the row.
+  // A finding with nothing left to do is settled, so it leaves the row.
   assert.equal(data.rowFindings(row('gemini/doc-craft')).length, 0);
+  seed({
+    branches: [{ name: 'gemini/doc-craft', group: 'active', date: DATE }],
+    openPRs: [{ head: 'gemini/doc-craft', number: 758, title: 'Doc craft', draft: false }],
+    notes: [finding('n2b', ['acme/widget#758'], { kind: 'superseded', next: 'Close 758.', evidence: ['in 762'] })],
+  });
+  // Overtaken with a step left is still work, so it stays on the row.
+  assert.equal(data.rowFindings(row('gemini/doc-craft')).length, 1);
   seed({
     branches: [{ name: 'gemini/doc-craft', group: 'active', date: DATE }],
     openPRs: [{ head: 'gemini/doc-craft', number: 758, title: 'Doc craft', draft: false }],

@@ -79,22 +79,82 @@ test('a reassessment replaces fields and moves the assessment date only with new
   assert.equal(g.witnesses.length, 1);
 });
 
-test('tending settles a finding by kind or status, and a settled one opens closed', () => {
-  const [f] = F.fold([ROOT, { ...reply('nset', '2026-10-02T00:00:00Z'), finding: { kind: 'settled', why: 'main absorbed it' } }]);
-  assert.equal(f.open, false);
-  assert.equal(f.history.at(-1).type, 'settled');
-  const [g] = F.fold([{ ...ROOT, id: 'nset0', finding: { ...ROOT.finding, kind: 'settled' } }]);
-  assert.equal(g.open, false);
+// An assessment is not the work (owner review, 2026-10-01): a finding that
+// concludes "overtaken, close the PR" is finished thinking and unfinished
+// work, so it stays open until the step is done or the owner handles it.
+const OVERTAKEN = {
+  id: 'nover', at: '2026-10-01T10:00:00Z', author: 'claude/x', about: 'acme/widget#758',
+  text: 'PR 758 already landed inside 762',
+  finding: { kind: 'superseded', subjects: ['acme/widget#758'], why: 'Its commits are in 762.', next: 'Close 758.',
+             evidence: ['762 holds both commits'] },
+};
+const oreply = (id, at, extra = {}) => ({ id, at, author: 'claude/tend', about: 'note:nover', text: 'r ' + id, ...extra });
+
+test('an overtaken finding with a step left stays open, with the step outstanding', () => {
+  const [f] = F.fold([OVERTAKEN]);
+  assert.equal(f.open, true);
+  assert.equal(f.outstanding, true);
+  assert.equal(f.kind, 'superseded');
+  // The first records used kind "settled"; with a step left they are open too.
+  const [g] = F.fold([{ ...OVERTAKEN, id: 'nlegacy', finding: { ...OVERTAKEN.finding, kind: 'settled' } }]);
+  assert.equal(g.open, true);
 });
 
-test('witnesses: a moved file outside the subjects reads as changed', () => {
+test('an assessment that found nothing to do opens settled', () => {
+  const [f] = F.fold([{ ...OVERTAKEN, id: 'nnone', finding: { ...OVERTAKEN.finding, next: '' } }]);
+  assert.equal(f.open, false);
+  assert.equal(f.outstanding, false);
+  assert.equal(f.closedBy, null);
+});
+
+test('tending settles a finding by recording what was done, and the record says so', () => {
+  const done = oreply('ndone', '2026-10-02T00:00:00Z', { finding: { status: 'settled', did: 'Closed 758 after the owner agreed' } });
+  const [f] = F.fold([OVERTAKEN, done]);
+  assert.equal(f.open, false);
+  assert.equal(f.history.at(-1).type, 'settled');
+  assert.equal(f.closedBy.did, 'Closed 758 after the owner agreed');
+});
+
+test('clearing the step settles it; renewing attention reopens it with a new step', () => {
+  const cleared = oreply('nclr', '2026-10-02T00:00:00Z', { finding: { next: '' } });
+  const [f] = F.fold([OVERTAKEN, cleared]);
+  assert.equal(f.open, false);
+  const renewed = oreply('nren', '2026-10-03T00:00:00Z', { finding: { status: 'open', next: 'Reopened upstream; read it again.' } });
+  const [g] = F.fold([OVERTAKEN, cleared, renewed]);
+  assert.equal(g.open, true);
+  assert.equal(g.history.at(-1).type, 'reopened');
+  assert.equal(g.closedBy, null);
+});
+
+test('a settled finding whose evidence moved asks for attention again', () => {
+  const [f] = F.fold([{ ...OVERTAKEN, id: 'nnone2', finding: { ...OVERTAKEN.finding, next: '' } }]);
+  assert.equal(F.needsAttention(f, [{ verdict: 'ok' }]), false);
+  assert.equal(F.needsAttention(f, [{ verdict: 'ok' }, { verdict: 'changed', detail: 'now 2222222' }]), true);
+  assert.equal(F.needsAttention(f, [{ verdict: 'broken' }]), true);
+  assert.equal(F.needsAttention(f, [{ verdict: 'unverifiable' }]), false);
+});
+
+test('witnesses: a file outside the subjects is compared by its pinned object', () => {
   const [, file] = ROOT.finding.witnesses;
   assert.deepEqual(plain(F.witnessPlan(file)), { type: 'path', repo: 'acme/docs', ref: 'main', path: 'docs/environment/capabilities.md' });
-  assert.equal(F.compare(file, { commits: [] }).verdict, 'ok');
-  const moved = F.compare(file, { commits: [{ sha: 'deadbeefcafe', message: 'capabilities: add the proxy note' }] });
+  assert.equal(F.compare(file, { sha: 'bbbbbbb9999' }).verdict, 'ok');
+  // Changed between the investigation and the recording: a commits-since test
+  // keyed to the recording time would call this unchanged.
+  const moved = F.compare(file, { sha: 'deadbeefcafe', detail: 'last touched by deadbee' });
   assert.equal(moved.verdict, 'changed');
   assert.match(moved.detail, /deadbee/);
   assert.equal(F.compare(file, { missing: true }).verdict, 'broken');
+  // A legacy witness that pinned no object falls back to commits since the assessment.
+  const unpinned = { ref: file.ref };
+  assert.equal(F.compare(unpinned, { commits: [] }).verdict, 'ok');
+  assert.equal(F.compare(unpinned, { commits: [{ sha: 'abc1234', message: 'm' }] }).verdict, 'changed');
+});
+
+test('witnesses: main is pinned by what it contains, not by its tip', () => {
+  const w = { ref: 'acme/widget@main', contains: '106f31c' };
+  assert.deepEqual(plain(F.witnessPlan(w)), { type: 'contains', repo: 'acme/widget', ref: 'main', commit: '106f31c' });
+  assert.equal(F.compare(w, { contained: true }).verdict, 'ok');
+  assert.equal(F.compare(w, { contained: false }).verdict, 'changed');
 });
 
 test('witnesses: branch tips and pull requests', () => {
@@ -132,4 +192,232 @@ test('open findings read a question for the owner first, then by kind', () => {
   const order = F.sortOpen([mk('a', 'overlap', '', '2026-10-03'), mk('b', 'unreached', '', '2026-10-02'),
                             mk('c', 'overlap', 'Keep which?', '2026-10-01'), mk('d', 'answer', '', '2026-10-01')]);
   assert.deepEqual(plain(order.map(f => f.id)), ['c', 'd', 'b', 'a']);
+});
+
+// The browser's comparison and the command line's are one rule, stated once as
+// these cases (named in lib/kits/findings.js and skills/tend/findings.py). Both
+// must give every case the verdict it names; findings.py reads them from a
+// file this test writes.
+const WITNESS_CASES = [
+  {
+    "name": "branch tip unchanged",
+    "witness": {
+      "ref": "acme/w@claude/x",
+      "sha": "aaaaaaa"
+    },
+    "seen": {
+      "sha": "aaaaaaa1234"
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "branch moved",
+    "witness": {
+      "ref": "acme/w@claude/x",
+      "sha": "aaaaaaa"
+    },
+    "seen": {
+      "sha": "bbbbbbb"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "branch gone",
+    "witness": {
+      "ref": "acme/w@claude/x",
+      "sha": "aaaaaaa"
+    },
+    "seen": {
+      "missing": true
+    },
+    "verdict": "broken"
+  },
+  {
+    "name": "branch with no pinned tip",
+    "witness": {
+      "ref": "acme/w@claude/x"
+    },
+    "seen": {
+      "sha": "bbbbbbb"
+    },
+    "verdict": "unverifiable"
+  },
+  {
+    "name": "main still contains the commit",
+    "witness": {
+      "ref": "acme/w@main",
+      "contains": "106f31c"
+    },
+    "seen": {
+      "contained": true
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "main no longer contains the commit",
+    "witness": {
+      "ref": "acme/w@main",
+      "contains": "106f31c"
+    },
+    "seen": {
+      "contained": false
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "file object unchanged",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md",
+      "sha": "1111111"
+    },
+    "seen": {
+      "sha": "1111111aaaa"
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "file object changed between investigation and recording",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md",
+      "sha": "1111111"
+    },
+    "seen": {
+      "sha": "2222222"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "folder tree changed",
+    "witness": {
+      "ref": "acme/w@main:lib/kits",
+      "sha": "3333333"
+    },
+    "seen": {
+      "sha": "4444444"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "file gone",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md",
+      "sha": "1111111"
+    },
+    "seen": {
+      "missing": true
+    },
+    "verdict": "broken"
+  },
+  {
+    "name": "unpinned path with no commits since",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md"
+    },
+    "seen": {
+      "commits": []
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "unpinned path touched since",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md"
+    },
+    "seen": {
+      "commits": [
+        {
+          "sha": "5555555",
+          "message": "edit"
+        }
+      ]
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "open PR still open, not updated",
+    "witness": {
+      "ref": "acme/w#12",
+      "state": "open",
+      "updated": "2026-09-20T00:00:00Z"
+    },
+    "seen": {
+      "state": "open",
+      "updated": "2026-09-20T00:00:00Z"
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "open PR updated since",
+    "witness": {
+      "ref": "acme/w#12",
+      "state": "open",
+      "updated": "2026-09-20T00:00:00Z"
+    },
+    "seen": {
+      "state": "open",
+      "updated": "2026-09-30T00:00:00Z"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "open PR now closed",
+    "witness": {
+      "ref": "acme/w#12",
+      "state": "open",
+      "updated": "2026-09-20T00:00:00Z"
+    },
+    "seen": {
+      "state": "closed",
+      "updated": "2026-10-01T00:00:00Z"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "merged PR is final, later edits ignored",
+    "witness": {
+      "ref": "acme/w#9",
+      "state": "merged",
+      "updated": "2026-09-01T00:00:00Z"
+    },
+    "seen": {
+      "state": "merged",
+      "updated": "2026-09-30T00:00:00Z"
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "closed PR reopened",
+    "witness": {
+      "ref": "acme/w#7",
+      "state": "closed"
+    },
+    "seen": {
+      "state": "open",
+      "updated": "2026-10-01T00:00:00Z"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "PR state unreadable",
+    "witness": {
+      "ref": "acme/w#7",
+      "state": "open"
+    },
+    "seen": {
+      "error": "not readable"
+    },
+    "verdict": "unverifiable"
+  }
+];
+
+test('the kit and findings.py agree on every shared witness case', async () => {
+  const { writeFileSync, mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { execFileSync } = await import('node:child_process');
+  const { repoRoot } = await import('./bootstrap.mjs');
+  for (const c of WITNESS_CASES) assert.equal(F.compare(c.witness, c.seen).verdict, c.verdict, 'kit: ' + c.name);
+  const file = mkdtempSync(tmpdir() + '/witness-') + '/cases.json';
+  writeFileSync(file, JSON.stringify({ cases: WITNESS_CASES }));
+  const py = JSON.parse(execFileSync('python3', [repoRoot + '/skills/tend/findings.py', 'vectors', file], { encoding: 'utf8' }));
+  assert.deepEqual(py.map(x => x.verdict), WITNESS_CASES.map(c => c.verdict), 'findings.py disagrees with the cases');
 });
