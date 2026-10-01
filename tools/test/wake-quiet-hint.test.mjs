@@ -34,14 +34,14 @@ test('a batch of echoes and green rollups is told to end the turn with no text',
     ev('subscription.created'), ev('pull_request.ready_for_review', '{"actor":"x","pr":"o/r#1"}')));
   assert.match(msg, /check_suite\.completed x2/, 'the kinds are tallied, so the reader of the hook sees what arrived');
     assert.match(msg, /end the turn with no text/i);
-  assert.match(msg, /CI passed on <sha>/, 'names the commonest surplus reply by its shape');
+  assert.match(msg, /one line naming the events/, 'says what to send when the harness forces output');
   assert.match(msg, /status checklist/, 'disambiguates the platform phrase that collides with the closing state');
 });
 
 test('the two exceptions survive: an awaited green, and an unreported merge', () => {
   const msg = context(wake(ev('pull_request.closed', '{"outcome":"merged","pr":"o/r#1"}')));
-  assert.match(msg, /what the reader said to wait for/);
-  assert.match(msg, /not reported: reply once, merged or closed/);
+  assert.match(msg, /passing check the user said to wait for/);
+  assert.match(msg, /merge or close not yet reported/);
 });
 
 test('a failing check is work, and is never told to stay silent', () => {
