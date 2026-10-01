@@ -76,10 +76,11 @@ globalThis.window = win;
 for (const file of ['lib/gh-fetch.js', 'lib/gh-store.js', 'lib/kits/csv.js',
                     'lib/kits/crawl-runs.js', 'lib/kits/branch-status.js',
                     'lib/kits/repo-checks.js', 'lib/kits/repo-config-cache.js',
-                    'lib/kits/repo-activity-cache.js', 'lib/kits/activity-crawl.js']) {
+                    'lib/kits/repo-activity-cache.js', 'lib/kits/activity-crawl.js',
+                    'lib/kits/file-index.js']) {
   new Function('window', readFileSync(path.join(root, file), 'utf8'))(win);
 }
-const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache: CC, RepoChecks, CrawlRuns } = win;
+const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache: CC, RepoChecks, CrawlRuns, FileIndex: FI } = win;
 
 // ── The preflight the header explains ───────────────────────────────────────
 {
@@ -183,6 +184,14 @@ const carry = wantAll ? members : [...new Set([...Object.keys(prev?.repos || {})
 const next = A.buildCache(prev, fetched, nowISO, A.COMMIT_CAP, carry);
 const changed = A.changedRepos(prev, next);
 
+// The file-name index (lib/kits/file-index.js), the same leg the app runs after
+// its activity fold. It gates on the default-branch tips `next` now holds, so it
+// runs whether or not the activity document changed, and commits on its own.
+await crawlFiles(targets, next).catch(e => {
+  failed.push('state/files.json');
+  console.warn(`file index: ${e?.message || e}`);
+});
+
 if (!changed.length) {
   console.log(`No material change across ${targets.length} repo(s); nothing to commit.`);
   process.exit(failed.length ? 1 : 0);
@@ -207,6 +216,38 @@ next.runs = CrawlRuns.push(prev?.runs, {
 await reg.save(A.CACHE_PATH, next, 'Update activity cache (state/activity.json)', { sha: base?.sha });
 console.log(`Committed ${A.CACHE_PATH} (${changed.length} repo(s) changed, ${Date.now() - t0}ms).`);
 process.exit(failed.length ? 1 : 0);
+
+async function crawlFiles(repos, act) {
+  const t1 = Date.now();
+  let read = null;
+  try { const r = await reg.get(FI.CACHE_PATH, GH.FRESH); read = { doc: JSON.parse(r.text), sha: r.sha }; }
+  catch (e) { if (e?.status !== 404) throw e; }
+  const prevIdx = read?.doc || null;
+  const got = {};
+  let calls = 0;
+  for (const repo of repos) {
+    const head = act?.repos?.[repo]?.recentCommits?.[0]?.sha || '';
+    const e = await FI.crawlRepo(repo, head, { makeGH: (r) => new GH({ token, repo: r }), prev: prevIdx?.repos?.[repo] || null })
+      .catch(err => { console.warn(`${repo}: file list failed (${err?.message || err})`); return null; });
+    if (!e) continue;
+    got[repo] = e;
+    if (!e.carried) { calls += e.calls || 0; console.log(`${repo}: ${e.files} file names${e.collapsed ? `, ${e.collapsed} folder(s) counted` : ''}${e.truncated ? ', truncated' : ''}`); }
+  }
+  // Scoped like the activity carry: the whole membership on --all, otherwise
+  // every repo already indexed plus the ones named, so a single-repo run never
+  // drops the rest of the estate.
+  const scope = wantAll ? members : [...new Set([...Object.keys(prevIdx?.repos || {}), ...repos])];
+  const nextIdx = FI.buildIndex(prevIdx, got, scope, new Date().toISOString());
+  const moved = FI.changedRepos(prevIdx, nextIdx);
+  if (!moved.length) { console.log('File index: no repo moved.'); return; }
+  if (dryRun) { console.log('File index would change: ' + moved.join(', ')); return; }
+  nextIdx.runs = CrawlRuns.push(prevIdx?.runs, {
+    at: nextIdx.generatedAt, ms: Date.now() - t1,
+    checked: repos.length, changed: moved.length, calls, via: 'ci',
+  }) ?? prevIdx?.runs;
+  await reg.save(FI.CACHE_PATH, FI.serialize(nextIdx), 'Update file index (state/files.json)', { sha: read?.sha });
+  console.log(`Committed ${FI.CACHE_PATH} (${moved.join(', ')}).`);
+}
 
 async function readCache() {
   try {
