@@ -2112,9 +2112,22 @@ try {
     const para = () => [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Second para'));
     c.d.caretAt(+para().querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
     const wrap = para().closest('[data-md-block]'), badge = wrap.querySelector('[data-md-block-badge]');
-    const out = { outlined: wrap.dataset.blockOn != null, lit: md.querySelectorAll('[data-block-on]').length, badge: !!badge,
-      inMargin: !!badge && badge.getBoundingClientRect().right <= para().getBoundingClientRect().left + 2,
+    const br = badge && badge.getBoundingClientRect(), pr = para().getBoundingClientRect();
+    const out = { outlined: wrap.dataset.blockCaret != null, lit: md.querySelectorAll('[data-block-caret]').length, badge: !!badge,
+      topLeft: !!br && br.top < pr.top && br.bottom <= pr.top + 6 && Math.abs(br.left - pr.left) <= 4,
       overflow: c.$refs.view.scrollWidth - c.$refs.view.clientWidth };
+    // A mouse over another paragraph washes that one and leaves the caret's
+    // outline where it is; leaving takes the wash and nothing else.
+    const third = [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Third para'));
+    const tr = third.getBoundingClientRect();
+    third.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse', clientX: tr.left + 20, clientY: tr.top + 5 }));
+    await wait(80);
+    const tw = third.closest('[data-md-block]');
+    out.hover = { washed: tw.dataset.blockHover != null, outlined: tw.dataset.blockCaret != null, caretKept: wrap.dataset.blockCaret != null,
+      washedCaret: wrap.dataset.blockHover != null, badges: md.querySelectorAll('[data-md-block-badge]').length };
+    md.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+    await wait(80);
+    out.left = { washed: md.querySelectorAll('[data-block-hover]').length, caretKept: wrap.dataset.blockCaret != null, badges: md.querySelectorAll('[data-md-block-badge]').length };
     badge.click(); await wait(200);
     const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
     out.title = info.querySelector('.font-medium').textContent; out.sum = info.querySelector('[data-info-sum]').textContent;
@@ -2126,7 +2139,7 @@ try {
     out.held = held && { text: held.text, notes: (held.notes || []).map((n) => n.text), base: held.base, sha: c.baseSha };
     c.cardInfo = null; c.d.caretAt(0); c.paint(); await wait(150);
     const m = para().closest('[data-md-block]').querySelector('[data-md-block-badge]');
-    out.mark = !!m && m.hasAttribute('data-noted') && !m.classList.contains('border');
+    out.mark = !!m && m.hasAttribute('data-noted') && m.parentElement.dataset.blockCaret == null;
     c.d.text = c.text.replace('Second para.', 'Second para, edited.'); c.paint(); await wait(200);
     const card = [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('edited'));
     out.cardMark = !!card && !!card.querySelector('[data-md-card-badge] [data-note-mark]');
@@ -2137,8 +2150,11 @@ try {
     out.back = !!md.querySelector('[data-md-block-badge][data-noted]');
     return out;
   });
-  ok('the caret in an unchanged paragraph outlines that block alone, its badge in the margin, nothing scrolling sideways',
-    blockNote.outlined && blockNote.lit === 1 && blockNote.badge && blockNote.inMargin && blockNote.overflow === 0, JSON.stringify(blockNote));
+  ok('the caret in an unchanged paragraph outlines that block alone, its badge at the top left as a card\'s number is, nothing scrolling sideways',
+    blockNote.outlined && blockNote.lit === 1 && blockNote.badge && blockNote.topLeft && blockNote.overflow === 0, JSON.stringify(blockNote));
+  ok('a mouse over another paragraph washes it and leaves the caret\'s outline in place, each with a badge; leaving takes only the wash',
+    blockNote.hover.washed && !blockNote.hover.outlined && blockNote.hover.caretKept && !blockNote.hover.washedCaret && blockNote.hover.badges === 2
+      && blockNote.left.washed === 0 && blockNote.left.caretKept && blockNote.left.badges === 1, JSON.stringify({ hover: blockNote.hover, left: blockNote.left }));
   ok('its badge opens the panel named for the block and where it is, no diff, the note field focused and kept as the note is made',
     blockNote.title === 'Paragraph' && blockNote.sum === 'line 5' && !blockNote.diff && blockNote.focused && blockNote.same, JSON.stringify(blockNote));
   ok('a note on a file with no edit is kept: the draft holds the note, the blob it is anchored in, and no text',

@@ -13,7 +13,7 @@
 //   NOTES_STEP=marked   the caret moved on: the margin mark, and a card's mark
 //   NOTES_STEP=send     the Send sheet on the record, its preview open
 //   NOTES_STEP=hover    on a desk (no --touch, --width 1280): the mouse over a
-//                       paragraph outlines it, the caret's block left alone
+//                       paragraph washes it, the caret's outline left in place
 const STEP = process.env.NOTES_STEP || 'note';
 const wait = (page, ms) => page.waitForTimeout(ms);
 const c = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';

@@ -3116,46 +3116,52 @@
           if (!bar.__kept) { bar.__kept = true; for (const k of bar.querySelectorAll('button')) this.keepFocus(k); }
         }
       },
-      // ── The block under the caret, and the notes ──────────────────────
-      // AN UNCHANGED BLOCK IS A UNIT TOO: the one the caret is in, or on a
-      // desk the one under the mouse, wears a light dashed outline at a
-      // card's extent. It marks the scope an edit there would take, which is
-      // the card the block would become. The outline is an `outline`, which
-      // takes no room, so marking a block moves no text. Blocks are drawn one
-      // by one even with nothing changed (MdSurface.paint `blocks`), so there
-      // is always one to mark.
+      // ── The block under the caret, the one under the mouse, and the notes
+      // AN UNCHANGED BLOCK IS A UNIT TOO, and two of them can be marked at
+      // once, each its own way, so neither takes the other's mark:
       //
-      // ITS BADGE SITS ON THE OUTLINE'S LEFT EDGE, beside the first line, where
-      // a card keeps its number on its top edge. The top edge was tried first
-      // and a shot showed why not: a card has padding for its number to sit
-      // in, an unchanged block has the 8px between paragraphs, and a pill
-      // there covered the last line of the paragraph above. The left margin
-      // is empty and in reach of a thumb. The badge opens the block's note: a
-      // pencil to add one, the note mark once it holds one, and a block left
-      // holding a note keeps the mark there with no outline, so a note is
-      // found without visiting every paragraph. A card holding one shows it
-      // beside its number.
-      // The colour as color-mix, since daisyUI's colours generate no outline-* rule.
-      BLOCK_ON: ['outline-1', 'outline-dashed', 'outline-offset-[6px]', 'outline-[color-mix(in_oklab,var(--color-base-content)_30%,transparent)]', 'rounded-[3px]'],
+      //   THE CARET'S BLOCK  a light dashed outline at the extent the card
+      //                      would take: the scope an edit there would have.
+      //   THE MOUSE'S BLOCK  a light wash, on a desk only, and kept while its
+      //                      panel is open.
+      //
+      // They were one mark until 2026-10-01, the mouse's block taking it while
+      // the mouse was over one and the caret's taking it back when the mouse
+      // left, so the outline jumped between two paragraphs as the pointer
+      // moved (owner's report). Neither takes room: the outline is an
+      // `outline` and the wash is a background spread by a box-shadow, so
+      // marking moves no text. Blocks are drawn one by one even with nothing
+      // changed (MdSurface.paint `blocks`), so there is always one to mark.
+      //
+      // EACH MARKED BLOCK WEARS A BADGE AT ITS TOP LEFT, where a card keeps
+      // its number, and it opens the block's note: a pencil to add one, the
+      // note mark once there is one. A block holding a note keeps its badge
+      // unmarked, so a note is found without visiting every paragraph; a card
+      // holding one shows it beside its number. An unchanged block has only
+      // the 8px between paragraphs where a card has padding, so the marks sit
+      // 4px out and the badge is a compact 18px pill centred on that line,
+      // which clears the line above's descenders and this line's capitals.
+      BLOCK_CARET: ['outline-1', 'outline-dashed', 'outline-offset-[4px]', 'outline-[color-mix(in_oklab,var(--color-base-content)_30%,transparent)]'],
+      BLOCK_HOVER: ['bg-[color-mix(in_oklab,var(--color-base-content)_5%,transparent)]', 'shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-base-content)_5%,transparent)]'],
       markBlock() {
         const md = this.$refs.md;
         if (!md) return;
-        let on = null;
+        let caret = null, hover = null;
         if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target) && this.keyCard == null) {
-          if (this.hoverBlock != null) on = md.querySelector('[data-md-block="' + this.hoverBlock + '"]');
           const r = this.d && this.d.range;
-          if (!on && this.hoverCard == null && !this.selCard && r) {
+          if (r && !this.selCard) {
             const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
-            on = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-block]') || null;
+            caret = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-block]') || null;
           }
-          // A block whose panel is open keeps its outline while the panel is read.
-          if (this.cardInfo && this.cardInfo.block != null) on = md.querySelector('[data-md-block="' + this.cardInfo.block + '"]') || on;
+          if (this.hoverBlock != null) hover = md.querySelector('[data-md-block="' + this.hoverBlock + '"]');
+          if (this.cardInfo && this.cardInfo.block != null) hover = md.querySelector('[data-md-block="' + this.cardInfo.block + '"]') || hover;
         }
-        for (const el of md.querySelectorAll('[data-block-on]')) {
-          if (el === on) continue;
-          el.removeAttribute('data-block-on'); el.classList.remove(...this.BLOCK_ON);
-        }
-        if (on && on.dataset.blockOn == null) { on.dataset.blockOn = ''; on.classList.add('relative', ...this.BLOCK_ON); }
+        const mark = (attr, el, cls) => {
+          for (const x of md.querySelectorAll('[' + attr + ']')) if (x !== el) { x.removeAttribute(attr); x.classList.remove(...cls); }
+          if (el && !el.hasAttribute(attr)) { el.setAttribute(attr, ''); el.classList.add('relative', 'rounded-[3px]', ...cls); }
+        };
+        mark('data-block-caret', caret, this.BLOCK_CARET);
+        mark('data-block-hover', hover, this.BLOCK_HOVER);
 
         const R = window.DictateRecord, us = this.unitsNow();
         const at = R && this.notes.length ? R.place(this.notes, us, this.text) : new Map();
@@ -3169,20 +3175,18 @@
           if (has && !m) b.insertAdjacentHTML('beforeend', '<i data-note-mark class="ph-fill ph-note text-amber-500 ml-1 text-[12px]"></i>');
           else if (!has && m) m.remove();
         }
-        // The blocks: a badge on the one marked and on each holding a note.
+        // The blocks: a badge on each marked block and on each holding a note.
         const noted = new Set();
         us.forEach((u, k) => { if (u.card == null && held.has(u)) noted.add(k); });
-        const k0 = on ? +on.dataset.mdBlock : null, want = new Set(noted);
-        if (k0 != null) want.add(k0);
+        const lit = new Set([caret, hover].filter(Boolean).map((el) => +el.dataset.mdBlock));
+        const want = new Set([...noted, ...lit]);
         for (const x of md.querySelectorAll('[data-md-block-badge]')) {
           if (!want.has(+x.dataset.mdBlockBadge) || x.parentElement.dataset.mdBlock !== x.dataset.mdBlockBadge) x.remove();
         }
-        // 16px round, centred on the outline's left edge (6px out) and on the
-        // first line (1.65em tall), so it stays inside the 16px margin and
-        // the page never scrolls sideways. The ::before widens what a thumb
-        // can hit, toward the text and not past the margin.
-        const BASE = 'absolute -left-[15px] top-[calc(.825em-8px)] z-10 w-4 h-4 flex items-center justify-center rounded-full text-[12px] leading-none select-none cursor-pointer '
-          + "before:absolute before:-inset-y-2 before:left-0 before:-right-2 before:content-[''] ";
+        // The card's number pill, compact: 18px, its centre on the marks' line
+        // 4px above the text. The ::before widens what a thumb can hit.
+        const BASE = 'absolute -top-[13px] -left-[2px] z-10 h-[18px] px-1.5 flex items-center rounded-full border bg-base-100 '
+          + "text-[12px] leading-none select-none cursor-pointer before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] ";
         for (const k of want) {
           const wrap = md.querySelector('[data-md-block="' + k + '"]');
           if (!wrap) continue;
@@ -3192,8 +3196,8 @@
             b.type = 'button'; b.dataset.mdBlockBadge = k; b.dataset.mdUi = '';
             wrap.classList.add('relative'); wrap.appendChild(b); this.keepFocus(b);
           }
-          const has = noted.has(k), lit = k === k0;
-          const cls = BASE + (lit ? 'border bg-base-100 ' + (has ? 'border-amber-400' : 'border-base-300') : '');
+          const has = noted.has(k);
+          const cls = BASE + (has ? (lit.has(k) ? 'border-amber-400' : 'border-amber-300/70') : 'border-base-300');
           if (b.className !== cls) b.className = cls;
           const html = has ? '<i class="ph-fill ph-note text-amber-500"></i>' : '<i class="ph ph-note-pencil text-base-content/80"></i>';
           if (b.innerHTML !== html) b.innerHTML = html;
