@@ -3035,15 +3035,19 @@
       // 2026-09-29: reject is per change (the word pop's Undo), commit is per
       // card, never part of one.
       //
-      // A card is known by a key that survives edits elsewhere: where its
-      // GitHub text starts ('o' + offset), or for a card that only adds, the
-      // text it adds. A confirmation holds the card's text as confirmed, and
-      // lapses when that text changes, so what is applied is what was seen.
+      // A card is known by a key that survives edits to it and elsewhere:
+      // where its GitHub text starts ('o' + offset), or for a card that only
+      // adds, the line just above it ('a@'). That card's own text was its key
+      // until 2026-10-01, so an edit to it orphaned its note. A confirmation
+      // holds the card's text as confirmed, and lapses when that text
+      // changes, so what is applied is what was seen.
       cardId(i) {
         const run = window.MdSurface.cards(this.$refs.md)[i], sp = this.cardSpans(i);
         if (!run || !sp) return null;
         const o = run.filter((e) => e.oldRange);
-        return o.length ? 'o' + Math.min(...o.map((e) => e.oldRange.start)) : 'a:' + sp.N.s;
+        if (o.length) return 'o' + Math.min(...o.map((e) => e.oldRange.start));
+        const above = this.text.slice(0, sp.N.a).replace(/\s+$/, '');
+        return 'a@' + above.slice(above.lastIndexOf('\n') + 1);
       },
       toggleConfirm(i) {
         const k = this.cardId(i), sp = this.cardSpans(i);

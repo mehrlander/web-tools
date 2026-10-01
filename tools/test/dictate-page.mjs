@@ -2075,6 +2075,20 @@ try {
       && applied.base === want && applied.text.includes('First once.') && applied.text.includes('Second  para.') && applied.cards === 1 && applied.n === 0,
     JSON.stringify({ w, applied }));
   await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = {}; c.confirmed = {}; }, PARA_DOC);
+  // A card that only adds keeps its note through an edit to its own text,
+  // while a confirmation of it lapses, as any confirmation does.
+  await reset();
+  const addNote = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    c.d.text = c.text.replace('Second para.\n', 'Second para.\n\nAn added line.\n'); c.paint(); await wait(200);
+    const k0 = c.cardId(0); c.notes = { [k0]: 'Why it is here.' }; c.toggleConfirm(0); await wait(50);
+    c.d.text = c.text.replace('An added line.', 'An added line, reworded.'); c.paint(); await wait(200);
+    const k1 = c.cardId(0), out = { k0, k1, note: c.notes[k1] || null, confirmed: c.confirmedCount };
+    c.notes = {}; c.confirmed = {}; c.d.text = c.fileBase; c.paint();
+    return out;
+  });
+  ok('a card that only adds keeps its note when its text is edited, and its confirmation lapses',
+    addNote.k0 === addNote.k1 && addNote.note === 'Why it is here.' && addNote.confirmed === 0, JSON.stringify(addNote));
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {
