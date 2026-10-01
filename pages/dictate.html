@@ -3134,7 +3134,7 @@
       // changed (MdSurface.paint `blocks`), so there is always one to mark.
       //
       // EACH MARKED BLOCK WEARS A BADGE AT ITS TOP LEFT, where a card keeps
-      // its number, and it opens the block's note: "Add note", or "Note" once
+      // its number, and it opens the block's note: "+ note", or "note" once
       // there is one. A block holding a note keeps its badge
       // unmarked, so a note is found without visiting every paragraph; a card
       // holding one shows it beside its number. An unchanged block has only
@@ -3186,11 +3186,12 @@
         // The card's number pill, compact: 18px, its centre on the marks' line
         // 4px above the text. AMBER, AND IT SAYS WHAT IT DOES, since a bare
         // pencil in grey went unnoticed (owner, 2026-10-01): amber is the
-        // card's action pill's colour, the one pill that acts, and the word is
-        // "Add note", or "Note" once there is one. The ::before widens what a
-        // thumb can hit.
-        const BASE = 'absolute -top-[13px] -left-[2px] z-10 h-[18px] px-1.5 gap-1 flex items-center rounded-full border border-amber-400 '
-          + 'text-[12px] font-medium leading-none whitespace-nowrap text-amber-700 select-none cursor-pointer '
+        // card's action pill's colour, the one pill that acts. Words and no
+        // icon, "+ note" or "note" once there is one, the owner's pick of four
+        // shot side by side (an icon with "Add note", this, a solid fill, and
+        // bare text on the outline). The ::before widens what a thumb can hit.
+        const BASE = 'absolute -top-[13px] -left-[2px] z-10 h-[18px] px-1.5 flex items-center rounded-full border border-amber-400 '
+          + 'text-[12px] font-medium leading-none whitespace-nowrap select-none cursor-pointer '
           + "before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] ";
         for (const k of want) {
           const wrap = md.querySelector('[data-md-block="' + k + '"]');
@@ -3202,10 +3203,10 @@
             wrap.classList.add('relative'); wrap.appendChild(b); this.keepFocus(b);
           }
           const has = noted.has(k);
-          const cls = BASE + (has ? 'bg-amber-100' : 'bg-amber-50');
+          const cls = BASE + (has ? 'bg-amber-100 text-amber-800' : 'bg-amber-50 text-amber-700');
           if (b.className !== cls) b.className = cls;
-          const html = has ? '<i class="ph-fill ph-note text-amber-500"></i><span>Note</span>' : '<i class="ph ph-note-pencil"></i><span>Add note</span>';
-          if (b.innerHTML !== html) b.innerHTML = html;
+          const html = has ? 'note' : '+ note';
+          if (b.textContent !== html) b.textContent = html;
           b.toggleAttribute('data-noted', has);
           b.setAttribute('aria-label', has ? 'The note on this block' : 'Add a note to this block');
           b.dataset.titleTipBare = ''; b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block';
