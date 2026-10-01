@@ -19,7 +19,7 @@ docs/context-sources.csv,28,17,6389,"[""id"",""circle"",""item"",""repo"",""path
 docs/context-topics.csv,12,4,2579,"[""topic"",""label"",""verdict"",""gloss""]"
 docs/direct-to-main.csv,9,6,1542,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
 docs/docs.csv,117,7,29859,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
-docs/harness.csv,296,8,57402,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
+docs/harness.csv,297,8,57487,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
 docs/kits.csv,101,8,12907,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,75,6,19524,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
 docs/map-tabs.csv,15,4,9372,"[""tab"",""gloss"",""refs"",""narrative""]"
