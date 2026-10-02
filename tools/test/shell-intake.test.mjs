@@ -17,7 +17,7 @@ import { makeShell, page } from './shell.mjs';
 // A shell with its window listeners captured by type, plus a StageIntake stand-in
 // recording what it was asked to do. The intake's real behavior is stage.test.mjs's
 // subject; what matters here is that the gesture calls it at all, and with what.
-function wired({ view = 'estate', added = [{ name: 'one.md' }] } = {}) {
+function wired({ view = 'repos', added = [{ name: 'one.md' }] } = {}) {
   const handlers = {};
   const win = { addEventListener: (type, fn) => { (handlers[type] ??= []).push(fn); } };
   const { shell } = makeShell({ browserStore: { repo: '' }, win });

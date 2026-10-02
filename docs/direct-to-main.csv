@@ -6,5 +6,5 @@ crawl-caches,web-tools-private,"state/configs.json, state/activity.json, state/f
 session-caches,web-tools-private,"state/sessions.json, state/session-menu.json, state/sessions-index/*.json",browser sessions crawl,throttled push on material change,indexing session records for search and menus
 shortcut-logs,web-tools-private,"shortcuts/log/*",device Log-Repo shortcut,immediate push per run,return channel for shortcut probes and installs
 page-reports,web-tools-private,"logs/page/*",browser page report,immediate push on user gesture,reports sent from a rendered page
-errands,web-tools-private,"errands/requests/*, errands/results/*",agent (requests) / Web Tools Stage (results),immediate push on commit,what a session needs a person or their browser to do
+errands,web-tools-private,"errands/requests/*, errands/results/*, errands/claims/*, errands/output/*",agent (requests) / Web Tools Stage (results) / Gemini home laptop daemon (claims, results and output of laptop-daemon errands),immediate push on commit,"what a session needs a person, their browser, or the Gemini home laptop daemon to do"
 notes,web-tools-private,"notes/notes.jsonl",agent / notes skill (git plumbing) / browser kits/notes.js,immediate push per note,short signed observations about any subject

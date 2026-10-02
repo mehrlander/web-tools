@@ -63,7 +63,7 @@ test('a sessions crawl that throws is reported, not rethrown', async () => {
 test('the warm covers what the pane on screen actually reads', async () => {
   for (const [view, want] of [['sessions', { sessions: 1, activity: 0, configs: 0 }],
                               ['activity', { sessions: 0, activity: 1, configs: 0 }],
-                              ['estate',   { sessions: 0, activity: 0, configs: 1 }],
+                              ['repos',    { sessions: 0, activity: 0, configs: 1 }],
                               ['state',    { sessions: 1, activity: 1, configs: 1 }],
                               ['chats',    { sessions: 0, activity: 0, configs: 0 }]]) {
     const h = stubbed({ view });
@@ -86,14 +86,14 @@ test('a signed-out shell warms nothing', async () => {
 // not. Its crawl reported nothing at all until this branch, which is what had
 // kept the pane re-readable only by its own Refresh button.
 test('a config crawl that commits tells the Repos cards to re-read', async () => {
-  const h = stubbed({ view: 'estate' });
+  const h = stubbed({ view: 'repos' });
   await h.shell.warmConfigCache();
   assert.equal(h.calls.configs, 1);
   assert.equal(named(h, 'web-tools:configs-refreshed'), 1);
 });
 
 test('a config crawl that changes nothing stays quiet', async () => {
-  const h = stubbed({ view: 'estate', committed: false });
+  const h = stubbed({ view: 'repos', committed: false });
   await h.shell.warmConfigCache();
   assert.equal(named(h, 'web-tools:configs-refreshed'), 0);
 });
@@ -103,7 +103,7 @@ test('a config crawl that changes nothing stays quiet', async () => {
 test('opening Repos warms its cache', async () => {
   const h = stubbed({ view: 'landing' });
   h.shell.syncUrl = () => {};
-  h.shell.goEstate();
+  h.shell.goRepos();
   await new Promise(r => setImmediate(r));
   assert.equal(h.calls.configs, 1);
 });

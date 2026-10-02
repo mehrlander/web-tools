@@ -109,8 +109,7 @@ const shell = {
   goBranches() { this.view = 'branches'; },
   goActivity() { this.view = 'branches'; },
   goSessions() { this.view = 'sessions'; },
-  goTodo() { this.view = 'todo'; },
-  goJots() { this.view = 'jots'; },
+  goLists() { this.view = 'lists'; },
 };
 window.__shell = shell;
 
@@ -134,13 +133,12 @@ const ago = (d) => new Date(Date.now() - d * DAY).toISOString();
 
 // ── The tab getter: two collapses, different shapes ─────────────────────────
 
-test('todo and jots both resolve to one Lists pane; branches and sessions stay apart', () => {
-  shell.view = 'todo';   assert.equal(data.tab, 'lists');
-  shell.view = 'jots';   assert.equal(data.tab, 'lists', '?view=jots must still land somewhere real');
+test('lists is one pane; branches and sessions stay apart', () => {
+  shell.view = 'lists';  assert.equal(data.tab, 'lists');
   shell.view = 'branches'; assert.equal(data.tab, 'branches');
   shell.view = 'activity'; assert.equal(data.tab, 'branches');
   shell.view = 'sessions'; assert.equal(data.tab, 'sessions');
-  shell.view = 'estate'; assert.equal(data.tab, 'repos');
+  shell.view = 'repos';  assert.equal(data.tab, 'repos');
 });
 
 test('the Sessions pill routes through the shell, so the URL keeps stamping', () => {

@@ -160,17 +160,17 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
 - [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
-- [`estate.md`](views/estate.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
 - [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)
 - [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the installation view on its Overview with the observations ledger
 - [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
 - [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
 - [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history
-- [`todo.md`](views/todo.md) *(orphan)* — the Lists view: To-do, Jot and Pins, and the registry files behind them
 - [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
 - [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
 - [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
 - [`tending.md`](views/tending.md) — the Tending view: the finding record, how a finding changes, and how its witnesses are checked
+- [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
+- [`lists.md`](views/lists.md) *(orphan)* — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them
 
 11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).
