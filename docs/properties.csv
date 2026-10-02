@@ -290,3 +290,12 @@ outposts,doc,recorded,,value,column,yes,,locator,the document that owns this out
 account-skills,want,recorded,,value,column,yes,on;off,label,whether the skill should be on the account
 account-skills,twin,recorded,,none,column,yes,,locator,the folder under skills/ the account copy should match; blank where the plugin holds no copy
 account-skills,note,recorded,,none,column,yes,,value,"why the row is declared the way it is, where that is not obvious"
+upstream-skills,author,recorded,,value,column,yes,,value,who wrote the skill
+upstream-skills,upstream,recorded,,value,column,yes,,locator,"where the skill lives: owner/repo:path for a folder on GitHub, or a URL where it is not"
+upstream-skills,status,recorded,,value,column,yes,watching;studied;held;vendored;adapted;declined,label,"how far the estate has taken the skill, from noting it to shipping a copy"
+upstream-skills,pinned,recorded,,none,column,yes,,value,the upstream commit whose folder the fingerprint describes; blank where our copy matches no commit upstream
+upstream-skills,digest,recorded,,none,column,yes,,value,"the fingerprint of the pinned version: every file in the folder, by relative path and bytes"
+upstream-skills,rationale,recorded,,value,column,yes,,value,"why the skill is of interest, and what was taken from it"
+upstream-skills,seen,recorded,,value,column,yes,,value,the date the row was entered
+upstream-skills,ours,recorded,,none,column,yes,,locator,"the folder under skills/ that ships a copy, for a vendored or adapted skill"
+upstream-skills,held,recorded,,none,column,yes,,locator,the folder under outside/ that keeps a pinned copy the plugin never ships

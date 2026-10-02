@@ -63,8 +63,10 @@ SHARED_MIN = 3      # shared windows before a pair is reported
 # portable-manifest.test.mjs), task files quote the docs they scope, and
 # archive/ preserves retired projects whose exports contain copies of their
 # own docs by construction (restatement there is the record, not the rot).
+# outside/ holds pinned copies of skills other people wrote
+# (docs/upstream-skills.csv), so its prose is not the estate's to deduplicate.
 EXCLUDE_PREFIXES = (
-    ".claude/", "tracker/tasks/", "archive/",
+    ".claude/", "tracker/tasks/", "archive/", "outside/",
 )
 # Generated projections inherit their sources' text by construction.
 EXCLUDE_PATHS = {

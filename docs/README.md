@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-15 by a skill, 34 by a page or component. The remaining 53 are
+15 by a skill, 35 by a page or component. The remaining 53 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -95,6 +95,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
+- [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
 
 ## docs/doc-craft-specimens/
 

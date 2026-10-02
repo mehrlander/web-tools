@@ -158,3 +158,53 @@ test('every outpost declares each part, and every locator into this repo resolve
     }
   }
 });
+
+// ── Upstreams: the reverse direction ──────────────────────────────────────
+// docs/upstream-skills.csv and scripts/upstream-skills.py. The check fetches
+// over the network by default; --from points it at a local folder instead, so
+// these tests never leave the machine.
+
+const UPSTREAM = path.join(repoRoot, 'scripts/upstream-skills.py');
+const upstreams = read('upstream-skills.csv');
+const STATUSES = ['watching', 'studied', 'held', 'vendored', 'adapted', 'declined'];
+
+test('every upstream row has a known status, and every copy it names is where it says', () => {
+  const ids = upstreams.map(r => r.id);
+  assert.equal(new Set(ids).size, ids.length, 'an upstream is listed twice');
+  for (const r of upstreams) {
+    assert.ok(STATUSES.includes(r.status), `${r.id}: status ${r.status}`);
+    assert.ok(/^[\w.-]+\/[\w.-]+:.+$/.test(r.upstream) || /^https:\/\//.test(r.upstream), `${r.id}: upstream ${r.upstream}`);
+    if (['vendored', 'adapted'].includes(r.status))
+      assert.ok(r.ours && existsSync(path.join(repoRoot, r.ours, 'SKILL.md')), `${r.id}: a ${r.status} skill names its copy under skills/`);
+    if (r.status === 'held')
+      assert.ok(r.held?.startsWith('outside/') && existsSync(path.join(repoRoot, r.held, 'SKILL.md')), `${r.id}: a held skill names its copy under outside/`);
+    if (r.pinned) assert.ok(r.digest, `${r.id}: a pinned commit without the fingerprint it describes`);
+  }
+});
+
+test('every held and vendored copy still matches its pin', () => {
+  const out = execFileSync('python3', [UPSTREAM, '--offline'], { encoding: 'utf8' });
+  assert.doesNotMatch(out, /!/, out);
+});
+
+test('the check tells a moved upstream from an unchanged one, and says less where no commit was recorded', () => {
+  withFixture((dir, put) => {
+    put('up/skills/a/SKILL.md', 'a, as pinned\n');
+    put('up/skills/b/SKILL.md', 'b, edited upstream since\n');
+    put('up/skills/c/SKILL.md', 'c upstream\n');
+    const fp = (rel, text) => execFileSync('python3', ['-c',
+      `import importlib.util,sys;s=importlib.util.spec_from_file_location('u',sys.argv[1]);u=importlib.util.module_from_spec(s);s.loader.exec_module(u);print(u.digest({sys.argv[2]:__import__('hashlib').sha256(sys.argv[3].encode()).hexdigest()}))`,
+      UPSTREAM, rel, text], { encoding: 'utf8' }).trim();
+    const reg = 'id,author,upstream,status,pinned,digest,rationale,seen,ours,held\n' +
+      `x/a,X,x/up:skills/a,studied,aaaaaaaaaaaa,${fp('SKILL.md', 'a, as pinned\n')},r,2026-10-02,,\n` +
+      `x/b,X,x/up:skills/b,studied,bbbbbbbbbbbb,${fp('SKILL.md', 'b, as pinned\n')},r,2026-10-02,,\n` +
+      `x/c,X,x/up:skills/c,studied,,${fp('SKILL.md', 'c, as pinned\n')},r,2026-10-02,,\n` +
+      'x/d,X,https://example.org/d,watching,,,r,2026-10-02,,\n';
+    writeFileSync(path.join(dir, 'reg.csv'), reg);
+    const out = execFileSync('python3', [UPSTREAM, '--registry', path.join(dir, 'reg.csv'), '--from', 'x/up=' + path.join(dir, 'up')], { encoding: 'utf8' });
+    assert.match(out, /x\/a\s+studied\s+unchanged since the pin/);
+    assert.match(out, /x\/b\s+studied\s+upstream moved since the pin \(bbbbbbbbbbbb → local\)/);
+    assert.match(out, /x\/c\s+studied\s+upstream differs from the pinned copy \(no commit recorded/);
+    assert.match(out, /x\/d\s+watching\s*$/m);
+  });
+});

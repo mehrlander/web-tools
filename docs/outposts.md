@@ -56,3 +56,28 @@ fresh observation without anyone acting.
 - The comparison covers every file in a skill's folder and reports "differs"
   rather than "older" or "newer". Which copy is ahead is a claim about dates,
   and a sandbox clone's history is too shallow to support it.
+
+## Upstreams: the reverse direction
+
+An **upstream** is the mirror image of an outpost: a skill someone else wrote,
+which the estate watches, studies, holds a copy of, or ships. It is held by the
+same four parts run the other way. The declaration is the version pinned, by
+upstream commit and folder fingerprint, in
+[`upstream-skills.csv`](upstream-skills.csv); the observation is what the
+author holds now; the check compares them; the upkeep is a re-pin, a refreshed
+copy, or a decline.
+
+- A **held** copy sits under `outside/<author>/<skill>/` with its author's
+  license beside it. The plugin ships only `skills/`, so a held copy reaches no
+  session and costs no context. A **vendored** copy ships in `skills/` exactly
+  as pinned; an **adapted** one ships after changes of our own.
+- [`scripts/upstream-skills.py`](../scripts/upstream-skills.py), or
+  `npm run upstreams`, fetches each pinned folder by a shallow sparse clone and
+  says whether it moved since the pin. `--offline` checks only that every held
+  and vendored copy still matches its pin, which the suite runs.
+- Discussion of an upstream goes in notes addressed to its file, for example
+  `obra/superpowers:skills/writing-skills/SKILL.md`, through the notes skill.
+- A pin names a commit only where our copy is that commit's folder exactly.
+  Four of the six Anthropic skills the plugin carries match no commit in
+  anthropics/skills, having been copied from the claude.ai account's copies, so
+  their rows carry a fingerprint and no commit.
