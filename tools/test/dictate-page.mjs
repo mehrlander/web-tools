@@ -2105,6 +2105,23 @@ try {
     c.notes = []; c.confirmed = {}; c.d.text = c.fileBase; c.paint();
     return out;
   });
+  // No move lands in code: a fence, or inline code, refuses the drop and the
+  // text is unchanged; prose still takes it.
+  const codeDrop = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+    const doc = 'Lead words here.\n\n```\nconst a = 1;\n```\n\nSee `code span` too.\n';
+    c.d.text = doc; c.paint();
+    const a = doc.indexOf('words'), b = a + 5;
+    const fence = c.landMove(a, b, doc.indexOf('a = 1'), false), afterFence = c.d.text === doc;
+    const inline = c.landMove(a, b, doc.indexOf('span'), false), afterInline = c.d.text === doc;
+    const prose = c.landMove(a, b, doc.indexOf('too'), false), moved = c.d.text !== doc && !c.d.text.startsWith('Lead words');
+    c.d.text = c.fileBase; c.paint();
+    return { fence, afterFence, inline, afterInline, prose, moved };
+  });
+  ok('a move into a code fence or inline code is refused, the text unchanged; prose still takes it',
+    codeDrop.fence === false && codeDrop.afterFence && codeDrop.inline === false && codeDrop.afterInline && codeDrop.prose === true && codeDrop.moved, JSON.stringify(codeDrop));
+  // The refusal's toast stays 2.5s, over what the next checks tap.
+  await page.waitForTimeout(2700);
   ok('a card that only adds keeps its note when its text is edited, the note quoting the text as it reads now, and its confirmation lapses',
     addNote.note === 'Why it is here.' && addNote.quote === 'An added line, reworded.' && addNote.confirmed === 0, JSON.stringify(addNote));
   // NOTES ON BLOCKS: the caret in an unchanged paragraph marks it, its badge
