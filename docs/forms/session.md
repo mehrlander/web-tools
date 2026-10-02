@@ -17,5 +17,6 @@ line: a step is a run of tool calls with the sentence that announced it, and
 adjacent steps fold together. The first card names what the record could not
 hold; the last is the summary (files by read, edit and write, the tool
 histogram, tokens). The record is cached per id, and the renderer chain loads
-on first use. In the app, the head also shows the session's topics and summary;
-the standalone page has neither.
+on first use. In the app, the head also shows the session's discussion agenda,
+topics and summary, and the outline delineates discussion chapters; the standalone
+page has neither.

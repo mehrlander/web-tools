@@ -1212,3 +1212,19 @@ test('the lit tick is not the position marker, so the rail says two things once'
   assert.notEqual(lit, here, 'and the lit tick is a different one');
   assert.doesNotMatch(lit.className, /bg-primary/, 'drawn in the neutral, not the accent');
 });
+
+test('agenda provides discussion chapter headers before corresponding cards', () => {
+  const agenda = [
+    { topic: 'First Discussion Chapter', turns: [0, 0] },
+    { topic: 'Second Discussion Chapter', turns: [1, 1] },
+  ];
+  const built = window.sessionExport.index(RECORD, { agenda });
+  const chapters = [...built.el.querySelectorAll('[data-agenda-index]')];
+  assert.equal(chapters.length, 2, 'two chapter headers rendered');
+  assert.equal(chapters[0].getAttribute('data-agenda-index'), '0');
+  assert.match(chapters[0].textContent, /First Discussion Chapter/);
+  assert.match(chapters[0].textContent, /turns 0-0/);
+  assert.equal(chapters[1].getAttribute('data-agenda-index'), '1');
+  assert.match(chapters[1].textContent, /Second Discussion Chapter/);
+  assert.match(chapters[1].textContent, /turns 1-1/);
+});

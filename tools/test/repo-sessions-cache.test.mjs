@@ -1525,17 +1525,26 @@ test('beats survive the prose cut, because the list draws them on every row', ()
 const TOPICS_DOC = {
   version: 1,
   sessions: {
-    d456b017: { title: 'Share Sheet Shortcut', topics: ['shortcuts', 'share-sheet', 7], summary: 'Wired it.' },
-    ca1777ac: { title: '', topics: [], summary: '' },
+    d456b017: {
+      title: 'Share Sheet Shortcut',
+      topics: ['shortcuts', 'share-sheet', 7],
+      summary: 'Wired it.',
+      agenda: [{ topic: 'shortcuts', turns: [0, 5] }, { topic: 'share-sheet', turns: [6, 9] }],
+    },
+    ca1777ac: { title: '', topics: [], summary: '', agenda: [] },
   },
 };
 
-test('withTopics joins title, topics and summary by short id, prefixed', () => {
+test('withTopics joins title, topics, summary and agenda by short id, prefixed', () => {
   const rows = [{ id: 'd456b017', day: '2026-09-24' }, { id: 'ffffffff', day: '2026-09-30' }];
   const [a, b] = S.withTopics(rows, TOPICS_DOC);
   assert.deepEqual(a.topics, ['shortcuts', 'share-sheet']);
   assert.equal(a.topicTitle, 'Share Sheet Shortcut');
   assert.equal(a.topicSummary, 'Wired it.');
+  assert.deepEqual(a.agenda, [
+    { topic: 'shortcuts', turns: [0, 5] },
+    { topic: 'share-sheet', turns: [6, 9] },
+  ]);
   assert.equal(b, rows[1], 'a row the rollup does not name is returned as is');
   assert.equal(rows[0].topics, undefined, 'the input rows are not mutated');
 });
