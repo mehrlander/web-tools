@@ -384,6 +384,16 @@ def overlay_plan(base, sha, paths, use_git, lag=None, removed=None, behind=None)
             "regenerated": regenerated,
             "ok": known and bool(base_sha) and not overlap and not gone}
 
+# LEVEL WITH MAIN: main has no commit the branch lacks, so a merge would
+# fast-forward and the branch's own commit IS the merge. A link to that one
+# commit then shows everything an overlay would, without listing main and each
+# changed file as separate refs, which is what made the links handed over on
+# 2026-10-02 run to several hundred characters for a branch zero commits
+# behind. The overlay keeps one case: lib changed with no rebuilt bundle, where
+# a path entry steps around the stale build and the plain ref would serve it.
+def level_with_main(plan, b):
+    return plan["known"] and not plan["behind"] and not (b["lib"] and not b["dist"])
+
 def overlay_why(plan, n):
     short = plan["base_sha"][:7]
     gen = (f" The {len(plan['regenerated'])} generated file(s) the branch also changed ("
@@ -457,7 +467,9 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
         subjects = [(p, None) for p in b["shell"]]
         entries = overlay_entries(slug, sha, paths, skip=set(b["shell"]))
         plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
-        if overlay_ready(base, use_git, overlay):
+        if level_with_main(plan, b):
+            why.append("The branch is level with main, so a merge would fast-forward and the branch's own commit is the merge: one ref shows it.")
+        elif overlay_ready(base, use_git, overlay):
             if len(entries) > OVERLAY_CAP:
                 warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}: this links the branch as it stands instead"
                             + (f", {plan['behind']} commit(s) behind main, without main's later changes." if plan["known"] and plan["behind"] else "."))
@@ -501,8 +513,9 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
         entries = overlay_entries(slug, sha, paths)
-        ready = overlay_ready(base, use_git, overlay)
         plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
+        level = level_with_main(plan, b)
+        ready = overlay_ready(base, use_git, overlay) and not level
         if ready and len(entries) <= OVERLAY_CAP and plan["ok"]:
             why.append("only lib/ or dist/ changed, so the page is main's. " + overlay_why(plan, len(entries)))
             d = decision("overlay", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query,
@@ -515,7 +528,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                            f"{plan['behind']} commit(s) behind main, so main's later library changes are absent from it.")
             else:
                 why.append("only lib/ or dist/ changed, and a page's own file is untouched, so the deployed page loading the branch's lib is the real thing.")
-            if len(entries) > OVERLAY_CAP:
+            if len(entries) > OVERLAY_CAP and not level:
                 warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}, so this pins the whole branch instead.")
             d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
         for l, s3 in zip(d["links"], subjects):
@@ -598,6 +611,23 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
 MCP_URL_CAP = 150
 
 
+# Commits are spelled at 12 characters in the URL, as git's own --short=12
+# would, and stay whole in the JSON. The three hosts a link reaches answer the
+# short form: the contents API, raw.githubusercontent (entry.js's blob route)
+# and jsDelivr, each probed with HTTP 200 on 2026-10-02. The odds that a given
+# link's 12 digits also match a second object are about one in three billion
+# at 100,000 objects. The 28 characters saved recur once per ref in the link.
+SHORT_SHA = 12
+
+def short(ref):
+    return ref[:SHORT_SHA] if re.fullmatch(r"[0-9a-f]{40}", ref or "") else ref
+
+def short_entry(e):
+    repo, _, rest = e.partition("@")
+    ref, sep, path = rest.partition(":")
+    return f"{repo}@{short(ref)}{sep}{path}"
+
+
 # A page that routes on its own hash opens on its EMPTY FORM without an
 # address, and the link still resolves and renders, which is this script's own
 # failure shape one level down. The `at` below is that address: on a toss it
@@ -616,6 +646,8 @@ MCP_URL_CAP = 150
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
 def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref=""):
+    sha, page_ref = short(sha), short(page_ref)
+    entries = [short_entry(e) for e in (entries or [])]
     base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
