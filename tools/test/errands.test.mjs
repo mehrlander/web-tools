@@ -88,6 +88,17 @@ test('validate refuses a run its method cannot perform', () => {
   assert.equal(v(courier, { url: 'https://x.example/' }).ok, true);
 });
 
+test('a laptop-daemon errand, as errand_runner.py files it, is valid and needs no one', () => {
+  const e = E.normalize({ id: 'daemon-2026-10-02-ping-abc123', note: 'Ping the daemon', purpose: 'test-script',
+    dest: 'mehrlander/web-tools-private@main:errands/output/daemon-2026-10-02-ping-abc123',
+    run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'ping', args: {},
+           script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
+  assert.equal(E.validate(e).ok, true);
+  assert.equal(e.run.outputReturn, 'self-filed', 'the daemon files its own result');
+  assert.equal(E.validate(E.normalize({ id: 'd', note: 'n', dest: 'me/r:d',
+    run: { method: 'laptop-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'laptop only');
+});
+
 test('parseScript splits the address, and nothing else', () => {
   assert.deepEqual(E.parseScript('me/r@main:a/b.ps1'), { repo: 'me/r', ref: 'main', path: 'a/b.ps1' });
   assert.equal(E.parseScript('me/r:a.ps1'), null, 'the ref is required: the exact code');
