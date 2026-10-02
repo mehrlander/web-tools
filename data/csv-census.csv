@@ -10,7 +10,7 @@ data/doc-overlap/docs.csv,186,5,9628,"[""path"",""sha"",""prose_words"",""passag
 data/doc-overlap/gold-set/gold.csv,275,28,121304,"[""id"",""seed"",""stratum"",""stratum_size"",""stratum_seats"",""audit"",""cosine"",""literal"",""short"",""a_path"",""a_start"",""a_end"",""a_line"",""a_hash"",""b_path"",""b_start"",""b_end"",""b_line"",""b_hash"",""reader_relation"",""reader_confidence"",""rationale"",""sent"",""verdict"",""note"",""relation"",""reading"",""consolidate""]"
 data/doc-overlap/matches.csv,988,13,115258,"[""source"",""start"",""end"",""line"",""words"",""hash"",""target"",""target_start"",""target_end"",""target_line"",""target_words"",""target_hash"",""cosine""]"
 data/report-layout/three-way-compare.csv,35,6,1738,"[""group"",""subgroup"",""item"",""version"",""year"",""value""]"
-docs/account-skills.csv,43,4,2116,"[""name"",""want"",""twin"",""note""]"
+docs/account-skills.csv,43,4,1872,"[""name"",""want"",""twin"",""note""]"
 docs/aims-goals.csv,5,3,380,"[""key"",""name"",""gloss""]"
 docs/aims-initiatives.csv,5,3,839,"[""key"",""name"",""gloss""]"
 docs/aims-reading.csv,5,4,378,"[""repo"",""path"",""private"",""gloss""]"
