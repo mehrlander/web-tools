@@ -55,11 +55,22 @@ const both = (id) => {
 const check = (id, ...flags) => JSON.parse(py('check', '--json', ...flags)).find(f => f.id === id);
 
 let id;
+const viewWrites = (n) => execFileSync('python3', ['-c', `
+import sys, json; sys.path.insert(0, ${JSON.stringify(path.join(repoRoot, 'skills/notes'))})
+import note
+note.append(${JSON.stringify(store)}, 'notes', json.loads(sys.argv[1]))`, JSON.stringify(n)], { env });
+const refused = (u) => {
+  try { py('update', id, jfile(u)); } catch (e) { return String(e.stderr || e.message); }
+  assert.fail('the update was written');
+};
+const witness = () => window.Findings.fold(storeNotes()).find(f => f.id === id).witnesses[0];
+
 test('found: open, with work outstanding, every witness holding', () => {
   id = py('add', jfile({
     kind: 'unreached', title: 'A report never reached main',
     subjects: ['acme/evidence@claude/x', 'acme/evidence#7'],
     why: 'Two facts in it are missing from docs/a.md.', next: 'Fold the two facts into docs/a.md.',
+    choice: 'Retire the report branch afterwards? I recommend yes.',
     witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob(), why: 'the doc it was compared against' },
                 { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
   })).split(' ')[0];
@@ -84,14 +95,27 @@ test('evidence outside the subjects changes, and check names it', () => {
   assert.match(c.moved[0].detail, /docs: add a second line/);
 });
 
-test('reassessed and settled with what was done; the refreshed witness holds', () => {
-  py('update', id, jfile({ text: 'Folded the facts in; reassessed against the new doc.',
-    finding: { status: 'settled', did: 'Folded the two facts into docs/a.md',
+test('a step done is progress: settling with an inherited next or choice is refused', () => {
+  assert.match(refused({ text: 'Folded the facts in.', finding: { status: 'settled', did: 'Folded the two facts in' } }),
+    /settled with work outstanding \(next: .*choice: /);
+  assert.match(refused({ text: 'Folded the facts in.', finding: { status: 'settled', did: 'Folded the two facts in', next: '' } }),
+    /outstanding \(choice: 'Retire the report branch/);
+  py('update', id, jfile({ text: 'Folded the facts in; the branch question remains.',
+    finding: { did: 'Folded the two facts into docs/a.md', next: '',
                witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob() }] } }));
+  const f = both(id);
+  assert.equal(f.status, 'open', 'the inherited choice keeps it open');
+  assert.equal(f.outstanding, true);
+});
+
+test('settled once nothing remains; the refreshed witness holds', () => {
+  py('update', id, jfile({ text: 'Retired the branch.', finding: { status: 'settled', did: 'Retired the report branch', choice: '' } }));
   const f = both(id);
   assert.equal(f.status, 'settled');
   assert.equal(f.outstanding, false);
   assert.deepEqual(check(id).moved, []);
+  assert.match(refused({ text: 'One more thing.', finding: { next: 'Link it from the index.' } }),
+    /settled with work outstanding.*status: "open"/s);
 });
 
 test('a later change makes the settled finding due, by check and by candidates', () => {
@@ -107,18 +131,36 @@ test('a later change makes the settled finding due, by check and by candidates',
   assert.ok(cand.moved, 'a covered subject that moved is due again');
 });
 
+test('Handled acknowledges the reviewed change, and only a later change brings it back', () => {
+  const seen = { sha: blob() };
+  assert.equal(window.Findings.compare(witness(), seen).verdict, 'changed');
+  viewWrites(window.Findings.resolution(id, 'Read the rewrite; still fine', 'mehrlander', [window.Findings.ackOf(witness(), seen)]));
+  assert.equal(both(id).status, 'resolved');
+  assert.deepEqual(check(id).moved, [], 'the command line honours the acknowledgment');
+  assert.equal(window.Findings.compare(witness(), seen).verdict, 'ok', 'and so does the view');
+  edit('first\nrewritten again\n', 'docs: rewrite it again');
+  assert.equal(check(id).moved.length, 1, 'a change after Handled surfaces');
+  assert.equal(window.Findings.compare(witness(), { sha: blob() }).verdict, 'changed');
+});
+
 test('attention renewed, then the owner resolves it in the shape the view writes', () => {
   py('update', id, jfile({ text: 'The doc was rewritten; the facts need placing again.',
     finding: { status: 'open', next: 'Re-place the two facts in the rewritten doc.', witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob() }] } }));
   let f = both(id);
   assert.equal(f.status, 'open');
   assert.equal(f.outstanding, true);
-  const r = window.Findings.resolution(id, 'Placed them myself', 'mehrlander');
-  execFileSync('python3', ['-c', `
-import sys, json; sys.path.insert(0, ${JSON.stringify(path.join(repoRoot, 'skills/notes'))})
-import note
-note.append(${JSON.stringify(store)}, 'notes', json.loads(sys.argv[1]))`, JSON.stringify(r)], { env });
+  viewWrites(window.Findings.resolution(id, 'Placed them myself', 'mehrlander'));
   f = both(id);
   assert.equal(f.status, 'resolved');
   assert.equal(f.outstanding, false);
+});
+
+test('a pull request the crawl cache lacks reads unverifiable on the command line', () => {
+  const other = py('add', jfile({
+    kind: 'superseded', title: 'An old pull request landed', subjects: ['acme/evidence#99'], why: 'w', evidence: ['merged'],
+    witnesses: [{ ref: 'acme/evidence#99', state: 'merged' }, { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
+  })).split(' ')[0];
+  const v = check(other).verdicts;
+  assert.deepEqual(v.map(x => [x.ref, x.verdict]), [['acme/evidence#99', 'unverifiable'], ['acme/evidence#7', 'ok']]);
+  assert.match(v[0].detail, /not in the crawl cache/);
 });

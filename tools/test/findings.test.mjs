@@ -56,6 +56,9 @@ test('the browser writes a resolution that carries finding, and a comment that d
   const r = F.resolution('nroot', 'Folded into capabilities.md', 'mehrlander');
   assert.equal(r.about, 'note:nroot');
   assert.deepEqual(plain(r.finding), { status: 'resolved' });
+  const w = { ref: 'acme/w@main:docs/a.md', sha: '1111111' };
+  assert.deepEqual(plain(F.resolution('nroot', 'ok', 'mehrlander', [F.ackOf(w, { sha: '2222222' })]).finding),
+    { status: 'resolved', ack: [{ ref: 'acme/w@main:docs/a.md', seen: { sha: '2222222' } }] });
   const c = window.Notes.make({ about: 'note:nroot', text: 'looks right', author: 'mehrlander' });
   assert.equal('finding' in c, false);
 });
@@ -116,6 +119,17 @@ test('clearing the step settles it; renewing attention reopens it with a new ste
   assert.equal(g.open, true);
   assert.equal(g.history.at(-1).type, 'reopened');
   assert.equal(g.closedBy, null);
+});
+
+test('Handled acknowledges witnesses as they stood, and a re-pin replaces the acknowledgment', () => {
+  const pinned = { ...ROOT, finding: { ...ROOT.finding, witnesses: [{ ref: 'acme/w@main:docs/a.md', sha: '1111111' }] } };
+  const res = { ...reply('nack', '2026-10-02T00:00:00Z'), finding: { status: 'resolved', ack: [{ ref: 'acme/w@main:docs/a.md', seen: { sha: '2222222' } }] } };
+  const [f] = F.fold([pinned, res]);
+  assert.deepEqual(plain(f.witnesses[0].ack), { sha: '2222222' });
+  assert.equal(f.assessedAt, pinned.at, 'an acknowledgment is not a reassessment');
+  const repin = { ...reply('nrepin', '2026-10-03T00:00:00Z'), finding: { witnesses: [{ ref: 'acme/w@main:docs/a.md', sha: '3333333' }] } };
+  const [g] = F.fold([pinned, res, repin]);
+  assert.equal('ack' in g.witnesses[0], false);
 });
 
 test('a settled finding whose evidence moved asks for attention again', () => {
@@ -397,6 +411,110 @@ const WITNESS_CASES = [
       "error": "not readable"
     },
     "verdict": "unverifiable"
+  },
+  {
+    "name": "path changed, acknowledged as it now stands",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md",
+      "sha": "1111111",
+      "ack": {
+        "sha": "2222222"
+      }
+    },
+    "seen": {
+      "sha": "2222222abcd"
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "path changed again after the acknowledgment",
+    "witness": {
+      "ref": "acme/w@main:docs/a.md",
+      "sha": "1111111",
+      "ack": {
+        "sha": "2222222"
+      }
+    },
+    "seen": {
+      "sha": "3333333"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "branch gone, acknowledged gone",
+    "witness": {
+      "ref": "acme/w@claude/x",
+      "sha": "aaaaaaa",
+      "ack": {
+        "missing": true
+      }
+    },
+    "seen": {
+      "missing": true
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "branch acknowledged gone, then back",
+    "witness": {
+      "ref": "acme/w@claude/x",
+      "sha": "aaaaaaa",
+      "ack": {
+        "missing": true
+      }
+    },
+    "seen": {
+      "sha": "bbbbbbb"
+    },
+    "verdict": "changed"
+  },
+  {
+    "name": "main no longer contains the commit, acknowledged",
+    "witness": {
+      "ref": "acme/w@main",
+      "contains": "106f31c",
+      "ack": {
+        "contained": false
+      }
+    },
+    "seen": {
+      "contained": false
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "open PR not updated since the acknowledgment",
+    "witness": {
+      "ref": "acme/w#7",
+      "state": "open",
+      "updated": "2026-09-01T00:00:00Z",
+      "ack": {
+        "state": "open",
+        "updated": "2026-09-20T00:00:00Z"
+      }
+    },
+    "seen": {
+      "state": "open",
+      "updated": "2026-09-20T00:00:00Z"
+    },
+    "verdict": "ok"
+  },
+  {
+    "name": "open PR updated after the acknowledgment",
+    "witness": {
+      "ref": "acme/w#7",
+      "state": "open",
+      "updated": "2026-09-01T00:00:00Z",
+      "ack": {
+        "state": "open",
+        "updated": "2026-09-20T00:00:00Z"
+      }
+    },
+    "seen": {
+      "state": "open",
+      "updated": "2026-10-01T00:00:00Z"
+    },
+    "verdict": "changed"
   }
 ];
 

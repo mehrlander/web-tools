@@ -28,7 +28,7 @@ export default async (page, ctx) => {
     const el = document.querySelector('[x-data="tending()"]');
     const d = el && window.Alpine.$data(el);
     return d && !d.loading && d.notes.length > 0 && d.checking === 0
-      && Object.values(d.seen).every(v => v.verdict !== 'pending');
+      && Object.values(d.seen).every(v => !v.pending);
   }, null, { timeout: 60000 });
 
   if (cli) {
@@ -42,19 +42,14 @@ export default async (page, ctx) => {
       const c = cli.find(x => x.id === f.id);
       for (const v of f.verdicts) {
         const cv = c && (c.verdicts || []).find(x => x.ref === v.ref);
-        // The shim knows only the PRs the crawl's cache holds. A merged PR older
-        // than that reads "not found" here, while on GitHub the view reads it
-        // from the pulls API and findings.py holds merged as final: a limit of
-        // this harness, reported apart rather than counted as a disagreement.
-        const harness = /#\d+$/.test(v.ref) && v.detail === 'pull request not found' && cv?.verdict === 'ok';
         rows.push({ id: f.id, ref: v.ref, browser: v.verdict, cli: cv ? cv.verdict : 'absent',
-                    agree: !!cv && cv.verdict === v.verdict, harness, browserDetail: v.detail, cliDetail: cv?.detail || '' });
+                    agree: !!cv && cv.verdict === v.verdict, browserDetail: v.detail, cliDetail: cv?.detail || '' });
       }
     }
     const out = process.env.TENDING_PARITY || path.join(ctx.repoRoot, 'tools/.preview/tending-parity.json');
-    const bad = rows.filter(r => !r.agree && !r.harness);
-    fs.writeFileSync(out, JSON.stringify({ witnesses: rows.length, agree: rows.filter(r => r.agree).length,
-      harnessLimited: rows.filter(r => r.harness).length, disagree: bad.length, rows }, null, 1));
+    const bad = rows.filter(r => !r.agree);
+    fs.writeFileSync(out, JSON.stringify({ witnesses: rows.length, agree: rows.length - bad.length,
+      disagree: bad.length, rows }, null, 1));
     for (const b of bad) await page.evaluate((b) => console.error('parity: ' + JSON.stringify(b)), b);
   }
 

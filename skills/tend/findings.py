@@ -66,7 +66,7 @@ def fold(notes):
             continue
         cur = {k: f0[k] for k in FIELDS if k in f0}
         explicit = f0.get("status") or ""
-        assessed, comments, updates, title, did = root["at"], 0, 0, root["text"], ""
+        assessed, comments, updates, title, did, acks = root["at"], 0, 0, root["text"], "", {}
         for r in sorted(flat(root["id"]), key=lambda n: n["at"]):
             u = r.get("finding")
             if not isinstance(u, dict):
@@ -77,7 +77,10 @@ def fold(notes):
                     cur[k] = u[k]
             explicit = u.get("status") or explicit
             if "witnesses" in u:
-                assessed = r["at"]
+                assessed, acks = r["at"], {}
+            for a in u.get("ack") or []:
+                if isinstance(a, dict) and a.get("ref"):
+                    acks[a["ref"]] = a.get("seen")
             if u.get("title"):
                 title = u["title"]
             if u.get("did"):
@@ -86,8 +89,11 @@ def fold(notes):
         status = explicit or derived(cur)
         subjects = list(dict.fromkeys([root["about"], *cur.get("subjects", [])]))
         is_open = status not in CLOSED
+        if isinstance(cur.get("witnesses"), list):
+            cur["witnesses"] = [{**w, "ack": acks[w.get("ref")]} if isinstance(w, dict) and acks.get(w.get("ref")) else w
+                                for w in cur["witnesses"]]
         found.append({"id": root["id"], "at": root["at"], "author": root["author"], "title": title,
-                      **cur, "subjects": subjects, "status": status, "open": is_open,
+                      **cur, "subjects": subjects, "status": status, "explicit": explicit, "open": is_open,
                       "outstanding": is_open and bool(cur.get("next") or cur.get("choice")),
                       "did": did, "assessedAt": assessed, "updates": updates, "comments": comments})
     return found
@@ -145,16 +151,26 @@ def add(repo, store, f, author):
 
 
 def update(repo, store, fid, u, author):
-    if fid not in {n["id"] for n in note.read_notes(repo, store)}:
-        raise SystemExit(f"findings.py: no note {fid} on main")
+    prior = next((f for f in fold(note.read_notes(repo, store)) if f["id"] == fid), None)
+    if not prior:
+        raise SystemExit(f"findings.py: no finding {fid} on main")
     text = str(u.get("text", "")).strip()
     body = u.get("finding") or {}
     if not text or not isinstance(body, dict) or not body:
         raise SystemExit('findings.py: an update is {"text": "what changed", "finding": {...}}')
-    if body.get("status") == "settled" and not body.get("did") and body.get("next", None) is None:
-        raise SystemExit("findings.py: settling a finding with work outstanding needs `did`, "
-                         "or `next: \"\"` when the assessment found nothing to do")
-    errs = [e for w in body.get("witnesses") or [] for e in witness_errors(w)]
+    # Judge the finding this update leaves, inherited fields included: a step
+    # done is progress, and the finding settles only when nothing remains.
+    res = {**{k: prior.get(k) for k in FIELDS}, **{k: body[k] for k in FIELDS if k in body}}
+    status = body.get("status") or prior["explicit"] or derived(res)
+    left = [f"{k}: {str(res[k])[:60]!r}" for k in ("next", "choice") if res.get(k)]
+    errs = []
+    if status == "settled" and left:
+        errs.append("this leaves the finding settled with work outstanding (" + "; ".join(left) + "). "
+                    "Keep it open (status: \"open\") with `did` and the step that remains; "
+                    "settle once next and choice are \"\"")
+    if status == "resolved" and any(body.get(k) for k in ("next", "choice")):
+        errs.append("the owner resolved this finding; renew attention with status: \"open\" to give it new work")
+    errs += [e for w in body.get("witnesses") or [] for e in witness_errors(w)]
     if body.get("kind") and body["kind"] not in KINDS:
         errs.append(f"kind {body['kind']!r} is not one of {', '.join(KINDS)}")
     if errs:
@@ -182,6 +198,29 @@ def same(a, b):
 
 def compare(w, seen):
     """The rule lib/kits/findings.js compare() states, line for line."""
+    v = pinned(w, seen)
+    if v[0] in ("changed", "broken") and acknowledged(w, seen):
+        return "ok", "as it was when handled"
+    return v
+
+
+def acknowledged(w, seen):
+    a = w.get("ack")
+    if not isinstance(a, dict) or not seen or seen.get("error"):
+        return False
+    if a.get("missing") or seen.get("missing"):
+        return bool(a.get("missing")) and bool(seen.get("missing"))
+    kind = parse_ref(str(w.get("ref", "")))[0]
+    if kind == "branch" and w.get("contains"):
+        return a.get("contained") == bool(seen.get("contained"))
+    if kind == "pr":
+        return a.get("state") == seen.get("state") and (
+            seen.get("state") != "open" or not seen.get("updated") or not a.get("updated") or seen["updated"] <= a["updated"])
+    now = seen.get("sha") or ((seen.get("commits") or [{}])[0] or {}).get("sha")
+    return same(a.get("sha") or "", now or "")
+
+
+def pinned(w, seen):
     kind, repo, at, path = parse_ref(str(w.get("ref", "")))
     if kind == "branch" and w.get("contains"):
         kind = "contains"
@@ -267,15 +306,9 @@ def observe(w, assessed, local, store_repo):
         hit = next((p for p in (a.get("branchPRs") or []) if p.get("number") == at and p.get("state") != "open"), None)
         if hit:
             return {"state": hit.get("state"), "updated": hit.get("updatedAt", "")}
-        # Not open now, since the crawl lists every open PR (activity-crawl reads
-        # up to 30 per repo, so a full list proves nothing), and past the PR
-        # index: merged stays merged, closed stays closed unless it reopened,
-        # which would put it back in openPRs.
-        if len(a.get("openPRs") or []) >= 30:
-            return {"error": "the cache's open PR list is full, so absence proves nothing"}
-        if w.get("state") in ("merged", "closed"):
-            return {"state": w["state"]}
-        return {"state": "not open"}
+        # Absence from the cache establishes nothing about the current state:
+        # the view reads it from GitHub, and a session through the GitHub MCP.
+        return {"error": "not in the crawl cache"}
     if not co:
         if kind == "branch" and not w.get("contains"):
             r = subprocess.run(["git", "ls-remote", f"https://github.com/{repo}", f"refs/heads/{at}"],

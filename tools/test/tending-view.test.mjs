@@ -30,7 +30,7 @@ const ROOTS = [
 ];
 
 let store = ROOTS.map(n => JSON.stringify(n)).join('\n') + '\n';
-const puts = [], asked = [];
+const puts = [], asked = [], later = {};
 class StubGH {
   static toBase64(s) { return Buffer.from(s, 'utf8').toString('base64'); }
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
@@ -44,6 +44,7 @@ class StubGH {
       return { content: { sha: 's' + store.length } };
     }
     asked.push(path);
+    if (path in later) { if (later[path] instanceof Error) throw later[path]; return later[path]; }
     const answers = {
       '/repos/acme/widget/branches/claude%2Fenv-check': { commit: { sha: 'aaaaaaa999' } },
       // The pinned object was bbbbbbb; the folder now lists cafef00d for it.
@@ -133,5 +134,31 @@ test('Handled writes a resolution, and the finding moves to Settled with the own
 test('Reopen brings a handled finding back', async () => {
   const [c] = data.settled.filter(f => f.id === 'nc');
   await data.reopen(c);
+  assert.ok(data.attention.some(f => f.id === 'nc'));
+});
+
+test('Handled on a settled finding whose ground moved acknowledges it, and it leaves Attention', async () => {
+  const [d] = data.attention.filter(f => f.id === 'nd');
+  await data.resolve(d);
+  assert.deepEqual(JSON.parse(puts.at(-1)).finding,
+    { status: 'resolved', ack: [{ ref: 'acme/widget@main', seen: { contained: false } }] });
+  assert.equal(data.attention.some(f => f.id === 'nd'), false, 'the reviewed change no longer pulls it back');
+  assert.ok(data.settled.some(f => f.id === 'nd'));
+});
+
+test('a change after Handled brings the finding back on the next check', async () => {
+  // The commit itself is gone now: not the state the owner acknowledged.
+  later['/repos/acme/widget/compare/106f31c...main'] = Object.assign(new Error('gone'), { status: 404 });
+  await data.load(); await settle();
+  const [d] = data.attention.filter(f => f.id === 'nd');
+  assert.ok(d, 'back in Attention');
+  assert.equal(plain(data.changed(d))[0].verdict, 'broken');
+});
+
+test('a reopening written elsewhere on the page reaches the view without a reload', async () => {
+  assert.ok(data.settled.some(f => f.id === 'nc') || data.attention.some(f => f.id === 'nc'));
+  await data.resolve(data.findings.find(f => f.id === 'nc'));
+  assert.ok(data.settled.some(f => f.id === 'nc'));
+  await window.Notes.append(new StubGH({ repo: 'me/registry' }), window.Findings.reopening('nc', 'Not yet', 'mehrlander'));
   assert.ok(data.attention.some(f => f.id === 'nc'));
 });
