@@ -8,7 +8,7 @@ activity cache. `&detail=` opens one branch's form
 ## The list
 
 - **Scope chips** are `BRANCH_SCOPES` in `estate.js`, each with its own `note`;
-  the default is Recent. Open, Abandoned and Unrecorded ignore the time window.
+  the default is Recent. Only Recent has a time window.
   **Repo chips** narrow to one repo without changing the counts.
 - **A row** is tinted by what became of its PR (ready, draft, merged, closed
   unmerged, never proposed, or `PR ?` past the PR index's reach, `prReach`). Its
