@@ -5606,6 +5606,10 @@ function app(){ return {
         // scope holds. estate.js's sessionSetIds owns the grammar (short ids,
         // comma-separated, order kept).
         if (this.sessionSetSpec) p.set('set', this.sessionSetSpec);
+        // The TOPIC, a filter on the follow-up's topics (estate.js,
+        // sessionTopic), stamped for the reason the set is: a list narrowed to
+        // one topic is the thing a link to it is for.
+        if (this.sessionTopicSpec) p.set('topic', this.sessionTopicSpec);
         // The default of each is silent, so the shortest address that means
         // "the Sessions pane as it opens" is still ?view=sessions alone.
         if (this.sessionLens && this.sessionLens !== 'list') p.set('lens', this.sessionLens);
@@ -5756,7 +5760,7 @@ function app(){ return {
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
-              'session', 'set', 'lens', 'grain',
+              'session', 'set', 'topic', 'lens', 'grain',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -5892,6 +5896,12 @@ function app(){ return {
   setSessionSet(spec){
     if (this.sessionSetSpec === spec) return;
     this.sessionSetSpec = spec || '';
+    this.syncUrl();
+  },
+  sessionTopicSpec: new URLSearchParams(location.search).get('topic') || '',
+  setSessionTopic(spec){
+    if (this.sessionTopicSpec === spec) return;
+    this.sessionTopicSpec = spec || '';
     this.syncUrl();
   },
 
