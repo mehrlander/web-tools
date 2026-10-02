@@ -2136,7 +2136,11 @@ try {
     md.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
     await wait(80);
     out.left = { washed: md.querySelectorAll('[data-block-hover]').length, caretKept: wrap.dataset.blockCaret != null, badges: md.querySelectorAll('[data-md-block-badge]').length };
-    badge.click(); await wait(200);
+    // Focused within the tap's own microtasks, before any frame or timer: a
+    // later focus raises no keyboard on iOS.
+    badge.click(); await null;
+    out.inTap = !!document.activeElement && document.activeElement.matches('[data-info-note]') && !!document.activeElement.getClientRects().length;
+    await wait(200);
     const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
     out.title = info.querySelector('.font-medium').textContent; out.sum = info.querySelector('[data-info-sum]').textContent;
     out.diff = !!info.querySelector('[data-info-diff]').getClientRects().length; out.focused = document.activeElement === f;
@@ -2165,6 +2169,7 @@ try {
       && blockNote.left.washed === 0 && blockNote.left.caretKept && blockNote.left.badges === 1, JSON.stringify({ hover: blockNote.hover, left: blockNote.left }));
   ok('its badge opens the panel named for the block and where it is, no diff, the note field focused and kept as the note is made',
     blockNote.title === 'Paragraph' && blockNote.sum === 'line 5' && !blockNote.diff && blockNote.focused && blockNote.same, JSON.stringify(blockNote));
+  ok('the field is focused inside the tap, shown and before any frame, which is what lets iOS raise the keyboard', blockNote.inTap, JSON.stringify({ inTap: blockNote.inTap }));
   ok('a note on a file with no edit is kept: the draft holds the note, the blob it is anchored in, and no text',
     !!blockNote.held && blockNote.held.text === null && blockNote.held.notes.join() === 'Is this still true?' && blockNote.held.base === blockNote.held.sha, JSON.stringify(blockNote.held));
   ok('the noted block keeps its mark with the caret gone; edited, its card carries the mark and its Info the note; taken back, the note is on the block again',

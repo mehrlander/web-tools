@@ -3681,11 +3681,21 @@
           : /^(```|~~~)/.test(src) ? 'Code' : /^\s*\|/.test(src) ? 'Table' : /^>/.test(src) ? 'Quote' : 'Paragraph';
         this.cardInfo = { i: null, block: k, rows: [], kind: '', title: kind, unit: u,
           sum: a === z ? 'line ' + a : (z - a + 1) + ' lines, ' + a + '–' + z, ...this.infoPlace(wrap) };
-        this.$nextTick(() => {
-          this.pinInfo(pinned);
-          this.markBlock();
-          if (pinned && !this.infoNotes.length) this.$refs.info?.querySelector('[data-info-note]')?.focus({ preventScroll: true });
+        // THE FIELD TAKES FOCUS INSIDE THE TAP. iOS raises the keyboard only
+        // for a focus made while the tap is still being handled, and $nextTick
+        // is far too late: Alpine holds it until the panel's fade has run, a
+        // frame and 90ms on, so the field was focused with no keyboard and
+        // wanted a second tap (owner's question, 2026-10-02). A microtask
+        // queued here runs after Alpine's own render of the field and still
+        // inside the tap. The fade would show the panel a frame later, so it
+        // is shown here, still clear, and fades in from there.
+        if (pinned) queueMicrotask(() => {
+          const info = this.$refs.info, f = info && info.querySelector('[data-info-note]');
+          if (!f || this.infoNotes.length) return;
+          info.style.display = '';
+          f.focus({ preventScroll: true });
         });
+        this.$nextTick(() => { this.pinInfo(pinned); this.markBlock(); });
       },
       // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
       // segs: [{ t, cls }] }. A removed run facing an added one is paired line
