@@ -534,9 +534,10 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
   const noted = [...el.querySelectorAll('[data-title-tip]')];
-  // Every fact, plus three notes that are not facts about the SESSION: the id,
-  // the `running <ref>` marker naming the ref this page's own code booted from,
-  // and the scope row, whose note says what tapping it will do. They are found
+  // Every fact, plus notes that are not facts about the SESSION: the id, the
+  // `running <ref>` marker naming the ref this page's own code booted from,
+  // the scope row, whose note says what tapping it will do, the pages mark,
+  // and the follow-up summary's note saying Gemini wrote it, not the record. They are found
   // by SUBTRACTING the strip rather than by matching their own text, so the
   // count stays exact without a second list to keep in step.
   //
@@ -547,10 +548,10 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // comparison.
   const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  assert.equal(extras.length, 4,
-    'the id, the running-ref marker, the scope row, and the pages mark off-strip: '
+  assert.equal(extras.length, 5,
+    'the id, the running-ref marker, the scope row, the pages mark, and the Gemini summary off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim())));
-  assert.equal(noted.length, d.strip.length + 4, 'every fact and those four, and nothing else');
+  assert.equal(noted.length, d.strip.length + 5, 'every fact and those five, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
