@@ -172,6 +172,9 @@
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
+  // Findings: the fold over the notes store that the Tending view lists and
+  // the Activity panes show beside their subjects (window.Findings).
+  await gh.load('kits/findings.js');
   // The owner/repo[@ref]:path grammar, and the inbox/outbox boxes built on it.
   await gh.load('kits/repo-address.js');
   await gh.load('kits/persistence.js');
@@ -1854,6 +1857,18 @@ html.dk-dragging main{transition:none !important}
       </div>
     </div>
 
+    <!-- The Tending view: findings from tending passes, kept as notes in the
+         registry's notes store (lib/kits/findings.js), each linked to the
+         branches, pull requests, tasks, snags and sessions it concerns. Its own
+         component and lazy mount, like Tools and Proposals. -->
+    <div x-show="view==='tending'" data-pane="tending" class="h-full overflow-y-auto">
+      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
+        <template x-if="tendingSeen">
+          <div x-data="tending()"></div>
+        </template>
+      </div>
+    </div>
+
     <!-- The Tools view: a curated gallery of the owner's utility pages (the
          text-diff tool and the like), fed from the hub's docs/tools.csv.
          Estate-level, public (no token), its own component and lazy mount. -->
@@ -2262,6 +2277,10 @@ function app(){ return {
   stageTab: '',     // the Stage's sub-address; 'errands' opens the errand panel
   proposalCount: 0, // pending cross-repo edit proposals; gates the nav entry
   proposalsSeen: false,
+  tendingSeen: false,
+  tendingTab: '',   // '' (Attention) | 'settled'
+  tendingItem: '',  // a finding's note id, when a link names one
+  tendingRepo: '',  // a filter handed in from a card or a row; not stamped
   stateSeen: false, // mount the State view lazily, on first visit
   // Which State row a link is aiming at. A query key the view consumes on
   // arrival, in the idiom `detail` already uses to open one branch inside the
@@ -5622,6 +5641,15 @@ function app(){ return {
       } },
     { key: 'writes',   open(){ this.goWrites(); } },
     { key: 'chats',    open(){ this.goChats(); } },
+    // Tending: the findings tending passes left. `tab` is the list (Attention
+    // is the default and stays out of the URL) and `item` the finding a link
+    // was minted for, the same two keys the project row uses for its own.
+    { key: 'tending',
+      open(u){ this.goTending({ tab: u.tab, item: u.item }); },
+      stamp(p){
+        if (this.tendingTab) p.set('tab', this.tendingTab);
+        if (this.tendingItem) p.set('item', this.tendingItem);
+      } },
     { key: 'routes',   open(){ this.goRoutes(); } },
     { key: 'map', alias: 'portable',
       open(u){ this.goMap(u.tab); },
@@ -6234,7 +6262,7 @@ function app(){ return {
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
-  get estateCtx(){ return this.isEstate || this.view === 'map' || this.view === 'tools' || this.view === 'search' || this.view === 'state' || this.view === 'app' || this.view === 'public'; },
+  get estateCtx(){ return this.isEstate || this.view === 'map' || this.view === 'tools' || this.view === 'search' || this.view === 'state' || this.view === 'app' || this.view === 'public' || this.view === 'tending'; },
   // Whether the pinned desktop sidebar has anything to show: always in a repo
   // (its views / pins / recents), and in the estate whenever it has repo-sourced
   // content — the Repos index or the app views (News). Both are token-gated, so
@@ -6294,6 +6322,10 @@ function app(){ return {
       // learn twice.
       { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
+      // Tending beside Activity rather than inside it: Activity reads the
+      // estate's motion, and Tending reads what a pass concluded about that
+      // motion, across branches, pull requests, trackers and snags alike.
+      { view: 'tending', icon: 'ph-plant', label: 'Tending', go: () => this.goTending() },
       { view: 'lists', views: ['lists', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goLists() },
       { view: 'repos',    icon: 'ph-squares-four', label: 'Repos',    go: () => this.goRepos() },
@@ -6619,6 +6651,15 @@ function app(){ return {
   // the pane rather than an arrival cost.
   goWrites(){ this.estateSeen = true; this.view = 'writes'; this.syncUrl(); },
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
+  // `repo` is a filter a Repos card or a branch row hands in, deliberately not
+  // stamped: it narrows a reading, and a shared link should open the whole set.
+  goTending(opts = {}){
+    this.tendingSeen = true; this.view = 'tending';
+    this.tendingTab = opts.tab === 'settled' ? 'settled' : '';
+    this.tendingItem = opts.item || '';
+    if ('repo' in opts) this.tendingRepo = opts.repo || '';
+    this.syncUrl();
+  },
   // ?view=routes resolves to Map's Views tab, which is where the pane went on
   // 2026-09-08. The key stays in VIEWS (the manifest gate holds the two to each
   // other, and every saved ?view=routes link has to keep landing somewhere

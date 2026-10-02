@@ -18,6 +18,7 @@ relation. The shapes in use today are all references in this sense:
 | Record | Source | Target | Relation |
 | --- | --- | --- | --- |
 | A note (`web-tools-private/notes/notes.jsonl`, [notes skill](../.claude/skills/notes/SKILL.md)) | the note | its `about` locator, plus an optional quote anchor | comments on |
+| A finding (a note carrying `finding`, [tending.md](views/tending.md)) | the finding | each subject, followed; each witness, pinned | concludes about; rests on |
 | A standoff ([annotation.md](annotation.md)) | the standoff file | a document, by character spans and the document's `sha256` | annotates |
 | A text proposal (`home/projects/text/proposals.jsonl`) | one passage id | another passage id | proposes a rewrite of |
 | An errand's `for` field, also read as `task` ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)) | the errand | a tracker task | serves |
