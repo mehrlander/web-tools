@@ -1,17 +1,16 @@
 # Writes
 
 `?view=writes`, a pane of the Activity stop, classifies the estate's commits by
-what wrote them, using [`lib/kits/write-kinds.js`](../../lib/kits/write-kinds.js)
-(whose header explains the reading). It renders from the activity cache's newest
-thirty commits per repo, states the window those rows cover, and offers one
-control to read a hundred per repo.
+what wrote them, using [`lib/kits/write-kinds.js`](../../lib/kits/write-kinds.js).
+It reads the activity cache's newest thirty commits per repo unless asked for a
+hundred.
 
 | | Kinds | Signal |
 | --- | --- | --- |
 | development history | session, merge, CI, authored | the author the platform sets, or a merge subject |
 | application state | crawl, tap, device | a subject this estate writes on purpose |
 
-`device` is the one heuristic and is marked `?`. `authored` is the residual.
+`device` is a heuristic. `authored` is the residual.
 
 ## The app's commit-subject contract
 
