@@ -88,6 +88,66 @@ test('validate refuses a run its method cannot perform', () => {
   assert.equal(v(courier, { url: 'https://x.example/' }).ok, true);
 });
 
+test('a laptop-daemon errand, as errand_runner.py files it, is valid and needs no one', () => {
+  const e = E.normalize({ id: 'daemon-2026-10-02-ping-abc123', note: 'Ping the daemon', purpose: 'test-script',
+    dest: 'mehrlander/web-tools-private@main:errands/output/daemon-2026-10-02-ping-abc123',
+    run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'ping', args: {},
+           script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
+  assert.equal(E.validate(e).ok, true);
+  assert.equal(e.run.outputReturn, 'self-filed', 'the daemon files its own result');
+  assert.equal(E.validate(E.normalize({ id: 'd', note: 'n', dest: 'me/r:d',
+    run: { method: 'laptop-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'laptop only');
+});
+
+test('askRequest files a laptop-daemon ask the daemon and the Stage accept', () => {
+  const r = E.askRequest({ prompt: 'What rivers   feed the Columbia?', registry: 'me/reg',
+                           now: '2026-10-02T17:00:00.123Z' });
+  assert.match(r.id, /^daemon-2026-10-02-ask-[a-z0-9]+$/);
+  assert.match(r.id, /^[a-z0-9][a-z0-9.-]{0,95}$/, "the daemon's id rule");
+  assert.deepEqual(r.run.args, { prompt: 'What rivers   feed the Columbia?' }, 'the prompt goes as typed');
+  assert.equal(r.title, 'Ask Gemini: What rivers feed the Columbia?');
+  assert.equal(r.createdAt, '2026-10-02T17:00:00Z');
+  assert.equal(r.dest, 'me/reg@main:errands/results');
+  assert.equal(E.validate(E.normalize(r)).ok, true);
+});
+
+test('pingNames keeps ask errands, newest day first, and askStage reads where one stands', () => {
+  const a = E.askRequest({ prompt: 'x', now: '2026-10-01T10:00:00Z' }).id + '.json';
+  const b = E.askRequest({ prompt: 'y', now: '2026-10-02T10:00:00Z' }).id + '.json';
+  const cli = 'daemon-2026-09-30-ask-a1b2c3.json';
+  assert.deepEqual(E.pingNames([a, cli, 'daemon-2026-10-02-status-abc123.json', b, 'ask-other.json']), [b, a, cli]);
+  assert.equal(E.askStage(a, [], []), 'sent');
+  assert.equal(E.askStage(a, [a], []), 'thinking');
+  assert.equal(E.askStage(a, [a], [a]), 'answered');
+});
+
+test('statusRequest files a status check the daemon and the Stage accept', () => {
+  const r = E.statusRequest({ registry: 'me/reg', now: '2026-10-02T17:00:00Z' });
+  assert.match(r.id, /^daemon-2026-10-02-status-[a-z0-9]+$/);
+  assert.equal(r.run.op, 'status');
+  assert.deepEqual(r.run.args, {});
+  assert.equal(E.validate(E.normalize(r)).ok, true);
+});
+
+test('daemonHealth reads the daemon from what it leaves on main', () => {
+  const now = '2026-10-02T12:00:00Z';
+  const at = (m) => new Date(Date.parse(now) - m * 60000).toISOString();
+  const H = (o) => E.daemonHealth({ now, ...o });
+  assert.equal(H({}).level, 'unknown');
+  assert.equal(H({ lastTopicsAt: at(6), lastRecordAt: at(8) }).level, 'up', 'topics after the last record');
+  assert.equal(H({ lastTopicsAt: at(6) }).at, at(6));
+  assert.equal(H({ lastTopicsAt: at(90) }).level, 'quiet', 'an hour of silence with nothing waiting');
+  assert.equal(H({ lastTopicsAt: at(30), lastRecordAt: at(4) }).level, 'up', 'a fresh record is not yet late');
+  const late = H({ lastTopicsAt: at(30), lastRecordAt: at(12) });
+  assert.deepEqual([late.level, late.why, late.at], ['behind', 'topics', at(12)]);
+  const ping = H({ lastTopicsAt: at(1), pings: [{ stage: 'sent', createdAt: at(7) }, { stage: 'sent', createdAt: at(2) }] });
+  assert.deepEqual([ping.level, ping.why, ping.at], ['behind', 'ping', at(7)], 'the oldest waiting Ping');
+  assert.equal(H({ lastTopicsAt: at(90), pings: [{ stage: 'answered', at: at(3) }] }).level, 'up', 'a reply counts');
+  assert.equal(H({ check: { createdAt: at(1) } }).level, 'checking');
+  assert.equal(H({ check: { createdAt: at(6) } }).why, 'check', 'an unanswered check turns behind');
+  assert.equal(H({ lastTopicsAt: at(200), check: { createdAt: at(2), closedAt: at(1) } }).level, 'up');
+});
+
 test('parseScript splits the address, and nothing else', () => {
   assert.deepEqual(E.parseScript('me/r@main:a/b.ps1'), { repo: 'me/r', ref: 'main', path: 'a/b.ps1' });
   assert.equal(E.parseScript('me/r:a.ps1'), null, 'the ref is required: the exact code');

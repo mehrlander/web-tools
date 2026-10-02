@@ -34,9 +34,9 @@ using it from a session; about 6,300 words). Sections and destinations:
 
 | Reference section | Words | Destination |
 | --- | --- | --- |
-| The estate (the Repos index) | 3,042 | `views/estate.md` |
+| The estate (the Repos index) | 3,042 | `views/repos.md` |
 | Routes | 1,326 | `views/routes.md`, folding toward `views/map.md` |
-| Lists, first part | about 1,200 | `views/todo.md` |
+| Lists, first part | about 1,200 | `views/lists.md` |
 | Lists, the rest (Branches) | about 6,200 | `views/branches.md` |
 | Sessions, Sessions cache | 5,014 | `views/sessions.md`; the cache section may sit with State |
 | Files | 1,551 | `views/search.md` |

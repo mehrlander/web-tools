@@ -71,7 +71,7 @@ async function seed(items) {
   FILES['lists/todo.json'] = { items };
   await data.loadTodos(reg());
   data.todoShowDone = false;
-  window.__shell.view = 'todo';
+  window.__shell.view = 'lists';
   SAVES = [];
   await settle();
 }

@@ -28,7 +28,7 @@ const estateSrc = readFileSync(
 
 // The estate's sub-views share one container, so they all name it; every other
 // stop names itself.
-const ESTATE_VIEWS = ['branches', 'activity', 'todo', 'jots', 'estate', 'stage'];
+const ESTATE_VIEWS = ['branches', 'activity', 'lists', 'repos', 'stage'];
 
 // Literal attributes only: the pager's own lookup builds the selector from a
 // template, and matching that string back would be circular.
@@ -134,15 +134,15 @@ test('the Activity nav and the signed-in front door both open Sessions', () => {
   activity.go();
   assert.equal(shell.view, 'sessions', 'tapping Activity lands on Sessions');
 
-  shell.view = 'estate';
+  shell.view = 'repos';
   shell.hasToken = () => true;
   shell.goDashboard();
   assert.equal(shell.view, 'sessions', 'and so does the signed-in front door');
 
-  shell.view = 'estate';
+  shell.view = 'repos';
   shell.hasToken = () => false;
   shell.goDashboard();
-  assert.equal(shell.view, 'estate', 'a signed-out viewer still lands on Repos');
+  assert.equal(shell.view, 'repos', 'a signed-out viewer still lands on Repos');
 });
 
 // The pane draws session rows AND a branch tile under each, so arriving on it

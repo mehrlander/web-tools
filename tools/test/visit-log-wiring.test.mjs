@@ -167,9 +167,10 @@ test('a row is one line: the thing, then the short context, and never both the s
   assert.deepEqual(say('/web-tools/pages/toss-render.html#undescribedKey=abc'),
     ['toss-render.html', 'unrecognized']);
 
-  const [repoLabel, repoDetail] = say('/web-tools/app/?view=estate');
+  const [repoLabel, repoDetail] = say('/web-tools/app/?view=repos');
   assert.equal(repoLabel, 'Repos');
   assert.notEqual(repoDetail, 'Repos', 'the two halves said the same word twice');
+  assert.equal(say('/web-tools/app/?view=estate')[0], 'Repos', 'a retired spelling reads as its view');
 
   // Nothing is parked in a `title`, which reaches no touch screen and no
   // screenshot (house style, rule 11).
