@@ -133,3 +133,24 @@ test('what no card shows goes back to GitHub\'s text: a re-wrap, a doubled space
   assert.equal(R(BASE, moved, { items: true }), moved, 'an added paragraph keeps its blank line');
   assert.equal(R(BASE, BASE, { items: true }), BASE);
 });
+
+test('blank lines added above the first block go back too, when that block is unchanged', () => {
+  const R = mdDiff.restoreUnchanged;
+  assert.equal(R(BASE, '\n\n' + BASE, { items: true }), BASE);
+  const edited = '\n' + BASE.replace('Closing paragraph.', 'Closing words.');
+  assert.equal(R(BASE, edited, { items: true }), BASE.replace('Closing paragraph.', 'Closing words.'));
+});
+
+test('a file with Windows line endings: ranges index the file as it is, and reverts are exact', () => {
+  // blocks() turned "\r\n" into "\n" before measuring until 2026-10-01, so
+  // every range ran one character short per line above it.
+  const base = BASE.replace(/\n/g, '\r\n');
+  const text = base.replace('Middle paragraph.', 'Middle words.').replace('- **Kinds.** Five families.\r\n', '');
+  const ch = mdDiff.changes(base, text, { items: true });
+  for (const e of ch) if (e.newRange) assert.ok(/^\S/.test(text.slice(e.newRange.start)), 'a range starts on its text: ' + JSON.stringify(text.slice(e.newRange.start, e.newRange.end)));
+  assert.equal(text.slice(ch.find((e) => e.kind === 'changed').newRange.start).slice(0, 13), 'Middle words.');
+  let back = text;
+  for (const e of [...mdDiff.align(base, text, { items: true })].reverse()) if (e.kind !== 'same') back = mdDiff.revert(base, back, e);
+  assert.equal(back, base, 'every change taken back');
+  assert.equal(mdDiff.restoreUnchanged(base, text.replace('Closing paragraph.', 'Closing  paragraph.'), { items: true }), text, 'a doubled space put back, the changes kept');
+});
