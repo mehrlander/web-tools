@@ -277,3 +277,25 @@ policies,origin_session,recorded,,none,column,yes,,locator,the session record in
 policies,user_prompt_quote,recorded,,none,column,yes,,value,the owner's words in that session establishing the rule
 policies,enforcement,recorded,,none,column,yes,,locator,"the test, hook, script or npm command that holds the rule, where the document names one that exists"
 policies,status,recorded,,value,column,yes,lead;sourced;checked,label,"lead: a quote on the row is unverified; sourced: quoted is found in canonical_doc; checked: confirmed by a second reading"
+outposts,title,recorded,,value,column,yes,,value,display name
+outposts,gloss,recorded,,value,column,yes,,value,"where the material sits, and what about that place keeps commits out"
+outposts,declared,recorded,,value,column,yes,,locator,the committed file saying what the outpost should hold
+outposts,observed,recorded,,value,column,yes,,locator,"where the latest observation of what it does hold is read from: a repo path, a container path, or a description where it arrives by hand"
+outposts,reports,recorded,,value,column,yes,owner;outpost,label,"who supplies the observation: the owner, by pasting, confirming or exporting, or the outpost itself, with nobody acting"
+outposts,cadence,recorded,,value,column,yes,,value,how often an observation arrives
+outposts,check,recorded,,value,column,yes,,locator,the code that compares the observation with the declaration
+outposts,record,recorded,,none,column,yes,,locator,where dated observations are committed; blank where nothing keeps them past the session
+outposts,upkeep,recorded,,value,column,yes,,value,"the cheapest step that brings the outpost back in line, which is usually the owner's"
+outposts,doc,recorded,,value,column,yes,,locator,the document that owns this outpost's particulars
+account-skills,want,recorded,,value,column,yes,on;off,label,whether the skill should be on the account
+account-skills,twin,recorded,,none,column,yes,,locator,the folder under skills/ the account copy should match; blank where the plugin holds no copy
+account-skills,note,recorded,,none,column,yes,,value,"why the row is declared the way it is, where that is not obvious"
+upstream-skills,author,recorded,,value,column,yes,,value,who wrote the skill
+upstream-skills,upstream,recorded,,value,column,yes,,locator,"where the skill lives: owner/repo:path for a folder on GitHub, or a URL where it is not"
+upstream-skills,status,recorded,,value,column,yes,watching;studied;held;vendored;adapted;declined,label,"how far the estate has taken the skill, from noting it to shipping a copy"
+upstream-skills,pinned,recorded,,none,column,yes,,value,the upstream commit whose folder the fingerprint describes; blank where our copy matches no commit upstream
+upstream-skills,digest,recorded,,none,column,yes,,value,"the fingerprint of the pinned version: every file in the folder, by relative path and bytes"
+upstream-skills,rationale,recorded,,value,column,yes,,value,"why the skill is of interest, and what was taken from it"
+upstream-skills,seen,recorded,,value,column,yes,,value,the date the row was entered
+upstream-skills,ours,recorded,,none,column,yes,,locator,"the folder under skills/ that ships a copy, for a vendored or adapted skill"
+upstream-skills,held,recorded,,none,column,yes,,locator,the folder under outside/ that keeps a pinned copy the plugin never ships

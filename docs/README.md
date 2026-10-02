@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-13 by a skill, 33 by a page or component. The remaining 53 are
+15 by a skill, 35 by a page or component. The remaining 53 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -92,6 +92,10 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
 - [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
 - [`policy-topics.csv`](policy-topics.csv) — the topics and areas the policy catalog is grouped by
+- [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
+- [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
+- [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
+- [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
 
 ## docs/doc-craft-specimens/
 
@@ -156,17 +160,17 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
 - [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
-- [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
 - [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)
 - [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the installation view on its Overview with the observations ledger
 - [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
 - [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
 - [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history
-- [`lists.md`](views/lists.md) *(orphan)* — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them
 - [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
 - [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
 - [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
 - [`tending.md`](views/tending.md) — the Tending view: the finding record, how a finding changes, and how its witnesses are checked
+- [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
+- [`lists.md`](views/lists.md) *(orphan)* — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them
 
 11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

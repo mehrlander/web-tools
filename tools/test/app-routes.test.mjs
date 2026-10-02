@@ -196,8 +196,9 @@ test('the two sub-tab encodings, counted', () => {
   // than minting one because the courier needs an address to land on from our
   // own origin, and a second sub-address grammar for one destination would be
   // the more expensive answer.
-  // 18 to 19: the Map gained its Data inventory tab.
-  assert.equal(params, 19, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 18 to 19: the Map gained its Data inventory tab. 19 to 20 on 2026-10-02:
+  // it gained an Outposts tab, for estate material held where no commit reaches.
+  assert.equal(params, 20, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

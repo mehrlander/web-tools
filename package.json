@@ -33,6 +33,7 @@
     "icon-scan": "python3 scripts/blank-icons.py",
     "bool-attr-scan": "python3 scripts/bound-boolean-attrs.py",
     "stranded-titles": "python3 scripts/stranded-titles.py",
+    "upstreams": "python3 scripts/upstream-skills.py",
     "showing": "python3 scripts/showing.py",
     "snags-index": "node tools/build/snags-index.mjs",
     "pages": "npm run pages-shots && npm run pages-index",
