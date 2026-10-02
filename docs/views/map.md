@@ -34,9 +34,9 @@ and it is absent (not blank) without a token.
 
 The Views tab reads `app-routes.csv` live at the ref the code came from
 (`?use=`), never pinned to main, because `app-routes.csv` and `VIEWS` are held
-to each other per ref. It dates each route by its declared files through
-[`lib/kits/route-activity.js`](../../lib/kits/route-activity.js); a file named
-by three or more routes cannot date a row on its own. The same join feeds the
+to each other per ref. It ranks routes freshest first by their declared files,
+through [`lib/kits/route-activity.js`](../../lib/kits/route-activity.js); a file
+named by three or more routes cannot date a row on its own. The same join feeds the
 route chips on Branches rows.
 
 These are **app routes**. [routes-routes.csv](../routes-routes.csv) holds

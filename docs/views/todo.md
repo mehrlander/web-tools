@@ -20,7 +20,7 @@ the viewer's token (`gh-store.js`'s `save`), so each check-off is a commit.
   arrived.
 - **Jot:** no done state. A jot stays until it is promoted somewhere with a real
   home (a chron entry, a tracker task, a to-do) and deleted. `kind` is an open
-  vocabulary, lowercase and hyphenated, at most 24 characters. A kind earns a
+  vocabulary, normalized to lowercase and hyphens, at most 24 characters. A kind earns a
   name only by naming a destination the text cannot imply (`snag` → the owning
   repo's [SNAGS.md](../SNAGS.md)).
 - **Pins:** each `target` is `owner/repo[@ref]:path`; a path with an extension

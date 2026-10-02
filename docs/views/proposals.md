@@ -80,7 +80,8 @@ Apply anyway, and the applied record is stamped `forced` with both shas. It
 matters most for `put-file`, which replaces rather than merges. Without it,
 the last write wins.
 
-**Outcomes.** `proposals/applied/<id>.json` means it landed, and carries
+**Outcomes.** Only a success retires a proposal. `proposals/applied/<id>.json`
+means it landed, and carries
 `commit` and `commitUrl`. A failed apply is kept under
 `proposals/attempts/<id>-<timestamp>.json` and the proposal stays pending.
 `gh-store` has no delete, so the applied file is the tombstone, as for errands.
