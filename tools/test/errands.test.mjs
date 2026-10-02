@@ -115,7 +115,7 @@ test('pingNames keeps ask errands, newest day first, and askStage reads where on
   const a = E.askRequest({ prompt: 'x', now: '2026-10-01T10:00:00Z' }).id + '.json';
   const b = E.askRequest({ prompt: 'y', now: '2026-10-02T10:00:00Z' }).id + '.json';
   const cli = 'daemon-2026-09-30-ask-a1b2c3.json';
-  assert.deepEqual(E.pingNames([a, cli, 'daemon-2026-10-02-ping-abc123.json', b, 'ask-other.json']), [b, a, cli]);
+  assert.deepEqual(E.pingNames([a, cli, 'daemon-2026-10-02-status-abc123.json', b, 'ask-other.json']), [b, a, cli]);
   assert.equal(E.askStage(a, [], []), 'sent');
   assert.equal(E.askStage(a, [a], []), 'thinking');
   assert.equal(E.askStage(a, [a], [a]), 'answered');
