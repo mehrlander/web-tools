@@ -11,11 +11,18 @@ import { makeWindow, startAlpine } from './bootstrap.mjs';
 const REGISTRY = 'me/registry';
 let FILES = {};
 let SAVES = [];
+let COMMITS = [];
 
 class FakeGH {
   static FRESH = { cache: 'no-store' };
   constructor(c = {}) { this.repo = c.repo || ''; this.ref = c.ref || 'main'; }
-  ago() { return 'recently'; }
+  // gh-fetch.js's ago, so the marker's words read as they do in the app.
+  ago(dateStr) {
+    const s = (Date.now() - new Date(dateStr)) / 1000;
+    for (const [unit, v] of Object.entries({ y: 31536000, mo: 2592000, d: 86400, h: 3600, m: 60 }))
+      if (s >= v) return `${Math.floor(s / v)}${unit} ago`;
+    return 'just now';
+  }
   async repos() { return []; }
   async ls(dir) {
     const rows = Object.keys(FILES).filter(p => p.startsWith(dir + '/') && !p.slice(dir.length + 1).includes('/'))
@@ -28,6 +35,7 @@ class FakeGH {
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(path) {
+    if (typeof path === 'string' && path.startsWith('commits?path=sessions/')) return COMMITS;
     if (typeof path === 'string' && path.startsWith('/repos/'))
       return { default_branch: 'main', description: '', private: true, pushed_at: '' };
     return {};
@@ -133,6 +141,47 @@ test('opening the view lists earlier asks newest first, from the app and the com
   assert.equal(data.pingItems[1].stage, 'sent');
 });
 
+// ── The daemon's status ─────────────────────────────────────────────────────
+const minsAgo = (m) => new Date(Date.now() - m * 60000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+test('the marker reads the daemon as active when its topics follow the last record', async () => {
+  await seed({ 'state/session-topics.json': { sessions: {
+    a: { analyzed_at: minsAgo(40) }, b: { analyzed_at: minsAgo(6) } } } });
+  COMMITS = [{ commit: { committer: { date: minsAgo(8) } } }];
+  await data.loadDaemon(reg());
+  assert.equal(data.daemonHealth.level, 'up');
+  assert.equal(data.daemonText, 'Daemon active 6m ago');
+});
+
+test('the marker reads the daemon as behind when a record has waited ten minutes', async () => {
+  await seed({ 'state/session-topics.json': { sessions: { a: { analyzed_at: minsAgo(40) } } } });
+  COMMITS = [{ commit: { committer: { date: minsAgo(14) } } }];
+  await data.loadDaemon(reg());
+  assert.equal(data.daemonHealth.level, 'behind');
+  assert.equal(data.daemonText, 'Daemon behind: sessions waiting 14m');
+});
+
+test('Check files a status errand, and the answer turns the marker active', async () => {
+  await seed({ 'state/session-topics.json': { sessions: { a: { analyzed_at: minsAgo(200) } } } });
+  COMMITS = [{ commit: { committer: { date: minsAgo(210) } } }];
+  await data.loadDaemon(reg());
+  assert.equal(data.daemonHealth.level, 'quiet');
+  data.daemon = { ...data.daemon, check: null };
+  await data.checkDaemon();
+  clearTimeout(data.daemonTimer); data.daemonTimer = null;
+  assert.equal(SAVES.length, 1);
+  assert.equal(SAVES[0].value.run.op, 'status');
+  assert.equal(data.daemonHealth.level, 'checking');
+  const id = data.daemon.check.id;
+  FILES['errands/results/' + id + '.json'] = { id, ok: true, closedAt: minsAgo(0), data: { op: 'status', host: 'laptop' } };
+  await data.readCheck(reg());
+  assert.equal(data.daemonHealth.level, 'up');
+  assert.equal(data.daemonText, 'Daemon active just now');
+});
+
 // An unanswered question keeps the pane polling, as it should; stop it so the
 // run can exit.
-test.after(() => { data.pingItems = []; data.pingUntil = 0; settle(); });
+test.after(() => {
+  data.pingItems = []; data.pingUntil = 0; settle();
+  clearTimeout(data.daemonTimer); data.daemonTimer = null;
+});

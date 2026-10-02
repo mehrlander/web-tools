@@ -29,7 +29,9 @@ viewer's token (`gh-store.js`'s `save`), so each check-off is a commit.
   registry's `errands/` folder, which the Gemini home laptop daemon answers.
   The ten latest questions are listed, each showing when it is sent, when
   Gemini is working on it, and Gemini's reply. Questions filed from a
-  session's command line appear too.
+  session's command line appear too. A marker beside the heading says whether
+  the daemon is running: active, behind, or quiet. Its Check asks the daemon
+  to answer a `status` errand.
 - **Pins:** each `target` is `owner/repo[@ref]:path`; a path with an extension
   opens the file, anything else the Files view at that folder.
 - **Note:** one line per note, appended through `lib/kits/notes.js` and never
