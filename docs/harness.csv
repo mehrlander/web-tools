@@ -202,7 +202,6 @@ tools/render/scenarios/fence-label-clear.mjs,,tools/render/scenarios,64,driver,n
 tools/render/scenarios/files-view-tap-and-deck.mjs,,tools/render/scenarios,61,driver,no,no,yes
 tools/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,tools/render/scenarios,36,driver,no,yes,no
 tools/render/scenarios/installation-home.mjs,,tools/render/scenarios,91,driver,no,no,no
-tools/render/scenarios/jot-ask.mjs,,tools/render/scenarios,47,driver,no,no,no
 tools/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,tools/render/scenarios,67,driver,no,no,no
 tools/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,tools/render/scenarios,53,driver,no,no,no
 tools/render/scenarios/map-data-census.mjs,,tools/render/scenarios,64,driver,no,no,yes
@@ -236,6 +235,7 @@ tools/render/scenarios/paste-kinds-probe.mjs,puts four transform-shaped payloads
 tools/render/scenarios/paste-script-probe.mjs,,tools/render/scenarios,83,driver,no,no,no
 tools/render/scenarios/peek-walk.mjs,drive kits/peek.js through a four-tap ancestor walk and report the selector at each rung,tools/render/scenarios,63,driver,no,yes,yes
 tools/render/scenarios/pick-md.mjs,"end-to-end reproduction of pick-a-file-in-the-fab, reporting what the frame did",tools/render/scenarios,76,driver,no,no,no
+tools/render/scenarios/ping.mjs,,tools/render/scenarios,41,driver,no,no,no
 tools/render/scenarios/project-board-review.mjs,"the project Board pane's typed read, seeded token-free",tools/render/scenarios,198,driver,no,yes,no
 tools/render/scenarios/project-board.mjs,the project view's Board pill with task links resolved into the shell viewer,tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/project-docs.mjs,the project view's Docs pill: the workspace's markdown from one tree read,tools/render/scenarios,77,driver,no,no,no

@@ -99,29 +99,26 @@ test('a laptop-daemon errand, as errand_runner.py files it, is valid and needs n
     run: { method: 'laptop-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'laptop only');
 });
 
-test('askRequest files a laptop-daemon ask the daemon accepts, named for its item', () => {
-  const r = E.askRequest({ prompt: 'What rivers   feed the Columbia?', itemId: 'j1abc', registry: 'me/reg',
-                           about: 'me/reg:lists/jots.json#j1abc', now: '2026-10-02T17:00:00.123Z' });
-  assert.match(r.id, /^daemon-2026-10-02-ask-j1abc-[a-z0-9]+$/);
+test('askRequest files a laptop-daemon ask the daemon and the Stage accept', () => {
+  const r = E.askRequest({ prompt: 'What rivers   feed the Columbia?', registry: 'me/reg',
+                           now: '2026-10-02T17:00:00.123Z' });
+  assert.match(r.id, /^daemon-2026-10-02-ask-[a-z0-9]+$/);
   assert.match(r.id, /^[a-z0-9][a-z0-9.-]{0,95}$/, "the daemon's id rule");
   assert.deepEqual(r.run.args, { prompt: 'What rivers   feed the Columbia?' }, 'the prompt goes as typed');
   assert.equal(r.title, 'Ask Gemini: What rivers feed the Columbia?');
   assert.equal(r.createdAt, '2026-10-02T17:00:00Z');
-  assert.equal(r.about, 'me/reg:lists/jots.json#j1abc');
-  assert.equal(E.validate(E.normalize(r)).ok, true, 'and the Stage accepts it');
+  assert.equal(r.dest, 'me/reg@main:errands/results');
+  assert.equal(E.validate(E.normalize(r)).ok, true);
 });
 
-test('askStages reads each item\'s latest ask from the folder listings', () => {
-  const a = E.askRequest({ prompt: 'x', itemId: 'j1', now: '2026-10-01T10:00:00Z' }).id + '.json';
-  const b = E.askRequest({ prompt: 'y', itemId: 'j1', now: '2026-10-02T10:00:00Z' }).id + '.json';
-  const c = E.askRequest({ prompt: 'z', itemId: 'j2', now: '2026-10-02T10:00:00Z' }).id + '.json';
-  const st = E.askStages({ requests: [b, a, c, 'daemon-2026-10-02-ping-abc123.json', 'ask-other.json'],
-                           claims: [c], results: [a] });
-  assert.deepEqual(Object.keys(st).sort(), ['j1', 'j2'], 'only app-filed asks count');
-  assert.equal(st.j1.id, b.slice(0, -5), 'the newer ask wins');
-  assert.equal(st.j1.stage, 'sent');
-  assert.equal(st.j2.stage, 'thinking');
-  assert.equal(E.askStages({ requests: [a], results: [a] }).j1.stage, 'answered');
+test('pingNames keeps ask errands, newest day first, and askStage reads where one stands', () => {
+  const a = E.askRequest({ prompt: 'x', now: '2026-10-01T10:00:00Z' }).id + '.json';
+  const b = E.askRequest({ prompt: 'y', now: '2026-10-02T10:00:00Z' }).id + '.json';
+  const cli = 'daemon-2026-09-30-ask-a1b2c3.json';
+  assert.deepEqual(E.pingNames([a, cli, 'daemon-2026-10-02-ping-abc123.json', b, 'ask-other.json']), [b, a, cli]);
+  assert.equal(E.askStage(a, [], []), 'sent');
+  assert.equal(E.askStage(a, [a], []), 'thinking');
+  assert.equal(E.askStage(a, [a], [a]), 'answered');
 });
 
 test('parseScript splits the address, and nothing else', () => {
