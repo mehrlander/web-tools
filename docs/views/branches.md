@@ -7,26 +7,15 @@ activity cache. `&detail=` opens one branch's form
 
 ## The list
 
-- **Scope chips** are `BRANCH_SCOPES` in `estate.js`, each with its own `note`;
-  the default is Recent. Open, Abandoned and Unrecorded ignore the time window.
-  **Repo chips** narrow to one repo without changing the counts.
-- **A row** is tinted by what became of its PR (ready, draft, merged, closed
-  unmerged, never proposed, or `PR ?` past the PR index's reach, `prReach`). Its
-  action line, in order: the repo chip (the repo's own menu), the GitHub menu
-  (every row opens github.com, except Copy branch name), the session mark, the
-  Files route, Stage, then route chips. The arrows (commits ahead and behind)
-  hold the right edge.
-- **Counts open cards.** Files changed, new and missing, and the two arrows,
-  each open a panel: the head count, a shape digest from the cache, then the
-  file list and patches from one compare through `BranchBrief`'s memo. A card's
-  fresher numbers are written back into the row in memory (`absorbCompare`),
-  never into the cache, and never touch the landed verdict.
-- **Stage** sends the branch's changed files to the Stage at `ref=branch`.
+- Scopes are `BRANCH_SCOPES` in `estate.js`, each with its own `note`; only
+  Recent has a time window.
+- A row's counts open cards read from one compare through `BranchBrief`'s memo.
+  A card's fresher numbers are written back into the row in memory
+  (`absorbCompare`), never into the cache, and never touch the landed verdict.
 - A row with no merge base reads `no merge base`, since every number on it
   spans more than the branch.
-
-The Repos cards borrow the same cache for their rollups; the abandoned count is
-computed from the same rows as the chip, so the two cannot disagree.
+- The Repos cards' abandoned count is computed from the same rows as the scope
+  chip, so the two cannot disagree.
 
 ## The activity cache
 

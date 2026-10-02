@@ -16,6 +16,7 @@ validated before `map()` mounts). The default, `set`, stays out of the URL.
 | Surfacing | [surfacing.csv](../surfacing.csv), indexing [SURFACING.md](../SURFACING.md) | `surfacing-manifest.test.mjs`, `surfacing-lead-anchor.test.mjs` |
 | Showing | [showing-mechanisms.csv](../showing-mechanisms.csv), [routes-modes.csv](../routes-modes.csv), [routes-routes.csv](../routes-routes.csv), [routes.json](../routes.json) | `routes-manifest.test.mjs` |
 | Docs: Inventory (`docs`), Purpose (`aims`), Growth (`growth`) | [docs.csv](../docs.csv); [aims.json](../aims.json) and its CSVs; `data/doc-growth/*.json` | `docs-registry.test.mjs` |
+| Docs: Policy (`policy`) | [policies.csv](../policies.csv); [policy-topics.csv](../policy-topics.csv) | `policies-registry.test.mjs` |
 | Themes (`claims`) | [themes.csv](../themes.csv), [owners.csv](../owners.csv) | `owners-registry.test.mjs`, `derived-artifacts.test.mjs` |
 | Harness: Automation (`harness`), Tests (`tests`), Context (`context`) | [harness.csv](../harness.csv), [tests.csv](../tests.csv), `pages/session-context.html` | `tests-registry.test.mjs`, `derived-artifacts.test.mjs` |
 | Kits | [kits.csv](../kits.csv) | `kits-register.test.mjs` |
@@ -31,19 +32,12 @@ and it is absent (not blank) without a token.
 
 ## Views: the app's own destinations
 
-The Views tab reads `app-routes.csv` and one `commits?path=` call per declared
-file, ranks routes freshest first through
-[`lib/kits/route-activity.js`](../../lib/kits/route-activity.js), and joins each
-to the open PRs touching its files. It is read live, at the ref the code came
-from (`?use=`), never pinned to main, because `app-routes.csv` and `VIEWS` are
-held to each other per ref.
-
-- `app/index.html` is excluded from dating and shown as its own row.
-- A file named by three or more routes (`WIDE`) cannot be a row's reason; a row
-  dated only by such files reads `shared`.
-- Rows group by their `stop`, in the order of each stop's freshest member.
-- The same PR-file join feeds the route chips on Branches rows, so the two
-  readings agree.
+The Views tab reads `app-routes.csv` live at the ref the code came from
+(`?use=`), never pinned to main, because `app-routes.csv` and `VIEWS` are held
+to each other per ref. It ranks routes freshest first by their declared files,
+through [`lib/kits/route-activity.js`](../../lib/kits/route-activity.js); a file
+named by three or more routes cannot date a row on its own. The same join feeds the
+route chips on Branches rows.
 
 These are **app routes**. [routes-routes.csv](../routes-routes.csv) holds
 **toss routes**, content types mapped to renderer pages.

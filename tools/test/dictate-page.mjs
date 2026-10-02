@@ -50,12 +50,17 @@ const ctx = await browser.newContext({ viewport: PHONE, hasTouch: true, isMobile
 // context does not reach a page that already exists, which is why Drop sat
 // disabled the first time this ran.
 await ctx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+// THE PAINTED SELECTION, for the checks written against it. The platform's
+// selection is the page's default since 2026-10-01; everything here before
+// "native by default" below was written when the painted one was, and its
+// toggles turn native on from painted. Only where nothing has chosen yet.
+await ctx.addInitScript(() => { try { if (localStorage.getItem('dictate:selection') == null) localStorage.setItem('dictate:selection', 'painted'); } catch {} });
 const page = await ctx.newPage();
 
 // A correction list with two entries. Everything the page writes is caught
 // rather than sent.
 const writes = [];
-await page.route('**/*', route => {
+const routeAll = (route) => {
   const url = route.request().url();
   // Only the page's OWN reads and writes are caught here. Everything else on
   // api.github.com is the lib chain fetching its own files, which resolveCdn
@@ -85,7 +90,8 @@ await page.route('**/*', route => {
   if (r.kind === 'continue') return route.continue();
   if (r.kind === 'empty') return route.fulfill({ status: 200, contentType: r.contentType, body: '' });
   return route.fulfill({ status: 200, contentType: r.contentType, body: r.body });
-});
+};
+await page.route('**/*', routeAll);
 page.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
 
 // The stub goes in AFTER load, since the kit resolves its constructor lazily
@@ -1143,6 +1149,9 @@ try {
   // a long press inside a selection that then carries it.
   console.log('paragraphs:');
   const PARA_DOC = '# Title\n\nFirst one. First two.\n\nSecond para.\n\nThird para.\n';
+  // What the fixture serves, swapped for a check that needs GitHub's copy to
+  // have moved under a draft.
+  let served = { text: PARA_DOC, sha: 'para' };
   await page.route('**/repos/mehrlander/web-tools/contents/tools/test/para-fixture.md*', (route) => {
     // A write to the fixture (Apply, Save) is logged like any other write.
     if (route.request().method() === 'PUT') {
@@ -1151,7 +1160,7 @@ try {
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ content: { sha: 'applied' } }) });
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-      content: Buffer.from(PARA_DOC).toString('base64'), encoding: 'base64', sha: 'para', size: PARA_DOC.length }) });
+      content: Buffer.from(served.text).toString('base64'), encoding: 'base64', sha: served.sha, size: served.text.length }) });
   });
   await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('dictate')) localStorage.removeItem(k); });
   await open('?file=mehrlander/web-tools:tools/test/para-fixture.md');
@@ -1461,9 +1470,11 @@ try {
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
       lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
-      pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: p.querySelectorAll('button').length, under };
+      pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: [...p.querySelectorAll('button')].filter((b) => getComputedStyle(b).visibility !== 'hidden').length, under };
     // No ✕, by the owner's choice: Escape puts it away, and so does a press
-    // anywhere outside it.
+    // anywhere outside it. A note's trash is the one button the panel shows,
+    // and only while there is a note; this card has none, so its trash is
+    // held hidden and is not counted.
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise((r) => setTimeout(r, 50));
     out.fmt.escaped = c.cardInfo === null;
@@ -2029,7 +2040,8 @@ try {
     && faces.plain.cards === 0 && !faces.plain.marks && faces.changes.cards > 0, JSON.stringify(faces));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
-  // changes, carrying each one's note; the rest stay as edits.
+  // changes; the rest stay as edits. A note is not commit text: it stays on
+  // the page, moved onto the applied text.
   console.log('confirm and apply:');
   await reset();
   const conf = await page.evaluate(async () => {
@@ -2060,31 +2072,37 @@ try {
   });
   ok('confirm marks the card, green number and "confirmed ✓", and brings Apply 1; the same word takes it back', conf.on.word === 'confirmed ✓' && conf.on.green && /^Apply 1\b/.test(conf.on.apply || '') && conf.off.word === 'confirm' && !conf.off.green && conf.off.apply === null, JSON.stringify(conf));
   ok('confirm, confirmed and Apply say what they do in title-tips, never in a `title`',
-    conf.off.tip === 'Accept this change (can undo).' && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit, with their notes\.$/.test(conf.on.applyTip)
+    conf.off.tip === 'Accept this change (can undo).' && /Tap to take it back/.test(conf.on.tip) && /^Commit the 1 confirmed change to .* as one commit\.$/.test(conf.on.applyTip)
       && !conf.on.title && !conf.off.title && !conf.on.applyTitle, JSON.stringify({ on: conf.on, off: conf.off }));
   ok('editing a confirmed card lets the confirmation lapse', conf.edited.n === 0 && conf.edited.word === 'confirm', JSON.stringify(conf.edited));
   const before = writes.length;
   await page.evaluate(() => document.querySelector('[data-apply]').click());
   await page.waitForTimeout(400);
   const applied = await page.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    return { base: c.fileBase, text: c.text, cards: c.changesCount, n: c.confirmedCount }; });
+    return { base: c.fileBase, text: c.text, cards: c.changesCount, n: c.confirmedCount,
+             notes: c.notes.map((n) => ({ text: n.text, exact: n.exact, at: n.o == null ? null : c.fileBase.slice(n.o, n.e) })) }; });
   const w = writes[writes.length - 1];
   const want = PARA_DOC.replace('Third para.', 'Third paragraph.');
-  ok('Apply commits GitHub\'s copy with only the confirmed change, the note in the message, and the other edits, a card and a doubled space no card shows, stay as edits',
-    writes.length === before + 1 && w.text === want && /^Apply 1 change to /.test(w.message) && w.message.includes('Clearer.')
+  ok('Apply commits GitHub\'s copy with only the confirmed change, and the other edits, a card and a doubled space no card shows, stay as edits',
+    writes.length === before + 1 && w.text === want && /^Apply 1 change to /.test(w.message)
       && applied.base === want && applied.text.includes('First once.') && applied.text.includes('Second  para.') && applied.cards === 1 && applied.n === 0,
     JSON.stringify({ w, applied }));
-  await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = {}; c.confirmed = {}; }, PARA_DOC);
+  ok('the note is not in the commit message; it stays on the page, on the applied text, quoting it',
+    !w.message.includes('Clearer.') && applied.notes.length === 1 && applied.notes[0].text === 'Clearer.'
+      && applied.notes[0].at === 'Third paragraph.' && applied.notes[0].exact === 'Third paragraph.', JSON.stringify({ message: w.message, notes: applied.notes }));
+  await page.evaluate((t) => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0]; c.fileBase = t; c.notes = []; c.confirmed = {}; }, PARA_DOC);
   // A card that only adds keeps its note through an edit to its own text,
   // while a confirmation of it lapses, as any confirmation does.
   await reset();
   const addNote = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
     c.d.text = c.text.replace('Second para.\n', 'Second para.\n\nAn added line.\n'); c.paint(); await wait(200);
-    const k0 = c.cardId(0); c.notes = { [k0]: 'Why it is here.' }; c.toggleConfirm(0); await wait(50);
+    const u0 = c.unitsNow().find((u) => u.card === 0);
+    c.notes = [window.DictateRecord.make(u0, c.fileBase, c.text, 'Why it is here.')]; c.toggleConfirm(0); await wait(50);
     c.d.text = c.text.replace('An added line.', 'An added line, reworded.'); c.paint(); await wait(200);
-    const k1 = c.cardId(0), out = { k0, k1, note: c.notes[k1] || null, confirmed: c.confirmedCount };
-    c.notes = {}; c.confirmed = {}; c.d.text = c.fileBase; c.paint();
+    const u1 = c.unitsNow().find((u) => u.card === 0), held = c.notesAt(u1.o);
+    const out = { note: held[0] ? held[0].text : null, quote: c.liveNotes()[0].exact, confirmed: c.confirmedCount };
+    c.notes = []; c.confirmed = {}; c.d.text = c.fileBase; c.paint();
     return out;
   });
   // No move lands in code: a fence, or inline code, refuses the drop and the
@@ -2104,8 +2122,168 @@ try {
     codeDrop.fence === false && codeDrop.afterFence && codeDrop.inline === false && codeDrop.afterInline && codeDrop.prose === true && codeDrop.moved, JSON.stringify(codeDrop));
   // The refusal's toast stays 2.5s, over what the next checks tap.
   await page.waitForTimeout(2700);
-  ok('a card that only adds keeps its note when its text is edited, and its confirmation lapses',
-    addNote.k0 === addNote.k1 && addNote.note === 'Why it is here.' && addNote.confirmed === 0, JSON.stringify(addNote));
+  ok('a card that only adds keeps its note when its text is edited, the note quoting the text as it reads now, and its confirmation lapses',
+    addNote.note === 'Why it is here.' && addNote.quote === 'An added line, reworded.' && addNote.confirmed === 0, JSON.stringify(addNote));
+  // NOTES ON BLOCKS: the caret in an unchanged paragraph marks it, its badge
+  // opens a note, and the note is a record kept apart from the edit: on an
+  // unchanged file, through a reload, Clear all edits, a move on GitHub and a
+  // Save, and out in the record Send hands over.
+  console.log('notes on blocks:');
+  await reset();
+  const blockNote = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    c.notes = []; c.confirmed = {}; c.hoverBlock = null; c.hoverCard = null; c.selCard = null; c.cardInfo = null;
+    c.d.text = c.fileBase; c.paint(); await wait(120);
+    const para = () => [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Second para'));
+    c.d.caretAt(+para().querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
+    const wrap = para().closest('[data-md-block]'), badge = wrap.querySelector('[data-md-block-badge]');
+    const br = badge && badge.getBoundingClientRect(), pr = para().getBoundingClientRect();
+    const out = { outlined: wrap.dataset.blockCaret != null, lit: md.querySelectorAll('[data-block-caret]').length, badge: !!badge,
+      topLeft: !!br && br.top < pr.top && br.bottom <= pr.top + 6 && Math.abs(br.left - pr.left) <= 4,
+      overflow: c.$refs.view.scrollWidth - c.$refs.view.clientWidth };
+    // A mouse over another paragraph washes that one and leaves the caret's
+    // outline where it is; leaving takes the wash and nothing else.
+    const third = [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Third para'));
+    const tr = third.getBoundingClientRect();
+    third.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse', clientX: tr.left + 20, clientY: tr.top + 5 }));
+    await wait(80);
+    const tw = third.closest('[data-md-block]');
+    out.hover = { washed: tw.dataset.blockHover != null, outlined: tw.dataset.blockCaret != null, caretKept: wrap.dataset.blockCaret != null,
+      washedCaret: wrap.dataset.blockHover != null, badges: md.querySelectorAll('[data-md-block-badge]').length };
+    md.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+    await wait(80);
+    out.left = { washed: md.querySelectorAll('[data-block-hover]').length, caretKept: wrap.dataset.blockCaret != null, badges: md.querySelectorAll('[data-md-block-badge]').length };
+    // Focused within the tap's own microtasks, before any frame or timer: a
+    // later focus raises no keyboard on iOS.
+    badge.click(); await null;
+    out.inTap = !!document.activeElement && document.activeElement.matches('[data-info-note]') && !!document.activeElement.getClientRects().length;
+    await wait(200);
+    const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
+    out.title = info.querySelector('.font-medium').textContent; out.sum = info.querySelector('[data-info-sum]').textContent;
+    out.diff = !!info.querySelector('[data-info-diff]').getClientRects().length; out.focused = document.activeElement === f;
+    f.value = 'Is this still true?'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+    out.same = document.querySelector('[data-info-note]') === f;
+    const key = Object.keys(localStorage).find((k) => k.startsWith('dictate:file:'));
+    const held = JSON.parse(localStorage.getItem(key) || 'null');
+    out.held = held && { text: held.text, notes: (held.notes || []).map((n) => n.text), base: held.base, sha: c.baseSha };
+    c.cardInfo = null; c.d.caretAt(0); c.paint(); await wait(150);
+    const m = para().closest('[data-md-block]').querySelector('[data-md-block-badge]');
+    out.mark = !!m && m.hasAttribute('data-noted') && m.parentElement.dataset.blockCaret == null;
+    c.d.text = c.text.replace('Second para.', 'Second para, edited.'); c.paint(); await wait(200);
+    const card = [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('edited'));
+    out.cardMark = !!card && !!card.querySelector('[data-md-card-badge] [data-note-mark]');
+    c.openCardInfo(+card.dataset.mdCard, card.querySelector('[data-md-card-badge]'), true); await wait(150);
+    out.cardNote = document.querySelector('[data-info-note]').value;
+    c.cardInfo = null;
+    c.d.text = c.fileBase; c.paint(); await wait(150);
+    out.back = !!md.querySelector('[data-md-block-badge][data-noted]');
+    return out;
+  });
+  ok('the caret in an unchanged paragraph outlines that block alone, its badge at the top left as a card\'s number is, nothing scrolling sideways',
+    blockNote.outlined && blockNote.lit === 1 && blockNote.badge && blockNote.topLeft && blockNote.overflow === 0, JSON.stringify(blockNote));
+  ok('a mouse over another paragraph washes it and leaves the caret\'s outline in place, each with a badge; leaving takes only the wash',
+    blockNote.hover.washed && !blockNote.hover.outlined && blockNote.hover.caretKept && !blockNote.hover.washedCaret && blockNote.hover.badges === 2
+      && blockNote.left.washed === 0 && blockNote.left.caretKept && blockNote.left.badges === 1, JSON.stringify({ hover: blockNote.hover, left: blockNote.left }));
+  ok('its badge opens the panel named for the block and where it is, no diff, the note field focused and kept as the note is made',
+    blockNote.title === 'Paragraph' && blockNote.sum === 'line 5' && !blockNote.diff && blockNote.focused && blockNote.same, JSON.stringify(blockNote));
+  ok('the field is focused inside the tap, shown and before any frame, which is what lets iOS raise the keyboard', blockNote.inTap, JSON.stringify({ inTap: blockNote.inTap }));
+  ok('a note on a file with no edit is kept: the draft holds the note, the blob it is anchored in, and no text',
+    !!blockNote.held && blockNote.held.text === null && blockNote.held.notes.join() === 'Is this still true?' && blockNote.held.base === blockNote.held.sha, JSON.stringify(blockNote.held));
+  ok('the noted block keeps its mark with the caret gone; edited, its card carries the mark and its Info the note; taken back, the note is on the block again',
+    blockNote.mark && blockNote.cardMark && blockNote.cardNote === 'Is this still true?' && blockNote.back, JSON.stringify(blockNote));
+  // REMOVING A NOTE: the trash on its row, on the field's first line and the
+  // panel's right edge, removes it and closes the panel; the toast's Undo
+  // puts the same record back. An empty field shows no trash. On a phone the
+  // badge carries no title-tip, which a tap opened over the line above.
+  const removed = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const block = (t) => [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes(t));
+    const badgeOf = (t) => block(t).closest('[data-md-block]').querySelector('[data-md-block-badge]');
+    c.d.caretAt(+block('Third para').querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
+    badgeOf('Third para').click(); await wait(200);
+    const out = { emptyTrash: getComputedStyle(document.querySelector('[data-card-info] [data-info-note-remove]')).visibility };
+    c.cardInfo = null;
+    c.d.caretAt(+block('Second para').querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
+    const b = badgeOf('Second para');
+    out.tip = b.hasAttribute('data-title-tip'); out.label = b.getAttribute('aria-label');
+    b.click(); await wait(200);
+    const info = document.querySelector('[data-card-info]'), trash = info.querySelector('[data-info-note-remove]');
+    const ir = info.getBoundingClientRect(), tr = trash.getBoundingClientRect(), fr = info.querySelector('[data-info-note]').getBoundingClientRect();
+    const pad = parseFloat(getComputedStyle(trash.closest('.px-3')).paddingRight) + parseFloat(getComputedStyle(info).borderRightWidth);
+    out.shown = getComputedStyle(trash).visibility;
+    out.edge = Math.round(ir.right - pad - tr.right); out.line = Math.round(tr.top + tr.height / 2 - (fr.top + 10));
+    const id = c.notes[0] && c.notes[0].id;
+    trash.click(); await wait(150);
+    const toasts = Alpine.store('toasts'), t = toasts.find((x) => x.action);
+    out.after = { notes: c.notes.length, open: !!c.cardInfo, badge: badgeOf('Second para').textContent, toast: t ? t.msg + '|' + t.action.label : null };
+    if (t) t.action.run();
+    await wait(150);
+    out.undo = { notes: c.notes.map((n) => n.text).join(), same: !!c.notes[0] && c.notes[0].id === id, badge: badgeOf('Second para').textContent, toasts: toasts.length };
+    c.d.caretAt(0); c.paint(); await wait(100);
+    return out;
+  });
+  ok('a block with no note shows no trash in its panel; on a phone the badge has no title-tip, its aria-label saying what it does',
+    removed.emptyTrash === 'hidden' && !removed.tip && removed.label === 'The note on this block', JSON.stringify(removed));
+  ok('a note\'s trash sits on the field\'s first line at the panel\'s right edge; it removes the note and closes the panel, the badge back to "+ note"',
+    removed.shown === 'visible' && Math.abs(removed.edge) <= 1 && Math.abs(removed.line) <= 1
+      && removed.after.notes === 0 && !removed.after.open && removed.after.badge === '+ note', JSON.stringify(removed));
+  ok('the toast says the note was removed, and its Undo puts the same record back',
+    removed.after.toast === 'Note removed|Undo' && removed.undo.same && removed.undo.notes === 'Is this still true?' && removed.undo.badge === 'note' && removed.undo.toasts === 0,
+    JSON.stringify({ after: removed.after, undo: removed.undo }));
+  const kept = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const on = () => c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))).join();
+    await c.loadFile(); await wait(150);
+    const out = { reload: on(), text: c.text === c.fileBase };
+    c.d.text = c.text.replace('Third para.', 'Third para, edited.'); c.paint(); await wait(100);
+    await c.loadFile(true); await wait(150);
+    out.cleared = { edit: c.text === c.fileBase, notes: on() };
+    return out;
+  });
+  ok('the note comes back on a reload, and Clear all edits drops the edit and keeps the note',
+    kept.reload === 'Second para.' && kept.text && kept.cleared.edit && kept.cleared.notes === 'Second para.', JSON.stringify(kept));
+  served = { text: PARA_DOC.replace('# Title\n\n', '# Title\n\nA paragraph someone added on GitHub.\n\n'), sha: 'moved' };
+  const moved = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await c.loadFile(); await wait(150);
+    return { notes: c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))), base: c.baseSha };
+  });
+  ok('when GitHub\'s copy moved under the note, it is found again by its quote', moved.notes.join() === 'Second para.' && moved.base === 'moved', JSON.stringify(moved));
+  served = { text: PARA_DOC, sha: 'para' };
+  const sentRec = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await c.loadFile(); await wait(150);
+    c.token = c.token || 'test-token';
+    c.d.text = c.text.replace('Third para.', 'Third para, saved.'); c.paint(); await wait(100);
+    // No account list: the identity read it makes is not answered here, and
+    // a refused one puts up the token wall over the whole page.
+    c.repoList = []; c.openSend(); await wait(100);
+    const out = { what: c.sendWhat, md: c.sharePayload, count: document.querySelector('[data-send-count]').textContent };
+    c.recordAs = 'json'; await wait(20);
+    try { out.json = JSON.parse(c.sharePayload); } catch (e) { out.json = String(e); }
+    c.recordAs = 'md'; c.sendOpen = false;
+    await c.saveFile(); await wait(150);
+    out.after = c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))).join();
+    return out;
+  });
+  const sw = writes[writes.length - 1];
+  ok('Send opens on the record when there are notes: markdown with the note under its passage, JSON a dictate/1 record',
+    sentRec.what === 'record' && sentRec.count === '1 change · 1 note' && sentRec.md.includes('## Note · line 5\n> Second para.\n\n**Note:** Is this still true?')
+      && sentRec.json.kind === 'dictate/1' && sentRec.json.notes[0].lines.start === 5 && sentRec.json.changes[0].new === 'Third para, saved.', JSON.stringify(sentRec));
+  ok('Save commits the edit with no note in the message, and the note stays on its paragraph',
+    sw.message === 'Edit para-fixture.md via dictate' && sentRec.after === 'Second para.', JSON.stringify({ message: sw.message, after: sentRec.after }));
+  const legacy = await page.evaluate(async (doc) => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const key = Object.keys(localStorage).find((k) => k.startsWith('dictate:file:'));
+    localStorage.setItem(key, JSON.stringify({ text: doc.replace('Second para.', 'Second para, old draft.'), sha: 'para', confirmed: {},
+      notes: { ['o' + doc.indexOf('Second para.')]: 'A note from before.' } }));
+    await c.loadFile(); await wait(300);
+    const out = c.notes.map((n) => [n.text, c.fileBase.slice(n.o, n.e)]);
+    c.notes = []; c.confirmed = {}; c.d.text = c.fileBase; c.paint(); c.save();
+    return out;
+  }, PARA_DOC);
+  ok('a draft from before notes were records keeps its note, now a record on the same card',
+    legacy.length === 1 && legacy[0][0] === 'A note from before.' && legacy[0][1] === 'Second para.', JSON.stringify(legacy));
   console.log('card track:');
   await reset();
   const cardAt = await page.evaluate(async () => {
@@ -2233,6 +2411,80 @@ try {
     return t && { left: t.scrollLeft, w: t.clientWidth, off: [...t.querySelectorAll('[data-md-off]')].every((l) => getComputedStyle(l).visibility === 'hidden') }; });
   ok('the first card on a fresh page opens on its marked reading, the others hidden',
     !!fresh && fresh.w > 0 && Math.abs(fresh.left - fresh.w) < 2 && fresh.off, JSON.stringify(fresh));
+  }
+
+  // NATIVE BY DEFAULT: with nothing chosen, the platform selects, on a phone
+  // and on a desk. On a desk that only holds if a click places the caret
+  // without opening typing, a press while typing ends it, and the keys a
+  // textarea would handle still work with none open. A link in the document
+  // is text, and the note badge's reach stops short of the first line.
+  console.log('native by default:');
+  const fresh2 = async (opts) => {
+    const cx = await browser.newContext(opts);
+    await cx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+    const pg = await cx.newPage();
+    await pg.route('**/*', routeAll);
+    pg.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
+    await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:docs/annotation.md`, { waitUntil: 'domcontentloaded' });
+    await pg.waitForFunction(() => { const c = document.querySelector('[x-data="dictate"]')?._x_dataStack?.[0]; return c && c.rendered && document.querySelector('[data-md-block]'); }, null, { timeout: 15000 });
+    await pg.waitForTimeout(400);
+    return { cx, pg };
+  };
+  {
+    const { cx, pg } = await fresh2({ viewport: PHONE, hasTouch: true, isMobile: true });
+    const phone = await pg.evaluate(() => { const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
+      return { nativeSel: c.nativeSel, native: c.native, stored: localStorage.getItem('dictate:selection') }; });
+    ok('with nothing chosen, a phone selects with the platform', phone.nativeSel && phone.native && phone.stored === null, JSON.stringify(phone));
+    await cx.close();
+  }
+  {
+    const { cx, pg } = await fresh2({ viewport: { width: 1280, height: 800 } });
+    const C = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';
+    const st = () => pg.evaluate(`(() => { const x = ${C}, s = document.getSelection(); return { sel: s.toString(), a: x.d.range.start, b: x.d.range.end,
+      native: x.native, typing: x.typing, painted: document.querySelectorAll('[data-md-surface="sel"]').length }; })()`);
+    const at = (k, line = 0) => pg.evaluate(`(() => { const ps = ${C}.$refs.md.querySelectorAll('[data-md-block] p'), p = ps[Math.min(${k}, ps.length - 1)];
+      const r = [...p.querySelector('[data-src]').getClientRects()][${line}] || p.querySelector('[data-src]').getBoundingClientRect(); return { x: r.left, y: r.top, h: r.height, w: r.width }; })()`);
+    const p1 = await at(1);
+    await pg.mouse.click(p1.x + 30, p1.y + p1.h / 2); await pg.waitForTimeout(200);
+    const click = await st();
+    await pg.mouse.move(p1.x + 30, p1.y + p1.h / 2); await pg.mouse.down(); await pg.mouse.move(p1.x + 260, p1.y + p1.h / 2, { steps: 8 }); await pg.mouse.up(); await pg.waitForTimeout(250);
+    const drag = await st();
+    ok('on a desk a click places the caret without opening typing, and a drag selects with the platform, the page painting none',
+      click.native && !click.typing && click.a === click.b && drag.native && drag.sel.length > 10 && drag.b - drag.a > 10 && drag.painted === 0, JSON.stringify({ click, drag }));
+    const p2 = await at(2);
+    await pg.mouse.dblclick(p2.x + 30, p2.y + p2.h / 2); await pg.waitForTimeout(200);
+    const word = await pg.evaluate(`(() => { const x = ${C}; return x.text.slice(x.d.range.start, x.d.range.end); })()`);
+    const len0 = await pg.evaluate(`${C}.text.length`);
+    await pg.keyboard.type('Q'); await pg.waitForTimeout(250);
+    const typed = await pg.evaluate(`(() => { const x = ${C}; return { delta: x.text.length - ${len0}, typing: x.typing }; })()`);
+    ok('a double click takes a word, and the first key typed opens typing over it', word.length > 1 && typed.typing && typed.delta === 1 - word.length, JSON.stringify({ word, typed }));
+    const p3 = await at(3);
+    await pg.mouse.click(p3.x + 30, p3.y + p3.h / 2); await pg.waitForTimeout(200);
+    const after = await st();
+    const a0 = after.a;
+    await pg.keyboard.press('ArrowRight'); await pg.keyboard.press('ArrowRight'); await pg.waitForTimeout(150);
+    const moved = await st();
+    ok('a click while typing ends it and places the caret; the arrows travel with no typing open',
+      !after.typing && after.native && after.a === after.b && moved.a === a0 + 2 && !moved.typing, JSON.stringify({ after, moved }));
+    await pg.mouse.dblclick(p3.x + 30, p3.y + p3.h / 2); await pg.waitForTimeout(200);
+    const w2 = await pg.evaluate(`(() => { const x = ${C}; return { n: x.d.range.end - x.d.range.start, len: x.text.length }; })()`);
+    await pg.keyboard.press('Backspace'); await pg.waitForTimeout(250);
+    const bs = await pg.evaluate(`${C}.text.length`);
+    ok('backspace on a selection with no typing open deletes it', w2.n > 1 && bs === w2.len - w2.n, JSON.stringify({ w2, bs }));
+    const link = await pg.evaluate(`(() => { const l = ${C}.$refs.md.querySelector('a[href]'); const r = l.getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; })()`);
+    const url0 = pg.url();
+    await pg.mouse.click(link.x, link.y); await pg.waitForTimeout(400);
+    ok('a click on a link in the document stays on the page, as a click on any word', pg.url() === url0, pg.url());
+    // The mouse rests on a paragraph, which puts its badge up, and a click on
+    // that paragraph's first word places the caret rather than opening a note.
+    const p4 = await at(99);
+    await pg.mouse.move(p4.x + 20, p4.y + p4.h / 2); await pg.waitForTimeout(150);
+    await pg.mouse.click(p4.x + 20, p4.y + p4.h / 2); await pg.waitForTimeout(200);
+    const first = await pg.evaluate(`(() => { const x = ${C}; return { info: !!x.cardInfo, badge: !!x.$refs.md.querySelector('[data-block-hover] [data-md-block-badge]'), caret: x.d.range.start === x.d.range.end,
+      tip: !!x.$refs.md.querySelector('[data-md-block-badge][data-title-tip]') }; })()`);
+    ok('with a paragraph\'s badge up, a click on its first word places the caret and opens no note', first.badge && !first.info && first.caret, JSON.stringify(first));
+    ok('on a desk the badge keeps its title-tip, where a pointer can hover it', first.tip, JSON.stringify(first));
+    await cx.close();
   }
 } finally {
   await browser.close();

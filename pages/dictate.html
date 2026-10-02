@@ -175,6 +175,8 @@
     ?lang=en-US               recognition language, default the browser's
     ?use=<ref>                pin the lib chain to a branch for previewing
     ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
+    ?sel=native|painted       which selection, for this visit only; the
+                              menu's choice otherwise, native by default
 
   FILE MODE opens an existing file instead of a blank page, so the same pad,
   voice and keyboard revise a document rather than start a note. Added
@@ -183,10 +185,10 @@
 
     THE BOTTOM ROW IS COPY AND SEND. Jot and Drop file a note somewhere new,
     which is the wrong act for words that already have a home. Send opens the
-    same sheet as ever with two things added: WHAT GOES (the edit as a patch,
-    or the whole file) above the rows, and SAVE TO GITHUB as the first row, so
-    committing is one destination among the places the edit can go rather than
-    a button of its own.
+    same sheet as ever with two things added: WHAT GOES (the record of changes
+    and notes, the edit as a patch, or the whole file) above the rows, and
+    SAVE TO GITHUB as the first row, so committing is one destination among
+    the places the edit can go rather than a button of its own.
 
     SAVE WRITES WITH THE SHA IT LOADED, AND NOTHING ELSE. It does not go
     through GH.prototype.save, whose recovery answers a 409 by fetching the
@@ -244,17 +246,33 @@
     In a change card, a gray bar in the text marks where a paragraph break was
     closed, or in the original, where one will be opened.
 
-    NATIVE SELECTION, a menu option (or ?sel=native), hands selecting in the
-    Rendered face to the platform: its long press, handles and callout. The
-    buffer's range follows the platform's selection, a tap still places the
-    caret, and a Move pill under a selection carries it to the next place
-    tapped. Split then comes from the shifted ¶ at a caret. See nativeSync.
+    THE PLATFORM SELECTS, by default since 2026-10-01 (an option from 09-27):
+    selecting in the Rendered face is its long press, handles and callout on
+    a phone, and its drag, double click and shift-click on a desk. The
+    buffer's range follows the platform's selection, a tap or a click still
+    places the caret, and a Move pill under a selection carries it to the
+    next place tapped. Split then comes from the shifted ¶ at a caret. On a
+    desk a click no longer opens typing; the first key does. The page's own
+    painted selection with its pins is Native selection unchecked in the
+    menu, or ?sel=painted. See nativeSync.
 
     A CHANGE IS DISCARDED FROM ITS OWN CARD, the × on its number, which puts
     that block back as GitHub has it (mdDiff.revert). The whole edit leaves by
     Send: a Claude Code session gets the patch with a line saying
     where it belongs, Share and Copy in the sheet's foot get the bare patch
     (`git apply` takes it). Copy in the bottom row copies the whole buffer.
+
+    A NOTE IS ON A BLOCK, CHANGED OR NOT, and is not part of any commit.
+    The block the caret is in (on a desk, the one under the mouse) wears a
+    dashed outline at the extent the card would take, and a badge in the
+    margin opens its note; a card's note is written in its Info. Notes are
+    records anchored to GitHub's copy (kits/dictate-record.js), so they keep
+    their paragraph through edits, through Apply and Save, and through Clear
+    all edits; they are kept with no edit at all; and they leave in the
+    RECORD, `dictate/1` (kits/dictate-record.js), which Send hands over as
+    markdown or JSON beside the patch and the whole file, with a preview of
+    exactly what goes. Until 2026-10-01 a note was a string per card that went
+    into the commit message, and could not be written on an unchanged block.
 
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
@@ -414,6 +432,10 @@
   const ASIDE = 'dictate:aside';
   const GRANT = 'dictate:granted';
   const VIEW = 'dictate:view';
+  // Which selection: 'native' (the default) or 'painted'. A new key on
+  // 2026-10-01, when native became the default, so a 'painted' left under the
+  // old 'dictate:sel' by trying the option before then holds nobody back.
+  const SEL = 'dictate:selection';
 
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -506,7 +528,11 @@
       view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ['source', 'rendered'].includes(ls.get(VIEW)) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
       mdReady: false, changesCount: 0,
       confirmed: {},            // card key -> that card's text when confirmed; Apply commits these
-      notes: {},                // card key -> the reader's note, which rides in the commit message
+      // The reader's notes, as records anchored to GitHub's copy (kits/
+      // dictate-record.js), on a block whether or not it changed. They are not
+      // part of any commit: they leave the page in the record Send hands over.
+      notes: [],
+      baseSha: '',              // the blob fileBase is; the record's line numbers count in it
       applying: false,
       // Typing into the Rendered face: the sink has focus and the keyboard is up.
       typing: false, composing: false,
@@ -523,11 +549,16 @@
         'raw-before': { label: 'Raw · before', icon: 'ph-code' },
         'raw-after': { label: 'Raw · after', icon: 'ph-code' },
       },
-      // THE PLATFORM'S OWN SELECTION, as an option: Native selection in the
-      // menu, or ?sel=native. See nativeSync. Rendered face only, and not
+      // THE PLATFORM'S OWN SELECTION IS THE DEFAULT, on a phone and a desk
+      // alike: the owner's call on 2026-10-01, the option having proved the
+      // better of the two since it arrived on 09-27. The page's own painted
+      // selection, with its pins, stays one tap away (Native selection
+      // unchecked in the menu, or ?sel=painted for one visit) until it is
+      // either retired or kept. See nativeSync. Rendered face only, and not
       // while typing, where the sink owns the keyboard and a selection gesture
-      // on the words would take focus from it.
-      nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get('dictate:sel') === 'native',
+      // on the words would take focus from it; on a desk a mouse press ends
+      // typing for that reason (bind, pointerdown) and the next key starts it again.
+      nativeSel: q.get('sel') ? q.get('sel') === 'native' : ls.get(SEL) !== 'painted',
       moveArm: null,            // native: the range the target picked up to move
       moveAim: null,            // native: where a tap on the text aimed the held words
       dnd: null,                // native: words the platform is dragging, and where they would land
@@ -538,11 +569,14 @@
       _onPop: false, _popLeave: null,
       cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
       hoverCard: null,          // the card a mouse is over, for its bar
+      hoverBlock: null,         // the unchanged block a mouse is over, for its outline (markBlock)
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
       keyCard: null,            // a desk's card taken by a click beside its words: keys turn it, no caret
       patchMenu: false,
-      // File mode's Send: what rides, the edit as a patch or the whole file.
-      sendWhat: 'patch',
+      // File mode's Send: what rides. The record (changes and notes, kits/
+      // dictate-record.js), the edit as a patch, or the whole file; the record
+      // as markdown or as JSON; and whether the sheet shows it.
+      sendWhat: 'record', recordAs: 'md', sendPreview: false,
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
       get isMd() { return !!FILE && /\.(md|markdown)$/i.test(FILE.path); },
       get face() {
@@ -829,25 +863,36 @@
       async loadFile(fresh = false) {
         if (!FILE) return;
         this.fileLoading = true; this.fileErr = '';
-        if (fresh) ls.del(FILE_DRAFT);
         let held = null;
         try { held = JSON.parse(ls.get(FILE_DRAFT) || 'null'); } catch {}
         try {
           // Read-modify-write: pinned to the ref the save PUTs to, never the selection.
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
           const res = await gh2.get(FILE.path, window.GH.FRESH);
-          this.fileBase = res.text;
-          if (held && typeof held.text === 'string' && held.text !== res.text) {
+          await this.ensureRecord();
+          this.fileBase = res.text; this.baseSha = res.sha;
+          // NOTES OUTLIVE THE EDIT. A fresh start (Clear all edits, Reload)
+          // drops the changes and keeps the notes, which are about the file
+          // rather than about the edit; where GitHub's copy moved since they
+          // were written, each is found again by its quote, and one that
+          // cannot be is kept unplaced and said so.
+          this.notes = this.heldNotes(held, res);
+          // A draft from before notes were records keeps them by card key;
+          // they are read once the cards are drawn (paint).
+          const keep = !fresh && held && typeof held.text === 'string' && held.text !== res.text;
+          this._legacyNotes = keep && held.notes && !Array.isArray(held.notes) ? held.notes : null;
+          if (keep) {
             this.fileSha = held.sha || res.sha;
-            this.confirmed = held.confirmed || {}; this.notes = held.notes || {};
+            this.confirmed = held.confirmed || {};
             this.d.text = held.text;
             this.restored = held.text.length;
           } else {
             this.fileSha = res.sha;
-            this.confirmed = {}; this.notes = {};
+            this.confirmed = {};
             this.d.text = res.text;
             this.restored = 0;
           }
+          this.save();
           // A document opens at its top with the caret there, so the first
           // spoken word lands where the reader is looking. The painter follows
           // growth to the end when no range is set, which is right for a note
@@ -882,6 +927,7 @@
           // simply absent.
           await gh.load('kits/md-diff.js');
           await window.mdDiff.needDiff();
+          await gh.load('kits/dictate-record.js');
           await gh.load('kits/row-menu.js');
           // NOT content-visibility:auto, though it halved a re-render on a 160k
           // file: fresh blocks lay out at their placeholder height for a frame,
@@ -894,6 +940,28 @@
           Alpine.store('toast')('warning', 'Rendered view unavailable: ' + (e?.message || e), 'alert-error', 5000);
         }
         return this.mdReady;
+      },
+      // What the notes and the record need, and nothing that draws: the
+      // alignment (md-diff, md-surface's units) and the record kit. A Source
+      // session pays for these and not for the renderer.
+      async ensureRecord() {
+        if (window.DictateRecord && window.MdSurface && window.mdDiff && window.Diff) return true;
+        try {
+          await gh.load('kits/md-diff.js');
+          await window.mdDiff.needDiff();
+          await gh.load('kits/md-surface.js');
+          await gh.load('kits/dictate-record.js');
+        } catch {}
+        return !!window.DictateRecord;
+      },
+      heldNotes(held, res) {
+        const R = window.DictateRecord, list = held && Array.isArray(held.notes) ? held.notes : [];
+        if (!list.length || !R) return [];
+        if (!held.base || held.base === res.sha) return list;
+        const found = R.refind(list, res.text);
+        const lost = found.filter((n) => n.o == null).length - list.filter((n) => n.o == null).length;
+        if (lost > 0) Alpine.store('toast')('warning', `${lost} note${lost === 1 ? '' : 's'} could not be placed: the text ${lost === 1 ? 'it was' : 'they were'} on changed on GitHub. Kept in the record.`, 'alert-warning', 6000);
+        return found;
       },
       async setView(v) {
         if (!FILE) return;
@@ -936,17 +1004,18 @@
         this.saving = FILE.repo;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
-          // The notes left on cards ride in the message, as Apply's do.
-          const md = this.$refs.md, n = this.rendered && md ? window.MdSurface.cards(md).length : 0, noted = [];
-          for (let i = 0; i < n; i++) { const k = this.cardId(i); if (k && this.notes[k]) noted.push('- ' + (this.cardSpans(i).N.s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)') + '\n  ' + this.notes[k].replace(/\n/g, '\n  ')); }
-          const body = { message: `Edit ${this.fileName} via dictate` + (noted.length ? '\n\n' + noted.join('\n') : ''), content: b64(text), sha: this.fileSha };
+          // The message says what changed and nothing else: notes are not
+          // commit text (they leave in the record), and they stay on the page.
+          const body = { message: `Edit ${this.fileName} via dictate`, content: b64(text), sha: this.fileSha };
           if (FILE.ref) body.branch = FILE.ref;
           const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
-          this.fileSha = res.content.sha;
+          const was = this.fileBase;
+          this.fileSha = this.baseSha = res.content.sha;
           this.fileBase = text;
           this.restored = 0;
-          this.confirmed = {}; this.notes = {};
-          ls.del(FILE_DRAFT);
+          this.confirmed = {};
+          this.notes = window.DictateRecord ? window.DictateRecord.rebase(this.notes, was, text) : this.notes;
+          this.save();
           this.paint();             // the base moved, so the change marks clear
           Alpine.store('toast')('check', 'Saved ' + this.fileWhere, 'alert-success', 3200);
         } catch (e) {
@@ -999,10 +1068,16 @@
           if (e.key === 'Escape' && (this.cardInfo || this.wordPop)) { this.cardInfo = null; this.wordPop = null; e.preventDefault(); e.stopPropagation(); return; }
           if (this.keyCard != null && mine(e) && this.cardKey(e)) return;
           if (mine(e) && this.shortcut(e)) return;
+          // UNDER THE NATIVE SELECTION A DESK IS NOT TYPING UNTIL IT TYPES (a
+          // click no longer opens it), so the keys the sink would handle, the
+          // travel keys and undo, redo and select-all, are handed to it from
+          // here, and the editing keys open typing the way a character does.
+          const travel = /^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(e.key) || ((e.ctrlKey || e.metaKey) && /^[zZya]$/.test(e.key));
+          if (this.rendered && !this.typing && this.nativeSel && this.d && mine(e) && travel) { this.sinkKey(e); if (e.defaultPrevented) return; }
           // A character typed at the Rendered face with no keyboard open opens
           // it, and focus moving inside keydown carries the character with it.
-          if (this.rendered && !this.typing && this.d && mine(e) && e.key.length === 1
-              && !e.ctrlKey && !e.metaKey && !e.altKey) this.startTyping();
+          if (this.rendered && !this.typing && this.d && mine(e) && !e.ctrlKey && !e.metaKey && !e.altKey
+              && (e.key.length === 1 || (this.nativeSel && /^(Backspace|Delete|Enter)$/.test(e.key)))) this.startTyping();
           if (e.repeat) return;                 // a held key is not a tap
           tap = (e.key === 'Control' || e.key === 'Shift') && mine(e) ? e.key : null;
         }, true);
@@ -1077,8 +1152,16 @@
         if (FILE) {
           // Before the file has loaded, the buffer is not an edit of anything.
           if (this.fileBase === null) return;
-          // The confirmations and notes ride with the draft they belong to.
-          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha, confirmed: this.confirmed, notes: this.notes })) : ls.del(FILE_DRAFT);
+          // The confirmations ride with the edit they belong to, and the notes
+          // with it or on their own: a note on an unchanged file is kept too.
+          // `base` is the blob the notes are anchored in, so a later load can
+          // tell whether GitHub's copy moved under them. The text is kept only
+          // when it is an edit, or a notes-only draft would restore GitHub's
+          // old copy over a newer one.
+          const edited = this.text !== this.fileBase;
+          if (!edited && !this.notes.length) { ls.del(FILE_DRAFT); return; }
+          ls.set(FILE_DRAFT, JSON.stringify({ text: edited ? this.text : null, sha: this.fileSha, base: this.baseSha,
+            confirmed: this.confirmed, notes: this.liveNotes() }));
           return;
         }
         this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT);
@@ -1258,6 +1341,13 @@
           // do the extending, so the handles are furniture for a job the
           // platform already does. The selection stays painted.
           if (e.pointerType === 'mouse') { this.precise = true; }
+          // A MOUSE PRESS ENDS TYPING UNDER THE NATIVE SELECTION, so the
+          // platform can select: while typing the sink holds the focus, and a
+          // selection drawn in the words needs it back in the document. The
+          // next key typed starts typing again (bindKeys), over whatever the
+          // mouse selected. Without this a desk kept the native selection only
+          // until its first click, which opened typing for good.
+          if (this.nativeSel && e.pointerType === 'mouse' && this.typing && this.rendered) this.stopTyping();
           x = e.clientX; y = e.clientY; long = false; word = null;
           unhold();
           downAt = Date.now();
@@ -1453,7 +1543,9 @@
           // and reading one as a tap would drop a caret over what it made.
           // With words picked up by Move, the tap aims them; Move here lands them.
           if (this.native) {
-            if (Date.now() - downAt > 400 || nearEdge) { taps = 0; return; }
+            // A mouse has no long press and no handles: its click is a click,
+            // however long it was held and wherever it landed.
+            if (e.pointerType !== 'mouse' && (Date.now() - downAt > 400 || nearEdge)) { taps = 0; return; }
             if (this.moveArm) { taps = 0; this.aimArmed(e.clientX, e.clientY); return; }
           }
           // A mouse beside a card's words takes the card for the keys, on any
@@ -1932,6 +2024,9 @@
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
             overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover && !this.native, reach: 0,
             base: this.fileBase, marks: false, track: this.showMarks, cardActions: this.CARD_ACTIONS,
+            // Block by block even with nothing changed, so the block under the
+            // caret can be marked and noted (markBlock).
+            blocks: true,
             // Under the native option the platform draws the selection, unless
             // Move has picked it up, when the page holds it until the drop.
             selection: !this.native || !!this.moveArm,
@@ -1945,6 +2040,7 @@
           });
           const n = this.showMarks ? md.querySelectorAll('[data-md-card]').length : 0;
           if (n !== this.changesCount) this.changesCount = n;
+          if (this._legacyNotes && this.showMarks) this.adoptLegacyNotes();
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
           if (this.typing) this.syncSink();
@@ -2091,7 +2187,9 @@
         else this.extendTo(i, e.shiftKey);
         this.armed = null;
         this.paint();
-        this.keepTyping();
+        // Under the native selection a click places the caret and no more:
+        // typing starts on the first key, so the mouse stays the platform's.
+        if (!this.nativeSel) this.keepTyping();
       },
       // A CARD FOR THE KEYS, on a desk. A click in a change card's blank space,
       // beside its words rather than on them, takes the card without a caret,
@@ -2376,7 +2474,8 @@
       async copyPayload() {
         try {
           await navigator.clipboard.writeText(this.sharePayload);
-          Alpine.store('toast')('clipboard-text', FILE && this.sendWhat === 'patch' ? 'Copied the patch' : 'Copied the file', 'alert-success', 2500);
+          Alpine.store('toast')('clipboard-text', !FILE ? 'Copied' : this.sendWhat === 'record' ? 'Copied the changes and notes'
+            : this.sendWhat === 'patch' ? 'Copied the patch' : 'Copied the file', 'alert-success', 2500);
         } catch {
           Alpine.store('toast')('warning', 'The browser refused the clipboard', 'alert-error', 4000);
         }
@@ -2937,10 +3036,19 @@
         if (!window.MdSurface.showReading(this.$refs.md, i, mode)) this.setCardReading(i, mode);
       },
       cardTap(ev) {
+        // A LINK IN THE DOCUMENT IS TEXT HERE, not a way out: this face is an
+        // editor. A click on one followed its href, which is written relative
+        // to the file on GitHub and resolved against this page, so it left the
+        // editor for an address that does not exist (measured 2026-10-01 with
+        // either selection). The click still places the caret, as on any word.
+        const link = ev.target?.closest?.('a[href]');
+        if (link && this.$refs.md.contains(link)) ev.preventDefault();
         const act = ev.target?.closest?.('[data-md-card-act]');
         if (act) { this.cardAct(act); return; }
         const read = ev.target?.closest?.('[data-md-card-read]');
         if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.pickReading(+i, m); return; }
+        const bb = ev.target?.closest?.('[data-md-block-badge]');
+        if (bb) { this.blockTap(+bb.dataset.mdBlockBadge, bb); return; }
         const badge = ev.target?.closest?.('[data-md-card-badge]');
         if (!badge) return;
         const r = this.d && this.d.range, i = +badge.dataset.mdCardBadge;
@@ -2957,15 +3065,32 @@
         else if (c && c.i === i) this.cardInfo = null;
         else this.openCardInfo(i, el, true);
       },
+      // The same three ways for a block's badge, which opens the same panel
+      // with no change to show: the block's notes, or a field for one.
+      blockTap(k, el) {
+        const c = this.cardInfo;
+        if (c && c.block === k && !c.pinned) this.pinInfo(true);
+        else if (c && c.block === k) this.cardInfo = null;
+        else this.openBlockInfo(k, el, true);
+      },
       cardHover(e) {
         // A mouse resting on a card's number opens its Info unpinned, after the
         // house 140ms; moving off before then opens nothing.
-        const info = e && e.pointerType === 'mouse' && this.hoverable() ? e.target?.closest?.('[data-md-card-badge]') : null;
+        // A block's badge does the same once it holds a note; an empty one
+        // opens on a click, since an empty field is nothing to read.
+        const hov = e && e.pointerType === 'mouse' && this.hoverable();
+        const info = hov ? (e.target?.closest?.('[data-md-card-badge]') || e.target?.closest?.('[data-md-block-badge][data-noted]')) : null;
         if (info !== this._infoOver) {
           this._infoOver = info; clearTimeout(this._infoT);
           if (info) this._infoT = setTimeout(() => {
+            if (this._infoOver !== info) return;
+            if (info.dataset.mdBlockBadge != null) {
+              const k = +info.dataset.mdBlockBadge;
+              if (!(this.cardInfo && this.cardInfo.block === k)) this.openBlockInfo(k, info, false);
+              return;
+            }
             const i = +info.closest('[data-md-card]').dataset.mdCard;
-            if (this._infoOver === info && !(this.cardInfo && this.cardInfo.i === i)) this.openCardInfo(i, info, false);
+            if (!(this.cardInfo && this.cardInfo.i === i)) this.openCardInfo(i, info, false);
           }, 140);
         }
         // A resting mouse on an underline opens its pop, as on info; off the
@@ -2984,7 +3109,9 @@
         }
         const el = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-card]') : null;
         const i = el ? +el.dataset.mdCard : null;
-        if (i !== this.hoverCard) { this.hoverCard = i; this.markCardBar(); }
+        const bl = e && e.pointerType === 'mouse' ? e.target?.closest?.('[data-md-block]') : null;
+        const k = bl ? +bl.dataset.mdBlock : null;
+        if (i !== this.hoverCard || k !== this.hoverBlock) { this.hoverCard = i; this.hoverBlock = k; this.markCardBar(); }
       },
       // THE CARD PILL: the selected card's actions, as the words "confirm" and
       // "remove" in a small pill (Info is the card's number) centred on its bottom edge. kits/md-surface.js
@@ -3024,6 +3151,7 @@
           card.classList.toggle('border-amber-400!', k);
         }
         this.markConfirmed();
+        this.markBlock();
         for (const bar of md.querySelectorAll('[data-md-card-bar]')) {
           const on = !!el && bar.parentElement === el;
           if (on && !fresh) bar.classList.add('transition-none');
@@ -3032,6 +3160,111 @@
           for (const c of ['invisible', 'opacity-0', 'scale-75']) bar.classList.toggle(c, !on);
           if (on && !fresh) requestAnimationFrame(() => bar.classList.remove('transition-none'));
           if (!bar.__kept) { bar.__kept = true; for (const k of bar.querySelectorAll('button')) this.keepFocus(k); }
+        }
+      },
+      // ── The block under the caret, the one under the mouse, and the notes
+      // AN UNCHANGED BLOCK IS A UNIT TOO, and two of them can be marked at
+      // once, each its own way, so neither takes the other's mark:
+      //
+      //   THE CARET'S BLOCK  a light dashed outline at the extent the card
+      //                      would take: the scope an edit there would have.
+      //   THE MOUSE'S BLOCK  a light wash, on a desk only, and kept while its
+      //                      panel is open.
+      //
+      // They were one mark until 2026-10-01, the mouse's block taking it while
+      // the mouse was over one and the caret's taking it back when the mouse
+      // left, so the outline jumped between two paragraphs as the pointer
+      // moved (owner's report). Neither takes room: the outline is an
+      // `outline` and the wash is a background spread by a box-shadow, so
+      // marking moves no text. Blocks are drawn one by one even with nothing
+      // changed (MdSurface.paint `blocks`), so there is always one to mark.
+      //
+      // EACH MARKED BLOCK WEARS A BADGE AT ITS TOP LEFT, where a card keeps
+      // its number, and it opens the block's note: "+ note", or "note" once
+      // there is one. A block holding a note keeps its badge
+      // unmarked, so a note is found without visiting every paragraph; a card
+      // holding one shows it beside its number. An unchanged block has only
+      // the 8px between paragraphs where a card has padding, so the marks sit
+      // 4px out and the badge is a compact 18px pill centred on that line,
+      // which clears the line above's descenders and this line's capitals.
+      BLOCK_CARET: ['outline-1', 'outline-dashed', 'outline-offset-[4px]', 'outline-[color-mix(in_oklab,var(--color-base-content)_30%,transparent)]'],
+      BLOCK_HOVER: ['bg-[color-mix(in_oklab,var(--color-base-content)_5%,transparent)]', 'shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-base-content)_5%,transparent)]'],
+      markBlock() {
+        const md = this.$refs.md;
+        if (!md) return;
+        let caret = null, hover = null;
+        if (this.rendered && this.showMarks && !this.moveArm && !this.mover && !(this.dnd && this.dnd.target) && this.keyCard == null) {
+          const r = this.d && this.d.range;
+          if (r && !this.selCard) {
+            const p = window.MdSurface.domPoint(md, r.start, 'start'), n = p && p.node;
+            caret = (n && (n.nodeType === 1 ? n : n.parentElement))?.closest?.('[data-md-block]') || null;
+          }
+          if (this.hoverBlock != null) hover = md.querySelector('[data-md-block="' + this.hoverBlock + '"]');
+          if (this.cardInfo && this.cardInfo.block != null) hover = md.querySelector('[data-md-block="' + this.cardInfo.block + '"]') || hover;
+        }
+        const mark = (attr, el, cls) => {
+          for (const x of md.querySelectorAll('[' + attr + ']')) if (x !== el) { x.removeAttribute(attr); x.classList.remove(...cls); }
+          if (el && !el.hasAttribute(attr)) { el.setAttribute(attr, ''); el.classList.add('relative', 'rounded-[3px]', ...cls); }
+        };
+        mark('data-block-caret', caret, this.BLOCK_CARET);
+        mark('data-block-hover', hover, this.BLOCK_HOVER);
+
+        const R = window.DictateRecord, us = this.unitsNow();
+        const at = R && this.notes.length ? R.place(this.notes, us, this.text) : new Map();
+        const held = new Set(at.values());
+        // Beside a card's number.
+        for (const card of md.querySelectorAll('[data-md-card]')) {
+          const b = card.querySelector('[data-md-card-badge]');
+          if (!b) continue;
+          const i = +card.dataset.mdCard, has = us.some((u) => u.card === i && held.has(u));
+          const m = b.querySelector('[data-note-mark]');
+          if (has && !m) b.insertAdjacentHTML('beforeend', '<i data-note-mark class="ph-fill ph-note text-amber-500 ml-1 text-[12px]"></i>');
+          else if (!has && m) m.remove();
+        }
+        // The blocks: a badge on each marked block and on each holding a note.
+        const noted = new Set();
+        us.forEach((u, k) => { if (u.card == null && held.has(u)) noted.add(k); });
+        const lit = new Set([caret, hover].filter(Boolean).map((el) => +el.dataset.mdBlock));
+        const want = new Set([...noted, ...lit]);
+        for (const x of md.querySelectorAll('[data-md-block-badge]')) {
+          if (!want.has(+x.dataset.mdBlockBadge) || x.parentElement.dataset.mdBlock !== x.dataset.mdBlockBadge) x.remove();
+        }
+        // The card's number pill, compact: 18px, its centre on the marks' line
+        // 4px above the text. AMBER, AND IT SAYS WHAT IT DOES, since a bare
+        // pencil in grey went unnoticed (owner, 2026-10-01): amber is the
+        // card's action pill's colour, the one pill that acts. Words and no
+        // icon, "+ note" or "note" once there is one, the owner's pick of four
+        // shot side by side (an icon with "Add note", this, a solid fill, and
+        // bare text on the outline). The ::before widens what a thumb can hit,
+        // sideways and upward only: reaching 8px down it covered the first
+        // line's opening words, so a click meant for the caret there opened the
+        // note instead (measured 2026-10-01 on a desk).
+        const BASE = 'absolute -top-[13px] -left-[2px] z-10 h-[18px] px-1.5 flex items-center rounded-full border border-amber-400 '
+          + 'text-[12px] font-medium leading-none whitespace-nowrap select-none cursor-pointer '
+          + "before:absolute before:-inset-x-1 before:-top-2 before:bottom-0 before:content-[''] ";
+        const hoverTip = matchMedia('(hover: hover) and (pointer: fine)').matches;
+        for (const k of want) {
+          const wrap = md.querySelector('[data-md-block="' + k + '"]');
+          if (!wrap) continue;
+          let b = wrap.querySelector(':scope > [data-md-block-badge]');
+          if (!b) {
+            b = wrap.ownerDocument.createElement('button');
+            b.type = 'button'; b.dataset.mdBlockBadge = k; b.dataset.mdUi = '';
+            wrap.classList.add('relative'); wrap.appendChild(b); this.keepFocus(b);
+          }
+          const has = noted.has(k);
+          const cls = BASE + (has ? 'bg-amber-100 text-amber-800' : 'bg-amber-50 text-amber-700');
+          if (b.className !== cls) b.className = cls;
+          const html = has ? 'note' : '+ note';
+          if (b.textContent !== html) b.textContent = html;
+          b.toggleAttribute('data-noted', has);
+          b.setAttribute('aria-label', has ? 'The note on this block' : 'Add a note to this block');
+          // The title-tip only where a pointer hovers. On a phone the tap that
+          // opened the note panel below also opened the tip above, over the
+          // previous line, saying what the panel already showed (owner's
+          // screenshot, 2026-10-02). The aria-label carries it for a reader.
+          if (hoverTip) { b.dataset.titleTipBare = ''; b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block'; }
+          else { delete b.dataset.titleTip; delete b.dataset.titleTipBare; }
         }
       },
       // ── Confirm, then Apply ───────────────────────────────────────────
@@ -3065,6 +3298,96 @@
       },
       get confirmedCount() { return Object.keys(this.confirmed).length; },
       get fileRef() { return FILE ? FILE.ref || '' : ''; },
+
+      // ── Notes ────────────────────────────────────────────────────────────
+      // A NOTE IS ON A BLOCK, changed or not: written from a card's Info, or
+      // from the badge an unchanged block wears under the caret or the mouse
+      // (markBlock). Each is a record anchored to GitHub's copy
+      // (kits/dictate-record.js), so it stays on its paragraph through any
+      // edit, through the edit being taken back, and through Apply.
+      //
+      // The units are md-surface's: every block on screen, unchanged or a
+      // card, with its span in GitHub's copy. The painted ones when they are
+      // current, otherwise worked out from the two texts.
+      unitsNow() {
+        const u = this.$refs.md && this.$refs.md.__units;
+        if (u && u.base === this.fileBase && u.text === this.text) return u;
+        return window.MdSurface && this.fileBase != null ? window.MdSurface.unitsOf(this.fileBase, this.text) : [];
+      },
+      // A card's confirmation key from its unit, the same key cardId reads
+      // off the painted card, so the record can say which changes are
+      // accepted from any face.
+      unitKey(u) {
+        if (u.o[0] !== u.o[1]) return 'o' + u.o[0];
+        const above = this.text.slice(0, u.n[0]).replace(/\s+$/, '');
+        return 'a@' + above.slice(above.lastIndexOf('\n') + 1);
+      },
+      acceptedCards(units) {
+        return new Set(units.filter((u) => u.card != null && this.confirmed[this.unitKey(u)] != null).map((u) => u.card));
+      },
+      // The notes as they should be stored or sent: a note on added text
+      // quotes that text as it reads now.
+      liveNotes() {
+        if (!window.DictateRecord || !this.notes.some((n) => n.o != null && n.o === n.e)) return this.notes;
+        return window.DictateRecord.refresh(this.notes, this.unitsNow(), this.text);
+      },
+      get unplacedCount() { return this.notes.filter((n) => n.o == null).length; },
+      discardUnplaced() {
+        this.notes = this.notes.filter((n) => n.o != null);
+        this.save(); this.paintExtras();
+      },
+      // The notes a unit holds, by its span in GitHub's copy, which no edit
+      // moves, so an Info opened on a block keeps finding its notes while the
+      // reader types elsewhere.
+      notesAt(o) {
+        if (!o || !window.DictateRecord || !this.notes.length) return [];
+        const at = window.DictateRecord.place(this.notes, this.unitsNow(), this.text);
+        return this.notes.filter((n) => { const u = at.get(n.id); return u && u.o[0] === o[0] && u.o[1] === o[1]; });
+      },
+      get infoNotes() { this.beat; this.notes; return this.cardInfo && this.cardInfo.unit ? this.notesAt(this.cardInfo.unit.o) : []; },
+      // THE ONE FIELD writes the unit's first note: typing into it makes the
+      // note, emptying it deletes it. The field stays the same element
+      // throughout, so the keyboard stays up through the note being made.
+      setNote(v) {
+        const c = this.cardInfo, R = window.DictateRecord;
+        if (!c || !c.unit || !R) return;
+        const first = this.infoNotes[0];
+        if (first) this.notes = v.trim() ? this.notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== first.id);
+        else if (v.trim()) this.notes = [...this.notes, R.make(c.unit, this.fileBase, this.text, v)];
+        this.save(); this.markBlock();
+      },
+      // A second note on one unit only arises when two noted paragraphs
+      // become one card; each keeps its own field.
+      editNote(id, v) {
+        this.notes = v.trim() ? this.notes.map((n) => (n.id === id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== id);
+        this.save(); this.markBlock();
+      },
+      // THE TRASH ON A NOTE'S ROW removes the note and closes the panel, so
+      // the badge going back to "+ note" is the confirmation. Emptying the
+      // field still removes it too, but nothing said so, and on a phone it
+      // took a select-all first (owner, 2026-10-02). The page's Undo walks the
+      // text and not the notes, so the way back is the toast's, which puts the
+      // same record back, id and anchor and all.
+      removeNote(id) {
+        const gone = this.notes.find((n) => n.id === id);
+        if (!gone) return;
+        this.notes = this.notes.filter((n) => n.id !== id);
+        this.cardInfo = null; this.save(); this.markBlock();
+        Alpine.store('toast')?.('trash', 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
+          if (this.notes.some((n) => n.id === id)) return;
+          this.notes = [...this.notes, gone]; this.save(); this.markBlock();
+        } });
+      },
+      // A draft from before notes were records (2026-10-01) kept them by card
+      // key; once the cards are drawn each is put on the card it named.
+      adoptLegacyNotes() {
+        const old = this._legacyNotes, R = window.DictateRecord;
+        if (!old || !R) return;
+        this._legacyNotes = null;
+        const add = [];
+        for (const u of this.unitsNow()) if (u.card != null && old[this.unitKey(u)]) add.push(R.make(u, this.fileBase, this.text, old[this.unitKey(u)]));
+        if (add.length) { this.notes = [...this.notes, ...add]; this.save(); }
+      },
       // Each paint: confirmations whose card changed or went lapse, and the
       // confirmed cards wear it, a green number and "confirmed" in the pill.
       markConfirmed() {
@@ -3109,26 +3432,25 @@
         next = window.mdDiff.restoreUnchanged(base, next, { items: true });
         const applied = cards.filter((c) => this.confirmed[c.k] != null);
         const first = (s) => (s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)');
-        const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)) + (this.notes[c.k] ? '\n  ' + this.notes[c.k].replace(/\n/g, '\n  ') : ''));
+        // What changed, by each change's opening words, and nothing else:
+        // notes are not commit text. They stay on the page and leave in the
+        // record (see `record`).
+        const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)));
         const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n');
-        // Notes on the cards that stay are carried to their new keys by their texts.
-        const kept = cards.filter((c) => this.confirmed[c.k] == null && this.notes[c.k]).map((c) => ({ o: c.sp.O.s, n: c.sp.N.s, note: this.notes[c.k] }));
         this.applying = true;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
           const body = { message, content: b64(next), sha: this.fileSha };
           if (FILE.ref) body.branch = FILE.ref;
           const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
-          this.fileSha = res.content.sha;
+          this.fileSha = this.baseSha = res.content.sha;
           this.fileBase = next;
-          this.confirmed = {}; this.notes = {};
+          this.confirmed = {};
+          // Every note moves through the commit: one on an applied change
+          // lands on its text, now GitHub's; one on a change still pending
+          // stays on it; one whose text went out is kept unplaced.
+          this.notes = window.DictateRecord.rebase(this.notes, base, next);
           this.paint();
-          const m = window.MdSurface.cards(md).length;
-          for (let i = 0; i < m; i++) {
-            const sp = this.cardSpans(i), hit = kept.find((x) => x.o === sp.O.s && x.n === sp.N.s);
-            if (hit) this.notes[this.cardId(i)] = hit.note;
-          }
-          this.notes = { ...this.notes };
           this.save();
           Alpine.store('toast')('check', `Applied ${applied.length} to ${this.fileWhere}`, 'alert-success', 3200);
         } catch (e) {
@@ -3177,11 +3499,13 @@
         // The kit's pointer guard would close a pinned panel the moment the
         // mouse left it, so a pinned one is wired without it.
         this._infoWire?.detach();
-        this._infoWire = window.PanelTip.wire(el, { onClose: () => { this.cardInfo = null; }, label: 'card info',
+        this._infoWire = window.PanelTip.wire(el, { onClose: () => { this.cardInfo = null; this.markBlock(); }, label: 'card info',
           // Hover-opened, the card itself counts as near, since reaching the
           // panel from the number means crossing the card; pinned, a press on
           // the card is outside like any other.
-          except: pinned ? ['[data-md-card-badge]'] : ['[data-md-card-badge]', '[data-md-card="' + this.cardInfo.i + '"]'],
+          except: this.cardInfo.block != null
+            ? (pinned ? ['[data-md-block-badge]'] : ['[data-md-block-badge]', '[data-md-block="' + this.cardInfo.block + '"]'])
+            : pinned ? ['[data-md-card-badge]'] : ['[data-md-card-badge]', '[data-md-card="' + this.cardInfo.i + '"]'],
           stale: pinned ? 'geometry' : true });
       },
       // A card's source, both sides: { s, a, line } for GitHub's copy (O) and
@@ -3331,22 +3655,54 @@
         const a = lines[0], z = lines[lines.length - 1];
         const where = !lines.length ? '' : changed === 1 || a === z ? 'line ' + a : changed + ' lines, ' + a + '–' + z;
         const ow = wc(O.s), nw = wc(N.s);
-        // Above or below the CARD, not its number: the number sits on the
-        // card's top edge, and a panel hung from it covered the very change
-        // it describes.
-        const b = (k.closest && k.closest('[data-md-card]') || k).getBoundingClientRect();
+        this.cardInfo = { i, block: null, rows, kind, title: 'Change ' + (i + 1),
+          unit: this.unitsNow().find((u) => u.card === i) || null,
+          sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
+          ...this.infoPlace(k.closest && k.closest('[data-md-card]') || k) };
+        this.$nextTick(() => this.pinInfo(pinned));
+      },
+      // Above or below the unit, not its badge: the badge sits on the unit's
+      // edge, and a panel hung from it covered the very text it is about.
+      infoPlace(el) {
+        const b = el.getBoundingClientRect();
         const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
         const below = innerHeight - b.bottom > b.top;
-        this.cardInfo = { i, rows, kind, w, key: this.cardId(i),
-          sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
+        return { w,
           x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
-          // 16px clear of the card, past the pills that straddle its edges.
+          // 16px clear of the unit, past the pills that straddle its edges.
           pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px',
           // The diff scrolls past a quarter of the screen (owner, 2026-10-01):
           // capped only by the room beside the card, a long paragraph's panel
           // covered most of a phone and the card with it.
           room: Math.max(120, Math.min(Math.round(innerHeight / 4), (below ? innerHeight - b.bottom : b.top) - 60)) };
-        this.$nextTick(() => this.pinInfo(pinned));
+      },
+      // AN UNCHANGED BLOCK'S PANEL is a card's Info with no change in it: what
+      // the block is and where, and its note. A field for one when it has
+      // none, focused, since a note is what the badge was tapped for.
+      openBlockInfo(k, el, pinned = true) {
+        const u = this.unitsNow()[k], wrap = this.$refs.md.querySelector('[data-md-block="' + k + '"]');
+        if (!u || !wrap) return;
+        const src = this.fileBase.slice(u.o[0], u.o[1]).trimEnd();
+        const a = this.fileBase.slice(0, u.o[0]).split('\n').length, z = a + (src.match(/\n/g) || []).length;
+        const kind = /^#{1,6}\s/.test(src) ? 'Heading' : /^\s*([-*+]|\d{1,9}[.)])(\s|$)/.test(src) ? 'List item'
+          : /^(```|~~~)/.test(src) ? 'Code' : /^\s*\|/.test(src) ? 'Table' : /^>/.test(src) ? 'Quote' : 'Paragraph';
+        this.cardInfo = { i: null, block: k, rows: [], kind: '', title: kind, unit: u,
+          sum: a === z ? 'line ' + a : (z - a + 1) + ' lines, ' + a + '–' + z, ...this.infoPlace(wrap) };
+        // THE FIELD TAKES FOCUS INSIDE THE TAP. iOS raises the keyboard only
+        // for a focus made while the tap is still being handled, and $nextTick
+        // is far too late: Alpine holds it until the panel's fade has run, a
+        // frame and 90ms on, so the field was focused with no keyboard and
+        // wanted a second tap (owner's question, 2026-10-02). A microtask
+        // queued here runs after Alpine's own render of the field and still
+        // inside the tap. The fade would show the panel a frame later, so it
+        // is shown here, still clear, and fades in from there.
+        if (pinned) queueMicrotask(() => {
+          const info = this.$refs.info, f = info && info.querySelector('[data-info-note]');
+          if (!f || this.infoNotes.length) return;
+          info.style.display = '';
+          f.focus({ preventScroll: true });
+        });
+        this.$nextTick(() => { this.pinInfo(pinned); this.markBlock(); });
       },
       // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
       // segs: [{ t, cls }] }. A removed run facing an added one is paired line
@@ -3392,9 +3748,9 @@
         }
         return { rows: out, changed };
       },
-      // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone.
-      // One undo still reaches the edit (loadFile). Offered from the unsaved
-      // mark itself and from the menu.
+      // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone and
+      // the notes kept (loadFile). One undo still reaches the edit. Offered
+      // from the unsaved mark itself and from the menu.
       clearEdits() { this.loadFile(true); },
       unsavedTap(ev) {
         if (!window.rowMenu) { this.clearEdits(); return; }
@@ -3553,7 +3909,7 @@
       },
       toggleNativeSel() {
         this.nativeSel = !this.nativeSel;
-        ls.set('dictate:sel', this.nativeSel ? 'native' : 'painted');
+        ls.set(SEL, this.nativeSel ? 'native' : 'painted');
         this.menu = false; this.moveArm = null; this._lastNative = '';
         try { document.getSelection().removeAllRanges(); } catch {}
         this.paint();
@@ -3873,7 +4229,7 @@
         // session, since there is nothing to save.
         if (FILE) {
           this.d.flush();
-          this.sendWhat = this.dirty ? 'patch' : 'file';
+          this.sendWhat = this.dirty || this.notes.length ? 'record' : 'file';
           this.sendTarget = this.dirty ? 'save' : 'code';
           if (!this.sendRepos.length) this.sendRepos = [FILE.repo];
         }
@@ -3946,12 +4302,44 @@
       // it belongs; Share and Copy get the bare patch, which is what git and a
       // paste want. The whole file is the buffer either way.
       get sendPayload() {
+        if (FILE && this.sendWhat === 'record') return this.record ? (this.recordAs === 'json' ? this.recordPrompt : window.DictateRecord.prompt(this.record)) : '';
         if (FILE && this.sendWhat === 'patch') return this.patchPrompt;
         return this.outgoing();
       },
       get sharePayload() {
+        if (FILE && this.sendWhat === 'record') return this.recordText;
         if (FILE && this.sendWhat === 'patch') return this.patchText;
         return this.outgoing();
+      },
+      // THE RECORD: this file, the version its line numbers count in, then the
+      // changes and the notes, either of which may be empty (`dictate/1`,
+      // kits/dictate-record.js). Only while the sheet is open, as the patch
+      // is, since it aligns the whole file.
+      get record() {
+        this.beat; this.notes; this.confirmed;
+        if (!this.sendOpen || !FILE || this.fileBase == null || !window.DictateRecord || !window.MdSurface) return null;
+        const units = this.unitsNow();
+        const target = { repository: FILE.repo, ...(FILE.ref ? { ref: FILE.ref } : {}), path: FILE.path, blob: this.baseSha };
+        return window.DictateRecord.build({ target, base: this.fileBase, text: this.text, units,
+          notes: this.liveNotes(), accepted: this.acceptedCards(units) });
+      },
+      get recordText() {
+        const r = this.record;
+        return !r ? '' : this.recordAs === 'json' ? JSON.stringify(r, null, 2) + '\n' : window.DictateRecord.markdown(r);
+      },
+      get recordPrompt() {
+        const r = this.record;
+        return !r ? '' : 'Here is a `dictate/1` record of changes and notes on `' + FILE.path + '` in ' + FILE.repo
+          + '. A change marked accepted is one the reader confirmed. Apply the accepted changes on a new branch, weigh the others,'
+          + ' act on the notes where they ask for something, and open a PR for anything you change.\n\n```json\n' + JSON.stringify(r, null, 2) + '\n```';
+      },
+      get sendCount() {
+        if (!FILE) return this.words + ' words';
+        if (this.sendWhat === 'record') {
+          const r = this.record;
+          return r ? r.changes.length + (r.changes.length === 1 ? ' change · ' : ' changes · ') + r.notes.length + (r.notes.length === 1 ? ' note' : ' notes') : '';
+        }
+        return this.sendWhat === 'patch' ? this.patchText.split('\n').length + ' patch lines' : this.words + ' words';
       },
       get sendTargetRow() { return this.sendTargets.find((t) => t.key === this.sendTarget) || null; },
 
@@ -4153,9 +4541,17 @@
                One step of undo still reaches the edit, as it does for New. -->
           <button x-show="file" @click="clearEdits(); menu = false" :disabled="fileLoading"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
-                  :title="dirty ? 'Discard every edit and reopen the file as GitHub holds it' : 'Reopen the file as GitHub holds it now'">
+                  :title="dirty ? 'Discard every edit and reopen the file as GitHub holds it. Notes stay.' : 'Reopen the file as GitHub holds it now. Notes stay.'">
             <i class="ph text-lg opacity-60" :class="dirty ? 'ph-x-circle' : 'ph-arrow-clockwise'"></i>
             <span x-text="dirty ? 'Clear all edits' : 'Reload'"></span>
+          </button>
+          <!-- Notes whose text left GitHub's copy, kept in the record until
+               the reader lets them go; only here when there are some. -->
+          <button x-show="file && unplacedCount" x-cloak @click="discardUnplaced(); menu = false" data-discard-unplaced
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
+                  title="Delete the notes whose text is no longer in the file">
+            <i class="ph ph-note text-lg opacity-60"></i>
+            <span x-text="'Discard ' + unplacedCount + ' unplaced note' + (unplacedCount === 1 ? '' : 's')"></span>
           </button>
           <button x-show="file" @click="unwrapLines()" :disabled="!!(fileLoading || blank)"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
@@ -4164,7 +4560,7 @@
           </button>
           <button x-show="file" @click="toggleNativeSel()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Select words with the phone's own long press and handles, instead of the page's pins. Rendered view only.">
+                  title="Select with the browser's own long press and handles, or the mouse: the default. Unchecked, the page's own selection with its pins. Rendered view only.">
             <i class="ph ph-cursor-text text-lg opacity-60"></i>Native selection
             <i x-show="nativeSel" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
@@ -4320,12 +4716,12 @@
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
-          <span class="font-medium" x-text="'Change ' + (cardInfo ? cardInfo.i + 1 : '')"></span>
+          <span class="font-medium" x-text="cardInfo ? cardInfo.title : ''"></span>
           <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
           <span x-show="cardInfo && cardInfo.kind" data-info-kind
                 class="ml-auto rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
         </div>
-        <div data-info-diff class="overflow-auto overscroll-contain py-1 font-mono text-xs leading-5"
+        <div data-info-diff x-show="cardInfo && cardInfo.rows.length" class="overflow-auto overscroll-contain py-1 font-mono text-xs leading-5"
              :style="cardInfo ? 'max-height:' + cardInfo.room + 'px' : ''">
           <template x-for="(r, k) in (cardInfo ? cardInfo.rows : [])" :key="k">
             <div class="grid grid-cols-[2.75rem_1rem_minmax(0,1fr)]" :data-row="r.kind" :data-raw="r.raw"
@@ -4336,15 +4732,37 @@
             </div>
           </template>
         </div>
-        <!-- A NOTE ON THE CHANGE, kept with the draft and carried into the
-             commit message of whatever lands it, Apply or Save, under the
-             change's opening words. -->
-        <template x-if="cardInfo && cardInfo.key">
-          <div class="border-t border-base-300 px-3 py-2">
-            <textarea data-info-note rows="1" placeholder="Add a note for the commit"
-                      class="textarea textarea-ghost w-full min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                      :value="notes[cardInfo.key] || ''" @focus="cardInfo.pinned || pinInfo(true)"
-                      @input="notes[cardInfo.key] = $event.target.value.trim() ? $event.target.value : undefined; if (notes[cardInfo.key] === undefined) delete notes[cardInfo.key]; save()"></textarea>
+        <!-- THE NOTE ON THE UNIT, a card or an unchanged block: a record kept
+             with the draft and handed over in the record Send carries, never
+             in a commit. One field writes the first note and stays the same
+             element while it is made; a second only arises when two noted
+             paragraphs become one card, and keeps its own field. Each field
+             has a trash on its first line, its right edge on the panel's, the
+             same edge as the kind pill in the header; the first one's column
+             is held while the field is empty, so typing never reflows it. -->
+        <template x-if="cardInfo && cardInfo.unit">
+          <div class="px-3 py-2 flex flex-col gap-1.5" :class="cardInfo.rows.length && 'border-t border-base-300'">
+            <div class="flex items-start gap-2">
+              <textarea data-info-note rows="1" placeholder="Add a note"
+                        class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                        :value="infoNotes[0] ? infoNotes[0].text : ''" @focus="cardInfo.pinned || pinInfo(true)"
+                        @input="setNote($event.target.value)"></textarea>
+              <button type="button" data-info-note-remove :class="infoNotes[0] ? '' : 'invisible'"
+                      class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
+                      title="Remove note" aria-label="Remove note"
+                      @click="infoNotes[0] && removeNote(infoNotes[0].id)"><i class="ph ph-trash text-[15px]"></i></button>
+            </div>
+            <template x-for="n in infoNotes.slice(1)" :key="n.id">
+              <div class="flex items-start gap-2 pt-1.5 border-t border-base-300">
+                <textarea data-info-note rows="1"
+                          class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 rounded-none text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                          :value="n.text" @focus="cardInfo.pinned || pinInfo(true)" @input="editNote(n.id, $event.target.value)"></textarea>
+                <button type="button" data-info-note-remove
+                        class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
+                        title="Remove note" aria-label="Remove note"
+                        @click="removeNote(n.id)"><i class="ph ph-trash text-[15px]"></i></button>
+              </div>
+            </template>
           </div>
         </template>
       </div>
@@ -4426,7 +4844,7 @@
              how many and the branch they will be committed to. -->
         <button x-show="confirmedCount" x-cloak @click="applyConfirmed()" :disabled="applying" data-apply
                 class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
-                data-title-tip-bare :data-title-tip="'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit, with their notes.'">
+                data-title-tip-bare :data-title-tip="'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
           <i class="ph ph-check-circle"></i>
           <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
         </button>
@@ -4734,9 +5152,17 @@
          style="padding-bottom:calc(env(safe-area-inset-bottom) + 1.5rem)">
       <div class="flex items-center gap-2">
         <span class="font-medium">Send</span>
-        <span class="font-mono text-xs opacity-40"
-              x-text="file ? (sendWhat === 'patch' ? (patchText.split('\n').length + ' patch lines') : (words + ' words')) : (words + ' words')"></span>
+        <span class="font-mono text-xs opacity-40 truncate min-w-0" data-send-count x-text="sendCount"></span>
         <div class="grow"></div>
+        <!-- The record's two readings, and a look at exactly what goes. -->
+        <div x-show="file && sendWhat === 'record'" class="join shrink-0">
+          <button @click="recordAs = 'md'" class="join-item btn btn-xs" :class="recordAs === 'md' ? 'btn-active' : 'btn-ghost'" data-title-tip-bare data-title-tip="Markdown, for a chat or a session">MD</button>
+          <button @click="recordAs = 'json'" class="join-item btn btn-xs" :class="recordAs === 'json' ? 'btn-active' : 'btn-ghost'" data-title-tip-bare data-title-tip="JSON, the dictate/1 record">JSON</button>
+        </div>
+        <button x-show="file" @click="sendPreview = !sendPreview" class="btn btn-ghost btn-sm btn-square" :class="sendPreview && 'btn-active'"
+                data-send-preview-toggle aria-label="Show what goes" data-title-tip-bare data-title-tip="Show what goes">
+          <i class="ph ph-eye text-lg"></i>
+        </button>
         <button @click="sendOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
       </div>
 
@@ -4744,15 +5170,21 @@
            what a reviewer or a session wants, or the whole file. Save commits
            the file either way; the choice is for the other rows and the foot. -->
       <div x-show="file" class="join w-full">
-        <button @click="sendWhat = 'patch'" :disabled="!dirty" class="join-item btn btn-sm grow"
-                :class="sendWhat === 'patch' ? 'btn-active' : 'btn-ghost bg-base-200'">
-          <i class="ph ph-git-diff"></i>The edit
+        <button @click="sendWhat = 'record'" :disabled="!dirty && !notes.length" class="join-item btn btn-sm grow px-2" data-send-what="record"
+                :class="sendWhat === 'record' ? 'btn-active' : 'btn-ghost bg-base-200'">
+          <i class="ph ph-notepad"></i>Changes &amp; notes
         </button>
-        <button @click="sendWhat = 'file'" class="join-item btn btn-sm grow"
+        <button @click="sendWhat = 'patch'" :disabled="!dirty" class="join-item btn btn-sm grow px-2" data-send-what="patch"
+                :class="sendWhat === 'patch' ? 'btn-active' : 'btn-ghost bg-base-200'">
+          <i class="ph ph-git-diff"></i>Patch
+        </button>
+        <button @click="sendWhat = 'file'" class="join-item btn btn-sm grow px-2" data-send-what="file"
                 :class="sendWhat === 'file' ? 'btn-active' : 'btn-ghost bg-base-200'">
-          <i class="ph ph-file-text"></i>The whole file
+          <i class="ph ph-file-text"></i>Whole file
         </button>
       </div>
+      <pre x-show="file && sendPreview" x-cloak data-send-preview x-text="sharePayload"
+           class="shrink-0 max-h-[35vh] overflow-auto overscroll-contain rounded-box border border-base-300 bg-base-200/50 p-2.5 font-mono text-xs leading-5 whitespace-pre-wrap break-words"></pre>
       <div class="flex flex-col gap-1">
         <template x-for="t in sendTargets" :key="t.key">
           <button @click="t.available && (sendTarget = t.key)" :disabled="!t.available"
@@ -4828,7 +5260,7 @@
         </button>
         <button x-show="file" @click="copyPayload()"
                 class="btn h-12 min-h-0 grow basis-0 gap-1.5 btn-ghost bg-base-200"
-                :title="sendWhat === 'patch' ? 'Copy the patch: git apply takes it' : 'Copy the whole file'">
+                :title="sendWhat === 'record' ? 'Copy the changes and notes' : sendWhat === 'patch' ? 'Copy the patch: git apply takes it' : 'Copy the whole file'">
           <i class="ph ph-clipboard-text text-lg"></i><span>Copy</span>
         </button>
         <button @click="send()" :disabled="!sendReady"
@@ -4888,6 +5320,11 @@
     <div class="alert text-base gap-2" :class="t.cls">
       <i class="ph" :class="'ph-'+t.icon"></i>
       <span x-text="t.msg"></span>
+      <!-- At most one action, drawn as the app draws it; a removed note's
+           Undo is the caller here (see removeNote). -->
+      <button x-show="t.action" @click="t.action.run()"
+              class="btn btn-ghost btn-xs gap-1 shrink-0">
+        <i class="ph ph-arrow-counter-clockwise"></i><span x-text="t.action?.label"></span></button>
     </div>
   </template>
 </div>
