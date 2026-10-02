@@ -24,6 +24,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const SCRIPT = path.join(repoRoot, 'scripts/showing.py');
 const ZERO = '0'.repeat(40);
+// A link spells a commit at 12 characters; the JSON keeps it whole.
+const Z12 = ZERO.slice(0, 12);
 
 function run(files, extra = []) {
   const out = execFileSync('python3', [SCRIPT, '--files', files, '--json', ...extra],
@@ -44,7 +46,8 @@ test('a lib change resolves to ?use=, which is the call the repo got wrong by ha
   assert.equal(d.mechanism, 'use');
   const app = d.links.find(l => l.page === 'app/index.html');
   assert.ok(app, 'the app is the subject, since app-routes.csv declares the file as its code');
-  assert.match(app.url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/app/\\?use=${ZERO}`));
+  assert.match(app.url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/app/\\?use=${Z12}(&|$)`));
+  assert.equal(d.sha, ZERO, 'the JSON keeps the whole commit; only the link is short');
   // Not seven links. A page importing the pre-build LOADS every component and
   // renders few, so those are reported as carried rather than offered.
   assert.equal(d.links.length, 1);
@@ -80,7 +83,7 @@ test('a page file resolves to the toss, since ?use= never swaps a page shell', (
   // pin with no frame survives, and a frame under an unpinned shell survives
   // with the subject still pinned to the branch.
   assert.doesNotMatch(l.url, /toss-render\.html\?use=/);
-  assert.match(l.url, /toss-render\.html#gh=mehrlander\/web-tools@0{40}:pages\/session\.html$/);
+  assert.match(l.url, /toss-render\.html#gh=mehrlander\/web-tools@0{12}:pages\/session\.html$/);
 });
 
 test('the renderer previews by nesting rather than by rendering itself', () => {
@@ -225,11 +228,12 @@ test('a framed page resolves to the app carrying its view, never to the page on 
   const [l] = d.links;
   assert.equal(l.page, 'projects/budget-drs/app/view/app.html');
   assert.equal(l.view, 'submittal');
-  assert.match(l.url, new RegExp(`#gh=mehrlander/home@${ZERO}:projects/budget-drs/app/view/app\\.html\\?view=submittal$`));
+  assert.match(l.url, new RegExp(`#gh=mehrlander/home@${Z12}:projects/budget-drs/app/view/app\\.html\\?view=submittal$`));
   assert.doesNotMatch(l.url, /\?use=/, 'the renderer is web-tools main; the ref belongs to the framed repo');
-  // The address is over the MCP body cap, and the warning says where that
-  // matters rather than shortening it by hand.
-  assert.ok(d.warnings.some(w => /150\+ characters/.test(w)));
+  // The MCP body-cap warning fires exactly when the address reaches the cap,
+  // and says where that matters rather than shortening it by hand. This one
+  // fell under it on 2026-10-02, when commits went to 12 characters.
+  assert.equal(d.warnings.some(w => /150\+ characters/.test(w)), l.url.length >= 150);
 });
 
 test("a change under the app's own folder is the app, bare, since the path does not name a view", () => {
@@ -248,7 +252,7 @@ test('an HTML file the manifest does not frame is tossed on its own and said to 
   const d = runIn(framedRepo(), 'created/thing.html,chron/2026/09/x.md');
   assert.equal(d.mechanism, 'toss-app');
   assert.equal(d.links[0].page, 'created/thing.html');
-  assert.match(d.links[0].url, /#gh=mehrlander\/home@0{40}:created\/thing\.html$/);
+  assert.match(d.links[0].url, /#gh=mehrlander\/home@0{12}:created\/thing\.html$/);
   assert.ok(d.warnings.some(w => /not declared under showing\.views/.test(w)));
 });
 
@@ -286,14 +290,15 @@ test('--at puts a fragment on a framed link', () => {
 // branch point, and the branch removes none. --overlay yes stands in for a main
 // whose renderer and build read path entries; --main-changed, --removed and
 // --behind stand in for the git facts.
-const BASE = 'b'.repeat(40);
+const B12 = 'b'.repeat(12);
 test('a lib change on a branch behind main, touching nothing main touched, is an overlay pinned to main', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/kits/other.js']);
   assert.equal(d.mechanism, 'overlay');
   assert.equal(d.links.find(l => l.page === 'app/index.html').url,
     'https://mehrlander.github.io/web-tools/pages/toss-render.html'
-    + `?refs=mehrlander/web-tools@${BASE}&refs=mehrlander/web-tools@${ZERO}:lib/alpineComponents/estate.js`
-    + `#gh=mehrlander/web-tools@${BASE}:app/index.html`, 'main is pinned, the build left out, the one file over it');
+    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
+    + `#gh=mehrlander/web-tools@${B12}:app/index.html`, 'main is pinned, the build left out, the one file over it');
+  assert.ok(d.warnings.some(w => /150\+ characters/.test(w)), 'an overlay still passes the MCP body cap, and says so');
   assert.ok(d.why.some(w => /9 commit\(s\) behind main.*a merge would produce/.test(w)));
 });
 
@@ -305,18 +310,18 @@ test('main having changed an overlaid file refuses the overlay and says neither 
 });
 
 test('a deleted or renamed file refuses the overlay', () => {
-  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--removed', 'lib/kits/old.js']);
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2', '--removed', 'lib/kits/old.js']);
   assert.equal(d.mechanism, 'toss-gh');
   assert.ok(d.warnings.some(w => /deletes or renames lib\/kits\/old\.js/.test(w)));
 });
 
-test('a changed page is addressed at the branch, with pinned main under it and its other files over it', () => {
-  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes']);
+test('on a lagging branch a changed page is addressed at the branch, with pinned main under it and its other files over it', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2']);
   assert.equal(d.mechanism, 'overlay');
   assert.equal(d.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
-    + `?refs=mehrlander/web-tools@${BASE}&refs=mehrlander/web-tools@${ZERO}:lib/kits/branch-status.js`
-    + `#gh=mehrlander/web-tools@${ZERO}:pages/diff-tool.html`);
-  assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
+    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/kits/branch-status.js`
+    + `#gh=mehrlander/web-tools@${Z12}:pages/diff-tool.html`);
+  assert.ok(d.why.some(w => /2 commit\(s\) behind main.*a merge would produce/.test(w)));
 });
 
 test('while main cannot read path entries, a lib change stays on ?use=', () => {
@@ -326,7 +331,7 @@ test('while main cannot read path entries, a lib change stays on ?use=', () => {
 
 test('past the cap the overlay steps aside and says so', () => {
   const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).join(',');
-  const d = run(many, ['--overlay', 'yes']);
+  const d = run(many, ['--overlay', 'yes', '--behind', '2']);
   assert.equal(d.mechanism, 'use');
   assert.ok(d.warnings.some(w => /past the overlay's 20/.test(w)));
 });
@@ -337,4 +342,29 @@ test('a generated catalog both sides changed is read at main, named, and does no
   assert.equal(d.mechanism, 'overlay');
   assert.ok(!d.links[0].url.includes('docs/tests.csv'), 'a regenerated file is not overlaid');
   assert.ok(d.why.some(w => /generated file\(s\).*docs\/tests\.csv.*read at main/.test(w)));
+});
+
+// Level with main, a merge fast-forwards, so the branch's own commit is the
+// merge and one ref shows it. The overlay listed main and every changed file
+// as separate refs even then, which is how a branch zero commits behind
+// handed over links several hundred characters long (2026-10-02).
+test('level with main, a changed page is the plain toss at the branch, not an overlay', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js,dist/web-tools.js', ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.links[0].url, `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:pages/diff-tool.html`);
+  assert.ok(d.why.some(w => /level with main.*fast-forward/.test(w)));
+  assert.ok(!d.warnings.some(w => /overlay/.test(w)), 'nothing to refuse when no overlay is wanted');
+});
+
+test('level with main, a rebuilt lib change is ?use= at the branch, and the cap does not apply', () => {
+  const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).concat('dist/web-tools.js').join(',');
+  const d = run(many, ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'use');
+  assert.ok(!d.warnings.some(w => /past the overlay/.test(w)));
+});
+
+test('level with main, a lib change with no rebuilt bundle keeps the overlay, which steps around the stale build', () => {
+  const d = run('lib/alpineComponents/estate.js', ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
 });
