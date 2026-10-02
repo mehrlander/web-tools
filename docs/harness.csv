@@ -202,6 +202,7 @@ tools/render/scenarios/fence-label-clear.mjs,,tools/render/scenarios,64,driver,n
 tools/render/scenarios/files-view-tap-and-deck.mjs,,tools/render/scenarios,61,driver,no,no,yes
 tools/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,tools/render/scenarios,36,driver,no,yes,no
 tools/render/scenarios/installation-home.mjs,,tools/render/scenarios,91,driver,no,no,no
+tools/render/scenarios/jot-ask.mjs,,tools/render/scenarios,47,driver,no,no,no
 tools/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,tools/render/scenarios,67,driver,no,no,no
 tools/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,tools/render/scenarios,53,driver,no,no,no
 tools/render/scenarios/map-data-census.mjs,,tools/render/scenarios,64,driver,no,no,yes
