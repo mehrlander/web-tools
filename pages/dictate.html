@@ -3235,6 +3235,7 @@
         const BASE = 'absolute -top-[13px] -left-[2px] z-10 h-[18px] px-1.5 flex items-center rounded-full border border-amber-400 '
           + 'text-[12px] font-medium leading-none whitespace-nowrap select-none cursor-pointer '
           + "before:absolute before:-inset-x-1 before:-top-2 before:bottom-0 before:content-[''] ";
+        const hoverTip = matchMedia('(hover: hover) and (pointer: fine)').matches;
         for (const k of want) {
           const wrap = md.querySelector('[data-md-block="' + k + '"]');
           if (!wrap) continue;
@@ -3251,7 +3252,12 @@
           if (b.textContent !== html) b.textContent = html;
           b.toggleAttribute('data-noted', has);
           b.setAttribute('aria-label', has ? 'The note on this block' : 'Add a note to this block');
-          b.dataset.titleTipBare = ''; b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block';
+          // The title-tip only where a pointer hovers. On a phone the tap that
+          // opened the note panel below also opened the tip above, over the
+          // previous line, saying what the panel already showed (owner's
+          // screenshot, 2026-10-02). The aria-label carries it for a reader.
+          if (hoverTip) { b.dataset.titleTipBare = ''; b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block'; }
+          else { delete b.dataset.titleTip; delete b.dataset.titleTipBare; }
         }
       },
       // ── Confirm, then Apply ───────────────────────────────────────────
@@ -3348,6 +3354,22 @@
       editNote(id, v) {
         this.notes = v.trim() ? this.notes.map((n) => (n.id === id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== id);
         this.save(); this.markBlock();
+      },
+      // THE TRASH ON A NOTE'S ROW removes the note and closes the panel, so
+      // the badge going back to "+ note" is the confirmation. Emptying the
+      // field still removes it too, but nothing said so, and on a phone it
+      // took a select-all first (owner, 2026-10-02). The page's Undo walks the
+      // text and not the notes, so the way back is the toast's, which puts the
+      // same record back, id and anchor and all.
+      removeNote(id) {
+        const gone = this.notes.find((n) => n.id === id);
+        if (!gone) return;
+        this.notes = this.notes.filter((n) => n.id !== id);
+        this.cardInfo = null; this.save(); this.markBlock();
+        Alpine.store('toast')?.('trash', 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
+          if (this.notes.some((n) => n.id === id)) return;
+          this.notes = [...this.notes, gone]; this.save(); this.markBlock();
+        } });
       },
       // A draft from before notes were records (2026-10-01) kept them by card
       // key; once the cards are drawn each is put on the card it named.
@@ -4697,17 +4719,32 @@
              with the draft and handed over in the record Send carries, never
              in a commit. One field writes the first note and stays the same
              element while it is made; a second only arises when two noted
-             paragraphs become one card, and keeps its own field. -->
+             paragraphs become one card, and keeps its own field. Each field
+             has a trash on its first line, its right edge on the panel's, the
+             same edge as the kind pill in the header; the first one's column
+             is held while the field is empty, so typing never reflows it. -->
         <template x-if="cardInfo && cardInfo.unit">
           <div class="px-3 py-2 flex flex-col gap-1.5" :class="cardInfo.rows.length && 'border-t border-base-300'">
-            <textarea data-info-note rows="1" placeholder="Add a note"
-                      class="textarea textarea-ghost w-full min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                      :value="infoNotes[0] ? infoNotes[0].text : ''" @focus="cardInfo.pinned || pinInfo(true)"
-                      @input="setNote($event.target.value)"></textarea>
+            <div class="flex items-start gap-2">
+              <textarea data-info-note rows="1" placeholder="Add a note"
+                        class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                        :value="infoNotes[0] ? infoNotes[0].text : ''" @focus="cardInfo.pinned || pinInfo(true)"
+                        @input="setNote($event.target.value)"></textarea>
+              <button type="button" data-info-note-remove :class="infoNotes[0] ? '' : 'invisible'"
+                      class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
+                      title="Remove note" aria-label="Remove note"
+                      @click="infoNotes[0] && removeNote(infoNotes[0].id)"><i class="ph ph-trash text-[15px]"></i></button>
+            </div>
             <template x-for="n in infoNotes.slice(1)" :key="n.id">
-              <textarea data-info-note rows="1"
-                        class="textarea textarea-ghost w-full min-h-0 h-auto px-0 pt-1.5 pb-0 border-t border-base-300 rounded-none text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                        :value="n.text" @focus="cardInfo.pinned || pinInfo(true)" @input="editNote(n.id, $event.target.value)"></textarea>
+              <div class="flex items-start gap-2 pt-1.5 border-t border-base-300">
+                <textarea data-info-note rows="1"
+                          class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 rounded-none text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                          :value="n.text" @focus="cardInfo.pinned || pinInfo(true)" @input="editNote(n.id, $event.target.value)"></textarea>
+                <button type="button" data-info-note-remove
+                        class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
+                        title="Remove note" aria-label="Remove note"
+                        @click="removeNote(n.id)"><i class="ph ph-trash text-[15px]"></i></button>
+              </div>
             </template>
           </div>
         </template>
@@ -5266,6 +5303,11 @@
     <div class="alert text-base gap-2" :class="t.cls">
       <i class="ph" :class="'ph-'+t.icon"></i>
       <span x-text="t.msg"></span>
+      <!-- At most one action, drawn as the app draws it; a removed note's
+           Undo is the caller here (see removeNote). -->
+      <button x-show="t.action" @click="t.action.run()"
+              class="btn btn-ghost btn-xs gap-1 shrink-0">
+        <i class="ph ph-arrow-counter-clockwise"></i><span x-text="t.action?.label"></span></button>
     </div>
   </template>
 </div>

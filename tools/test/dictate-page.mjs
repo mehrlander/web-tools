@@ -1470,9 +1470,11 @@ try {
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
       lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
-      pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: p.querySelectorAll('button').length, under };
+      pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: [...p.querySelectorAll('button')].filter((b) => getComputedStyle(b).visibility !== 'hidden').length, under };
     // No ✕, by the owner's choice: Escape puts it away, and so does a press
-    // anywhere outside it.
+    // anywhere outside it. A note's trash is the one button the panel shows,
+    // and only while there is a note; this card has none, so its trash is
+    // held hidden and is not counted.
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise((r) => setTimeout(r, 50));
     out.fmt.escaped = c.cardInfo === null;
@@ -2167,6 +2169,45 @@ try {
     !!blockNote.held && blockNote.held.text === null && blockNote.held.notes.join() === 'Is this still true?' && blockNote.held.base === blockNote.held.sha, JSON.stringify(blockNote.held));
   ok('the noted block keeps its mark with the caret gone; edited, its card carries the mark and its Info the note; taken back, the note is on the block again',
     blockNote.mark && blockNote.cardMark && blockNote.cardNote === 'Is this still true?' && blockNote.back, JSON.stringify(blockNote));
+  // REMOVING A NOTE: the trash on its row, on the field's first line and the
+  // panel's right edge, removes it and closes the panel; the toast's Undo
+  // puts the same record back. An empty field shows no trash. On a phone the
+  // badge carries no title-tip, which a tap opened over the line above.
+  const removed = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const block = (t) => [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes(t));
+    const badgeOf = (t) => block(t).closest('[data-md-block]').querySelector('[data-md-block-badge]');
+    c.d.caretAt(+block('Third para').querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
+    badgeOf('Third para').click(); await wait(200);
+    const out = { emptyTrash: getComputedStyle(document.querySelector('[data-card-info] [data-info-note-remove]')).visibility };
+    c.cardInfo = null;
+    c.d.caretAt(+block('Second para').querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
+    const b = badgeOf('Second para');
+    out.tip = b.hasAttribute('data-title-tip'); out.label = b.getAttribute('aria-label');
+    b.click(); await wait(200);
+    const info = document.querySelector('[data-card-info]'), trash = info.querySelector('[data-info-note-remove]');
+    const ir = info.getBoundingClientRect(), tr = trash.getBoundingClientRect(), fr = info.querySelector('[data-info-note]').getBoundingClientRect();
+    const pad = parseFloat(getComputedStyle(trash.closest('.px-3')).paddingRight) + parseFloat(getComputedStyle(info).borderRightWidth);
+    out.shown = getComputedStyle(trash).visibility;
+    out.edge = Math.round(ir.right - pad - tr.right); out.line = Math.round(tr.top + tr.height / 2 - (fr.top + 10));
+    const id = c.notes[0] && c.notes[0].id;
+    trash.click(); await wait(150);
+    const toasts = Alpine.store('toasts'), t = toasts.find((x) => x.action);
+    out.after = { notes: c.notes.length, open: !!c.cardInfo, badge: badgeOf('Second para').textContent, toast: t ? t.msg + '|' + t.action.label : null };
+    if (t) t.action.run();
+    await wait(150);
+    out.undo = { notes: c.notes.map((n) => n.text).join(), same: !!c.notes[0] && c.notes[0].id === id, badge: badgeOf('Second para').textContent, toasts: toasts.length };
+    c.d.caretAt(0); c.paint(); await wait(100);
+    return out;
+  });
+  ok('a block with no note shows no trash in its panel; on a phone the badge has no title-tip, its aria-label saying what it does',
+    removed.emptyTrash === 'hidden' && !removed.tip && removed.label === 'The note on this block', JSON.stringify(removed));
+  ok('a note\'s trash sits on the field\'s first line at the panel\'s right edge; it removes the note and closes the panel, the badge back to "+ note"',
+    removed.shown === 'visible' && Math.abs(removed.edge) <= 1 && Math.abs(removed.line) <= 1
+      && removed.after.notes === 0 && !removed.after.open && removed.after.badge === '+ note', JSON.stringify(removed));
+  ok('the toast says the note was removed, and its Undo puts the same record back',
+    removed.after.toast === 'Note removed|Undo' && removed.undo.same && removed.undo.notes === 'Is this still true?' && removed.undo.badge === 'note' && removed.undo.toasts === 0,
+    JSON.stringify({ after: removed.after, undo: removed.undo }));
   const kept = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const on = () => c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))).join();
@@ -2417,8 +2458,10 @@ try {
     const p4 = await at(99);
     await pg.mouse.move(p4.x + 20, p4.y + p4.h / 2); await pg.waitForTimeout(150);
     await pg.mouse.click(p4.x + 20, p4.y + p4.h / 2); await pg.waitForTimeout(200);
-    const first = await pg.evaluate(`(() => { const x = ${C}; return { info: !!x.cardInfo, badge: !!x.$refs.md.querySelector('[data-block-hover] [data-md-block-badge]'), caret: x.d.range.start === x.d.range.end }; })()`);
+    const first = await pg.evaluate(`(() => { const x = ${C}; return { info: !!x.cardInfo, badge: !!x.$refs.md.querySelector('[data-block-hover] [data-md-block-badge]'), caret: x.d.range.start === x.d.range.end,
+      tip: !!x.$refs.md.querySelector('[data-md-block-badge][data-title-tip]') }; })()`);
     ok('with a paragraph\'s badge up, a click on its first word places the caret and opens no note', first.badge && !first.info && first.caret, JSON.stringify(first));
+    ok('on a desk the badge keeps its title-tip, where a pointer can hover it', first.tip, JSON.stringify(first));
     await cx.close();
   }
 } finally {
