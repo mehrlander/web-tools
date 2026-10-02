@@ -6008,7 +6008,8 @@ function app(){ return {
   // time, since that registry owns them and a stored copy would be the
   // duplicate the registries rule warns about.
   routeLabel(view){
-    const row = this.routeManifest?.routes?.find(r => r.key === view || r.writes === view);
+    // An alias names the same row, so an old saved address reads as its view.
+    const row = this.routeManifest?.routes?.find(r => r.key === view || r.writes === view || r.alias === view);
     return row?.label || view || '';
   },
   visitLabel(v){
@@ -6293,7 +6294,7 @@ function app(){ return {
       // learn twice.
       { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
-      { view: 'lists', views: ['lists'],
+      { view: 'lists', views: ['lists', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goLists() },
       { view: 'repos',    icon: 'ph-squares-four', label: 'Repos',    go: () => this.goRepos() },
       // One stop, named Stage, over the two things a surface is for, switched

@@ -181,8 +181,8 @@ test('a cache row draws the views that declare a read of it', async () => {
   await data.loadRouteReads();
   // Both directions on one relation. Repos declares configs, so configs draws
   // Repos; anything the manifest does not name draws nothing at all.
-  assert.ok(data.routeReads.estate.includes('configs'), 'the manifest parsed no reads for Repos');
-  assert.ok(data.feedsOf('configs').includes('estate'));
+  assert.ok(data.routeReads.repos.includes('configs'), 'the manifest parsed no reads for Repos');
+  assert.ok(data.feedsOf('configs').includes('repos'));
   assert.ok(data.feedsOf('sessions').includes('search'));
   // Joined, not deep-compared, for the reason the fold assertion above states:
   // Alpine hands these back through a reactive proxy, which fails deepEqual on
