@@ -73,7 +73,7 @@ const shell = {
   goActivity() { this.view = 'branches'; },
   goSessions() { this.view = 'sessions'; },
   goChats() { this.view = 'chats'; },
-  goTodo() { this.view = 'todo'; }, goJots() { this.view = 'jots'; },
+  goLists() { this.view = 'lists'; },
 };
 window.__shell = shell;
 

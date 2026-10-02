@@ -4,7 +4,7 @@
 // The Lists view is token-gated and this renderer holds no token, so the seed
 // flips `authed` and plants the questions straight into the component.
 //
-//   npm run shot -- app/index.html --query "view=todo" --width 430 --height 1100 \
+//   npm run shot -- app/index.html --query "view=lists" --width 430 --height 1100 \
 //     --script tools/render/scenarios/ping.mjs --wait 3000
 //
 // Add `scrolled=1` to the query to scroll the list to the answered question.

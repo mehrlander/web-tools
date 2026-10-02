@@ -1,9 +1,9 @@
 # Lists
 
-The Lists stop shows To-do, Jot and Note on one screen, with Pins above them
-(`lib/alpineComponents/estate.js`). `?view=todo` and `?view=jots` both open it;
-Pins has no key. To-do, Jot and Pins are authored files in the private registry under
-`lists/`, written whole through the viewer's token (`gh-store.js`'s `save`), so
+The Lists view shows To-do, Jot, Ping and Note on one screen, with Pins above
+them (`lib/alpineComponents/estate.js`). Its address is `?view=lists`; the older
+`?view=todo` and `?view=jots` open it too. To-do, Jot and Pins are authored
+files in the private registry under `lists/`, written whole through the viewer's token (`gh-store.js`'s `save`), so
 each check-off is a commit. `state/` holds only derived caches, never these.
 
 | List | File | Item shape |
@@ -11,6 +11,7 @@ each check-off is a commit. `state/` holds only derived caches, never these.
 | To-do | `lists/todo.json` | `{id, text, done, created_at, done_at, urgent, due}` |
 | Jot | `lists/jots.json` | `{id, text, created_at, kind}` |
 | Pins | `lists/pins.json` | `{id, target, title, note, group, created_at}` |
+| Ping | `errands/requests/`, `errands/results/` | an `ask` errand and its result |
 | Note | `notes/notes.jsonl` | `{id, at, author, about, text, anchor}` |
 
 - **Optional fields round-trip.** A field is written only when set, and the
@@ -25,6 +26,11 @@ each check-off is a commit. `state/` holds only derived caches, never these.
   from use, normalized to lowercase and hyphens, at most 24 characters. A kind
   earns a name only by naming a destination the text cannot imply (`snag` →
   the owning repo's [SNAGS.md](../SNAGS.md)).
+- **Ping:** a question typed here goes to Gemini as an errand in the
+  registry's `errands/` folder, which the Gemini home laptop daemon answers.
+  The ten latest questions are listed, each showing when it is sent, when
+  Gemini is working on it, and Gemini's reply. Questions filed from a
+  session's command line appear too.
 - **Pins:** each `target` is `owner/repo[@ref]:path`; a path with an extension
   opens the file, anything else opens the Files view at that folder. Unpinning
   removes the pointer only. `pinGroups` derives groups from the items.

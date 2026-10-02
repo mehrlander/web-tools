@@ -828,7 +828,7 @@ html.dk-dragging main{transition:none !important}
             <span class="truncate" x-text="overlayShort"></span>
           </span>
           <div class="grow"></div>
-          <button @click="goEstate()" title="Open the Repos dashboard"
+          <button @click="goRepos()" title="Open the Repos dashboard"
                   class="text-base-content/30 hover:text-primary transition-colors">
             <i class="ph ph-squares-four text-base leading-none"></i></button>
         </div>
@@ -2102,7 +2102,7 @@ function app(){ return {
   // long-press menu is for a verb wanted before the drawer opens at all, not
   // a second address for one already inside it. The contract is unused here
   // now, kept for a future row rather than removed.
-  view: 'landing',        // 'estate' | 'todo' | 'jots' | 'branches' | 'sessions' | 'map' | 'tools' | 'search' | 'landing' | 'pages' | 'atlas' | 'stage' | 'config' | 'app' | 'public'
+  view: 'landing',        // 'repos' | 'lists' | 'branches' | 'sessions' | 'map' | 'tools' | 'search' | 'landing' | 'pages' | 'atlas' | 'stage' | 'config' | 'app' | 'public'
   // Window-level drag counter for the app-wide drop (init wires the listeners;
   // nested enter/leave is why it counts rather than flips), and what the cue
   // says about the drag in flight (dragNote). The app-wide PASTE beside it
@@ -5559,7 +5559,9 @@ function app(){ return {
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
         if (this.projectTab === 'overview' && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
       } },
-    { key: 'estate',   open(){ this.goEstate(); } },
+    // Repos was addressed ?view=estate until 2026-10-02; the alias keeps old
+    // links landing.
+    { key: 'repos', alias: 'estate', open(){ this.goRepos(); } },
     // `surfaces` is the retired Saved pane, which listed the registry's
     // .surface files and could load one onto the bench. It went on 2026-08-27,
     // and the key aliases onto the Stage so an old link lands on the bench.
@@ -5570,8 +5572,11 @@ function app(){ return {
     { key: 'stage', alias: 'surfaces', open(u){ this.goStage(u.tab); },
       stamp(p){ if (this.stageTab) p.set('tab', this.stageTab); } },
     { key: 'public',   open(){ this.goPublicBrowse(); } },
-    { key: 'todo',     open(){ this.goTodo(); } },
-    { key: 'jots',     open(){ this.goJots(); } },
+    // Lists was addressed ?view=todo, and ?view=jots, until 2026-10-02. A row
+    // carries one alias, so `todo` is the alias here and `jots` keeps a row of
+    // its own; both open Lists and stamp ?view=lists.
+    { key: 'lists', alias: 'todo', open(){ this.goLists(); } },
+    { key: 'jots',     open(){ this.goLists(); } },
     // The branch rollup: its this.view and its address are ?view=branches.
     { key: 'branches', open(){ this.goBranches(); },
       stamp(p){
@@ -6217,14 +6222,14 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state'].includes(this.view); },
+  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
   // Every other view keeps the ordinary overflow-y-auto column. Held here
   // rather than inside the component because the two ancestors that need the
   // classes are the shell's markup, not the component's.
-  get listsFill(){ return this.view === 'todo' || this.view === 'jots'; },
+  get listsFill(){ return this.view === 'lists'; },
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
@@ -6257,7 +6262,7 @@ function app(){ return {
   // first. The front door should answer "what have I been doing", which is the
   // session's question; a branch is what a session left behind, and the Sessions
   // pane nests the branch row itself under the session that made it.
-  goDashboard(){ this.hasToken() ? this.goSessions() : this.goEstate(); },
+  goDashboard(){ this.hasToken() ? this.goSessions() : this.goRepos(); },
   // The header's app-level nav: the estate's own views, in
   // display order (Activity first). Repo-sourced app views ride behind it as a
   // second group (appNav below), separated by a hairline, so the header carries
@@ -6288,9 +6293,9 @@ function app(){ return {
       // learn twice.
       { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
-      { view: 'todo', views: ['todo', 'jots'],
-        icon: 'ph-list-checks', label: 'Lists',  go: () => this.goTodo() },
-      { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
+      { view: 'lists', views: ['lists'],
+        icon: 'ph-list-checks', label: 'Lists',  go: () => this.goLists() },
+      { view: 'repos',    icon: 'ph-squares-four', label: 'Repos',    go: () => this.goRepos() },
       // One stop, named Stage, over the two things a surface is for, switched
       { view: 'stage',
         icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
@@ -6361,12 +6366,11 @@ function app(){ return {
   // do. It was the one estate pane that did not, warmed only at boot and by its
   // own Refresh, so a session that opened elsewhere and walked over to Repos an
   // hour later read whatever the boot had left.
-  goEstate(){ this.estateSeen = true; this.view = 'estate'; this.warmConfigCache(); this.syncUrl(); },
-  // Lists: To-do over Jot, one pane. Both keys route here and each still
-  // stamps its own, so an old ?view=jots link lands on the pane rather than
-  // 404ing into Repos; the pane no longer switches on which one arrived.
-  goTodo(){ this.estateSeen = true; this.view = 'todo'; this.syncUrl(); },
-  goJots(){ this.estateSeen = true; this.view = 'jots'; this.syncUrl(); },
+  goRepos(){ this.estateSeen = true; this.view = 'repos'; this.warmConfigCache(); this.syncUrl(); },
+  // Lists: Pin, To-do, Jot, Ping and Note in one pane, at ?view=lists. The
+  // older ?view=todo and ?view=jots addresses land here too, and stamp
+  // ?view=lists.
+  goLists(){ this.estateSeen = true; this.view = 'lists'; this.syncUrl(); },
   // The Map view: the coordination layer made inspectable (the Distribution
   // crosswalk plus per-repo scope and adoption). Renamed from "Portable"; goPortable stays as a
   // thin alias so any caller or old ?view=portable link still resolves.
@@ -6564,7 +6568,7 @@ function app(){ return {
     const v = this.view;
     if (v === 'sessions' || v === 'state') this.warmSessionsCache();
     if (v === 'branches' || v === 'activity' || v === 'state') this.arrivalActivityRefresh();
-    if (v === 'estate' || v === 'state') this.warmConfigCache();
+    if (v === 'repos' || v === 'state') this.warmConfigCache();
   },
 
   // Activity's other pill: the sessions that made the branches. Kicks its own

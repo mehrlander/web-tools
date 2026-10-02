@@ -206,7 +206,7 @@ test('the shell mode round-trips, and only when it is not the default', () => {
 
 test('an app view opens with nav chrome and every other route keeps full chrome', () => {
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
-  for (const v of ['map', 'estate', 'landing', 'search']) {
+  for (const v of ['map', 'repos', 'landing', 'search']) {
     s.view = v;
     assert.equal(s.shellMode, 'full', `?view=${v} must keep the app's own chrome`);
   }
@@ -218,7 +218,7 @@ test('the shell comes back on leaving the app view, with nothing to clear', () =
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   s.view = 'app';
   assert.equal(s.shellMode, 'nav');
-  s.view = 'estate';
+  s.view = 'repos';
   assert.equal(s.shellMode, 'full',
     'a latched default would strand the dashboard with no nav');
 });
@@ -264,14 +264,14 @@ test('toggling back to the default is not a choice, so it does not follow you ou
   s.setShellMode('nav');
   assert.equal(s._shellChoice, '', 'and turning it back to nav agrees with the default');
 
-  s.view = 'estate';
+  s.view = 'repos';
   assert.equal(s.shellMode, 'full', 'so the dashboard gets its nav back');
 });
 
 test('a choice that differs from the default still latches, on any view', () => {
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   s.syncUrl = () => {};
-  s.view = 'estate';
+  s.view = 'repos';
   s.setShellMode('none');
   assert.equal(s._shellChoice, 'none', 'a bare dashboard is a real request');
   s.view = 'app';

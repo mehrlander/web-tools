@@ -1,6 +1,7 @@
 # Repos
 
-`?view=estate` (`lib/alpineComponents/estate.js`) is the grid of estate repos.
+`?view=repos` (`lib/alpineComponents/estate.js`) is the grid of estate repos.
+The older `?view=estate` still opens it.
 It reads the config cache (`state/configs.json`) and borrows the activity cache
 for each card's rollup. [manifest.md](../manifest.md) owns the manifest fields
 and the config cache.
