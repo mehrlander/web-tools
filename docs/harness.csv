@@ -48,6 +48,7 @@ scripts/text-carriers.py,"inventory the CSV and JSON files that already hold aut
 scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",scripts,187,npm:code-scan,no,yes,no
 scripts/userscript-stub.py,,scripts,217,argv,no,yes,yes
 scripts/xlsx-picker-sweep.mjs,,scripts,104,imported,yes,yes,yes
+skills/hooks/account-skills.py,"compares the claude.ai account's synced skills with docs/account-skills.csv and the plugin's own copies, printing one line at session start only when something needs attention; by hand it lists every skill's state, writes the observation, and builds upload zips",skills/hooks,274,hook:SessionStart,yes,yes,yes
 skills/hooks/ask-question-guard.sh,refuses AskUserQuestion in every session the plugin reaches and says to ask in prose; the project-settings deny in home and web-tools stays as a backstop,skills/hooks,38,hook:PreToolUse,no,yes,yes
 skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,298,imported,no,no,yes
 skills/hooks/environment-report.sh,"Prints at session start which commit of the setup script built the environment, and says to rebuild when it has moved on main.",skills/hooks,27,hook:SessionStart,no,yes,yes
