@@ -21,7 +21,7 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a 
   for (const stream of ['Branches', 'Trackers', 'Pull requests', 'Snags']) {
     assert.match(content, new RegExp(`^## ${stream}$`, 'm'), `must define the ${stream} stream`);
   }
-  for (const tier of ['Act', 'Propose']) {
+  for (const tier of ['Act', 'Find', 'Propose']) {
     assert.match(content, new RegExp(`\\*\\*${tier}:\\*\\*`), `must place actions in the ${tier} tier`);
   }
   assert.match(content, /\*\*Owner only:\*\*/, 'must name what only the owner decides');
@@ -29,10 +29,19 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a 
 
 test('tend SKILL.md names commands and paths that exist', () => {
   const content = readFileSync(SKILL_PATH, 'utf8');
-  for (const p of ['scripts/stranded-triage.py', 'lib/kits/branch-brief.js', 'docs/SNAGS.md']) {
+  for (const p of ['scripts/stranded-triage.py', 'docs/SNAGS.md', 'docs/views/tending.md']) {
     assert.ok(content.includes(p), `tend SKILL.md should name ${p}`);
     assert.ok(existsSync(path.join(repoRoot, p)), `${p} named by tend SKILL.md must exist`);
   }
+});
+
+test('tend writes findings with its own script and offers no branch deletion', () => {
+  const content = readFileSync(SKILL_PATH, 'utf8');
+  assert.ok(existsSync(path.join(repoRoot, 'skills', 'tend', 'findings.py')), 'skills/tend/findings.py must exist');
+  for (const cmd of ['findings.py check', 'findings.py candidates', 'findings.py add', 'findings.py update']) {
+    assert.ok(content.includes(cmd), `tend SKILL.md should name ${cmd}`);
+  }
+  assert.doesNotMatch(content, /push origin --delete|delete a (?:merged|novel|content)/, 'no tier may offer a branch deletion');
 });
 
 test('tasks skill treats a met Done-when as a delivery close, which tend acts on', () => {

@@ -3,20 +3,20 @@ name: notes
 description: >-
   Leave or read notes: short, signed, dated observations addressed to a
   subject (a repo, branch, file, pull request, task, snag, or another note),
-  kept in the estate's notes store and never edited. Use when a session has a
-  finding about a work item that belongs to no other record, when the owner or
-  another skill says to note something, when replying to or correcting an
-  earlier note, or when asked what notes exist about a subject.
+  kept in the estate's notes store and never edited. Use when a session has an
+  observation about a work item that belongs to no other record, when the
+  owner or another skill says to note something, when replying to or
+  correcting an earlier note, or when asked what notes exist about a subject.
 ---
 
 # notes
 
 ## Premise
 
-Sessions and agents find things about work items that belong in no document:
-a branch's origin, a thread resolved on main, a trap met on the way. A note
-gives each finding a place, addressed to what it concerns, where the next
-reader of that subject finds it.
+Sessions and agents learn things about work items that belong in no document:
+a branch's origin, a thread resolved on main. A note gives each observation a
+place, addressed to what it concerns, where the next reader of that subject
+finds it.
 
 ## Goal and output
 
@@ -28,6 +28,11 @@ One JSON line per note in the store's `notes.jsonl`:
 
 `anchor` is optional: a text-quote anchor (`exact`, `prefix`, `suffix`), for a
 note about a passage.
+
+`finding` marks a tending conclusion
+([`docs/views/tending.md`](../../docs/views/tending.md)). Change one with
+`skills/tend/findings.py update`; a plain reply is a comment and changes
+nothing.
 
 | Subject | `about` |
 | --- | --- |

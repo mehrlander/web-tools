@@ -13,40 +13,19 @@ and the config cache.
   editing a card both write the repo's own manifest, never a registry list.
 - **Hiding is the exception**: the `hidden` array in the private registry's own
   `.web-tools.json` keeps a member off the dashboard, the sidebar, the app-view
-  nav and the activity crawl without touching the repo. The Hidden section
-  folds at the foot of the grid, with Show per row.
+  nav and the activity crawl without touching the repo.
 - `conventions: 'optout'` is the repo saying it is not part of the estate;
   `hidden` is the viewer declining to look. Keep them distinct, and keep the
   session-start nudge for unconfigured repos on the same `optout` field.
+- An `owner/foo-private` repo shares `owner/foo`'s card, matched by name.
 
-## Cards
+## Cards and the unfiled list
 
-Grouped by `group`, ordered by `order`. An `owner/foo-private` repo folds into
-`owner/foo`'s card by name, with the visibility glyph as the toggle between the
-two faces. The gear opens the repo dialog (Info, Settings, Config tabs), which
-writes the repo's manifest in place; with no repo, the account row opens the
-same dialog as the token panel. Each card also carries its portable-alignment
-verdict and four check chips, computed by `lib/kits/portable-align.js` during
-the config crawl and read from the cache, not probed. A repo the crawl has not
-reached shows no verdict.
+A card's portable-alignment verdict is computed by `lib/kits/portable-align.js`
+during the config crawl and read from the cache, never probed live.
 
-## Unfiled
-
-Below the grid, every account repo that is not a member, in three groups:
-
-| State | Set by | Group |
-| --- | --- | --- |
-| archived | GitHub | Retired |
-| `conventions: 'optout'` | the repo's manifest | Set aside |
-| neither | | Unfiled |
-
-Adopt routes into the Add form; Set aside writes `optout`; both go through
-`patchRepoConfig` and write the repo. Retire is a link to GitHub, not a write,
-because the token is `repo`-scoped on purpose and deleting would need
-`delete_repo`. A write waits on the config cache's rebuild behind a local
-override that retires itself once the cache agrees.
-
-## Signed out
-
-With no token the view shows the public default card and a banner offering a
-token or Public browse. No activity, sessions or write controls.
+Account repos that are not members list below the grid: archived ones (set by
+GitHub), ones the repo set aside with `optout`, and the rest. Adopting and
+setting aside both write the repo's manifest through `patchRepoConfig`.
+Retiring is a link to GitHub, not a write, because the token is `repo`-scoped
+on purpose and deleting would need `delete_repo`.
