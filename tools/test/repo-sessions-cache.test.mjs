@@ -1571,6 +1571,67 @@ test('the text box reaches topics, the Gemini title and the summary', () => {
   assert.ok(!S.matches({ id: 'd456b017', ask: 'Build it' }, 'share-sheet'), 'and an unjoined row does not');
 });
 
+// ── The agenda: stretches of turns, the session page's topic headers ─────────
+// Format 4 stretches carry their instant and closing state; format 3 entries
+// carry a topic and a range only. Both come out as one shape.
+const F4 = [
+  { topic: 'Note badges', kind: 'new', minor: false, turns: [0, 16], at: '2026-10-01T16:19:45Z',
+    state: { glyph: '🟡', name: 'Pending', line: '🟡 **Pending:** CI', at: '2026-10-01T18:40:00Z' } },
+  { topic: 'Shorter render links', kind: 'improve', minor: false, turns: [17, 20], at: '2026-10-02T03:40:26Z',
+    state: { glyph: '🟢', name: 'Ready to continue', line: '🟢 **Ready to continue:** pushed', at: '' } },
+  { topic: 'Quick question', kind: 'explore', minor: true, turns: [21, 21], at: '2026-10-02T04:57:32Z', state: null },
+  { topic: 'note badges', kind: 'fix', minor: false, turns: [22, 24], at: '2026-10-02T04:59:58Z',
+    state: { glyph: '🟣', name: 'Merged', line: '🟣 **Merged:** shipped', at: '' } },
+];
+
+test('topicStretches: format 4 entries in order, with kind, minor, instant and state', () => {
+  const out = S.topicStretches([F4[1], F4[0], F4[2], F4[3]]);
+  assert.deepEqual(out.map(e => [e.topic, e.start, e.end]),
+    [['Note badges', 0, 16], ['Shorter render links', 17, 20], ['Quick question', 21, 21], ['note badges', 22, 24]]);
+  assert.equal(out[0].at, '2026-10-01T16:19:45Z');
+  assert.equal(out[1].kind, 'improve');
+  assert.equal(out[2].minor, true);
+  assert.equal(out[2].state, null);
+  assert.equal(out[3].state.name, 'Merged');
+});
+
+test('topicStretches: a format 3 entry passes with nulls; malformed entries drop', () => {
+  const out = S.topicStretches([
+    { topic: 'Old shape', turns: [0, 30] },
+    { topic: '', turns: [0, 1] }, { topic: 'No range' }, { topic: 'Backwards', turns: [5, 2] },
+    { topic: 'Bad kind', kind: 'refactor', turns: [31, 32], state: { name: 'no glyph' } },
+  ]);
+  assert.deepEqual(out.map(e => e.topic), ['Old shape', 'Bad kind']);
+  assert.deepEqual([out[0].kind, out[0].at, out[0].state, out[0].minor], [null, '', null, false]);
+  assert.equal(out[1].kind, null, 'a kind outside the four is dropped');
+  assert.equal(out[1].state, null, 'a state with no glyph is no state');
+  assert.deepEqual(S.topicStretches(null), []);
+});
+
+test('topicList: each topic once, its stretches, turns, and its LAST stretch\'s state', () => {
+  const list = S.topicList(S.topicStretches(F4));
+  assert.deepEqual(list.map(t => t.topic), ['Note badges', 'Shorter render links', 'Quick question'],
+    'a return folds into the topic it returns to, matched without case');
+  const notes = list[0];
+  assert.deepEqual(notes.spans, [[0, 16], [22, 24]]);
+  assert.equal(notes.turns, 20);
+  assert.equal(notes.first, 0);
+  assert.equal(notes.state.name, 'Merged', 'the state is the last stretch\'s, not the first');
+  assert.equal(notes.kind, 'new', 'the first kind given stands');
+  assert.equal(list[2].minor, true);
+  const reopened = S.topicList(S.topicStretches([F4[3], { ...F4[0], turns: [30, 31], state: null }]));
+  assert.equal(reopened[0].state, null, 'reopened and not closed again reads as unclosed');
+});
+
+test('withTopics joins the agenda as topicAgenda, and a re-join clears it', () => {
+  const doc = { sessions: { '4ffa8342': { title: 'T', topics: ['Note badges'], agenda: F4 } } };
+  const [row] = S.withTopics([{ id: '4ffa8342' }], doc);
+  assert.equal(row.topicAgenda.length, 4);
+  assert.equal(row.topicAgenda[1].topic, 'Shorter render links');
+  const [again] = S.withTopics([row], { sessions: { '4ffa8342': { title: 'T', topics: ['x'] } } });
+  assert.equal(again.topicAgenda, undefined, 'an agenda the newer rollup lacks does not survive');
+});
+
 test('topicCounts: sessions per topic, newest day, busiest first then by name', () => {
   const rows = [
     { day: '2026-09-24', topics: ['shortcuts', 'share-sheet'] },
