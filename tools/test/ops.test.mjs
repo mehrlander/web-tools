@@ -128,6 +128,61 @@ test('session-menu: a plain URL is not a branch', () => {
   }
 });
 
+test('session-menu: a claude.ai session link leads with that session, matched or not', () => {
+  // THE 2026-10-02 GAP. `branchOf` rejects every address that carries no branch,
+  // so a copied session link read "no branch on clipboard" over a menu that did
+  // not offer the session just copied. The link carries its own id, so the first
+  // row needs nothing from the index; the index adds only the branch and the age.
+  const sid = 'session_01GCFVknxwMhQrn5zYTMuSuf';
+  const link = 'https://claude.ai/code/' + sid;
+  const body = index({
+    branches: { 'claude/backtap-url-4vkhtc': entry('aaaaaaaa', 30, 'Ask', '', sid) },
+    recent: [entry('bbbbbbbb', 50, 'A session with no branch', '', 'session_01NoBranch')] });
+  const run = (input, opts = { body }) => load('session-menu.js', opts).fn({ input, token: 't' });
+
+  for (const clip of [link, link + '?x=1', 'claude.ai/code/' + sid, sid, '  ' + link + '\nsecond line']) {
+    const r = run(clip);
+    assert.equal(r.state, 'on-session', JSON.stringify(clip));
+    assert.equal(r.branch, 'claude/backtap-url-4vkhtc', JSON.stringify(clip));
+    assert.equal(r.id, 'aaaaaaaa', JSON.stringify(clip));
+  }
+  const on = run(link);
+  assert.deepEqual(header(on.caption), { rule: '🌿 session recognized', line: 'backtap-url · 30m' });
+  assert.deepEqual(on.menu.map(plainText),
+    ['🌿 Open on claude.ai', '🌿 Session brief', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.equal(on.urls[on.menu[0]], link);
+  assert.equal(on.urls[on.menu[1]], 'https://mehrlander.github.io/web-tools/pages/session.html#id=aaaaaaaa');
+
+  // Only in `recent`: a session that did no branch work is named by its ask.
+  const bare = run('https://claude.ai/code/session_01NoBranch');
+  assert.equal(bare.state, 'on-session');
+  assert.deepEqual(header(bare.caption), { rule: '🌿 session recognized', line: 'A session with no branch · 50m' });
+  assert.equal(bare.urls[bare.menu[0]], 'https://claude.ai/code/session_01NoBranch');
+
+  // Not in the index yet: the row still opens the session, and the header shows
+  // the id it read beside the index's age, which is what tells "no such session"
+  // from "the crawl has not run since this one started".
+  const fresh = run('https://claude.ai/code/session_01BrandNewSessionXYZ');
+  assert.equal(fresh.state, 'session-link');
+  assert.deepEqual(header(fresh.caption),
+    { rule: '🌿 session link, not in index', line: 'session_01Bran… · index 5m old' });
+  assert.deepEqual(fresh.menu.map(plainText),
+    ['🌿 Open on claude.ai', '⌨️ Claude Code', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.equal(fresh.urls[fresh.menu[0]], 'https://claude.ai/code/session_01BrandNewSessionXYZ');
+
+  // An unreachable index keeps the session row, because the link supplied the id.
+  const down = run(link, { status: 401 });
+  assert.equal(down.state, 'error');
+  assert.deepEqual(down.menu.map(plainText),
+    ['🌿 Open on claude.ai', '⌨️ Claude Code', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.equal(down.urls[down.menu[0]], link);
+
+  // A claude.ai address that names no session is still not one, and neither is
+  // an id mentioned mid-sentence.
+  for (const clip of ['https://claude.ai/code', 'https://claude.ai/code/artifact/abc', 'see session_01X later'])
+    assert.equal(run(clip).state, 'no-branch', clip);
+});
+
 test('session-menu: the header names the case in words and the line under it carries the evidence', () => {
   const want = 'claude/x-aa11bb';
   const found = index({ branches: { [want]: entry('aaaaaaaa', 30, 'Ask') } });

@@ -1827,6 +1827,26 @@ test('a list item or heading carried away takes its marker line with it, and the
   assert.equal(e.text, 'Para. quoted\n');
 });
 
+test('a task item or a list inside a quote, carried away, takes its marker with it', () => {
+  // Both left a bare "- [ ]" or "> -" behind until 2026-10-01.
+  const t = 'Para.\n\n- [ ] only\n';
+  const a = doc(t);
+  a.move(t.indexOf('only'), t.indexOf('only') + 4, 0, true);
+  assert.equal(a.text, 'only\n\nPara.\n');
+  const u = 'Para.\n\n- [x] first\n- [ ] second\n';
+  const b = doc(u);
+  b.move(u.indexOf('second'), u.indexOf('second') + 6, 0, true);
+  assert.equal(b.text, 'second\n\nPara.\n\n- [x] first\n', 'the list stays tight');
+  const v = 'Para.\n\n> - quoted item\n';
+  const c = doc(v);
+  c.move(v.indexOf('quoted'), v.length - 1, 0, true);
+  assert.equal(c.text, 'quoted item\n\nPara.\n');
+  const w = 'Para.\n\n> 1. step\n';
+  const e = doc(w);
+  e.move(w.indexOf('step'), w.indexOf('step') + 4, 0, true);
+  assert.equal(e.text, 'step\n\nPara.\n');
+});
+
 test('a split at a line break makes one paragraph break, and none at the end of the content', () => {
   const d = doc('Line one\nline two\n');
   assert.equal(d.split(8), true);

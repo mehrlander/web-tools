@@ -715,7 +715,7 @@
             e.preventDefault();
             const m = this.dnd, tg = this.dropAt(e.clientX, e.clientY, m);
             this.dnd = null;
-            if (tg) this.d.move(m.a, m.b, tg.at, tg.para);
+            if (tg) this.landMove(m.a, m.b, tg.at, tg.para);
             this.paint();
           });
           md.addEventListener('dragend', () => { if (this.dnd) { this.dnd = null; this.paint(); } });
@@ -2736,6 +2736,13 @@
       // code span or a fenced block in two, so Split is not offered. Read off
       // the source: an odd count of backticks before the offset on its line,
       // or an odd count of fence lines before it in the file.
+      // Every move lands through here, and none lands in code: words dropped
+      // into a fence, an indented block or inline code cut it in two, or
+      // became code (refused from 2026-10-01; Split already was).
+      landMove(a, b, at, para) {
+        if (this.inCode(at)) { Alpine.store('toast')('info', 'Not moved: that spot is inside code', 'alert-info', 2500); return false; }
+        return this.d.move(a, b, at, para);
+      },
       inCode(i) {
         const t = this.d.text, ls = t.lastIndexOf('\n', i - 1) + 1;
         if (((t.slice(ls, i).match(/`/g) || []).length) % 2) return true;
@@ -2875,7 +2882,7 @@
         const m = this.mover;
         this.mover = null;
         this.stopEdgeScroll();
-        if (m && m.moved && m.target) this.d.move(m.a, m.b, m.target.at, m.target.para);
+        if (m && m.moved && m.target) this.landMove(m.a, m.b, m.target.at, m.target.para);
         this.paint();
       },
       cancelMove() {
@@ -2996,7 +3003,7 @@
       dropAtCaret() {
         const m = this.moveArm, tg = this.moveAim, t = this.d.text, r = this.d.range;
         this.moveArm = null; this.moveAim = null;
-        if (tg) { this.d.move(m.a, m.b, tg.at, tg.para); this.paint(); return; }
+        if (tg) { this.landMove(m.a, m.b, tg.at, tg.para); this.paint(); return; }
         let i = r ? r.start : t.length;
         // Inside a word, the nearer of its edges, as a dropped carry does.
         if (/\S/.test(t[i - 1] || '') && /\S/.test(t[i] || '')) {
@@ -3005,7 +3012,7 @@
           while (e < t.length && /\S/.test(t[e])) e++;
           i = i - s <= e - i ? s : e;
         }
-        if (i < m.a || i > m.b) this.d.move(m.a, m.b, i, false);
+        if (i < m.a || i > m.b) this.landMove(m.a, m.b, i, false);
         else this.d.select(m.a, m.b);
         this.paint();
       },
