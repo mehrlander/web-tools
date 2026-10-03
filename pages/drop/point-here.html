@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en" data-theme="light" class="scroll-pt-20">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Point Here</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>👉</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../../lib/kits/land.js"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<!--
+  Point Here: a mockup of a link that takes the reader to a place on a page,
+  marks it, points at what to tap, and says why, one step or several.
+
+  The landing itself is lib/kits/land.js (scroll to 0.28 of the pane, a
+  bg-warning/30 tint that fades). What this page adds, as the inline `Point`
+  object below, is everything Land leaves to its caller:
+
+    #show=<anchor>[&say=<text>]   land on it, optionally with a message
+    #tap=<anchor>[&say=<text>]    land, then ring it and point until tapped
+    #walk=<name>                  a sequence the page declares (#walks JSON)
+    #steps=<base64url JSON>       a sequence carried in the link itself,
+                                  [{at, say?, tap?}, ...], so a session can
+                                  compose one the page never declared
+
+  An anchor is a data-at="<key>" on the element. A hidden region names the
+  control that reveals it with data-at-open="<key>", so a link into a closed
+  tab opens the tab first. An anchor that resolves to nothing says so on
+  screen rather than landing nowhere.
+
+  A mockup: Point is inline so the idea can be judged before it is a kit.
+-->
+<body class="bg-base-100 text-base-content min-h-dvh" x-data="demo">
+
+<header class="sticky top-0 z-30 flex items-center gap-2 px-4 h-14 bg-base-200 border-b border-base-300">
+  <i class="ph ph-hand-pointing text-xl text-warning"></i>
+  <span class="font-semibold">Point Here</span>
+  <div class="dropdown dropdown-end ml-auto">
+    <button tabindex="0" class="btn btn-sm gap-1"><i class="ph ph-link"></i>Links<i class="ph ph-caret-down text-xs"></i></button>
+    <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box w-[min(26rem,calc(100vw-2rem))] z-50 shadow-lg mt-1 p-2">
+      <template x-for="l in links" :key="l.label">
+        <li><a :href="l.href" @click="$nextTick(() => document.activeElement.blur())" class="flex flex-col items-start gap-0.5">
+          <span x-text="l.label"></span>
+          <code class="font-mono text-xs text-base-content/60 truncate w-full" x-text="l.href"></code>
+        </a></li>
+      </template>
+    </ul>
+  </div>
+  <button class="btn btn-sm btn-ghost btn-square" @click="$refs.grammar.showModal()" aria-label="Link grammar"><i class="ph ph-info text-lg"></i></button>
+</header>
+
+<main class="px-4 py-4 space-y-4">
+  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <h1 class="text-xl font-semibold">FY27 request: records modernization</h1>
+    <span class="badge badge-ghost" x-text="status"></span>
+  </div>
+
+  <div role="tablist" class="tabs tabs-border">
+    <button role="tab" class="tab" data-at="tab-summary"  :class="tab === 'summary'  && 'tab-active'" @click="tab = 'summary'">Summary</button>
+    <button role="tab" class="tab" data-at="tab-elements" :class="tab === 'elements' && 'tab-active'" @click="tab = 'elements'">Elements</button>
+    <button role="tab" class="tab" data-at="tab-funds"    :class="tab === 'funds'    && 'tab-active'" @click="tab = 'funds'">Funds</button>
+  </div>
+
+  <section x-show="tab === 'summary'" data-at-open="tab-summary" class="space-y-4">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-base">
+      <dt class="text-base-content/60">Total, two years</dt>
+      <dd data-at="total" class="font-mono w-fit px-1 rounded" x-text="money(total)"></dd>
+      <dt class="text-base-content/60">Element lines</dt>
+      <dd class="font-mono" x-text="rows.length"></dd>
+      <dt class="text-base-content/60">Last recalculated</dt>
+      <dd class="font-mono" x-text="calcAt"></dd>
+    </dl>
+    <div class="flex gap-2">
+      <button class="btn btn-sm" data-at="btn-recalc" @click="calcAt = new Date().toLocaleTimeString()"><i class="ph ph-arrows-clockwise"></i>Recalculate</button>
+      <button class="btn btn-sm btn-primary" data-at="btn-submit" @click="status = 'submitted'"><i class="ph ph-paper-plane-tilt"></i>Submit</button>
+    </div>
+  </section>
+
+  <section x-show="tab === 'elements'" data-at-open="tab-elements" class="overflow-x-auto">
+    <table class="table [&_td]:px-2 [&_th]:px-2">
+      <thead><tr><th>Element</th><th class="text-right">FY27</th><th class="text-right">FY28</th><th></th></tr></thead>
+      <tbody>
+        <template x-for="r in rows" :key="r.id">
+          <tr :data-at="'row-' + r.id">
+            <td x-text="r.name"></td>
+            <td class="text-right font-mono">
+              <template x-if="editing !== r.id"><span x-text="money(r.y1)"></span></template>
+              <template x-if="editing === r.id">
+                <input type="number" class="input input-sm w-24 text-right font-mono" :data-at="'input-' + r.id" x-model.number="draft" @keydown.enter="save(r)">
+              </template>
+            </td>
+            <td class="text-right font-mono" x-text="money(r.y2)"></td>
+            <td class="text-right w-24">
+              <template x-if="editing !== r.id">
+                <button class="btn btn-xs btn-ghost btn-square" :data-at="'edit-' + r.id" @click="edit(r)" aria-label="Edit"><i class="ph ph-pencil-simple"></i></button>
+              </template>
+              <template x-if="editing === r.id">
+                <button class="btn btn-xs btn-primary" :data-at="'save-' + r.id" @click="save(r)">Save</button>
+              </template>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </section>
+
+  <section x-show="tab === 'funds'" data-at-open="tab-funds" class="space-y-4">
+    <table class="table">
+      <thead><tr><th>Fund</th><th class="text-right">Two years</th><th class="text-right">Share</th></tr></thead>
+      <tbody>
+        <template x-for="f in funds" :key="f.id">
+          <tr :data-at="'fund-' + f.id">
+            <td x-text="f.name"></td>
+            <td class="text-right font-mono" x-text="money(total * f.share)"></td>
+            <td class="text-right font-mono" x-text="Math.round(f.share * 100) + '%'"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <button class="btn btn-sm" data-at="btn-export"><i class="ph ph-download-simple"></i>Export</button>
+  </section>
+</main>
+
+<dialog x-ref="grammar" class="modal">
+  <div class="modal-box w-[min(40rem,calc(100vw-2rem))] max-w-none">
+    <form method="dialog"><button class="btn btn-sm btn-ghost btn-square absolute right-2 top-2" aria-label="Close"><i class="ph ph-x"></i></button></form>
+    <h3 class="font-semibold mb-3">Link grammar</h3>
+    <table class="table table-sm">
+      <tbody>
+        <tr><td class="font-mono whitespace-nowrap">#show=&lt;anchor&gt;</td><td>land on it and tint it</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#tap=&lt;anchor&gt;</td><td>land, ring it, point at it until tapped</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">&amp;say=&lt;text&gt;</td><td>the message beside either</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#walk=&lt;name&gt;</td><td>a sequence the page declares</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#steps=&lt;base64url&gt;</td><td>a sequence carried in the link: <code class="font-mono">[{at, say, tap}]</code></td></tr>
+        <tr><td class="font-mono whitespace-nowrap">data-at="key"</td><td>names an element as an anchor</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">data-at-open="key"</td><td>on a hidden region: the control that reveals it</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script type="application/json" id="walks">
+{
+  "change-licenses": [
+    { "at": "tab-elements",     "tap": true, "say": "Open the Elements tab." },
+    { "at": "row-licenses",     "say": "Software licenses is the line to change." },
+    { "at": "edit-licenses",    "tap": true, "say": "Tap the pencil to edit its FY27 amount." },
+    { "at": "save-licenses",    "tap": true, "say": "Type the new figure in the box, then tap Save." },
+    { "at": "total",            "say": "The two-year total picks up the change here." }
+  ]
+}
+</script>
+
+<script>
+// ── Point: the part Land leaves to its caller ─────────────────────────────
+// Resolve an anchor, reveal it if a closed region hides it, land on it with
+// Land.mark, and then optionally ring it, point at it, and say something.
+// Overlays are absolute in document coordinates and re-placed every frame,
+// so they follow the page and any inner scroller without listening for either.
+const Point = (() => {
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shown = el => !!el && el.isConnected && el.getClientRects().length > 0;
+  const find = key => document.querySelector(`[data-at="${CSS.escape(key)}"]`);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms) => { for (const t0 = Date.now(); Date.now() - t0 < ms; await sleep(80)) { const v = fn(); if (v) return v; } return fn(); };
+  const node = (tag, cls, html = '') => Object.assign(document.createElement(tag), { className: cls, innerHTML: html });
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // A hidden target sits in a region that names its opener. Open regions
+  // outward until the target shows or nothing names a way in.
+  async function reveal(key) {
+    let el = await until(() => find(key), 2500);
+    for (let i = 0; el && !shown(el) && i < 4; i++) {
+      let region = el.parentElement;
+      while (region && !(region.dataset.atOpen && !shown(region))) region = region.parentElement;
+      if (!region) break;
+      find(region.dataset.atOpen)?.click();
+      el = await until(() => shown(find(key)) && find(key), 1500) || find(key);
+    }
+    return shown(el) ? el : null;
+  }
+
+  // ── one run at a time ──
+  let run = null;
+
+  function stop() {
+    if (!run) return;
+    cancelAnimationFrame(run.raf);
+    run.off?.();
+    run.parts.forEach(p => p.remove());
+    run = null;
+    // Drop the address once it has been followed, so the same link tapped
+    // again is a hashchange. Guarded: a blob: frame may refuse the rewrite.
+    if (/^#(show|tap|walk|steps)=/.test(location.hash)) try { history.replaceState(history.state, '', location.href.split('#')[0]); } catch {}
+  }
+
+  async function start(steps) {
+    stop();
+    // One layer, clipped across and not down: a ring on a control at the
+    // right edge would otherwise widen the document and scroll it sideways.
+    const layer = node('div', 'absolute inset-x-0 top-0 h-0 overflow-x-clip pointer-events-none z-[70]');
+    const halo = node('div', 'absolute rounded-lg border-2 border-warning hidden');
+    const ring = node('div', 'absolute inset-0 rounded-lg border-2 border-warning');
+    const hand = node('i', 'ph-fill ph-hand-pointing absolute text-4xl text-warning drop-shadow hidden');
+    const card = node('div', 'absolute pointer-events-auto w-[min(22rem,calc(100vw-2rem))] card card-sm bg-base-100 border border-base-300 shadow-xl hidden');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-live', 'polite');
+    halo.append(ring);
+    layer.append(halo, hand, card);
+    document.body.append(layer);
+    run = { steps, i: 0, parts: [layer], halo, ring, hand, card, el: null, raf: 0 };
+    const keys = e => { if (e.key === 'Escape') stop(); };
+    addEventListener('keydown', keys);
+    run.off = () => removeEventListener('keydown', keys);
+    card.addEventListener('click', e => {
+      const b = e.target.closest('[data-go]');
+      if (b) go(run.i + Number(b.dataset.go));
+      if (e.target.closest('[data-stop]')) stop();
+    });
+    place();
+    go(0);
+  }
+
+  async function go(i) {
+    const r = run;
+    if (!r) return;
+    if (i >= r.steps.length) return stop();
+    r.i = i;
+    r.anims?.forEach(a => a.cancel());
+    r.unclick?.();
+    r.halo.classList.add('hidden');
+    r.hand.classList.add('hidden');
+    r.card.classList.add('hidden');
+    const s = r.steps[i];
+    const el = await reveal(s.at);
+    if (run !== r || r.i !== i) return;                 // superseded while waiting
+    r.el = el;
+    r.card.innerHTML = cardHTML(s, i, r.steps.length, el);
+    if (!el) return r.card.classList.remove('hidden');
+    // A control to tap is marked by its ring, not by Land's tint, which
+    // would wash out a filled button's label.
+    Land.mark(el, { tint: !s.tap });
+    // A lone step with nothing to say is a plain landing: no card.
+    const lone = r.steps.length === 1 && !s.say;
+    r.card.classList.toggle('hidden', lone);
+    if (s.tap) {
+      r.halo.classList.remove('hidden');
+      r.hand.classList.remove('hidden');
+      if (!reduced()) {
+        const box = el.getBoundingClientRect();
+        r.anims = [
+          r.ring.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: `scale(${1 + 20 / box.width}, ${1 + 20 / box.height})`, opacity: 0 }], { duration: 1100, iterations: Infinity, easing: 'ease-out' }),
+          r.hand.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(6px)' }], { duration: 550, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' }),
+        ];
+      }
+      // The tap goes through to the page; the walk follows it.
+      const next = () => setTimeout(() => go(i + 1), 150);
+      el.addEventListener('click', next, { capture: true, once: true });
+      r.unclick = () => el.removeEventListener('click', next, { capture: true });
+    } else if (lone) {
+      setTimeout(() => run === r && stop(), Land.DWELL + 1000);
+    }
+  }
+
+  function cardHTML(s, i, n, el) {
+    const say = el ? esc(s.say || '') : `Not on this page: <code class="font-mono">${esc(s.at)}</code>`;
+    const head = `<div class="flex items-start gap-2">
+        <p class="flex-1 text-base text-pretty">${say}</p>
+        <button data-stop class="btn btn-xs btn-ghost btn-square -mr-1" aria-label="Close"><i class="ph ph-x"></i></button>
+      </div>`;
+    // A lone landing needs no navigation: the message and its close are all.
+    if (n === 1 && el && !s.tap) return `<div class="card-body">${head}</div>`;
+    const count = n > 1 ? `<span class="font-mono text-xs text-base-content/60 mr-auto">${i + 1} / ${n}</span>` : '';
+    const back = i > 0 ? `<button data-go="-1" class="btn btn-sm btn-ghost">Back</button>` : '';
+    const fwd = !el || !s.tap
+      ? `<button data-go="1" class="btn btn-sm ${el ? 'btn-primary' : ''}">${i + 1 < n ? (el ? 'Next' : 'Skip') : 'Done'}</button>`
+      : `<span class="text-xs text-base-content/60 flex items-center gap-1"><i class="ph ph-hand-pointing"></i>tap the ringed control</span>`;
+    return `<div class="card-body gap-3 ${el ? '' : 'bg-warning/10 rounded-box'}">${head}
+      <div class="card-actions items-center justify-end">${count}${back}${fwd}</div>
+    </div>`;
+  }
+
+  // Every frame: halo on the target, hand under it, card under the hand, or
+  // above the target when the viewport has no room below.
+  function place() {
+    if (!run) return;
+    const { el, halo, hand, card } = run;
+    const sx = scrollX, sy = scrollY, pad = 4, gap = 10, vw = document.documentElement.clientWidth;
+    if (shown(el)) {
+      const b = el.getBoundingClientRect();
+      Object.assign(halo.style, { left: b.left + sx - pad + 'px', top: b.top + sy - pad + 'px', width: b.width + 2 * pad + 'px', height: b.height + 2 * pad + 'px' });
+      const handH = hand.classList.contains('hidden') ? 0 : 44;
+      Object.assign(hand.style, { left: b.left + sx + Math.min(b.width / 2, 120) - 14 + 'px', top: b.bottom + sy + 2 + 'px' });
+      const cw = card.offsetWidth, ch = card.offsetHeight;
+      const below = b.bottom + handH + gap + ch < innerHeight || b.top < ch + gap + 64;
+      Object.assign(card.style, {
+        left: Math.max(16, Math.min(b.left, vw - cw - 16)) + sx + 'px',
+        top: (below ? b.bottom + handH + gap : b.top - ch - gap) + sy + 'px',
+      });
+    } else {
+      Object.assign(card.style, { left: Math.max(16, (vw - card.offsetWidth) / 2) + sx + 'px', top: sy + 72 + 'px' });
+    }
+    run.raf = requestAnimationFrame(place);
+  }
+
+  // The address, read off the fragment. Unknown keys (a nonce, a toss's own)
+  // are ignored.
+  function fromHash(hash = location.hash) {
+    const p = new URLSearchParams(hash.replace(/^#/, ''));
+    if (p.has('steps')) {
+      let s = p.get('steps').trim();
+      if (!s.startsWith('[')) s = new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+      return JSON.parse(s);
+    }
+    if (p.has('walk')) {
+      const walks = JSON.parse(document.getElementById('walks')?.textContent || '{}');
+      return walks[p.get('walk')] || [{ at: 'walk:' + p.get('walk') }];
+    }
+    for (const k of ['show', 'tap']) if (p.has(k)) return [{ at: p.get(k), say: p.get('say') || '', tap: k === 'tap' }];
+    return null;
+  }
+
+  const fromLocation = () => { try { const s = fromHash(); if (s?.length) start(s); } catch (e) { console.warn('Point: unreadable address', e); } };
+  addEventListener('hashchange', fromLocation);
+
+  const encode = steps => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(steps)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return { start, stop, fromHash, fromLocation, encode };
+})();
+
+// ── the demo surface ───────────────────────────────────────────────────────
+document.addEventListener('alpine:init', () => Alpine.data('demo', () => ({
+  tab: 'summary',
+  status: 'draft',
+  calcAt: 'not yet',
+  editing: null,
+  draft: 0,
+  rows: [
+    ['analyst', 'Staffing: program analyst', 118000, 121500],
+    ['engineer', 'Staffing: data engineer', 142000, 146200],
+    ['qa', 'Staffing: QA lead', 97000, 99900],
+    ['vendor', 'Contract: vendor support', 64000, 64000],
+    ['security', 'Contract: security review', 38000, 0],
+    ['hosting', 'Cloud hosting', 52000, 55000],
+    ['training', 'Training', 12000, 8000],
+    ['travel', 'Travel', 4500, 4500],
+    ['equipment', 'Equipment refresh', 26000, 0],
+    ['helpdesk', 'Help desk overflow', 18000, 18000],
+    ['conversion', 'Records conversion', 71000, 23000],
+    ['a11y', 'Accessibility audit', 15000, 0],
+    ['translation', 'Translation', 9000, 9000],
+    ['postage', 'Postage', 3200, 3200],
+    ['printing', 'Printing', 2100, 2100],
+    ['legal', 'Legal review', 11000, 0],
+    ['licenses', 'Software licenses', 46000, 47400],
+    ['pm', 'Project management', 88000, 88000],
+    ['change', 'Change management', 21000, 9000],
+    ['testenv', 'Testing environment', 14000, 14000],
+    ['migration', 'Data migration', 33000, 0],
+    ['backup', 'Backup storage', 6000, 6400],
+    ['monitoring', 'Monitoring tools', 7800, 8100],
+    ['contingency', 'Contingency', 25000, 25000],
+  ].map(([id, name, y1, y2]) => ({ id, name, y1, y2 })),
+  funds: [
+    { id: 'general', name: 'General fund', share: 0.25 },
+    { id: 'dedicated', name: 'Dedicated account', share: 0.65 },
+    { id: 'federal', name: 'Federal grant', share: 0.10 },
+  ],
+  links: [],
+  get total() { return this.rows.reduce((t, r) => t + r.y1 + r.y2, 0); },
+  money: n => '$' + Math.round(n).toLocaleString(),
+  edit(r) { this.editing = r.id; this.draft = r.y1; },
+  save(r) { r.y1 = Number(this.draft) || 0; this.editing = null; },
+  init() {
+    const say = s => encodeURIComponent(s);
+    this.links = [
+      { label: 'Land on a row inside a closed tab', href: '#show=row-licenses&say=' + say('This is the licenses line the note refers to.') },
+      { label: 'Point at a button', href: '#tap=btn-recalc&say=' + say('Recalculate after changing an amount.') },
+      { label: 'A walkthrough the page declares', href: '#walk=change-licenses' },
+      { label: 'A walkthrough carried in the link', href: '#steps=' + Point.encode([
+        { at: 'tab-funds', tap: true, say: 'Open Funds.' },
+        { at: 'fund-dedicated', say: 'The dedicated account carries most of the request.' },
+        { at: 'btn-export', tap: true, say: 'Export from here.' },
+      ]) },
+      { label: 'An anchor that is not on the page', href: '#show=fund-capital&say=' + say('This one should miss.') },
+    ];
+  },
+})));
+document.addEventListener('alpine:initialized', () => Point.fromLocation());
+</script>
+</body>
+</html>
