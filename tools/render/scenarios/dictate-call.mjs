@@ -1,10 +1,10 @@
 // Shoot pages/dictate.html answering a documentation call: the call's head
 // under the header and its edits staged as change cards. The shim serves the
-// call and the file from the working tree, so a call written there and not yet
-// pushed is the one drawn.
+// call from the web-tools-private checkout and the file from this one, each at
+// its working tree, so a call written there and not yet pushed is the one drawn.
 //
 //   npm run shot -- pages/dictate.html --width 390 --height 844 --touch \
-//     --query "file=mehrlander/web-tools:docs/text-tools.md&call=mehrlander/web-tools:calls/a710e806-text-tools-tighten.json" \
+//     --query "file=mehrlander/web-tools:docs/text-tools.md&call=mehrlander/web-tools-private:calls/a710e806-text-tools-tighten.json" \
 //     --script tools/render/scenarios/dictate-call.mjs
 //
 //   CALL_STEP=head    (default) the head closed, the first card under it
