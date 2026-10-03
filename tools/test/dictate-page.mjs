@@ -2486,6 +2486,147 @@ try {
     ok('on a desk the badge keeps its title-tip, where a pointer can hover it', first.tip, JSON.stringify(first));
     await cx.close();
   }
+
+  // THE PROPOSAL QUEUE: with &proposed, the Text collection's proposals for
+  // this file arrive as change cards, and nothing else does. The fixture has a
+  // passage proposed here, one with a variant nobody proposed, and one proposed
+  // for another file; only the first may be staged.
+  console.log('the proposal queue:');
+  {
+    const { createHash } = await import('node:crypto');
+    const pid = (t) => createHash('sha256').update(t.trim(), 'utf8').digest('hex');
+    const DOC = '# Title\n\nProposed elsewhere.\n\nThe old wording here.\n\nOnly a variant.\n';
+    const FIX = 'tools/test/prop-fixture.md';
+    const pairs = [['Proposed elsewhere.', 'Not for this file.', 'docs/other.md'],
+                   ['The old wording here.', 'The new wording.', FIX],
+                   ['Only a variant.', 'Nobody proposed this.', null]];
+    const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join('\n') + '\n';
+    const files = {
+      'passages.jsonl': jsonl(pairs.flatMap(([a, b]) => [{ id: pid(a), text: a }, { id: pid(b), text: b }])),
+      'variants.jsonl': jsonl(pairs.map(([a, b]) => ({ from: pid(a), to: pid(b), author: 'Check', purpose: 'tighten' }))),
+      'proposals.jsonl': jsonl(pairs.filter((p) => p[2]).map(([a, b, path]) => ({ from: pid(a), to: pid(b),
+        repo: 'mehrlander/web-tools', path, basis: 'https://github.com/mehrlander/web-tools/pull/1' }))),
+    };
+    const cx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await cx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+    const pg = await cx.newPage();
+    await pg.route('**/*', routeAll);
+    const serve = (route, text, sha) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      content: Buffer.from(text).toString('base64'), encoding: 'base64', sha, size: text.length }) });
+    const put = [];
+    await pg.route(`**/repos/mehrlander/web-tools/contents/${FIX}*`, (route) => {
+      if (route.request().method() !== 'PUT') return serve(route, DOC, 'prop');
+      put.push(Buffer.from(JSON.parse(route.request().postData() || '{}').content || '', 'base64').toString('utf8'));
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ content: { sha: 'applied' } }) });
+    });
+    await pg.route('**/repos/mehrlander/home/contents/projects/text/**', (route) => {
+      const name = new URL(route.request().url()).pathname.split('/').pop();
+      return files[name] ? serve(route, files[name], name)
+        : route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+    });
+    pg.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
+    const C = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';
+    const arrive = async (query) => {
+      await pg.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('dictate:file')) localStorage.removeItem(k); }).catch(() => {});
+      await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:${FIX}${query}`, { waitUntil: 'domcontentloaded' });
+      await pg.waitForFunction(() => { const x = document.querySelector('[x-data="dictate"]')?._x_dataStack?.[0];
+        return x && x.fileBase != null && x.rendered; }, null, { timeout: 15000 });
+      await pg.waitForTimeout(500);
+      return pg.evaluate(`(() => { const x = ${C}; return { text: x.text, cards: window.MdSurface.cards(x.$refs.md).length }; })()`);
+    };
+    const plain = await arrive('');
+    ok('without &proposed the file opens as GitHub has it, with no cards', plain.text === DOC && plain.cards === 0, JSON.stringify(plain));
+    const staged = await arrive('&proposed');
+    ok('with &proposed only the proposal for this file is staged, as one card',
+      staged.text === DOC.replace('The old wording here.', 'The new wording.') && staged.cards === 1, JSON.stringify(staged));
+    await pg.evaluate(`(async () => { const x = ${C}; x.toggleConfirm(0); await x.applyConfirmed(); })()`);
+    await pg.waitForTimeout(300);
+    ok('a confirmed staged proposal is applied as written', put.length === 1 && put[0] === staged.text, JSON.stringify(put));
+    await cx.close();
+  }
+
+  // A DOCUMENTATION CALL: its head over the file, the edits it can find staged
+  // as cards, each edit's decision read off the page, and the answer either
+  // committed (to the file's branch or a new one) with a line beside the call,
+  // or held as JSON with nothing written. The fixture's third edit is already
+  // in the file and its fourth names text the file does not hold.
+  console.log('a documentation call:');
+  {
+    const DOC = '# Title\n\nFirst para old.\n\nSecond para old.\n\nThird para new.\n\nFourth para.\n';
+    const FIX = 'tools/test/call-fixture.md', CALLP = 'calls/test-call.json';
+    const CALL = { schema: 'call/1', id: 'a710e806-test', session: 'a710e806', slug: 'test', kind: 'documentation',
+      question: 'Apply 4 edits to call-fixture.md?', brief: 'Two new wordings, one already in, one gone.',
+      file: 'mehrlander/web-tools:' + FIX, pr: 'mehrlander/web-tools#1', recommend: 'applying both', why: 'they are shorter',
+      edits: [{ from: 'First para old.', to: 'First para new.', why: 'one' }, { from: 'Second para old.', to: 'Second para new.' },
+              { from: 'Third para old.', to: 'Third para new.' }, { from: 'Missing para.', to: 'Whatever.' }] };
+    const cx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await cx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+    const pg = await cx.newPage();
+    await pg.route('**/*', routeAll);
+    const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+    const file = (route, text, sha) => json(route, { content: Buffer.from(text).toString('base64'), encoding: 'base64', sha, size: text.length });
+    const docPuts = [], answerPuts = [], refs = [], comments = [];
+    let answers = '';
+    const putBody = (route) => JSON.parse(route.request().postData() || '{}');
+    await pg.route(`**/repos/mehrlander/web-tools/contents/${FIX}*`, (route) => {
+      if (route.request().method() !== 'PUT') return file(route, DOC, 'doc');
+      const b = putBody(route);
+      docPuts.push({ branch: b.branch || '', message: b.message, text: Buffer.from(b.content, 'base64').toString('utf8') });
+      return json(route, { content: { sha: 'applied' }, commit: { sha: 'c0ffee', html_url: 'https://github.com/mehrlander/web-tools/commit/c0ffee' } }, 201);
+    });
+    await pg.route(`**/repos/mehrlander/web-tools/contents/${CALLP}*`, (route) => file(route, JSON.stringify(CALL), 'call'));
+    await pg.route('**/repos/mehrlander/web-tools/contents/calls/test-call.answers.jsonl*', (route) => {
+      if (route.request().method() !== 'PUT') return answers ? file(route, answers, 'ans') : json(route, {}, 404);
+      answers = Buffer.from(putBody(route).content, 'base64').toString('utf8');
+      answerPuts.push(putBody(route));
+      return json(route, { content: { sha: 'ans' } }, 201);
+    });
+    // A new branch is cut from the default branch, which the API names.
+    await pg.route(/\/repos\/mehrlander\/web-tools\/?(\?.*)?$/, (route) => json(route, { default_branch: 'main' }));
+    await pg.route('**/repos/mehrlander/web-tools/git/ref/heads/*', (route) => json(route, { object: { sha: 'tip' } }));
+    await pg.route('**/repos/mehrlander/web-tools/git/refs', (route) => { refs.push(putBody(route)); return json(route, { ref: 'x' }, 201); });
+    await pg.route('**/repos/mehrlander/web-tools/issues/1/comments', (route) => { comments.push(putBody(route).body); return json(route, { html_url: 'https://github.com/c/1' }, 201); });
+    await pg.route('https://api.github.com/user', (route) => json(route, { login: 'tester' }));
+    pg.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
+    const C = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';
+    await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:${FIX}&call=mehrlander/web-tools:${CALLP}`, { waitUntil: 'domcontentloaded' });
+    await pg.waitForFunction(() => { const x = document.querySelector('[x-data="dictate"]')?._x_dataStack?.[0];
+      return x && x.call && x.rendered && document.querySelector('[data-md-card]'); }, null, { timeout: 15000 });
+    await pg.waitForTimeout(500);
+    const st = await pg.evaluate(`(() => { const x = ${C}; return { text: x.text, status: x.callStatus, cards: window.MdSurface.cards(x.$refs.md).length,
+      head: document.querySelector('[data-call-head]')?.textContent.replace(/\\s+/g, ' ') }; })()`);
+    ok('the call\'s head names its question over the file', /Apply 4 edits to call-fixture\.md\?/.test(st.head || ''), st.head);
+    ok('the edits the file holds are staged, one already in it and one not found are not',
+      JSON.stringify(st.status) === '["staged","staged","applied","stale"]' && st.cards === 2
+      && st.text === DOC.replace('First para old.', 'First para new.').replace('Second para old.', 'Second para new.'), JSON.stringify(st));
+    await pg.evaluate(`(() => { const x = ${C}; x.toggleConfirm(0); x.rejectCard(window.MdSurface.cards(x.$refs.md)[1]); })()`);
+    await pg.waitForTimeout(300);
+    await pg.evaluate(`${C}.openAnswer()`);
+    await pg.waitForTimeout(300);
+    const held = await pg.evaluate(`(() => { const x = ${C}; return { rows: x.answerRows, json: JSON.parse(x.answerJson) }; })()`);
+    ok('each edit\'s decision is read off the page: confirmed, discarded, and the two it did not stage',
+      JSON.stringify(held.rows) === '["confirmed","discarded","applied","stale"]', JSON.stringify(held.rows));
+    ok('the copied answer carries the decisions and the confirmed patch, and nothing was written',
+      held.json.decisions.length === 4 && /\+First para new\./.test(held.json.patch) && !/Second para new/.test(held.json.patch)
+      && docPuts.length === 0 && answerPuts.length === 0, JSON.stringify(held.json));
+    await pg.evaluate(`(async () => { const x = ${C}; x.answerTo = 'branch'; x.answerBranch = 'call/test'; await x.answerCall(); })()`);
+    await pg.waitForTimeout(300);
+    const line = answers.trim() ? JSON.parse(answers.trim().split('\n').pop()) : {};
+    ok('to a new branch: the branch is cut from the tip, the confirmed edit committed there, and the call named',
+      refs.length === 1 && refs[0].ref === 'refs/heads/call/test' && refs[0].sha === 'tip'
+      && docPuts.length === 1 && docPuts[0].branch === 'call/test' && /Call: mehrlander\/web-tools:calls\/test-call\.json/.test(docPuts[0].message)
+      && docPuts[0].text === DOC.replace('First para old.', 'First para new.'), JSON.stringify({ refs, docPuts }));
+    ok('the answer lands beside the call with its target and commit, and is posted on the PR',
+      line.target === 'call/test' && /c0ffee/.test(line.commit || '') && line.by === 'tester' && line.decisions?.[1]?.decision === 'discarded'
+      && comments.length === 1 && /Answer: \*\*1 confirmed, 1 discarded/.test(comments[0]), JSON.stringify({ line, comments }));
+    await pg.evaluate(`(async () => { const x = ${C}; x.answerTo = 'file'; x.answerComment = false; await x.answerCall(); })()`);
+    await pg.waitForTimeout(300);
+    const after = await pg.evaluate(`(() => { const x = ${C}; return { base: x.fileBase, confirmed: x.confirmedCount }; })()`);
+    ok('to the file\'s branch: committed with no branch named, and GitHub\'s copy moves under the page',
+      docPuts.length === 2 && docPuts[1].branch === '' && after.base === docPuts[1].text && after.confirmed === 0
+      && answers.trim().split('\n').length === 2 && comments.length === 1, JSON.stringify({ docPuts, after }));
+    await cx.close();
+  }
 } finally {
   await browser.close();
   server.close();
