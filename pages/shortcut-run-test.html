@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shortcut run test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    p { margin: 0.75rem 0; }
+    .note { color: #555; font-size: 0.95rem; }
+    code { font-size: 0.85em; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Shortcut run test</h1>
+  <p class="note">Best opened <strong>top-level in Safari</strong> (GitHub Pages URL), not inside toss-render’s iframe — a sandboxed frame often blocks <code>shortcuts://</code> handoff. Plain links only; no button styling.</p>
+
+  <p>📲 <a href="shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi" target="_blank" rel="noopener">Speak-Text (“hi”)</a></p>
+  <p>📲 <a href="shortcuts://run-shortcut?name=Speak-Text" target="_blank" rel="noopener">Speak-Text (no input)</a></p>
+  <p>📲 <a href="shortcuts://run-shortcut?name=Describe-Input&amp;input=text&amp;text=ping" target="_blank" rel="noopener">Describe-Input (“ping”)</a></p>
+
+  <p class="note">Same links without <code>target=_blank</code>:</p>
+  <p><a href="shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi">Speak-Text (“hi”) same-frame</a></p>
+
+  <h2>Raw</h2>
+  <p><code>shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi</code></p>
+</body>
+</html>
