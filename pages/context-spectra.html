@@ -19,20 +19,14 @@
   [x-cloak] { display: none !important; }
   .grid-matrix {
     display: grid;
-    grid-template-columns: minmax(135px, 165px) repeat(4, minmax(210px, 1fr));
-  }
-  .card-node {
-    transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
-  }
-  .card-node:hover {
-    border-color: var(--color-primary);
+    grid-template-columns: minmax(130px, 150px) repeat(4, minmax(190px, 1fr));
   }
 </style>
 </head>
 <body class="bg-base-200 min-h-dvh flex flex-col text-base-content antialiased" x-data="spectra()" x-init="boot()">
 
   <!-- ── Top Chrome / Header ─────────────────────────────────────────────── -->
-  <header class="bg-base-100 border-b border-base-300 px-3 sm:px-5 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
+  <header class="bg-base-100 border-b border-base-300 px-3 sm:px-5 py-2 shrink-0 flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2">
         <i class="ph-bold ph-sliders-horizontal text-lg text-primary"></i>
@@ -90,106 +84,98 @@
     </div>
   </header>
 
-  <!-- ── Main Workspace ──────────────────────────────────────────────────── -->
-  <main class="grow flex flex-col lg:flex-row overflow-hidden">
+  <!-- ── Main Workspace: Compact Matrix (Top) + Spectra Barometer (Bottom) ─ -->
+  <main class="grow overflow-auto p-2.5 sm:p-3 flex flex-col gap-2.5">
 
-    <!-- Primary Canvas: Scope x Discretion Matrix (Full width, no reading column cap) -->
-    <div class="grow overflow-auto p-3 sm:p-4">
-      <div class="overflow-x-auto border border-base-300 rounded-md bg-base-100 shadow-xs">
-        <div class="grid-matrix min-w-[960px] divide-x divide-y divide-base-300">
+    <!-- 1. Top Section: Ultra-Compact Scope x Discretion Matrix -->
+    <div class="overflow-x-auto border border-base-300 rounded-md bg-base-100 shadow-xs">
+      <div class="grid-matrix min-w-[920px] divide-x divide-y divide-base-300">
 
-          <!-- Top Header Row: Corner + Scope Columns -->
-          <div class="p-2.5 bg-base-200/60 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-base-content/60">
-            <span>Discretion \ Scope</span>
-          </div>
-          <template x-for="s in scopes" :key="s.id">
-            <div class="p-2.5 bg-base-200/60 flex flex-col gap-0.5">
-              <span class="text-xs font-semibold uppercase tracking-wider text-base-content" x-text="s.label"></span>
-              <span class="text-[10px] text-base-content/50" x-text="s.gloss"></span>
-            </div>
-          </template>
-
-          <!-- Matrix Rows: Each Discretion Tier -->
-          <template x-for="d in filteredDiscretions" :key="d.id">
-            <div class="contents">
-              <!-- Row Header: Discretion Tier -->
-              <div class="p-3 bg-base-200/30 flex flex-col justify-start gap-1">
-                <span class="text-xs font-bold text-base-content" x-text="d.label"></span>
-                <span class="text-[10px] text-base-content/50 leading-relaxed" x-text="d.gloss"></span>
-                <span class="badge badge-sm font-mono text-[9px] mt-1" :class="d.badgeClass" x-text="d.cost"></span>
-              </div>
-
-              <!-- 4 Scope Cells for this Discretion Tier -->
-              <template x-for="s in scopes" :key="s.id">
-                <div class="p-2 flex flex-col gap-1.5 min-h-[110px]"
-                     :class="hasItems(s.id, d.id) ? 'bg-base-100' : 'bg-base-200/10'">
-                  
-                  <template x-for="m in cellItems(s.id, d.id)" :key="m.id">
-                    <div class="card-node border rounded-md p-2 bg-base-100 cursor-pointer select-none"
-                         :class="selectedId === m.id ? 'border-primary ring-1 ring-primary/40 bg-primary/5' : 'border-base-300 hover:border-base-content/30'"
-                         @click="select(m.id)">
-                      <div class="flex items-start justify-between gap-1.5">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                          <i class="ph text-sm text-primary shrink-0" :class="m.icon"></i>
-                          <span class="font-semibold text-xs truncate" x-text="m.title"></span>
-                        </div>
-                        <span class="badge badge-xs font-mono shrink-0" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
-                      </div>
-
-                      <div class="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-base-content/55 font-mono">
-                        <span class="truncate flex items-center gap-1">
-                          <i class="ph text-[10px]" :class="triggerIcon(m.trigger)"></i><span x-text="m.trigger"></span>
-                        </span>
-                        <span class="shrink-0 font-medium" :class="m.evidence === '●' ? 'text-success' : 'text-base-content/40'" x-text="m.evidence"></span>
-                      </div>
-                    </div>
-                  </template>
-
-                  <div x-show="!hasItems(s.id, d.id)" class="grow flex items-center justify-center">
-                    <span class="text-[11px] text-base-content/20 font-mono">—</span>
-                  </div>
-
-                </div>
-              </template>
-            </div>
-          </template>
-
+        <!-- Top Header Row -->
+        <div class="px-2.5 py-1 bg-base-200/60 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-base-content/50">
+          <span>Discretion \ Scope</span>
         </div>
+        <template x-for="s in scopes" :key="s.id">
+          <div class="px-2.5 py-1 bg-base-200/60 flex flex-col justify-center">
+            <span class="text-xs font-bold uppercase tracking-wider text-base-content" x-text="s.label"></span>
+            <span class="text-[10px] text-base-content/50 truncate" x-text="s.gloss"></span>
+          </div>
+        </template>
+
+        <!-- Discretion Rows (Ultra-Compact) -->
+        <template x-for="d in filteredDiscretions" :key="d.id">
+          <div class="contents">
+            <!-- Row Header -->
+            <div class="p-1.5 bg-base-200/30 flex flex-col justify-center gap-0.5">
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-xs font-bold text-base-content" x-text="d.label"></span>
+                <span class="badge badge-xs font-mono text-[9px]" :class="d.badgeClass" x-text="d.short"></span>
+              </div>
+              <span class="text-[10px] text-base-content/50 truncate" x-text="d.gloss"></span>
+            </div>
+
+            <!-- 4 Scope Cells (Compact single-line chips) -->
+            <template x-for="s in scopes" :key="s.id">
+              <div class="p-1 flex flex-col gap-1 min-h-[30px]"
+                   :class="hasItems(s.id, d.id) ? 'bg-base-100' : 'bg-base-200/10'">
+                
+                <template x-for="m in cellItems(s.id, d.id)" :key="m.id">
+                  <button type="button" @click="select(m.id)"
+                          class="w-full text-left flex items-center justify-between gap-1.5 px-2 py-0.5 rounded border text-xs transition-all cursor-pointer"
+                          :class="selectedId === m.id ? 'border-primary bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary' : 'border-base-300 bg-base-100 hover:border-primary/50 text-base-content/85'">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <i class="ph text-xs shrink-0" :class="m.icon"></i>
+                      <span class="truncate" x-text="m.title"></span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 font-mono text-[10px]">
+                      <i class="ph text-base-content/40" :class="triggerIcon(m.trigger)" :title="m.trigger"></i>
+                      <span class="badge badge-xs font-mono" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
+                    </div>
+                  </button>
+                </template>
+
+                <div x-show="!hasItems(s.id, d.id)" class="grow flex items-center justify-center">
+                  <span class="text-[10px] text-base-content/20 font-mono">—</span>
+                </div>
+
+              </div>
+            </template>
+          </div>
+        </template>
+
       </div>
     </div>
 
-    <!-- ── Right-Side Inspector & Spectra Barometer Rail ──────────────────── -->
-    <aside class="w-full lg:w-88 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-base-300 bg-base-100 p-3 sm:p-3.5 flex flex-col gap-3 overflow-y-auto">
-      <div class="flex items-baseline justify-between border-b border-base-300 pb-2">
-        <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Inspector</span>
-        <span class="badge badge-xs font-mono" :class="envBadge(active.env)" x-text="active.env.toUpperCase()"></span>
-      </div>
-
-      <!-- Selected Mechanism Card -->
-      <div class="flex flex-col gap-2">
-        <div class="flex items-start gap-2.5">
-          <div class="p-1.5 rounded-md bg-base-200 border border-base-300 flex items-center justify-center shrink-0 w-8 h-8">
-            <i class="ph text-lg text-primary" :class="active.icon"></i>
+    <!-- 2. Bottom Section: Spectra Barometer & Detailed Inspector -->
+    <div class="border border-base-300 rounded-md p-2.5 sm:p-3 bg-base-100 flex flex-col gap-2.5 shadow-xs">
+      <!-- Selected Mechanism Header -->
+      <div class="flex items-baseline justify-between flex-wrap gap-2 border-b border-base-300 pb-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="p-1 rounded-md bg-base-200 border border-base-300 flex items-center justify-center shrink-0 w-7 h-7">
+            <i class="ph text-base text-primary" :class="active.icon"></i>
           </div>
           <div class="min-w-0">
-            <h2 class="font-bold text-sm leading-tight" x-text="active.title"></h2>
+            <div class="flex items-baseline gap-2">
+              <h2 class="font-bold text-sm sm:text-base leading-tight" x-text="active.title"></h2>
+              <span class="badge badge-xs font-mono" :class="envBadge(active.env)" x-text="active.env.toUpperCase()"></span>
+            </div>
             <code class="text-[10px] text-base-content/50 font-mono break-all" x-text="active.file"></code>
           </div>
         </div>
-
-        <p class="text-xs text-base-content/75 leading-relaxed text-pretty" x-text="active.gloss"></p>
+        <div class="flex items-center gap-2">
+          <span class="badge badge-sm font-mono text-[10px]" :class="activeDiscretionBadge()" x-text="active.discretionLabel"></span>
+          <span class="badge badge-sm badge-ghost font-mono text-[10px]" x-text="'Footprint: ' + active.tokenCost"></span>
+        </div>
       </div>
 
-      <!-- Spectra Barometer: Interactive 3-Axis Gauges -->
-      <div class="flex flex-col gap-2.5 pt-2.5 border-t border-base-200">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Spectra Barometer</span>
-          <span class="text-[9px] font-mono text-base-content/40">3-Axis Position</span>
-        </div>
+      <!-- Gloss Description -->
+      <p class="text-xs text-base-content/75 leading-relaxed" x-text="active.gloss"></p>
 
+      <!-- Spectra Barometer: Interactive 3-Axis Gauges -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-0.5">
         <!-- 1. Scope Gauge -->
-        <div class="bg-base-200/50 p-2.5 rounded-md border border-base-300 flex flex-col gap-1.5">
-          <div class="flex items-baseline justify-between text-[10px]">
+        <div class="bg-base-200/50 p-2 rounded-md border border-base-300 flex flex-col gap-1">
+          <div class="flex items-baseline justify-between text-[11px]">
             <span class="font-semibold uppercase tracking-wider text-base-content/60">1. Scope</span>
             <span class="font-mono text-primary font-bold text-xs" x-text="active.scopeLabel"></span>
           </div>
@@ -210,7 +196,7 @@
 
         <!-- 2. Discretion Gauge -->
         <div class="bg-base-200/50 p-2.5 rounded-md border border-base-300 flex flex-col gap-1.5">
-          <div class="flex items-baseline justify-between text-[10px]">
+          <div class="flex items-baseline justify-between text-[11px]">
             <span class="font-semibold uppercase tracking-wider text-base-content/60">2. Discretion</span>
             <span class="font-mono text-primary font-bold text-xs" x-text="active.discretionLabel"></span>
           </div>
@@ -231,8 +217,8 @@
 
         <!-- 3. Lifecycle Trigger Gauge -->
         <div class="bg-base-200/50 p-2.5 rounded-md border border-base-300 flex flex-col gap-1.5">
-          <div class="flex items-baseline justify-between text-[10px]">
-            <span class="font-semibold uppercase tracking-wider text-base-content/60">3. Lifecycle Trigger</span>
+          <div class="flex items-baseline justify-between text-[11px]">
+            <span class="font-semibold uppercase tracking-wider text-base-content/60">3. Trigger</span>
             <span class="font-mono text-primary font-bold text-xs" x-text="active.trigger"></span>
           </div>
           <div class="relative py-1">
@@ -252,17 +238,18 @@
         </div>
       </div>
 
-      <!-- Architecture Rationale & Trade-offs -->
-      <div class="flex flex-col gap-1 pt-2 border-t border-base-200 text-xs">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Architectural Rationale</span>
-        <p class="text-base-content/80 leading-relaxed text-pretty text-[11px]" x-text="active.rationale"></p>
+      <!-- Bottom Details: Architectural Rationale & Token Economics -->
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_16rem] gap-3 pt-2 border-t border-base-200 text-xs">
+        <div class="flex flex-col gap-0.5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Architectural Rationale</span>
+          <p class="text-base-content/80 leading-relaxed text-pretty text-[11px]" x-text="active.rationale"></p>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Token Footprint & Idle Cost</span>
+          <p class="text-base-content/80 font-mono text-[11px]" x-text="active.tokenCost"></p>
+        </div>
       </div>
-
-      <div class="flex flex-col gap-1 pt-2 border-t border-base-200 text-xs">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Token Footprint</span>
-        <p class="text-base-content/80 font-mono text-[10px]" x-text="active.tokenCost"></p>
-      </div>
-    </aside>
+    </div>
 
   </main>
 
@@ -568,6 +555,11 @@ function spectra() {
       if (env === 'gemini') return 'badge-info';
       if (env === 'claude') return 'badge-warning';
       return 'badge-primary';
+    },
+
+    activeDiscretionBadge() {
+      const d = this.discretions.find(x => x.id === this.active.discretionId);
+      return d ? d.badgeClass : 'badge-ghost';
     },
 
     triggerIcon(trig) {
