@@ -166,7 +166,6 @@ const Point = (() => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms) => { for (const t0 = Date.now(); Date.now() - t0 < ms; await sleep(80)) { const v = fn(); if (v) return v; } return fn(); };
   const node = (tag, cls, html = '') => Object.assign(document.createElement(tag), { className: cls, innerHTML: html });
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // A hidden target sits in a region that names its opener. Open regions
   // outward until the target shows or nothing names a way in.
@@ -234,7 +233,7 @@ const Point = (() => {
     const el = await reveal(s.at);
     if (run !== r || r.i !== i) return;                 // superseded while waiting
     r.el = el;
-    r.card.innerHTML = cardHTML(s, i, r.steps.length, el);
+    fill(r.card, s, i, r.steps.length, el);
     if (!el) return r.card.classList.remove('hidden');
     // A control to tap is marked by its ring, not by Land's tint, which
     // would wash out a filled button's label.
@@ -261,10 +260,18 @@ const Point = (() => {
     }
   }
 
+  // The markup is fixed; the message arrives from a URL, so it goes in as
+  // text and never as HTML.
+  function fill(card, s, i, n, el) {
+    card.innerHTML = cardHTML(s, i, n, el);
+    const p = card.querySelector('[data-say]');
+    if (el) p.textContent = s.say || '';
+    else p.append('Not on this page: ', Object.assign(document.createElement('code'), { className: 'font-mono', textContent: s.at }));
+  }
+
   function cardHTML(s, i, n, el) {
-    const say = el ? esc(s.say || '') : `Not on this page: <code class="font-mono">${esc(s.at)}</code>`;
     const head = `<div class="flex items-start gap-2">
-        <p class="flex-1 text-base text-pretty">${say}</p>
+        <p data-say class="flex-1 text-base text-pretty"></p>
         <button data-stop class="btn btn-xs btn-ghost btn-square -mr-1" aria-label="Close"><i class="ph ph-x"></i></button>
       </div>`;
     // A lone landing needs no navigation: the message and its close are all.
