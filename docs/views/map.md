@@ -29,6 +29,23 @@ validated before `map()` mounts). The default, `set`, stays out of the URL.
 `surfacing.csv` is its gated index; a card's title lands on its bullet through
 `lib/kits/land.js`. The Docs Inventory's readership column is token-gated,
 and it is absent (not blank) without a token.
+ 
+## Harness: execution environments and automation
+
+The Harness tab (`?view=map&tab=harness`) makes the operational scaffolding
+wrapped around models inspectable across three subviews:
+
+- **Automation (`harness`)**: reads `docs/harness.csv`, the catalog of hooks,
+  scripts, CI workflows, and commit gates.
+- **Tests (`tests`)**: reads `docs/tests.csv`, every test file and assertion.
+- **Context (`context`)**: renders `pages/session-context.html`, documenting the
+  content delivery routes and durable traces from context to decisions.
+
+Detailed documentation of the two primary harnesses (the Claude Code cloud
+container and the Antigravity local host) lives under `docs/environment/`
+([docs/environment/README.md](../environment/README.md),
+[docs/environment/antigravity-local.md](../environment/antigravity-local.md), and
+[docs/environment/harness-comparison.md](../environment/harness-comparison.md)).
 
 ## Views: the app's own destinations
 
