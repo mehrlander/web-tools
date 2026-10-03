@@ -54,6 +54,7 @@ const NOTES = {
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
   'demos/wring-text.html':     'Template induction on logs/records — kits/wring.js live.',
   'demos/wring-dom.html':      'Repeated DOM components from signatures or pasted HTML.',
+  'context-spectra.html':      'Interactive visual map of context delivery mechanisms across Scope, Discretion, and Lifecycle Triggers.',
   'stories/bookmarklets-story.html': 'Field notes on bookmarklet packing.',
   // Kit demos live under lib/kits/demos/ — surfaced here under the kit-demos group.
   'kit-demos/panel-tip.html':    'Panel-tip kit — the ghost ✕ and the three ways out of a panel-tip.',

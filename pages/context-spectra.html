@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Delivery Spectra</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎯</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+
+<style>
+  /* SVG diagram styling with DaisyUI semantic tokens */
+  #matrix-svg [data-node] { cursor: pointer; }
+  #matrix-svg [data-node]:hover circle.node-point { filter: brightness(1.15); stroke-width: 3.5px; }
+  .active-node circle.node-point { stroke: var(--color-primary); stroke-width: 3.5px; }
+</style>
+</head>
+<body class="bg-base-200 min-h-screen text-base-content antialiased" x-data="spectra()" x-init="boot()">
+
+<div class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+
+  <!-- Header -->
+  <header class="bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-base-300 pb-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="badge badge-primary badge-sm font-semibold tracking-wide uppercase">Harness Architecture</span>
+          <span class="text-xs text-base-content/50 font-mono">Scope · Discretion · Triggers</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Context Delivery Spectra</h1>
+      </div>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <a href="../app/?view=map&tab=context" class="btn btn-sm btn-outline border-base-300 hover:border-primary">
+          <i class="ph ph-arrow-left"></i><span>Map View Context</span>
+        </a>
+      </div>
+    </div>
+    
+    <p class="text-base text-base-content/70 leading-relaxed text-pretty">
+      Every piece of context in an AI coding estate operates at the intersection of three fundamental spectra:
+      <strong>Scope</strong> (what boundary does it govern?), <strong>Discretion</strong> (who decides to bring it in?), and <strong>Triggers</strong> (the lifecycle juncture at which it enters).
+    </p>
+
+    <!-- Global Controls & Filters -->
+    <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+      <!-- Environment Filter -->
+      <div class="flex items-center gap-1.5 p-1 rounded-xl bg-base-200 border border-base-300 text-xs">
+        <span class="px-2 text-base-content/50 font-medium">Environment:</span>
+        <button type="button" @click="env = 'all'" class="px-2.5 py-1 rounded-lg font-medium transition-colors"
+                :class="env === 'all' ? 'bg-base-100 text-primary shadow-sm font-semibold' : 'text-base-content/70 hover:text-base-content'">All</button>
+        <button type="button" @click="env = 'claude'" class="px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
+                :class="env === 'claude' ? 'bg-base-100 text-warning shadow-sm font-semibold' : 'text-base-content/70 hover:text-base-content'">
+          <span class="w-2 h-2 rounded-full bg-warning"></span><span>Claude Cloud</span>
+        </button>
+        <button type="button" @click="env = 'gemini'" class="px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
+                :class="env === 'gemini' ? 'bg-base-100 text-info shadow-sm font-semibold' : 'text-base-content/70 hover:text-base-content'">
+          <span class="w-2 h-2 rounded-full bg-info"></span><span>Gemini Local</span>
+        </button>
+      </div>
+
+      <!-- Group By Switcher -->
+      <div class="flex items-center gap-1.5 p-1 rounded-xl bg-base-200 border border-base-300 text-xs">
+        <span class="px-2 text-base-content/50 font-medium">Group Cards By:</span>
+        <button type="button" @click="groupBy = 'scope'" class="px-2.5 py-1 rounded-lg font-medium transition-colors"
+                :class="groupBy === 'scope' ? 'bg-base-100 text-primary shadow-sm font-semibold' : 'text-base-content/70 hover:text-base-content'">Scope (Circles)</button>
+        <button type="button" @click="groupBy = 'trigger'" class="px-2.5 py-1 rounded-lg font-medium transition-colors"
+                :class="groupBy === 'trigger' ? 'bg-base-100 text-primary shadow-sm font-semibold' : 'text-base-content/70 hover:text-base-content'">Trigger (When)</button>
+        <button type="button" @click="groupBy = 'discretion'" class="px-2.5 py-1 rounded-lg font-medium transition-colors"
+                :class="groupBy === 'discretion' ? 'bg-base-100 text-primary shadow-sm font-semibold' : 'text-base-content/70 hover:text-base-content'">Discretion Tier</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive 2D Visual Map (Scope vs Discretion) -->
+  <section class="bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col gap-4">
+    <div class="flex items-baseline justify-between flex-wrap gap-2">
+      <h2 class="text-lg font-semibold tracking-tight">Delivery Matrix: Scope vs. Discretion</h2>
+      <span class="text-xs text-base-content/50">Click any mechanism node to inspect its properties</span>
+    </div>
+
+    <!-- Scrollable container for mobile diagram safety -->
+    <div class="overflow-x-auto border border-base-300 rounded-xl bg-base-200/50 p-2 sm:p-4">
+      <div class="min-w-[700px] flex justify-center">
+        <svg id="matrix-svg" viewBox="0 0 760 320" class="w-full h-auto max-w-[760px] select-none"
+             @click="onSvgClick($event)">
+          <!-- Grid Axes -->
+          <line x1="130" y1="20" x2="130" y2="270" stroke="currentColor" stroke-opacity="0.2" stroke-width="1.5" />
+          <line x1="130" y1="270" x2="740" y2="270" stroke="currentColor" stroke-opacity="0.2" stroke-width="1.5" />
+
+          <!-- X Axis: Scope (Universal -> Ecosystem/Host -> Repo -> Task/Turn) -->
+          <text x="210" y="295" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="middle">Universal (Account)</text>
+          <text x="380" y="295" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="middle">Plugin / Host</text>
+          <text x="540" y="295" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="middle">Repo-Specific</text>
+          <text x="680" y="295" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="middle">Task / Turn</text>
+
+          <!-- Y Axis: Discretion (Forced Injected -> Event-Reactive -> System-Prodded -> User-Pulled) -->
+          <text x="118" y="55" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="end">Forced Injected</text>
+          <text x="118" y="115" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="end">Event-Reactive</text>
+          <text x="118" y="175" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="end">System-Prodded</text>
+          <text x="118" y="235" fill="currentColor" fill-opacity="0.6" font-size="11" font-weight="600" text-anchor="end">User / Model Pulled</text>
+
+          <!-- Grid lines -->
+          <line x1="130" y1="50" x2="740" y2="50" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+          <line x1="130" y1="110" x2="740" y2="110" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+          <line x1="130" y1="170" x2="740" y2="170" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+          <line x1="130" y1="230" x2="740" y2="230" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+
+          <line x1="290" y1="20" x2="290" y2="270" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+          <line x1="460" y1="20" x2="460" y2="270" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+          <line x1="620" y1="20" x2="620" y2="270" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
+
+          <!-- Rendered Nodes -->
+          <template x-for="m in visibleMechanisms" :key="m.id">
+            <g :data-node="m.id" :class="activeId === m.id ? 'active-node' : ''">
+              <!-- Glow halo when active -->
+              <circle x-show="activeId === m.id" :cx="m.x" :cy="m.y" r="18"
+                      fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="3" />
+              <!-- Node circle -->
+              <circle class="node-point transition-all" :cx="m.x" :cy="m.y" :r="activeId === m.id ? 11 : 9"
+                      :fill="nodeColor(m)" stroke="var(--color-base-100)" stroke-width="2" />
+              <!-- Short label -->
+              <text :x="m.x" :y="m.y - 14" text-anchor="middle" font-size="10"
+                    :font-weight="activeId === m.id ? '700' : '500'"
+                    :fill="activeId === m.id ? 'var(--color-primary)' : 'currentColor'"
+                    :fill-opacity="activeId === m.id ? 1 : 0.75"
+                    x-text="m.shortName"></text>
+            </g>
+          </template>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Active Mechanism Inspector Card -->
+    <template x-if="active">
+      <div class="border border-base-300 rounded-xl p-4 sm:p-5 bg-base-200/40 flex flex-col gap-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl p-2 rounded-xl bg-base-100 border border-base-300 shadow-xs" x-text="active.icon"></span>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-lg" x-text="active.name"></h3>
+                <span class="badge badge-sm font-mono" :class="envBadge(active.env)" x-text="active.env.toUpperCase()"></span>
+              </div>
+              <p class="text-sm text-base-content/70 mt-0.5" x-text="active.summary"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-base-300/70 text-xs">
+          <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+            <span class="text-base-content/50 font-medium">1. Scope Boundary:</span>
+            <p class="font-semibold text-sm mt-0.5" x-text="active.scope"></p>
+          </div>
+          <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+            <span class="text-base-content/50 font-medium">2. Discretion Tier:</span>
+            <p class="font-semibold text-sm mt-0.5" x-text="active.discretion"></p>
+          </div>
+          <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+            <span class="text-base-content/50 font-medium">3. Trigger / Juncture:</span>
+            <p class="font-semibold text-sm mt-0.5" x-text="active.trigger"></p>
+          </div>
+        </div>
+
+        <div class="bg-base-100 p-3 rounded-lg border border-base-300 text-xs text-base-content/80 leading-relaxed">
+          <span class="font-semibold text-base-content">Architectural Rationale: </span>
+          <span x-text="active.rationale"></span>
+        </div>
+      </div>
+    </template>
+  </section>
+
+  <!-- Grouped Roster of Mechanisms -->
+  <section class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold tracking-tight">Mechanisms Catalog</h2>
+      <span class="text-xs font-mono text-base-content/50" x-text="visibleMechanisms.length + ' registered mechanisms'"></span>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      <template x-for="grp in groupedRoster" :key="grp.title">
+        <div class="flex flex-col gap-3">
+          <div class="flex items-baseline gap-2 border-b border-base-300 pb-1">
+            <h3 class="font-bold text-sm tracking-wide uppercase text-base-content/70" x-text="grp.title"></h3>
+            <span class="text-xs font-mono text-base-content/40" x-text="'(' + grp.items.length + ')'"></span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <template x-for="m in grp.items" :key="m.id">
+              <div class="border rounded-xl p-4 bg-base-100 transition-all cursor-pointer hover:border-primary/50"
+                   :class="activeId === m.id ? 'border-primary shadow-sm bg-primary/5' : 'border-base-300'"
+                   @click="activeId = m.id">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xl" x-text="m.icon"></span>
+                    <h4 class="font-semibold text-sm" x-text="m.name"></h4>
+                  </div>
+                  <span class="badge badge-sm font-mono text-[10px]" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
+                </div>
+                <p class="text-xs text-base-content/70 mt-2 leading-relaxed" x-text="m.summary"></p>
+                <div class="mt-3 pt-2 border-t border-base-200 flex items-center justify-between text-xs text-base-content/50 font-mono">
+                  <span x-text="m.scope.split(' ')[0]"></span>
+                  <span>•</span>
+                  <span x-text="m.discretion.split(' ')[0]"></span>
+                  <span>•</span>
+                  <span x-text="m.trigger"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function spectra() {
+  return {
+    env: 'all',
+    groupBy: 'scope',
+    activeId: 'invoke-default',
+
+    mechanisms: [
+      {
+        id: "sys-prompt",
+        name: "Personal Preferences & System Prompt",
+        shortName: "SystemPrompt",
+        env: "claude",
+        icon: "👤",
+        x: 190, y: 50,
+        scope: "Universal (Account)",
+        discretion: "Forced Injected",
+        trigger: "Session Start",
+        summary: "Hardcoded by account settings into every turn's prompt preamble.",
+        rationale: "Guarantees core user preferences and foundational formatting rules apply unconditionally without needing per-repo configuration."
+      },
+      {
+        id: "skill-manifest",
+        name: "Plugin Skill Descriptions (manifest.csv)",
+        shortName: "SkillManifest",
+        env: "claude",
+        icon: "📋",
+        x: 235, y: 50,
+        scope: "Universal (Ecosystem)",
+        discretion: "Forced Injected",
+        trigger: "Session Start",
+        summary: "1-line stub description for every plugin skill placed into initial context.",
+        rationale: "Optimizes token budget: gives the model awareness of available capabilities without loading full skill documentation until required."
+      },
+      {
+        id: "antigravity-state",
+        name: "Antigravity Host State & Identity",
+        shortName: "HostIdentity",
+        env: "gemini",
+        icon: "⚡",
+        x: 215, y: 50,
+        scope: "Universal (Host)",
+        discretion: "Forced Injected",
+        trigger: "Daemon Start",
+        summary: "Local loopback RPC state and installation UUID in ~/.gemini/antigravity/.",
+        rationale: "Binds the local language server daemon to the host workstation identity and coordinates local process communication."
+      },
+      {
+        id: "invoke-default",
+        name: "Conventions Directive (invoke-default.sh)",
+        shortName: "invoke-default",
+        env: "claude",
+        icon: "🧭",
+        x: 370, y: 170,
+        scope: "Ecosystem (Plugin)",
+        discretion: "System-Prodded",
+        trigger: "Session Start",
+        summary: "Hook outputs a directive instructing the model to invoke /portable:default.",
+        rationale: "Avoids hardcoded monolithic imports by dynamically prompting the model to load governing conventions (SURFACING.md, QUALIFIED-WRITING.md)."
+      },
+      {
+        id: "event-guards",
+        name: "Safety & Quality Guards",
+        shortName: "SafetyGuards",
+        env: "claude",
+        icon: "🛡️",
+        x: 390, y: 110,
+        scope: "Ecosystem (Plugin)",
+        discretion: "Event-Reactive",
+        trigger: "File Edit Event",
+        summary: "reading-column-guard, send-later-guard, and governing-docs warner.",
+        rationale: "Conserves 100% of context window capacity until an edit or commit event occurs matching a protected policy boundary."
+      },
+      {
+        id: "pr-course",
+        name: "Surfacing Course (pr-subscribe-hint)",
+        shortName: "PRCourse",
+        env: "claude",
+        icon: "🚀",
+        x: 540, y: 110,
+        scope: "Repo / PR Context",
+        discretion: "Event-Reactive",
+        trigger: "PR Open Event",
+        summary: "Delivers surfacing-course.md guidance exclusively when a pull request opens.",
+        rationale: "Prevents premature cognitive load by keeping PR lifecycle and body synchronization rules dormant until a real PR is submitted."
+      },
+      {
+        id: "repo-claude",
+        name: "Repository Contract (CLAUDE.md)",
+        shortName: "CLAUDE.md",
+        env: "claude",
+        icon: "📖",
+        x: 520, y: 170,
+        scope: "Repo-Specific",
+        discretion: "System-Prodded",
+        trigger: "Session Start",
+        summary: "Repository-specific build steps, test gates, and design patterns.",
+        rationale: "Prototypical repo level: keeps repo-specific quirks isolated so they never leak into other checked-out repositories."
+      },
+      {
+        id: "slash-commands",
+        name: "Interactive Slash Utilities (/markers, /showing)",
+        shortName: "SlashUtils",
+        env: "claude",
+        icon: "⚡",
+        x: 670, y: 230,
+        scope: "Task / Session",
+        discretion: "User-Pulled",
+        trigger: "On Demand",
+        summary: "Executable tools run on demand when the operator explicitly enters a command.",
+        rationale: "High discretion: only runs when the human operator asks for a frozen-zone audit or verified showing link."
+      },
+      {
+        id: "antigravity-skills",
+        name: "Antigravity Local Skills",
+        shortName: "GeminiSkills",
+        env: "gemini",
+        icon: "🧠",
+        x: 690, y: 230,
+        scope: "Task / Domain",
+        discretion: "User / Model Pulled",
+        trigger: "On Demand",
+        summary: "Deep skills (BigQuery SQL, GCS basics, Chrome DevTools, Generative UI).",
+        rationale: "Local domain knowledge folders stored on the workstation that load exclusively when a task requires specialized expertise."
+      },
+      {
+        id: "agent-tools",
+        name: "Autonomous Model Tools (view_file, grep)",
+        shortName: "ToolRetrieval",
+        env: "all",
+        icon: "🔍",
+        x: 710, y: 230,
+        scope: "File / Symbol",
+        discretion: "Model-Retrieved",
+        trigger: "Per Turn",
+        summary: "Dynamic file reads, command execution, and step transcript persistence.",
+        rationale: "The model exercises continuous real-time agency to pull exactly what is needed to fulfill the user request."
+      }
+    ],
+
+    get visibleMechanisms() {
+      if (this.env === 'all') return this.mechanisms;
+      return this.mechanisms.filter(m => m.env === 'all' || m.env === this.env);
+    },
+
+    get active() {
+      return this.mechanisms.find(m => m.id === this.activeId) || this.visibleMechanisms[0];
+    },
+
+    get groupedRoster() {
+      const items = this.visibleMechanisms;
+      const groups = {};
+
+      if (this.groupBy === 'scope') {
+        const order = ['Universal (Account)', 'Universal (Ecosystem)', 'Universal (Host)', 'Ecosystem (Plugin)', 'Repo-Specific', 'Repo / PR Context', 'Task / Session', 'Task / Domain', 'File / Symbol'];
+        order.forEach(k => { groups[k] = []; });
+        items.forEach(m => {
+          if (!groups[m.scope]) groups[m.scope] = [];
+          groups[m.scope].push(m);
+        });
+      } else if (this.groupBy === 'trigger') {
+        const order = ['Daemon Start', 'Session Start', 'File Edit Event', 'PR Open Event', 'Per Turn', 'On Demand'];
+        order.forEach(k => { groups[k] = []; });
+        items.forEach(m => {
+          if (!groups[m.trigger]) groups[m.trigger] = [];
+          groups[m.trigger].push(m);
+        });
+      } else {
+        const order = ['Forced Injected', 'Event-Reactive', 'System-Prodded', 'User-Pulled', 'User / Model Pulled', 'Model-Retrieved'];
+        order.forEach(k => { groups[k] = []; });
+        items.forEach(m => {
+          if (!groups[m.discretion]) groups[m.discretion] = [];
+          groups[m.discretion].push(m);
+        });
+      }
+
+      return Object.entries(groups)
+        .filter(([_, list]) => list.length > 0)
+        .map(([title, list]) => ({ title, items: list }));
+    },
+
+    nodeColor(m) {
+      if (m.env === 'gemini') return 'var(--color-info)';
+      if (m.env === 'claude') return 'var(--color-warning)';
+      return 'var(--color-primary)';
+    },
+
+    envBadge(env) {
+      if (env === 'gemini') return 'badge-info';
+      if (env === 'claude') return 'badge-warning';
+      return 'badge-primary';
+    },
+
+    onSvgClick(e) {
+      const nodeEl = e.target.closest('[data-node]');
+      if (nodeEl) {
+        this.activeId = nodeEl.getAttribute('data-node');
+      }
+    },
+
+    boot() {
+      // Set active to first if current activeId is filtered out
+      if (!this.visibleMechanisms.some(m => m.id === this.activeId)) {
+        this.activeId = this.visibleMechanisms[0]?.id || '';
+      }
+    }
+  };
+}
+</script>
+
+</body>
+</html>
