@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Context Spectra — Web Tools</title>
+<title>Context Delivery Spectra — Web Tools</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='12' r='6'/><circle cx='12' cy='12' r='2'/></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -19,7 +19,7 @@
   [x-cloak] { display: none !important; }
   .grid-matrix {
     display: grid;
-    grid-template-columns: minmax(130px, 160px) repeat(4, minmax(210px, 1fr));
+    grid-template-columns: minmax(135px, 165px) repeat(4, minmax(210px, 1fr));
   }
   .card-node {
     transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
@@ -32,14 +32,14 @@
 <body class="bg-base-200 min-h-dvh flex flex-col text-base-content antialiased" x-data="spectra()" x-init="boot()">
 
   <!-- ── Top Chrome / Header ─────────────────────────────────────────────── -->
-  <header class="bg-base-100 border-b border-base-300 px-3 sm:px-5 py-2 shrink-0 flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
+  <header class="bg-base-100 border-b border-base-300 px-3 sm:px-5 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2">
         <i class="ph-bold ph-sliders-horizontal text-lg text-primary"></i>
         <h1 class="text-sm sm:text-base font-bold tracking-tight">Context Delivery Spectra</h1>
       </div>
       <span class="text-base-content/30">/</span>
-      <!-- Compact Counts Strip (No stat cards, per House Style Rule 1 & Rule 2) -->
+      <!-- Compact Counts Strip (House Style Rule 1 & Rule 2: structural counts, no KPI cards) -->
       <div class="flex items-center gap-2 text-xs font-mono text-base-content/60">
         <span x-text="visible.length + ' mechanisms'"></span>
         <span>·</span>
@@ -51,25 +51,9 @@
       </div>
     </div>
 
-    <!-- Controls: Lenses & Environment -->
+    <!-- Controls: Estate & Discretion Filters -->
     <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-      <!-- Lens Switcher -->
-      <div class="flex items-center p-0.5 rounded-md bg-base-200 border border-base-300 text-xs font-medium">
-        <button type="button" @click="lens = 'matrix'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1.5"
-                :class="lens === 'matrix' ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
-          <i class="ph ph-squares-four"></i><span>Matrix</span>
-        </button>
-        <button type="button" @click="lens = 'scales'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1.5"
-                :class="lens === 'scales' ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
-          <i class="ph ph-sliders"></i><span>Spectra</span>
-        </button>
-        <button type="button" @click="lens = 'table'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1.5"
-                :class="lens === 'table' ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
-          <i class="ph ph-table"></i><span>Registry</span>
-        </button>
-      </div>
-
-      <!-- Environment Filter -->
+      <!-- Estate Filter -->
       <div class="flex items-center p-0.5 rounded-md bg-base-200 border border-base-300 text-xs">
         <button type="button" @click="env = 'all'" class="px-2 py-0.5 rounded transition-colors"
                 :class="env === 'all' ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
@@ -85,6 +69,21 @@
         </button>
       </div>
 
+      <!-- Discretion Filter -->
+      <div class="flex items-center p-0.5 rounded-md bg-base-200 border border-base-300 text-xs">
+        <button type="button" @click="filterDiscretion = ''" class="px-2 py-0.5 rounded transition-colors"
+                :class="!filterDiscretion ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
+          All Tiers
+        </button>
+        <template x-for="d in discretions" :key="d.id">
+          <button type="button" @click="filterDiscretion = (filterDiscretion === d.id ? '' : d.id)"
+                  class="px-2 py-0.5 rounded transition-colors"
+                  :class="filterDiscretion === d.id ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
+            <span x-text="d.short"></span>
+          </button>
+        </template>
+      </div>
+
       <a href="../app/?view=map&tab=context&ctxlens=spectra" class="btn btn-xs btn-ghost gap-1 text-base-content/70 hover:text-primary">
         <span>Map Context</span><i class="ph ph-arrow-square-out"></i>
       </a>
@@ -94,170 +93,73 @@
   <!-- ── Main Workspace ──────────────────────────────────────────────────── -->
   <main class="grow flex flex-col lg:flex-row overflow-hidden">
 
-    <!-- Primary Canvas (Full width, no reading column cap) -->
+    <!-- Primary Canvas: Scope x Discretion Matrix (Full width, no reading column cap) -->
     <div class="grow overflow-auto p-3 sm:p-4">
+      <div class="overflow-x-auto border border-base-300 rounded-md bg-base-100 shadow-xs">
+        <div class="grid-matrix min-w-[960px] divide-x divide-y divide-base-300">
 
-      <!-- ── LENS 1: Matrix (Scope vs. Discretion) ────────────────────────── -->
-      <div x-show="lens === 'matrix'" class="flex flex-col gap-3">
-        <div class="overflow-x-auto border border-base-300 rounded-md bg-base-100">
-          <div class="grid-matrix min-w-[960px] divide-x divide-y divide-base-300">
-
-            <!-- Top Header Row: Corner + Scope Columns -->
-            <div class="p-2.5 bg-base-200/60 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-base-content/60">
-              <span>Discretion \ Scope</span>
-            </div>
-            <template x-for="s in scopes" :key="s.id">
-              <div class="p-2.5 bg-base-200/60 flex flex-col gap-0.5">
-                <span class="text-xs font-semibold uppercase tracking-wider text-base-content" x-text="s.label"></span>
-                <span class="text-[10px] text-base-content/50" x-text="s.gloss"></span>
-              </div>
-            </template>
-
-            <!-- Matrix Rows: Each Discretion Tier -->
-            <template x-for="d in discretions" :key="d.id">
-              <div class="contents">
-                <!-- Row Header: Discretion Tier -->
-                <div class="p-3 bg-base-200/30 flex flex-col justify-start gap-1">
-                  <span class="text-xs font-bold text-base-content" x-text="d.label"></span>
-                  <span class="text-[10px] text-base-content/50 leading-relaxed" x-text="d.gloss"></span>
-                  <span class="badge badge-sm font-mono text-[9px] mt-1" :class="d.badgeClass" x-text="d.cost"></span>
-                </div>
-
-                <!-- 4 Scope Cells for this Discretion Tier -->
-                <template x-for="s in scopes" :key="s.id">
-                  <div class="p-2 flex flex-col gap-1.5 min-h-[105px]"
-                       :class="hasItems(s.id, d.id) ? 'bg-base-100' : 'bg-base-200/10'">
-                    
-                    <template x-for="m in cellItems(s.id, d.id)" :key="m.id">
-                      <div class="card-node border rounded-md p-2 bg-base-100 cursor-pointer select-none"
-                           :class="selectedId === m.id ? 'border-primary ring-1 ring-primary/40 bg-primary/5' : 'border-base-300 hover:border-base-content/30'"
-                           @click="select(m.id)">
-                        <div class="flex items-start justify-between gap-1.5">
-                          <div class="flex items-center gap-1.5 min-w-0">
-                            <i class="ph text-sm text-primary shrink-0" :class="m.icon"></i>
-                            <span class="font-semibold text-xs truncate" x-text="m.title"></span>
-                          </div>
-                          <span class="badge badge-xs font-mono shrink-0" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
-                        </div>
-
-                        <div class="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-base-content/55 font-mono">
-                          <span class="truncate flex items-center gap-1">
-                            <i class="ph text-[10px]" :class="triggerIcon(m.trigger)"></i><span x-text="m.trigger"></span>
-                          </span>
-                          <span class="shrink-0 font-medium" :class="m.evidence === '●' ? 'text-success' : 'text-base-content/40'" x-text="m.evidence"></span>
-                        </div>
-                      </div>
-                    </template>
-
-                    <div x-show="!hasItems(s.id, d.id)" class="grow flex items-center justify-center">
-                      <span class="text-[11px] text-base-content/20 font-mono">—</span>
-                    </div>
-
-                  </div>
-                </template>
-              </div>
-            </template>
-
+          <!-- Top Header Row: Corner + Scope Columns -->
+          <div class="p-2.5 bg-base-200/60 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-base-content/60">
+            <span>Discretion \ Scope</span>
           </div>
+          <template x-for="s in scopes" :key="s.id">
+            <div class="p-2.5 bg-base-200/60 flex flex-col gap-0.5">
+              <span class="text-xs font-semibold uppercase tracking-wider text-base-content" x-text="s.label"></span>
+              <span class="text-[10px] text-base-content/50" x-text="s.gloss"></span>
+            </div>
+          </template>
+
+          <!-- Matrix Rows: Each Discretion Tier -->
+          <template x-for="d in filteredDiscretions" :key="d.id">
+            <div class="contents">
+              <!-- Row Header: Discretion Tier -->
+              <div class="p-3 bg-base-200/30 flex flex-col justify-start gap-1">
+                <span class="text-xs font-bold text-base-content" x-text="d.label"></span>
+                <span class="text-[10px] text-base-content/50 leading-relaxed" x-text="d.gloss"></span>
+                <span class="badge badge-sm font-mono text-[9px] mt-1" :class="d.badgeClass" x-text="d.cost"></span>
+              </div>
+
+              <!-- 4 Scope Cells for this Discretion Tier -->
+              <template x-for="s in scopes" :key="s.id">
+                <div class="p-2 flex flex-col gap-1.5 min-h-[110px]"
+                     :class="hasItems(s.id, d.id) ? 'bg-base-100' : 'bg-base-200/10'">
+                  
+                  <template x-for="m in cellItems(s.id, d.id)" :key="m.id">
+                    <div class="card-node border rounded-md p-2 bg-base-100 cursor-pointer select-none"
+                         :class="selectedId === m.id ? 'border-primary ring-1 ring-primary/40 bg-primary/5' : 'border-base-300 hover:border-base-content/30'"
+                         @click="select(m.id)">
+                      <div class="flex items-start justify-between gap-1.5">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                          <i class="ph text-sm text-primary shrink-0" :class="m.icon"></i>
+                          <span class="font-semibold text-xs truncate" x-text="m.title"></span>
+                        </div>
+                        <span class="badge badge-xs font-mono shrink-0" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
+                      </div>
+
+                      <div class="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-base-content/55 font-mono">
+                        <span class="truncate flex items-center gap-1">
+                          <i class="ph text-[10px]" :class="triggerIcon(m.trigger)"></i><span x-text="m.trigger"></span>
+                        </span>
+                        <span class="shrink-0 font-medium" :class="m.evidence === '●' ? 'text-success' : 'text-base-content/40'" x-text="m.evidence"></span>
+                      </div>
+                    </div>
+                  </template>
+
+                  <div x-show="!hasItems(s.id, d.id)" class="grow flex items-center justify-center">
+                    <span class="text-[11px] text-base-content/20 font-mono">—</span>
+                  </div>
+
+                </div>
+              </template>
+            </div>
+          </template>
+
         </div>
       </div>
-
-      <!-- ── LENS 2: Parallel Spectra Scales ──────────────────────────────── -->
-      <div x-show="lens === 'scales'" class="flex flex-col gap-4" x-cloak>
-        <template x-for="sc in spectraAxes" :key="sc.id">
-          <div class="border border-base-300 rounded-md bg-base-100 p-3.5 flex flex-col gap-2.5">
-            <div class="flex items-baseline justify-between">
-              <div>
-                <h3 class="font-bold text-xs tracking-wide uppercase" x-text="sc.title"></h3>
-                <p class="text-[11px] text-base-content/60" x-text="sc.question"></p>
-              </div>
-              <div class="flex items-center gap-1 text-[11px] font-mono text-base-content/40">
-                <span x-text="sc.poleLeft"></span>
-                <i class="ph ph-arrow-right text-[10px]"></i>
-                <span x-text="sc.poleRight"></span>
-              </div>
-            </div>
-
-            <!-- The Scale Track -->
-            <div class="relative py-3 border-t border-base-200">
-              <div class="h-1.5 rounded-full bg-base-200 w-full relative">
-                <!-- Scale Stops -->
-                <div class="absolute inset-0 flex justify-between items-center px-2">
-                  <template x-for="st in sc.stops" :key="st">
-                    <span class="w-1.5 h-1.5 rounded-full bg-base-300"></span>
-                  </template>
-                </div>
-              </div>
-
-              <!-- Markers for each mechanism -->
-              <div class="relative w-full h-7 mt-1">
-                <template x-for="m in visible" :key="m.id">
-                  <button type="button" @click="select(m.id)"
-                          class="absolute -translate-x-1/2 top-0 px-1.5 py-0.5 rounded border text-[11px] font-medium transition-all flex items-center gap-1"
-                          :style="'left:' + scalePosition(sc.id, m) + '%;'"
-                          :class="selectedId === m.id ? 'border-primary bg-primary text-primary-content z-20 scale-105 shadow-xs' : 'border-base-300 bg-base-100 text-base-content/75 hover:border-primary/50 z-10'">
-                    <i class="ph text-xs" :class="m.icon"></i>
-                    <span class="hidden sm:inline font-mono text-[10px]" x-text="m.short"></span>
-                  </button>
-                </template>
-              </div>
-
-              <!-- Stop Labels -->
-              <div class="flex justify-between text-[10px] font-mono text-base-content/50 pt-1">
-                <template x-for="st in sc.stops" :key="st">
-                  <span x-text="st"></span>
-                </template>
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <!-- ── LENS 3: Registry Table ──────────────────────────────────────── -->
-      <div x-show="lens === 'table'" class="border border-base-300 rounded-md bg-base-100 overflow-x-auto" x-cloak>
-        <table class="table table-xs w-full text-left">
-          <thead class="bg-base-200/60 text-[11px] text-base-content/70 uppercase">
-            <tr>
-              <th>Mechanism</th>
-              <th>Env</th>
-              <th>Scope (Boundary)</th>
-              <th>Discretion Tier</th>
-              <th>Trigger (When)</th>
-              <th>Proof</th>
-              <th>Token Footprint</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-base-200 text-xs">
-            <template x-for="m in visible" :key="m.id">
-              <tr class="hover:bg-base-200/40 cursor-pointer transition-colors"
-                  :class="selectedId === m.id ? 'bg-primary/5 font-semibold text-primary' : ''"
-                  @click="select(m.id)">
-                <td class="font-medium flex items-center gap-1.5">
-                  <i class="ph text-sm text-primary" :class="m.icon"></i>
-                  <span x-text="m.title"></span>
-                </td>
-                <td>
-                  <span class="badge badge-xs font-mono" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
-                </td>
-                <td class="font-mono text-base-content/70" x-text="m.scopeLabel"></td>
-                <td x-text="m.discretionLabel"></td>
-                <td class="font-mono text-base-content/70">
-                  <span class="inline-flex items-center gap-1">
-                    <i class="ph text-[10px]" :class="triggerIcon(m.trigger)"></i><span x-text="m.trigger"></span>
-                  </span>
-                </td>
-                <td class="font-mono" :class="m.evidence === '●' ? 'text-success' : 'text-base-content/40'" x-text="m.evidence"></td>
-                <td class="text-base-content/60 font-mono text-[10px]" x-text="m.tokenCost"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-
     </div>
 
-    <!-- ── Right-Side Inspector Rail ──────────────────────────────────────── -->
-    <aside class="w-full lg:w-80 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-base-300 bg-base-100 p-3 sm:p-3.5 flex flex-col gap-3 overflow-y-auto">
+    <!-- ── Right-Side Inspector & Spectra Barometer Rail ──────────────────── -->
+    <aside class="w-full lg:w-88 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-base-300 bg-base-100 p-3 sm:p-3.5 flex flex-col gap-3 overflow-y-auto">
       <div class="flex items-baseline justify-between border-b border-base-300 pb-2">
         <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Inspector</span>
         <span class="badge badge-xs font-mono" :class="envBadge(active.env)" x-text="active.env.toUpperCase()"></span>
@@ -278,26 +180,75 @@
         <p class="text-xs text-base-content/75 leading-relaxed text-pretty" x-text="active.gloss"></p>
       </div>
 
-      <!-- Coordinates on the 3 Spectra -->
-      <div class="flex flex-col gap-2 pt-2 border-t border-base-200">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Spectra Coordinates</span>
-
-        <div class="bg-base-200/50 p-2 rounded-md border border-base-300 flex flex-col gap-0.5">
-          <span class="text-[9px] text-base-content/50 uppercase font-mono">1. Scope Boundary</span>
-          <span class="text-xs font-semibold" x-text="active.scopeLabel"></span>
-          <span class="text-[10px] text-base-content/60" x-text="active.scopeGloss"></span>
+      <!-- Spectra Barometer: Interactive 3-Axis Gauges -->
+      <div class="flex flex-col gap-2.5 pt-2.5 border-t border-base-200">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Spectra Barometer</span>
+          <span class="text-[9px] font-mono text-base-content/40">3-Axis Position</span>
         </div>
 
-        <div class="bg-base-200/50 p-2 rounded-md border border-base-300 flex flex-col gap-0.5">
-          <span class="text-[9px] text-base-content/50 uppercase font-mono">2. Discretion Tier</span>
-          <span class="text-xs font-semibold" x-text="active.discretionLabel"></span>
-          <span class="text-[10px] text-base-content/60" x-text="active.discretionGloss"></span>
+        <!-- 1. Scope Gauge -->
+        <div class="bg-base-200/50 p-2.5 rounded-md border border-base-300 flex flex-col gap-1.5">
+          <div class="flex items-baseline justify-between text-[10px]">
+            <span class="font-semibold uppercase tracking-wider text-base-content/60">1. Scope</span>
+            <span class="font-mono text-primary font-bold text-xs" x-text="active.scopeLabel"></span>
+          </div>
+          <div class="relative py-1">
+            <div class="h-1.5 rounded-full bg-base-300 w-full relative">
+              <div class="absolute -top-1 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-primary ring-2 ring-primary/20 shadow-xs transition-all duration-200"
+                   :style="'left:' + scalePosition('scope', active) + '%;'"></div>
+            </div>
+          </div>
+          <div class="flex justify-between text-[9px] font-mono text-base-content/40 pt-0.5">
+            <span>Universal</span>
+            <span>Plugin</span>
+            <span>Repo</span>
+            <span>Turn</span>
+          </div>
+          <p class="text-[10px] text-base-content/65 leading-tight mt-0.5" x-text="active.scopeGloss"></p>
         </div>
 
-        <div class="bg-base-200/50 p-2 rounded-md border border-base-300 flex flex-col gap-0.5">
-          <span class="text-[9px] text-base-content/50 uppercase font-mono">3. Lifecycle Trigger</span>
-          <span class="text-xs font-semibold" x-text="active.trigger"></span>
-          <span class="text-[10px] text-base-content/60" x-text="active.triggerGloss"></span>
+        <!-- 2. Discretion Gauge -->
+        <div class="bg-base-200/50 p-2.5 rounded-md border border-base-300 flex flex-col gap-1.5">
+          <div class="flex items-baseline justify-between text-[10px]">
+            <span class="font-semibold uppercase tracking-wider text-base-content/60">2. Discretion</span>
+            <span class="font-mono text-primary font-bold text-xs" x-text="active.discretionLabel"></span>
+          </div>
+          <div class="relative py-1">
+            <div class="h-1.5 rounded-full bg-base-300 w-full relative">
+              <div class="absolute -top-1 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-primary ring-2 ring-primary/20 shadow-xs transition-all duration-200"
+                   :style="'left:' + scalePosition('discretion', active) + '%;'"></div>
+            </div>
+          </div>
+          <div class="flex justify-between text-[9px] font-mono text-base-content/40 pt-0.5">
+            <span>Injected</span>
+            <span>Prodded</span>
+            <span>Reactive</span>
+            <span>Pulled</span>
+          </div>
+          <p class="text-[10px] text-base-content/65 leading-tight mt-0.5" x-text="active.discretionGloss"></p>
+        </div>
+
+        <!-- 3. Lifecycle Trigger Gauge -->
+        <div class="bg-base-200/50 p-2.5 rounded-md border border-base-300 flex flex-col gap-1.5">
+          <div class="flex items-baseline justify-between text-[10px]">
+            <span class="font-semibold uppercase tracking-wider text-base-content/60">3. Lifecycle Trigger</span>
+            <span class="font-mono text-primary font-bold text-xs" x-text="active.trigger"></span>
+          </div>
+          <div class="relative py-1">
+            <div class="h-1.5 rounded-full bg-base-300 w-full relative">
+              <div class="absolute -top-1 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-primary ring-2 ring-primary/20 shadow-xs transition-all duration-200"
+                   :style="'left:' + scalePosition('trigger', active) + '%;'"></div>
+            </div>
+          </div>
+          <div class="flex justify-between text-[9px] font-mono text-base-content/40 pt-0.5">
+            <span>Build</span>
+            <span>Start</span>
+            <span>Event</span>
+            <span>Turn</span>
+            <span>Demand</span>
+          </div>
+          <p class="text-[10px] text-base-content/65 leading-tight mt-0.5" x-text="active.triggerGloss"></p>
         </div>
       </div>
 
@@ -319,51 +270,24 @@
 function spectra() {
   return {
     env: 'all',
-    lens: 'matrix',
+    filterDiscretion: '',
     selectedId: 'invoke-default',
 
     scopes: [
-      { id: 'universal', label: 'Universal', gloss: 'Every session under account' },
+      { id: 'universal', label: 'Universal', gloss: 'Every session under account / machine' },
       { id: 'host-plugin', label: 'Host / Plugin', gloss: 'Shared tools and ecosystem' },
-      { id: 'repo', label: 'Repo-Specific', gloss: 'Checked-out codebase' },
-      { id: 'task-turn', label: 'Task / Turn', gloss: 'Active conversation step' }
+      { id: 'repo', label: 'Repo-Specific', gloss: 'Checked-out codebase / PR' },
+      { id: 'task-turn', label: 'Task / Turn', gloss: 'Active conversation step / symbol' }
     ],
 
     discretions: [
-      { id: 'injected', label: 'Forced Injected', gloss: 'Platform mandatory, zero choice', cost: 'Highest token burden', badgeClass: 'badge-error' },
-      { id: 'reactive', label: 'Event-Reactive', gloss: 'Idles until condition met', cost: 'Zero idle cost', badgeClass: 'badge-warning' },
-      { id: 'prodded', label: 'System-Prodded', gloss: 'Hook advises, model accepts', cost: '1-line directive', badgeClass: 'badge-info' },
-      { id: 'pulled', label: 'User / Model Pulled', gloss: 'Explicit on-demand invocation', cost: 'Targeted pay-on-use', badgeClass: 'badge-success' }
+      { id: 'injected', label: 'Forced Injected', short: 'Injected', gloss: 'Platform mandatory, zero choice', cost: 'Highest token burden', badgeClass: 'badge-error' },
+      { id: 'prodded', label: 'System-Prodded', short: 'Prodded', gloss: 'Hook advises, model accepts', cost: '1-line directive', badgeClass: 'badge-info' },
+      { id: 'reactive', label: 'Event-Reactive', short: 'Reactive', gloss: 'Idles until condition met', cost: 'Zero idle cost', badgeClass: 'badge-warning' },
+      { id: 'pulled', label: 'User / Model Pulled', short: 'Pulled', gloss: 'Explicit on-demand invocation', cost: 'Targeted pay-on-use', badgeClass: 'badge-success' }
     ],
 
     triggers: ['Daemon / Build', 'Session Start', 'Event Juncture', 'Per Turn', 'On Demand'],
-
-    spectraAxes: [
-      {
-        id: 'scope',
-        title: 'Scope Spectrum',
-        question: 'What boundary does this context govern?',
-        poleLeft: 'Universal (Global)',
-        poleRight: 'Ephemeral (Turn)',
-        stops: ['Universal', 'Host / Plugin', 'Repo-Bound', 'Task / Turn']
-      },
-      {
-        id: 'discretion',
-        title: 'Discretion Spectrum',
-        question: 'Who decides to load the material into context?',
-        poleLeft: 'Platform Mandatory',
-        poleRight: 'Autonomous Choice',
-        stops: ['Forced Injected', 'Event-Reactive', 'System-Prodded', 'User / Model Pulled']
-      },
-      {
-        id: 'trigger',
-        title: 'Lifecycle Trigger Spectrum',
-        question: 'At what point in execution does the payload arrive?',
-        poleLeft: 'Build / Boot',
-        poleRight: 'On Demand',
-        stops: ['Daemon / Build', 'Session Start', 'Event Juncture', 'Per Turn', 'On Demand']
-      }
-    ],
 
     mechanisms: [
       {
@@ -427,6 +351,26 @@ function spectra() {
         rationale: "Establishes device identity and isolates the desktop GUI from headless background workers."
       },
       {
+        id: "invoke-default",
+        title: "Conventions Directive",
+        short: "invoke-default",
+        env: "claude",
+        icon: "ph-compass",
+        file: "skills/hooks/invoke-default.sh",
+        scopeId: "host-plugin",
+        scopeLabel: "Host / Plugin",
+        scopeGloss: "Universal delivery prod across the estate.",
+        discretionId: "prodded",
+        discretionLabel: "System-Prodded",
+        discretionGloss: "Hook prints a directive; model executes /portable:default.",
+        trigger: "Session Start",
+        triggerGloss: "Fires at session startup and again after compaction.",
+        evidence: "●",
+        tokenCost: "1 directive line until invoked",
+        gloss: "Dynamic prod to load SURFACING.md and QUALIFIED-WRITING.md.",
+        rationale: "Replaces static monolithic imports with a verified load directive, preventing stale cached doctrine."
+      },
+      {
         id: "event-guards",
         title: "Safety & Quality Guards",
         short: "Guards",
@@ -447,24 +391,44 @@ function spectra() {
         rationale: "Zero idle context cost. Sits completely dormant until an edit or commit violates a known failure pattern."
       },
       {
-        id: "invoke-default",
-        title: "Conventions Directive",
-        short: "invoke-default",
+        id: "project-settings",
+        title: "Project Settings",
+        short: "Settings",
         env: "claude",
-        icon: "ph-compass",
-        file: "skills/hooks/invoke-default.sh",
-        scopeId: "host-plugin",
-        scopeLabel: "Host / Plugin",
-        scopeGloss: "Universal delivery prod across the estate.",
+        icon: "ph-gear",
+        file: ".claude/settings.json",
+        scopeId: "repo",
+        scopeLabel: "Repo-Specific",
+        scopeGloss: "Read only when this repository is the session root.",
+        discretionId: "injected",
+        discretionLabel: "Forced Injected",
+        discretionGloss: "Platform injects settings into the root session harness.",
+        trigger: "Session Start",
+        triggerGloss: "Established during workspace initialization.",
+        evidence: "●",
+        tokenCost: "Harness internal",
+        gloss: "Tool permissions, AskUserQuestion denials, and enabled extensions.",
+        rationale: "Deterministic environment controls applied at repository root."
+      },
+      {
+        id: "repo-claude",
+        title: "Repository Contract",
+        short: "CLAUDE.md",
+        env: "claude",
+        icon: "ph-book-open",
+        file: "CLAUDE.md",
+        scopeId: "repo",
+        scopeLabel: "Repo-Specific",
+        scopeGloss: "Bounded strictly to this git checkout.",
         discretionId: "prodded",
         discretionLabel: "System-Prodded",
-        discretionGloss: "Hook prints a directive; model executes /portable:default.",
+        discretionGloss: "Platform loads it automatically when checkout is root.",
         trigger: "Session Start",
-        triggerGloss: "Fires at session startup and again after compaction.",
+        triggerGloss: "Loaded at session start or directory navigation.",
         evidence: "●",
-        tokenCost: "1 directive line until invoked",
-        gloss: "Dynamic prod to load SURFACING.md and QUALIFIED-WRITING.md.",
-        rationale: "Replaces static monolithic imports with a verified load directive, preventing stale cached doctrine."
+        tokenCost: "Varies by repo (~1,500 - 3,000 tokens)",
+        gloss: "Repository-specific build commands, test suites, and invariants.",
+        rationale: "Prototypical repo level: keeps repo-specific tooling isolated so commands never bleed into other projects."
       },
       {
         id: "pr-course",
@@ -487,24 +451,24 @@ function spectra() {
         rationale: "Eliminates premature cognitive load by keeping review procedures dormant until work is actually published."
       },
       {
-        id: "repo-claude",
-        title: "Repository Contract",
-        short: "CLAUDE.md",
-        env: "claude",
-        icon: "ph-book-open",
-        file: "CLAUDE.md",
-        scopeId: "repo",
-        scopeLabel: "Repo-Specific",
-        scopeGloss: "Bounded strictly to this git checkout.",
-        discretionId: "prodded",
-        discretionLabel: "System-Prodded",
-        discretionGloss: "Platform loads it automatically when checkout is root.",
-        trigger: "Session Start",
-        triggerGloss: "Loaded at session start or directory navigation.",
+        id: "conversation-continuity",
+        title: "Context Continuity & History",
+        short: "Continuity",
+        env: "all",
+        icon: "ph-arrows-clockwise",
+        file: "transcript.jsonl / summary",
+        scopeId: "task-turn",
+        scopeLabel: "Task / Turn",
+        scopeGloss: "Carried turn-to-turn in the active conversation.",
+        discretionId: "injected",
+        discretionLabel: "Forced Injected",
+        discretionGloss: "Platform maintains conversation history and compactions.",
+        trigger: "Per Turn",
+        triggerGloss: "Delivered on every conversation exchange.",
         evidence: "●",
-        tokenCost: "Varies by repo (~1,500 - 3,000 tokens)",
-        gloss: "Repository-specific build commands, test suites, and invariants.",
-        rationale: "Prototypical repo level: keeps repo-specific tooling isolated so commands never bleed into other projects."
+        tokenCost: "Rolling context window",
+        gloss: "Session memory, user turns, and tool results.",
+        rationale: "Preserves reasoning steps across multi-turn interactions."
       },
       {
         id: "slash-commands",
@@ -569,8 +533,15 @@ function spectra() {
     ],
 
     get visible() {
-      if (this.env === 'all') return this.mechanisms;
-      return this.mechanisms.filter(m => m.env === 'all' || m.env === this.env);
+      let list = this.mechanisms;
+      if (this.env !== 'all') list = list.filter(m => m.env === 'all' || m.env === this.env);
+      if (this.filterDiscretion) list = list.filter(m => m.discretionId === this.filterDiscretion);
+      return list;
+    },
+
+    get filteredDiscretions() {
+      if (!this.filterDiscretion) return this.discretions;
+      return this.discretions.filter(d => d.id === this.filterDiscretion);
     },
 
     get active() {
@@ -609,11 +580,11 @@ function spectra() {
 
     scalePosition(axisId, m) {
       if (axisId === 'scope') {
-        const map = { universal: 10, 'host-plugin': 38, repo: 68, 'task-turn': 92 };
+        const map = { universal: 8, 'host-plugin': 36, repo: 66, 'task-turn': 92 };
         return map[m.scopeId] || 50;
       }
       if (axisId === 'discretion') {
-        const map = { injected: 10, reactive: 38, prodded: 66, pulled: 92 };
+        const map = { injected: 8, prodded: 36, reactive: 66, pulled: 92 };
         return map[m.discretionId] || 50;
       }
       if (axisId === 'trigger') {
