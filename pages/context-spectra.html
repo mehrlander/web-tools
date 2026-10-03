@@ -110,23 +110,8 @@
           <line x1="460" y1="20" x2="460" y2="270" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
           <line x1="620" y1="20" x2="620" y2="270" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="3 3"/>
 
-          <!-- Rendered Nodes -->
-          <template x-for="m in visibleMechanisms" :key="m.id">
-            <g :data-node="m.id" :class="activeId === m.id ? 'active-node' : ''">
-              <!-- Glow halo when active -->
-              <circle x-show="activeId === m.id" :cx="m.x" :cy="m.y" r="18"
-                      fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="3" />
-              <!-- Node circle -->
-              <circle class="node-point transition-all" :cx="m.x" :cy="m.y" :r="activeId === m.id ? 11 : 9"
-                      :fill="nodeColor(m)" stroke="var(--color-base-100)" stroke-width="2" />
-              <!-- Short label -->
-              <text :x="m.x" :y="m.y - 14" text-anchor="middle" font-size="10"
-                    :font-weight="activeId === m.id ? '700' : '500'"
-                    :fill="activeId === m.id ? 'var(--color-primary)' : 'currentColor'"
-                    :fill-opacity="activeId === m.id ? 1 : 0.75"
-                    x-text="m.shortName"></text>
-            </g>
-          </template>
+          <!-- Rendered Nodes Layer -->
+          <g id="nodes-layer" x-effect="drawSvg()"></g>
         </svg>
       </div>
     </div>
@@ -406,6 +391,55 @@ function spectra() {
       if (env === 'gemini') return 'badge-info';
       if (env === 'claude') return 'badge-warning';
       return 'badge-primary';
+    },
+
+    drawSvg() {
+      const g = document.getElementById('nodes-layer');
+      if (!g) return;
+      g.replaceChildren();
+      const NS = "http://www.w3.org/2000/svg";
+      const items = this.visibleMechanisms;
+      for (const m of items) {
+        const isAct = this.activeId === m.id;
+        const grp = document.createElementNS(NS, 'g');
+        grp.setAttribute('data-node', m.id);
+        grp.setAttribute('class', isAct ? 'active-node' : '');
+
+        if (isAct) {
+          const halo = document.createElementNS(NS, 'circle');
+          halo.setAttribute('cx', m.x);
+          halo.setAttribute('cy', m.y);
+          halo.setAttribute('r', '17');
+          halo.setAttribute('fill', 'none');
+          halo.setAttribute('stroke', 'currentColor');
+          halo.setAttribute('stroke-opacity', '0.35');
+          halo.setAttribute('stroke-width', '3');
+          grp.appendChild(halo);
+        }
+
+        const dot = document.createElementNS(NS, 'circle');
+        dot.setAttribute('class', 'node-point transition-all');
+        dot.setAttribute('cx', m.x);
+        dot.setAttribute('cy', m.y);
+        dot.setAttribute('r', isAct ? '11' : '9');
+        dot.setAttribute('fill', this.nodeColor(m));
+        dot.setAttribute('stroke', 'var(--color-base-100)');
+        dot.setAttribute('stroke-width', '2');
+        grp.appendChild(dot);
+
+        const lbl = document.createElementNS(NS, 'text');
+        lbl.setAttribute('x', m.x);
+        lbl.setAttribute('y', m.y - 14);
+        lbl.setAttribute('text-anchor', 'middle');
+        lbl.setAttribute('font-size', '10');
+        lbl.setAttribute('font-weight', isAct ? '700' : '500');
+        lbl.setAttribute('fill', isAct ? 'var(--color-primary)' : 'currentColor');
+        lbl.setAttribute('fill-opacity', isAct ? '1' : '0.75');
+        lbl.textContent = m.shortName;
+        grp.appendChild(lbl);
+
+        g.appendChild(grp);
+      }
     },
 
     onSvgClick(e) {
