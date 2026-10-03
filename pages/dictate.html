@@ -175,6 +175,8 @@
     ?lang=en-US               recognition language, default the browser's
     ?use=<ref>                pin the lib chain to a branch for previewing
     ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
+    ?proposed                 with ?file=, stage the file's queued proposals
+                              as change cards (file mode, below)
     ?sel=native|painted       which selection, for this visit only; the
                               menu's choice otherwise, native by default
 
@@ -261,6 +263,18 @@
     Send: a Claude Code session gets the patch with a line saying
     where it belongs, Share and Copy in the sheet's foot get the bare patch
     (`git apply` takes it). Copy in the bottom row copies the whole buffer.
+
+    AND IT REVIEWS THE PROPOSAL QUEUE, with `&proposed`. A proposal is a
+    request in the Text collection (mehrlander/home, projects/text/
+    proposals.jsonl, filed by tools/propose.py there) to replace one passage
+    of a named file. With `&proposed` the buffer starts as GitHub's copy with
+    every proposal queued for this file put in (stageProposals), so each is a
+    change card like any edit: confirm and Apply commits it, the × discards
+    it. A held draft still wins, being the reader's own progress through the
+    queue, and Clear all edits stages the queue again. Two limits. A block
+    with several proposals stages the first and hides the rest. And a discard
+    lives only in this browser's draft: the collection records no answer of
+    no, so once the draft ends a discarded proposal is staged again.
 
     A NOTE IS ON A BLOCK, CHANGED OR NOT, and is not part of any commit.
     The block the caret is in (on a desk, the one under the mouse) wears a
@@ -455,6 +469,8 @@
   // was. Null is the blank page, which is every arrival without ?file=.
   const FILE = ((f) => f && f.dir ? { repo: f.repo, ref: f.ref, path: f.dir } : null)(parseDest(q.get('file')));
   const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
+  // The proposal queue, reviewed: meaningful only beside ?file=.
+  const PROPOSED = !!FILE && q.has('proposed');
 
   // Base64 of UTF-8, chunked: a spread of a whole document's bytes into
   // String.fromCharCode overruns the argument limit somewhere past 100 KB.
@@ -889,7 +905,7 @@
           } else {
             this.fileSha = res.sha;
             this.confirmed = {};
-            this.d.text = res.text;
+            this.d.text = PROPOSED ? await this.stageProposals(res.text) : res.text;
             this.restored = 0;
           }
           this.save();
@@ -908,6 +924,33 @@
         this.menu = false;
         if (this.view !== 'source' && !this.fileErr) await this.setView(this.view);
         this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+      },
+
+      // ── File mode: the proposal queue ─────────────────────────────────
+      // GitHub's copy with every proposal the Text collection queues for this
+      // file put in, so each arrives as a change card. md-variants plans every
+      // variant of every block; only the blocks whose pick is proposed HERE
+      // are kept, since a variant nobody proposed for this file is not asking
+      // for a yes or no. A failure says so and opens the file as it stands.
+      async stageProposals(base) {
+        const toast = Alpine.store('toast');
+        try {
+          await gh.load('kits/md-variants.js');
+          const V = window.mdVariants;
+          const index = await V.index({ token: this.token || undefined });
+          const here = (v) => (v?.proposals || []).some((p) => p.repo === FILE.repo && p.path === FILE.path);
+          const planned = V.plan(base, index, { file: FILE });
+          planned.blocks = planned.blocks.filter((b) => here(b.variants[b.pick]));
+          const n = planned.blocks.length;
+          const more = planned.blocks.filter((b) => b.variants.filter(here).length > 1).length;
+          if (!n) { toast('info', 'No proposals queued for ' + this.fileName, 'alert-info', 4000); return base; }
+          toast('check', `${n} proposal${n === 1 ? '' : 's'} staged as change cards`
+            + (more ? `; ${more} block${more === 1 ? ' has' : 's have'} more than one, and the first is shown` : ''), 'alert-success', 4500);
+          return V.compose(base, planned);
+        } catch (e) {
+          toast('warning', 'Proposals not staged: ' + (e?.message || e), 'alert-error', 6000);
+          return base;
+        }
       },
 
       // ── File mode: the two faces ──────────────────────────────────────

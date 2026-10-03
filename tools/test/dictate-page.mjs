@@ -2486,6 +2486,64 @@ try {
     ok('on a desk the badge keeps its title-tip, where a pointer can hover it', first.tip, JSON.stringify(first));
     await cx.close();
   }
+
+  // THE PROPOSAL QUEUE: with &proposed, the Text collection's proposals for
+  // this file arrive as change cards, and nothing else does. The fixture has a
+  // passage proposed here, one with a variant nobody proposed, and one proposed
+  // for another file; only the first may be staged.
+  console.log('the proposal queue:');
+  {
+    const { createHash } = await import('node:crypto');
+    const pid = (t) => createHash('sha256').update(t.trim(), 'utf8').digest('hex');
+    const DOC = '# Title\n\nProposed elsewhere.\n\nThe old wording here.\n\nOnly a variant.\n';
+    const FIX = 'tools/test/prop-fixture.md';
+    const pairs = [['Proposed elsewhere.', 'Not for this file.', 'docs/other.md'],
+                   ['The old wording here.', 'The new wording.', FIX],
+                   ['Only a variant.', 'Nobody proposed this.', null]];
+    const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join('\n') + '\n';
+    const files = {
+      'passages.jsonl': jsonl(pairs.flatMap(([a, b]) => [{ id: pid(a), text: a }, { id: pid(b), text: b }])),
+      'variants.jsonl': jsonl(pairs.map(([a, b]) => ({ from: pid(a), to: pid(b), author: 'Check', purpose: 'tighten' }))),
+      'proposals.jsonl': jsonl(pairs.filter((p) => p[2]).map(([a, b, path]) => ({ from: pid(a), to: pid(b),
+        repo: 'mehrlander/web-tools', path, basis: 'https://github.com/mehrlander/web-tools/pull/1' }))),
+    };
+    const cx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await cx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
+    const pg = await cx.newPage();
+    await pg.route('**/*', routeAll);
+    const serve = (route, text, sha) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      content: Buffer.from(text).toString('base64'), encoding: 'base64', sha, size: text.length }) });
+    const put = [];
+    await pg.route(`**/repos/mehrlander/web-tools/contents/${FIX}*`, (route) => {
+      if (route.request().method() !== 'PUT') return serve(route, DOC, 'prop');
+      put.push(Buffer.from(JSON.parse(route.request().postData() || '{}').content || '', 'base64').toString('utf8'));
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ content: { sha: 'applied' } }) });
+    });
+    await pg.route('**/repos/mehrlander/home/contents/projects/text/**', (route) => {
+      const name = new URL(route.request().url()).pathname.split('/').pop();
+      return files[name] ? serve(route, files[name], name)
+        : route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+    });
+    pg.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
+    const C = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';
+    const arrive = async (query) => {
+      await pg.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.includes('dictate:file')) localStorage.removeItem(k); }).catch(() => {});
+      await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:${FIX}${query}`, { waitUntil: 'domcontentloaded' });
+      await pg.waitForFunction(() => { const x = document.querySelector('[x-data="dictate"]')?._x_dataStack?.[0];
+        return x && x.fileBase != null && x.rendered; }, null, { timeout: 15000 });
+      await pg.waitForTimeout(500);
+      return pg.evaluate(`(() => { const x = ${C}; return { text: x.text, cards: window.MdSurface.cards(x.$refs.md).length }; })()`);
+    };
+    const plain = await arrive('');
+    ok('without &proposed the file opens as GitHub has it, with no cards', plain.text === DOC && plain.cards === 0, JSON.stringify(plain));
+    const staged = await arrive('&proposed');
+    ok('with &proposed only the proposal for this file is staged, as one card',
+      staged.text === DOC.replace('The old wording here.', 'The new wording.') && staged.cards === 1, JSON.stringify(staged));
+    await pg.evaluate(`(async () => { const x = ${C}; x.toggleConfirm(0); await x.applyConfirmed(); })()`);
+    await pg.waitForTimeout(300);
+    ok('a confirmed staged proposal is applied as written', put.length === 1 && put[0] === staged.text, JSON.stringify(put));
+    await cx.close();
+  }
 } finally {
   await browser.close();
   server.close();
