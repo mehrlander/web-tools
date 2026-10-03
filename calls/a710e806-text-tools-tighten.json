@@ -1,0 +1,45 @@
+{
+  "schema": "call/1",
+  "id": "a710e806-text-tools-tighten",
+  "kind": "documentation",
+  "status": "open",
+  "created": "2026-10-03T23:15:44+00:00",
+  "updated": "2026-10-03T23:16:45+00:00",
+  "session": "a710e806",
+  "slug": "text-tools-tighten",
+  "question": "Apply 4 edits to docs/text-tools.md?",
+  "brief": "Three cuts take out repeated or historical sentences (829 to 787 words). The fourth corrects a claim #870 makes false.",
+  "file": "mehrlander/web-tools:docs/text-tools.md",
+  "edits": [
+    {
+      "from": "Three Web Tools surfaces read prose where it is displayed: the **Text tab** in\nthe drawer of the FAB (the floating action button on every page), and the file\nviewer's **Variants** and **History** modes. The estate's other text\ninstruments take a corpus or pasted text; these read the document a reader has\nopen. None calls a model or changes anything. The mechanics are in\n[`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.",
+      "to": "Three Web Tools surfaces read the document a reader has open: the\n**Text tab** in the drawer of the FAB (the floating action button on every\npage), and the file viewer's **Variants** and **History** modes. The estate's\nother text instruments take a corpus or pasted text. None of the three calls a\nmodel or changes anything; the mechanics are in\n[`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.",
+      "why": "says once what the three surfaces read, where it said it twice"
+    },
+    {
+      "from": "**Apps are not held to prose rules.** A page that averages fewer than 6 words\nper text run is treated as an app, and the house-rule counts are withheld. When\nthe threshold was set, apps measured 1.1 to 5.0 words per run and documents\n8.3 and 20.0. The share of words in buttons and links was tried first, and it\nranked the pages backwards.",
+      "to": "**Apps are not held to prose rules.** A page that averages fewer than 6 words\nper text run is treated as an app, and the house-rule counts are withheld. When\nthe threshold was set, apps measured 1.1 to 5.0 words per run and documents\n8.3 and 20.0.",
+      "why": "drops the history of a metric that was tried and dropped"
+    },
+    {
+      "from": "The pairing is an inference, not a record. A paragraph split in two is paired\nwith the part that shares more words. A paragraph moved to another file has no\nhistory, because git records a deletion and an addition. A third collection\nfile, `revisions.jsonl`, held these connections until 2026-09-22;\nthe one-list run in `mehrlander/home`\n(`projects/text/runs/2026-09-22-one-list/README.md`) records why git replaced it.",
+      "to": "The pairing is an inference, not a record. A paragraph split in two is paired\nwith the part that shares more words. A paragraph moved to another file has no\nhistory, because git records a deletion and an addition.",
+      "why": "drops the history of a retired file; home's Text README keeps it"
+    },
+    {
+      "from": "Variants enter the collection from runs in `mehrlander/home`, including a\n[local-model worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/variants)\nthat appends its edits with the author `Ollama <model>`. Web Tools only\ndisplays them.",
+      "to": "Variants enter the collection from runs in `mehrlander/home`, including a\n[local-model worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/variants)\nthat appends its edits with the author `Ollama <model>`. Proposals are filed\nthere by `projects/text/tools/propose.py`. Web Tools displays both. It applies\ntext in one place, Dictate's file mode (`pages/dictate.html`): `&proposed`\nstages a file's queued proposals as change cards, `&call=` stages a\ndocumentation call's edits, and only a confirmed card is committed.",
+      "why": "corrects 'only displays' now that Dictate applies proposals and calls (#870)"
+    }
+  ],
+  "recommend": "applying 1 to 3 now",
+  "why": "hold 4 until #870 merges, since it describes #870",
+  "pr": "mehrlander/web-tools#870",
+  "materials": [
+    {
+      "kind": "file",
+      "ref": "mehrlander/web-tools@main:docs/text-tools.md",
+      "label": "The document"
+    }
+  ]
+}

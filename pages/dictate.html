@@ -177,6 +177,8 @@
     ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
     ?proposed                 with ?file=, stage the file's queued proposals
                               as change cards (file mode, below)
+    ?call=owner/repo[@ref]:path  with ?file=, a documentation call: its head
+                              over the file, its edits as change cards
     ?sel=native|painted       which selection, for this visit only; the
                               menu's choice otherwise, native by default
 
@@ -275,6 +277,19 @@
     with several proposals stages the first and hides the rest. And a discard
     lives only in this browser's draft: the collection records no answer of
     no, so once the draft ends a discarded proposal is staged again.
+
+    AND IT ANSWERS A DOCUMENTATION CALL, with `&call=`. A call (web-tools-
+    private calls/call.py, kind documentation) is one action item: a
+    question, a brief, a recommendation, the session and PR it came from,
+    and its edits written into it. The page draws that head under the header
+    and stages the edits it can find in GitHub's copy (stageEdits), so each is
+    a card like any other. Answer, on the head or the Apply pill, opens one
+    sheet: each edit's decision, read off the page rather than logged
+    (callDecisions), and three ways out. Commit the confirmed edits to the
+    file's branch, or to a new branch cut from it, and append the answer
+    beside the call; or copy the answer as JSON, with the confirmed patch in
+    it, and commit nothing. A discard is a decision here, so the "no" the
+    proposal queue cannot record is in the answer.
 
     A NOTE IS ON A BLOCK, CHANGED OR NOT, and is not part of any commit.
     The block the caret is in (on a desk, the one under the mouse) wears a
@@ -471,6 +486,10 @@
   const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
   // The proposal queue, reviewed: meaningful only beside ?file=.
   const PROPOSED = !!FILE && q.has('proposed');
+  // A documentation call (web-tools-private calls/call.py): where it lives, in
+  // the same grammar. Also meaningful only beside ?file=, which names the
+  // document so the page can boot before the call is read.
+  const CALL = FILE ? ((c) => c && c.dir ? { repo: c.repo, ref: c.ref, path: c.dir } : null)(parseDest(q.get('call'))) : null;
 
   // Base64 of UTF-8, chunked: a spread of a whole document's bytes into
   // String.fromCharCode overruns the argument limit somewhere past 100 KB.
@@ -479,6 +498,49 @@
     let bin = '';
     for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
     return btoa(bin);
+  };
+
+  // ── A call's edits against a text ──────────────────────────────────────
+  // An edit is { from, to }: text the file holds and what should stand in its
+  // place, block runs as call.py pairs them. Found exactly, else with any run
+  // of whitespace matching any other, so a re-wrap or a CRLF file still finds
+  // it; and found ONCE, since an edit that could land in two places is not one
+  // the page can stage without guessing.
+  const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const spans = (text, s) => {
+    if (!s.trim()) return [];
+    const out = [];
+    for (let i = text.indexOf(s); i >= 0; i = text.indexOf(s, i + 1)) out.push([i, i + s.length]);
+    if (out.length) return out;
+    const re = new RegExp(s.trim().split(/\s+/).map(escRe).join('\\s+'), 'g');
+    return [...text.matchAll(re)].map((m) => [m.index, m.index + m[0].length]);
+  };
+  // Which side of an edit a text holds: 'old', 'new' or 'neither'. The longer
+  // side is asked first, because an insertion's `to` contains its `from` (the
+  // neighbour it hangs on) and a removal's `from` contains its `to`.
+  const phase = (text, e) => {
+    const sides = [['old', e.from], ['new', e.to]];
+    if (e.to.length > e.from.length) sides.reverse();
+    for (const [k, s] of sides) if (spans(text, s).length) return k;
+    return !e.to.trim() && !spans(text, e.from).length ? 'new' : 'neither';
+  };
+  // The text with every stageable edit in it, and what became of each:
+  // staged, applied (the file already says it), stale (neither side found),
+  // ambiguous (found more than once), or overlap (its span crosses another's).
+  const stageEdits = (base, edits) => {
+    const status = [], take = [];
+    edits.forEach((e, i) => {
+      const at = phase(base, e) === 'old' ? spans(base, e.from) : null;
+      status[i] = !at ? (phase(base, e) === 'new' ? 'applied' : 'stale') : at.length > 1 ? 'ambiguous' : 'staged';
+      if (status[i] === 'staged') take.push({ i, at: at[0], to: e.to });
+    });
+    let text = base, floor = Infinity;
+    for (const t of take.sort((a, b) => b.at[0] - a.at[0])) {
+      if (t.at[1] > floor) { status[t.i] = 'overlap'; continue; }
+      text = text.slice(0, t.at[0]) + t.to + text.slice(t.at[1]);
+      floor = t.at[0];
+    }
+    return { text, status };
   };
 
   document.addEventListener('alpine:init', () => {
@@ -530,6 +592,25 @@
       // knows, and `dirty` is the buffer measured against it.
       file: FILE,
       fileSha: '', fileBase: null, fileErr: '', fileLoading: false,
+      // ── A documentation call ────────────────────────────────────────────
+      // `call` is the record as read; `callStatus` what each edit found in
+      // GitHub's copy (stageEdits). The head draws the first, and the answer
+      // sheet reads the second against the cards.
+      call: null, callStatus: [], callOpen: false,
+      answerOpen: false, answerTo: 'file', answerBranch: '', answerNote: '', answerComment: true,
+      answerPreview: false, answering: false, answerRows: [],
+      get callWhere() { return CALL ? CALL.repo + (CALL.ref ? '@' + CALL.ref : '') + ':' + CALL.path : ''; },
+      get callLinks() {
+        const c = this.call || {}, out = [];
+        if (c.session) out.push({ icon: 'ph-chat-circle-text', label: 'Session ' + c.session,
+          href: 'https://mehrlander.github.io/web-tools/pages/session.html#id=' + c.session });
+        const pr = String(c.pr || '').match(/^([^/]+\/[^#]+)#(\d+)$/);
+        if (pr) out.push({ icon: 'ph-git-pull-request', label: pr[1].split('/').pop() + ' #' + pr[2],
+          href: 'https://github.com/' + pr[1] + '/pull/' + pr[2] });
+        if (CALL) out.push({ icon: 'ph-scales', label: 'The call',
+          href: 'https://mehrlander.github.io/web-tools/pages/call.html#src=' + this.callWhere });
+        return out;
+      },
       get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
       // The line under the name on a phone: the repository and the folders.
       get fileDir() { return FILE ? [FILE.repo.split('/')[1], ...FILE.path.split('/').slice(0, -1)].join('/') : ''; },
@@ -897,6 +978,10 @@
           // they are read once the cards are drawn (paint).
           const keep = !fresh && held && typeof held.text === 'string' && held.text !== res.text;
           this._legacyNotes = keep && held.notes && !Array.isArray(held.notes) ? held.notes : null;
+          // A call is read on every load, draft or not, since its head and its
+          // edits' standing are about GitHub's copy; only a fresh buffer takes
+          // its staged text.
+          const staged = CALL ? await this.loadCall(res.text, !keep) : null;
           if (keep) {
             this.fileSha = held.sha || res.sha;
             this.confirmed = held.confirmed || {};
@@ -905,7 +990,7 @@
           } else {
             this.fileSha = res.sha;
             this.confirmed = {};
-            this.d.text = PROPOSED ? await this.stageProposals(res.text) : res.text;
+            this.d.text = staged != null ? staged : PROPOSED ? await this.stageProposals(res.text) : res.text;
             this.restored = 0;
           }
           this.save();
@@ -951,6 +1036,129 @@
           toast('warning', 'Proposals not staged: ' + (e?.message || e), 'alert-error', 6000);
           return base;
         }
+      },
+
+      // ── File mode: a documentation call ─────────────────────────────────
+      // Read the call, measure its edits against GitHub's copy, and return the
+      // copy with the stageable ones in it. A call for another file is still
+      // drawn but stages nothing, since its edits were written for other text.
+      async loadCall(base, announce) {
+        const toast = Alpine.store('toast');
+        try {
+          const g = new window.GH({ token: this.token, repo: CALL.repo, ref: CALL.ref || '' });
+          const c = JSON.parse((await g.get(CALL.path, window.GH.FRESH)).text);
+          if (c.kind !== 'documentation' || !Array.isArray(c.edits)) throw new Error('not a documentation call');
+          this.call = c;
+          const want = parseDest(c.file);
+          if (!want || want.repo !== FILE.repo || want.dir !== FILE.path) {
+            this.callStatus = c.edits.map(() => 'stale');
+            toast('warning', 'This call is for ' + (c.file || 'another file') + ', not ' + this.fileWhere, 'alert-error', 7000);
+            return null;
+          }
+          const { text, status } = stageEdits(base, c.edits);
+          this.callStatus = status;
+          const n = status.filter((s) => s === 'staged').length, off = c.edits.length - n;
+          if (announce) toast(n ? 'check' : 'info', (n ? `${n} edit${n === 1 ? '' : 's'} staged as change cards` : 'No edit of this call could be staged')
+            + (off ? `; ${off} not (see the call's head)` : ''), n ? 'alert-success' : 'alert-info', 4500);
+          return text;
+        } catch (e) {
+          toast('warning', 'Call not read: ' + (e?.message || e), 'alert-error', 7000);
+          return null;
+        }
+      },
+      // The head's one line on the edits' standing in GitHub's copy.
+      get callTally() {
+        const words = { staged: 'staged', applied: 'already in the file', stale: 'not found', ambiguous: 'found twice', overlap: 'overlapping' };
+        const n = {};
+        for (const s of this.callStatus) n[s] = (n[s] || 0) + 1;
+        return Object.keys(words).filter((k) => n[k]).map((k) => n[k] + ' ' + words[k]).join(' · ');
+      },
+      // What the owner has decided about each edit, read off the page rather
+      // than logged as it happened, so undo, a discard, a retyped card and a
+      // restored draft all read the same way. Against the text a commit would
+      // send (confirmedText) and the buffer: confirmed if the commit carries
+      // the edit, amended if it carries something else there, open if only the
+      // buffer has it, discarded if the buffer has the original back. An edit
+      // the page did not stage keeps its standing.
+      callDecisions() {
+        if (!this.call) return [];
+        const next = this.confirmedText().next;
+        return this.call.edits.map((e, i) => {
+          if (this.callStatus[i] !== 'staged') return this.callStatus[i] || 'stale';
+          const out = phase(next, e), now = phase(this.text, e);
+          return out === 'new' ? 'confirmed' : out === 'neither' ? 'amended' : now === 'new' ? 'open' : now === 'old' ? 'discarded' : 'open';
+        });
+      },
+      // The answer as one JSON line, the shape call.py's `answers` reads and a
+      // session can act on: a summary, the note, and one decision per edit.
+      // A copied answer carries the patch of what was confirmed as well, since
+      // nothing was committed for a reader to look at instead.
+      answerEntry(extra = {}) {
+        const ds = this.callDecisions(), n = {};
+        for (const d of ds) n[d] = (n[d] || 0) + 1;
+        const answer = ['confirmed', 'amended', 'discarded', 'open', 'applied', 'stale', 'ambiguous', 'overlap']
+          .filter((k) => n[k]).map((k) => n[k] + ' ' + k).join(', ');
+        return { answer, note: this.answerNote.trim(), at: new Date().toISOString(),
+                 call: this.callWhere, file: FILE.repo + ':' + FILE.path,
+                 decisions: ds.map((d, i) => ({ edit: i + 1, decision: d })), ...extra };
+      },
+      async openAnswer() {
+        if (!this.call) return;
+        if (this.view !== 'rendered') await this.setView('rendered');
+        if (!this.answerBranch) this.answerBranch = 'call/' + (this.call.slug || 'edits');
+        this.$nextTick(() => { this.answerRows = this.callDecisions(); this.answerOpen = true; });
+      },
+      get answerJson() {
+        if (!this.answerOpen || !this.call) return '';
+        const next = this.confirmedText().next;
+        return JSON.stringify(this.answerEntry({ patch: window.MdSurface?.patch(FILE.path, this.fileBase, next) || '' }), null, 2);
+      },
+      async copyDecisions() {
+        try {
+          await navigator.clipboard.writeText(this.answerJson);
+          Alpine.store('toast')('clipboard-text', 'Copied the decisions, nothing committed', 'alert-success', 3200);
+        } catch (e) { Alpine.store('toast')('warning', 'Copy failed: ' + (e?.message || e), 'alert-error', 5000); }
+      },
+      // COMMIT AND RECORD. The confirmed edits go to the file's branch or to a
+      // new one cut from it, then one answer line goes beside the call; with
+      // nothing confirmed there is no commit, and the line alone says so. The
+      // decisions are read BEFORE the commit, which moves GitHub's copy and
+      // takes the committed cards off the page.
+      async answerCall() {
+        if (!this.call || this.answering) return;
+        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: copy the decisions instead', 'alert-error', 5000); return; }
+        const toBranch = this.answerTo === 'branch' ? this.answerBranch.trim() : '';
+        if (this.answerTo === 'branch' && !toBranch) return;
+        this.answering = true;
+        const entry = this.answerEntry();
+        try {
+          if (this.confirmedCount) {
+            const done = await this.applyConfirmed({ branch: toBranch, call: true });
+            if (!done) return;
+            Object.assign(entry, { target: done.target, commit: done.url });
+          }
+          await gh.load('alpineComponents/call-form.js');
+          const pr = window.CallForm.prOf(this.call.pr);
+          const body = '**Call: ' + this.call.question + '**\n\nAnswer: **' + entry.answer + '**'
+            + (entry.commit ? '\n\nCommitted: ' + entry.commit : '') + (entry.note ? '\n\n> ' + entry.note : '')
+            + '\n\n_' + (this.call.id || '') + ', answered in Dictate._';
+          await window.CallForm.postAnswer({ repo: CALL.repo, ref: CALL.ref || undefined, token: this.token,
+            path: CALL.path.replace(/\.json$/, '') + '.answers.jsonl', entry,
+            pr: this.answerComment ? pr : null, comment: body });
+          this.answerOpen = false;
+          Alpine.store('toast')('check', 'Answer recorded' + (entry.target ? ', committed to ' + entry.target : ''), 'alert-success', 4000);
+        } catch (e) {
+          Alpine.store('toast')('warning', 'Answer not recorded: ' + (e?.message || e), 'alert-error', 8000);
+        } finally { this.answering = false; }
+      },
+      // To an edit's place in the document, from its row in the answer sheet.
+      goEdit(i) {
+        const e = this.call?.edits?.[i], md = this.$refs.md, v = this.$refs.view;
+        const at = e && (spans(this.text, e.to)[0] || spans(this.text, e.from)[0]);
+        this.answerOpen = false;
+        if (!at || !md || !v || !window.MdSurface?.rectAt) return;
+        const r = window.MdSurface.rectAt(md, at[0]);
+        if (r) v.scrollTo({ top: v.scrollTop + r.top - v.getBoundingClientRect().top - 24, behavior: 'smooth' });
       },
 
       // ── File mode: the two faces ──────────────────────────────────────
@@ -3456,15 +3664,13 @@
           }
         }
       },
-      // APPLY: GitHub's copy with the confirmed cards' changes in it, which is
-      // the text now with every OTHER card taken back (mdDiff.revert, the same
-      // take-back as remove), from the last card up so each revert's
-      // positions still hold. One commit; then that is the base, so the
-      // applied cards go and the rest stay as edits, keeping their notes.
-      async applyConfirmed() {
-        if (!FILE || this.applying || !this.confirmedCount) return;
-        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: nothing applied', 'alert-error', 5000); return; }
-        const md = this.$refs.md, runs = window.MdSurface.cards(md), base = this.fileBase, t = this.text;
+      // WHAT A COMMIT WOULD SEND: GitHub's copy with the confirmed cards'
+      // changes in it, which is the text now with every OTHER card taken back
+      // (mdDiff.revert, the same take-back as remove), from the last card up
+      // so each revert's positions still hold.
+      confirmedText() {
+        const md = this.$refs.md, base = this.fileBase, t = this.text;
+        const runs = md && window.MdSurface ? window.MdSurface.cards(md) : [];
         const cards = runs.map((run, i) => ({ run, i, k: this.cardId(i), sp: this.cardSpans(i) }));
         const pos = (c) => { const e = c.run.find((x) => x.newRange) || c.run[0]; return e.newRange ? e.newRange.start : (e.insertAt ?? 0); };
         let next = t;
@@ -3472,37 +3678,58 @@
         // And what no card shows (a re-wrap, spacing, a blank line between
         // unchanged paragraphs) goes back to GitHub's, so the commit holds the
         // confirmed cards and nothing else.
-        next = window.mdDiff.restoreUnchanged(base, next, { items: true });
-        const applied = cards.filter((c) => this.confirmed[c.k] != null);
+        if (window.mdDiff) next = window.mdDiff.restoreUnchanged(base, next, { items: true });
+        return { next, applied: cards.filter((c) => this.confirmed[c.k] != null) };
+      },
+      // APPLY: one commit of confirmedText. To the file's own branch, it then
+      // is the base, so the applied cards go and the rest stay as edits,
+      // keeping their notes. To a NEW branch (a call's answer can ask for
+      // one), the file's branch has not moved, so the page keeps everything as
+      // it was and the commit is reported by its link. Returns the commit as
+      // { target, url }, or null when nothing landed.
+      async applyConfirmed(opts = {}) {
+        if (!FILE || this.applying || !this.confirmedCount) return null;
+        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: nothing applied', 'alert-error', 5000); return null; }
+        const base = this.fileBase, { next, applied } = this.confirmedText();
         const first = (s) => (s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)');
         // What changed, by each change's opening words, and nothing else:
         // notes are not commit text. They stay on the page and leave in the
-        // record (see `record`).
+        // record (see `record`). A call's commit names the call it answers.
         const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)));
-        const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n');
+        const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n')
+          + (opts.call && CALL ? '\n\nCall: ' + this.callWhere : '');
         this.applying = true;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
           const body = { message, content: b64(next), sha: this.fileSha };
-          if (FILE.ref) body.branch = FILE.ref;
+          if (opts.branch) {
+            await gh.load('gh-transfer.js');
+            await gh2.createRef(opts.branch, FILE.ref || '');
+            body.branch = opts.branch;
+          } else if (FILE.ref) body.branch = FILE.ref;
           const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
-          this.fileSha = this.baseSha = res.content.sha;
-          this.fileBase = next;
-          this.confirmed = {};
-          // Every note moves through the commit: one on an applied change
-          // lands on its text, now GitHub's; one on a change still pending
-          // stays on it; one whose text went out is kept unplaced.
-          this.notes = window.DictateRecord.rebase(this.notes, base, next);
-          this.paint();
-          this.save();
-          Alpine.store('toast')('check', `Applied ${applied.length} to ${this.fileWhere}`, 'alert-success', 3200);
+          const target = opts.branch || FILE.ref || 'main';
+          const url = res?.commit?.html_url || '';
+          if (!opts.branch) {
+            this.fileSha = this.baseSha = res.content.sha;
+            this.fileBase = next;
+            this.confirmed = {};
+            // Every note moves through the commit: one on an applied change
+            // lands on its text, now GitHub's; one on a change still pending
+            // stays on it; one whose text went out is kept unplaced.
+            this.notes = window.DictateRecord.rebase(this.notes, base, next);
+            this.paint();
+            this.save();
+          }
+          Alpine.store('toast')('check', `Applied ${applied.length} to ` + (opts.branch ? FILE.repo.split('/')[1] + '@' + opts.branch + ':' + FILE.path : this.fileWhere), 'alert-success', 3200);
+          return { target, url };
         } catch (e) {
           const conflict = e?.status === 409 || e?.status === 422;
           Alpine.store('toast')('warning', conflict
-            ? 'Not applied: the file changed on GitHub after you opened it. Reload, then confirm again.'
+            ? 'Not applied: the file changed on GitHub after you opened it' + (opts.branch ? ', or differs on ' + opts.branch : '') + '. Reload, then confirm again.'
             : 'Not applied: ' + (e?.message || e), 'alert-error', 8000);
-        }
-        this.applying = false;
+          return null;
+        } finally { this.applying = false; }
       },
       cardAct(btn) {
         const i = +btn.closest('[data-md-card]').dataset.mdCard;
@@ -4659,6 +4886,35 @@
     <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
+  <!-- THE CALL'S HEAD, under the header: what is being asked, why, and where
+       it came from, so the edits below arrive as one action item rather than
+       as unexplained changes. A band, which the menu's comment above warns
+       against, and earned here: it is the subject of the page while a call is
+       open. Two lines until tapped; the rest (the recommendation, the edits'
+       standing in the file, the session, the PR, the call itself) one tap
+       down. Answer is the same sheet the Apply pill opens. -->
+  <div x-show="call" x-cloak data-call-head class="shrink-0 border-b border-base-300 bg-base-200/60 px-4 py-2">
+    <div class="flex items-start gap-2">
+      <button type="button" @click="callOpen = !callOpen" class="grow min-w-0 text-left" :aria-expanded="callOpen ? 'true' : 'false'">
+        <span class="flex items-center gap-1.5 font-semibold leading-snug">
+          <i class="ph ph-scales shrink-0 opacity-60"></i><span class="min-w-0" x-text="call?.question"></span>
+          <i class="ph ph-caret-down shrink-0 text-xs opacity-50 transition-transform" :class="callOpen && 'rotate-180'"></i></span>
+        <span class="block text-sm opacity-75 leading-snug" :class="callOpen ? '' : 'line-clamp-2'" x-text="call?.brief"></span>
+      </button>
+      <button type="button" @click="openAnswer()" data-call-answer class="btn btn-sm btn-primary shrink-0">Answer</button>
+    </div>
+    <div x-show="callOpen" x-cloak class="mt-1.5 grid gap-1 text-sm">
+      <p x-show="call?.recommend" class="opacity-80"><i class="ph ph-star-four text-primary"></i>
+        <span x-text="'I recommend ' + (call?.recommend || '') + (call?.why ? ': ' + call.why : '.')"></span></p>
+      <p class="opacity-70" data-call-tally x-text="callTally"></p>
+      <div class="flex flex-wrap gap-x-3 gap-y-1">
+        <template x-for="l in callLinks" :key="l.href">
+          <a :href="l.href" target="_blank" rel="noopener" class="link link-hover inline-flex items-center gap-1">
+            <i class="ph" :class="l.icon"></i><span x-text="l.label"></span></a>
+        </template>
+      </div>
+    </div>
+  </div>
   <!-- ── The text ────────────────────────────────────────────────────────
        The whole width and the whole remaining height. THE COMPOSER'S MARK
        COLUMN DID NOT COME ACROSS, and it is the one piece of that card's
@@ -4884,10 +5140,13 @@
         <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
         <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost px-1.5" :class="confirmedCount ? '' : 'rounded-r-full'" title="Next change"><i class="ph ph-caret-down"></i></button>
         <!-- Apply, the second step: shown once a card is confirmed, naming
-             how many and the branch they will be committed to. -->
-        <button x-show="confirmedCount" x-cloak @click="applyConfirmed()" :disabled="applying" data-apply
+             how many and the branch they will be committed to. Under a call it
+             opens the answer sheet instead, where the branch is chosen and the
+             answer is recorded with the commit. -->
+        <button x-show="confirmedCount" x-cloak @click="call ? openAnswer() : applyConfirmed()" :disabled="applying" data-apply
                 class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
-                data-title-tip-bare :data-title-tip="'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
+                data-title-tip-bare :data-title-tip="call ? 'Answer the call: commit the confirmed edits, or copy the decisions out.'
+                  : 'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
           <i class="ph ph-check-circle"></i>
           <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
         </button>
@@ -5148,6 +5407,65 @@
             :class="lead('drop')" :title="'Write a dated markdown file into ' + destName + ', for the next drain'">
       <i class="ph ph-tray-arrow-down text-lg"></i>Drop
     </button>
+  </div>
+
+  <!-- ── Answer a call ────────────────────────────────────────────────────
+       One sheet for the three ways a call's answer can leave: committed to
+       the file's own branch, committed to a new branch cut from it, or copied
+       out as JSON with nothing committed. The first two also append the answer
+       beside the call (and comment it on the call's PR when ticked, which
+       wakes a subscribed session). With nothing confirmed there is no commit
+       to make, and the primary button records the answer alone.
+       Each edit is a row with its decision, read off the page when the sheet
+       opens (callDecisions); a row is a way back to that edit's card. -->
+  <div x-show="answerOpen" x-cloak data-answer-sheet class="fixed inset-0 z-[90] flex items-end justify-center">
+    <div class="absolute inset-0 bg-black/40" @click="answerOpen = false"></div>
+    <div class="relative w-full sm:max-w-md max-h-[85vh] overflow-y-auto bg-base-100 rounded-t-2xl border-t border-base-300 p-4 flex flex-col gap-3"
+         style="padding-bottom:calc(env(safe-area-inset-bottom) + 1.5rem)">
+      <div class="flex items-center gap-2">
+        <span class="font-medium">Answer the call</span>
+        <div class="grow"></div>
+        <button @click="answerPreview = !answerPreview" class="btn btn-ghost btn-sm btn-square" :class="answerPreview && 'btn-active'"
+                aria-label="Show the answer as JSON" data-title-tip-bare data-title-tip="Show the answer as JSON">
+          <i class="ph ph-brackets-curly text-lg"></i></button>
+        <button @click="answerOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <div class="grid gap-1" data-answer-rows>
+        <template x-for="(d, i) in answerRows" :key="i">
+          <button type="button" @click="goEdit(i)" class="flex items-start gap-2 text-left text-sm rounded-lg px-2 py-1.5 hover:bg-base-200">
+            <span class="badge badge-sm shrink-0 mt-0.5 tabular-nums" x-text="i + 1"></span>
+            <span class="badge badge-sm shrink-0 mt-0.5" :data-decision="d"
+                  :class="{ confirmed: 'badge-success', amended: 'badge-info', discarded: 'badge-error badge-outline', open: 'badge-ghost' }[d] || 'badge-warning badge-outline'"
+                  x-text="d"></span>
+            <span class="min-w-0 leading-snug opacity-80 line-clamp-2"
+                  x-text="call?.edits?.[i]?.why || String(call?.edits?.[i]?.to || '').replace(/\s+/g, ' ').slice(0, 90)"></span>
+          </button>
+        </template>
+      </div>
+      <input type="text" x-model="answerNote" class="input input-sm input-bordered w-full" placeholder="Say more with your answer (optional)">
+      <div class="grid gap-1.5 text-sm" x-show="confirmedCount">
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="file" x-model="answerTo">
+          <span x-text="'Commit to ' + (fileRef || 'main')"></span></label>
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="branch" x-model="answerTo">
+          <span class="shrink-0">Commit to a new branch</span>
+          <input type="text" x-model="answerBranch" @focus="answerTo = 'branch'" data-answer-branch
+                 class="input input-xs input-bordered font-mono grow min-w-0"></label>
+      </div>
+      <label x-show="call?.pr" class="flex items-center gap-2 text-sm opacity-80">
+        <input type="checkbox" class="checkbox checkbox-xs" x-model="answerComment">
+        <span x-text="'Post the answer on ' + (callLinks.find((l) => l.icon === 'ph-git-pull-request')?.label || 'the PR')"></span></label>
+      <pre x-show="answerPreview" x-cloak data-answer-json x-text="answerJson"
+           class="max-h-56 overflow-auto rounded-lg bg-base-200 p-2 font-mono text-[11px] leading-snug whitespace-pre-wrap break-all"></pre>
+      <div class="flex gap-2">
+        <button @click="copyDecisions()" data-answer-copy class="btn btn-sm grow gap-1.5"
+                data-title-tip-bare data-title-tip="The decisions and the confirmed patch as JSON on the clipboard. Nothing is committed.">
+          <i class="ph ph-copy"></i>Copy</button>
+        <button @click="answerCall()" :disabled="answering || (answerTo === 'branch' && confirmedCount && !answerBranch.trim())" data-answer-send
+                class="btn btn-sm btn-primary grow gap-1.5">
+          <span x-show="answering" class="loading loading-spinner loading-xs"></span>
+          <span x-text="confirmedCount ? 'Commit ' + confirmedCount + ' and record' : 'Record the answer'"></span></button>
+      </div>
+    </div>
   </div>
 
   <!-- ── Send ─────────────────────────────────────────────────────────────
