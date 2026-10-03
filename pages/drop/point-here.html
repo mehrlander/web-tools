@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Point Here</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>👉</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script src="../../lib/kits/land.js"></script>
@@ -41,7 +40,7 @@
     <button tabindex="0" class="btn btn-sm gap-1"><i class="ph ph-link"></i>Links<i class="ph ph-caret-down text-xs"></i></button>
     <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box w-[min(26rem,calc(100vw-2rem))] z-50 shadow-lg mt-1 p-2">
       <template x-for="l in links" :key="l.label">
-        <li><a :href="l.href" @click="$nextTick(() => document.activeElement.blur())" class="flex flex-col items-start gap-0.5">
+        <li><a :href="l.href" @click="if (location.hash === l.href) { $event.preventDefault(); Point.fromLocation(); } $nextTick(() => document.activeElement.blur())" class="flex flex-col items-start gap-0.5">
           <span x-text="l.label"></span>
           <code class="font-mono text-xs text-base-content/60 truncate w-full" x-text="l.href"></code>
         </a></li>
@@ -192,9 +191,6 @@ const Point = (() => {
     run.off?.();
     run.parts.forEach(p => p.remove());
     run = null;
-    // Drop the address once it has been followed, so the same link tapped
-    // again is a hashchange. Guarded: a blob: frame may refuse the rewrite.
-    if (/^#(show|tap|walk|steps)=/.test(location.hash)) try { history.replaceState(history.state, '', location.href.split('#')[0]); } catch {}
   }
 
   async function start(steps) {
