@@ -2202,6 +2202,7 @@ function app(){ return {
   publicSeen: false,      // mount the public-browse component lazily, on first visit
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
+  _bootRouting: false,    // repo/ref watchers must not publish a provisional landing
   _routed: Promise.resolve(),   // settled once init has routed the address (see init)
   _routedResolve: () => {},
   DEFAULT_REPO: 'mehrlander/web-tools',
@@ -2470,24 +2471,34 @@ function app(){ return {
     // see stage.js) preloads the stage and wins the initial view: it is the
     // point of such a link, so it is read after the route and overrides it.
     const url = this.parseUrl();
-    if (url && url.window) this.branchWindow = url.window;
-    await this.ensureBrowser(url?.repo, url?.ref);
-    try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
-    const link = window.StageLink ? window.StageLink.read(location) : null;
-    const staged = link ? link.items : [];
-    if (staged.length) Alpine.store('browser').stage = staged;
-    // A `gz` payload is local text carried in the fragment, and gzip decoding is
-    // asynchronous, so `read` hands back the raw payload and the stage component
-    // resolves it once it mounts. The route cannot wait for that, so the mere
-    // PRESENCE of a payload is what says this link is bound for the stage.
-    // A plain `take` payload (an iPhone shortcut's send) is bound there too.
-    // Without this line a link that is nothing but a paste opened on the estate
-    // while its file appeared, correctly, in a view the reader was not looking
-    // at. Found by the courier, which mints exactly that link.
-    if (staged.length || (link && (link.gz || link.take))) this.goStage();
-    // A bare open (no repo, file, view, or stage addressed) lands on the
-    // estate: the all-repo view is the page's front door.
-    else if (!url) this.goDashboard();
+    this._bootRouting = true;
+    try {
+      if (url && url.window) this.branchWindow = url.window;
+      await this.ensureBrowser(url?.repo, url?.ref);
+      try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
+      const link = window.StageLink ? window.StageLink.read(location) : null;
+      const staged = link ? link.items : [];
+      if (staged.length) Alpine.store('browser').stage = staged;
+      // A `gz` payload is local text carried in the fragment, and gzip decoding is
+      // asynchronous, so `read` hands back the raw payload and the stage component
+      // resolves it once it mounts. The route cannot wait for that, so the mere
+      // PRESENCE of a payload is what says this link is bound for the stage.
+      // A plain `take` payload (an iPhone shortcut's send) is bound there too.
+      // Without this line a link that is nothing but a paste opened on the estate
+      // while its file appeared, correctly, in a view the reader was not looking
+      // at. Found by the courier, which mints exactly that link.
+      if (staged.length || (link && (link.gz || link.take))) this.goStage();
+      // A bare open (no repo, file, view, or stage addressed) lands on the
+      // estate: the all-repo view is the page's front door.
+      else if (!url) this.goDashboard();
+    } finally {
+      this._bootRouting = false;
+      // Loading an addressed view is one arrival. Replacing its address keeps
+      // reload from inserting a temporary Overview between Search and Activity.
+      const restoring = this._restoring;
+      this._restoring = true;
+      try { this.syncUrl(); } finally { this._restoring = restoring; }
+    }
 
     // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the mode this
     // arrival settled on is the one change the shellMode watcher never sees.
@@ -5626,6 +5637,9 @@ function app(){ return {
       open(u = {}){
         this.sessionSpec = u.session || '';
         this.sessionFind = this.sessionSpec ? String(u.find || '').trim() : '';
+        this.sessionSearchSeed = { q: u.aq || '', discussion: u.discussion === '1',
+          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '' };
+        document.dispatchEvent(new CustomEvent('web-tools:session-search-seed', { detail: this.sessionSearchSeed }));
         this.goSessions();
         if (this._restoring) document.dispatchEvent(new CustomEvent('web-tools:restore-session', {
           detail: { id: this.sessionSpec, find: this.sessionFind, pane: u.pane, card: u.card },
@@ -5641,6 +5655,12 @@ function app(){ return {
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
         if (this.sessionSpec && this.sessionFind) p.set('find', this.sessionFind);
+        const search = this.sessionSearchSeed;
+        if (search?.q) p.set('aq', search.q);
+        if (search?.discussion) p.set('discussion', '1');
+        if (search?.scope && search.scope !== 'day') p.set('ascope', search.scope);
+        if (search?.repo) p.set('arepo', search.repo);
+        if (search?.state && search.state !== 'all') p.set('astate', search.state);
         // The SET, which is the pane's scope rather than one open record, so it
         // outlives the deck: closing a swiper drops `session=` and leaves the
         // reader on the set they arrived with, not on whatever the default
@@ -5699,7 +5719,10 @@ function app(){ return {
     // is a screen worth addressing.
     { key: 'search',
       open(u){ this.goSearch({ q: u.sq, mode: u.smode, repo: u.srepo, ref: u.sref,
-                               path: u.spath, file: u.sfile }); },
+                               path: u.spath, file: u.sfile, sessionId: u.sitem,
+                               sessionIds: u.sset == null ? null : u.sset.split(',').filter(Boolean),
+                               sessionExtraIds: (u.sextra || '').split(',').filter(Boolean),
+                               sessionScope: u.sscope ? { scope: u.sscope } : null }); },
       stamp(p){
         const sd = this.searchSeed;
         if (!sd) return;
@@ -5709,6 +5732,12 @@ function app(){ return {
         if (sd.ref) p.set('sref', sd.ref);
         if (sd.path) p.set('spath', sd.path);
         if (sd.file) p.set('sfile', sd.file);
+        if (sd.mode === 'sessions') {
+          if (sd.sessionId) p.set('sitem', sd.sessionId);
+          if (Array.isArray(sd.sessionIds)) p.set('sset', sd.sessionIds.join(','));
+          if (sd.sessionExtraIds?.length) p.set('sextra', sd.sessionExtraIds.join(','));
+          if (sd.sessionScope?.scope) p.set('sscope', sd.sessionScope.scope);
+        }
       } },
     // App views are estate-level, so the link stands alone (like the Stage):
     // the promoted page's repo and path ride it, independent of the open repo.
@@ -5809,8 +5838,9 @@ function app(){ return {
   // screen that means it. tools/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
-              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
+              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'set', 'topic', 'lens', 'grain', 'find',
+              'aq', 'discussion', 'ascope', 'arepo', 'astate',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -5861,6 +5891,10 @@ function app(){ return {
              appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '',
              sq: p.get('sq') || '', smode: p.get('smode') || '', srepo: p.get('srepo') || '', sref: p.get('sref') || '',
              spath: p.get('spath') || '', sfile: p.get('sfile') || '',
+             sitem: p.get('sitem') || '', sset: p.get('sset'), sscope: p.get('sscope') || '',
+             sextra: p.get('sextra') || '',
+             aq: p.get('aq') || '', discussion: p.get('discussion') || '',
+             ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
              session: p.get('session') || '', find: p.get('find') || '',
              pane: p.get('pane') || '', card: p.get('card'),
              item: p.get('item') || '',
@@ -5940,6 +5974,17 @@ function app(){ return {
   },
   sessionSpec: new URLSearchParams(location.search).get('session') || '',
   sessionFind: (new URLSearchParams(location.search).get('find') || '').trim(),
+  sessionSearchSeed: (() => {
+    const p = new URLSearchParams(location.search);
+    return { q: p.get('aq') || '', discussion: p.get('discussion') === '1',
+      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '' };
+  })(),
+  setSessionSearch(seed){
+    this.sessionSearchSeed = seed;
+    const restoring = this._restoring;
+    this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
+  },
   setSession(spec, find = ''){
     spec = spec || '';
     find = spec ? String(find || '').trim() : '';
@@ -6110,6 +6155,7 @@ function app(){ return {
   visitOpenable(v){ return !!v && v.kind !== 'payload' && v.kind !== 'unrecognized'; },
 
   syncUrl(){
+    if (this._bootRouting) return;
     this.dropDecksOnNav();
     const qs = this.deepLinkParams(new URLSearchParams(location.search)).toString();
     // The fragment is carried through untouched unless a caller has just asked
@@ -6466,7 +6512,11 @@ function app(){ return {
     if (opts && Object.values(opts).some(v => v != null && v !== '')) {
       this.searchOpenFile = null;
       this.searchSeed = { q: opts.q || '', mode: opts.mode || '', repo: opts.repo || '',
-                          ref: opts.ref || '', path: opts.path || '', file: opts.file || '' };
+                          ref: opts.ref || '', path: opts.path || '', file: opts.file || '',
+                          sessionId: opts.sessionId || '',
+                          sessionIds: Array.isArray(opts.sessionIds) ? opts.sessionIds : null,
+                          sessionExtraIds: Array.isArray(opts.sessionExtraIds) ? opts.sessionExtraIds : [],
+                          sessionRows: opts.sessionRows || [], sessionScope: opts.sessionScope || null };
       if (this.searchSeen) document.dispatchEvent(new CustomEvent('web-tools:search-seed', { detail: this.searchSeed }));
     }
     this.searchSeen = true; this.view = 'search'; this.syncUrl();

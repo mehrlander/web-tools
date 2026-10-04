@@ -5,6 +5,50 @@ import path from 'node:path';
 import { makeWindow, repoRoot } from './bootstrap.mjs';
 import { makeShell } from './shell.mjs';
 
+test('Activity discussion query and filters survive cold links without changing branch-window grammar', async () => {
+  const { shell, events } = makeShell({ search: '?view=sessions&aq=needle&discussion=1&ascope=week&arepo=me%2Ftools&astate=open&window=12h' });
+  shell.goSessions = () => { shell.view = 'sessions'; };
+  const parsed = shell.parseUrl();
+  assert.equal(parsed.window, 0.5);
+  await shell.routeFromUrl(parsed);
+  const p = shell.deepLinkParams();
+  for (const [key, value] of Object.entries({ aq: 'needle', discussion: '1', ascope: 'week', arepo: 'me/tools', astate: 'open' }))
+    assert.equal(p.get(key), value);
+  const seed = events.find(e => e.type === 'web-tools:session-search-seed').detail;
+  assert.deepEqual(seed, { q: 'needle', discussion: true, scope: 'week', repo: 'me/tools', state: 'open' });
+  shell.view = 'search';
+  const other = shell.deepLinkParams(p);
+  for (const key of ['aq', 'discussion', 'ascope', 'arepo', 'astate']) assert.equal(other.has(key), false);
+});
+
+test('Activity filter edits replace one address rather than adding history per keystroke', () => {
+  const { shell, history } = makeShell({ search: '?view=sessions' });
+  shell.view = 'sessions';
+  const calls = [];
+  for (const op of ['pushState', 'replaceState']) history[op] = () => calls.push(op);
+  shell.setSessionSearch({ q: 'two words', discussion: true, scope: 'day', repo: '', state: '' });
+  assert.deepEqual(calls, ['replaceState']);
+  assert.equal(shell.deepLinkParams().has('ascope'), false, 'Day is retained as the default');
+});
+
+test('Search selection and explicit scope snapshots round-trip, including an empty scope', async () => {
+  for (const set of [null, '', 'aaa11111,bbb22222']) {
+    const p = new URLSearchParams({ view: 'search', sq: 'needle', smode: 'sessions', sitem: 'bbb22222', sscope: 'week', sextra: 'bbb22222' });
+    if (set !== null) p.set('sset', set);
+    const { shell } = makeShell({ search: '?' + p });
+    await shell.routeFromUrl(shell.parseUrl());
+    const stamped = shell.deepLinkParams();
+    assert.equal(stamped.get('sset'), set);
+    assert.equal(stamped.get('sitem'), 'bbb22222');
+    assert.equal(stamped.get('sq'), 'needle');
+    assert.equal(stamped.get('sscope'), 'week');
+    assert.equal(stamped.get('sextra'), 'bbb22222');
+    shell.view = 'sessions';
+    const other = shell.deepLinkParams(stamped);
+    for (const key of ['sset', 'sitem', 'sq', 'sscope', 'sextra']) assert.equal(other.has(key), false);
+  }
+});
+
 test('a session query survives boot and only rides its session route', () => {
   const { shell } = makeShell({ search: '?view=sessions&session=abc12345&find=cache+invalidation' });
   shell.view = 'sessions';
