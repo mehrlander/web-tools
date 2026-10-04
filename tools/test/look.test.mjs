@@ -38,9 +38,9 @@ function realm(body, hash = '') {
   window.Element.prototype.getClientRects = function () { return this.closest('[hidden]') ? [] : [{}]; };
   window.Element.prototype.animate = function () { return { cancel() {} }; };
   window.scrollTo = () => {};
-  // Nor pseudo-elements, which the kit reads to tell whether Phosphor's hand
-  // will draw. Answered as "no icon font", so the caret stands in, which is
-  // what a bare page gets.
+  // Nor pseudo-elements, which the kit reads to tell whether the page already
+  // draws Phosphor. Answered as "no icon font", which is what a bare page
+  // gets, so the kit adds Phosphor's stylesheets.
   const style = window.getComputedStyle.bind(window);
   window.getComputedStyle = (el) => style(el);
   window.TextEncoder = TextEncoder;
@@ -294,17 +294,20 @@ test('a walk numbers its target and its dock alike, and the number becomes the w
   assert.equal(mark.textContent, '1');
   a.getBoundingClientRect = () => ({ top: 3000, bottom: 3020, left: 0, right: 100, width: 100, height: 20 });
   await wait(60);
-  assert.equal(mark.textContent, '↓', 'below the screen: an arrow down');
+  assert.equal(mark.dataset.away, 'down', 'below the screen: an arrow down');
+  assert.ok(mark.querySelector('i.ph-arrow-down'), 'drawn as Phosphor\'s arrow, not a character');
   assert.equal(w.document.querySelector('[data-look="num"]').style.visibility, 'hidden');
   calls.length = 0;
   mark.click();
   assert.deepEqual(calls, ['a'], 'the arrow brings the target back');
   a.getBoundingClientRect = () => ({ top: -300, bottom: -280, left: 0, right: 100, width: 100, height: 20 });
   await wait(60);
-  assert.equal(mark.textContent, '↑');
+  assert.equal(mark.dataset.away, 'up');
   a.getBoundingClientRect = () => ({ top: 100, bottom: 120, left: 0, right: 100, width: 100, height: 20 });
   await wait(60);
   assert.equal(mark.textContent, '1', 'back in view: the number again');
+  assert.equal(mark.style.display, 'inline-flex', 'shown as the badge it was styled as, so the number stays centred');
+  assert.equal(w.document.querySelector('[data-look="num"]').style.display, 'inline-flex');
 });
 
 test('the arrow keys walk, but not while the reader is typing', async () => {
@@ -348,4 +351,18 @@ test('a step with a message keeps its tint while the dock is up; a bare landing 
   w.Look.start([{ at: 'a' }]);
   await wait(30);
   assert.equal(seen.length, 1);
+});
+
+test('a page without Phosphor is given its stylesheets once; a page that links them is left alone', async () => {
+  // The marker's arrows, close and hand are Phosphor classes, and a class with
+  // no stylesheet behind it draws nothing, so a bare page has to be given one.
+  const links = (w) => [...w.document.querySelectorAll('link[href*="@phosphor-icons/web"]')].map(l => l.href.split('/src/')[1]);
+  let w = realm('<p data-at="a">a</p>');
+  w.Look.start([{ at: 'a', say: 'x' }]);
+  w.Look.start([{ at: 'a', say: 'again' }]);
+  assert.deepEqual(links(w), ['bold/style.css', 'fill/style.css'], 'both weights, and not twice');
+  w = realm('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css">' +
+    '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css"><p data-at="a">a</p>');
+  w.Look.start([{ at: 'a', say: 'x' }]);
+  assert.equal(links(w).length, 2, 'nothing added beside the page\'s own');
 });
