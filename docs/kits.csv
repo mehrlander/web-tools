@@ -75,7 +75,7 @@ lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manife
 lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",242,no,yes,3,yes
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1538,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",291,no,no,4,yes
-lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1121,no,no,3,yes
+lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1234,no,no,3,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as installation evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,534,yes,yes,11,yes
