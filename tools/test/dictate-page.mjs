@@ -2606,8 +2606,8 @@ try {
   console.log('a documentation call:');
   {
     const DOC = '# Title\n\nFirst para old.\n\nSecond para old.\n\nThird para new.\n\nFourth para.\n';
-    const FIX = 'tools/test/call-fixture.md', CALLP = 'calls/test-call.json';
-    const CALL = { schema: 'call/1', id: 'a710e806-test', session: 'a710e806', slug: 'test', kind: 'documentation',
+    const FIX = 'tools/test/call-fixture.md', CALLP = 'user-calls/test-call.json';
+    const CALL = { schema: 'user-call/1', id: 'a710e806-test', session: 'a710e806', slug: 'test', kind: 'documentation',
       question: 'Apply 4 edits to call-fixture.md?', brief: 'Two new wordings, one already in, one gone.',
       file: 'mehrlander/web-tools:' + FIX, pr: 'mehrlander/web-tools#1', recommend: 'applying both', why: 'they are shorter',
       edits: [{ from: 'First para old.', to: 'First para new.', why: 'one' }, { from: 'Second para old.', to: 'Second para new.' },
@@ -2628,7 +2628,7 @@ try {
       return json(route, { content: { sha: 'applied' }, commit: { sha: 'c0ffee', html_url: 'https://github.com/mehrlander/web-tools/commit/c0ffee' } }, 201);
     });
     await pg.route(`**/repos/mehrlander/web-tools/contents/${CALLP}*`, (route) => file(route, JSON.stringify(CALL), 'call'));
-    await pg.route('**/repos/mehrlander/web-tools/contents/calls/test-call.answers.jsonl*', (route) => {
+    await pg.route('**/repos/mehrlander/web-tools/contents/user-calls/test-call.answers.jsonl*', (route) => {
       if (route.request().method() !== 'PUT') return answers ? file(route, answers, 'ans') : json(route, {}, 404);
       answers = Buffer.from(putBody(route).content, 'base64').toString('utf8');
       answerPuts.push(putBody(route));
@@ -2642,7 +2642,7 @@ try {
     await pg.route('https://api.github.com/user', (route) => json(route, { login: 'tester' }));
     pg.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
     const C = 'document.querySelector(\'[x-data="dictate"]\')._x_dataStack[0]';
-    await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:${FIX}&call=mehrlander/web-tools:${CALLP}`, { waitUntil: 'domcontentloaded' });
+    await pg.goto(`${origin}/pages/dictate.html?file=mehrlander/web-tools:${FIX}&user-call=mehrlander/web-tools:${CALLP}`, { waitUntil: 'domcontentloaded' });
     await pg.waitForFunction(() => { const x = document.querySelector('[x-data="dictate"]')?._x_dataStack?.[0];
       return x && x.call && x.rendered && document.querySelector('[data-md-card]'); }, null, { timeout: 15000 });
     await pg.waitForTimeout(500);
@@ -2727,15 +2727,15 @@ try {
     ok('the copied answer carries the decisions and the confirmed patch, and nothing was written',
       held.json.decisions.length === 4 && /\+First para new\./.test(held.json.patch) && !/Second para new/.test(held.json.patch)
       && docPuts.length === 0 && answerPuts.length === 0, JSON.stringify(held.json));
-    await pg.evaluate(`(async () => { const x = ${C}; x.answerTo = 'branch'; x.answerBranch = 'call/test'; await x.answerCall(); })()`);
+    await pg.evaluate(`(async () => { const x = ${C}; x.answerTo = 'branch'; x.answerBranch = 'user-call/test'; await x.answerCall(); })()`);
     await pg.waitForTimeout(300);
     const line = answers.trim() ? JSON.parse(answers.trim().split('\n').pop()) : {};
     ok('to a new branch: the branch is cut from the tip, the confirmed edit committed there, and the call named',
-      refs.length === 1 && refs[0].ref === 'refs/heads/call/test' && refs[0].sha === 'tip'
-      && docPuts.length === 1 && docPuts[0].branch === 'call/test' && /Call: mehrlander\/web-tools:calls\/test-call\.json/.test(docPuts[0].message)
+      refs.length === 1 && refs[0].ref === 'refs/heads/user-call/test' && refs[0].sha === 'tip'
+      && docPuts.length === 1 && docPuts[0].branch === 'user-call/test' && /User call: mehrlander\/web-tools:user-calls\/test-call\.json/.test(docPuts[0].message)
       && docPuts[0].text === DOC.replace('First para old.', 'First para new.'), JSON.stringify({ refs, docPuts }));
     ok('the answer lands beside the call with its target and commit, and is posted on the PR',
-      line.target === 'call/test' && /c0ffee/.test(line.commit || '') && line.by === 'tester' && line.decisions?.[1]?.decision === 'discarded'
+      line.target === 'user-call/test' && /c0ffee/.test(line.commit || '') && line.by === 'tester' && line.decisions?.[1]?.decision === 'discarded'
       && comments.length === 1 && /Answer: \*\*1 confirmed, 1 discarded/.test(comments[0]), JSON.stringify({ line, comments }));
     await pg.evaluate(`(async () => { const x = ${C}; x.answerTo = 'file'; x.answerComment = false; await x.answerCall(); })()`);
     await pg.waitForTimeout(300);

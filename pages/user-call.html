@@ -3,21 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Call</title>
+<title>User call</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>⚖️</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  call.html — one call, on its own.
+  user-call.html — one user call, on its own.
 
-  A call is one decision a session needs from the owner (call/1; web-tools-private
-  calls/call.py writes them). The form is alpineComponents/call-form.js, which
+  A user call is one decision a session needs from the owner (user-call/1;
+  web-tools-private user-calls/user-call.py writes them). The form is
+  alpineComponents/user-call-form.js, which
   the session page's deck of calls mounts once per slide; this page mounts the
   same component at an address a chat reply can hand over, the way branch.html
   mounts branchBrief.
 
-    #src=owner/repo[@ref]:calls/<session>-<slug>.json
+    #src=owner/repo[@ref]:user-calls/<session>-<slug>.json
 
   Read through the viewer's stored token, since calls usually live in the
   private store. Also read from ?query, for a context that strips fragments.
@@ -59,14 +60,14 @@
   [x-cloak]{display:none!important}
 </style>
 </head>
-<body class="h-[100dvh] flex flex-col bg-base-100 text-base-content" x-data="callPage()" x-cloak>
+<body class="h-[100dvh] flex flex-col bg-base-100 text-base-content" x-data="userCallPage()" x-cloak>
   <div x-show="!src" class="mx-auto p-8 text-center opacity-60 text-sm">
-    Link to a call: <code class="text-xs">#src=owner/repo[@ref]:calls/&lt;session&gt;-&lt;slug&gt;.json</code>
+    Link to a user call: <code class="text-xs">#src=owner/repo[@ref]:user-calls/&lt;session&gt;-&lt;slug&gt;.json</code>
   </div>
   <div id="mount" class="flex-1 min-h-0 flex flex-col"></div>
 <script>
   document.addEventListener('alpine:init', () => {
-    Alpine.data('callPage', () => ({
+    Alpine.data('userCallPage', () => ({
       src: '',
       async init() {
         await window.__depsReady;
@@ -81,7 +82,7 @@
           const el = document.createElement('div');
           el.id = 'mount';
           el.className = old.className;
-          el.setAttribute('x-data', 'callForm(window.__callTarget)');
+          el.setAttribute('x-data', 'userCallForm(window.__callTarget)');
           old.replaceWith(el);
           Alpine.initTree(el);
         });

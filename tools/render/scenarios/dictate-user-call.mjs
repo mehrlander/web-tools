@@ -4,8 +4,8 @@
 // its working tree, so a call written there and not yet pushed is the one drawn.
 //
 //   npm run shot -- pages/dictate.html --width 390 --height 844 --touch \
-//     --query "file=mehrlander/web-tools:docs/text-tools.md&call=mehrlander/web-tools-private:calls/a710e806-text-tools-tighten.json" \
-//     --script tools/render/scenarios/dictate-call.mjs
+//     --query "file=mehrlander/web-tools:docs/text-tools.md&user-call=mehrlander/web-tools-private:user-calls/a710e806-text-tools-tighten.json" \
+//     --script tools/render/scenarios/dictate-user-call.mjs
 //
 //   CALL_STEP=head    (default) the head closed, the first card under it
 //   CALL_STEP=open    the head opened: recommendation, standing, links

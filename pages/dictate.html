@@ -177,8 +177,8 @@
     ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
     ?proposed                 with ?file=, stage the file's queued proposals
                               as change cards (file mode, below)
-    ?call=owner/repo[@ref]:path  with ?file=, a documentation call: its head
-                              over the file, its edits as change cards
+    ?user-call=owner/repo[@ref]:path  with ?file=, a documentation user call:
+                              its head over the file, its edits as change cards
     ?sel=native|painted       which selection, for this visit only; the
                               menu's choice otherwise, native by default
 
@@ -286,10 +286,10 @@
     lives only in this browser's draft: the collection records no answer of
     no, so once the draft ends a discarded proposal is staged again.
 
-    AND IT ANSWERS A DOCUMENTATION CALL, with `&call=`. A call (web-tools-
-    private calls/call.py, kind documentation) is one action item: a
-    question, a brief, a recommendation, the session and PR it came from,
-    and its edits written into it. The page draws that head under the header
+    AND IT ANSWERS A DOCUMENTATION CALL, with `&user-call=`. A user call
+    (web-tools-private user-calls/user-call.py, kind documentation) is one
+    action item: a question, a brief, a recommendation, the session and PR
+    it came from, and its edits written into it. The page draws that head under the header
     and stages the edits it can find in GitHub's copy (stageEdits), so each is
     a card like any other. Answer, on the head or the Apply pill, opens one
     sheet: each edit's decision, read off the page rather than logged
@@ -499,10 +499,11 @@
   const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
   // The proposal queue, reviewed: meaningful only beside ?file=.
   const PROPOSED = !!FILE && q.has('proposed');
-  // A documentation call (web-tools-private calls/call.py): where it lives, in
+  // A documentation user call (web-tools-private user-calls/user-call.py):
+  // where it lives, in
   // the same grammar. Also meaningful only beside ?file=, which names the
   // document so the page can boot before the call is read.
-  const CALL = FILE ? ((c) => c && c.dir ? { repo: c.repo, ref: c.ref, path: c.dir } : null)(parseDest(q.get('call'))) : null;
+  const CALL = FILE ? ((c) => c && c.dir ? { repo: c.repo, ref: c.ref, path: c.dir } : null)(parseDest(q.get('user-call'))) : null;
 
   // Base64 of UTF-8, chunked: a spread of a whole document's bytes into
   // String.fromCharCode overruns the argument limit somewhere past 100 KB.
@@ -621,7 +622,7 @@
         if (pr) out.push({ icon: 'ph-git-pull-request', label: pr[1].split('/').pop() + ' #' + pr[2],
           href: 'https://github.com/' + pr[1] + '/pull/' + pr[2] });
         if (CALL) out.push({ icon: 'ph-scales', label: 'The call',
-          href: 'https://mehrlander.github.io/web-tools/pages/call.html#src=' + this.callWhere });
+          href: 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + this.callWhere });
         return out;
       },
       get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
@@ -1141,7 +1142,7 @@
       async openAnswer() {
         if (!this.call) return;
         if (this.view !== 'rendered') await this.setView('rendered');
-        if (!this.answerBranch) this.answerBranch = 'call/' + (this.call.slug || 'edits');
+        if (!this.answerBranch) this.answerBranch = 'user-call/' + (this.call.slug || 'edits');
         this.$nextTick(() => {
           const ds = this.answerEntry().decisions;
           this.answerRows = ds.map((d) => d.decision);
@@ -1178,12 +1179,12 @@
             if (!done) return;
             Object.assign(entry, { target: done.target, commit: done.url });
           }
-          await gh.load('alpineComponents/call-form.js');
-          const pr = window.CallForm.prOf(this.call.pr);
-          const body = '**Call: ' + this.call.question + '**\n\nAnswer: **' + entry.answer + '**'
+          await gh.load('alpineComponents/user-call-form.js');
+          const pr = window.UserCallForm.prOf(this.call.pr);
+          const body = '**User call: ' + this.call.question + '**\n\nAnswer: **' + entry.answer + '**'
             + (entry.commit ? '\n\nCommitted: ' + entry.commit : '') + (entry.note ? '\n\n> ' + entry.note : '')
             + '\n\n_' + (this.call.id || '') + ', answered in Dictate._';
-          await window.CallForm.postAnswer({ repo: CALL.repo, ref: CALL.ref || undefined, token: this.token,
+          await window.UserCallForm.postAnswer({ repo: CALL.repo, ref: CALL.ref || undefined, token: this.token,
             path: CALL.path.replace(/\.json$/, '') + '.answers.jsonl', entry,
             pr: this.answerComment ? pr : null, comment: body });
           this.answerOpen = false;
@@ -3816,7 +3817,7 @@
         // record (see `record`). A call's commit names the call it answers.
         const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)));
         const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n')
-          + (opts.call && CALL ? '\n\nCall: ' + this.callWhere : '');
+          + (opts.call && CALL ? '\n\nUser call: ' + this.callWhere : '');
         this.applying = true;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
@@ -5097,7 +5098,9 @@
              move when it opens, and Done where the pencil was, inside the tint
              as an input's trailing button is. Done holds its place while the
              field is empty, so the first letter typed reflows nothing (see
-             editNote). The field stays the same element while the note is
+             editNote), and each control is 15px wide whatever its icon font
+             has done, since the bold check can load after the pencil and the
+             field would move under it. The field stays the same element while the note is
              made, and its text is not reset under the caret. -->
         <template x-if="cardInfo && cardInfo.unit">
           <div class="flex items-start gap-3" :data-info-why="noteIsWhy ? '' : null"
@@ -5113,19 +5116,19 @@
             <div class="shrink-0 h-5 flex items-center gap-4">
               <template x-if="!noteOpen">
                 <button type="button" data-info-edit title="Edit note" aria-label="Edit note" @click="editNote()"
-                        class="relative h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                        class="relative h-5 w-[15px] flex items-center justify-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
                   <i class="ph ph-pencil-simple text-[15px]"></i></button>
               </template>
               <template x-if="!noteOpen && infoNotes.length">
                 <button type="button" data-info-note-remove @click="removeNote()"
                         :title="infoWhy ? 'Back to the call\'s note' : 'Remove note'" :aria-label="infoWhy ? 'Back to the call\'s note' : 'Remove note'"
-                        class="relative h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                        class="relative h-5 w-[15px] flex items-center justify-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
                   <i class="ph text-[15px]" :class="infoWhy ? 'ph-arrow-counter-clockwise' : 'ph-trash'"></i></button>
               </template>
               <template x-if="noteOpen">
                 <button type="button" data-info-done title="Done" aria-label="Done" @click="noteDone()"
                         :class="noteDraft.trim() || infoWhy ? '' : 'invisible'"
-                        class="relative h-5 flex items-center text-primary before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                        class="relative h-5 w-[15px] flex items-center justify-center text-primary before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
                   <i class="ph-bold ph-check text-[15px]"></i></button>
               </template>
             </div>
