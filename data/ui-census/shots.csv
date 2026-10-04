@@ -1,0 +1,18 @@
+unit,query,script,click,note
+web-tools:view/app,app=mehrlander/web-tools:pages/text-lab.html,,,an app view by its page address; a slug needs the token-loaded table
+web-tools:view/branches,view=branches,tools/render/scenarios/activity-fake.mjs,,fixture rows; the pane needs a token
+web-tools:view/sessions,view=sessions,tools/render/scenarios/estate-sessions.mjs,,fixture rows; the pane needs a token
+web-tools:view/lists,view=lists,tools/render/scenarios/estate-sessions.mjs,,fixture rows; the pane needs a token
+web-tools:view/jots,view=lists,tools/render/scenarios/estate-sessions.mjs,,?view=jots resolves to Lists
+web-tools:view/proposals,view=proposals,tools/render/scenarios/proposals-demo.mjs,,a stubbed registry
+web-tools:view/state,view=state,tools/render/scenarios/state-view.mjs,,stubbed registry reads
+web-tools:view/repos,view=repos,tools/render/scenarios/repos-abandoned-badge.mjs,,fixture rows; the grid needs a token
+web-tools:view/files,repo=mehrlander/web-tools&view=files&path=docs,,,a folder with files of its own
+web-tools:view/project,repo=mehrlander/web-tools&view=project&project=docs,,,the fallback project the shell builds for an undeclared path
+web-tools:view/project/board,repo=mehrlander/web-tools&view=project&project=docs&tab=board,,,
+web-tools:view/project/docs,repo=mehrlander/web-tools&view=project&project=docs&tab=docs,,,
+web-tools:view/project/files,repo=mehrlander/web-tools&view=project&project=docs&tab=files,,,
+web-tools:view/project/overview,repo=mehrlander/web-tools&view=project&project=docs&tab=overview,,,
+web-tools:view/project/pages,repo=mehrlander/web-tools&view=project&project=docs&tab=pages,,,
+web-tools:pages/shortcut-log.html,,tools/render/scenarios/ui-census-token.mjs,,reads the private registry from the sibling checkout
+web-tools:pages/shortcuts.html,,tools/render/scenarios/ui-census-token.mjs,,reads the private registry from the sibling checkout
