@@ -242,3 +242,37 @@ test('a second copy of the kit defers to the first', () => {
   new w.Function(KIT)();
   assert.equal(w.Look, first);
 });
+
+test('arriving scrolls every pane between the target and the page, not only the page', async () => {
+  // The browser's scrollIntoView walks each scroller, which is the point: a
+  // target in a pane that is itself out of view must reach the reader.
+  // Measured 2026-10-04 through a toss, where the page-only scroll left the
+  // target clipped in its pane with the tint drawn over the content below.
+  const w = realm('<div id="pane" style="overflow:auto;height:100px"><p data-at="deep">deep</p></div>');
+  const calls = [];
+  w.Element.prototype.scrollIntoView = function (o) { calls.push([this.getAttribute('data-at'), o.block]); };
+  w.Look.start([{ at: 'deep', say: 'here' }]);
+  await wait(40);
+  assert.deepEqual(calls, [['deep', 'center']]);
+});
+
+test('a target scrolled out of its pane takes its mark with it', async () => {
+  // The overlay lives on the root, so nothing clips it but this check: without
+  // it the tint floats over whatever now occupies the target's old place.
+  // Both longhands, since jsdom does not expand the overflow shorthand into
+  // overflowX/overflowY the way a browser's computed style does.
+  const w = realm('<div id="pane" style="overflow-x:auto;overflow-y:auto"><p data-at="deep">deep</p></div>');
+  w.Element.prototype.scrollIntoView = () => {};
+  const rect = (top) => () => ({ top, bottom: top + 20, left: 0, right: 100, width: 100, height: 20 });
+  const pane = w.document.getElementById('pane'), deep = w.document.querySelector('[data-at="deep"]');
+  pane.getBoundingClientRect = () => ({ top: 0, bottom: 100, left: 0, right: 300, width: 300, height: 100 });
+  deep.getBoundingClientRect = rect(40);
+  w.Look.start([{ at: 'deep', say: 'here' }]);
+  await wait(60);
+  const halo = w.document.querySelector('[data-look="halo"]');
+  assert.equal(halo.style.visibility, '', 'in its pane: marked');
+  deep.getBoundingClientRect = rect(400);
+  await wait(60);
+  assert.equal(halo.style.visibility, 'hidden', 'scrolled out of its pane: unmarked');
+  assert.equal(said(w), 'here', 'and the message stays');
+});
