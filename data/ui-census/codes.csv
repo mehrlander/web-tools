@@ -1,0 +1,43 @@
+axis,code,name,gloss,test,not_to_confuse,kits
+frame,tabs,Tabs,"a strip of tabs, each its own address",the strip changes what the body holds,"selector, which picks one item rather than one view",
+frame,subtabs,Second-level switch,"a second strip, or a switch row, inside a tab",the row sits inside one tab and changes only that tab,,
+frame,lede,Lede,one sentence under the tabs saying what the rows are,it names the rows; it does not instruct,"explanatory prose, which html-style forbids",
+frame,search,Search box,a box that narrows the body as it is typed,typing removes rows from the body,,
+frame,census-chips,Census line,one line of counts whose chips filter the body,a chip tap narrows the body,"a legend, whose chips do not filter",
+frame,rail-filter,Filter rail,"a rail of groups, often a folder tree with counts rolled up, whose selection narrows the body",a pick narrows the body to one group,"contents-rail, which jumps rather than narrows",
+frame,contents-rail,Contents rail,one contents list drawn as a side rail where the width allows and a pinned bar where not; a pick scrolls to a place,a pick scrolls; nothing is hidden,,
+frame,selector,Selector,"chips, a grid or a menu that picks the ONE item the body draws: a table, a biennium, a document",the body draws exactly one of the choices,"rail-filter, which narrows a list",
+body,list,List,"rows or entries, read by scanning",one entry per item; nothing else on screen draws an item in full,,
+body,grid,Grid,"a sortable, filterable table, Tabulator or a hand table used as one",column headers that sort or filter,,tabulator
+body,card-grid,Card grid,"one card per item, in a grid",each card is a complete small account of its item,,
+body,list-detail,List and detail,"a list and one item's card, side by side or stacked",a pick redraws the card; the card shows exactly one item of the list,"linked-swiper, where the card is itself a strip that moves the list",
+body,linked-swiper,Linked list and swiper,"a list, or a tab strip, and an inline strip of the items' cards, both on screen",a pick moves the strip AND a swipe moves the list's selection,"header-swiper, whose top region is not an index",swipe-deck (core)
+body,header-swiper,Header over swiper,"a fixed region (a judgment, a guide, a question) over an inline strip of materials","the top region is about the set, not an index into it; no selection binding",linked-swiper,swipe-deck (core)
+body,source-beside,Source beside claim,"a document reader beside the material that cites it, with a divider",a cited item opens a place in the reader,,dock-split
+body,figure,Figure,"a chart, map or matrix is the main region, with controls and a legend",the figure would remain if the controls were removed,,
+body,fields,Fields,"one object's fields, labeled values and small tables, read top to bottom",a form usually draws this; the form field says whose,"document, which is prose",
+body,document,Document,"prose or a rendered document, read top to bottom",,,
+body,tool,Tool,"an input and its output, where the reader acts rather than reads",the main region takes input,,
+body,app-split,App split,two whole views side by side,each pane is an app view with its own address,,
+reach,deck-takeover,Deck takeover,"the list itself as a deck over the view or the window, at the tapped item, frozen at the tap",a swipe moves between the items of the list it was opened from,,swipe-deck
+reach,deck-docked,Docked deck,"the same deck over part of the pane, the list keeping the rest","list and deck on screen together, the deck opened from that list",,swipe-deck;dock-split
+reach,drill,Drill,"a deck one level down, covering its parent; the close button becomes a back arrow",the parent deck is under it,,swipe-deck
+reach,record-deck,Record deck,"a table's records, one per slide, every field shown",one slide per row of the table it came from,,record-deck
+reach,file-deck,File deck,"a changeset's files, one per slide",one slide per file,,file-deck
+reach,peek,Peek,"a card on hover or focus, sometimes pinned by a click",it opens without leaving the page,"modal, which takes the page",source-peek;title-tip;panel-tip
+reach,row-menu,Row menu,"a menu at the finger: read from here, copy",it opens at the tapped row,,row-menu
+reach,expand-row,Expanding row,the row opens in place,the rows below it move down,,
+reach,modal,Modal,a dialog or sheet over the page,the page behind cannot be used while it is open,,sheet-modal
+reach,land,Landing,a scroll to a target that tints and fades,the target is on the same page,,land
+binding,none,None,the regions do not move each other,,,
+binding,select-show,"Select, show",a pick in one region redraws another,,,
+binding,two-way,Two-way,moving either region moves the other,,,
+binding,filter,Filter,one region narrows another,,,
+binding,cite-land,"Cite, land",an item opens a place in a document,,,
+binding,stamp,Stamp,"the state is written to the address, so a link reopens it",,,
+phone,same,Same,nothing changes but the width,,,
+phone,stack,Stack,side by side becomes top over bottom,,,
+phone,hide,Hide,a region is dropped; the value is written hide:<region>,,,
+phone,switch,Switch,"one region at a time, chosen by a control",,,
+phone,takeover,Takeover,an inline region becomes a full-window deck,,,
+phone,wrap-cost,Wrap cost,a control wraps and pushes the body down by more than a screen,,,

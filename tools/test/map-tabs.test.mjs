@@ -65,7 +65,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 11 to 12 on 2026-09-27: Context left Harness to become its own tab.
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   // 10 to 11: Data aggregates the declared CSV inventories.
-  assert.equal(TABS.length, 13, 'thirteen top-level tabs, or this test is reading the wrong literal');
+  assert.equal(TABS.length, 14, 'fourteen top-level tabs, or this test is reading the wrong literal');
   // 5 to 6 on 2026-10-01: Policy joined Docs, the rules the documentation settles.
   assert.equal(SUBVIEWS.length, 6, 'Docs carries four choices and Harness two');
   assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', policy: 'docs', tests: 'harness' });

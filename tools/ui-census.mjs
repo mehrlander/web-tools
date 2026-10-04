@@ -41,9 +41,12 @@
 //
 // Without --write it prints a summary. With it, public rows go to this repo's
 // data/ui-census/ and the budget-drs app's rows to home's data/ui-census/, so a
-// private file's name never lands in public source.
+// private file's name never lands in public source. The files keep stable names
+// (units.csv, signals.csv) so the Map's Patterns tab can read them without
+// listing a folder; `as_of` on every unit row says when the snapshot was taken,
+// and git holds the earlier ones.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -239,19 +242,15 @@ for (const [k, by] of listed) {
   const [repo, p] = [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':') + 1)];
   addPage(repo, p, 3, `pages[] in ${by.map(b => `${b.by}/.web-tools.json`).join(', ')}`, by[0].title);
 }
-// Pages on disk that no declaration names. Ring 3 by default, since a page that
-// exists is reachable by address; listed=no says nothing claimed it.
-const walk = (repo, dir, out = []) => {
-  const abs = path.join(checkout(repo), dir);
-  if (!existsSync(abs)) return out;
-  for (const e of readdirSync(abs)) {
-    const rel = path.join(dir, e);
-    if (/node_modules|thumbs|renditions|source-docs|\/data\/source/.test(rel)) continue;
-    const st = statSync(path.join(checkout(repo), rel));
-    if (st.isDirectory()) walk(repo, rel, out);
-    else if (e.endsWith('.html')) out.push(rel);
-  }
-  return out;
+// Pages in the tree that no declaration names. Ring 3 by default, since a page
+// that exists is reachable by address; listed=no says nothing claimed it.
+// Tracked files only: a build leaves gitignored HTML beside its sources (the
+// fund balance's standalone page), and a page no commit holds is no address.
+const walk = (repo, dir) => {
+  let out = [];
+  try { out = execFileSync('git', ['-C', checkout(repo), 'ls-files', '--', dir]).toString().split('\n'); }
+  catch { return []; }
+  return out.filter(p => p.endsWith('.html') && !/node_modules|thumbs|renditions|source-docs|\/data\/source/.test(p));
 };
 for (const p of walk('web-tools', 'pages')) {
   const demo = /^pages\/(demos|drop|scratch)\//.test(p);
@@ -333,7 +332,11 @@ for (const u of units) {
   u.hand = [...new Set(rows.flatMap(r => ['hand_snap', 'hand_divider', 'hand_overlay'].filter(h => r[h]).map(h => h.slice(5))))].join(';');
 }
 
-const UNIT_COLS = ['unit', 'repo', 'app_ring', 'ring_basis', 'host', 'kind', 'group', 'view', 'tab', 'label',
+// `at` is the commit each unit's files were read at, so a file:line a reader
+// cites against this snapshot still lands once the branch moves on.
+const HEADS = Object.fromEntries(repos.map(r => [r, sha(r)]));
+for (const u of units) { u.as_of = DATE; u.at = HEADS[u.repo] || ''; }
+const UNIT_COLS = ['unit', 'as_of', 'at', 'repo', 'app_ring', 'ring_basis', 'host', 'kind', 'group', 'view', 'tab', 'label',
   'address', 'files', 'attribution', 'listed', 'reachable', ...SUM, 'kits', 'hand'];
 const FILE_COLS = ['file', 'repo', 'lines', ...Object.keys(SIG), 'kits', 'hand_snap', 'hand_divider', 'hand_overlay'];
 const order = (a, b) => a.app_ring - b.app_ring || a.repo.localeCompare(b.repo) || a.unit.localeCompare(b.unit);
@@ -361,8 +364,8 @@ if (WRITE) {
   for (const [d, g] of groups) {
     if (!existsSync(path.dirname(d))) continue;
     mkdirSync(d, { recursive: true });
-    writeFileSync(path.join(d, `${DATE}-units.csv`), writeCsv(g.u, UNIT_COLS));
-    writeFileSync(path.join(d, `${DATE}-signals.csv`), writeCsv(g.f, FILE_COLS));
+    writeFileSync(path.join(d, 'units.csv'), writeCsv(g.u, UNIT_COLS));
+    writeFileSync(path.join(d, 'signals.csv'), writeCsv(g.f, FILE_COLS));
     console.log(`wrote ${g.u.length} units, ${g.f.length} files -> ${path.relative(ESTATE, d)}`);
   }
   const stamp = Object.fromEntries(repos.map(r => [r, sha(r)]));
