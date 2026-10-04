@@ -82,7 +82,6 @@ the link-dense text twin of the visual index above.
 | `json-viewers` | JSON Viewers Gallery | [view](https://mehrlander.github.io/web-tools/pages/drop/json-viewers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-viewers.html) |
 | `live-docs` | Living Documentation — daisyUI | [view](https://mehrlander.github.io/web-tools/pages/drop/live-docs.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs.html) |
 | `live-docs-concept` | Living Documentation — a concept | [view](https://mehrlander.github.io/web-tools/pages/drop/live-docs-concept.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs-concept.html) |
-| `point-here` | Point Here | [view](https://mehrlander.github.io/web-tools/pages/drop/point-here.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/point-here.html) |
 | `word-frequencies` | Word Frequency & POS APIs | [view](https://mehrlander.github.io/web-tools/pages/drop/word-frequencies.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/word-frequencies.html) |
 
 ## pages/drop/components/
@@ -133,6 +132,7 @@ the link-dense text twin of the visual index above.
 | `export` | export — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/export.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html) |
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
+| `look` | Look Markers | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/look.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/look.html) |
 | `md-diff` | md-diff — a documentation change, read as the document | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-diff.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html) |
 | `md-variants` | md-variants: a document read with its retained variants | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-variants.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |

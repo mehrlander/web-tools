@@ -368,3 +368,29 @@ test('level with main, a lib change with no rebuilt bundle keeps the overlay, wh
   assert.equal(d.mechanism, 'overlay');
   assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
 });
+
+test('a kit demo is a page file under lib/, so it is tossed rather than reached by ?use=', () => {
+  // ?use= swaps the code a page loads, never the page: Pages serves the demo
+  // file from the default branch, so a new demo had no ?use= link that showed
+  // it, and the classifier used to offer the pre-build's pages instead.
+  const d = run('lib/kits/look.js,lib/kits/demos/look.html,dist/web-tools.js');
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.deepEqual(d.links.map(l => l.page), ['lib/kits/demos/look.html']);
+});
+
+test('a page that takes look links says so, and a look link naming no anchor is caught', () => {
+  // The hint arrives at the handover, which is when a session decides what the
+  // link says; the check catches a renamed anchor before the reader does.
+  let d = run('lib/kits/demos/look.html');
+  assert.equal(d.look.length, 1);
+  assert.equal(d.look[0].page, 'lib/kits/demos/look.html');
+  assert.ok(d.look[0].anchors.includes('btn-export'));
+  assert.ok(d.look[0].walks.includes('change-licenses'));
+  d = run('lib/kits/demos/look.html', ['--at', 'tap=btn-export&say=here']);
+  assert.deepEqual(d.look, [], 'a link already carrying a look key needs no hint');
+  assert.ok(!d.warnings.some(w => /look link/.test(w)), 'and a resolving anchor draws no warning');
+  d = run('lib/kits/demos/look.html', ['--at', 'tap=renamed-button']);
+  assert.ok(d.warnings.some(w => /'renamed-button' is not an anchor/.test(w)));
+  d = run('pages/approve.html');
+  assert.deepEqual(d.look, [], 'a page without the kit gets no hint');
+});

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Look Markers</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../land.js"></script>
+<script src="../look.js"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<!--
+  look.js, demonstrated: a request page with three tabs whose controls carry
+  data-at anchors, and whose tab panels carry data-at-open, so a link into a
+  closed tab opens it first. The Links menu holds one link per form the kit
+  reads; each is only a fragment, so the menu is also the grammar by example.
+  The kit starts itself from the fragment, so nothing here calls it except
+  the menu, for a link tapped twice (the same hash fires no hashchange).
+-->
+<body class="bg-base-100 text-base-content min-h-dvh" x-data="demo">
+
+<header class="sticky top-0 z-30 flex items-center gap-2 px-4 h-14 bg-base-200 border-b border-base-300">
+  <i class="ph ph-eye text-xl text-warning"></i>
+  <span class="font-semibold">Look markers</span>
+  <code class="hidden sm:inline font-mono text-xs text-base-content/60">kits/look.js</code>
+  <div class="dropdown dropdown-end ml-auto">
+    <button tabindex="0" class="btn btn-sm gap-1"><i class="ph ph-link"></i>Links<i class="ph ph-caret-down text-xs"></i></button>
+    <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box w-[min(26rem,calc(100vw-2rem))] z-50 shadow-lg mt-1 p-2">
+      <template x-for="l in links" :key="l.label">
+        <li><a :href="l.href" @click="if (location.href.endsWith(l.href)) { $event.preventDefault(); Look.fromLocation(); } $nextTick(() => document.activeElement.blur())" class="flex flex-col items-start gap-0.5">
+          <span x-text="l.label"></span>
+          <code class="font-mono text-xs text-base-content/60 truncate w-full" x-text="l.href"></code>
+        </a></li>
+      </template>
+    </ul>
+  </div>
+  <button class="btn btn-sm btn-ghost btn-square" @click="$refs.grammar.showModal()" aria-label="Link grammar"><i class="ph ph-info text-lg"></i></button>
+</header>
+
+<main class="px-4 py-4 space-y-4">
+  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <h1 class="text-xl font-semibold">FY27 request: records modernization</h1>
+    <span class="badge badge-ghost" x-text="status"></span>
+  </div>
+
+  <div role="tablist" class="tabs tabs-border">
+    <button role="tab" class="tab" data-at="tab-summary"  :class="tab === 'summary'  && 'tab-active'" @click="tab = 'summary'">Summary</button>
+    <button role="tab" class="tab" data-at="tab-elements" :class="tab === 'elements' && 'tab-active'" @click="tab = 'elements'">Elements</button>
+    <button role="tab" class="tab" data-at="tab-funds"    :class="tab === 'funds'    && 'tab-active'" @click="tab = 'funds'">Funds</button>
+  </div>
+
+  <section x-show="tab === 'summary'" data-at-open="tab-summary" class="space-y-4">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-base">
+      <dt class="text-base-content/60">Total, two years</dt>
+      <dd data-at="total" class="font-mono w-fit px-1 rounded" x-text="money(total)"></dd>
+      <dt class="text-base-content/60">Element lines</dt>
+      <dd class="font-mono" x-text="rows.length"></dd>
+      <dt class="text-base-content/60">Last recalculated</dt>
+      <dd class="font-mono" x-text="calcAt"></dd>
+    </dl>
+    <div class="flex gap-2">
+      <button class="btn btn-sm" data-at="btn-recalc" @click="calcAt = new Date().toLocaleTimeString()"><i class="ph ph-arrows-clockwise"></i>Recalculate</button>
+      <button class="btn btn-sm btn-primary" data-at="btn-submit" @click="status = 'submitted'"><i class="ph ph-paper-plane-tilt"></i>Submit</button>
+    </div>
+  </section>
+
+  <section x-show="tab === 'elements'" data-at-open="tab-elements" class="overflow-x-auto">
+    <table class="table [&_td]:px-2 [&_th]:px-2">
+      <thead><tr><th>Element</th><th class="text-right">FY27</th><th class="text-right">FY28</th><th></th></tr></thead>
+      <tbody>
+        <template x-for="r in rows" :key="r.id">
+          <tr :data-at="'row-' + r.id">
+            <td x-text="r.name"></td>
+            <td class="text-right font-mono">
+              <template x-if="editing !== r.id"><span x-text="money(r.y1)"></span></template>
+              <template x-if="editing === r.id">
+                <input type="number" class="input input-sm w-24 text-right font-mono" :data-at="'input-' + r.id" x-model.number="draft" @keydown.enter="save(r)">
+              </template>
+            </td>
+            <td class="text-right font-mono" x-text="money(r.y2)"></td>
+            <td class="text-right w-24">
+              <template x-if="editing !== r.id">
+                <button class="btn btn-xs btn-ghost btn-square" :data-at="'edit-' + r.id" @click="edit(r)" aria-label="Edit"><i class="ph ph-pencil-simple"></i></button>
+              </template>
+              <template x-if="editing === r.id">
+                <button class="btn btn-xs btn-primary" :data-at="'save-' + r.id" @click="save(r)">Save</button>
+              </template>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </section>
+
+  <section x-show="tab === 'funds'" data-at-open="tab-funds" class="space-y-4">
+    <table class="table">
+      <thead><tr><th>Fund</th><th class="text-right">Two years</th><th class="text-right">Share</th></tr></thead>
+      <tbody>
+        <template x-for="f in funds" :key="f.id">
+          <tr :data-at="'fund-' + f.id">
+            <td x-text="f.name"></td>
+            <td class="text-right font-mono" x-text="money(total * f.share)"></td>
+            <td class="text-right font-mono" x-text="Math.round(f.share * 100) + '%'"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <button class="btn btn-sm" data-at="btn-export"><i class="ph ph-download-simple"></i>Export</button>
+  </section>
+</main>
+
+<dialog x-ref="grammar" class="modal">
+  <div class="modal-box w-[min(40rem,calc(100vw-2rem))] max-w-none">
+    <form method="dialog"><button class="btn btn-sm btn-ghost btn-square absolute right-2 top-2" aria-label="Close"><i class="ph ph-x"></i></button></form>
+    <h3 class="font-semibold mb-3">Link grammar</h3>
+    <table class="table table-sm">
+      <tbody>
+        <tr><td class="font-mono whitespace-nowrap">#show=&lt;anchor&gt;</td><td>land on it and tint it</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#tap=&lt;anchor&gt;</td><td>land, ring it, point at it until tapped</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">&amp;say=&lt;text&gt;</td><td>the message beside either</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#walk=&lt;name&gt;</td><td>a sequence the page declares</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#steps=&lt;base64url&gt;</td><td>a sequence carried in the link: <code class="font-mono">[{at, say, tap}]</code></td></tr>
+        <tr><td class="font-mono whitespace-nowrap">data-at=&quot;name&quot;</td><td>names an element as an anchor; an <code class="font-mono">id</code> works too</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">text:&lt;words&gt;</td><td>the smallest element whose whole text is those words</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">css:&lt;selector&gt;</td><td>the first element the selector matches</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">data-at-open=&quot;name&quot;</td><td>on a hidden region: the control that reveals it</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script type="application/json" id="look-walks">
+{
+  "change-licenses": [
+    { "at": "tab-elements",  "tap": true, "say": "Open the Elements tab." },
+    { "at": "row-licenses",  "say": "Software licenses is the line to change." },
+    { "at": "edit-licenses", "tap": true, "say": "Tap the pencil to edit its FY27 amount." },
+    { "at": "save-licenses", "tap": true, "say": "Type the new figure in the box, then tap Save." },
+    { "at": "total",         "say": "The two-year total picks up the change here." }
+  ]
+}
+</script>
+
+<script>
+document.addEventListener('alpine:init', () => Alpine.data('demo', () => ({
+  tab: 'summary',
+  status: 'draft',
+  calcAt: 'not yet',
+  editing: null,
+  draft: 0,
+  rows: [
+    ['analyst', 'Staffing: program analyst', 118000, 121500],
+    ['engineer', 'Staffing: data engineer', 142000, 146200],
+    ['qa', 'Staffing: QA lead', 97000, 99900],
+    ['vendor', 'Contract: vendor support', 64000, 64000],
+    ['security', 'Contract: security review', 38000, 0],
+    ['hosting', 'Cloud hosting', 52000, 55000],
+    ['training', 'Training', 12000, 8000],
+    ['travel', 'Travel', 4500, 4500],
+    ['equipment', 'Equipment refresh', 26000, 0],
+    ['helpdesk', 'Help desk overflow', 18000, 18000],
+    ['conversion', 'Records conversion', 71000, 23000],
+    ['a11y', 'Accessibility audit', 15000, 0],
+    ['translation', 'Translation', 9000, 9000],
+    ['postage', 'Postage', 3200, 3200],
+    ['printing', 'Printing', 2100, 2100],
+    ['legal', 'Legal review', 11000, 0],
+    ['licenses', 'Software licenses', 46000, 47400],
+    ['pm', 'Project management', 88000, 88000],
+    ['change', 'Change management', 21000, 9000],
+    ['testenv', 'Testing environment', 14000, 14000],
+    ['migration', 'Data migration', 33000, 0],
+    ['backup', 'Backup storage', 6000, 6400],
+    ['monitoring', 'Monitoring tools', 7800, 8100],
+    ['contingency', 'Contingency', 25000, 25000],
+  ].map(([id, name, y1, y2]) => ({ id, name, y1, y2 })),
+  funds: [
+    { id: 'general', name: 'General fund', share: 0.25 },
+    { id: 'dedicated', name: 'Dedicated account', share: 0.65 },
+    { id: 'federal', name: 'Federal grant', share: 0.10 },
+  ],
+  links: [],
+  get total() { return this.rows.reduce((t, r) => t + r.y1 + r.y2, 0); },
+  money: n => '$' + Math.round(n).toLocaleString(),
+  edit(r) { this.editing = r.id; this.draft = r.y1; },
+  save(r) { r.y1 = Number(this.draft) || 0; this.editing = null; },
+  init() {
+    const say = s => encodeURIComponent(s);
+    this.links = [
+      { label: 'Land on a row inside a closed tab', href: '#show=row-licenses&say=' + say('This is the licenses line the note refers to.') },
+      { label: 'Point at a button', href: '#tap=btn-recalc&say=' + say('Recalculate after changing an amount.') },
+      { label: 'Point at a button by its words', href: '#tap=' + say('text:Export') + '&say=' + say('Export from here.') },
+      { label: 'A walk the page declares', href: '#walk=change-licenses' },
+      { label: 'A walk carried in the link', href: '#steps=' + Look.encode([
+        { at: 'tab-funds', tap: true, say: 'Open Funds.' },
+        { at: 'fund-dedicated', say: 'The dedicated account carries most of the request.' },
+        { at: 'btn-export', tap: true, say: 'Export from here.' },
+      ]) },
+      { label: 'An anchor that is not on the page', href: '#show=fund-capital&say=' + say('This one should miss.') },
+    ];
+  },
+})));
+</script>
+</body>
+</html>

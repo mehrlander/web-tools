@@ -22,7 +22,6 @@ catalog doc.
 | `json-lens.html` | A JSON tree beside a lens that reads the selected value by its shape (image, colour, timestamp, URL, record table) and gives its TypeScript type. A Gemini sketch (PR #764) rebuilt on Alpine. The maintained explorer is [`lib/kits/json-explorer.js`](../../lib/kits/json-explorer.js). |
 | `json-table-tree.html` | A JSON tree that draws any array of records as a table in place, with nested values opening under their rows. A prototype for the display tree proposed in `tracker/tasks/own-json-tree-retire-vje-i0lcj2.md`. |
 | `json-viewers.html` | A gallery of 64 older JSON and tree viewers kept in [`archive/json-viewers/`](../../archive/json-viewers/), each shown live beside the list. |
-| `point-here.html` | A mockup of a link that lands on a place in a page, rings what to tap, and says why, one step or a walkthrough. Builds on [`lib/kits/land.js`](../../lib/kits/land.js); the link grammar is in the page's header comment and its ⓘ dialog. |
 | `live-docs.html` | A living-documentation page, built on daisyUI. |
 | `live-docs-concept.html` | An earlier concept pass at the same living-documentation idea. |
 | `word-frequencies.html` | A word-frequency and part-of-speech API reference. |
