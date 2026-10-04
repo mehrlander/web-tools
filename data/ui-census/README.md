@@ -25,9 +25,10 @@ holds the earlier snapshots.
 **The public and private halves are split by visibility.** Rows whose unit
 lives in this repo are written here. Rows for home's own pages and for
 everything the budget-drs app draws or frames go to home's `data/ui-census/`,
-so no private file name lands in public source. Two counts for the 2026-10-04
-snapshot: 154 units here and 65 in home. Units in other repositories, such as
-shortcut-tools' own pages, are counted by the script and written nowhere.
+so no private file name lands in public source. The 2026-10-04 snapshot holds
+155 units here and 65 in home, and 54 and 41 of them are coded. Units in other
+repositories, such as shortcut-tools' own pages, are counted by the script and
+written nowhere.
 
 ## Rings
 
@@ -39,7 +40,7 @@ from being displayed.
 
 | Ring | Holds | Declared by | Here | Home |
 | --- | --- | --- | --- | --- |
-| 0 | the app's built-in views, and their tabs | `docs/app-routes.csv`, `docs/map-tabs.csv` | 46 | |
+| 0 | the app's built-in views, and their tabs | `docs/app-routes.csv`, `docs/map-tabs.csv` | 47 | |
 | 1 | pages a repo promotes into the app, and the views of a promoted app | `appView: true` in a `.web-tools.json` | 7 | 37 |
 | 2 | pages a promoted app frames | `embed` in the budget-drs app's `VIEWS` | | 8 |
 | 3 | gallery pages, and pages nothing declares | `pages/pages.csv`, `pages[]`, or nothing | 39 | 20 |
@@ -50,6 +51,9 @@ Four of home's ring 2 units live in repositories not checked out here
 
 ## What the columns can and cannot say
 
+- **`at`** is the commit each unit's files were read at. A reader's `file:line`
+  in `coded.csv` is cited against it, and the Map's deck links to that commit,
+  so a citation keeps landing after the branch moves on.
 - **`attribution`** is `declared` when the unit's own registry row names its
   files, `derived` when the script followed the budget-drs app's `RENDER` table
   to a file and then that file's references into sibling view files, `shell`
@@ -66,8 +70,11 @@ Four of home's ring 2 units live in repositories not checked out here
   the Files view (`file-browser.js`), the branch page (`branch-brief.js`), the
   session page (`session-brief.js`) and the call form (`call-form.js`).
 
-## The 2026-10-04 snapshot
+## Coverage of the 2026-10-04 coding
 
-Source commits: web-tools `8b9d86997752`, home `a01d22e21c41`. Screenshots
-for the pilot were taken headless at 1280 and 390 pixels wide and are not
-committed.
+Every unit of rings 0 to 2 that is checked out here is coded: seven by hand in
+the pilot, 88 by eight readers in parallel, merged at synthesis (the codebook's
+last section says what was decided there). Rings 3 and 4 have the mechanical
+pass only. Screenshots were taken headless at 1280 and 390 pixels wide and are
+not committed; nine rows are `medium` because the unit needs a token or data a
+headless render does not have.

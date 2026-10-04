@@ -77,8 +77,11 @@ changed because of them.
 3. **`wrap-cost` joined Phone.** Data: Sources draws about 900 pixels of table
    chips above its table on a phone, which no other phone code described.
 
-The pilot rows are in `2026-10-04-pilot.csv` beside this file (public units) and
-in home's `data/ui-census/2026-10-04-pilot.csv` (budget-drs units).
+The pilot rows are the rows of `coded.csv` whose `coder` is `pilot`, here for
+the public units and in home's `data/ui-census/coded.csv` for the budget-drs
+ones. Two were corrected after readers found what the pilot missed: Data:
+Sources gained a hand-built column-story card, and Branches gained the Activity
+tabs and search box.
 
 ## Decided by the coder, pending the owner's review
 
@@ -96,3 +99,23 @@ that basis.
   body is recorded in `notes`, not as a row of its own.
 - **`style: own` is recorded, not judged.** Whether a page should move to the
   house look is a separate question.
+
+## Settled at synthesis
+
+Eight readers coded the remaining 88 units of rings 0 to 2 on 2026-10-04,
+each against this codebook, with screenshots at both widths where the unit
+would render headless. Four decisions came out of merging their rows.
+
+- **Eleven proposed codes joined `codes.csv`.** `filter-switch`, `dial` and
+  `panel-toggle` (frame); `host`, `list-stack` and `deck-page` (body);
+  `dock-view`, `turn-deck`, `swap-view` and `panel-below` (reach); `squeeze`
+  (phone), proposed by two readers independently.
+- **A copied deck door is not hand-built.** `swipeDeck.entry` says a
+  template-driven host has to keep a literal copy of its door, and
+  `deck-entry-parity.test.mjs` holds each copy to the kit, so those
+  citations were dropped from `hand_evidence`.
+- **A chip row with no counts is `filter-switch`.** Data: Design's filter row
+  was coded `census-chips` by a reader who said the code was bent.
+- **A wide table that scrolls sideways on a phone has no code yet.** Readers
+  coded it `same` or `stack` and said so in `notes`; a code earns a row once a
+  second pass finds it often enough to compare.
