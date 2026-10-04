@@ -97,6 +97,7 @@
     "test:data-view-links": "node tools/test/data-view-links.mjs",
     "tests-index": "node tools/build/tests-index.mjs",
     "kits-index": "node tools/build/kits-index.mjs",
+    "ui-census": "node tools/ui-census.mjs",
     "test:shortcut-log": "node tools/test/shortcut-log-page.mjs",
     "test:shortcuts-page": "node tools/test/shortcuts-page.mjs",
     "test:bench-page": "node tools/test/bench-page.mjs",

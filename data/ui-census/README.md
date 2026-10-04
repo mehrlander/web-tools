@@ -1,0 +1,70 @@
+# UI census
+
+A census of the user interface the Web Tools app and the budget-drs app show:
+one row per unit, the ring each sits in, and which shared kits its files call.
+It is the input to a catalog of the estate's display patterns, which will
+eventually render in the Map view. This folder holds dated snapshots and the
+draft [codebook](codebook.md), not a registry: nothing here is gated, and
+nothing is authoritative until a full coding pass shows the codes hold.
+
+## Files
+
+| File | Row | Written by |
+| --- | --- | --- |
+| `<date>-units.csv` | one unit: an app view, a view's tab, or a page | `tools/ui-census.mjs` (Pass 0) |
+| `<date>-signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `tools/ui-census.mjs` (Pass 1) |
+| `<date>-pilot.csv` | one unit coded by hand against the codebook | a reader (Pass 2) |
+| [`codebook.md`](codebook.md) | the coding instrument: fields, codes, and the tests that decide them | authored |
+
+Regenerate a snapshot with `node tools/ui-census.mjs --write --date <date>`,
+from a checkout that has `home` beside it. Without `--write` it prints counts.
+
+**The public and private halves are split by visibility.** Rows whose unit
+lives in this repo are written here. Rows for home's own pages and for
+everything the budget-drs app draws or frames go to home's `data/ui-census/`,
+so no private file name lands in public source. Two counts for the 2026-10-04
+snapshot: 154 units here and 65 in home. Units in other repositories, such as
+shortcut-tools' own pages, are counted by the script and written nowhere.
+
+## Rings
+
+`app_ring` says how far a unit sits from the Web Tools app's center. No
+registry declares rings; each value rests on the declaration the row names in
+`ring_basis`. The column is not called `ring` because budget-drs's
+`data/design/lineage/exposure.csv` already has one, for how far a data file is
+from being displayed.
+
+| Ring | Holds | Declared by | Here | Home |
+| --- | --- | --- | --- | --- |
+| 0 | the app's built-in views, and their tabs | `docs/app-routes.csv`, `docs/map-tabs.csv` | 46 | |
+| 1 | pages a repo promotes into the app, and the views of a promoted app | `appView: true` in a `.web-tools.json` | 7 | 37 |
+| 2 | pages a promoted app frames | `embed` in the budget-drs app's `VIEWS` | | 8 |
+| 3 | gallery pages, and pages nothing declares | `pages/pages.csv`, `pages[]`, or nothing | 39 | 20 |
+| 4 | demonstrations and scratch | `pages/pages.csv` top `demos`, `kit-demos`, `drop`, `scratch` | 62 | |
+
+Four of home's ring 2 units live in repositories not checked out here
+(budget-wa, fn-data, spend-wa) and carry `reachable: not checked out`.
+
+## What the columns can and cannot say
+
+- **`attribution`** is `declared` when the unit's own registry row names its
+  files, `derived` when the script followed the budget-drs app's `RENDER` table
+  to a file and then that file's references into sibling view files, `shell`
+  when the unit renders from the app shell, and `shared` when one file serves
+  several units. Every Map tab shares `map.js`, and every budget-drs tab shares
+  its view's files, so a tab's kit counts are its view's, not its own.
+- **Kit counts** are call sites, so a deck opened from three places counts three.
+  `kits` lists what a file loads by name, which catches a route that has no call
+  site at all: budget-drs reaches the record deck through
+  `__loadKit("record-deck.js")` and the row menu.
+- **Hand-built signatures** flag a file to read, nothing more. `hand_snap` is
+  an inline snap track in a file that never calls `swipeDeck.core`. On
+  2026-10-04 it flagged four components that hand-build the same inline swiper:
+  the Files view (`file-browser.js`), the branch page (`branch-brief.js`), the
+  session page (`session-brief.js`) and the call form (`call-form.js`).
+
+## The 2026-10-04 snapshot
+
+Source commits: web-tools `8b9d86997752`, home `a01d22e21c41`. Screenshots
+for the pilot were taken headless at 1280 and 390 pixels wide and are not
+committed.
