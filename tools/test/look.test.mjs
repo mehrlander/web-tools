@@ -385,3 +385,39 @@ test('the layer clips nothing, and a mark at the right edge stays inside the pag
   assert.ok(parseFloat(q('num').style.left) + 24 <= vw, 'the number too');
   assert.ok(parseFloat(q('pointer').style.left) >= 0, 'and the hand');
 });
+
+test('a target an earlier tap makes, missing now, sends the reader back to that tap', async () => {
+  // The demo's Save button exists only while its row is being edited, so
+  // going on past it and coming back, or skipping the edit, leaves step 4
+  // with nothing to point at. That is not a wrong name and must not read as
+  // one: the dock names the tap that brings it and offers to go there.
+  const w = realm('<button data-at="edit">Edit</button><p data-at="later">later</p>');
+  w.document.querySelector('[data-at="edit"]').addEventListener('click', () => {
+    if (!w.document.querySelector('[data-at="save"]')) w.document.body.insertAdjacentHTML('beforeend', '<button data-at="save">Save</button>');
+  });
+  w.Look.start([{ at: 'later', say: 'first' }, { at: 'edit', tap: true, say: 'edit' }, { at: 'save', say: 'save' }], { wait: 60 });
+  await wait(30);
+  card(w).querySelector('[data-go="1"]').click();   // on to the tap
+  await wait(30);
+  card(w).querySelector('[data-go="1"]').click();   // and skip it
+  await wait(150);
+  assert.equal(said(w), 'This step needs step 2 first.');
+  const go = card(w).querySelector('[aria-label="Go to step 2"]');
+  assert.ok(go, 'a button to the step that makes the target');
+  go.click();
+  await wait(30);
+  assert.equal(said(w), 'edit');
+  w.document.querySelector('[data-at="edit"]').click();
+  await wait(250);
+  assert.equal(said(w), 'save', 'and from there the walk carries on');
+});
+
+test('a missing target with no tap before it is still a wrong name', async () => {
+  const w = realm('<p data-at="a">a</p>');
+  w.Look.start([{ at: 'a', say: 'one' }, { at: 'nowhere', say: 'two' }], { wait: 60 });
+  await wait(30);
+  card(w).querySelector('[data-go="1"]').click();
+  await wait(150);
+  assert.match(said(w), /^Not on this page: nowhere$/);
+  assert.equal(card(w).querySelector('[aria-label^="Go to step"]'), null);
+});
