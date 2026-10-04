@@ -2,7 +2,7 @@
 // the control to tap.
 //
 // The split is land.test.mjs's: what a DOM without layout can hold is here, and
-// the geometry (where the card sits, the ring over the control, the page not
+// the geometry (where the dock sits, the ring over the control, the page not
 // widening) is checked in pixels by `npm run shot` on lib/kits/demos/look.html.
 // What is pinned here is the part a screenshot cannot show: which anchor a name
 // resolves to, that a hidden target is revealed by clicking each named opener
@@ -50,7 +50,7 @@ function realm(body, hash = '') {
   return window;
 }
 
-const card = (w) => w.document.querySelector('[data-look="card"]');
+const card = (w) => w.document.querySelector('[data-look="dock"]');
 const said = (w) => card(w)?.querySelector('[data-say]')?.textContent;
 const loaded = (w) => new Promise(r => w.document.readyState === 'complete' ? r() : w.addEventListener('load', () => r()));
 
@@ -62,10 +62,10 @@ test('a link that says something lands, and the message stays text', async () =>
   await wait(30);
   assert.equal(said(w), '<b>bold</b> claim');
   assert.equal(card(w).querySelector('b'), null, 'no element was made from the message');
-  assert.equal(card(w).style.display, '', 'the card is on screen');
+  assert.equal(card(w).style.display, '', 'the dock is on screen');
 });
 
-test('a lone landing with nothing to say draws no card', async () => {
+test('a lone landing with nothing to say draws no dock', async () => {
   const w = realm('<p data-at="x">Hello</p>');
   w.Look.start([{ at: 'x' }]);
   await wait(30);
@@ -137,12 +137,13 @@ test('a tap step moves on when the control is tapped, and the tap still reaches 
   w.Look.start([{ at: 'go', tap: true, say: 'tap it' }, { at: 'after', say: 'and here' }]);
   await wait(30);
   assert.equal(said(w), 'tap it');
-  assert.equal(card(w).querySelector('[data-go="1"]'), null, 'a tap step offers no Next: the tap is the step');
+  assert.equal(card(w).querySelector('[data-go="1"]').getAttribute('aria-label'), 'Skip',
+    'forward on a tap step only skips it: the tap is the step');
   w.document.querySelector('[data-at="go"]').click();
   await wait(250);
   assert.equal(pressed, 1, 'the page saw the tap');
   assert.equal(said(w), 'and here');
-  assert.match(card(w).textContent, /2 \/ 2/);
+  assert.match(card(w).textContent, /2 of 2/);
 });
 
 test('Next, Back and Done move through a walk, and Done takes everything down', async () => {
@@ -275,4 +276,76 @@ test('a target scrolled out of its pane takes its mark with it', async () => {
   await wait(60);
   assert.equal(halo.style.visibility, 'hidden', 'scrolled out of its pane: unmarked');
   assert.equal(said(w), 'here', 'and the message stays');
+});
+
+test('a walk numbers its target and its dock alike, and the number becomes the way back', async () => {
+  // The dock does not sit beside its target, so the number is what ties them.
+  // Scrolled away, the dock's number turns into an arrow toward the target,
+  // and tapping it brings the target back.
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p>');
+  const calls = [];
+  w.Element.prototype.scrollIntoView = function () { calls.push(this.getAttribute('data-at')); };
+  const a = w.document.querySelector('[data-at="a"]');
+  a.getBoundingClientRect = () => ({ top: 100, bottom: 120, left: 0, right: 100, width: 100, height: 20 });
+  w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
+  await wait(40);
+  const mark = card(w).querySelector('[data-mark]');
+  assert.equal(w.document.querySelector('[data-look="num"]').textContent, '1');
+  assert.equal(mark.textContent, '1');
+  a.getBoundingClientRect = () => ({ top: 3000, bottom: 3020, left: 0, right: 100, width: 100, height: 20 });
+  await wait(60);
+  assert.equal(mark.textContent, '↓', 'below the screen: an arrow down');
+  assert.equal(w.document.querySelector('[data-look="num"]').style.visibility, 'hidden');
+  calls.length = 0;
+  mark.click();
+  assert.deepEqual(calls, ['a'], 'the arrow brings the target back');
+  a.getBoundingClientRect = () => ({ top: -300, bottom: -280, left: 0, right: 100, width: 100, height: 20 });
+  await wait(60);
+  assert.equal(mark.textContent, '↑');
+  a.getBoundingClientRect = () => ({ top: 100, bottom: 120, left: 0, right: 100, width: 100, height: 20 });
+  await wait(60);
+  assert.equal(mark.textContent, '1', 'back in view: the number again');
+});
+
+test('the arrow keys walk, but not while the reader is typing', async () => {
+  const w = realm('<input id="field"><p data-at="a">a</p><p data-at="b">b</p>');
+  w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
+  await wait(30);
+  const key = (k, target = w.document.body) =>
+    target.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true }));
+  key('ArrowRight');
+  await wait(30);
+  assert.equal(said(w), 'second');
+  key('ArrowRight');
+  await wait(30);
+  assert.equal(said(w), 'second', 'the last step stays: only Done ends a walk');
+  key('ArrowLeft', w.document.getElementById('field'));
+  await wait(30);
+  assert.equal(said(w), 'second', 'an arrow in a text field is the field\'s');
+  key('ArrowLeft');
+  await wait(30);
+  assert.equal(said(w), 'first');
+});
+
+test('a step with a message keeps its tint while the dock is up; a bare landing fades', async () => {
+  // The reader may scroll away and back to a step, so its mark has to be there
+  // when they return. A landing with nothing to say has no dock to return by.
+  const fades = (w) => {
+    const seen = [];
+    w.Element.prototype.animate = function (frames) {
+      if (this.getAttribute('data-look') === 'halo' && frames.some(f => f.opacity === 0)) seen.push(1);
+      return { cancel() {} };
+    };
+    return seen;
+  };
+  let w = realm('<p data-at="a">a</p>');
+  let seen = fades(w);
+  w.Look.start([{ at: 'a', say: 'stays' }]);
+  await wait(30);
+  assert.equal(seen.length, 0);
+  w = realm('<p data-at="a">a</p>');
+  seen = fades(w);
+  w.Look.start([{ at: 'a' }]);
+  await wait(30);
+  assert.equal(seen.length, 1);
 });
