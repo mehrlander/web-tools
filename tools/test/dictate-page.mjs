@@ -1439,7 +1439,7 @@ try {
     await new Promise((r) => setTimeout(r, 150));
     const p = document.querySelector('[data-card-info]');
     const out = { inCard, open: !!p && p.getClientRects().length > 0, diff: !!p?.querySelector('[data-info-diff]'),
-      noteField: !!p?.querySelector('[data-info-note]'), sum: p?.querySelector('[data-info-sum]')?.textContent || '',
+      noteField: !!p?.querySelector('[data-info-note]'), head: !!p?.querySelector('[data-info-sum], [data-info-kind]'),
       plainMarks: new Set([...c.$refs.layer.querySelectorAll('[data-fmt-mark]'), ...c.$refs.md.querySelectorAll('[data-fmt-mark]')]).size };
     c.cardInfo = null;
     c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
@@ -1467,7 +1467,7 @@ try {
       fits: um.length === 1 && Math.abs(ub.left - wr.left) < 2 && Math.abs(ub.width - wr.width) < 2 && cs.textDecorationLine.includes('underline') && cs.textDecorationStyle === 'dotted' };
     [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]')?.click();
     await new Promise((r) => setTimeout(r, 150));
-    out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
+    out.fmt = { head: !!p.querySelector('[data-info-sum], [data-info-kind]'),
       w: Math.round(p.getBoundingClientRect().width),
       pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: [...p.querySelectorAll('button')].filter((b) => getComputedStyle(b).visibility !== 'hidden').length, under };
     // No ✕, by the owner's choice: Escape puts it away, and so does a press
@@ -1486,10 +1486,10 @@ try {
     c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
-  ok('with the caret in a card, the bar shows, and Info holds the line and a note field, with no diff in it; outside every card, no bar',
-    info.inCard && info.open && !info.diff && info.noteField && /^line \d+/.test(info.sum) && info.outside, JSON.stringify(info));
-  ok('a change the marks cannot show, bold added, is called formatting only in Info, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',
-    info.fmt.kind === 'formatting only' && /^line \d+$/.test(info.fmt.sum) && info.fmt.pinned && info.fmt.buttons === 0 && info.fmt.w >= 340 && info.fmt.escaped && info.fmt.pressedAway, JSON.stringify(info.fmt));
+  ok('with the caret in a card, the bar shows, and Info is the note field alone, with no line and no diff; outside every card, no bar',
+    info.inCard && info.open && !info.diff && info.noteField && !info.head && info.outside, JSON.stringify(info));
+  ok('a change the marks cannot show, bold added, has the same Info, the note alone, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',
+    !info.fmt.head && info.fmt.pinned && info.fmt.buttons === 0 && info.fmt.w >= 340 && info.fmt.escaped && info.fmt.pressedAway, JSON.stringify(info.fmt));
   ok('and in the card, bold added gives exactly the word a dotted underline of its own, which stays with the word when the text moves after the paint, while a change of words gets none',
     info.fmt.under.fits && info.fmt.under.moved && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
   // AN UNDERLINE, TAPPED, OFFERS THE RAW CHANGE AND ITS UNDO, as a mark does.
@@ -2168,7 +2168,7 @@ try {
     out.inTap = !!document.activeElement && document.activeElement.matches('[data-info-note]') && !!document.activeElement.getClientRects().length;
     await wait(200);
     const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
-    out.title = info.querySelector('.font-medium').textContent; out.sum = info.querySelector('[data-info-sum]').textContent;
+    out.head = !!info.querySelector('[data-info-sum], [data-info-kind]');
     out.diff = !!info.querySelector('[data-info-diff]'); out.focused = document.activeElement === f;
     f.value = 'Is this still true?'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
     out.same = document.querySelector('[data-info-note]') === f;
@@ -2193,8 +2193,8 @@ try {
   ok('a mouse over another paragraph washes it and leaves the caret\'s outline in place, each with a badge; leaving takes only the wash',
     blockNote.hover.washed && !blockNote.hover.outlined && blockNote.hover.caretKept && !blockNote.hover.washedCaret && blockNote.hover.badges === 2
       && blockNote.left.washed === 0 && blockNote.left.caretKept && blockNote.left.badges === 1, JSON.stringify({ hover: blockNote.hover, left: blockNote.left }));
-  ok('its badge opens the panel named for the block and where it is, no diff, the note field focused and kept as the note is made',
-    blockNote.title === 'Paragraph' && blockNote.sum === 'line 5' && !blockNote.diff && blockNote.focused && blockNote.same, JSON.stringify(blockNote));
+  ok('its badge opens the panel with the note field alone, no header and no diff, focused and kept as the note is made',
+    !blockNote.head && !blockNote.diff && blockNote.focused && blockNote.same, JSON.stringify(blockNote));
   ok('the field is focused inside the tap, shown and before any frame, which is what lets iOS raise the keyboard', blockNote.inTap, JSON.stringify({ inTap: blockNote.inTap }));
   ok('a note on a file with no edit is kept: the draft holds the note, the blob it is anchored in, and no text',
     !!blockNote.held && blockNote.held.text === null && blockNote.held.notes.join() === 'Is this still true?' && blockNote.held.base === blockNote.held.sha, JSON.stringify(blockNote.held));
@@ -2620,7 +2620,7 @@ try {
       await new Promise((r) => setTimeout(r, 150)); x.setNote('Keep the second as it is.'); x.cardInfo = null;
       return out; })()`);
     ok('a call\'s why heads its card\'s Info, which holds no diff, and the card\'s number wears a mark only where the call says why',
-      /Edit 1\s*one/.test(why.why) && !why.diff && why.mark && !why.other, JSON.stringify(why));
+      why.why === 'one' && !why.diff && why.mark && !why.other, JSON.stringify(why));
     await pg.evaluate(`(() => { const x = ${C}; x.toggleConfirm(0); x.rejectCard(window.MdSurface.cards(x.$refs.md)[1]); })()`);
     await pg.waitForTimeout(300);
     await pg.evaluate(`${C}.openAnswer()`);

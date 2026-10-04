@@ -3988,30 +3988,12 @@
         this.fitPop();
       },
       openCardInfo(i, k, pinned = true) {
-        const sp = this.cardSpans(i);
-        if (!sp) return;
-        const { O, N } = sp;
-        const wc = (s) => (s.match(/\S+/g) || []).length;
-        const { rows, changed } = this.lineDiff(O.s, N.s, O.line || N.line, N.line || O.line);
-        const bare = (s, re) => s.replace(re, '');
-        const kind = O.s === N.s ? '' : bare(O.s, /\s+/g) === bare(N.s, /\s+/g) ? 'whitespace only'
-          : bare(O.s, /[\s*_`~#>]+/g) === bare(N.s, /[\s*_`~#>]+/g) ? 'formatting only' : '';
-        // Where, in the file as it is now: the added lines, or for a pure
-        // removal the lines it came out of in GitHub's copy.
-        const ch = rows.filter((r) => r.kind === 'ins'), lines = (ch.length ? ch : rows.filter((r) => r.kind === 'del')).map((r) => r.no);
-        // Said as a reader would: "line 28", or "3 lines, 28–31". The word
-        // count only when it moved, since "235 → 235 words" says nothing.
-        const a = lines[0], z = lines[lines.length - 1];
-        const where = !lines.length ? '' : changed === 1 || a === z ? 'line ' + a : changed + ' lines, ' + a + '–' + z;
-        const ow = wc(O.s), nw = wc(N.s);
-        // THE INFO HOLDS NOTES, NOT THE DIFF (owner, 2026-10-04). The lines
-        // above still say where the change is; the change itself is read in
-        // place, in the card, and in the markdown on Raw · changes. What the
-        // panel carries is what the card cannot: why the change was proposed,
-        // when a call proposed it, and the reader's own note.
-        this.cardInfo = { i, block: null, rows: [], kind, title: 'Change ' + (i + 1),
-          unit: this.unitsNow().find((u) => u.card === i) || null, why: this.cardWhys(i),
-          sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
+        if (!this.cardSpans(i)) return;
+        // THE INFO IS THE NOTE (owner, 2026-10-04): no diff, and since the same
+        // day no header either. The change is read in the card, and as markdown
+        // on Raw · changes; what the panel carries is what the card cannot: why
+        // a call proposed the change, and the reader's own note.
+        this.cardInfo = { i, block: null, unit: this.unitsNow().find((u) => u.card === i) || null, why: this.cardWhys(i),
           ...this.infoPlace(k.closest && k.closest('[data-md-card]') || k) };
         // The field takes focus inside the tap, as a block's does (openBlockInfo),
         // unless the call has something to be read first.
@@ -4034,18 +4016,13 @@
           // 16px clear of the unit, past the pills that straddle its edges.
           pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px' };
       },
-      // AN UNCHANGED BLOCK'S PANEL is a card's Info with no change in it: what
-      // the block is and where, and its note. A field for one when it has
-      // none, focused, since a note is what the badge was tapped for.
+      // AN UNCHANGED BLOCK'S PANEL is a card's Info with no change in it: its
+      // note, and a field for one when it has none, focused, since a note is
+      // what the badge was tapped for.
       openBlockInfo(k, el, pinned = true) {
         const u = this.unitsNow()[k], wrap = this.$refs.md.querySelector('[data-md-block="' + k + '"]');
         if (!u || !wrap) return;
-        const src = this.fileBase.slice(u.o[0], u.o[1]).trimEnd();
-        const a = this.fileBase.slice(0, u.o[0]).split('\n').length, z = a + (src.match(/\n/g) || []).length;
-        const kind = /^#{1,6}\s/.test(src) ? 'Heading' : /^\s*([-*+]|\d{1,9}[.)])(\s|$)/.test(src) ? 'List item'
-          : /^(```|~~~)/.test(src) ? 'Code' : /^\s*\|/.test(src) ? 'Table' : /^>/.test(src) ? 'Quote' : 'Paragraph';
-        this.cardInfo = { i: null, block: k, rows: [], kind: '', title: kind, unit: u, why: [],
-          sum: a === z ? 'line ' + a : (z - a + 1) + ' lines, ' + a + '–' + z, ...this.infoPlace(wrap) };
+        this.cardInfo = { i: null, block: k, unit: u, why: [], ...this.infoPlace(wrap) };
         // THE FIELD TAKES FOCUS INSIDE THE TAP. iOS raises the keyboard only
         // for a focus made while the tap is still being handled, and $nextTick
         // is far too late: Alpine holds it until the panel's fade has run, a
@@ -4061,50 +4038,6 @@
           f.focus({ preventScroll: true });
         });
         this.$nextTick(() => { this.pinInfo(pinned); this.markBlock(); });
-      },
-      // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
-      // segs: [{ t, cls }] }. A removed run facing an added one is paired line
-      // by line and diffed within by wordParts, the page's own marking, so
-      // the panel and the card agree. `changed` counts lines as the larger
-      // side of each hunk.
-      lineDiff(a, b, oNo, nNo) {
-        const D = window.Diff, rows = [];
-        const split = (v) => { const x = v.split('\n'); if (x[x.length - 1] === '') x.pop(); return x; };
-        // Spaces are dotted only where they are the whole change, as in the pops.
-        const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s || '⏎';
-        const whole = (kind, l, no) => rows.push({ kind, no, sign: kind === 'del' ? '−' : '+', raw: l,
-          segs: [l.trim() ? { t: l, cls: '' } : { t: '⏎ blank line', cls: 'opacity-60' }] });
-        const pair = (x, y) => {
-          const parts = this.wordParts(x, y);
-          const side = (drop, hl) => parts.filter((p) => !p[drop]).map((p) => (p.added || p.removed) ? { t: vis(p.value), cls: hl } : { t: p.value, cls: '' });
-          return [side('added', 'bg-error/35 rounded-sm'), side('removed', 'bg-success/40 rounded-sm')];
-        };
-        let o = oNo, n = nNo, changed = 0;
-        const parts = D ? D.diffLines(a ? a + '\n' : '', b ? b + '\n' : '') : [];
-        for (let k = 0; k < parts.length; k++) {
-          const p = parts[k];
-          if (!p.added && !p.removed) { for (const l of split(p.value)) rows.push({ kind: 'same', no: n++, sign: '', raw: l, segs: [{ t: l, cls: '' }] }), o++; continue; }
-          const del = p.removed ? split(p.value) : [], q = p.removed && parts[k + 1]?.added ? parts[++k] : (p.added ? p : null);
-          const ins = q ? split(q.value) : [];
-          changed += Math.max(del.length, ins.length);
-          const dRows = [], iRows = [];
-          for (let j = 0; j < Math.max(del.length, ins.length); j++) {
-            if (j < del.length && j < ins.length) { const [ds, is] = pair(del[j], ins[j]); dRows.push([del[j], ds]); iRows.push([ins[j], is]); }
-            else if (j < del.length) dRows.push([del[j], null]); else iRows.push([ins[j], null]);
-          }
-          for (const [l, segs] of dRows) segs ? rows.push({ kind: 'del', no: o, sign: '−', raw: l, segs }) : whole('del', l, o), o++;
-          for (const [l, segs] of iRows) segs ? rows.push({ kind: 'ins', no: n, sign: '+', raw: l, segs }) : whole('ins', l, n), n++;
-        }
-        // Unchanged lines more than one away from a change fold into a count.
-        const near = rows.map((r, k) => r.kind !== 'same' || [-1, 1].some((d) => rows[k + d] && rows[k + d].kind !== 'same'));
-        const out = [];
-        for (let k = 0; k < rows.length; k++) {
-          if (near[k]) { out.push(rows[k]); continue; }
-          let m = k; while (m < rows.length && !near[m]) m++;
-          out.push({ kind: 'gap', no: '', sign: '', raw: '', segs: [{ t: '⋯ ' + (m - k) + (m - k === 1 ? ' unchanged line' : ' unchanged lines'), cls: '' }] });
-          k = m - 1;
-        }
-        return { rows: out, changed };
       },
       // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone and
       // the notes kept (loadFile). One undo still reaches the edit. Offered
@@ -5095,11 +5028,11 @@
 
       <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
            since the buffer no longer holds them; this is where they are read. -->
-      <!-- A card's Info, as the house panel-tip (see openCardInfo): a line
-           saying where the change is, then notes only. Why a call proposed the
-           change, when one did, and the reader's own note. The change itself
-           is read in the card, and as markdown on Raw · changes; until
-           2026-10-04 the lines were drawn here. No ✕: it closes on a
+      <!-- A card's Info, as the house panel-tip (see openCardInfo): the note
+           and nothing else. Why a call proposed the change, when one did, and
+           the reader's own note. The change itself is read in the card, and as
+           markdown on Raw · changes; until 2026-10-04 the lines were drawn
+           here, under a line saying where they were. No ✕: it closes on a
            press outside, Escape or a scroll (see openCardInfo). It arrives as
            every house tip does, the title-tip's 90ms fade and nothing more
            (kits/title-tip.js); the word pop below does the same. -->
@@ -5108,23 +5041,14 @@
            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
-          <span class="font-medium" x-text="cardInfo ? cardInfo.title : ''"></span>
-          <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
-          <span x-show="cardInfo && cardInfo.kind" data-info-kind
-                class="ml-auto rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
-        </div>
         <!-- WHAT THE CALL SAYS, when a documentation call proposed this change:
-             each edit's why, numbered as the call numbers its edits, read-only
-             since it is the proposer's and not the reader's. -->
+             each edit's why, as a note the reader cannot edit, since it is the
+             proposer's. Plain lines; the number on the card already says which
+             change this is. -->
         <template x-if="cardInfo && cardInfo.why && cardInfo.why.length">
-          <div class="px-3 py-2 flex flex-col gap-1 border-b border-base-300 bg-base-200/40" data-info-why>
+          <div class="px-3 pt-2 flex flex-col gap-1 text-sm leading-5 text-base-content/80" data-info-why>
             <template x-for="w in cardInfo.why" :key="w.n">
-              <div class="flex items-start gap-2 text-sm leading-5">
-                <span class="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 text-xs leading-5">
-                  <i class="ph-fill ph-chat-centered-text"></i><span x-text="'Edit ' + w.n"></span></span>
-                <span class="min-w-0" x-text="w.why"></span>
-              </div>
+              <div x-text="w.why"></div>
             </template>
           </div>
         </template>
@@ -5211,14 +5135,14 @@
           <i class="ph" :class="FACES[face].icon"></i><span x-text="FACES[face].label"></span><i class="ph ph-caret-down text-[10px] opacity-70"></i>
         </button>
         <div x-show="facesOpen" x-transition.opacity.duration.90ms data-faces-panel
-             class="absolute right-0 top-full mt-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-1.5 text-sm grid gap-1">
+             class="absolute right-0 top-full mt-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-1 text-sm grid gap-0.5">
           <template x-for="row in (isMd ? ['rendered', 'raw'] : ['raw'])" :key="row">
-            <div class="flex items-center justify-between gap-3 pl-2.5">
+            <div class="flex items-center justify-between gap-2 pl-2">
               <span class="text-base-content/70" x-text="row === 'raw' ? 'Raw' : 'Rendered'"></span>
               <div class="join">
                 <template x-for="when in (isMd ? ['before', 'changes', 'after'] : ['before', 'after'])" :key="when">
                   <button type="button" @click="setFace(faceKey(row, when))" :data-face="faceKey(row, when)"
-                          class="join-item btn btn-xs h-7 px-2.5 font-normal" :class="face === faceKey(row, when) ? 'btn-active' : 'btn-ghost'"
+                          class="join-item btn btn-xs h-6 min-h-6 px-1.5 font-normal rounded-none!" :class="face === faceKey(row, when) ? 'btn-active' : 'btn-ghost'"
                           x-text="{ before: 'Before', changes: 'Changes', after: 'After' }[when]"></button>
                 </template>
               </div>
