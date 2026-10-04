@@ -1438,10 +1438,9 @@ try {
     b?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     const p = document.querySelector('[data-card-info]');
-    const raw = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"]') || [])].map((r) => r.dataset.raw).join('\n');
-    const out = { inCard, open: !!p && p.getClientRects().length > 0, old: raw('del'), now: raw('ins'),
-      plainMarks: new Set([...c.$refs.layer.querySelectorAll('[data-fmt-mark]'), ...c.$refs.md.querySelectorAll('[data-fmt-mark]')]).size,
-      lit: [...(p?.querySelectorAll('[data-row="ins"] .rounded-sm') || [])].map((s) => s.textContent).join('|') };
+    const out = { inCard, open: !!p && p.getClientRects().length > 0, diff: !!p?.querySelector('[data-info-diff]'),
+      noteField: !!p?.querySelector('[data-info-note]'), sum: p?.querySelector('[data-info-sum]')?.textContent || '',
+      plainMarks: new Set([...c.$refs.layer.querySelectorAll('[data-fmt-mark]'), ...c.$refs.md.querySelectorAll('[data-fmt-mark]')]).size };
     c.cardInfo = null;
     c.d.caretAt(3); c.paint(); await new Promise((r) => setTimeout(r, 100));
     out.outside = ![...document.querySelectorAll('[data-md-card-bar]')].some((x) => !x.classList.contains('invisible'));
@@ -1469,7 +1468,7 @@ try {
     [...document.querySelectorAll('[data-md-card-bar]')].find((x) => !x.classList.contains('invisible'))?.closest('[data-md-card]')?.querySelector('[data-md-card-badge]')?.click();
     await new Promise((r) => setTimeout(r, 150));
     out.fmt = { kind: p.querySelector('[data-info-kind]')?.textContent, sum: p.querySelector('[data-info-sum]')?.textContent,
-      lit: [...p.querySelectorAll('[data-row="ins"] .rounded-sm')].map((s) => s.textContent).join('|'), w: Math.round(p.getBoundingClientRect().width),
+      w: Math.round(p.getBoundingClientRect().width),
       pinned: !!(c.cardInfo && c.cardInfo.pinned), buttons: [...p.querySelectorAll('button')].filter((b) => getComputedStyle(b).visibility !== 'hidden').length, under };
     // No ✕, by the owner's choice: Escape puts it away, and so does a press
     // anywhere outside it. A note's trash is the one button the panel shows,
@@ -1487,32 +1486,10 @@ try {
     c.cardInfo = null; c.d.undo(); c.paint();
     return out;
   });
-  // One diff for every view of a change: Info lights the same pieces the card
-  // marks. A character diff here once lit "Third" against "Tired" letter by
-  // letter beside a card marking the whole words.
-  const agree = await page.evaluate(async () => {
-    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    c.d.text = c.text.replace('Third para.', 'Tired pair, then more.'); c.paint();
-    await new Promise((r) => setTimeout(r, 200));
-    const card = [...c.$refs.md.querySelectorAll('[data-md-card]')].find((k) => k.querySelector('.md-diff-del, .md-diff-ins'));
-    const mark = (cls) => [...(card?.querySelectorAll(cls) || [])].map((e) => e.textContent.trim()).filter(Boolean);
-    card?.querySelector('[data-md-card-badge]')?.click();
-    await new Promise((r) => setTimeout(r, 150));
-    const p = document.querySelector('[data-card-info]');
-    const lit = (kind) => [...(p?.querySelectorAll('[data-row="' + kind + '"] .rounded-sm') || [])].map((e) => e.textContent.trim()).filter(Boolean);
-    const dv = p?.querySelector('[data-info-diff]');
-    const out = { card: { del: mark('.md-diff-del'), ins: mark('.md-diff-ins') }, info: { del: lit('del'), ins: lit('ins') },
-      cap: !!dv && parseFloat(dv.style.maxHeight) <= Math.max(120, Math.round(innerHeight / 4)) && getComputedStyle(dv).overflowY === 'auto' };
-    c.cardInfo = null; c.d.undo(); c.paint();
-    return out;
-  });
-  ok('Info lights the same pieces of a rewrite that the card marks, word for word, not letter by letter',
-    agree.card.del.length > 0 && JSON.stringify(agree.card) === JSON.stringify(agree.info), JSON.stringify(agree));
-  ok('Info\'s diff is held to a quarter of the screen and scrolls past it', agree.cap, JSON.stringify(agree));
-  ok('with the caret in a card, the bar shows, and Info gives the line as GitHub has it and as it is now, the change lit; outside every card, no bar',
-    info.inCard && info.open && info.old === 'Third para.' && info.now === 'Third para, rewritten.' && info.lit === ', rewritten' && info.outside, JSON.stringify(info));
-  ok('a change the marks cannot show, bold added, is lit in Info to the markers and called formatting only, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',
-    info.fmt.kind === 'formatting only' && info.fmt.lit === '**|**' && /^line \d+$/.test(info.fmt.sum) && info.fmt.pinned && info.fmt.buttons === 0 && info.fmt.w >= 340 && info.fmt.escaped && info.fmt.pressedAway, JSON.stringify(info.fmt));
+  ok('with the caret in a card, the bar shows, and Info holds the line and a note field, with no diff in it; outside every card, no bar',
+    info.inCard && info.open && !info.diff && info.noteField && /^line \d+/.test(info.sum) && info.outside, JSON.stringify(info));
+  ok('a change the marks cannot show, bold added, is called formatting only in Info, across the screen\'s width; clicked, it is pinned with no ✕ or any button, and Escape or a press outside puts it away',
+    info.fmt.kind === 'formatting only' && /^line \d+$/.test(info.fmt.sum) && info.fmt.pinned && info.fmt.buttons === 0 && info.fmt.w >= 340 && info.fmt.escaped && info.fmt.pressedAway, JSON.stringify(info.fmt));
   ok('and in the card, bold added gives exactly the word a dotted underline of its own, which stays with the word when the text moves after the paint, while a change of words gets none',
     info.fmt.under.fits && info.fmt.under.moved && info.plainMarks === 0, JSON.stringify({ under: info.fmt.under, plainMarks: info.plainMarks }));
   // AN UNDERLINE, TAPPED, OFFERS THE RAW CHANGE AND ITS UNDO, as a mark does.
@@ -2038,6 +2015,38 @@ try {
     && faces.rb.shown && faces.rb.old && !faces.rb.md && !faces.rb.jump && faces.rb.label === 'Rendered · before'
     && faces.raw.text && !faces.raw.body && faces.back.before === null && faces.back.face === 'raw-after'
     && faces.plain.cards === 0 && !faces.plain.marks && faces.changes.cards > 0, JSON.stringify(faces));
+  // RAW · CHANGES: the same cards, each block drawn as its markdown source, so
+  // a heading reads with its hashes; typing there is literal, Enter one
+  // newline where the render's Enter makes a paragraph.
+  await reset();
+  const rawFace = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const cards = () => c.$refs.md.querySelectorAll('[data-md-card]').length;
+    c.d.text = c.text.replace('Third para.', 'Third para, edited.'); c.paint(); await wait(150);
+    const rendered = { cards: cards(), hashes: c.$refs.md.textContent.includes('# Title') };
+    await c.setFace('raw-changes'); await wait(250);
+    const raw = { face: c.face, label: document.querySelector('[data-faces-pill]').textContent.trim(), cards: cards(),
+                  blocks: c.$refs.md.querySelectorAll('[data-md-raw]').length, hashes: c.$refs.md.textContent.includes('# Title'),
+                  cell: !!document.querySelector('[data-face="raw-changes"]') && !!document.querySelector('[data-face="changes"]') };
+    const enter = (at) => { c.d.caretAt(at); c.sinkBefore({ inputType: 'insertParagraph', preventDefault() {} }); return c.text; };
+    const t0 = c.text, at = t0.indexOf('First one.') + 'First one.'.length;
+    const rawEnter = enter(at).slice(at, at + 3);
+    c.d.text = t0; c.paint(); await wait(100);
+    const bs = t0.indexOf('Second para.');
+    c.d.caretAt(bs); c.sinkBefore({ inputType: 'deleteContentBackward', preventDefault() {} });
+    const rawBack = c.text.slice(bs - 3, bs + 2);
+    c.d.text = t0; c.paint(); await wait(100);
+    await c.setFace('changes'); await wait(200);
+    const renEnter = enter(at).slice(at, at + 3);
+    c.d.text = c.fileBase; c.paint();
+    return { rendered, raw, rawEnter, rawBack, renEnter };
+  });
+  ok('Raw · changes draws the same cards over the markdown source, a heading with its hashes, and is a cell of the grid beside Changes',
+    rawFace.raw.face === 'raw-changes' && rawFace.raw.label === 'Raw · changes' && rawFace.raw.cards === rawFace.rendered.cards && rawFace.raw.cards > 0
+    && rawFace.raw.blocks > 0 && rawFace.raw.hashes && !rawFace.rendered.hashes && rawFace.raw.cell, JSON.stringify(rawFace));
+  ok('typing in Raw · changes is literal: Enter is one newline and backspace at a line\'s start takes the newline; the render\'s Enter still makes a paragraph',
+    rawFace.rawEnter[0] === '\n' && rawFace.rawEnter[1] !== '\n' && rawFace.renEnter.startsWith('\n\n')
+    && rawFace.rawBack === '.\nSec', JSON.stringify(rawFace));
   // CONFIRM, THEN APPLY: a card is confirmed from its pill, the corner offers
   // Apply, and Apply commits GitHub's copy with only the confirmed cards'
   // changes; the rest stay as edits. A note is not commit text: it stays on
@@ -2160,7 +2169,7 @@ try {
     await wait(200);
     const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
     out.title = info.querySelector('.font-medium').textContent; out.sum = info.querySelector('[data-info-sum]').textContent;
-    out.diff = !!info.querySelector('[data-info-diff]').getClientRects().length; out.focused = document.activeElement === f;
+    out.diff = !!info.querySelector('[data-info-diff]'); out.focused = document.activeElement === f;
     f.value = 'Is this still true?'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
     out.same = document.querySelector('[data-info-note]') === f;
     const key = Object.keys(localStorage).find((k) => k.startsWith('dictate:file:'));
@@ -2599,6 +2608,19 @@ try {
     ok('the edits the file holds are staged, one already in it and one not found are not',
       JSON.stringify(st.status) === '["staged","staged","applied","stale"]' && st.cards === 2
       && st.text === DOC.replace('First para old.', 'First para new.').replace('Second para old.', 'Second para new.'), JSON.stringify(st));
+    // The call's why is the head of the first card's Info, the number wears
+    // its mark, and the Info has no diff in it.
+    const why = await pg.evaluate(`(async () => { const x = ${C}; const b = x.$refs.md.querySelector('[data-md-card="0"] [data-md-card-badge]');
+      b.click(); await new Promise((r) => setTimeout(r, 200)); const i = document.querySelector('[data-card-info]');
+      const out = { why: (i.querySelector('[data-info-why]') || {}).textContent?.replace(/\\s+/g, ' ').trim() || '', diff: !!i.querySelector('[data-info-diff]'),
+        mark: !!b.querySelector('[data-why-mark]'), other: !!x.$refs.md.querySelector('[data-md-card="1"] [data-why-mark]') };
+      x.cardInfo = null;
+      // A note on the second card, which the reader then discards.
+      x.openCardInfo(1, x.$refs.md.querySelector('[data-md-card="1"] [data-md-card-badge]'), true);
+      await new Promise((r) => setTimeout(r, 150)); x.setNote('Keep the second as it is.'); x.cardInfo = null;
+      return out; })()`);
+    ok('a call\'s why heads its card\'s Info, which holds no diff, and the card\'s number wears a mark only where the call says why',
+      /Edit 1\s*one/.test(why.why) && !why.diff && why.mark && !why.other, JSON.stringify(why));
     await pg.evaluate(`(() => { const x = ${C}; x.toggleConfirm(0); x.rejectCard(window.MdSurface.cards(x.$refs.md)[1]); })()`);
     await pg.waitForTimeout(300);
     await pg.evaluate(`${C}.openAnswer()`);
@@ -2606,6 +2628,9 @@ try {
     const held = await pg.evaluate(`(() => { const x = ${C}; return { rows: x.answerRows, json: JSON.parse(x.answerJson) }; })()`);
     ok('each edit\'s decision is read off the page: confirmed, discarded, and the two it did not stage',
       JSON.stringify(held.rows) === '["confirmed","discarded","applied","stale"]', JSON.stringify(held.rows));
+    ok('the reader\'s note on a discarded edit rides with that edit\'s decision, and shows on its row of the sheet',
+      held.json.decisions[1].decision === 'discarded' && held.json.decisions[1].note === 'Keep the second as it is.' && !held.json.notes
+      && (await pg.evaluate(`${C}.answerRowNotes[1]`)) === 'Keep the second as it is.', JSON.stringify(held.json.decisions));
     ok('the copied answer carries the decisions and the confirmed patch, and nothing was written',
       held.json.decisions.length === 4 && /\+First para new\./.test(held.json.patch) && !/Second para new/.test(held.json.patch)
       && docPuts.length === 0 && answerPuts.length === 0, JSON.stringify(held.json));

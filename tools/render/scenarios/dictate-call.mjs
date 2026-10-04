@@ -9,8 +9,10 @@
 //
 //   CALL_STEP=head    (default) the head closed, the first card under it
 //   CALL_STEP=open    the head opened: recommendation, standing, links
-//   CALL_STEP=answer  the first edit confirmed, the second discarded, and the
-//                     answer sheet open on its JSON
+//   CALL_STEP=answer  the first edit confirmed, the second discarded with a
+//                     note on it, and the answer sheet open on its JSON
+//   CALL_STEP=raw     the Raw · changes face: the same cards over the markdown
+//   CALL_STEP=info    the second card's Info: the call's why, then a note field
 //
 // Logs CARDS <n> and, at answer, the decisions, so the log says what the page
 // read without the PNG.
@@ -26,7 +28,23 @@ export default async (page) => {
     await page.waitForTimeout(300);
     return;
   }
+  if (STEP === 'raw') {
+    await page.evaluate(`${c}.setFace('raw-changes')`);
+    await page.waitForTimeout(600);
+    await page.evaluate(`(() => { const x = ${c}; x.$refs.md.querySelector('[data-md-card]').scrollIntoView({ block: 'start' }); x.$refs.view.scrollTop -= 8; })()`);
+    await page.waitForTimeout(300);
+    return;
+  }
+  if (STEP === 'info') {
+    await page.evaluate(`${c}.$refs.md.querySelector('[data-md-card="1"]').scrollIntoView({ block: 'center' })`);
+    await page.waitForTimeout(300);
+    await page.locator('[data-md-card="1"] [data-md-card-badge]').tap();
+    await page.waitForTimeout(500);
+    return;
+  }
   if (STEP !== 'answer') return;
+  await page.evaluate(`(async () => { const x = ${c}; x.openCardInfo(1, x.$refs.md.querySelector('[data-md-card="1"] [data-md-card-badge]'), true);
+    await new Promise((r) => setTimeout(r, 150)); x.setNote('Keep this: it says why the threshold is not the share of link words.'); x.cardInfo = null; })()`);
   await page.evaluate(`(() => { const x = ${c}; x.toggleConfirm(0); })()`);
   await page.waitForTimeout(250);
   await page.evaluate(`(() => { const x = ${c}; x.rejectCard(window.MdSurface.cards(x.$refs.md)[1]); })()`);
