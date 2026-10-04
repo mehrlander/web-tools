@@ -12,7 +12,7 @@
 //   CALL_STEP=answer  the first edit confirmed, the second discarded with a
 //                     note on it, and the answer sheet open on its JSON
 //   CALL_STEP=raw     the Raw · changes face: the same cards over the markdown
-//   CALL_STEP=info    the second card's Info: the call's why, then a note field
+//   CALL_STEP=info    the second card's Info: its note, the call's why until edited
 //
 // Logs CARDS <n> and, at answer, the decisions, so the log says what the page
 // read without the PNG.

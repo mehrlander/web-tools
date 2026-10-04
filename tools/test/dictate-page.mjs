@@ -2650,19 +2650,41 @@ try {
     ok('the edits the file holds are staged, one already in it and one not found are not',
       JSON.stringify(st.status) === '["staged","staged","applied","stale"]' && st.cards === 2
       && st.text === DOC.replace('First para old.', 'First para new.').replace('Second para old.', 'Second para new.'), JSON.stringify(st));
-    // The call's why is the head of the first card's Info, the number wears
-    // its mark, and the Info has no diff in it.
-    const why = await pg.evaluate(`(async () => { const x = ${C}; const b = x.$refs.md.querySelector('[data-md-card="0"] [data-md-card-badge]');
-      b.click(); await new Promise((r) => setTimeout(r, 200)); const i = document.querySelector('[data-card-info]');
-      const out = { why: (i.querySelector('[data-info-why]') || {}).textContent?.replace(/\\s+/g, ' ').trim() || '', diff: !!i.querySelector('[data-info-diff]'),
+    // The call's why is the first card's note: the field's text, with no
+    // placeholder showing and no trash, since nothing of the reader's is
+    // there yet. The number wears its mark, and the Info has no diff in it.
+    // Edited, the note is the reader's: a record, the reader's mark, and a
+    // trash. Written back to the why's words it is the call's again, and an
+    // emptied field stays empty under the caret, the why back once it blurs.
+    const why = await pg.evaluate(`(async () => { const x = ${C}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const b = x.$refs.md.querySelector('[data-md-card="0"] [data-md-card-badge]');
+      b.click(); await wait(200); const i = document.querySelector('[data-card-info]'), f = i.querySelector('[data-info-note]');
+      const trash = () => getComputedStyle(i.querySelector('[data-info-note-remove]')).visibility;
+      const out = { why: f.value, fields: i.querySelectorAll('[data-info-note]').length, flagged: f.hasAttribute('data-info-why'),
+        trash: trash(), diff: !!i.querySelector('[data-info-diff]'),
         mark: !!b.querySelector('[data-why-mark]'), other: !!x.$refs.md.querySelector('[data-md-card="1"] [data-why-mark]') };
+      f.focus(); f.value = 'one, and two'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(80);
+      out.edited = { notes: x.notes.map((n) => n.text), flagged: f.hasAttribute('data-info-why'), trash: trash(),
+        whyMark: !!b.querySelector('[data-why-mark]'), noteMark: !!b.querySelector('[data-note-mark]') };
+      f.value = 'one'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(80);
+      out.back = { notes: x.notes.length, flagged: f.hasAttribute('data-info-why'), whyMark: !!b.querySelector('[data-why-mark]') };
+      f.value = 'mine'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+      f.value = ''; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(80);
+      out.emptied = { notes: x.notes.length, value: f.value };
+      f.blur(); await wait(50); out.emptied.blurred = f.value;
       x.cardInfo = null;
       // A note on the second card, which the reader then discards.
       x.openCardInfo(1, x.$refs.md.querySelector('[data-md-card="1"] [data-md-card-badge]'), true);
       await new Promise((r) => setTimeout(r, 150)); x.setNote('Keep the second as it is.'); x.cardInfo = null;
       return out; })()`);
-    ok('a call\'s why heads its card\'s Info, which holds no diff, and the card\'s number wears a mark only where the call says why',
-      why.why === 'one' && !why.diff && why.mark && !why.other, JSON.stringify(why));
+    ok('a call\'s why is its card\'s note, the one field\'s text with no trash, and no diff; the card\'s number wears a mark only where the call says why',
+      why.why === 'one' && why.fields === 1 && why.flagged && why.trash === 'hidden' && !why.diff && why.mark && !why.other, JSON.stringify(why));
+    ok('edited, the note is the reader\'s: a record, the reader\'s mark in place of the call\'s, and a trash',
+      why.edited.notes.join() === 'one, and two' && !why.edited.flagged && why.edited.trash === 'visible' && !why.edited.whyMark && why.edited.noteMark,
+      JSON.stringify(why.edited));
+    ok('written back to the why\'s words it is the call\'s again; emptied, the field stays empty under the caret and shows the why once it blurs',
+      why.back.notes === 0 && why.back.flagged && why.back.whyMark && why.emptied.notes === 0 && why.emptied.value === '' && why.emptied.blurred === 'one',
+      JSON.stringify({ back: why.back, emptied: why.emptied }));
     await pg.evaluate(`(() => { const x = ${C}; x.toggleConfirm(0); x.rejectCard(window.MdSurface.cards(x.$refs.md)[1]); })()`);
     await pg.waitForTimeout(300);
     await pg.evaluate(`${C}.openAnswer()`);

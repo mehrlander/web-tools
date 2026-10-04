@@ -306,8 +306,8 @@
     dashed outline at the extent the card would take, and a badge in the
     margin opens its note, one per block; a card's note is written in its
     Info, which holds the note and nothing else, hung from the card's number
-    as a dropdown: under a documentation call it opens on the call's why for
-    that change, and the reader's note goes under it. Notes are
+    as a dropdown: under a documentation call the note starts as the call's
+    why for that change, and the reader edits it as their own. Notes are
     records anchored to GitHub's copy (kits/dictate-record.js), so they keep
     their paragraph through edits, through Apply and Save, and through Clear
     all edits; they are kept with no edit at all; and they leave in the
@@ -3545,10 +3545,12 @@
           const b = card.querySelector('[data-md-card-badge]');
           if (!b) continue;
           const i = +card.dataset.mdCard, has = us.some((u) => u.card === i && held.has(u));
+          // One note, so one mark: the call's while the note is its why, the
+          // reader's once they have written over it.
           const m = b.querySelector('[data-note-mark]');
           if (has && !m) b.insertAdjacentHTML('beforeend', '<i data-note-mark class="ph-fill ph-note text-amber-500 ml-1 text-[12px]"></i>');
           else if (!has && m) m.remove();
-          const why = this.cardWhys(i).length > 0, w = b.querySelector('[data-why-mark]');
+          const why = !has && this.cardWhys(i).length > 0, w = b.querySelector('[data-why-mark]');
           if (why && !w) b.insertAdjacentHTML('afterbegin', '<i data-why-mark class="ph-fill ph-chat-centered-text text-primary mr-1 text-[12px]"></i>');
           else if (!why && w) w.remove();
         }
@@ -3682,14 +3684,22 @@
       // Two noted paragraphs joined into one card still hold two records;
       // the field shows them as one text (noteText), and the first edit folds
       // them into the first record, so a section never shows a list.
-      get noteText() { return this.infoNotes.map((n) => n.text).join('\n\n'); },
+      // UNDER A CALL THE NOTE STARTS AS THE CALL'S WHY (owner, 2026-10-04):
+      // the why is the section's note until the reader writes one, and it is
+      // the field's text, so the field never offers "Add a note" over a note
+      // already there. An edit makes it the reader's, a record like any note;
+      // written back to the why's words, or emptied, it is the call's again.
+      get infoWhy() { return this.cardInfo && this.cardInfo.why ? this.cardInfo.why.map((w) => w.why).join('\n\n') : ''; },
+      get noteIsWhy() { return !this.infoNotes.length && !!this.infoWhy; },
+      get noteText() { return this.infoNotes.length ? this.infoNotes.map((n) => n.text).join('\n\n') : this.infoWhy; },
       setNote(v) {
         const c = this.cardInfo, R = window.DictateRecord;
         if (!c || !c.unit || !R) return;
         const [first, ...rest] = this.infoNotes, drop = new Set(rest.map((n) => n.id));
+        const mine = !!v.trim() && v.trim() !== this.infoWhy.trim();
         let notes = this.notes.filter((n) => !drop.has(n.id));
-        if (first) notes = v.trim() ? notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : notes.filter((n) => n.id !== first.id);
-        else if (v.trim()) notes = [...notes, R.make(c.unit, this.fileBase, this.text, v)];
+        if (first) notes = mine ? notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : notes.filter((n) => n.id !== first.id);
+        else if (mine) notes = [...notes, R.make(c.unit, this.fileBase, this.text, v)];
         this.notes = notes; this.save(); this.markBlock();
       },
       // THE TRASH ON A NOTE'S ROW removes the note and closes the panel, so
@@ -3993,8 +4003,8 @@
         if (!this.cardSpans(i)) return;
         // THE INFO IS THE NOTE (owner, 2026-10-04): no diff, and since the same
         // day no header either. The change is read in the card, and as markdown
-        // on Raw · changes; what the panel carries is what the card cannot: why
-        // a call proposed the change, and the reader's own note.
+        // on Raw · changes; what the panel carries is what the card cannot, the
+        // section's one note, which under a call starts as the call's why.
         this.cardInfo = { i, block: null, unit: this.unitsNow().find((u) => u.card === i) || null, why: this.cardWhys(i),
           ...this.infoPlace(k) };
         // The field takes focus inside the tap, as a block's does (openBlockInfo),
@@ -5045,28 +5055,23 @@
            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
-        <!-- WHAT THE CALL SAYS, when a documentation call proposed this change:
-             each edit's why, as a note the reader cannot edit, since it is the
-             proposer's. Plain lines; the number on the card already says which
-             change this is. -->
-        <template x-if="cardInfo && cardInfo.why && cardInfo.why.length">
-          <div class="px-3 pt-2 flex flex-col gap-1 text-sm leading-5 text-base-content/80" data-info-why>
-            <template x-for="w in cardInfo.why" :key="w.n">
-              <div x-text="w.why"></div>
-            </template>
-          </div>
-        </template>
         <!-- THE NOTE ON THE SECTION, a card or an unchanged block, one per
              section: a record kept with the draft and handed over in the record
-             Send carries, never in a commit. The field stays the same element
-             while the note is made. A trash on its first line, its right edge
-             on the panel's; its column is held while the field is empty, so
-             typing never reflows it. -->
+             Send carries, never in a commit. Under a documentation call it
+             starts as the call's why for the change (see infoWhy), and is the
+             reader's once edited. The field stays the same element while the
+             note is made, and its text is not reset under the caret: emptying
+             a why-started note leaves the field empty until it is put away. A
+             trash on its first line, its right edge on the panel's, for a note
+             of the reader's; its column is held otherwise, so typing never
+             reflows it. -->
         <template x-if="cardInfo && cardInfo.unit">
           <div class="px-3 py-2 flex items-start gap-2">
             <textarea data-info-note rows="1" placeholder="Add a note"
                       class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                      :value="noteText" @focus="cardInfo.pinned || pinInfo(true)"
+                      x-effect="const t = noteText; if (document.activeElement !== $el) $el.value = t"
+                      :data-info-why="noteIsWhy ? '' : null"
+                      @focus="cardInfo.pinned || pinInfo(true)" @blur="$el.value = noteText"
                       @input="setNote($event.target.value)"></textarea>
             <button type="button" data-info-note-remove :class="infoNotes.length ? '' : 'invisible'"
                     class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
