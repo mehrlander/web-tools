@@ -9,6 +9,8 @@
 //
 //   CALL_STEP=head    (default) the head closed, the first card under it
 //   CALL_STEP=open    the head opened: recommendation, standing, links
+//   CALL_STEP=sheet   both edits confirmed and the answer sheet open, on its
+//                     default destination, Record (a session applies the patch)
 //   CALL_STEP=answer  the first edit confirmed, the second discarded with a
 //                     note on it, and the answer sheet open on its JSON
 //   CALL_STEP=raw     the Raw · changes face: the same cards over the markdown
@@ -52,6 +54,12 @@ export default async (page) => {
     await page.keyboard.type(', which the doc no longer needs to explain');
     await page.locator('[data-info-done]').tap();
     await page.waitForTimeout(400);
+    return;
+  }
+  if (STEP === 'sheet') {
+    await page.evaluate(`(async () => { const x = ${c}; x.toggleConfirm(0); x.toggleConfirm(1); await x.openAnswer(); })()`);
+    await page.waitForTimeout(500);
+    await page.evaluate(`console.log('SHEET ' + JSON.stringify({ to: ${c}.answerTo, rows: ${c}.answerRows }))`);
     return;
   }
   if (STEP !== 'answer') return;

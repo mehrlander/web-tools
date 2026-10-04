@@ -172,6 +172,9 @@
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
+  // What waits on the owner: user calls, and the Text collection's proposed
+  // edits by file, behind the Waiting view and the Docs tab's markers.
+  await gh.load('kits/user-calls.js');
   // Findings: the fold over the notes store that the Tending view lists and
   // the Activity panes show beside their subjects (window.Findings).
   await gh.load('kits/findings.js');
@@ -449,11 +452,16 @@ html.dk-dragging main{transition:none !important}
            or from the sidebar Repos index. Repos reach the header through their
            published VIEWS, not through a list of themselves. -->
       <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+        <!-- An entry's badge is a count waiting on the reader (Waiting's open
+             user calls, Proposals' pending edits); it carried a `badge` that
+             nothing drew until 2026-10-04. -->
         <template x-for="v in estateNav" :key="v.view">
-          <button @click="v.go()" :title="v.label"
-                  class="shrink-0 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
-                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'"
-                  x-text="v.label"></button>
+          <button @click="v.go()" :title="v.label" :data-nav="v.view"
+                  class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
+                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
+            <span x-text="v.label"></span>
+            <span x-show="v.badge" class="badge badge-xs badge-warning tabular-nums" x-text="v.badge"></span>
+          </button>
         </template>
         <div x-show="appNav.length" class="shrink-0 mx-1.5 h-5 w-px bg-base-300"></div>
         <template x-for="v in appNav" :key="v.key">
@@ -1857,6 +1865,17 @@ html.dk-dragging main{transition:none !important}
       </div>
     </div>
 
+    <!-- The Waiting view: what waits on the owner, the open user calls and the
+         Text collection's proposed edits by file (lib/alpineComponents/waiting.js,
+         lib/kits/user-calls.js). Lazy-mounted like Proposals. -->
+    <div x-show="view==='waiting'" data-pane="waiting" class="h-full overflow-y-auto">
+      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6">
+        <template x-if="waitingSeen">
+          <div x-data="waiting()"></div>
+        </template>
+      </div>
+    </div>
+
     <!-- The Tending view: findings from tending passes, kept as notes in the
          registry's notes store (lib/kits/findings.js), each linked to the
          branches, pull requests, tasks, snags and sessions it concerns. Its own
@@ -2277,6 +2296,8 @@ function app(){ return {
   stageTab: '',     // the Stage's sub-address; 'errands' opens the errand panel
   proposalCount: 0, // pending cross-repo edit proposals; gates the nav entry
   proposalsSeen: false,
+  waitingCount: 0,  // open user calls; the Waiting entry's badge
+  waitingSeen: false,
   tendingSeen: false,
   tendingTab: '',   // '' (Attention) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
@@ -2421,6 +2442,7 @@ function app(){ return {
         if (this._inboxToken !== window.TOKEN) {
           this._inboxToken = window.TOKEN;
           this.loadProposalCount();
+          this.loadWaitingCount();
         }
       }
       // Announced for views that mount before auth resolves and would otherwise
@@ -2449,6 +2471,7 @@ function app(){ return {
     this._sidebarToken = this.hasToken() ? window.TOKEN : '';
     this._inboxToken = this._sidebarToken;
     this.loadProposalCount();
+    this.loadWaitingCount();
 
     // A ref switch keeps the ?ref deep link honest. It used to fire only in the
     // Files view, where the picker was; the browsed ref is now read by the
@@ -4307,6 +4330,14 @@ function app(){ return {
   // token-gated like everything that touches the registry; the count is what
   // gates the nav entry, so an empty channel is invisible rather than a stop
   // with nothing behind it. The Proposals component does the real work.
+  // How many user calls are open: one listing of the store's user-calls/ and
+  // a read per call, so it runs at boot. The Waiting view's proposed edits are
+  // not counted here, since counting them means reading the Text collection.
+  async loadWaitingCount(){
+    if (!this.hasToken() || !window.UserCalls) { this.waitingCount = 0; return; }
+    try { this.waitingCount = (await window.UserCalls.list()).filter(c => c.open).length; }
+    catch { this.waitingCount = 0; }
+  },
   async loadProposalCount(){
     if (!this.hasToken() || !window.RepoProposals) { this.proposalCount = 0; return; }
     const P = window.RepoProposals;
@@ -5671,6 +5702,7 @@ function app(){ return {
       } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
+    { key: 'waiting',   open(){ this.goWaiting(); } },
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
     // The Search view's address carries the ran search (sq + friends, stamped
@@ -6326,6 +6358,12 @@ function app(){ return {
       // estate's motion, and Tending reads what a pass concluded about that
       // motion, across branches, pull requests, trackers and snags alike.
       { view: 'tending', icon: 'ph-plant', label: 'Tending', go: () => this.goTending() },
+      // Waiting: the owner's queue, user calls and proposed edits. Standing
+      // with a token, since proposed edits are rarely none and counting them
+      // costs the Text collection; the badge is the open user calls.
+      ...(this.hasToken() || this.waitingCount || this.view === 'waiting'
+        ? [{ view: 'waiting', icon: 'ph-tray', label: 'Waiting', badge: this.waitingCount, go: () => this.goWaiting() }]
+        : []),
       { view: 'lists', views: ['lists', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goLists() },
       { view: 'repos',    icon: 'ph-squares-four', label: 'Repos',    go: () => this.goRepos() },
@@ -6446,6 +6484,7 @@ function app(){ return {
   },
   // The Proposals view: pending cross-repo edits awaiting the user's confirm.
   goProposals(){ this.proposalsSeen = true; this.view = 'proposals'; this.syncUrl(); },
+  goWaiting(){ this.waitingSeen = true; this.view = 'waiting'; this.syncUrl(); },
   // State kicks ALL THREE, which is the reverse of what it used to do, and the
   // reverse is the point. It kicked nothing on the argument that a view whose
   // subject is age must not answer its own question before you read it. That

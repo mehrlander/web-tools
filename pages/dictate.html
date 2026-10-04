@@ -289,14 +289,16 @@
     AND IT ANSWERS A DOCUMENTATION CALL, with `&user-call=`. A user call
     (web-tools-private user-calls/user-call.py, kind documentation) is one
     action item: a question, a brief, a recommendation, the session and PR
-    it came from, and its edits written into it. The page draws that head under the header
-    and stages the edits it can find in GitHub's copy (stageEdits), so each is
-    a card like any other. Answer, on the head or the Apply pill, opens one
-    sheet: each edit's decision, read off the page rather than logged
-    (callDecisions), and three ways out. Commit the confirmed edits to the
-    file's branch, or to a new branch cut from it, and append the answer
-    beside the call; or copy the answer as JSON, with the confirmed patch in
-    it, and commit nothing. A discard is a decision here, so the "no" the
+    it came from, and its edits written into it. The page draws that head
+    under the header and stages the edits it can find in GitHub's copy
+    (stageEdits), so each is a card like any other. Answer, on the head or the
+    Apply pill, opens one sheet: each edit's decision, read off the page rather
+    than logged (callDecisions), and four ways out. Record the answer beside
+    the call with the confirmed edits as a patch, for a session to apply where
+    the repo's commit hook runs (the default, see answerCall); commit them to
+    the file's branch, or to a new branch cut from it, and record; or copy the
+    answer as JSON, patch and all, and record nothing. A discard is a decision
+    here, so the "no" the
     proposal queue cannot record is in the answer. So are the reader's notes:
     one on an edit's card goes with that edit's decision, and any other goes
     by the words it is on.
@@ -611,7 +613,7 @@
       // GitHub's copy (stageEdits). The head draws the first, and the answer
       // sheet reads the second against the cards.
       call: null, callStatus: [], callOpen: false,
-      answerOpen: false, answerTo: 'file', answerBranch: '', answerNote: '', answerComment: true,
+      answerOpen: false, answerTo: 'record', answerBranch: '', answerNote: '', answerComment: true,
       answerPreview: false, answering: false, answerRows: [], answerRowNotes: [],
       get callWhere() { return CALL ? CALL.repo + (CALL.ref ? '@' + CALL.ref : '') + ':' + CALL.path : ''; },
       get callLinks() {
@@ -1173,8 +1175,20 @@
         if (this.answerTo === 'branch' && !toBranch) return;
         this.answering = true;
         const entry = this.answerEntry();
+        // RECORD ONLY, the default (owner, 2026-10-04). A commit from here goes
+        // through the contents API, so the target repo's commit hook never
+        // runs: in web-tools that left docs/docs.csv's word counts stale and,
+        // for an edit to a quoted sentence, docs/policies.csv's quote missing,
+        // and either failed the suite on every later PR. So the answer is
+        // recorded with the confirmed edits as a patch, and a session applies
+        // it where the hook runs (user-call.py patch <id> | git apply). The
+        // two commit exits stay for a repo with nothing derived.
+        const record = this.answerTo === 'record';
         try {
-          if (this.confirmedCount) {
+          if (this.confirmedCount && record) {
+            entry.patch = window.MdSurface?.patch(FILE.path, this.fileBase, this.confirmedText().next) || '';
+            entry.apply = 'session';
+          } else if (this.confirmedCount) {
             const done = await this.applyConfirmed({ branch: toBranch, call: true });
             if (!done) return;
             Object.assign(entry, { target: done.target, commit: done.url });
@@ -1182,13 +1196,16 @@
           await gh.load('alpineComponents/user-call-form.js');
           const pr = window.UserCallForm.prOf(this.call.pr);
           const body = '**User call: ' + this.call.question + '**\n\nAnswer: **' + entry.answer + '**'
-            + (entry.commit ? '\n\nCommitted: ' + entry.commit : '') + (entry.note ? '\n\n> ' + entry.note : '')
+            + (entry.commit ? '\n\nCommitted: ' + entry.commit : '')
+            + (entry.patch ? '\n\nRecorded with the confirmed edits as a patch, for a session to apply.' : '')
+            + (entry.note ? '\n\n> ' + entry.note : '')
             + '\n\n_' + (this.call.id || '') + ', answered in Dictate._';
           await window.UserCallForm.postAnswer({ repo: CALL.repo, ref: CALL.ref || undefined, token: this.token,
             path: CALL.path.replace(/\.json$/, '') + '.answers.jsonl', entry,
             pr: this.answerComment ? pr : null, comment: body });
           this.answerOpen = false;
-          Alpine.store('toast')('check', 'Answer recorded' + (entry.target ? ', committed to ' + entry.target : ''), 'alert-success', 4000);
+          Alpine.store('toast')('check', 'Answer recorded' + (entry.target ? ', committed to ' + entry.target
+            : entry.patch ? ', with its patch for a session to apply' : ''), 'alert-success', 4000);
         } catch (e) {
           Alpine.store('toast')('warning', 'Answer not recorded: ' + (e?.message || e), 'alert-error', 8000);
         } finally { this.answering = false; }
@@ -5517,7 +5534,9 @@
         </template>
       </div>
       <input type="text" x-model="answerNote" class="input input-sm input-bordered w-full" placeholder="Say more with your answer (optional)">
-      <div class="grid gap-1.5 text-sm" x-show="confirmedCount">
+      <div class="grid gap-1.5 text-sm" x-show="confirmedCount" data-answer-to>
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="record" x-model="answerTo">
+          <span>Record it, and a session applies it</span></label>
         <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="file" x-model="answerTo">
           <span x-text="'Commit to ' + (fileRef || 'main')"></span></label>
         <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="branch" x-model="answerTo">
@@ -5537,7 +5556,7 @@
         <button @click="answerCall()" :disabled="answering || (answerTo === 'branch' && confirmedCount && !answerBranch.trim())" data-answer-send
                 class="btn btn-sm btn-primary grow gap-1.5">
           <span x-show="answering" class="loading loading-spinner loading-xs"></span>
-          <span x-text="confirmedCount ? 'Commit ' + confirmedCount + ' and record' : 'Record the answer'"></span></button>
+          <span x-text="confirmedCount && answerTo !== 'record' ? 'Commit ' + confirmedCount + ' and record' : 'Record the answer'"></span></button>
       </div>
     </div>
   </div>

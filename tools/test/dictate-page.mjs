@@ -2727,7 +2727,17 @@ try {
     ok('the copied answer carries the decisions and the confirmed patch, and nothing was written',
       held.json.decisions.length === 4 && /\+First para new\./.test(held.json.patch) && !/Second para new/.test(held.json.patch)
       && docPuts.length === 0 && answerPuts.length === 0, JSON.stringify(held.json));
-    await pg.evaluate(`(async () => { const x = ${C}; x.answerTo = 'branch'; x.answerBranch = 'user-call/test'; await x.answerCall(); })()`);
+    // RECORD ONLY, the default: the answer and its patch beside the call, and
+    // nothing committed to the document.
+    const rec = await pg.evaluate(`(async () => { const x = ${C}; const to = x.answerTo; x.answerComment = false; await x.answerCall();
+      return { to, label: document.querySelector('[data-answer-send]').textContent.trim() }; })()`);
+    await pg.waitForTimeout(300);
+    const recLine = answers.trim() ? JSON.parse(answers.trim().split('\n').pop()) : {};
+    ok('the default answer is recorded with the confirmed edits as a patch for a session to apply, and commits nothing',
+      rec.to === 'record' && recLine.apply === 'session' && /\+First para new\./.test(recLine.patch || '') && !/Second para new/.test(recLine.patch || '')
+      && !recLine.target && docPuts.length === 0 && refs.length === 0 && answerPuts.length === 1 && comments.length === 0,
+      JSON.stringify({ rec, recLine, docPuts: docPuts.length, refs: refs.length }));
+    await pg.evaluate(`(async () => { const x = ${C}; x.answerComment = true; x.answerTo = 'branch'; x.answerBranch = 'user-call/test'; await x.answerCall(); })()`);
     await pg.waitForTimeout(300);
     const line = answers.trim() ? JSON.parse(answers.trim().split('\n').pop()) : {};
     ok('to a new branch: the branch is cut from the tip, the confirmed edit committed there, and the call named',
@@ -2742,7 +2752,7 @@ try {
     const after = await pg.evaluate(`(() => { const x = ${C}; return { base: x.fileBase, confirmed: x.confirmedCount }; })()`);
     ok('to the file\'s branch: committed with no branch named, and GitHub\'s copy moves under the page',
       docPuts.length === 2 && docPuts[1].branch === '' && after.base === docPuts[1].text && after.confirmed === 0
-      && answers.trim().split('\n').length === 2 && comments.length === 1, JSON.stringify({ docPuts, after }));
+      && answers.trim().split('\n').length === 3 && comments.length === 1, JSON.stringify({ docPuts, after }));
     await cx.close();
   }
 } finally {
