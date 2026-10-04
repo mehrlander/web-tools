@@ -50,6 +50,6 @@ docs/vocabularies.csv,46,5,5710,"[""registry"",""property"",""value"",""label"",
 pages/pages.csv,107,8,22712,"[""top"",""group"",""label"",""title"",""href"",""thumb"",""code"",""note""]"
 skills/doc-craft/binding/runs.csv,12,9,1238,"[""date"",""target"",""units"",""words_before"",""words_after"",""floor_pct"",""achieved_pct"",""real_losses"",""caught_by""]"
 skills/file-retrieval/sources.csv,9,2,196,"[""source"",""glob""]"
-skills/manifest.csv,62,3,31187,"[""name"",""group"",""description""]"
+skills/manifest.csv,62,3,30984,"[""name"",""group"",""description""]"
 tracker/board-tags.csv,12,3,674,"[""task"",""tag"",""value""]"
 tracker/board.csv,101,15,25239,"[""id"",""title"",""status"",""project"",""depends-on"",""opened"",""closed"",""session"",""size"",""awaiting"",""blockedBy"",""file"",""href"",""lastActivity"",""logEntries""]"
