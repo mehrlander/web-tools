@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-15 by a skill, 35 by a page or component. The remaining 53 are
+15 by a skill, 35 by a page or component. The remaining 55 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -132,6 +132,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`container.md`](environment/container.md) *(measured)* — what the box is and what persists across sessions
 - [`extending.md`](environment/extending.md) — the Claude Code component model and the hooks this repo runs
 - [`testing.md`](environment/testing.md) *(measured)* — how to test HTML and JS in the sandbox
+- [`antigravity-local.md`](environment/antigravity-local.md) *(measured, orphan)* — the Antigravity local host environment: daemon runtime, SQLite storage, and brain workspace
+- [`harness-comparison.md`](environment/harness-comparison.md) *(measured, orphan)* — structural comparison of the Claude Code cloud harness and Antigravity local harness
 
 ## docs/favicons/
 

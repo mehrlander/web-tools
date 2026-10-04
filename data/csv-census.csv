@@ -19,7 +19,7 @@ docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis
 docs/context-sources.csv,29,17,6697,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss""]"
 docs/context-topics.csv,12,4,2579,"[""topic"",""label"",""verdict"",""gloss""]"
 docs/direct-to-main.csv,9,6,1712,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
-docs/docs.csv,124,7,31630,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
+docs/docs.csv,126,7,32044,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
 docs/harness.csv,303,8,58379,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
 docs/kits.csv,104,8,13403,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,75,6,19524,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
