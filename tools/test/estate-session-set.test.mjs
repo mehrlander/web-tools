@@ -127,12 +127,13 @@ test('clearing drops the set AND the scope together', () => {
 
 test('a set is handed on as a set: the link keeps `set` and drops one open record', () => {
   seed('bbb22222,aaa11111');
-  window.history.replaceState({}, '', '/app/?view=sessions&set=bbb22222,aaa11111&session=aaa11111&card=3');
+  window.history.replaceState({}, '', '/app/?view=sessions&set=bbb22222,aaa11111&session=aaa11111&card=3&find=needle');
   const p = new URL(data.sessionSetLink()).searchParams;
   assert.equal(p.get('view'), 'sessions');
   assert.equal(p.get('set'), 'bbb22222,aaa11111');
   assert.equal(p.get('session'), null);
   assert.equal(p.get('card'), null);
+  assert.equal(p.get('find'), null);
 });
 
 test('the set becomes the scope BEFORE a &session= opens, or the deck swipes the wrong list', () => {

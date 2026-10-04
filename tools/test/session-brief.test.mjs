@@ -533,7 +533,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // what that kit calls its own case: a string a reader looks at. This file
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
-  const noted = [...el.querySelectorAll('[data-title-tip]')];
+  const noted = [...el.querySelectorAll('[data-title-tip]')]
+    .filter(n => !n.closest('[role="search"]'));
   // Every fact, plus notes that are not facts about the SESSION: the id, the
   // `running <ref>` marker naming the ref this page's own code booted from,
   // the scope row, whose note says what tapping it will do, the pages mark,
@@ -756,4 +757,3 @@ test('mountRaw mounts JsonExplorer on demand and destroy cleans it up', async ()
   data.destroy();
   assert.equal(destroyed, true, 'destroy cleans up _rawExplorer');
 });
-
