@@ -19,7 +19,7 @@
   [x-cloak] { display: none !important; }
   .grid-matrix {
     display: grid;
-    grid-template-columns: minmax(130px, 150px) repeat(4, minmax(190px, 1fr));
+    grid-template-columns: minmax(75px, 95px) repeat(4, minmax(115px, 1fr));
   }
 </style>
 </head>
@@ -49,17 +49,24 @@
     <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
       <!-- Estate Filter -->
       <div class="flex items-center p-0.5 rounded-md bg-base-200 border border-base-300 text-xs">
-        <button type="button" @click="env = 'all'" class="px-2 py-0.5 rounded transition-colors"
+        <button type="button" @click="env = 'all'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1"
                 :class="env === 'all' ? 'bg-base-100 text-primary shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
-          All <span class="opacity-60 text-[10px]" x-text="mechanisms.length"></span>
+          <span>All</span> <span class="opacity-60 text-[10px]" x-text="mechanisms.length"></span>
         </button>
-        <button type="button" @click="env = 'claude'" class="px-2 py-0.5 rounded transition-colors"
+        <button type="button" @click="env = 'claude'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1"
                 :class="env === 'claude' ? 'bg-base-100 text-warning shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
-          Claude <span class="opacity-60 text-[10px]" x-text="countEnv('claude')"></span>
+          <span class="inline-flex items-center" x-html="assistantIcon('claude', 'w-3 h-3')"></span>
+          <span class="hidden sm:inline">Claude</span> <span class="opacity-60 text-[10px]" x-text="countEnv('claude')"></span>
         </button>
-        <button type="button" @click="env = 'gemini'" class="px-2 py-0.5 rounded transition-colors"
+        <button type="button" @click="env = 'gemini'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1"
                 :class="env === 'gemini' ? 'bg-base-100 text-info shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
-          Gemini <span class="opacity-60 text-[10px]" x-text="countEnv('gemini')"></span>
+          <span class="inline-flex items-center" x-html="assistantIcon('gemini', 'w-3 h-3')"></span>
+          <span class="hidden sm:inline">Gemini</span> <span class="opacity-60 text-[10px]" x-text="countEnv('gemini')"></span>
+        </button>
+        <button type="button" @click="env = 'chatgpt'" class="px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                :class="env === 'chatgpt' ? 'bg-base-100 text-success shadow-xs font-semibold' : 'text-base-content/60 hover:text-base-content'">
+          <span class="inline-flex items-center" x-html="assistantIcon('chatgpt', 'w-3 h-3')"></span>
+          <span class="hidden sm:inline">ChatGPT</span> <span class="opacity-60 text-[10px]" x-text="countEnv('chatgpt')"></span>
         </button>
       </div>
 
@@ -85,20 +92,19 @@
   </header>
 
   <!-- ── Main Workspace: Compact Matrix (Top) + Spectra Barometer (Bottom) ─ -->
-  <main class="grow overflow-auto p-2.5 sm:p-3 flex flex-col gap-2.5">
+  <main class="grow overflow-auto p-2 sm:p-3 flex flex-col gap-2.5">
 
     <!-- 1. Top Section: Ultra-Compact Scope x Discretion Matrix -->
     <div class="overflow-x-auto border border-base-300 rounded-md bg-base-100 shadow-xs">
-      <div class="grid-matrix min-w-[920px] divide-x divide-y divide-base-300">
+      <div class="grid-matrix min-w-[540px] sm:min-w-[680px] divide-x divide-y divide-base-300">
 
         <!-- Top Header Row -->
-        <div class="px-2.5 py-1 bg-base-200/60 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-base-content/50">
-          <span>Discretion \ Scope</span>
+        <div class="px-2 py-1.5 bg-base-200/60 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-base-content/50" title="Discretion vs Scope Matrix">
+          <span class="truncate text-[10px] sm:text-xs">Discr. \ Scope</span>
         </div>
         <template x-for="s in scopes" :key="s.id">
-          <div class="px-2.5 py-1 bg-base-200/60 flex flex-col justify-center">
-            <span class="text-xs font-bold uppercase tracking-wider text-base-content" x-text="s.label"></span>
-            <span class="text-[10px] text-base-content/50 truncate" x-text="s.gloss"></span>
+          <div class="px-2 py-1.5 bg-base-200/60 flex items-center justify-between min-w-0" :title="s.label + ': ' + s.gloss">
+            <span class="text-xs font-bold uppercase tracking-wider text-base-content truncate" x-text="s.label"></span>
           </div>
         </template>
 
@@ -106,12 +112,9 @@
         <template x-for="d in filteredDiscretions" :key="d.id">
           <div class="contents">
             <!-- Row Header -->
-            <div class="p-1.5 bg-base-200/30 flex flex-col justify-center gap-0.5">
-              <div class="flex items-center justify-between gap-1">
-                <span class="text-xs font-bold text-base-content" x-text="d.label"></span>
-                <span class="badge badge-xs font-mono text-[9px]" :class="d.badgeClass" x-text="d.short"></span>
-              </div>
-              <span class="text-[10px] text-base-content/50 truncate" x-text="d.gloss"></span>
+            <div class="px-2 py-1.5 bg-base-200/30 flex items-center justify-between gap-1 min-w-0" :title="d.label + ': ' + d.gloss + ' (' + d.cost + ')'">
+              <span class="text-xs font-bold text-base-content truncate" x-text="d.short"></span>
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="d.dotClass"></span>
             </div>
 
             <!-- 4 Scope Cells (Compact single-line chips) -->
@@ -121,15 +124,16 @@
                 
                 <template x-for="m in cellItems(s.id, d.id)" :key="m.id">
                   <button type="button" @click="select(m.id)"
-                          class="w-full text-left flex items-center justify-between gap-1.5 px-2 py-0.5 rounded border text-xs transition-all cursor-pointer"
-                          :class="selectedId === m.id ? 'border-primary bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary' : 'border-base-300 bg-base-100 hover:border-primary/50 text-base-content/85'">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <i class="ph text-xs shrink-0" :class="m.icon"></i>
-                      <span class="truncate" x-text="m.title"></span>
+                          class="w-full text-left flex items-center justify-between gap-1 px-1.5 py-0.5 rounded border text-xs transition-all cursor-pointer min-w-0"
+                          :class="selectedId === m.id ? 'border-primary bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary' : 'border-base-300 bg-base-100 hover:border-primary/50 text-base-content/85'"
+                          :title="m.title + ' (' + assistantLabel(m.env) + ') — ' + m.gloss">
+                    <div class="flex items-center gap-1 min-w-0 truncate">
+                      <i class="ph text-xs shrink-0 text-base-content/60" :class="m.icon"></i>
+                      <span class="truncate text-[11px]" x-text="m.title"></span>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0 font-mono text-[10px]">
-                      <i class="ph text-base-content/40" :class="triggerIcon(m.trigger)" :title="m.trigger"></i>
-                      <span class="badge badge-xs font-mono" :class="envBadge(m.env)" x-text="m.env.toUpperCase()"></span>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <i class="ph text-base-content/40 text-[10px]" :class="triggerIcon(m.trigger)" :title="m.trigger"></i>
+                      <span class="shrink-0 flex items-center" :title="assistantLabel(m.env)" x-html="assistantIcon(m.env, 'w-3 h-3')"></span>
                     </div>
                   </button>
                 </template>
@@ -155,16 +159,19 @@
             <i class="ph text-base text-primary" :class="active.icon"></i>
           </div>
           <div class="min-w-0">
-            <div class="flex items-baseline gap-2">
+            <div class="flex items-baseline gap-1.5 flex-wrap">
               <h2 class="font-bold text-sm sm:text-base leading-tight" x-text="active.title"></h2>
-              <span class="badge badge-xs font-mono" :class="envBadge(active.env)" x-text="active.env.toUpperCase()"></span>
+              <div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-base-200 border border-base-300 text-[10px] font-mono">
+                <span class="inline-flex items-center" x-html="assistantIcon(active.env, 'w-3 h-3')"></span>
+                <span x-text="assistantLabel(active.env)"></span>
+              </div>
             </div>
             <code class="text-[10px] text-base-content/50 font-mono break-all" x-text="active.file"></code>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="badge badge-sm font-mono text-[10px]" :class="activeDiscretionBadge()" x-text="active.discretionLabel"></span>
-          <span class="badge badge-sm badge-ghost font-mono text-[10px]" x-text="'Footprint: ' + active.tokenCost"></span>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="badge badge-xs sm:badge-sm font-mono text-[9px] sm:text-[10px]" :class="activeDiscretionBadge()" x-text="active.discretionLabel"></span>
+          <span class="badge badge-xs sm:badge-sm badge-ghost font-mono text-[9px] sm:text-[10px]" x-text="'Footprint: ' + active.tokenCost"></span>
         </div>
       </div>
 
@@ -268,15 +275,35 @@ function spectra() {
     ],
 
     discretions: [
-      { id: 'injected', label: 'Forced Injected', short: 'Injected', gloss: 'Platform mandatory, zero choice', cost: 'Highest token burden', badgeClass: 'badge-error' },
-      { id: 'prodded', label: 'System-Prodded', short: 'Prodded', gloss: 'Hook advises, model accepts', cost: '1-line directive', badgeClass: 'badge-info' },
-      { id: 'reactive', label: 'Event-Reactive', short: 'Reactive', gloss: 'Idles until condition met', cost: 'Zero idle cost', badgeClass: 'badge-warning' },
-      { id: 'pulled', label: 'User / Model Pulled', short: 'Pulled', gloss: 'Explicit on-demand invocation', cost: 'Targeted pay-on-use', badgeClass: 'badge-success' }
+      { id: 'injected', label: 'Forced Injected', short: 'Injected', gloss: 'Platform mandatory, zero choice', cost: 'Highest token burden', badgeClass: 'badge-error', dotClass: 'bg-error' },
+      { id: 'prodded', label: 'System-Prodded', short: 'Prodded', gloss: 'Hook advises, model accepts', cost: '1-line directive', badgeClass: 'badge-info', dotClass: 'bg-info' },
+      { id: 'reactive', label: 'Event-Reactive', short: 'Reactive', gloss: 'Idles until condition met', cost: 'Zero idle cost', badgeClass: 'badge-warning', dotClass: 'bg-warning' },
+      { id: 'pulled', label: 'User / Model Pulled', short: 'Pulled', gloss: 'Explicit on-demand invocation', cost: 'Targeted pay-on-use', badgeClass: 'badge-success', dotClass: 'bg-success' }
     ],
 
     triggers: ['Daemon / Build', 'Session Start', 'Event Juncture', 'Per Turn', 'On Demand'],
 
     mechanisms: [
+      {
+        id: "chatgpt-custom",
+        title: "Custom Instructions & Memory",
+        short: "Custom Inst.",
+        env: "chatgpt",
+        icon: "ph-chat-circle-dots",
+        file: "chatgpt.com/settings/custom-instructions",
+        scopeId: "universal",
+        scopeLabel: "Universal (Account)",
+        scopeGloss: "Pre-pended to system prompt across all ChatGPT chat sessions.",
+        discretionId: "injected",
+        discretionLabel: "Forced Injected",
+        discretionGloss: "Zero model discretion: automatically included in conversation preamble.",
+        trigger: "Session Start",
+        triggerGloss: "Injected at session initialization.",
+        evidence: "●",
+        tokenCost: "~100 tokens per message",
+        gloss: "Account-level custom instructions and biographical memory profile.",
+        rationale: "Ensures user persona, style preferences, and profile persist across sessions automatically."
+      },
       {
         id: "sys-prompt",
         title: "Personal Preferences & Preamble",
@@ -551,9 +578,39 @@ function spectra() {
       this.selectedId = id;
     },
 
+    assistantIcon(env, cls = 'w-3.5 h-3.5 shrink-0') {
+      if (window.assistantMark?.svg) {
+        if (env === 'claude') return window.assistantMark.svg('claude', { cls });
+        if (env === 'gemini') return window.assistantMark.svg('gemini', { cls });
+        if (env === 'chatgpt' || env === 'codex') return window.assistantMark.svg('codex', { cls });
+      }
+      if (env === 'claude') {
+        return '<svg viewBox="0 0 24 24" class="' + cls + '" style="stroke:#d97757" stroke-width="2.2" stroke-linecap="round" fill="none" aria-hidden="true"><path d="M12,12 L12.0,1.6 M12,12 L17.62,3.25 M12,12 L21.46,7.68 M12,12 L22.29,13.48 M12,12 L19.86,18.81 M12,12 L14.93,21.98 M12,12 L9.07,21.98 M12,12 L4.14,18.81 M12,12 L1.71,13.48 M12,12 L2.54,7.68 M12,12 L6.38,3.25"/></svg>';
+      }
+      if (env === 'gemini') {
+        return '<svg viewBox="0 0 24 24" class="' + cls + '" style="stroke:#1a73e8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true"><path d="M12,2 C12,8.5 15.5,12 22,12 C15.5,12 12,15.5 12,22 C12,15.5 8.5,12 2,12 C8.5,12 12,8.5 12,2 Z"/></svg>';
+      }
+      if (env === 'chatgpt' || env === 'codex') {
+        return '<svg viewBox="0 0 24 24" class="' + cls + '" style="stroke:#10a37f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true"><path d="M12,4 A8,8 0 0,1 18.9,16 M18.9,16 A8,8 0 0,1 7.1,16 M7.1,16 A8,8 0 0,1 12,4"/></svg>';
+      }
+      if (env === 'all') {
+        return '<i class="ph ph-globe text-base-content/60 ' + cls + ' text-[12px] flex items-center justify-center" aria-hidden="true"></i>';
+      }
+      return '';
+    },
+
+    assistantLabel(env) {
+      if (env === 'claude') return 'Claude Code';
+      if (env === 'gemini') return 'Gemini';
+      if (env === 'chatgpt' || env === 'codex') return 'ChatGPT';
+      if (env === 'all') return 'Universal / All';
+      return env;
+    },
+
     envBadge(env) {
       if (env === 'gemini') return 'badge-info';
       if (env === 'claude') return 'badge-warning';
+      if (env === 'chatgpt') return 'badge-success';
       return 'badge-primary';
     },
 
