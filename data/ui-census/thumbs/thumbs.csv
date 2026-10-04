@@ -1,0 +1,55 @@
+unit,desk,phone,shot_at,recipe
+web-tools:map/aims,web-tools-map-aims.desk.jpg,web-tools-map-aims.phone.jpg,2026-10-04,app/index.html?view=map&tab=aims
+web-tools:map/claims,web-tools-map-claims.desk.jpg,web-tools-map-claims.phone.jpg,2026-10-04,app/index.html?view=map&tab=claims
+web-tools:map/context,web-tools-map-context.desk.jpg,web-tools-map-context.phone.jpg,2026-10-04,app/index.html?view=map&tab=context
+web-tools:map/data,web-tools-map-data.desk.jpg,web-tools-map-data.phone.jpg,2026-10-04,app/index.html?view=map&tab=data
+web-tools:map/docs,web-tools-map-docs.desk.jpg,web-tools-map-docs.phone.jpg,2026-10-04,app/index.html?view=map&tab=docs
+web-tools:map/growth,web-tools-map-growth.desk.jpg,web-tools-map-growth.phone.jpg,2026-10-04,app/index.html?view=map&tab=growth
+web-tools:map/harness,web-tools-map-harness.desk.jpg,web-tools-map-harness.phone.jpg,2026-10-04,app/index.html?view=map&tab=harness
+web-tools:map/kits,web-tools-map-kits.desk.jpg,web-tools-map-kits.phone.jpg,2026-10-04,app/index.html?view=map&tab=kits
+web-tools:map/outposts,web-tools-map-outposts.desk.jpg,web-tools-map-outposts.phone.jpg,2026-10-04,app/index.html?view=map&tab=outposts
+web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jpg,2026-10-04,app/index.html?view=map&tab=policy
+web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-04,app/index.html?view=map&tab=registries
+web-tools:map/set,web-tools-map-set.desk.jpg,web-tools-map-set.phone.jpg,2026-10-04,app/index.html?view=map&tab=set
+web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-04,app/index.html?view=map&tab=showing
+web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-04,app/index.html?view=map&tab=skills
+web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-04,app/index.html?view=map&tab=surfacing
+web-tools:map/tests,web-tools-map-tests.desk.jpg,web-tools-map-tests.phone.jpg,2026-10-04,app/index.html?view=map&tab=tests
+web-tools:map/views,web-tools-map-views.desk.jpg,web-tools-map-views.phone.jpg,2026-10-04,app/index.html?view=map&tab=views
+web-tools:pages/approve.html,web-tools-pages-approve-html.desk.jpg,web-tools-pages-approve-html.phone.jpg,2026-10-04,pages/approve.html
+web-tools:pages/branch.html,web-tools-pages-branch-html.desk.jpg,web-tools-pages-branch-html.phone.jpg,2026-10-04,pages/branch.html?#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz
+web-tools:pages/links.html,web-tools-pages-links-html.desk.jpg,web-tools-pages-links-html.phone.jpg,2026-10-04,pages/links.html
+web-tools:pages/news/news.html,web-tools-pages-news-news-html.desk.jpg,web-tools-pages-news-news-html.phone.jpg,2026-10-04,pages/news/news.html
+web-tools:pages/shortcut-edit.html,web-tools-pages-shortcut-edit-html.desk.jpg,web-tools-pages-shortcut-edit-html.phone.jpg,2026-10-04,pages/shortcut-edit.html
+web-tools:pages/shortcut-log.html,web-tools-pages-shortcut-log-html.desk.jpg,web-tools-pages-shortcut-log-html.phone.jpg,2026-10-04,pages/shortcut-log.html · tools/render/scenarios/ui-census-token.mjs
+web-tools:pages/shortcuts.html,web-tools-pages-shortcuts-html.desk.jpg,web-tools-pages-shortcuts-html.phone.jpg,2026-10-04,pages/shortcuts.html · tools/render/scenarios/ui-census-token.mjs
+web-tools:pages/text-lab.html,web-tools-pages-text-lab-html.desk.jpg,web-tools-pages-text-lab-html.phone.jpg,2026-10-04,pages/text-lab.html
+web-tools:view/app,web-tools-view-app.desk.jpg,web-tools-view-app.phone.jpg,2026-10-04,app/index.html?app=mehrlander/web-tools:pages/text-lab.html
+web-tools:view/atlas,web-tools-view-atlas.desk.jpg,web-tools-view-atlas.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=atlas
+web-tools:view/branches,web-tools-view-branches.desk.jpg,web-tools-view-branches.phone.jpg,2026-10-04,app/index.html?view=branches · tools/render/scenarios/activity-fake.mjs
+web-tools:view/chats,web-tools-view-chats.desk.jpg,web-tools-view-chats.phone.jpg,2026-10-04,app/index.html?view=chats
+web-tools:view/config,web-tools-view-config.desk.jpg,web-tools-view-config.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=config
+web-tools:view/files,web-tools-view-files.desk.jpg,web-tools-view-files.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=files&path=docs
+web-tools:view/jots,web-tools-view-jots.desk.jpg,web-tools-view-jots.phone.jpg,2026-10-04,app/index.html?view=lists · tools/render/scenarios/estate-sessions.mjs
+web-tools:view/landing,web-tools-view-landing.desk.jpg,web-tools-view-landing.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools
+web-tools:view/lists,web-tools-view-lists.desk.jpg,web-tools-view-lists.phone.jpg,2026-10-04,app/index.html?view=lists · tools/render/scenarios/estate-sessions.mjs
+web-tools:view/pages,web-tools-view-pages.desk.jpg,web-tools-view-pages.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=pages
+web-tools:view/project,web-tools-view-project.desk.jpg,web-tools-view-project.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=project&project=docs
+web-tools:view/project/board,web-tools-view-project-board.desk.jpg,web-tools-view-project-board.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=board
+web-tools:view/project/docs,web-tools-view-project-docs.desk.jpg,web-tools-view-project-docs.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=docs
+web-tools:view/project/files,web-tools-view-project-files.desk.jpg,web-tools-view-project-files.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=files
+web-tools:view/project/overview,web-tools-view-project-overview.desk.jpg,web-tools-view-project-overview.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=overview
+web-tools:view/project/pages,web-tools-view-project-pages.desk.jpg,web-tools-view-project-pages.phone.jpg,2026-10-04,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=pages
+web-tools:view/proposals,web-tools-view-proposals.desk.jpg,web-tools-view-proposals.phone.jpg,2026-10-04,app/index.html?view=proposals · tools/render/scenarios/proposals-demo.mjs
+web-tools:view/public,web-tools-view-public.desk.jpg,web-tools-view-public.phone.jpg,2026-10-04,app/index.html?view=public
+web-tools:view/repos,web-tools-view-repos.desk.jpg,web-tools-view-repos.phone.jpg,2026-10-04,app/index.html?view=repos · tools/render/scenarios/repos-abandoned-badge.mjs
+web-tools:view/routes,web-tools-view-routes.desk.jpg,web-tools-view-routes.phone.jpg,2026-10-04,app/index.html?view=routes
+web-tools:view/search,web-tools-view-search.desk.jpg,web-tools-view-search.phone.jpg,2026-10-04,app/index.html?view=search
+web-tools:view/sessions,web-tools-view-sessions.desk.jpg,web-tools-view-sessions.phone.jpg,2026-10-04,app/index.html?view=sessions · tools/render/scenarios/estate-sessions.mjs
+web-tools:view/shell,web-tools-view-shell.desk.jpg,web-tools-view-shell.phone.jpg,2026-10-04,app/index.html
+web-tools:view/stage,web-tools-view-stage.desk.jpg,web-tools-view-stage.phone.jpg,2026-10-04,app/index.html?view=stage
+web-tools:view/stage/errands,web-tools-view-stage-errands.desk.jpg,web-tools-view-stage-errands.phone.jpg,2026-10-04,app/index.html?view=stage&tab=errands
+web-tools:view/state,web-tools-view-state.desk.jpg,web-tools-view-state.phone.jpg,2026-10-04,app/index.html?view=state · tools/render/scenarios/state-view.mjs
+web-tools:view/tending,web-tools-view-tending.desk.jpg,web-tools-view-tending.phone.jpg,2026-10-04,app/index.html?view=tending
+web-tools:view/tools,web-tools-view-tools.desk.jpg,web-tools-view-tools.phone.jpg,2026-10-04,app/index.html?view=tools
+web-tools:view/writes,web-tools-view-writes.desk.jpg,web-tools-view-writes.phone.jpg,2026-10-04,app/index.html?view=writes

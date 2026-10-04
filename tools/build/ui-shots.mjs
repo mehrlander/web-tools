@@ -22,7 +22,8 @@
 // carry (a project path, a repo), a fixture script (the Activity panes render a
 // token prompt without one), or a click (a stepper with no address). Those are
 // rows of shots.csv beside each store's coded.csv: unit, query, script, click,
-// note. A row there replaces the derived query; an empty cell keeps it.
+// note. A row there replaces the derived query; an empty cell keeps it. A query
+// that opens with # is a fragment, for the pages that route on location.hash.
 //
 // THE OUTPUT, split by visibility like the census itself: public units' shots
 // go to data/ui-census/thumbs/ here, home's to web-tools-private's
@@ -96,7 +97,8 @@ async function shoot(r, size, touch, out) {
     const a = ['tools/render/screenshot.mjs', r.page, '--width', String(size.width), '--height', String(size.height),
       '--wait', '6000', '--out', out];
     if (r.page === 'app/index.html') a.push('--ref', head);
-    if (r.query) a.push('--query', r.query);
+    if (r.query && r.query.startsWith('#')) a.push('--hash', r.query.slice(1));
+    else if (r.query) a.push('--query', r.query);
     if (r.script) a.push('--script', path.resolve(HUB, r.script));
     if (touch) a.push('--touch');
     return run('node', a, HUB);
