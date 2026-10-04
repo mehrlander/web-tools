@@ -83,6 +83,14 @@ test('a page that already loads the kit is left alone, and one that loads Land g
   assert.deepEqual(fetched, ['mehrlander/web-tools@main:lib/kits/look.js']);
 });
 
+test('a page that only names the kit, as a link to its source does, still gets it', async () => {
+  const { withLook, fetched } = build();
+  const mentions = PAGE.replace('<p id="x">x</p>', '<a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js">look.js</a>');
+  const out = await withLook(mentions, 'show=x', 'main');
+  assert.equal(fetched.length, 2);
+  assert.ok(out.includes('window.Look ='));
+});
+
 test('a failed fetch costs the marker and nothing else', async () => {
   const { withLook } = build({});
   assert.equal(await withLook(PAGE, 'show=x', 'main'), PAGE);

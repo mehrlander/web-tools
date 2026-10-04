@@ -117,3 +117,17 @@ test('every tracked page that declares a walk or an opener passes the check', ()
   const r = py('check', ...files);
   assert.equal(r.status, 0, r.stdout);
 });
+
+test('a page loads the kit by script, gh.load or inlined source, not by naming it', () => {
+  // The kit demo's index links to look.js's source; it does not load it, and
+  // a look link to it reaches it only through the toss renderer.
+  const kit = (name, html) => JSON.parse(py('anchors', page(name, html), '--json').stdout).kit;
+  assert.equal(kit('mention.html', '<a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js">src</a>'), false);
+  assert.equal(kit('chain.html', "<script>await gh.load('kits/look.js');</script>"), true);
+  assert.equal(kit('cdn.html', '<script src="https://mehrlander.github.io/web-tools/lib/kits/look.js"></script>'), true);
+  assert.equal(kit('inlined.html', '<script>window.Look = { start };</script>'), true);
+  // A relative src resolves against the page's own folder: the demo's ../look.js.
+  const info = JSON.parse(py('anchors', 'lib/kits/demos/look.html', '--json').stdout);
+  assert.equal(info.kit, true);
+  assert.equal(JSON.parse(py('anchors', 'lib/kits/demos/index.html', '--json').stdout).kit, false);
+});

@@ -1292,8 +1292,13 @@ document.addEventListener('click',function(e){
   // leaves it as it was too, since a page without its marker still renders.
   async function withLook(text, frag, lib) {
     if (!/(?:^|&)(?:show|tap|walk|steps)=/.test(frag || '')) return text;
-    if (/kits\/look\.js|window\.Look\s*=/.test(text)) return text;
-    const want = (/kits\/land\.js|window\.Land\s*=/.test(text) ? [] : ['lib/kits/land.js']).concat('lib/kits/look.js');
+    // Loading a kit, not naming it: a page that links to look.js's source must
+    // still get the kit. A second copy would be harmless (look.js defers to
+    // the first), so the test errs toward fetching.
+    const LOOK = /<script\b[^>]*\bsrc\s*=\s*["'][^"']*kits\/look\.js|gh\.load\(\s*["']kits\/look\.js|window\.Look\s*=(?!=)/;
+    const LAND = /<script\b[^>]*\bsrc\s*=\s*["'][^"']*kits\/land\.js|gh\.load\(\s*["']kits\/land\.js|window\.Land\s*=(?!=)/;
+    if (LOOK.test(text)) return text;
+    const want = (LAND.test(text) ? [] : ['lib/kits/land.js']).concat('lib/kits/look.js');
     let kits;
     try { kits = await Promise.all(want.map(p => ghText('mehrlander', 'web-tools', lib, p))); }
     catch (e) { return text; }

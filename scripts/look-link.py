@@ -42,6 +42,7 @@ page that takes look links.
 import argparse
 import base64
 import json
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -53,13 +54,33 @@ OPEN = re.compile(r"""(?<![:\w-])data-at-open\s*=\s*(["'])(.*?)\1""", re.S)
 IDS = re.compile(r"""(?<![:\w-])id\s*=\s*(["'])([^"'\s]+)\1""")
 WALKS = re.compile(r"""<script\b[^>]*\bid\s*=\s*["']look-walks["'][^>]*>(.*?)</script>""", re.S | re.I)
 SCRIPTED = re.compile(r"""dataset\.at\s*=|setAttribute\(\s*["']data-at["']""")
-KIT = re.compile(r"""kits/look\.js|window\.Look\s*=""")
+# Loading the kit, not mentioning it: a gh.load call, the kit's own assignment
+# where a renderer has inlined it, or a script src that resolves to the kit. A
+# page that only names the file, as a link to its source does, takes no look
+# links. A relative src is resolved against the page's folder when the page's
+# path is known, since a kit demo loads it as ../look.js.
+KIT = re.compile(r"""gh\.load\(\s*["']kits/look\.js|window\.Look\s*=(?!=)""")
+SRCS = re.compile(r"""<script\b[^>]*\bsrc\s*=\s*["']([^"'?#]+)""", re.I)
+
+
+def loads_kit(text, page=None):
+    if KIT.search(text):
+        return True
+    for src in SRCS.findall(text):
+        if src.endswith("kits/look.js"):
+            return True
+        if page and not re.match(r"^(?:[a-z][a-z0-9+.-]*:|/)", src, re.I):
+            if posixpath.normpath(posixpath.join(posixpath.dirname(str(page)), src)).endswith("lib/kits/look.js"):
+                return True
+    return False
+
+
 # The literal head of a bound expression: 'row-' + x, "row-" + x, `row-${x}`.
 HEAD = re.compile(r"""^\s*(['"`])([^'"`$]*)""")
 WHOLE = re.compile(r"""^\s*(['"])([^'"]*)\1\s*$""")
 
 
-def read_page(text):
+def read_page(text, page=None):
     """What a page's source declares, for resolving and for reporting."""
     names, prefixes = set(), set()
     for _, v in LITERAL.findall(text):
@@ -82,7 +103,7 @@ def read_page(text):
         except json.JSONDecodeError as e:
             walk_error = f"look-walks is not valid JSON ({e.msg}, line {e.lineno})"
     return {
-        "kit": bool(KIT.search(text)),
+        "kit": loads_kit(text, page),
         "names": names,
         "prefixes": prefixes,
         "ids": {v for _, v in IDS.findall(text)},
@@ -184,7 +205,7 @@ def main(argv=None):
     o = ap.parse_args(argv)
 
     if o.cmd == "anchors":
-        info = read_page(Path(o.page).read_text(errors="ignore"))
+        info = read_page(Path(o.page).read_text(errors="ignore"), o.page)
         if o.json:
             print(json.dumps({k: sorted(v) if isinstance(v, set) else v for k, v in info.items()}, indent=2))
             return 0
@@ -204,12 +225,12 @@ def main(argv=None):
     if o.cmd == "check":
         bad = 0
         for page in o.pages:
-            for p in problems(read_page(Path(page).read_text(errors="ignore"))):
+            for p in problems(read_page(Path(page).read_text(errors="ignore"), page)):
                 print(f"{page}: {p}")
                 bad += 1
         return 1 if bad else 0
 
-    info = read_page(Path(o.page).read_text(errors="ignore"))
+    info = read_page(Path(o.page).read_text(errors="ignore"), o.page)
     steps = None
     if o.steps is not None:
         try:

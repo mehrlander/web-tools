@@ -770,7 +770,7 @@ def look_hints(subjects, at, warn):
     hints = []
     for p, _ in subjects:
         try:
-            info = ll.read_page((ROOT / p).read_text(errors="ignore"))
+            info = ll.read_page((ROOT / p).read_text(errors="ignore"), p)
         except OSError:
             continue
         if not info["kit"]:
