@@ -682,6 +682,8 @@
       wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }; an underline's adds { what, was, now, exact, hover, key }
       _onPop: false, _popLeave: null,
       cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
+      noteEditing: false,       // Info's note is being written, not read (editNote)
+      noteDraft: '',            // the note field's text while it is written
       hoverCard: null,          // the card a mouse is over, for its bar
       hoverBlock: null,         // the unchanged block a mouse is over, for its outline (markBlock)
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
@@ -3702,6 +3704,29 @@
         else if (mine) notes = [...notes, R.make(c.unit, this.fileBase, this.text, v)];
         this.notes = notes; this.save(); this.markBlock();
       },
+      // READ, THEN EDIT (owner, 2026-10-04: "it should let you change the
+      // note"). A note opens as text, with a pencil; the pencil, or a tap on
+      // the text, turns it into the field, and Done turns it back. A section
+      // with no note opens on the field, since a note is what the badge was
+      // tapped for. The field is shown and focused inside the tap, for the
+      // reason openBlockInfo gives: iOS raises the keyboard for no later focus.
+      // Leaving the field does not end the editing, since on a phone the tap
+      // on Done arrives after the blur, and a button swapped out under it
+      // would hand the tap to whatever took its place.
+      get noteOpen() { return this.noteEditing || !this.noteText; },
+      editNote() {
+        const f = this.$refs.info && this.$refs.info.querySelector('[data-info-note]');
+        if (!this.cardInfo || !f) return;
+        if (!this.cardInfo.pinned) this.pinInfo(true);
+        this.noteEditing = true; this.noteDraft = f.value = this.noteText;
+        f.style.display = '';
+        f.focus({ preventScroll: true });
+        f.setSelectionRange(f.value.length, f.value.length);
+      },
+      noteDone() {
+        this.noteEditing = false;
+        this.$refs.info?.querySelector('[data-info-note]')?.blur();
+      },
       // THE TRASH ON A NOTE'S ROW removes the note and closes the panel, so
       // the badge going back to "+ note" is the confirmation. Emptying the
       // field still removes it too, but nothing said so, and on a phone it
@@ -3710,12 +3735,15 @@
       // same record back, id and anchor and all.
       // The section's note, every record of it, so the trash empties the
       // section whether or not a join left two.
+      // Under a call the same button reverts rather than deletes, since what
+      // is left is the call's why; it keeps the panel open on it, as proof.
       removeNote() {
-        const gone = this.infoNotes, ids = new Set(gone.map((n) => n.id));
+        const gone = this.infoNotes, ids = new Set(gone.map((n) => n.id)), back = !!this.infoWhy;
         if (!gone.length) return;
         this.notes = this.notes.filter((n) => !ids.has(n.id));
-        this.cardInfo = null; this.save(); this.markBlock();
-        Alpine.store('toast')?.('trash', 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
+        if (back) this.noteEditing = false; else this.cardInfo = null;
+        this.save(); this.markBlock();
+        Alpine.store('toast')?.(back ? 'arrow-counter-clockwise' : 'trash', back ? 'Back to the call\'s note' : 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
           if (this.notes.some((n) => ids.has(n.id))) return;
           this.notes = [...this.notes, ...gone]; this.save(); this.markBlock();
         } });
@@ -4005,6 +4033,7 @@
         // day no header either. The change is read in the card, and as markdown
         // on Raw · changes; what the panel carries is what the card cannot, the
         // section's one note, which under a call starts as the call's why.
+        this.noteEditing = false; this.noteDraft = '';
         this.cardInfo = { i, block: null, unit: this.unitsNow().find((u) => u.card === i) || null, why: this.cardWhys(i),
           ...this.infoPlace(k) };
         // The field takes focus inside the tap, as a block's does (openBlockInfo),
@@ -4036,6 +4065,7 @@
       openBlockInfo(k, el, pinned = true) {
         const u = this.unitsNow()[k], wrap = this.$refs.md.querySelector('[data-md-block="' + k + '"]');
         if (!u || !wrap) return;
+        this.noteEditing = false; this.noteDraft = '';
         this.cardInfo = { i: null, block: k, unit: u, why: [], ...this.infoPlace(el || wrap) };
         // THE FIELD TAKES FOCUS INSIDE THE TAP. iOS raises the keyboard only
         // for a focus made while the tap is still being handled, and $nextTick
@@ -5059,24 +5089,46 @@
              section: a record kept with the draft and handed over in the record
              Send carries, never in a commit. Under a documentation call it
              starts as the call's why for the change (see infoWhy), and is the
-             reader's once edited. The field stays the same element while the
-             note is made, and its text is not reset under the caret: emptying
-             a why-started note leaves the field empty until it is put away. A
-             trash on its first line, its right edge on the panel's, for a note
-             of the reader's; its column is held otherwise, so typing never
-             reflows it. -->
+             reader's once edited. Read, it is text with its controls on its
+             first line, their right edge on the panel's: a pencil, and for a
+             note of the reader's a trash, or under a call the arrow back to
+             the call's note. Written, the row is the field: tinted, its margin
+             and padding together the read row's padding, so the words do not
+             move when it opens, and Done where the pencil was, inside the tint
+             as an input's trailing button is. Done holds its place while the
+             field is empty, so the first letter typed reflows nothing (see
+             editNote). The field stays the same element while the note is
+             made, and its text is not reset under the caret. -->
         <template x-if="cardInfo && cardInfo.unit">
-          <div class="px-3 py-2 flex items-start gap-2">
-            <textarea data-info-note rows="1" placeholder="Add a note"
-                      class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+          <div class="flex items-start gap-3" :data-info-why="noteIsWhy ? '' : null"
+               :class="noteOpen ? 'mx-1.5 my-1 px-1.5 py-1 rounded-field bg-base-200' : 'px-3 py-2'">
+            <p data-info-text x-show="!noteOpen" x-text="noteText" @click="editNote()"
+               class="flex-1 min-w-0 text-sm leading-5 whitespace-pre-wrap break-words cursor-text"></p>
+            <textarea data-info-note x-show="noteOpen" rows="1" placeholder="Add a note"
+                      class="flex-1 min-w-0 min-h-0 h-auto p-0 bg-transparent border-0 text-sm leading-5 resize-none outline-none field-sizing-content placeholder:text-base-content/40"
                       x-effect="const t = noteText; if (document.activeElement !== $el) $el.value = t"
-                      :data-info-why="noteIsWhy ? '' : null"
-                      @focus="cardInfo.pinned || pinInfo(true)" @blur="$el.value = noteText"
-                      @input="setNote($event.target.value)"></textarea>
-            <button type="button" data-info-note-remove :class="infoNotes.length ? '' : 'invisible'"
-                    class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
-                    title="Remove note" aria-label="Remove note"
-                    @click="removeNote()"><i class="ph ph-trash text-[15px]"></i></button>
+                      @focus="noteEditing = true; noteDraft = $el.value; cardInfo.pinned || pinInfo(true)"
+                      @keydown.enter="($event.metaKey || $event.ctrlKey) && ($event.preventDefault(), noteDone())"
+                      @input="noteDraft = $event.target.value; setNote(noteDraft)"></textarea>
+            <div class="shrink-0 h-5 flex items-center gap-4">
+              <template x-if="!noteOpen">
+                <button type="button" data-info-edit title="Edit note" aria-label="Edit note" @click="editNote()"
+                        class="relative h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                  <i class="ph ph-pencil-simple text-[15px]"></i></button>
+              </template>
+              <template x-if="!noteOpen && infoNotes.length">
+                <button type="button" data-info-note-remove @click="removeNote()"
+                        :title="infoWhy ? 'Back to the call\'s note' : 'Remove note'" :aria-label="infoWhy ? 'Back to the call\'s note' : 'Remove note'"
+                        class="relative h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                  <i class="ph text-[15px]" :class="infoWhy ? 'ph-arrow-counter-clockwise' : 'ph-trash'"></i></button>
+              </template>
+              <template x-if="noteOpen">
+                <button type="button" data-info-done title="Done" aria-label="Done" @click="noteDone()"
+                        :class="noteDraft.trim() || infoWhy ? '' : 'invisible'"
+                        class="relative h-5 flex items-center text-primary before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                  <i class="ph-bold ph-check text-[15px]"></i></button>
+              </template>
+            </div>
           </div>
         </template>
       </div>

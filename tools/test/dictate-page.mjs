@@ -2187,7 +2187,7 @@ try {
     const card = [...md.querySelectorAll('[data-md-card]')].find((x) => x.textContent.includes('edited'));
     out.cardMark = !!card && !!card.querySelector('[data-md-card-badge] [data-note-mark]');
     c.openCardInfo(+card.dataset.mdCard, card.querySelector('[data-md-card-badge]'), true); await wait(150);
-    out.cardNote = document.querySelector('[data-info-note]').value;
+    out.cardNote = document.querySelector('[data-info-text]').textContent;
     c.cardInfo = null;
     c.d.text = c.fileBase; c.paint(); await wait(150);
     out.back = !!md.querySelector('[data-md-block-badge][data-noted]');
@@ -2217,14 +2217,14 @@ try {
     const badgeOf = (t) => block(t).closest('[data-md-block]').querySelector('[data-md-block-badge]');
     c.d.caretAt(+block('Third para').querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
     badgeOf('Third para').click(); await wait(200);
-    const out = { emptyTrash: getComputedStyle(document.querySelector('[data-card-info] [data-info-note-remove]')).visibility };
+    const out = { emptyTrash: !document.querySelector('[data-card-info] [data-info-note-remove]') };
     c.cardInfo = null;
     c.d.caretAt(+block('Second para').querySelector('[data-src]').dataset.src + 2); c.paint(); await wait(150);
     const b = badgeOf('Second para');
     out.tip = b.hasAttribute('data-title-tip'); out.label = b.getAttribute('aria-label');
     b.click(); await wait(200);
     const info = document.querySelector('[data-card-info]'), trash = info.querySelector('[data-info-note-remove]');
-    const ir = info.getBoundingClientRect(), tr = trash.getBoundingClientRect(), fr = info.querySelector('[data-info-note]').getBoundingClientRect();
+    const ir = info.getBoundingClientRect(), tr = trash.getBoundingClientRect(), fr = info.querySelector('[data-info-text]').getBoundingClientRect();
     const pad = parseFloat(getComputedStyle(trash.closest('.px-3')).paddingRight) + parseFloat(getComputedStyle(info).borderRightWidth);
     out.shown = getComputedStyle(trash).visibility;
     out.edge = Math.round(ir.right - pad - tr.right); out.line = Math.round(tr.top + tr.height / 2 - (fr.top + 10));
@@ -2239,7 +2239,7 @@ try {
     return out;
   });
   ok('a block with no note shows no trash in its panel; on a phone the badge has no title-tip, its aria-label saying what it does',
-    removed.emptyTrash === 'hidden' && !removed.tip && removed.label === 'The note on this block', JSON.stringify(removed));
+    removed.emptyTrash && !removed.tip && removed.label === 'The note on this block', JSON.stringify(removed));
   ok('a note\'s trash sits on the field\'s first line at the panel\'s right edge; it removes the note and closes the panel, the badge back to "+ note"',
     removed.shown === 'visible' && Math.abs(removed.edge) <= 1 && Math.abs(removed.line) <= 1
       && removed.after.notes === 0 && !removed.after.open && removed.after.badge === '+ note', JSON.stringify(removed));
@@ -2260,9 +2260,11 @@ try {
     const badge = [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Third para')).closest('[data-md-block]').querySelector('[data-md-block-badge]');
     badge.click(); await wait(200);
     const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
-    const out = { fields: info.querySelectorAll('[data-info-note]').length, value: f.value };
+    const out = { fields: info.querySelectorAll('[data-info-note]').length, value: info.querySelector('[data-info-text]').textContent };
+    info.querySelector('[data-info-edit]').click(); await wait(50);
     f.value = 'One thought.'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
     out.folded = c.notesAt(u.o).map((n) => n.text);
+    c.noteDone(); await wait(50);
     c.notes = [...saved, R.make(u, c.fileBase, c.text, 'First thought.'), R.make(u, c.fileBase, c.text, 'Second thought.')]; await wait(50);
     info.querySelector('[data-info-note-remove]').click(); await wait(150);
     out.trashed = c.notesAt(u.o).length;
@@ -2650,41 +2652,68 @@ try {
     ok('the edits the file holds are staged, one already in it and one not found are not',
       JSON.stringify(st.status) === '["staged","staged","applied","stale"]' && st.cards === 2
       && st.text === DOC.replace('First para old.', 'First para new.').replace('Second para old.', 'Second para new.'), JSON.stringify(st));
-    // The call's why is the first card's note: the field's text, with no
-    // placeholder showing and no trash, since nothing of the reader's is
-    // there yet. The number wears its mark, and the Info has no diff in it.
-    // Edited, the note is the reader's: a record, the reader's mark, and a
-    // trash. Written back to the why's words it is the call's again, and an
-    // emptied field stays empty under the caret, the why back once it blurs.
+    // The call's why is the first card's note, shown as text with a pencil
+    // and nothing to remove, since nothing of the reader's is there yet. The
+    // number wears its mark, and the Info has no diff in it. The pencil puts
+    // the note in the field inside the tap, caret at its end; edited and
+    // Done, the note is the reader's: a record, the reader's mark, and an
+    // arrow back to the call's note, which keeps the panel open on the why.
+    // Written back to the why's words it is the call's again, and an emptied
+    // field stays empty under the caret, the why read again once Done.
     const why = await pg.evaluate(`(async () => { const x = ${C}, wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const b = x.$refs.md.querySelector('[data-md-card="0"] [data-md-card-badge]');
       b.click(); await wait(200); const i = document.querySelector('[data-card-info]'), f = i.querySelector('[data-info-note]');
-      const trash = () => getComputedStyle(i.querySelector('[data-info-note-remove]')).visibility;
-      const out = { why: f.value, fields: i.querySelectorAll('[data-info-note]').length, flagged: f.hasAttribute('data-info-why'),
-        trash: trash(), diff: !!i.querySelector('[data-info-diff]'),
+      const shown = (sel) => { const e = i.querySelector(sel); return !!e && e.getClientRects().length > 0; };
+      const read = () => (i.querySelector('[data-info-text]') || {}).textContent;
+      const out = { why: shown('[data-info-text]') ? read() : null, field: shown('[data-info-note]'), flagged: !!i.querySelector('[data-info-why]'),
+        edit: shown('[data-info-edit]'), remove: shown('[data-info-note-remove]'), diff: !!i.querySelector('[data-info-diff]'),
         mark: !!b.querySelector('[data-why-mark]'), other: !!x.$refs.md.querySelector('[data-md-card="1"] [data-why-mark]') };
-      f.focus(); f.value = 'one, and two'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(80);
-      out.edited = { notes: x.notes.map((n) => n.text), flagged: f.hasAttribute('data-info-why'), trash: trash(),
-        whyMark: !!b.querySelector('[data-why-mark]'), noteMark: !!b.querySelector('[data-note-mark]') };
-      f.value = 'one'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(80);
-      out.back = { notes: x.notes.length, flagged: f.hasAttribute('data-info-why'), whyMark: !!b.querySelector('[data-why-mark]') };
+      const tx = i.querySelector('[data-info-text]').getBoundingClientRect();
+      i.querySelector('[data-info-edit]').click();
+      out.inTap = { focused: document.activeElement === f, value: f.value, caret: f.selectionStart === f.value.length };
+      await wait(50);
+      // The words stand where they stood: the field's content box is the text's.
+      const fs = getComputedStyle(f), fr = f.getBoundingClientRect();
+      out.still = { dx: Math.round(fr.left + parseFloat(fs.paddingLeft) - tx.left), dy: Math.round(fr.top + parseFloat(fs.paddingTop) - tx.top),
+        dw: Math.round(fr.width - parseFloat(fs.paddingLeft) - parseFloat(fs.paddingRight) - tx.width), tinted: getComputedStyle(f.parentElement).backgroundColor !== 'rgba(0, 0, 0, 0)' };
+      out.editing = { text: shown('[data-info-text]'), field: shown('[data-info-note]'), done: shown('[data-info-done]'), edit: shown('[data-info-edit]') };
+      f.value = 'one, and two'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+      i.querySelector('[data-info-done]').click(); await wait(80);
+      const rm = i.querySelector('[data-info-note-remove]');
+      out.edited = { notes: x.notes.map((n) => n.text), read: read(), field: shown('[data-info-note]'), flagged: !!i.querySelector('[data-info-why]'),
+        back: rm && rm.getAttribute('aria-label'), whyMark: !!b.querySelector('[data-why-mark]'), noteMark: !!b.querySelector('[data-note-mark]') };
+      rm.click(); await wait(80);
+      const t = Alpine.store('toasts').find((y) => y.action);
+      out.reverted = { notes: x.notes.length, open: !!x.cardInfo, read: read(), toast: t ? t.msg : null };
+      Alpine.store('toasts').splice(0);
+      // A tap on the text edits too; Ctrl+Enter is Done.
+      i.querySelector('[data-info-text]').click(); await wait(50);
+      f.value = 'one'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+      out.same = { notes: x.notes.length, flagged: !!i.querySelector('[data-info-why]') };
       f.value = 'mine'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
       f.value = ''; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(80);
-      out.emptied = { notes: x.notes.length, value: f.value };
-      f.blur(); await wait(50); out.emptied.blurred = f.value;
+      out.emptied = { notes: x.notes.length, value: f.value, done: shown('[data-info-done]') };
+      f.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })); await wait(80);
+      out.emptied.read = shown('[data-info-text]') ? read() : null;
       x.cardInfo = null;
       // A note on the second card, which the reader then discards.
       x.openCardInfo(1, x.$refs.md.querySelector('[data-md-card="1"] [data-md-card-badge]'), true);
       await new Promise((r) => setTimeout(r, 150)); x.setNote('Keep the second as it is.'); x.cardInfo = null;
       return out; })()`);
-    ok('a call\'s why is its card\'s note, the one field\'s text with no trash, and no diff; the card\'s number wears a mark only where the call says why',
-      why.why === 'one' && why.fields === 1 && why.flagged && why.trash === 'hidden' && !why.diff && why.mark && !why.other, JSON.stringify(why));
-    ok('edited, the note is the reader\'s: a record, the reader\'s mark in place of the call\'s, and a trash',
-      why.edited.notes.join() === 'one, and two' && !why.edited.flagged && why.edited.trash === 'visible' && !why.edited.whyMark && why.edited.noteMark,
-      JSON.stringify(why.edited));
-    ok('written back to the why\'s words it is the call\'s again; emptied, the field stays empty under the caret and shows the why once it blurs',
-      why.back.notes === 0 && why.back.flagged && why.back.whyMark && why.emptied.notes === 0 && why.emptied.value === '' && why.emptied.blurred === 'one',
-      JSON.stringify({ back: why.back, emptied: why.emptied }));
+    ok('a call\'s why is its card\'s note, read as text with a pencil and nothing to remove, and no diff; the card\'s number wears a mark only where the call says why',
+      why.why === 'one' && !why.field && why.flagged && why.edit && !why.remove && !why.diff && why.mark && !why.other, JSON.stringify(why));
+    ok('the pencil puts the note in the field inside the tap, caret at its end, the text and pencil giving way to the field and Done',
+      why.inTap.focused && why.inTap.value === 'one' && why.inTap.caret
+        && !why.editing.text && why.editing.field && why.editing.done && !why.editing.edit, JSON.stringify({ inTap: why.inTap, editing: why.editing }));
+    ok('the field opens tinted, with its words where the text\'s stood', why.still.tinted && !why.still.dx && !why.still.dy && Math.abs(why.still.dw) <= 1, JSON.stringify(why.still));
+    ok('edited and Done, the note is the reader\'s, read as text: a record, the reader\'s mark in place of the call\'s, and an arrow back to the call\'s note',
+      why.edited.notes.join() === 'one, and two' && why.edited.read === 'one, and two' && !why.edited.field && !why.edited.flagged
+        && why.edited.back === 'Back to the call\'s note' && !why.edited.whyMark && why.edited.noteMark, JSON.stringify(why.edited));
+    ok('the arrow puts the call\'s note back with the panel still open on it, and says so',
+      why.reverted.notes === 0 && why.reverted.open && why.reverted.read === 'one' && why.reverted.toast === 'Back to the call\'s note', JSON.stringify(why.reverted));
+    ok('a tap on the text edits too; written back to the why\'s words it is the call\'s again; emptied, the field stays empty under the caret, and Ctrl+Enter reads the why again',
+      why.same.notes === 0 && why.same.flagged && why.emptied.notes === 0 && why.emptied.value === '' && why.emptied.done && why.emptied.read === 'one',
+      JSON.stringify({ same: why.same, emptied: why.emptied }));
     await pg.evaluate(`(() => { const x = ${C}; x.toggleConfirm(0); x.rejectCard(window.MdSurface.cards(x.$refs.md)[1]); })()`);
     await pg.waitForTimeout(300);
     await pg.evaluate(`${C}.openAnswer()`);

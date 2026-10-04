@@ -12,7 +12,11 @@
 //   CALL_STEP=answer  the first edit confirmed, the second discarded with a
 //                     note on it, and the answer sheet open on its JSON
 //   CALL_STEP=raw     the Raw · changes face: the same cards over the markdown
-//   CALL_STEP=info    the second card's Info: its note, the call's why until edited
+//   CALL_STEP=info    the second card's Info: its note, the call's why until
+//                     edited, read as text with a pencil
+//   CALL_STEP=edit    the same note after the pencil: the field and Done
+//   CALL_STEP=mine    the note edited and Done: the reader's, with the arrow
+//                     back to the call's note
 //
 // Logs CARDS <n> and, at answer, the decisions, so the log says what the page
 // read without the PNG.
@@ -35,11 +39,19 @@ export default async (page) => {
     await page.waitForTimeout(300);
     return;
   }
-  if (STEP === 'info') {
+  if (['info', 'edit', 'mine'].includes(STEP)) {
     await page.evaluate(`${c}.$refs.md.querySelector('[data-md-card="1"]').scrollIntoView({ block: 'center' })`);
     await page.waitForTimeout(300);
     await page.locator('[data-md-card="1"] [data-md-card-badge]').tap();
     await page.waitForTimeout(500);
+    if (STEP === 'info') return;
+    await page.locator('[data-info-edit]').tap();
+    await page.waitForTimeout(300);
+    if (STEP === 'edit') return;
+    await page.keyboard.press('End');
+    await page.keyboard.type(', which the doc no longer needs to explain');
+    await page.locator('[data-info-done]').tap();
+    await page.waitForTimeout(400);
     return;
   }
   if (STEP !== 'answer') return;
