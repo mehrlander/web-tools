@@ -2168,6 +2168,11 @@ try {
     out.inTap = !!document.activeElement && document.activeElement.matches('[data-info-note]') && !!document.activeElement.getClientRects().length;
     await wait(200);
     const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
+    // Hung from the badge, as a dropdown is: its top 6px under the number and
+    // its left edge on the number's, not clear of the whole paragraph.
+    const nb = badge.getBoundingClientRect(), ib = info.getBoundingClientRect();
+    out.hung = { gap: Math.round(ib.top - nb.bottom), left: Math.round(ib.left - Math.max(8, Math.min(innerWidth - ib.width - 8, nb.left))),
+      clear: ib.top < pr.bottom };
     out.head = !!info.querySelector('[data-info-sum], [data-info-kind]');
     out.diff = !!info.querySelector('[data-info-diff]'); out.focused = document.activeElement === f;
     f.value = 'Is this still true?'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
@@ -2188,6 +2193,8 @@ try {
     out.back = !!md.querySelector('[data-md-block-badge][data-noted]');
     return out;
   });
+  ok('the badge\'s panel hangs from the badge, 6px under the number with its left edge on the number\'s, over the paragraph rather than below it',
+    blockNote.hung.gap === 6 && Math.abs(blockNote.hung.left) <= 1 && blockNote.hung.clear, JSON.stringify(blockNote.hung));
   ok('the caret in an unchanged paragraph outlines that block alone, its badge at the top left as a card\'s number is, nothing scrolling sideways',
     blockNote.outlined && blockNote.lit === 1 && blockNote.badge && blockNote.topLeft && blockNote.overflow === 0, JSON.stringify(blockNote));
   ok('a mouse over another paragraph washes it and leaves the caret\'s outline in place, each with a badge; leaving takes only the wash',
@@ -2239,6 +2246,41 @@ try {
   ok('the toast says the note was removed, and its Undo puts the same record back',
     removed.after.toast === 'Note removed|Undo' && removed.undo.same && removed.undo.notes === 'Is this still true?' && removed.undo.badge === 'note' && removed.undo.toasts === 0,
     JSON.stringify({ after: removed.after, undo: removed.undo }));
+  // ONE NOTE PER SECTION (owner, 2026-10-04). Two records on one section, as
+  // a join of two noted paragraphs leaves, read as one field; the first edit
+  // folds them into one record, and the trash takes the section's whole note,
+  // its Undo putting both back. And with no room under the badge, the panel
+  // opens over it.
+  const single = await page.evaluate(async () => {
+    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], md = c.$refs.md, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const R = window.DictateRecord, saved = c.notes;
+    const u = c.unitsNow().find((x) => c.text.slice(x.o[0], x.o[1]).includes('Third para'));
+    c.notes = [...saved, R.make(u, c.fileBase, c.text, 'First thought.'), R.make(u, c.fileBase, c.text, 'Second thought.')];
+    c.d.caretAt(u.o[0] + 2); c.paint(); await wait(150);
+    const badge = [...md.querySelectorAll('[data-md-block] p')].find((x) => x.textContent.includes('Third para')).closest('[data-md-block]').querySelector('[data-md-block-badge]');
+    badge.click(); await wait(200);
+    const info = document.querySelector('[data-card-info]'), f = info.querySelector('[data-info-note]');
+    const out = { fields: info.querySelectorAll('[data-info-note]').length, value: f.value };
+    f.value = 'One thought.'; f.dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+    out.folded = c.notesAt(u.o).map((n) => n.text);
+    c.notes = [...saved, R.make(u, c.fileBase, c.text, 'First thought.'), R.make(u, c.fileBase, c.text, 'Second thought.')]; await wait(50);
+    info.querySelector('[data-info-note-remove]').click(); await wait(150);
+    out.trashed = c.notesAt(u.o).length;
+    const t = Alpine.store('toasts').find((x) => x.action);
+    if (t) t.action.run();
+    await wait(100);
+    out.undone = c.notesAt(u.o).map((n) => n.text).sort().join('|');
+    const floor = c.$refs.view.getBoundingClientRect().bottom;
+    out.over = c.infoPlace({ getBoundingClientRect: () => ({ top: floor - 40, bottom: floor - 20, left: 30 }) }).pos;
+    out.under = c.infoPlace({ getBoundingClientRect: () => ({ top: 100, bottom: 120, left: 30 }) }).pos;
+    c.notes = saved; c.save(); c.cardInfo = null; c.d.caretAt(0); c.paint(); await wait(100);
+    return out;
+  });
+  ok('a section holds one note: two records on it read as one field, the first edit folds them into one, and the trash takes both, Undo putting both back',
+    single.fields === 1 && single.value === 'First thought.\n\nSecond thought.' && single.folded.join('|') === 'One thought.'
+      && single.trashed === 0 && single.undone === 'First thought.|Second thought.', JSON.stringify(single));
+  ok('with room under the badge the panel opens under it, and with none it opens over it',
+    single.under === 'top:126px' && /^bottom:\d+px$/.test(single.over), JSON.stringify({ under: single.under, over: single.over }));
   const kept = await page.evaluate(async () => {
     const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0], wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const on = () => c.notes.map((n) => (n.o == null ? null : c.fileBase.slice(n.o, n.e))).join();

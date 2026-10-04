@@ -304,9 +304,10 @@
     A NOTE IS ON A BLOCK, CHANGED OR NOT, and is not part of any commit.
     The block the caret is in (on a desk, the one under the mouse) wears a
     dashed outline at the extent the card would take, and a badge in the
-    margin opens its note; a card's note is written in its Info, which holds
-    notes and nothing else: under a documentation call it opens on the
-    call's why for that change, and the reader's note goes under it. Notes are
+    margin opens its note, one per block; a card's note is written in its
+    Info, which holds the note and nothing else, hung from the card's number
+    as a dropdown: under a documentation call it opens on the call's why for
+    that change, and the reader's note goes under it. Notes are
     records anchored to GitHub's copy (kits/dictate-record.js), so they keep
     their paragraph through edits, through Apply and Save, and through Clear
     all edits; they are kept with no edit at all; and they leave in the
@@ -3675,22 +3676,21 @@
         return this.notes.filter((n) => { const u = at.get(n.id); return u && u.o[0] === o[0] && u.o[1] === o[1]; });
       },
       get infoNotes() { this.beat; this.notes; return this.cardInfo && this.cardInfo.unit ? this.notesAt(this.cardInfo.unit.o) : []; },
-      // THE ONE FIELD writes the unit's first note: typing into it makes the
-      // note, emptying it deletes it. The field stays the same element
-      // throughout, so the keyboard stays up through the note being made.
+      // ONE NOTE PER SECTION (owner, 2026-10-04). The field is the unit's
+      // note: typing makes it, emptying it deletes it, and it stays the same
+      // element throughout, so the keyboard stays up while it is written.
+      // Two noted paragraphs joined into one card still hold two records;
+      // the field shows them as one text (noteText), and the first edit folds
+      // them into the first record, so a section never shows a list.
+      get noteText() { return this.infoNotes.map((n) => n.text).join('\n\n'); },
       setNote(v) {
         const c = this.cardInfo, R = window.DictateRecord;
         if (!c || !c.unit || !R) return;
-        const first = this.infoNotes[0];
-        if (first) this.notes = v.trim() ? this.notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== first.id);
-        else if (v.trim()) this.notes = [...this.notes, R.make(c.unit, this.fileBase, this.text, v)];
-        this.save(); this.markBlock();
-      },
-      // A second note on one unit only arises when two noted paragraphs
-      // become one card; each keeps its own field.
-      editNote(id, v) {
-        this.notes = v.trim() ? this.notes.map((n) => (n.id === id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== id);
-        this.save(); this.markBlock();
+        const [first, ...rest] = this.infoNotes, drop = new Set(rest.map((n) => n.id));
+        let notes = this.notes.filter((n) => !drop.has(n.id));
+        if (first) notes = v.trim() ? notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : notes.filter((n) => n.id !== first.id);
+        else if (v.trim()) notes = [...notes, R.make(c.unit, this.fileBase, this.text, v)];
+        this.notes = notes; this.save(); this.markBlock();
       },
       // THE TRASH ON A NOTE'S ROW removes the note and closes the panel, so
       // the badge going back to "+ note" is the confirmation. Emptying the
@@ -3698,14 +3698,16 @@
       // took a select-all first (owner, 2026-10-02). The page's Undo walks the
       // text and not the notes, so the way back is the toast's, which puts the
       // same record back, id and anchor and all.
-      removeNote(id) {
-        const gone = this.notes.find((n) => n.id === id);
-        if (!gone) return;
-        this.notes = this.notes.filter((n) => n.id !== id);
+      // The section's note, every record of it, so the trash empties the
+      // section whether or not a join left two.
+      removeNote() {
+        const gone = this.infoNotes, ids = new Set(gone.map((n) => n.id));
+        if (!gone.length) return;
+        this.notes = this.notes.filter((n) => !ids.has(n.id));
         this.cardInfo = null; this.save(); this.markBlock();
         Alpine.store('toast')?.('trash', 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
-          if (this.notes.some((n) => n.id === id)) return;
-          this.notes = [...this.notes, gone]; this.save(); this.markBlock();
+          if (this.notes.some((n) => ids.has(n.id))) return;
+          this.notes = [...this.notes, ...gone]; this.save(); this.markBlock();
         } });
       },
       // A draft from before notes were records (2026-10-01) kept them by card
@@ -3994,7 +3996,7 @@
         // on Raw · changes; what the panel carries is what the card cannot: why
         // a call proposed the change, and the reader's own note.
         this.cardInfo = { i, block: null, unit: this.unitsNow().find((u) => u.card === i) || null, why: this.cardWhys(i),
-          ...this.infoPlace(k.closest && k.closest('[data-md-card]') || k) };
+          ...this.infoPlace(k) };
         // The field takes focus inside the tap, as a block's does (openBlockInfo),
         // unless the call has something to be read first.
         if (pinned) queueMicrotask(() => {
@@ -4005,16 +4007,18 @@
         });
         this.$nextTick(() => this.pinInfo(pinned));
       },
-      // Above or below the unit, not its badge: the badge sits on the unit's
-      // edge, and a panel hung from it covered the very text it is about.
+      // A DROPDOWN FROM THE BADGE (owner, 2026-10-04), as a panel-tip hangs
+      // from its trigger: under the number, its left edge on the number's, or
+      // over it when the text pane has no room below. Until then it stood
+      // clear of the whole section, which put a short note a long way from
+      // the badge that opened it; covering a few words is what a dropdown does.
       infoPlace(el) {
         const b = el.getBoundingClientRect();
-        const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
-        const below = innerHeight - b.bottom > b.top;
-        return { w,
-          x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
-          // 16px clear of the unit, past the pills that straddle its edges.
-          pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px' };
+        const w = Math.min(this.desk ? 420 : 340, innerWidth - 16);
+        const floor = this.$refs.view ? this.$refs.view.getBoundingClientRect().bottom : innerHeight;
+        const below = floor - b.bottom >= 160 || floor - b.bottom > b.top;
+        return { w, x: Math.max(8, Math.min(innerWidth - w - 8, b.left)),
+          pos: below ? 'top:' + Math.round(b.bottom + 6) + 'px' : 'bottom:' + Math.round(innerHeight - b.top + 6) + 'px' };
       },
       // AN UNCHANGED BLOCK'S PANEL is a card's Info with no change in it: its
       // note, and a field for one when it has none, focused, since a note is
@@ -4022,7 +4026,7 @@
       openBlockInfo(k, el, pinned = true) {
         const u = this.unitsNow()[k], wrap = this.$refs.md.querySelector('[data-md-block="' + k + '"]');
         if (!u || !wrap) return;
-        this.cardInfo = { i: null, block: k, unit: u, why: [], ...this.infoPlace(wrap) };
+        this.cardInfo = { i: null, block: k, unit: u, why: [], ...this.infoPlace(el || wrap) };
         // THE FIELD TAKES FOCUS INSIDE THE TAP. iOS raises the keyboard only
         // for a focus made while the tap is still being handled, and $nextTick
         // is far too late: Alpine holds it until the panel's fade has run, a
@@ -5052,37 +5056,22 @@
             </template>
           </div>
         </template>
-        <!-- THE NOTE ON THE UNIT, a card or an unchanged block: a record kept
-             with the draft and handed over in the record Send carries, never
-             in a commit. One field writes the first note and stays the same
-             element while it is made; a second only arises when two noted
-             paragraphs become one card, and keeps its own field. Each field
-             has a trash on its first line, its right edge on the panel's, the
-             same edge as the kind pill in the header; the first one's column
-             is held while the field is empty, so typing never reflows it. -->
+        <!-- THE NOTE ON THE SECTION, a card or an unchanged block, one per
+             section: a record kept with the draft and handed over in the record
+             Send carries, never in a commit. The field stays the same element
+             while the note is made. A trash on its first line, its right edge
+             on the panel's; its column is held while the field is empty, so
+             typing never reflows it. -->
         <template x-if="cardInfo && cardInfo.unit">
-          <div class="px-3 py-2 flex flex-col gap-1.5">
-            <div class="flex items-start gap-2">
-              <textarea data-info-note rows="1" placeholder="Add a note"
-                        class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                        :value="infoNotes[0] ? infoNotes[0].text : ''" @focus="cardInfo.pinned || pinInfo(true)"
-                        @input="setNote($event.target.value)"></textarea>
-              <button type="button" data-info-note-remove :class="infoNotes[0] ? '' : 'invisible'"
-                      class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
-                      title="Remove note" aria-label="Remove note"
-                      @click="infoNotes[0] && removeNote(infoNotes[0].id)"><i class="ph ph-trash text-[15px]"></i></button>
-            </div>
-            <template x-for="n in infoNotes.slice(1)" :key="n.id">
-              <div class="flex items-start gap-2 pt-1.5 border-t border-base-300">
-                <textarea data-info-note rows="1"
-                          class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 rounded-none text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                          :value="n.text" @focus="cardInfo.pinned || pinInfo(true)" @input="editNote(n.id, $event.target.value)"></textarea>
-                <button type="button" data-info-note-remove
-                        class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
-                        title="Remove note" aria-label="Remove note"
-                        @click="removeNote(n.id)"><i class="ph ph-trash text-[15px]"></i></button>
-              </div>
-            </template>
+          <div class="px-3 py-2 flex items-start gap-2">
+            <textarea data-info-note rows="1" placeholder="Add a note"
+                      class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
+                      :value="noteText" @focus="cardInfo.pinned || pinInfo(true)"
+                      @input="setNote($event.target.value)"></textarea>
+            <button type="button" data-info-note-remove :class="infoNotes.length ? '' : 'invisible'"
+                    class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
+                    title="Remove note" aria-label="Remove note"
+                    @click="removeNote()"><i class="ph ph-trash text-[15px]"></i></button>
           </div>
         </template>
       </div>
