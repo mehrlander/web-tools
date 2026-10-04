@@ -63,8 +63,15 @@ KIT = re.compile(r"""gh\.load\(\s*["']kits/look\.js|window\.Look\s*=(?!=)""")
 SRCS = re.compile(r"""<script\b[^>]*\bsrc\s*=\s*["']([^"'?#]+)""", re.I)
 
 
-def loads_kit(text, page=None):
-    if KIT.search(text):
+# Booting the web-tools loader, which loads the kit itself when a fragment asks
+# for a look marker (lib/gh-boot.js, LOOK_BOOT): an import of entry.js or
+# gh-api.js, or of a pre-build.
+BOOTS = re.compile(r"""(?:import\s*\(\s*|import\s+|from\s*|src\s*=\s*)["'`][^"'`]*(?:lib/entry\.js|gh-api\.js|dist/(?:web-tools|app)\.js)""")
+
+
+def takes_look(text, page=None):
+    """Whether a look link reaches this page without the toss renderer."""
+    if KIT.search(text) or BOOTS.search(text):
         return True
     for src in SRCS.findall(text):
         if src.endswith("kits/look.js"):
@@ -103,7 +110,7 @@ def read_page(text, page=None):
         except json.JSONDecodeError as e:
             walk_error = f"look-walks is not valid JSON ({e.msg}, line {e.lineno})"
     return {
-        "kit": loads_kit(text, page),
+        "takes": takes_look(text, page),
         "names": names,
         "prefixes": prefixes,
         "ids": {v for _, v in IDS.findall(text)},
@@ -124,7 +131,9 @@ def resolve(info, at):
         return "prefix"
     if at in info["ids"]:
         return "id"
-    if info["scripted"]:
+    # A page that sets names from script, or declares none at all, can only be
+    # checked on the rendered page, by the kit.
+    if info["scripted"] or not (info["names"] or info["prefixes"]):
         return "unchecked"
     return None
 
@@ -217,9 +226,9 @@ def main(argv=None):
             print(f"{i}\tid")
         for w in sorted(info["walks"]):
             print(f"{w}\twalk")
-        if not info["kit"]:
-            print("! this page does not load kits/look.js, so a look link reaches it only through the toss renderer",
-                  file=sys.stderr)
+        if not info["takes"]:
+            print("! this page neither boots the web-tools loader nor loads kits/look.js, "
+                  "so a look link reaches it only through the toss renderer", file=sys.stderr)
         return 0
 
     if o.cmd == "check":
@@ -254,9 +263,9 @@ def main(argv=None):
                   file=sys.stderr)
         elif how == "unchecked":
             print(f"note: {at!r} resolves only on the rendered page, so it is unchecked here", file=sys.stderr)
-    if not info["kit"]:
-        print("! this page does not load kits/look.js, so the link works only through the toss renderer",
-              file=sys.stderr)
+    if not info["takes"]:
+        print("! this page neither boots the web-tools loader nor loads kits/look.js, "
+              "so the link works only through the toss renderer", file=sys.stderr)
     return 1 if misses else 0
 
 

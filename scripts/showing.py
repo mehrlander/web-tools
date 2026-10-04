@@ -734,9 +734,10 @@ def routes_on_hash(page):
 GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏"}
 
 
-# LOOK LINKS (lib/kits/look.js): a page that loads the kit lands on a place
-# when its fragment asks, so the moment a link to it is handed over is the
-# moment to say so, and to check any anchor the link already names. The anchor
+# LOOK LINKS (lib/kits/look.js): a page that loads the kit, or boots the
+# loader that brings it on demand, lands on a place when its fragment asks, so
+# the moment a link to it is handed over is the moment to say so, and to check
+# any anchor the link already names. The anchor
 # reading lives in scripts/look-link.py, imported rather than repeated; where
 # that file is absent (this script fetched alone into another repo) the hint
 # is simply not given.
@@ -773,7 +774,7 @@ def look_hints(subjects, at, warn):
             info = ll.read_page((ROOT / p).read_text(errors="ignore"), p)
         except OSError:
             continue
-        if not info["kit"]:
+        if not info["takes"]:
             continue
         if keys:
             steps = None
@@ -787,7 +788,10 @@ def look_hints(subjects, at, warn):
                                  walk=asked.get("walk"), steps=steps):
                 warn.append(f"look link on {p}: {miss}, so the reader would get a \"not on this page\" card. "
                             f"Its anchors: {look_cmd()} anchors {p}")
-        else:
+        elif info["names"] or info["prefixes"] or info["walks"]:
+            # Only a page that declares anchors gets the hint: every page that
+            # boots the loader takes look links, and a hint on all of them
+            # would be noise at every handover.
             names = sorted(info["names"])
             hints.append({"page": p, "anchors": names[:6], "more": max(0, len(names) - 6),
                           "prefixes": sorted(info["prefixes"]), "walks": sorted(info["walks"])})

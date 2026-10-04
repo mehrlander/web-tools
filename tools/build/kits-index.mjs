@@ -95,11 +95,18 @@ export function namespaceOf(src) {
   return last;
 }
 
-/** Kit load paths gh-boot.js pulls in on every page (BOOT plus FAB_BOOT). */
+/**
+ * Kit load paths gh-boot.js pulls in on every page (BOOT plus FAB_BOOT). Read
+ * from those two declarations only: LOOK_BOOT, declared after them, loads on
+ * demand, and a kit a page pays for only when asked is not a boot cost.
+ */
 function bootSet(repoRoot) {
   const src = read(repoRoot, 'lib/gh-boot.js');
+  const start = src.indexOf('const BOOT = [');
+  const fab = src.indexOf('const FAB_BOOT = {');
+  const manifest = start === -1 || fab === -1 ? src : src.slice(start, src.indexOf('\n};', fab) + 3);
   const out = new Set();
-  for (const m of src.matchAll(/['"](kits\/[\w-]+\.js)['"]/g)) out.add(m[1]);
+  for (const m of manifest.matchAll(/['"](kits\/[\w-]+\.js)['"]/g)) out.add(m[1]);
   return out;
 }
 

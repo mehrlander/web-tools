@@ -49,7 +49,7 @@ test('a literal, a bound prefix, a whole bound literal and an id are each counte
   assert.deepEqual(info.prefixes, ['item-', 'row-']);
   assert.ok(info.ids.includes('plain'));
   assert.deepEqual(info.opens, ['tab-a']);
-  assert.equal(info.kit, true);
+  assert.equal(info.takes, true);
   assert.deepEqual(Object.keys(info.walks), ['good']);
 });
 
@@ -118,16 +118,27 @@ test('every tracked page that declares a walk or an opener passes the check', ()
   assert.equal(r.status, 0, r.stdout);
 });
 
-test('a page loads the kit by script, gh.load or inlined source, not by naming it', () => {
-  // The kit demo's index links to look.js's source; it does not load it, and
-  // a look link to it reaches it only through the toss renderer.
-  const kit = (name, html) => JSON.parse(py('anchors', page(name, html), '--json').stdout).kit;
-  assert.equal(kit('mention.html', '<a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js">src</a>'), false);
-  assert.equal(kit('chain.html', "<script>await gh.load('kits/look.js');</script>"), true);
-  assert.equal(kit('cdn.html', '<script src="https://mehrlander.github.io/web-tools/lib/kits/look.js"></script>'), true);
-  assert.equal(kit('inlined.html', '<script>window.Look = { start };</script>'), true);
+test('a page takes look links by loading the kit or booting the loader, not by naming either', () => {
+  // The kit demo's index links to look.js's source and boots nothing; a look
+  // link reaches it only through the toss renderer.
+  const takes = (name, html) => JSON.parse(py('anchors', page(name, html), '--json').stdout).takes;
+  assert.equal(takes('mention.html', '<a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js">src</a>'), false);
+  assert.equal(takes('chain.html', "<script>await gh.load('kits/look.js');</script>"), true);
+  assert.equal(takes('cdn.html', '<script src="https://mehrlander.github.io/web-tools/lib/kits/look.js"></script>'), true);
+  assert.equal(takes('inlined.html', '<script>window.Look = { start };</script>'), true);
+  // Booting the loader is enough: gh-boot.js brings the kit when a fragment asks.
+  assert.equal(takes('boots.html', "<script type=module>await import('https://mehrlander.github.io/web-tools/lib/entry.js');</script>"), true);
+  assert.equal(takes('prebuilt.html', "<script type=module>import '../dist/web-tools.js';</script>"), true);
   // A relative src resolves against the page's own folder: the demo's ../look.js.
-  const info = JSON.parse(py('anchors', 'lib/kits/demos/look.html', '--json').stdout);
-  assert.equal(info.kit, true);
-  assert.equal(JSON.parse(py('anchors', 'lib/kits/demos/index.html', '--json').stdout).kit, false);
+  assert.equal(JSON.parse(py('anchors', 'lib/kits/demos/look.html', '--json').stdout).takes, true);
+  assert.equal(JSON.parse(py('anchors', 'lib/kits/demos/index.html', '--json').stdout).takes, false);
+});
+
+test('a page that declares no anchors cannot fail a name, only leave it unchecked', () => {
+  const plain = page('plain.html', "<script type=module>await import('../lib/entry.js');</script><button id=go>Go</button>");
+  let r = py('make', plain, '--tap', 'go');
+  assert.equal(r.status, 0);
+  r = py('make', plain, '--show', 'whatever');
+  assert.equal(r.status, 0);
+  assert.match(r.stderr, /unchecked here/);
 });
