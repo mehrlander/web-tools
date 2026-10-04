@@ -366,3 +366,22 @@ test('a page without Phosphor is given its stylesheets once; a page that links t
   w.Look.start([{ at: 'a', say: 'x' }]);
   assert.equal(links(w).length, 2, 'nothing added beside the page\'s own');
 });
+
+test('the layer clips nothing, and a mark at the right edge stays inside the page', async () => {
+  // A zero-height layer that clipped sideways drew nothing on an iPhone: the
+  // tint and the step's number were gone and only the fixed dock showed. With
+  // no clip, the page's width is kept by clamping each mark to it instead.
+  const w = realm('<button data-at="edge">Edge</button>');
+  const vw = w.innerWidth;
+  w.document.querySelector('[data-at="edge"]').getBoundingClientRect =
+    () => ({ top: 100, bottom: 130, left: vw - 60, right: vw, width: 60, height: 30 });
+  w.Look.start([{ at: 'edge', tap: true, say: 'here' }, { at: 'edge', say: 'again' }]);
+  await wait(60);
+  const q = (k) => w.document.querySelector(`[data-look="${k}"]`);
+  const layer = q('layer');
+  assert.equal(layer.style.overflow + layer.style.overflowX + layer.style.overflowY, '', 'no clip on the layer');
+  const right = (el) => parseFloat(el.style.left) + parseFloat(el.style.width || el.offsetWidth || 0);
+  assert.ok(right(q('halo')) <= vw, `halo ends at ${right(q('halo'))}, inside ${vw}`);
+  assert.ok(parseFloat(q('num').style.left) + 24 <= vw, 'the number too');
+  assert.ok(parseFloat(q('pointer').style.left) >= 0, 'and the hand');
+});
