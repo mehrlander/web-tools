@@ -57,6 +57,8 @@
     "test:tabstrip": "node tools/test/fab-tabstrip-geometry.mjs",
     "test:deck-dock": "node tools/test/deck-dock-reflow.mjs",
     "test:session-chrome": "node tools/test/session-chrome-flow.mjs",
+    "test:session-find": "node tools/test/session-find-browser.mjs",
+    "test:session-search": "node tools/test/session-search-browser.mjs",
     "test:ask-fill": "node tools/test/chat-render-ask-fill.mjs",
     "test:deck-split": "node tools/test/deck-split-drag.mjs",
     "test:stage-split": "node tools/test/stage-split-drag.mjs",

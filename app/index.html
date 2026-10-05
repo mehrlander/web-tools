@@ -2448,6 +2448,14 @@ function app(){ return {
       // and nothing afterwards told it the token had arrived.
       document.dispatchEvent(new CustomEvent('web-tools:auth-state', { detail: s }));
     });
+    // Search can be the first view opened. Its reader lives in the lazily
+    // mounted estate, so replay the request after that component can hear it.
+    document.addEventListener('web-tools:open-session', (e) => {
+      if (this.estateSeen || !e.detail?.id) return;
+      const detail = { ...e.detail, replace: true };
+      this.goSessions();
+      this.$nextTick(() => document.dispatchEvent(new CustomEvent('web-tools:open-session', { detail })));
+    });
     document.addEventListener('web-tools:config-saved', async () => {
       // Rebuild the cache, THEN fan out the reload. refreshConfigs awaits the
       // forced rebuild before it dispatches web-tools:configs-refreshed, so the
@@ -5633,7 +5641,15 @@ function app(){ return {
     // the nav stop and Sessions is the pane it opens. A link is an address, and
     // an address that lands somewhere other than the tap of the same name is the
     // bug this alias fixes.
-    { key: 'sessions', alias: 'activity', open(){ this.goSessions(); },
+    { key: 'sessions', alias: 'activity',
+      open(u = {}){
+        this.sessionSpec = u.session || '';
+        this.sessionFind = this.sessionSpec ? String(u.find || '').trim() : '';
+        this.goSessions();
+        if (this._restoring) document.dispatchEvent(new CustomEvent('web-tools:restore-session', {
+          detail: { id: this.sessionSpec, find: this.sessionFind, pane: u.pane, card: u.card },
+        }));
+      },
       stamp(p){
         // The session open in its swiper, the exact counterpart of `detail` on
         // the row above. Sessions were the one thing in the Activity group with
@@ -5643,6 +5659,7 @@ function app(){ return {
         // because it is the record's filename stem and resolves against the
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
+        if (this.sessionSpec && this.sessionFind) p.set('find', this.sessionFind);
         // The SET, which is the pane's scope rather than one open record, so it
         // outlives the deck: closing a swiper drops `session=` and leaves the
         // reader on the set they arrived with, not on whatever the default
@@ -5812,7 +5829,7 @@ function app(){ return {
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
-              'session', 'set', 'topic', 'lens', 'grain',
+              'session', 'set', 'topic', 'lens', 'grain', 'find',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -5863,6 +5880,8 @@ function app(){ return {
              appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '',
              sq: p.get('sq') || '', smode: p.get('smode') || '', srepo: p.get('srepo') || '', sref: p.get('sref') || '',
              spath: p.get('spath') || '', sfile: p.get('sfile') || '',
+             session: p.get('session') || '', find: p.get('find') || '',
+             pane: p.get('pane') || '', card: p.get('card'),
              item: p.get('item') || '',
              window: this.parseWindowParam(p.get('window')) };
   },
@@ -5939,10 +5958,18 @@ function app(){ return {
     this.syncUrl();
   },
   sessionSpec: new URLSearchParams(location.search).get('session') || '',
-  setSession(spec){
-    if (this.sessionSpec === spec) return;
-    this.sessionSpec = spec || '';
-    this.syncUrl();
+  sessionFind: (new URLSearchParams(location.search).get('find') || '').trim(),
+  setSession(spec, find = ''){
+    spec = spec || '';
+    find = spec ? String(find || '').trim() : '';
+    if (this.sessionSpec === spec && this.sessionFind === find) return;
+    this.sessionSpec = spec;
+    this.sessionFind = find;
+    // The session deck owns its history entry. Its active record and query
+    // replace that entry, so Back leaves the reader in one step.
+    const restoring = this._restoring;
+    this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
   },
   sessionSetSpec: new URLSearchParams(location.search).get('set') || '',
   setSessionSet(spec){

@@ -341,8 +341,9 @@ test('a session hit dispatches web-tools:open-session', async () => {
   await data.run();
   const seen = [];
   window.document.addEventListener('web-tools:open-session', e => seen.push(e.detail));
+  data.q = 'a different, unsubmitted query';
   data.openHit(data.hits[0]);
-  assert.deepEqual(j(seen), [{ id: 'aaaa1111', day: '2026-08-02' }]);
+  assert.deepEqual(j(seen), [{ id: 'aaaa1111', day: '2026-08-02', find: 'ask' }]);
 });
 
 // ── The chats lane ──────────────────────────────────────────────────────────
