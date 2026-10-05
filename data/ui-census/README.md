@@ -17,8 +17,8 @@ has assessed the codes.
 | [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis | authored, settled at synthesis |
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
-| `shots.csv` | one unit whose screenshot needs more than its address: a query, a fixture script, or a click | authored |
-| `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, and `thumbs.csv` naming them | `tools/build/ui-shots.mjs` |
+| `shots.csv` | one unit whose screenshot needs more than its address: a query, a fixture script, a click, or a focus other than its host's | authored |
+| `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped to where the unit's own content starts, and `thumbs.csv` naming them with the focus each crop used | `tools/build/ui-shots.mjs` |
 
 Regenerate the snapshot with `npm run ui-census -- --write --date <date>`,
 from a checkout that has `home` beside it. Without `--write` it prints counts.
