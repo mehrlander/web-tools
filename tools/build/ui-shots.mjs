@@ -108,17 +108,25 @@ function derive(u) {
 // Where a unit's own content starts, by host. The Map draws its tabs' bodies as
 // sections; a repo view's tab sits under the view's tab strip; every other view
 // of the Web Tools app starts below the app's nav, at <main>. A budget-drs tab
-// sits under its view's first-tier strip, beside the app's sidebar.
-function focusOf(u, r) {
-  if (r.page !== 'app/index.html' && !r.page.endsWith('app/view/app.html')) return '';
+// sits under the first tab strip inside its view's section, beside the app's
+// sidebar; a budget-drs view with no strip (Reversions' stepper, Search) starts
+// at that section. A page, framed or not, is its own unit and keeps its window.
+function focusOf(u) {
+  if (u.kind === 'page' || u.kind === 'framed page') return '';
   if (u.host === 'Web Tools app' && u.view === 'map') return 'top:[data-pane="map"] section || top:main';
   if (u.host === 'Web Tools app' && u.group === 'repo' && u.kind === 'tab') return 'below:main [role="tablist"] || top:main';
   if (u.host === 'Web Tools app') return 'top:main';
-  return 'below:.vs-page > [role="tablist"] || top:main';
+  return 'below:section[id^="view-"] [role="tablist"] || top:section[id^="view-"] || top:main';
 }
 
 // Run in the page by either render tool's --eval, after its clicks or script:
 // scroll the focus to the top of its pane, let it settle, and say where it is.
+// A `below:` crop takes its width from the strip's container, since a strip can
+// be a narrow pill. A bar fixed or stuck to the top of the window, outside the
+// focus, can cover the line once the focus is scrolled up to it (budget-drs's
+// top bar does at phone width), so the focus's pane is scrolled back by what the
+// bar covers and the line measured again. A bar is one that ends in the
+// window's top third; a full-height fixed layer is not one.
 // The answer is a JSON string, so it prints on one line from both tools: home's
 // pretty-prints an object across several.
 const focusJs = (spec) => `(async () => {
@@ -127,11 +135,33 @@ const focusJs = (spec) => `(async () => {
     const m = /^(top|below):(.+)$/.exec(alt.trim());
     const el = m && [...document.querySelectorAll(m[2])].find(shown);
     if (!el) continue;
+    const settle = () => new Promise((ok) => setTimeout(ok, 800));
+    const below = m[1] === 'below';
+    const line = () => { const r = el.getBoundingClientRect(); return below ? r.bottom : r.top; };
+    const box = (below ? el.parentElement : el).getBoundingClientRect();
+    const cover = (y) => {
+      for (const e of document.querySelectorAll('body *')) {
+        const pos = getComputedStyle(e).position;
+        if ((pos !== 'fixed' && pos !== 'sticky') || e.contains(el) || el.contains(e) || !shown(e)) continue;
+        const q = e.getBoundingClientRect();
+        if (q.top <= y && q.bottom > y && q.right > box.left && q.left < box.right && q.bottom < innerHeight / 3) y = q.bottom;
+      }
+      return y;
+    };
     el.scrollIntoView({ block: 'start', behavior: 'instant' });
-    await new Promise((ok) => setTimeout(ok, 800));
-    const r = el.getBoundingClientRect();
-    return JSON.stringify({ at: alt.trim(), x: Math.max(0, Math.round(r.left)), y: Math.max(0, Math.round(m[1] === 'top' ? r.top : r.bottom)),
-             w: Math.round(Math.min(r.width, innerWidth - Math.max(0, r.left))), vw: innerWidth });
+    await settle();
+    let y = line();
+    const under = cover(y) - y;
+    if (under > 0) {
+      let pane = el.parentElement;
+      while (pane && !(/auto|scroll/.test(getComputedStyle(pane).overflowY) && pane.scrollHeight > pane.clientHeight)) pane = pane.parentElement;
+      (pane || document.scrollingElement).scrollTop -= under;
+      await settle();
+      y = cover(line());
+    }
+    const x = Math.max(0, box.left);
+    return JSON.stringify({ at: alt.trim(), x: Math.round(x), y: Math.max(0, Math.round(y)),
+                            w: Math.round(Math.min(box.width, innerWidth - x)), vw: innerWidth });
   }
   return 'null';
 })()`;
@@ -216,7 +246,7 @@ for (const store of STORES) {
     if (o.query) r.query = o.query;
     if (o.script) r.script = o.script;
     if (o.click) r.click = o.click;
-    r.focus = o.focus === 'none' ? '' : (o.focus || focusOf(u, r));
+    r.focus = o.focus === 'none' ? '' : (o.focus || focusOf(u));
     work.push({ store, unit: c.unit, r });
   }
 }
