@@ -21,8 +21,8 @@ web-tools:pages/branch.html,web-tools-pages-branch-html.desk.jpg,web-tools-pages
 web-tools:pages/links.html,web-tools-pages-links-html.desk.jpg,web-tools-pages-links-html.phone.jpg,2026-10-05,pages/links.html,
 web-tools:pages/news/news.html,web-tools-pages-news-news-html.desk.jpg,web-tools-pages-news-news-html.phone.jpg,2026-10-05,pages/news/news.html,
 web-tools:pages/shortcut-edit.html,web-tools-pages-shortcut-edit-html.desk.jpg,web-tools-pages-shortcut-edit-html.phone.jpg,2026-10-05,pages/shortcut-edit.html,
-web-tools:pages/shortcut-log.html,web-tools-pages-shortcut-log-html.desk.jpg,web-tools-pages-shortcut-log-html.phone.jpg,2026-10-05,pages/shortcut-log.html · tools/render/scenarios/ui-census-token.mjs,
-web-tools:pages/shortcuts.html,web-tools-pages-shortcuts-html.desk.jpg,web-tools-pages-shortcuts-html.phone.jpg,2026-10-05,pages/shortcuts.html · tools/render/scenarios/ui-census-token.mjs,
+web-tools:pages/shortcut-log.html,web-tools-pages-shortcut-log-html.desk.jpg,web-tools-pages-shortcut-log-html.phone.jpg,2026-10-05,pages/shortcut-log.html · tools/render/scenarios/placeholder-token.mjs,
+web-tools:pages/shortcuts.html,web-tools-pages-shortcuts-html.desk.jpg,web-tools-pages-shortcuts-html.phone.jpg,2026-10-05,pages/shortcuts.html · tools/render/scenarios/placeholder-token.mjs,
 web-tools:pages/text-lab.html,web-tools-pages-text-lab-html.desk.jpg,web-tools-pages-text-lab-html.phone.jpg,2026-10-05,pages/text-lab.html,
 web-tools:view/app,web-tools-view-app.desk.jpg,web-tools-view-app.phone.jpg,2026-10-05,app/index.html?app=mehrlander/web-tools:pages/text-lab.html,top:main @57
 web-tools:view/atlas,web-tools-view-atlas.desk.jpg,web-tools-view-atlas.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=atlas,top:main @57

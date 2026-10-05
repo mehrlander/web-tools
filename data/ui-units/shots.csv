@@ -14,8 +14,8 @@ web-tools:view/project/docs,repo=mehrlander/web-tools&view=project&project=docs&
 web-tools:view/project/files,repo=mehrlander/web-tools&view=project&project=docs&tab=files,,,,
 web-tools:view/project/overview,repo=mehrlander/web-tools&view=project&project=docs&tab=overview,,,,
 web-tools:view/project/pages,repo=mehrlander/web-tools&view=project&project=docs&tab=pages,,,,
-web-tools:pages/shortcut-log.html,,tools/render/scenarios/ui-census-token.mjs,,,reads the private registry from the sibling checkout
-web-tools:pages/shortcuts.html,,tools/render/scenarios/ui-census-token.mjs,,,reads the private registry from the sibling checkout
+web-tools:pages/shortcut-log.html,,tools/render/scenarios/placeholder-token.mjs,,,reads the private registry from the sibling checkout
+web-tools:pages/shortcuts.html,,tools/render/scenarios/placeholder-token.mjs,,,reads the private registry from the sibling checkout
 web-tools:pages/branch.html,#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz,,,,a branch to read; the page routes on its fragment
 web-tools:pages/approve.html,,,,,first paint without an envelope is its error line; a #gz= envelope would show the reviewer
 web-tools:view/routes,view=routes,,,"top:[data-pane=""map""] section","?view=routes opens the Map's UI > Views tab, so it takes a Map tab's focus"

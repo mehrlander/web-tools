@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The UI census's screenshots: one desktop and one phone shot of every coded
+// The UI units' screenshots: one desktop and one phone shot of every coded
 // unit, as the JPEG thumbnails the Map's UI > Patterns gallery shows.
 //
 //   node tools/build/ui-shots.mjs [--only <text>] [--jobs N] [--reuse]
@@ -45,9 +45,9 @@
 // focus, note. A row there replaces the derived query; an empty cell keeps it. A query
 // that opens with # is a fragment, for the pages that route on location.hash.
 //
-// THE OUTPUT, split by visibility like the census itself: public units' shots
-// go to data/ui-census/thumbs/ here, home's to web-tools-private's
-// thumbs/mehrlander/home/ui-census/, the private registry's store for shots of
+// THE OUTPUT, split by visibility like the units tables themselves: public units' shots
+// go to data/ui-units/thumbs/ here, home's to web-tools-private's
+// thumbs/mehrlander/home/ui-units/, the private registry's store for shots of
 // private repos' pages. Each folder gets thumbs.csv, one row per unit, which is
 // what the gallery reads. Shots are not byte-deterministic, so no commit hook
 // owns them: refresh once per session, like pages/thumbs/.
@@ -77,8 +77,8 @@ const PHONE = { width: 390, height: 844, thumb: 390, ratio: 0 };
 const QUALITY = 0.72;
 
 const STORES = [
-  { name: 'public', census: path.join(HUB, 'data/ui-census'), thumbs: path.join(HUB, 'data/ui-census/thumbs') },
-  { name: 'private', census: path.join(HOME, 'data/ui-census'), thumbs: path.join(PRIVATE, 'thumbs/mehrlander/home/ui-census') },
+  { name: 'public', tables: path.join(HUB, 'data/ui-units'), thumbs: path.join(HUB, 'data/ui-units/thumbs') },
+  { name: 'private', tables: path.join(HOME, 'data/ui-units'), thumbs: path.join(PRIVATE, 'thumbs/mehrlander/home/ui-units') },
 ];
 const MANIFEST_COLS = ['unit', 'desk', 'phone', 'shot_at', 'recipe', 'focus'];
 
@@ -235,10 +235,10 @@ if (!existsSync(path.join(HOME, 'node_modules'))) {
 
 const work = [];
 for (const store of STORES) {
-  if (!existsSync(store.census)) continue;
-  const units = Object.fromEntries(rowsOf(path.join(store.census, 'units.csv')).map(u => [u.unit, u]));
-  const over = Object.fromEntries(rowsOf(path.join(store.census, 'shots.csv')).map(r => [r.unit, r]));
-  for (const c of rowsOf(path.join(store.census, 'coded.csv'))) {
+  if (!existsSync(store.tables)) continue;
+  const units = Object.fromEntries(rowsOf(path.join(store.tables, 'units.csv')).map(u => [u.unit, u]));
+  const over = Object.fromEntries(rowsOf(path.join(store.tables, 'shots.csv')).map(r => [r.unit, r]));
+  for (const c of rowsOf(path.join(store.tables, 'coded.csv'))) {
     const u = units[c.unit];
     if (!u || u.reachable !== 'yes' || (ONLY && !c.unit.includes(ONLY))) continue;
     const r = derive(u);

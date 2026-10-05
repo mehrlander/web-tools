@@ -1,15 +1,15 @@
 # UI pattern codebook
 
 Draft of 2026-10-04, revised once against a hand-coded pilot of seven units.
-It is the instrument for Pass 2 of the UI census ([README.md](README.md)): a
+It is the instrument for Pass 2 of the UI units ([README.md](README.md)): a
 reader codes one row per unit, and every field below says what it holds and
 what test decides it. Nothing here is settled vocabulary yet. The codes become
 a registry only after a full pass shows they hold.
 
 ## What is coded, and what is not
 
-A **unit** is one row of the census units file: an app view, a view's tab, or a
-page. The census computes three things a reader does not code:
+A **unit** is one row of `units.csv`: an app view, a view's tab, or a page.
+`tools/ui-units.mjs` computes three things a reader does not code:
 
 - **`app_ring`**: how far the unit sits from the Web Tools app's center, from
   the declaration named in `ring_basis` (README, "Rings").
@@ -78,7 +78,7 @@ changed because of them.
    chips above its table on a phone, which no other phone code described.
 
 The pilot rows are the rows of `coded.csv` whose `coder` is `pilot`, here for
-the public units and in home's `data/ui-census/coded.csv` for the budget-drs
+the public units and in home's `data/ui-units/coded.csv` for the budget-drs
 ones. Two were corrected after readers found what the pilot missed: Data:
 Sources gained a hand-built column-story card, and Branches gained the Activity
 tabs and search box.
@@ -115,7 +115,7 @@ would render headless. Four decisions came out of merging their rows.
   `deck-entry-parity.test.mjs` holds each copy to the kit, so those
   citations were dropped from `hand_evidence`.
 - **A chip row with no counts is `filter-switch`.** Data: Design's filter row
-  was coded `census-chips` by a reader who said the code was bent.
+  was coded `count-chips` by a reader who said the code was bent.
 - **A wide table that scrolls sideways on a phone has no code yet.** Readers
   coded it `same` or `stack` and said so in `notes`; a code earns a row once a
   second pass finds it often enough to compare.

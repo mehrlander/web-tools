@@ -1,10 +1,10 @@
-// The UI census: every unit of user interface the estate's two apps show, the
+// The UI units: every unit of user interface the estate's two apps show, the
 // ring it sits in, and the shared kits its files call. Passes 0 and 1 of the
-// pattern catalog (data/ui-census/README.md); the codebook beside it is Pass 2.
+// pattern catalog (data/ui-units/README.md); the codebook beside it is Pass 2.
 //
 // A UNIT is the grain a pattern is read at: an app view, a view's tab where the
 // view declares tabs, or a page. Units are enumerated from declarations, never
-// from a walk of the tree, so the census says what the apps CLAIM to show:
+// from a walk of the tree, so units.csv says what the apps CLAIM to show:
 //
 //   web-tools  docs/app-routes.csv (the router's rows), docs/map-tabs.csv
 //              (the Map's addresses), app-routes `tabs` for the other tabbed
@@ -37,10 +37,10 @@
 // is a reason to read the file, not a finding: a page may carry scroll-snap for
 // a reason that has nothing to do with decks.
 //
-//   node tools/ui-census.mjs [--date YYYY-MM-DD] [--estate <dir>] [--write]
+//   node tools/ui-units.mjs [--date YYYY-MM-DD] [--estate <dir>] [--write]
 //
 // Without --write it prints a summary. With it, public rows go to this repo's
-// data/ui-census/ and the budget-drs app's rows to home's data/ui-census/, so a
+// data/ui-units/ and the budget-drs app's rows to home's data/ui-units/, so a
 // private file's name never lands in public source. The files keep stable names
 // (units.csv, signals.csv) so the Map's Patterns tab can read them without
 // listing a folder; `as_of` on every unit row says when the snapshot was taken,
@@ -316,7 +316,7 @@ const scan = (repo, p) => {
 };
 for (const u of units) for (const f of (u.files || '').split(';').filter(Boolean)) scan(u.repo, f);
 // The shared surfaces every unit of an app sits inside are scanned too, so the
-// census can say what the chrome itself is built from.
+// signals can say what the chrome itself is built from.
 scan('web-tools', 'app/index.html');
 for (const f of readdirSync(path.join(HUB, 'lib/alpineComponents'))) if (f.endsWith('.js')) scan('web-tools', `lib/alpineComponents/${f}`);
 if (has('home', bdApp)) scan('home', bdApp);
@@ -353,8 +353,8 @@ if (WRITE) {
   // private row goes to home's, including a page framed by the budget-drs app
   // from a repo not checked out here, since home's own VIEWS already names it.
   // Units of any other repo (shortcut-tools' own pages) are counted above and
-  // written nowhere: the census covers the two apps, not every estate page.
-  const WRITE_TO = { public: path.join(HUB, 'data/ui-census'), home: path.join(checkout('home'), 'data/ui-census') };
+  // written nowhere: the tables cover the two apps, not every estate page.
+  const WRITE_TO = { public: path.join(HUB, 'data/ui-units'), home: path.join(checkout('home'), 'data/ui-units') };
   const destOf = (row) => PUBLIC.has(row.repo) ? WRITE_TO.public
     : (row.repo === 'home' || row.host === 'budget-drs app') ? WRITE_TO.home : null;
   const groups = new Map();

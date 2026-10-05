@@ -1,6 +1,6 @@
-# UI census
+# UI units
 
-A census of the user interface the Web Tools app and the budget-drs app show:
+Tables of the user interface the Web Tools app and the budget-drs app show:
 one row per unit, the ring each sits in, and which shared kits its files call.
 It is the input to a catalog of the estate's display patterns, rendered in the
 Map view's UI tab as the Patterns gallery. This folder holds a snapshot, its
@@ -12,27 +12,27 @@ has assessed the codes.
 
 | File | Row | Written by |
 | --- | --- | --- |
-| `units.csv` | one unit: an app view, a view's tab, or a page; `as_of` dates the snapshot | `tools/ui-census.mjs` (Pass 0) |
-| `signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `tools/ui-census.mjs` (Pass 1) |
+| `units.csv` | one unit: an app view, a view's tab, or a page; `as_of` dates the snapshot | `tools/ui-units.mjs` (Pass 0) |
+| `signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `tools/ui-units.mjs` (Pass 1) |
 | [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis | authored, settled at synthesis |
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
 | `shots.csv` | one unit whose screenshot needs more than its address: a query, a fixture script, a click, or a focus other than its host's | authored |
 | `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped to where the unit's own content starts, and `thumbs.csv` naming them with the focus each crop used | `tools/build/ui-shots.mjs` |
 
-Regenerate the snapshot with `npm run ui-census -- --write --date <date>`,
+Regenerate the snapshot with `npm run ui-units -- --write --date <date>`,
 from a checkout that has `home` beside it. Without `--write` it prints counts.
 The names are stable so the Map can read them without listing the folder; git
 holds the earlier snapshots.
 
 The shots are taken by `npm run ui-shots`, once per session at most, like
 `pages/thumbs/`: they are not byte-deterministic, so no commit hook owns them.
-home's units are shot into web-tools-private's `thumbs/mehrlander/home/ui-census/`,
+home's units are shot into web-tools-private's `thumbs/mehrlander/home/ui-units/`,
 the private registry's store for shots of private repos' pages.
 
 **The public and private halves are split by visibility.** Rows whose unit
 lives in this repo are written here. Rows for home's own pages and for
-everything the budget-drs app draws or frames go to home's `data/ui-census/`,
+everything the budget-drs app draws or frames go to home's `data/ui-units/`,
 so no private file name lands in public source. The 2026-10-04 snapshot holds
 155 units here and 65 in home, and 54 and 41 of them are coded. Units in other
 repositories, such as shortcut-tools' own pages, are counted by the script and
