@@ -59,6 +59,41 @@ Three rules the rows cannot hold:
 - **A code that fits nothing:** write `new:<proposed-code>` and say in `notes`
   what it is. A new code is settled at synthesis, not by the reader.
 
+## Declaring a pattern in markup
+
+A body code can also be stated by the unit's own markup, which treats the code
+as an interface: a set of named parts and a behavior the unit promises. Piloted
+on 2026-10-05 for `list` and `list-detail`, the two codes whose `parts` cell is
+filled.
+
+- **`data-pattern="<code>"`** goes on the element that holds the whole
+  arrangement, using a body code from [`codes.csv`](codes.csv).
+- **`data-part="<part>"`** goes on each element of it. The `parts` cell lists
+  the parts a code allows, required ones first and optional ones marked `?`.
+  [`parts.csv`](parts.csv) says what each part is and gives it one color, the
+  same in every pattern. A part belongs to its nearest `data-pattern` ancestor,
+  and a part outside any is ignored.
+- **The selected item** carries a standard attribute rather than a data one:
+  `aria-selected="true"` where the list is an ARIA `listbox`, otherwise
+  `aria-current="true"`.
+
+`data-ui` would have been the obvious name; `lib/vanilla-bundle.js` already
+uses it to look elements up.
+
+Where a unit declares a pattern, the declaration states its intent, and the
+`body` a reader coded becomes evidence checked against it. Two checks detect
+an instance independently of the declaration:
+
+- **Construction:** a kit in the code's `kits` cell drew it. No kit draws
+  `list` or `list-detail`, so every instance of either is hand-built.
+- **Behavior:** the code's promise holds when the page is driven headless. For
+  `list`, at least one item. For `list-detail`, picking an unselected item
+  changes the detail and moves the selection to it.
+
+`tools/build/ui-instances.mjs` runs both and writes `instances.csv`, one row
+per unit it loaded. `tools/build/ui-shots.mjs` crops a declaring unit's shots
+to the declared element and outlines its parts in their colors.
+
 ## Where the pilot moved the codebook
 
 Seven units were coded by hand before this was written down: the Branches view,
