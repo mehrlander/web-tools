@@ -903,7 +903,77 @@ test('the Overview\'s source pane is the file component: Edit, a draft, and the 
   delete window.PowerShellEditor;
 });
 
+// The workspace's two derived tables, declared in its manifest: the
+// Overview gains a second grouping and a dependency block, and a file whose
+// strict dependency is still pending is placed and recorded with it.
+const PROFILE = `${P}/app/Profile.ps1`, CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`;
+test('with the derived tables, files group by application and each lists what it loads and what loads it', async () => {
+  assert.equal(el.querySelector('[data-group-by]'), null, 'no table, no switch');
+  const manifest = JSON.parse(files[`${P}/data/installation.json`]);
+  Object.assign(manifest, { loads: `${P}/data/loads.csv`, applications: `${P}/data/office-uses.csv` });
+  files[`${P}/data/installation.json`] = JSON.stringify(manifest);
+  files[`${P}/data/loads.csv`] = 'path,loads,how,evidence\n'
+    + 'app/Profile.ps1,app/Forms/Bookmarks/Bookmarks.ps1,form,line 1\n'
+    + 'app/Profile.ps1,app/Modules/Forms/Forms.psm1,import,line 2\n'
+    + 'app/Profile.ps1,app/Modules/Paths/Paths.psm1,import,line 3\n';
+  files[`${P}/data/office-uses.csv`] = 'path,app,how,evidence\n'
+    + 'app/Forms/Bookmarks/Bookmarks.ps1,Chrome,name,Bookmarks\n'
+    + 'app/Forms/Bookmarks/Bookmarks.xaml,Chrome,name,Bookmarks\n'
+    + 'app/Profile.ps1,Chrome,loads,app/Forms/Bookmarks/Bookmarks.ps1\n'
+    + 'app/Profile.ps1,Excel,loads,app/Modules/ExcelService/ExcelService.psm1\n';
+  advanceHead(); await data.reload(); await settle();
+  assert.ok(el.querySelector('[data-group-by]'), 'the switch appears with the table');
+  assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts'], 'area stays the default');
+  data.groupBy = 'application'; await settle();
+  assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Chrome', 'Excel', 'No application']);
+  const rows = q('[data-installation] section button.text-left').map(b => b.textContent.trim());
+  assert.equal(rows.filter(t => t === 'Profile.ps1').length, 2, 'a file reaching two applications is listed under both');
+  assert.equal(q('[data-installation] section h3').some(h => h.textContent.includes('undefined')), false, 'an application heading shows no destination');
+  data.select(PROFILE); await settle();
+  const deps = () => el.querySelector('[data-dependencies]');
+  assert.notEqual(deps().style.display, 'none');
+  assert.match(deps().textContent, /Loads\s+Bookmarks\.ps1\s*form\s+Forms\.psm1\s*import\s+Paths\.psm1\s*not in repository\s*import/);
+  data.select(FORMS); await settle();
+  assert.match(deps().textContent, /Loaded by\s+Profile\.ps1\s*import/);
+  assert.equal(deps().querySelectorAll('button').length, 1, 'a file in the tree is a link to it');
+  data.select(`${P}/app/Scripts/Demo.ps1`); await settle();
+  assert.equal(deps().style.display, 'none', 'nothing loads it and it loads nothing');
+  data.groupBy = 'area';
+});
+
+test('a file whose strict dependency is still pending is scripted and confirmed with it, in one commit', async () => {
+  const written = publications.length;
+  data.select(PROFILE); await settle();
+  assert.deepEqual([...data.placeable(data.item).map(i => i.path)], [CTL, PROFILE], 'the new form first, then the profile that loads it');
+  assert.match(el.querySelector('[data-install-with]').textContent, /Install with\s+Bookmarks\.ps1/);
+  assert.ok(data.actionsFor(PROFILE).some(a => a.key === 'install' && a.label === 'Confirm all 2 installed…'));
+  data.select(CTL); await settle();
+  assert.equal(el.querySelector('[data-install-with]').style.display, 'none', 'what loads a file does not ride with it');
+  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Copy install script'), 'alone, it is scripted alone');
+  data.select(PROFILE); await settle();
+  await data.copyTransferScript();
+  const script = clip[clip.length - 1];
+  assert.deepEqual([...script.matchAll(/^# Web Tools transfer script for (\S+)/gm)].map(m => m[1]), [CTL, PROFILE]);
+  assert.equal(data.lastTransfer[CTL], 'script'); assert.equal(data.lastTransfer[PROFILE], 'script');
+  assert.equal(publications.length, written, 'a script records nothing');
+  await data.askInstalled(); await settle();
+  assert.deepEqual([...data.pending.rows.map(r => r.path)], [CTL, PROFILE]);
+  assert.equal(data.pending.row.path, PROFILE, 'the selected file\'s row heads the confirm');
+  assert.ok(data.pending.rows.every(r => r.method === 'script'));
+  assert.equal(data.pending.rows[0].local_sha256, createHash('sha256').update(files[CTL], 'utf8').digest('hex'));
+  assert.match(el.textContent, /I placed these on the work computer/);
+  assert.match(el.textContent, /also removes these files from the pending adoption list/);
+  assert.equal(el.querySelector('pre').textContent.split('\n').length, 2, 'both lines are on screen');
+  await data.confirmRecord(); await settle();
+  assert.equal(publications.length, written + 1, 'one commit');
+  assert.deepEqual(publications.at(-1).paths, [`${P}/data/observations.csv`, `${P}/data/installation.json`]);
+  assert.equal(data.stateOf(CTL).state, 'reported'); assert.equal(data.stateOf(PROFILE).state, 'reported');
+  assert.equal(JSON.parse(files[`${P}/data/installation.json`]).pending_adoption.some(e => e.path === 'app/Forms/Bookmarks/Bookmarks.ps1'), false);
+  assert.match(data.recorded, /for 2 files/);
+  assert.deepEqual([...data.placeable(data.item).map(i => i.path)], [PROFILE], 'nothing left pending to carry');
+});
+
 test('every ledger write in this run went through a confirm', () => {
-  assert.equal(publications.length, 4);
+  assert.equal(publications.length, 5);
   assert.deepEqual(problems, []);
 });

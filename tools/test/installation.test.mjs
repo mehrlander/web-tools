@@ -522,3 +522,86 @@ test('navigation during an append cannot redirect the captured repository or bra
   assert.ok(s.calls.every(c => c.repo === 'owner/work'));
   assert.equal(s.calls.find(c => c.method === 'PATCH').path, 'git/refs/heads/codex/adoption');
 });
+
+// The two derived tables a workspace may declare (loads.csv and an
+// application table), and what the kit makes of them: a second grouping, and
+// the set a placement has to carry when a file needs another that is still
+// pending. The workspace's own check holds the same rule; this holds the
+// browser's reading of it.
+const DERIVED = { ...adoptionManifest([
+  { path: 'app/Profile.ps1', since: '2026-09-23', transfer: 'changed', limit: 'Menu untested', requires: ['app/Modules/Forms/Forms.psm1', 7] },
+  { path: 'app/Modules/Forms/Forms.psm1', since: '2026-09-14', transfer: 'changed', limit: 'Unrun' },
+  { path: 'app/Forms/Bookmarks/Bookmarks.ps1', since: '2026-09-15', transfer: 'new', limit: 'Unrun', requires: [] },
+  { path: 'app/Forms/Bookmarks/Bookmarks.xaml', since: '2026-09-15', transfer: 'new', limit: 'Unrun' },
+]), loads: P + '/data/loads.csv', applications: P + '/data/office-uses.csv' };
+const LOADS = 'path,loads,how,evidence\n'
+  + 'app/Profile.ps1,app/Forms/Bookmarks/Bookmarks.ps1,form,line 1\n'
+  + 'app/Profile.ps1,app/Modules/Paths/Paths.psm1,import,line 2\n'
+  + 'app/Forms/Bookmarks/Bookmarks.ps1,app/Forms/Bookmarks/Bookmarks.xaml,call,line 3: Import-Form\n'
+  + 'app/Forms/Bookmarks/Bookmarks.ps1,app/Modules/Forms/Forms.psm1,import,line 4\n';
+const USES = 'path,app,how,evidence\n'
+  + 'app/Forms/Bookmarks/Bookmarks.ps1,Chrome,name,Bookmarks\n'
+  + 'app/Forms/Bookmarks/Bookmarks.xaml,Chrome,name,Bookmarks\n'
+  + 'app/Profile.ps1,Chrome,loads,app/Forms/Bookmarks/Bookmarks.ps1\n'
+  + 'app/Profile.ps1,Excel,loads,app/Modules/ExcelService/ExcelService.psm1\n';
+
+test('the manifest names the derived tables and carries `requires` only when it lists something', () => {
+  const d = K.manifest(DERIVED);
+  assert.equal(d.loads, P + '/data/loads.csv');
+  assert.equal(d.applications, P + '/data/office-uses.csv');
+  assert.deepEqual(d.pendingAdoption[0].requires, ['app/Modules/Forms/Forms.psm1'], 'a non-string entry is dropped');
+  assert.equal('requires' in d.pendingAdoption[2], false, 'an empty list reads as none');
+  assert.equal(K.manifest('{}').loads, '');
+});
+
+test('load edges and application uses read as repository paths', () => {
+  const e = K.edges(LOADS, P);
+  assert.equal(e.length, 4);
+  assert.deepEqual(e[0], { from: P + '/app/Profile.ps1', to: P + '/app/Forms/Bookmarks/Bookmarks.ps1', how: 'form', evidence: 'line 1' });
+  assert.deepEqual(K.edges('', P), []);
+  const u = K.uses(USES, P + '/');
+  assert.deepEqual(u.map(x => x.app), ['Chrome', 'Chrome', 'Chrome', 'Excel']);
+  assert.equal(u[2].path, P + '/app/Profile.ps1', 'a trailing slash on the project path is tolerated');
+});
+
+test('files group by application in table order, under each application they reach, the rest last', () => {
+  const inv = K.inventory({ tree, manifest: K.manifest(DERIVED), projectPath: P });
+  const g = K.applicationGroups(inv, K.uses(USES, P));
+  assert.deepEqual(g.map(x => x.area), ['Chrome', 'Excel', 'No application']);
+  assert.deepEqual(g[0].units.map(u => u.name), ['Forms/Bookmarks', 'Profile'], 'the area stays beside the folder');
+  assert.deepEqual(g[0].units[0].files.map(f => f.name), ['Bookmarks.ps1', 'Bookmarks.xaml'], 'a controller before its XAML');
+  assert.deepEqual(g[1].units.map(u => u.name), ['Profile'], 'a file reaching two applications is listed under both');
+  assert.ok(g[2].units.some(u => u.name === 'Modules/Forms'));
+  assert.equal(g.every(x => x.installs === undefined), true, 'an application has no destination to show');
+  assert.deepEqual(K.applicationGroups(inv, []), [], 'no table, no second grouping');
+});
+
+test('a placement carries every still-pending file it strictly needs, dependencies first', () => {
+  const d = K.manifest(DERIVED);
+  const inv = K.inventory({ tree, manifest: d, projectPath: P });
+  const e = K.edges(LOADS, P);
+  const names = rel => K.installSet(P + '/' + rel, inv, e).map(x => x.rel);
+  assert.deepEqual(names('app/Forms/Bookmarks/Bookmarks.ps1'), ['app/Forms/Bookmarks/Bookmarks.xaml', 'app/Forms/Bookmarks/Bookmarks.ps1'],
+    'a load of a `new` file is strict; a load of a `changed` file (Forms.psm1) is not');
+  assert.deepEqual(names('app/Profile.ps1'),
+    ['app/Forms/Bookmarks/Bookmarks.xaml', 'app/Forms/Bookmarks/Bookmarks.ps1', 'app/Modules/Forms/Forms.psm1', 'app/Profile.ps1'],
+    'the walk follows a strict dependency\'s own, and `requires` makes a changed file strict');
+  assert.deepEqual(names('app/Modules/Forms/Forms.psm1'), ['app/Modules/Forms/Forms.psm1'], 'nothing it loads is pending');
+  const placed = K.inventory({ tree, manifest: K.manifest({ ...DERIVED, pending_adoption: [] }), projectPath: P });
+  assert.deepEqual(K.installSet(P + '/app/Profile.ps1', placed, e).map(x => x.rel), ['app/Profile.ps1'], 'a file no longer pending is not carried');
+  assert.deepEqual(K.installSet(P + '/app/Nope.ps1', inv, e), []);
+});
+
+test('rows for a set land together and close every entry in one commit', async () => {
+  const ctl = { path: 'app/Forms/Bookmarks/Bookmarks.ps1', transfer: 'new', since: '2026-09-15', limit: 'Unrun' };
+  const xaml = { path: 'app/Forms/Bookmarks/Bookmarks.xaml', transfer: 'new', since: '2026-09-15', limit: 'Unrun' };
+  const s = atomicStub({ manifest: JSON.stringify(adoptionManifest([pendingEntry, ctl, xaml])) });
+  const a = rowOf({ path: P + '/' + xaml.path, blobSha: sha40('6') }), b = rowOf({ path: P + '/' + ctl.path, blobSha: sha40('5') });
+  const result = await s.append({ row: undefined, rows: [a, b] });
+  assert.equal(s.published(), true);
+  assert.equal(result.adoptionClosed, true);
+  assert.equal(s.files.get(LEDGER), CSV_HEAD + K.line(a) + '\n' + K.line(b) + '\n');
+  assert.deepEqual(JSON.parse(s.files.get(MANIFEST_PATH)).pending_adoption, [pendingEntry], 'both entries close, the third stays');
+  assert.equal(s.calls.filter(c => c.method === 'PATCH').length, 1, 'one ref update');
+  assert.match(s.calls.find(c => c.path === 'git/commits').body.message, /installed 2 files/);
+});
