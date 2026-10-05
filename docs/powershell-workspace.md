@@ -51,6 +51,9 @@ it reloads the inline pane, so the two never hold diverging drafts.
 - Drafts live in browser storage keyed by repo, project, ref and path. Publishing
   creates a new branch and never updates an existing one.
 - Nothing but a confirmed row writes to the observations ledger.
+- A file is scripted and confirmed only together with the still-pending files
+  it strictly needs, as `Installation.installSet` defines them. mehrlander/home's
+  `projects/wps/tools/installation-check.py` applies the same rule; change both.
 - Problems are lexical heuristics; an empty list proves nothing about 5.1.
 
 ## Files and tests

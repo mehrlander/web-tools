@@ -16,7 +16,7 @@ Each PowerShell and XAML file's state is derived from the workspace's
 observations ledger; `installation.js` names the states.
 
 **The ledger is the view's only write.** It is appended, never rewritten, one
-row per confirm, committed on the browsed branch only after the reader confirms
-placing the file on the work computer. Comparing, copying and the install
+row per confirmed file, committed on the browsed branch only after the reader
+confirms the placement on the work computer. Comparing, copying and the install
 script never write a row. State icons come from `lib/kits/sync-status.js`,
 shared with the shortcut views.
