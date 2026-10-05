@@ -1408,7 +1408,9 @@ html.dk-dragging main{transition:none !important}
                       </div>
                     </div>
 
-                    <div class="card-body p-3 gap-1">
+                    <!-- Tinted, so the footer reads as the card's own rather
+                         than as page under the shot. -->
+                    <div class="card-body p-3 gap-1 bg-base-200/60">
                       <div class="flex items-baseline justify-between gap-2">
                         <a :href="p.href" class="font-semibold text-base hover:text-primary transition-colors truncate"
                            x-text="p.label" data-part="title"></a>

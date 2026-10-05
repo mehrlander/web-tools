@@ -79,13 +79,18 @@ const PART_RGB = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/parts.c
   return [p.part, [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')];
 }));
 
-// Outline and tint the parts of every shown declared pattern. Every item is
-// outlined, but an item's own anatomy (title, meta, summary, body, links,
-// actions) is drawn on one exemplar only, the selected item where there is one
-// and the first otherwise: drawn on every row it turned a list into a wall of
-// small boxes, and one item answers "what is an item" as well as forty. A
-// group's own meta is drawn on every group. Outlines and inset
-// shadows paint over the page without moving anything in it, so the crop
+// Outline the parts of every shown declared pattern, and tint only where a tint
+// teaches something. Every item is outlined, but an item's own anatomy (title,
+// meta, summary, body, links, actions) is drawn on one exemplar only, the
+// selected item where there is one and the first otherwise: drawn on every row
+// it turned a list into a wall of small boxes, and one item answers "what is an
+// item" as well as forty. A group's own parts are drawn on every group.
+//
+// The tints are the exemplar's anatomy and the group headings, and a faint one
+// on a selected item. The list and the detail get a dashed outline and no fill,
+// and every other item a thin, faint outline: filled, they washed the whole
+// list blue under the anatomy's own colours (owner, 2026-10-05). Outlines and
+// inset shadows paint over the page without moving anything in it, so the crop
 // measured afterwards is the crop of the page as it lays out.
 const drawJs = `(() => {
   const C = ${JSON.stringify(PART_RGB)};
@@ -102,10 +107,13 @@ const drawJs = `(() => {
       const part = e.dataset.part;
       if (ANATOMY.includes(part) && !(exemplar && exemplar.contains(e)) && !e.parentElement?.closest('[data-part="group"]')) continue;
       const box = part === 'list' || part === 'detail';
-      const fill = part === 'item' && e === exemplar ? (marked(e) ? 0.22 : 0.12) : box || part === 'item' ? 0.04 : 0.12;
-      e.style.outline = (box ? '3px dashed ' : '2px solid ') + 'rgb(' + C[part] + ')';
+      const lead = part === 'item' && e === exemplar;
+      const fill = box ? 0 : part === 'item' ? (lead && marked(e) ? 0.08 : 0) : 0.1;
+      e.style.outline = box ? '2px dashed rgb(' + C[part] + ')'
+        : part === 'item' && !lead ? '1px solid rgba(' + C[part] + ',0.45)'
+        : '2px solid rgb(' + C[part] + ')';
       e.style.outlineOffset = '-2px';
-      e.style.boxShadow = 'inset 0 0 0 9999px rgba(' + C[part] + ',' + fill + ')';
+      if (fill) e.style.boxShadow = 'inset 0 0 0 9999px rgba(' + C[part] + ',' + fill + ')';
     }
   }
 })()`;
