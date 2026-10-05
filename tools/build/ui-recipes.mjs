@@ -131,20 +131,22 @@ export const focusJs = (spec) => `(async () => {
         const pos = getComputedStyle(e).position;
         if ((pos !== 'fixed' && pos !== 'sticky') || e.contains(el) || el.contains(e) || !shown(e)) continue;
         const q = e.getBoundingClientRect();
-        if (q.top <= y && q.bottom > y && q.right > box.left && q.left < box.right && q.bottom < innerHeight / 3) y = q.bottom;
+        if (q.top <= y + 1 && q.bottom > y && q.right > box.left && q.left < box.right && q.bottom < innerHeight / 3) y = q.bottom;
       }
       return y;
     };
     el.scrollIntoView({ block: 'start', behavior: 'instant' });
     await settle();
-    let y = line();
+    // Clamped, since a scroll can leave the top a fraction of a pixel above the
+    // window, where a bar starting at 0 would no longer seem to cover it.
+    let y = Math.max(0, line());
     const under = cover(y) - y;
     if (under > 0) {
       let pane = el.parentElement;
       while (pane && !(/auto|scroll/.test(getComputedStyle(pane).overflowY) && pane.scrollHeight > pane.clientHeight)) pane = pane.parentElement;
       (pane || document.scrollingElement).scrollTop -= under;
       await settle();
-      y = cover(line());
+      y = cover(Math.max(0, line()));
     }
     const x = Math.max(0, box.left);
     return JSON.stringify({ at: alt.trim(), x: Math.round(x), y: Math.max(0, Math.round(y)),

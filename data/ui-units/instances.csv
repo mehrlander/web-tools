@@ -1,0 +1,41 @@
+unit,coded,declared,kit,parts,missing,stray,contract,read_at
+web-tools:map/aims,fields,,,,,,,49da9f23494d
+web-tools:map/claims,card-grid,,,,,,,49da9f23494d
+web-tools:map/context,card-grid,,,,,,,49da9f23494d
+web-tools:map/data,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:map/docs,list,list,no kit draws this code,list 1; item 79; title 79; meta 237; actions 79; summary 79,,,holds: 79 items shown,49da9f23494d
+web-tools:map/growth,figure,,,,,,,49da9f23494d
+web-tools:map/harness,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:map/kits,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:map/outposts,card-grid,,,,,,,49da9f23494d
+web-tools:map/policy,card-grid,,,,,,,49da9f23494d
+web-tools:map/registries,card-grid,,,,,,,49da9f23494d
+web-tools:map/set,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:map/showing,card-grid,,,,,,,49da9f23494d
+web-tools:map/skills,card-grid,,,,,,,49da9f23494d
+web-tools:map/surfacing,card-grid,,,,,,,49da9f23494d
+web-tools:map/tests,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:map/views,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:pages/links.html,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:pages/news/news.html,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:pages/shortcut-edit.html,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:pages/shortcut-log.html,list-detail,,no kit draws this code,,,,,49da9f23494d
+web-tools:pages/shortcuts.html,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:pages/text-lab.html,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/branches,list,list,no kit draws this code,list 1; item 3; title 3; summary 3; actions 3,,,holds: 3 items shown,49da9f23494d
+web-tools:view/chats,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/jots,list-stack,,,,,,,49da9f23494d
+web-tools:view/lists,list-stack,,,,,,,49da9f23494d
+web-tools:view/project/board,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/project/docs,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/project/overview,list-detail,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/proposals,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/public,list-detail,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/repos,card-grid,,,,,,,49da9f23494d
+web-tools:view/routes,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/search,list-detail,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/sessions,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/stage/errands,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/state,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/tending,list,,no kit draws this code,,,,,49da9f23494d
+web-tools:view/writes,list,,no kit draws this code,,,,,49da9f23494d
