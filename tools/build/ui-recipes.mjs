@@ -100,6 +100,7 @@ export function codedUnits(only = '') {
       if (o.query) r.query = o.query;
       if (o.script) r.script = o.script;
       if (o.click) r.click = o.click;
+      if (o.shot) r.shot = o.shot;
       r.focus = o.focus === 'none' ? '' : (o.focus || focusOf(u, c.body || ''));
       out.push({ store, unit: c.unit, u, c, r });
     }

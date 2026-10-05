@@ -40,7 +40,8 @@
 // Activity panes render a token prompt without one), or a click (a stepper with
 // no address). Those are
 // rows of shots.csv beside each store's coded.csv: unit, query, script, click,
-// focus, note. A row there replaces the derived query; an empty cell keeps it. A
+// focus, shot, note. `shot` is `no-script` where the script reads a private
+// repository: tools/build/ui-instances.mjs runs it, and the shot does not. A row there replaces the derived query; an empty cell keeps it. A
 // query that opens with # is a fragment, for the pages that route on
 // location.hash.
 //
@@ -153,6 +154,10 @@ const worker = async () => {
   for (let w = work.shift(); w; w = work.shift()) {
     const base = slug(w.unit);
     mkdirSync(w.store.thumbs, { recursive: true });
+    // A unit whose script reads a private repository is checked with it and
+    // shot without it (shots.csv's shot column, `no-script`), so no private
+    // row reaches a shot in the public store.
+    if (w.r.shot === 'no-script') w.r = { ...w.r, script: '' };
     const row = { unit: w.unit, desk: '', phone: '', shot_at: new Date().toISOString().slice(0, 10),
       recipe: [w.r.page + (w.r.query ? '?' + w.r.query : ''), w.r.script, w.r.click].filter(Boolean).join(' · '),
       focus: '', pattern: '' };

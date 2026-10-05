@@ -20,7 +20,7 @@ has assessed the codes.
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
 | `instances.csv` | one unit loaded to check the pattern its markup declares: the code declared and coded, the parts found, and whether the code's behavior held | `tools/build/ui-instances.mjs` |
-| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, or a focus other than its host's | authored |
+| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, or a focus other than its host's; `shot` is `no-script` where the script reads a private repository, so the check runs it and the public shot does not | authored |
 | `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped to where the unit's own content starts, and `thumbs.csv` naming them with the focus each crop used | `tools/build/ui-shots.mjs` |
 
 Regenerate the snapshot with `npm run ui-units -- --write --date <date>`,

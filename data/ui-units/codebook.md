@@ -67,6 +67,40 @@ Three rules the rows cannot hold:
 - **A code that fits nothing:** write `new:<proposed-code>` and say in `notes`
   what it is. A new code is settled at synthesis, not by the reader.
 
+## What a pattern is, and four ways a unit is tied to one
+
+A **pattern** here is a `body` code: a named arrangement of a unit's main
+region, such as `list` or `source-beside`. Its definition is its row of
+`codes.csv` (name, gloss, test, what it is not to be confused with) and, for
+the two codes that have one, its `parts` cell. Nothing else defines it, so a
+pattern exists whether or not any code draws it, and the other dimensions'
+codes are not patterns in this sense.
+
+Four sources can tie a unit to a pattern, and they differ in who or what
+supplies the claim:
+
+| Source | Holds | Supplied by |
+| --- | --- | --- |
+| coded | the unit's one `body` code in `coded.csv` | a reader's judgment against the code's test |
+| declared | `data-pattern` on the element holding the arrangement | the unit's own markup |
+| construction | a kit in the code's `kits` cell among the unit's `built_on` | `codes.csv` names the kit; the reader records the call |
+| behavior | the code's promise, tried on the page driven headless | `tools/build/ui-instances.mjs`, into `instances.csv` |
+
+Every coded unit has the first; the other three are present only where they
+apply. A pattern can also have characteristics that are not part of its
+definition and are observed across its units:
+
+- **Whether a shared kit draws it.** Five codes name a kit: `grid`
+  (Tabulator), `linked-swiper` and `header-swiper` (swipe-deck's core),
+  `source-beside` (dock-split) and `deck-page` (swipe-deck). The other ten
+  name none, so each unit coded with one draws its own; declaring the parts
+  makes such a pattern checkable without making it a component.
+- **How many units use it, and in which apps.** The Dimensions view counts
+  each code's units in scope.
+- **How its declarations fared.** The Gallery says, under each Body code,
+  which kit draws it in how many of its units, and how many units declare
+  it and hold.
+
 ## Declaring a pattern in markup
 
 A body code can also be stated by the unit's own markup, which treats the code
@@ -112,18 +146,16 @@ Where a unit declares a pattern, the declaration states its intent, and the
 `body` a reader coded becomes evidence checked against it. A unit may also
 show a declared pattern that is not its body, such as the errands list inside
 Stage, coded a tool; it contains that pattern rather than declaring its own.
-Two checks detect an instance independently of the declaration:
+The construction and behavior sources above check an instance independently
+of its declaration. The behavior each code promises: for `list`, at least one
+item shown; for `list-detail`, picking an unselected item changes (or first
+shows) the detail and moves the selection to it. A declaration hidden at the
+unit's address, or a list with nothing in it there, is unchecked rather than
+failed, until a scenario script (`tools/render/scenarios/`) gives it stand-in
+rows; `shots.csv` names the scenario a unit is checked and shot with.
 
-- **Construction:** a kit in the code's `kits` cell drew it. No kit draws
-  `list` or `list-detail`, so every instance of either is hand-built.
-- **Behavior:** the code's promise holds when the page is driven headless. For
-  `list`, at least one item. For `list-detail`, picking an unselected item
-  changes (or first shows) the detail and moves the selection to it. A
-  declaration hidden at the unit's address, or a list with nothing in it
-  there, is unchecked rather than failed, until a scenario script (`tools/render/scenarios/`) gives it stand-in rows.
-
-`tools/build/ui-instances.mjs` runs both and writes `instances.csv`, one row
-per unit it loaded. `tools/build/ui-shots.mjs` crops a declaring unit's shots
+`tools/build/ui-instances.mjs` runs both checks and writes `instances.csv`,
+one row per unit it loaded. `tools/build/ui-shots.mjs` crops a declaring unit's shots
 to the declared element and outlines its parts in their colors.
 
 ## Where the pilot moved the codebook
