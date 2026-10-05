@@ -137,8 +137,9 @@ test('a tap step moves on when the control is tapped, and the tap still reaches 
   w.Look.start([{ at: 'go', tap: true, say: 'tap it' }, { at: 'after', say: 'and here' }]);
   await wait(30);
   assert.equal(said(w), 'tap it');
-  assert.equal(card(w).querySelector('[data-go="1"]').getAttribute('aria-label'), 'Skip',
-    'forward on a tap step only skips it: the tap is the step');
+  assert.ok(card(w).querySelector('[data-where]'), 'a do step shows the hand where the forward arrow would be');
+  assert.equal(card(w).querySelector('[aria-label="Next"]'), null, 'and no arrow to tap past the action');
+  assert.equal(card(w).querySelector('[aria-label="Skip to step 2"]')?.dataset.go, '1', 'skipping is offered, and named');
   w.document.querySelector('[data-at="go"]').click();
   await wait(250);
   assert.equal(pressed, 1, 'the page saw the tap');
@@ -386,29 +387,60 @@ test('the layer clips nothing, and a mark at the right edge stays inside the pag
   assert.ok(parseFloat(q('pointer').style.left) >= 0, 'and the hand');
 });
 
-test('a target an earlier tap makes, missing now, sends the reader back to that tap', async () => {
-  // The demo's Save button exists only while its row is being edited, so
-  // going on past it and coming back, or skipping the edit, leaves step 4
-  // with nothing to point at. That is not a wrong name and must not read as
-  // one: the dock names the tap that brings it and offers to go there.
-  const w = realm('<button data-at="edit">Edit</button><p data-at="later">later</p>');
+test('skipping a do step passes over what its tap would have made, and so does Back', async () => {
+  // The demo's Save button exists only while its row is being edited. Leaving
+  // the edit undone must not land on the Save step, nor must coming back to
+  // it after the edit is finished: neither has anything to point at.
+  const w = realm('<p data-at="start">start</p><button data-at="edit">Edit</button><p data-at="end">end</p>');
+  w.document.querySelector('[data-at="edit"]').addEventListener('click', () => {
+    w.document.body.insertAdjacentHTML('beforeend', '<button data-at="save">Save</button>');
+    w.document.querySelector('[data-at="save"]').addEventListener('click', (e) => e.target.remove());
+  });
+  w.Look.start([{ at: 'start', say: 'start' }, { at: 'edit', tap: true, say: 'edit' },
+    { at: 'save', tap: true, say: 'save' }, { at: 'end', say: 'end' }], { wait: 60 });
+  await wait(30);
+  card(w).querySelector('[data-go="1"]').click();
+  await wait(30);
+  const skip = card(w).querySelector('[aria-label^="Skip"]');
+  assert.equal(skip.getAttribute('aria-label'), 'Skip to step 4', 'past the Save step, which has no target yet');
+  skip.click();
+  await wait(30);
+  assert.equal(said(w), 'end');
+  card(w).querySelector('[aria-label="Back"]').click();
+  await wait(30);
+  assert.equal(said(w), 'edit', 'Back passes over the Save step too');
+  w.document.querySelector('[data-at="edit"]').click();
+  await wait(250);
+  assert.equal(said(w), 'save', 'and doing the tap brings the Save step back');
+  w.document.querySelector('[data-at="save"]').click();
+  await wait(250);
+  assert.equal(said(w), 'end');
+  card(w).querySelector('[aria-label="Back"]').click();
+  await wait(30);
+  assert.equal(said(w), 'edit', 'once saved, Back from the end skips the Save step again');
+});
+
+test('a target an earlier tap makes, reached by Next, sends the reader back to that tap', async () => {
+  // Next from a look step goes one on, since a target may still be
+  // rendering; when it is missing for want of a skipped tap, the dock says so.
+  const w = realm('<button data-at="edit">Edit</button><p data-at="mid">mid</p>');
   w.document.querySelector('[data-at="edit"]').addEventListener('click', () => {
     if (!w.document.querySelector('[data-at="save"]')) w.document.body.insertAdjacentHTML('beforeend', '<button data-at="save">Save</button>');
   });
-  w.Look.start([{ at: 'later', say: 'first' }, { at: 'edit', tap: true, say: 'edit' }, { at: 'save', say: 'save' }], { wait: 60 });
+  w.Look.start([{ at: 'edit', tap: true, say: 'edit' }, { at: 'mid', say: 'mid' }, { at: 'save', say: 'save' }], { wait: 60 });
   await wait(30);
-  card(w).querySelector('[data-go="1"]').click();   // on to the tap
+  card(w).querySelector('[aria-label="Skip to step 2"]').click();
   await wait(30);
-  card(w).querySelector('[data-go="1"]').click();   // and skip it
+  card(w).querySelector('[aria-label="Next"]').click();
   await wait(150);
-  assert.equal(said(w), 'This step needs step 2 first.');
-  const go = card(w).querySelector('[aria-label="Go to step 2"]');
-  assert.ok(go, 'a button to the step that makes the target');
-  go.click();
+  assert.equal(said(w), 'This step needs step 1 first.');
+  card(w).querySelector('[aria-label="Go to step 1"]').click();
   await wait(30);
   assert.equal(said(w), 'edit');
   w.document.querySelector('[data-at="edit"]').click();
   await wait(250);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
   assert.equal(said(w), 'save', 'and from there the walk carries on');
 });
 
