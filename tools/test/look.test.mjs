@@ -172,7 +172,7 @@ test('tapping the hand before the step is done gets a short tip and an answer fr
   assert.ok(tip, 'the hand answers');
   assert.equal(tip.textContent, 'Complete the action first.');
   await wait(520);   // after the scroll that brings an off-screen target back, which this realm reports every target as
-  assert.deepEqual([...new Set(moved)].sort(), ['num', 'pointer', 'pulse'], 'and the ring, its hand and its number answer on the page');
+  assert.deepEqual([...new Set(moved)].sort(), ['num', 'pulse'], 'and the ring flares and its number hops, on the page');
   assert.equal(said(w), 'open it', 'and the walk stays put');
   w.document.querySelector('[data-at="go"]').click();
   await wait(30);
