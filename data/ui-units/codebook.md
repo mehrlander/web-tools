@@ -25,13 +25,20 @@ draws it.
 
 ## Fields
 
+A unit is coded on five **dimensions**: `frame`, `body`, `reach`, `binding`
+and `phone`. Each is a row of [`dimensions.csv`](dimensions.csv), which says
+what the dimension holds, the test that decides it, and whether a unit takes
+exactly one of its codes (`per_unit` is `one`) or any number of them (`any`).
+A sixth row, `ring`, is computed rather than coded (README, "Rings"). The
+codes a dimension divides the units into are the rows of `codes.csv` whose
+`axis` names it. The Map view's UI tab renders both files: Dimensions shows
+each dimension with its codes and counts, and Gallery groups the units' shots
+by any one of them.
+
+The other fields record what draws the unit and how sure the reader is:
+
 | Field | Holds | Test |
 | --- | --- | --- |
-| `frame` | how the reader chooses what the body shows, as `frame` codes from `codes.csv`, `;`-joined | the control changes what the body holds, not how it looks |
-| `body` | the unit's main arrangement at first paint, at desktop width, as one `body` code | the region that would remain if every control were removed |
-| `reach` | what one tap on the body opens, as `reach` codes | the thing opens over or beside the body, rather than replacing the unit |
-| `binding` | how the body's regions, or the body and its reach, are tied: one `binding` code | the strongest tie present |
-| `phone` | what changes below 640px: one `phone` code | compare the two screenshots, or read the breakpoint in code |
 | `built_on` | the kits or components that draw `body` and `reach`, `;`-joined, or `hand` | a call or a mount in the unit's files |
 | `hand_evidence` | `file:line` of each part drawn by the unit's own code where a shared kit does the same job | blank when nothing qualifies |
 | `form` | the type of the one object a region draws, where one is drawn: a `docs/subjects.csv` key, or a candidate type marked `?` | a layout written for that type, knowing its fields in advance |
@@ -46,7 +53,8 @@ away, is coded on the chart.
 ## Codes
 
 The codes are rows of [`codes.csv`](codes.csv), one per code, grouped by
-`axis`: `frame`, `body`, `reach`, `binding` and `phone`. Each row gives the
+`axis`, which names the dimension: `frame`, `body`, `reach`, `binding` and
+`phone`, plus the five `ring` rows no reader codes. Each row gives the
 code's arrangement (`gloss`), the `test` that decides it, what it is
 `not_to_confuse` with, and the `kits` that draw it where any do. A reader codes
 from that file, and the Map view renders the same rows, so a code changed there
@@ -112,7 +120,7 @@ Two checks detect an instance independently of the declaration:
   `list`, at least one item. For `list-detail`, picking an unselected item
   changes (or first shows) the detail and moves the selection to it. A
   declaration hidden at the unit's address, or a list with nothing in it
-  there, is unchecked rather than failed, until a fixture gives it rows.
+  there, is unchecked rather than failed, until a scenario script (`tools/render/scenarios/`) gives it stand-in rows.
 
 `tools/build/ui-instances.mjs` runs both and writes `instances.csv`, one row
 per unit it loaded. `tools/build/ui-shots.mjs` crops a declaring unit's shots

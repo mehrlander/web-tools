@@ -36,8 +36,9 @@
 //
 // THE RECIPE. A unit's address in units.csv says where it is, and for most
 // units that is the whole recipe. The rest need a query a bare address cannot
-// carry (a project path, a repo), a fixture script (the Activity panes render a
-// token prompt without one), or a click (a stepper with no address). Those are
+// carry (a project path, a repo), a scenario script with stand-in rows (the
+// Activity panes render a token prompt without one), or a click (a stepper with
+// no address). Those are
 // rows of shots.csv beside each store's coded.csv: unit, query, script, click,
 // focus, note. A row there replaces the derived query; an empty cell keeps it. A
 // query that opens with # is a fragment, for the pages that route on

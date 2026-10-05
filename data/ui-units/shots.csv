@@ -1,12 +1,12 @@
 unit,query,script,click,focus,note
 web-tools:view/app,app=mehrlander/web-tools:pages/text-lab.html,,,,an app view by its page address; a slug needs the token-loaded table
-web-tools:view/branches,view=branches,tools/render/scenarios/activity-fake.mjs,,,fixture rows; the pane needs a token
-web-tools:view/sessions,view=sessions,tools/render/scenarios/estate-sessions.mjs,,,fixture rows; the pane needs a token
-web-tools:view/lists,view=lists,tools/render/scenarios/estate-sessions.mjs,,,fixture rows; the pane needs a token
+web-tools:view/branches,view=branches,tools/render/scenarios/activity-fake.mjs,,,stand-in rows; the pane needs a token
+web-tools:view/sessions,view=sessions,tools/render/scenarios/estate-sessions.mjs,,,stand-in rows; the pane needs a token
+web-tools:view/lists,view=lists,tools/render/scenarios/estate-sessions.mjs,,,stand-in rows; the pane needs a token
 web-tools:view/jots,view=lists,tools/render/scenarios/estate-sessions.mjs,,,?view=jots resolves to Lists
 web-tools:view/proposals,view=proposals,tools/render/scenarios/proposals-demo.mjs,,,a stubbed registry
 web-tools:view/state,view=state,tools/render/scenarios/state-view.mjs,,,stubbed registry reads
-web-tools:view/repos,view=repos,tools/render/scenarios/repos-abandoned-badge.mjs,,,fixture rows; the grid needs a token
+web-tools:view/repos,view=repos,tools/render/scenarios/repos-abandoned-badge.mjs,,,stand-in rows; the grid needs a token
 web-tools:view/files,repo=mehrlander/web-tools&view=files&path=docs,,,,a folder with files of its own
 web-tools:view/project,repo=mehrlander/web-tools&view=project&project=docs,,,,the fallback project the shell builds for an undeclared path
 web-tools:view/project/board,repo=mehrlander/web-tools&view=project&project=docs&tab=board,,,,"web-tools declares no project with a board, and a private repo's board cannot be shot into this public store, so the tab shows its empty state"

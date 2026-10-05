@@ -3,7 +3,7 @@
 Tables of the user interface the Web Tools app and the budget-drs app show:
 one row per unit, the ring each sits in, and which shared kits its files call.
 It is the input to a catalog of the estate's display patterns, rendered in the
-Map view's UI tab as the Patterns gallery. This folder holds a snapshot, its
+Map view's UI tab as Dimensions and the Gallery. This folder holds a snapshot, its
 coding, its screenshots, and the draft [codebook](codebook.md), not a
 registry: nothing here is gated, and nothing is authoritative until the owner
 has assessed the codes.
@@ -14,12 +14,13 @@ has assessed the codes.
 | --- | --- | --- |
 | `units.csv` | one unit: an app view, a view's tab, or a page; `as_of` dates the snapshot | `tools/ui-units.mjs` (Pass 0) |
 | `signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `tools/ui-units.mjs` (Pass 1) |
-| [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis | authored, settled at synthesis |
+| [`dimensions.csv`](dimensions.csv) | one dimension the units are coded on: what it holds, its test, and whether a unit takes one code or any number | authored |
+| [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis (the dimension), and the five rings | authored, settled at synthesis |
 | [`parts.csv`](parts.csv) | one part a declared pattern can name: what it is and the color it is outlined in | authored |
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
 | `instances.csv` | one unit loaded to check the pattern its markup declares: the code declared and coded, the parts found, and whether the code's behavior held | `tools/build/ui-instances.mjs` |
-| `shots.csv` | one unit whose screenshot needs more than its address: a query, a fixture script, a click, or a focus other than its host's | authored |
+| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, or a focus other than its host's | authored |
 | `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped to where the unit's own content starts, and `thumbs.csv` naming them with the focus each crop used | `tools/build/ui-shots.mjs` |
 
 Regenerate the snapshot with `npm run ui-units -- --write --date <date>`,
@@ -48,13 +49,19 @@ registry declares rings; each value rests on the declaration the row names in
 `data/design/lineage/exposure.csv` already has one, for how far a data file is
 from being displayed.
 
-| Ring | Holds | Declared by | Here | Home |
-| --- | --- | --- | --- | --- |
-| 0 | the app's built-in views, and their tabs | `docs/app-routes.csv`, `docs/map-tabs.csv` | 47 | |
-| 1 | pages a repo promotes into the app, and the views of a promoted app | `appView: true` in a `.web-tools.json` | 7 | 37 |
-| 2 | pages a promoted app frames | `embed` in the budget-drs app's `VIEWS` | | 8 |
-| 3 | gallery pages, and pages nothing declares | `pages/pages.csv`, `pages[]`, or nothing | 39 | 20 |
-| 4 | demonstrations and scratch | `pages/pages.csv` top `demos`, `kit-demos`, `drop`, `scratch` | 62 | |
+The five rings are the `ring` rows of [`codes.csv`](codes.csv): what each
+holds (`gloss`) and the declaration that places a unit in it (`test`). Ring 0
+is the app's built-in views, 1 what a repo promotes into the app, 2 what a
+promoted app frames, 3 gallery pages and pages nothing declares, 4
+demonstrations and scratch. The 2026-10-04 snapshot counts:
+
+| Ring | Here | Home |
+| --- | --- | --- |
+| 0 | 47 | |
+| 1 | 7 | 37 |
+| 2 | | 8 |
+| 3 | 39 | 20 |
+| 4 | 62 | |
 
 Four of home's ring 2 units live in repositories not checked out here
 (budget-wa, fn-data, spend-wa) and carry `reachable: not checked out`.

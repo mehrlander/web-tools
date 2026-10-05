@@ -24,7 +24,7 @@
 //
 // A result reads `holds`, `fails`, or `unchecked`: a declaration hidden at the
 // unit's address, or a list with nothing in it there, keeps or breaks no
-// promise until a fixture gives it something to show.
+// promise until a scenario script gives it stand-in rows to show.
 //
 // Which units are loaded: every coded unit whose code has parts (a reader may
 // have coded what the markup never declared), and every unit whose files carry
@@ -90,7 +90,7 @@ const checkJs = (coded) => `(async () => {
     const items = () => own('[data-part="item"]');
     let contract = 'no promise checked for this code';
     // An empty list keeps or breaks no promise: at this address there is
-    // nothing to check, which a fixture would change.
+    // nothing to check, which a scenario script would change.
     if (pattern === 'list') contract = items().length ? 'holds: ' + items().length + ' items shown' : 'unchecked: no item shown at this address';
     if (pattern === 'list-detail') {
       const detail = () => own('[data-part="detail"]')[0];
