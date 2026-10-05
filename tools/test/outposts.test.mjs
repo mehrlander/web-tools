@@ -6,8 +6,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { readFileSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
@@ -53,12 +53,56 @@ const run = (dir, args, declaration) => {
 };
 const BASE = [['alpha', 'on', 'alpha', ''], ['beta', 'on', 'beta', ''], ['pdf', 'on', 'pdf', '']];
 
-test('the hook is silent where no account has synced', () => {
+test('the hook is silent where no account has synced, and waits no more than five seconds to say so', () => {
   const home = mkdtempSync(path.join(os.tmpdir(), 'outposts-home-'));
   try {
+    const t0 = Date.now();
     const out = execFileSync('python3', [TOOL, '--hook'], { input: '{}', encoding: 'utf8', env: { ...process.env, HOME: home } });
     assert.equal(out, '');
+    assert.ok(Date.now() - t0 < 8000, 'a session with no account sync pays the appear wait, not the full one');
   } finally { rmSync(home, { recursive: true, force: true }); }
+});
+
+// Claude Code's sync writes this before downloading anything (see the
+// script's WHEN IT READS): no skills yet, one claim per download in flight.
+const INTERIM = (names) => JSON.stringify({ lastUpdated: 0, skills: [], pendingClaims: names.map(n => `4242:proc/${n}`) });
+
+test('a sync still running when the wait ends is reported as running, never as missing skills', () => {
+  withFixture((dir, put) => {
+    account(put);
+    put('synced/manifest.json', INTERIM(['alpha', 'beta', 'pdf']));
+    const out = run(dir, ['--hook', '--wait', '0'], decl(BASE));
+    assert.match(out, /still downloading after 0s \(3 skills pending\), so nothing was compared/);
+    assert.doesNotMatch(out, /not on the account/);
+    const obs = path.join(dir, 'obs.csv');
+    assert.throws(() => run(dir, ['--write', obs]), 'an interim manifest is not an observation');
+    assert.ok(!existsSync(obs));
+  });
+});
+
+test('the hook waits out the interim manifest and reports the finished one', async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'outposts-'));
+  const put = (rel, text) => {
+    mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    writeFileSync(path.join(dir, rel), text);
+  };
+  try {
+    account(put);
+    const manifest = path.join(dir, 'synced/manifest.json');
+    const finished = readFileSync(manifest, 'utf8');
+    put('synced/manifest.json', INTERIM(['alpha', 'beta', 'pdf']));
+    writeFileSync(path.join(dir, 'declared.csv'), decl(BASE));
+    const child = spawn('python3', [TOOL, '--hook', '--wait', '10', '--synced', path.join(dir, 'synced'),
+      '--plugin', path.join(dir, 'plugin'), '--declared', path.join(dir, 'declared.csv')]);
+    let out = '';
+    child.stdout.on('data', (d) => { out += d; });
+    child.stdin.end('{}');
+    // Replaced by rename, as the sync does, so the check never reads half a file.
+    setTimeout(() => { writeFileSync(manifest + '.tmp', finished); renameSync(manifest + '.tmp', manifest); }, 600);
+    assert.equal(await new Promise((resolve) => child.on('close', resolve)), 0);
+    assert.match(out, /1 upload differs from the plugin \(beta\)/);
+    assert.doesNotMatch(out, /not on the account|still downloading/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('the hook is silent when the account matches its declaration and the plugin', () => {
