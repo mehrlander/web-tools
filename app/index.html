@@ -1620,7 +1620,12 @@ html.dk-dragging main{transition:none !important}
                 </div>
 
                 <!-- The typed read, when board.csv exists on this ref. -->
-                <div x-show="!projectBoardLoading && projectBoardTasks" class="space-y-5">
+                <!-- data-pattern and data-part declare this a List and name its
+                     parts (data/ui-units/codebook.md, "Declaring a pattern in
+                     markup"); nothing at runtime reads them. The review line
+                     rides inside the list element but is not an item. -->
+                <div x-show="!projectBoardLoading && projectBoardTasks" class="space-y-5"
+                     data-pattern="list" data-part="list">
                   <!-- The review line: what a grooming pass asks before it
                        reads any row. Each count states its own subject, so a
                        zero reads as an answer rather than a missing number. -->
@@ -1639,7 +1644,7 @@ html.dk-dragging main{transition:none !important}
                   <template x-for="g in projectBoardGroups" :key="g.key">
                     <section>
                       <button class="flex w-full items-center gap-2 py-1 text-left"
-                              @click="g.key==='done' && (projectBoardShowDone = !projectBoardShowDone)">
+                              @click="g.key==='done' && (projectBoardShowDone = !projectBoardShowDone)" data-part="group">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/60"
                             x-text="g.label"></h3>
                         <span class="badge badge-sm badge-ghost" x-text="g.tasks.length"></span>
@@ -1648,23 +1653,23 @@ html.dk-dragging main{transition:none !important}
                       </button>
                       <ul x-show="g.key!=='done' || projectBoardShowDone" class="space-y-1.5">
                         <template x-for="t in g.tasks" :key="t.file">
-                          <li class="rounded-lg px-3 py-2 hover:bg-base-200/60">
+                          <li class="rounded-lg px-3 py-2 hover:bg-base-200/60" data-part="item">
                             <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                               <a href="#" @click.prevent="openBoardTask(t)"
-                                 class="link link-hover font-medium" x-text="t.title"></a>
+                                 class="link link-hover font-medium" x-text="t.title" data-part="title"></a>
                               <span x-show="t.size" class="badge badge-sm badge-outline font-mono"
-                                    x-text="t.size"></span>
+                                    x-text="t.size" data-part="meta"></span>
                               <span x-show="t.session" class="font-mono text-xs text-base-content/50"
-                                    x-text="t.session"></span>
+                                    x-text="t.session" data-part="meta"></span>
                             </div>
                             <div x-show="t.awaiting" class="mt-0.5 text-sm text-warning"
-                                 x-text="'awaiting: ' + t.awaiting"></div>
+                                 x-text="'awaiting: ' + t.awaiting" data-part="meta"></div>
                             <div x-show="t.blockedBy" class="mt-0.5 text-sm text-base-content/60"
-                                 x-text="t.blockedBy"></div>
+                                 x-text="t.blockedBy" data-part="meta"></div>
                             <!-- Last activity is the signal board.md cannot
                                  carry, and the one that separates a live task
                                  from one that has only been groomed. -->
-                            <div x-show="t.status!=='done'" class="mt-0.5 text-xs text-base-content/40">
+                            <div x-show="t.status!=='done'" class="mt-0.5 text-xs text-base-content/40" data-part="meta">
                               <span x-show="t.lastActivity"
                                     x-text="boardTaskAge(t) + 'd since last log · ' + t.logEntries + (t.logEntries === 1 ? ' entry' : ' entries')"></span>
                               <span x-show="!t.lastActivity" class="italic">no progress log</span>
@@ -1730,8 +1735,13 @@ html.dk-dragging main{transition:none !important}
                 <div x-show="projectDocsLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
+                <!-- data-pattern and data-part declare the div below a List and
+                     name its parts (data/ui-units/codebook.md, "Declaring a
+                     pattern in markup"); nothing at runtime reads them. No
+                     element holds the groups alone, so the list element also
+                     carries the curated index and the filter, neither an item. -->
                 <template x-if="!projectDocsLoading && projectDocs">
-                  <div>
+                  <div data-pattern="list" data-part="list">
                     <article x-show="projectDocsIndexHtml"
                              class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content mb-8 pb-8 border-b border-base-200"
                              x-html="projectDocsIndexHtml"></article>
@@ -1747,16 +1757,16 @@ html.dk-dragging main{transition:none !important}
                     </div>
                     <template x-for="g in projectDocsGroups" :key="g.dir">
                       <section class="mb-6">
-                        <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2">
+                        <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2" data-part="group">
                           <i class="ph ph-folder"></i><span x-text="g.dir"></span>
                           <span class="badge badge-ghost badge-sm" x-text="g.files.length"></span>
                         </h3>
                         <div class="flex flex-col">
                           <template x-for="f in g.files" :key="f.rel">
                             <button @click="openProjectDoc(f.rel)"
-                                    class="flex items-center gap-2 px-2 py-1 text-base text-left rounded-lg hover:bg-base-200 text-base-content/80 hover:text-base-content transition-colors cursor-pointer">
+                                    class="flex items-center gap-2 px-2 py-1 text-base text-left rounded-lg hover:bg-base-200 text-base-content/80 hover:text-base-content transition-colors cursor-pointer" data-part="item">
                               <i class="ph ph-file-text text-base-content/40"></i>
-                              <span class="truncate" x-text="f.name"></span>
+                              <span class="truncate" x-text="f.name" data-part="title"></span>
                             </button>
                           </template>
                         </div>

@@ -1058,28 +1058,32 @@
     </section>
 
     <!-- ── probes ─────────────────────────────────────────────────────── -->
-    <section x-show="pane === 'probes' && !loading">
+    <!-- data-pattern and data-part declare this a List and name its parts
+         (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing
+         at runtime reads them. Only Probes, the pane that paints first,
+         declares; a row opens in place, so there is no detail. -->
+    <section x-show="pane === 'probes' && !loading" data-pattern="list" data-part="list">
       <template x-for="g in probeGroups()" :key="g.date">
        <section class="mb-9">
-        <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+        <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300" data-part="group">
           <span x-text="g.date"></span>
           <span class="ml-2" x-text="g.items.length + (g.items.length === 1 ? ' probe' : ' probes')"></span>
         </h2>
 
         <template x-for="p in g.items" :key="p.id">
-        <article class="border-b border-base-200 py-5">
+        <article class="border-b border-base-200 py-5" data-part="item">
 
           <button class="w-full text-left flex items-start gap-3" @click="open = open === p.id ? null : p.id">
             <span class="mt-2.5 w-1 h-5 rounded-sm shrink-0" :class="STANDINGS[standingOf(p)].bar"></span>
             <span class="grow min-w-0">
-              <span class="block text-lg leading-7 text-pretty" x-text="p.question"></span>
+              <span class="block text-lg leading-7 text-pretty" x-text="p.question" data-part="title"></span>
               <!-- The concepts belong on the collapsed row: they are the field's
                    own vocabulary and the thing the header's filter selects on,
                    so keeping them behind a tap left that filter with no visible
                    referent and every row looking alike. -->
               <span class="block mt-1 font-mono text-xs opacity-40 truncate">
-                <span :class="STANDINGS[standingOf(p)].text" x-text="standingOf(p)"></span>
-                <span class="ml-2" x-text="p.concepts.join(' · ')"></span>
+                <span :class="STANDINGS[standingOf(p)].text" x-text="standingOf(p)" data-part="meta"></span>
+                <span class="ml-2" x-text="p.concepts.join(' · ')" data-part="meta"></span>
               </span>
             </span>
             <i class="ph shrink-0 mt-2 opacity-30" :class="open === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>

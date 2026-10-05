@@ -18,8 +18,13 @@
 // and checks the declaration against the code's behavior:
 //
 //   list         at least one item is shown
-//   list-detail  picking an item that is not selected changes the detail, and
-//                the selection (aria-selected or aria-current) moves to it
+//   list-detail  picking an item that is not selected changes (or first shows)
+//                the detail, and the selection (aria-selected or aria-current)
+//                moves to it
+//
+// A result reads `holds`, `fails`, or `unchecked`: a declaration hidden at the
+// unit's address, or a list with nothing in it there, keeps or breaks no
+// promise until a fixture gives it something to show.
 //
 // Which units are loaded: every coded unit whose code has parts (a reader may
 // have coded what the markup never declared), and every unit whose files carry
@@ -63,33 +68,51 @@ const checkJs = `(async () => {
   const marked = (e) => e.getAttribute('aria-selected') === 'true'
     || ['true', 'page', 'step', 'location'].includes(e.getAttribute('aria-current'));
   const out = [];
-  for (const root of [...document.querySelectorAll('[data-pattern]')].filter(shown)) {
+  // A pattern inside another belongs to an item of the outer one (Sessions'
+  // branch tiles), so only the outermost roots are the unit's own.
+  const tops = [...document.querySelectorAll('[data-pattern]')].filter((r) => !r.parentElement?.closest('[data-pattern]'));
+  for (const root of tops.filter(shown)) {
     const own = (sel) => [...root.querySelectorAll(sel)].filter((e) => shown(e) && e.closest('[data-pattern]') === root);
     const counts = {};
     for (const e of [root, ...own('[data-part]')]) if (e.dataset.part) counts[e.dataset.part] = (counts[e.dataset.part] || 0) + 1;
     const pattern = root.dataset.pattern;
     const items = () => own('[data-part="item"]');
     let contract = 'no promise checked for this code';
-    if (pattern === 'list') contract = items().length ? 'holds: ' + items().length + ' items shown' : 'fails: no item shown';
+    // An empty list keeps or breaks no promise: at this address there is
+    // nothing to check, which a fixture would change.
+    if (pattern === 'list') contract = items().length ? 'holds: ' + items().length + ' items shown' : 'unchecked: no item shown at this address';
     if (pattern === 'list-detail') {
       const detail = () => own('[data-part="detail"]')[0];
+      // The pick goes where a person would click: the item when it is itself a
+      // control, else its title, else the first control inside it that is not
+      // one of its actions. A pick handler on a button inside a row div never
+      // hears a click dispatched on the div.
+      const control = (e) => e.matches('button, a[href], [role="option"], [tabindex], [onclick], [\\@click], [x-on\\:click]');
+      const target = (it) => control(it) ? it
+        : [it.querySelector('[data-part="title"]'), ...it.querySelectorAll('button, a[href], [role="option"], [tabindex]')]
+            .find((e) => e && !e.closest('[data-part="actions"]') && (control(e) || e.querySelector('button, a[href]'))) || it;
       const its = items();
       const i = its.findLastIndex((e) => !marked(e));
-      if (its.length < 2 || i < 0) contract = 'fails: no unselected item to pick';
-      else if (!detail()) contract = 'fails: no detail shown';
+      if (its.length < 2) contract = 'unchecked: fewer than two items shown at this address';
+      else if (i < 0) contract = 'fails: every item is marked selected';
       else {
-        const before = detail().textContent;
-        its[i].click();
+        // A detail may be hidden until the first pick (Search's reader), so
+        // its absence before the pick is not yet a failure.
+        const before = detail() ? detail().textContent : null;
+        target(its[i]).click();
         await settle();
         const after = items(), picked = after[i], now = after.filter(marked);
         const changed = !!detail() && detail().textContent !== before;
         const moved = !!picked && marked(picked) && now.length === 1;
-        contract = (changed && moved ? 'holds' : 'fails') + ': the pick ' + (changed ? 'changed' : 'did not change')
+        contract = (changed && moved ? 'holds' : 'fails') + ': the pick ' + (changed ? (before === null ? 'showed' : 'changed') : 'did not change')
           + ' the detail; the selection ' + (moved ? 'moved to it' : now.length ? 'did not move to it' : 'is not marked');
       }
     }
     out.push({ pattern, counts, contract });
   }
+  // Declared in the markup but hidden here (a board no project declares, a
+  // pane that waits on a token): the declaration exists and goes unchecked.
+  if (!out.length && tops.length) out.push({ pattern: tops[0].dataset.pattern, counts: {}, contract: 'unchecked: declared, but not shown at this address' });
   return JSON.stringify(out);
 })()`;
 

@@ -30,9 +30,9 @@
 //
 // THE PARTS. Where the markup declares a pattern (data/ui-units/codebook.md,
 // "Declaring a pattern in markup"), each declared part is outlined and tinted
-// in its color from parts.csv before the shot, and the selected item takes a
-// stronger tint, so a card shows what a list item is, not only that there is
-// a list. thumbs.csv's pattern column names the declared pattern.
+// in its color from parts.csv before the shot: every item, and one exemplar
+// item's anatomy, the selected item taking the stronger tint, so a card shows
+// what a list item is, not only that there is a list. thumbs.csv's pattern column names the declared pattern.
 //
 // THE RECIPE. A unit's address in units.csv says where it is, and for most
 // units that is the whole recipe. The rest need a query a bare address cannot
@@ -77,20 +77,29 @@ const PART_RGB = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/parts.c
   return [p.part, [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')];
 }));
 
-// Outline and tint every part of every shown declared pattern. Outlines and
-// inset shadows paint over the page without moving anything in it, so the
-// crop measured afterwards is the crop of the page as it lays out.
+// Outline and tint the parts of every shown declared pattern. Every item is
+// outlined, but an item's own anatomy (title, meta, summary, actions) is drawn
+// on one exemplar only, the selected item where there is one and the first
+// otherwise: drawn on every row it turned a list into a wall of small boxes,
+// and one item answers "what is an item" as well as forty. Outlines and inset
+// shadows paint over the page without moving anything in it, so the crop
+// measured afterwards is the crop of the page as it lays out.
 const drawJs = `(() => {
   const C = ${JSON.stringify(PART_RGB)};
+  const ANATOMY = ['title', 'meta', 'summary', 'actions'];
   const shown = (e) => e.getClientRects().length > 0;
   const marked = (e) => e.getAttribute('aria-selected') === 'true'
     || ['true', 'page', 'step', 'location'].includes(e.getAttribute('aria-current'));
   for (const root of [...document.querySelectorAll('[data-pattern]')].filter(shown)) {
-    for (const e of [root, ...root.querySelectorAll('[data-part]')]) {
+    const own = [root, ...root.querySelectorAll('[data-part]')]
+      .filter((e) => e.dataset.part && C[e.dataset.part] && shown(e) && e.closest('[data-pattern]') === root);
+    const items = own.filter((e) => e.dataset.part === 'item');
+    const exemplar = items.find(marked) || items[0];
+    for (const e of own) {
       const part = e.dataset.part;
-      if (!part || !C[part] || e.closest('[data-pattern]') !== root) continue;
+      if (ANATOMY.includes(part) && !(exemplar && exemplar.contains(e))) continue;
       const box = part === 'list' || part === 'detail';
-      const fill = part === 'item' && marked(e) ? 0.2 : box || part === 'item' ? 0.05 : 0.1;
+      const fill = part === 'item' && e === exemplar ? (marked(e) ? 0.22 : 0.12) : box || part === 'item' ? 0.04 : 0.12;
       e.style.outline = (box ? '3px dashed ' : '2px solid ') + 'rgb(' + C[part] + ')';
       e.style.outlineOffset = '-2px';
       e.style.boxShadow = 'inset 0 0 0 9999px rgba(' + C[part] + ',' + fill + ')';

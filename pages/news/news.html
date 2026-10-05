@@ -402,35 +402,39 @@
   </div>
 
   <!-- Ledger groups -->
-  <div x-show="!loading && !error && facet==='ledger' && filtered.length" x-cloak class="flex flex-col gap-6">
+  <!-- data-pattern and data-part declare this a List and name its parts
+       (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing at
+       runtime reads them. Only the Ledger facet, which paints first, declares. -->
+  <div x-show="!loading && !error && facet==='ledger' && filtered.length" x-cloak class="flex flex-col gap-6"
+       data-pattern="list" data-part="list">
     <template x-for="g in groups" :key="g.key">
       <section>
         <div class="flex items-baseline gap-2 mb-2 sticky top-[104px] z-10 bg-base-200/90 backdrop-blur py-1">
-          <h2 class="font-semibold text-sm" x-text="g.label"></h2>
+          <h2 class="font-semibold text-sm" x-text="g.label" data-part="group"></h2>
           <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
         </div>
         <div class="flex flex-col gap-2">
           <template x-for="it in g.items" :key="it.id">
             <!-- A backfilled item is a reconstruction, not a witness: dashed,
                  amber-tinted, badged. A live item is a clean card. -->
-            <article class="rounded-lg border bg-base-100 px-4 py-3 transition-shadow hover:shadow-sm"
+            <article class="rounded-lg border bg-base-100 px-4 py-3 transition-shadow hover:shadow-sm" data-part="item"
                      :class="it.backfilled
                        ? 'border-dashed border-warning/50 bg-warning/10'
                        : 'border-base-300'">
               <div class="flex items-start gap-3">
                 <div class="min-w-0 grow">
                   <a :href="it.url" target="_blank"
-                     class="font-medium leading-snug hover:link hover:link-primary" x-text="it.title || '(untitled)'"></a>
-                  <p x-show="it.summary" class="text-sm opacity-70 mt-1 line-clamp-2" x-text="it.summary"></p>
+                     class="font-medium leading-snug hover:link hover:link-primary" x-text="it.title || '(untitled)'" data-part="title"></a>
+                  <p x-show="it.summary" class="text-sm opacity-70 mt-1 line-clamp-2" x-text="it.summary" data-part="summary"></p>
                   <div class="flex items-center gap-2 flex-wrap mt-1.5 text-xs opacity-60">
-                    <span class="inline-flex items-center gap-1">
+                    <span class="inline-flex items-center gap-1" data-part="meta">
                       <i class="ph" :class="kindIcon(it.kind)"></i><span x-text="it.source"></span>
                     </span>
-                    <span x-show="groupBy!=='topic'" class="badge badge-ghost badge-xs" x-text="topicLabel(it.topic)"></span>
-                    <span x-text="host(it.url)" class="opacity-50"></span>
-                    <span class="opacity-50" x-text="relTime(when(it))"></span>
+                    <span x-show="groupBy!=='topic'" class="badge badge-ghost badge-xs" x-text="topicLabel(it.topic)" data-part="meta"></span>
+                    <span x-text="host(it.url)" class="opacity-50" data-part="meta"></span>
+                    <span class="opacity-50" x-text="relTime(when(it))" data-part="meta"></span>
                     <span x-show="it.backfilled"
-                          class="badge badge-warning badge-xs gap-1">
+                          class="badge badge-warning badge-xs gap-1" data-part="meta">
                       <i class="ph ph-clock-counter-clockwise"></i> backfilled
                     </span>
                   </div>

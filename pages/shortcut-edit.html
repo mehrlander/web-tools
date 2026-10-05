@@ -51,18 +51,21 @@
   <p x-show="err" class="text-error px-3 py-3" x-text="err" data-error></p>
 
   <!-- The list: every open proposal, with where it stands. -->
+  <!-- data-pattern and data-part declare this a List and name its parts
+       (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing at
+       runtime reads them. A pick replaces the list, so it has no detail. -->
   <template x-if="!body && !err">
-    <div class="flex flex-col" data-list>
+    <div class="flex flex-col" data-list data-pattern="list" data-part="list">
       <template x-for="p in proposals" :key="p.file">
-        <button @click="pick(p)" class="text-left px-3 py-3 border-b border-base-200 hover:bg-base-200 flex flex-col gap-1" data-proposal>
+        <button @click="pick(p)" class="text-left px-3 py-3 border-b border-base-200 hover:bg-base-200 flex flex-col gap-1" data-proposal data-part="item">
           <div class="flex items-center gap-2">
-            <span class="font-semibold" x-text="p.body.name"></span>
-            <span class="badge badge-sm badge-success badge-soft font-mono" x-text="'+' + (p.body.expect.length - p.body.base.length)"></span>
+            <span class="font-semibold" x-text="p.body.name" data-part="title"></span>
+            <span class="badge badge-sm badge-success badge-soft font-mono" x-text="'+' + (p.body.expect.length - p.body.base.length)" data-part="meta"></span>
             <div class="grow"></div>
-            <span class="badge badge-sm" :class="badge(p.status)" x-text="p.status.label"></span>
+            <span class="badge badge-sm" :class="badge(p.status)" x-text="p.status.label" data-part="meta"></span>
           </div>
-          <div class="text-sm text-base-content/70 line-clamp-2" x-text="p.body.why"></div>
-          <div class="text-xs font-mono text-base-content/40" x-text="p.body.created"></div>
+          <div class="text-sm text-base-content/70 line-clamp-2" x-text="p.body.why" data-part="summary"></div>
+          <div class="text-xs font-mono text-base-content/40" x-text="p.body.created" data-part="meta"></div>
         </button>
       </template>
       <div x-show="loading" class="flex justify-center py-16"><span class="loading loading-dots loading-md opacity-30"></span></div>
