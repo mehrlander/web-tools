@@ -21,12 +21,28 @@ WHAT IT READS, and none of it costs a fetch.
 docs/outposts.md is the pattern this instance follows; docs/account-skills.csv
 says what each declared row means.
 
+WHEN IT READS. Claude Code fills the synced folder while the session-start
+hooks run, not before them. In a fresh container its sync first writes an
+interim manifest.json whose "skills" list is empty and whose "pendingClaims"
+list names each skill it is about to download; the complete manifest replaces
+it once the downloads land. A check that read the interim one reported every
+declared skill missing, and one that ran before any manifest existed said
+nothing. Measured on 2026-10-05: in the twelve sessions that started on this
+check, none produced a correct reading at startup (four false alarms, eight
+silences), and every correct one came on resume. So --hook waits, up to --wait
+seconds, for a manifest with no claims left, and says the account was still
+downloading rather than give a count it could not have. "pendingClaims" is
+Claude Code's internal field, not a documented one; if it disappears the wait
+ends at once and the check behaves as it did before.
+
     account-skills.py             one row per account skill, with its state
     account-skills.py --hook      the SessionStart line: silent unless
                                   something needs attention
     account-skills.py --write P   write the observation CSV to P
     account-skills.py --zip DIR   an upload-ready zip of the plugin's copy, for
                                   each upload that differs from it
+    account-skills.py --wait S    how long to wait for the sync to finish
+                                  (default 15 with --hook, otherwise 0)
 
 The comparison is folder-wide (every file's bytes, by relative path), and it
 says "differs", never "older" or "newer": which copy is ahead is a claim about
@@ -41,6 +57,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 import zipfile
 from datetime import datetime, timezone
 
@@ -48,6 +65,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PLUGIN_ROOT = os.path.dirname(HERE)
 MARKETPLACE = os.path.expanduser("~/.claude/plugins/marketplaces/web-tools")
 SOURCES = {"anthropic": "anthropic", "anthropic-example": "anthropic-example", "plugin": "upload"}
+HOOK_WAIT = 15      # seconds: a 43-skill account took 6.4 on 2026-10-05
+APPEAR_WAIT = 5     # seconds: no manifest by then reads as no sync at all
+POLL = 0.25
 
 # One label per state, and the wording is the contract: what was compared and
 # what it found, never a bare "synced". `drift` marks the states the hook
@@ -103,6 +123,31 @@ def find_synced(explicit):
         return explicit if os.path.isfile(os.path.join(explicit, "manifest.json")) else None
     hits = sorted(glob.glob(os.path.expanduser("~/.claude/skills/synced/*/manifest.json")))
     return os.path.dirname(hits[0]) if hits else None
+
+
+def pending(synced):
+    """How many downloads the sync has claimed and not finished, per its
+    manifest. Unreadable counts as none, so a format change ends the wait."""
+    try:
+        with open(os.path.join(synced, "manifest.json"), encoding="utf-8") as fh:
+            return len(json.load(fh).get("pendingClaims") or [])
+    except (OSError, ValueError, AttributeError):
+        return 0
+
+
+def settle(explicit, wait):
+    """The synced folder once the sync has finished, waiting up to `wait`
+    seconds for it: (folder or None, claims still open when the wait ended)."""
+    start = time.monotonic()
+    while True:
+        synced = find_synced(explicit)
+        left = pending(synced) if synced else 0
+        waited = time.monotonic() - start
+        if synced and not left:
+            return synced, 0
+        if waited >= wait or (not synced and waited >= min(wait, APPEAR_WAIT)):
+            return synced, left
+        time.sleep(POLL)
 
 
 def find_declared(explicit):
@@ -229,17 +274,29 @@ def main(argv):
     ap.add_argument("--synced")
     ap.add_argument("--plugin", default=PLUGIN_ROOT)
     ap.add_argument("--declared")
+    ap.add_argument("--wait", type=float)
     a = ap.parse_args(argv)
     # Drain the hook payload, which this check does not need, so the harness
     # never meets a closed pipe.
     if a.hook and not sys.stdin.isatty():
         sys.stdin.read()
 
-    synced = find_synced(a.synced)
+    wait = a.wait if a.wait is not None else (HOOK_WAIT if a.hook else 0)
+    synced, left = settle(a.synced, wait)
     if not synced:
         if not a.hook:
             print("No synced account skills here: this session is not signed in to a claude.ai account with sync.")
         return 0
+    if left:
+        note = (f"the account was still downloading after {wait:g}s ({left} "
+                f"skill{'' if left == 1 else 's'} pending), so nothing was compared")
+        if a.hook:
+            print(f"Outpost check, claude.ai account skills: {note}. "
+                  f"Details: python3 {os.path.join(HERE, 'account-skills.py')}")
+            return 0
+        if a.write or a.zip:
+            print(f"Nothing written: {note}. Run it again once the download finishes.")
+            return 1
     declared_path = find_declared(a.declared)
     declared = read_declared(declared_path)
     rows = assess(observe(synced), declared, a.plugin)
@@ -256,7 +313,10 @@ def main(argv):
         for p in write_zips(rows, a.plugin, a.zip):
             print(p)
     if not a.write and not a.zip:
-        print(f"declared: {declared_path or 'none found'}\nobserved: {synced}\n")
+        print(f"declared: {declared_path or 'none found'}\nobserved: {synced}")
+        if left:
+            print(f"pending:  {left} downloads not finished, so skills may read as missing")
+        print()
         w = max(len(r["name"]) for r in rows)
         for r in rows:
             extra = f"  [{r['detail']}]" if r["detail"] else ""
