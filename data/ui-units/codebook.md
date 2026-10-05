@@ -64,7 +64,9 @@ Three rules the rows cannot hold:
 A body code can also be stated by the unit's own markup, which treats the code
 as an interface: a set of named parts and a behavior the unit promises. Piloted
 on 2026-10-05 for `list` and `list-detail`, the two codes whose `parts` cell is
-filled.
+filled, on five units, then carried to every unit coded either code. The
+rollout's readers asked for `body` and `links` and for the rules on groups,
+nesting and alternates below.
 
 - **`data-pattern="<code>"`** goes on the element that holds the whole
   arrangement, using a body code from [`codes.csv`](codes.csv).
@@ -76,19 +78,37 @@ filled.
 - **The selected item** carries a standard attribute rather than a data one:
   `aria-selected="true"` where the list is an ARIA `listbox`, otherwise
   `aria-current="true"`.
+- **An item's anatomy** is title, meta, summary, body, links and actions, as
+  far as the item has them. `meta` is any one fact about the item: a code, a
+  count, an amount, a date, a kind icon or a status chip, marked on the
+  smallest element that holds only such facts. `body` is the item's own
+  content beyond its summary (a diff, a script, a small chart, a panel it
+  expands in place); `links` lead elsewhere (tags that filter the list, doors
+  to other views, related documents), where `actions` act on the item itself.
+  A `group` may carry its own `meta` and `summary`, such as its count.
+- **Nesting.** An item may hold a declared pattern of its own (a session's
+  branch tiles), and its parts belong to that inner pattern. Nested group
+  headings are all `group`; the levels are not told apart.
+- **Alternates.** Two elements may carry the same part where only one is
+  shown at a time (a detail drawn as a parsed panel or as the source sheet, a
+  title that is a link or plain text).
 
 `data-ui` would have been the obvious name; `lib/vanilla-bundle.js` already
 uses it to look elements up.
 
 Where a unit declares a pattern, the declaration states its intent, and the
-`body` a reader coded becomes evidence checked against it. Two checks detect
-an instance independently of the declaration:
+`body` a reader coded becomes evidence checked against it. A unit may also
+show a declared pattern that is not its body, such as the errands list inside
+Stage, coded a tool; it contains that pattern rather than declaring its own.
+Two checks detect an instance independently of the declaration:
 
 - **Construction:** a kit in the code's `kits` cell drew it. No kit draws
   `list` or `list-detail`, so every instance of either is hand-built.
 - **Behavior:** the code's promise holds when the page is driven headless. For
   `list`, at least one item. For `list-detail`, picking an unselected item
-  changes the detail and moves the selection to it.
+  changes (or first shows) the detail and moves the selection to it. A
+  declaration hidden at the unit's address, or a list with nothing in it
+  there, is unchecked rather than failed, until a fixture gives it rows.
 
 `tools/build/ui-instances.mjs` runs both and writes `instances.csv`, one row
 per unit it loaded. `tools/build/ui-shots.mjs` crops a declaring unit's shots

@@ -78,15 +78,16 @@ const PART_RGB = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/parts.c
 }));
 
 // Outline and tint the parts of every shown declared pattern. Every item is
-// outlined, but an item's own anatomy (title, meta, summary, actions) is drawn
-// on one exemplar only, the selected item where there is one and the first
-// otherwise: drawn on every row it turned a list into a wall of small boxes,
-// and one item answers "what is an item" as well as forty. Outlines and inset
+// outlined, but an item's own anatomy (title, meta, summary, body, links,
+// actions) is drawn on one exemplar only, the selected item where there is one
+// and the first otherwise: drawn on every row it turned a list into a wall of
+// small boxes, and one item answers "what is an item" as well as forty. A
+// group's own meta is drawn on every group. Outlines and inset
 // shadows paint over the page without moving anything in it, so the crop
 // measured afterwards is the crop of the page as it lays out.
 const drawJs = `(() => {
   const C = ${JSON.stringify(PART_RGB)};
-  const ANATOMY = ['title', 'meta', 'summary', 'actions'];
+  const ANATOMY = ['title', 'meta', 'summary', 'body', 'links', 'actions'];
   const shown = (e) => e.getClientRects().length > 0;
   const marked = (e) => e.getAttribute('aria-selected') === 'true'
     || ['true', 'page', 'step', 'location'].includes(e.getAttribute('aria-current'));
@@ -97,7 +98,7 @@ const drawJs = `(() => {
     const exemplar = items.find(marked) || items[0];
     for (const e of own) {
       const part = e.dataset.part;
-      if (ANATOMY.includes(part) && !(exemplar && exemplar.contains(e))) continue;
+      if (ANATOMY.includes(part) && !(exemplar && exemplar.contains(e)) && !e.parentElement?.closest('[data-part="group"]')) continue;
       const box = part === 'list' || part === 'detail';
       const fill = part === 'item' && e === exemplar ? (marked(e) ? 0.22 : 0.12) : box || part === 'item' ? 0.04 : 0.12;
       e.style.outline = (box ? '3px dashed ' : '2px solid ') + 'rgb(' + C[part] + ')';
@@ -159,7 +160,7 @@ const worker = async () => {
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }
       const focus = existsSync(box) ? JSON.parse(readFileSync(box, 'utf8')) : null;
       // A page's only focus is a declared pattern, so its missing one is the norm.
-      if (w.r.focus && !focus && w.r.focus !== 'top:[data-pattern]') console.log(`  ${w.unit} ${kind}: no focus matched (${w.r.focus}); kept the whole window`);
+      if (w.r.focus && !focus && !/^top:\[data-pattern="[^"]*"\]$/.test(w.r.focus)) console.log(`  ${w.unit} ${kind}: no focus matched (${w.r.focus}); kept the whole window`);
       const file = `${base}.${kind}.jpg`;
       await toJpeg(resize, png, size, focus, path.join(w.store.thumbs, file));
       row[kind] = file;

@@ -64,17 +64,19 @@ function derive(u) {
   return { tool: 'home', page: u.files.split(';')[0], query: '' };
 }
 
-// Where a unit's own content starts. A pattern the markup declares comes first:
-// the element carrying data-pattern is the arrangement itself
-// (data/ui-units/codebook.md, "Declaring a pattern in markup"). Without one, by
+// Where a unit's own content starts. A pattern the markup declares comes first
+// when it is the unit's coded body: the element carrying data-pattern is then
+// the arrangement itself (data/ui-units/codebook.md, "Declaring a pattern in
+// markup"). A declared pattern of another code is one the unit contains, such
+// as Stage's errands list inside a tool, and is not where the unit starts. Without one, by
 // host: the Map draws its tabs' bodies as sections; a repo view's tab sits under
 // the view's tab strip; every other view of the Web Tools app starts below the
 // app's nav, at <main>. A budget-drs tab sits under the first tab strip inside
 // its view's section, beside the app's sidebar; a budget-drs view with no strip
 // (Reversions' stepper, Search) starts at that section. A page, framed or not,
 // is its own unit and keeps its window unless it declares a pattern.
-function focusOf(u) {
-  const declared = 'top:[data-pattern]';
+function focusOf(u, body) {
+  const declared = `top:[data-pattern="${body}"]`;
   if (u.kind === 'page' || u.kind === 'framed page') return declared;
   if (u.host === 'Web Tools app' && u.view === 'map') return `${declared} || top:[data-pane="map"] section || top:main`;
   if (u.host === 'Web Tools app' && u.group === 'repo' && u.kind === 'tab') return `${declared} || below:main [role="tablist"] || top:main`;
@@ -98,7 +100,7 @@ export function codedUnits(only = '') {
       if (o.query) r.query = o.query;
       if (o.script) r.script = o.script;
       if (o.click) r.click = o.click;
-      r.focus = o.focus === 'none' ? '' : (o.focus || focusOf(u));
+      r.focus = o.focus === 'none' ? '' : (o.focus || focusOf(u, c.body || ''));
       out.push({ store, unit: c.unit, u, c, r });
     }
   }
@@ -120,7 +122,10 @@ export const focusJs = (spec) => `(async () => {
   const shown = (e) => e.getClientRects().length > 0;
   for (const alt of ${JSON.stringify(spec)}.split(' || ')) {
     const m = /^(top|below):(.+)$/.exec(alt.trim());
-    const el = m && [...document.querySelectorAll(m[2])].find(shown);
+    // A declared pattern with no item shown is empty here, and a crop to it
+    // would be a blank card; the unit's usual crop shows its empty state.
+    const el = m && [...document.querySelectorAll(m[2])].find((e) => shown(e)
+      && (!e.hasAttribute('data-pattern') || [...e.querySelectorAll('[data-part="item"]')].some(shown)));
     if (!el) continue;
     const settle = () => new Promise((ok) => setTimeout(ok, 800));
     const below = m[1] === 'below';

@@ -62,7 +62,7 @@ const CODES = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/codes.csv'
 
 // Run in the page: every shown declared pattern, its parts counted, and its
 // code's promise tried. Answers a JSON string, like the focus eval.
-const checkJs = `(async () => {
+const checkJs = (coded) => `(async () => {
   const shown = (e) => e.getClientRects().length > 0;
   const settle = () => new Promise((ok) => setTimeout(ok, 800));
   const marked = (e) => e.getAttribute('aria-selected') === 'true'
@@ -71,7 +71,13 @@ const checkJs = `(async () => {
   // A pattern inside another belongs to an item of the outer one (Sessions'
   // branch tiles), so only the outermost roots are the unit's own.
   const tops = [...document.querySelectorAll('[data-pattern]')].filter((r) => !r.parentElement?.closest('[data-pattern]'));
-  for (const root of tops.filter(shown)) {
+  // The unit's own pattern is the one matching the reader's code where one
+  // does; any other shown pattern is one the unit contains (Stage, coded a
+  // tool, shows the errands list). Only the first is driven, so a pick in one
+  // pattern cannot disturb the reading of another.
+  const showing = tops.filter(shown);
+  const first = showing.find((r) => r.dataset.pattern === ${JSON.stringify(coded)}) || showing[0];
+  for (const root of first ? [first] : []) {
     const own = (sel) => [...root.querySelectorAll(sel)].filter((e) => shown(e) && e.closest('[data-pattern]') === root);
     const counts = {};
     for (const e of [root, ...own('[data-part]')]) if (e.dataset.part) counts[e.dataset.part] = (counts[e.dataset.part] || 0) + 1;
@@ -108,11 +114,15 @@ const checkJs = `(async () => {
           + ' the detail; the selection ' + (moved ? 'moved to it' : now.length ? 'did not move to it' : 'is not marked');
       }
     }
-    out.push({ pattern, counts, contract });
+    const also = showing.filter((r) => r !== root).map((r) => r.dataset.pattern);
+    out.push({ pattern, counts, contract, also });
   }
-  // Declared in the markup but hidden here (a board no project declares, a
-  // pane that waits on a token): the declaration exists and goes unchecked.
-  if (!out.length && tops.length) out.push({ pattern: tops[0].dataset.pattern, counts: {}, contract: 'unchecked: declared, but not shown at this address' });
+  // Declared but hidden here, where the declared element itself is what is
+  // hidden (a board no project declares, a list waiting on a token). A pattern
+  // whose parent is hidden too sits in another tab of the same page, which is
+  // that tab's declaration, not this unit's.
+  const own = tops.find((r) => !shown(r) && r.parentElement && shown(r.parentElement));
+  if (!out.length && own) out.push({ pattern: own.dataset.pattern, counts: {}, contract: 'unchecked: declared, but not shown at this address', also: [] });
   return JSON.stringify(out);
 })()`;
 
@@ -136,7 +146,7 @@ const done = new Map(STORES.map(s => [s.name, []]));
 let n = 0;
 const worker = async () => {
   for (let w = work.shift(); w; w = work.shift()) {
-    const res = await shoot(w.r, DESK, false, path.join(TMP, slug(w.unit) + '.png'), checkJs);
+    const res = await shoot(w.r, DESK, false, path.join(TMP, slug(w.unit) + '.png'), checkJs(w.c.body || ''));
     const found = evalFrom(res.out);
     const coded = w.c.body || '';
     const builtOn = (w.c.built_on || '').split(';');
@@ -153,7 +163,8 @@ const worker = async () => {
         row.missing = spec.required.filter(p => !inst.counts[p]).join(';');
         row.stray = Object.keys(inst.counts).filter(p => !spec.required.includes(p) && !spec.optional.includes(p)).join(';');
       } else row.stray = `${inst.pattern} is not a code with parts`;
-      row.contract = [row.contract, inst.contract].filter(Boolean).join('; ');
+      row.contract = [row.contract, inst.contract,
+        inst.also?.length ? 'the unit also shows a declared ' + inst.also.join(', a declared ') : ''].filter(Boolean).join('; ');
     }
     const spec = CODES[row.declared || coded];
     row.kit = spec ? (spec.kits.find(k => builtOn.includes(k)) || (spec.kits.length ? 'none of ' + spec.kits.join(', ') : 'no kit draws this code')) : '';

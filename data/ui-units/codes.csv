@@ -10,10 +10,10 @@ frame,selector,Selector,"chips, a grid or a menu that picks the ONE item the bod
 frame,filter-switch,Filter switch,"a chip row, switch or dropdown that narrows the body but shows no counts",a pick narrows the body; no figure rides on it,"count-chips, whose chips carry counts",,
 frame,dial,Threshold dial,a range control whose value decides which items exist in the body,moving it adds or removes items,"filter-switch, which picks among named values",,
 frame,panel-toggle,Panel toggle,one button that shows a region of the body and writes its own address,the region has an address but no tab strip around it,"tabs, which are a strip",,
-body,list,List,"rows or entries, read by scanning",one entry per item; nothing else on screen draws an item in full,,,list;item;group?;title?;meta?;summary?;actions?
+body,list,List,"rows or entries, read by scanning",one entry per item; nothing else on screen draws an item in full,,,list;item;group?;title?;meta?;summary?;body?;links?;actions?
 body,grid,Grid,"a sortable, filterable table, Tabulator or a hand table used as one",column headers that sort or filter,,tabulator,
 body,card-grid,Card grid,"one card per item, in a grid",each card is a complete small account of its item,,,
-body,list-detail,List and detail,"a list and one item's card, side by side or stacked",a pick redraws the card; the card shows exactly one item of the list,"linked-swiper, where the card is itself a strip that moves the list",,list;item;detail;group?;title?;meta?;summary?;actions?
+body,list-detail,List and detail,"a list and one item's card, side by side or stacked",a pick redraws the card; the card shows exactly one item of the list,"linked-swiper, where the card is itself a strip that moves the list",,list;item;detail;group?;title?;meta?;summary?;body?;links?;actions?
 body,linked-swiper,Linked list and swiper,"a list, or a tab strip, and an inline strip of the items' cards, both on screen",a pick moves the strip AND a swipe moves the list's selection,"header-swiper, whose top region is not an index",swipe-deck (core),
 body,header-swiper,Header over swiper,"a fixed region (a judgment, a guide, a question) over an inline strip of materials","the top region is about the set, not an index into it; no selection binding",linked-swiper,swipe-deck (core),
 body,source-beside,Source beside claim,"a document reader beside the material that cites it, with a divider",a cited item opens a place in the reader,,dock-split,
