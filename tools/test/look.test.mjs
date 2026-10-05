@@ -156,15 +156,23 @@ test('doing a do step unlocks its forward arrow rather than moving on, and the t
   assert.match(card(w).textContent, /2 of 2/);
 });
 
-test('tapping the hand before the step is done says what to tap', async () => {
+test('tapping the hand before the step is done gets a short tip and an answer from the target', async () => {
   const w = realm('<button data-at="go" aria-label="Elements">E</button><p data-at="after">after</p>');
+  const moved = [];
+  w.Element.prototype.animate = function (frames) {
+    const k = this.getAttribute('data-look');
+    if (k && frames.length >= 3) moved.push(k);
+    return { cancel() {} };
+  };
   w.Look.start([{ at: 'go', tap: true, say: 'open it' }, { at: 'after', say: 'then here' }]);
   await wait(30);
   assert.equal(w.document.querySelector('[data-look="tip"]'), null);
   card(w).querySelector('[data-where]').click();
   const tip = w.document.querySelector('[data-look="tip"]');
   assert.ok(tip, 'the hand answers');
-  assert.equal(tip.textContent, 'Tap \u201cElements\u201d on the page to unlock the next step.');
+  assert.equal(tip.textContent, 'Complete the action first.');
+  await wait(520);   // after the scroll that brings an off-screen target back, which this realm reports every target as
+  assert.deepEqual([...new Set(moved)].sort(), ['num', 'pointer', 'pulse'], 'and the ring, its hand and its number answer on the page');
   assert.equal(said(w), 'open it', 'and the walk stays put');
   w.document.querySelector('[data-at="go"]').click();
   await wait(30);
