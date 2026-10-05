@@ -18,6 +18,7 @@
 // and checks the declaration against the code's behavior:
 //
 //   list         at least one item is shown
+//   card-grid    the same: at least one card is shown
 //   list-detail  picking an item that is not selected changes (or first shows)
 //                the detail, and the selection (aria-selected or aria-current)
 //                moves to it
@@ -91,7 +92,8 @@ const checkJs = (coded) => `(async () => {
     let contract = 'no promise checked for this code';
     // An empty list keeps or breaks no promise: at this address there is
     // nothing to check, which a scenario script would change.
-    if (pattern === 'list') contract = items().length ? 'holds: ' + items().length + ' items shown' : 'unchecked: no item shown at this address';
+    if (pattern === 'list' || pattern === 'card-grid')
+      contract = items().length ? 'holds: ' + items().length + ' items shown' : 'unchecked: no item shown at this address';
     if (pattern === 'list-detail') {
       const detail = () => own('[data-part="detail"]')[0];
       // The pick goes where a person would click: the item when it is itself a

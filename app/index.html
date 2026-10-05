@@ -1339,8 +1339,13 @@ html.dk-dragging main{transition:none !important}
               <span class="loading loading-dots loading-md opacity-30"></span>
             </div>
 
+            <!-- data-pattern and data-part declare the div below a Card grid and
+                 name its parts (data/ui-units/codebook.md, "Declaring a pattern
+                 in markup"); nothing at runtime reads them. No element holds the
+                 groups alone, so the list element also carries the folder chips,
+                 the filter, the empty line and the catalog link, none an item. -->
             <template x-if="loaded">
-            <div>
+            <div data-pattern="card-grid" data-part="list">
               <div class="flex flex-wrap items-center gap-1.5 mb-8">
                 <template x-for="c in chips" :key="c.key">
                   <button class="btn font-mono"
@@ -1366,15 +1371,15 @@ html.dk-dragging main{transition:none !important}
 
               <template x-for="g in filteredGroups" :key="g.label">
                 <section class="mb-10">
-                  <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
+                  <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2" data-part="group">
                     <i class="ph ph-folder"></i><span x-text="g.label"></span>
-                    <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
+                    <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                   </h2>
                   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <template x-for="p in g.items" :key="p.href">
-                      <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+                      <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
 
-                    <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
+                    <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
                       <a :href="p.href" x-show="p.view==='shot'" class="block w-full h-full">
                         <img :src="p.thumb" :alt="p.label" loading="lazy"
                              class="w-full h-full object-cover object-top"
@@ -1393,7 +1398,7 @@ html.dk-dragging main{transition:none !important}
                            class="w-full h-full overflow-auto m-0 p-2 text-base leading-snug bg-base-100"
                            x-text="p.source"></pre>
 
-                      <div class="join absolute top-1.5 right-1.5 shadow">
+                      <div class="join absolute top-1.5 right-1.5 shadow" data-part="actions">
                         <button class="btn join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
                                 @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
                         <button class="btn join-item" :class="p.view==='live' && 'btn-primary btn-active'"
@@ -1406,8 +1411,8 @@ html.dk-dragging main{transition:none !important}
                     <div class="card-body p-3 gap-1">
                       <div class="flex items-baseline justify-between gap-2">
                         <a :href="p.href" class="font-semibold text-base hover:text-primary transition-colors truncate"
-                           x-text="p.label"></a>
-                        <div class="flex items-center gap-1.5 shrink-0">
+                           x-text="p.label" data-part="title"></a>
+                        <div class="flex items-center gap-1.5 shrink-0" data-part="links">
                           <button @click="inspect(p)" title="Open the source in the file browser"
                                   class="text-base-content/30 hover:text-primary transition-colors cursor-pointer">
                             <i class="ph ph-sidebar-simple"></i></button>
@@ -1416,7 +1421,7 @@ html.dk-dragging main{transition:none !important}
                             <i class="ph ph-github-logo"></i></a>
                         </div>
                       </div>
-                      <p class="text-base text-base-content/50" x-text="p.note || p.title"></p>
+                      <p class="text-base text-base-content/50" x-text="p.note || p.title" data-part="summary"></p>
                     </div>
 
                       </div>
@@ -1700,10 +1705,13 @@ html.dk-dragging main{transition:none !important}
                    GitHub source jump-over. The repo's own Pages view keeps the
                    shot/live/source toggles one level up. -->
               <div x-show="projectTab==='pages'">
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- data-pattern and data-part declare this a Card grid and name
+                     its parts (data/ui-units/codebook.md, "Declaring a pattern
+                     in markup"); nothing at runtime reads them. -->
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
-                    <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
-                      <a :href="pg.live" class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
+                      <a :href="pg.live" class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
                         <iframe :src="pg.live" loading="lazy"
                                 sandbox="allow-scripts allow-same-origin"
                                 class="w-full h-full bg-base-100 pointer-events-none"></iframe>
@@ -1711,12 +1719,12 @@ html.dk-dragging main{transition:none !important}
                       <div class="card-body p-3 gap-1">
                         <div class="flex items-baseline justify-between gap-2">
                           <a :href="pg.live" class="font-semibold text-base hover:text-primary transition-colors truncate"
-                             x-text="pg.label"></a>
+                             x-text="pg.label" data-part="title"></a>
                           <a :href="pg.code" target="_blank" rel="noopener"
-                             class="text-base-content/30 hover:text-base-content/60 shrink-0" title="Source on GitHub">
+                             class="text-base-content/30 hover:text-base-content/60 shrink-0" title="Source on GitHub" data-part="links">
                             <i class="ph ph-github-logo"></i></a>
                         </div>
-                        <p class="text-base text-base-content/50" x-text="pg.note"></p>
+                        <p class="text-base text-base-content/50" x-text="pg.note" data-part="summary"></p>
                       </div>
                     </div>
                   </template>

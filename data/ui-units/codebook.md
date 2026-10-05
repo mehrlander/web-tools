@@ -72,7 +72,7 @@ Three rules the rows cannot hold:
 A **pattern** here is a `body` code: a named arrangement of a unit's main
 region, such as `list` or `source-beside`. Its definition is its row of
 `codes.csv` (name, gloss, test, what it is not to be confused with) and, for
-the two codes that have one, its `parts` cell. Nothing else defines it, so a
+the three codes that have one, its `parts` cell. Nothing else defines it, so a
 pattern exists whether or not any code draws it, and the other dimensions'
 codes are not patterns in this sense.
 
@@ -105,8 +105,10 @@ definition and are observed across its units:
 
 A body code can also be stated by the unit's own markup, which treats the code
 as an interface: a set of named parts and a behavior the unit promises. Piloted
-on 2026-10-05 for `list` and `list-detail`, the two codes whose `parts` cell is
-filled, on five units, then carried to every unit coded either code. The
+on 2026-10-05 for `list` and `list-detail` on five units, then carried to every
+unit coded either code, and the same day to every unit coded `card-grid`, the
+third code whose `parts` cell is filled. A card grid's parts are a list's: the
+grid is the `list` part and each card an `item`, with the same anatomy. The
 rollout's readers asked for `body` and `links` and for the rules on groups,
 nesting and alternates below.
 
@@ -148,7 +150,7 @@ show a declared pattern that is not its body, such as the errands list inside
 Stage, coded a tool; it contains that pattern rather than declaring its own.
 The construction and behavior sources above check an instance independently
 of its declaration. The behavior each code promises: for `list`, at least one
-item shown; for `list-detail`, picking an unselected item changes (or first
+item shown; for `card-grid`, at least one card; for `list-detail`, picking an unselected item changes (or first
 shows) the detail and moves the selection to it. A declaration hidden at the
 unit's address, or a list with nothing in it there, is unchecked rather than
 failed, until a scenario script (`tools/render/scenarios/`) gives it stand-in
