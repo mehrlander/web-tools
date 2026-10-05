@@ -130,7 +130,9 @@ test('nested regions open outermost first, and each opener is clicked once', asy
   assert.equal(said(w), 'found');
 });
 
-test('a tap step moves on when the control is tapped, and the tap still reaches the page', async () => {
+test('doing a do step unlocks its forward arrow rather than moving on, and the tap reaches the page', async () => {
+  // The reader should see what the tap did before going on, so the walk
+  // stays on the step: the hand becomes the arrow, the number becomes a check.
   const w = realm('<button data-at="go">Go</button><p data-at="after">after</p>');
   let pressed = 0;
   w.document.querySelector('[data-at="go"]').addEventListener('click', () => pressed++);
@@ -143,8 +145,49 @@ test('a tap step moves on when the control is tapped, and the tap still reaches 
   w.document.querySelector('[data-at="go"]').click();
   await wait(250);
   assert.equal(pressed, 1, 'the page saw the tap');
+  assert.equal(said(w), 'tap it', 'the walk stays on the step');
+  assert.equal(card(w).querySelector('[data-where]'), null, 'the hand is gone');
+  assert.ok(card(w).querySelector('[aria-label="Next"]'), 'and the arrow is there');
+  assert.equal(card(w).querySelector('[aria-label^="Skip"]'), null, 'with nothing left to skip');
+  assert.ok(card(w).querySelector('[data-mark] i.ph-check'), 'the step is checked off');
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
   assert.equal(said(w), 'and here');
   assert.match(card(w).textContent, /2 of 2/);
+});
+
+test('tapping the hand before the step is done says what to tap', async () => {
+  const w = realm('<button data-at="go" aria-label="Elements">E</button><p data-at="after">after</p>');
+  w.Look.start([{ at: 'go', tap: true, say: 'open it' }, { at: 'after', say: 'then here' }]);
+  await wait(30);
+  assert.equal(w.document.querySelector('[data-look="tip"]'), null);
+  card(w).querySelector('[data-where]').click();
+  const tip = w.document.querySelector('[data-look="tip"]');
+  assert.ok(tip, 'the hand answers');
+  assert.equal(tip.textContent, 'Tap \u201cElements\u201d on the page to unlock the next step.');
+  assert.equal(said(w), 'open it', 'and the walk stays put');
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(30);
+  assert.equal(w.document.querySelector('[data-look="tip"]'), null, 'doing the step takes the tip down');
+});
+
+test('a single tap link is unlocked by its tap and finished by Done; with nothing to say it just ends', async () => {
+  let w = realm('<button data-at="go">Go</button>');
+  w.Look.start([{ at: 'go', tap: true, say: 'tap it' }]);
+  await wait(30);
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(30);
+  const done = card(w).querySelector('[aria-label="Done"]');
+  assert.ok(done, 'Done appears once tapped');
+  done.click();
+  await wait(30);
+  assert.equal(w.document.querySelector('[data-look]'), null);
+  w = realm('<button data-at="go">Go</button>');
+  w.Look.start([{ at: 'go', tap: true }]);
+  await wait(30);
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(30);
+  assert.equal(w.document.querySelector('[data-look]'), null, 'no dock to unlock, so the marker goes');
 });
 
 test('Next, Back and Done move through a walk, and Done takes everything down', async () => {
@@ -410,10 +453,15 @@ test('skipping a do step passes over what its tap would have made, and so does B
   await wait(30);
   assert.equal(said(w), 'edit', 'Back passes over the Save step too');
   w.document.querySelector('[data-at="edit"]').click();
-  await wait(250);
+  await wait(30);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
   assert.equal(said(w), 'save', 'and doing the tap brings the Save step back');
   w.document.querySelector('[data-at="save"]').click();
-  await wait(250);
+  await wait(30);
+  assert.ok(card(w).querySelector('[data-mark] i.ph-check'), 'a done step whose target went away keeps its check, not a way back');
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
   assert.equal(said(w), 'end');
   card(w).querySelector('[aria-label="Back"]').click();
   await wait(30);
@@ -438,7 +486,10 @@ test('a target an earlier tap makes, reached by Next, sends the reader back to t
   await wait(30);
   assert.equal(said(w), 'edit');
   w.document.querySelector('[data-at="edit"]').click();
-  await wait(250);
+  await wait(30);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
+  assert.equal(said(w), 'mid');
   card(w).querySelector('[aria-label="Next"]').click();
   await wait(30);
   assert.equal(said(w), 'save', 'and from there the walk carries on');
