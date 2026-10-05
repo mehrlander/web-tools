@@ -170,9 +170,9 @@ export const evalFrom = (out) => {
   try { return line ? JSON.parse(JSON.parse(line.slice(6))) : null; } catch { return null; }
 };
 
-function run(cmd, argv, cwd) {
+function run(cmd, argv, cwd, env = process.env) {
   return new Promise((resolve) => {
-    const p = spawn(cmd, argv, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const p = spawn(cmd, argv, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
     let err = '', out = '';
     p.stderr.on('data', d => { err += d; });
     p.stdout.on('data', d => { out += d; });
@@ -195,7 +195,10 @@ export async function shoot(r, size, touch, out, evalJs) {
     if (r.script) a.push('--script', path.resolve(HUB, r.script));
     if (evalJs) a.push('--eval', evalJs);
     if (touch) a.push('--touch');
-    return run('node', a, HUB);
+    // The live GitHub API off (tools/render/cdn.mjs, SHOT_NO_LIVE_API): the
+    // app's own reads are answered locally, and the rest would spend GitHub's
+    // hourly allowance within one load and put a token prompt in the shot.
+    return run('node', a, HUB, { ...process.env, SHOT_NO_LIVE_API: '1' });
   }
   const target = r.page + (r.query ? '?' + r.query : '');
   const a = ['tools/screenshot.mjs', target, out, '--width', String(size.width), '--height', String(size.height),

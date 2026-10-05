@@ -754,6 +754,19 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `skip ${host}${u.pathname}` };
   }
 
+  // --- The live GitHub API, off on request ---------------------------------
+  // SHOT_NO_LIVE_API=1 answers every api.github.com call no rule above did with
+  // a local 404, instead of passing it on. The app shell spends about seventy
+  // unauthenticated calls per load (open pull requests, branch comparisons,
+  // GraphQL) whatever the view, against GitHub's sixty an hour, and past that
+  // limit a 403 makes it swap the view for its token prompt. A 404 reads as
+  // missing data instead, so a batch of shots no longer depends on which run
+  // crossed the limit. Off by default; tools/build/ui-recipes.mjs sets it.
+  if (host === 'api.github.com' && process.env.SHOT_NO_LIVE_API) {
+    return { kind: 'fulfill', status: 404, contentType: 'application/json; charset=utf-8',
+             body: '{"message":"Not Found (local render: live API off)"}', tag: `api off ${u.pathname}` };
+  }
+
   // --- Allowed hosts (Google Fonts, GitHub raw, data APIs): pass through ---
   return { kind: 'continue' };
 }
