@@ -1,19 +1,19 @@
 unit,coded,declared,kit,parts,missing,stray,contract,read_at
 web-tools:map/aims,fields,,,,,,,5a3d5c2c1263
-web-tools:map/claims,card-grid,,,,,,,5a3d5c2c1263
-web-tools:map/context,card-grid,,,,,,,5a3d5c2c1263
+web-tools:map/claims,card-grid,card-grid,no kit draws this code,list 1; item 11; title 11; body 27; meta 27,,,holds: 11 items shown,3ae0f69113ec
+web-tools:map/context,card-grid,card-grid,no kit draws this code,list 1; group 6; meta 75; summary 31; item 29; title 29; links 27,,,holds: 29 items shown,3ae0f69113ec
 web-tools:map/data,list,list,no kit draws this code,list 1; group 16; meta 264; item 62; title 62; summary 62,,,holds: 62 items shown,5a3d5c2c1263
 web-tools:map/docs,list,list,no kit draws this code,list 1; item 79; title 79; meta 237; actions 79; summary 79,,,holds: 79 items shown,5a3d5c2c1263
 web-tools:map/growth,figure,,,,,,,5a3d5c2c1263
 web-tools:map/harness,list,list,no kit draws this code,list 1; item 3; meta 9; title 3; summary 3; actions 3,,,holds: 3 items shown,5a3d5c2c1263
 web-tools:map/kits,list,list,no kit draws this code,list 1; item 104; meta 417; title 104; summary 104; actions 104; links 21,,,holds: 104 items shown,5a3d5c2c1263
-web-tools:map/outposts,card-grid,,,,,,,5a3d5c2c1263
-web-tools:map/policy,card-grid,,,,,,,5a3d5c2c1263
-web-tools:map/registries,card-grid,,,,,,,5a3d5c2c1263
+web-tools:map/outposts,card-grid,card-grid,no kit draws this code,list 1; item 4; meta 8; title 4; links 4; summary 4; body 5,,,holds: 4 items shown,3ae0f69113ec
+web-tools:map/policy,card-grid,card-grid,no kit draws this code,list 1; item 284; meta 1181; title 284; summary 284; body 287; links 272,,,holds: 284 items shown,3ae0f69113ec
+web-tools:map/registries,card-grid,card-grid,no kit draws this code,list 1; group 2; meta 259; summary 48; item 46; title 46; actions 46; body 184; links 82,,,holds: 46 items shown,3ae0f69113ec
 web-tools:map/set,list,list,no kit draws this code,list 1; group 5; meta 351; summary 100; item 95; title 95; actions 95; links 95,,,holds: 95 items shown,5a3d5c2c1263
-web-tools:map/showing,card-grid,,,,,,,5a3d5c2c1263
-web-tools:map/skills,card-grid,,,,,,,5a3d5c2c1263
-web-tools:map/surfacing,card-grid,,,,,,,5a3d5c2c1263
+web-tools:map/showing,card-grid,card-grid,no kit draws this code,list 1; item 9; title 9; body 21; summary 9; meta 31,,,holds: 9 items shown,3ae0f69113ec
+web-tools:map/skills,card-grid,card-grid,no kit draws this code,list 1; group 8; meta 151; summary 138; item 131; title 131; links 22,,,holds: 131 items shown,3ae0f69113ec
+web-tools:map/surfacing,card-grid,card-grid,no kit draws this code,list 1; item 22; title 22; summary 22; body 29; meta 14,,,holds: 22 items shown,3ae0f69113ec
 web-tools:map/tests,list,list,no kit draws this code,list 1; group 5; summary 376; item 371; meta 1197; title 371; actions 371,,,holds: 371 items shown,5a3d5c2c1263
 web-tools:map/views,list,list,no kit draws this code,list 1; group 3; meta 63; item 23; title 23; summary 23; actions 23,,,holds: 23 items shown,41aaf0900ce4
 web-tools:pages/links.html,list,list,no kit draws this code,list 1; group 10; meta 35; item 24; title 24; links 6,,,holds: 24 items shown,5a3d5c2c1263
@@ -27,16 +27,16 @@ web-tools:view/chats,list,list,no kit draws this code,,,,"unchecked: declared, b
 web-tools:view/jots,list-stack,,,,,,,5a3d5c2c1263
 web-tools:view/landing,document,,,,,,,5a3d5c2c1263
 web-tools:view/lists,list-stack,,,,,,,5a3d5c2c1263
-web-tools:view/pages,card-grid,,,,,,,5a3d5c2c1263
+web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38; body 38; actions 38; title 38; links 38; summary 38,,,holds: 38 items shown,3ae0f69113ec
 web-tools:view/project,document,,,,,,,5a3d5c2c1263
 web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 48; item 20; title 20,,,holds: 20 items shown,41aaf0900ce4
 web-tools:view/project/docs,list,list,no kit draws this code,list 1; item 78; title 78; group 8; meta 8,,,holds: 78 items shown,5a3d5c2c1263
 web-tools:view/project/files,linked-swiper,,,,,,,5a3d5c2c1263
 web-tools:view/project/overview,list-detail,,no kit draws this code,,,,,5a3d5c2c1263
-web-tools:view/project/pages,card-grid,,,,,,,5a3d5c2c1263
+web-tools:view/project/pages,card-grid,card-grid,no kit draws this code,list 1,,,unchecked: no item shown at this address,3ae0f69113ec
 web-tools:view/proposals,list,list,no kit draws this code,list 1; item 2; meta 4; title 2; summary 2; body 4; actions 2; links 4,,,holds: 2 items shown,41aaf0900ce4
 web-tools:view/public,list-detail,list-detail,no kit draws this code,list 1; item 2669; title 2669; meta 2669; detail 1,,,holds: the pick changed the detail; the selection moved to it,5a3d5c2c1263
-web-tools:view/repos,card-grid,,,,,,,5a3d5c2c1263
+web-tools:view/repos,card-grid,card-grid,no kit draws this code,list 1; group 1; meta 10; actions 3; item 2; title 2; links 5; summary 2,,,holds: 2 items shown,3ae0f69113ec
 web-tools:view/routes,list,list,no kit draws this code,list 1; group 3; meta 63; item 23; title 23; summary 23; actions 23,,,holds: 23 items shown,41aaf0900ce4
 web-tools:view/search,list-detail,list-detail,no kit draws this code,list 1; item 52; meta 103; title 52; detail 1,,,holds: the pick changed the detail; the selection moved to it,41aaf0900ce4
 web-tools:view/sessions,list,list,no kit draws this code,list 1; item 6; meta 64; title 6; summary 6; actions 8; body 6,,,holds: 6 items shown,5a3d5c2c1263
@@ -45,4 +45,5 @@ web-tools:view/stage,tool,list,no kit draws this code,list 1; item 4; meta 20; t
 web-tools:view/stage/errands,list,list,no kit draws this code,list 1; item 4; meta 20; title 4; summary 4; links 4; body 4; actions 8,,,holds: 4 items shown,5a3d5c2c1263
 web-tools:view/state,list,list,no kit draws this code,list 1; group 3; meta 21; item 8; title 8; actions 8; summary 1; body 2; links 2,,,holds: 8 items shown,5a3d5c2c1263
 web-tools:view/tending,list,list,no kit draws this code,list 1; item 3; meta 6; title 3; body 4; links 3,,,holds: 3 items shown,41aaf0900ce4
+web-tools:view/tools,card-grid,card-grid,no kit draws this code,list 1; item 5; body 5; actions 5; title 5; links 5; summary 5,,,holds: 5 items shown,3ae0f69113ec
 web-tools:view/writes,list,,no kit draws this code,,,,,5a3d5c2c1263

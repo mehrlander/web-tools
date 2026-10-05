@@ -119,6 +119,12 @@ export function codedUnits(only = '') {
 // line measured again. A bar is one that ends in the window's top third; a
 // full-height fixed layer is not one. The answer names the pattern when the
 // focus is a declared one.
+//
+// A declared root can hold its frame too, a count line, chips or a search box
+// above the first group or item, where no tighter element holds the items
+// alone (the Pages view, the Skills tab). The frame is coded on its own axis,
+// so the crop starts at the root's first shown group or item, keeping the
+// root's width.
 export const focusJs = (spec) => `(async () => {
   const shown = (e) => e.getClientRects().length > 0;
   for (const alt of ${JSON.stringify(spec)}.split(' || ')) {
@@ -130,7 +136,10 @@ export const focusJs = (spec) => `(async () => {
     if (!el) continue;
     const settle = () => new Promise((ok) => setTimeout(ok, 800));
     const below = m[1] === 'below';
-    const line = () => { const r = el.getBoundingClientRect(); return below ? r.bottom : r.top; };
+    const lead = !below && el.hasAttribute('data-pattern')
+      && [...el.querySelectorAll('[data-part="group"], [data-part="item"]')].find(shown);
+    const at = lead && lead.getBoundingClientRect().top > el.getBoundingClientRect().top + 1 ? lead : el;
+    const line = () => { const r = at.getBoundingClientRect(); return below ? r.bottom : r.top; };
     const box = (below ? el.parentElement : el).getBoundingClientRect();
     const cover = (y) => {
       for (const e of document.querySelectorAll('body *')) {
@@ -141,7 +150,7 @@ export const focusJs = (spec) => `(async () => {
       }
       return y;
     };
-    el.scrollIntoView({ block: 'start', behavior: 'instant' });
+    at.scrollIntoView({ block: 'start', behavior: 'instant' });
     await settle();
     // Clamped, since a scroll can leave the top a fraction of a pixel above the
     // window, where a bar starting at 0 would no longer seem to cover it.

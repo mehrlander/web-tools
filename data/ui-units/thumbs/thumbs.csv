@@ -1,19 +1,19 @@
 unit,desk,phone,shot_at,recipe,focus,pattern
 web-tools:map/aims,web-tools-map-aims.desk.jpg,web-tools-map-aims.phone.jpg,2026-10-05,app/index.html?view=map&tab=aims,"top:[data-pane=""map""] section @57",
-web-tools:map/claims,web-tools-map-claims.desk.jpg,web-tools-map-claims.phone.jpg,2026-10-05,app/index.html?view=map&tab=claims,"top:[data-pane=""map""] section @57",
-web-tools:map/context,web-tools-map-context.desk.jpg,web-tools-map-context.phone.jpg,2026-10-05,app/index.html?view=map&tab=context,"top:[data-pane=""map""] section @57",
+web-tools:map/claims,web-tools-map-claims.desk.jpg,web-tools-map-claims.phone.jpg,2026-10-05,app/index.html?view=map&tab=claims,"top:[data-pattern=""card-grid""] @57",card-grid
+web-tools:map/context,web-tools-map-context.desk.jpg,web-tools-map-context.phone.jpg,2026-10-05,app/index.html?view=map&tab=context,"top:[data-pattern=""card-grid""] @57",card-grid
 web-tools:map/data,web-tools-map-data.desk.jpg,web-tools-map-data.phone.jpg,2026-10-05,app/index.html?view=map&tab=data,"top:[data-pattern=""list""] @57",list
 web-tools:map/docs,web-tools-map-docs.desk.jpg,web-tools-map-docs.phone.jpg,2026-10-05,app/index.html?view=map&tab=docs,"top:[data-pattern=""list""] @57",list
 web-tools:map/growth,web-tools-map-growth.desk.jpg,web-tools-map-growth.phone.jpg,2026-10-05,app/index.html?view=map&tab=growth,"top:[data-pane=""map""] section @162",
 web-tools:map/harness,web-tools-map-harness.desk.jpg,web-tools-map-harness.phone.jpg,2026-10-05,app/index.html?view=map&tab=harness,"top:[data-pattern=""list""] @412",list
 web-tools:map/kits,web-tools-map-kits.desk.jpg,web-tools-map-kits.phone.jpg,2026-10-05,app/index.html?view=map&tab=kits,"top:[data-pattern=""list""] @57",list
-web-tools:map/outposts,web-tools-map-outposts.desk.jpg,web-tools-map-outposts.phone.jpg,2026-10-05,app/index.html?view=map&tab=outposts,"top:[data-pane=""map""] section @57",
-web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jpg,2026-10-05,app/index.html?view=map&tab=policy,"top:[data-pane=""map""] section @57",
-web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-05,app/index.html?view=map&tab=registries,"top:[data-pane=""map""] section @57",
+web-tools:map/outposts,web-tools-map-outposts.desk.jpg,web-tools-map-outposts.phone.jpg,2026-10-05,app/index.html?view=map&tab=outposts,"top:[data-pattern=""card-grid""] @57",card-grid
+web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jpg,2026-10-05,app/index.html?view=map&tab=policy,"top:[data-pattern=""card-grid""] @57",card-grid
+web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-05,app/index.html?view=map&tab=registries,"top:[data-pattern=""card-grid""] @57",card-grid
 web-tools:map/set,web-tools-map-set.desk.jpg,web-tools-map-set.phone.jpg,2026-10-05,app/index.html?view=map&tab=set,"top:[data-pattern=""list""] @57",list
-web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-05,app/index.html?view=map&tab=showing,"top:[data-pane=""map""] section @57",
-web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-05,app/index.html?view=map&tab=skills,"top:[data-pane=""map""] section @57",
-web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-05,app/index.html?view=map&tab=surfacing,"top:[data-pane=""map""] section @57",
+web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-05,app/index.html?view=map&tab=showing,"top:[data-pattern=""card-grid""] @57",card-grid
+web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-05,app/index.html?view=map&tab=skills,"top:[data-pattern=""card-grid""] @57",card-grid
+web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-05,app/index.html?view=map&tab=surfacing,"top:[data-pattern=""card-grid""] @57",card-grid
 web-tools:map/tests,web-tools-map-tests.desk.jpg,web-tools-map-tests.phone.jpg,2026-10-05,app/index.html?view=map&tab=tests,"top:[data-pattern=""list""] @57",list
 web-tools:map/views,web-tools-map-views.desk.jpg,web-tools-map-views.phone.jpg,2026-10-05,app/index.html?view=map&tab=views · tools/render/scenarios/map-views.mjs,"top:[data-pattern=""list""] @57",list
 web-tools:pages/approve.html,web-tools-pages-approve-html.desk.jpg,web-tools-pages-approve-html.phone.jpg,2026-10-05,pages/approve.html,,
@@ -33,7 +33,7 @@ web-tools:view/files,web-tools-view-files.desk.jpg,web-tools-view-files.phone.jp
 web-tools:view/jots,web-tools-view-jots.desk.jpg,web-tools-view-jots.phone.jpg,2026-10-05,app/index.html?view=lists · tools/render/scenarios/estate-sessions.mjs,top:main @57,
 web-tools:view/landing,web-tools-view-landing.desk.jpg,web-tools-view-landing.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools,top:main @57,
 web-tools:view/lists,web-tools-view-lists.desk.jpg,web-tools-view-lists.phone.jpg,2026-10-05,app/index.html?view=lists · tools/render/scenarios/estate-sessions.mjs,top:main @57,
-web-tools:view/pages,web-tools-view-pages.desk.jpg,web-tools-view-pages.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=pages,top:main @57,
+web-tools:view/pages,web-tools-view-pages.desk.jpg,web-tools-view-pages.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=pages,"top:[data-pattern=""card-grid""] @57",card-grid
 web-tools:view/project,web-tools-view-project.desk.jpg,web-tools-view-project.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=project&project=docs,top:main @57,
 web-tools:view/project/board,web-tools-view-project-board.desk.jpg,web-tools-view-project-board.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=project&tab=board · tools/render/scenarios/project-board-typed.mjs,"top:[data-pattern=""list""] @219",list
 web-tools:view/project/docs,web-tools-view-project-docs.desk.jpg,web-tools-view-project-docs.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=docs,"top:[data-pattern=""list""] @219",list
@@ -42,7 +42,7 @@ web-tools:view/project/overview,web-tools-view-project-overview.desk.jpg,web-too
 web-tools:view/project/pages,web-tools-view-project-pages.desk.jpg,web-tools-view-project-pages.phone.jpg,2026-10-05,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=pages,"below:main [role=""tablist""] @203",
 web-tools:view/proposals,web-tools-view-proposals.desk.jpg,web-tools-view-proposals.phone.jpg,2026-10-05,app/index.html?view=landing · tools/render/scenarios/proposals-demo.mjs,"top:[data-pattern=""list""] @173",list
 web-tools:view/public,web-tools-view-public.desk.jpg,web-tools-view-public.phone.jpg,2026-10-05,app/index.html?view=public,"top:[data-pattern=""list-detail""] @249",list-detail
-web-tools:view/repos,web-tools-view-repos.desk.jpg,web-tools-view-repos.phone.jpg,2026-10-05,app/index.html?view=repos · tools/render/scenarios/repos-abandoned-badge.mjs,top:main @57,
+web-tools:view/repos,web-tools-view-repos.desk.jpg,web-tools-view-repos.phone.jpg,2026-10-05,app/index.html?view=repos · tools/render/scenarios/repos-abandoned-badge.mjs,"top:[data-pattern=""card-grid""] @125",card-grid
 web-tools:view/routes,web-tools-view-routes.desk.jpg,web-tools-view-routes.phone.jpg,2026-10-05,app/index.html?view=routes · tools/render/scenarios/map-views.mjs,"top:[data-pattern=""list""] @57",list
 web-tools:view/search,web-tools-view-search.desk.jpg,web-tools-view-search.phone.jpg,2026-10-05,app/index.html?view=search · tools/render/scenarios/search-files.mjs,"top:[data-pattern=""list-detail""] @57",list-detail
 web-tools:view/sessions,web-tools-view-sessions.desk.jpg,web-tools-view-sessions.phone.jpg,2026-10-05,app/index.html?view=sessions · tools/render/scenarios/estate-sessions.mjs,"top:[data-pattern=""list""] @100",list
@@ -51,5 +51,5 @@ web-tools:view/stage,web-tools-view-stage.desk.jpg,web-tools-view-stage.phone.jp
 web-tools:view/stage/errands,web-tools-view-stage-errands.desk.jpg,web-tools-view-stage-errands.phone.jpg,2026-10-05,app/index.html?view=stage&tab=errands,"top:[data-pattern=""list""] @57",list
 web-tools:view/state,web-tools-view-state.desk.jpg,web-tools-view-state.phone.jpg,2026-10-05,app/index.html?view=state · tools/render/scenarios/state-view.mjs,"top:[data-pattern=""list""] @57",list
 web-tools:view/tending,web-tools-view-tending.desk.jpg,web-tools-view-tending.phone.jpg,2026-10-05,app/index.html?view=landing · tools/render/scenarios/tending-stand-in.mjs,"top:[data-pattern=""list""] @133",list
-web-tools:view/tools,web-tools-view-tools.desk.jpg,web-tools-view-tools.phone.jpg,2026-10-05,app/index.html?view=tools,top:main @57,
+web-tools:view/tools,web-tools-view-tools.desk.jpg,web-tools-view-tools.phone.jpg,2026-10-05,app/index.html?view=tools,"top:[data-pattern=""card-grid""] @125",card-grid
 web-tools:view/writes,web-tools-view-writes.desk.jpg,web-tools-view-writes.phone.jpg,2026-10-05,app/index.html?view=writes,top:main @57,
