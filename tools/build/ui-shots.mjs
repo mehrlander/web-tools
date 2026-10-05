@@ -2,11 +2,16 @@
 // The UI census's screenshots: one desktop and one phone shot of every coded
 // unit, as the JPEG thumbnails the Map's UI > Patterns gallery shows.
 //
-//   node tools/build/ui-shots.mjs [--only <text>] [--jobs N]
+//   node tools/build/ui-shots.mjs [--only <text>] [--jobs N] [--reuse]
 //
-//   --only  shoot only units whose key contains <text>; their manifest rows are
-//           replaced and every other row is kept
-//   --jobs  shots taken at once (default 3; each is a headless Chromium)
+//   --only   shoot only units whose key contains <text>; their manifest rows are
+//            replaced and every other row is kept
+//   --jobs   shots taken at once (default 3; each is a headless Chromium)
+//   --reuse  re-encode the last full-size shots under tools/.preview/ui-shots/
+//            instead of taking new ones, for a change of thumbnail size alone
+//
+// The phone thumbnail is the full 390px width, not a reduction: on a phone the
+// gallery shows phone shots one to a row, at about the width they were taken.
 //
 // A unit is shot by the render tool that already knows how to serve it, so
 // this file adds no browser plumbing of its own beyond the resize:
@@ -32,7 +37,7 @@
 // what the gallery reads. Shots are not byte-deterministic, so no commit hook
 // owns them: refresh once per session, like pages/thumbs/.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -48,9 +53,10 @@ const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const ONLY = opt('--only', '');
 const JOBS = Math.max(1, +opt('--jobs', 3));
+const REUSE = args.includes('--reuse');
 
 const DESK = { width: 1280, height: 800, thumb: 800 };
-const PHONE = { width: 390, height: 844, thumb: 260 };
+const PHONE = { width: 390, height: 844, thumb: 390 };
 const QUALITY = 0.72;
 
 const STORES = [
@@ -163,12 +169,17 @@ const worker = async () => {
       recipe: [w.r.page + (w.r.query ? '?' + w.r.query : ''), w.r.script, w.r.click].filter(Boolean).join(' · ') };
     for (const [kind, size, touch] of [['desk', DESK, false], ['phone', PHONE, true]]) {
       const png = path.join(TMP, `${base}.${kind}.png`);
-      rmSync(png, { force: true });
-      const res = await shoot(w.r, size, touch, png);
+      let res = { code: 0, err: '' };
+      if (!(REUSE && existsSync(png))) {
+        rmSync(png, { force: true });
+        res = await shoot(w.r, size, touch, png);
+      }
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }
       const file = `${base}.${kind}.jpg`;
       await toJpeg(resize, png, size.thumb, path.join(w.store.thumbs, file));
       row[kind] = file;
+      // The day the shot was TAKEN, which a --reuse run must not move.
+      if (kind === 'desk') row.shot_at = statSync(png).mtime.toISOString().slice(0, 10);
     }
     done.get(w.store.name).push(row);
     console.log(`[${++n}] ${w.unit} ${row.desk ? 'desk' : '-'} ${row.phone ? 'phone' : '-'}`);
