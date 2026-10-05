@@ -7,5 +7,5 @@ title,Title,an item's name,#7c3aed
 meta,Meta,"an item's or a group's code, count, amount, date, kind or status",#64748b
 summary,Summary,a line or two describing the item,#0d9488
 body,Body,"the item's own content shown inside it: a diff, a script, a small chart, a panel it expands in place",#65a30d
-links,Links,"links from the item to other things: tags that filter the list, doors to other views, related documents",#db2777
-actions,Actions,controls that act on the item,#d97706
+links,Links,"links from the item or group to other things: tags that filter the list, doors to other views, related documents",#db2777
+actions,Actions,controls that act on the item or group,#d97706

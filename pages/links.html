@@ -336,7 +336,7 @@
               <button x-show="a.dossier"
                       class="text-[10.5px] font-semibold uppercase tracking-[.085em] text-[var(--a)] opacity-55 hover:opacity-100 transition-opacity"
                       @click="toggleDossier(a)" x-text="open===a.id ? 'hide' : 'notes'"></button>
-              <span class="font-mono text-[10px] opacity-25" x-text="count(a)"></span>
+              <span class="font-mono text-[10px] opacity-25" x-text="count(a)" data-part="meta"></span>
               <button x-show="editing" class="text-[11px] text-error opacity-60 hover:opacity-100"
                       @click="removeArea(a)">remove</button>
             </div>
@@ -362,7 +362,7 @@
                               class="absolute -inset-x-1.5 inset-y-0" :aria-label="it.title"></button>
 
                       <i class="absolute left-0 top-[4px] text-[11px] w-3.5 text-[var(--a)] opacity-45 group-hover:opacity-90 transition-opacity"
-                         :class="[icon(it, a), it.kind === 'action' ? 'ph-fill' : 'ph']"></i>
+                         :class="[icon(it, a), it.kind === 'action' ? 'ph-fill' : 'ph']" data-part="meta"></i>
 
                       <span :class="{ 'font-mono text-[12px]': it.kind === 'repo',
                                       'text-primary group-hover:underline underline-offset-2': linkable(it),
@@ -374,7 +374,7 @@
                         <span class="text-[12px]"><span class="opacity-25 mx-1">·</span><a
                           :href="d.url" target="_blank" rel="noopener"
                           class="relative text-[var(--a)] opacity-60 hover:opacity-100 hover:underline underline-offset-2 transition-opacity"
-                          x-text="d.label"></a></span>
+                          x-text="d.label" data-part="links"></a></span>
                       </template>
 
                       <!-- Anchored to the first line's right edge rather than

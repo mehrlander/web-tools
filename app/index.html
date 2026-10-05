@@ -1647,7 +1647,7 @@ html.dk-dragging main{transition:none !important}
                               @click="g.key==='done' && (projectBoardShowDone = !projectBoardShowDone)" data-part="group">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/60"
                             x-text="g.label"></h3>
-                        <span class="badge badge-sm badge-ghost" x-text="g.tasks.length"></span>
+                        <span class="badge badge-sm badge-ghost" x-text="g.tasks.length" data-part="meta"></span>
                         <span x-show="g.key==='done'" class="text-xs text-base-content/40"
                               x-text="projectBoardShowDone ? 'hide' : 'show'"></span>
                       </button>
@@ -1759,7 +1759,7 @@ html.dk-dragging main{transition:none !important}
                       <section class="mb-6">
                         <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2" data-part="group">
                           <i class="ph ph-folder"></i><span x-text="g.dir"></span>
-                          <span class="badge badge-ghost badge-sm" x-text="g.files.length"></span>
+                          <span class="badge badge-ghost badge-sm" x-text="g.files.length" data-part="meta"></span>
                         </h3>
                         <div class="flex flex-col">
                           <template x-for="f in g.files" :key="f.rel">

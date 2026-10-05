@@ -82,7 +82,7 @@
                     class="w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-base-200 hover:bg-base-200 transition-colors"
                     :class="[sel === e.stem && 'bg-primary/10', fresh[e.stem] && 'bg-info/10']"
                     :aria-current="sel === e.stem ? 'true' : 'false'">
-              <i class="ph text-xl shrink-0" :class="[iconOf(e), e.install ? 'text-primary' : 'text-base-content/40']"></i>
+              <i class="ph text-xl shrink-0" :class="[iconOf(e), e.install ? 'text-primary' : 'text-base-content/40']" data-part="meta"></i>
               <span class="min-w-0 grow flex items-baseline gap-2">
                 <span class="shrink-0 max-w-full truncate" :class="e.name ? 'font-medium' : 'text-base-content/70'" x-text="titleOf(e)" data-part="title"></span>
                 <span class="min-w-0 truncate text-xs font-mono" :class="anomaly(e) ? 'text-warning' : 'text-base-content/50'" x-text="tagOf(e)" data-tag data-part="meta"></span>

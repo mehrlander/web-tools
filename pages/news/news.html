@@ -411,7 +411,7 @@
       <section>
         <div class="flex items-baseline gap-2 mb-2 sticky top-[104px] z-10 bg-base-200/90 backdrop-blur py-1">
           <h2 class="font-semibold text-sm" x-text="g.label" data-part="group"></h2>
-          <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
+          <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
         </div>
         <div class="flex flex-col gap-2">
           <template x-for="it in g.items" :key="it.id">

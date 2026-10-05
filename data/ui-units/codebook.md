@@ -85,7 +85,11 @@ nesting and alternates below.
   content beyond its summary (a diff, a script, a small chart, a panel it
   expands in place); `links` lead elsewhere (tags that filter the list, doors
   to other views, related documents), where `actions` act on the item itself.
-  A `group` may carry its own `meta` and `summary`, such as its count.
+  A `group` may carry its own `meta`, `summary`, `links` and `actions`, such
+  as its count, its sentence, a door to its notes or a "show more". A part may
+  sit inside another (a link inside an actions row, a date inside a title).
+  What describes the whole list (its count line, filter, pager or empty state)
+  is the frame's, coded on the frame axis, and carries no part.
 - **Nesting.** An item may hold a declared pattern of its own (a session's
   branch tiles), and its parts belong to that inner pattern. Nested group
   headings are all `group`; the levels are not told apart.
