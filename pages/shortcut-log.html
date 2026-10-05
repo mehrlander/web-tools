@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  shortcut-log.html — what the phone reported, as installation evidence.
+  shortcut-log.html — what the phone reported, as outpost evidence.
 
   Promoted as the Web Tools app view `shortcut-log` by shortcut-tools'
   .web-tools.json, so the address the dumpers bake in is the slug, not this
@@ -21,8 +21,8 @@
   person who tapped reads it here. Show Result clips a payload and does not
   scroll, which is why this page exists at all.
 
-  THE SAME SHAPE AS THE POWERSHELL OVERVIEW. A list of one-line rows, a state
-  icon per row taken from installation-view.js (check for current, up-arrow for
+  THE SAME SHAPE AS THE OUTPOST VIEW. A list of one-line rows, a state
+  icon per row taken from outpost-view.js (check for current, up-arrow for
   an update pending, drawn from kits/sync-status.js), and the detail on tap: in place of the list on a phone,
   beside it on a wide screen. The derivation is lib/kits/shortcut-evidence.js,
   which says which build a row is about and what it is scored against.

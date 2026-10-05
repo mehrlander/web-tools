@@ -1,6 +1,6 @@
-// alpineComponents/installation-view.js — the Installation pill under real
+// alpineComponents/outpost-view.js — the outpost view under real
 // Alpine in jsdom, against a stub repository. The derivation is held by
-// installation.test.mjs; what this holds is the surface's one rule and its
+// outpost.test.mjs; what this holds is the surface's one rule and its
 // wiring: the corpus renders grouped with the local areas beside it, a
 // selected file becomes the shell's correspondence target, a comparison goes
 // through the shell's flow and comes back as a browser check, and NOTHING
@@ -16,7 +16,7 @@ import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs
 
 const P = 'projects/wps';
 const { window, problems } = makeWindow({
-  html: `<!doctype html><html><body><div id="v" x-data="installationView({ path: '${P}', installation: '${P}/data/installation.json' })"></div></body></html>`,
+  html: `<!doctype html><html><body><div id="v" x-data="outpostView({ path: '${P}', outpost: '${P}/data/outpost.json' })"></div></body></html>`,
 });
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
@@ -27,7 +27,7 @@ const REV = 'a'.repeat(40);
 const sha = c => c.repeat(40);
 const gitBlob = text => createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');
 const files = {
-  [`${P}/data/installation.json`]: JSON.stringify({
+  [`${P}/data/outpost.json`]: JSON.stringify({
     root: 'Documents\\WindowsPowerShell', observations: `${P}/data/observations.csv`,
     correspondence: [
       { repo: 'app/Profile.ps1', area: 'Profile', installs: '' },
@@ -35,7 +35,7 @@ const files = {
       { repo: 'app/Forms/', area: 'Forms', installs: 'Forms/' },
       { repo: 'app/Scripts/', area: 'Scripts', installs: null },
     ],
-    doc: `${P}/docs/INSTALLATION.md`,
+    doc: `${P}/docs/OUTPOST.md`,
     local_areas: [{ name: 'Leg', status: 'unresolved', shape: 'reportedly bill collections' },
                   { name: 'ISELog', status: 'local-only', shape: 'ZIP snapshots of editor text' }],
     pending_adoption: [
@@ -49,7 +49,7 @@ const files = {
   [`${P}/app/Forms/Bookmarks/Bookmarks.ps1`]: 'controller\n',
   [`${P}/app/Forms/Bookmarks/Bookmarks.xaml`]: '<Window/>\n',
   [`${P}/app/Scripts/Demo.ps1`]: 'demo\n',
-  [`${P}/docs/INSTALLATION.md`]: '# map\n',
+  [`${P}/docs/OUTPOST.md`]: '# map\n',
 };
 const tree = snapshot => Object.entries(snapshot).map(([p, t]) => ({ type: 'blob', path: p, sha: gitBlob(t), size: t.length }));
 const publications = [], reads = [], requests = [];
@@ -152,13 +152,13 @@ window.FileCorrespondence = {
   reopen: async c => { shellCalls.push(['reopen', c.id]); },
 };
 window.__shell = {
-  installationItem: '',
+  outpostItem: '',
   syncUrl() { shellCalls.push(['syncUrl']); },
   goStage() { shellCalls.push(['goStage']); },
-  pasteAnywhere() { shellCalls.push(['pasteAnywhere', this.installationItem]); },
+  pasteAnywhere() { shellCalls.push(['pasteAnywhere', this.outpostItem]); },
   goProject(...args) { shellCalls.push(['goProject', ...args]); },
   openFile(p) { shellCalls.push(['openFile', p]); },
-  // As the app does on the Overview (app/index.html openCorrespondence): the
+  // As the app does for the outpost view (app/index.html openCorrespondence): the
   // copy goes to the view, which compares it in memory and stores nothing.
   async openCorrespondence(target, text, name, source) {
     shellCalls.push(['compare', target.path, source]);
@@ -183,8 +183,8 @@ window.persistence = { collection: () => ({
 }) };
 window.Element.prototype.scrollTo ??= function () {};
 window.Element.prototype.scrollIntoView ??= function () {};
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/sync-status.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-workspace.js', 'lib/kits/powershell-language.js',
-  'lib/kits/swipe-deck.js', 'lib/alpineComponents/powershell-file.js', 'lib/alpineComponents/installation-view.js'])
+for (const rel of ['lib/kits/csv.js', 'lib/kits/outpost.js', 'lib/kits/sync-status.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-workspace.js', 'lib/kits/powershell-language.js',
+  'lib/kits/swipe-deck.js', 'lib/alpineComponents/powershell-file.js', 'lib/alpineComponents/outpost-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];
 Alpine.store('browser', { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: 'mehrlander/home', ref: 'main' }) });
@@ -204,9 +204,9 @@ const FORMS = `${P}/app/Modules/Forms/Forms.psm1`;
 test('mounts with the corpus grouped by area and the local areas beside it', () => {
   assert.deepEqual(problems, []);
   assert.equal(data.err, '');
-  assert.equal(data.items.length, 5, 'docs/ is not installation material');
+  assert.equal(data.items.length, 5, 'docs/ is not outpost material');
   assert.deepEqual([...data.groups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts']);
-  assert.equal(q('[data-installation] section button.text-left').length, 5, 'one row per file');
+  assert.equal(q('[data-outpost] section button.text-left').length, 5, 'one row per file');
   const text = el.textContent;
   assert.match(text, /Local areas/); assert.match(text, /Leg/); assert.match(text, /local only/); assert.match(text, /unresolved/);
   assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
@@ -215,7 +215,7 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
   assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
     'a title is the label of an icon-only control, never a sentence of explanation');
-  assert.doesNotMatch(el.textContent, /the installation map|5 files/, 'no map link and no counts line in the header');
+  assert.doesNotMatch(el.textContent, /the outpost map|5 files/, 'no map link and no counts line in the header');
   assert.equal(publications.length, 0);
   assert.ok(reads.every(r => r.ref === REV), 'manifest and ledger are read at the captured revision');
 });
@@ -223,7 +223,7 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
 test('selecting a file shows its destination and makes it the shell\'s correspondence target', async () => {
   data.select(FORMS);
   await settle();
-  assert.equal(window.__shell.installationItem, FORMS);
+  assert.equal(window.__shell.outpostItem, FORMS);
   assert.ok(shellCalls.some(c => c[0] === 'syncUrl'));
   assert.match(el.textContent, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
   assert.equal(data.statusOf(FORMS).label, 'Update pending');
@@ -232,7 +232,7 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   const line = () => el.querySelector('[data-status-line]').textContent;
   assert.equal(line(), 'Update pending · since 2026-09-14', 'one status line carries the state and its date');
   assert.doesNotMatch(el.querySelector('[data-adoption]').textContent, /awaiting adoption|Pending since/, 'the pending note is only the entry\'s own words');
-  assert.equal(el.querySelector('[data-installation] dl'), null, 'no installs-to / GitHub-now field list');
+  assert.equal(el.querySelector('[data-outpost] dl'), null, 'no installs-to / GitHub-now field list');
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
   data.select(`${P}/app/Forms/Bookmarks/Bookmarks.xaml`);
   await settle();
@@ -266,7 +266,7 @@ test('copy and download fetch the GitHub text and write nothing', async () => {
   await data.downloadText();
   assert.deepEqual(saves[0], { data: files[FORMS], name: 'Forms.psm1' });
   assert.equal(data.lastTransfer[FORMS], 'download');
-  assert.equal(publications.length, 0, 'a transfer is not an installation');
+  assert.equal(publications.length, 0, 'a transfer is not a placement');
 });
 
 test('recording shows the exact row and adoption closure before publishing both files together', async () => {
@@ -285,13 +285,13 @@ test('recording shows the exact row and adoption closure before publishing both 
   await data.confirmRecord();
   await settle();
   assert.equal(publications.length, 1);
-  assert.deepEqual(publications[0].paths, [`${P}/data/observations.csv`, `${P}/data/installation.json`]);
+  assert.deepEqual(publications[0].paths, [`${P}/data/observations.csv`, `${P}/data/outpost.json`]);
   const written = publications[0].snapshot[`${P}/data/observations.csv`];
   assert.match(written, /,installed,a{40},[0-9a-f]{40},[0-9a-f]{64},,download,copied over at lunch\n$/);
   assert.equal(data.pending, null);
   assert.equal(data.stateOf(FORMS).state, 'reported');
   assert.equal(data.item.pendingAdoption, null, 'the view reloads the manifest as well as its ledger');
-  assert.equal(JSON.parse(files[`${P}/data/installation.json`]).pending_adoption.length, 1);
+  assert.equal(JSON.parse(files[`${P}/data/outpost.json`]).pending_adoption.length, 1);
   assert.equal(data.revision, publications[0].body.sha);
   assert.match(el.textContent, /reported installed/);
   assert.match(el.querySelector('[data-status-line]').textContent, /^Confirmed installed · \d{4}-\d{2}-\d{2}$/);
@@ -337,7 +337,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   // The filter narrows the corpus to that state.
   data.filter = 'differs';
   await settle();
-  assert.equal(q('[data-installation] section button.text-left').length, 1);
+  assert.equal(q('[data-outpost] section button.text-left').length, 1);
   data.filter = '';
 });
 
@@ -388,14 +388,14 @@ test('the transfer script carries the exact GitHub bytes to the manifest destina
   assert.match(script, /WriteAllBytes\(\$dest, \$bytes\)/);
   assert.ok(script.includes(gitBlob(files[FORMS])), 'the script names the Git blob the placed file should hash to');
   assert.equal(data.lastTransfer[FORMS], 'script');
-  assert.equal(publications.length, written, 'a transfer script is not an installation');
+  assert.equal(publications.length, written, 'a transfer script is not a placement');
   assert.equal(window.PowerShellLanguage.inspect(script).diagnostics.length, 0, 'the script itself uses no PowerShell 7 syntax');
   const demo = `${P}/app/Scripts/Demo.ps1`, copies = clip.length;
   data.select(demo); await settle();
   assert.ok(!data.actionsFor(demo).some(a => a.key === 'script'), 'repository-only material offers no install script');
   await data.copyTransferScript();
   assert.equal(clip.length, copies, 'repository-only material has no destination to script');
-  assert.match(data.err, /no installation destination/);
+  assert.match(data.err, /no outpost destination/);
   data.err = ''; data.select(FORMS); await settle();
 });
 
@@ -432,22 +432,22 @@ test('a selected file cannot change while a supplied copy is being read', async 
 test('a reload reads manifest, inventory, and ledger from the same revision even when the branch moves', async () => {
   const beforeRevision = currentRevision, before = { ...files }, beforeCount = data.rows.length;
   const gate = deferred(), startRead = reads.length;
-  readGate = p => p === `${P}/data/installation.json` ? gate.promise : undefined;
+  readGate = p => p === `${P}/data/outpost.json` ? gate.promise : undefined;
   const pending = data.reload();
   await tick(2);
-  const changedManifest = JSON.parse(files[`${P}/data/installation.json`]);
-  changedManifest.root = 'Changed installation root';
-  files[`${P}/data/installation.json`] = JSON.stringify(changedManifest);
+  const changedManifest = JSON.parse(files[`${P}/data/outpost.json`]);
+  changedManifest.root = 'Changed outpost root';
+  files[`${P}/data/outpost.json`] = JSON.stringify(changedManifest);
   files[FORMS] = 'function Import-Form { param($DifferentRevision) }\n';
-  const row = window.Installation.row({ kind: 'verified', path: FORMS, revision: beforeRevision,
+  const row = window.Outpost.row({ kind: 'verified', path: FORMS, revision: beforeRevision,
     blobSha: gitBlob(files[FORMS]), sha256: createHash('sha256').update(files[FORMS]).digest('hex'),
     match: 'exact', method: 'paste', date: '2030-01-01T00:00:00Z' });
-  files[`${P}/data/observations.csv`] += window.Installation.line(row) + '\n';
+  files[`${P}/data/observations.csv`] += window.Outpost.line(row) + '\n';
   advanceHead();
   readGate = null; gate.resolve();
   await pending;
   assert.equal(data.revision, beforeRevision);
-  assert.equal(data.root, JSON.parse(before[`${P}/data/installation.json`]).root);
+  assert.equal(data.root, JSON.parse(before[`${P}/data/outpost.json`]).root);
   assert.equal(data.items.find(it => it.path === FORMS).blobSha, gitBlob(before[FORMS]));
   assert.equal(data.rows.length, beforeCount);
   assert.ok(reads.slice(startRead).every(r => r.ref === beforeRevision));
@@ -456,7 +456,7 @@ test('a reload reads manifest, inventory, and ledger from the same revision even
   assert.equal(await data.fetchText(), before[FORMS]);
   await data.reload();
   assert.equal(data.revision, currentRevision);
-  assert.equal(data.root, 'Changed installation root');
+  assert.equal(data.root, 'Changed outpost root');
   assert.equal(data.rows.length, beforeCount + 1);
   Object.assign(files, before); advanceHead();
   await data.reload();
@@ -464,7 +464,7 @@ test('a reload reads manifest, inventory, and ledger from the same revision even
 
 test('a slow older reload cannot replace a newer snapshot or report an obsolete error', async () => {
   for (const fail of [false, true]) {
-    const manifestPath = `${P}/data/installation.json`, before = files[manifestPath];
+    const manifestPath = `${P}/data/outpost.json`, before = files[manifestPath];
     const gate = deferred();
     commitGate = () => gate.promise;
     const old = data.reload();
@@ -501,7 +501,7 @@ test('empty repository files are cached and can be transferred without inventing
 });
 
 // jsdom has no CodeMirror, so the pane takes the <pre> fallback; the editor
-// path is held by installation-source-browser.mjs.
+// path is held by outpost-source-browser.mjs.
 test('the source pane shows the selected file read-only, swaps on reselect, and collapses on a phone', async () => {
   assert.equal(window.PowerShellEditor, undefined, 'this harness carries no editor kit');
   const profile = `${P}/app/Profile.ps1`, writes = requests.filter(r => r.method !== 'GET').length;
@@ -631,7 +631,7 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
 });
 
 test('a pending update with no record compares from the version before its change', async () => {
-  const profile = `${P}/app/Profile.ps1`, manifestPath = `${P}/data/installation.json`, manifest = files[manifestPath];
+  const profile = `${P}/app/Profile.ps1`, manifestPath = `${P}/data/outpost.json`, manifest = files[manifestPath];
   const older = 'profile v1\n', revision = 'b'.repeat(40);
   snapshots.set(revision, { ...files, [profile]: older });
   const m = JSON.parse(manifest);
@@ -755,7 +755,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   deck.close(); await settle();
   await poll(() => data.drafts[FORMS], 'the list marks the file with a browser draft');
   assert.ok(el.querySelector('[data-draft-mark]:not([style*="display: none"])'), 'the mark renders');
-  assert.equal(data.draftList.length, 1, 'the Overview lists the draft for publication');
+  assert.equal(data.draftList.length, 1, 'the outpost view lists the draft for publication');
   const W = window.PowerShellWorkspace, realPublish = W.publish; let sent = null;
   W.publish = async args => { sent = args; return { branch: args.branch, url: 'https://example/tree', compareUrl: 'https://example/compare' }; };
   data.reviewPublish();
@@ -848,7 +848,7 @@ test('a pasted copy is described by function before any diff, and can open as a 
   delete window.PowerShellEditor;
 });
 
-test('the Overview reads a Windows-1252 file as Windows-1252 and says so', async () => {
+test('the outpost view reads a Windows-1252 file as Windows-1252 and says so', async () => {
   const ANSI = `${P}/app/Modules/Ansi/Ansi.psm1`;
   files[ANSI] = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]);
   advanceHead(); await data.reload(); await settle();
@@ -862,7 +862,7 @@ test('the Overview reads a Windows-1252 file as Windows-1252 and says so', async
   delete files[ANSI]; advanceHead(); await data.reload(); await settle();
 });
 
-test('the Overview\'s source pane is the file component: Edit, a draft, and the same view across selections', async () => {
+test('the outpost view\'s source pane is the file component: Edit, a draft, and the same view across selections', async () => {
   const editors = [];
   window.PowerShellEditor = { create: async (host, cfg) => {
     const e = { host, cfg, readOnlyOn: cfg.readOnly, text: cfg.value, opened: [],
@@ -879,12 +879,12 @@ test('the Overview\'s source pane is the file component: Edit, a draft, and the 
   assert.equal(editors.length, 1); assert.equal(editors[0].readOnlyOn, true, 'read-only until Edit');
   const bar = () => el.querySelector('[data-file-actions]');
   const labels = [...card().menuRows().map(r => r.label)];
-  for (const gone of ['Copy GitHub text', 'Copy install script']) assert.ok(!labels.includes(gone), gone + ' stays on the Overview, not in the pane menu');
+  for (const gone of ['Copy GitHub text', 'Copy install script']) assert.ok(!labels.includes(gone), gone + ' stays on the outpost view, not in the pane menu');
   bar().querySelector('[title="Edit"]').click(); await tick(2);
   assert.equal(editors[0].readOnlyOn, false);
   assert.ok(bar().querySelector('[title="Undo"]') && bar().querySelector('[title="Done editing"]'));
   editors[0].cfg.onChange(original + '# edited\n');
-  await poll(() => data.drafts[FORMS], 'the inline edit did not reach the Overview draft list');
+  await poll(() => data.drafts[FORMS], 'the inline edit did not reach the outpost view draft list');
   assert.equal(data.draftList.length, 1);
   assert.ok(card().panes.some(p => p.key === 'draft'), 'a Draft tab appears');
   bar().querySelector('[title="Done editing"]').click(); await tick(2);
@@ -904,14 +904,14 @@ test('the Overview\'s source pane is the file component: Edit, a draft, and the 
 });
 
 // The workspace's two derived tables, declared in its manifest: the
-// Overview gains a second grouping and a dependency block, and a file whose
+// outpost view gains a second grouping and a dependency block, and a file whose
 // strict dependency is still pending is placed and recorded with it.
 const PROFILE = `${P}/app/Profile.ps1`, CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`;
 test('with the derived tables, files group by application and each lists what it loads and what loads it', async () => {
   assert.equal(el.querySelector('[data-group-by]'), null, 'no table, no switch');
-  const manifest = JSON.parse(files[`${P}/data/installation.json`]);
+  const manifest = JSON.parse(files[`${P}/data/outpost.json`]);
   Object.assign(manifest, { loads: `${P}/data/loads.csv`, applications: `${P}/data/office-uses.csv` });
-  files[`${P}/data/installation.json`] = JSON.stringify(manifest);
+  files[`${P}/data/outpost.json`] = JSON.stringify(manifest);
   files[`${P}/data/loads.csv`] = 'path,loads,how,evidence\n'
     + 'app/Profile.ps1,app/Forms/Bookmarks/Bookmarks.ps1,form,line 1\n'
     + 'app/Profile.ps1,app/Modules/Forms/Forms.psm1,import,line 2\n'
@@ -926,9 +926,9 @@ test('with the derived tables, files group by application and each lists what it
   assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts'], 'area stays the default');
   data.groupBy = 'application'; await settle();
   assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Chrome', 'Excel', 'No application']);
-  const rows = q('[data-installation] section button.text-left').map(b => b.textContent.trim());
+  const rows = q('[data-outpost] section button.text-left').map(b => b.textContent.trim());
   assert.equal(rows.filter(t => t === 'Profile.ps1').length, 2, 'a file reaching two applications is listed under both');
-  assert.equal(q('[data-installation] section h3').some(h => h.textContent.includes('undefined')), false, 'an application heading shows no destination');
+  assert.equal(q('[data-outpost] section h3').some(h => h.textContent.includes('undefined')), false, 'an application heading shows no destination');
   data.select(PROFILE); await settle();
   const deps = () => el.querySelector('[data-dependencies]');
   assert.notEqual(deps().style.display, 'none');
@@ -966,9 +966,9 @@ test('a file whose strict dependency is still pending is scripted and confirmed 
   assert.equal(el.querySelector('pre').textContent.split('\n').length, 2, 'both lines are on screen');
   await data.confirmRecord(); await settle();
   assert.equal(publications.length, written + 1, 'one commit');
-  assert.deepEqual(publications.at(-1).paths, [`${P}/data/observations.csv`, `${P}/data/installation.json`]);
+  assert.deepEqual(publications.at(-1).paths, [`${P}/data/observations.csv`, `${P}/data/outpost.json`]);
   assert.equal(data.stateOf(CTL).state, 'reported'); assert.equal(data.stateOf(PROFILE).state, 'reported');
-  assert.equal(JSON.parse(files[`${P}/data/installation.json`]).pending_adoption.some(e => e.path === 'app/Forms/Bookmarks/Bookmarks.ps1'), false);
+  assert.equal(JSON.parse(files[`${P}/data/outpost.json`]).pending_adoption.some(e => e.path === 'app/Forms/Bookmarks/Bookmarks.ps1'), false);
   assert.match(data.recorded, /for 2 files/);
   assert.deepEqual([...data.placeable(data.item).map(i => i.path)], [PROFILE], 'nothing left pending to carry');
 });

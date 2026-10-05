@@ -35,7 +35,6 @@ lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",652,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",98,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,18,yes
-lib/kits/installation.js,Installation,"Installation state: what the repository holds for a work installation that has no Git checkout, where each file is meant to go, what has been observed about…",449,no,no,2,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",232,no,yes,21,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,6,yes
@@ -48,6 +47,7 @@ lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line pe
 lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",268,no,yes,3,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
 lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",129,no,no,7,yes
+lib/kits/outpost.js,Outpost,"Outpost state: what the repository holds for an outpost, a machine with no Git checkout, where each file is meant to go, what has been observed about the copy…",449,no,no,2,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,4,yes
 lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,305,no,yes,6,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2302,no,no,6,yes
@@ -76,7 +76,7 @@ lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",242,n
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1538,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",291,no,no,4,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1234,no,no,3,yes
-lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as installation evidence.,176,no,no,2,yes
+lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,534,yes,yes,11,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes

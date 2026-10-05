@@ -2,21 +2,41 @@
 
 `?view=project&project=<path>[&tab=overview|board|pages|docs|files]` is one
 workspace declared in its repo's `.web-tools.json` `projects`. A workspace
-declaring `installation` (a repo-root-relative `installation.json`;
-[manifest-fields.csv](../manifest-fields.csv)) gets an **Overview** that is the
-installation view when there is no landing page
-(`lib/alpineComponents/installation-view.js`, `lib/kits/installation.js`). Its
-source pane, file deck and publish panel are in
-[powershell-workspace.md](../powershell-workspace.md). The retired
-`&tab=installation` and `&tab=code` addresses resolve here.
+declaring `outpost` (a repo-root-relative `outpost.json`;
+[manifest-fields.csv](../manifest-fields.csv)) shows the outpost view in its
+Overview tab when it has no landing page.
 
-## The installation view
+## The outpost view
 
-Each PowerShell and XAML file's state is derived from the workspace's
-observations ledger; `installation.js` names the states.
+An [outpost](../outposts.md) is a place that holds a workspace's files and that
+Git cannot reach. The one in use is the work computer's PowerShell suite, from
+mehrlander/home's `projects/wps`. The view shows each file's destination there
+and what was last observed of it. It also compares a pasted copy with GitHub,
+holds edits as browser drafts, and copies an install script. `outpost.js`
+derives each file's state from the observations ledger.
 
 **The ledger is the view's only write.** It is appended, never rewritten, one
 row per confirmed file, committed on the browsed branch only after the reader
 confirms the placement on the work computer. Comparing, copying and the install
 script never write a row. State icons come from `lib/kits/sync-status.js`,
 shared with the shortcut views.
+
+The rest of what the code keeps:
+
+- Source reads verify each file's Git blob bytes, and a draft keeps the file's
+  BOM and line endings. A Windows-1252 file opens read-only, since a draft
+  would re-encode it.
+- Drafts live in browser storage, keyed by repo, project, ref and path, and
+  publish together to a new branch, never an existing one.
+- A file is scripted and confirmed only together with the still-pending files
+  it strictly needs, as `Outpost.installSet` defines them. mehrlander/home's
+  `projects/wps/tools/outpost-check.py` applies the same rule; change both.
+- The Problems list is lexical heuristics; an empty one proves nothing about
+  Windows PowerShell 5.1.
+
+Code: `lib/alpineComponents/outpost-view.js` (the view),
+`lib/alpineComponents/powershell-file.js` (one file, in the view and its swipe
+deck), `lib/kits/outpost.js` (states, ledger, install script),
+`lib/kits/powershell-workspace.js` (reads, drafts, publishing). `npm test`
+opens no browser, so a change to the file pane or editor also needs
+`npm run test:outpost-source` and `npm run test:powershell-file`.

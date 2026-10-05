@@ -1,5 +1,5 @@
 // Execute the shipped shell against real Alpine selection lookup and the
-// correspondence parser. The Overview's receiver (installationView.takeCopy)
+// correspondence parser. The Overview's receiver (outpostView.takeCopy)
 // is the boundary here; what it does with a copy is covered by its view tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -38,18 +38,18 @@ function fixture({ active = A, busy = false } = {}) {
   Alpine.store('toast', (icon, message, cls) => toasts.push({ icon, message, cls }));
   const shell = app();
   shell.view = 'project'; shell.projectTab = 'overview'; shell.projectPath = 'projects/wps';
-  shell.installationItem = active; shell.syncUrl = () => {};
-  Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', installation: 'data/installation.json' } });
+  shell.outpostItem = active; shell.syncUrl = () => {};
+  Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', outpost: 'data/outpost.json' } });
   // The Overview's receiver: the shell hands it a copy for the selected file
-  // (openCorrespondence -> installationView.takeCopy) and the Overview shows it.
-  Alpine.data('installationView', () => ({ busy,
+  // (openCorrespondence -> outpostView.takeCopy) and the Overview shows it.
+  Alpine.data('outpostView', () => ({ busy,
     async takeCopy(target, sourceText, name, source) {
       if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
       received.push({ target, text: sourceText, meta: { name, source } });
       return true;
     } }));
   const el = window.document.createElement('div');
-  el.setAttribute('x-data', 'installationView()');
+  el.setAttribute('x-data', 'outpostView()');
   Alpine.mutateDom(() => { window.document.body.appendChild(el); Alpine.initTree(el); });
   mounted = el;
   const workspace = { captures: 0 };

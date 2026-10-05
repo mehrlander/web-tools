@@ -1,5 +1,5 @@
 // Answer the GitHub API for mehrlander/home from the sibling checkout, so the
-// Installation tab of the wps workspace renders headlessly with real files and
+// outpost view of the wps workspace renders headlessly with real files and
 // real blob shas. cdn.mjs impersonates only this repo; the project view's
 // subject is a PRIVATE sibling, and without this every read of it fails on the
 // sandbox's spent anonymous quota and the pane says the listing failed.
@@ -8,7 +8,7 @@
 // side needs states the checkout does not hold on its own:
 //   WPS_OBSERVATIONS=<file>  serve that file as projects/wps/data/observations.csv
 //   WPS_ITEM=<repo path>     open the tab on that file (rides as &item=)
-//   WPS_TAB=<tab>            the project tab to open (default: installation)
+//   WPS_TAB=<tab>            the project tab to open (default: overview)
 //   WPS_DEBUG=1              print the pane's loaded state, since a shot that
 //                            catches it mid-boot looks like a broken pane
 // The blob sha is git's own (sha1 over "blob <size>\0" + bytes) so the derived
@@ -73,14 +73,14 @@ export default async (page, { repoRoot }) => {
   url.searchParams.set('repo', REPO);
   url.searchParams.set('view', 'project');
   url.searchParams.set('project', 'projects/wps');
-  url.searchParams.set('tab', process.env.WPS_TAB || 'installation');
+  url.searchParams.set('tab', process.env.WPS_TAB || 'overview');
   if (process.env.WPS_ITEM) url.searchParams.set('item', process.env.WPS_ITEM);
   await page.evaluate(() => { window.TOKEN = 'FAKE'; try { localStorage.setItem('ghToken', 'FAKE'); } catch {} });
   await page.goto(url.toString(), { waitUntil: 'load' });
   await page.waitForTimeout(5000);
   if (process.env.WPS_DEBUG) {
     const state = await page.evaluate(() => {
-      const el = document.querySelector('[x-data^="installationView"]');
+      const el = document.querySelector('[x-data^="outpostView"]');
       if (!el) return { mounted: false };
       const d = window.Alpine.$data(el);
       return { mounted: true, loading: d.loading, err: d.err, items: d.items?.length, tab: window.__shell?.projectTab };

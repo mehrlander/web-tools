@@ -29,7 +29,7 @@ test('repoProjects: absent, non-array, or empty config yields no rows', () => {
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [], 'a bare string field is not a list');
 });
 
-test('repoProjects: string and object entries normalize to {path, label, board, inbox, installation}', () => {
+test('repoProjects: string and object entries normalize to {path, label, board, inbox, outpost}', () => {
   const { shell } = makeShell();
   shell.estateConfigs = {
     'mehrlander/home': {
@@ -43,11 +43,11 @@ test('repoProjects: string and object entries normalize to {path, label, board, 
     },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [
-    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', inbox: null, installation: '' },
+    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', inbox: null, outpost: '' },
     { path: 'projects/budget-drs', label: 'budget-drs',
-      board: 'projects/budget-drs/tracker/board.md', landing: '', inbox: null, installation: '' },
+      board: 'projects/budget-drs/tracker/board.md', landing: '', inbox: null, outpost: '' },
     { path: 'projects/budget-wa', label: 'WA budget',
-      board: 'projects/budget-wa/tracker/board.md', landing: '', inbox: null, installation: '' },
+      board: 'projects/budget-wa/tracker/board.md', landing: '', inbox: null, outpost: '' },
   ]);
 });
 
@@ -97,7 +97,7 @@ test('repoProjects: junk entries drop instead of throwing', () => {
     'mehrlander/home': { projects: [null, 42, {}, { path: '' }, { label: 'no path' }, 'ok'] },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'),
-    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', inbox: null, installation: '' }]);
+    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', inbox: null, outpost: '' }]);
 });
 
 // The workspace's own tray, and the reason it is DECLARED where `board` above
@@ -175,12 +175,12 @@ test('the open project resolves to its declared entry, or a derived one', () => 
   shell.loadProjectReadme = async () => {};
   shell.goProject('projects/a');
   assert.deepEqual(shell.project, { path: 'projects/a', label: 'Alpha',
-                                    board: 'projects/a/tracker/board.md', landing: '', inbox: null, installation: '' });
+                                    board: 'projects/a/tracker/board.md', landing: '', inbox: null, outpost: '' });
   // A deep link may name a workspace the manifest has not caught up with; the
   // view still opens, on the conventions the path itself implies.
   shell.goProject('projects/unlisted');
   assert.deepEqual(shell.project, { path: 'projects/unlisted', label: 'unlisted',
-                                    board: 'projects/unlisted/tracker/board.md', landing: '', inbox: null, installation: '' });
+                                    board: 'projects/unlisted/tracker/board.md', landing: '', inbox: null, outpost: '' });
 });
 
 test('repoProjects prefers the OPEN repo\'s live manifest over the estate cache', () => {
@@ -643,60 +643,56 @@ test('the two sidebar project lists are sized the same', () => {
   assert.doesNotMatch(page, /-mt-1 ml-4 pl-2/, 'the project block pulls up again');
 });
 
-// ── The installation view, which IS the Overview where one is declared ──────
-// A workspace whose manifest entry names an installation.json opens on that
-// view. It had a fifth pill named Installation until 2026-09-14, when it became
-// the workspace's Overview instead: the name described the manifest it reads
-// rather than what the workspace is for. Declared, never derived, since the
-// view writes to the ledger that file names. Its selected file rides the
-// address as &item= and takes a page-wide paste or drop the way an open Files
-// result does.
+// ── The outpost view, which fills the Overview where one is declared ────────
+// A workspace whose manifest entry names an outpost.json opens on that view in
+// its Overview tab. Declared, never derived, since the view writes to the
+// ledger that file names. Its selected file rides the address as &item= and
+// takes a page-wide paste or drop the way an open Files result does.
 
-test('repoProjects: `installation` is carried root-relative, and only when declared', () => {
+test('repoProjects: `outpost` is carried root-relative, and only when declared', () => {
   const { shell } = makeShell();
   shell.estateConfigs = { 'mehrlander/home': { projects: [
-    { path: 'projects/wps', installation: '/projects/wps/data/installation.json/' },
-    { path: 'projects/a', installation: 7 },
+    { path: 'projects/wps', outpost: '/projects/wps/data/outpost.json/' },
+    { path: 'projects/a', outpost: 7 },
     { path: 'projects/b' },
   ] } };
-  assert.deepEqual(shell.repoProjects('mehrlander/home').map(p => p.installation),
-    ['projects/wps/data/installation.json', '', '']);
+  assert.deepEqual(shell.repoProjects('mehrlander/home').map(p => p.outpost),
+    ['projects/wps/data/outpost.json', '', '']);
 });
 
-test('goProject: the retired `installation` spelling lands on the Overview, and the item stamps', () => {
+test('goProject: a declaring workspace opens on its outpost view, and the item stamps', () => {
   const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
-  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', installation: 'projects/wps/data/installation.json' }] } };
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', outpost: 'projects/wps/data/outpost.json' }] } };
   shell.refreshProjectPane = () => {};
-  shell.goProject('projects/wps', 'installation', 'projects/wps/app/Modules/Forms/Forms.psm1');
-  assert.equal(shell.projectTab, 'overview', 'the retired pill name falls through to the Overview it became');
-  assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
+  shell.goProject('projects/wps', 'overview', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  assert.equal(shell.projectTab, 'overview');
+  assert.equal(shell.outpostItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
   const p = shell.deepLinkParams(new URLSearchParams());
   assert.equal(p.get('view'), 'project');
   assert.equal(p.get('tab'), null, 'the Overview is the default tab, so it stamps none');
   assert.equal(p.get('item'), 'projects/wps/app/Modules/Forms/Forms.psm1');
-  // The link a pre-2026-09-14 session handed out still round-trips: ?tab=
-  // gone from the stamp, ?item= alone is enough to restore the selection.
-  shell.installationItem = '';
+  // ?item= alone is enough to restore the selection.
+  shell.outpostItem = '';
   shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
   assert.equal(shell.projectTab, 'overview');
-  assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
-  // The pill's file is the page-wide correspondence target, at the browsed ref
+  assert.equal(shell.outpostItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
+  // The view's file is the page-wide correspondence target, at the browsed ref
   // when it is not the default, and only for a file the comparison can take.
   shell.view = 'project';
   win.FileCorrespondence = { applies: t => /\.(ps1|psm1|xaml)$/.test(t.path) };
   assert.deepEqual(shell.selectedCorrespondence, { repo: 'mehrlander/home', path: 'projects/wps/app/Modules/Forms/Forms.psm1', ref: '' });
   browserStore.ref = 'feat/x';
   assert.equal(shell.selectedCorrespondence.ref, 'feat/x');
-  shell.installationItem = 'projects/wps/app/Modules/ISE/Tools/Buttons.xml';
+  shell.outpostItem = 'projects/wps/app/Modules/ISE/Tools/Buttons.xml';
   assert.equal(shell.selectedCorrespondence, null, 'an XML tool file is not a comparison target');
-  shell.installationItem = 'projects/wps/app/Modules/Forms/Forms.psm1';
+  shell.outpostItem = 'projects/wps/app/Modules/Forms/Forms.psm1';
   // Leaving for another workspace clears the item; a bare tab stamps none.
   shell.goProject('projects/other', 'docs');
-  assert.equal(shell.installationItem, '');
+  assert.equal(shell.outpostItem, '');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
   // Switching pills within the workspace keeps the item out of the stamp, so
   // a Docs link does not carry one.
-  shell.goProject('projects/wps', 'installation', 'x.ps1');
+  shell.goProject('projects/wps', 'overview', 'x.ps1');
   shell.goProjectTab('docs');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
   // And a workspace that declares no manifest never stamps an item, however
@@ -706,12 +702,12 @@ test('goProject: the retired `installation` spelling lands on the Overview, and 
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
 });
 
-test('an installation Overview does not fetch the README either', () => {
+test('an outpost Overview does not fetch the README either', () => {
   const { shell, browserStore } = makeShell({
     browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
   });
   browserStore.config = { projects: [
-    { path: 'projects/wps', installation: 'projects/wps/data/installation.json' },
+    { path: 'projects/wps', outpost: 'projects/wps/data/outpost.json' },
     { path: 'projects/plain' },
   ] };
   shell.syncUrl = () => {};
@@ -727,7 +723,7 @@ test('an installation Overview does not fetch the README either', () => {
 test('the drop target follows the view to the Overview', () => {
   const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
   shell.estateConfigs = { 'mehrlander/home': { projects: [
-    { path: 'projects/wps', installation: 'projects/wps/data/installation.json' },
+    { path: 'projects/wps', outpost: 'projects/wps/data/outpost.json' },
     { path: 'projects/plain' },
   ] } };
   shell.refreshProjectPane = () => {};
@@ -736,7 +732,7 @@ test('the drop target follows the view to the Overview', () => {
   shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
   assert.equal(shell.selectedCorrespondence?.path, 'projects/wps/app/Modules/Forms/Forms.psm1',
     'the Overview of a declaring workspace still takes a page-wide drop');
-  // A workspace with no manifest has no installation selection to compare
+  // A workspace with no manifest has no outpost selection to compare
   // against, even with an item set, or a plain README Overview would silently
   // claim every drop on the page.
   shell.goProject('projects/plain', '', 'projects/plain/x.ps1');
@@ -744,13 +740,12 @@ test('the drop target follows the view to the Overview', () => {
 });
 
 test('the view is the Overview in the pane, keyed per workspace and ref', () => {
-  assert.doesNotMatch(page, /goProjectTab\('installation'\)/, 'the pill is gone, not merely relabelled');
-  assert.match(page, /x-show="projectTab==='overview' && project\.installation"/);
-  assert.match(page, /x-show="projectTab==='overview' && !project\.installation"/,
+  assert.match(page, /x-show="projectTab==='overview' && project\.outpost"/);
+  assert.match(page, /x-show="projectTab==='overview' && !project\.outpost"/,
     'and the README Overview stands aside for it rather than stacking');
-  assert.match(page, /x-for="p in \(projectTab==='overview' && project\.installation \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
-  assert.match(page, /x-data="installationView\(p\)"/);
-  assert.match(page, /gh\.load\('kits\/installation\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
+  assert.match(page, /x-for="p in \(projectTab==='overview' && project\.outpost \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
+  assert.match(page, /x-data="outpostView\(p\)"/);
+  assert.match(page, /gh\.load\('kits\/outpost\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
 });
 
 // ── The README peek on a project's GitHub icon ───────────────────────────────

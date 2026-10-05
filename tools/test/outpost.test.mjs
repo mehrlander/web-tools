@@ -1,4 +1,4 @@
-// lib/kits/installation.js — the installation ledger's derivation, apart from
+// lib/kits/outpost.js — the outpost ledger's derivation, apart from
 // the pane that shows it. The subject is a work computer nothing here can
 // inspect, so the test walks the one sequence the design has to get right:
 // a file begins unknown, a supplied copy is compared (browser-local, and
@@ -19,8 +19,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const win = { crypto: webcrypto, GH: { FRESH: { cache: 'no-store' }, toBase64: s => Buffer.from(s, 'utf8').toString('base64') } };
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(win);
-new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/installation.js'), 'utf8'))(win);
-const K = win.Installation;
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/outpost.js'), 'utf8'))(win);
+const K = win.Outpost;
 
 const MANIFEST = JSON.stringify({
   as_of: '2026-09-14', root: 'Documents\\WindowsPowerShell', observations: 'projects/wps/data/observations.csv',
@@ -30,7 +30,7 @@ const MANIFEST = JSON.stringify({
     { repo: 'app/Forms/', area: 'Forms', installs: 'Forms/' },
     { repo: 'app/Scripts/', area: 'Scripts', installs: null },
   ],
-  doc: 'projects/wps/docs/INSTALLATION.md',
+  doc: 'projects/wps/docs/OUTPOST.md',
   local_areas: [
     { name: 'Leg', status: 'unresolved', shape: 'reportedly bill collections' },
     { name: 'ISELog', status: 'local-only', shape: 'ZIP snapshots of editor text' },
@@ -50,7 +50,7 @@ const tree = [
   blob('app/Forms/Bookmarks/Bookmarks.xaml', sha40('6')),
   blob('app/Forms/HTMLViewer/HTMLViewer.xaml', sha40('7')),
   blob('app/Scripts/Demos/Demo.ps1', sha40('8')),
-  blob('docs/INSTALLATION.md', sha40('9')),
+  blob('docs/OUTPOST.md', sha40('9')),
   { type: 'tree', path: P + '/app/Modules' },
 ];
 const m = K.manifest(MANIFEST);
@@ -72,7 +72,7 @@ test('the manifest normalizes destinations: a string, the root, or none', () => 
 // reasoning. Reading a prose field here would be the first step back toward
 // the same policy written down twice, so the normalizer carries none.
 test('the manifest carries the document pointer and no explanatory prose', () => {
-  assert.equal(m.doc, 'projects/wps/docs/INSTALLATION.md');
+  assert.equal(m.doc, 'projects/wps/docs/OUTPOST.md');
   for (const c of m.correspondence) assert.deepEqual(Object.keys(c).sort(), ['area', 'installs', 'repo']);
   for (const a of m.localAreas) assert.deepEqual(Object.keys(a).sort(), ['name', 'shape', 'status']);
   assert.equal(m.localAreas[0].shape, 'reportedly bill collections', 'shape is a structural line, not policy');
@@ -87,12 +87,12 @@ test('the manifest carries the document pointer and no explanatory prose', () =>
 });
 
 const LEDGER = P + '/data/observations.csv';
-const MANIFEST_PATH = P + '/data/installation.json';
+const MANIFEST_PATH = P + '/data/outpost.json';
 const pendingEntry = { path: 'app/Modules/Forms/Forms.psm1', since: '2026-09-14', transfer: 'changed',
   limit: 'Module import has not run on the work computer' };
 const adoptionManifest = (entries = [pendingEntry]) => ({ ...JSON.parse(MANIFEST), pending_adoption: entries });
 
-test('pending adoption carries transfer limits without turning them into installation evidence', () => {
+test('pending adoption carries transfer limits without turning them into outpost evidence', () => {
   const raw = adoptionManifest([pendingEntry,
     { path: 'app/Forms/Bookmarks/Bookmarks.ps1', since: '2026-09-15', transfer: 'new', limit: 'Live form untested', note: 'drop prose' },
     { path: 'app/Scripts/Demos/Demo.ps1', transfer: 'new' },
@@ -126,7 +126,7 @@ test('the inventory places only app/ material, by the manifest, and pairs a form
   assert.deepEqual(items.map(it => it.rel), [
     'app/Forms/Bookmarks/Bookmarks.ps1', 'app/Forms/Bookmarks/Bookmarks.xaml', 'app/Forms/HTMLViewer/HTMLViewer.xaml',
     'app/Modules/Forms/Forms.psm1', 'app/Modules/Forms/Theme.xaml', 'app/Modules/ISE/Tools/Buttons.xml',
-    'app/Profile.ps1', 'app/Scripts/Demos/Demo.ps1'], 'docs/ and tree nodes are not installation material');
+    'app/Profile.ps1', 'app/Scripts/Demos/Demo.ps1'], 'docs/ and tree nodes are not outpost material');
   assert.equal(by('app/Modules/Forms/Forms.psm1').installs, 'Modules/Forms/Forms.psm1');
   assert.equal(by('app/Profile.ps1').installs, '', 'the profile lands at the root under a filename nobody has verified');
   assert.equal(by('app/Scripts/Demos/Demo.ps1').installs, null, 'a script has no destination');
@@ -265,7 +265,7 @@ test('a transfer script places the exact bytes under the manifest root and claim
   assert.match(profile, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\It''s\.ps1'\r$/m);
   assert.match(profile, /filename; adjust \$dest/);
   assert.match(K.transferScript({ ...base, root: 'C:\\Tools\\' }), /^\$dest = 'C:\\Tools\\Modules\\Forms\\Forms\.psm1'\r$/m);
-  assert.throws(() => K.transferScript({ ...base, installs: null }), /no installation destination/);
+  assert.throws(() => K.transferScript({ ...base, installs: null }), /no outpost destination/);
   assert.throws(() => K.transferScript({ ...base, blobSha: 'short' }), /Git blob sha/);
   assert.throws(() => K.transferScript({ ...base, bytes: 'text' }), /source bytes/);
 });
@@ -278,7 +278,7 @@ test('append reads fresh, appends one line, and PUTs against the sha it read', a
   const put = calls[1];
   assert.equal(put[2], 'PUT'); assert.equal(put[3].sha, sha40('c')); assert.equal(put[3].branch, 'main');
   assert.equal(Buffer.from(put[3].content, 'base64').toString('utf8'), CSV_HEAD + 'x,y\n' + K.line(r) + '\n');
-  assert.match(put[3].message, /Record installation observation: installed Forms.psm1 via Web Tools/);
+  assert.match(put[3].message, /Record outpost observation: installed Forms.psm1 via Web Tools/);
   assert.equal(out.commit, sha40('9')); assert.equal(out.line, K.line(r));
 });
 
