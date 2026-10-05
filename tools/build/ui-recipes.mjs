@@ -184,8 +184,11 @@ function run(cmd, argv, cwd) {
 // Open a unit at a window size, run evalJs in it, and write the shot to `out`.
 export async function shoot(r, size, touch, out, evalJs) {
   if (r.tool === 'wt') {
+    // Nine seconds, not six: the fixture scenarios look the Activity component
+    // up the moment the wait ends, and the app's boot came close enough to six
+    // that Sessions and Lists sometimes found nothing to fill.
     const a = ['tools/render/screenshot.mjs', r.page, '--width', String(size.width), '--height', String(size.height),
-      '--wait', '6000', '--out', out];
+      '--wait', '9000', '--out', out];
     if (r.page === 'app/index.html') a.push('--ref', head);
     if (r.query && r.query.startsWith('#')) a.push('--hash', r.query.slice(1));
     else if (r.query) a.push('--query', r.query);

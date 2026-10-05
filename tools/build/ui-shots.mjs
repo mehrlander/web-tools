@@ -107,7 +107,13 @@ const drawJs = `(() => {
     }
   }
 })()`;
-const shotJs = (focus) => `(async () => { ${drawJs}; return await ${focusJs(focus)}; })()`;
+// The app's live GitHub reads are unauthenticated here, and past the hourly
+// limit the app swaps the unit for a token prompt. The answer says so, and a
+// shot of the prompt does not replace the unit's last good one.
+const shotJs = (focus) => `(async () => { ${drawJs};
+  const f = await ${focus ? focusJs(focus) : "'null'"};
+  const limited = /API rate limit exceeded/.test(document.body.innerText);
+  return f === 'null' ? JSON.stringify(limited ? { limited } : null) : JSON.stringify({ ...JSON.parse(f), limited }); })()`;
 
 // PNG to a JPEG of the given width, drawn in the same headless browser the
 // shots came from, since this checkout carries no image library of its own.
@@ -140,6 +146,7 @@ console.log(`${work.length} units to shoot, ${JOBS} at a time`);
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
 const resize = await (await browser.newContext()).newPage();
 const done = new Map(STORES.map(s => [s.name, []]));
+const before = new Map(STORES.flatMap(s => rowsOf(path.join(s.thumbs, 'thumbs.csv')).map(r => [r.unit, r])));
 let n = 0;
 const worker = async () => {
   for (let w = work.shift(); w; w = work.shift()) {
@@ -154,11 +161,22 @@ const worker = async () => {
       let res = { code: 0, err: '', out: '' };
       if (!(REUSE && existsSync(png))) {
         rmSync(png, { force: true });
-        res = await shoot(w.r, size, touch, png, w.r.focus ? shotJs(w.r.focus) : '');
+        res = await shoot(w.r, size, touch, png, shotJs(w.r.focus));
+        // One retry: three headless browsers at once, against a rate-limited
+        // API, now and then lose a shot that the next attempt takes cleanly.
+        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w.r.focus));
         writeFileSync(box, JSON.stringify(evalFrom(res.out)));
       }
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }
-      const focus = existsSync(box) ? JSON.parse(readFileSync(box, 'utf8')) : null;
+      const read = existsSync(box) ? JSON.parse(readFileSync(box, 'utf8')) : null;
+      if (read?.limited) {
+        const old = before.get(w.unit);
+        console.log(`  ${w.unit} ${kind}: GitHub's rate limit showed a token prompt; ${old?.[kind] ? 'kept the previous shot' : 'no previous shot to keep'}`);
+        row[kind] = old?.[kind] || '';
+        if (kind === 'desk' && old) { row.focus = old.focus || ''; row.pattern = old.pattern || ''; row.shot_at = old.shot_at; }
+        continue;
+      }
+      const focus = read?.at ? read : null;
       // A page's only focus is a declared pattern, so its missing one is the norm.
       if (w.r.focus && !focus && !/^top:\[data-pattern="[^"]*"\]$/.test(w.r.focus)) console.log(`  ${w.unit} ${kind}: no focus matched (${w.r.focus}); kept the whole window`);
       const file = `${base}.${kind}.jpg`;

@@ -68,6 +68,11 @@ const checkJs = (coded) => `(async () => {
   const marked = (e) => e.getAttribute('aria-selected') === 'true'
     || ['true', 'page', 'step', 'location'].includes(e.getAttribute('aria-current'));
   const out = [];
+  // A unit's rows can arrive after the render tool's own wait, slower still
+  // when the live API is rate-limited, so give a declared pattern up to
+  // fifteen seconds to show an item before reading the page.
+  const ready = () => [...document.querySelectorAll('[data-pattern]')].some((r) => shown(r) && [...r.querySelectorAll('[data-part="item"]')].some(shown));
+  for (let t = 0; t < 30 && !ready(); t++) await new Promise((ok) => setTimeout(ok, 500));
   // A pattern inside another belongs to an item of the outer one (Sessions'
   // branch tiles), so only the outermost roots are the unit's own.
   const tops = [...document.querySelectorAll('[data-pattern]')].filter((r) => !r.parentElement?.closest('[data-pattern]'));
@@ -93,7 +98,8 @@ const checkJs = (coded) => `(async () => {
       // control, else its title, else the first control inside it that is not
       // one of its actions. A pick handler on a button inside a row div never
       // hears a click dispatched on the div.
-      const control = (e) => e.matches('button, a[href], [role="option"], [tabindex], [onclick], [\\@click], [x-on\\:click]');
+      const control = (e) => e.matches('button, a[href], [role="option"], [tabindex], [onclick]')
+        || e.hasAttribute('@click') || e.hasAttribute('x-on:click');
       const target = (it) => control(it) ? it
         : [it.querySelector('[data-part="title"]'), ...it.querySelectorAll('button, a[href], [role="option"], [tabindex]')]
             .find((e) => e && !e.closest('[data-part="actions"]') && (control(e) || e.querySelector('button, a[href]'))) || it;
@@ -123,6 +129,10 @@ const checkJs = (coded) => `(async () => {
   // that tab's declaration, not this unit's.
   const own = tops.find((r) => !shown(r) && r.parentElement && shown(r.parentElement));
   if (!out.length && own) out.push({ pattern: own.dataset.pattern, counts: {}, contract: 'unchecked: declared, but not shown at this address', also: [] });
+  // The app's live GitHub reads are unauthenticated here, and past the hourly
+  // limit the app swaps the unit for a token prompt: nothing was read, which
+  // is not the same as nothing declared.
+  if (!out.length && /API rate limit exceeded/.test(document.body.innerText)) out.push({ pattern: '', counts: {}, contract: "not read: GitHub's rate limit replaced the unit with a token prompt", also: [] });
   return JSON.stringify(out);
 })()`;
 
@@ -146,7 +156,14 @@ const done = new Map(STORES.map(s => [s.name, []]));
 let n = 0;
 const worker = async () => {
   for (let w = work.shift(); w; w = work.shift()) {
-    const res = await shoot(w.r, DESK, false, path.join(TMP, slug(w.unit) + '.png'), checkJs(w.c.body || ''));
+    // One retry for a page that did not answer: three headless browsers at
+    // once, against a rate-limited API, now and then lose one.
+    // Also once more when the unit's own files carry a declaration and the
+    // page showed none: its rows were late, not absent.
+    const declares = (w.u.files || '').split(';').some(f => f && carries(w.u.repo, f));
+    let res = await shoot(w.r, DESK, false, path.join(TMP, slug(w.unit) + '.png'), checkJs(w.c.body || ''));
+    const blank = (r) => { const f = evalFrom(r.out); return !f || (declares && !f.length); };
+    if (blank(res)) res = await shoot(w.r, DESK, false, path.join(TMP, slug(w.unit) + '.png'), checkJs(w.c.body || ''));
     const found = evalFrom(res.out);
     const coded = w.c.body || '';
     const builtOn = (w.c.built_on || '').split(';');
@@ -155,14 +172,17 @@ const worker = async () => {
     if (!found) row.contract = `not read: the page did not answer (${res.code})`;
     const inst = (found || [])[0];
     if (found && found.length > 1) row.contract = `${found.length} declared patterns shown; the first is reported`;
-    if (inst) {
+    if (inst && !inst.pattern) row.contract = inst.contract;
+    else if (inst) {
       const spec = CODES[inst.pattern];
       row.declared = inst.pattern;
       row.parts = listParts(inst.counts);
-      if (spec) {
+      // A declaration unchecked here showed no parts, so none can be missing.
+      if (!spec) row.stray = `${inst.pattern} is not a code with parts`;
+      else if (!/^unchecked/.test(inst.contract)) {
         row.missing = spec.required.filter(p => !inst.counts[p]).join(';');
         row.stray = Object.keys(inst.counts).filter(p => !spec.required.includes(p) && !spec.optional.includes(p)).join(';');
-      } else row.stray = `${inst.pattern} is not a code with parts`;
+      }
       row.contract = [row.contract, inst.contract,
         inst.also?.length ? 'the unit also shows a declared ' + inst.also.join(', a declared ') : ''].filter(Boolean).join('; ');
     }
