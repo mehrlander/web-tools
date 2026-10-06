@@ -142,6 +142,7 @@ test('the second key rides along, for the views that carry one', () => {
     ['search', (s) => { s.searchSeed = { q: 'tracker', mode: 'names' }; }, 'sq', 'tracker'],
     ['map', (s) => { s.mapTab = 'showing'; }, 'tab', 'showing'],
     ['branches', (s) => { s.detailSpec = 'mehrlander/web-tools@main'; }, 'detail', 'mehrlander/web-tools@main'],
+    ['waiting', (s) => { s.waitingCall = '2708d02c-close-four-tasks'; }, 'call', '2708d02c-close-four-tasks'],
   ];
   for (const [view, seed, key, want] of cases) {
     const { shell: s } = makeShell({ browserStore: {

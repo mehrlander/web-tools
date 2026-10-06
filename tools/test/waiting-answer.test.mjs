@@ -307,3 +307,16 @@ test('a task link opens the task file at its ref, drawn as a task and named by i
   assert.equal(at.href, 'https://github.com/mehrlander/web-tools/blob/dev/tracker/tasks/trim-ab12cd.md', 'a ref is kept');
   assert.equal(at.label, 'Trim');
 });
+
+test('an address naming a call opens Waiting on it, and the shell then forgets it', async () => {
+  const [merge, decision] = CALLS;
+  merge.open = true; decision.open = true;
+  data.setTab('edit');
+  window.__shell.waitingCall = 's1-close-two';
+  window.document.dispatchEvent(new window.CustomEvent('web-tools:waiting-call', { detail: { id: 's1-close-two' } }));
+  assert.equal(data.tab, 'calls', 'the Calls tab');
+  assert.equal(data.picked.calls, 's1-close-two', 'on that call');
+  assert.equal(window.__shell.waitingCall, '', 'taken once, so a later pick leaves no stale address');
+  data.focusCall('no-such-call');
+  assert.equal(data.picked.calls, 's1-close-two', 'an unknown id moves nothing');
+});
