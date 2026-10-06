@@ -435,9 +435,9 @@ test('a landing is the App tab, rendered through toss-render at the browsed ref,
   assert.deepEqual(reads, ['readme', 'docs']);
   shell.goProjectTab('pages');
   assert.deepEqual(reads, ['readme', 'docs']);
-  // App exists only where a landing is declared; asked of another workspace it opens the Overview.
+  // App exists only where a landing is declared; asked of another workspace it draws the Overview.
   shell.goProject('projects/plain', 'app');
-  assert.equal(shell.projectTab, 'overview');
+  assert.equal(shell.projectPane, 'overview');
 });
 
 
@@ -669,10 +669,12 @@ test('the pane wires the tabs, the app frame, the pages grid, and the docs tree'
   assert.match(page, /@click="goProjectTab\('pages'\)" :disabled="!projectPages\.length"/,
     'the Pages tab is always offered, disabled where the workspace claims no pages');
   assert.match(page, /@click="goProjectTab\('docs'\)"/, 'Files has lost its Docs mode');
-  assert.match(page, /x-if="projectTab==='app' && project\.landing"/, 'the landing is no longer the App tab');
+  assert.match(page, /x-if="projectPane==='app'"/, 'the landing is no longer the App tab');
   assert.match(page, /:src="projectLandingUrl"/, 'the landing iframe is gone');
   assert.match(page, /data-project-app/, 'the app icon beside the name is gone');
   assert.match(page, /:src="projectAppIcon"/, 'the app icon no longer draws the declared landingIcon');
+  assert.match(page, /data-project-app\s+x-effect="loadProjectAppIcon\(\)"/,
+    'the icon loads off the App button, so it follows the manifest arriving after the pane opened');
   assert.match(page, /x-for="pg in projectPages"/, 'the pages grid no longer iterates projectPages');
   assert.match(page, /x-for="r in projectDocsRows"/, 'the docs tree is gone');
   assert.match(page, /openProjectDoc\(r\.rel\)/, 'a docs row no longer opens in the reader');
@@ -741,11 +743,6 @@ test('goProject: a declaring workspace has an Outpost tab, and its item stamps',
   assert.equal(p.get('view'), 'project');
   assert.equal(p.get('tab'), 'outpost');
   assert.equal(p.get('item'), 'projects/wps/app/Modules/Forms/Forms.psm1');
-  // ?item= alone is enough: a file named with no tab belongs to the outpost view.
-  shell.powershellOutpostItem = '';
-  shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
-  assert.equal(shell.projectTab, 'outpost');
-  assert.equal(shell.powershellOutpostItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
   // The view's file is the page-wide correspondence target, at the browsed ref
   // when it is not the default, and only for a file the comparison can take.
   shell.view = 'project';
@@ -769,11 +766,36 @@ test('goProject: a declaring workspace has an Outpost tab, and its item stamps',
   shell.goProjectTab('docs');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
   // A workspace that declares no outpost has no Outpost tab: asking for one
-  // opens the Overview, and nothing stamps.
+  // draws the Overview, and the paste target follows what is drawn.
   shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/plain' }] } };
   shell.goProject('projects/plain', 'outpost', 'projects/plain/x.ps1');
-  assert.equal(shell.projectTab, 'overview');
-  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+  assert.equal(shell.projectPane, 'overview');
+  assert.equal(shell.selectedCorrespondence, null);
+});
+
+// A cold link names the tab before the manifest that declares it has been
+// read. Checked against the manifest at that moment, &tab=outpost fell back to
+// the Overview for good; kept as asked, it is drawn once the manifest arrives.
+test('a cold link to Outpost or App is drawn once the manifest declares it', () => {
+  const { shell, browserStore } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.syncUrl = () => {};
+  const reads = [];
+  shell.loadProjectReadme = async () => reads.push('readme');
+  shell.goProject('projects/wps', 'outpost', 'projects/wps/app/Profile.ps1');
+  assert.equal(shell.projectTab, 'outpost', 'the request is kept');
+  assert.equal(shell.projectPane, 'overview', 'nothing declares the outpost yet');
+  assert.deepEqual(reads, ['readme'], 'the Overview standing in has its README');
+  browserStore.config = { projects: [
+    { path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' },
+    { path: 'projects/budget-drs', landing: 'projects/budget-drs/app/view/app.html' },
+  ] };
+  assert.equal(shell.projectPane, 'outpost');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), 'projects/wps/app/Profile.ps1');
+  browserStore.config = null;
+  shell.goProject('projects/budget-drs', 'app');
+  assert.equal(shell.projectPane, 'overview');
+  browserStore.config = { projects: [{ path: 'projects/budget-drs', landing: 'projects/budget-drs/app/view/app.html' }] };
+  assert.equal(shell.projectPane, 'app');
 });
 
 
@@ -798,7 +820,7 @@ test('the Overview reads the README in every workspace, and the Outpost tab read
 });
 
 
-test('the drop target follows the view to the Overview', () => {
+test('the drop target follows the outpost view to its Outpost tab', () => {
   const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
   shell.estateConfigs = { 'mehrlander/home': { projects: [
     { path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' },
@@ -807,31 +829,32 @@ test('the drop target follows the view to the Overview', () => {
   shell.refreshProjectPane = () => {};
   win.FileCorrespondence = { applies: () => true };
   shell.view = 'project';
-  shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  shell.goProject('projects/wps', 'outpost', 'projects/wps/app/Modules/Forms/Forms.psm1');
   assert.equal(shell.selectedCorrespondence?.path, 'projects/wps/app/Modules/Forms/Forms.psm1',
-    'the Overview of a declaring workspace still takes a page-wide drop');
+    'the Outpost tab takes a page-wide drop');
+  shell.goProjectTab('overview');
+  assert.equal(shell.selectedCorrespondence, null, 'the README Overview claims no drop');
   // A workspace with no manifest has no PowerShell outpost selection to compare
-  // against, even with an item set, or a plain README Overview would silently
-  // claim every drop on the page.
-  shell.goProject('projects/plain', '', 'projects/plain/x.ps1');
+  // against, even with an item set, or its README would silently claim every
+  // drop on the page.
+  shell.goProject('projects/plain', 'outpost', 'projects/plain/x.ps1');
   assert.equal(shell.selectedCorrespondence, null);
 });
 
 test('the outpost view is the Outpost tab in the pane, keyed per workspace and ref', () => {
-  assert.match(page, /x-show="projectTab==='outpost' && project\.powershellOutpost"/);
-  assert.match(page, /x-show="projectTab==='overview'"/,
+  assert.match(page, /x-show="projectPane==='outpost'"/);
+  assert.match(page, /x-show="projectPane==='overview'"/,
     'and the README is the Overview whatever else the workspace declares');
-  assert.match(page, /x-for="p in \(projectTab==='outpost' && project\.powershellOutpost \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
+  assert.match(page, /x-for="p in \(projectPane==='outpost' \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
   assert.match(page, /x-data="powershellOutpostView\(p\)"/);
   assert.match(page, /gh\.load\('kits\/powershell-outpost\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
 });
 
 
 // ── The README peek on a project's GitHub icon ───────────────────────────────
-// The README stopped being a tab when the Overview became the workspace's own
-// front page, so it hangs off the GitHub icon instead: the tap opens the
-// folder, the hover shows the README. See kits/source-peek.js for why a folder
-// icon carries a card at all.
+// Each project row in the two sidebar lists carries a GitHub icon: the tap
+// opens the folder, the hover shows the README. See kits/source-peek.js for why
+// a folder icon carries a card at all.
 
 test('projectReadmePeek addresses the workspace README, at the browsed ref only for the open repo', () => {
   const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'feat/x', defaultRef: 'main' } });

@@ -1534,10 +1534,11 @@ html.dk-dragging main{transition:none !important}
                 <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i></button>
               <h1 class="text-xl font-bold tracking-tight truncate" x-text="project.label"></h1>
               <template x-if="project.landing">
-                <button @click="goProjectTab('app')" :aria-pressed="projectTab==='app'" data-project-app
+                <button @click="goProjectTab('app')" :aria-pressed="projectPane==='app'" data-project-app
+                        x-effect="loadProjectAppIcon()"
                         :title="'Open ' + project.label + '\'s app'" :aria-label="'Open ' + project.label + '\'s app'"
                         class="shrink-0 rounded p-0.5 transition-colors"
-                        :class="projectTab==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
+                        :class="projectPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
                   <img x-show="projectAppIcon" :src="projectAppIcon" alt="" class="block size-4">
                   <i x-show="!projectAppIcon" class="ph ph-app-window text-base text-primary"></i></button>
               </template>
@@ -1555,13 +1556,13 @@ html.dk-dragging main{transition:none !important}
                  mode of Files (the switch under this row), not a tab.
                  overflow-x-auto: a clipped tab is an unreachable one. -->
             <div class="mt-2 inline-flex max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
-              <button role="tab" @click="goProjectTab('overview')" :aria-selected="projectTab==='overview'"
+              <button role="tab" @click="goProjectTab('overview')" :aria-selected="projectPane==='overview'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
-                      :class="projectTab==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                      :class="projectPane==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-house text-base hidden sm:inline"></i>Overview</button>
-              <button role="tab" x-show="project.powershellOutpost" @click="goProjectTab('outpost')" :aria-selected="projectTab==='outpost'"
+              <button role="tab" x-show="project.powershellOutpost" @click="goProjectTab('outpost')" :aria-selected="projectPane==='outpost'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
-                      :class="projectTab==='outpost' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                      :class="projectPane==='outpost' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-desktop text-base hidden sm:inline"></i>Outpost</button>
               <button role="tab" x-show="projectBoardFile" @click="goProjectTab('board')" :aria-selected="projectTab==='board'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
@@ -1601,7 +1602,7 @@ html.dk-dragging main{transition:none !important}
                  header, like a repo's custom landing, opened from the app icon
                  beside the name. The FAB carries the bust-out to the
                  full-viewport page. -->
-            <template x-if="projectTab==='app' && project.landing">
+            <template x-if="projectPane==='app'">
               <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
@@ -1618,14 +1619,14 @@ html.dk-dragging main{transition:none !important}
               </div>
             </template>
 
-            <div x-show="projectTab!=='files' && !(projectTab==='app' && project.landing)"
+            <div x-show="projectPane!=='files' && projectPane!=='app'"
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
               <!-- THE OVERVIEW IS THE README, in every workspace, the promise a
                    repo's Overview makes one level up. A landing is the App (the
                    icon beside the name) and a PowerShell outpost its own tab;
                    until 2026-10-06 either one took this slot instead. -->
-              <div x-show="projectTab==='overview'">
+              <div x-show="projectPane==='overview'">
                 <div x-show="projectLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
@@ -1838,8 +1839,8 @@ html.dk-dragging main{transition:none !important}
                    workspaces or leaving the tab remounts it with the right
                    manifest rather than repainting a component that read the
                    previous one at init. -->
-              <div x-show="projectTab==='outpost' && project.powershellOutpost">
-                <template x-for="p in (projectTab==='outpost' && project.powershellOutpost ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
+              <div x-show="projectPane==='outpost'">
+                <template x-for="p in (projectPane==='outpost' ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
                   <div x-data="powershellOutpostView(p)"></div>
                 </template>
               </div>
@@ -2141,7 +2142,7 @@ function app(){ return {
   // out is how you reach its full experience, subject-adopted FAB included.
   get actions(){
     let src = '', label = '';
-    if (this.view === 'project' && this.projectTab === 'app' && this.projectLandingUrl) {
+    if (this.view === 'project' && this.projectPane === 'app' && this.projectLandingUrl) {
       src = this.projectLandingUrl;
       label = 'Open ' + (this.project?.label || 'project') + ' landing full-page';
     } else if (this.view === 'app' && this.appView && this.appViewUrl) {
@@ -4518,6 +4519,13 @@ function app(){ return {
     return found || { path: this.projectPath, label: this.projectPath.split('/').pop(),
                       board: this.projectPath + '/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' };
   },
+  // The tab drawn, which is the tab asked for unless that is App or Outpost
+  // and the workspace does not declare a landing or a PowerShell outpost,
+  // whether because it has none or because its manifest has not arrived.
+  get projectPane(){
+    const t = this.projectTab, p = this.project;
+    return (t === 'app' && !p?.landing) || (t === 'outpost' && !p?.powershellOutpost) ? 'overview' : t;
+  },
   goProject(path, tab, item){
     const p = String(path || '').replace(/\/+$/, '');
     if (!p) return;
@@ -4525,13 +4533,10 @@ function app(){ return {
       this.projectDocsQ = ''; this.powershellOutpostItem = ''; this.projectDocSel = ''; this.projectDocsOpen = {};
     }
     this.projectPath = p;
-    // App and Outpost exist only where the workspace declares them, so either
-    // asked of another workspace opens its Overview. A file named with no tab
-    // belongs to the outpost view where one is declared.
-    const pr = this.project;
-    const tabs = ['board', 'pages', 'docs', 'files', pr?.landing && 'app', pr?.powershellOutpost && 'outpost'].filter(Boolean);
-    if (!tab && item && pr?.powershellOutpost) tab = 'outpost';
-    this.projectTab = tabs.includes(tab) ? tab : 'overview';
+    // App and Outpost are kept as asked even where nothing declares them yet:
+    // a cold link arrives before the manifest does. projectPane draws the
+    // Overview in their place until the workspace is seen to declare them.
+    this.projectTab = ['board', 'pages', 'docs', 'files', 'app', 'outpost'].includes(tab) ? tab : 'overview';
     // A deep link may name the file the tab is about: the outpost view reads
     // it at mount and stamps it back as it moves, and Docs opens it.
     if (typeof item === 'string' && item) {
@@ -4550,17 +4555,20 @@ function app(){ return {
   // Load what the open tab actually renders, and nothing else: the README
   // feeds the Overview, the board feeds Board, and the docs listing feeds
   // Docs (its tree read is the one project fetch worth deferring). Pages is a
-  // pure derivation off the manifest already in hand, so it loads nothing. The
-  // app's icon is in the masthead on every tab, so it loads with the project.
+  // pure derivation off the manifest already in hand, so it loads nothing.
   refreshProjectPane(){
-    this.loadProjectAppIcon();
     if (this.projectTab === 'docs') { this.loadProjectDocs(); this.loadProjectDoc(); }
     else if (this.projectTab === 'board') this.loadProjectBoard();
-    else if (this.projectTab === 'overview') this.loadProjectReadme();
+    else if (this.projectPane === 'overview') this.loadProjectReadme();
   },
   // The app's icon: an SVG the workspace keeps beside its landing, read once
   // per repo@ref and drawn through an <img> of a data URL, where an SVG's
   // scripts never run. A landing with no icon draws a stock app glyph.
+  // An x-effect on the App button drives it, because a cold deep link opens
+  // the pane before the manifest naming the icon arrives, and the pane's own
+  // refresh does not run again when it does. The key is set before the read,
+  // so a failed read is not retried, and writing it re-runs the effect once,
+  // which finds the key unchanged and stops.
   async loadProjectAppIcon(){
     const s = Alpine.store('browser'), f = this.project?.landingIcon;
     const key = f ? s.repo + '@' + s.ref + ':' + f : '';
@@ -6915,7 +6923,7 @@ function app(){ return {
     // an open Files result does: the view names the file, so a work copy
     // dropped anywhere on the page compares against it. That view is the
     // Outpost tab of a workspace declaring a PowerShell outpost manifest.
-    if (this.view === 'project' && this.projectTab === 'outpost' && this.project?.powershellOutpost) {
+    if (this.view === 'project' && this.projectPane === 'outpost') {
       if (!this.powershellOutpostItem) return null;
       const store = Alpine.store('browser');
       const file = { repo: store.repo, path: this.powershellOutpostItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };
@@ -6973,7 +6981,7 @@ function app(){ return {
       // The PowerShell outpost view compares a copy in memory and shows it in
       // its own Changes view; nothing is saved to the browser and the Stage
       // does not open. Every other surface keeps the stored check below.
-      if (this.view === 'project' && this.projectTab === 'outpost' && this.project?.powershellOutpost) {
+      if (this.view === 'project' && this.projectPane === 'outpost') {
         const host = document.querySelector('[x-data^="powershellOutpostView"]');
         const view = host && Alpine.$data?.(host);
         if (view?.takeCopy && await view.takeCopy(target, text, name, source)) return;
