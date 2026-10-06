@@ -53,7 +53,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf } from './ui-recipes.mjs';
+import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf, PUBLIC_SIBLINGS } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -201,12 +201,15 @@ const worker = async () => {
       const png = path.join(TMP, `${base}.${kind}.png`);
       const box = png.replace(/\.png$/, '.focus.json');
       let res = { code: 0, err: '', out: '' };
+      // A public unit's shot reads public siblings only (ui-recipes.mjs,
+      // PUBLIC_SIBLINGS), whatever its pane asks for.
+      const env = w.store.name === 'public' ? { SHOT_SIBLINGS: PUBLIC_SIBLINGS.join(',') } : {};
       if (!(REUSE && existsSync(png))) {
         rmSync(png, { force: true });
-        res = await shoot(w.r, size, touch, png, shotJs(w));
+        res = await shoot(w.r, size, touch, png, shotJs(w), env);
         // One retry: three headless browsers at once, against a rate-limited
         // API, now and then lose a shot that the next attempt takes cleanly.
-        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w));
+        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w), env);
         writeFileSync(box, JSON.stringify(evalFrom(res.out)));
       }
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }

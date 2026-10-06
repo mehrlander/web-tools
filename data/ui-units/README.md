@@ -31,13 +31,16 @@ holds the earlier snapshots.
 The shots are taken by `npm run ui-shots`, once per session at most, like
 `pages/thumbs/`: they are not byte-deterministic, so no commit hook owns them.
 home's units are shot into web-tools-private's `thumbs/mehrlander/home/ui-units/`,
-the private registry's store for shots of private repos' pages.
+the private registry's store for shots of private repos' pages. A public unit's
+shot reads only the sibling checkouts named in `PUBLIC_SIBLINGS`
+(`tools/build/ui-recipes.mjs`), and the render shim answers any other as
+missing, so add a repository there only once it is public.
 
 **The public and private halves are split by visibility.** Rows whose unit
 lives in this repo are written here. Rows for home's own pages and for
 everything the budget-drs app draws or frames go to home's `data/ui-units/`,
-so no private file name lands in public source. The 2026-10-04 snapshot holds
-155 units here and 65 in home, and 54 and 41 of them are coded. Units in other
+so no private file name lands in public source. The 2026-10-06 snapshot holds
+158 units here and 65 in home, and 57 and 45 of them are coded. Units in other
 repositories, such as shortcut-tools' own pages, are counted by the script and
 written nowhere.
 

@@ -91,12 +91,22 @@ const CDN_DEFAULT = {
 // fields point at has no named exports for an `import { x }` to bind to.
 // (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
+// SHOT_SIBLINGS, when set, names the only sibling checkouts a render may read,
+// comma-separated; any other sibling is answered as missing, the way GitHub
+// answers a private repository to a reader with no token. tools/build/
+// ui-shots.mjs sets it for a public unit's shots, so a pane that reads a private
+// repository cannot put that repository's content in a public image, however it
+// reads it. Found 2026-10-06: the Waiting view's shot showed the owner's open
+// user calls, read from web-tools-private beside this checkout.
+const siblingAllowed = (name) => process.env.SHOT_SIBLINGS == null
+  || process.env.SHOT_SIBLINGS.split(',').includes(name);
+
 // A checkout of another repo in this estate, beside this one. Returns the file
 // path when the sibling exists, is a git checkout, and holds the file; null
 // otherwise, so every caller falls through to its own rule. It never leaves the
 // parent directory: `rel` is resolved and then required to stay inside.
 function siblingFile(repoRoot, owner, name, rel) {
-  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name)) return null;
+  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name) || !siblingAllowed(name)) return null;
   const root = path.resolve(repoRoot, '..', name);
   if (root === path.resolve(repoRoot)) return null;
   if (!existsSync(path.join(root, '.git'))) return null;
@@ -673,7 +683,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // checked out falls through to the miss below rather than reaching the
   // network, so the render stays offline either way.
   const sibling = /^\/repos\/[^/]+\/([^/]+)\/contents\/(.*)$/.exec(u.pathname);
-  if (host === 'api.github.com' && sibling) {
+  if (host === 'api.github.com' && sibling && siblingAllowed(sibling[1])) {
     const [, name, tail] = sibling;
     const root = path.join(repoRoot, '..', name);
     const rel = decodeURIComponent(tail).replace(/\/$/, '').replace(/\?.*$/, '');

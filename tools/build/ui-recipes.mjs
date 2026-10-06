@@ -37,6 +37,11 @@ export const STORES = [
   { name: 'private', tables: path.join(HOME, 'data/ui-units'), thumbs: path.join(PRIVATE, 'thumbs/mehrlander/home/ui-units') },
 ];
 
+// The sibling checkouts a public unit's shot may read (tools/render/cdn.mjs,
+// SHOT_SIBLINGS): public repositories only. Every other sibling reads as
+// missing, so a repository left off costs a shot its data and never leaks one.
+export const PUBLIC_SIBLINGS = ['shortcut-tools'];
+
 export const rowsOf = (p) => existsSync(p) ? parseCsv(readFileSync(p, 'utf8')) : [];
 export const slug = (unit) => unit.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const tabSlug = (s) => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -276,7 +281,7 @@ function run(cmd, argv, cwd, env = process.env) {
 }
 
 // Open a unit at a window size, run evalJs in it, and write the shot to `out`.
-export async function shoot(r, size, touch, out, evalJs) {
+export async function shoot(r, size, touch, out, evalJs, env = {}) {
   if (r.tool === 'wt') {
     // Nine seconds, not six: the scenarios with stand-in rows look the Activity component
     // up the moment the wait ends, and the app's boot came close enough to six
@@ -294,7 +299,7 @@ export async function shoot(r, size, touch, out, evalJs) {
     // The live GitHub API off (tools/render/cdn.mjs, SHOT_NO_LIVE_API): the
     // app's own reads are answered locally, and the rest would spend GitHub's
     // hourly allowance within one load and put a token prompt in the shot.
-    return run('node', a, HUB, { ...process.env, SHOT_NO_LIVE_API: '1' });
+    return run('node', a, HUB, { ...process.env, SHOT_NO_LIVE_API: '1', ...env });
   }
   const target = r.page + (r.query ? '?' + r.query : '');
   const a = ['tools/screenshot.mjs', target, out, '--width', String(size.width), '--height', String(size.height),
