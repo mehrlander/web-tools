@@ -2,18 +2,23 @@
 
 `?view=project&project=<path>[&tab=overview|app|outpost|board|pages|files|docs]`
 is one workspace declared in its repo's `.web-tools.json` `projects`
-([manifest-fields.csv](../manifest-fields.csv)). The masthead's kanban mark
-opens a menu of the repo's other projects, plus the open one's folder on
-GitHub.
+([manifest-fields.csv](../manifest-fields.csv)). The masthead's mark, the
+project's `icon`, opens a menu of the repo's other projects, plus the open one's
+folder on GitHub.
 
 Overview is always the workspace README. Two tabs follow the manifest entry:
-App, drawn beside the project name as the `landingIcon` SVG, renders the
-`landing` page live, and Outpost holds the PowerShell outpost view for a
+App, opened by the button beside the project name, renders the `landing` page
+live, and Outpost holds the PowerShell outpost view for a
 `powershellOutpost`. Board appears for a file board. Pages is shown, disabled,
 even for a workspace with no pages, as an invitation to add some; do not hide
 it. Docs is a mode of Files: `&tab=docs` opens Files
 filtered to the workspace's Markdown, as a tree beside a reader, and `&item=`
-names the open document.
+names the open document. In App, `&item=` is the route (a page query).
+
+A `pages` entry naming the `landing` with a `query` is a route card: it opens
+App at that query, and the bare landing gets no card. A landing is a whole app,
+so its cards never preview live; they show the cached shot from
+web-tools-private `thumbs/`, else the project's icon.
 
 ## The PowerShell outpost view
 
