@@ -8,14 +8,14 @@ import assert from 'node:assert/strict';
 import { makeWindow, startAlpine } from './bootstrap.mjs';
 
 const CALLS = [
-  { id: 's1-merge-7', kind: 'merge', pr: 'acme/widget#7', question: 'Merge widget #7?', created: '2026-10-06T06:00:00Z',
+  { id: 's1-merge-7', kind: 'merge', pr: 'acme/widget#7', session: 'aaaa1111', question: 'Merge widget #7?', created: '2026-10-06T06:00:00Z',
     shipped: [{ kind: 'fixed', head: 'Spend list', old: 'omitted a table', new: 'lists it',
                 proof: { kind: 'file', ref: 'acme/widget@b:app.html' } }],
     loose: ['Look at one preset first'], effect: 'The sidebar names its table.',
     materials: [{ kind: 'pr', ref: 'acme/widget#7', label: 'The PR' }, { kind: 'file', ref: 'acme/widget@b:app.html' },
                 { kind: 'file', ref: 'acme/widget@main:docs/why.md', label: 'Why' }],
     _repo: 'me/store', _ref: 'main', _path: 'user-calls/s1-merge-7.json', answers: [], open: true },
-  { id: 's1-close-two', kind: 'decision', question: 'Close two PRs?', brief: 'b', options: ['Close all', 'Keep some'],
+  { id: 's1-close-two', kind: 'decision', session: 'bbbb2222', question: 'Close two PRs?', brief: 'b', options: ['Close all', 'Keep some'],
     recommend: 'Close all', why: 'w', created: '2026-10-06T05:00:00Z',
     _repo: 'me/store', _ref: 'main', _path: 'user-calls/s1-close-two.json', answers: [], open: true },
 ];
@@ -26,6 +26,10 @@ window.TOKEN = 'tkn';
 // jsdom has no CSS.escape; the view uses it to find the selected row.
 window.CSS = globalThis.CSS = { escape: (x) => String(x).replace(/["\\]/g, '\\$&') };
 window.__shell = { waitingCount: 2 };
+// The store's short-id index: a row is [short, at, ask, claude.ai session id].
+const MENU = { recent: [['aaaa1111', '2026-10-06T06:00:00Z', 'ask', 'session_01AAA']], branches: {} };
+window.GH = class { async get(path) { if (path === 'state/session-menu.json') return { text: JSON.stringify(MENU) }; throw new Error('no ' + path); } };
+window.claudeMark = { svg: () => '<svg data-mark></svg>' };
 window.UserCalls = { STORE: 'me/store', list: async () => CALLS, pendingEdits: async () => new Map(),
                      href: (c) => 'page#' + c.id, sessionHref: () => '', fileKey: (f) => String(f || ''), dictateHref: () => '#' };
 window.UserCallForm = {
@@ -41,6 +45,19 @@ const tick = (ms = 20) => new Promise(r => setTimeout(r, ms));
 for (let i = 0; i < 40 && (data.loadingCalls || data.loadingPending); i++) await tick(5);
 data.markNear(); await tick(40);
 const q = (sel) => el.querySelector(sel);
+
+test('the head row opens the filing session by the Claude mark and the call page by an icon', async () => {
+  data.picked.calls = 's1-merge-7'; await tick();
+  const mark = q('[data-waiting-agent]');
+  assert.equal(mark.getAttribute('href'), 'https://claude.ai/code/session_01AAA');
+  assert.ok(mark.querySelector('svg'), 'the mark is drawn');
+  const open = [...el.querySelectorAll('[data-waiting-open]')].find(a => a.style.display !== 'none');
+  assert.equal(open.getAttribute('href'), 'page#s1-merge-7');
+  assert.equal(open.textContent.trim(), '', 'an icon, not a labelled button');
+  data.picked.calls = 's1-close-two'; await tick();
+  assert.equal(q('[data-waiting-agent]').style.display, 'none', 'a session the index does not name gets no mark');
+  data.picked.calls = 's1-merge-7'; await tick();
+});
 
 test('a merge row asks twice: the first tap reads Confirm and sends nothing', async () => {
   const b = q('[data-waiting-quick][data-id="s1-merge-7"]');
