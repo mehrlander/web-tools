@@ -126,6 +126,7 @@ tools/render/scenarios/annotate-touch-scroll.mjs,"drag real touch events through
 tools/render/scenarios/annotate-triple-tap.mjs,"the buffer scrolled to its newest line in a box of whole lines, then three taps in a run taking the whole thing",tools/render/scenarios,102,driver,no,no,no
 tools/render/scenarios/annotate-units-demo.mjs,"the two unit modes, element pick and region drag, driven through real pointer events",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/app-deck-subject.mjs,"the app's branch deck naming the document a slide is showing, two levels down: a real fab adopting it, and the drilled file deck taking the subject and handing it back",tools/render/scenarios,115,driver,no,no,no
+tools/render/scenarios/app-waiting.mjs,,tools/render/scenarios,63,driver,no,no,no
 tools/render/scenarios/approve-app-view.mjs,"approve.html as a promoted app view, with the shell drawn around it: stages the estate config a headless run has no token to read",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/approve-header.mjs,,tools/render/scenarios,291,driver,no,no,no
 tools/render/scenarios/audit-absorb.mjs,,tools/render/scenarios,160,driver,no,no,no
@@ -173,6 +174,8 @@ tools/render/scenarios/deck-chrome.mjs,,tools/render/scenarios,144,driver,no,no,
 tools/render/scenarios/deck-split.mjs,,tools/render/scenarios,45,driver,yes,no,no
 tools/render/scenarios/dictate-notes.mjs,,tools/render/scenarios,66,driver,no,no,no
 tools/render/scenarios/dictate-page.mjs,"pages/dictate.html mid-dictation with SpeechRecognition stubbed: committed text, a live hypothesis, the mark row and the header instruments. Options take it on to a word selected by long press (the casing face) and the armed target",tools/render/scenarios,77,driver,no,no,yes
+tools/render/scenarios/dictate-proposed.mjs,"pages/dictate.html reviewing the proposal queue: file mode with &proposed, a file's queued Text collection proposals staged as change cards",tools/render/scenarios,31,driver,no,no,no
+tools/render/scenarios/dictate-user-call.mjs,,tools/render/scenarios,77,driver,no,no,no
 tools/render/scenarios/diff-tool-at.mjs,the diff tool's address field driving the browse panel over captured API fixtures,tools/render/scenarios,187,driver,no,no,no
 tools/render/scenarios/diff-tool-grab.mjs,"the Sources tab with both slots in GitHub mode, the @-grab row on screen",tools/render/scenarios,15,driver,no,no,no
 tools/render/scenarios/diff-tool-loaded.mjs,diff-tool in its loaded state: two versions diffed on the Diff tab,tools/render/scenarios,65,driver,no,no,no

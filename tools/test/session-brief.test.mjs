@@ -55,8 +55,8 @@ const facts = {
 const log = [];
 const gets = () => log.filter(l => l.startsWith('get:'));
 // The store's tree listing, which is what the once-only rule is about. A
-// standalone mount also lists each repo's calls/ folder, a different read.
-const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/calls'));
+// standalone mount also lists each repo's user-calls/ folder, a different read.
+const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/user-calls'));
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
