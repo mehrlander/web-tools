@@ -499,8 +499,11 @@
   // was. Null is the blank page, which is every arrival without ?file=.
   const FILE = ((f) => f && f.dir ? { repo: f.repo, ref: f.ref, path: f.dir } : null)(parseDest(q.get('file')));
   const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
-  // The proposal queue, reviewed: meaningful only beside ?file=.
+  // The proposal queue, reviewed: meaningful only beside ?file=. A value
+  // stages one kind of proposal (mdVariants.kind: 'edit' or 'tighten'), which
+  // is how each of the Waiting view's two tabs opens only what it listed.
   const PROPOSED = !!FILE && q.has('proposed');
+  const PROPOSED_KIND = PROPOSED ? (q.get('proposed') || '') : '';
   // A documentation user call (web-tools-private user-calls/user-call.py):
   // where it lives, in
   // the same grammar. Also meaningful only beside ?file=, which names the
@@ -1050,10 +1053,13 @@
           const index = await V.index({ token: this.token || undefined });
           const here = (v) => (v?.proposals || []).some((p) => p.repo === FILE.repo && p.path === FILE.path);
           const planned = V.plan(base, index, { file: FILE });
-          planned.blocks = planned.blocks.filter((b) => here(b.variants[b.pick]));
+          // The block's pick decides its kind, as it does in the Waiting
+          // view's count, so a link from there opens what it counted.
+          const kept = (v) => here(v) && (!PROPOSED_KIND || V.kind(v.purpose) === PROPOSED_KIND);
+          planned.blocks = planned.blocks.filter((b) => kept(b.variants[b.pick]));
           const n = planned.blocks.length;
           const more = planned.blocks.filter((b) => b.variants.filter(here).length > 1).length;
-          if (!n) { toast('info', 'No proposals queued for ' + this.fileName, 'alert-info', 4000); return base; }
+          if (!n) { toast('info', 'No ' + (PROPOSED_KIND ? PROPOSED_KIND + ' ' : '') + 'proposals queued for ' + this.fileName, 'alert-info', 4000); return base; }
           toast('check', `${n} proposal${n === 1 ? '' : 's'} staged as change cards`
             + (more ? `; ${more} block${more === 1 ? ' has' : 's have'} more than one, and the first is shown` : ''), 'alert-success', 4500);
           return V.compose(base, planned);

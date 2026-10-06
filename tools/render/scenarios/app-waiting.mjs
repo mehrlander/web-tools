@@ -11,13 +11,14 @@
 // with what the view read and where the list and the strip stand, so the log
 // says what the PNG shows.
 //
-//   WAITING_STEP=view   (default) the User calls tab, its first call's card
-//   WAITING_STEP=edits  the Proposed edits tab, the file with most proposals
-//   WAITING_STEP=swipe  the edits tab, the strip scrolled by hand two cards on:
-//                       the list's selection has to follow it
-//   WAITING_STEP=pick   the edits tab, the fifth file tapped in the list: the
-//                       strip has to land on its card
-//   WAITING_STEP=full   the edits tab with the strip given the whole height
+//   WAITING_STEP=view     (default) the Calls tab, its first call's card
+//   WAITING_STEP=edit     the Edits tab, the file with most edits
+//   WAITING_STEP=tighten  the Tighten tab, the file with most tightenings
+//   WAITING_STEP=swipe    the Tighten tab, the strip scrolled by hand two cards
+//                         on: the list's selection has to follow it
+//   WAITING_STEP=pick     the Tighten tab, the fifth file tapped in the list:
+//                         the strip has to land on its card
+//   WAITING_STEP=full     the Edits tab with the strip given the whole height
 //   WAITING_STEP=docs   the Map view's Docs tab instead, filtered to the
 //                       documents with proposed edits
 const STEP = process.env.WAITING_STEP || 'view';
@@ -37,7 +38,7 @@ export default async function (page) {
   await page.evaluate(() => window.__shell.goWaiting());
   await page.waitForFunction(`(() => { const x = ${C}; return x && !x.loadingCalls && !x.loadingPending && x.pending; })()`, null, { timeout: 90000 });
   if (STEP !== 'view') {
-    await page.locator('[data-waiting-tab="edits"]').click();
+    await page.locator(`[data-waiting-tab="${STEP === 'edit' || STEP === 'full' ? 'edit' : 'tighten'}"]`).click();
     await page.waitForTimeout(400);
   }
   // A hand swipe, as the strip sees one: its scroll position moved, nothing
@@ -52,9 +53,9 @@ export default async function (page) {
     const list = document.querySelector('[data-waiting-rows]'), on = list && list.querySelector('[aria-current="true"]');
     const lb = list && list.getBoundingClientRect(), ob = on && on.getBoundingClientRect();
     console.log('WAITING ' + JSON.stringify({ summary: x.summary, tab: x.tab, open: x.openCalls.map((c) => c.id),
-      at: x.at, rows: x.rows.length, cur: x.cur && x.cur.id, card: s ? Math.round(s.scrollLeft / (s.clientWidth || 1)) : null,
+      at: x.at, rows: x.rows.length, cur: x.cur && x.cur.id, review: document.querySelector('[data-waiting-open]')?.getAttribute('href'), card: s ? Math.round(s.scrollLeft / (s.clientWidth || 1)) : null,
       listOn: on ? on.dataset.key : null, rowInList: !!(ob && lb && ob.top >= lb.top - 1 && ob.bottom <= lb.bottom + 1),
       diffs: document.querySelectorAll('[data-waiting-diff] .md-diff-ins, [data-waiting-diff] .md-diff-del').length,
-      groups: x.groups.map((g) => g.repo + ' ' + g.staged + '/' + g.files.length), badge: window.__shell.waitingCount,
+      groups: x.groupsOf(x.tab === 'calls' ? 'edit' : x.tab).map((g) => g.repo + ' ' + g.staged + '/' + g.files.length), badge: window.__shell.waitingCount,
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth })); })()`);
 }

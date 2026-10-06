@@ -2541,22 +2541,24 @@ try {
   }
 
   // THE PROPOSAL QUEUE: with &proposed, the Text collection's proposals for
-  // this file arrive as change cards, and nothing else does. The fixture has a
-  // passage proposed here, one with a variant nobody proposed, and one proposed
-  // for another file; only the first may be staged.
+  // this file arrive as change cards, and nothing else does. The fixture has
+  // two passages proposed here, a tightening and an update, one with a variant
+  // nobody proposed, and one proposed for another file; only the two may be
+  // staged, and &proposed=<kind> stages one of them.
   console.log('the proposal queue:');
   {
     const { createHash } = await import('node:crypto');
     const pid = (t) => createHash('sha256').update(t.trim(), 'utf8').digest('hex');
-    const DOC = '# Title\n\nProposed elsewhere.\n\nThe old wording here.\n\nOnly a variant.\n';
+    const DOC = '# Title\n\nProposed elsewhere.\n\nThe old wording here.\n\nOnly a variant.\n\nA claim made wrong.\n';
     const FIX = 'tools/test/prop-fixture.md';
-    const pairs = [['Proposed elsewhere.', 'Not for this file.', 'docs/other.md'],
-                   ['The old wording here.', 'The new wording.', FIX],
-                   ['Only a variant.', 'Nobody proposed this.', null]];
+    const pairs = [['Proposed elsewhere.', 'Not for this file.', 'docs/other.md', 'tighten'],
+                   ['The old wording here.', 'The new wording.', FIX, 'tighten'],
+                   ['Only a variant.', 'Nobody proposed this.', null, 'tighten'],
+                   ['A claim made wrong.', 'The claim as it stands.', FIX, 'update']];
     const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join('\n') + '\n';
     const files = {
       'passages.jsonl': jsonl(pairs.flatMap(([a, b]) => [{ id: pid(a), text: a }, { id: pid(b), text: b }])),
-      'variants.jsonl': jsonl(pairs.map(([a, b]) => ({ from: pid(a), to: pid(b), author: 'Check', purpose: 'tighten' }))),
+      'variants.jsonl': jsonl(pairs.map(([a, b, , purpose]) => ({ from: pid(a), to: pid(b), author: 'Check', purpose }))),
       'proposals.jsonl': jsonl(pairs.filter((p) => p[2]).map(([a, b, path]) => ({ from: pid(a), to: pid(b),
         repo: 'mehrlander/web-tools', path, basis: 'https://github.com/mehrlander/web-tools/pull/1' }))),
     };
@@ -2589,8 +2591,15 @@ try {
     };
     const plain = await arrive('');
     ok('without &proposed the file opens as GitHub has it, with no cards', plain.text === DOC && plain.cards === 0, JSON.stringify(plain));
-    const staged = await arrive('&proposed');
-    ok('with &proposed only the proposal for this file is staged, as one card',
+    const both = await arrive('&proposed');
+    ok('with &proposed only the proposals for this file are staged, one card each',
+      both.text === DOC.replace('The old wording here.', 'The new wording.').replace('A claim made wrong.', 'The claim as it stands.')
+        && both.cards === 2, JSON.stringify(both));
+    const edit = await arrive('&proposed=edit');
+    ok('&proposed=edit stages the update and not the tightening',
+      edit.text === DOC.replace('A claim made wrong.', 'The claim as it stands.') && edit.cards === 1, JSON.stringify(edit));
+    const staged = await arrive('&proposed=tighten');
+    ok('&proposed=tighten stages the tightening and not the update',
       staged.text === DOC.replace('The old wording here.', 'The new wording.') && staged.cards === 1, JSON.stringify(staged));
     await pg.evaluate(`(async () => { const x = ${C}; x.toggleConfirm(0); await x.applyConfirmed(); })()`);
     await pg.waitForTimeout(300);

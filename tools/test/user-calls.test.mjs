@@ -78,8 +78,8 @@ test('a proposal counts only as Dictate would stage it: one block the file still
   const x = by.get('mehrlander/web-tools:docs/x.md');
   assert.equal(x.staged, 1, 'the two-block one is never staged, and the applied one is gone');
   assert.deepEqual(x.bases, ['https://github.com/mehrlander/web-tools/pull/1'], 'the bases are the staged ones only');
-  assert.deepEqual(x.items, [{ from: 'Kept as it is.', to: 'Kept.', author: 'Claude', purpose: 'update',
-    basis: 'https://github.com/mehrlander/web-tools/pull/1' }], 'each staged block carries its text as it stands and as proposed');
+  assert.deepEqual(x.items, [{ from: 'Kept as it is.', to: 'Kept.', author: 'Claude', purpose: 'update', kind: 'edit',
+    basis: 'https://github.com/mehrlander/web-tools/pull/1' }], 'each staged block carries its text as it stands and as proposed, and its kind');
   assert.deepEqual(x.calls.map((c) => c.id), ['a1-doc'], 'the open documentation call is filed under its document, ref dropped');
   assert.equal(by.has('mehrlander/web-tools:docs/missing.md'), false, 'a file that cannot be read holds nothing');
 });
@@ -92,8 +92,18 @@ test('links: a call answered in Dictate, the others on the call page, at the ver
   assert.equal(U.href(merge), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-merge.json');
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
     'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed');
+  assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: 'tighten' }),
+    'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed=tighten');
   window.__ref = 'claude/x';
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
     'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/x:pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed');
   window.__ref = null;
+});
+
+test('a proposal is a tightening when its purpose only rewords, and an edit otherwise, an unknown purpose included', () => {
+  const K = window.mdVariants.kind;
+  assert.deepEqual(['tighten', 'clarify', 'half-length', 'hemingway'].map(K), ['tighten', 'tighten', 'tighten', 'tighten']);
+  assert.deepEqual(['update', 'repair', 'document', 'qualify'].map(K), ['edit', 'edit', 'edit', 'edit']);
+  assert.equal(K('a-purpose-not-yet-named'), 'edit', 'a new purpose arrives with the corrections, not among the cuts');
+  assert.equal(K(undefined), 'edit');
 });
