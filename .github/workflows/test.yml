@@ -1,7 +1,7 @@
 name: Tests
 
-# One of the repo's two VERIFICATION workflows; page-measures.yml is the other,
-# and the only one that drives a browser. Everything else under
+# One of the repo's two VERIFICATION workflows; page-measures.yml is the other.
+# Everything else under
 # .github/workflows/ is an errand (a cron or a button), and an errand's run has
 # no commit under review to attach to, so it lives in the Actions tab and nowhere
 # else. This one is triggered by a pull request, so its result attaches to the
