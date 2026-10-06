@@ -109,6 +109,31 @@ test('docs and tools get an honest no-link rather than a link that shows nothing
   assert.equal(d.links.length, 0);
 });
 
+test('any HTML outside archive/ is a page file, a kit demo or a dated prototype alike', () => {
+  // showing-whitelists-pages-only: a branch whose only HTML sat in dump/ was
+  // handed links to two pages it never touched.
+  for (const file of ['lib/kits/demos/md-diff.html', 'dump/2026-08-28-question-lane.html']) {
+    const d = run(file);
+    assert.equal(d.mechanism, 'toss-gh', file);
+    assert.deepEqual(d.links.map(l => l.page), [file]);
+  }
+  assert.equal(run('archive/alp/repo/index.html').mechanism, 'none-needed');
+});
+
+test('a kit change reaches its demo, which gh.loads the kit like any page', () => {
+  const d = run('lib/kits/md-diff.js,dist/web-tools.js');
+  assert.equal(d.mechanism, 'use');
+  assert.ok(d.links.some(l => l.page === 'lib/kits/demos/md-diff.html'));
+});
+
+test('a lib file only a relative script tag loads is tossed on that page, never ?use=', () => {
+  // page-skips-the-loader-ignores-use: transform.html loads its workbench with
+  // a bare <script src>, so ?use= showed main's code with no error.
+  const d = run('lib/alpineComponents/transform-workbench.js,dist/web-tools.js');
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.deepEqual(d.links.map(l => l.page), ['pages/transform.html']);
+});
+
 test('lib without a rebuilt pre-build warns, since ?use= fetches dist', () => {
   const d = run('lib/kits/session-render.js');
   assert.match(d.warnings.join(' '), /build:lib/);

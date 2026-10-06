@@ -62,6 +62,10 @@
           "then": "use"
         },
         {
+          "when": "only lib/ changed, and the only pages reaching it load it by a relative script tag",
+          "then": "toss-gh"
+        },
+        {
           "when": "the subject is pages/toss-render.html",
           "then": "toss-nested"
         },
