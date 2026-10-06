@@ -8,7 +8,6 @@ main,,chat-results,Chat Search Results,chat-results.html,thumbs/chat-results.png
 main,,citations,Citations,citations.html,thumbs/citations.png,https://github.com/mehrlander/web-tools/blob/main/pages/citations.html,
 main,,compression-helper,Compression Helper (v5),compression-helper.html,thumbs/compression-helper.png,https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html,Compression bookmarklet packer.
 main,,console-playground,Console Suite Guide,console-playground.html,thumbs/console-playground.png,https://github.com/mehrlander/web-tools/blob/main/pages/console-playground.html,
-main,,context-spectra,Context Delivery — Web Tools,context-spectra.html,thumbs/context-spectra.png,https://github.com/mehrlander/web-tools/blob/main/pages/context-spectra.html,"Interactive visual map of context delivery mechanisms across Scope, Discretion, and Lifecycle Triggers."
 main,,data-view,Data View,data-view.html,thumbs/data-view.png,https://github.com/mehrlander/web-tools/blob/main/pages/data-view.html,
 main,,delivery,Conventions Delivery History,delivery.html,thumbs/delivery.png,https://github.com/mehrlander/web-tools/blob/main/pages/delivery.html,
 main,,dictate,Dictate,dictate.html,thumbs/dictate.png,https://github.com/mehrlander/web-tools/blob/main/pages/dictate.html,"The blank page you talk at: a full-viewport voice buffer with the mark pad under your thumb, and Copy, Send, Jot or Drop at the end of it. With ?file=, it opens a repo file instead and saves it back."
