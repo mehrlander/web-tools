@@ -175,6 +175,9 @@
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
+  // What waits on the owner: user calls, and the Text collection's proposed
+  // edits by file, behind the Waiting view and the Docs tab's markers.
+  await gh.load('kits/user-calls.js');
   // Findings: the fold over the notes store that the Tending view lists and
   // the Activity panes show beside their subjects (window.Findings).
   await gh.load('kits/findings.js');
@@ -452,11 +455,16 @@ html.dk-dragging main{transition:none !important}
            or from the sidebar Repos index. Repos reach the header through their
            published VIEWS, not through a list of themselves. -->
       <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+        <!-- An entry's badge is a count waiting on the reader (Waiting's open
+             user calls, Proposals' pending edits); it carried a `badge` that
+             nothing drew until 2026-10-04. -->
         <template x-for="v in estateNav" :key="v.view">
-          <button @click="v.go()" :title="v.label"
-                  class="shrink-0 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
-                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'"
-                  x-text="v.label"></button>
+          <button @click="v.go()" :title="v.label" :data-nav="v.view"
+                  class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
+                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
+            <span x-text="v.label"></span>
+            <span x-show="v.badge" class="badge badge-xs badge-warning tabular-nums" x-text="v.badge"></span>
+          </button>
         </template>
         <div x-show="appNav.length" class="shrink-0 mx-1.5 h-5 w-px bg-base-300"></div>
         <template x-for="v in appNav" :key="v.key">
@@ -1860,6 +1868,19 @@ html.dk-dragging main{transition:none !important}
       </div>
     </div>
 
+    <!-- The Waiting view: what waits on the owner, the open user calls and the
+         Text collection's proposed edits by file (lib/alpineComponents/waiting.js,
+         lib/kits/user-calls.js). Lazy-mounted like Proposals. The pane does not
+         scroll: the view is two containers that split its height, a list over
+         a strip of detail cards, and each scrolls inside itself. -->
+    <div x-show="view==='waiting'" data-pane="waiting" class="h-full overflow-hidden">
+      <div class="h-full px-3 py-3 lg:p-6">
+        <template x-if="waitingSeen">
+          <div x-data="waiting()" class="h-full"></div>
+        </template>
+      </div>
+    </div>
+
     <!-- The Tending view: findings from tending passes, kept as notes in the
          registry's notes store (lib/kits/findings.js), each linked to the
          branches, pull requests, tasks, snags and sessions it concerns. Its own
@@ -2205,6 +2226,7 @@ function app(){ return {
   publicSeen: false,      // mount the public-browse component lazily, on first visit
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
+  _bootRouting: false,    // repo/ref watchers must not publish a provisional landing
   _routed: Promise.resolve(),   // settled once init has routed the address (see init)
   _routedResolve: () => {},
   DEFAULT_REPO: 'mehrlander/web-tools',
@@ -2280,6 +2302,8 @@ function app(){ return {
   stageTab: '',     // the Stage's sub-address; 'errands' opens the errand panel
   proposalCount: 0, // pending cross-repo edit proposals; gates the nav entry
   proposalsSeen: false,
+  waitingCount: 0,  // open user calls; the Waiting entry's badge
+  waitingSeen: false,
   tendingSeen: false,
   tendingTab: '',   // '' (Attention) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
@@ -2437,6 +2461,7 @@ function app(){ return {
         if (this._inboxToken !== window.TOKEN) {
           this._inboxToken = window.TOKEN;
           this.loadProposalCount();
+          this.loadWaitingCount();
         }
       }
       // Announced for views that mount before auth resolves and would otherwise
@@ -2473,6 +2498,7 @@ function app(){ return {
     this._sidebarToken = this.hasToken() ? window.TOKEN : '';
     this._inboxToken = this._sidebarToken;
     this.loadProposalCount();
+    this.loadWaitingCount();
 
     // A ref switch keeps the ?ref deep link honest. It used to fire only in the
     // Files view, where the picker was; the browsed ref is now read by the
@@ -2486,24 +2512,34 @@ function app(){ return {
     // see stage.js) preloads the stage and wins the initial view: it is the
     // point of such a link, so it is read after the route and overrides it.
     const url = this.parseUrl();
-    if (url && url.window) this.branchWindow = url.window;
-    await this.ensureBrowser(url?.repo, url?.ref);
-    try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
-    const link = window.StageLink ? window.StageLink.read(location) : null;
-    const staged = link ? link.items : [];
-    if (staged.length) Alpine.store('browser').stage = staged;
-    // A `gz` payload is local text carried in the fragment, and gzip decoding is
-    // asynchronous, so `read` hands back the raw payload and the stage component
-    // resolves it once it mounts. The route cannot wait for that, so the mere
-    // PRESENCE of a payload is what says this link is bound for the stage.
-    // A plain `take` payload (an iPhone shortcut's send) is bound there too.
-    // Without this line a link that is nothing but a paste opened on the estate
-    // while its file appeared, correctly, in a view the reader was not looking
-    // at. Found by the courier, which mints exactly that link.
-    if (staged.length || (link && (link.gz || link.take))) this.goStage();
-    // A bare open (no repo, file, view, or stage addressed) lands on the
-    // estate: the all-repo view is the page's front door.
-    else if (!url) this.goDashboard();
+    this._bootRouting = true;
+    try {
+      if (url && url.window) this.branchWindow = url.window;
+      await this.ensureBrowser(url?.repo, url?.ref);
+      try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
+      const link = window.StageLink ? window.StageLink.read(location) : null;
+      const staged = link ? link.items : [];
+      if (staged.length) Alpine.store('browser').stage = staged;
+      // A `gz` payload is local text carried in the fragment, and gzip decoding is
+      // asynchronous, so `read` hands back the raw payload and the stage component
+      // resolves it once it mounts. The route cannot wait for that, so the mere
+      // PRESENCE of a payload is what says this link is bound for the stage.
+      // A plain `take` payload (an iPhone shortcut's send) is bound there too.
+      // Without this line a link that is nothing but a paste opened on the estate
+      // while its file appeared, correctly, in a view the reader was not looking
+      // at. Found by the courier, which mints exactly that link.
+      if (staged.length || (link && (link.gz || link.take))) this.goStage();
+      // A bare open (no repo, file, view, or stage addressed) lands on the
+      // estate: the all-repo view is the page's front door.
+      else if (!url) this.goDashboard();
+    } finally {
+      this._bootRouting = false;
+      // Loading an addressed view is one arrival. Replacing its address keeps
+      // reload from inserting a temporary Overview between Search and Activity.
+      const restoring = this._restoring;
+      this._restoring = true;
+      try { this.syncUrl(); } finally { this._restoring = restoring; }
+    }
 
     // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the mode this
     // arrival settled on is the one change the shellMode watcher never sees.
@@ -4193,6 +4229,14 @@ function app(){ return {
   // token-gated like everything that touches the registry; the count is what
   // gates the nav entry, so an empty channel is invisible rather than a stop
   // with nothing behind it. The Proposals component does the real work.
+  // How many user calls are open: one listing of the store's user-calls/ and
+  // a read per call, so it runs at boot. The Waiting view's proposed edits are
+  // not counted here, since counting them means reading the Text collection.
+  async loadWaitingCount(){
+    if (!this.hasToken() || !window.UserCalls) { this.waitingCount = 0; return; }
+    try { this.waitingCount = (await window.UserCalls.list()).filter(c => c.open).length; }
+    catch { this.waitingCount = 0; }
+  },
   async loadProposalCount(){
     if (!this.hasToken() || !window.RepoProposals) { this.proposalCount = 0; return; }
     const P = window.RepoProposals;
@@ -5504,6 +5548,9 @@ function app(){ return {
       open(u = {}){
         this.sessionSpec = u.session || '';
         this.sessionFind = this.sessionSpec ? String(u.find || '').trim() : '';
+        this.sessionSearchSeed = { q: u.aq || '', discussion: u.discussion === '1',
+          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '' };
+        document.dispatchEvent(new CustomEvent('web-tools:session-search-seed', { detail: this.sessionSearchSeed }));
         this.goSessions();
         if (this._restoring) document.dispatchEvent(new CustomEvent('web-tools:restore-session', {
           detail: { id: this.sessionSpec, find: this.sessionFind, pane: u.pane, card: u.card },
@@ -5519,6 +5566,12 @@ function app(){ return {
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
         if (this.sessionSpec && this.sessionFind) p.set('find', this.sessionFind);
+        const search = this.sessionSearchSeed;
+        if (search?.q) p.set('aq', search.q);
+        if (search?.discussion) p.set('discussion', '1');
+        if (search?.scope && search.scope !== 'day') p.set('ascope', search.scope);
+        if (search?.repo) p.set('arepo', search.repo);
+        if (search?.state && search.state !== 'all') p.set('astate', search.state);
         // The SET, which is the pane's scope rather than one open record, so it
         // outlives the deck: closing a swiper drops `session=` and leaves the
         // reader on the set they arrived with, not on whatever the default
@@ -5566,6 +5619,7 @@ function app(){ return {
       } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
+    { key: 'waiting',   open(){ this.goWaiting(); } },
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
     // The Search view's address carries the ran search (sq + friends, stamped
@@ -5577,7 +5631,10 @@ function app(){ return {
     // is a screen worth addressing.
     { key: 'search',
       open(u){ this.goSearch({ q: u.sq, mode: u.smode, repo: u.srepo, ref: u.sref,
-                               path: u.spath, file: u.sfile }); },
+                               path: u.spath, file: u.sfile, sessionId: u.sitem,
+                               sessionIds: u.sset == null ? null : u.sset.split(',').filter(Boolean),
+                               sessionExtraIds: (u.sextra || '').split(',').filter(Boolean),
+                               sessionScope: u.sscope ? { scope: u.sscope } : null }); },
       stamp(p){
         const sd = this.searchSeed;
         if (!sd) return;
@@ -5587,6 +5644,12 @@ function app(){ return {
         if (sd.ref) p.set('sref', sd.ref);
         if (sd.path) p.set('spath', sd.path);
         if (sd.file) p.set('sfile', sd.file);
+        if (sd.mode === 'sessions') {
+          if (sd.sessionId) p.set('sitem', sd.sessionId);
+          if (Array.isArray(sd.sessionIds)) p.set('sset', sd.sessionIds.join(','));
+          if (sd.sessionExtraIds?.length) p.set('sextra', sd.sessionExtraIds.join(','));
+          if (sd.sessionScope?.scope) p.set('sscope', sd.sessionScope.scope);
+        }
       } },
     // App views are estate-level, so the link stands alone (like the Stage):
     // the promoted page's repo and path ride it, independent of the open repo.
@@ -5687,8 +5750,9 @@ function app(){ return {
   // screen that means it. tools/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
-              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
+              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'set', 'topic', 'lens', 'grain', 'find',
+              'aq', 'discussion', 'ascope', 'arepo', 'astate',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -5739,6 +5803,10 @@ function app(){ return {
              appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '',
              sq: p.get('sq') || '', smode: p.get('smode') || '', srepo: p.get('srepo') || '', sref: p.get('sref') || '',
              spath: p.get('spath') || '', sfile: p.get('sfile') || '',
+             sitem: p.get('sitem') || '', sset: p.get('sset'), sscope: p.get('sscope') || '',
+             sextra: p.get('sextra') || '',
+             aq: p.get('aq') || '', discussion: p.get('discussion') || '',
+             ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
              session: p.get('session') || '', find: p.get('find') || '',
              pane: p.get('pane') || '', card: p.get('card'),
              item: p.get('item') || '',
@@ -5818,6 +5886,17 @@ function app(){ return {
   },
   sessionSpec: new URLSearchParams(location.search).get('session') || '',
   sessionFind: (new URLSearchParams(location.search).get('find') || '').trim(),
+  sessionSearchSeed: (() => {
+    const p = new URLSearchParams(location.search);
+    return { q: p.get('aq') || '', discussion: p.get('discussion') === '1',
+      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '' };
+  })(),
+  setSessionSearch(seed){
+    this.sessionSearchSeed = seed;
+    const restoring = this._restoring;
+    this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
+  },
   setSession(spec, find = ''){
     spec = spec || '';
     find = spec ? String(find || '').trim() : '';
@@ -5988,6 +6067,7 @@ function app(){ return {
   visitOpenable(v){ return !!v && v.kind !== 'payload' && v.kind !== 'unrecognized'; },
 
   syncUrl(){
+    if (this._bootRouting) return;
     this.dropDecksOnNav();
     const qs = this.deepLinkParams(new URLSearchParams(location.search)).toString();
     // The fragment is carried through untouched unless a caller has just asked
@@ -6231,6 +6311,12 @@ function app(){ return {
       // estate's motion, and Tending reads what a pass concluded about that
       // motion, across branches, pull requests, trackers and snags alike.
       { view: 'tending', icon: 'ph-plant', label: 'Tending', go: () => this.goTending() },
+      // Waiting: the owner's queue, user calls and proposed edits. Standing
+      // with a token, since proposed edits are rarely none and counting them
+      // costs the Text collection; the badge is the open user calls.
+      ...(this.hasToken() || this.waitingCount || this.view === 'waiting'
+        ? [{ view: 'waiting', icon: 'ph-tray', label: 'Waiting', badge: this.waitingCount, go: () => this.goWaiting() }]
+        : []),
       { view: 'lists', views: ['lists', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goLists() },
       { view: 'repos',    icon: 'ph-squares-four', label: 'Repos',    go: () => this.goRepos() },
@@ -6344,13 +6430,18 @@ function app(){ return {
     if (opts && Object.values(opts).some(v => v != null && v !== '')) {
       this.searchOpenFile = null;
       this.searchSeed = { q: opts.q || '', mode: opts.mode || '', repo: opts.repo || '',
-                          ref: opts.ref || '', path: opts.path || '', file: opts.file || '' };
+                          ref: opts.ref || '', path: opts.path || '', file: opts.file || '',
+                          sessionId: opts.sessionId || '',
+                          sessionIds: Array.isArray(opts.sessionIds) ? opts.sessionIds : null,
+                          sessionExtraIds: Array.isArray(opts.sessionExtraIds) ? opts.sessionExtraIds : [],
+                          sessionRows: opts.sessionRows || [], sessionScope: opts.sessionScope || null };
       if (this.searchSeen) document.dispatchEvent(new CustomEvent('web-tools:search-seed', { detail: this.searchSeed }));
     }
     this.searchSeen = true; this.view = 'search'; this.syncUrl();
   },
   // The Proposals view: pending cross-repo edits awaiting the user's confirm.
   goProposals(){ this.proposalsSeen = true; this.view = 'proposals'; this.syncUrl(); },
+  goWaiting(){ this.waitingSeen = true; this.view = 'waiting'; this.syncUrl(); },
   // State kicks ALL THREE, which is the reverse of what it used to do, and the
   // reverse is the point. It kicked nothing on the argument that a view whose
   // subject is age must not answer its own question before you read it. That
