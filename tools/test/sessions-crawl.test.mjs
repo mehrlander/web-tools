@@ -19,7 +19,9 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
@@ -188,4 +190,48 @@ test('a cache that loses rows refills from the records past the cap', async () =
 test('a titles read that fails returns null, so the fold carries the titles it has', async () => {
   const gh = { req: async () => { throw new Error('404'); } };
   assert.equal(await C.readTitles(gh, S, () => {}), null);
+});
+
+test('the runner supports --git and --out for local git reads and disk writes', () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'sc-git-test-'));
+  const repo = path.join(tmp, 'repo');
+  const out1 = path.join(tmp, 'out1');
+  const out2 = path.join(tmp, 'out2');
+  const git = (...args) => execFileSync('git', ['-c', 'core.protectNTFS=false', ...args], { cwd: repo, encoding: 'utf8' });
+  try {
+    mkdirSync(repo);
+    git('init', '-b', 'main');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'Tester');
+    mkdirSync(path.join(repo, 'sessions', '2026', '07'), { recursive: true });
+    writeFileSync(path.join(repo, 'sessions', '2026', '07', '2026-07-01-00000001.json'), JSON.stringify(record(1)));
+    git('add', '.');
+    git('commit', '-m', 'add record');
+    git('update-ref', 'refs/remotes/origin/main', 'refs/heads/main');
+
+    const env = { ...process.env, GH_TOKEN: '', GH_WRITE_TOKEN: '', GITHUB_TOKEN: '' };
+    const runner = path.join(repoRoot, 'scripts', 'sessions-crawl.mjs');
+    const res1 = execFileSync(process.execPath, [runner, '--git', repo, '--out', out1], { env, encoding: 'utf8' });
+    assert.match(res1, /Wrote: state\/sessions\.json/);
+    assert.ok(existsSync(path.join(out1, 'state', 'sessions.json')));
+    assert.ok(existsSync(path.join(out1, 'state', 'session-menu.json')));
+    const cacheDoc = JSON.parse(readFileSync(path.join(out1, 'state', 'sessions.json'), 'utf8'));
+    assert.equal(cacheDoc.rows.length, 1);
+    assert.equal(cacheDoc.rows[0].id, '00000001');
+
+    // Simulate committing the generated state back into the repo at origin/main
+    mkdirSync(path.join(repo, 'state'), { recursive: true });
+    writeFileSync(path.join(repo, 'state', 'sessions.json'), readFileSync(path.join(out1, 'state', 'sessions.json')));
+    writeFileSync(path.join(repo, 'state', 'session-menu.json'), readFileSync(path.join(out1, 'state', 'session-menu.json')));
+    git('add', '.');
+    git('commit', '-m', 'Update sessions cache');
+    git('update-ref', 'refs/remotes/origin/main', 'refs/heads/main');
+
+    // Second pass over the updated origin/main writes nothing
+    const res2 = execFileSync(process.execPath, [runner, '--git', repo, '--out', out2], { env, encoding: 'utf8' });
+    assert.match(res2, /No material change; nothing to commit\./);
+    assert.ok(!existsSync(path.join(out2, 'state', 'sessions.json')));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 });
