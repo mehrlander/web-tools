@@ -42,8 +42,11 @@ Two properties are easy to get wrong and worth stating outright:
 
 - **A computer-use agent is attended even when it is scheduled.** Dispatch's
   recurring tasks still require the desktop to be awake with the app open; it
-  is a relay to your machine, not a scheduler on it. The same is assumed, not
-  yet checked, for Antigravity and Codex.
+  is a relay to your machine, not a scheduler on it. Codex was checked on
+  2026-10-01: a scheduled check in its desktop app found a request committed to
+  a private branch and pushed a response, by polling, and only while the laptop
+  and app were running (web-tools-private `probes/codex-commit-trigger/`). The
+  same is still assumed, not yet checked, for Antigravity.
 - **A self-hosted runner is unattended even when the machine is asleep.** It
   holds an outbound long-poll, so a queued job waits and runs on wake. Nothing
   needs to be open, and no thread is consumed.

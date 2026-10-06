@@ -1,6 +1,6 @@
 slug,title,count,last_seen,seen,targets
+ci-run-silently-not-started,a commit sat in an open PR with no checks,7,2026-09-16,2026-08-06;2026-09-10;2026-09-10;2026-09-14;2026-09-14;2026-09-14;2026-09-16,../.github/workflows/test.yml
 backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",7,2026-09-10,2026-09-01;2026-09-01;2026-09-01;2026-09-01;2026-09-08;2026-09-10;2026-09-10,loader.md
-ci-run-silently-not-started,a commit sat in an open PR with no checks,6,2026-09-14,2026-08-06;2026-09-10;2026-09-10;2026-09-14;2026-09-14;2026-09-14,../.github/workflows/test.yml
 link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",4,2026-09-08,2026-08-18;2026-09-01;2026-09-07;2026-09-08,SURFACING.md
 derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,3,2026-09-14,2026-08-10;2026-09-14;2026-09-14,../CLAUDE.md;../scripts/derived-csv-merge.mjs
 daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026-07-28;2026-08-22;2026-09-08,../skills/html-style/references/mechanics.md
@@ -9,6 +9,7 @@ untracked-file-invisible-to-the-suite,a local green over a file the scanner neve
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/html-style/SKILL.md
 app-frame-outruns-the-inliner,the shell draws and every view is empty,2,2026-09-29,2026-09-17;2026-09-29,../scripts/showing.py
 shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,2,2026-09-28,2026-09-08;2026-09-28,
+api-access-read-as-impossible,"read ""needs API access"" as ""cannot be done here,"" for three weeks and 147 PRs",2,2026-09-16,2026-08-05;2026-09-16,../tools/README.md
 marker-on-a-living-doc,annotated a doc instead of fixing it,2,2026-09-16,2026-08-06;2026-09-16,../skills/doc-craft/SKILL.md
 toss-lands-on-the-landing,"a render link opened the app, nowhere near the change",2,2026-09-16,2026-08-16;2026-09-16,APP.md
 csv-rewrite-restamps-every-line,a one-row edit that arrives as a whole-file diff,2,2026-09-10,2026-09-10;2026-09-10,
@@ -32,8 +33,6 @@ empty-params-answer-the-address,a framed page parsed an empty string and got its
 triage-bare-branch-name-reads-as-orphan,"every branch reported ""no merge base""",1,2026-09-25,2026-09-25,../skills/tend/SKILL.md#branches
 spawned-session-not-recorded,the recorder ran every idle and found nothing,1,2026-09-21,2026-09-21,environment/extending.md#sessionstart-the-sessions-store-directive
 subtree-touch-guard-kills-the-anchor,"a tap that produces nothing, not even an error",1,2026-09-20,2026-09-20,../lib/alpineComponents/fab.js;../tools/test/fab-menu.test.mjs
-app-shot-read-as-impossible,"the app renders headless, with a scenario",1,2026-09-16,2026-09-16,../tools/README.md
-conflicted-pr-queues-no-ci,the Checks tab is empty and CI is not slow,1,2026-09-16,2026-09-16,../.github/workflows/test.yml
 variant-plus-opacity-generates-nothing,"the rule was not faint, it was absent",1,2026-09-15,2026-09-15,
 cross-repo-data-invisible-to-the-render,a headless shot shows chrome over an empty table,1,2026-09-14,2026-09-14,
 nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../skills/hooks/invoke-default.sh
@@ -78,7 +77,7 @@ live-term-wider-referent,a house word reused for something bigger than it names,
 fetched-ref-behind-remote,a merge preflight certifies a merge GitHub refuses,1,2026-08-14,2026-08-14,environment/capabilities.md
 silent-fallback-old-build,"the pixels do not change, and nothing says the file failed to load",1,2026-08-14,2026-08-14,loader.md
 stub-hides-the-wiring,a test that stubs a lazy dependency cannot see it go missing,1,2026-08-13,2026-08-13,loader.md
-page-skips-the-loader-ignores-use,a page outside the loader opts out of `?use=` with no error,1,2026-08-11,2026-08-11,loader.md
+page-skips-the-loader-ignores-use,a page outside the loader opts out of `?use=` with no error,1,2026-08-11,2026-08-11,loader.md;../scripts/showing.py
 runner-tag-documented-unused,"a convention in the contract, used once, re-derived from memory",1,2026-08-09,2026-08-09,TRACKER.md
 status-audit-skipped-index,the status audit silently dropped every marker in a file named `index.md`,1,2026-08-09,2026-08-09,
 venues-invisible-from-inside,a session inventories only the venues it can see from its own sandbox,1,2026-08-09,2026-08-09,venues.md
@@ -91,7 +90,6 @@ fragment-goto-does-not-reload,a render scenario asserts against stale state,1,20
 hosted-closer-runs-main,"a 🌿 closer is a hosted link, so it runs main's page",1,2026-08-06,2026-08-06,showing.md
 prose-classes-absent,"`prose` is not available on most pages, and it fails silently",1,2026-08-06,2026-08-06,APP.md
 allowlist-table-trusted-stale,trusted the network allowlist table instead of re-probing it,1,2026-08-05,2026-08-05,environment/capabilities.md
-api-access-read-as-impossible,"read ""needs API access"" as ""cannot be done here,"" for three weeks and 147 PRs",1,2026-08-05,2026-08-05,SURFACING.md
 shrank-instead-of-questioned,shrank a redundant artifact instead of asking whether it should exist,1,2026-08-05,2026-08-05,
 screenshot-hides-overflow,a viewport shot cannot show horizontal overflow,1,2026-08-04,2026-08-04,../skills/html-style/SKILL.md
 https-block-resets-instead-of-403,a blocked host looks like a network flake,1,2026-08-03,2026-08-03,environment/capabilities.md
