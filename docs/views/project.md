@@ -1,10 +1,19 @@
 # Project
 
-`?view=project&project=<path>[&tab=overview|board|pages|docs|files]` is one
-workspace declared in its repo's `.web-tools.json` `projects`. A workspace
-declaring `powershellOutpost` (a repo-root-relative `outpost.json`;
-[manifest-fields.csv](../manifest-fields.csv)) shows the PowerShell outpost
-view in its Overview tab when it has no landing page.
+`?view=project&project=<path>[&tab=overview|app|outpost|board|pages|files|docs]`
+is one workspace declared in its repo's `.web-tools.json` `projects`
+([manifest-fields.csv](../manifest-fields.csv)). The masthead's kanban mark
+opens a menu of the repo's other projects, plus the open one's folder on
+GitHub.
+
+Overview is always the workspace README. Two tabs follow the manifest entry:
+App, drawn beside the project name as the `landingIcon` SVG, renders the
+`landing` page live, and Outpost holds the PowerShell outpost view for a
+`powershellOutpost`. Board appears for a file board. Pages is shown, disabled,
+even for a workspace with no pages, as an invitation to add some; do not hide
+it. Docs is a mode of Files: `&tab=docs` opens Files
+filtered to the workspace's Markdown, as a tree beside a reader, and `&item=`
+names the open document.
 
 ## The PowerShell outpost view
 
