@@ -39,8 +39,8 @@ web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38;
 web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 48; item 20; title 20,,,holds: 20 items shown,tabs,,,9a538b571eff
 web-tools:view/project/docs,list,list,no kit draws this code,list 1; item 78; title 78; group 8; meta 8,,,holds: 78 items shown,tabs;search,,,9a538b571eff
 web-tools:view/project/files,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
-web-tools:view/project/overview/installation,list-detail,list-detail,no kit draws this code,list 1; group 6; meta 9; item 5; title 5; actions 5; detail 1,,,holds: the pick changed the detail; the selection moved to it,tabs;count-chips,,,9a538b571eff
 web-tools:view/project/overview/landing,host,host,,,,host is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
+web-tools:view/project/overview/powershell-outpost,list-detail,list-detail,no kit draws this code,list 1; group 6; meta 9; item 5; title 5; actions 5; detail 1,,,holds: the pick changed the detail; the selection moved to it,tabs;count-chips,,,4e00bead3f0b
 web-tools:view/project/overview/readme,document,document,,,,document is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
 web-tools:view/project/pages,card-grid,card-grid,no kit draws this code,list 1,,,unchecked: no item shown at this address,tabs,,,9a538b571eff
 web-tools:view/proposals,list,list,no kit draws this code,list 1; item 2; meta 4; title 2; summary 2; body 4; actions 2; links 4,,,holds: 2 items shown,lede,,,9a538b571eff
