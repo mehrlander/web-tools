@@ -448,7 +448,9 @@ html.dk-dragging main{transition:none !important}
            quick-links row: REPO SELECTION HAPPENS ON THE REPOS DASHBOARD (tap a card)
            or from the sidebar Repos index. Repos reach the header through their
            published VIEWS, not through a list of themselves. -->
-      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+      <!-- data-slot names the unit slot an element fills (data/ui-units/
+           codebook.md, "Slots"): these view buttons are the shell's Tabs. -->
+      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar" data-slot="frame:tabs">
         <template x-for="v in estateNav" :key="v.view">
           <button @click="v.go()" :title="v.label"
                   class="shrink-0 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
@@ -1264,7 +1266,7 @@ html.dk-dragging main{transition:none !important}
        here (a 1280 window with the sidebar open leaves main 928px, and `xl:`
        called that three columns too); the dock is just where being wrong got
        loud. Adoption is per view, `lg:` to `@3xl:`, as each is touched. -->
-  <main class="@container flex-1 min-w-0 min-h-0"
+  <main data-pattern="host" class="@container flex-1 min-w-0 min-h-0"
         @touchstart.passive="onSwipeStart($event)" @touchmove="onSwipeMove($event)"
         @touchend.passive="onSwipeEnd($event)" @touchcancel.passive="onSwipeCancel()">
 
@@ -1296,7 +1298,7 @@ html.dk-dragging main{transition:none !important}
          custom landing embeds. Full-bleed, beside Repos / Stage. -->
     <div x-show="view==='app'" class="h-full">
       <template x-if="appView">
-        <iframe :src="appViewUrl" class="w-full h-full border-0 bg-base-100"
+        <iframe :src="appViewUrl" data-pattern="host" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
     </div>
@@ -1346,7 +1348,7 @@ html.dk-dragging main{transition:none !important}
                  the filter, the empty line and the catalog link, none an item. -->
             <template x-if="loaded">
             <div data-pattern="card-grid" data-part="list">
-              <div class="flex flex-wrap items-center gap-1.5 mb-8">
+              <div class="flex flex-wrap items-center gap-1.5 mb-8" data-slot="frame:count-chips">
                 <template x-for="c in chips" :key="c.key">
                   <button class="btn font-mono"
                           :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
@@ -1356,7 +1358,7 @@ html.dk-dragging main{transition:none !important}
                   </button>
                 </template>
                 <div class="grow"></div>
-                <label class="input input-bordered flex items-center gap-1.5 w-48">
+                <label class="input input-bordered flex items-center gap-1.5 w-48" data-slot="frame:search">
                   <i class="ph ph-magnifying-glass opacity-50"></i>
                   <!-- data-find-box: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
@@ -1473,7 +1475,7 @@ html.dk-dragging main{transition:none !important}
             <div x-show="loading" class="flex justify-center py-16">
               <span class="loading loading-dots loading-md opacity-30"></span>
             </div>
-            <article x-show="!loading && html" class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+            <article x-show="!loading && html" data-pattern="document" class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
                      x-html="html"></article>
             <p x-show="!loading && !html" class="text-base-content/40 italic text-base py-8">
               No README found on this ref. Use the sidebar to browse files, or open the atlas.
@@ -1546,7 +1548,7 @@ html.dk-dragging main{transition:none !important}
                  tab. Installation left the row on 2026-09-14 and became the
                  Overview for a workspace that declares one (see below), so the
                  row is back to four. -->
-            <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
+            <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
               <button role="tab" @click="goProjectTab('overview')"
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
                       :class="projectTab==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
@@ -1576,7 +1578,7 @@ html.dk-dragging main{transition:none !important}
                  header, like a repo's custom landing. The FAB carries the
                  bust-out to the full-viewport page. -->
             <template x-if="projectTab==='overview' && project.landing">
-              <iframe :src="projectLandingUrl" class="grow w-full border-0 bg-base-100 mt-4"
+              <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
 
@@ -1587,7 +1589,7 @@ html.dk-dragging main{transition:none !important}
             <template x-if="projectTab==='files'">
               <div class="grow min-h-0 flex flex-col px-6 pb-6 mt-4">
                 <template x-for="p in [project]" :key="p.path + '@' + $store.browser.repo + '@' + $store.browser.ref">
-                  <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: p.path })"></div>
+                  <div class="grow min-h-0" data-pattern="linked-swiper" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: p.path })"></div>
                 </template>
               </div>
             </template>
@@ -1609,7 +1611,7 @@ html.dk-dragging main{transition:none !important}
                 <div x-show="projectLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
-                <article x-show="!projectLoading && projectHtml"
+                <article x-show="!projectLoading && projectHtml" data-pattern="document"
                          class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
                          @click="onReadmeClick($event)"
                          x-html="projectHtml"></article>
@@ -1756,7 +1758,7 @@ html.dk-dragging main{transition:none !important}
                              class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content mb-8 pb-8 border-b border-base-200"
                              x-html="projectDocsIndexHtml"></article>
                     <div class="flex items-center gap-3 mb-4">
-                      <label class="input input-bordered flex items-center gap-1.5 w-64">
+                      <label class="input input-bordered flex items-center gap-1.5 w-64" data-slot="frame:search">
                         <i class="ph ph-magnifying-glass opacity-50"></i>
                         <!-- data-find-box: the Docs tab's own filter. -->
                         <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0">
@@ -1814,7 +1816,7 @@ html.dk-dragging main{transition:none !important}
          repo (the "ready mechanism"), even one with its own landing. -->
     <div x-show="view==='atlas'" class="h-full">
       <template x-if="atlasSeen">
-        <iframe :src="atlasUrl" class="w-full h-full border-0 bg-base-100"
+        <iframe :src="atlasUrl" data-pattern="figure" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
     </div>
@@ -1842,7 +1844,7 @@ html.dk-dragging main{transition:none !important}
            a wider screen keeps using it. -->
       <div class="mx-auto px-6 py-8 max-w-[92rem]">
         <template x-if="configSeen">
-          <div x-data="config()"></div>
+          <div x-data="config()" data-pattern="tool"></div>
         </template>
       </div>
     </div>
@@ -1922,7 +1924,7 @@ html.dk-dragging main{transition:none !important}
       <template x-if="view==='files' && $store.browser.repo">
         <div class="grow min-h-0 flex flex-col px-4 lg:px-6 pt-4 pb-6">
           <template x-for="k in [$store.browser.repo + '@' + ($store.browser.ref || '') + '#' + filesKey]" :key="k">
-            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile, at: filesAt })"></div>
+            <div class="grow min-h-0" data-pattern="linked-swiper" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile, at: filesAt })"></div>
           </template>
         </div>
       </template>

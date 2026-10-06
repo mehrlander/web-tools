@@ -56,7 +56,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules } from './ui-recipes.mjs';
+import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -73,57 +73,75 @@ const MANIFEST_COLS = ['unit', 'desk', 'phone', 'shot_at', 'recipe', 'focus', 'p
 const TMP = path.join(HUB, 'tools/.preview/ui-shots');
 mkdirSync(TMP, { recursive: true });
 
-// part -> 'r,g,b', from parts.csv, so the shot and the gallery's legend agree.
-const PART_RGB = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/parts.csv')).map(p => {
-  const h = p.color.replace('#', '');
-  return [p.part, [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')];
-}));
-
-// Outline the parts of every shown declared pattern, and tint only where a tint
-// teaches something. Every item is outlined, but an item's own anatomy (title,
-// meta, summary, body, links, actions) is drawn on one exemplar only, the
-// selected item where there is one and the first otherwise: drawn on every row
-// it turned a list into a wall of small boxes, and one item answers "what is an
-// item" as well as forty. A group's own parts are drawn on every group.
+// The unit's slots, drawn (data/ui-units/codebook.md, "Slots"): each control
+// that carries one of its frame codes, and the element that is its body, are
+// outlined in their dimension's colour (dimensions.csv) and labelled with the
+// code's name (codes.csv), so a shot shows what the unit includes and which
+// code each part of it carries. The generic parts of a declared pattern (item,
+// title, meta) are no longer drawn: they are the anatomy of one slot, the
+// body, and the deck slide lists them.
 //
-// The tints are the exemplar's anatomy and the group headings, and a faint one
-// on a selected item. The list and the detail get a dashed outline and no fill,
-// and every other item a thin, faint outline: filled, they washed the whole
-// list blue under the anatomy's own colours (owner, 2026-10-05). Outlines and
-// inset shadows paint over the page without moving anything in it, so the crop
-// measured afterwards is the crop of the page as it lays out.
-const drawJs = `(() => {
-  const C = ${JSON.stringify(PART_RGB)};
-  const ANATOMY = ['title', 'meta', 'summary', 'body', 'links', 'actions'];
-  const shown = (e) => e.getClientRects().length > 0;
-  const marked = (e) => e.getAttribute('aria-selected') === 'true'
-    || ['true', 'page', 'step', 'location'].includes(e.getAttribute('aria-current'));
-  for (const root of [...document.querySelectorAll('[data-pattern]')].filter(shown)) {
-    const own = [root, ...root.querySelectorAll('[data-part]')]
-      .filter((e) => e.dataset.part && C[e.dataset.part] && shown(e) && e.closest('[data-pattern]') === root);
-    const items = own.filter((e) => e.dataset.part === 'item');
-    const exemplar = items.find(marked) || items[0];
-    for (const e of own) {
-      const part = e.dataset.part;
-      if (ANATOMY.includes(part) && !(exemplar && exemplar.contains(e)) && !e.parentElement?.closest('[data-part="group"]')) continue;
-      const box = part === 'list' || part === 'detail';
-      const lead = part === 'item' && e === exemplar;
-      const fill = box ? 0 : part === 'item' ? (lead && marked(e) ? 0.08 : 0) : 0.1;
-      e.style.outline = box ? '2px dashed rgb(' + C[part] + ')'
-        : part === 'item' && !lead ? '1px solid rgba(' + C[part] + ',0.45)'
-        : '2px solid rgb(' + C[part] + ')';
-      e.style.outlineOffset = '-2px';
-      if (fill) e.style.boxShadow = 'inset 0 0 0 9999px rgba(' + C[part] + ',' + fill + ')';
-    }
+// Outlines paint over the page without moving anything, so the crop measured
+// afterwards is the crop of the page as it lays out. The labels are drawn
+// last, in a layer fixed over the window, at each slot's place once the crop
+// has scrolled, so they cannot move the page either. A figure drawn in a
+// same-origin frame (Atlas, Growth) has its controls in the framed page, so
+// the frame is drawn into too; a host's frame holds another unit and is not.
+const COLOR = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/dimensions.csv')).filter(d => d.color).map(d => [d.dimension, d.color]));
+const NAME = Object.fromEntries(rowsOf(path.join(HUB, 'data/ui-units/codes.csv')).map(c => [c.axis + ':' + c.code, c.name]));
+const slotJs = (stage, coded) => `
+  const SHOWN = (e) => e.getClientRects().length > 0;
+  const STAGE = ${JSON.stringify(stage)};
+  const IN = (e) => e.ownerDocument !== document || (STAGE.region ? !!e.closest(STAGE.region)
+    : STAGE.outside ? !e.parentElement?.closest(STAGE.sel) : !!e.parentElement?.closest(STAGE.sel));
+  const DOCS = [document];
+  for (const f of document.querySelectorAll('iframe')) {
+    if (!IN(f) || !SHOWN(f) || f.dataset.pattern === 'host') continue;
+    try { if (f.contentDocument) DOCS.push(f.contentDocument); } catch { /* another origin */ }
   }
+  const PATS = [...document.querySelectorAll('[data-pattern]')].filter((e) => IN(e) && SHOWN(e));
+  const BODY = PATS.find((e) => e.dataset.pattern === ${JSON.stringify(coded)}) || PATS[0];
+  const SLOTS = DOCS.flatMap((d) => [...d.querySelectorAll('[data-slot]')]).filter((e) => IN(e) && SHOWN(e));`;
+const drawJs = (stage, coded) => `(() => {
+  ${slotJs(stage, coded)}
+  const C = ${JSON.stringify(COLOR)};
+  for (const e of SLOTS) { e.style.outline = '2px solid ' + C.frame; e.style.outlineOffset = '1px'; }
+  if (BODY) { BODY.style.outline = '2px dashed ' + C.body; BODY.style.outlineOffset = '-2px'; }
+})()`;
+const labelJs = (stage, coded) => `(() => {
+  ${slotJs(stage, coded)}
+  const C = ${JSON.stringify(COLOR)}, N = ${JSON.stringify(NAME)};
+  const layer = document.createElement('div');
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483647';
+  const at = (e) => { const r = e.getBoundingClientRect(); const fr = e.ownerDocument.defaultView.frameElement;
+    if (!fr || e.ownerDocument === document) return r; const o = fr.getBoundingClientRect();
+    return { left: r.left + o.left, top: r.top + o.top }; };
+  const tag = (e, text, color) => {
+    const r = at(e), t = document.createElement('div');
+    t.textContent = text;
+    t.style.cssText = 'position:absolute;font:600 11px/1.35 system-ui,sans-serif;color:#fff;padding:1px 6px;border-radius:4px;'
+      + 'box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap;background:' + color
+      + ';left:' + Math.max(2, r.left) + 'px;top:' + Math.max(2, r.top - 9) + 'px';
+    layer.append(t);
+  };
+  const seen = new Set();
+  for (const e of SLOTS) { const k = e.dataset.slot; if (seen.has(k)) continue; seen.add(k); tag(e, N[k] || k.split(':')[1], C.frame); }
+  if (BODY) tag(BODY, N['body:' + BODY.dataset.pattern] || BODY.dataset.pattern, C.body);
+  document.body.append(layer);
 })()`;
 // The app's live GitHub reads are unauthenticated here, and past the hourly
 // limit the app swaps the unit for a token prompt. The answer says so, and a
 // shot of the prompt does not replace the unit's last good one.
-const shotJs = (focus) => `(async () => { ${drawJs};
-  const f = await ${focus ? focusJs(focus) : "'null'"};
+const shotJs = (w) => {
+  const stage = { ...stageOf(w.u), region: w.r.region || '' };
+  const coded = w.c.body || '';
+  return `(async () => { ${drawJs(stage, coded)};
+  const f = await ${w.r.focus ? focusJs(w.r.focus, stage, coded) : "'null'"};
+  ${labelJs(stage, coded)};
+  await new Promise((ok) => setTimeout(ok, 100));
   const limited = /API rate limit exceeded/.test(document.body.innerText);
   return f === 'null' ? JSON.stringify(limited ? { limited } : null) : JSON.stringify({ ...JSON.parse(f), limited }); })()`;
+};
 
 // PNG to a JPEG of the given width, drawn in the same headless browser the
 // shots came from, since this checkout carries no image library of its own.
@@ -175,10 +193,10 @@ const worker = async () => {
       let res = { code: 0, err: '', out: '' };
       if (!(REUSE && existsSync(png))) {
         rmSync(png, { force: true });
-        res = await shoot(w.r, size, touch, png, shotJs(w.r.focus));
+        res = await shoot(w.r, size, touch, png, shotJs(w));
         // One retry: three headless browsers at once, against a rate-limited
         // API, now and then lose a shot that the next attempt takes cleanly.
-        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w.r.focus));
+        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w));
         writeFileSync(box, JSON.stringify(evalFrom(res.out)));
       }
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }

@@ -902,7 +902,7 @@
       <h1 class="text-lg font-semibold">Text Lab</h1>
     </div>
 
-    <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit flex-wrap" role="tablist">
+    <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit flex-wrap" role="tablist" data-slot="frame:tabs">
       <template x-for="key in PANES" :key="key">
         <button role="tab" @click="showPane(key)" :aria-selected="pane === key"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
@@ -958,7 +958,7 @@
     </div>
 
     <!-- probes: the standings are the filter, then concepts -->
-    <div x-show="pane === 'probes'" class="flex flex-wrap items-center gap-1">
+    <div x-show="pane === 'probes'" class="flex flex-wrap items-center gap-1" data-slot="frame:count-chips">
       <template x-for="key in ['worked','mixed','failed','open']" :key="key">
         <button class="badge badge-sm cursor-pointer gap-1 transition-opacity"
                 :class="filterStanding === key ? [STANDINGS[key].text, 'badge-outline', 'font-medium'] : 'badge-ghost'"
@@ -966,7 +966,7 @@
           <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
         </button>
       </template>
-      <select id="probe-concept" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Concept"
+      <select id="probe-concept" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Concept" data-slot="frame:filter-switch"
               x-model="concept">
         <option value="">Every concept</option>
         <template x-for="[name, n] in concepts" :key="name">

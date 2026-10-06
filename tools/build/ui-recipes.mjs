@@ -83,12 +83,33 @@ function derive(u) {
 // is its own unit and keeps its window unless it declares a pattern.
 function focusOf(u, body) {
   const declared = `top:[data-pattern="${body}"]`;
+  // The unit's slots first: the shot starts at the topmost of them, so the
+  // frame a unit is coded with is in it (data/ui-units/codebook.md, "Slots").
+  // The rest is the fallback for a unit that declares none.
+  if (u.host === 'Web Tools app' || u.repo === 'web-tools') return `slots || ${focusTail(u, declared)}`;
+  return focusTail(u, declared);
+}
+function focusTail(u, declared) {
   if (u.kind === 'framed page' && u.repo !== 'home') return `${declared} || top:[data-embed-frame] || top:main`;
   if (u.kind === 'page' || u.kind === 'framed page') return declared;
   if (u.host === 'Web Tools app' && u.view === 'map') return `${declared} || top:[data-pane="map"] section || top:main`;
   if (u.host === 'Web Tools app' && u.group === 'repo' && u.kind === 'tab') return `${declared} || below:main [role="tablist"] || top:main`;
   if (u.host === 'Web Tools app') return `${declared} || top:main`;
   return `${declared} || below:section[id^="view-"] [role="tablist"] || top:section[id^="view-"] || top:main`;
+}
+
+// Where a unit's slots may sit: the region of the page that is the unit's own.
+// The Web Tools app draws every view and tab inside <main>, and the shell, a
+// unit of its own, is everything around it with <main> as its body. A
+// budget-drs view sits in the app's <main> beside its sidebar. A page is its
+// own document. A page the budget-drs app frames from another repo is drawn
+// in an iframe the checks cannot read into, so its slots go unread.
+export function stageOf(u) {
+  if (u.host === 'Web Tools app' && u.kind === 'shell') return { sel: 'main', outside: true };
+  if (u.host === 'Web Tools app' && u.kind !== 'page') return { sel: 'main' };
+  if (u.kind === 'framed page' && u.repo !== 'home') return { sel: 'body', framed: true };
+  if (u.host === 'budget-drs app' && u.kind !== 'framed page') return { sel: 'main' };
+  return { sel: 'body' };
 }
 
 // Every coded unit that is checked out here, with its recipe: [{ store, unit,
@@ -108,6 +129,10 @@ export function codedUnits(only = '') {
       if (o.script) r.script = o.script;
       if (o.click) r.click = o.click;
       if (o.shot) r.shot = o.shot;
+      // A unit that shares its page with another names the part that is its
+      // own (shots.csv, region): the Errands panel and its toggle, not the
+      // Stage around them.
+      if (o.region) r.region = o.region;
       r.focus = o.focus === 'none' ? '' : (o.focus || focusOf(u, c.body || ''));
       out.push({ store, unit: c.unit, u, c, r });
     }
@@ -132,9 +157,61 @@ export function codedUnits(only = '') {
 // alone (the Pages view, the Skills tab). The frame is coded on its own axis,
 // so the crop starts at the root's first shown group or item, keeping the
 // root's width.
-export const focusJs = (spec) => `(async () => {
+export const focusJs = (spec, stage = {}, coded = '') => `(async () => {
   const shown = (e) => e.getClientRects().length > 0;
+  const STAGE = ${JSON.stringify(stage)};
+  const inStage = (e) => STAGE.region ? !!e.closest(STAGE.region)
+    : STAGE.outside ? !e.parentElement?.closest(STAGE.sel || 'main') : !!e.parentElement?.closest(STAGE.sel || 'body');
   for (const alt of ${JSON.stringify(spec)}.split(' || ')) {
+    // The union of the unit's shown slots and its body: the coded body where
+    // one is declared at any depth, else the first shown declaration.
+    if (alt.trim() === 'slots') {
+      const pats = [...document.querySelectorAll('[data-pattern]')].filter((e) => inStage(e) && shown(e));
+      const body = pats.find((e) => e.dataset.pattern === ${JSON.stringify(coded)}) || pats[0];
+      const els = [...document.querySelectorAll('[data-slot]')].filter((e) => inStage(e) && shown(e));
+      if (body) els.push(body);
+      if (!els.length) continue;
+      const settle = () => new Promise((ok) => setTimeout(ok, 800));
+      const topOf = () => els.reduce((a, e) => e.getBoundingClientRect().top < a.getBoundingClientRect().top ? e : a);
+      topOf().scrollIntoView({ block: 'start', behavior: 'instant' });
+      // Back off a little where the pane can, so the topmost slot's label,
+      // drawn just above its outline, falls inside the shot.
+      let up = topOf().parentElement;
+      while (up && !(/auto|scroll/.test(getComputedStyle(up).overflowY) && up.scrollHeight > up.clientHeight)) up = up.parentElement;
+      (up || document.scrollingElement).scrollTop -= 14;
+      await settle();
+      const box = () => els.map((e) => e.getBoundingClientRect()).reduce((u, r) => ({
+        left: Math.min(u.left, r.left), right: Math.max(u.right, r.right), top: Math.min(u.top, r.top) }),
+        { left: Infinity, right: -Infinity, top: Infinity });
+      let b = box();
+      // A bar fixed or stuck above the union (a header) can cover its top once
+      // scrolled there; the union's pane is scrolled back by what it covers.
+      const cover = (y) => {
+        for (const e of document.querySelectorAll('body *')) {
+          const pos = getComputedStyle(e).position;
+          if ((pos !== 'fixed' && pos !== 'sticky') || els.some((x) => e.contains(x) || x.contains(e)) || !shown(e)) continue;
+          const q = e.getBoundingClientRect();
+          if (q.top <= y + 1 && q.bottom > y && q.right > b.left && q.left < b.right && q.bottom < innerHeight / 3) y = q.bottom;
+        }
+        return y;
+      };
+      const under = cover(Math.max(0, b.top)) - Math.max(0, b.top);
+      if (under > 0) {
+        let pane = topOf().parentElement;
+        while (pane && !(/auto|scroll/.test(getComputedStyle(pane).overflowY) && pane.scrollHeight > pane.clientHeight)) pane = pane.parentElement;
+        (pane || document.scrollingElement).scrollTop -= under;
+        await settle();
+        b = box();
+      }
+      const x = Math.max(0, b.left);
+      // 12px of headroom for the label on the topmost slot, never reaching
+      // above the unit's own region (the app's header sits over <main>).
+      const room = document.querySelector(STAGE.region || (STAGE.outside ? 'body' : (STAGE.sel || 'body')));
+      const floor = room && room !== document.body ? room.getBoundingClientRect().top : 0;
+      return JSON.stringify({ at: 'slots', x: Math.round(x), y: Math.max(0, Math.round(Math.max(floor, b.top - 12))),
+                              w: Math.round(Math.min(b.right, innerWidth) - x), vw: innerWidth,
+                              pattern: body ? body.getAttribute('data-pattern') : '' });
+    }
     const m = /^(top|below):(.+)$/.exec(alt.trim());
     // A declared pattern with no item shown is empty here, and a crop to it
     // would be a blank card; the unit's usual crop shows its empty state.
@@ -206,7 +283,9 @@ export async function shoot(r, size, touch, out, evalJs) {
     // that Sessions and Lists sometimes found nothing to fill.
     const a = ['tools/render/screenshot.mjs', r.page, '--width', String(size.width), '--height', String(size.height),
       '--wait', '9000', '--out', out];
-    if (r.page === 'app/index.html') a.push('--ref', head);
+    // UI_WORKTREE=1 renders the working tree, for checking markup before it is
+    // committed; the published shots and checks render the commit.
+    if (r.page === 'app/index.html' && !process.env.UI_WORKTREE) a.push('--ref', head);
     if (r.query && r.query.startsWith('#')) a.push('--hash', r.query.slice(1));
     else if (r.query) a.push('--query', r.query);
     if (r.script) a.push('--script', path.resolve(HUB, r.script));

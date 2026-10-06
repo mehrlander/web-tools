@@ -312,7 +312,7 @@
       <div class="grow"></div>
 
       <!-- Facet switch: the two facets of the panel. -->
-      <div class="join" x-show="!loading && !error">
+      <div class="join" x-show="!loading && !error" data-slot="frame:tabs">
         <button class="join-item btn btn-sm gap-1" :class="facet==='ledger' && 'btn-active btn-primary'" @click="facet='ledger'">
           <i class="ph ph-newspaper"></i><span class="hidden sm:inline">Ledger</span>
         </button>
@@ -331,7 +331,7 @@
     <!-- Ledger controls -->
     <div x-show="!loading && !error && facet==='ledger'" class="mt-3 flex flex-col gap-2">
       <div class="flex items-center gap-2 flex-wrap">
-        <label class="input input-bordered input-sm flex items-center gap-2 grow max-w-sm">
+        <label class="input input-bordered input-sm flex items-center gap-2 grow max-w-sm" data-slot="frame:search">
           <i class="ph ph-magnifying-glass opacity-50"></i>
           <input x-model="q" type="search" placeholder="Search titles, summaries, sources" class="grow min-w-0">
         </label>
@@ -345,7 +345,7 @@
           </button>
         </div>
 
-        <div class="join">
+        <div class="join" data-slot="frame:filter-switch">
           <button class="join-item btn btn-xs" :class="capture==='all' && 'btn-active'" @click="capture='all'">All</button>
           <button class="join-item btn btn-xs" :class="capture==='live' && 'btn-active'" @click="capture='live'">Live</button>
           <button class="join-item btn btn-xs" :class="capture==='backfilled' && 'btn-active'" @click="capture='backfilled'">Backfilled</button>
@@ -357,7 +357,7 @@
       </div>
 
       <!-- Topic pills -->
-      <div class="flex items-center gap-1.5 flex-wrap">
+      <div class="flex items-center gap-1.5 flex-wrap" data-slot="frame:filter-switch">
         <template x-for="t in allTopics" :key="t">
           <button @click="toggle('topics', t)"
                   class="badge badge-sm cursor-pointer transition-colors"

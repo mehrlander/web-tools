@@ -51,7 +51,7 @@
     <button x-show="only" @click="only = ''" class="badge badge-primary badge-soft gap-1 shrink-0" data-only>
       <span class="max-w-32 truncate" x-text="only"></span><i class="ph ph-x"></i></button>
     <div class="grow"></div>
-    <select x-model="filter" class="select select-sm w-auto" aria-label="Show">
+    <select x-model="filter" class="select select-sm w-auto" aria-label="Show" data-slot="frame:filter-switch">
       <option value="all">All</option>
       <option value="installs">Installs</option>
       <option value="runs">Runs</option>
