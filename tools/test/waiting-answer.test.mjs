@@ -152,7 +152,7 @@ test('what moved since filing is counted in the header, and the refresh reads ev
   assert.match(data.sinceLine(CALLS[1]), /: 1 of its 3 PRs was closed or merged\. 1 of its 3 PRs is still open\./,
     'a PR merged before the call is not news');
   assert.equal(data.prsLine(CALLS[1]), '1/3 open');
-  assert.match(data.checkedTip(merge), /^PR state, CI, conflicts, news since filing; which of its 2 files changed since filing\. Checked /,
+  assert.match(data.checkedTip(merge), /^PR state, CI, conflicts, and new commits, comments or reviews since filing; which of its 2 files changed since filing\. Checked /,
     'the refresh says what it checks for this call');
   assert.match(data.checkedTip(CALLS[1]), /^Which of its 3 PRs are open\./);
   assert.doesNotMatch(data.checkedTip(merge) + data.checkedTip(CALLS[1]), /again/);
@@ -190,4 +190,15 @@ test('a merge whose PR GitHub already merged offers nothing to merge, and confli
   await until(() => foot().querySelector('[data-waiting-pr-done]'));
   assert.match(foot().textContent, /Already merged on GitHub/);
   assert.equal(answerBtn('Merge'), null, 'no Merge button for a merged PR');
+});
+
+test('a row says who recommends what and when, and a merge row carries its CI and mergeability', async () => {
+  const [merge, decision] = CALLS;
+  merge.open = true; merge.answers = [];
+  data.facts[merge.id] = { state: 'open', ci: 'passing', mergeable: 'clean', at: new Date().toISOString() };
+  await until(() => el.querySelector('[data-waiting-row-status]')?.style.display !== 'none');
+  assert.match(data.callLine(decision), /^Session bbbb2222 recommends Close all · /, 'a session the index does not name is said as one');
+  assert.match(data.callLine(merge), /^Claude · /, 'no kind word: the icon says it');
+  const row = el.querySelector('[data-waiting-call][data-key="call:s1-merge-7"]').parentElement;
+  assert.match(row.querySelector('[data-waiting-row-status]').innerHTML, /ph-check-circle[\s\S]*ph-git-merge/);
 });
