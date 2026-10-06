@@ -7424,11 +7424,15 @@ function app(){ return {
   },
 
   // Open the branch takeover deck for a repo@name branch.
+  //
+  // Through detailSpec, not a replaceState of its own: goBranches' syncUrl
+  // rebuilds the query from a whitelist and re-stamps `detail` from that field
+  // alone, so an address written beside it was erased before a lazily mounted
+  // estate could read it. From any view but Activity the event below then had
+  // no listener, and the link landed on the plain branch list. The event still
+  // fires for an estate already mounted, which reads `&detail=` only at mount.
   openBranchSpec(repo, name){
-    const p = new URLSearchParams(location.search);
-    p.set('view', 'branches');
-    p.set('detail', repo + '@' + name);
-    history.replaceState(null, '', location.pathname + '?' + p.toString());
+    this.detailSpec = repo + '@' + name;
     this.goBranches();
     document.dispatchEvent(new CustomEvent('web-tools:open-branch-detail', {
       detail: { repo, name }

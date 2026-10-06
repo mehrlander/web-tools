@@ -28,6 +28,9 @@
 //   WAITING_STEP=arm    the Calls tab, the first call's footer answer tapped
 //                       once: it reads Confirm and nothing is sent
 //   WAITING_STEP=deck   the Calls tab in the deck takeover, on its first call
+//   WAITING_STEP=branch the first merge call's branch button tapped: Activity's
+//                       branch takeover opens on the PR's branch. Run with
+//                       SHOT_GIT_API=1 so the PR read names its branch.
 const STEP = process.env.WAITING_STEP || 'view';
 const C = 'document.querySelector(\'[data-pane="waiting"] [x-data="waiting()"]\')?._x_dataStack?.[0]';
 export default async function (page) {
@@ -44,6 +47,19 @@ export default async function (page) {
   }
   await page.evaluate(() => window.__shell.goWaiting());
   await page.waitForFunction(`(() => { const x = ${C}; return x && !x.loadingCalls && !x.loadingPending && x.pending; })()`, null, { timeout: 90000 });
+  if (STEP === 'branch') {
+    await page.locator('[data-waiting-call][data-kind="merge"]').first().click();
+    await page.waitForFunction(`(() => { const b = document.querySelector('[data-waiting-head] [data-waiting-branch]');
+      return b && getComputedStyle(b).display !== 'none'; })()`, null, { timeout: 30000 });
+    const want = await page.evaluate(`(() => { const x = ${C}; return x.branchOf(x.cur.c); })()`);
+    await page.locator('[data-waiting-head] [data-waiting-branch]').click();
+    await page.waitForTimeout(4000);
+    await page.evaluate((want) => console.log('BRANCH ' + JSON.stringify({ want, search: location.search, view: window.__shell.view,
+      open: (() => { const e = [...document.querySelectorAll('[x-data]')].map((n) => n._x_dataStack?.[0]).find((d) => d && 'detailRow' in d);
+        return e?.detailRow ? e.detailRow.repo + '@' + e.detailRow.name : e ? { authed: e.authed, fromUrl: e._detailFromUrl, err: e.error || e.err || null } : 'no estate'; })(),
+      deck: 'deckOpen' in document.documentElement.dataset })), want);
+    return;
+  }
   if (!['view', 'decision', 'note', 'arm', 'deck'].includes(STEP)) {
     await page.locator(`[data-waiting-tab="${STEP === 'edit' || STEP === 'full' ? 'edit' : 'tighten'}"]`).click();
     await page.waitForTimeout(400);

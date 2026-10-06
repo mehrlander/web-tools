@@ -401,10 +401,15 @@ function gitEvidence(u, repoRoot) {
     try { e = (JSON.parse(r.stdout).repos || {})[`${owner}/${name}`]; } catch {}
     const n = +rest;
     const open = e && (e.openPRs || []).find(p => p.number === n);
-    if (open) return json({ number: n, state: 'open', merged_at: null, updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
+    // The cache's `head` is the branch name; a read naming the PR's branch
+    // (the Waiting view's link to Activity's takeover) needs it as GitHub
+    // shapes it. No sha: the cache keeps none, so a check-run read misses.
+    const head = (p) => (p.head ? { ref: p.head, repo: { full_name: `${owner}/${name}` } } : undefined);
+    if (open) return json({ number: n, state: 'open', merged_at: null, draft: !!open.draft, head: head(open),
+                            updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
     const last = e && (e.branchPRs || []).find(p => p.number === n && p.state !== 'open');
     if (last) return json({ number: n, state: last.state === 'merged' ? 'closed' : last.state,
-                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null,
+                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null, head: head(last),
                             updated_at: last.updatedAt || '' }, `${name} pull ${n} ${last.state}`);
     return missing(`${name} pull ${n}`);
   }

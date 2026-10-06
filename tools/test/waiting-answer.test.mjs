@@ -35,7 +35,8 @@ const MENU = { recent: [['aaaa1111', '2026-10-06T06:00:00Z', 'ask', 'session_01A
 // one comment after it, one of each before); of the decision's three PRs one
 // is open, one closed after the call, and one merged before it.
 const READS = {
-  'pulls/7': { state: 'open', draft: true, mergeable_state: 'draft', head: { sha: 'abc' }, changed_files: 1, additions: 1, deletions: 1 },
+  'pulls/7': { state: 'open', draft: true, mergeable_state: 'draft', head: { sha: 'abc', ref: 'claude/spend', repo: { full_name: 'acme/widget' } },
+               changed_files: 1, additions: 1, deletions: 1 },
   'commits/abc/check-runs': { check_runs: [{ status: 'completed', conclusion: 'success' }] },
   'pulls/7/commits?per_page=100': [{ commit: { committer: { date: '2026-10-06T05:00:00Z' } } }, { commit: { committer: { date: '2026-10-06T07:00:00Z' } } }],
   'pulls/7/reviews?per_page=100': [],
@@ -201,4 +202,46 @@ test('a row says who recommends what and when, and a merge row carries its CI an
   assert.match(data.callLine(merge), /^Claude · /, 'no kind word: the icon says it');
   const row = el.querySelector('[data-waiting-call][data-key="call:s1-merge-7"]').parentElement;
   assert.match(row.querySelector('[data-waiting-row-status]').innerHTML, /ph-check-circle[\s\S]*ph-git-merge/);
+});
+
+test('a merge card opens its branch in Activity\'s takeover, from the container and from the deck', async () => {
+  const [merge] = CALLS;
+  merge.open = true; merge.answers = [];
+  data.picked.calls = merge.id;
+  await data.readFacts(merge, true);
+  const opened = [];
+  window.__shell.openBranchSpec = (repo, name) => { opened.push(repo + '@' + name); return true; };
+  const btn = () => head().querySelector('[data-waiting-branch]');
+  await until(() => btn() && btn().style.display !== 'none');
+  assert.equal(btn().dataset.titleTip, 'claude/spend', 'the tip names the branch');
+  btn().click();
+  assert.deepEqual(opened, ['acme/widget@claude/spend'], 'the shell opens the takeover');
+  q('[data-waiting-full]').click();
+  await until(() => data._deck);
+  const inDeck = () => [...window.document.querySelectorAll('[data-waiting-detail-call][data-id="s1-merge-7"] [data-waiting-branch]')]
+    .find((x) => !el.contains(x));
+  await until(() => inDeck());
+  inDeck().click();
+  await until(() => !data._deck && opened.length === 2);
+  assert.equal(data._deck, null, 'the deck closes first');
+  assert.equal(opened[1], 'acme/widget@claude/spend', 'then the branch opens');
+  data.facts[merge.id] = { ...data.facts[merge.id], branchRepo: 'someone/fork' };
+  assert.equal(data.branchOf(merge), null, 'a fork\'s branch is outside the estate: no button');
+});
+
+test('a merge whose PR already merged is settled: out of the count, last in the list, and its line says so', async () => {
+  const [merge, decision] = CALLS;
+  merge.open = true; merge.answers = []; decision.open = true; decision.answers = [];
+  data.facts[merge.id] = { ...data.facts[merge.id], state: 'merged' };
+  data.syncCount();
+  await until(() => el.querySelector('[data-waiting-settled-label]')?.style.display !== 'none');
+  assert.deepEqual(data.waitingCalls.map((c) => c.id), ['s1-close-two'], 'only the decision waits');
+  assert.equal(window.__shell.waitingCount, 1, 'the badge counts what waits');
+  assert.deepEqual(Array.from(data.rowsOf('calls'), (r) => r.key), ['s1-close-two', 's1-merge-7'], 'the settled call sorts last');
+  assert.match(data.callLine(merge), /^Claude · merged on GitHub · /);
+  assert.equal(data.whoTip(merge), 'Filed by session aaaa1111: "ask"', 'the line names the filing session by its first ask');
+  assert.equal(data.whoTip(decision), 'Filed by session bbbb2222', 'a session the index does not hold is named by its id');
+  data.facts[merge.id] = { ...data.facts[merge.id], state: 'open' };
+  data.syncCount();
+  assert.equal(window.__shell.waitingCount, 2);
 });
