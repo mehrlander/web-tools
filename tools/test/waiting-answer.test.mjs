@@ -152,6 +152,10 @@ test('what moved since filing is counted in the header, and the refresh reads ev
   assert.match(data.sinceLine(CALLS[1]), /: 1 of its 3 PRs was closed or merged\. 1 of its 3 PRs is still open\./,
     'a PR merged before the call is not news');
   assert.equal(data.prsLine(CALLS[1]), '1/3 open');
+  assert.match(data.checkedTip(merge), /^PR state, CI, conflicts, news since filing; which of its 2 files changed since filing\. Checked /,
+    'the refresh says what it checks for this call');
+  assert.match(data.checkedTip(CALLS[1]), /^Which of its 3 PRs are open\./);
+  assert.doesNotMatch(data.checkedTip(merge) + data.checkedTip(CALLS[1]), /again/);
   asked.length = 0;
   await data.refreshCall(merge);
   assert.ok(asked.some(([, p]) => p === 'pulls/7') && asked.some(([, p]) => p.endsWith('/check-runs')), 'the PR and its checks are read again');
@@ -171,4 +175,19 @@ test('the expander opens the deck takeover on the row in view, the status at the
   assert.ok(outside('[data-waiting-answer-btn]').length, 'the answers ride at the foot of the card');
   data._deck.close(); await until(() => !data._deck);
   assert.equal(data._deck, null);
+});
+
+test('a merge whose PR GitHub already merged offers nothing to merge, and conflicts are the header icon\'s alone', async () => {
+  const c = CALLS[0];
+  c.open = true; c.answers = [];
+  data.picked.calls = c.id; await tick();
+  data.facts[c.id] = { ...data.facts[c.id], state: 'open', mergeable: 'dirty' };
+  await until(() => head().querySelector('[data-waiting-mergeable] i')?.className.includes('ph-warning-circle'));
+  assert.match(data.mergeTip(c), /Conflicts with main\. Merge has the session resolve them first\./);
+  assert.doesNotMatch(el.querySelector('[data-waiting-detail-call][data-id="s1-merge-7"]').textContent, /merge conflicts/i,
+    'no line in the body repeats the icon');
+  data.facts[c.id] = { ...data.facts[c.id], state: 'merged' };
+  await until(() => foot().querySelector('[data-waiting-pr-done]'));
+  assert.match(foot().textContent, /Already merged on GitHub/);
+  assert.equal(answerBtn('Merge'), null, 'no Merge button for a merged PR');
 });
