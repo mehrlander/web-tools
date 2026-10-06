@@ -166,8 +166,8 @@ one row per unit it loaded.
 ## Slots
 
 A unit's **slots** are its coded regions as they appear on screen: one for
-each `frame` code and one for its `body`. Every coded unit declares them, and
-the shots outline them, so a shot shows the unit's own parts rather than a
+each `frame` code and one for its `body`. A unit declares them in its markup,
+and the shots outline them, so a shot shows the unit's own parts rather than a
 code's.
 
 - **A frame slot** is `data-slot="frame:<code>"` on the control that draws
