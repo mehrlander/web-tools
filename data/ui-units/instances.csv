@@ -3,11 +3,13 @@ web-tools:map/aims,fields,,,,,,,5a3d5c2c1263
 web-tools:map/claims,card-grid,card-grid,no kit draws this code,list 1; item 11; title 11; body 27; meta 27,,,holds: 11 items shown,3ae0f69113ec
 web-tools:map/context,card-grid,card-grid,no kit draws this code,list 1; group 6; meta 75; summary 31; item 29; title 29; links 27,,,holds: 29 items shown,3ae0f69113ec
 web-tools:map/data,list,list,no kit draws this code,list 1; group 16; meta 264; item 62; title 62; summary 62,,,holds: 62 items shown,5a3d5c2c1263
+web-tools:map/dimensions,list,list,no kit draws this code,list 1; group 6; meta 126; links 6; summary 6; item 61; title 61,,,holds: 61 items shown,24b0f1ca9f3e
 web-tools:map/docs,list,list,no kit draws this code,list 1; item 79; title 79; meta 237; actions 79; summary 79,,,holds: 79 items shown,5a3d5c2c1263
 web-tools:map/growth,figure,,,,,,,5a3d5c2c1263
 web-tools:map/harness,list,list,no kit draws this code,list 1; item 3; meta 9; title 3; summary 3; actions 3,,,holds: 3 items shown,5a3d5c2c1263
 web-tools:map/kits,list,list,no kit draws this code,list 1; item 104; meta 417; title 104; summary 104; actions 104; links 21,,,holds: 104 items shown,5a3d5c2c1263
 web-tools:map/outposts,card-grid,card-grid,no kit draws this code,list 1; item 4; meta 8; title 4; links 4; summary 4; body 5,,,holds: 4 items shown,3ae0f69113ec
+web-tools:map/patterns,card-grid,card-grid,no kit draws this code,list 1; group 12; meta 118; summary 12; actions 12; item 53; body 53; title 53,,,holds: 53 items shown,24b0f1ca9f3e
 web-tools:map/policy,card-grid,card-grid,no kit draws this code,list 1; item 284; meta 1181; title 284; summary 284; body 287; links 272,,,holds: 284 items shown,3ae0f69113ec
 web-tools:map/registries,card-grid,card-grid,no kit draws this code,list 1; group 2; meta 259; summary 48; item 46; title 46; actions 46; body 184; links 82,,,holds: 46 items shown,3ae0f69113ec
 web-tools:map/set,list,list,no kit draws this code,list 1; group 5; meta 351; summary 100; item 95; title 95; actions 95; links 95,,,holds: 95 items shown,5a3d5c2c1263
@@ -31,6 +33,9 @@ web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38;
 web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 48; item 20; title 20,,,holds: 20 items shown,41aaf0900ce4
 web-tools:view/project/docs,list,list,no kit draws this code,list 1; item 78; title 78; group 8; meta 8,,,holds: 78 items shown,5a3d5c2c1263
 web-tools:view/project/files,linked-swiper,,,,,,,5a3d5c2c1263
+web-tools:view/project/overview/installation,list-detail,list-detail,no kit draws this code,list 1; group 6; meta 9; item 5; title 5; actions 5; detail 1,,,holds: the pick changed the detail; the selection moved to it,24b0f1ca9f3e
+web-tools:view/project/overview/landing,host,,,,,,,24b0f1ca9f3e
+web-tools:view/project/overview/readme,document,,,,,,,24b0f1ca9f3e
 web-tools:view/project/pages,card-grid,card-grid,no kit draws this code,list 1,,,unchecked: no item shown at this address,3ae0f69113ec
 web-tools:view/proposals,list,list,no kit draws this code,list 1; item 2; meta 4; title 2; summary 2; body 4; actions 2; links 4,,,holds: 2 items shown,41aaf0900ce4
 web-tools:view/public,list-detail,list-detail,no kit draws this code,list 1; item 2669; title 2669; meta 2669; detail 1,,,holds: the pick changed the detail; the selection moved to it,5a3d5c2c1263
