@@ -471,12 +471,18 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // the same way on every page, with or without ?use=.
   // The ref is stripped by the exact --ref value (branch names carry slashes,
   // so segment-counting can't find where the path starts); with no ref known,
-  // fall back to dropping one segment. ---
+  // take the first split that names a file here, as the sibling rule above
+  // does, else drop one segment. A nested toss addressed at claude/<slug>
+  // otherwise asked for <slug>/lib/gh-api.js, and the page reported only
+  // "gh is not defined". ---
   if (host === 'raw.githubusercontent.com' && u.pathname.startsWith(`/${REPO}/`)) {
     const after = u.pathname.slice(`/${REPO}/`.length);
-    const tail = (ref && after.startsWith(ref + '/'))
-      ? after.slice(ref.length + 1)
-      : after.replace(/^[^/]+\//, '');
+    const isFile = (t) => { const f = path.join(repoRoot, decodeURIComponent(t)); return existsSync(f) && statSync(f).isFile(); };
+    let tail = after.replace(/^[^/]+\//, '');
+    if (ref && after.startsWith(ref + '/')) tail = after.slice(ref.length + 1);
+    else for (let i = after.indexOf('/'); i >= 0; i = after.indexOf('/', i + 1)) {
+      if (isFile(after.slice(i + 1))) { tail = after.slice(i + 1); break; }
+    }
     const rel = decodeURIComponent(tail);
     const fp = path.join(repoRoot, rel);
     if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `raw ${rel}` };
