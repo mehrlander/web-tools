@@ -114,7 +114,8 @@ const labelJs = (stage, coded) => `(() => {
     if (!fr || e.ownerDocument === document) return r; const o = fr.getBoundingClientRect();
     return { left: r.left + o.left, top: r.top + o.top }; };
   // Kept inside the crop: a label that would rise above it sits inside its
-  // slot's top edge, and one that would run past the right edge is pulled in.
+  // slot's top edge, or at the crop's top where the slot starts above it, and
+  // one that would run past the right edge is pulled in.
   const crop = typeof f === 'string' && f !== 'null' ? JSON.parse(f) : { x: 0, y: 0, w: innerWidth };
   document.body.append(layer);
   const tag = (e, text, color) => {
@@ -124,7 +125,7 @@ const labelJs = (stage, coded) => `(() => {
       + 'box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap;background:' + color;
     layer.append(t);
     let left = Math.min(Math.max(crop.x + 2, r.left), crop.x + crop.w - t.offsetWidth - 2);
-    const top = Math.max(2, r.top - 9 >= crop.y + 1 ? r.top - 9 : r.top + 2), h = t.offsetHeight;
+    const top = Math.max(2, crop.y + 2, r.top - 9 >= crop.y + 1 ? r.top - 9 : r.top + 2), h = t.offsetHeight;
     // Two slots sharing a top edge (a search box at the top of its body) would
     // stack their labels; the later one moves along to the right.
     for (let hit = true; hit;) {
