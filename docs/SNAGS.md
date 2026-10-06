@@ -206,10 +206,10 @@ supports, although `lib/alpineComponents/map.js` still fetched
 `stripComments` in `tools/build/docs-reach.mjs` matches it as a block-comment
 opener and deletes everything to the next star-slash: 1,076 lines of code.
 The stripper knows line comments and URLs but not string literals, and three
-scanners share it (docs-reach, registries-reach, cache-readers). Write the star
-as `\u002a` in a string until the stripper skips string literals.
-*(seen: 2026-10-06)*
-→ [`tools/build/docs-reach.mjs`](../tools/build/docs-reach.mjs)
+scanners share it (docs-reach, registries-reach, cache-readers). The stripper
+now scans string, regex and template literals, and the stars in map.js are
+plain again. *(seen: 2026-10-06)*
+→ [`tools/build/docs-reach.mjs`](../tools/build/docs-reach.mjs), held by `docs-registry.test.mjs`
 
 ### account-check-reads-the-interim-manifest: every skill "missing" at session start
 
@@ -234,10 +234,10 @@ renderer stamps `window.__refs` from its own query only, the part before the
 off the params shim. The page therefore read home at main and said "No
 proposals queued" about proposals filed on the branch. A cross-repo selection
 goes on the renderer: `toss-render.html?refs=owner/repo@ref#gh=…`. `--query`
-carries only the page's own parameters, and `showing.py` has no option for a
-host-side `refs=`, so that half is composed by hand.
+carries only the page's own parameters; `showing.py --refs owner/repo@ref`
+puts the selection on the renderer, and warns when `--query` carries one.
 *(seen: 2026-10-03)*
-→ [`docs/loader.md`](loader.md#the-selection)
+→ [`docs/loader.md`](loader.md#the-selection), [`scripts/showing.py`](../scripts/showing.py) `--refs`
 
 ### web-session-cannot-delete-branches: `git push --delete` dies as a disconnect
 

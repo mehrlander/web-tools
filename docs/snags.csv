@@ -28,7 +28,7 @@ x-data-scope-shadows-component-names,"a mount's config read a component, not the
 comment-stripper-reads-a-string-as-a-comment,a view's read vanished from the census,1,2026-10-06,2026-10-06,../tools/build/docs-reach.mjs
 shallow-clone-reads-as-gone,"a settled finding came back as ""the ref or commit is gone""",1,2026-10-06,2026-10-06,../skills/tend/findings.py
 account-check-reads-the-interim-manifest,"every skill ""missing"" at session start",1,2026-10-05,2026-10-05,../skills/hooks/account-skills.py
-refs-in-page-query-ignored-by-toss,a `refs=` after the `#gh=` never reached the selection,1,2026-10-03,2026-10-03,loader.md#the-selection
+refs-in-page-query-ignored-by-toss,a `refs=` after the `#gh=` never reached the selection,1,2026-10-03,2026-10-03,loader.md#the-selection;../scripts/showing.py
 web-session-cannot-delete-branches,`git push --delete` dies as a disconnect,1,2026-09-30,2026-09-30,../skills/tend/SKILL.md#process
 empty-params-answer-the-address,a framed page parsed an empty string and got its own address back,1,2026-09-28,2026-09-28,loader.md#under-the-toss
 triage-bare-branch-name-reads-as-orphan,"every branch reported ""no merge base""",1,2026-09-25,2026-09-25,../skills/tend/SKILL.md#branches
