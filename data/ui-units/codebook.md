@@ -9,6 +9,9 @@ a registry only after a full pass shows they hold.
 ## What is coded, and what is not
 
 A **unit** is one row of `units.csv`: an app view, a view's tab, or a page.
+A tab whose data, not its reader, chooses between arrangements (the Project
+Overview) is one unit per arrangement, and a route that only lands on a tab
+(`lands` in `docs/app-routes.csv`) is an address of that tab's unit.
 `tools/ui-units.mjs` computes three things a reader does not code:
 
 - **`app_ring`**: how far the unit sits from the Web Tools app's center, from
@@ -45,6 +48,7 @@ The other fields record what draws the unit and how sure the reader is:
 | `style` | `house` (daisyUI and Tailwind, the app's look) or `own` (the page's own CSS vocabulary) | the screenshot |
 | `notes` | anything a code could not hold | |
 | `confidence` | `high` (code and pixels), `medium` (code only), `low` (inferred) | |
+| `at` | the commit the unit was read at, where its `file:line` citations resolve | `git rev-parse --short=12 HEAD` in the unit's repo |
 
 A unit can hold several frame and reach codes and exactly one body code. Code
 the unit as it first paints. A tab that opens on a chart, with a list one switch
