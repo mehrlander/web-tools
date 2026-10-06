@@ -44,10 +44,16 @@ const READS = {
   'pulls/3': { state: 'closed', merged_at: '2026-10-01T00:00:00Z', closed_at: '2026-10-01T00:00:00Z' },
 };
 const asked = [];
+// A tracker task's status, as its file says it.
+const TASKS = { 'tracker/tasks/trim-ab12cd.md': 'in-progress' };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
   constructor(o = {}) { this.repo = o.repo; }
-  async get(path) { if (path === 'state/session-menu.json') return { text: JSON.stringify(MENU) }; throw new Error('no ' + path); }
+  async get(path) {
+    if (path === 'state/session-menu.json') return { text: JSON.stringify(MENU) };
+    if (path in TASKS) return { text: '---\nid: x\nstatus: ' + TASKS[path] + '\n---\n# A task\n' };
+    throw new Error('no ' + path);
+  }
   async req(path, opts = {}) {
     asked.push([this.repo, path, opts.cache || '']);
     if (path.startsWith('issues/7/comments')) return [{ created_at: '2026-10-06T05:30:00Z' }, { created_at: '2026-10-06T08:00:00Z' }];
@@ -244,4 +250,60 @@ test('a merge whose PR already merged is settled: out of the count, last in the 
   data.facts[merge.id] = { ...data.facts[merge.id], state: 'open' };
   data.syncCount();
   assert.equal(window.__shell.waitingCount, 2);
+});
+
+test('a call says what sort it is: its name in the row, its shape atop the card, and each dependency checked', async () => {
+  const decision = CALLS[1];
+  decision.open = true; decision.answers = [];
+  const named = { id: 's2-ghosts', kind: 'decision', session: 'aaaa1111', name: 'Nine Ghost PRs', question: 'Close nine PRs?',
+    brief: 'b', options: ['Close all', 'Keep some'], recommend: 'Close all', why: 'landed', created: '2026-10-06T04:00:00Z',
+    size: 'XS', confidence: 'firm', reversible: true,
+    depends_on: ['acme/widget#3', 's1-close-two', 'acme/widget:tracker/tasks/trim-ab12cd.md'],
+    _repo: 'me/store', _ref: 'main', _path: 'user-calls/s2-ghosts.json', answers: [], open: true };
+  data.calls.push(named);
+  await data.loadDeps(named);
+  const keys = () => Array.from(data.shapeOf(named), (t) => t.key + ':' + t.label);
+  assert.deepEqual(Array.from(data.depsOf(named), (d) => d.label + '=' + d.state),
+    ['widget #3=merged', 'call s1-close-two=open', 'task trim-ab12cd=in-progress']);
+  assert.equal(data.easy(named), false, 'firm, reversible and XS, but it waits, so not easy');
+  assert.deepEqual(keys(), ['size:XS', 'conf:Firm', 'deps:Waits on 2']);
+  assert.match(data.depsTip(named), /call s1-close-two: open; task trim-ab12cd: in-progress/);
+
+  decision.open = false;
+  TASKS['tracker/tasks/trim-ab12cd.md'] = 'done';
+  delete data.deps['acme/widget:tracker/tasks/trim-ab12cd.md'];
+  await data.loadDeps(named);
+  assert.equal(data.easy(named), true, 'with nothing left to wait on it is easy');
+  assert.deepEqual(keys(), ['easy:Easy', 'size:XS', 'deps:All 3 met']);
+
+  const row = () => el.querySelector('[data-waiting-call][data-key="call:s2-ghosts"]');
+  await until(() => row());
+  assert.equal(row().querySelector('.line-clamp-2').textContent, 'Nine Ghost PRs', 'the row shows the name');
+  assert.equal(row().querySelector('.line-clamp-2').dataset.titleTip, 'Close nine PRs?', 'the question rides in its tip');
+  const mark = () => row().parentElement.querySelector('[data-waiting-row-easy]');
+  await until(() => mark().style.display !== 'none');
+  assert.notEqual(mark().style.display, 'none', 'and the easy mark');
+  data.picked.calls = 's2-ghosts';
+  const card = () => el.querySelector('[data-waiting-detail-call][data-id="s2-ghosts"]');
+  await until(() => card()?.querySelector('[data-shape="easy"]'));
+  assert.equal(card().querySelector('[data-waiting-question]').textContent, 'Close nine PRs?', 'a named card states its question');
+  assert.ok(card().querySelector('[data-shape="easy"]'), 'the shape line leads the card');
+
+  data.calls.splice(data.calls.indexOf(named), 1);
+  decision.open = true;
+});
+
+test('a task link opens the task file at its ref, drawn as a task and named by its id', async () => {
+  // The real link builder, in a window of its own: this file stubs it above.
+  const { window: w2 } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
+  await startAlpine(w2, ['lib/alpine-bundle.js', 'lib/alpineComponents/user-call-form.js']);
+  const L = w2.UserCallForm.linkOf;
+  const t = L({ kind: 'task', ref: 'mehrlander/home:projects/budget-drs/tracker/tasks/grid-membership-cv0o2a.md' });
+  assert.equal(t.href, 'https://github.com/mehrlander/home/blob/main/projects/budget-drs/tracker/tasks/grid-membership-cv0o2a.md');
+  assert.equal(t.label, 'grid-membership-cv0o2a');
+  assert.equal(t.icon, 'ph-list-checks');
+  assert.equal(t.kind, 'task');
+  const at = L({ kind: 'task', ref: 'mehrlander/web-tools@dev:tracker/tasks/trim-ab12cd.md', label: 'Trim' });
+  assert.equal(at.href, 'https://github.com/mehrlander/web-tools/blob/dev/tracker/tasks/trim-ab12cd.md', 'a ref is kept');
+  assert.equal(at.label, 'Trim');
 });
