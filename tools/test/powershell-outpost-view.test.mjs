@@ -334,11 +334,15 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   await data.confirmRecord();
   await settle();
   assert.equal(data.stateOf(FORMS).state, 'differs');
-  // The filter narrows the corpus to that state.
-  data.filter = 'differs';
-  await settle();
+  // The state pill narrows the corpus to that state.
+  const pill = [...el.querySelectorAll('[data-state-filter] button')].find(b => b.textContent.includes('Differs'));
+  assert.ok(pill, 'a pill for the state the file is in');
+  pill.click(); await settle();
+  assert.equal(data.filter, 'Differs');
+  assert.equal(pill.getAttribute('aria-pressed'), 'true');
   assert.equal(q('[data-powershell-outpost] section button.text-left').length, 1);
-  data.filter = '';
+  el.querySelector('[data-state-filter] button').click(); await settle();
+  assert.equal(data.filter, '', 'All clears it');
 });
 
 test('a form\'s controller and XAML are recorded apart', async () => {
@@ -546,7 +550,7 @@ test('the Source header carries only Open in deck and Copy; a copy arrives throu
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
   for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');
   assert.equal(el.querySelector('textarea'), null, 'no paste field: the page-wide paste and the clipboard icon take a copy');
-  assert.equal(q('select').length, 1, 'only the state filter; encoding is asked for when decoding fails');
+  assert.equal(q('select').length, 0, 'filters are pills; encoding is asked for when decoding fails');
   el.querySelector('[data-copy-zone]').click();
   assert.deepEqual(shellCalls.at(-1), ['pasteAnywhere', FORMS], 'a tap on the zone reads the clipboard through the app\'s Paste, aimed at this file');
 });
@@ -924,7 +928,8 @@ test('with the derived tables, files group by application and each lists what it
   advanceHead(); await data.reload(); await settle();
   assert.ok(el.querySelector('[data-group-by]'), 'the switch appears with the table');
   assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts'], 'area stays the default');
-  data.groupBy = 'application'; await settle();
+  [...el.querySelectorAll('[data-group-by] button')].find(b => b.textContent === 'By application').click(); await settle();
+  assert.equal(data.groupBy, 'application');
   assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Chrome', 'Excel', 'No application']);
   const rows = q('[data-powershell-outpost] section button.text-left').map(b => b.textContent.trim());
   assert.equal(rows.filter(t => t === 'Profile.ps1').length, 2, 'a file reaching two applications is listed under both');
