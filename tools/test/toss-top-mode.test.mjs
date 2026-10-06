@@ -118,8 +118,16 @@ test('a page write that carries no selection keeps every entry, and a reload rea
   again.close();
   w.eval("history.replaceState(null, '', '?view=pages#top')");
   assert.deepEqual(urlRefs(w), SEL, 'replaceState, the same');
+  // Back is two chained timer tasks in jsdom, and the URL moves in the second.
+  // A fixed wait raced them: an event-loop stall longer than the wait let the
+  // wait's timer run in the same pass as the first task, before the second.
+  // popstate fires after the URL moves, so wait for it, bounded.
+  const popped = new Promise((ok, no) => {
+    w.addEventListener('popstate', ok, { once: true });
+    setTimeout(() => no(new Error('no popstate after history.back()')), 5000);
+  });
   w.eval('history.back()');
-  await new Promise(r => setTimeout(r, 20));
+  await popped;
   assert.equal(new URL(w.location.href).searchParams.get('view'), 'map', 'Back reached the loaded entry');
   assert.deepEqual(urlRefs(w), SEL, 'and it carries the whole selection');
   w.close();
