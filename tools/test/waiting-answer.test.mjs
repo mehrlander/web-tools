@@ -57,15 +57,22 @@ const NOTES = [
   { id: 'no1', at: '2026-10-06T09:00:00Z', author: 'me', about: 'note:ng1', text: 'Good.' },
 ];
 const put = [];
+// The errands store, as the Gemini check writes and reads it.
+const saved = [], RESULTS = {};
 // A tracker task's status, as its file says it.
 const TASKS = { 'tracker/tasks/trim-ab12cd.md': 'in-progress' };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
   static toBase64(t) { return Buffer.from(t).toString('base64'); }
+  async save(path, data, message) { saved.push({ repo: this.repo, path, data, message }); return { ok: true }; }
   constructor(o = {}) { this.repo = o.repo; }
   async get(path) {
     if (path === 'state/session-menu.json') return { text: JSON.stringify(MENU) };
-    if (path === 'notes/notes.jsonl') return { text: NOTES.map((n) => JSON.stringify(n)).join('\n') + '\n', sha: 's0' };
+    const res = /^errands\/results\/(.+)\.json$/.exec(path);
+    if (res && RESULTS[res[1]]) return { text: JSON.stringify(RESULTS[res[1]]) };
+    // The sha follows the content, as GitHub's does, so the kit's guard
+    // against a stale read after its own write sees a newer file as newer.
+    if (path === 'notes/notes.jsonl') return { text: NOTES.map((n) => JSON.stringify(n)).join('\n') + '\n', sha: 's' + NOTES.length };
     if (path in TASKS) return { text: '---\nid: x\nstatus: ' + TASKS[path] + '\n---\n# A task\n' };
     throw new Error('no ' + path);
   }
@@ -87,7 +94,7 @@ window.UserCallForm = {
   postAnswer: async (a) => { posted.push(a); return a.entry; },
   linkOf: (l) => ({ href: l.ref, label: l.label || l.ref, icon: 'ph-link' }),
 };
-const Alpine = await startAlpine(window, ['lib/alpine-bundle.js', 'lib/kits/swipe-deck.js', 'lib/kits/notes.js', 'lib/kits/findings.js', 'lib/alpineComponents/waiting.js']);
+const Alpine = await startAlpine(window, ['lib/alpine-bundle.js', 'lib/kits/swipe-deck.js', 'lib/kits/notes.js', 'lib/kits/findings.js', 'lib/kits/errands.js', 'lib/alpineComponents/waiting.js']);
 const el = window.document.getElementById('w');
 const data = Alpine.$data(el);
 const tick = (ms = 20) => new Promise(r => setTimeout(r, ms));
@@ -365,4 +372,35 @@ test('a call carries its notes and findings, a stance reaches the row, and a not
   assert.equal(posted.length, answersBefore, 'and writes no answer');
   await until(() => data.noteRows(decision).length === 4);
   assert.equal(data.noteRows(decision).at(-1).n.text, 'Hold #2 a day.');
+});
+
+test('Ask Gemini files a call check with what GitHub shows, and its verdict comes back as Gemini\'s note', async () => {
+  const merge = CALLS[0];
+  merge.open = true; merge.answers = [];
+  data.facts[merge.id] = { ...data.facts[merge.id], state: 'open', ci: 'passing' };
+  data.POLL_MS = 10;
+  await data.askGemini(merge);
+  assert.equal(saved.length, 1, 'one request filed');
+  const req = saved[0];
+  assert.equal(req.repo, 'me/store');
+  assert.match(req.path, /^errands\/requests\/daemon-\d{4}-\d{2}-\d{2}-call-check-[a-z0-9]+\.json$/);
+  assert.equal(req.data.run.op, 'call-check');
+  assert.equal(req.data.run.method, 'laptop-daemon');
+  assert.equal(req.data.run.args.call, 's1-merge-7');
+  const ev = req.data.run.args.evidence;
+  assert.match(ev, /Its PR, acme\/widget#7/, 'the PR as read now');
+  assert.match(ev, /CI passing/);
+  assert.match(ev, /Commits since filing:\n- /, 'what moved since filing, one line each');
+  assert.match(ev, /\n- acme\/widget:docs\/why\.md: changed since filing \(1 commit\)/);
+  assert.match(ev, /\n- acme\/widget:app\.html: unchanged since filing/);
+  assert.equal(data.checks[merge.id].stage, 'sent');
+  assert.equal(data.geminiBusy(merge), true, 'one check at a time');
+
+  NOTES.push({ id: 'ngc1', at: new Date().toISOString(), author: 'gemini', about: 'me/store:user-calls/s1-merge-7.json',
+               text: 'Merged already.', stance: 'moot' });
+  RESULTS[data.checks[merge.id].id] = { ok: true, message: 'Gemini moot: Merged already.', closedAt: new Date().toISOString() };
+  await until(() => data.checks[merge.id].stage === 'done');
+  await until(() => data.allNotes.some((n) => n.id === 'ngc1'));
+  assert.match(data.callLine(merge), / · Gemini calls it moot /, 'the verdict reaches the row');
+  assert.match(data.geminiTip(merge), /^Checked .*Gemini moot: Merged already\. Ask again/);
 });
