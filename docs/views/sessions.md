@@ -7,9 +7,9 @@ opens the session form ([forms/session.md](../forms/session.md)); a branch chip
 opens that branch's form at `pages/branch.html`.
 
 **Address.** `&session=<short id>` (the open record), `&set=<ids>` (a scope of
-short ids, comma-separated; `sessionSetIds` owns the grammar), `&topic=<topic>`
-(the sessions carrying one topic), `&lens=` (`list` default, `table`, `stars`,
-`repos`, `counts`, `topics`), `&grain=` (`session` default,
+short ids, comma-separated; `sessionSetIds` owns the grammar), `&topic=<name>`
+(the sessions carrying one topic or one area), `&lens=` (`list` default, `table`,
+`stars`, `repos`, `counts`, `topics` for the Areas lens), `&grain=` (`session` default,
 `branch`, `edge` for session-and-branch pairs). Defaults stay out of the URL.
 
 ## The sessions cache

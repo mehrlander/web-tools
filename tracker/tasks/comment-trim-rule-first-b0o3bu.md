@@ -75,7 +75,7 @@ running the pass".
 
 ## Related
 
-- `CLAUDE.md`: conventions home after PR #634; holds the commentary rule (was docs/CONVENTIONS.md)
+- `CLAUDE.md`: conventions home after PR #634; held the commentary rule until 183d2401 (2026-09-08) removed it
 - `docs/text-content.md`: census findings and pilot lessons for the residual pass
 - `docs/SNAGS.md`: `header-essay-outlives-its-code` and `rewriter-marks-its-own-work`
 - `scripts/embedded-prose.py`: `--dated` worklist for the accuracy-only shape
@@ -139,3 +139,4 @@ does not lapse if the pass itself is judged not worth running.
 - 2026-09-17: Rule home restamped after PR #634: `docs/CONVENTIONS.md` retired,
   conventions now in `CLAUDE.md`.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-06: 183d2401 (2026-09-08, the owner's web edit) removed 'Prose that describes state' and its comment subsection, so no file on main holds the rule this task builds on. Tending pass; whether to close is an open finding.

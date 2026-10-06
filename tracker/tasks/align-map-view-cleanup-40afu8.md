@@ -117,6 +117,9 @@ well before minting new tabs.
 - task `stranded-titles-panel-or-drop-o6hqom`: queue after this; `map.js` is the largest remaining stranded-title carrier
 - task `registry-authored-derived-split-v3qm2x`: owns the warning words (its Layer 3, the `map.js` glossaries); item 5 here waits on it, not the other way round
 - `docs/docs.csv`, `docs/harness.csv`: carry two of the six warning words as column values, which is why item 5 is not a `map.js` edit
+- PR #702: made Portable the Distribution crosswalk with doors to Skills, Docs and Automation (item 3), and Inventory the Docs entry
+- PR #829: gave the Automation tab a gloss
+- PR #872: the Context Delivery lens, which is the scope by discretion matrix, not startup delivery, so item 1 stands
 
 ## Done when
 
@@ -151,3 +154,4 @@ well before minting new tabs.
   Renaming either is a registry edit, which is that task's Layer 3. This also
   undoes a circular claim: the two tasks had each been recorded as sequencing
   after the other. Size stays L on item 2's strength alone.
+- 2026-10-06: #702 and #829 already did item 3 and part of item 2; #872's Delivery lens does not answer item 1. Recorded in Related by the tending pass.
