@@ -98,20 +98,12 @@ const mapLabel = (k) => {
   return 'Map: ' + (name || k);
 };
 const title = (k) => k.charAt(0).toUpperCase() + k.slice(1);
-// One tab, several screens. The Project view's Overview draws one of three
-// arrangements, chosen by the workspace's .web-tools.json entry rather than by
-// any control a reader touches: a declared `landing` page in a frame, else the
-// installation view where an `installation` manifest is declared, else the
-// README (the three x-show conditions on projectTab==='overview' in
-// app/index.html). A reader cannot switch between them, so each is a unit of
-// its own; the README and landing renderings draw from the shell.
-const RENDERINGS = {
-  'project/overview': [
-    { key: 'readme', name: 'README', own: false },
-    { key: 'installation', name: 'installation', own: true },
-    { key: 'landing', name: 'landing page', own: false },
-  ],
-};
+// Which of a route's tabs its declared files draw, where that is not all of
+// them. The Project view's route names the PowerShell outpost view's files,
+// which draw its Outpost tab; every other Project tab (the README Overview, a
+// landing page framed in App, Board, Pages, Files and its Docs mode) renders
+// from the shell.
+const OWN_TABS = { project: ['outpost'] };
 // A route that draws no screen of its own declares the tab address a bare
 // visit settles on (`lands`): the Map opens on a tab, ?view=routes forwards to
 // the Map's Views tab, and ?view=project opens on its Overview. It is counted
@@ -142,10 +134,8 @@ for (const r of routes) {
   for (const t of tabs) {
     const tab = { ...base, unit: `web-tools:view/${r.key}/${t}`, kind: 'tab', tab: t,
       label: `${r.label}: ${title(t)}`, address: `?view=${r.key}&tab=${t}`, files: own.join(';'), attribution: 'shared' };
-    const ways = RENDERINGS[`${r.key}/${t}`];
-    if (!ways) { add(tab); continue; }
-    for (const w of ways) add({ ...tab, unit: `${tab.unit}/${w.key}`, label: `${tab.label} (${w.name})`,
-      files: w.own ? own.join(';') : 'app/index.html', attribution: w.own ? 'shared' : 'shell' });
+    if (OWN_TABS[r.key] && !OWN_TABS[r.key].includes(t)) { add({ ...tab, files: 'app/index.html', attribution: 'shell' }); continue; }
+    add(tab);
   }
 }
 for (const l of landed) {

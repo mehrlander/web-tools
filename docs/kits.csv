@@ -35,7 +35,6 @@ lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",652,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",98,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,18,yes
-lib/kits/installation.js,Installation,"Installation state: what the repository holds for a work installation that has no Git checkout, where each file is meant to go, what has been observed about…",361,no,no,2,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",232,no,yes,21,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
@@ -57,6 +56,7 @@ lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,357
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
 lib/kits/powershell-editor.js,PowerShellEditor,"The PowerShell workspace's editor, on CodeMirror 6.",267,no,no,1,yes
 lib/kits/powershell-language.js,PowerShellLanguage,"Browser-only, heuristic PowerShell and XAML inspection for the code workspace.",366,no,no,1,yes
+lib/kits/powershell-outpost.js,PowerShellOutpost,"PowerShell outpost state: what the repository holds for the work computer's PowerShell suite, which has no Git checkout, where each file is meant to go, what…",436,no,no,2,yes
 lib/kits/powershell-workspace.js,PowerShellWorkspace,PowerShell code workspace data.,304,no,no,1,yes
 lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",810,no,no,3,yes
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes
@@ -78,7 +78,7 @@ lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",291,no,no,6,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1294,no,no,3,yes
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",190,no,no,1,yes
-lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as installation evidence.,176,no,no,2,yes
+lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,534,yes,yes,11,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
@@ -86,7 +86,7 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",654,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1449,no,yes,29,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1535,no,yes,29,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",29,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",508,no,no,5,yes

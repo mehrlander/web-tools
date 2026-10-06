@@ -36,13 +36,13 @@ web-tools:view/jots,list-stack,list-stack,,,,list-stack is not a code with parts
 web-tools:view/landing,document,document,,,,document is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/lists,list-stack,list-stack,,,,list-stack is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38; body 38; actions 38; title 38; links 38; summary 38,,,holds: 38 items shown,count-chips;search,,,9a538b571eff
-web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 48; item 20; title 20,,,holds: 20 items shown,tabs,,,9a538b571eff
-web-tools:view/project/docs,list,list,no kit draws this code,list 1; item 78; title 78; group 8; meta 8,,,holds: 78 items shown,tabs;search,,,9a538b571eff
-web-tools:view/project/files,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
-web-tools:view/project/overview/installation,list-detail,list-detail,no kit draws this code,list 1; group 6; meta 9; item 5; title 5; actions 5; detail 1,,,holds: the pick changed the detail; the selection moved to it,tabs;count-chips,,,9a538b571eff
-web-tools:view/project/overview/landing,host,host,,,,host is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
-web-tools:view/project/overview/readme,document,document,,,,document is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
-web-tools:view/project/pages,card-grid,card-grid,no kit draws this code,list 1,,,unchecked: no item shown at this address,tabs,,,9a538b571eff
+web-tools:view/project/app,host,host,,,,host is not a code with parts,no promise checked for this code,tabs;subtabs (hidden),,,5a41bba1d421
+web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 46; item 19; title 19,,,holds: 19 items shown,tabs;subtabs (hidden),,,5a41bba1d421
+web-tools:view/project/docs,list-detail,list-detail,no kit draws this code,list 1; item 76; title 76; group 9; meta 9; detail 1,,,holds: the pick changed the detail; the selection moved to it,tabs;subtabs;search,,,5a41bba1d421
+web-tools:view/project/files,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,tabs;subtabs;search (hidden),,,5a41bba1d421
+web-tools:view/project/outpost,list-detail,list-detail,no kit draws this code,list 1; group 6; meta 9; item 5; title 5; actions 5; detail 1,,,holds: the pick changed the detail; the selection moved to it,tabs;count-chips;subtabs (hidden),,,5a41bba1d421
+web-tools:view/project/overview,document,document,,,,document is not a code with parts,no promise checked for this code,tabs;subtabs (hidden),,,5a41bba1d421
+web-tools:view/project/pages,card-grid,card-grid,no kit draws this code,list 1,,,unchecked: no item shown at this address,tabs;subtabs (hidden),,,5a41bba1d421
 web-tools:view/proposals,list,list,no kit draws this code,list 1; item 2; meta 4; title 2; summary 2; body 4; actions 2; links 4,,,holds: 2 items shown,lede,,,9a538b571eff
 web-tools:view/public,list-detail,list-detail,no kit draws this code,list 1; item 2770; title 2770; meta 2770; detail 1,,,holds: the pick changed the detail; the selection moved to it,selector;search,,,9a538b571eff
 web-tools:view/repos,card-grid,card-grid,no kit draws this code,list 1; group 1; meta 10; actions 3; item 2; title 2; links 5; summary 2,,,holds: 2 items shown,,,,9a538b571eff

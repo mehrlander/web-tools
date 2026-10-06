@@ -1,4 +1,4 @@
-// lib/kits/installation.js — the installation ledger's derivation, apart from
+// lib/kits/powershell-outpost.js — the outpost ledger's derivation, apart from
 // the pane that shows it. The subject is a work computer nothing here can
 // inspect, so the test walks the one sequence the design has to get right:
 // a file begins unknown, a supplied copy is compared (browser-local, and
@@ -19,8 +19,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const win = { crypto: webcrypto, GH: { FRESH: { cache: 'no-store' }, toBase64: s => Buffer.from(s, 'utf8').toString('base64') } };
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(win);
-new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/installation.js'), 'utf8'))(win);
-const K = win.Installation;
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/powershell-outpost.js'), 'utf8'))(win);
+const K = win.PowerShellOutpost;
 
 const MANIFEST = JSON.stringify({
   as_of: '2026-09-14', root: 'Documents\\WindowsPowerShell', observations: 'projects/wps/data/observations.csv',
@@ -30,7 +30,7 @@ const MANIFEST = JSON.stringify({
     { repo: 'app/Forms/', area: 'Forms', installs: 'Forms/' },
     { repo: 'app/Scripts/', area: 'Scripts', installs: null },
   ],
-  doc: 'projects/wps/docs/INSTALLATION.md',
+  doc: 'projects/wps/docs/OUTPOST.md',
   local_areas: [
     { name: 'Leg', status: 'unresolved', shape: 'reportedly bill collections' },
     { name: 'ISELog', status: 'local-only', shape: 'ZIP snapshots of editor text' },
@@ -50,7 +50,7 @@ const tree = [
   blob('app/Forms/Bookmarks/Bookmarks.xaml', sha40('6')),
   blob('app/Forms/HTMLViewer/HTMLViewer.xaml', sha40('7')),
   blob('app/Scripts/Demos/Demo.ps1', sha40('8')),
-  blob('docs/INSTALLATION.md', sha40('9')),
+  blob('docs/OUTPOST.md', sha40('9')),
   { type: 'tree', path: P + '/app/Modules' },
 ];
 const m = K.manifest(MANIFEST);
@@ -72,7 +72,7 @@ test('the manifest normalizes destinations: a string, the root, or none', () => 
 // reasoning. Reading a prose field here would be the first step back toward
 // the same policy written down twice, so the normalizer carries none.
 test('the manifest carries the document pointer and no explanatory prose', () => {
-  assert.equal(m.doc, 'projects/wps/docs/INSTALLATION.md');
+  assert.equal(m.doc, 'projects/wps/docs/OUTPOST.md');
   for (const c of m.correspondence) assert.deepEqual(Object.keys(c).sort(), ['area', 'installs', 'repo']);
   for (const a of m.localAreas) assert.deepEqual(Object.keys(a).sort(), ['name', 'shape', 'status']);
   assert.equal(m.localAreas[0].shape, 'reportedly bill collections', 'shape is a structural line, not policy');
@@ -87,12 +87,12 @@ test('the manifest carries the document pointer and no explanatory prose', () =>
 });
 
 const LEDGER = P + '/data/observations.csv';
-const MANIFEST_PATH = P + '/data/installation.json';
+const MANIFEST_PATH = P + '/data/outpost.json';
 const pendingEntry = { path: 'app/Modules/Forms/Forms.psm1', since: '2026-09-14', transfer: 'changed',
   limit: 'Module import has not run on the work computer' };
 const adoptionManifest = (entries = [pendingEntry]) => ({ ...JSON.parse(MANIFEST), pending_adoption: entries });
 
-test('pending adoption carries transfer limits without turning them into installation evidence', () => {
+test('pending adoption carries transfer limits without turning them into outpost evidence', () => {
   const raw = adoptionManifest([pendingEntry,
     { path: 'app/Forms/Bookmarks/Bookmarks.ps1', since: '2026-09-15', transfer: 'new', limit: 'Live form untested', note: 'drop prose' },
     { path: 'app/Scripts/Demos/Demo.ps1', transfer: 'new' },
@@ -126,7 +126,7 @@ test('the inventory places only app/ material, by the manifest, and pairs a form
   assert.deepEqual(items.map(it => it.rel), [
     'app/Forms/Bookmarks/Bookmarks.ps1', 'app/Forms/Bookmarks/Bookmarks.xaml', 'app/Forms/HTMLViewer/HTMLViewer.xaml',
     'app/Modules/Forms/Forms.psm1', 'app/Modules/Forms/Theme.xaml', 'app/Modules/ISE/Tools/Buttons.xml',
-    'app/Profile.ps1', 'app/Scripts/Demos/Demo.ps1'], 'docs/ and tree nodes are not installation material');
+    'app/Profile.ps1', 'app/Scripts/Demos/Demo.ps1'], 'docs/ and tree nodes are not outpost material');
   assert.equal(by('app/Modules/Forms/Forms.psm1').installs, 'Modules/Forms/Forms.psm1');
   assert.equal(by('app/Profile.ps1').installs, '', 'the profile lands at the root under a filename nobody has verified');
   assert.equal(by('app/Scripts/Demos/Demo.ps1').installs, null, 'a script has no destination');
@@ -265,7 +265,7 @@ test('a transfer script places the exact bytes under the manifest root and claim
   assert.match(profile, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\It''s\.ps1'\r$/m);
   assert.match(profile, /filename; adjust \$dest/);
   assert.match(K.transferScript({ ...base, root: 'C:\\Tools\\' }), /^\$dest = 'C:\\Tools\\Modules\\Forms\\Forms\.psm1'\r$/m);
-  assert.throws(() => K.transferScript({ ...base, installs: null }), /no installation destination/);
+  assert.throws(() => K.transferScript({ ...base, installs: null }), /no outpost destination/);
   assert.throws(() => K.transferScript({ ...base, blobSha: 'short' }), /Git blob sha/);
   assert.throws(() => K.transferScript({ ...base, bytes: 'text' }), /source bytes/);
 });
@@ -278,7 +278,7 @@ test('append reads fresh, appends one line, and PUTs against the sha it read', a
   const put = calls[1];
   assert.equal(put[2], 'PUT'); assert.equal(put[3].sha, sha40('c')); assert.equal(put[3].branch, 'main');
   assert.equal(Buffer.from(put[3].content, 'base64').toString('utf8'), CSV_HEAD + 'x,y\n' + K.line(r) + '\n');
-  assert.match(put[3].message, /Record installation observation: installed Forms.psm1 via Web Tools/);
+  assert.match(put[3].message, /Record PowerShell outpost observation: installed Forms.psm1 via Web Tools/);
   assert.equal(out.commit, sha40('9')); assert.equal(out.line, K.line(r));
 });
 
@@ -521,4 +521,86 @@ test('navigation during an append cannot redirect the captured repository or bra
   assert.equal(s.gh.repo, 'owner/other');
   assert.ok(s.calls.every(c => c.repo === 'owner/work'));
   assert.equal(s.calls.find(c => c.method === 'PATCH').path, 'git/refs/heads/codex/adoption');
+});
+
+// The two derived tables a workspace may declare (loads.csv and an
+// application table), and what the kit makes of them: a second grouping, and
+// the set a placement has to carry when a file needs another that is still
+// pending. The workspace's own check holds the same rule; this holds the
+// browser's reading of it.
+const DERIVED = { ...adoptionManifest([
+  { path: 'app/Profile.ps1', since: '2026-09-23', transfer: 'changed', limit: 'Menu untested', requires: ['app/Modules/Forms/Forms.psm1', 7] },
+  { path: 'app/Modules/Forms/Forms.psm1', since: '2026-09-14', transfer: 'changed', limit: 'Unrun' },
+  { path: 'app/Forms/Bookmarks/Bookmarks.ps1', since: '2026-09-15', transfer: 'new', limit: 'Unrun', requires: [] },
+  { path: 'app/Forms/Bookmarks/Bookmarks.xaml', since: '2026-09-15', transfer: 'new', limit: 'Unrun' },
+]), loads: P + '/data/loads.csv', applications: P + '/data/office-uses.csv' };
+const LOADS = 'path,loads,how,evidence\n'
+  + 'app/Profile.ps1,app/Forms/Bookmarks/Bookmarks.ps1,form,line 1\n'
+  + 'app/Profile.ps1,app/Modules/Paths/Paths.psm1,import,line 2\n'
+  + 'app/Forms/Bookmarks/Bookmarks.ps1,app/Forms/Bookmarks/Bookmarks.xaml,call,line 3: Import-Form\n'
+  + 'app/Forms/Bookmarks/Bookmarks.ps1,app/Modules/Forms/Forms.psm1,import,line 4\n';
+const USES = 'path,app,how,evidence\n'
+  + 'app/Forms/Bookmarks/Bookmarks.ps1,Chrome,name,Bookmarks\n'
+  + 'app/Forms/Bookmarks/Bookmarks.xaml,Chrome,name,Bookmarks\n'
+  + 'app/Profile.ps1,Chrome,loads,app/Forms/Bookmarks/Bookmarks.ps1\n'
+  + 'app/Profile.ps1,Excel,loads,app/Modules/ExcelService/ExcelService.psm1\n';
+
+test('the manifest names the derived tables and carries `requires` only when it lists something', () => {
+  const d = K.manifest(DERIVED);
+  assert.equal(d.loads, P + '/data/loads.csv');
+  assert.equal(d.applications, P + '/data/office-uses.csv');
+  assert.deepEqual(d.pendingAdoption[0].requires, ['app/Modules/Forms/Forms.psm1'], 'a non-string entry is dropped');
+  assert.equal('requires' in d.pendingAdoption[2], false, 'an empty list reads as none');
+  assert.equal(K.manifest('{}').loads, '');
+});
+
+test('load edges and application uses read as repository paths', () => {
+  const e = K.edges(LOADS, P);
+  assert.equal(e.length, 4);
+  assert.deepEqual(e[0], { from: P + '/app/Profile.ps1', to: P + '/app/Forms/Bookmarks/Bookmarks.ps1', how: 'form', evidence: 'line 1' });
+  assert.deepEqual(K.edges('', P), []);
+  const u = K.uses(USES, P + '/');
+  assert.deepEqual(u.map(x => x.app), ['Chrome', 'Chrome', 'Chrome', 'Excel']);
+  assert.equal(u[2].path, P + '/app/Profile.ps1', 'a trailing slash on the project path is tolerated');
+});
+
+test('each application lists the files it reaches, in table order, and a file can reach two', () => {
+  const inv = K.inventory({ tree, manifest: K.manifest(DERIVED), projectPath: P });
+  const a = K.applicationFiles(inv, K.uses(USES, P));
+  assert.deepEqual(a.map(x => x.app), ['Chrome', 'Excel']);
+  assert.deepEqual([...a[0].paths], ['app/Forms/Bookmarks/Bookmarks.ps1', 'app/Forms/Bookmarks/Bookmarks.xaml', 'app/Profile.ps1'].map(r => P + '/' + r));
+  assert.deepEqual([...a[1].paths], [P + '/app/Profile.ps1'], 'a file reaching two applications belongs to both');
+  assert.deepEqual(K.applicationFiles(inv, K.uses(USES + 'app/Modules/Gone/Gone.psm1,Word,name,Gone\n', P)).map(x => x.app), ['Chrome', 'Excel'],
+    'an application only absent files reach has no pill');
+  assert.deepEqual(K.applicationFiles(inv, []), [], 'no table, no pills');
+});
+
+test('a placement carries every still-pending file it strictly needs, dependencies first', () => {
+  const d = K.manifest(DERIVED);
+  const inv = K.inventory({ tree, manifest: d, projectPath: P });
+  const e = K.edges(LOADS, P);
+  const names = rel => K.installSet(P + '/' + rel, inv, e).map(x => x.rel);
+  assert.deepEqual(names('app/Forms/Bookmarks/Bookmarks.ps1'), ['app/Forms/Bookmarks/Bookmarks.xaml', 'app/Forms/Bookmarks/Bookmarks.ps1'],
+    'a load of a `new` file is strict; a load of a `changed` file (Forms.psm1) is not');
+  assert.deepEqual(names('app/Profile.ps1'),
+    ['app/Forms/Bookmarks/Bookmarks.xaml', 'app/Forms/Bookmarks/Bookmarks.ps1', 'app/Modules/Forms/Forms.psm1', 'app/Profile.ps1'],
+    'the walk follows a strict dependency\'s own, and `requires` makes a changed file strict');
+  assert.deepEqual(names('app/Modules/Forms/Forms.psm1'), ['app/Modules/Forms/Forms.psm1'], 'nothing it loads is pending');
+  const placed = K.inventory({ tree, manifest: K.manifest({ ...DERIVED, pending_adoption: [] }), projectPath: P });
+  assert.deepEqual(K.installSet(P + '/app/Profile.ps1', placed, e).map(x => x.rel), ['app/Profile.ps1'], 'a file no longer pending is not carried');
+  assert.deepEqual(K.installSet(P + '/app/Nope.ps1', inv, e), []);
+});
+
+test('rows for a set land together and close every entry in one commit', async () => {
+  const ctl = { path: 'app/Forms/Bookmarks/Bookmarks.ps1', transfer: 'new', since: '2026-09-15', limit: 'Unrun' };
+  const xaml = { path: 'app/Forms/Bookmarks/Bookmarks.xaml', transfer: 'new', since: '2026-09-15', limit: 'Unrun' };
+  const s = atomicStub({ manifest: JSON.stringify(adoptionManifest([pendingEntry, ctl, xaml])) });
+  const a = rowOf({ path: P + '/' + xaml.path, blobSha: sha40('6') }), b = rowOf({ path: P + '/' + ctl.path, blobSha: sha40('5') });
+  const result = await s.append({ row: undefined, rows: [a, b] });
+  assert.equal(s.published(), true);
+  assert.equal(result.adoptionClosed, true);
+  assert.equal(s.files.get(LEDGER), CSV_HEAD + K.line(a) + '\n' + K.line(b) + '\n');
+  assert.deepEqual(JSON.parse(s.files.get(MANIFEST_PATH)).pending_adoption, [pendingEntry], 'both entries close, the third stays');
+  assert.equal(s.calls.filter(c => c.method === 'PATCH').length, 1, 'one ref update');
+  assert.match(s.calls.find(c => c.path === 'git/commits').body.message, /installed 2 files/);
 });

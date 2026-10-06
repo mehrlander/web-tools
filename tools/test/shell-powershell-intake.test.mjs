@@ -1,5 +1,5 @@
 // Execute the shipped shell against real Alpine selection lookup and the
-// correspondence parser. The Overview's receiver (installationView.takeCopy)
+// correspondence parser. The Outpost tab's receiver (powershellOutpostView.takeCopy)
 // is the boundary here; what it does with a copy is covered by its view tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,19 +37,19 @@ function fixture({ active = A, busy = false } = {}) {
   Alpine.store('browser', store);
   Alpine.store('toast', (icon, message, cls) => toasts.push({ icon, message, cls }));
   const shell = app();
-  shell.view = 'project'; shell.projectTab = 'overview'; shell.projectPath = 'projects/wps';
-  shell.installationItem = active; shell.syncUrl = () => {};
-  Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', installation: 'data/installation.json' } });
-  // The Overview's receiver: the shell hands it a copy for the selected file
-  // (openCorrespondence -> installationView.takeCopy) and the Overview shows it.
-  Alpine.data('installationView', () => ({ busy,
+  shell.view = 'project'; shell.projectTab = 'outpost'; shell.projectPath = 'projects/wps';
+  shell.powershellOutpostItem = active; shell.syncUrl = () => {};
+  Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', powershellOutpost: 'data/outpost.json' } });
+  // The Outpost tab's receiver: the shell hands it a copy for the selected file
+  // (openCorrespondence -> powershellOutpostView.takeCopy) and the Outpost tab shows it.
+  Alpine.data('powershellOutpostView', () => ({ busy,
     async takeCopy(target, sourceText, name, source) {
       if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
       received.push({ target, text: sourceText, meta: { name, source } });
       return true;
     } }));
   const el = window.document.createElement('div');
-  el.setAttribute('x-data', 'installationView()');
+  el.setAttribute('x-data', 'powershellOutpostView()');
   Alpine.mutateDom(() => { window.document.body.appendChild(el); Alpine.initTree(el); });
   mounted = el;
   const workspace = { captures: 0 };
@@ -81,7 +81,7 @@ function event(data, { target = { tagName: 'DIV' }, drop = false } = {}) {
 }
 const file = (name, contents = text) => ({ name, arrayBuffer: async () => new TextEncoder().encode(contents).buffer });
 
-test('desktop paste reaches the Overview for the selected file and preserves exact signed source', async () => {
+test('desktop paste reaches the Outpost tab for the selected file and preserves exact signed source', async () => {
   const h = fixture();
   const e = event(clipboard());
   await h.fire('paste', e);
@@ -226,7 +226,7 @@ test('native field drops and already-handled drops remain untouched', async () =
   assert.deepEqual(h.staged, []);
 });
 
-test('the Overview takes a copy in place, and Files keeps the Stage comparison route', async () => {
+test('the Outpost tab takes a copy in place, and Files keeps the Stage comparison route', async () => {
   const h = fixture();
   await h.shell.takeCorrespondence('overview copy');
   assert.equal(h.received[0].target.path, A);

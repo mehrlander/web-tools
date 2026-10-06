@@ -1,17 +1,19 @@
-// screenshot.mjs interaction scenario: the PROJECT VIEW's Overview as a
-// workspace that declares an `installation` manifest draws it, the installation
-// view (lib/alpineComponents/installation-view.js), which declares a List and
-// detail (data/ui-units/codebook.md, "Declaring a pattern in markup").
+// screenshot.mjs interaction scenario: the PROJECT VIEW's Outpost tab, which a
+// workspace that declares a `powershellOutpost` manifest gains: the
+// PowerShell outpost view (lib/alpineComponents/powershell-outpost-view.js),
+// which declares a List and detail (data/ui-units/codebook.md, "Declaring a
+// pattern in markup").
 //
 //   node tools/render/screenshot.mjs app/index.html \
-//     --script tools/render/scenarios/project-overview-installation.mjs \
-//     --out tools/.preview/project-overview-installation.png
+//     --script tools/render/scenarios/project-outpost.mjs \
+//     --out tools/.preview/project-outpost.png
 //
-// The one workspace that declares an installation is private (home's
+// The one workspace that declares a PowerShell outpost is private (home's
 // projects/wps), so this stubs a manifest with one stand-in workspace and
-// answers its reads with the fixture tools/test/installation-view.test.mjs
+// answers its reads with the fixture tools/test/powershell-outpost-view.test.mjs
 // mounts: a PowerShell profile, a module, a form and a script against a
-// manifest of four areas. Nothing private reaches a public shot.
+// manifest of four areas, plus a two-row applications table so the shot
+// carries the application pills. Nothing private reaches a public shot.
 export default async function (page) {
   const ok = await page.evaluate(async () => {
     if (!window.Alpine || !window.__shell) return 'no shell';
@@ -19,10 +21,11 @@ export default async function (page) {
     const shell = window.__shell;
     const store = window.Alpine.store('browser');
     const P = 'wps';
-    const MANIFEST = { projects: [{ path: P, label: 'wps', installation: P + '/data/installation.json' }] };
+    const MANIFEST = { projects: [{ path: P, label: 'wps', powershellOutpost: P + '/data/outpost.json' }] };
     const FILES = {
-      [P + '/data/installation.json']: JSON.stringify({
+      [P + '/data/outpost.json']: JSON.stringify({
         root: 'Documents\\WindowsPowerShell', observations: P + '/data/observations.csv',
+        applications: P + '/data/office-uses.csv',
         correspondence: [
           { repo: 'app/Profile.ps1', area: 'Profile', installs: '' },
           { repo: 'app/Modules/', area: 'Modules', installs: 'Modules/' },
@@ -34,6 +37,8 @@ export default async function (page) {
         pending_adoption: [],
       }),
       [P + '/data/observations.csv']: 'date,path,kind,revision,blob_sha,local_sha256,match,method,note\n',
+      [P + '/data/office-uses.csv']: 'path,app,how,evidence\napp/Profile.ps1,Excel,loads,app/Modules/ExcelService/ExcelService.psm1\n'
+        + 'app/Scripts/Demo.ps1,Outlook,com,line 1\n',
       [P + '/app/Profile.ps1']: '# profile\nImport-Module Forms\n',
       [P + '/app/Modules/Forms/Forms.psm1']: 'function Import-Form {}\n',
       [P + '/app/Forms/Bookmarks/Bookmarks.ps1']: '# controller\n',
@@ -62,10 +67,10 @@ export default async function (page) {
     store.ref = 'main';
     store.repo = 'mehrlander/web-tools';
     await new Promise(r => setTimeout(r, 300));
-    shell.goProject(P, 'overview');
+    shell.goProject(P, 'outpost');
     return true;
   });
-  if (ok !== true) throw new Error('project-overview-installation scenario: ' + ok);
+  if (ok !== true) throw new Error('project-outpost scenario: ' + ok);
   await page.waitForFunction(
     () => [...document.querySelectorAll('[data-pattern="list-detail"] [data-part="item"]')].some(e => e.getClientRects().length),
     null, { timeout: 20000 });

@@ -26,4 +26,4 @@ pasted, dropped or chosen copy against a pinned revision, in the Stage.
   and Windows-1252 by choice.
 - A copy that differs only in line endings is not an exact match.
 - Checks are kept in this browser only and never written to a repository;
-  recording an installation belongs to the Project view ([project.md](project.md)).
+  recording an outpost observation belongs to the Project view ([project.md](project.md)).

@@ -187,10 +187,9 @@
   // The allowlist that decides what a visit may store (window.VisitLog).
   await gh.load('kits/visit-log.js');
   await gh.load('kits/file-correspondence.js');
-  // The installation ledger's derivation and its one write, behind the
-  // project view's Installation pill.
-  await gh.load('kits/installation.js');
-  // The state icons the Overview shares with the shortcut views.
+  // The PowerShell outpost's state derivation and its one write, behind its view.
+  await gh.load('kits/powershell-outpost.js');
+  // The state icons the PowerShell outpost view shares with the shortcut views.
   await gh.load('kits/sync-status.js');
   await gh.load('kits/powershell-workspace.js');
   await gh.load('kits/powershell-language.js');
@@ -1519,78 +1518,91 @@ html.dk-dragging main{transition:none !important}
     <div x-show="view==='project'" class="h-full flex flex-col">
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
-            <div class="shrink-0 px-6 pt-8">
-            <!-- A project's masthead: the repository it lives in, then the
-                 project, under a project mark. The ways out are icons beside
-                 the name, the convention every project row in the sidebar
-                 already follows: the github-logo opens the folder on GitHub
-                 and peeks its README, the folder opens it in Files, and a
-                 folder board keeps its icon (a file board has its own pill).
-                 These were three outlined buttons until 2026-09-24. -->
-            <div class="flex items-center gap-3 mb-4 min-w-0">
-              <span class="shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
-                <i class="ph-duotone ph-kanban text-2xl"></i></span>
-              <div class="min-w-0">
-                <button @click="goLanding()" class="block max-w-full truncate font-mono text-sm text-base-content/50 hover:text-primary transition-colors"
-                        :title="$store.browser.repo" x-text="$store.browser.repo"></button>
-                <div class="flex items-center gap-1 min-w-0">
-                  <h1 class="text-2xl font-bold tracking-tight truncate mr-1" x-text="project.label"></h1>
-                  <a :href="projectGithubUrl($store.browser.repo, project)"
-                     :data-peek="projectReadmePeek($store.browser.repo, project)" target="_blank" rel="noopener"
-                     :title="project.path + ' on GitHub'" :aria-label="project.path + ' on GitHub'"
-                     class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
-                    <i class="ph ph-github-logo text-xl leading-none"></i></a>
-                  <button @click="goProjectTab('files')" :title="project.path + ': files'" :aria-label="project.path + ': files'"
-                          class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
-                    <i class="ph ph-folder-simple text-xl leading-none"></i></button>
-                  <button x-show="project.board && !projectBoardFile"
-                          @click="openProjectBoard($store.browser.repo, project)"
-                          :title="'Task board: ' + project.board" aria-label="Task board"
-                          class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
-                    <i class="ph ph-list-checks text-xl leading-none"></i></button>
-                </div>
-              </div>
+            <div class="shrink-0 px-6 pt-6">
+            <!-- A project's masthead, on one line: the project mark, which is
+                 the switcher (the repo's projects in the shared anchored menu,
+                 with the project's folder on GitHub), then the name, the app's
+                 own icon where the workspace declares a landing (its
+                 landingIcon, an SVG in the repo; the App tab has no pill of its
+                 own), and the repository, which opens the repo. -->
+            <div class="flex items-center gap-2.5 min-w-0">
+              <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'projects', { align: 'left' })"
+                      class="relative shrink-0 size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
+                      :aria-expanded="!!repoMenuAt && menuKind === 'projects'" aria-haspopup="menu"
+                      :title="'Projects in ' + $store.browser.repo" :aria-label="'Projects in ' + $store.browser.repo" data-project-switch>
+                <i class="ph-duotone ph-kanban text-xl"></i>
+                <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i></button>
+              <h1 class="text-xl font-bold tracking-tight truncate" x-text="project.label"></h1>
+              <template x-if="project.landing">
+                <button @click="goProjectTab('app')" :aria-pressed="projectPane==='app'" data-project-app
+                        x-effect="loadProjectAppIcon()"
+                        :title="'Open ' + project.label + '\'s app'" :aria-label="'Open ' + project.label + '\'s app'"
+                        class="shrink-0 rounded p-0.5 transition-colors"
+                        :class="projectPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
+                  <img x-show="projectAppIcon" :src="projectAppIcon" alt="" class="block size-4">
+                  <i x-show="!projectAppIcon" class="ph ph-app-window text-base text-primary"></i></button>
+              </template>
+              <button @click="goLanding()" class="min-w-0 truncate font-mono text-xs text-base-content/40 hover:text-primary transition-colors"
+                      :title="$store.browser.repo" x-text="$store.browser.repo"></button>
             </div>
 
-            <!-- The pill row. Pages appears only when the catalog claims
-                 something for this workspace; a pill for an empty grid would be
-                 furniture. Docs is always offered, since every workspace is
-                 presumed to hold markdown; its count fills in after the first
-                 visit rather than costing a tree fetch up front. -->
-            <!-- max-w-full + overflow-x-auto: a clipped pill is an unreachable
-                 tab. Installation left the row on 2026-09-14 and became the
-                 Overview for a workspace that declares one (see below), so the
-                 row is back to four. -->
-            <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
-              <button role="tab" @click="goProjectTab('overview')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
-                      :class="projectTab==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph text-lg" :class="project.landing ? 'ph-planet' : 'ph-house'"></i>Overview</button>
-              <button role="tab" x-show="projectBoardFile" @click="goProjectTab('board')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+            <!-- The tab row, full width under the masthead, every tab named.
+                 Below sm a tab is its label alone, which is what lets five
+                 fit a phone; the icons return from sm up. Outpost appears
+                 where the workspace declares a PowerShell outpost and Board
+                 where it has a file board. Pages is always offered, disabled
+                 where the catalog claims nothing for the workspace, so the
+                 place for pages is visible before there are any. Docs is a
+                 mode of Files (the switch under this row), not a tab.
+                 overflow-x-auto: a clipped tab is an unreachable one. -->
+            <div class="mt-2 inline-flex max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
+              <button role="tab" @click="goProjectTab('overview')" :aria-selected="projectPane==='overview'"
+                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                      :class="projectPane==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-house text-base hidden sm:inline"></i>Overview</button>
+              <button role="tab" x-show="project.powershellOutpost" @click="goProjectTab('outpost')" :aria-selected="projectPane==='outpost'"
+                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                      :class="projectPane==='outpost' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-desktop text-base hidden sm:inline"></i>Outpost</button>
+              <button role="tab" x-show="projectBoardFile" @click="goProjectTab('board')" :aria-selected="projectTab==='board'"
+                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectTab==='board' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-list-checks text-lg"></i>Board</button>
-              <button role="tab" x-show="projectPages.length" @click="goProjectTab('pages')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
-                      :class="projectTab==='pages' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-squares-four text-lg"></i>Pages
-                <span class="font-mono text-sm opacity-60" x-text="projectPages.length"></span></button>
-              <button role="tab" @click="goProjectTab('docs')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
-                      :class="projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-files text-lg"></i>Docs
-                <span x-show="projectDocsCount" class="font-mono text-sm opacity-60" x-text="projectDocsCount"></span></button>
-              <button role="tab" @click="goProjectTab('files')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
-                      :class="projectTab==='files' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-folder-simple text-lg"></i>Files</button>
+                <i class="ph ph-list-checks text-base hidden sm:inline"></i>Board</button>
+              <button role="tab" @click="goProjectTab('pages')" :disabled="!projectPages.length" :aria-selected="projectTab==='pages'"
+                      :title="projectPages.length ? '' : 'No pages in this workspace yet'"
+                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                      :class="projectTab==='pages' ? 'bg-base-100 text-primary shadow-sm' : projectPages.length ? 'text-base-content/60 hover:text-base-content' : 'text-base-content/25 cursor-default'">
+                <i class="ph ph-squares-four text-base hidden sm:inline"></i>Pages
+                <span x-show="projectPages.length" class="font-mono text-xs opacity-60" x-text="projectPages.length"></span></button>
+              <button role="tab" @click="goProjectTab(projectTab==='docs' ? 'docs' : 'files')" :aria-selected="projectTab==='files' || projectTab==='docs'"
+                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                      :class="projectTab==='files' || projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-folder-simple text-base hidden sm:inline"></i>Files</button>
+            </div>
+
+            <!-- Files has two modes: the folder-at-a-time browser, and Docs,
+                 the workspace's markdown as one tree (&tab=docs). The Map's
+                 compact count chip, as the PowerShell outpost view's filters. -->
+            <div x-show="projectTab==='files' || projectTab==='docs'" class="mt-3 flex items-center gap-1" role="group" aria-label="All files or docs" data-files-mode data-slot="frame:subtabs">
+              <button @click="goProjectTab('files')" :aria-pressed="projectTab==='files'"
+                      class="btn btn-xs gap-1" :class="projectTab==='files' ? 'btn-neutral' : 'btn-ghost'">
+                <i class="ph ph-folder-simple text-sm"></i>All files</button>
+              <button @click="goProjectTab('docs')" :aria-pressed="projectTab==='docs'"
+                      class="btn btn-xs gap-1" :class="projectTab==='docs' ? 'btn-neutral' : 'btn-ghost'">
+                <i class="ph ph-files text-sm"></i>Docs<span x-show="projectDocsCount" class="opacity-60 tabular-nums" x-text="projectDocsCount"></span></button>
+              <label x-show="projectTab==='docs'" class="ml-auto input input-xs input-bordered flex items-center gap-1 w-44 max-w-[45%]" data-slot="frame:search">
+                <i class="ph ph-magnifying-glass opacity-50"></i>
+                <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
+                     the tree instead of opening the sidebar finder. -->
+                <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0"></label>
             </div>
             </div>
 
-            <!-- Overview with a landing: the page itself, full-bleed under the
-                 header, like a repo's custom landing. The FAB carries the
-                 bust-out to the full-viewport page. -->
-            <template x-if="projectTab==='overview' && project.landing">
+            <!-- App: the workspace's landing page itself, full-bleed under the
+                 header, like a repo's custom landing, opened from the app icon
+                 beside the name. The FAB carries the bust-out to the
+                 full-viewport page. -->
+            <template x-if="projectPane==='app'">
               <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
@@ -1607,20 +1619,14 @@ html.dk-dragging main{transition:none !important}
               </div>
             </template>
 
-            <div x-show="projectTab!=='files' && !(projectTab==='overview' && project.landing)"
+            <div x-show="projectPane!=='files' && projectPane!=='app'"
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
-              <!-- OVERVIEW IS WHATEVER THE WORKSPACE DECLARES AS ITS FRONT, in
-                   three cases: a `landing` page (the iframe above), else an
-                   `installation` manifest (the block at the bottom of this
-                   pane), else the README, the same promise a repo's default
-                   landing makes one level up. The installation view had its own
-                   pill named Installation until 2026-09-14; the name described
-                   the manifest it reads rather than what the workspace is for,
-                   and a workspace whose front page is that view should open on
-                   it rather than on a README a reader must leave to find. The
-                   README is not lost: the header's GitHub icon peeks it. -->
-              <div x-show="projectTab==='overview' && !project.installation">
+              <!-- THE OVERVIEW IS THE README, in every workspace, the promise a
+                   repo's Overview makes one level up. A landing is the App (the
+                   icon beside the name) and a PowerShell outpost its own tab;
+                   until 2026-10-06 either one took this slot instead. -->
+              <div x-show="projectPane==='overview'">
                 <div x-show="projectLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
@@ -1725,6 +1731,9 @@ html.dk-dragging main{transition:none !important}
                 <!-- data-pattern and data-part declare this a Card grid and name
                      its parts (data/ui-units/codebook.md, "Declaring a pattern
                      in markup"); nothing at runtime reads them. -->
+                <p x-show="!projectPages.length" class="text-base-content/40 italic text-base py-8">
+                  No pages in this workspace yet. A page the repo's .web-tools.json lists under this folder, or with this folder as its project, appears here.
+                </p>
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
                     <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
@@ -1748,60 +1757,73 @@ html.dk-dragging main{transition:none !important}
                 </div>
               </div>
 
-              <!-- Docs: every markdown file in the workspace, derived from one
-                   recursive tree read. The workspace's own root files lead,
-                   then one group per folder with its full relative path as the
-                   header, so depth reads without a tree control; a curated
-                   docs/README.md (or the older DOCS.md), where the workspace
-                   keeps one, renders above the mechanical listing, and source
-                   packages are counted rather than listed. Rows open in the shell's viewer, the
-                   same place the Board button reads. -->
-              <div x-show="projectTab==='docs'">
+              <!-- Files › Docs: every markdown file in the workspace, from one
+                   recursive tree read, as a folder tree with counts rolled up
+                   (the Map's Docs rail, with the files nested). The first level
+                   opens, deeper folders wait for a tap, a filter opens every
+                   match, and READMEs lead their folder. A document reads beside
+                   the tree, over it on a narrow pane, and rides as &item=; the
+                   curated docs/README.md, where a workspace keeps one, is what
+                   the reader shows before anything is picked. Source packages
+                   are counted, not listed. -->
+              <div x-show="projectTab==='docs'" class="@container">
                 <div x-show="projectDocsLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
-                <!-- data-pattern and data-part declare the div below a List and
-                     name its parts (data/ui-units/codebook.md, "Declaring a
-                     pattern in markup"); nothing at runtime reads them. The
-                     curated index and the filter are not items, so the
-                     declaration holds the groups alone. -->
                 <template x-if="!projectDocsLoading && projectDocs">
-                  <div>
-                    <article x-show="projectDocsIndexHtml"
-                             class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content mb-8 pb-8 border-b border-base-200"
-                             x-html="projectDocsIndexHtml"></article>
-                    <div class="flex items-center gap-3 mb-4">
-                      <label class="input input-bordered flex items-center gap-1.5 w-64" data-slot="frame:search">
-                        <i class="ph ph-magnifying-glass opacity-50"></i>
-                        <!-- data-find-box: the Docs tab's own filter. -->
-                        <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0">
-                      </label>
-                      <span class="text-base text-base-content/40" x-text="projectDocsCount + ' files'"></span>
-                      <span x-show="projectDocsSourced" class="text-base text-base-content/40"
-                            x-text="'· ' + projectDocsSourced + ' inside source packages, not listed'"></span>
-                    </div>
-                    <div data-pattern="list" data-part="list">
-                    <template x-for="g in projectDocsGroups" :key="g.dir">
-                      <section class="mb-6">
-                        <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2" data-part="group">
-                          <i class="ph ph-folder"></i><span x-text="g.dir"></span>
-                          <span class="badge badge-ghost badge-sm" x-text="g.files.length" data-part="meta"></span>
-                        </h3>
-                        <div class="flex flex-col">
-                          <template x-for="f in g.files" :key="f.rel">
-                            <button @click="openProjectDoc(f.rel)"
-                                    class="flex items-center gap-2 px-2 py-1 text-base text-left rounded-lg hover:bg-base-200 text-base-content/80 hover:text-base-content transition-colors cursor-pointer" data-part="item">
-                              <i class="ph ph-file-text text-base-content/40"></i>
-                              <span class="truncate" x-text="f.name" data-part="title"></span>
-                            </button>
+                  <div class="grid gap-6 @3xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]" data-pattern="list-detail">
+                    <div class="min-w-0 flex-col" :class="projectDocSel ? 'hidden @3xl:flex' : 'flex'" data-part="list">
+                      <template x-for="r in projectDocsRows" :key="r.key">
+                        <button @click="r.kind === 'dir' ? toggleProjectDocsDir(r.dir, r.open) : openProjectDoc(r.rel)"
+                                class="flex items-center gap-2 py-1 pr-2 rounded-lg text-left transition-colors min-w-0"
+                                :style="'padding-left:' + (0.5 + r.depth * 1.1) + 'rem'"
+                                :class="r.kind === 'dir' ? 'text-base font-mono text-base-content/60 hover:bg-base-200'
+                                  : projectDocSel === r.rel ? 'text-base bg-primary/10 text-primary' : 'text-base text-base-content/80 hover:bg-base-200'"
+                                :aria-expanded="r.kind === 'dir' ? r.open : null" :aria-current="r.kind === 'file' && projectDocSel === r.rel ? 'true' : null"
+                                :data-part="r.kind === 'dir' ? 'group' : 'item'">
+                          <template x-if="r.kind === 'dir'">
+                            <span class="flex items-center gap-2 min-w-0">
+                              <i class="ph text-xs" :class="r.open ? 'ph-caret-down' : 'ph-caret-right'"></i>
+                              <i class="ph" :class="r.open ? 'ph-folder-open' : 'ph-folder'"></i>
+                              <span class="truncate" x-text="r.name"></span>
+                              <span class="badge badge-ghost badge-sm" x-text="r.n" data-part="meta"></span>
+                            </span>
                           </template>
-                        </div>
-                      </section>
-                    </template>
+                          <template x-if="r.kind === 'file'">
+                            <span class="flex items-center gap-2 min-w-0">
+                              <i class="ph ph-file-text text-base-content/40"></i>
+                              <span class="truncate" x-text="r.name" data-part="title"></span>
+                            </span>
+                          </template>
+                        </button>
+                      </template>
+                      <p x-show="!projectDocsRows.length" class="text-base-content/40 italic text-base py-8">
+                        No markdown files<span x-show="projectDocsQ"> match “<span x-text="projectDocsQ"></span>”</span>.
+                      </p>
+                      <p x-show="projectDocsSourced" class="mt-3 text-sm text-base-content/40"
+                         x-text="projectDocsSourced + ' more inside source packages, not listed'"></p>
                     </div>
-                    <p x-show="!projectDocsGroups.length" class="text-base-content/40 italic text-base py-8">
-                      No markdown files<span x-show="projectDocsQ"> match “<span x-text="projectDocsQ"></span>”</span>.
-                    </p>
+                    <div class="min-w-0" :class="projectDocSel ? 'block' : 'hidden @3xl:block'" data-part="detail">
+                      <div x-show="projectDocSel" class="flex items-center gap-1 mb-3 min-w-0">
+                        <button @click="closeProjectDoc()" class="btn btn-ghost btn-sm btn-square @3xl:hidden" aria-label="Back to the tree">
+                          <i class="ph ph-arrow-left text-base"></i></button>
+                        <span class="min-w-0 truncate font-mono text-sm text-base-content/50" x-text="projectDocSel"></span>
+                        <button @click="openFile(projectPath + '/' + projectDocSel)" class="ml-auto shrink-0 btn btn-ghost btn-sm btn-square"
+                                title="Open in the viewer" aria-label="Open in the viewer"><i class="ph ph-arrow-square-out text-base"></i></button>
+                      </div>
+                      <div x-show="projectDocSel && projectDocLoading" class="flex justify-center py-16">
+                        <span class="loading loading-dots loading-md opacity-30"></span>
+                      </div>
+                      <article x-show="projectDocSel && !projectDocLoading" data-pattern="document"
+                               class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                               @click="onProjectDocClick($event)" x-html="projectDocHtml"></article>
+                      <article x-show="!projectDocSel && projectDocsIndexHtml"
+                               class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                               @click="onReadmeClick($event)" x-html="projectDocsIndexHtml"></article>
+                      <p x-show="!projectDocSel && !projectDocsIndexHtml" class="text-base-content/40 italic text-base py-8">
+                        Pick a document to read it here.
+                      </p>
+                    </div>
                   </div>
                 </template>
                 <p x-show="!projectDocsLoading && !projectDocs" class="text-base-content/40 italic text-base py-8">
@@ -1809,16 +1831,17 @@ html.dk-dragging main{transition:none !important}
                 </p>
               </div>
 
-              <!-- The Overview of a workspace that declares an installation
-                   manifest: its PowerShell material against a work installation
-                   with no Git checkout (lib/alpineComponents/installation-view.js).
+              <!-- Outpost: the PowerShell outpost view, for a workspace that declares a
+                   `powershellOutpost` manifest: its PowerShell material against
+                   the work computer, which has no Git checkout
+                   (lib/alpineComponents/powershell-outpost-view.js).
                    Mounted per project through a keyed one-row x-for, so switching
                    workspaces or leaving the tab remounts it with the right
                    manifest rather than repainting a component that read the
                    previous one at init. -->
-              <div x-show="projectTab==='overview' && project.installation">
-                <template x-for="p in (projectTab==='overview' && project.installation ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
-                  <div x-data="installationView(p)"></div>
+              <div x-show="projectPane==='outpost'">
+                <template x-for="p in (projectPane==='outpost' ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
+                  <div x-data="powershellOutpostView(p)"></div>
                 </template>
               </div>
 
@@ -2119,7 +2142,7 @@ function app(){ return {
   // out is how you reach its full experience, subject-adopted FAB included.
   get actions(){
     let src = '', label = '';
-    if (this.view === 'project' && this.projectTab === 'overview' && this.projectLandingUrl) {
+    if (this.view === 'project' && this.projectPane === 'app' && this.projectLandingUrl) {
       src = this.projectLandingUrl;
       label = 'Open ' + (this.project?.label || 'project') + ' landing full-page';
     } else if (this.view === 'app' && this.appView && this.appViewUrl) {
@@ -4396,6 +4419,10 @@ function app(){ return {
       // overview. Junk (non-string, empty) reads as undeclared.
       const landing = (typeof o.landing === 'string' && o.landing)
         ? o.landing.replace(/^\/+/, '').replace(/\/+$/, '') : '';
+      // `landingIcon`: the app's own icon, an SVG beside its landing, drawn
+      // after the project's name as the way into the app.
+      const landingIcon = landing && typeof o.landingIcon === 'string' && o.landingIcon
+        ? o.landingIcon.replace(/^\/+/, '') : '';
       // `inbox` is the repo field one level down: where a deposit aimed at this
       // workspace lands, in the same parseBox grammar (a bare folder is
       // repo-root-relative like `tracker` and `landing`, `@ref:dir` names a
@@ -4414,15 +4441,16 @@ function app(){ return {
       // worth saying out loud.
       const inbox = (typeof o.inbox === 'string' && o.inbox && window.RepoAddress)
         ? window.RepoAddress.parseBox(o.inbox, repo) : null;
-      // `installation` is the repo field one level down that opens the project
-      // view's Installation pill: a repo-root-relative installation.json
+      // `powershellOutpost` is the repo field one level down that opens the
+      // PowerShell outpost view in the project's Overview tab: a
+      // repo-root-relative outpost.json
       // (correspondence rules and locally known areas) beside an observations
-      // ledger the pill appends to. Declared, never derived, for the inbox's
-      // reason: the pill WRITES to the ledger the manifest names, and a
+      // ledger the view appends to. Declared, never derived, for the inbox's
+      // reason: the view WRITES to the ledger the manifest names, and a
       // guessed path would be a write target nothing reads.
-      const installation = (typeof o.installation === 'string' && o.installation)
-        ? o.installation.replace(/^\/+/, '').replace(/\/+$/, '') : '';
-      out.push({ path, label: o.label || path.split('/').pop(), board, landing, inbox, installation });
+      const powershellOutpost = (typeof o.powershellOutpost === 'string' && o.powershellOutpost)
+        ? o.powershellOutpost.replace(/^\/+/, '').replace(/\/+$/, '') : '';
+      out.push({ path, label: o.label || path.split('/').pop(), board, landing, landingIcon, inbox, powershellOutpost });
     }
     return out;
   },
@@ -4453,8 +4481,10 @@ function app(){ return {
   // these properties directly instead, which is what makes picking a row in the
   // sidebar repaint the pane.
   projectPath: '',
-  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'files'
-  installationItem: '',     // the Installation pill's selected file (repo path), stamped as &item=
+  projectTab: 'overview',   // 'overview' | 'app' | 'outpost' | 'board' | 'pages' | 'files' | 'docs' (Files' Docs mode)
+  powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
+  projectAppIcon: '',       // the landing's icon (landingIcon) as a data URL, drawn after the name
+  _projectIconKey: '',
   projectHtml: '',
   projectLoading: false,
   _projectKey: '',
@@ -4469,6 +4499,11 @@ function app(){ return {
   projectDocsIndexHtml: '', // the curated docs/README.md (or DOCS.md), rendered above the mechanical listing
   projectDocsSourced: 0,    // markdown inside source packages, counted rather than listed
   _projectDocsKey: '',
+  projectDocsOpen: {},      // folder -> open, where the reader has toggled it; the first level starts open
+  projectDocSel: '',        // the document open in Docs' reader, relative to the project
+  projectDocHtml: '',
+  projectDocLoading: false,
+  _projectDocKey: '',
   // The open project as a row: the declared entry where there is one, so its
   // label, board, and landing carry, else a minimal one derived from the path
   // (a deep link can name a workspace the manifest has not caught up with).
@@ -4482,24 +4517,32 @@ function app(){ return {
     // safe guess at all. One shape either way, so a consumer need not test for
     // the key's presence.
     return found || { path: this.projectPath, label: this.projectPath.split('/').pop(),
-                      board: this.projectPath + '/tracker/board.md', landing: '', inbox: null, installation: '' };
+                      board: this.projectPath + '/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' };
+  },
+  // The tab drawn, which is the tab asked for unless that is App or Outpost
+  // and the workspace does not declare a landing or a PowerShell outpost,
+  // whether because it has none or because its manifest has not arrived.
+  get projectPane(){
+    const t = this.projectTab, p = this.project;
+    return (t === 'app' && !p?.landing) || (t === 'outpost' && !p?.powershellOutpost) ? 'overview' : t;
   },
   goProject(path, tab, item){
     const p = String(path || '').replace(/\/+$/, '');
     if (!p) return;
-    if (p !== this.projectPath) { this.projectDocsQ = ''; this.installationItem = ''; }
+    if (p !== this.projectPath) {
+      this.projectDocsQ = ''; this.powershellOutpostItem = ''; this.projectDocSel = ''; this.projectDocsOpen = {};
+    }
     this.projectPath = p;
-    // `installation` was a pill of its own until 2026-09-14, when the view
-    // became the Overview of a workspace that declares one. The spelling is
-    // deliberately still accepted and falls through to 'overview', so a link
-    // minted before the change lands where it always did rather than on a tab
-    // that no longer exists.
-    // `tab=code` named the PowerShell Code workspace until 2026-09-24; its
-    // one-file view is now the Overview's file deck, so an old link lands there.
-    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'files') ? tab : 'overview';
-    // A deep link into that view may name the file it is about; the component
-    // reads it at mount and stamps it back as it moves.
-    if (typeof item === 'string' && item) this.installationItem = item;
+    // App and Outpost are kept as asked even where nothing declares them yet:
+    // a cold link arrives before the manifest does. projectPane draws the
+    // Overview in their place until the workspace is seen to declare them.
+    this.projectTab = ['board', 'pages', 'docs', 'files', 'app', 'outpost'].includes(tab) ? tab : 'overview';
+    // A deep link may name the file the tab is about: the outpost view reads
+    // it at mount and stamps it back as it moves, and Docs opens it.
+    if (typeof item === 'string' && item) {
+      if (this.projectTab === 'outpost') this.powershellOutpostItem = item;
+      if (this.projectTab === 'docs' && item.startsWith(p + '/')) this.projectDocSel = item.slice(p.length + 1);
+    }
     this.view = 'project';
     this.syncUrl();
     this.refreshProjectPane();
@@ -4509,20 +4552,34 @@ function app(){ return {
     this.syncUrl();
     this.refreshProjectPane();
   },
-  // Load what the open tab actually renders, and nothing else: the README only
-  // feeds an Overview without a landing, the board only feeds Board, and the
-  // docs listing only feeds Docs (its tree read is the one project fetch worth
-  // deferring). Pages is a pure derivation off the manifest already in hand,
-  // so it loads nothing.
+  // Load what the open tab actually renders, and nothing else: the README
+  // feeds the Overview, the board feeds Board, and the docs listing feeds
+  // Docs (its tree read is the one project fetch worth deferring). Pages is a
+  // pure derivation off the manifest already in hand, so it loads nothing.
   refreshProjectPane(){
-    if (this.projectTab === 'docs') this.loadProjectDocs();
+    if (this.projectTab === 'docs') { this.loadProjectDocs(); this.loadProjectDoc(); }
     else if (this.projectTab === 'board') this.loadProjectBoard();
-    // The README is the Overview only for a workspace declaring neither a
-    // landing nor an installation manifest, and it is fetched only then: an
-    // Overview must not read a README it will not render. The GitHub icon's
-    // peek wants the README on every project, but it is lazy by design and
-    // fetches on the first hover, so nothing here has to front-load it.
-    else if (this.projectTab === 'overview' && !this.project?.landing && !this.project?.installation) this.loadProjectReadme();
+    else if (this.projectPane === 'overview') this.loadProjectReadme();
+  },
+  // The app's icon: an SVG the workspace keeps beside its landing, read once
+  // per repo@ref and drawn through an <img> of a data URL, where an SVG's
+  // scripts never run. A landing with no icon draws a stock app glyph.
+  // An x-effect on the App button drives it, because a cold deep link opens
+  // the pane before the manifest naming the icon arrives, and the pane's own
+  // refresh does not run again when it does. The key is set before the read,
+  // so a failed read is not retried, and writing it re-runs the effect once,
+  // which finds the key unchanged and stops.
+  async loadProjectAppIcon(){
+    const s = Alpine.store('browser'), f = this.project?.landingIcon;
+    const key = f ? s.repo + '@' + s.ref + ':' + f : '';
+    if (key === this._projectIconKey) return;
+    this._projectIconKey = key;
+    this.projectAppIcon = '';
+    if (!key || !s.gh) return;
+    try {
+      const j = await s.gh.get(f);
+      if (key === this._projectIconKey) this.projectAppIcon = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
+    } catch {}
   },
   // The landing rendered live through toss-render #gh=, the same private-safe
   // path a repo's custom landing takes, but following the browsed ref the way
@@ -4787,9 +4844,66 @@ function app(){ return {
   get projectDocsCount(){
     return (this.projectDocs || []).reduce((n, g) => n + g.files.length, 0);
   },
-  // A doc opens in the shell's viewer, the same place the Board button reads.
+  // Files › Docs as a tree: the grouped listing nested by folder, each folder
+  // counting everything below it. The first level starts open and a toggled
+  // folder keeps the reader's choice; a filter opens every folder, since a
+  // match hidden under a closed one would read as no match.
+  get projectDocsRows(){
+    const all = !!this.projectDocsQ.trim();
+    const root = { dirs: new Map(), files: [] };
+    for (const g of this.projectDocsGroups){
+      let node = root, at = '';
+      for (const seg of (g.dir ? g.dir.split('/') : [])){
+        at = at ? at + '/' + seg : seg;
+        if (!node.dirs.has(seg)) node.dirs.set(seg, { name: seg, dir: at, dirs: new Map(), files: [] });
+        node = node.dirs.get(seg);
+      }
+      node.files.push(...g.files);
+    }
+    const count = n => (n.n = n.files.length + [...n.dirs.values()].reduce((t, d) => t + count(d), 0));
+    count(root);
+    const rows = [];
+    const walk = (node, depth) => {
+      for (const f of node.files) rows.push({ key: 'f:' + f.rel, kind: 'file', depth, name: f.name, rel: f.rel });
+      for (const d of [...node.dirs.values()].sort((x, y) => x.name.localeCompare(y.name))){
+        const open = all || (this.projectDocsOpen[d.dir] ?? depth === 0);
+        rows.push({ key: 'd:' + d.dir, kind: 'dir', depth, name: d.name, dir: d.dir, n: d.n, open });
+        if (open) walk(d, depth + 1);
+      }
+    };
+    walk(root, 0);
+    return rows;
+  },
+  toggleProjectDocsDir(dir, open){ this.projectDocsOpen = { ...this.projectDocsOpen, [dir]: !open }; },
+  // A doc opens in the reader beside the tree, and its path rides as &item=.
   openProjectDoc(rel){
-    if (this.projectPath && rel) this.openFile(this.projectPath + '/' + rel);
+    if (!this.projectPath || !rel) return;
+    this.projectDocSel = rel;
+    this.syncUrl();
+    this.loadProjectDoc();
+  },
+  closeProjectDoc(){ this.projectDocSel = ''; this.syncUrl(); },
+  async loadProjectDoc(){
+    const s = Alpine.store('browser'), rel = this.projectDocSel;
+    if (!rel || !this.projectPath || !s.gh) return;
+    const key = s.repo + '@' + s.ref + ':' + this.projectPath + '/' + rel;
+    if (key === this._projectDocKey) return;
+    this._projectDocKey = key;
+    this.projectDocLoading = true; this.projectDocHtml = '';
+    try {
+      const j = await s.gh.get(this.projectPath + '/' + rel);
+      if (key !== this._projectDocKey) return;
+      try { await loadMarked(); this.projectDocHtml = mdHtml(j.text); }
+      catch { this.projectDocHtml = '<pre>' + j.text.replace(/</g, '&lt;') + '</pre>'; }
+    } catch {
+      if (key === this._projectDocKey) this.projectDocHtml = '<p>Could not read this document on this ref.</p>';
+    }
+    if (key === this._projectDocKey) this.projectDocLoading = false;
+  },
+  // A relative link in a document resolves against that document's folder.
+  onProjectDocClick(e){
+    const rel = this.projectDocSel, j = rel.lastIndexOf('/');
+    this.openRelativeLink(e, this.projectPath + (j < 0 ? '' : '/' + rel.slice(0, j)));
   },
   // The workspace README, at the browsed ref. Same fallback ladder as the repo
   // overview, since a workspace names its readme with the same freedom a repo
@@ -4816,10 +4930,17 @@ function app(){ return {
       // wrong file. No project in use spells it any other way.
       const addr = this.projectReadmePeek(s.repo, this.project);
       if (addr) window.SourcePeek?.seed?.(addr, res.text);
-      try { await loadMarked(); this.projectHtml = mdHtml(res.text); }
+      try { await loadMarked(); this.projectHtml = this.dropRepeatedTitle(mdHtml(res.text), this.project?.label); }
       catch { this.projectHtml = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
     }
     this.projectLoading = false;
+  },
+  // A README that opens with the project's own name as its title says it
+  // twice, once in the masthead just above, so that first heading goes.
+  dropRepeatedTitle(html, label){
+    const m = /^\s*<h1[^>]*>([\s\S]*?)<\/h1>\s*/i.exec(html || '');
+    const text = t => String(t || '').replace(/<[^>]+>/g, '').trim().toLowerCase();
+    return m && label && text(m[1]) === text(label) ? html.slice(m[0].length) : html;
   },
   // The peek behind a project's GitHub icon: the tap opens the workspace
   // folder, the card shows its README, which is what GitHub draws beneath a
@@ -5177,6 +5298,7 @@ function app(){ return {
   // estate CARDS still carry the old cluster, where there is room for it.
   get repoMenuItems(){
     if (this.menuKind === 'github') return this.githubMenuItems;
+    if (this.menuKind === 'projects') return this.projectMenuItems;
     if (this.menuKind !== 'repo') return [...this.menuExtra, ...this.repoActionItems];
     // THE REPO, TWICE, then where it goes on GitHub, as one FLAT list. The two
     // named rows carry the same name under two marks, this app's and GitHub's,
@@ -5210,6 +5332,28 @@ function app(){ return {
       ghHome && { ...ghHome, head: true, label: short, icon: 'ph-github-logo',
                   title: repo + ' on GitHub' },
       ...ghRest,
+    ].filter(Boolean);
+  },
+  // The Project view's switcher, opened from the project mark: the repo's own
+  // front as the head row, then every project its manifest declares, the open
+  // one marked. A project opens on the tab in view when every project has it
+  // (Overview, Docs, Files), else on its Overview.
+  get projectMenuItems(){
+    const repo = this.menuRepo;
+    const tab = ['overview', 'docs', 'files'].includes(this.projectTab) ? this.projectTab : 'overview';
+    const open = this.project;
+    return [
+      { key: 'open', head: true, label: repo.split('/')[1] || repo, mark: 'app', title: 'Open ' + repo + ' here' },
+      ...this.repoProjects(repo).map(p => ({ key: 'project:' + p.path, label: p.label, title: p.path,
+        icon: p.path === this.projectPath ? 'ph-check' : 'ph-kanban', current: p.path === this.projectPath,
+        run: () => this.goProject(p.path, tab) })),
+      // The open project's own doors, which the masthead no longer draws: its
+      // folder on GitHub, and a task board kept as a folder (a file board is
+      // the Board tab).
+      open && { key: 'project-github', label: open.label + ' on GitHub', icon: 'ph-github-logo', external: true,
+                url: this.projectGithubUrl(repo, open), title: open.path + ' on GitHub' },
+      open?.board && !this.projectBoardFile && { key: 'project-board', label: 'Task board', icon: 'ph-list-checks',
+                title: 'Task board: ' + open.board, run: () => this.openProjectBoard(repo, open) },
     ].filter(Boolean);
   },
   // Rows the CALLER contributed for this opening, ahead of the standard ones.
@@ -5533,7 +5677,8 @@ function app(){ return {
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
-        if (this.projectTab === 'overview' && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
+        if (this.projectTab === 'outpost' && this.powershellOutpostItem) p.set('item', this.powershellOutpostItem);
+        if (this.projectTab === 'docs' && this.projectDocSel) p.set('item', this.projectPath + '/' + this.projectDocSel);
       } },
     // Repos was addressed ?view=estate until 2026-10-02; the alias keeps old
     // links landing.
@@ -6774,15 +6919,14 @@ function app(){ return {
   correspondenceFileError: '',
   searchOpenFile: null,
   get selectedCorrespondence(){
-    // The installation view's selected file takes a page-wide paste or drop
-    // the way an open Files result does: the view names the file, so a work
-    // copy dropped anywhere on the page compares against it. That view is the
-    // Overview of a workspace declaring a manifest, which is why this reads the
-    // declaration rather than a tab named for it.
-    if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
-      if (!this.installationItem) return null;
+    // The PowerShell outpost view's selected file takes a page-wide paste or drop the way
+    // an open Files result does: the view names the file, so a work copy
+    // dropped anywhere on the page compares against it. That view is the
+    // Outpost tab of a workspace declaring a PowerShell outpost manifest.
+    if (this.view === 'project' && this.projectPane === 'outpost') {
+      if (!this.powershellOutpostItem) return null;
       const store = Alpine.store('browser');
-      const file = { repo: store.repo, path: this.installationItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };
+      const file = { repo: store.repo, path: this.powershellOutpostItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };
       return window.FileCorrespondence?.applies?.(file) ? file : null;
     }
     if (this.view !== 'search') return null;
@@ -6801,7 +6945,7 @@ function app(){ return {
     return { repo, ref: seed?.ref || (store.repo === repo ? store.ref || '' : '') };
   },
   // Capture at the gesture, before a clipboard/file read can change the view.
-  // The workspace owns its live selection and pinned source; installationItem
+  // The workspace owns its live selection and pinned source; powershellOutpostItem
   // may still name a previous file while the Code explorer shows All files.
   captureCorrespondence(){
     return { selected: this.selectedCorrespondence, ...this.correspondenceContext() };
@@ -6834,11 +6978,11 @@ function app(){ return {
   },
   async openCorrespondence(target, text, name, source, intake = null){
     try {
-      // The installation Overview compares a copy in memory and shows it in
+      // The PowerShell outpost view compares a copy in memory and shows it in
       // its own Changes view; nothing is saved to the browser and the Stage
       // does not open. Every other surface keeps the stored check below.
-      if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
-        const host = document.querySelector('[x-data^="installationView"]');
+      if (this.view === 'project' && this.projectPane === 'outpost') {
+        const host = document.querySelector('[x-data^="powershellOutpostView"]');
         const view = host && Alpine.$data?.(host);
         if (view?.takeCopy && await view.takeCopy(target, text, name, source)) return;
       }
@@ -6858,7 +7002,7 @@ function app(){ return {
       : '';
     Alpine.store('toast')('warning', 'Compare: ' + detail + (e?.message || e), 'alert-error', 8000);
   },
-  // A check landed in this browser: the Installation pill listens, since it
+  // A check landed in this browser: the PowerShell outpost view listens, since it
   // shows the checks beside the durable ledger and offers to promote one.
   announceCheck(result){
     try { window.dispatchEvent(new CustomEvent('correspondence-check', { detail: result?.record || null })); } catch {}
