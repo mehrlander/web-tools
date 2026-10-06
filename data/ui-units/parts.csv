@@ -1,0 +1,11 @@
+part,name,gloss
+list,List,the element that holds the items
+item,Item,one entry of the list
+group,Item group,"the heading of an item group: a run of the list's own items set apart under it, with its own count or sentence"
+detail,Detail,the card that shows one item in full
+title,Title,an item's name
+meta,Meta,"an item's or a group's code, count, amount, date, kind or status"
+summary,Summary,a line or two describing the item
+body,Body,"the item's own content shown inside it: a diff, a script, a small chart, a panel it expands in place"
+links,Links,"links from the item or group to other things: tags that filter the list, doors to other views, related documents"
+actions,Actions,controls that act on the item or group

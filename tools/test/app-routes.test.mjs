@@ -198,7 +198,13 @@ test('the two sub-tab encodings, counted', () => {
   // the more expensive answer.
   // 18 to 19: the Map gained its Data inventory tab. 19 to 20 on 2026-10-02:
   // it gained an Outposts tab, for estate material held where no commit reaches.
-  assert.equal(params, 20, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 20 to 21 on 2026-10-04: it gained a Patterns tab, the UI units coded
+  // against their codebook. 21 to 22 on 2026-10-05: UI gained Dimensions, the
+  // dimensions those units are coded on, and Patterns became its Gallery.
+  // 22 to 25 on 2026-10-06, with no address added: the Map's row named 16 of
+  // the 19 tabs docs/map-tabs.csv declares, and now names Context, Growth and
+  // Policy too, which had been addressable all along.
+  assert.equal(params, 25, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

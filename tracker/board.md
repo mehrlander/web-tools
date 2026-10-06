@@ -9,7 +9,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
-- 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) · M
 - 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md) · M
 - 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M (awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded)
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M (awaiting: the reader/writer split, recommended in the body and unanswered since filing)
@@ -62,6 +61,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Generalize FAB embed handling to declared embeds](tasks/fab-declared-embeds-1jtpll.md)
 - 🎫 [Let the FAB collect a toss subject's page actions, not just the shell's](tasks/fab-subject-side-actions-t7r4nc.md)
 - 🎫 [Give the file-review collapsed row more than a name and a count](tasks/file-review-collapsed-density-2rvxfn.md) (`claude/show-repo-progress-b8l63x`)
+- 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) (`claude/view-754-web-tools-gqq3wl`)
 - 🎫 [Generalize the gallery to a per-repo pages catalog](tasks/generalize-gallery-pages-catalog-m3b8pa.md) (`claude/web-tools-app-views-m3pkyo`)
 - 🎫 [Finish GitHub jump-over coverage across show-repo views](tasks/github-jumpover-coverage-7bkgmk.md) (`claude/github-icon-placement-3d06i7`)
 - 🎫 [Check GraphQL query shape offline against GitHub's published schema](tasks/graphql-schema-contract-check-cpuvb5.md) (`claude/web-tools-tracker-review-bw48ga`)

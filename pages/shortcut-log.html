@@ -51,7 +51,7 @@
     <button x-show="only" @click="only = ''" class="badge badge-primary badge-soft gap-1 shrink-0" data-only>
       <span class="max-w-32 truncate" x-text="only"></span><i class="ph ph-x"></i></button>
     <div class="grow"></div>
-    <select x-model="filter" class="select select-sm w-auto" aria-label="Show">
+    <select x-model="filter" class="select select-sm w-auto" aria-label="Show" data-slot="frame:filter-switch">
       <option value="all">All</option>
       <option value="installs">Installs</option>
       <option value="runs">Runs</option>
@@ -63,26 +63,31 @@
 
   <p x-show="err" class="text-error px-3 py-2" x-text="err"></p>
 
-  <div class="grow grid @3xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+  <!-- data-pattern and data-part declare a List and detail and name its parts
+       (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing at
+       runtime reads them. aria-current marks the open row beside the class
+       that tints it. A day and a sitting are both group headings. -->
+  <div class="grow grid @3xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]" data-pattern="list-detail">
 
     <!-- The list: one line per entry, grouped by day. -->
-    <div class="min-w-0 @3xl:border-r border-base-300" :class="sel ? 'hidden @3xl:block' : 'block'" data-list>
+    <div class="min-w-0 @3xl:border-r border-base-300" :class="sel ? 'hidden @3xl:block' : 'block'" data-list data-part="list">
       <template x-for="g in groups" :key="g.day">
         <section>
-          <h2 class="sticky top-12 z-10 bg-base-200/95 px-3 py-1 text-xs font-mono uppercase tracking-widest text-base-content/50" x-text="g.day"></h2>
+          <h2 class="sticky top-12 z-10 bg-base-200/95 px-3 py-1 text-xs font-mono uppercase tracking-widest text-base-content/50" x-text="g.day" data-part="group"></h2>
           <template x-for="st in g.sittings" :key="st.key">
           <div>
-          <div x-show="st.rows.length > 1" class="px-3 pt-2 pb-0.5 text-xs font-mono text-base-content/40" data-sitting x-text="st.label"></div>
+          <div x-show="st.rows.length > 1" class="px-3 pt-2 pb-0.5 text-xs font-mono text-base-content/40" data-sitting x-text="st.label" data-part="group"></div>
           <template x-for="e in st.rows" :key="e.stem">
-            <button @click="open(e.stem)" data-row
+            <button @click="open(e.stem)" data-row data-part="item"
                     class="w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-base-200 hover:bg-base-200 transition-colors"
-                    :class="[sel === e.stem && 'bg-primary/10', fresh[e.stem] && 'bg-info/10']">
-              <i class="ph text-xl shrink-0" :class="[iconOf(e), e.install ? 'text-primary' : 'text-base-content/40']"></i>
+                    :class="[sel === e.stem && 'bg-primary/10', fresh[e.stem] && 'bg-info/10']"
+                    :aria-current="sel === e.stem ? 'true' : 'false'">
+              <i class="ph text-xl shrink-0" :class="[iconOf(e), e.install ? 'text-primary' : 'text-base-content/40']" data-part="meta"></i>
               <span class="min-w-0 grow flex items-baseline gap-2">
-                <span class="shrink-0 max-w-full truncate" :class="e.name ? 'font-medium' : 'text-base-content/70'" x-text="titleOf(e)"></span>
-                <span class="min-w-0 truncate text-xs font-mono" :class="anomaly(e) ? 'text-warning' : 'text-base-content/50'" x-text="tagOf(e)" data-tag></span>
+                <span class="shrink-0 max-w-full truncate" :class="e.name ? 'font-medium' : 'text-base-content/70'" x-text="titleOf(e)" data-part="title"></span>
+                <span class="min-w-0 truncate text-xs font-mono" :class="anomaly(e) ? 'text-warning' : 'text-base-content/50'" x-text="tagOf(e)" data-tag data-part="meta"></span>
               </span>
-              <span class="shrink-0 flex items-center gap-1" data-verdict>
+              <span class="shrink-0 flex items-center gap-1" data-verdict data-part="meta">
                 <template x-if="v(e)">
                   <span class="flex items-center gap-0.5">
                     <i class="text-xl" :class="stateIcon(v(e))"></i>
@@ -90,7 +95,7 @@
                   </span>
                 </template>
               </span>
-              <span class="shrink-0 w-16 text-right text-xs font-mono" :class="recent(e) ? 'text-info font-semibold' : 'text-base-content/50'" x-text="timeOf(e)"></span>
+              <span class="shrink-0 w-16 text-right text-xs font-mono" :class="recent(e) ? 'text-info font-semibold' : 'text-base-content/50'" x-text="timeOf(e)" data-part="meta"></span>
             </button>
           </template>
           </div>
@@ -106,7 +111,7 @@
     </div>
 
     <!-- The detail: in place of the list on a phone, beside it when there is room. -->
-    <div class="min-w-0" :class="sel ? 'block' : 'hidden @3xl:block'" data-detail>
+    <div class="min-w-0" :class="sel ? 'block' : 'hidden @3xl:block'" data-detail data-part="detail">
       <template x-if="!item">
         <div class="hidden @3xl:flex justify-center py-16 text-base-content/30"><i class="ph ph-cursor-click text-4xl"></i></div>
       </template>

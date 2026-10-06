@@ -76,7 +76,11 @@
       <i class="ph ph-map-trifold text-lg" style="color:var(--cat-code)"></i>
       Repo Atlas
     </div>
-    <div class="flex items-center gap-1.5">
+    <!-- data-slot names the unit slot an element fills (web-tools
+         data/ui-units/codebook.md, "Slots"): the repo and ref boxes are the
+         Atlas view's Selector, the file filter its Search box, the right rail
+         its Filter rail, and the map its body. -->
+    <div class="flex items-center gap-1.5" data-slot="frame:selector">
       <input id="repoInput" class="field w-56" placeholder="owner/repo" spellcheck="false">
       <input id="refInput" class="field w-28" placeholder="ref (default)" spellcheck="false">
       <button id="goBtn" class="field cursor-pointer hover:border-black/20" title="Load repo">
@@ -87,7 +91,7 @@
       </button>
       <input id="dirInput" type="file" webkitdirectory multiple class="hidden">
     </div>
-    <div class="relative">
+    <div class="relative" data-slot="frame:search">
       <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-sm" style="color:var(--ink-3)"></i>
       <input id="searchInput" class="field w-52" style="padding-left:28px" placeholder="filter files… (Esc clears)" spellcheck="false">
     </div>
@@ -139,12 +143,12 @@
 
   <!-- Main -->
   <div class="flex gap-2 grow min-h-0">
-    <div id="mapWrap" class="panel rounded-lg grow relative overflow-hidden">
+    <div id="mapWrap" class="panel rounded-lg grow relative overflow-hidden" data-pattern="figure">
       <canvas id="map" class="absolute inset-0 w-full h-full"></canvas>
       <div id="overlayMsg" class="absolute inset-0 hidden items-center justify-center flex-col gap-2 text-sm" style="color:var(--ink-3)"></div>
     </div>
 
-    <div class="w-72 shrink-0 flex flex-col gap-2 min-h-0">
+    <div class="w-72 shrink-0 flex flex-col gap-2 min-h-0" data-slot="frame:rail-filter">
       <div class="panel rounded-lg p-3">
         <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">This view</div>
         <div id="viewStats" class="text-[13px] flex flex-col gap-1 num"></div>

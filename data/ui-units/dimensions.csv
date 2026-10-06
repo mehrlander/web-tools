@@ -1,0 +1,7 @@
+dimension,name,holds,test,per_unit,read_from,color
+body,Body,"the unit's main arrangement at first paint, at desktop width",the region that would remain if every control were removed,one,coded.csv body,#2563eb
+frame,Frame,how the reader chooses what the body shows,"the control changes what the body holds, not how it looks",any,coded.csv frame,#d97706
+reach,Reach,what one tap on the body opens,"the thing opens over or beside the body, rather than replacing the unit",any,coded.csv reach,
+binding,Binding,"how the body's regions, or the body and its reach, are tied",the strongest tie present,one,coded.csv binding,
+phone,Phone,what changes below 640 pixels wide,"compare the two screenshots, or read the breakpoint in code",one,coded.csv phone,
+ring,Ring,how far the unit sits from the Web Tools app's center,the declaration the unit's ring_basis names,one,units.csv app_ring,
