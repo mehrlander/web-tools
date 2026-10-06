@@ -2,9 +2,9 @@
 name: tend
 description: >-
   Cultivate a workspace toward recognized objectives: investigate branches,
-  pull requests, trackers and snags, store each conclusion as a finding the
-  Web Tools Tending view shows, and bring the owner only the choices that need
-  commitment. Run when the owner invokes /tend.
+  pull requests, trackers and snags, store each conclusion as a finding, and
+  bring the owner a prepared user call only where the next step needs their
+  word. Run when the owner invokes /tend.
 disable-model-invocation: true
 ---
 
@@ -28,7 +28,7 @@ to see the vital choice and commit.
    the failure: raw uncertainties, speculative edge cases, or unexamined
    choices handed to the owner are friction masquerading as diligence. Bring a
    question only when investigation establishes a consequential choice that
-   requires the owner's judgment, and recommend an answer.
+   requires the owner's judgment, as a user call with a recommendation.
 4. **A finding is stored, linked to its subjects.** Write it with
    `findings.py` into the notes store (`/portable:notes`), naming every subject
    it concerns. A trap still goes in its `docs/SNAGS.md` entry. Create no other
@@ -55,15 +55,17 @@ record.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects,
-   why it matters, a next step concrete enough to execute, a choice only where
-   principle 3 allows one, evidence, and witnesses. A step only the owner may
-   take, such as closing a pull request, is a choice with a recommendation.
+   why it matters, a next step concrete enough to execute, evidence, and
+   witnesses. A step that needs the owner's word, such as closing a pull
+   request, is prepared, then filed with like steps as one user call
+   (`user-calls/user-call.py` in the registry) that the finding names among
+   its subjects; the Waiting view shows it.
    Witnesses include what lies outside the subjects, such as main's copy of a
    file the work was compared against.
 5. **Act** on each stream's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
-   settles only once no next step or choice remains.
-6. **Reply** with what the Tending view gained and the choices it isolates.
+   settles only once no next step remains.
+6. **Reply** with what the pass did and the user calls it filed.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -73,7 +75,7 @@ Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 | Kind | Means |
 | --- | --- |
 | `unreached` | Useful work never reached the owner. *Next* says how to land it. |
-| `answer` | One specific answer from the owner decides it. *Choice* states it. |
+| `answer` | The owner's word decides it. Its user call holds the question. |
 | `overlap` | Separate efforts could be brought together. *Next* says how. |
 | `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. |
 
