@@ -364,6 +364,8 @@
           // above stays the one place the layout is stated.
           el.className = old.className;
           el.setAttribute('x-data', 'branchBrief(window.__branchTarget)');
+          // The page's body slot (web-tools data/ui-units/codebook.md, "Slots").
+          el.setAttribute('data-pattern', 'header-swiper');
           old.replaceWith(el);
           Alpine.initTree(el);
         });
