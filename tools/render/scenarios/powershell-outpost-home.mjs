@@ -46,6 +46,14 @@ export default async (page, { repoRoot }) => {
   };
   const json = (route, body, status = 200) =>
     route.fulfill({ status, contentType: 'application/json; charset=utf-8', body: JSON.stringify(body) });
+  // The viewer too. With the fake token below, /user and /user/repos reach the
+  // live API and come back 401, and a 401 on a request the boot path does not
+  // mark quiet raises gh-auth's token prompt over the whole page. Which path
+  // boot takes depends on whether cdn.mjs finds a web-tools-private checkout
+  // beside this one, so without this answer the shot drew the prompt there
+  // and the pane everywhere else.
+  await page.route(/^https:\/\/api\.github\.com\/user(?:\/repos)?(?:\?.*)?$/, route =>
+    json(route, new URL(route.request().url()).pathname === '/user/repos' ? [] : { login: REPO.split('/')[0] }));
   await page.route(`https://api.github.com/repos/${REPO}**`, route => {
     const u = new URL(route.request().url());
     const rest = u.pathname.slice(`/repos/${REPO}`.length).replace(/^\//, '');
