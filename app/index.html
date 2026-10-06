@@ -160,6 +160,9 @@
   // Sessions-aggregate builders for the private cache (state/sessions.json).
   await gh.load('kits/closing-state.js');
   await gh.load('kits/repo-sessions-cache.js');
+  // The crawl that folds the records into it, shared with the headless runner
+  // (scripts/sessions-crawl.mjs) the way kits/activity-crawl.js is.
+  await gh.load('kits/sessions-crawl.js');
   // The pure fold behind the Map view's Views tab: the app's own destinations
   // ranked by when the code behind each last moved (window.routeActivity), and
   // the fetching half that feeds it (window.RouteJoin), which the estate's
@@ -3789,28 +3792,12 @@ function app(){ return {
   SESSIONS_MAX_FETCH: 120,       // records read per crawl; the rest wait for the next
   _sessionsCheckKey: 'wt:sessionsCacheCheckedAt',
   // ── The title join's second input ────────────────────────────────────────
-  // A session's real title reaches no container, so the recorder cannot capture
-  // one (web-tools-private sessions/README.md, "The third name"). A Dispatch
-  // session on the desktop scrapes the claude.ai/code sidebar instead and
-  // commits one dated CSV per capture to mehrlander/chat-histories. Two calls a
-  // crawl: list the folder, read the newest file.
-  //
-  // Every failure here returns null, which the fold reads as "carry the titles
-  // you already have." A repo the token cannot see, a folder that does not
-  // exist, and a malformed CSV are all the same answer, and none of them may
-  // cost the crawl its records.
-  async _readSessionTitles(){
+  // The read itself, and why every failure returns null, are the kit's
+  // (lib/kits/sessions-crawl.js, readTitles). What is the shell's is the
+  // client: one built here follows the page's selection for the export store.
+  _readSessionTitles(){
     const S = window.RepoSessionsCache;
-    try {
-      // Read-only titles: the selection for the export store, else main.
-      const gh = new window.GH({ token: window.TOKEN, repo: S.TITLES_REPO });
-      const pick = S.newestExport(await gh.req('contents/' + S.TITLES_DIR + '?ref=' + encodeURIComponent(gh.readRef(S.TITLES_DIR + '/'))));
-      if (!pick) return null;
-      const byId = S.parseTitles((await gh.get(pick.path)).text);
-      // An export that parsed to nothing is a broken export, not an empty one:
-      // treating it as empty would blank every title on the next fold.
-      return Object.keys(byId).length ? { at: pick.at, path: pick.path, byId } : null;
-    } catch(e){ console.warn('session titles export:', e?.message || e); return null; }
+    return window.SessionsCrawl.readTitles(new window.GH({ token: window.TOKEN, repo: S.TITLES_REPO }), S);
   },
   async refreshSessionsCache(force){
     if (!this.hasToken() || !window.RepoSessionsCache) return { skipped: true };
@@ -3834,18 +3821,10 @@ function app(){ return {
   // itself compares.
   _sessionsMarkKey: 'wt:sessionsListing',
   async _crawlSessions(force = false){
-    const S = window.RepoSessionsCache;
+    const S = window.RepoSessionsCache, C = window.SessionsCrawl;
     const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
-    const t0 = Date.now();   // for the run record, appended below if this commits
     try {
-      const nowISO = new Date().toISOString();
-      // One recursive tree read gives every record's path AND blob sha, which
-      // is the whole basis of the incremental crawl: no per-file HEAD, no
-      // guessing from dates.
-      const tree = await reg.req('git/trees/main?recursive=1');
-      const listing = (tree?.tree || [])
-        .filter(e => e.type === 'blob' && S.isRecordPath(e.path))
-        .map(e => ({ path: e.path, sha: e.sha }));
+      const listing = await C.listRecords(reg, S);
       if (!listing.length) return { skipped: true, reason: 'no session records in the registry' };
 
       // THE GATE, and its whole value is that it sits above the read below.
@@ -3872,158 +3851,31 @@ function app(){ return {
         return { skipped: true, reason: 'no session record has changed since the last crawl' };
       }
 
-      // This read decides which records are stale AND supplies the sha the save
-      // rides on, so a copy that is behind both under-reads the store and writes
-      // with a dead sha.
-      const base = await this.readForFold(reg, S.CACHE_PATH);
-      const prev = base?.doc || null;
-
-      // Newest first, so a capped pass reads the records a reader is most
-      // likely to want and the older tail catches up on later crawls.
-      const stale = S.stalePaths(prev, listing).sort().reverse();
-      const take = stale.slice(0, this.SESSIONS_MAX_FETCH);
-      const shaByPath = new Map(listing.map(e => [e.path, e.sha]));
-
-      const fetched = {};
-      let i = 0, sdone = 0;
-      const sactive = [];
-      // The unit turns over here: the denominator is the records this pass will
-      // read, not the whole store, since the cap defers the rest and counting
-      // against a total the crawl has no intention of reaching would leave the
-      // bar short at the end of a complete run.
-      this.tickCrawl('sessions', { verb: 'Reading records', total: take.length, done: 0, active: [] });
-      const readOne = async () => {
-        while (i < take.length){
-          const path = take[i++];
-          sactive.push(path);
-          this.tickCrawl('sessions', { done: sdone, total: take.length, active: sactive });
-          try {
-            // By blob sha, not by path: the sha is already in hand from the
-            // tree, and a blob read cannot race a push that moves the path.
-            const blob = await reg.req('git/blobs/' + shaByPath.get(path));
-            fetched[path] = { record: JSON.parse(reg.decode(blob.content)), sha: shaByPath.get(path) };
-          } catch(e){ console.warn('sessions crawl', path, e?.message || e); }
-          sactive.splice(sactive.indexOf(path), 1);
-          this.tickCrawl('sessions', { done: ++sdone, total: take.length, active: sactive });
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(this.SESSIONS_FETCH_POOL, take.length) }, readOne));
-
-      // The titles export, read after the records so a slow or missing
-      // chat-histories cannot delay the part of the crawl that matters.
-      const titles = await this._readSessionTitles();
-      // The scope is the FULL listing, never `take`: a record the cap deferred
-      // must keep its row, and only a record genuinely gone from the store
-      // loses one.
-      const deferred = Math.max(0, stale.length - take.length);
-      const next = S.buildCache(prev, fetched, listing.map(e => e.path), nowISO, titles);
-      try { localStorage.setItem(this._sessionsCheckKey, String(Date.now())); } catch {}
-      // ONLY WHEN THIS PASS LEFT NOTHING BEHIND, and this is the clause the
-      // gate is wrong without. `stale` can exceed the cap, and a record whose
-      // blob read threw is not in `fetched` either; both stay stale for the
-      // next pass. Stamping the fingerprint anyway would tell that next pass
-      // the store had not moved, and the deferred records would never be read
-      // again: the cache would sit permanently short with every reading on
-      // screen saying it was current. So the mark records a COMPLETE fold, and
-      // an incomplete one leaves the store looking moved, which it is.
-      const complete = !deferred && Object.keys(fetched).length === take.length;
-      if (complete) this._setMarks(this._sessionsMarkKey, { listing: fingerprint });
-      const changed = S.cacheChanged(prev, next);
-      // The blob sha of the copy main now holds for what this pass hands over:
-      // the base it matched, or the commit below.
-      let sha = base?.sha || '';
-      if (changed){
-        // The run record rides this commit (lib/kits/crawl-runs.js). `checked`
-        // is the whole listing and `read` the records this pass actually
-        // fetched, which are different numbers here in a way they are not for
-        // the other two crawls: the cap defers the rest to the next pass.
-        next.runs = window.CrawlRuns?.push(prev?.runs, {
-          at: new Date().toISOString(), ms: Date.now() - t0,
-          checked: listing.length, read: Object.keys(fetched).length, deferred,
-        }) ?? prev?.runs;
-        sha = (await this.saveFold(reg, S.CACHE_PATH, next,
-                                   'Update sessions cache (state/sessions.json)', base))?.content?.sha || sha;
-        // THE PHONE'S COPY, written in the same pass and only when the cache
-        // itself moved. It is a separate 46 KB file rather than a view of the
-        // megabyte above, because its whole reason to exist is that the phone
-        // cannot afford the megabyte (lib/kits/repo-sessions-cache.js, "The
-        // phone's copy"). Sharing the crawl is what keeps the two stamps
-        // identical, so the menu's age reading can never contradict the
-        // estate's.
-        //
-        // Its own change gate, because the cache moves for things this file
-        // does not carry: a tool count or a closing reply changes the cache
-        // and leaves every id, timestamp and ask here identical.
-        try {
-          const menu = S.buildMenuIndex(next);
-          const mbase = await this.readForFold(reg, S.MENU_PATH);
-          if (S.menuChanged(mbase?.doc || null, menu))
-            await this.saveFold(reg, S.MENU_PATH, menu,
-                                'Update session menu index (state/session-menu.json)', mbase);
-        } catch(e){ console.warn('session menu index:', e?.message || e); }
-      }
-
-      // ── The search index, one shard per month ─────────────────────────────
-      // Its own gate and its own try, outside the cache's `changed` check,
-      // because the two move for different reasons: a record's sha can be
-      // unchanged while the ROW_V bump rewrites its row, and a month can need
-      // its shard built on a pass where nothing about the cache moved at all.
-      //
-      // It rides THIS crawl rather than a second one because the records are
-      // already in hand. `fetched` holds the parsed record of everything whose
-      // blob sha moved, so tokenizing costs no network and the shard for a
-      // month nothing changed in is never read, let alone rewritten.
-      //
-      // ONE SHARD PER TOUCHED MONTH, merged rather than rebuilt: the crawl
-      // reads only the changed records, so every other entry in that month
-      // exists nowhere but the shard. kits/session-index.js carries the
-      // merge and the reason.
-      try {
-        if (!window.SessionIndex) await window.gh.load('kits/session-index.js');
-        const X = window.SessionIndex;
-        // Which months the listing puts a record in, so a record that left the
-        // store leaves the index. Read off the path rather than the record, so
-        // a month the cap deferred still gets an accurate keep-set.
-        const idsByMonth = {};
-        for (const e of listing){
-          const m = (e.path.match(/sessions\/(\d{4})\/(\d{2})\//) || []).slice(1).join('-');
-          const id = (e.path.match(/-([0-9a-f]{8})\.json$/) || [])[1];
-          if (m && id) (idsByMonth[m] ||= new Set()).add(id);
-        }
-        // Only the months this pass actually read into.
-        const changedByMonth = {};
-        for (const [path, hit] of Object.entries(fetched)){
-          const m = (path.match(/sessions\/(\d{4})\/(\d{2})\//) || []).slice(1).join('-');
-          const id = (path.match(/-([0-9a-f]{8})\.json$/) || [])[1];
-          if (!m || !id || !hit?.record) continue;
-          (changedByMonth[m] ||= {})[id] = X.tokens(X.docText(hit.record));
-        }
-        for (const [month, changedDocs] of Object.entries(changedByMonth)){
-          const path = X.shardPath(month);
-          const sbase = await this.readForFold(reg, path);
-          // The keep-set is applied only on a COMPLETE pass. A capped pass has
-          // not read every record, and dropping the entries it did not reach
-          // would empty the index one month at a time while reporting success.
-          const keep = complete ? idsByMonth[month] : null;
-          const shard = X.mergeShard(sbase?.doc || null, changedDocs, keep);
-          if (X.shardChanged(sbase?.doc || null, shard))
-            await this.saveFold(reg, path, shard,
-                                'Update session search index (' + path + ')', sbase);
-        }
-      } catch(e){ console.warn('session search index:', e?.message || e); }
-      // `doc` rides the summary for the reason the activity crawl's does, plus
-      // one this crawl has and that one does not. The shared reason is cost:
-      // state/sessions.json is a megabyte and the crawl is holding it, so a
-      // listener that re-reads it is paying twice. The extra reason is the
-      // STAMP. A pass that changes nothing does not commit, so the stored file
-      // still carries the previous pass's `generatedAt`, and a listener that
-      // re-read it snapped its age pill back to that: press Refresh on a quiet
-      // estate and Branches said "now" while Sessions said "1h", off one
-      // gesture. The built document always carries `generatedAt: nowISO`
-      // whether or not it was worth committing, which is the honest answer to
-      // "when was this last checked".
-      return { total: listing.length, read: Object.keys(fetched).length,
-               deferred, committed: changed, titlesAt: next.titlesAt || '', doc: next, sha };
+      // The fold is the kit's (lib/kits/sessions-crawl.js), shared with the
+      // headless runner. What stays here is what only a browser has: the gate
+      // above, the progress ticks, and the two stamps onBuilt writes.
+      return await C.fold({
+        reg, S, listing,
+        readFold: (path) => this.readForFold(reg, path),
+        saveFold: (path, doc, message, base) => this.saveFold(reg, path, doc, message, base),
+        readTitles: () => this._readSessionTitles(),
+        loadIndex: async () => {
+          if (!window.SessionIndex) await window.gh.load('kits/session-index.js');
+          return window.SessionIndex;
+        },
+        tick: (patch) => this.tickCrawl('sessions', patch),
+        // Written once the fold is built and before anything is saved. The
+        // check stamp, because this pass did look. The fingerprint ONLY on a
+        // complete pass: stamping it over a capped or partly failed one would
+        // tell the gate the store had not moved, the deferred records would
+        // never be read again, and every reading on screen would say current.
+        onBuilt: ({ complete }) => {
+          try { localStorage.setItem(this._sessionsCheckKey, String(Date.now())); } catch {}
+          if (complete) this._setMarks(this._sessionsMarkKey, { listing: fingerprint });
+        },
+        runs: window.CrawlRuns,
+        maxFetch: this.SESSIONS_MAX_FETCH, pool: this.SESSIONS_FETCH_POOL,
+      });
     } catch(e){
       console.warn('sessions cache refresh:', e?.message || e);
       return { error: e?.message || String(e) };
