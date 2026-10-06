@@ -1,59 +1,59 @@
-axis,code,name,gloss,test,not_to_confuse,kits,parts
-frame,tabs,Tabs,"a strip of tabs, each its own address",the strip changes what the body holds,"selector, which picks one item rather than one view",,
-frame,subtabs,Second-level switch,"a second strip, or a switch row, inside a tab",the row sits inside one tab and changes only that tab,,,
-frame,lede,Lede,one sentence under the tabs saying what the rows are,it names the rows; it does not instruct,"explanatory prose, which html-style forbids",,
-frame,search,Search box,a box that narrows the body as it is typed,typing removes rows from the body,,,
-frame,count-chips,Count chips,one line of counts whose chips filter the body,a chip tap narrows the body,"a legend, whose chips do not filter",,
-frame,rail-filter,Filter rail,"a rail of groups, often a folder tree with counts rolled up, whose selection narrows the body",a pick narrows the body to one group,"contents-rail, which jumps rather than narrows",,
-frame,contents-rail,Contents rail,one contents list drawn as a side rail where the width allows and a pinned bar where not; a pick scrolls to a place,a pick scrolls; nothing is hidden,,,
-frame,selector,Selector,"chips, a grid or a menu that picks the ONE item the body draws: a table, a biennium, a document",the body draws exactly one of the choices,"rail-filter, which narrows a list",,
-frame,filter-switch,Filter switch,"a chip row, switch or dropdown that narrows the body but shows no counts",a pick narrows the body; no figure rides on it,"count-chips, whose chips carry counts",,
-frame,dial,Threshold dial,a range control whose value decides which items exist in the body,moving it adds or removes items,"filter-switch, which picks among named values",,
-frame,panel-toggle,Panel toggle,one button that shows a region of the body and writes its own address,the region has an address but no tab strip around it,"tabs, which are a strip",,
-body,list,List,"rows or entries, read by scanning",one entry per item; nothing else on screen draws an item in full,,,list;item;group?;title?;meta?;summary?;body?;links?;actions?
-body,grid,Grid,"a sortable, filterable table, Tabulator or a hand table used as one",column headers that sort or filter,,tabulator,
-body,card-grid,Card grid,"one card per item, in a grid",each card is a complete small account of its item,,,list;item;group?;title?;meta?;summary?;body?;links?;actions?
-body,list-detail,List and detail,"a list and one item's card, side by side or stacked",a pick redraws the card; the card shows exactly one item of the list,"linked-swiper, where the card is itself a strip that moves the list",,list;item;detail;group?;title?;meta?;summary?;body?;links?;actions?
-body,linked-swiper,Linked list and swiper,"a list, or a tab strip, and an inline strip of the items' cards, both on screen",a pick moves the strip AND a swipe moves the list's selection,"header-swiper, whose top region is not an index",swipe-deck (core),
-body,header-swiper,Header over swiper,"a fixed region (a judgment, a guide, a question) over an inline strip of materials","the top region is about the set, not an index into it; no selection binding",linked-swiper,swipe-deck (core),
-body,source-beside,Source beside claim,"a document reader beside the material that cites it, with a divider",a cited item opens a place in the reader,,dock-split,
-body,figure,Figure,"a chart, map or matrix is the main region, with controls and a legend",the figure would remain if the controls were removed,,,
-body,fields,Fields,"one object's fields, labeled values and small tables, read top to bottom",a form usually draws this; the form field says whose,"document, which is prose",,
-body,document,Document,"prose or a rendered document, read top to bottom",,,,
-body,tool,Tool,"an input and its output, where the reader acts rather than reads",the main region takes input,,,
-body,app-split,App split,two whole views side by side,each pane is an app view with its own address,,,
-body,host,Host,"the region holds another unit whole: a view mounted in a pane, or a page in a frame",the held unit is coded on its own row,"app-split, which holds two",,
-body,list-stack,Stacked lists,"several independent lists stacked in fixed shares of the pane, each with its own controls and its own scroll",each list scrolls on its own,"list, which is one",,
-body,deck-page,Deck page,"the first paint is a deck that fills the page, with no list under it",closing it leaves nothing to return to,"deck-takeover, which opens over a list",swipe-deck,
-reach,deck-takeover,Deck takeover,"the list itself as a deck over the view or the window, at the tapped item, frozen at the tap",a swipe moves between the items of the list it was opened from,,swipe-deck,
-reach,deck-docked,Docked deck,"the same deck over part of the pane, the list keeping the rest","list and deck on screen together, the deck opened from that list",,swipe-deck;dock-split,
-reach,drill,Drill,"a deck one level down, covering its parent; the close button becomes a back arrow",the parent deck is under it,,swipe-deck,
-reach,record-deck,Record deck,"a table's records, one per slide, every field shown",one slide per row of the table it came from,,record-deck,
-reach,file-deck,File deck,"a changeset's files, one per slide",one slide per file,,file-deck,
-reach,peek,Peek,"a card on hover or focus, sometimes pinned by a click",it opens without leaving the page,"modal, which takes the page",source-peek;title-tip;panel-tip,
-reach,row-menu,Row menu,"a menu at the finger: read from here, copy",it opens at the tapped row,,row-menu,
-reach,expand-row,Expanding row,the row opens in place,the rows below it move down,,,
-reach,modal,Modal,a dialog or sheet over the page,the page behind cannot be used while it is open,,sheet-modal,
-reach,land,Landing,a scroll to a target that tints and fades,the target is on the same page,,land,
-reach,dock-view,View beside,"a whole app view opens in a second pane beside the body, and the body stays",the opened pane has its own address,"deck-docked, which opens a deck",,
-reach,turn-deck,Turn deck,"one item's parts, such as a session's exchanges, as a deck opened straight from its row",one slide per part of one item,"record-deck, one slide per row",swipe-deck;chat-render,
-reach,swap-view,Swap to item,"a tap replaces the list with the item's own view in the same page, behind a back control",the list is gone until the back control,"deck-takeover, which covers the list rather than replacing it",,
-reach,panel-below,Panel below,a document opens full width under the body,the body stays above it,"expand-row, which opens inside the row",,
-binding,none,None,the regions do not move each other,,,,
-binding,select-show,"Select, show",a pick in one region redraws another,,,,
-binding,two-way,Two-way,moving either region moves the other,,,,
-binding,filter,Filter,one region narrows another,,,,
-binding,cite-land,"Cite, land",an item opens a place in a document,,,,
-binding,stamp,Stamp,"the state is written to the address, so a link reopens it",,,,
-phone,same,Same,nothing changes but the width,,,,
-phone,stack,Stack,side by side becomes top over bottom,,,,
-phone,hide,Hide,a region is dropped; the value is written hide:<region>,,,,
-phone,switch,Switch,"one region at a time, chosen by a control",,,,
-phone,takeover,Takeover,an inline region becomes a full-window deck,,,,
-phone,wrap-cost,Wrap cost,a control wraps and pushes the body down by more than a screen,,,,
-phone,squeeze,Squeeze,a fixed-width or fixed-share region keeps its size and crushes the rest to unreadable,something on screen is too narrow or too short to read,,,
-ring,0,Built in,"the app's built-in views, and their tabs",docs/app-routes.csv or docs/map-tabs.csv declares it,,,
-ring,1,Promoted,"pages a repo promotes into the app, and the views of a promoted app",appView: true in a .web-tools.json,,,
-ring,2,Framed,pages a promoted app frames,embed in the budget-drs app's VIEWS,,,
-ring,3,Gallery,"gallery pages, and pages nothing declares","pages/pages.csv, a .web-tools.json pages[] entry, or nothing",,,
-ring,4,Demonstration,demonstrations and scratch,"pages/pages.csv top demos, kit-demos, drop or scratch",,,
+axis,code,name,gloss,test,not_to_confuse,kits,parts,icon
+frame,tabs,Tabs,"a strip of tabs, each its own address",the strip changes what the body holds,"selector, which picks one item rather than one view",,,ph-tabs
+frame,subtabs,Second-level switch,"a second strip, or a switch row, inside a tab",the row sits inside one tab and changes only that tab,,,,ph-list-dashes
+frame,lede,Lede,one sentence under the tabs saying what the rows are,it names the rows; it does not instruct,"explanatory prose, which html-style forbids",,,ph-text-align-left
+frame,search,Search box,a box that narrows the body as it is typed,typing removes rows from the body,,,,ph-magnifying-glass
+frame,count-chips,Count chips,one line of counts whose chips filter the body,a chip tap narrows the body,"a legend, whose chips do not filter",,,ph-hash
+frame,rail-filter,Filter rail,"a rail of groups, often a folder tree with counts rolled up, whose selection narrows the body",a pick narrows the body to one group,"contents-rail, which jumps rather than narrows",,,ph-funnel
+frame,contents-rail,Contents rail,one contents list drawn as a side rail where the width allows and a pinned bar where not; a pick scrolls to a place,a pick scrolls; nothing is hidden,,,,ph-list-numbers
+frame,selector,Selector,"chips, a grid or a menu that picks the ONE item the body draws: a table, a biennium, a document",the body draws exactly one of the choices,"rail-filter, which narrows a list",,,ph-cursor-click
+frame,filter-switch,Filter switch,"a chip row, switch or dropdown that narrows the body but shows no counts",a pick narrows the body; no figure rides on it,"count-chips, whose chips carry counts",,,ph-funnel-simple
+frame,dial,Threshold dial,a range control whose value decides which items exist in the body,moving it adds or removes items,"filter-switch, which picks among named values",,,ph-sliders-horizontal
+frame,panel-toggle,Panel toggle,one button that shows a region of the body and writes its own address,the region has an address but no tab strip around it,"tabs, which are a strip",,,ph-sidebar-simple
+body,list,List,"rows or entries, read by scanning",one entry per item; nothing else on screen draws an item in full,,,list;item;group?;title?;meta?;summary?;body?;links?;actions?,ph-list
+body,grid,Grid,"a sortable, filterable table, Tabulator or a hand table used as one",column headers that sort or filter,,tabulator,,ph-table
+body,card-grid,Card grid,"one card per item, in a grid",each card is a complete small account of its item,,,list;item;group?;title?;meta?;summary?;body?;links?;actions?,ph-squares-four
+body,list-detail,List and detail,"a list and one item's card, side by side or stacked",a pick redraws the card; the card shows exactly one item of the list,"linked-swiper, where the card is itself a strip that moves the list",,list;item;detail;group?;title?;meta?;summary?;body?;links?;actions?,ph-columns
+body,linked-swiper,Linked list and swiper,"a list, or a tab strip, and an inline strip of the items' cards, both on screen",a pick moves the strip AND a swipe moves the list's selection,"header-swiper, whose top region is not an index",swipe-deck (core),,ph-arrows-left-right
+body,header-swiper,Header over swiper,"a fixed region (a judgment, a guide, a question) over an inline strip of materials","the top region is about the set, not an index into it; no selection binding",linked-swiper,swipe-deck (core),,ph-cards
+body,source-beside,Source beside claim,"a document reader beside the material that cites it, with a divider",a cited item opens a place in the reader,,dock-split,,ph-book-open-text
+body,figure,Figure,"a chart, map or matrix is the main region, with controls and a legend",the figure would remain if the controls were removed,,,,ph-chart-bar
+body,fields,Fields,"one object's fields, labeled values and small tables, read top to bottom",a form usually draws this; the form field says whose,"document, which is prose",,,ph-textbox
+body,document,Document,"prose or a rendered document, read top to bottom",,,,,ph-article
+body,tool,Tool,"an input and its output, where the reader acts rather than reads",the main region takes input,,,,ph-wrench
+body,app-split,App split,two whole views side by side,each pane is an app view with its own address,,,,ph-square-split-horizontal
+body,host,Host,"the region holds another unit whole: a view mounted in a pane, or a page in a frame",the held unit is coded on its own row,"app-split, which holds two",,,ph-frame-corners
+body,list-stack,Stacked lists,"several independent lists stacked in fixed shares of the pane, each with its own controls and its own scroll",each list scrolls on its own,"list, which is one",,,ph-stack
+body,deck-page,Deck page,"the first paint is a deck that fills the page, with no list under it",closing it leaves nothing to return to,"deck-takeover, which opens over a list",swipe-deck,,ph-cards-three
+reach,deck-takeover,Deck takeover,"the list itself as a deck over the view or the window, at the tapped item, frozen at the tap",a swipe moves between the items of the list it was opened from,,swipe-deck,,ph-cards-three
+reach,deck-docked,Docked deck,"the same deck over part of the pane, the list keeping the rest","list and deck on screen together, the deck opened from that list",,swipe-deck;dock-split,,ph-sidebar-simple
+reach,drill,Drill,"a deck one level down, covering its parent; the close button becomes a back arrow",the parent deck is under it,,swipe-deck,,ph-arrow-elbow-down-right
+reach,record-deck,Record deck,"a table's records, one per slide, every field shown",one slide per row of the table it came from,,record-deck,,ph-rows
+reach,file-deck,File deck,"a changeset's files, one per slide",one slide per file,,file-deck,,ph-files
+reach,peek,Peek,"a card on hover or focus, sometimes pinned by a click",it opens without leaving the page,"modal, which takes the page",source-peek;title-tip;panel-tip,,ph-eye
+reach,row-menu,Row menu,"a menu at the finger: read from here, copy",it opens at the tapped row,,row-menu,,ph-dots-three-vertical
+reach,expand-row,Expanding row,the row opens in place,the rows below it move down,,,,ph-caret-down
+reach,modal,Modal,a dialog or sheet over the page,the page behind cannot be used while it is open,,sheet-modal,,ph-browser
+reach,land,Landing,a scroll to a target that tints and fades,the target is on the same page,,land,,ph-crosshair
+reach,dock-view,View beside,"a whole app view opens in a second pane beside the body, and the body stays",the opened pane has its own address,"deck-docked, which opens a deck",,,ph-columns
+reach,turn-deck,Turn deck,"one item's parts, such as a session's exchanges, as a deck opened straight from its row",one slide per part of one item,"record-deck, one slide per row",swipe-deck;chat-render,,ph-chats-circle
+reach,swap-view,Swap to item,"a tap replaces the list with the item's own view in the same page, behind a back control",the list is gone until the back control,"deck-takeover, which covers the list rather than replacing it",,,ph-swap
+reach,panel-below,Panel below,a document opens full width under the body,the body stays above it,"expand-row, which opens inside the row",,,ph-arrow-line-down
+binding,none,None,the regions do not move each other,,,,,ph-minus
+binding,select-show,"Select, show",a pick in one region redraws another,,,,,ph-cursor-click
+binding,two-way,Two-way,moving either region moves the other,,,,,ph-arrows-left-right
+binding,filter,Filter,one region narrows another,,,,,ph-funnel
+binding,cite-land,"Cite, land",an item opens a place in a document,,,,,ph-quotes
+binding,stamp,Stamp,"the state is written to the address, so a link reopens it",,,,,ph-link-simple
+phone,same,Same,nothing changes but the width,,,,,ph-equals
+phone,stack,Stack,side by side becomes top over bottom,,,,,ph-stack-simple
+phone,hide,Hide,a region is dropped; the value is written hide:<region>,,,,,ph-eye-slash
+phone,switch,Switch,"one region at a time, chosen by a control",,,,,ph-toggle-left
+phone,takeover,Takeover,an inline region becomes a full-window deck,,,,,ph-arrows-out
+phone,wrap-cost,Wrap cost,a control wraps and pushes the body down by more than a screen,,,,,ph-text-align-justify
+phone,squeeze,Squeeze,a fixed-width or fixed-share region keeps its size and crushes the rest to unreadable,something on screen is too narrow or too short to read,,,,ph-arrows-in-line-horizontal
+ring,0,Built in,"the app's built-in views, and their tabs",docs/app-routes.csv or docs/map-tabs.csv declares it,,,,ph-app-window
+ring,1,Promoted,"pages a repo promotes into the app, and the views of a promoted app",appView: true in a .web-tools.json,,,,ph-arrow-circle-up
+ring,2,Framed,pages a promoted app frames,embed in the budget-drs app's VIEWS,,,,ph-frame-corners
+ring,3,Gallery,"gallery pages, and pages nothing declares","pages/pages.csv, a .web-tools.json pages[] entry, or nothing",,,,ph-images
+ring,4,Demonstration,demonstrations and scratch,"pages/pages.csv top demos, kit-demos, drop or scratch",,,,ph-flask
