@@ -91,9 +91,11 @@ const slotJs = (stage, coded) => `
   const STAGE = ${JSON.stringify(stage)};
   const IN = (e) => e.ownerDocument !== document || (STAGE.region ? !!e.closest(STAGE.region)
     : STAGE.outside ? !e.parentElement?.closest(STAGE.sel) : !!e.parentElement?.closest(STAGE.sel));
+  // Frames within frames too: under a ref, Growth frames its page through the
+  // toss renderer, which frames it again.
   const DOCS = [document];
-  for (const f of document.querySelectorAll('iframe')) {
-    if (!IN(f) || !SHOWN(f) || f.dataset.pattern === 'host') continue;
+  for (let i = 0; i < DOCS.length; i++) for (const f of DOCS[i].querySelectorAll('iframe')) {
+    if ((i === 0 && !IN(f)) || !SHOWN(f) || f.dataset.pattern === 'host') continue;
     try { if (f.contentDocument) DOCS.push(f.contentDocument); } catch { /* another origin */ }
   }
   const PATS = [...document.querySelectorAll('[data-pattern]')].filter((e) => IN(e) && SHOWN(e));
@@ -110,9 +112,10 @@ const labelJs = (stage, coded) => `(() => {
   const C = ${JSON.stringify(COLOR)}, N = ${JSON.stringify(NAME)};
   const layer = document.createElement('div');
   layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483647';
-  const at = (e) => { const r = e.getBoundingClientRect(); const fr = e.ownerDocument.defaultView.frameElement;
-    if (!fr || e.ownerDocument === document) return r; const o = fr.getBoundingClientRect();
-    return { left: r.left + o.left, top: r.top + o.top }; };
+  const at = (e) => { const r = e.getBoundingClientRect(); let left = r.left, top = r.top;
+    for (let w = e.ownerDocument.defaultView; w !== window && w.frameElement; w = w.frameElement.ownerDocument.defaultView) {
+      const o = w.frameElement.getBoundingClientRect(); left += o.left; top += o.top; }
+    return { left, top }; };
   // Kept inside the crop: a label that would rise above it sits inside its
   // slot's top edge, or at the crop's top where the slot starts above it, and
   // one that would run past the right edge is pulled in.

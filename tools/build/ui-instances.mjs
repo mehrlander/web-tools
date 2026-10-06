@@ -155,9 +155,11 @@ const checkJs = (coded, stage) => `(async () => {
   // A figure drawn in a same-origin frame (Atlas, Growth) has its controls in
   // the framed page, so the frame is read too; a host's frame holds another
   // unit, whose slots are its own.
+  // Frames within frames too: under a ref, Growth frames its page through the
+  // toss renderer, which frames it again.
   const docs = [document];
-  for (const f of document.querySelectorAll('iframe')) {
-    if (!inStage(f) || !shown(f) || f.dataset.pattern === 'host') continue;
+  for (let i = 0; i < docs.length; i++) for (const f of docs[i].querySelectorAll('iframe')) {
+    if ((i === 0 && !inStage(f)) || !shown(f) || f.dataset.pattern === 'host') continue;
     try { if (f.contentDocument) docs.push(f.contentDocument); } catch { /* another origin */ }
   }
   const all = docs.flatMap((d) => [...d.querySelectorAll('[data-slot]')]).filter((e) => e.ownerDocument !== document || inStage(e));
