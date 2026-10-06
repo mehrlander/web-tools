@@ -908,11 +908,11 @@ test('the PowerShell outpost view\'s source pane is the file component: Edit, a 
 });
 
 // The workspace's two derived tables, declared in its manifest: the
-// PowerShell outpost view gains a second grouping and a dependency block, and a file whose
+// PowerShell outpost view gains application pills and a dependency block, and a file whose
 // strict dependency is still pending is placed and recorded with it.
 const PROFILE = `${P}/app/Profile.ps1`, CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`;
-test('with the derived tables, files group by application and each lists what it loads and what loads it', async () => {
-  assert.equal(el.querySelector('[data-group-by]'), null, 'no table, no switch');
+test('with the derived tables, application pills narrow the files and each lists what it loads and what loads it', async () => {
+  assert.equal(el.querySelector('[data-app-filter]'), null, 'no table, no application pills');
   const manifest = JSON.parse(files[`${P}/data/outpost.json`]);
   Object.assign(manifest, { loads: `${P}/data/loads.csv`, applications: `${P}/data/office-uses.csv` });
   files[`${P}/data/outpost.json`] = JSON.stringify(manifest);
@@ -926,14 +926,30 @@ test('with the derived tables, files group by application and each lists what it
     + 'app/Profile.ps1,Chrome,loads,app/Forms/Bookmarks/Bookmarks.ps1\n'
     + 'app/Profile.ps1,Excel,loads,app/Modules/ExcelService/ExcelService.psm1\n';
   advanceHead(); await data.reload(); await settle();
-  assert.ok(el.querySelector('[data-group-by]'), 'the switch appears with the table');
-  assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts'], 'area stays the default');
-  [...el.querySelectorAll('[data-group-by] button')].find(b => b.textContent === 'By application').click(); await settle();
-  assert.equal(data.groupBy, 'application');
-  assert.deepEqual([...data.visibleGroups.map(g => g.area)], ['Chrome', 'Excel', 'No application']);
-  const rows = q('[data-powershell-outpost] section button.text-left').map(b => b.textContent.trim());
-  assert.equal(rows.filter(t => t === 'Profile.ps1').length, 2, 'a file reaching two applications is listed under both');
-  assert.equal(q('[data-powershell-outpost] section h3').some(h => h.textContent.includes('undefined')), false, 'an application heading shows no destination');
+  const pills = () => [...el.querySelectorAll('[data-app-filter] button')];
+  const pill = name => pills().find(b => b.textContent.includes(name));
+  const rows = () => q('[data-powershell-outpost] section button.text-left').map(b => b.textContent.trim());
+  assert.deepEqual(pills().map(b => [...b.querySelectorAll('span')].map(x => x.textContent).join(' ')), ['Chrome 3', 'Excel 1'], 'one pill per application, with its count');
+  const all = rows().length;
+  pill('Chrome').click(); await settle();
+  assert.equal(data.app, 'Chrome');
+  assert.equal(pill('Chrome').getAttribute('aria-pressed'), 'true');
+  assert.deepEqual(rows().sort(), ['Bookmarks.ps1', 'Bookmarks.xaml', 'Profile.ps1'], 'the list keeps its areas and shows only that application');
+  assert.equal(data.stateTotal, 3, 'the state pills count what the application pill lets through');
+  pill('Excel').click(); await settle();
+  assert.deepEqual(rows(), ['Profile.ps1'], 'a file reaching two applications passes either pill');
+  pill('Excel').click(); await settle();
+  assert.equal(data.app, '', 'a second tap clears it');
+  assert.equal(rows().length, all);
+  const short = data.statusOf(PROFILE).short;
+  [...el.querySelectorAll('[data-state-filter] button')].find(b => b.textContent.includes(short)).click(); await settle();
+  const count = name => Number(pill(name).querySelectorAll('span')[1].textContent);
+  assert.equal(count('Excel'), 1, 'Profile.ps1 passes the state pill for its own state');
+  assert.equal(count('Chrome'), ['Bookmarks.ps1', 'Bookmarks.xaml', 'Profile.ps1']
+    .filter(n => data.statusOf(`${P}/app/${n === 'Profile.ps1' ? n : 'Forms/Bookmarks/' + n}`).short === short).length,
+    'the application pills count what the state pill lets through');
+  el.querySelector('[data-state-filter] button').click(); await settle();
+  assert.equal(data.filter, '');
   data.select(PROFILE); await settle();
   const deps = () => el.querySelector('[data-dependencies]');
   assert.notEqual(deps().style.display, 'none');

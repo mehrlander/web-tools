@@ -564,16 +564,15 @@ test('load edges and application uses read as repository paths', () => {
   assert.equal(u[2].path, P + '/app/Profile.ps1', 'a trailing slash on the project path is tolerated');
 });
 
-test('files group by application in table order, under each application they reach, the rest last', () => {
+test('each application lists the files it reaches, in table order, and a file can reach two', () => {
   const inv = K.inventory({ tree, manifest: K.manifest(DERIVED), projectPath: P });
-  const g = K.applicationGroups(inv, K.uses(USES, P));
-  assert.deepEqual(g.map(x => x.area), ['Chrome', 'Excel', 'No application']);
-  assert.deepEqual(g[0].units.map(u => u.name), ['Forms/Bookmarks', 'Profile'], 'the area stays beside the folder');
-  assert.deepEqual(g[0].units[0].files.map(f => f.name), ['Bookmarks.ps1', 'Bookmarks.xaml'], 'a controller before its XAML');
-  assert.deepEqual(g[1].units.map(u => u.name), ['Profile'], 'a file reaching two applications is listed under both');
-  assert.ok(g[2].units.some(u => u.name === 'Modules/Forms'));
-  assert.equal(g.every(x => x.installs === undefined), true, 'an application has no destination to show');
-  assert.deepEqual(K.applicationGroups(inv, []), [], 'no table, no second grouping');
+  const a = K.applicationFiles(inv, K.uses(USES, P));
+  assert.deepEqual(a.map(x => x.app), ['Chrome', 'Excel']);
+  assert.deepEqual([...a[0].paths], ['app/Forms/Bookmarks/Bookmarks.ps1', 'app/Forms/Bookmarks/Bookmarks.xaml', 'app/Profile.ps1'].map(r => P + '/' + r));
+  assert.deepEqual([...a[1].paths], [P + '/app/Profile.ps1'], 'a file reaching two applications belongs to both');
+  assert.deepEqual(K.applicationFiles(inv, K.uses(USES + 'app/Modules/Gone/Gone.psm1,Word,name,Gone\n', P)).map(x => x.app), ['Chrome', 'Excel'],
+    'an application only absent files reach has no pill');
+  assert.deepEqual(K.applicationFiles(inv, []), [], 'no table, no pills');
 });
 
 test('a placement carries every still-pending file it strictly needs, dependencies first', () => {
