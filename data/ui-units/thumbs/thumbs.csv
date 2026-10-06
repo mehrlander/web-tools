@@ -42,7 +42,7 @@ web-tools:view/project/docs,web-tools-view-project-docs.desk.jpg,web-tools-view-
 web-tools:view/project/files,web-tools-view-project-files.desk.jpg,web-tools-view-project-files.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=files,slots @113,linked-swiper
 web-tools:view/project/outpost,web-tools-view-project-outpost.desk.jpg,web-tools-view-project-outpost.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · tools/render/scenarios/project-outpost.mjs,slots @113,list-detail
 web-tools:view/project/overview,web-tools-view-project-overview.desk.jpg,web-tools-view-project-overview.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=overview,slots @113,document
-web-tools:view/project/pages,web-tools-view-project-pages.desk.jpg,web-tools-view-project-pages.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=pages,slots @113,card-grid
+web-tools:view/project/pages,web-tools-view-project-pages.desk.jpg,web-tools-view-project-pages.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · tools/render/scenarios/project-pages-routes.mjs,slots @113,card-grid
 web-tools:view/proposals,web-tools-view-proposals.desk.jpg,web-tools-view-proposals.phone.jpg,2026-10-06,app/index.html?view=landing · tools/render/scenarios/proposals-demo.mjs,slots @105,list
 web-tools:view/public,web-tools-view-public.desk.jpg,web-tools-view-public.phone.jpg,2026-10-06,app/index.html?view=public,slots @149,list-detail
 web-tools:view/repos,web-tools-view-repos.desk.jpg,web-tools-view-repos.phone.jpg,2026-10-06,app/index.html?view=repos · tools/render/scenarios/repos-abandoned-badge.mjs,slots @113,card-grid
