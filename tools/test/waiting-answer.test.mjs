@@ -45,16 +45,21 @@ const tick = (ms = 20) => new Promise(r => setTimeout(r, ms));
 for (let i = 0; i < 40 && (data.loadingCalls || data.loadingPending); i++) await tick(5);
 data.markNear(); await tick(40);
 const q = (sel) => el.querySelector(sel);
+// x-show hides on the next animation frame, so a fixed pause is a race on a
+// slow runner; wait for the state itself, up to a second.
+const until = async (ok) => { for (let i = 0; i < 50 && !ok(); i++) await tick(20); return ok(); };
 
 test('the head row opens the filing session by the Claude mark and the call page by an icon', async () => {
-  data.picked.calls = 's1-merge-7'; await tick();
+  data.picked.calls = 's1-merge-7';
+  await until(() => q('[data-waiting-agent]')?.getAttribute('href'));
   const mark = q('[data-waiting-agent]');
   assert.equal(mark.getAttribute('href'), 'https://claude.ai/code/session_01AAA');
   assert.ok(mark.querySelector('svg'), 'the mark is drawn');
   const open = [...el.querySelectorAll('[data-waiting-open]')].find(a => a.style.display !== 'none');
   assert.equal(open.getAttribute('href'), 'page#s1-merge-7');
   assert.equal(open.textContent.trim(), '', 'an icon, not a labelled button');
-  data.picked.calls = 's1-close-two'; await tick();
+  data.picked.calls = 's1-close-two';
+  await until(() => q('[data-waiting-agent]').style.display === 'none');
   assert.equal(q('[data-waiting-agent]').style.display, 'none', 'a session the index does not name gets no mark');
   data.picked.calls = 's1-merge-7'; await tick();
 });
