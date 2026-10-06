@@ -18,13 +18,15 @@
 //                         on: the list's selection has to follow it
 //   WAITING_STEP=pick     the Tighten tab, the fifth file tapped in the list:
 //                         the strip has to land on its card
-//   WAITING_STEP=full     the Edits tab with the strip given the whole height
+//   WAITING_STEP=full     the Edits tab's rows in the deck takeover, opened by
+//                         the expander on the row in view
 //   WAITING_STEP=docs   the Map view's Docs tab instead, filtered to the
 //                       documents with proposed edits
 //   WAITING_STEP=decision  the Calls tab, the first decision call picked: its
 //                       options on the card, the recommended one marked
 //   WAITING_STEP=arm    the Calls tab, the first row's answer tapped once: it
 //                       reads Confirm and nothing is sent
+//   WAITING_STEP=deck   the Calls tab in the deck takeover, on its first call
 const STEP = process.env.WAITING_STEP || 'view';
 const C = 'document.querySelector(\'[data-pane="waiting"] [x-data="waiting()"]\')?._x_dataStack?.[0]';
 export default async function (page) {
@@ -41,7 +43,7 @@ export default async function (page) {
   }
   await page.evaluate(() => window.__shell.goWaiting());
   await page.waitForFunction(`(() => { const x = ${C}; return x && !x.loadingCalls && !x.loadingPending && x.pending; })()`, null, { timeout: 90000 });
-  if (!['view', 'decision', 'arm'].includes(STEP)) {
+  if (!['view', 'decision', 'arm', 'deck'].includes(STEP)) {
     await page.locator(`[data-waiting-tab="${STEP === 'edit' || STEP === 'full' ? 'edit' : 'tighten'}"]`).click();
     await page.waitForTimeout(400);
   }
@@ -53,7 +55,7 @@ export default async function (page) {
   if (STEP === 'pick') await page.locator('[data-waiting-file]').nth(4).click();
   if (STEP === 'decision') await page.locator('[data-waiting-call][data-kind="decision"]').first().click();
   if (STEP === 'arm') await page.locator('[data-waiting-quick]').first().click();
-  if (STEP === 'full') await page.locator('[data-waiting-full]').click();
+  if (STEP === 'full' || STEP === 'deck') await page.locator('[data-waiting-full]').click();
   await page.waitForTimeout(1500);
   await page.evaluate(`(() => { const x = ${C}; const s = document.querySelector('[data-waiting-strip]');
     const list = document.querySelector('[data-waiting-rows]'), on = list && list.querySelector('[aria-current="true"]');
