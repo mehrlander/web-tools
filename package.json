@@ -114,7 +114,7 @@
     "doc-growth": "python3 scripts/doc-growth.py",
     "sample-workbook": "node tools/build/sample-workbook.mjs",
     "test:powershell-file": "node tools/test/powershell-file-browser.mjs",
-    "test:installation-source": "node tools/test/installation-source-browser.mjs",
+    "test:powershell-outpost-source": "node tools/test/powershell-outpost-source-browser.mjs",
     "test:files-view": "node tools/test/files-view-browser.mjs",
     "test:map-data-census": "node tools/test/map-data-census-browser.mjs",
     "doc-overlap": "python3 scripts/doc-overlap.py"

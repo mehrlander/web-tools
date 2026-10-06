@@ -185,7 +185,10 @@ test('the two sub-tab encodings, counted', () => {
   // figure counts how many sub-tabs wear a top-level key, not where they hang,
   // so a relocation is invisible to it by design; a promotion or a retirement
   // is what moves it.
-  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 6 to 7 on 2026-10-06: Tending left the header for the Activity stop, whose
+  // rows open it, and kept its own ?view= key.
+  assert.equal(flattened, 7, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
@@ -203,8 +206,11 @@ test('the two sub-tab encodings, counted', () => {
   // dimensions those units are coded on, and Patterns became its Gallery.
   // 22 to 25 on 2026-10-06, with no address added: the Map's row named 16 of
   // the 19 tabs docs/map-tabs.csv declares, and now names Context, Growth and
-  // Policy too, which had been addressable all along.
-  assert.equal(params, 25, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // Policy too, which had been addressable all along. 25 to 27 on 2026-10-06:
+  // the project view's Overview became the README alone, and the landing page
+  // and the PowerShell outpost view it used to show took tabs of their own,
+  // App and Outpost.
+  assert.equal(params, 27, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

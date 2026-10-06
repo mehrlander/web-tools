@@ -16,7 +16,7 @@ skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,"re
 skill,/portable:scour,skills/scour/SKILL.md,scour,"acquisition fan-out: send agents to gather source material that does not exist locally, and map who says what about a subject across the open web",plugin
 skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,"measurement fan-out: build an independently labeled sample that scores a classifier or extractor for correctness, blind readers plus an adversarial skeptic plus a scoring script, and decide from the scorecard whether the program should change",plugin
 skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,compose Apple Shortcuts actions and hand them over as a tappable paste-in link for the device clipboard,plugin
-skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: investigate branches, pull requests, trackers and snags, and store each conclusion as a finding the Tending view shows, bringing the owner only the choices that need commitment",plugin
+skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: investigate branches, pull requests, trackers and snags, store each conclusion as a finding, and bring the owner a prepared user call only where the next step needs their word",plugin
 skill,/portable:notes,skills/notes/SKILL.md,notes,"leave, reply to and read notes: short, signed observations addressed to a repo, branch, file, pull request, task, snag, or another note",plugin
 skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin

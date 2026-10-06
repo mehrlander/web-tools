@@ -129,7 +129,7 @@ test('a check pins the revision, holds exact incoming text, and persists an hone
   assert.equal(saved[0].exact, true);
   assert.equal(saved[0].lineEndingsOnly, false);
   assert.equal(saved[0].observation, 'Submitted text matched this repository revision exactly.');
-  assert.match(saved[0].installation, /not inspected/);
+  assert.match(saved[0].outpost, /not inspected/);
   assert.match(saved[0].checkedAt, /^\d{4}-\d\d-\d\dT/);
   assert.equal(saved[0].incomingSha256.length, 64);
   assert.deepEqual(calls.at(-1), ['get', target.path, 'a'.repeat(40)]);
