@@ -28,16 +28,13 @@ web-tools:view/jots,list-stack,,,,,,,5a3d5c2c1263
 web-tools:view/landing,document,,,,,,,5a3d5c2c1263
 web-tools:view/lists,list-stack,,,,,,,5a3d5c2c1263
 web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38; body 38; actions 38; title 38; links 38; summary 38,,,holds: 38 items shown,3ae0f69113ec
-web-tools:view/project,document,,,,,,,5a3d5c2c1263
 web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 48; item 20; title 20,,,holds: 20 items shown,41aaf0900ce4
 web-tools:view/project/docs,list,list,no kit draws this code,list 1; item 78; title 78; group 8; meta 8,,,holds: 78 items shown,5a3d5c2c1263
 web-tools:view/project/files,linked-swiper,,,,,,,5a3d5c2c1263
-web-tools:view/project/overview,list-detail,,no kit draws this code,,,,,5a3d5c2c1263
 web-tools:view/project/pages,card-grid,card-grid,no kit draws this code,list 1,,,unchecked: no item shown at this address,3ae0f69113ec
 web-tools:view/proposals,list,list,no kit draws this code,list 1; item 2; meta 4; title 2; summary 2; body 4; actions 2; links 4,,,holds: 2 items shown,41aaf0900ce4
 web-tools:view/public,list-detail,list-detail,no kit draws this code,list 1; item 2669; title 2669; meta 2669; detail 1,,,holds: the pick changed the detail; the selection moved to it,5a3d5c2c1263
 web-tools:view/repos,card-grid,card-grid,no kit draws this code,list 1; group 1; meta 10; actions 3; item 2; title 2; links 5; summary 2,,,holds: 2 items shown,3ae0f69113ec
-web-tools:view/routes,list,list,no kit draws this code,list 1; group 3; meta 63; item 23; title 23; summary 23; actions 23,,,holds: 23 items shown,41aaf0900ce4
 web-tools:view/search,list-detail,list-detail,no kit draws this code,list 1; item 52; meta 103; title 52; detail 1,,,holds: the pick changed the detail; the selection moved to it,41aaf0900ce4
 web-tools:view/sessions,list,list,no kit draws this code,list 1; item 6; meta 64; title 6; summary 6; actions 8; body 6,,,holds: 6 items shown,5a3d5c2c1263
 web-tools:view/shell,host,,,,,,,5a3d5c2c1263

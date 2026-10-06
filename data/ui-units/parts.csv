@@ -1,7 +1,7 @@
 part,name,gloss,color
 list,List,the element that holds the items,#2563eb
 item,Item,one entry of the list,#2563eb
-group,Group,"a heading that divides the items, with its own count or sentence",#0891b2
+group,Item group,"the heading of an item group: a run of the list's own items set apart under it, with its own count or sentence",#0891b2
 detail,Detail,the card that shows one item in full,#ea580c
 title,Title,an item's name,#7c3aed
 meta,Meta,"an item's or a group's code, count, amount, date, kind or status",#64748b

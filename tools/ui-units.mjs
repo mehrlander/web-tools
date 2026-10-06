@@ -82,6 +82,42 @@ const add = (u) => units.push({ reachable: 'yes', attribution: 'declared', ...u 
 const codeFiles = (s) => (s || '').split(';').map(x => x.trim()).filter(x => /\.(js|mjs|html)$/.test(x));
 const routes = csv('web-tools', 'docs/app-routes.csv');
 const mapTabs = csv('web-tools', 'docs/map-tabs.csv');
+// The Map's tab and subview names, read from the strip map() draws, so a unit
+// is labelled the way a reader meets it ("Map: UI › Gallery") rather than by
+// its key ("Map: patterns"). A subview is named under its tab; a tab whose own
+// key is its first subview (Docs, Harness, UI) is named by that subview.
+const mapSrc = read('web-tools', 'lib/alpineComponents/map.js');
+const optionsIn = (block) => [...(block || '').matchAll(/\{ k: '([a-z]+)', n: '([^']+)'/g)].map(m => ({ k: m[1], n: m[2] }));
+const mapTabNames = new Map(optionsIn(mapSrc.match(/\n\s*TABS:\s*\[([\s\S]*?)\n\s*\],/)?.[1]).map(o => [o.k, o.n]));
+const subBlock = mapSrc.match(/SUBVIEWS:\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*SUBVIEW_PARENT:/)?.[1] || '';
+const mapSubviews = new Map();
+for (const m of subBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)) for (const o of optionsIn(m[2])) mapSubviews.set(o.k, { parent: m[1], n: o.n });
+const mapLabel = (k) => {
+  const sub = mapSubviews.get(k);
+  const name = sub ? (mapTabNames.get(sub.parent) || sub.parent) + ' › ' + sub.n : mapTabNames.get(k);
+  return 'Map: ' + (name || k);
+};
+const title = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+// One tab, several screens. The Project view's Overview draws one of three
+// arrangements, chosen by the workspace's .web-tools.json entry rather than by
+// any control a reader touches: a declared `landing` page in a frame, else the
+// installation view where an `installation` manifest is declared, else the
+// README (the three x-show conditions on projectTab==='overview' in
+// app/index.html). A reader cannot switch between them, so each is a unit of
+// its own; the README and landing renderings draw from the shell.
+const RENDERINGS = {
+  'project/overview': [
+    { key: 'readme', name: 'README', own: false },
+    { key: 'installation', name: 'installation', own: true },
+    { key: 'landing', name: 'landing page', own: false },
+  ],
+};
+// A route that draws no screen of its own declares the tab address a bare
+// visit settles on (`lands`): the Map opens on a tab, ?view=routes forwards to
+// the Map's Views tab, and ?view=project opens on its Overview. It is counted
+// as a second address of that tab's unit, not as a unit, so one screen is
+// never coded twice.
+const landed = [];
 for (const r of routes) {
   const files = codeFiles(r.files);
   const base = {
@@ -89,21 +125,33 @@ for (const r of routes) {
     group: r.group, view: r.key, label: r.label,
     address: r.key === 'shell' ? '' : (r.address || `?view=${r.key}`),
   };
+  if (r.lands) landed.push({ from: base.address, to: r.lands });
   // A route with no files of its own renders from the shell (app-routes.csv
   // says so in its own words), so the shell is where a reader must look.
   const own = files.length ? files : ['app/index.html'];
   const attribution = files.length ? 'declared' : 'shell';
   if (r.key === 'map') {
     for (const t of mapTabs) add({ ...base, unit: `web-tools:map/${t.tab}`, kind: 'tab', tab: t.tab,
-      label: `Map: ${t.tab}`, ring_basis: 'docs/map-tabs.csv', address: `?view=map&tab=${t.tab}`,
+      label: mapLabel(t.tab), ring_basis: 'docs/map-tabs.csv', address: `?view=map&tab=${t.tab}`,
       files: 'lib/alpineComponents/map.js', attribution: 'shared' });
     continue;
   }
   const tabs = (r.tabs || '').split(';').map(x => x.trim()).filter(Boolean);
-  add({ ...base, unit: `web-tools:view/${r.key}`, kind: r.key === 'shell' ? 'shell' : 'view', tab: '',
+  if (!r.lands) add({ ...base, unit: `web-tools:view/${r.key}`, kind: r.key === 'shell' ? 'shell' : 'view', tab: '',
     files: own.join(';'), attribution });
-  for (const t of tabs) add({ ...base, unit: `web-tools:view/${r.key}/${t}`, kind: 'tab', tab: t,
-    label: `${r.label}: ${t}`, address: `?view=${r.key}&tab=${t}`, files: own.join(';'), attribution: 'shared' });
+  for (const t of tabs) {
+    const tab = { ...base, unit: `web-tools:view/${r.key}/${t}`, kind: 'tab', tab: t,
+      label: `${r.label}: ${title(t)}`, address: `?view=${r.key}&tab=${t}`, files: own.join(';'), attribution: 'shared' };
+    const ways = RENDERINGS[`${r.key}/${t}`];
+    if (!ways) { add(tab); continue; }
+    for (const w of ways) add({ ...tab, unit: `${tab.unit}/${w.key}`, label: `${tab.label} (${w.name})`,
+      files: w.own ? own.join(';') : 'app/index.html', attribution: w.own ? 'shared' : 'shell' });
+  }
+}
+for (const l of landed) {
+  const hit = units.filter(u => u.address.split(' | ')[0] === l.to);
+  if (!hit.length) throw new Error(`app-routes.csv: ${l.from} lands on ${l.to}, which no unit has`);
+  for (const u of hit) u.address += ' | ' + l.from;
 }
 
 // ── Promotions and frames, from every checked-out repo's manifest ────────────

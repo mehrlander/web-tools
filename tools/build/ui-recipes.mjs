@@ -52,11 +52,17 @@ export function needHomeModules() {
 function derive(u) {
   if (u.repo === 'web-tools') {
     if (u.kind === 'page') return { tool: 'wt', page: u.files.split(';')[0], query: '' };
-    let q = String(u.address || '').replace(/^\?/, '');
+    // A unit reached at two addresses (a route that lands on a tab) is shot at
+    // its first, which is its own.
+    let q = String(u.address || '').split(' | ')[0].replace(/^\?/, '');
     if (u.group === 'repo') q = q.replace(/^repo=owner\/name/, 'repo=mehrlander/web-tools');
     if (u.group === 'repo' && !/^repo=/.test(q)) q = 'repo=mehrlander/web-tools' + (q ? '&' + q : '');
     return { tool: 'wt', page: 'app/index.html', query: q };
   }
+  // A page the app frames from another repo has no file in home's checkout,
+  // so it is shot where a reader meets it, in the app's view that frames it.
+  if (u.host === 'budget-drs app' && u.kind === 'framed page' && u.repo !== 'home' && u.view)
+    return { tool: 'home', page: 'projects/budget-drs/app/view/app.html', query: 'view=' + u.view };
   if (u.host === 'budget-drs app' && u.kind !== 'framed page' && u.view) {
     const q = 'view=' + u.view + (u.tab ? '&tab=' + tabSlug(u.tab) : '');
     return { tool: 'home', page: 'projects/budget-drs/app/view/app.html', query: q };
@@ -77,6 +83,7 @@ function derive(u) {
 // is its own unit and keeps its window unless it declares a pattern.
 function focusOf(u, body) {
   const declared = `top:[data-pattern="${body}"]`;
+  if (u.kind === 'framed page' && u.repo !== 'home') return `${declared} || top:[data-embed-frame] || top:main`;
   if (u.kind === 'page' || u.kind === 'framed page') return declared;
   if (u.host === 'Web Tools app' && u.view === 'map') return `${declared} || top:[data-pane="map"] section || top:main`;
   if (u.host === 'Web Tools app' && u.group === 'repo' && u.kind === 'tab') return `${declared} || below:main [role="tablist"] || top:main`;
