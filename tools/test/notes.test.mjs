@@ -86,3 +86,11 @@ test('the skill is registered with the plugin and the portable index', () => {
     .find((p) => p.path === 'skills/notes/SKILL.md');
   assert.equal(row?.command, '/portable:notes');
 });
+
+test('a note may take a stance, and a stance off the list is refused', () => {
+  const about = 'mehrlander/web-tools-private:user-calls/aaaa1111-x.json';
+  const r = run('add', about, 'Still holds.', '--author', 'gemini', '--stance', 'agrees');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(onMain().at(-1).stance, 'agrees');
+  assert.notEqual(run('add', about, 'x', '--author', 'gemini', '--stance', 'shrugs').status, 0);
+});

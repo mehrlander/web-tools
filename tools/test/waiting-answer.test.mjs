@@ -44,18 +44,35 @@ const READS = {
   'pulls/3': { state: 'closed', merged_at: '2026-10-01T00:00:00Z', closed_at: '2026-10-01T00:00:00Z' },
 };
 const asked = [];
+// The notes store: a tending finding that names the decision call among its
+// subjects, Gemini agreeing with the call, and the owner's reply to Gemini.
+const CALL_LOC = 'me/store:user-calls/s1-close-two.json';
+const NOTES = [
+  { id: 'nf1', at: '2026-10-06T05:10:00Z', author: 'claude/tend-pass', about: 'acme/widget#1', text: 'Its work landed in #9.',
+    finding: { kind: 'superseded', subjects: ['acme/widget#1', CALL_LOC], why: 'w', next: 'n' } },
+  // The pass's own update to that finding: a reply that carries `finding`.
+  { id: 'nu1', at: '2026-10-06T06:00:00Z', author: 'claude/tend-pass', about: 'note:nf1', text: 'Closed with the call.',
+    finding: { status: 'settled', subjects: ['acme/widget#1', CALL_LOC] } },
+  { id: 'ng1', at: '2026-10-06T08:00:00Z', author: 'gemini', about: CALL_LOC, text: 'All three still hold.', stance: 'agrees' },
+  { id: 'no1', at: '2026-10-06T09:00:00Z', author: 'me', about: 'note:ng1', text: 'Good.' },
+];
+const put = [];
 // A tracker task's status, as its file says it.
 const TASKS = { 'tracker/tasks/trim-ab12cd.md': 'in-progress' };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
+  static toBase64(t) { return Buffer.from(t).toString('base64'); }
   constructor(o = {}) { this.repo = o.repo; }
   async get(path) {
     if (path === 'state/session-menu.json') return { text: JSON.stringify(MENU) };
+    if (path === 'notes/notes.jsonl') return { text: NOTES.map((n) => JSON.stringify(n)).join('\n') + '\n', sha: 's0' };
     if (path in TASKS) return { text: '---\nid: x\nstatus: ' + TASKS[path] + '\n---\n# A task\n' };
     throw new Error('no ' + path);
   }
   async req(path, opts = {}) {
     asked.push([this.repo, path, opts.cache || '']);
+    if (path === '/user') return { login: 'owner' };
+    if (path === 'contents/notes/notes.jsonl' && opts.method === 'PUT') { put.push(JSON.parse(opts.body)); return { content: { sha: 's1' } }; }
     if (path.startsWith('issues/7/comments')) return [{ created_at: '2026-10-06T05:30:00Z' }, { created_at: '2026-10-06T08:00:00Z' }];
     if (path.startsWith('commits?')) return path.includes('docs%2Fwhy.md') ? [{ sha: 'x' }] : [];
     if (path in READS) return READS[path];
@@ -70,7 +87,7 @@ window.UserCallForm = {
   postAnswer: async (a) => { posted.push(a); return a.entry; },
   linkOf: (l) => ({ href: l.ref, label: l.label || l.ref, icon: 'ph-link' }),
 };
-const Alpine = await startAlpine(window, ['lib/alpine-bundle.js', 'lib/kits/swipe-deck.js', 'lib/alpineComponents/waiting.js']);
+const Alpine = await startAlpine(window, ['lib/alpine-bundle.js', 'lib/kits/swipe-deck.js', 'lib/kits/notes.js', 'lib/kits/findings.js', 'lib/alpineComponents/waiting.js']);
 const el = window.document.getElementById('w');
 const data = Alpine.$data(el);
 const tick = (ms = 20) => new Promise(r => setTimeout(r, ms));
@@ -319,4 +336,33 @@ test('an address naming a call opens Waiting on it, and the shell then forgets i
   assert.equal(window.__shell.waitingCall, '', 'taken once, so a later pick leaves no stale address');
   data.focusCall('no-such-call');
   assert.equal(data.picked.calls, 's1-close-two', 'an unknown id moves nothing');
+});
+
+test('a call carries its notes and findings, a stance reaches the row, and a note is kept without answering', async () => {
+  const decision = CALLS[1];
+  decision.open = true; decision.answers = [];
+  await until(() => data.allNotes.length === 4);
+  assert.ok(!asked.some(([, p]) => p === '/user'), 'no login read on load');
+  assert.deepEqual(Array.from(data.noteRows(decision), (x) => x.n.id + '@' + x.d), ['nf1@0', 'ng1@0', 'no1@1'],
+    'the finding naming it once, then Gemini, then the reply nested under Gemini');
+  assert.equal(data.noteRows(decision)[0].n.finding.status, 'settled', 'the finding as its update left it');
+  assert.match(data.callLine(decision), / · Gemini agrees /, 'who weighed in, and when');
+  assert.equal(data.whoOf('me'), 'You', 'the store\'s owner is the owner');
+  assert.equal(data.whoOf('gemini'), 'Gemini');
+  data.picked.calls = decision.id;
+  const card = () => el.querySelector('[data-waiting-detail-call][data-id="s1-close-two"]');
+  await until(() => card()?.querySelectorAll('[data-waiting-note-row]').length === 3);
+  assert.equal(card().querySelector('[data-waiting-note-row][data-stance="agrees"] .badge').textContent, 'Agrees');
+
+  const answersBefore = posted.length;
+  await data.saveNote(decision, '  Hold #2 a day.  ');
+  assert.equal(put.length, 1, 'one write to the notes store');
+  const wrote = Buffer.from(put[0].content, 'base64').toString().trim().split('\n').map((l) => JSON.parse(l)).at(-1);
+  assert.equal(wrote.about, CALL_LOC);
+  assert.equal(wrote.author, 'owner');
+  assert.equal(wrote.text, 'Hold #2 a day.');
+  assert.equal(decision.open, true, 'a note answers nothing');
+  assert.equal(posted.length, answersBefore, 'and writes no answer');
+  await until(() => data.noteRows(decision).length === 4);
+  assert.equal(data.noteRows(decision).at(-1).n.text, 'Hold #2 a day.');
 });
