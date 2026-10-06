@@ -164,7 +164,14 @@ const checkJs = (coded, stage) => `(async () => {
   const slots = [...new Set(all.filter(shown).map((e) => e.dataset.slot))];
   const hidden = [...new Set(all.filter((e) => !shown(e) && e.parentElement && shown(e.parentElement)).map((e) => e.dataset.slot))]
     .filter((x) => !slots.includes(x));
-  return JSON.stringify({ found: out, slots, hidden });
+  // A frame slot inside the list part of a code with parts: the frame
+  // describes the whole list, so the part belongs on the element below its
+  // controls. A List and detail may hold a filter over its list column; a
+  // figure, a tool or a stack of lists holds controls by its own gloss.
+  const lists = first && ${JSON.stringify(Object.keys(CODES))}.includes(first.dataset.pattern)
+    ? [first, ...first.querySelectorAll('[data-part="list"]')].filter((e) => e.dataset.part === 'list' && e.closest('[data-pattern]') === first) : [];
+  const nested = [...new Set(all.filter((e) => shown(e) && lists.some((l) => l.contains(e))).map((e) => e.dataset.slot))];
+  return JSON.stringify({ found: out, slots, hidden, nested });
 })()`;
 
 const listParts = (counts) => Object.entries(counts).map(([p, n]) => `${p} ${n}`).join('; ');
@@ -209,8 +216,8 @@ const worker = async () => {
     if (read && !stageOf(w.u).framed) {
       const frame = (w.c.frame || '').split(';').map(x => x.trim()).filter(Boolean);
       const codes = (list) => (list || []).filter(s => s.startsWith('frame:')).map(s => s.slice(6));
-      const seen = codes(read.slots), hid = codes(read.hidden);
-      row.slots = [...seen, ...hid.map(h => h + ' (hidden)')].join(';');
+      const seen = codes(read.slots), hid = codes(read.hidden), nested = codes(read.nested);
+      row.slots = [...seen.map(s => nested.includes(s) ? s + ' (in body)' : s), ...hid.map(h => h + ' (hidden)')].join(';');
       row.slots_missing = frame.filter(f => !seen.includes(f) && !hid.includes(f)).join(';');
       row.slots_stray = seen.filter(f => !frame.includes(f)).join(';');
     }
@@ -235,7 +242,8 @@ const worker = async () => {
     row.kit = spec ? (spec.kits.find(k => builtOn.includes(k)) || (spec.kits.length ? 'none of ' + spec.kits.join(', ') : 'no kit draws this code')) : '';
     done.get(w.store.name).push(row);
     console.log(`[${++n}] ${w.unit}: coded ${coded || '-'}, declared ${row.declared || '-'}${row.contract ? ', ' + row.contract : ''}`
-      + (row.slots_missing ? `; frame missing ${row.slots_missing}` : '') + (row.slots_stray ? `; frame stray ${row.slots_stray}` : ''));
+      + (row.slots_missing ? `; frame missing ${row.slots_missing}` : '') + (row.slots_stray ? `; frame stray ${row.slots_stray}` : '')
+      + (/\(in body\)/.test(row.slots) ? `; frame in body ${row.slots}` : ''));
   }
 };
 await Promise.all(Array.from({ length: JOBS }, worker));

@@ -1343,11 +1343,11 @@ html.dk-dragging main{transition:none !important}
 
             <!-- data-pattern and data-part declare the div below a Card grid and
                  name its parts (data/ui-units/codebook.md, "Declaring a pattern
-                 in markup"); nothing at runtime reads them. No element holds the
-                 groups alone, so the list element also carries the folder chips,
-                 the filter, the empty line and the catalog link, none an item. -->
+                 in markup"); nothing at runtime reads them. The folder chips,
+                 the filter, the empty line and the catalog link are the
+                 frame's, so the declaration holds the groups alone. -->
             <template x-if="loaded">
-            <div data-pattern="card-grid" data-part="list">
+            <div>
               <div class="flex flex-wrap items-center gap-1.5 mb-8" data-slot="frame:count-chips">
                 <template x-for="c in chips" :key="c.key">
                   <button class="btn font-mono"
@@ -1371,6 +1371,7 @@ html.dk-dragging main{transition:none !important}
                 No pages match<span x-show="q"> “<span x-text="q"></span>”</span>.
               </p>
 
+              <div data-pattern="card-grid" data-part="list">
               <template x-for="g in filteredGroups" :key="g.label">
                 <section class="mb-10">
                   <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2" data-part="group">
@@ -1433,6 +1434,7 @@ html.dk-dragging main{transition:none !important}
                   </div>
                 </section>
               </template>
+              </div>
 
               <div x-show="isDefault" class="mt-8 pt-4 border-t border-base-200">
                 <a href="https://github.com/mehrlander/web-tools/blob/main/pages/README.md"
@@ -1749,11 +1751,11 @@ html.dk-dragging main{transition:none !important}
                 </div>
                 <!-- data-pattern and data-part declare the div below a List and
                      name its parts (data/ui-units/codebook.md, "Declaring a
-                     pattern in markup"); nothing at runtime reads them. No
-                     element holds the groups alone, so the list element also
-                     carries the curated index and the filter, neither an item. -->
+                     pattern in markup"); nothing at runtime reads them. The
+                     curated index and the filter are not items, so the
+                     declaration holds the groups alone. -->
                 <template x-if="!projectDocsLoading && projectDocs">
-                  <div data-pattern="list" data-part="list">
+                  <div>
                     <article x-show="projectDocsIndexHtml"
                              class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content mb-8 pb-8 border-b border-base-200"
                              x-html="projectDocsIndexHtml"></article>
@@ -1767,6 +1769,7 @@ html.dk-dragging main{transition:none !important}
                       <span x-show="projectDocsSourced" class="text-base text-base-content/40"
                             x-text="'· ' + projectDocsSourced + ' inside source packages, not listed'"></span>
                     </div>
+                    <div data-pattern="list" data-part="list">
                     <template x-for="g in projectDocsGroups" :key="g.dir">
                       <section class="mb-6">
                         <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2" data-part="group">
@@ -1784,6 +1787,7 @@ html.dk-dragging main{transition:none !important}
                         </div>
                       </section>
                     </template>
+                    </div>
                     <p x-show="!projectDocsGroups.length" class="text-base-content/40 italic text-base py-8">
                       No markdown files<span x-show="projectDocsQ"> match “<span x-text="projectDocsQ"></span>”</span>.
                     </p>

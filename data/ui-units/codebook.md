@@ -161,8 +161,39 @@ failed, until a scenario script (`tools/render/scenarios/`) gives it stand-in
 rows; `shots.csv` names the scenario a unit is checked and shot with.
 
 `tools/build/ui-instances.mjs` runs both checks and writes `instances.csv`,
-one row per unit it loaded. `tools/build/ui-shots.mjs` crops a declaring unit's shots
-to the declared element and outlines its parts in their colors.
+one row per unit it loaded.
+
+## Slots
+
+A unit's **slots** are its coded regions as they appear on screen: one for
+each `frame` code and one for its `body`. Every coded unit declares them, and
+the shots outline them, so a shot shows the unit's own parts rather than a
+code's.
+
+- **A frame slot** is `data-slot="frame:<code>"` on the control that draws
+  that code. A code drawn by two controls marks both.
+- **The body slot** is the element carrying `data-pattern`, under every body
+  code, not only the three with parts.
+- **A unit's region** bounds which slots are its own: `main` for an app view
+  or tab and for a budget-drs view, `body` for a page. The shell's region is
+  everything outside `main`, and its body is `main` (`host`). Where two units
+  share a screen, `shots.csv` `region` names the narrower one's elements. A
+  same-origin iframe is read as part of the unit unless it is marked `host`; a
+  page another repo frames is not read.
+- **The frame sits outside the list.** Under a code with parts, no frame slot
+  is inside the `list` part, so `data-part="list"` goes on the element below
+  the search box and chips, not on a wrapper around them.
+- **The check.** `instances.csv` gives each unit's `slots` found, `(in body)`
+  on one inside the list part, and `(hidden)` on one declared but hidden at
+  the unit's address. `slots_missing` is a frame code with no slot, and
+  `slots_stray` a visible slot whose code the unit is not coded with: a coding
+  omission, fixed in `coded.csv`, or a neighbour's slot, fixed with a
+  `region`. A control nobody marked is in neither column; it shows in the
+  shots as a control with no outline.
+
+`tools/build/ui-shots.mjs` outlines frame slots solid and the body dashed, in
+their dimension's `color` from `dimensions.csv`, labels each with its code's
+name, and crops from the topmost slot.
 
 ## Where the pilot moved the codebook
 

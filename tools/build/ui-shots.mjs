@@ -116,18 +116,30 @@ const labelJs = (stage, coded) => `(() => {
   const at = (e) => { const r = e.getBoundingClientRect(); const fr = e.ownerDocument.defaultView.frameElement;
     if (!fr || e.ownerDocument === document) return r; const o = fr.getBoundingClientRect();
     return { left: r.left + o.left, top: r.top + o.top }; };
+  // Kept inside the crop: a label that would rise above it sits inside its
+  // slot's top edge, and one that would run past the right edge is pulled in.
+  const crop = typeof f === 'string' && f !== 'null' ? JSON.parse(f) : { x: 0, y: 0, w: innerWidth };
+  document.body.append(layer);
   const tag = (e, text, color) => {
     const r = at(e), t = document.createElement('div');
     t.textContent = text;
     t.style.cssText = 'position:absolute;font:600 11px/1.35 system-ui,sans-serif;color:#fff;padding:1px 6px;border-radius:4px;'
-      + 'box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap;background:' + color
-      + ';left:' + Math.max(2, r.left) + 'px;top:' + Math.max(2, r.top - 9) + 'px';
+      + 'box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap;background:' + color;
     layer.append(t);
+    let left = Math.min(Math.max(crop.x + 2, r.left), crop.x + crop.w - t.offsetWidth - 2);
+    const top = Math.max(2, r.top - 9 >= crop.y + 1 ? r.top - 9 : r.top + 2), h = t.offsetHeight;
+    // Two slots sharing a top edge (a search box at the top of its body) would
+    // stack their labels; the later one moves along to the right.
+    for (let hit = true; hit;) {
+      hit = false;
+      for (const p of placed) if (top < p.top + p.h && p.top < top + h && left < p.right + 4 && p.left < left + t.offsetWidth + 4) { left = p.right + 4; hit = true; }
+    }
+    t.style.left = Math.max(2, left) + 'px'; t.style.top = top + 'px';
+    placed.push({ left, right: left + t.offsetWidth, top, h });
   };
-  const seen = new Set();
-  for (const e of SLOTS) { const k = e.dataset.slot; if (seen.has(k)) continue; seen.add(k); tag(e, N[k] || k.split(':')[1], C.frame); }
+  const placed = [];
+  for (const e of SLOTS) tag(e, N[e.dataset.slot] || e.dataset.slot.split(':')[1], C.frame);
   if (BODY) tag(BODY, N['body:' + BODY.dataset.pattern] || BODY.dataset.pattern, C.body);
-  document.body.append(layer);
 })()`;
 // The app's live GitHub reads are unauthenticated here, and past the hourly
 // limit the app swaps the unit for a token prompt. The answer says so, and a

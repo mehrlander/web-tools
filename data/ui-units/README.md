@@ -14,14 +14,14 @@ has assessed the codes.
 | --- | --- | --- |
 | `units.csv` | one unit: an app view, a view's tab, or a page; `as_of` dates the snapshot | `tools/ui-units.mjs` (Pass 0) |
 | `signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `tools/ui-units.mjs` (Pass 1) |
-| [`dimensions.csv`](dimensions.csv) | one dimension the units are coded on: what it holds, its test, and whether a unit takes one code or any number | authored |
+| [`dimensions.csv`](dimensions.csv) | one dimension the units are coded on: what it holds, its test, whether a unit takes one code or any number, and, for frame and body, the color their slots are outlined in | authored |
 | [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis (the dimension), and the five rings | authored, settled at synthesis |
 | [`parts.csv`](parts.csv) | one part a declared pattern can name: what it is and the color it is outlined in | authored |
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
-| `instances.csv` | one unit loaded to check the pattern its markup declares: the code declared and coded, the parts found, and whether the code's behavior held | `tools/build/ui-instances.mjs` |
-| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, or a focus other than its host's; `shot` is `no-script` where the script reads a private repository, so the check runs it and the public shot does not | authored |
-| `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped to where the unit's own content starts, and `thumbs.csv` naming them with the focus each crop used | `tools/build/ui-shots.mjs` |
+| `instances.csv` | one unit loaded to check what its markup declares: the code declared and coded, the parts found, whether the code's behavior held, and the slots found, missing and stray (codebook, "Slots") | `tools/build/ui-instances.mjs` |
+| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, a focus other than its host's, or a `region` narrower than its host's; `shot` is `no-script` where the script reads a private repository, so the check runs it and the public shot does not | authored |
+| `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, its slots outlined and named, cropped from the topmost slot, and `thumbs.csv` naming them with the focus each crop used | `tools/build/ui-shots.mjs` |
 
 Regenerate the snapshot with `npm run ui-units -- --write --date <date>`,
 from a checkout that has `home` beside it. Without `--write` it prints counts.
