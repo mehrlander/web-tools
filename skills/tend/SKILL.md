@@ -92,7 +92,11 @@ its class:
 | closed-tip | Tip SHA equals `head.sha` of a pull request closed without merging. |
 | ancestor | `git rev-list --count origin/<b> --not origin/main` prints `0`. |
 | content-settled | `python3 scripts/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |
+| residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
+
+`branches.py`, beside this file, applies the table to every remote branch in
+the checkouts and lists the novel ones with their residue.
 
 - **Act:** report the settled classes as counts.
 - **Find:** a novel branch. Its residue is the lines it added
