@@ -8,7 +8,7 @@
 // side needs states the checkout does not hold on its own:
 //   WPS_OBSERVATIONS=<file>  serve that file as projects/wps/data/observations.csv
 //   WPS_ITEM=<repo path>     open the tab on that file (rides as &item=)
-//   WPS_TAB=<tab>            the project tab to open (default: overview)
+//   WPS_TAB=<tab>            the project tab to open (default: outpost)
 //   WPS_DEBUG=1              print the pane's loaded state, since a shot that
 //                            catches it mid-boot looks like a broken pane
 // The blob sha is git's own (sha1 over "blob <size>\0" + bytes) so the derived
@@ -81,7 +81,7 @@ export default async (page, { repoRoot }) => {
   url.searchParams.set('repo', REPO);
   url.searchParams.set('view', 'project');
   url.searchParams.set('project', 'projects/wps');
-  url.searchParams.set('tab', process.env.WPS_TAB || 'overview');
+  url.searchParams.set('tab', process.env.WPS_TAB || 'outpost');
   if (process.env.WPS_ITEM) url.searchParams.set('item', process.env.WPS_ITEM);
   await page.evaluate(() => { window.TOKEN = 'FAKE'; try { localStorage.setItem('ghToken', 'FAKE'); } catch {} });
   await page.goto(url.toString(), { waitUntil: 'load' });

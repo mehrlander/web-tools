@@ -133,6 +133,24 @@ test('every declared subfield key used by a real manifest has a subfield row', (
     'these member keys are live in a manifest but have no row in docs/manifest-fields.csv');
 });
 
+// A project's app is drawn by its own icon beside the project name, the mark
+// the owner already keeps in Chrome's shortcuts bar for the budget-drs app.
+// Without one the App tab falls back to a generic glyph, which works and says
+// nothing about whose app it is, so a landing without an icon is the gap.
+test('a project with a landing page names an icon that exists', () => {
+  const gaps = [];
+  for (const [repo, m] of manifests()) {
+    if (m.__unparsable) continue;
+    const root = repo === 'mehrlander/web-tools' ? repoRoot : path.join(repoRoot, '..', repo.split('/')[1]);
+    for (const e of Array.isArray(m.projects) ? m.projects : []) {
+      if (!e || typeof e !== 'object' || !e.landing) continue;
+      if (!e.landingIcon) gaps.push(`${repo}: ${e.path} has a landing and no landingIcon`);
+      else if (!existsSync(path.join(root, e.landingIcon))) gaps.push(`${repo}: ${e.path}'s landingIcon ${e.landingIcon} is missing`);
+    }
+  }
+  assert.deepEqual(gaps, [], 'give the app an SVG icon and name it in projects[].landingIcon');
+});
+
 test('a manifest value matches its declared type', () => {
   const declared = new Map(topRows.map(f => [f.key, f.type]));
   const actual = v => Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v;
