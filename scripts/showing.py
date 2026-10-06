@@ -71,6 +71,7 @@ import argparse
 import csv
 import os
 import json
+import posixpath
 import re
 import subprocess
 import sys
@@ -243,18 +244,28 @@ def ref_facts(ref):
 
 def page_files():
     pages = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "pages").rglob("*.html"))
+    # A kit demo boots the loader and gh.loads its kit like any page, so a kit
+    # change reaches its demo by ?use=, and a demo is the page that draws it.
+    pages += sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/kits/demos").glob("*.html"))
     app = "app/index.html"
     if (ROOT / app).exists():
         pages.append(app)
     return pages
 
 
+SCRIPT_SRC = re.compile(r"<script\b[^>]*\bsrc=['\"]([^'\"]+)['\"]", re.I)
+
+
 def consumers():
     """lib path -> the pages that load it. Read from the pages themselves: a
     gh.load argument is a path under lib/, and a page importing the pre-build
     adopts the whole of it. Derived rather than declared, because a declared
-    copy is a second list to keep in step with the imports it describes."""
-    out = {}
+    copy is a second list to keep in step with the imports it describes.
+
+    The third map is the pages that load a lib file by a relative <script src>
+    (pages/transform.html loads its workbench that way). ?use= is a loader
+    convention, so it never reaches those; only a toss at the branch does."""
+    out, tagged = {}, {}
     prebuilt = []
     for page in page_files():
         try:
@@ -263,9 +274,15 @@ def consumers():
             continue
         for arg in re.findall(r"gh\.load\(\s*['\"]([^'\"]+)['\"]", src):
             out.setdefault(f"lib/{arg}", set()).add(page)
+        for ref in SCRIPT_SRC.findall(src):
+            if "://" in ref or ref.startswith("/"):
+                continue
+            target = posixpath.normpath(posixpath.join(posixpath.dirname(page), ref.split("?")[0]))
+            if target.startswith("lib/"):
+                tagged.setdefault(target, set()).add(page)
         if "dist/web-tools.js" in src or "dist/app.js" in src:
             prebuilt.append(page)
-    return out, prebuilt
+    return out, prebuilt, tagged
 
 
 def routes_for(paths):
@@ -294,10 +311,11 @@ def classify(paths):
             b["renderer"].append(p)
         elif p.startswith("dist/"):
             b["dist"].append(p)
-        # A kit's demo is a page file that happens to live under lib/, and
-        # Pages serves it from the default branch like any other: ?use= swaps
-        # the code it loads, never the page, so a new demo has no ?use= link.
-        elif (p.startswith(("pages/", "lib/")) and p.endswith(".html")) or p == "app/index.html":
+        # Any HTML is a page file, wherever it sits: a kit demo under lib/, a
+        # dated prototype in dump/. Pages serves every one of them from the
+        # default branch, and ?use= swaps the code a page loads, never the
+        # page, so each needs the toss. archive/ alone is exempt.
+        elif p.endswith(".html") and not p.startswith("archive/"):
             b["shell"].append(p)
         elif p.startswith("lib/"):
             b["lib"].append(p)
@@ -441,7 +459,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
     facts = ref_facts(ref) if use_git else {"sha": ref, "branch": "", "pushed": True}
     sha = facts["sha"]
     b = classify(paths)
-    loads, prebuilt = consumers()
+    loads, prebuilt, tagged = consumers()
     warn, why, subjects = [], [], []
 
     if not facts["pushed"]:
@@ -513,6 +531,15 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
             if page != "app/index.html" or not keys:
                 subjects.append((page, None, "gh.load"))
         carried = sorted(set(prebuilt) - direct - {s[0] for s in subjects})
+        by_tag = sorted({pg for p in b["lib"] for pg in tagged.get(p, set())})
+        if not subjects and by_tag:
+            why.append("only lib/ changed, and the page" + ("s" if len(by_tag) > 1 else "")
+                       + " reaching it load" + ("" if len(by_tag) > 1 else "s")
+                       + " it by a relative <script src>, which ?use= never swaps: a toss at the branch reads the page's relative scripts at the same commit.")
+            plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
+            if plan["known"] and plan["behind"]:
+                warn.append(f"the branch is {plan['behind']} commit(s) behind main, so this shows it as it stands, without main's later changes.")
+            return decision("toss-gh", [(p, None) for p in by_tag], sha, slug, hosted, why, warn, facts, at, query)
         if not subjects and carried:
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
