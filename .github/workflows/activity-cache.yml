@@ -3,7 +3,10 @@ name: Activity cache
 # Refreshes the estate's activity cache (state/activity.json in
 # mehrlander/web-tools-private) without a browser, so the app's Activity view,
 # the branch review and the estate cards are current when someone opens them
-# rather than current only after someone opens them. The crawl is the same code
+# rather than current only after someone opens them. The hourly pass also folds
+# the session records into state/sessions.json and the phone's
+# state/session-menu.json (scripts/sessions-crawl.mjs), which nothing but a
+# browser wrote before 2026-10-05. The crawl is the same code
 # the app runs: lib/kits/activity-crawl.js, driven here by
 # scripts/activity-crawl.mjs (its header carries the design and the one
 # constraint that decided it).
@@ -130,3 +133,21 @@ jobs:
           esac
           echo "Running: npm run activity-refresh -- ${ARGS[*]}"
           npm run activity-refresh -- "${ARGS[@]}"
+
+      # The session records, folded by the same kit the app runs
+      # (lib/kits/sessions-crawl.js). On the hourly pass and a manual run only:
+      # a push here moves no session record. `!cancelled()` rather than the
+      # default, because the activity step exits 1 when any one repo failed,
+      # and that says nothing about the records.
+      - name: Refresh the sessions cache
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        env:
+          GH_TOKEN: ${{ secrets.ESTATE_CRAWL_TOKEN }}
+          GH_WRITE_TOKEN: ${{ secrets.REGISTRY_WRITE_TOKEN }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ -z "$GH_WRITE_TOKEN$GH_TOKEN" ]; then
+            echo "::warning title=Sessions cache::No registry token secret, so the sessions cache was not refreshed."
+            exit 0
+          fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then npm run sessions-refresh -- --dry-run; else npm run sessions-refresh; fi

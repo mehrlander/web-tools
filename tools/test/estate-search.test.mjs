@@ -30,11 +30,16 @@ let SEARCH_REJECT = null;
 let RATE = null;
 let RATE_CALLS = 0;
 let TREE_CALLS = [];
+let SESSION_GET = null;
+let READ_CALLS = [];
 
 class FakeGH {
-  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
+  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; this.token = conf.token; }
   get headers() { return { Accept: 'application/vnd.github.v3+json' }; }
   async get(name) {
+    READ_CALLS.push(name);
+    if (SESSION_GET && (name === 'state/sessions.json' || name.startsWith('state/sessions-index/')))
+      return SESSION_GET(this, name);
     if (this.repo === REGISTRY && FILES[name]) return { text: JSON.stringify(FILES[name]) };
     if (this.repo === ARCHIVE) {
       CHAT_READS.push(name);
@@ -308,6 +313,139 @@ test('sessions: a month with no shard is reported, not counted as searched', asy
   assert.equal(res.indexed, 0, 'no shard answered, and the caller has to be able to see that');
   assert.equal(res.months, 1);
   assert.equal(res.hits.length, 0);
+  assert.deepEqual([...res.missing], ['2026-08']);
+  FILES['state/sessions-index/2026-08.json'] = window.SessionIndex.buildShard({
+    aaaa1111: window.SessionIndex.tokens('wayback is available now'),
+  });
+  const retried = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.equal(retried.indexed, 1, 'the failed month retries without a reset');
+  assert.deepEqual([...retried.missing], []);
+  assert.deepEqual([...retried.hits.map(h => h.id)], ['aaaa1111']);
+});
+
+const deferred = () => {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+};
+const sessionJson = value => ({ text: JSON.stringify(value) });
+
+test('sessions: concurrent questions share cold row and shard reads', async () => {
+  ES.reset();
+  const rows = deferred(), shard = deferred(), startedShard = deferred();
+  const calls = [];
+  SESSION_GET = async (_gh, name) => {
+    calls.push(name);
+    if (name === 'state/sessions.json') {
+      await rows.promise;
+      return sessionJson({ rows: [{ id: 'aaaa1111', day: '2026-08-02' }] });
+    }
+    startedShard.resolve();
+    await shard.promise;
+    return sessionJson(window.SessionIndex.buildShard({ aaaa1111: window.SessionIndex.tokens('cobalt orchard') }));
+  };
+  try {
+    const a = ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    const b = ES.sessions({ q: 'orchard', registry: REGISTRY, token: 'tkn' });
+    assert.equal(calls.filter(p => p === 'state/sessions.json').length, 1);
+    rows.resolve();
+    await startedShard.promise;
+    assert.equal(calls.filter(p => p.startsWith('state/sessions-index/')).length, 1);
+    shard.resolve();
+    const answers = await Promise.all([a, b]);
+    for (const answer of answers) {
+      assert.deepEqual([...answer.hits.map(h => h.id)], ['aaaa1111']);
+      assert.equal(answer.hits[0].onRow, false);
+      assert.equal(answer.hits[0].onDiscussion, true);
+    }
+    assert.equal(calls.length, 2, 'neither caller fetches full session records');
+  } finally { rows.resolve(); shard.resolve(); SESSION_GET = null; }
+});
+
+test('sessions: a failed month leaves successful matches usable and retries only the gap', async () => {
+  ES.reset();
+  const calls = [];
+  let available = false;
+  SESSION_GET = async (_gh, name) => {
+    calls.push(name);
+    if (name === 'state/sessions.json') return sessionJson({ rows: [
+      { id: 'aaaa1111', day: '2026-08-02' }, { id: 'bbbb2222', day: '2026-09-02' },
+    ] });
+    if (name.endsWith('2026-08.json') && !available) throw new Error('temporary shard failure');
+    const id = name.endsWith('2026-08.json') ? 'aaaa1111' : 'bbbb2222';
+    return sessionJson(window.SessionIndex.buildShard({ [id]: window.SessionIndex.tokens('cobalt') }));
+  };
+  try {
+    const first = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...first.hits.map(h => h.id)], ['bbbb2222']);
+    assert.deepEqual([...first.missing], ['2026-08']);
+    assert.equal(first.indexed, 1); assert.equal(first.months, 2);
+    available = true;
+    const second = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...second.hits.map(h => h.id)], ['bbbb2222', 'aaaa1111']);
+    assert.deepEqual([...second.missing], []);
+    assert.equal(calls.filter(p => p.endsWith('2026-08.json')).length, 2);
+    assert.equal(calls.filter(p => p.endsWith('2026-09.json')).length, 1);
+  } finally { SESSION_GET = null; }
+});
+
+test('sessions: changing registry or credential cannot reuse another identity\'s rows', async () => {
+  ES.reset();
+  const calls = [];
+  SESSION_GET = async (gh, name) => {
+    calls.push([gh.repo, gh.token, name]);
+    const id = gh.repo === 'other/registry' ? 'bbbb2222' : gh.token === 'credential-two' ? 'cccc3333' : 'aaaa1111';
+    return sessionJson(name === 'state/sessions.json'
+      ? { rows: [{ id, day: '2026-08-02', title: 'Shared lookup' }] }
+      : window.SessionIndex.buildShard({ [id]: window.SessionIndex.tokens('shared lookup') }));
+  };
+  try {
+    for (const [registry, token, expected] of [
+      [REGISTRY, 'credential-one', 'aaaa1111'],
+      ['other/registry', 'credential-one', 'bbbb2222'],
+      [REGISTRY, 'credential-two', 'cccc3333'],
+    ]) {
+      const res = await ES.sessions({ q: 'shared', registry, token });
+      assert.deepEqual([...res.hits.map(h => h.id)], [expected]);
+    }
+    await ES.sessions({ q: 'lookup', registry: REGISTRY, token: 'credential-two' });
+    assert.equal(calls.length, 6, 'the unchanged current identity still uses its cache');
+    assert.doesNotMatch(JSON.stringify(ES.stats()), /credential|other\/registry/);
+  } finally { SESSION_GET = null; }
+});
+
+test('sessions: reset detaches rows and shards still loading in the previous cache', async () => {
+  ES.reset();
+  const oldRows = deferred(), oldShard = deferred(), oldShardStarted = deferred();
+  let generation = 0, rowCalls = 0;
+  SESSION_GET = async (_gh, name) => {
+    const old = generation === 0;
+    if (name === 'state/sessions.json') {
+      rowCalls++;
+      if (old) await oldRows.promise;
+      return sessionJson({ rows: old
+        ? [{ id: 'aaaa1111', day: '2026-08-02' }]
+        : [{ id: 'bbbb2222', day: '2026-08-02' }, { id: 'cccc3333', day: '2026-08-03' }] });
+    }
+    if (old) { oldShardStarted.resolve(); await oldShard.promise; }
+    return sessionJson(window.SessionIndex.buildShard(old
+      ? { aaaa1111: window.SessionIndex.tokens('cobalt old') }
+      : { bbbb2222: window.SessionIndex.tokens('cobalt new'), cccc3333: window.SessionIndex.tokens('cobalt new') }));
+  };
+  try {
+    const old = ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    oldRows.resolve();
+    await oldShardStarted.promise;
+    ES.reset(); generation = 1;
+    const fresh = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...fresh.hits.map(h => h.id)], ['cccc3333', 'bbbb2222']);
+    oldShard.resolve(); await old;
+    const again = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...again.hits.map(h => h.id)], ['cccc3333', 'bbbb2222']);
+    assert.equal(ES.stats().rows, 2);
+    assert.equal(ES.stats().shards, 1);
+    assert.equal(rowCalls, 2, 'the stale completion neither replaces nor invalidates the fresh cache');
+  } finally { oldRows.resolve(); oldShard.resolve(); SESSION_GET = null; }
 });
 
 test('sessions: the row is searched beside the index, and the hit says which answered', async () => {
@@ -325,6 +463,10 @@ test('sessions: the row is searched beside the index, and the hit says which ans
   const byTitle = await ES.sessions({ q: 'naming convention', registry: REGISTRY, token: 'tkn' });
   assert.deepEqual([...byTitle.hits.map(h => h.id)], ['aaaa1111']);
   assert.match(byTitle.hits[0].frag, /^title:/);
+  assert.equal(byTitle.hits[0].onRow, true);
+  assert.equal(byTitle.hits[0].onDiscussion, false);
+  assert.equal(byTitle.hits[0].title, 'FAB naming convention');
+  assert.match(byTitle.hits[0].matchNote, /^title:/);
   // Both spellings of the name still answer, which is the promise the retired
   // nameSegs carried and RepoSessionsCache.searchSegs carries now. Which
   // segment gets QUOTED follows searchSegs' own order, title before name, so
@@ -339,6 +481,9 @@ test('sessions: the row is searched beside the index, and the hit says which ans
   // And the conversation still answers on its own, through the index.
   const said = await ES.sessions({ q: 'app button', registry: REGISTRY, token: 'tkn' });
   assert.deepEqual([...said.hits.map(h => h.id)], ['aaaa1111']);
+  assert.equal(said.hits[0].onRow, false);
+  assert.equal(said.hits[0].onDiscussion, true);
+  assert.equal(said.hits[0].matchNote, '');
   assert.equal(said.hits[0].frag, 'said in the conversation');
 });
 
@@ -354,6 +499,39 @@ test('sessions: a match on what was said beats the name to the note line', async
   const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
   assert.equal(res.hits.length, 1);
   assert.doesNotMatch(res.hits[0].frag, /session name:/);
+});
+
+test('sessions: terms in separate metadata fields do not pretend to be a quoted passage', async () => {
+  ES.reset();
+  FILES = { 'state/sessions.json': { rows: [
+    { id: 'aaaa1111', day: '2026-08-02', title: 'Cobalt project', files: [['orchard.txt', 1]] },
+  ] } };
+  const res = await ES.sessions({ q: 'cobalt orchard', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.hits.length, 1);
+  assert.equal(res.hits[0].onRow, true);
+  assert.equal(res.hits[0].onDiscussion, false);
+  assert.equal(res.hits[0].matchNote, 'Session details match');
+});
+
+test('sessions: joined Activity matches apply only to the requested call and known rows', async () => {
+  ES.reset(); READ_CALLS = [];
+  FILES = {
+    'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02', title: 'A plain session' }] },
+    'state/sessions-index/2026-08.json': window.SessionIndex.buildShard({
+      aaaa1111: window.SessionIndex.tokens('ordinary recorded prose'),
+    }),
+  };
+  const args = { q: 'joined-branch', registry: REGISTRY, token: 'tkn' };
+  assert.equal((await ES.sessions(args)).hits.length, 0);
+  const included = await ES.sessions({ ...args, includeIds: ['aaaa1111', 'not-a-known-row'] });
+  assert.deepEqual([...included.hits.map(h => h.id)], ['aaaa1111']);
+  assert.equal(included.hits[0].onActivity, true);
+  assert.equal(included.hits[0].onRow, false);
+  assert.equal(included.hits[0].onDiscussion, false);
+  assert.equal(included.hits[0].matchNote, 'Activity details match');
+  assert.equal((await ES.sessions(args)).hits.length, 0, 'the included match never enters the ordinary cache');
+  assert.deepEqual(READ_CALLS, ['state/sessions.json', 'state/sessions-index/2026-08.json'],
+    'all three calls share row and shard reads, with no full-record fetch');
 });
 
 test('clip: one line of context around the first case-insensitive hit', () => {

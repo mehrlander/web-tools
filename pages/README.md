@@ -18,7 +18,6 @@ the link-dense text twin of the visual index above.
 | `audit-render` | Audit render | [view](https://mehrlander.github.io/web-tools/pages/audit-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html) |
 | `bench` | Bench | [view](https://mehrlander.github.io/web-tools/pages/bench.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/bench.html) |
 | `branch` | Branch | [view](https://mehrlander.github.io/web-tools/pages/branch.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/branch.html) |
-| `call` | Call | [view](https://mehrlander.github.io/web-tools/pages/call.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/call.html) |
 | `chat-results` | Chat Search Results | [view](https://mehrlander.github.io/web-tools/pages/chat-results.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html) |
 | `citations` | Citations | [view](https://mehrlander.github.io/web-tools/pages/citations.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/citations.html) |
 | `compression-helper` | Compression Helper (v5) | [view](https://mehrlander.github.io/web-tools/pages/compression-helper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html) |
@@ -50,6 +49,7 @@ the link-dense text twin of the visual index above.
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 | `transform` | Transform | [view](https://mehrlander.github.io/web-tools/pages/transform.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html) |
+| `user-call` | User call | [view](https://mehrlander.github.io/web-tools/pages/user-call.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/user-call.html) |
 | `word-select` | Word Select | [view](https://mehrlander.github.io/web-tools/pages/word-select.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/word-select.html) |
 | `xlsx-picker` | Sheet Picker | [view](https://mehrlander.github.io/web-tools/pages/xlsx-picker.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/xlsx-picker.html) |
 
@@ -132,6 +132,7 @@ the link-dense text twin of the visual index above.
 | `export` | export — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/export.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html) |
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
+| `look` | Look Markers | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/look.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/look.html) |
 | `md-diff` | md-diff — a documentation change, read as the document | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-diff.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html) |
 | `md-variants` | md-variants: a document read with its retained variants | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-variants.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
