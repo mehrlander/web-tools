@@ -1527,8 +1527,14 @@ html.dk-dragging main{transition:none !important}
                  folder board keeps its icon (a file board has its own pill).
                  These were three outlined buttons until 2026-09-24. -->
             <div class="flex items-center gap-3 mb-4 min-w-0">
-              <span class="shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
-                <i class="ph-duotone ph-kanban text-2xl"></i></span>
+              <!-- The project mark is the switcher: the repo's other projects,
+                   in the shared anchored menu (menuKind 'projects'). -->
+              <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'projects', { align: 'left' })"
+                      class="relative shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
+                      :aria-expanded="!!repoMenuAt && menuKind === 'projects'" aria-haspopup="menu"
+                      :title="'Projects in ' + $store.browser.repo" :aria-label="'Projects in ' + $store.browser.repo" data-project-switch>
+                <i class="ph-duotone ph-kanban text-2xl"></i>
+                <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i></button>
               <div class="min-w-0">
                 <button @click="goLanding()" class="block max-w-full truncate font-mono text-sm text-base-content/50 hover:text-primary transition-colors"
                         :title="$store.browser.repo" x-text="$store.browser.repo"></button>
@@ -5165,6 +5171,7 @@ function app(){ return {
   // estate CARDS still carry the old cluster, where there is room for it.
   get repoMenuItems(){
     if (this.menuKind === 'github') return this.githubMenuItems;
+    if (this.menuKind === 'projects') return this.projectMenuItems;
     if (this.menuKind !== 'repo') return [...this.menuExtra, ...this.repoActionItems];
     // THE REPO, TWICE, then where it goes on GitHub, as one FLAT list. The two
     // named rows carry the same name under two marks, this app's and GitHub's,
@@ -5199,6 +5206,20 @@ function app(){ return {
                   title: repo + ' on GitHub' },
       ...ghRest,
     ].filter(Boolean);
+  },
+  // The Project view's switcher, opened from the project mark: the repo's own
+  // front as the head row, then every project its manifest declares, the open
+  // one marked. A project opens on the tab in view when every project has it
+  // (Overview, Docs, Files), else on its Overview.
+  get projectMenuItems(){
+    const repo = this.menuRepo;
+    const tab = ['overview', 'docs', 'files'].includes(this.projectTab) ? this.projectTab : 'overview';
+    return [
+      { key: 'open', head: true, label: repo.split('/')[1] || repo, mark: 'app', title: 'Open ' + repo + ' here' },
+      ...this.repoProjects(repo).map(p => ({ key: 'project:' + p.path, label: p.label, title: p.path,
+        icon: p.path === this.projectPath ? 'ph-check' : 'ph-kanban', current: p.path === this.projectPath,
+        run: () => this.goProject(p.path, tab) })),
+    ];
   },
   // Rows the CALLER contributed for this opening, ahead of the standard ones.
   // A menu about a repo is opened from somewhere, and that somewhere sometimes

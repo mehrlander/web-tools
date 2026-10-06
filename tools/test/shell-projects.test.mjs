@@ -776,3 +776,28 @@ test('every project GitHub icon carries the README peek', () => {
   assert.equal((page.match(/:data-peek="projectReadmePeek\([^"]*\)"/g) || []).length, icons.length,
     'each one peeks, or the README is reachable from some project lists and not others');
 });
+
+// ── The project switcher on the Project view's mark ─────────────────────────
+test('the project mark opens the repo\'s projects in the shared menu, the open one marked', () => {
+  const { shell } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'news' }, { path: 'projects/budget-drs', label: 'budget-drs' }, { path: 'projects/wps' }] } };
+  shell.refreshProjectPane = () => {};
+  shell.goProject('projects/budget-drs', 'docs');
+  shell.menuRepo = 'mehrlander/home'; shell.menuKind = 'projects';
+  const items = shell.repoMenuItems;
+  assert.deepEqual(items.map(i => i.label), ['home', 'news', 'budget-drs', 'wps'], 'the repo, then its projects');
+  assert.equal(items[0].head, true);
+  assert.deepEqual(items.filter(i => i.current).map(i => i.label), ['budget-drs']);
+  assert.equal(items.find(i => i.current).icon, 'ph-check');
+  items.find(i => i.label === 'wps').run();
+  assert.equal(shell.projectPath, 'projects/wps');
+  assert.equal(shell.projectTab, 'docs', 'a tab every project has is kept');
+  shell.goProject('projects/wps', 'board');
+  shell.repoMenuItems.find(i => i.label === 'news').run();
+  assert.equal(shell.projectTab, 'overview', 'a tab the next project may lack falls back to its Overview');
+});
+
+test('the markup wires the project mark to the switcher', () => {
+  assert.match(page, /data-project-switch/);
+  assert.match(page, /toggleRepoMenu\(\$store\.browser\.repo, \$event\.currentTarget, 'projects'/);
+});
