@@ -1281,6 +1281,32 @@ document.addEventListener('click',function(e){
     return (doc.doctype ? '<!doctype html>\n' : '') + doc.documentElement.outerHTML;
   }
 
+  // LOOK MARKERS ON A PAGE THAT NEVER ASKED FOR THEM. A trailing fragment
+  // carrying a look key (show=, tap=, walk=, steps=; lib/kits/look.js) asks the
+  // page to land on a place and say why, and a page that loads the kit answers
+  // it itself. One that does not gets the kit here, from Web Tools at the
+  // version this render boots (`lib`), after its own scripts, so a look link
+  // reaches any tossed page. Such a page declares no anchors, so its targets
+  // are ids, text: or css: (the kit's header). Only when asked: a fragment with
+  // no look key leaves the page byte for byte as it was, and a failed fetch
+  // leaves it as it was too, since a page without its marker still renders.
+  async function withLook(text, frag, lib) {
+    if (!/(?:^|&)(?:show|tap|walk|steps)=/.test(frag || '')) return text;
+    // Loading a kit, not naming it: a page that links to look.js's source must
+    // still get the kit. A second copy would be harmless (look.js defers to
+    // the first), so the test errs toward fetching.
+    const LOOK = /<script\b[^>]*\bsrc\s*=\s*["'][^"']*kits\/look\.js|gh\.load\(\s*["']kits\/look\.js|window\.Look\s*=(?!=)/;
+    const LAND = /<script\b[^>]*\bsrc\s*=\s*["'][^"']*kits\/land\.js|gh\.load\(\s*["']kits\/land\.js|window\.Land\s*=(?!=)/;
+    if (LOOK.test(text)) return text;
+    const want = (LAND.test(text) ? [] : ['lib/kits/land.js']).concat('lib/kits/look.js');
+    let kits;
+    try { kits = await Promise.all(want.map(p => ghText('mehrlander', 'web-tools', lib, p))); }
+    catch (e) { return text; }
+    const tags = kits.map(src => '<script>' + escapeClose(src, 'script') + '<\/script>').join('');
+    const end = text.search(/<\/body\s*>(?![\s\S]*<\/body\s*>)/i);
+    return end === -1 ? text + tags : text.slice(0, end) + tags + text.slice(end);
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path>[?<query>][#<frag>] — ':' can't appear in a
     // git ref name. Neither suffix reaches the API: both are handed to the
@@ -1355,15 +1381,16 @@ document.addEventListener('click',function(e){
     // as window.__lib rather than on a query of its own.
     const libAsked = SELECTED['mehrlander/web-tools'] || window.__lib || new URLSearchParams(pageQuery).get('lib') || '';
     const lib = libRef(repoKey, depOf(''), libAsked);
+    const looked = await withLook(baked, pageFrag, lib);
     // Only an address the link carries runs top-level. One pasted into the
     // panel has no URL to reload from, and pasted text reaches here with its
     // payload in the fragment, which must stay opaque in a frame.
     if (TOP && topHidden().some(k => k !== 'top' && param(k))) {
       topAddressInQuery(pageFrag);
-      return writeTop(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
+      return writeTop(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
                                            top: { addr, repo: repoKey, path } }));
     }
-    showTrusted(addressHtml(baked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
+    showTrusted(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
   }

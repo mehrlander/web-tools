@@ -51,10 +51,12 @@ let browser, debugPage;
 const errors = [], writes = [];
 const check = (name, condition) => { assert.ok(condition, name); console.log('ok   ' + name); };
 try {
+  const launchErrors = [];
   for (const option of [{}, { channel: 'chrome' }, { channel: 'msedge' }]) {
-    try { browser = await chromium.launch({ headless: true, ...option }); break; } catch {}
+    try { browser = await chromium.launch({ headless: true, ...option }); break; }
+    catch (e) { launchErrors.push(e.message); }
   }
-  assert.ok(browser, 'Chromium, Chrome or Edge must be installed');
+  assert.ok(browser, 'Could not launch a browser: ' + launchErrors.join('\n'));
   for (const [label, width, height] of [['desktop', 1400, 900], ['phone', 390, 844]]) {
     const context = await browser.newContext({ viewport: { width, height } });
     await context.addInitScript(() => {
@@ -97,18 +99,14 @@ try {
     const page = await context.newPage();
     debugPage = page;
     page.on('pageerror', error => errors.push(label + ': ' + error.message));
-    await page.goto(origin + '/app/index.html?view=search&smode=sessions&sq=needle');
-    await page.waitForFunction(() => {
-      const el = document.querySelector('[x-data="searchView()"]');
-      return el && Alpine.$data(el).hits.length === 2;
-    }, null, { timeout: 45000 });
-    const search = page.locator('[x-data="searchView()"]');
-    await search.locator('[data-find-box]').fill('edited but unsubmitted');
-    await search.locator('button').filter({ hasText: 'First browser fixture' }).click();
+    // Search now has its own coordinated inline reader (covered by
+    // activity-session-search-browser). This harness exercises the full
+    // Activity session reader's independent per-record find/history contract.
+    await page.goto(origin + '/app/index.html?view=sessions&session=aaa11111&find=needle');
     const activeBrief = (i = 0) => page.locator('[x-data^="sessionBrief(window."]').filter({ visible: true }).nth(i);
     await page.waitForFunction(() => [...document.querySelectorAll('[x-data^="sessionBrief(window."]')]
       .some(el => Alpine.$data(el).record && Alpine.$data(el).findQuery === 'needle'));
-    check(label + ' search carries the submitted query into the reader', new URL(page.url()).searchParams.get('find') === 'needle');
+    check(label + ' Activity carries the requested query into the reader', new URL(page.url()).searchParams.get('find') === 'needle');
     await activeBrief().getByRole('searchbox', { name: 'Find in conversation' }).fill('retry');
     await page.waitForFunction(() => new URLSearchParams(location.search).get('find') === 'retry');
     const length = await page.evaluate(() => history.length);
@@ -123,7 +121,7 @@ try {
     check(label + ' Back returns to query results', await activeBrief().getByRole('searchbox', { name: 'Find in conversation' }).inputValue() === 'cache');
     await page.goBack();
     await page.waitForFunction(() => window.swipeDeck.stack.length === 0);
-    check(label + ' Back returns to the Search result list', new URL(page.url()).searchParams.get('view') === 'search');
+    check(label + ' Back returns to the Activity result list', new URL(page.url()).searchParams.get('view') === 'sessions');
     await page.goForward();
     await page.waitForFunction(() => window.swipeDeck.stack.length === 1);
     check(label + ' Forward restores the reader query', await activeBrief().getByRole('searchbox', { name: 'Find in conversation' }).inputValue() === 'cache');

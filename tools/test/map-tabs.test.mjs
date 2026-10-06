@@ -197,11 +197,14 @@ test('a lede is one sentence and stays one', () => {
   }
 });
 
+// The band was 12 to 30 words until 2026-10-06, when the owner asked for
+// glosses of three to ten words: on a phone the lede sits above every tab's
+// content, and the detail it used to carry lives in the row's narrative.
 test('a lede is bounded, because the ones that rot are the ones that grew', () => {
   for (const t of LEDES) {
     const words = t.g.split(/\s+/).length;
-    assert.ok(words >= 12, `${t.n}: ${words} words is a label, not a lede`);
-    assert.ok(words <= 30, `${t.n}: ${words} words; say what the rows are and stop`);
+    assert.ok(words >= 3, `${t.n}: ${words} words is a label, not a lede`);
+    assert.ok(words <= 10, `${t.n}: ${words} words; say what the rows are and stop`);
   }
 });
 

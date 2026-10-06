@@ -4,7 +4,6 @@ main,,approve,Approve,approve.html,thumbs/approve.png,https://github.com/mehrlan
 main,,audit-render,Audit render,audit-render.html,thumbs/audit-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html,
 main,,bench,Bench,bench.html,thumbs/bench.png,https://github.com/mehrlander/web-tools/blob/main/pages/bench.html,
 main,,branch,Branch,branch.html,thumbs/branch.png,https://github.com/mehrlander/web-tools/blob/main/pages/branch.html,
-main,,call,Call,call.html,thumbs/call.png,https://github.com/mehrlander/web-tools/blob/main/pages/call.html,
 main,,chat-results,Chat Search Results,chat-results.html,thumbs/chat-results.png,https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html,
 main,,citations,Citations,citations.html,thumbs/citations.png,https://github.com/mehrlander/web-tools/blob/main/pages/citations.html,
 main,,compression-helper,Compression Helper (v5),compression-helper.html,thumbs/compression-helper.png,https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html,Compression bookmarklet packer.
@@ -35,6 +34,7 @@ main,,shorter,Shorter,shorter.html,thumbs/shorter.png,https://github.com/mehrlan
 main,,text-lab,Text Lab,text-lab.html,thumbs/text-lab.png,https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html,
 main,,toss-render,Toss Render,toss-render.html,thumbs/toss-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html,"Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves."
 main,,transform,Transform,transform.html,thumbs/transform.png,https://github.com/mehrlander/web-tools/blob/main/pages/transform.html,"Multi-tab rows ⇒ rows workbench: $name refs, worker run, profile and pivot views, gz bundles. The standalone face of lib/alpineComponents/transform-workbench.js."
+main,,user-call,User call,user-call.html,thumbs/user-call.png,https://github.com/mehrlander/web-tools/blob/main/pages/user-call.html,
 main,,word-select,Word Select,word-select.html,thumbs/word-select.png,https://github.com/mehrlander/web-tools/blob/main/pages/word-select.html,"Touch-first word-level selection: tap, hold-drag, discontinuous runs, adjustable pins, no native selection anywhere."
 main,,xlsx-picker,Sheet Picker,xlsx-picker.html,thumbs/xlsx-picker.png,https://github.com/mehrlander/web-tools/blob/main/pages/xlsx-picker.html,
 demos,pages/demos/,alpine-bundle-demo,alpine-bundle — living demo,demos/alpine-bundle-demo.html,thumbs/demos/alpine-bundle-demo.png,https://github.com/mehrlander/web-tools/blob/main/pages/demos/alpine-bundle-demo.html,"Live tour of alpine-bundle.js — magics, directives, x-define."
@@ -77,6 +77,7 @@ kit-demos,lib/kits/demos/,dock-split,dock-split — the drag handle between two 
 kit-demos,lib/kits/demos/,export,export — living demo,../lib/kits/demos/export.html,thumbs/kit-demos/export.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html,Export kit — file download from a user gesture.
 kit-demos,lib/kits/demos/,io,io — living demo,../lib/kits/demos/io.html,thumbs/kit-demos/io.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html,"IO kit — read/write helpers, shown live."
 kit-demos,lib/kits/demos/,land,land — where the reader was just sent,../lib/kits/demos/land.html,thumbs/kit-demos/land.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html,
+kit-demos,lib/kits/demos/,look,Look Markers,../lib/kits/demos/look.html,thumbs/kit-demos/look.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/look.html,
 kit-demos,lib/kits/demos/,md-diff,"md-diff — a documentation change, read as the document",../lib/kits/demos/md-diff.html,thumbs/kit-demos/md-diff.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html,
 kit-demos,lib/kits/demos/,md-variants,md-variants: a document read with its retained variants,../lib/kits/demos/md-variants.html,thumbs/kit-demos/md-variants.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html,
 kit-demos,lib/kits/demos/,messaging,messaging — living demo,../lib/kits/demos/messaging.html,thumbs/kit-demos/messaging.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html,Messaging kit — cross-context postMessage helpers.

@@ -48,6 +48,7 @@ Each axis points a direction. Foreign and literary phrases tagged.
 - spend it all
 - burn at it
 - reach for greatness
+- rise to the occasion
 - fail better (Beckett)
 - a man's reach should exceed his grasp (Browning)
 - not because they are easy, but because they are hard (JFK)

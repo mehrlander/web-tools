@@ -8,7 +8,8 @@
 // real counts.
 //
 // It photographs the SESSIONS pane by default; pass `pane=activity` in the
-// query to get Branches instead. Nothing here touches the crawls: the rows are
+// query to get Branches instead, and `pill=checking` or `pill=failed` for the
+// age pill's other two readings. Nothing here touches the crawls: the rows are
 // planted, the pill's age is planted, and the picture is of the layout.
 //
 //   npm run shot -- app/index.html --query "view=sessions" --width 430 \
@@ -49,11 +50,13 @@ const BRANCHES = {
 };
 
 export default async function (page) {
-  const pane = new URL(page.url()).searchParams.get('pane') || 'sessions';
+  const q = new URL(page.url()).searchParams;
+  const pane = q.get('pane') || 'sessions';
+  const pill = q.get('pill') || 'checked';
   await page.waitForSelector('[x-data*="estate"]', { timeout: 15000 });
   await page.waitForTimeout(1200);
 
-  await page.evaluate(async ({ records, branches, pane }) => {
+  await page.evaluate(async ({ records, branches, pane, pill }) => {
     const data = Alpine.$data(document.querySelector('[x-data*="estate"]'));
     data.authed = true;
     data.sessionRows_ = records;
@@ -61,11 +64,19 @@ export default async function (page) {
     data.sessionsLoading = false;
     data.activity = branches;
     data.activityLoading = false;
-    // Both stamps are planted at about twenty hours, which is the reading the
-    // pill rounds to "1d": the age the report was about.
+    // The file stamps, planted at about twenty hours. The pill read these as
+    // "as of 1d" until 2026-10-05; it now reads the shell's freshness record
+    // (app/index.html, "Freshness"), planted below.
     const old = new Date(Date.now() - 20 * 3600 * 1000).toISOString();
     data.sessionsGeneratedAt = old;
     data.activityGeneratedAt = old;
+    // `pill=` picks one of the pill's three readings: checked (the default,
+    // three minutes ago), checking, or failed over a copy checked 23h ago.
+    const s = window.__shell, now = Date.now();
+    const at = pill === 'failed' ? now - 23 * 3600 * 1000 : now - 3 * 60 * 1000;
+    const rec = { at, tried: at, failed: pill === 'failed' ? 'GitHub Error 409' : '' };
+    s.cacheCheck = { configs: rec, activity: rec, sessions: rec };
+    s.crawlChecking = { configs: false, activity: pill === 'checking', sessions: pill === 'checking' };
     // Through the shell, not by writing `tab`: the pane is a shell view and
     // the component only reads it, so a direct write is dropped on the next
     // render and the shot comes back on whichever pane the URL named.
@@ -73,7 +84,7 @@ export default async function (page) {
     data.sessionScope = 'day';
     data.branchScope = 'active';
     await new Promise(r => setTimeout(r, 600));
-  }, { records: RECORDS, branches: BRANCHES, pane });
+  }, { records: RECORDS, branches: BRANCHES, pane, pill });
 
   await page.waitForTimeout(800);
 }
