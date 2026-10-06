@@ -1,5 +1,5 @@
 // Execute the shipped shell against real Alpine selection lookup and the
-// correspondence parser. The Overview's receiver (powershellOutpostView.takeCopy)
+// correspondence parser. The Outpost tab's receiver (powershellOutpostView.takeCopy)
 // is the boundary here; what it does with a copy is covered by its view tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,11 +37,11 @@ function fixture({ active = A, busy = false } = {}) {
   Alpine.store('browser', store);
   Alpine.store('toast', (icon, message, cls) => toasts.push({ icon, message, cls }));
   const shell = app();
-  shell.view = 'project'; shell.projectTab = 'overview'; shell.projectPath = 'projects/wps';
+  shell.view = 'project'; shell.projectTab = 'outpost'; shell.projectPath = 'projects/wps';
   shell.powershellOutpostItem = active; shell.syncUrl = () => {};
   Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', powershellOutpost: 'data/outpost.json' } });
-  // The Overview's receiver: the shell hands it a copy for the selected file
-  // (openCorrespondence -> powershellOutpostView.takeCopy) and the Overview shows it.
+  // The Outpost tab's receiver: the shell hands it a copy for the selected file
+  // (openCorrespondence -> powershellOutpostView.takeCopy) and the Outpost tab shows it.
   Alpine.data('powershellOutpostView', () => ({ busy,
     async takeCopy(target, sourceText, name, source) {
       if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
@@ -81,7 +81,7 @@ function event(data, { target = { tagName: 'DIV' }, drop = false } = {}) {
 }
 const file = (name, contents = text) => ({ name, arrayBuffer: async () => new TextEncoder().encode(contents).buffer });
 
-test('desktop paste reaches the Overview for the selected file and preserves exact signed source', async () => {
+test('desktop paste reaches the Outpost tab for the selected file and preserves exact signed source', async () => {
   const h = fixture();
   const e = event(clipboard());
   await h.fire('paste', e);
@@ -226,7 +226,7 @@ test('native field drops and already-handled drops remain untouched', async () =
   assert.deepEqual(h.staged, []);
 });
 
-test('the Overview takes a copy in place, and Files keeps the Stage comparison route', async () => {
+test('the Outpost tab takes a copy in place, and Files keeps the Stage comparison route', async () => {
   const h = fixture();
   await h.shell.takeCorrespondence('overview copy');
   assert.equal(h.received[0].target.path, A);

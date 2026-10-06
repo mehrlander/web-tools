@@ -1,12 +1,12 @@
-// screenshot.mjs interaction scenario: the PROJECT VIEW's Overview as a
-// workspace that declares a `powershellOutpost` manifest draws it, the
+// screenshot.mjs interaction scenario: the PROJECT VIEW's Outpost tab, which a
+// workspace that declares a `powershellOutpost` manifest gains: the
 // PowerShell outpost view (lib/alpineComponents/powershell-outpost-view.js),
 // which declares a List and detail (data/ui-units/codebook.md, "Declaring a
 // pattern in markup").
 //
 //   node tools/render/screenshot.mjs app/index.html \
-//     --script tools/render/scenarios/project-overview-powershell-outpost.mjs \
-//     --out tools/.preview/project-overview-powershell-outpost.png
+//     --script tools/render/scenarios/project-outpost.mjs \
+//     --out tools/.preview/project-outpost.png
 //
 // The one workspace that declares a PowerShell outpost is private (home's
 // projects/wps), so this stubs a manifest with one stand-in workspace and
@@ -67,10 +67,10 @@ export default async function (page) {
     store.ref = 'main';
     store.repo = 'mehrlander/web-tools';
     await new Promise(r => setTimeout(r, 300));
-    shell.goProject(P, 'overview');
+    shell.goProject(P, 'outpost');
     return true;
   });
-  if (ok !== true) throw new Error('project-overview-powershell-outpost scenario: ' + ok);
+  if (ok !== true) throw new Error('project-outpost scenario: ' + ok);
   await page.waitForFunction(
     () => [...document.querySelectorAll('[data-pattern="list-detail"] [data-part="item"]')].some(e => e.getClientRects().length),
     null, { timeout: 20000 });
