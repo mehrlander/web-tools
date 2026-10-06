@@ -1,5 +1,5 @@
 // Execute the shipped shell against real Alpine selection lookup and the
-// correspondence parser. The Overview's receiver (outpostView.takeCopy)
+// correspondence parser. The Overview's receiver (powershellOutpostView.takeCopy)
 // is the boundary here; what it does with a copy is covered by its view tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -38,18 +38,18 @@ function fixture({ active = A, busy = false } = {}) {
   Alpine.store('toast', (icon, message, cls) => toasts.push({ icon, message, cls }));
   const shell = app();
   shell.view = 'project'; shell.projectTab = 'overview'; shell.projectPath = 'projects/wps';
-  shell.outpostItem = active; shell.syncUrl = () => {};
-  Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', outpost: 'data/outpost.json' } });
+  shell.powershellOutpostItem = active; shell.syncUrl = () => {};
+  Object.defineProperty(shell, 'project', { value: { path: 'projects/wps', powershellOutpost: 'data/outpost.json' } });
   // The Overview's receiver: the shell hands it a copy for the selected file
-  // (openCorrespondence -> outpostView.takeCopy) and the Overview shows it.
-  Alpine.data('outpostView', () => ({ busy,
+  // (openCorrespondence -> powershellOutpostView.takeCopy) and the Overview shows it.
+  Alpine.data('powershellOutpostView', () => ({ busy,
     async takeCopy(target, sourceText, name, source) {
       if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
       received.push({ target, text: sourceText, meta: { name, source } });
       return true;
     } }));
   const el = window.document.createElement('div');
-  el.setAttribute('x-data', 'outpostView()');
+  el.setAttribute('x-data', 'powershellOutpostView()');
   Alpine.mutateDom(() => { window.document.body.appendChild(el); Alpine.initTree(el); });
   mounted = el;
   const workspace = { captures: 0 };

@@ -1,4 +1,4 @@
-// lib/kits/outpost.js — the outpost ledger's derivation, apart from
+// lib/kits/powershell-outpost.js — the outpost ledger's derivation, apart from
 // the pane that shows it. The subject is a work computer nothing here can
 // inspect, so the test walks the one sequence the design has to get right:
 // a file begins unknown, a supplied copy is compared (browser-local, and
@@ -19,8 +19,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const win = { crypto: webcrypto, GH: { FRESH: { cache: 'no-store' }, toBase64: s => Buffer.from(s, 'utf8').toString('base64') } };
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(win);
-new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/outpost.js'), 'utf8'))(win);
-const K = win.Outpost;
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/powershell-outpost.js'), 'utf8'))(win);
+const K = win.PowerShellOutpost;
 
 const MANIFEST = JSON.stringify({
   as_of: '2026-09-14', root: 'Documents\\WindowsPowerShell', observations: 'projects/wps/data/observations.csv',
@@ -278,7 +278,7 @@ test('append reads fresh, appends one line, and PUTs against the sha it read', a
   const put = calls[1];
   assert.equal(put[2], 'PUT'); assert.equal(put[3].sha, sha40('c')); assert.equal(put[3].branch, 'main');
   assert.equal(Buffer.from(put[3].content, 'base64').toString('utf8'), CSV_HEAD + 'x,y\n' + K.line(r) + '\n');
-  assert.match(put[3].message, /Record outpost observation: installed Forms.psm1 via Web Tools/);
+  assert.match(put[3].message, /Record PowerShell outpost observation: installed Forms.psm1 via Web Tools/);
   assert.equal(out.commit, sha40('9')); assert.equal(out.line, K.line(r));
 });
 

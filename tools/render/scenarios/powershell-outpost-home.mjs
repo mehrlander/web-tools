@@ -1,5 +1,5 @@
 // Answer the GitHub API for mehrlander/home from the sibling checkout, so the
-// outpost view of the wps workspace renders headlessly with real files and
+// PowerShell outpost view of the wps workspace renders headlessly with real files and
 // real blob shas. cdn.mjs impersonates only this repo; the project view's
 // subject is a PRIVATE sibling, and without this every read of it fails on the
 // sandbox's spent anonymous quota and the pane says the listing failed.
@@ -80,7 +80,7 @@ export default async (page, { repoRoot }) => {
   await page.waitForTimeout(5000);
   if (process.env.WPS_DEBUG) {
     const state = await page.evaluate(() => {
-      const el = document.querySelector('[x-data^="outpostView"]');
+      const el = document.querySelector('[x-data^="powershellOutpostView"]');
       if (!el) return { mounted: false };
       const d = window.Alpine.$data(el);
       return { mounted: true, loading: d.loading, err: d.err, items: d.items?.length, tab: window.__shell?.projectTab };

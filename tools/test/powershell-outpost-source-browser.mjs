@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The outpost view's source pane (outpost-view.js mounting
+// The PowerShell outpost view's source pane (powershell-outpost-view.js mounting
 // alpineComponents/powershell-file.js inline) under real Alpine, Tailwind and
 // CodeMirror 6, with GitHub fixture reads and every CDN asset resolved from
 // node_modules through tools/render/cdn.mjs. No external requests. Holds what
@@ -9,7 +9,7 @@
 // pane compares, a phone width keeps the code collapsed below Record
 // installed, the <pre> fallback when esm.sh is unreachable, and no GitHub
 // write from any of it.
-// Run explicitly: node tools/test/outpost-source-browser.mjs
+// Run explicitly: node tools/test/powershell-outpost-source-browser.mjs
 // SHOTS=<dir> also writes a desktop and a phone screenshot there.
 // Kept outside *.test.mjs because npm test is browser-free.
 import assert from 'node:assert/strict';
@@ -43,8 +43,8 @@ const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entrie
 // repo.js registers Alpine.data('repo'), as the app does; that name shadows the
 // view's repo inside the pane's x-data expression, which is how the 2026-09-25
 // break reached the app while this check stayed green.
-const scripts = ['kits/csv.js', 'kits/outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/outpost-view.js'];
-const html = `<!doctype html><html><head><meta charset="utf-8"><title>Outpost source pane verification</title>
+const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
+const html = `<!doctype html><html><head><meta charset="utf-8"><title>PowerShell outpost source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5/daisyui.css">
@@ -73,7 +73,7 @@ window.GH = class {
     throw Object.assign(new Error('Not found'), { status: 404 });
   }
 };
-window.__shell = { outpostItem: '', syncUrl() {}, goProject() {}, goStage() {}, openFile() {},
+window.__shell = { powershellOutpostItem: '', syncUrl() {}, goProject() {}, goStage() {}, openFile() {},
   compared: [], pasted: 0,
   async openCorrespondence(target, text, name, source) { this.compared.push({ path: target.path, text, name, source }); },
   pasteAnywhere() { this.pasted++; } };
@@ -82,7 +82,7 @@ document.addEventListener('alpine:init', () => Alpine.store('browser',
 </script>
 ${scripts.map(file => '<script src="/lib/' + file + '"></script>').join('\n')}
 <script defer src="/node_modules/alpinejs/dist/cdn.min.js"></script>
-</head><body class="p-4"><div id="mount" x-data="outpostView({ path: '${project}', outpost: '${project}/data/outpost.json' })"></div></body></html>`;
+</head><body class="p-4"><div id="mount" x-data="powershellOutpostView({ path: '${project}', powershellOutpost: '${project}/data/outpost.json' })"></div></body></html>`;
 
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url, 'http://fixture').pathname;

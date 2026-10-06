@@ -229,7 +229,6 @@ tools/render/scenarios/md-diff-one-stop.mjs,,tools/render/scenarios,51,driver,no
 tools/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",tools/render/scenarios,44,driver,no,no,no
 tools/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,tools/render/scenarios,78,driver,no,no,no
-tools/render/scenarios/outpost-home.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/paste-address-routes.mjs,,tools/render/scenarios,52,driver,no,no,no
 tools/render/scenarios/paste-anywhere.mjs,dispatches a real two-flavor ClipboardEvent on a non-Stage view and reports where the app-wide paste routed it,tools/render/scenarios,42,driver,no,no,no
 tools/render/scenarios/paste-button.mjs,"drives the header Paste button from a non-Stage view with window.io stubbed, and reports where it routed",tools/render/scenarios,46,driver,no,no,no
@@ -239,6 +238,7 @@ tools/render/scenarios/paste-script-probe.mjs,,tools/render/scenarios,83,driver,
 tools/render/scenarios/peek-walk.mjs,drive kits/peek.js through a four-tap ancestor walk and report the selector at each rung,tools/render/scenarios,63,driver,no,yes,yes
 tools/render/scenarios/pick-md.mjs,"end-to-end reproduction of pick-a-file-in-the-fab, reporting what the frame did",tools/render/scenarios,76,driver,no,no,no
 tools/render/scenarios/ping.mjs,,tools/render/scenarios,54,driver,no,no,no
+tools/render/scenarios/powershell-outpost-home.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/project-board-review.mjs,"the project Board pane's typed read, seeded token-free",tools/render/scenarios,198,driver,no,yes,no
 tools/render/scenarios/project-board.mjs,the project view's Board pill with task links resolved into the shell viewer,tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/project-docs.mjs,the project view's Docs pill: the workspace's markdown from one tree read,tools/render/scenarios,77,driver,no,no,no
