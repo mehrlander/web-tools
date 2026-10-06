@@ -28,11 +28,8 @@
 // keeps its whole height, since the card shows its top square and the deck
 // shows the rest.
 //
-// THE PARTS. Where the markup declares a pattern (data/ui-units/codebook.md,
-// "Declaring a pattern in markup"), each declared part is outlined and tinted
-// in its color from parts.csv before the shot: every item, and one exemplar
-// item's anatomy, the selected item taking the stronger tint, so a card shows
-// what a list item is, not only that there is a list. thumbs.csv's pattern column names the declared pattern.
+// THE SLOTS are drawn as described above slotJs below. thumbs.csv's pattern
+// column names the declared pattern.
 //
 // THE RECIPE. A unit's address in units.csv says where it is, and for most
 // units that is the whole recipe. The rest need a query a bare address cannot
@@ -40,7 +37,7 @@
 // Activity panes render a token prompt without one), or a click (a stepper with
 // no address). Those are
 // rows of shots.csv beside each store's coded.csv: unit, query, script, click,
-// focus, shot, note. `shot` is `no-script` where the script reads a private
+// focus, shot, region, note. `shot` is `no-script` where the script reads a private
 // repository: tools/build/ui-instances.mjs runs it, and the shot does not. A row there replaces the derived query; an empty cell keeps it. A
 // query that opens with # is a fragment, for the pages that route on
 // location.hash.

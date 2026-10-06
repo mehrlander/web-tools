@@ -16,7 +16,7 @@ has assessed the codes.
 | `signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `tools/ui-units.mjs` (Pass 1) |
 | [`dimensions.csv`](dimensions.csv) | one dimension the units are coded on: what it holds, its test, whether a unit takes one code or any number, and, for frame and body, the color their slots are outlined in | authored |
 | [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis (the dimension), and the five rings | authored, settled at synthesis |
-| [`parts.csv`](parts.csv) | one part a declared pattern can name: what it is and the color it is outlined in | authored |
+| [`parts.csv`](parts.csv) | one part a declared pattern can name, and what it is | authored |
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
 | `instances.csv` | one unit loaded to check what its markup declares: the code declared and coded, the parts found, whether the code's behavior held, and the slots found, missing and stray (codebook, "Slots") | `tools/build/ui-instances.mjs` |

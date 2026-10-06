@@ -120,9 +120,9 @@ nesting and alternates below.
   arrangement, using a body code from [`codes.csv`](codes.csv).
 - **`data-part="<part>"`** goes on each element of it. The `parts` cell lists
   the parts a code allows, required ones first and optional ones marked `?`.
-  [`parts.csv`](parts.csv) says what each part is and gives it one color, the
-  same in every pattern. A part belongs to its nearest `data-pattern` ancestor,
-  and a part outside any is ignored.
+  [`parts.csv`](parts.csv) says what each part is, the same in every
+  pattern. A part belongs to its nearest `data-pattern` ancestor, and a part
+  outside any is ignored.
 - **The selected item** carries a standard attribute rather than a data one:
   `aria-selected="true"` where the list is an ARIA `listbox`, otherwise
   `aria-current="true"`.
