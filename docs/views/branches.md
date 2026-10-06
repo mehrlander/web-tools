@@ -25,8 +25,9 @@ activity cache. `&detail=` opens one branch's form
 (`refreshActivityCache`). It stores, per estate repo, branches with dates and
 session links, open PRs, the any-state PR index (`branchPulls`, capped at 100
 per repo), recent default-branch commits, and each branch's content verdict from
-`lib/kits/branch-status.js`. A visit kicks it on a per-browser throttle; State
-shows the throttle and forces a refresh. Invariants an edit can break:
+`lib/kits/branch-status.js`. The shell checks it once the reading on screen is
+five minutes old (the "Freshness" section of `app/index.html`); its State row's
+Refresh forces one. Invariants an edit can break:
 
 - **Every read that feeds a commit is fresh** (`GH.FRESH`), and the next read
   is reconciled against what this page last wrote

@@ -28,13 +28,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { JSDOM } from 'jsdom';
 import { repoRoot } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/kits/session-render.js'), 'utf8');
 const window = {};
 const document = { createElement: () => ({ style: {}, append() {}, setAttribute() {} }) };
 new Function('window', 'document', src)(window, document);
-const { turns, groups, blocks, outline, describe } = window.sessionRender;
+const { turns, groups, blocks, outline, find, describe } = window.sessionRender;
 
 const at = s => `2026-08-07T15:00:${String(s).padStart(2, '0')}Z`;
 
@@ -605,4 +606,272 @@ test('without the cache kit the title is what it always was, not empty', () => {
   const d = describe({ short: 'aaaa1111', opening_ask: ATTACHED });
   assert.match(d.title, /uploads/);
   assert.equal(describe({ short: 'aaaa1111' }).title, 'aaaa1111');
+});
+
+// Find must point back into the existing reading model. A second grouping can
+// return a plausible snippet and still open the wrong exchange, especially
+// when a capture note, pre-ask reply or missing timestamp shifts the cards.
+const findRecord = (prompts = [], replies = [], rest = {}) => ({
+  schema: 14, prompts, replies, ...rest,
+});
+const say = (text, n, extra = {}) => ({ text, ...(n == null ? {} : { at: at(n) }), ...extra });
+
+test('find preserves partial exchanges when AND terms are distributed across the session', () => {
+  const r = findRecord(
+    [say('Please merge this.', 0), say('Read the guide.', 10), say('Merge the next change.', 20)],
+    [say('The result is ready.', 1), say('The reading is ready.', 11), say('The guide covers it.', 21)],
+  );
+  const result = find(r, 'MERGE   guide');
+  assert.deepEqual(result.terms, ['merge', 'guide']);
+  assert.equal(result.allTerms, true);
+  assert.equal(result.total, 4);
+  assert.deepEqual(result.hits.map(h => [h.card, h.exchange, h.allTerms, h.total]),
+    [[0, 1, false, 1], [1, 2, false, 1], [2, 3, true, 2]]);
+  assert.deepEqual(result.hits.map(h => h.matchedTerms), [['merge'], ['guide'], ['merge', 'guide']]);
+  assert.deepEqual(result.hits[2].passages.map(p => [p.role, p.label]),
+    [['user', 'You'], ['assistant', 'Assistant']]);
+});
+
+test('find uses term matching, not phrase order or regular expressions', () => {
+  const r = findRecord([say('Guide first, then merge. The literal is a.*b.', 0)]);
+  assert.equal(find(r, 'merge guide').hits[0].allTerms, true);
+  assert.equal(find(r, 'a.*b').total, 1);
+  assert.equal(find(findRecord([say('axxxb', 0)]), 'a.*b').total, 0);
+  assert.equal(find(r, '"merge guide"').total, 0, 'quotes are literal, not an undocumented phrase mode');
+});
+
+test('find path normalization agrees with SessionIndex with and without that kit loaded', () => {
+  const w = {};
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/session-index.js'), 'utf8'))(w);
+  const r = findRecord([say('Read lib/kits/estate-search.js and .claude/uploads/ROW_V.', 0)]);
+  const shard = w.SessionIndex.buildShard({ sample: w.SessionIndex.tokens(w.SessionIndex.docText(r)) });
+  for (const query of ['.claude/uploads/', 'SEARCH.JS', '/lib/kits/ row_v', '.js', '..', 'lib /']) {
+    const fallback = find(r, query);
+    window.SessionIndex = w.SessionIndex;
+    let loaded;
+    try { loaded = find(r, query); } finally { delete window.SessionIndex; }
+    assert.deepEqual(loaded, fallback, query);
+    assert.equal(loaded.allTerms, w.SessionIndex.search([shard], query).has('sample'), query);
+  }
+  assert.deepEqual(find(r, 'ROW_V row_v').terms, ['row_v'], 'duplicate query terms count once');
+});
+
+test('empty and normalized-empty AND queries return an explicit empty result', () => {
+  for (const query of ['', ' \n\t ', null, undefined, '///', 'merge /']) {
+    assert.deepEqual(find(REC, query), { terms: [], hits: [], total: 0, occurrenceTotal: 0, matchedTerms: [], allTerms: false });
+  }
+  const none = find(REC, 'not-captured');
+  assert.deepEqual(none.terms, ['not-captured']);
+  assert.equal(none.total, 0);
+  assert.equal(none.allTerms, false);
+});
+
+test('find searches whole logical turns across blank lines and long middles', () => {
+  const text = 'Merge the branch.\n\n' + 'This is other captured prose. '.repeat(6000) + '\n\nUse the guide.';
+  const r = findRecord([say('Please check the change.', 0)], [say(text, 1)]);
+  const all = find(r, 'merge guide');
+  assert.equal(all.total, 1);
+  assert.equal(all.hits[0].allTerms, true);
+  assert.deepEqual(all.hits[0].passages[0].matchedTerms, ['merge', 'guide']);
+  const tail = find(r, 'guide').hits[0].passages[0].text;
+  assert.match(tail, /Use the guide\.$/);
+  assert.ok(tail.length <= 242, 'snippet grew with transcript size');
+  assert.ok(text.replace(/\s+/g, ' ').includes(tail.replace(/^…|…$/g, '')));
+});
+
+test('find counts every matching turn while bounding previews per exchange', () => {
+  const r = findRecord([say('Needle in the ask.', 0)],
+    Array.from({ length: 40 }, (_, n) => say('Needle '.repeat(50), n + 1)));
+  const result = find(r, 'needle');
+  assert.equal(result.total, 41, 'repeated occurrences are not additional passages');
+  assert.equal(result.hits.length, 1);
+  assert.equal(result.hits[0].total, 41);
+  assert.equal(result.occurrenceTotal, 2001, 'occurrences include turns and text beyond every snippet cap');
+  assert.equal(result.hits[0].occurrenceTotal, 2001);
+  assert.equal(result.hits[0].passages.length, 3);
+  assert.ok(result.hits[0].passages.every(p => p.text.length <= 242));
+});
+
+test('find excludes tools, subagents, metadata, injected records and relayed prompt origins', () => {
+  const r = findRecord([
+    say('Ordinary ask.', 0),
+    say('excluded peer prose', 1, { origin: 'peer' }),
+    say('excluded notification prose', 2, { origin: 'task_notification' }),
+    say('excluded alias prose', 3, { origin: 'task-notification' }),
+  ], [say('Ordinary reply.', 4)], {
+    opening_ask: 'excluded title-only text',
+    last_message: 'excluded stale fallback',
+    files: { 'excluded/metadata.md': { read: 1 } },
+    tools: { excluded: 1 },
+    calls: [
+      { at: at(5), name: 'Bash', arg: 'excluded argument', body: 'excluded result', ok: true },
+      { at: at(6), name: 'Agent', agent: 'one', body: 'excluded receipt', ok: true },
+    ],
+    agents: [{ tool_use_id: 'one', returned: 'excluded agent reply', calls: [] }],
+    injected: [{ body: 'excluded injected body', head: 'excluded head', kind: 'skill' }],
+  });
+  assert.equal(find(r, 'excluded').total, 0);
+  assert.equal(find(r, 'excluded').occurrenceTotal, 0);
+  assert.equal(find(r, 'ordinary').total, 2);
+  assert.ok(turns(r).some(t => t.origin === 'peer'), 'deck provenance must survive without removing its card');
+  assert.equal(groups(turns(r)).filter(c => c.some(t => t.role === 'user')).length, 4,
+    'search eligibility must not renumber the existing deck');
+});
+
+test('exact occurrence totals distinguish repeated words from passages and exchanges', () => {
+  const r = findRecord([say('foo foobar FOO', 0), say('bar', 10)], [say('foobar', 1)]);
+  const result = find(r, 'foo foobar FOO bar');
+  assert.equal(result.total, 3);
+  assert.equal(result.hits.length, 2);
+  assert.equal(result.occurrenceTotal, 5, 'overlapping literal terms count one captured occurrence');
+  assert.deepEqual(result.hits.map(h => h.occurrenceTotal), [4, 1]);
+  assert.deepEqual(result.matchedTerms, ['foo', 'foobar', 'bar']);
+  assert.equal(result.allTerms, true);
+  const parts = window.sessionRender.findParts('foo foobar FOO', result.terms);
+  assert.deepEqual(parts.filter(p => p.match).map(p => p.text), ['foo', 'foobar', 'FOO']);
+});
+
+test('literal highlight spans preserve Unicode source and agree with occurrence counts', () => {
+  for (const [text, query, expected] of [
+    ['İ café CAFÉ 東京 🧭 <img a+b a+b', 'i café 東京 🧭 <img a+b', 8],
+    ['İİ', 'i \u0307', 2],
+    ['aaaaa', 'aa aaa', 2],
+    ['abc bc', 'ab bc', 2],
+  ]) {
+    const result = find(findRecord([say(text, 0)]), query);
+    const parts = window.sessionRender.findParts(text, result.terms);
+    assert.equal(parts.map(p => p.text).join(''), text);
+    assert.equal(result.occurrenceTotal, expected, query);
+    assert.equal(parts.filter(p => p.match).length, expected, query);
+    assert.ok(parts.every(p => p.text.isWellFormed()));
+  }
+  assert.deepEqual(window.sessionRender.findParts('ordinary', ['']), [{ text: 'ordinary', match: false }]);
+});
+
+test('find card indices and exchange labels agree with the exporter for irregular records', () => {
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/session-export.js'), 'utf8'))(window, document);
+  const records = [
+    findRecord([say('needle ask', 2)], [say('needle before ask', 1), say('needle answer', 3)],
+      { schema: 3, tools: { Bash: 1 } }),
+    findRecord([say('needle missing timestamp'), say('needle stamped', 2)],
+      [say('needle untimed reply'), say('needle timed reply', 3)]),
+    { schema: 1, opening_ask: 'needle title', last_message: 'needle final captured reply' },
+  ];
+  for (const r of records) {
+    const result = find(r, 'needle');
+    const model = window.sessionExport.model(r);
+    const line = outline(r);
+    for (const hit of result.hits) {
+      assert.equal(hit.exchange, line[hit.card].exchange);
+      assert.equal(hit.at, line[hit.card].at);
+      assert.equal(hit.title, line[hit.card].title);
+      assert.equal(hit.total, model.cards[hit.card].filter(t =>
+        (t.role === 'user' || t.role === 'assistant') && t.md.includes('needle')).length);
+      assert.ok(model.cards[hit.card].some(t => t.role === hit.passages[0].role));
+    }
+  }
+});
+
+test('find preserves Unicode wording and locates a match after length-changing lowercase', () => {
+  const source = 'İ'.repeat(500) + ' 🧭 CAFÉ 東京 guide résumé. ' + '🧭'.repeat(300);
+  const r = findRecord([], [say(source)]);
+  for (const query of ['café', '東京', 'RÉSUMÉ', '🧭']) {
+    const passage = find(r, query).hits[0].passages[0];
+    assert.ok(passage.text.toLowerCase().includes(query.toLowerCase()), query);
+    assert.ok(source.includes(passage.text.replace(/^…|…$/g, '')));
+    assert.equal(passage.text.isWellFormed(), true, 'snippet split a surrogate pair');
+    assert.ok(passage.text.length <= 242);
+  }
+});
+
+test('find returns captured markup as inert data without mutating its source', () => {
+  const text = '<img src=x onerror="alert(1)"> <script>needle</script> & <svg/onload=alert(2)>';
+  const r = findRecord([say(text, 0)], [say('A safe reply.', 1)]);
+  const before = JSON.stringify(r);
+  const result = find(r, 'needle');
+  assert.equal(result.hits[0].passages[0].text, text);
+  assert.equal(result.hits[0].passages[0].role, 'user');
+  assert.equal('html' in result.hits[0].passages[0], false);
+  assert.equal(JSON.stringify(r), before);
+});
+
+// A tiny message renderer records which turns session-render actually asks
+// chat-render to build. The DOM and details events are real; the assertion is
+// about prose visibility and lazy tool rendering, not markdown formatting.
+async function renderFindDeck(record, query, start = 0) {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const doc = dom.window.document;
+  const w = {};
+  load('lib/kits/session-render.js', w, doc);
+  const built = [];
+  w.chatRender = {
+    ready: async () => {},
+    message(turn) {
+      built.push(turn);
+      const node = doc.createElement('article');
+      node.dataset.testTurn = turn.role;
+      node.textContent = turn.md;
+      return node;
+    },
+  };
+  let opts;
+  w.swipeDeck = { open(options) { opts = options; return { deck: {} }; } };
+  await w.sessionRender.open(record, { find: query, start });
+  const host = doc.createElement('section');
+  doc.body.append(host);
+  opts.render(start, host);
+  return { dom, host, built, opts };
+}
+
+test('opening a source match reveals folded prose in order and leaves tools lazy', async () => {
+  const r = findRecord([say('Please investigate.', 0)], [
+    say('First preparation.', 1), say('Check the needle finding.', 3),
+    say('Last preparation.', 5), say('The complete answer is ready.', 7),
+  ], { calls: [2, 4, 6].map(n => ({ at: at(n), name: 'Bash', arg: 'step ' + n, body: 'tool body ' + n })) });
+  const { dom, host, built } = await renderFindDeck(r, 'needle');
+  try {
+    const marked = [...host.querySelectorAll('[data-session-prose-match]')];
+    assert.equal(marked.length, 1);
+    assert.equal(marked[0].textContent, 'Check the needle finding.');
+    assert.equal(marked[0].closest('details'), null, 'source prose is still hidden in its work fold');
+    assert.ok(marked[0].classList.contains('bg-warning/10'));
+    assert.deepEqual([...host.children].map(n => n.tagName), ['ARTICLE', 'DETAILS', 'ARTICLE', 'DETAILS', 'ARTICLE']);
+    assert.equal(built.filter(t => t.role === 'tool').length, 0, 'opening a match eagerly rendered tool bodies');
+    for (const details of host.querySelectorAll('details')) {
+      assert.equal(details.open, false);
+      details.open = true;
+      details.dispatchEvent(new dom.window.Event('toggle'));
+    }
+    assert.deepEqual([...host.querySelectorAll('[data-test-turn]')].map(n => n.textContent),
+      turns(r).filter(t => t.role !== 'meta').map(t => t.md),
+      'expanding the remaining work changed order or duplicated the matched intro');
+  } finally { dom.window.close(); }
+});
+
+test('source marking shares find eligibility, normalization and empty-query handling', async () => {
+  const r = findRecord([
+    say('Read .claude/uploads/needle.', 0),
+    say('needle peer prose', 3, { origin: 'peer' }),
+  ], [say('The needle answer. ' + 'Captured text. '.repeat(30), 1)], {
+    calls: [{ at: at(2), name: 'Bash', body: 'needle result' }],
+    files: { 'needle.md': { read: 1 } },
+  });
+  for (const [query, start, count] of [['NEEDLE', 0, 2], ['/.claude/uploads/', 0, 1],
+    ['needle', 1, 0], ['needle', 2, 0], ['', 0, 0], ['needle /', 0, 0]]) {
+    const { dom, host, built } = await renderFindDeck(r, query, start);
+    try {
+      assert.equal(host.querySelectorAll('[data-session-prose-match]').length, count, `${query}, card ${start}`);
+      assert.equal(built.filter(t => t.role === 'tool').length, 0);
+    } finally { dom.window.close(); }
+  }
+});
+
+test('opening without a source query retains the ordinary narration fold', async () => {
+  const { dom, host, built } = await renderFindDeck(REC, '');
+  try {
+    assert.equal(host.querySelectorAll('details').length, 1);
+    assert.equal(host.querySelector('details').open, false);
+    assert.equal(host.querySelectorAll('[data-session-prose-match]').length, 0);
+    assert.deepEqual(built.map(t => t.role), ['user']);
+  } finally { dom.window.close(); }
 });

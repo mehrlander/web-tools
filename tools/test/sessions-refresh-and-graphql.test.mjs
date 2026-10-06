@@ -1,5 +1,5 @@
 // tools/test/sessions-refresh-and-graphql.test.mjs — tests for:
-// 1. Sessions view "as of x" agePill in-place refreshActivityGroup wiring
+// 1. Sessions view age pill: in-place refreshActivityGroup wiring
 // 2. sessionsBusy flag covering activityGroupRefreshing
 // 3. crawlLabel('sessions') falling back to 'activity' progress while activityGroupRefreshing
 // 4. GraphQL response capture and Activity view inspector state
@@ -25,8 +25,8 @@ class FakeGH {
 
 test('sessions agePill markup invokes refreshActivityGroup directly and shows refresh icon', () => {
   assert.ok(
-    estateSrc.includes("agePill('sessions', 'sessionsGeneratedAt', 'sessionsBusy', 'Crawling…', 'Sessions cache', 0, 'window.__shell?.refreshActivityGroup()', 'click to refresh sessions and branches')"),
-    'sessions header passes refreshActivityGroup and refresh title to agePill'
+    estateSrc.includes(`agePill('sessions', "['sessions','activity']", 'Sessions and branches', 0, 'window.__shell?.refreshActivityGroup()', 'tap to check both now')`),
+    'sessions header passes both caches, refreshActivityGroup and its tip to agePill'
   );
   assert.ok(
     estateSrc.includes("ph-arrow-clockwise"),

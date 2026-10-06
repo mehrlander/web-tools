@@ -77,6 +77,19 @@ const Alpine = await startAlpine(window, [
 
 const data = Alpine.$data(window.document.getElementById('es'));
 
+test('Discussion controls follow record grains without changing the selected mode', () => {
+  data.sessionLens = 'table';
+  data.sessionGrain = 'branch';
+  assert.equal(data.sessionDiscussionLens, false);
+  assert.equal(data.sessionGrain, 'branch');
+  data.sessionGrain = 'edge';
+  assert.equal(data.sessionDiscussionLens, true);
+  data.sessionGrain = 'session';
+  assert.equal(data.sessionDiscussionLens, true);
+  data.sessionLens = 'list';
+  assert.equal(data.sessionDiscussionLens, true);
+});
+
 // Two sessions, one of them across two repos, so the pair grain is genuinely
 // wider than the session grain and the count has something to get wrong.
 const NOW = Date.now();
