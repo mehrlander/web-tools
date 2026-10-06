@@ -942,6 +942,88 @@ test('Context is a top-level tab that renders the public circles and derives the
   window.__shell = undefined;
 });
 
+async function contextState(query = '') {
+  window.history.replaceState({}, '', '?view=map&tab=context' + query);
+  window.__shell = { mapTab: 'context', goMapTab: () => {} };
+  const host = window.document.createElement('div');
+  host.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  return { state: Alpine.$data(host), host, close() {
+    Alpine.destroyTree(host); host.remove(); window.__shell = undefined;
+    window.history.replaceState({}, '', '/');
+  } };
+}
+
+test('Delivery uses every registry source, including later additions and the legacy private schema', async () => {
+  const { state, host, close } = await contextState();
+  try {
+    assert.deepEqual([...state.ctxSpectraMechanisms.map(m => m.id)], [...state.ctxAll.map(r => r.id)]);
+    const r = state.ctxReg.rows.find(r => r.id === 'plugin-default');
+    r.item = 'Updated skill title'; r.gloss = 'A changed registry description';
+    state.ctxPrivate = [state.ctxRow({ id: 'private-preferences', item: 'Private preferences', circle: 'account',
+      arrives: 'instructions', when: 'start', reach: 'every', evidence: 'none', topics: 'writing-rules',
+      defined_in: 'Account settings', status: 'current', gloss: 'Private registry fixture' }, 'test/private', true)];
+    const skill = state.ctxSpectraMechanisms.find(m => m.id === r.id);
+    assert.equal(skill.title, r.item); assert.equal(skill.gloss, r.gloss);
+    const legacy = state.ctxSpectraMechanisms.find(m => m.id === 'private-preferences');
+    assert.equal(legacy.env, 'claude');
+    assert.equal(legacy.discretionId, 'unclassified', 'missing data is not guessed');
+    assert.ok(state.ctxSpectraCellItems('universal', 'unclassified').some(m => m.id === legacy.id));
+    assert.ok(state.ctxOverlaps.find(t => t.topic === 'writing-rules').rows.some(r => r.id === legacy.id));
+    state.selectCtxSource(legacy.id);
+    await tick(2);
+    assert.match(host.querySelector('[data-context-inspector]').textContent, /Nothing records it/);
+    assert.match(host.querySelector('[data-context-inspector]').textContent, /No joined tally/);
+    assert.doesNotMatch(host.querySelector('[data-context-inspector]').textContent, /tokens|Footprint/);
+  } finally { close(); }
+});
+
+test('Delivery filters cannot leave a hidden inspector and a topic restores all of its sources', async () => {
+  const { state, close } = await contextState();
+  try {
+    state.selectCtxSource('wt-claude');
+    state.setCtxDeliveryFilter('discretion', 'pulled');
+    assert.ok(state.ctxSpectraVisible.some(m => m.id === state.ctxSpectraActive.id));
+    assert.notEqual(state.ctxSpectraActive.id, 'wt-claude');
+    state.setCtxDeliveryFilter('assistant', 'gemini');
+    assert.equal(state.ctxSpectraActive, null, 'empty results have no unrelated inspector');
+    state.openCtxDeliveryTopic('askuserquestion');
+    assert.equal(state.ctxSpectraEnv, 'all'); assert.equal(state.ctxSpectraFilterDiscretion, '');
+    const members = state.ctxAll.filter(r => r.topicList.includes('askuserquestion'));
+    assert.deepEqual([...state.ctxSpectraVisible.filter(m => m.topics.includes('askuserquestion')).map(m => m.id)], [...members.map(r => r.id)]);
+    assert.ok(members.some(r => r.id === state.ctxSpectraActive.id));
+    const id = state.ctxSpectraActive.id;
+    state.openCtxTopic('askuserquestion'); state.setCtxLens('when'); state.setCtxLens('circles'); state.setCtxLens('delivery');
+    assert.equal(state.ctxSpectraActive.id, id, 'changing the view preserves identity');
+    const query = new URL(window.location.href).searchParams;
+    assert.equal(query.get('ctxtopic'), 'askuserquestion'); assert.equal(query.get('ctxsource'), id);
+  } finally { close(); }
+});
+
+test('Context validates lens addresses, restores source/topic links and joins real measurements', async () => {
+  const { state, host, close } = await contextState('&ctxlens=unknown&ctxtopic=conventions-delivery&ctxsource=plugin-default');
+  try {
+    assert.equal(state.ctxLens, 'delivery'); assert.equal(state.ctxSpectraActive.id, 'plugin-default');
+    assert.equal(state.ctxTopic, 'conventions-delivery');
+    const source = state.ctxSpectraActive.source;
+    state.skillUses = null;
+    assert.equal(state.ctxMeasurement(source), 'Measurements not loaded');
+    state.skillUses = { default: { sessions: 7 } };
+    assert.equal(state.ctxMeasurement(source), 'invoked in 7 sessions');
+    let opened;
+    state.openCtxDeck = row => { opened = row.id; };
+    await tick(2);
+    [...host.querySelectorAll('[data-context-inspector] button')].find(b => b.textContent === 'Read source').click();
+    assert.equal(opened, 'plugin-default');
+    window.history.replaceState({}, '', '?view=map&tab=context&ctxlens=spectra&ctxsource=wt-claude');
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    assert.equal(state.ctxLens, 'delivery'); assert.equal(state.ctxSpectraActive.id, 'wt-claude');
+    assert.equal(state.ctxTopic, '');
+  } finally { close(); }
+});
+
 test('an Aims deep link opens Docs/Purpose and loads its existing sources', async () => {
   window.__shell = { mapTab: 'aims', goMapTab: () => {} };
   const el4 = window.document.createElement('div');

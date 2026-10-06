@@ -45,3 +45,8 @@ upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the p
 upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
 upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
 upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"
+context-sources,discretion,injected,Injected,Included automatically by the platform.
+context-sources,discretion,prodded,Prodded,A directive asks the assistant to act; compliance is a separate step.
+context-sources,discretion,reactive,Reactive,Feedback or material arrives in response to an event.
+context-sources,discretion,pulled,Pulled,The user or assistant requests the material.
+context-sources,discretion,outside,Harness only,Configuration or execution outside model context; does not imply that its output can never enter context.
