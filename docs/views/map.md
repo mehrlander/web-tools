@@ -8,7 +8,7 @@ lede's ↗ opens that row; the table below is the index.
 
 The shell owns the tab (`MAP_TABS` and `MAP_SUBVIEWS` in `app/index.html`,
 validated before `map()` mounts). The default, `set`, stays out of the URL.
-`?view=portable` resolves to the Map and `?view=routes` to its Views tab.
+`?view=portable` resolves to the Map and `?view=routes` to UI › Views.
 
 | Tab (`&tab=`) | Reads | Held by |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ validated before `map()` mounts). The default, `set`, stays out of the URL.
 | Kits | [kits.csv](../kits.csv) | `kits-register.test.mjs` |
 | Skills | the shipped skill catalog | `skills-registry.test.mjs` |
 | Data (`data`) | each declaring repo's [CSV census](../csv-census.md) | `csv-census.test.mjs`, `map-data-census.test.mjs` |
-| Views (`views`) | [app-routes.csv](../app-routes.csv) | `app-routes.test.mjs` |
+| UI: Dimensions (`dimensions`), Gallery (`patterns`), Views (`views`) | [data/ui-units/](../../data/ui-units/README.md); [app-routes.csv](../app-routes.csv) | `app-routes.test.mjs` |
 | Registries | [registries.csv](../registries.csv) | `properties-registry.test.mjs` |
 
 **Two ownership exceptions.** In Surfacing, `SURFACING.md` is authoritative and

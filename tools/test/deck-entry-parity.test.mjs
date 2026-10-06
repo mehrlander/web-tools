@@ -97,6 +97,13 @@ const DOORS = [
   { what: 'Files browser', file: 'lib/alpineComponents/file-browser.js',
     anchor: 'openDeck()', noun: 'file', count: "plural(folderFiles.length, 'file')",
     pending: false, size: 'tight' },
+  // The tenth, 2026-10-04: the Map's Patterns tab, over the units one code
+  // covers. Counted in units, since a unit is what the census codes; ghost,
+  // like every Map door, because the rows are the subject and the deck is one
+  // way of reading them.
+  { what: 'Map / Patterns', file: 'lib/alpineComponents/map.js',
+    anchor: 'openPatternDeck(g.units, 0, g.name)', noun: 'unit',
+    count: "plural(g.units.length, 'unit')", pending: false, tone: 'ghost' },
 ];
 
 const src = (d) => readFileSync(path.join(repoRoot, d.file), 'utf8');
