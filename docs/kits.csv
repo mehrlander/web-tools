@@ -67,15 +67,16 @@ lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in on
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,658,no,no,2,yes
-lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1899,no,no,4,yes
+lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1926,no,no,4,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes
 lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,5,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",354,no,no,6,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes
 lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",242,no,yes,3,yes
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1538,no,no,5,yes
-lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",291,no,no,5,yes
+lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",291,no,no,6,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1294,no,no,3,yes
+lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",190,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as installation evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,534,yes,yes,11,yes
