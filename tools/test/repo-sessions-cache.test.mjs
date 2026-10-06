@@ -1632,16 +1632,36 @@ test('withTopics joins the agenda as topicAgenda, and a re-join clears it', () =
   assert.equal(again.topicAgenda, undefined, 'an agenda the newer rollup lacks does not survive');
 });
 
-test('topicCounts: sessions per topic, newest day, busiest first then by name', () => {
-  const rows = [
-    { day: '2026-09-24', topics: ['shortcuts', 'share-sheet'] },
-    { day: '2026-09-30', topics: ['shortcuts', 'shortcuts'] },
-    { day: '2026-09-28', topics: ['budget'] },
-    { day: '2026-09-29' },
-  ];
-  assert.deepEqual(S.topicCounts(rows), [
-    { topic: 'shortcuts', count: 2, last: '2026-09-30' },
-    { topic: 'budget', count: 1, last: '2026-09-28' },
-    { topic: 'share-sheet', count: 1, last: '2026-09-24' },
-  ]);
+// ── Areas: topics grouped across sessions by a closed list ──────────────────
+const A_ROWS = [
+  { id: 'a', day: '2026-10-01', topicAgenda: S.topicStretches([
+    { topic: 'Note badges', kind: 'new', area: 'Dictation page', turns: [0, 4] },
+    { topic: 'Shorter links', kind: 'improve', area: 'Toss render', turns: [5, 6] },
+    { topic: 'note badges', kind: 'fix', area: 'Dictation page', turns: [7, 9] },
+    { topic: 'Quick question', kind: 'explore', area: 'Other', minor: true, turns: [10, 10] }]) },
+  { id: 'b', day: '2026-10-03', topicAgenda: S.topicStretches([
+    { topic: 'Paragraph notes', kind: 'improve', area: 'Dictation page', turns: [0, 3] }]) },
+  { id: 'c', day: '2026-10-02', topics: ['Old shape'], topicAgenda: S.topicStretches([
+    { topic: 'Old shape', turns: [0, 8] }]) },
+];
+
+test('topicStretches carries an area when one is named, null otherwise', () => {
+  const [a, b] = S.topicStretches([{ topic: 'x', area: ' Stage ', turns: [0, 1] }, { topic: 'y', area: 7, turns: [2, 3] }]);
+  assert.equal(a.area, 'Stage');
+  assert.equal(b.area, null);
+  assert.equal(S.topicList(S.topicStretches([{ topic: 'x', area: 'Stage', turns: [0, 1] }]))[0].area, 'Stage');
+});
+
+test('areaCounts: sessions and topics per area, by kind, busiest first; asides and unfiled topics left out', () => {
+  assert.deepEqual(S.areaCounts(A_ROWS), [
+    { area: 'Dictation page', sessions: 2, topics: 2, kinds: { new: 1, improve: 1 }, last: '2026-10-03' },
+    { area: 'Toss render', sessions: 1, topics: 1, kinds: { improve: 1 }, last: '2026-10-01' },
+  ], 'a return to a topic counts it once, with the kind it first had');
+});
+
+test('carriesTopic: the filter takes a topic name or an area', () => {
+  assert.ok(S.carriesTopic(A_ROWS[2], 'Old shape'));
+  assert.ok(S.carriesTopic(A_ROWS[0], 'Toss render'));
+  assert.ok(!S.carriesTopic(A_ROWS[1], 'Toss render'));
+  assert.ok(S.carriesTopic(A_ROWS[1], ''), 'no filter passes everything');
 });

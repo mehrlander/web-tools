@@ -453,7 +453,9 @@ html.dk-dragging main{transition:none !important}
            quick-links row: REPO SELECTION HAPPENS ON THE REPOS DASHBOARD (tap a card)
            or from the sidebar Repos index. Repos reach the header through their
            published VIEWS, not through a list of themselves. -->
-      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+      <!-- data-slot names the unit slot an element fills (data/ui-units/
+           codebook.md, "Slots"): these view buttons are the shell's Tabs. -->
+      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar" data-slot="frame:tabs">
         <!-- An entry's badge is a count waiting on the reader (Waiting's open
              user calls, Proposals' pending edits); it carried a `badge` that
              nothing drew until 2026-10-04. -->
@@ -1274,7 +1276,7 @@ html.dk-dragging main{transition:none !important}
        here (a 1280 window with the sidebar open leaves main 928px, and `xl:`
        called that three columns too); the dock is just where being wrong got
        loud. Adoption is per view, `lg:` to `@3xl:`, as each is touched. -->
-  <main class="@container flex-1 min-w-0 min-h-0"
+  <main data-pattern="host" class="@container flex-1 min-w-0 min-h-0"
         @touchstart.passive="onSwipeStart($event)" @touchmove="onSwipeMove($event)"
         @touchend.passive="onSwipeEnd($event)" @touchcancel.passive="onSwipeCancel()">
 
@@ -1306,7 +1308,7 @@ html.dk-dragging main{transition:none !important}
          custom landing embeds. Full-bleed, beside Repos / Stage. -->
     <div x-show="view==='app'" class="h-full">
       <template x-if="appView">
-        <iframe :src="appViewUrl" class="w-full h-full border-0 bg-base-100"
+        <iframe :src="appViewUrl" data-pattern="host" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
     </div>
@@ -1349,9 +1351,14 @@ html.dk-dragging main{transition:none !important}
               <span class="loading loading-dots loading-md opacity-30"></span>
             </div>
 
+            <!-- data-pattern and data-part declare the div below a Card grid and
+                 name its parts (data/ui-units/codebook.md, "Declaring a pattern
+                 in markup"); nothing at runtime reads them. The folder chips,
+                 the filter, the empty line and the catalog link are the
+                 frame's, so the declaration holds the groups alone. -->
             <template x-if="loaded">
             <div>
-              <div class="flex flex-wrap items-center gap-1.5 mb-8">
+              <div class="flex flex-wrap items-center gap-1.5 mb-8" data-slot="frame:count-chips">
                 <template x-for="c in chips" :key="c.key">
                   <button class="btn font-mono"
                           :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
@@ -1361,7 +1368,7 @@ html.dk-dragging main{transition:none !important}
                   </button>
                 </template>
                 <div class="grow"></div>
-                <label class="input input-bordered flex items-center gap-1.5 w-48">
+                <label class="input input-bordered flex items-center gap-1.5 w-48" data-slot="frame:search">
                   <i class="ph ph-magnifying-glass opacity-50"></i>
                   <!-- data-find-box: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
@@ -1374,17 +1381,18 @@ html.dk-dragging main{transition:none !important}
                 No pages match<span x-show="q"> “<span x-text="q"></span>”</span>.
               </p>
 
+              <div data-pattern="card-grid" data-part="list">
               <template x-for="g in filteredGroups" :key="g.label">
                 <section class="mb-10">
-                  <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
+                  <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2" data-part="group">
                     <i class="ph ph-folder"></i><span x-text="g.label"></span>
-                    <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
+                    <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                   </h2>
                   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <template x-for="p in g.items" :key="p.href">
-                      <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+                      <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
 
-                    <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
+                    <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
                       <a :href="p.href" x-show="p.view==='shot'" class="block w-full h-full">
                         <img :src="p.thumb" :alt="p.label" loading="lazy"
                              class="w-full h-full object-cover object-top"
@@ -1403,7 +1411,7 @@ html.dk-dragging main{transition:none !important}
                            class="w-full h-full overflow-auto m-0 p-2 text-base leading-snug bg-base-100"
                            x-text="p.source"></pre>
 
-                      <div class="join absolute top-1.5 right-1.5 shadow">
+                      <div class="join absolute top-1.5 right-1.5 shadow" data-part="actions">
                         <button class="btn join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
                                 @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
                         <button class="btn join-item" :class="p.view==='live' && 'btn-primary btn-active'"
@@ -1413,11 +1421,13 @@ html.dk-dragging main{transition:none !important}
                       </div>
                     </div>
 
-                    <div class="card-body p-3 gap-1">
+                    <!-- Tinted, so the footer reads as the card's own rather
+                         than as page under the shot. -->
+                    <div class="card-body p-3 gap-1 bg-base-200/60">
                       <div class="flex items-baseline justify-between gap-2">
                         <a :href="p.href" class="font-semibold text-base hover:text-primary transition-colors truncate"
-                           x-text="p.label"></a>
-                        <div class="flex items-center gap-1.5 shrink-0">
+                           x-text="p.label" data-part="title"></a>
+                        <div class="flex items-center gap-1.5 shrink-0" data-part="links">
                           <button @click="inspect(p)" title="Open the source in the file browser"
                                   class="text-base-content/30 hover:text-primary transition-colors cursor-pointer">
                             <i class="ph ph-sidebar-simple"></i></button>
@@ -1426,7 +1436,7 @@ html.dk-dragging main{transition:none !important}
                             <i class="ph ph-github-logo"></i></a>
                         </div>
                       </div>
-                      <p class="text-base text-base-content/50" x-text="p.note || p.title"></p>
+                      <p class="text-base text-base-content/50" x-text="p.note || p.title" data-part="summary"></p>
                     </div>
 
                       </div>
@@ -1434,6 +1444,7 @@ html.dk-dragging main{transition:none !important}
                   </div>
                 </section>
               </template>
+              </div>
 
               <div x-show="isDefault" class="mt-8 pt-4 border-t border-base-200">
                 <a href="https://github.com/mehrlander/web-tools/blob/main/pages/README.md"
@@ -1476,7 +1487,7 @@ html.dk-dragging main{transition:none !important}
             <div x-show="loading" class="flex justify-center py-16">
               <span class="loading loading-dots loading-md opacity-30"></span>
             </div>
-            <article x-show="!loading && html" class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+            <article x-show="!loading && html" data-pattern="document" class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
                      x-html="html"></article>
             <p x-show="!loading && !html" class="text-base-content/40 italic text-base py-8">
               No README found on this ref. Use the sidebar to browse files, or open the atlas.
@@ -1547,7 +1558,7 @@ html.dk-dragging main{transition:none !important}
                  visit rather than costing a tree fetch up front. -->
             <!-- max-w-full + overflow-x-auto: a clipped pill is an unreachable
                  tab. -->
-            <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
+            <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
               <button role="tab" @click="goProjectTab('overview')"
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
                       :class="projectTab==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
@@ -1577,7 +1588,7 @@ html.dk-dragging main{transition:none !important}
                  header, like a repo's custom landing. The FAB carries the
                  bust-out to the full-viewport page. -->
             <template x-if="projectTab==='overview' && project.landing">
-              <iframe :src="projectLandingUrl" class="grow w-full border-0 bg-base-100 mt-4"
+              <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
 
@@ -1588,7 +1599,7 @@ html.dk-dragging main{transition:none !important}
             <template x-if="projectTab==='files'">
               <div class="grow min-h-0 flex flex-col px-6 pb-6 mt-4">
                 <template x-for="p in [project]" :key="p.path + '@' + $store.browser.repo + '@' + $store.browser.ref">
-                  <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: p.path })"></div>
+                  <div class="grow min-h-0" data-pattern="linked-swiper" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: p.path })"></div>
                 </template>
               </div>
             </template>
@@ -1606,7 +1617,7 @@ html.dk-dragging main{transition:none !important}
                 <div x-show="projectLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
-                <article x-show="!projectLoading && projectHtml"
+                <article x-show="!projectLoading && projectHtml" data-pattern="document"
                          class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
                          @click="onReadmeClick($event)"
                          x-html="projectHtml"></article>
@@ -1624,7 +1635,12 @@ html.dk-dragging main{transition:none !important}
                 </div>
 
                 <!-- The typed read, when board.csv exists on this ref. -->
-                <div x-show="!projectBoardLoading && projectBoardTasks" class="space-y-5">
+                <!-- data-pattern and data-part declare this a List and name its
+                     parts (data/ui-units/codebook.md, "Declaring a pattern in
+                     markup"); nothing at runtime reads them. The review line
+                     rides inside the list element but is not an item. -->
+                <div x-show="!projectBoardLoading && projectBoardTasks" class="space-y-5"
+                     data-pattern="list" data-part="list">
                   <!-- The review line: what a grooming pass asks before it
                        reads any row. Each count states its own subject, so a
                        zero reads as an answer rather than a missing number. -->
@@ -1643,32 +1659,32 @@ html.dk-dragging main{transition:none !important}
                   <template x-for="g in projectBoardGroups" :key="g.key">
                     <section>
                       <button class="flex w-full items-center gap-2 py-1 text-left"
-                              @click="g.key==='done' && (projectBoardShowDone = !projectBoardShowDone)">
+                              @click="g.key==='done' && (projectBoardShowDone = !projectBoardShowDone)" data-part="group">
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/60"
                             x-text="g.label"></h3>
-                        <span class="badge badge-sm badge-ghost" x-text="g.tasks.length"></span>
+                        <span class="badge badge-sm badge-ghost" x-text="g.tasks.length" data-part="meta"></span>
                         <span x-show="g.key==='done'" class="text-xs text-base-content/40"
                               x-text="projectBoardShowDone ? 'hide' : 'show'"></span>
                       </button>
                       <ul x-show="g.key!=='done' || projectBoardShowDone" class="space-y-1.5">
                         <template x-for="t in g.tasks" :key="t.file">
-                          <li class="rounded-lg px-3 py-2 hover:bg-base-200/60">
+                          <li class="rounded-lg px-3 py-2 hover:bg-base-200/60" data-part="item">
                             <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                               <a href="#" @click.prevent="openBoardTask(t)"
-                                 class="link link-hover font-medium" x-text="t.title"></a>
+                                 class="link link-hover font-medium" x-text="t.title" data-part="title"></a>
                               <span x-show="t.size" class="badge badge-sm badge-outline font-mono"
-                                    x-text="t.size"></span>
+                                    x-text="t.size" data-part="meta"></span>
                               <span x-show="t.session" class="font-mono text-xs text-base-content/50"
-                                    x-text="t.session"></span>
+                                    x-text="t.session" data-part="meta"></span>
                             </div>
                             <div x-show="t.awaiting" class="mt-0.5 text-sm text-warning"
-                                 x-text="'awaiting: ' + t.awaiting"></div>
+                                 x-text="'awaiting: ' + t.awaiting" data-part="meta"></div>
                             <div x-show="t.blockedBy" class="mt-0.5 text-sm text-base-content/60"
-                                 x-text="t.blockedBy"></div>
+                                 x-text="t.blockedBy" data-part="meta"></div>
                             <!-- Last activity is the signal board.md cannot
                                  carry, and the one that separates a live task
                                  from one that has only been groomed. -->
-                            <div x-show="t.status!=='done'" class="mt-0.5 text-xs text-base-content/40">
+                            <div x-show="t.status!=='done'" class="mt-0.5 text-xs text-base-content/40" data-part="meta">
                               <span x-show="t.lastActivity"
                                     x-text="boardTaskAge(t) + 'd since last log · ' + t.logEntries + (t.logEntries === 1 ? ' entry' : ' entries')"></span>
                               <span x-show="!t.lastActivity" class="italic">no progress log</span>
@@ -1699,10 +1715,13 @@ html.dk-dragging main{transition:none !important}
                    GitHub source jump-over. The repo's own Pages view keeps the
                    shot/live/source toggles one level up. -->
               <div x-show="projectTab==='pages'">
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- data-pattern and data-part declare this a Card grid and name
+                     its parts (data/ui-units/codebook.md, "Declaring a pattern
+                     in markup"); nothing at runtime reads them. -->
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
-                    <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
-                      <a :href="pg.live" class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
+                      <a :href="pg.live" class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
                         <iframe :src="pg.live" loading="lazy"
                                 sandbox="allow-scripts allow-same-origin"
                                 class="w-full h-full bg-base-100 pointer-events-none"></iframe>
@@ -1710,12 +1729,12 @@ html.dk-dragging main{transition:none !important}
                       <div class="card-body p-3 gap-1">
                         <div class="flex items-baseline justify-between gap-2">
                           <a :href="pg.live" class="font-semibold text-base hover:text-primary transition-colors truncate"
-                             x-text="pg.label"></a>
+                             x-text="pg.label" data-part="title"></a>
                           <a :href="pg.code" target="_blank" rel="noopener"
-                             class="text-base-content/30 hover:text-base-content/60 shrink-0" title="Source on GitHub">
+                             class="text-base-content/30 hover:text-base-content/60 shrink-0" title="Source on GitHub" data-part="links">
                             <i class="ph ph-github-logo"></i></a>
                         </div>
-                        <p class="text-base text-base-content/50" x-text="pg.note"></p>
+                        <p class="text-base text-base-content/50" x-text="pg.note" data-part="summary"></p>
                       </div>
                     </div>
                   </template>
@@ -1734,13 +1753,18 @@ html.dk-dragging main{transition:none !important}
                 <div x-show="projectDocsLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
+                <!-- data-pattern and data-part declare the div below a List and
+                     name its parts (data/ui-units/codebook.md, "Declaring a
+                     pattern in markup"); nothing at runtime reads them. The
+                     curated index and the filter are not items, so the
+                     declaration holds the groups alone. -->
                 <template x-if="!projectDocsLoading && projectDocs">
                   <div>
                     <article x-show="projectDocsIndexHtml"
                              class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content mb-8 pb-8 border-b border-base-200"
                              x-html="projectDocsIndexHtml"></article>
                     <div class="flex items-center gap-3 mb-4">
-                      <label class="input input-bordered flex items-center gap-1.5 w-64">
+                      <label class="input input-bordered flex items-center gap-1.5 w-64" data-slot="frame:search">
                         <i class="ph ph-magnifying-glass opacity-50"></i>
                         <!-- data-find-box: the Docs tab's own filter. -->
                         <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0">
@@ -1749,23 +1773,25 @@ html.dk-dragging main{transition:none !important}
                       <span x-show="projectDocsSourced" class="text-base text-base-content/40"
                             x-text="'· ' + projectDocsSourced + ' inside source packages, not listed'"></span>
                     </div>
+                    <div data-pattern="list" data-part="list">
                     <template x-for="g in projectDocsGroups" :key="g.dir">
                       <section class="mb-6">
-                        <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2">
+                        <h3 x-show="g.dir" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-1.5 flex items-center gap-2" data-part="group">
                           <i class="ph ph-folder"></i><span x-text="g.dir"></span>
-                          <span class="badge badge-ghost badge-sm" x-text="g.files.length"></span>
+                          <span class="badge badge-ghost badge-sm" x-text="g.files.length" data-part="meta"></span>
                         </h3>
                         <div class="flex flex-col">
                           <template x-for="f in g.files" :key="f.rel">
                             <button @click="openProjectDoc(f.rel)"
-                                    class="flex items-center gap-2 px-2 py-1 text-base text-left rounded-lg hover:bg-base-200 text-base-content/80 hover:text-base-content transition-colors cursor-pointer">
+                                    class="flex items-center gap-2 px-2 py-1 text-base text-left rounded-lg hover:bg-base-200 text-base-content/80 hover:text-base-content transition-colors cursor-pointer" data-part="item">
                               <i class="ph ph-file-text text-base-content/40"></i>
-                              <span class="truncate" x-text="f.name"></span>
+                              <span class="truncate" x-text="f.name" data-part="title"></span>
                             </button>
                           </template>
                         </div>
                       </section>
                     </template>
+                    </div>
                     <p x-show="!projectDocsGroups.length" class="text-base-content/40 italic text-base py-8">
                       No markdown files<span x-show="projectDocsQ"> match “<span x-text="projectDocsQ"></span>”</span>.
                     </p>
@@ -1799,7 +1825,7 @@ html.dk-dragging main{transition:none !important}
          repo (the "ready mechanism"), even one with its own landing. -->
     <div x-show="view==='atlas'" class="h-full">
       <template x-if="atlasSeen">
-        <iframe :src="atlasUrl" class="w-full h-full border-0 bg-base-100"
+        <iframe :src="atlasUrl" data-pattern="figure" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
     </div>
@@ -1827,7 +1853,7 @@ html.dk-dragging main{transition:none !important}
            a wider screen keeps using it. -->
       <div class="mx-auto px-6 py-8 max-w-[92rem]">
         <template x-if="configSeen">
-          <div x-data="config()"></div>
+          <div x-data="config()" data-pattern="tool"></div>
         </template>
       </div>
     </div>
@@ -1920,7 +1946,7 @@ html.dk-dragging main{transition:none !important}
       <template x-if="view==='files' && $store.browser.repo">
         <div class="grow min-h-0 flex flex-col px-4 lg:px-6 pt-4 pb-6">
           <template x-for="k in [$store.browser.repo + '@' + ($store.browser.ref || '') + '#' + filesKey]" :key="k">
-            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile, at: filesAt })"></div>
+            <div class="grow min-h-0" data-pattern="linked-swiper" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile, at: filesAt })"></div>
           </template>
         </div>
       </template>
@@ -2035,9 +2061,10 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // ?tab= param before the component mounts. Aims remains ?tab=aims under Docs
 // as Purpose, Growth remains ?tab=growth under Docs, and Tests remains
 // ?tab=tests under Harness, so old links still land on the exact reading they
-// named even though none needs a top-level stop.
-const MAP_TABS = ['set', 'context', 'outposts', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'data', 'views', 'registries'];
-const MAP_SUBVIEWS = ['aims', 'growth', 'policy', 'tests'];
+// named even though none needs a top-level stop. UI lands on Dimensions, and
+// its Gallery keeps the ?tab=patterns it was first published at.
+const MAP_TABS = ['set', 'context', 'outposts', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'dimensions', 'skills', 'data', 'registries'];
+const MAP_SUBVIEWS = ['aims', 'growth', 'policy', 'tests', 'patterns', 'views'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js

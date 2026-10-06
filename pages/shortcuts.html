@@ -100,9 +100,9 @@
          both, and a footer cannot hold them without truncating on a phone. -->
     <div id="meta" class="hidden text-xs opacity-60 font-mono text-pretty"></div>
     <div id="filters" class="flex flex-col sm:flex-row sm:items-center gap-2">
-      <input id="q" type="search" placeholder="filter by name"
+      <input id="q" type="search" placeholder="filter by name" data-slot="frame:search"
              class="input input-sm input-bordered w-full sm:flex-1 sm:min-w-0">
-      <select id="view" class="select select-sm select-bordered w-full sm:w-auto">
+      <select id="view" class="select select-sm select-bordered w-full sm:w-auto" data-slot="frame:filter-switch">
         <option value="installable">Installable</option>
         <option value="stale">Needs installing</option>
         <option value="device">On device</option>
@@ -117,7 +117,11 @@
        which is fixed and therefore sits over the end of a scrolling table. -->
   <main class="overflow-auto pb-14 min-w-0">
     <div id="list">
-      <table class="table table-pin-rows">
+      <!-- data-pattern and data-part declare this a List and name its parts
+           (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing
+           at runtime reads them. A List rather than a grid because no header
+           sorts or filters. paint() names each row's parts as it builds it. -->
+      <table class="table table-pin-rows" data-pattern="list">
         <thead>
           <tr class="text-xs">
             <th>Chain</th>
@@ -127,7 +131,7 @@
             <th></th>
           </tr>
         </thead>
-        <tbody id="rows"></tbody>
+        <tbody id="rows" data-part="list"></tbody>
       </table>
     </div>
     <div id="detail" class="hidden"></div>
@@ -200,6 +204,7 @@ const link = (cls, href, text) => {
   a.href = href;
   return a;
 };
+const part = (n, name) => { n.dataset.part = name; return n; };   // see the comment on #rows
 
 // ---- data -----------------------------------------------------------------
 
@@ -412,31 +417,31 @@ function paint() {
   body.textContent = '';
 
   for (const row of shown) {
-    const tr = node('tr', 'hover');
+    const tr = part(node('tr', 'hover'), 'item');
 
     const first = node('td', 'align-top');
-    first.append(nav(link('link link-hover font-medium', href(row),
-                          row.name || row.file.replace(/\.json$/, ''))));
-    first.append(node('div', 'text-xs opacity-60 text-pretty', gist(row)));
+    first.append(part(nav(link('link link-hover font-medium', href(row),
+                          row.name || row.file.replace(/\.json$/, ''))), 'title'));
+    first.append(part(node('div', 'text-xs opacity-60 text-pretty', gist(row)), 'summary'));
     if (row.targets.length)
-      first.append(node('div', 'text-xs opacity-40 font-mono', '→ ' + row.targets.join(' · ')));
+      first.append(part(node('div', 'text-xs opacity-40 font-mono', '→ ' + row.targets.join(' · ')), 'meta'));
     // A phone has no room for a column per figure, so the two that are only
     // reference material ride here instead of scrolling off the right edge.
-    first.append(node('div', 'text-xs opacity-40 font-mono sm:hidden',
-      [row.actions + ' cards', row.name ? row.build : null].filter(Boolean).join(' · ')));
+    first.append(part(node('div', 'text-xs opacity-40 font-mono sm:hidden',
+      [row.actions + ' cards', row.name ? row.build : null].filter(Boolean).join(' · ')), 'meta'));
     tr.append(first);
 
-    tr.append(node('td', 'align-top text-right font-mono text-xs hidden sm:table-cell',
-                   String(row.actions)));
-    tr.append(node('td', 'align-top font-mono text-xs opacity-60 hidden sm:table-cell',
-                   row.name ? row.build : ''));
+    tr.append(part(node('td', 'align-top text-right font-mono text-xs hidden sm:table-cell',
+                   String(row.actions)), 'meta'));
+    tr.append(part(node('td', 'align-top font-mono text-xs opacity-60 hidden sm:table-cell',
+                   row.name ? row.build : ''), 'meta'));
 
     const dev = node('td', 'align-top');
     const s = state(row);
-    if (s) dev.append(mark(s));
+    if (s) dev.append(part(mark(s), 'meta'));
     tr.append(dev);
 
-    const acts = node('td', 'align-top');
+    const acts = part(node('td', 'align-top'), 'actions');
     const bar = node('div', 'flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:justify-end');
     const act = (cls, to, label, icon) => {
       const a = link(cls + ' whitespace-nowrap', to, null);
