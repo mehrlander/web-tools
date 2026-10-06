@@ -2332,7 +2332,7 @@ function app(){ return {
   waitingCount: 0,  // open user calls; the Waiting entry's badge
   waitingSeen: false,
   tendingSeen: false,
-  tendingTab: '',   // '' (Attention) | 'settled'
+  tendingTab: '',   // '' (Open) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
   tendingRepo: '',  // a filter handed in from a card or a row; not stamped
   stateSeen: false, // mount the State view lazily, on first visit
@@ -5616,9 +5616,10 @@ function app(){ return {
       } },
     { key: 'writes',   open(){ this.goWrites(); } },
     { key: 'chats',    open(){ this.goChats(); } },
-    // Tending: the findings tending passes left. `tab` is the list (Attention
-    // is the default and stays out of the URL) and `item` the finding a link
-    // was minted for, the same two keys the project row uses for its own.
+    // Tending: the findings tending passes left, reached from the finding
+    // lines in Activity rather than the header. `tab` is the list (Open is the
+    // default and stays out of the URL) and `item` the finding a link was
+    // minted for, the same two keys the project row uses for its own.
     { key: 'tending',
       open(u){ this.goTending({ tab: u.tab, item: u.item }); },
       stamp(p){
@@ -6332,12 +6333,8 @@ function app(){ return {
       // ?view=branches resolves to Branches, and the pill row leads with
       // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state', 'tending'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
-      // Tending beside Activity rather than inside it: Activity reads the
-      // estate's motion, and Tending reads what a pass concluded about that
-      // motion, across branches, pull requests, trackers and snags alike.
-      { view: 'tending', icon: 'ph-plant', label: 'Tending', go: () => this.goTending() },
       // Waiting: the owner's queue, user calls and proposed edits. Standing
       // with a token, since proposed edits are rarely none and counting them
       // costs the Text collection; the badge is the open user calls.

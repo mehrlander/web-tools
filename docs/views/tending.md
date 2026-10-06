@@ -14,14 +14,14 @@ A finding is a note ([notes skill](../../skills/notes/SKILL.md)) carrying a
 | --- | --- |
 | `kind` | `unreached`, `answer`, `overlap` or `superseded` ([tend skill](../../skills/tend/SKILL.md#findings)). Provisional: the view shows any other kind by name. |
 | `subjects` | Locators for everything it concerns, a session's record file included. The note's `about` is the first. |
-| `why`, `next`, `choice` | Why it matters, the next step, and the owner's question with a recommendation. |
+| `why`, `next` | Why it matters, and the next step. A decision the owner must make is a user call among the subjects, answered in the Waiting view (`?view=waiting`); a finding never asks. |
 | `evidence` | Short verifiable facts. |
 | `witnesses` | Pinned references ([locators.md](../locators.md)) the conclusion rests on, inside the subjects or not. |
 
-A finding is **open** while it carries a `next` or a `choice`, whatever its
+A finding is **open** while it carries a `next`, whatever its
 kind, unless the owner resolves it. Only a reply carrying `finding` changes it,
 replacing the fields it carries: a pass records progress with `did`, settles it
-(`status: "settled"`) once no `next` or `choice` remains, or reopens it
+(`status: "settled"`) once no `next` remains, or reopens it
 (`status: "open"`). The owner's **Handled** (`status: "resolved"`) acknowledges
 each changed witness as it stands, so only a later change brings the finding
 back; **Reopen** reverses it. A reply without `finding` is a comment and changes
@@ -41,7 +41,7 @@ unverifiable there.
 
 ## The view
 
-**Attention** holds the open findings, a choice first, plus any closed finding
+**Open** holds the open findings, plus any closed finding
 whose witnesses changed, until it is reassessed or handled. **Settled** holds the
 rest, each saying what closed it. The view checks every finding's witnesses on
 load and names a changed one at the top of its finding.
