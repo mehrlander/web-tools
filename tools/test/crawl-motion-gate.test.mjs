@@ -100,8 +100,11 @@ test('a mark is stamped only for a repo this pass actually read', () => {
 
 // ── The sessions gate: the listing is the evidence ─────────────────────────
 
+// The gate is the shell's; the fold behind it is lib/kits/sessions-crawl.js,
+// shared with the headless runner since 2026-10-05.
 const sesGate = shellSrc.slice(shellSrc.indexOf('const fingerprint = listing.map'),
-                               shellSrc.indexOf('// This read decides which records are stale'));
+                               shellSrc.indexOf("// The fold is the kit's (lib/kits/sessions-crawl.js)"));
+const sesKit = readFileSync(path.join(repoRoot, 'lib', 'kits', 'sessions-crawl.js'), 'utf8');
 
 test('the fingerprint covers path AND sha, or a rewrite reads as quiet', () => {
   // A record edited in place keeps its path and changes its blob sha. Paths
@@ -112,9 +115,13 @@ test('the fingerprint covers path AND sha, or a rewrite reads as quiet', () => {
 test('the gate sits ABOVE the cache read, which is its whole value', () => {
   // Reading state/sessions.json to discover nothing moved costs 371 KB on every
   // arrival, which is the expense the fifteen-minute clock was buying off.
+  // The cache is read inside the kit's fold, so the gate has to return before
+  // the shell calls it.
+  assert.ok(sesGate.length > 0, 'the gate is found');
   assert.ok(shellSrc.indexOf('const fingerprint = listing.map')
-          < shellSrc.indexOf('const base = await this.readForFold(reg, S.CACHE_PATH)'),
-    'the fingerprint must be compared before the cache is read');
+          < shellSrc.indexOf('return await C.fold({'),
+    'the fingerprint must be compared before the fold reads the cache');
+  assert.match(sesKit, /const base = await readFold\(S\.CACHE_PATH\);/);
 });
 
 test('a forced sessions pass never gates', () => {
@@ -137,10 +144,9 @@ test('an incomplete fold leaves the store looking moved, which it is', () => {
   // pass the store had not moved, and those records would never be read again:
   // the cache would sit permanently short with every reading on screen saying
   // it was current.
-  const fold = shellSrc.slice(shellSrc.indexOf('const deferred = Math.max(0, stale.length'),
-                              shellSrc.indexOf('const changed = S.cacheChanged(prev, next)'));
-  assert.match(fold, /const complete = !deferred && Object\.keys\(fetched\)\.length === take\.length;/);
-  assert.match(fold, /if \(complete\) this\._setMarks\(this\._sessionsMarkKey/);
+  // The kit decides what complete means; the shell marks only on it.
+  assert.match(sesKit, /const complete = !deferred && Object\.keys\(fetched\)\.length === take\.length;/);
+  assert.match(shellSrc, /onBuilt: \(\{ complete \}\) => \{[\s\S]{0,200}?if \(complete\) this\._setMarks\(this\._sessionsMarkKey/);
 });
 
 // ── Arrival ────────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,APP.md;../skills/html-style/SKILL.md
 account-check-reads-the-interim-manifest,"every skill ""missing"" at session start",1,2026-10-05,2026-10-05,../skills/hooks/account-skills.py
+refs-in-page-query-ignored-by-toss,a `refs=` after the `#gh=` never reached the selection,1,2026-10-03,2026-10-03,loader.md#the-selection
 web-session-cannot-delete-branches,`git push --delete` dies as a disconnect,1,2026-09-30,2026-09-30,../skills/tend/SKILL.md#process
 empty-params-answer-the-address,a framed page parsed an empty string and got its own address back,1,2026-09-28,2026-09-28,loader.md#under-the-toss
 triage-bare-branch-name-reads-as-orphan,"every branch reported ""no merge base""",1,2026-09-25,2026-09-25,../skills/tend/SKILL.md#branches

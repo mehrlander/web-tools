@@ -175,6 +175,10 @@
     ?lang=en-US               recognition language, default the browser's
     ?use=<ref>                pin the lib chain to a branch for previewing
     ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
+    ?proposed                 with ?file=, stage the file's queued proposals
+                              as change cards (file mode, below)
+    ?user-call=owner/repo[@ref]:path  with ?file=, a documentation user call:
+                              its head over the file, its edits as change cards
     ?sel=native|painted       which selection, for this visit only; the
                               menu's choice otherwise, native by default
 
@@ -237,6 +241,14 @@
     discards the change. A pill in the pane's corner counts the cards and
     steps between them. The faces pill's Rendered · after shows the text without them. kits/md-surface.js (tracked) draws them.
 
+    AND THE SAME CARDS OVER THE MARKDOWN, as Raw · changes on the faces pill,
+    whose six faces are a grid: Rendered and Raw, each Before, Changes and
+    After (owner, 2026-10-04). md-surface's `raw` draws each block as its
+    source, so the cards, their readings, the notes and the gestures are the
+    same ones, and a change to markup (a bold added, a link moved) is read
+    where it is. Typing there takes keys as their own characters: Enter is a
+    newline, and backspace at a line's start takes the newline before it.
+
     PARAGRAPHS ARE JOINED, SPLIT AND CARRIED BY HAND. Backspace at a
     paragraph's start joins it to the one above; a long press on the space
     between two sentences offers Split; a long press inside a selection (a
@@ -262,10 +274,42 @@
     where it belongs, Share and Copy in the sheet's foot get the bare patch
     (`git apply` takes it). Copy in the bottom row copies the whole buffer.
 
+    AND IT REVIEWS THE PROPOSAL QUEUE, with `&proposed`. A proposal is a
+    request in the Text collection (mehrlander/home, projects/text/
+    proposals.jsonl, filed by tools/propose.py there) to replace one passage
+    of a named file. With `&proposed` the buffer starts as GitHub's copy with
+    every proposal queued for this file put in (stageProposals), so each is a
+    change card like any edit: confirm and Apply commits it, the × discards
+    it. A held draft still wins, being the reader's own progress through the
+    queue, and Clear all edits stages the queue again. Two limits. A block
+    with several proposals stages the first and hides the rest. And a discard
+    lives only in this browser's draft: the collection records no answer of
+    no, so once the draft ends a discarded proposal is staged again.
+
+    AND IT ANSWERS A DOCUMENTATION CALL, with `&user-call=`. A user call
+    (web-tools-private user-calls/user-call.py, kind documentation) is one
+    action item: a question, a brief, a recommendation, the session and PR
+    it came from, and its edits written into it. The page draws that head
+    under the header and stages the edits it can find in GitHub's copy
+    (stageEdits), so each is a card like any other. Answer, on the head or the
+    Apply pill, opens one sheet: each edit's decision, read off the page rather
+    than logged (callDecisions), and four ways out. Record the answer beside
+    the call with the confirmed edits as a patch, for a session to apply where
+    the repo's commit hook runs (the default, see answerCall); commit them to
+    the file's branch, or to a new branch cut from it, and record; or copy the
+    answer as JSON, patch and all, and record nothing. A discard is a decision
+    here, so the "no" the
+    proposal queue cannot record is in the answer. So are the reader's notes:
+    one on an edit's card goes with that edit's decision, and any other goes
+    by the words it is on.
+
     A NOTE IS ON A BLOCK, CHANGED OR NOT, and is not part of any commit.
     The block the caret is in (on a desk, the one under the mouse) wears a
     dashed outline at the extent the card would take, and a badge in the
-    margin opens its note; a card's note is written in its Info. Notes are
+    margin opens its note, one per block; a card's note is written in its
+    Info, which holds the note and nothing else, hung from the card's number
+    as a dropdown: under a documentation call the note starts as the call's
+    why for that change, and the reader edits it as their own. Notes are
     records anchored to GitHub's copy (kits/dictate-record.js), so they keep
     their paragraph through edits, through Apply and Save, and through Clear
     all edits; they are kept with no edit at all; and they leave in the
@@ -455,6 +499,16 @@
   // was. Null is the blank page, which is every arrival without ?file=.
   const FILE = ((f) => f && f.dir ? { repo: f.repo, ref: f.ref, path: f.dir } : null)(parseDest(q.get('file')));
   const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
+  // The proposal queue, reviewed: meaningful only beside ?file=. A value
+  // stages one kind of proposal (mdVariants.kind: 'edit' or 'tighten'), which
+  // is how each of the Waiting view's two tabs opens only what it listed.
+  const PROPOSED = !!FILE && q.has('proposed');
+  const PROPOSED_KIND = PROPOSED ? (q.get('proposed') || '') : '';
+  // A documentation user call (web-tools-private user-calls/user-call.py):
+  // where it lives, in
+  // the same grammar. Also meaningful only beside ?file=, which names the
+  // document so the page can boot before the call is read.
+  const CALL = FILE ? ((c) => c && c.dir ? { repo: c.repo, ref: c.ref, path: c.dir } : null)(parseDest(q.get('user-call'))) : null;
 
   // Base64 of UTF-8, chunked: a spread of a whole document's bytes into
   // String.fromCharCode overruns the argument limit somewhere past 100 KB.
@@ -463,6 +517,49 @@
     let bin = '';
     for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
     return btoa(bin);
+  };
+
+  // ── A call's edits against a text ──────────────────────────────────────
+  // An edit is { from, to }: text the file holds and what should stand in its
+  // place, block runs as call.py pairs them. Found exactly, else with any run
+  // of whitespace matching any other, so a re-wrap or a CRLF file still finds
+  // it; and found ONCE, since an edit that could land in two places is not one
+  // the page can stage without guessing.
+  const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const spans = (text, s) => {
+    if (!s.trim()) return [];
+    const out = [];
+    for (let i = text.indexOf(s); i >= 0; i = text.indexOf(s, i + 1)) out.push([i, i + s.length]);
+    if (out.length) return out;
+    const re = new RegExp(s.trim().split(/\s+/).map(escRe).join('\\s+'), 'g');
+    return [...text.matchAll(re)].map((m) => [m.index, m.index + m[0].length]);
+  };
+  // Which side of an edit a text holds: 'old', 'new' or 'neither'. The longer
+  // side is asked first, because an insertion's `to` contains its `from` (the
+  // neighbour it hangs on) and a removal's `from` contains its `to`.
+  const phase = (text, e) => {
+    const sides = [['old', e.from], ['new', e.to]];
+    if (e.to.length > e.from.length) sides.reverse();
+    for (const [k, s] of sides) if (spans(text, s).length) return k;
+    return !e.to.trim() && !spans(text, e.from).length ? 'new' : 'neither';
+  };
+  // The text with every stageable edit in it, and what became of each:
+  // staged, applied (the file already says it), stale (neither side found),
+  // ambiguous (found more than once), or overlap (its span crosses another's).
+  const stageEdits = (base, edits) => {
+    const status = [], take = [];
+    edits.forEach((e, i) => {
+      const at = phase(base, e) === 'old' ? spans(base, e.from) : null;
+      status[i] = !at ? (phase(base, e) === 'new' ? 'applied' : 'stale') : at.length > 1 ? 'ambiguous' : 'staged';
+      if (status[i] === 'staged') take.push({ i, at: at[0], to: e.to });
+    });
+    let text = base, floor = Infinity;
+    for (const t of take.sort((a, b) => b.at[0] - a.at[0])) {
+      if (t.at[1] > floor) { status[t.i] = 'overlap'; continue; }
+      text = text.slice(0, t.at[0]) + t.to + text.slice(t.at[1]);
+      floor = t.at[0];
+    }
+    return { text, status };
   };
 
   document.addEventListener('alpine:init', () => {
@@ -514,6 +611,25 @@
       // knows, and `dirty` is the buffer measured against it.
       file: FILE,
       fileSha: '', fileBase: null, fileErr: '', fileLoading: false,
+      // ── A documentation call ────────────────────────────────────────────
+      // `call` is the record as read; `callStatus` what each edit found in
+      // GitHub's copy (stageEdits). The head draws the first, and the answer
+      // sheet reads the second against the cards.
+      call: null, callStatus: [], callOpen: false,
+      answerOpen: false, answerTo: 'record', answerBranch: '', answerNote: '', answerComment: true,
+      answerPreview: false, answering: false, answerRows: [], answerRowNotes: [],
+      get callWhere() { return CALL ? CALL.repo + (CALL.ref ? '@' + CALL.ref : '') + ':' + CALL.path : ''; },
+      get callLinks() {
+        const c = this.call || {}, out = [];
+        if (c.session) out.push({ icon: 'ph-chat-circle-text', label: 'Session ' + c.session,
+          href: 'https://mehrlander.github.io/web-tools/pages/session.html#id=' + c.session });
+        const pr = String(c.pr || '').match(/^([^/]+\/[^#]+)#(\d+)$/);
+        if (pr) out.push({ icon: 'ph-git-pull-request', label: pr[1].split('/').pop() + ' #' + pr[2],
+          href: 'https://github.com/' + pr[1] + '/pull/' + pr[2] });
+        if (CALL) out.push({ icon: 'ph-scales', label: 'The call',
+          href: 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + this.callWhere });
+        return out;
+      },
       get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
       // The line under the name on a phone: the repository and the folders.
       get fileDir() { return FILE ? [FILE.repo.split('/')[1], ...FILE.path.split('/').slice(0, -1)].join('/') : ''; },
@@ -539,11 +655,15 @@
       // Marks for what changed since GitHub's copy, drawn over the Rendered
       // face (kits/md-surface.js). On unless the reader turned them off.
       showMarks: ls.get('dictate:marks') !== '0',
+      // Raw · changes: the same cards, each block drawn as its markdown source
+      // (kits/md-surface.js `raw`). Only with the marks on.
+      rawCards: ls.get('dictate:raw') === '1',
       // The faces pill: which before face is showing (GitHub's copy, 'raw' or
       // 'rendered'), or null for the text now; and whether its panel is open.
       before: null, beforeHtml: '', beforeCls: '', facesOpen: false,
       FACES: {
         changes: { label: 'Changes', icon: 'ph-highlighter' },
+        'raw-changes': { label: 'Raw · changes', icon: 'ph-highlighter' },
         'rendered-before': { label: 'Rendered · before', icon: 'ph-eye' },
         'rendered-after': { label: 'Rendered · after', icon: 'ph-eye' },
         'raw-before': { label: 'Raw · before', icon: 'ph-code' },
@@ -568,6 +688,8 @@
       wordPop: null,            // a tapped mark's undo: { text, a, b, x, y, t }; an underline's adds { what, was, now, exact, hover, key }
       _onPop: false, _popLeave: null,
       cardInfo: null,           // a card's Info panel-tip: { i, rows, kind, sum, pinned, x, pos, w, room }
+      noteEditing: false,       // Info's note is being written, not read (editNote)
+      noteDraft: '',            // the note field's text while it is written
       hoverCard: null,          // the card a mouse is over, for its bar
       hoverBlock: null,         // the unchanged block a mouse is over, for its outline (markBlock)
       selCard: null,            // a card picked by its number: { i, at }, while the caret stays at `at`
@@ -581,8 +703,11 @@
       get isMd() { return !!FILE && /\.(md|markdown)$/i.test(FILE.path); },
       get face() {
         if (this.before) return this.before + '-before';
-        return this.view === 'source' ? 'raw-after' : this.showMarks ? 'changes' : 'rendered-after';
+        return this.view === 'source' ? 'raw-after' : !this.showMarks ? 'rendered-after' : this.rawCards ? 'raw-changes' : 'changes';
       },
+      // A cell of the faces grid by its row and column. Rendered · changes keeps
+      // its old name, 'changes', so a stored face and every caller still reach it.
+      faceKey(row, col) { return row === 'rendered' && col === 'changes' ? 'changes' : row + '-' + col; },
       get dirty() {
         this.beat;
         return !!FILE && this.fileBase !== null && (this.edit ? this.draft : this.text) !== this.fileBase;
@@ -881,6 +1006,10 @@
           // they are read once the cards are drawn (paint).
           const keep = !fresh && held && typeof held.text === 'string' && held.text !== res.text;
           this._legacyNotes = keep && held.notes && !Array.isArray(held.notes) ? held.notes : null;
+          // A call is read on every load, draft or not, since its head and its
+          // edits' standing are about GitHub's copy; only a fresh buffer takes
+          // its staged text.
+          const staged = CALL ? await this.loadCall(res.text, !keep) : null;
           if (keep) {
             this.fileSha = held.sha || res.sha;
             this.confirmed = held.confirmed || {};
@@ -889,7 +1018,7 @@
           } else {
             this.fileSha = res.sha;
             this.confirmed = {};
-            this.d.text = res.text;
+            this.d.text = staged != null ? staged : PROPOSED ? await this.stageProposals(res.text) : res.text;
             this.restored = 0;
           }
           this.save();
@@ -908,6 +1037,223 @@
         this.menu = false;
         if (this.view !== 'source' && !this.fileErr) await this.setView(this.view);
         this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+      },
+
+      // ── File mode: the proposal queue ─────────────────────────────────
+      // GitHub's copy with every proposal the Text collection queues for this
+      // file put in, so each arrives as a change card. md-variants plans every
+      // variant of every block; only the blocks whose pick is proposed HERE
+      // are kept, since a variant nobody proposed for this file is not asking
+      // for a yes or no. A failure says so and opens the file as it stands.
+      async stageProposals(base) {
+        const toast = Alpine.store('toast');
+        try {
+          await gh.load('kits/md-variants.js');
+          const V = window.mdVariants;
+          const index = await V.index({ token: this.token || undefined });
+          const here = (v) => (v?.proposals || []).some((p) => p.repo === FILE.repo && p.path === FILE.path);
+          const planned = V.plan(base, index, { file: FILE });
+          // The block's pick decides its kind, as it does in the Waiting
+          // view's count, so a link from there opens what it counted.
+          const kept = (v) => here(v) && (!PROPOSED_KIND || V.kind(v.purpose) === PROPOSED_KIND);
+          planned.blocks = planned.blocks.filter((b) => kept(b.variants[b.pick]));
+          const n = planned.blocks.length;
+          const more = planned.blocks.filter((b) => b.variants.filter(here).length > 1).length;
+          if (!n) { toast('info', 'No ' + (PROPOSED_KIND ? PROPOSED_KIND + ' ' : '') + 'proposals queued for ' + this.fileName, 'alert-info', 4000); return base; }
+          toast('check', `${n} proposal${n === 1 ? '' : 's'} staged as change cards`
+            + (more ? `; ${more} block${more === 1 ? ' has' : 's have'} more than one, and the first is shown` : ''), 'alert-success', 4500);
+          return V.compose(base, planned);
+        } catch (e) {
+          toast('warning', 'Proposals not staged: ' + (e?.message || e), 'alert-error', 6000);
+          return base;
+        }
+      },
+
+      // ── File mode: a documentation call ─────────────────────────────────
+      // Read the call, measure its edits against GitHub's copy, and return the
+      // copy with the stageable ones in it. A call for another file is still
+      // drawn but stages nothing, since its edits were written for other text.
+      async loadCall(base, announce) {
+        const toast = Alpine.store('toast');
+        try {
+          const g = new window.GH({ token: this.token, repo: CALL.repo, ref: CALL.ref || '' });
+          const c = JSON.parse((await g.get(CALL.path, window.GH.FRESH)).text);
+          if (c.kind !== 'documentation' || !Array.isArray(c.edits)) throw new Error('not a documentation call');
+          this.call = c;
+          const want = parseDest(c.file);
+          if (!want || want.repo !== FILE.repo || want.dir !== FILE.path) {
+            this.callStatus = c.edits.map(() => 'stale');
+            toast('warning', 'This call is for ' + (c.file || 'another file') + ', not ' + this.fileWhere, 'alert-error', 7000);
+            return null;
+          }
+          const { text, status } = stageEdits(base, c.edits);
+          this.callStatus = status;
+          const n = status.filter((s) => s === 'staged').length, off = c.edits.length - n;
+          if (announce) toast(n ? 'check' : 'info', (n ? `${n} edit${n === 1 ? '' : 's'} staged as change cards` : 'No edit of this call could be staged')
+            + (off ? `; ${off} not (see the call's head)` : ''), n ? 'alert-success' : 'alert-info', 4500);
+          return text;
+        } catch (e) {
+          toast('warning', 'Call not read: ' + (e?.message || e), 'alert-error', 7000);
+          return null;
+        }
+      },
+      // The head's one line on the edits' standing in GitHub's copy.
+      get callTally() {
+        const words = { staged: 'staged', applied: 'already in the file', stale: 'not found', ambiguous: 'found twice', overlap: 'overlapping' };
+        const n = {};
+        for (const s of this.callStatus) n[s] = (n[s] || 0) + 1;
+        return Object.keys(words).filter((k) => n[k]).map((k) => n[k] + ' ' + words[k]).join(' · ');
+      },
+      // What the owner has decided about each edit, read off the page rather
+      // than logged as it happened, so undo, a discard, a retyped card and a
+      // restored draft all read the same way. Against the text a commit would
+      // send (confirmedText) and the buffer: confirmed if the commit carries
+      // the edit, amended if it carries something else there, open if only the
+      // buffer has it, discarded if the buffer has the original back. An edit
+      // the page did not stage keeps its standing.
+      callDecisions() {
+        if (!this.call) return [];
+        const next = this.confirmedText().next;
+        return this.call.edits.map((e, i) => {
+          if (this.callStatus[i] !== 'staged') return this.callStatus[i] || 'stale';
+          const out = phase(next, e), now = phase(this.text, e);
+          return out === 'new' ? 'confirmed' : out === 'neither' ? 'amended' : now === 'new' ? 'open' : now === 'old' ? 'discarded' : 'open';
+        });
+      },
+      // The answer as one JSON line, the shape call.py's `answers` reads and a
+      // session can act on: a summary, the note, and one decision per edit.
+      // A copied answer carries the patch of what was confirmed as well, since
+      // nothing was committed for a reader to look at instead.
+      answerEntry(extra = {}) {
+        const ds = this.callDecisions(), n = {};
+        for (const d of ds) n[d] = (n[d] || 0) + 1;
+        const answer = ['confirmed', 'amended', 'discarded', 'open', 'applied', 'stale', 'ambiguous', 'overlap']
+          .filter((k) => n[k]).map((k) => n[k] + ' ' + k).join(', ');
+        // The reader's notes ride with the decisions: a note on an edit's card
+        // with that edit, since it is usually the reason for the decision, and
+        // any other note by the words it is on, since the session reading the
+        // answer has the file but not this page.
+        const R = window.DictateRecord, us = this.unitsNow(), had = new Set();
+        const at = R && this.notes.length ? R.place(this.notes, us, this.text) : new Map();
+        const noteOf = (k) => {
+          const mine = this.callUnits(k, us), hit = this.notes.filter((x) => mine.includes(at.get(x.id)) && String(x.text || '').trim());
+          for (const x of hit) had.add(x.id);
+          return hit.map((x) => x.text.trim()).join('\n\n');
+        };
+        const decisions = ds.map((d, i) => { const note = noteOf(i); return { edit: i + 1, decision: d, ...(note ? { note } : {}) }; });
+        const rest = this.notes.filter((x) => !had.has(x.id) && String(x.text || '').trim())
+          .map((x) => ({ on: String(x.exact || '').replace(/\s+/g, ' ').trim().slice(0, 80), note: x.text.trim() }));
+        return { answer, note: this.answerNote.trim(), at: new Date().toISOString(),
+                 call: this.callWhere, file: FILE.repo + ':' + FILE.path,
+                 decisions, ...(rest.length ? { notes: rest } : {}), ...extra };
+      },
+      async openAnswer() {
+        if (!this.call) return;
+        if (this.view !== 'rendered') await this.setView('rendered');
+        if (!this.answerBranch) this.answerBranch = 'user-call/' + (this.call.slug || 'edits');
+        this.$nextTick(() => {
+          const ds = this.answerEntry().decisions;
+          this.answerRows = ds.map((d) => d.decision);
+          this.answerRowNotes = ds.map((d) => d.note || '');
+          this.answerOpen = true;
+        });
+      },
+      get answerJson() {
+        if (!this.answerOpen || !this.call) return '';
+        const next = this.confirmedText().next;
+        return JSON.stringify(this.answerEntry({ patch: window.MdSurface?.patch(FILE.path, this.fileBase, next) || '' }), null, 2);
+      },
+      async copyDecisions() {
+        try {
+          await navigator.clipboard.writeText(this.answerJson);
+          Alpine.store('toast')('clipboard-text', 'Copied the decisions, nothing committed', 'alert-success', 3200);
+        } catch (e) { Alpine.store('toast')('warning', 'Copy failed: ' + (e?.message || e), 'alert-error', 5000); }
+      },
+      // COMMIT AND RECORD. The confirmed edits go to the file's branch or to a
+      // new one cut from it, then one answer line goes beside the call; with
+      // nothing confirmed there is no commit, and the line alone says so. The
+      // decisions are read BEFORE the commit, which moves GitHub's copy and
+      // takes the committed cards off the page.
+      async answerCall() {
+        if (!this.call || this.answering) return;
+        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: copy the decisions instead', 'alert-error', 5000); return; }
+        const toBranch = this.answerTo === 'branch' ? this.answerBranch.trim() : '';
+        if (this.answerTo === 'branch' && !toBranch) return;
+        this.answering = true;
+        const entry = this.answerEntry();
+        // RECORD ONLY, the default (owner, 2026-10-04). A commit from here goes
+        // through the contents API, so the target repo's commit hook never
+        // runs: in web-tools that left docs/docs.csv's word counts stale and,
+        // for an edit to a quoted sentence, docs/policies.csv's quote missing,
+        // and either failed the suite on every later PR. So the answer is
+        // recorded with the confirmed edits as a patch, and a session applies
+        // it where the hook runs (user-call.py patch <id> | git apply). The
+        // two commit exits stay for a repo with nothing derived.
+        const record = this.answerTo === 'record';
+        try {
+          if (this.confirmedCount && record) {
+            entry.patch = window.MdSurface?.patch(FILE.path, this.fileBase, this.confirmedText().next) || '';
+            entry.apply = 'session';
+          } else if (this.confirmedCount) {
+            const done = await this.applyConfirmed({ branch: toBranch, call: true });
+            if (!done) return;
+            Object.assign(entry, { target: done.target, commit: done.url });
+          }
+          await gh.load('alpineComponents/user-call-form.js');
+          const pr = window.UserCallForm.prOf(this.call.pr);
+          const body = '**User call: ' + this.call.question + '**\n\nAnswer: **' + entry.answer + '**'
+            + (entry.commit ? '\n\nCommitted: ' + entry.commit : '')
+            + (entry.patch ? '\n\nRecorded with the confirmed edits as a patch, for a session to apply.' : '')
+            + (entry.note ? '\n\n> ' + entry.note : '')
+            + '\n\n_' + (this.call.id || '') + ', answered in Dictate._';
+          await window.UserCallForm.postAnswer({ repo: CALL.repo, ref: CALL.ref || undefined, token: this.token,
+            path: CALL.path.replace(/\.json$/, '') + '.answers.jsonl', entry,
+            pr: this.answerComment ? pr : null, comment: body });
+          this.answerOpen = false;
+          Alpine.store('toast')('check', 'Answer recorded' + (entry.target ? ', committed to ' + entry.target
+            : entry.patch ? ', with its patch for a session to apply' : ''), 'alert-success', 4000);
+        } catch (e) {
+          Alpine.store('toast')('warning', 'Answer not recorded: ' + (e?.message || e), 'alert-error', 8000);
+        } finally { this.answering = false; }
+      },
+      // Which units an edit of the call sits on: those whose span in GitHub's
+      // copy meets where its `from` stands there, or whose span in the text
+      // meets where its `to` stands now. A card that only adds is a point, met
+      // when it falls inside. One edit can make two cards and one card can
+      // hold two edits, so both directions are lists. Cards and unchanged
+      // blocks alike, since a discarded edit's paragraph is unchanged again
+      // and its note is still about that edit.
+      callUnits(k, us = this.unitsNow()) {
+        const e = this.call?.edits?.[k];
+        if (!e) return [];
+        const meets = (ss, r) => ss.some(([a, b]) => (r[0] === r[1] ? r[0] >= a && r[0] <= b : a < r[1] && b > r[0]));
+        const so = spans(this.fileBase || '', e.from), sn = spans(this.text, e.to);
+        return us.filter((u) => meets(so, u.o) || meets(sn, u.n));
+      },
+      // What the call says about card `i`: each edit on it with a `why`,
+      // numbered as the call numbers its edits. Worked out once per text, since
+      // markBlock asks for every card on every paint.
+      cardWhys(i) {
+        if (!this.call) return [];
+        const m = this._whys;
+        if (!m || m.text !== this.text || m.base !== this.fileBase) {
+          const us = this.unitsNow(), by = new Map();
+          this.call.edits.forEach((e, k) => {
+            const why = String(e.why || '').trim();
+            if (why) for (const u of this.callUnits(k, us)) if (u.card != null) by.set(u.card, [...(by.get(u.card) || []), { n: k + 1, why }]);
+          });
+          this._whys = { text: this.text, base: this.fileBase, by };
+        }
+        return this._whys.by.get(i) || [];
+      },
+      // To an edit's place in the document, from its row in the answer sheet.
+      goEdit(i) {
+        const e = this.call?.edits?.[i], md = this.$refs.md, v = this.$refs.view;
+        const at = e && (spans(this.text, e.to)[0] || spans(this.text, e.from)[0]);
+        this.answerOpen = false;
+        if (!at || !md || !v || !window.MdSurface?.rectAt) return;
+        const r = window.MdSurface.rectAt(md, at[0]);
+        if (r) v.scrollTo({ top: v.scrollTop + r.top - v.getBoundingClientRect().top - 24, behavior: 'smooth' });
       },
 
       // ── File mode: the two faces ──────────────────────────────────────
@@ -2024,6 +2370,7 @@
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
             overlay: this.$refs.layer, handles: !this.precise && !this.edit && !this.mover && !this.native, reach: 0,
             base: this.fileBase, marks: false, track: this.showMarks, cardActions: this.CARD_ACTIONS,
+            raw: this.rawCards && this.showMarks,
             // Block by block even with nothing changed, so the block under the
             // caret can be marked and noted (markBlock).
             blocks: true,
@@ -2404,9 +2751,15 @@
       },
       sinkBefore(e) {
         const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        // In Raw · changes the markdown is on screen, so a key means its own
+        // character: Enter is one newline, and backspace at a line's start
+        // takes the newline before it. The markdown rules below are for the
+        // render, where the markers cannot be seen.
+        const raw = this.rawCards && this.showMarks;
         if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
           e.preventDefault();
-          this.applyEdit(window.MdSurface.enter(t, r.start, r.end));
+          this.applyEdit(raw ? { text: t.slice(0, r.start) + '\n' + t.slice(r.end), caret: r.start + 1 }
+                             : window.MdSurface.enter(t, r.start, r.end));
         } else if (e.inputType === 'deleteContentForward' && r.start === r.end
                    && this.$refs.sink.selectionStart === this.$refs.sink.value.length) {
           // The sink holds one line, so a forward delete at its end has nothing
@@ -2415,7 +2768,8 @@
           e.preventDefault();
           this.applyEdit({ text: t.slice(0, r.start) + t.slice(r.start + 1), caret: r.start });
         } else if (e.inputType === 'deleteContentBackward' && r.start === r.end) {
-          const res = window.MdSurface.backspace(t, r.start);
+          const res = !raw ? window.MdSurface.backspace(t, r.start)
+            : r.start > 0 && r.start === window.MdSurface.lineAt(t, r.start).ls ? { text: t.slice(0, r.start - 1) + t.slice(r.start), caret: r.start - 1 } : null;
           if (!res) return;
           e.preventDefault();
           this.applyEdit(res);
@@ -2442,7 +2796,7 @@
         this._sinkVal = nw;
         // The wrapper rule, after a deletion: markers whose last character just
         // went go with it.
-        if (!ins) {
+        if (!ins && !(this.rawCards && this.showMarks)) {
           const c = this.d.range ? this.d.range.start : this.d.text.length;
           this.applyEdit(window.MdSurface.tidy(this.d.text, c));
         }
@@ -3217,9 +3571,14 @@
           const b = card.querySelector('[data-md-card-badge]');
           if (!b) continue;
           const i = +card.dataset.mdCard, has = us.some((u) => u.card === i && held.has(u));
+          // One note, so one mark: the call's while the note is its why, the
+          // reader's once they have written over it.
           const m = b.querySelector('[data-note-mark]');
           if (has && !m) b.insertAdjacentHTML('beforeend', '<i data-note-mark class="ph-fill ph-note text-amber-500 ml-1 text-[12px]"></i>');
           else if (!has && m) m.remove();
+          const why = !has && this.cardWhys(i).length > 0, w = b.querySelector('[data-why-mark]');
+          if (why && !w) b.insertAdjacentHTML('afterbegin', '<i data-why-mark class="ph-fill ph-chat-centered-text text-primary mr-1 text-[12px]"></i>');
+          else if (!why && w) w.remove();
         }
         // The blocks: a badge on each marked block and on each holding a note.
         const noted = new Set();
@@ -3345,22 +3704,52 @@
         return this.notes.filter((n) => { const u = at.get(n.id); return u && u.o[0] === o[0] && u.o[1] === o[1]; });
       },
       get infoNotes() { this.beat; this.notes; return this.cardInfo && this.cardInfo.unit ? this.notesAt(this.cardInfo.unit.o) : []; },
-      // THE ONE FIELD writes the unit's first note: typing into it makes the
-      // note, emptying it deletes it. The field stays the same element
-      // throughout, so the keyboard stays up through the note being made.
+      // ONE NOTE PER SECTION (owner, 2026-10-04). The field is the unit's
+      // note: typing makes it, emptying it deletes it, and it stays the same
+      // element throughout, so the keyboard stays up while it is written.
+      // Two noted paragraphs joined into one card still hold two records;
+      // the field shows them as one text (noteText), and the first edit folds
+      // them into the first record, so a section never shows a list.
+      // UNDER A CALL THE NOTE STARTS AS THE CALL'S WHY (owner, 2026-10-04):
+      // the why is the section's note until the reader writes one, and it is
+      // the field's text, so the field never offers "Add a note" over a note
+      // already there. An edit makes it the reader's, a record like any note;
+      // written back to the why's words, or emptied, it is the call's again.
+      get infoWhy() { return this.cardInfo && this.cardInfo.why ? this.cardInfo.why.map((w) => w.why).join('\n\n') : ''; },
+      get noteIsWhy() { return !this.infoNotes.length && !!this.infoWhy; },
+      get noteText() { return this.infoNotes.length ? this.infoNotes.map((n) => n.text).join('\n\n') : this.infoWhy; },
       setNote(v) {
         const c = this.cardInfo, R = window.DictateRecord;
         if (!c || !c.unit || !R) return;
-        const first = this.infoNotes[0];
-        if (first) this.notes = v.trim() ? this.notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== first.id);
-        else if (v.trim()) this.notes = [...this.notes, R.make(c.unit, this.fileBase, this.text, v)];
-        this.save(); this.markBlock();
+        const [first, ...rest] = this.infoNotes, drop = new Set(rest.map((n) => n.id));
+        const mine = !!v.trim() && v.trim() !== this.infoWhy.trim();
+        let notes = this.notes.filter((n) => !drop.has(n.id));
+        if (first) notes = mine ? notes.map((n) => (n.id === first.id ? { ...n, text: v } : n)) : notes.filter((n) => n.id !== first.id);
+        else if (mine) notes = [...notes, R.make(c.unit, this.fileBase, this.text, v)];
+        this.notes = notes; this.save(); this.markBlock();
       },
-      // A second note on one unit only arises when two noted paragraphs
-      // become one card; each keeps its own field.
-      editNote(id, v) {
-        this.notes = v.trim() ? this.notes.map((n) => (n.id === id ? { ...n, text: v } : n)) : this.notes.filter((n) => n.id !== id);
-        this.save(); this.markBlock();
+      // READ, THEN EDIT (owner, 2026-10-04: "it should let you change the
+      // note"). A note opens as text, with a pencil; the pencil, or a tap on
+      // the text, turns it into the field, and Done turns it back. A section
+      // with no note opens on the field, since a note is what the badge was
+      // tapped for. The field is shown and focused inside the tap, for the
+      // reason openBlockInfo gives: iOS raises the keyboard for no later focus.
+      // Leaving the field does not end the editing, since on a phone the tap
+      // on Done arrives after the blur, and a button swapped out under it
+      // would hand the tap to whatever took its place.
+      get noteOpen() { return this.noteEditing || !this.noteText; },
+      editNote() {
+        const f = this.$refs.info && this.$refs.info.querySelector('[data-info-note]');
+        if (!this.cardInfo || !f) return;
+        if (!this.cardInfo.pinned) this.pinInfo(true);
+        this.noteEditing = true; this.noteDraft = f.value = this.noteText;
+        f.style.display = '';
+        f.focus({ preventScroll: true });
+        f.setSelectionRange(f.value.length, f.value.length);
+      },
+      noteDone() {
+        this.noteEditing = false;
+        this.$refs.info?.querySelector('[data-info-note]')?.blur();
       },
       // THE TRASH ON A NOTE'S ROW removes the note and closes the panel, so
       // the badge going back to "+ note" is the confirmation. Emptying the
@@ -3368,14 +3757,19 @@
       // took a select-all first (owner, 2026-10-02). The page's Undo walks the
       // text and not the notes, so the way back is the toast's, which puts the
       // same record back, id and anchor and all.
-      removeNote(id) {
-        const gone = this.notes.find((n) => n.id === id);
-        if (!gone) return;
-        this.notes = this.notes.filter((n) => n.id !== id);
-        this.cardInfo = null; this.save(); this.markBlock();
-        Alpine.store('toast')?.('trash', 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
-          if (this.notes.some((n) => n.id === id)) return;
-          this.notes = [...this.notes, gone]; this.save(); this.markBlock();
+      // The section's note, every record of it, so the trash empties the
+      // section whether or not a join left two.
+      // Under a call the same button reverts rather than deletes, since what
+      // is left is the call's why; it keeps the panel open on it, as proof.
+      removeNote() {
+        const gone = this.infoNotes, ids = new Set(gone.map((n) => n.id)), back = !!this.infoWhy;
+        if (!gone.length) return;
+        this.notes = this.notes.filter((n) => !ids.has(n.id));
+        if (back) this.noteEditing = false; else this.cardInfo = null;
+        this.save(); this.markBlock();
+        Alpine.store('toast')?.(back ? 'arrow-counter-clockwise' : 'trash', back ? 'Back to the call\'s note' : 'Note removed', 'alert-info', 6000, { label: 'Undo', run: () => {
+          if (this.notes.some((n) => ids.has(n.id))) return;
+          this.notes = [...this.notes, ...gone]; this.save(); this.markBlock();
         } });
       },
       // A draft from before notes were records (2026-10-01) kept them by card
@@ -3413,15 +3807,13 @@
           }
         }
       },
-      // APPLY: GitHub's copy with the confirmed cards' changes in it, which is
-      // the text now with every OTHER card taken back (mdDiff.revert, the same
-      // take-back as remove), from the last card up so each revert's
-      // positions still hold. One commit; then that is the base, so the
-      // applied cards go and the rest stay as edits, keeping their notes.
-      async applyConfirmed() {
-        if (!FILE || this.applying || !this.confirmedCount) return;
-        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: nothing applied', 'alert-error', 5000); return; }
-        const md = this.$refs.md, runs = window.MdSurface.cards(md), base = this.fileBase, t = this.text;
+      // WHAT A COMMIT WOULD SEND: GitHub's copy with the confirmed cards'
+      // changes in it, which is the text now with every OTHER card taken back
+      // (mdDiff.revert, the same take-back as remove), from the last card up
+      // so each revert's positions still hold.
+      confirmedText() {
+        const md = this.$refs.md, base = this.fileBase, t = this.text;
+        const runs = md && window.MdSurface ? window.MdSurface.cards(md) : [];
         const cards = runs.map((run, i) => ({ run, i, k: this.cardId(i), sp: this.cardSpans(i) }));
         const pos = (c) => { const e = c.run.find((x) => x.newRange) || c.run[0]; return e.newRange ? e.newRange.start : (e.insertAt ?? 0); };
         let next = t;
@@ -3429,37 +3821,58 @@
         // And what no card shows (a re-wrap, spacing, a blank line between
         // unchanged paragraphs) goes back to GitHub's, so the commit holds the
         // confirmed cards and nothing else.
-        next = window.mdDiff.restoreUnchanged(base, next, { items: true });
-        const applied = cards.filter((c) => this.confirmed[c.k] != null);
+        if (window.mdDiff) next = window.mdDiff.restoreUnchanged(base, next, { items: true });
+        return { next, applied: cards.filter((c) => this.confirmed[c.k] != null) };
+      },
+      // APPLY: one commit of confirmedText. To the file's own branch, it then
+      // is the base, so the applied cards go and the rest stay as edits,
+      // keeping their notes. To a NEW branch (a call's answer can ask for
+      // one), the file's branch has not moved, so the page keeps everything as
+      // it was and the commit is reported by its link. Returns the commit as
+      // { target, url }, or null when nothing landed.
+      async applyConfirmed(opts = {}) {
+        if (!FILE || this.applying || !this.confirmedCount) return null;
+        if (!this.token) { Alpine.store('toast')('warning', 'No token on this browser: nothing applied', 'alert-error', 5000); return null; }
+        const base = this.fileBase, { next, applied } = this.confirmedText();
         const first = (s) => (s.replace(/\s+/g, ' ').trim().slice(0, 60) || '(removed)');
         // What changed, by each change's opening words, and nothing else:
         // notes are not commit text. They stay on the page and leave in the
-        // record (see `record`).
+        // record (see `record`). A call's commit names the call it answers.
         const lines = applied.map((c) => '- ' + first(c.sp.N.s || ('removed: ' + c.sp.O.s)));
-        const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n');
+        const message = `Apply ${applied.length} change${applied.length === 1 ? '' : 's'} to ${this.fileName} via dictate\n\n` + lines.join('\n')
+          + (opts.call && CALL ? '\n\nUser call: ' + this.callWhere : '');
         this.applying = true;
         try {
           const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
           const body = { message, content: b64(next), sha: this.fileSha };
-          if (FILE.ref) body.branch = FILE.ref;
+          if (opts.branch) {
+            await gh.load('gh-transfer.js');
+            await gh2.createRef(opts.branch, FILE.ref || '');
+            body.branch = opts.branch;
+          } else if (FILE.ref) body.branch = FILE.ref;
           const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
-          this.fileSha = this.baseSha = res.content.sha;
-          this.fileBase = next;
-          this.confirmed = {};
-          // Every note moves through the commit: one on an applied change
-          // lands on its text, now GitHub's; one on a change still pending
-          // stays on it; one whose text went out is kept unplaced.
-          this.notes = window.DictateRecord.rebase(this.notes, base, next);
-          this.paint();
-          this.save();
-          Alpine.store('toast')('check', `Applied ${applied.length} to ${this.fileWhere}`, 'alert-success', 3200);
+          const target = opts.branch || FILE.ref || 'main';
+          const url = res?.commit?.html_url || '';
+          if (!opts.branch) {
+            this.fileSha = this.baseSha = res.content.sha;
+            this.fileBase = next;
+            this.confirmed = {};
+            // Every note moves through the commit: one on an applied change
+            // lands on its text, now GitHub's; one on a change still pending
+            // stays on it; one whose text went out is kept unplaced.
+            this.notes = window.DictateRecord.rebase(this.notes, base, next);
+            this.paint();
+            this.save();
+          }
+          Alpine.store('toast')('check', `Applied ${applied.length} to ` + (opts.branch ? FILE.repo.split('/')[1] + '@' + opts.branch + ':' + FILE.path : this.fileWhere), 'alert-success', 3200);
+          return { target, url };
         } catch (e) {
           const conflict = e?.status === 409 || e?.status === 422;
           Alpine.store('toast')('warning', conflict
-            ? 'Not applied: the file changed on GitHub after you opened it. Reload, then confirm again.'
+            ? 'Not applied: the file changed on GitHub after you opened it' + (opts.branch ? ', or differs on ' + opts.branch : '') + '. Reload, then confirm again.'
             : 'Not applied: ' + (e?.message || e), 'alert-error', 8000);
-        }
-        this.applying = false;
+          return null;
+        } finally { this.applying = false; }
       },
       cardAct(btn) {
         const i = +btn.closest('[data-md-card]').dataset.mdCard;
@@ -3639,55 +4052,45 @@
         this.fitPop();
       },
       openCardInfo(i, k, pinned = true) {
-        const sp = this.cardSpans(i);
-        if (!sp) return;
-        const { O, N } = sp;
-        const wc = (s) => (s.match(/\S+/g) || []).length;
-        const { rows, changed } = this.lineDiff(O.s, N.s, O.line || N.line, N.line || O.line);
-        const bare = (s, re) => s.replace(re, '');
-        const kind = O.s === N.s ? '' : bare(O.s, /\s+/g) === bare(N.s, /\s+/g) ? 'whitespace only'
-          : bare(O.s, /[\s*_`~#>]+/g) === bare(N.s, /[\s*_`~#>]+/g) ? 'formatting only' : '';
-        // Where, in the file as it is now: the added lines, or for a pure
-        // removal the lines it came out of in GitHub's copy.
-        const ch = rows.filter((r) => r.kind === 'ins'), lines = (ch.length ? ch : rows.filter((r) => r.kind === 'del')).map((r) => r.no);
-        // Said as a reader would: "line 28", or "3 lines, 28–31". The word
-        // count only when it moved, since "235 → 235 words" says nothing.
-        const a = lines[0], z = lines[lines.length - 1];
-        const where = !lines.length ? '' : changed === 1 || a === z ? 'line ' + a : changed + ' lines, ' + a + '–' + z;
-        const ow = wc(O.s), nw = wc(N.s);
-        this.cardInfo = { i, block: null, rows, kind, title: 'Change ' + (i + 1),
-          unit: this.unitsNow().find((u) => u.card === i) || null,
-          sum: where + (ow !== nw ? ' · ' + ow + ' → ' + nw + ' words' : ''),
-          ...this.infoPlace(k.closest && k.closest('[data-md-card]') || k) };
+        if (!this.cardSpans(i)) return;
+        // THE INFO IS THE NOTE (owner, 2026-10-04): no diff, and since the same
+        // day no header either. The change is read in the card, and as markdown
+        // on Raw · changes; what the panel carries is what the card cannot, the
+        // section's one note, which under a call starts as the call's why.
+        this.noteEditing = false; this.noteDraft = '';
+        this.cardInfo = { i, block: null, unit: this.unitsNow().find((u) => u.card === i) || null, why: this.cardWhys(i),
+          ...this.infoPlace(k) };
+        // The field takes focus inside the tap, as a block's does (openBlockInfo),
+        // unless the call has something to be read first.
+        if (pinned) queueMicrotask(() => {
+          const info = this.$refs.info, f = info && info.querySelector('[data-info-note]');
+          if (!f || this.infoNotes.length || (this.cardInfo && this.cardInfo.why.length)) return;
+          info.style.display = '';
+          f.focus({ preventScroll: true });
+        });
         this.$nextTick(() => this.pinInfo(pinned));
       },
-      // Above or below the unit, not its badge: the badge sits on the unit's
-      // edge, and a panel hung from it covered the very text it is about.
+      // A DROPDOWN FROM THE BADGE (owner, 2026-10-04), as a panel-tip hangs
+      // from its trigger: under the number, its left edge on the number's, or
+      // over it when the text pane has no room below. Until then it stood
+      // clear of the whole section, which put a short note a long way from
+      // the badge that opened it; covering a few words is what a dropdown does.
       infoPlace(el) {
         const b = el.getBoundingClientRect();
-        const w = this.desk ? Math.min(720, innerWidth - 32) : innerWidth - 16;
-        const below = innerHeight - b.bottom > b.top;
-        return { w,
-          x: Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)),
-          // 16px clear of the unit, past the pills that straddle its edges.
-          pos: below ? 'top:' + (b.bottom + 16) + 'px' : 'bottom:' + (innerHeight - b.top + 16) + 'px',
-          // The diff scrolls past a quarter of the screen (owner, 2026-10-01):
-          // capped only by the room beside the card, a long paragraph's panel
-          // covered most of a phone and the card with it.
-          room: Math.max(120, Math.min(Math.round(innerHeight / 4), (below ? innerHeight - b.bottom : b.top) - 60)) };
+        const w = Math.min(this.desk ? 420 : 340, innerWidth - 16);
+        const floor = this.$refs.view ? this.$refs.view.getBoundingClientRect().bottom : innerHeight;
+        const below = floor - b.bottom >= 160 || floor - b.bottom > b.top;
+        return { w, x: Math.max(8, Math.min(innerWidth - w - 8, b.left)),
+          pos: below ? 'top:' + Math.round(b.bottom + 6) + 'px' : 'bottom:' + Math.round(innerHeight - b.top + 6) + 'px' };
       },
-      // AN UNCHANGED BLOCK'S PANEL is a card's Info with no change in it: what
-      // the block is and where, and its note. A field for one when it has
-      // none, focused, since a note is what the badge was tapped for.
+      // AN UNCHANGED BLOCK'S PANEL is a card's Info with no change in it: its
+      // note, and a field for one when it has none, focused, since a note is
+      // what the badge was tapped for.
       openBlockInfo(k, el, pinned = true) {
         const u = this.unitsNow()[k], wrap = this.$refs.md.querySelector('[data-md-block="' + k + '"]');
         if (!u || !wrap) return;
-        const src = this.fileBase.slice(u.o[0], u.o[1]).trimEnd();
-        const a = this.fileBase.slice(0, u.o[0]).split('\n').length, z = a + (src.match(/\n/g) || []).length;
-        const kind = /^#{1,6}\s/.test(src) ? 'Heading' : /^\s*([-*+]|\d{1,9}[.)])(\s|$)/.test(src) ? 'List item'
-          : /^(```|~~~)/.test(src) ? 'Code' : /^\s*\|/.test(src) ? 'Table' : /^>/.test(src) ? 'Quote' : 'Paragraph';
-        this.cardInfo = { i: null, block: k, rows: [], kind: '', title: kind, unit: u,
-          sum: a === z ? 'line ' + a : (z - a + 1) + ' lines, ' + a + '–' + z, ...this.infoPlace(wrap) };
+        this.noteEditing = false; this.noteDraft = '';
+        this.cardInfo = { i: null, block: k, unit: u, why: [], ...this.infoPlace(el || wrap) };
         // THE FIELD TAKES FOCUS INSIDE THE TAP. iOS raises the keyboard only
         // for a focus made while the tap is still being handled, and $nextTick
         // is far too late: Alpine holds it until the panel's fade has run, a
@@ -3703,50 +4106,6 @@
           f.focus({ preventScroll: true });
         });
         this.$nextTick(() => { this.pinInfo(pinned); this.markBlock(); });
-      },
-      // Rows for the Info panel: { kind: same|del|ins|gap, no, sign, raw,
-      // segs: [{ t, cls }] }. A removed run facing an added one is paired line
-      // by line and diffed within by wordParts, the page's own marking, so
-      // the panel and the card agree. `changed` counts lines as the larger
-      // side of each hunk.
-      lineDiff(a, b, oNo, nNo) {
-        const D = window.Diff, rows = [];
-        const split = (v) => { const x = v.split('\n'); if (x[x.length - 1] === '') x.pop(); return x; };
-        // Spaces are dotted only where they are the whole change, as in the pops.
-        const vis = (s) => /^\s+$/.test(s) ? s.replace(/ /g, '·').replace(/\t/g, '→') : s || '⏎';
-        const whole = (kind, l, no) => rows.push({ kind, no, sign: kind === 'del' ? '−' : '+', raw: l,
-          segs: [l.trim() ? { t: l, cls: '' } : { t: '⏎ blank line', cls: 'opacity-60' }] });
-        const pair = (x, y) => {
-          const parts = this.wordParts(x, y);
-          const side = (drop, hl) => parts.filter((p) => !p[drop]).map((p) => (p.added || p.removed) ? { t: vis(p.value), cls: hl } : { t: p.value, cls: '' });
-          return [side('added', 'bg-error/35 rounded-sm'), side('removed', 'bg-success/40 rounded-sm')];
-        };
-        let o = oNo, n = nNo, changed = 0;
-        const parts = D ? D.diffLines(a ? a + '\n' : '', b ? b + '\n' : '') : [];
-        for (let k = 0; k < parts.length; k++) {
-          const p = parts[k];
-          if (!p.added && !p.removed) { for (const l of split(p.value)) rows.push({ kind: 'same', no: n++, sign: '', raw: l, segs: [{ t: l, cls: '' }] }), o++; continue; }
-          const del = p.removed ? split(p.value) : [], q = p.removed && parts[k + 1]?.added ? parts[++k] : (p.added ? p : null);
-          const ins = q ? split(q.value) : [];
-          changed += Math.max(del.length, ins.length);
-          const dRows = [], iRows = [];
-          for (let j = 0; j < Math.max(del.length, ins.length); j++) {
-            if (j < del.length && j < ins.length) { const [ds, is] = pair(del[j], ins[j]); dRows.push([del[j], ds]); iRows.push([ins[j], is]); }
-            else if (j < del.length) dRows.push([del[j], null]); else iRows.push([ins[j], null]);
-          }
-          for (const [l, segs] of dRows) segs ? rows.push({ kind: 'del', no: o, sign: '−', raw: l, segs }) : whole('del', l, o), o++;
-          for (const [l, segs] of iRows) segs ? rows.push({ kind: 'ins', no: n, sign: '+', raw: l, segs }) : whole('ins', l, n), n++;
-        }
-        // Unchanged lines more than one away from a change fold into a count.
-        const near = rows.map((r, k) => r.kind !== 'same' || [-1, 1].some((d) => rows[k + d] && rows[k + d].kind !== 'same'));
-        const out = [];
-        for (let k = 0; k < rows.length; k++) {
-          if (near[k]) { out.push(rows[k]); continue; }
-          let m = k; while (m < rows.length && !near[m]) m++;
-          out.push({ kind: 'gap', no: '', sign: '', raw: '', segs: [{ t: '⋯ ' + (m - k) + (m - k === 1 ? ' unchanged line' : ' unchanged lines'), cls: '' }] });
-          k = m - 1;
-        }
-        return { rows: out, changed };
       },
       // CLEAR ALL EDITS: the file as GitHub holds it, the local edit gone and
       // the notes kept (loadFile). One undo still reaches the edit. Offered
@@ -3878,8 +4237,10 @@
       },
 
       // ── The faces ─────────────────────────────────────────────────────
-      // Changes and Rendered-after are the Rendered view with the change
-      // cards on and off; Raw-after is Source. A before face hides the text
+      // Six, as a grid: Rendered and Raw, each before, with changes, and
+      // after. Changes and Rendered-after are the Rendered view with the change
+      // cards on and off; Raw-changes is the same cards with each block drawn
+      // as its markdown source; Raw-after is Source. A before face hides the text
       // now behind GitHub's copy and draws nothing else, and the text changing
       // under it (a phrase dictated, an undo) brings the text back: paint()
       // drops the before face first, so nothing lands unseen.
@@ -3903,8 +4264,10 @@
         }
         this.before = null;
         if (f === 'raw-after') return this.setView('source');
-        this.showMarks = f === 'changes';
+        this.showMarks = f === 'changes' || f === 'raw-changes';
+        this.rawCards = f === 'raw-changes';
         ls.set('dictate:marks', this.showMarks ? '1' : '0');
+        ls.set('dictate:raw', this.rawCards ? '1' : '0');
         await this.setView('rendered');
       },
       toggleNativeSel() {
@@ -4616,6 +4979,35 @@
     <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
+  <!-- THE CALL'S HEAD, under the header: what is being asked, why, and where
+       it came from, so the edits below arrive as one action item rather than
+       as unexplained changes. A band, which the menu's comment above warns
+       against, and earned here: it is the subject of the page while a call is
+       open. Two lines until tapped; the rest (the recommendation, the edits'
+       standing in the file, the session, the PR, the call itself) one tap
+       down. Answer is the same sheet the Apply pill opens. -->
+  <div x-show="call" x-cloak data-call-head class="shrink-0 border-b border-base-300 bg-base-200/60 px-4 py-2">
+    <div class="flex items-start gap-2">
+      <button type="button" @click="callOpen = !callOpen" class="grow min-w-0 text-left" :aria-expanded="callOpen ? 'true' : 'false'">
+        <span class="flex items-center gap-1.5 font-semibold leading-snug">
+          <i class="ph ph-scales shrink-0 opacity-60"></i><span class="min-w-0" x-text="call?.question"></span>
+          <i class="ph ph-caret-down shrink-0 text-xs opacity-50 transition-transform" :class="callOpen && 'rotate-180'"></i></span>
+        <span class="block text-sm opacity-75 leading-snug" :class="callOpen ? '' : 'line-clamp-2'" x-text="call?.brief"></span>
+      </button>
+      <button type="button" @click="openAnswer()" data-call-answer class="btn btn-sm btn-primary shrink-0">Answer</button>
+    </div>
+    <div x-show="callOpen" x-cloak class="mt-1.5 grid gap-1 text-sm">
+      <p x-show="call?.recommend" class="opacity-80"><i class="ph ph-star-four text-primary"></i>
+        <span x-text="'I recommend ' + (call?.recommend || '') + (call?.why ? ': ' + call.why : '.')"></span></p>
+      <p class="opacity-70" data-call-tally x-text="callTally"></p>
+      <div class="flex flex-wrap gap-x-3 gap-y-1">
+        <template x-for="l in callLinks" :key="l.href">
+          <a :href="l.href" target="_blank" rel="noopener" class="link link-hover inline-flex items-center gap-1">
+            <i class="ph" :class="l.icon"></i><span x-text="l.label"></span></a>
+        </template>
+      </div>
+    </div>
+  </div>
   <!-- ── The text ────────────────────────────────────────────────────────
        The whole width and the whole remaining height. THE COMPOSER'S MARK
        COLUMN DID NOT COME ACROSS, and it is the one piece of that card's
@@ -4704,9 +5096,11 @@
 
       <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
            since the buffer no longer holds them; this is where they are read. -->
-      <!-- A card's Info: what the change was, as the house panel-tip (see
-           openCardInfo). One frame, a line saying where the change is, and the
-           lines themselves, the unchanged ones receding. No ✕: it closes on a
+      <!-- A card's Info, as the house panel-tip (see openCardInfo): the note
+           and nothing else. Why a call proposed the change, when one did, and
+           the reader's own note. The change itself is read in the card, and as
+           markdown on Raw · changes; until 2026-10-04 the lines were drawn
+           here, under a line saying where they were. No ✕: it closes on a
            press outside, Escape or a scroll (see openCardInfo). It arrives as
            every house tip does, the title-tip's 90ms fade and nothing more
            (kits/title-tip.js); the word pop below does the same. -->
@@ -4715,54 +5109,52 @@
            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
            class="fixed z-50 rounded-box bg-base-100 border border-base-300 shadow-xl overflow-hidden"
            :style="cardInfo ? 'left:' + cardInfo.x + 'px;' + cardInfo.pos + ';width:' + cardInfo.w + 'px' : ''">
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-base-300 text-[13px]">
-          <span class="font-medium" x-text="cardInfo ? cardInfo.title : ''"></span>
-          <span class="opacity-60 tabular-nums" data-info-sum x-text="cardInfo ? cardInfo.sum : ''"></span>
-          <span x-show="cardInfo && cardInfo.kind" data-info-kind
-                class="ml-auto rounded-full border border-amber-400 px-2 text-xs leading-5" x-text="cardInfo && cardInfo.kind"></span>
-        </div>
-        <div data-info-diff x-show="cardInfo && cardInfo.rows.length" class="overflow-auto overscroll-contain py-1 font-mono text-xs leading-5"
-             :style="cardInfo ? 'max-height:' + cardInfo.room + 'px' : ''">
-          <template x-for="(r, k) in (cardInfo ? cardInfo.rows : [])" :key="k">
-            <div class="grid grid-cols-[2.75rem_1rem_minmax(0,1fr)]" :data-row="r.kind" :data-raw="r.raw"
-                 :class="{ del: 'bg-error/10', ins: 'bg-success/15', same: 'opacity-50', gap: 'opacity-40 italic' }[r.kind]">
-              <span class="text-right pr-1.5 opacity-40 tabular-nums select-none" x-text="r.no"></span>
-              <span class="text-center opacity-60 select-none" x-text="r.sign"></span>
-              <span class="whitespace-pre-wrap break-words pr-3"><template x-for="(s, j) in r.segs" :key="j"><span :class="s.cls" x-text="s.t"></span></template></span>
-            </div>
-          </template>
-        </div>
-        <!-- THE NOTE ON THE UNIT, a card or an unchanged block: a record kept
-             with the draft and handed over in the record Send carries, never
-             in a commit. One field writes the first note and stays the same
-             element while it is made; a second only arises when two noted
-             paragraphs become one card, and keeps its own field. Each field
-             has a trash on its first line, its right edge on the panel's, the
-             same edge as the kind pill in the header; the first one's column
-             is held while the field is empty, so typing never reflows it. -->
+        <!-- THE NOTE ON THE SECTION, a card or an unchanged block, one per
+             section: a record kept with the draft and handed over in the record
+             Send carries, never in a commit. Under a documentation call it
+             starts as the call's why for the change (see infoWhy), and is the
+             reader's once edited. Read, it is text with its controls on its
+             first line, their right edge on the panel's: a pencil, and for a
+             note of the reader's a trash, or under a call the arrow back to
+             the call's note. Written, the row is the field: tinted, its margin
+             and padding together the read row's padding, so the words do not
+             move when it opens, and Done where the pencil was, inside the tint
+             as an input's trailing button is. Done holds its place while the
+             field is empty, so the first letter typed reflows nothing (see
+             editNote), and each control is 15px wide whatever its icon font
+             has done, since the bold check can load after the pencil and the
+             field would move under it. The field stays the same element while the note is
+             made, and its text is not reset under the caret. -->
         <template x-if="cardInfo && cardInfo.unit">
-          <div class="px-3 py-2 flex flex-col gap-1.5" :class="cardInfo.rows.length && 'border-t border-base-300'">
-            <div class="flex items-start gap-2">
-              <textarea data-info-note rows="1" placeholder="Add a note"
-                        class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                        :value="infoNotes[0] ? infoNotes[0].text : ''" @focus="cardInfo.pinned || pinInfo(true)"
-                        @input="setNote($event.target.value)"></textarea>
-              <button type="button" data-info-note-remove :class="infoNotes[0] ? '' : 'invisible'"
-                      class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
-                      title="Remove note" aria-label="Remove note"
-                      @click="infoNotes[0] && removeNote(infoNotes[0].id)"><i class="ph ph-trash text-[15px]"></i></button>
+          <div class="flex items-start gap-3" :data-info-why="noteIsWhy ? '' : null"
+               :class="noteOpen ? 'mx-1.5 my-1 px-1.5 py-1 rounded-field bg-base-200' : 'px-3 py-2'">
+            <p data-info-text x-show="!noteOpen" x-text="noteText" @click="editNote()"
+               class="flex-1 min-w-0 text-sm leading-5 whitespace-pre-wrap break-words cursor-text"></p>
+            <textarea data-info-note x-show="noteOpen" rows="1" placeholder="Add a note"
+                      class="flex-1 min-w-0 min-h-0 h-auto p-0 bg-transparent border-0 text-sm leading-5 resize-none outline-none field-sizing-content placeholder:text-base-content/40"
+                      x-effect="const t = noteText; if (document.activeElement !== $el) $el.value = t"
+                      @focus="noteEditing = true; noteDraft = $el.value; cardInfo.pinned || pinInfo(true)"
+                      @keydown.enter="($event.metaKey || $event.ctrlKey) && ($event.preventDefault(), noteDone())"
+                      @input="noteDraft = $event.target.value; setNote(noteDraft)"></textarea>
+            <div class="shrink-0 h-5 flex items-center gap-4">
+              <template x-if="!noteOpen">
+                <button type="button" data-info-edit title="Edit note" aria-label="Edit note" @click="editNote()"
+                        class="relative h-5 w-[15px] flex items-center justify-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                  <i class="ph ph-pencil-simple text-[15px]"></i></button>
+              </template>
+              <template x-if="!noteOpen && infoNotes.length">
+                <button type="button" data-info-note-remove @click="removeNote()"
+                        :title="infoWhy ? 'Back to the call\'s note' : 'Remove note'" :aria-label="infoWhy ? 'Back to the call\'s note' : 'Remove note'"
+                        class="relative h-5 w-[15px] flex items-center justify-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                  <i class="ph text-[15px]" :class="infoWhy ? 'ph-arrow-counter-clockwise' : 'ph-trash'"></i></button>
+              </template>
+              <template x-if="noteOpen">
+                <button type="button" data-info-done title="Done" aria-label="Done" @click="noteDone()"
+                        :class="noteDraft.trim() || infoWhy ? '' : 'invisible'"
+                        class="relative h-5 w-[15px] flex items-center justify-center text-primary before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
+                  <i class="ph-bold ph-check text-[15px]"></i></button>
+              </template>
             </div>
-            <template x-for="n in infoNotes.slice(1)" :key="n.id">
-              <div class="flex items-start gap-2 pt-1.5 border-t border-base-300">
-                <textarea data-info-note rows="1"
-                          class="textarea textarea-ghost flex-1 min-w-0 min-h-0 h-auto px-0 py-0 rounded-none text-sm leading-5 resize-none focus:outline-none field-sizing-content"
-                          :value="n.text" @focus="cardInfo.pinned || pinInfo(true)" @input="editNote(n.id, $event.target.value)"></textarea>
-                <button type="button" data-info-note-remove
-                        class="relative shrink-0 h-5 flex items-center opacity-50 hover:opacity-100 before:absolute before:-inset-2.5 before:content-['']"
-                        title="Remove note" aria-label="Remove note"
-                        @click="removeNote(n.id)"><i class="ph ph-trash text-[15px]"></i></button>
-              </div>
-            </template>
           </div>
         </template>
       </div>
@@ -4793,10 +5185,13 @@
       </div>
 
       <!-- THE FACES, ONE PILL (owner, 2026-10-01). Top right under the
-           header, it names the face on screen and opens the five by name:
-           Changes, the main one, the text now with each change a card; then
-           Rendered and Raw, each before (GitHub's copy, read-only) and after
-           (the text now), as two rows of a Before|After pair. It replaced the header's eye button, which flipped
+           header, it names the face on screen and opens six as a grid: rows
+           Rendered and Raw, columns Before (GitHub's copy, read-only), Changes
+           (the text now with each change a card) and After (the text now).
+           Rendered · changes is the main one, named Changes on the pill. Raw ·
+           changes is the same cards over the markdown source (owner,
+           2026-10-04), which is where the raw change is read now that a
+           card's Info holds only notes. It replaced the header's eye button, which flipped
            only between Rendered and Source, and the menu's Track changes,
            which was the Changes and Rendered-after pair under another name.
            Green while the text differs from GitHub's, the flat badge with a
@@ -4812,18 +5207,15 @@
           <i class="ph" :class="FACES[face].icon"></i><span x-text="FACES[face].label"></span><i class="ph ph-caret-down text-[10px] opacity-70"></i>
         </button>
         <div x-show="facesOpen" x-transition.opacity.duration.90ms data-faces-panel
-             class="absolute right-0 top-full mt-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-1.5 text-sm grid gap-1">
-          <button x-show="isMd" type="button" @click="setFace('changes')" data-face="changes"
-                  class="flex items-center gap-2 rounded-field px-2.5 py-1.5 text-left cursor-pointer hover:bg-base-200"
-                  :class="face === 'changes' && 'bg-base-200 font-medium'"><i class="ph ph-highlighter"></i>Changes</button>
+             class="absolute right-0 top-full mt-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-1 text-sm grid gap-0.5">
           <template x-for="row in (isMd ? ['rendered', 'raw'] : ['raw'])" :key="row">
-            <div class="flex items-center justify-between gap-3 pl-2.5">
+            <div class="flex items-center justify-between gap-2 pl-2">
               <span class="text-base-content/70" x-text="row === 'raw' ? 'Raw' : 'Rendered'"></span>
               <div class="join">
-                <template x-for="when in ['before', 'after']" :key="when">
-                  <button type="button" @click="setFace(row + '-' + when)" :data-face="row + '-' + when"
-                          class="join-item btn btn-xs h-7 px-2.5 font-normal" :class="face === row + '-' + when ? 'btn-active' : 'btn-ghost'"
-                          x-text="when === 'before' ? 'Before' : 'After'"></button>
+                <template x-for="when in (isMd ? ['before', 'changes', 'after'] : ['before', 'after'])" :key="when">
+                  <button type="button" @click="setFace(faceKey(row, when))" :data-face="faceKey(row, when)"
+                          class="join-item btn btn-xs h-6 min-h-6 px-1.5 font-normal rounded-none!" :class="face === faceKey(row, when) ? 'btn-active' : 'btn-ghost'"
+                          x-text="{ before: 'Before', changes: 'Changes', after: 'After' }[when]"></button>
                 </template>
               </div>
             </div>
@@ -4841,10 +5233,13 @@
         <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
         <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost px-1.5" :class="confirmedCount ? '' : 'rounded-r-full'" title="Next change"><i class="ph ph-caret-down"></i></button>
         <!-- Apply, the second step: shown once a card is confirmed, naming
-             how many and the branch they will be committed to. -->
-        <button x-show="confirmedCount" x-cloak @click="applyConfirmed()" :disabled="applying" data-apply
+             how many and the branch they will be committed to. Under a call it
+             opens the answer sheet instead, where the branch is chosen and the
+             answer is recorded with the commit. -->
+        <button x-show="confirmedCount" x-cloak @click="call ? openAnswer() : applyConfirmed()" :disabled="applying" data-apply
                 class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
-                data-title-tip-bare :data-title-tip="'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
+                data-title-tip-bare :data-title-tip="call ? 'Answer the call: commit the confirmed edits, or copy the decisions out.'
+                  : 'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
           <i class="ph ph-check-circle"></i>
           <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
         </button>
@@ -5105,6 +5500,71 @@
             :class="lead('drop')" :title="'Write a dated markdown file into ' + destName + ', for the next drain'">
       <i class="ph ph-tray-arrow-down text-lg"></i>Drop
     </button>
+  </div>
+
+  <!-- ── Answer a call ────────────────────────────────────────────────────
+       One sheet for the three ways a call's answer can leave: committed to
+       the file's own branch, committed to a new branch cut from it, or copied
+       out as JSON with nothing committed. The first two also append the answer
+       beside the call (and comment it on the call's PR when ticked, which
+       wakes a subscribed session). With nothing confirmed there is no commit
+       to make, and the primary button records the answer alone.
+       Each edit is a row with its decision, read off the page when the sheet
+       opens (callDecisions); a row is a way back to that edit's card. -->
+  <div x-show="answerOpen" x-cloak data-answer-sheet class="fixed inset-0 z-[90] flex items-end justify-center">
+    <div class="absolute inset-0 bg-black/40" @click="answerOpen = false"></div>
+    <div class="relative w-full sm:max-w-md max-h-[85vh] overflow-y-auto bg-base-100 rounded-t-2xl border-t border-base-300 p-4 flex flex-col gap-3"
+         style="padding-bottom:calc(env(safe-area-inset-bottom) + 1.5rem)">
+      <div class="flex items-center gap-2">
+        <span class="font-medium">Answer the call</span>
+        <div class="grow"></div>
+        <button @click="answerPreview = !answerPreview" class="btn btn-ghost btn-sm btn-square" :class="answerPreview && 'btn-active'"
+                aria-label="Show the answer as JSON" data-title-tip-bare data-title-tip="Show the answer as JSON">
+          <i class="ph ph-brackets-curly text-lg"></i></button>
+        <button @click="answerOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <div class="grid gap-1" data-answer-rows>
+        <template x-for="(d, i) in answerRows" :key="i">
+          <button type="button" @click="goEdit(i)" class="flex items-start gap-2 text-left text-sm rounded-lg px-2 py-1.5 hover:bg-base-200">
+            <span class="badge badge-sm shrink-0 mt-0.5 tabular-nums" x-text="i + 1"></span>
+            <span class="badge badge-sm shrink-0 mt-0.5" :data-decision="d"
+                  :class="{ confirmed: 'badge-success', amended: 'badge-info', discarded: 'badge-error badge-outline', open: 'badge-ghost' }[d] || 'badge-warning badge-outline'"
+                  x-text="d"></span>
+            <span class="min-w-0 leading-snug">
+              <span class="block opacity-80 line-clamp-2"
+                    x-text="call?.edits?.[i]?.why || String(call?.edits?.[i]?.to || '').replace(/\s+/g, ' ').slice(0, 90)"></span>
+              <span x-show="answerRowNotes[i]" class="flex items-start gap-1 mt-0.5 text-amber-700" data-answer-note>
+                <i class="ph-fill ph-note mt-0.5 shrink-0"></i><span class="line-clamp-2" x-text="answerRowNotes[i]"></span></span>
+            </span>
+          </button>
+        </template>
+      </div>
+      <input type="text" x-model="answerNote" class="input input-sm input-bordered w-full" placeholder="Say more with your answer (optional)">
+      <div class="grid gap-1.5 text-sm" x-show="confirmedCount" data-answer-to>
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="record" x-model="answerTo">
+          <span>Record it, and a session applies it</span></label>
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="file" x-model="answerTo">
+          <span x-text="'Commit to ' + (fileRef || 'main')"></span></label>
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm" value="branch" x-model="answerTo">
+          <span class="shrink-0">Commit to a new branch</span>
+          <input type="text" x-model="answerBranch" @focus="answerTo = 'branch'" data-answer-branch
+                 class="input input-xs input-bordered font-mono grow min-w-0"></label>
+      </div>
+      <label x-show="call?.pr" class="flex items-center gap-2 text-sm opacity-80">
+        <input type="checkbox" class="checkbox checkbox-xs" x-model="answerComment">
+        <span x-text="'Post the answer on ' + (callLinks.find((l) => l.icon === 'ph-git-pull-request')?.label || 'the PR')"></span></label>
+      <pre x-show="answerPreview" x-cloak data-answer-json x-text="answerJson"
+           class="max-h-56 overflow-auto rounded-lg bg-base-200 p-2 font-mono text-[11px] leading-snug whitespace-pre-wrap break-all"></pre>
+      <div class="flex gap-2">
+        <button @click="copyDecisions()" data-answer-copy class="btn btn-sm grow gap-1.5"
+                data-title-tip-bare data-title-tip="The decisions and the confirmed patch as JSON on the clipboard. Nothing is committed.">
+          <i class="ph ph-copy"></i>Copy</button>
+        <button @click="answerCall()" :disabled="answering || (answerTo === 'branch' && confirmedCount && !answerBranch.trim())" data-answer-send
+                class="btn btn-sm btn-primary grow gap-1.5">
+          <span x-show="answering" class="loading loading-spinner loading-xs"></span>
+          <span x-text="confirmedCount && answerTo !== 'record' ? 'Commit ' + confirmedCount + ' and record' : 'Record the answer'"></span></button>
+      </div>
+    </div>
   </div>
 
   <!-- ── Send ─────────────────────────────────────────────────────────────
