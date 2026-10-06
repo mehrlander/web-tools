@@ -13,8 +13,9 @@ const ROOTS = [
                witnesses: [{ ref: 'acme/widget@claude/env-check', sha: 'aaaaaaa' },
                            { ref: 'acme/docs@main:docs/environment/capabilities.md', sha: 'bbbbbbb' }] } },
   { id: 'nb', at: '2026-10-01T00:00:00Z', author: 'claude/tend', about: 'acme/widget#735',
-    text: 'One question decides PR 735',
-    finding: { kind: 'answer', subjects: ['acme/widget#735'], why: 'w', next: 'n', choice: 'Close it, since declarations replaced guessing?',
+    text: 'One decision settles PR 735',
+    finding: { kind: 'answer', subjects: ['acme/widget#735', 'me/registry:user-calls/5f95d663-close-735.json'], why: 'w',
+               next: 'Close 735 once the user call says to.',
                witnesses: [{ ref: 'acme/widget#735', state: 'open', updated: '2026-09-19T00:00:00Z' }] } },
   { id: 'nc', at: '2026-10-01T00:00:00Z', author: 'claude/tend', about: 'acme/widget#758',
     text: 'The Doc Craft PR already landed inside 762',
@@ -74,10 +75,12 @@ const plain = (x) => JSON.parse(JSON.stringify(x));
 const ids = (fs) => plain(fs.map(f => f.id));
 
 test('Attention holds outstanding work and changed settled findings; Settled holds the rest', () => {
-  assert.equal(data.attention[0].id, 'nb', 'the owner\'s question first');
+  assert.equal(data.attention[0].id, 'nb', 'a decision waiting in a user call leads, by kind');
   assert.deepEqual(ids(data.attention).sort(), ['na', 'nb', 'nc', 'nd']);
   assert.deepEqual(ids(data.settled), ['ne']);
-  assert.match(el.textContent, /Your call/);
+  assert.doesNotMatch(el.textContent, /Your call/, 'the view asks nothing itself');
+  const call = [...el.querySelectorAll('a')].find(a => a.textContent.includes('user call close-735'));
+  assert.equal(call.getAttribute('href'), '../pages/user-call.html#src=me/registry:user-calls/5f95d663-close-735.json');
 });
 
 test('an overtaken finding with a step left shows the step on the row, unopened', () => {
