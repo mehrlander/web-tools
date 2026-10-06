@@ -26,7 +26,9 @@ supposed to show. Put fresh readers in front of the image before the user is.
 Report all four results before the image travels or is cited as evidence, and
 fix or explain each discrepancy. Mechanical signals (the shot log's
 did-not-load warnings, `scrollWidth`, exit codes) answer questions no image
-can; the readers do not replace them.
+can; the readers do not replace them. In web-tools, `npm run shot -- <page>
+--measure` adds phone-width overflow, blank icons, empty tables and unstyled
+text to the shot log.
 
 ## Checklist
 
