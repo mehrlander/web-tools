@@ -23,9 +23,10 @@
 //   WAITING_STEP=docs   the Map view's Docs tab instead, filtered to the
 //                       documents with proposed edits
 //   WAITING_STEP=decision  the Calls tab, the first decision call picked: its
-//                       options on the card, the recommended one marked
-//   WAITING_STEP=arm    the Calls tab, the first row's answer tapped once: it
-//                       reads Confirm and nothing is sent
+//                       options in the footer, the recommended one first
+//   WAITING_STEP=note   the same, with the footer's note opened in place
+//   WAITING_STEP=arm    the Calls tab, the first call's footer answer tapped
+//                       once: it reads Confirm and nothing is sent
 //   WAITING_STEP=deck   the Calls tab in the deck takeover, on its first call
 const STEP = process.env.WAITING_STEP || 'view';
 const C = 'document.querySelector(\'[data-pane="waiting"] [x-data="waiting()"]\')?._x_dataStack?.[0]';
@@ -43,7 +44,7 @@ export default async function (page) {
   }
   await page.evaluate(() => window.__shell.goWaiting());
   await page.waitForFunction(`(() => { const x = ${C}; return x && !x.loadingCalls && !x.loadingPending && x.pending; })()`, null, { timeout: 90000 });
-  if (!['view', 'decision', 'arm', 'deck'].includes(STEP)) {
+  if (!['view', 'decision', 'note', 'arm', 'deck'].includes(STEP)) {
     await page.locator(`[data-waiting-tab="${STEP === 'edit' || STEP === 'full' ? 'edit' : 'tighten'}"]`).click();
     await page.waitForTimeout(400);
   }
@@ -53,8 +54,9 @@ export default async function (page) {
     await page.evaluate(() => { const s = document.querySelector('[data-waiting-strip]'); s.scrollTo({ left: s.clientWidth * 2, behavior: 'instant' }); });
   }
   if (STEP === 'pick') await page.locator('[data-waiting-file]').nth(4).click();
-  if (STEP === 'decision') await page.locator('[data-waiting-call][data-kind="decision"]').first().click();
-  if (STEP === 'arm') await page.locator('[data-waiting-quick]').first().click();
+  if (STEP === 'decision' || STEP === 'note') await page.locator('[data-waiting-call][data-kind="decision"]').first().click();
+  if (STEP === 'note') await page.locator('[data-waiting-foot] [data-waiting-note]').click();
+  if (STEP === 'arm') await page.locator('[data-waiting-foot] [data-waiting-answer-btn]').first().click();
   if (STEP === 'full' || STEP === 'deck') await page.locator('[data-waiting-full]').click();
   await page.waitForTimeout(1500);
   await page.evaluate(`(() => { const x = ${C}; const s = document.querySelector('[data-waiting-strip]');
@@ -65,8 +67,8 @@ export default async function (page) {
       headName: !!document.querySelector('[data-waiting-name]'), head: Math.round(document.querySelector('[data-waiting-head]')?.getBoundingClientRect().height || 0), card: s ? Math.round(s.scrollLeft / (s.clientWidth || 1)) : null,
       listOn: on ? on.dataset.key : null, rowInList: !!(ob && lb && ob.top >= lb.top - 1 && ob.bottom <= lb.bottom + 1),
       diffs: document.querySelectorAll('[data-waiting-diff] .md-diff-ins, [data-waiting-diff] .md-diff-del').length,
-      quick: [...document.querySelectorAll('[data-waiting-quick]')].map((b) => b.textContent.trim()).slice(0, 4), armed: x.armed,
-      options: [...document.querySelectorAll('[data-slide] [data-waiting-option]')].map((b) => b.dataset.option).slice(0, 6),
+      answers: [...document.querySelectorAll('[data-waiting-foot] [data-waiting-answer-btn]')].map((b) => b.textContent.trim()), armed: x.armed,
+      status: (document.querySelector('[data-waiting-head] [data-waiting-status]')?.textContent || '').replace(/\s+/g, ' ').trim(),
       groups: x.groupsOf(x.tab === 'calls' ? 'edit' : x.tab).map((g) => g.repo + ' ' + g.staged + '/' + g.files.length), badge: window.__shell.waitingCount,
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth })); })()`);
 }

@@ -1,7 +1,8 @@
 // The Waiting view (lib/alpineComponents/waiting.js) answering a call where
-// it is read: a merge call's row button and card, and a decision's options,
-// mounted against stub user calls and a stub of the call page's helpers, so
-// what would be written to the answers file and commented on a PR is seen.
+// it is read: the detail container's header (status read from GitHub), body
+// (what the answer rests on) and footer (the answers), and the same cards in
+// the deck takeover, mounted against stub user calls, a stub GitHub and a stub
+// of the call page's helpers, so what would be written and read is seen.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +16,7 @@ const CALLS = [
     materials: [{ kind: 'pr', ref: 'acme/widget#7', label: 'The PR' }, { kind: 'file', ref: 'acme/widget@b:app.html' },
                 { kind: 'file', ref: 'acme/widget@main:docs/why.md', label: 'Why' }],
     _repo: 'me/store', _ref: 'main', _path: 'user-calls/s1-merge-7.json', answers: [], open: true },
-  { id: 's1-close-two', kind: 'decision', session: 'bbbb2222', question: 'Close two PRs?', brief: 'b', options: ['Close all', 'Keep some'],
+  { id: 's1-close-two', kind: 'decision', session: 'bbbb2222', question: 'Close two PRs?', brief: 'b', options: ['Keep some', 'Close all'],
     recommend: 'Close all', why: 'w', created: '2026-10-06T05:00:00Z',
     materials: [{ kind: 'pr', ref: 'acme/widget#1' }, { kind: 'pr', ref: 'acme/widget#2' }, { kind: 'pr', ref: 'acme/widget#3' }],
     _repo: 'me/store', _ref: 'main', _path: 'user-calls/s1-close-two.json', answers: [], open: true },
@@ -29,10 +30,13 @@ window.CSS = globalThis.CSS = { escape: (x) => String(x).replace(/["\\]/g, '\\$&
 window.__shell = { waitingCount: 2 };
 // The store's short-id index: a row is [short, at, ask, claude.ai session id].
 const MENU = { recent: [['aaaa1111', '2026-10-06T06:00:00Z', 'ask', 'session_01AAA']], branches: {} };
-// GitHub as the since-filed line reads it: the call's PR moved after the call
-// (one commit and one comment after it, one of each before), and the decision's
-// two PRs, one since closed.
+// GitHub as the header and the since-filed counts read it. The call's PR is a
+// clean draft with passing checks, and moved after the call (one commit and
+// one comment after it, one of each before); of the decision's three PRs one
+// is open, one closed after the call, and one merged before it.
 const READS = {
+  'pulls/7': { state: 'open', draft: true, mergeable_state: 'draft', head: { sha: 'abc' }, changed_files: 1, additions: 1, deletions: 1 },
+  'commits/abc/check-runs': { check_runs: [{ status: 'completed', conclusion: 'success' }] },
   'pulls/7/commits?per_page=100': [{ commit: { committer: { date: '2026-10-06T05:00:00Z' } } }, { commit: { committer: { date: '2026-10-06T07:00:00Z' } } }],
   'pulls/7/reviews?per_page=100': [],
   'pulls/1': { state: 'open' }, 'pulls/2': { state: 'closed', merged_at: null, closed_at: '2026-10-06T09:00:00Z' },
@@ -56,7 +60,6 @@ window.UserCalls = { STORE: 'me/store', list: async () => CALLS, pendingEdits: a
                      href: (c) => 'page#' + c.id, sessionHref: () => '', fileKey: (f) => String(f || ''), dictateHref: () => '#' };
 window.UserCallForm = {
   prOf: (ref) => { const m = String(ref || '').match(/^([^/]+\/[^#]+)#(\d+)$/); return m ? { slug: m[1], n: m[2] } : null; },
-  prFacts: async () => ({ state: 'open', ci: 'passing', mergeable: 'clean', files: 1, add: 1, del: 1 }),
   postAnswer: async (a) => { posted.push(a); return a.entry; },
   linkOf: (l) => ({ href: l.ref, label: l.label || l.ref, icon: 'ph-link' }),
 };
@@ -70,33 +73,33 @@ const q = (sel) => el.querySelector(sel);
 // x-show hides on the next animation frame, so a fixed pause is a race on a
 // slow runner; wait for the state itself, up to a second.
 const until = async (ok) => { for (let i = 0; i < 50 && !ok(); i++) await tick(20); return ok(); };
+const head = () => q('[data-waiting-head]');
+const foot = () => q('[data-waiting-foot]');
+const answerBtn = (o) => foot().querySelector('[data-waiting-answer-btn][data-option="' + o + '"]');
 
-test('the head row opens the filing session by the Claude mark, and a call answered here has no other way out', async () => {
+test('the header carries the PR, its checks and mergeability as read, the session mark, and no other way out', async () => {
   data.picked.calls = 's1-merge-7';
-  await until(() => q('[data-waiting-agent]')?.getAttribute('href'));
-  const mark = q('[data-waiting-agent]');
-  assert.equal(mark.getAttribute('href'), 'https://claude.ai/code/session_01AAA');
-  assert.ok(mark.querySelector('svg'), 'the mark is drawn');
-  await until(() => [...el.querySelectorAll('[data-waiting-open]')].every(a => a.style.display === 'none'));
-  assert.ok([...el.querySelectorAll('[data-waiting-open]')].every(a => a.style.display === 'none'),
-    'no link to the call page: the card and the deck carry it');
+  await until(() => head().querySelector('[data-waiting-ci] i')?.className.includes('ph-check-circle'));
+  assert.equal(head().querySelector('[data-waiting-pr]').textContent.trim(), '#7');
+  assert.match(head().querySelector('[data-waiting-ci] i').className, /ph-check-circle/, 'CI passing on the head commit');
+  assert.match(head().querySelector('[data-waiting-mergeable] i').className, /ph-pencil-simple-line/, 'a draft says so');
+  assert.equal(q('[data-waiting-agent]').getAttribute('href'), 'https://claude.ai/code/session_01AAA');
+  assert.ok(![...head().querySelectorAll('[data-waiting-open]')].length, 'no link out to the call page');
   data.picked.calls = 's1-close-two';
   await until(() => q('[data-waiting-agent]').style.display === 'none');
   assert.equal(q('[data-waiting-agent]').style.display, 'none', 'a session the index does not name gets no mark');
   data.picked.calls = 's1-merge-7'; await tick();
 });
 
-test('a merge row asks twice: the first tap reads Confirm and sends nothing', async () => {
-  const b = q('[data-waiting-quick][data-id="s1-merge-7"]');
-  assert.ok(b, 'the merge row carries its answer');
-  assert.match(b.textContent, /Merge/);
-  b.click(); await tick();
-  assert.match(b.textContent, /Confirm/);
+test('the footer\'s answer asks twice: the first tap reads Confirm and sends nothing', async () => {
+  await until(() => answerBtn('Merge'));
+  answerBtn('Merge').click(); await tick();
+  assert.match(answerBtn('Merge').textContent, /Confirm/);
   assert.equal(posted.length, 0, 'one tap sends nothing');
 });
 
 test('the second tap writes Merge beside the call and comments it on the PR', async () => {
-  q('[data-waiting-quick][data-id="s1-merge-7"]').click(); await tick(60);
+  answerBtn('Merge').click(); await tick(60);
   assert.equal(posted.length, 1);
   const a = posted[0];
   assert.equal(a.path, 'user-calls/s1-merge-7.answers.jsonl');
@@ -108,13 +111,13 @@ test('the second tap writes Merge beside the call and comments it on the PR', as
   assert.equal(window.__shell.waitingCount, 1);
 });
 
-test('a merge card shows the PR, what ships, what stays loose and the effect, and no material twice', async () => {
+test('a merge card\'s body holds what ships, what stays loose and the effect, and no material twice', async () => {
   const c = CALLS[0];
   c.open = true; c.answers = [];   // read it as it stood
   data.showAnswered = true; data.picked.calls = c.id; data.markNear(); await tick(60);
   const card = el.querySelector('[data-waiting-detail-call][data-id="s1-merge-7"]');
   assert.ok(card, 'the card mounted');
-  assert.match(card.querySelector('[data-waiting-pr]').textContent, /open · CI passing · merges cleanly · 1 file · \+1 −1/);
+  assert.equal(card.querySelector('[data-waiting-pr]'), null, 'the PR is in the header, not the body');
   assert.match(card.querySelector('[data-waiting-shipped]').textContent, /Spend list[\s\S]*omitted a table[\s\S]*lists it/);
   assert.match(card.querySelector('[data-waiting-loose]').textContent, /one preset/);
   assert.match(card.querySelector('[data-waiting-effect]').textContent, /names its table/);
@@ -122,14 +125,17 @@ test('a merge card shows the PR, what ships, what stays loose and the effect, an
   assert.deepEqual(mats, ['Why'], 'the PR is the chip and the proof sits on its line');
 });
 
-test('a decision is answered on its card: an option, a note, Send', async () => {
-  data.picked.calls = 's1-close-two'; data.markNear(); await tick(60);
-  const card = el.querySelector('[data-waiting-detail-call][data-id="s1-close-two"]');
-  const opts = [...card.querySelectorAll('[data-waiting-option]')].map(b => b.dataset.option);
-  assert.deepEqual(opts, ['Close all', 'Keep some']);
-  card.querySelector('[data-waiting-option][data-option="Keep some"]').click(); await tick();
+test('a decision is answered from the footer: the recommended option first, a note opened in place, two taps', async () => {
+  data.picked.calls = 's1-close-two'; await tick(40);
+  await until(() => answerBtn('Close all'));
+  const opts = [...foot().querySelectorAll('[data-waiting-answer-btn]')].map(b => b.dataset.option);
+  assert.deepEqual(opts, ['Close all', 'Keep some'], 'the recommendation leads');
+  foot().querySelector('[data-waiting-note]').click();
+  await until(() => foot().querySelector('[data-waiting-note-field] input'));
+  assert.ok(foot().querySelector('[data-waiting-note-field] input'), 'the note opens in the footer, not a modal');
   data.notes['s1-close-two'] = 'keep #401';
-  card.querySelector('[data-waiting-send]').click(); await tick(60);
+  answerBtn('Keep some').click(); await tick();
+  answerBtn('Keep some').click(); await tick(60);
   const a = posted.at(-1);
   assert.equal(a.entry.answer, 'Keep some');
   assert.equal(a.entry.note, 'keep #401');
@@ -137,28 +143,32 @@ test('a decision is answered on its card: an option, a note, Send', async () => 
   assert.equal(a.path, 'user-calls/s1-close-two.answers.jsonl');
 });
 
-test('a card says what moved since its call was filed, and the arrows read it again past the cache', async () => {
+test('what moved since filing is counted in the header, and the refresh reads everything again past the cache', async () => {
   const merge = CALLS[0];
-  await until(() => data.since['s1-merge-7'] && !data.since['s1-merge-7'].busy);
+  await until(() => data.since['s1-merge-7']?.at && !data.since['s1-merge-7'].busy);
+  assert.equal(data.movedCount(merge), 3, 'a commit and a comment after the call, and one named file changed');
   assert.match(data.sinceLine(merge), /Since it was filed .*: 1 commit, 1 comment on widget #7; 1 of 2 files changed\./);
-  await until(() => data.since['s1-close-two'] && !data.since['s1-close-two'].busy);
+  await until(() => data.since['s1-close-two']?.at);
   assert.match(data.sinceLine(CALLS[1]), /: 1 of its 3 PRs was closed or merged\. 1 of its 3 PRs is still open\./,
     'a PR merged before the call is not news');
+  assert.equal(data.prsLine(CALLS[1]), '1/3 open');
   asked.length = 0;
   await data.refreshCall(merge);
-  assert.ok(asked.length && asked.every(([, , cache]) => cache === 'no-store'), 'a refresh is not served from the cache');
+  assert.ok(asked.some(([, p]) => p === 'pulls/7') && asked.some(([, p]) => p.endsWith('/check-runs')), 'the PR and its checks are read again');
+  assert.ok(asked.every(([, , cache]) => cache === 'no-store'), 'a refresh is not served from the cache');
 });
 
-test('the expander opens the deck takeover on the row in view, with its answer at the head of the card', async () => {
+test('the expander opens the deck takeover on the row in view, the status at the head of each card and the answers at its foot', async () => {
   data.showAnswered = false;
   const open = data.openCalls;
-  data.picked.calls = open[open.length - 1].id; await tick();
+  data.picked.calls = open[0].id; await tick();
   q('[data-waiting-full]').click();
   await until(() => data._deck);
   assert.ok(data._deck, 'the deck opened');
-  const cards = () => [...window.document.querySelectorAll('[data-waiting-detail-call]')].filter(c => !el.contains(c));
-  await until(() => cards().length);
-  assert.ok(cards().length, 'the card is drawn in the deck, outside the view');
+  const outside = (sel) => [...window.document.querySelectorAll(sel)].filter(x => !el.contains(x));
+  await until(() => outside('[data-waiting-detail-call]').length);
+  assert.ok(outside('[data-waiting-detail-call]').length, 'the card is drawn in the deck, outside the view');
+  assert.ok(outside('[data-waiting-answer-btn]').length, 'the answers ride at the foot of the card');
   data._deck.close(); await until(() => !data._deck);
   assert.equal(data._deck, null);
 });
