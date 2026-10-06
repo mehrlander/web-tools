@@ -187,10 +187,9 @@
   // The allowlist that decides what a visit may store (window.VisitLog).
   await gh.load('kits/visit-log.js');
   await gh.load('kits/file-correspondence.js');
-  // The installation ledger's derivation and its one write, behind the
-  // project view's Installation pill.
-  await gh.load('kits/installation.js');
-  // The state icons the Overview shares with the shortcut views.
+  // The PowerShell outpost's state derivation and its one write, behind its view.
+  await gh.load('kits/powershell-outpost.js');
+  // The state icons the PowerShell outpost view shares with the shortcut views.
   await gh.load('kits/sync-status.js');
   await gh.load('kits/powershell-workspace.js');
   await gh.load('kits/powershell-language.js');
@@ -1528,8 +1527,14 @@ html.dk-dragging main{transition:none !important}
                  folder board keeps its icon (a file board has its own pill).
                  These were three outlined buttons until 2026-09-24. -->
             <div class="flex items-center gap-3 mb-4 min-w-0">
-              <span class="shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
-                <i class="ph-duotone ph-kanban text-2xl"></i></span>
+              <!-- The project mark is the switcher: the repo's other projects,
+                   in the shared anchored menu (menuKind 'projects'). -->
+              <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'projects', { align: 'left' })"
+                      class="relative shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
+                      :aria-expanded="!!repoMenuAt && menuKind === 'projects'" aria-haspopup="menu"
+                      :title="'Projects in ' + $store.browser.repo" :aria-label="'Projects in ' + $store.browser.repo" data-project-switch>
+                <i class="ph-duotone ph-kanban text-2xl"></i>
+                <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i></button>
               <div class="min-w-0">
                 <button @click="goLanding()" class="block max-w-full truncate font-mono text-sm text-base-content/50 hover:text-primary transition-colors"
                         :title="$store.browser.repo" x-text="$store.browser.repo"></button>
@@ -1558,9 +1563,7 @@ html.dk-dragging main{transition:none !important}
                  presumed to hold markdown; its count fills in after the first
                  visit rather than costing a tree fetch up front. -->
             <!-- max-w-full + overflow-x-auto: a clipped pill is an unreachable
-                 tab. Installation left the row on 2026-09-14 and became the
-                 Overview for a workspace that declares one (see below), so the
-                 row is back to four. -->
+                 tab. -->
             <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
               <button role="tab" @click="goProjectTab('overview')"
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
@@ -1611,16 +1614,12 @@ html.dk-dragging main{transition:none !important}
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
               <!-- OVERVIEW IS WHATEVER THE WORKSPACE DECLARES AS ITS FRONT, in
-                   three cases: a `landing` page (the iframe above), else an
-                   `installation` manifest (the block at the bottom of this
-                   pane), else the README, the same promise a repo's default
-                   landing makes one level up. The installation view had its own
-                   pill named Installation until 2026-09-14; the name described
-                   the manifest it reads rather than what the workspace is for,
-                   and a workspace whose front page is that view should open on
-                   it rather than on a README a reader must leave to find. The
-                   README is not lost: the header's GitHub icon peeks it. -->
-              <div x-show="projectTab==='overview' && !project.installation">
+                   three cases: a `landing` page (the iframe above), else a
+                   `powershellOutpost` manifest (the PowerShell outpost view at
+                   the bottom of this pane), else the README, the same promise a repo's default
+                   landing makes one level up. The README is not lost: the
+                   header's GitHub icon peeks it. -->
+              <div x-show="projectTab==='overview' && !project.powershellOutpost">
                 <div x-show="projectLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
@@ -1814,16 +1813,17 @@ html.dk-dragging main{transition:none !important}
                 </p>
               </div>
 
-              <!-- The Overview of a workspace that declares an installation
-                   manifest: its PowerShell material against a work installation
-                   with no Git checkout (lib/alpineComponents/installation-view.js).
+              <!-- The PowerShell outpost view, for a workspace that declares a
+                   `powershellOutpost` manifest: its PowerShell material against
+                   the work computer, which has no Git checkout
+                   (lib/alpineComponents/powershell-outpost-view.js).
                    Mounted per project through a keyed one-row x-for, so switching
                    workspaces or leaving the tab remounts it with the right
                    manifest rather than repainting a component that read the
                    previous one at init. -->
-              <div x-show="projectTab==='overview' && project.installation">
-                <template x-for="p in (projectTab==='overview' && project.installation ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
-                  <div x-data="installationView(p)"></div>
+              <div x-show="projectTab==='overview' && project.powershellOutpost">
+                <template x-for="p in (projectTab==='overview' && project.powershellOutpost ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
+                  <div x-data="powershellOutpostView(p)"></div>
                 </template>
               </div>
 
@@ -4428,15 +4428,16 @@ function app(){ return {
       // worth saying out loud.
       const inbox = (typeof o.inbox === 'string' && o.inbox && window.RepoAddress)
         ? window.RepoAddress.parseBox(o.inbox, repo) : null;
-      // `installation` is the repo field one level down that opens the project
-      // view's Installation pill: a repo-root-relative installation.json
+      // `powershellOutpost` is the repo field one level down that opens the
+      // PowerShell outpost view in the project's Overview tab: a
+      // repo-root-relative outpost.json
       // (correspondence rules and locally known areas) beside an observations
-      // ledger the pill appends to. Declared, never derived, for the inbox's
-      // reason: the pill WRITES to the ledger the manifest names, and a
+      // ledger the view appends to. Declared, never derived, for the inbox's
+      // reason: the view WRITES to the ledger the manifest names, and a
       // guessed path would be a write target nothing reads.
-      const installation = (typeof o.installation === 'string' && o.installation)
-        ? o.installation.replace(/^\/+/, '').replace(/\/+$/, '') : '';
-      out.push({ path, label: o.label || path.split('/').pop(), board, landing, inbox, installation });
+      const powershellOutpost = (typeof o.powershellOutpost === 'string' && o.powershellOutpost)
+        ? o.powershellOutpost.replace(/^\/+/, '').replace(/\/+$/, '') : '';
+      out.push({ path, label: o.label || path.split('/').pop(), board, landing, inbox, powershellOutpost });
     }
     return out;
   },
@@ -4468,7 +4469,7 @@ function app(){ return {
   // sidebar repaint the pane.
   projectPath: '',
   projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'files'
-  installationItem: '',     // the Installation pill's selected file (repo path), stamped as &item=
+  powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
   projectHtml: '',
   projectLoading: false,
   _projectKey: '',
@@ -4496,24 +4497,17 @@ function app(){ return {
     // safe guess at all. One shape either way, so a consumer need not test for
     // the key's presence.
     return found || { path: this.projectPath, label: this.projectPath.split('/').pop(),
-                      board: this.projectPath + '/tracker/board.md', landing: '', inbox: null, installation: '' };
+                      board: this.projectPath + '/tracker/board.md', landing: '', inbox: null, powershellOutpost: '' };
   },
   goProject(path, tab, item){
     const p = String(path || '').replace(/\/+$/, '');
     if (!p) return;
-    if (p !== this.projectPath) { this.projectDocsQ = ''; this.installationItem = ''; }
+    if (p !== this.projectPath) { this.projectDocsQ = ''; this.powershellOutpostItem = ''; }
     this.projectPath = p;
-    // `installation` was a pill of its own until 2026-09-14, when the view
-    // became the Overview of a workspace that declares one. The spelling is
-    // deliberately still accepted and falls through to 'overview', so a link
-    // minted before the change lands where it always did rather than on a tab
-    // that no longer exists.
-    // `tab=code` named the PowerShell Code workspace until 2026-09-24; its
-    // one-file view is now the Overview's file deck, so an old link lands there.
     this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'files') ? tab : 'overview';
     // A deep link into that view may name the file it is about; the component
     // reads it at mount and stamps it back as it moves.
-    if (typeof item === 'string' && item) this.installationItem = item;
+    if (typeof item === 'string' && item) this.powershellOutpostItem = item;
     this.view = 'project';
     this.syncUrl();
     this.refreshProjectPane();
@@ -4532,11 +4526,11 @@ function app(){ return {
     if (this.projectTab === 'docs') this.loadProjectDocs();
     else if (this.projectTab === 'board') this.loadProjectBoard();
     // The README is the Overview only for a workspace declaring neither a
-    // landing nor an installation manifest, and it is fetched only then: an
+    // landing nor a PowerShell outpost manifest, and it is fetched only then: an
     // Overview must not read a README it will not render. The GitHub icon's
     // peek wants the README on every project, but it is lazy by design and
     // fetches on the first hover, so nothing here has to front-load it.
-    else if (this.projectTab === 'overview' && !this.project?.landing && !this.project?.installation) this.loadProjectReadme();
+    else if (this.projectTab === 'overview' && !this.project?.landing && !this.project?.powershellOutpost) this.loadProjectReadme();
   },
   // The landing rendered live through toss-render #gh=, the same private-safe
   // path a repo's custom landing takes, but following the browsed ref the way
@@ -5191,6 +5185,7 @@ function app(){ return {
   // estate CARDS still carry the old cluster, where there is room for it.
   get repoMenuItems(){
     if (this.menuKind === 'github') return this.githubMenuItems;
+    if (this.menuKind === 'projects') return this.projectMenuItems;
     if (this.menuKind !== 'repo') return [...this.menuExtra, ...this.repoActionItems];
     // THE REPO, TWICE, then where it goes on GitHub, as one FLAT list. The two
     // named rows carry the same name under two marks, this app's and GitHub's,
@@ -5225,6 +5220,20 @@ function app(){ return {
                   title: repo + ' on GitHub' },
       ...ghRest,
     ].filter(Boolean);
+  },
+  // The Project view's switcher, opened from the project mark: the repo's own
+  // front as the head row, then every project its manifest declares, the open
+  // one marked. A project opens on the tab in view when every project has it
+  // (Overview, Docs, Files), else on its Overview.
+  get projectMenuItems(){
+    const repo = this.menuRepo;
+    const tab = ['overview', 'docs', 'files'].includes(this.projectTab) ? this.projectTab : 'overview';
+    return [
+      { key: 'open', head: true, label: repo.split('/')[1] || repo, mark: 'app', title: 'Open ' + repo + ' here' },
+      ...this.repoProjects(repo).map(p => ({ key: 'project:' + p.path, label: p.label, title: p.path,
+        icon: p.path === this.projectPath ? 'ph-check' : 'ph-kanban', current: p.path === this.projectPath,
+        run: () => this.goProject(p.path, tab) })),
+    ];
   },
   // Rows the CALLER contributed for this opening, ahead of the standard ones.
   // A menu about a repo is opened from somewhere, and that somewhere sometimes
@@ -5547,7 +5556,7 @@ function app(){ return {
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
-        if (this.projectTab === 'overview' && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
+        if (this.projectTab === 'overview' && this.project?.powershellOutpost && this.powershellOutpostItem) p.set('item', this.powershellOutpostItem);
       } },
     // Repos was addressed ?view=estate until 2026-10-02; the alias keeps old
     // links landing.
@@ -6802,15 +6811,15 @@ function app(){ return {
   correspondenceFileError: '',
   searchOpenFile: null,
   get selectedCorrespondence(){
-    // The installation view's selected file takes a page-wide paste or drop
-    // the way an open Files result does: the view names the file, so a work
-    // copy dropped anywhere on the page compares against it. That view is the
-    // Overview of a workspace declaring a manifest, which is why this reads the
-    // declaration rather than a tab named for it.
-    if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
-      if (!this.installationItem) return null;
+    // The PowerShell outpost view's selected file takes a page-wide paste or drop the way
+    // an open Files result does: the view names the file, so a work copy
+    // dropped anywhere on the page compares against it. That view fills the
+    // Overview tab of a workspace declaring a PowerShell outpost manifest, which is why
+    // this reads the declaration rather than the tab.
+    if (this.view === 'project' && this.projectTab === 'overview' && this.project?.powershellOutpost) {
+      if (!this.powershellOutpostItem) return null;
       const store = Alpine.store('browser');
-      const file = { repo: store.repo, path: this.installationItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };
+      const file = { repo: store.repo, path: this.powershellOutpostItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };
       return window.FileCorrespondence?.applies?.(file) ? file : null;
     }
     if (this.view !== 'search') return null;
@@ -6829,7 +6838,7 @@ function app(){ return {
     return { repo, ref: seed?.ref || (store.repo === repo ? store.ref || '' : '') };
   },
   // Capture at the gesture, before a clipboard/file read can change the view.
-  // The workspace owns its live selection and pinned source; installationItem
+  // The workspace owns its live selection and pinned source; powershellOutpostItem
   // may still name a previous file while the Code explorer shows All files.
   captureCorrespondence(){
     return { selected: this.selectedCorrespondence, ...this.correspondenceContext() };
@@ -6862,11 +6871,11 @@ function app(){ return {
   },
   async openCorrespondence(target, text, name, source, intake = null){
     try {
-      // The installation Overview compares a copy in memory and shows it in
+      // The PowerShell outpost view compares a copy in memory and shows it in
       // its own Changes view; nothing is saved to the browser and the Stage
       // does not open. Every other surface keeps the stored check below.
-      if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
-        const host = document.querySelector('[x-data^="installationView"]');
+      if (this.view === 'project' && this.projectTab === 'overview' && this.project?.powershellOutpost) {
+        const host = document.querySelector('[x-data^="powershellOutpostView"]');
         const view = host && Alpine.$data?.(host);
         if (view?.takeCopy && await view.takeCopy(target, text, name, source)) return;
       }
@@ -6886,7 +6895,7 @@ function app(){ return {
       : '';
     Alpine.store('toast')('warning', 'Compare: ' + detail + (e?.message || e), 'alert-error', 8000);
   },
-  // A check landed in this browser: the Installation pill listens, since it
+  // A check landed in this browser: the PowerShell outpost view listens, since it
   // shows the checks beside the durable ledger and offers to promote one.
   announceCheck(result){
     try { window.dispatchEvent(new CustomEvent('correspondence-check', { detail: result?.record || null })); } catch {}

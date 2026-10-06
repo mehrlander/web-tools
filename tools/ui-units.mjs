@@ -101,14 +101,14 @@ const title = (k) => k.charAt(0).toUpperCase() + k.slice(1);
 // One tab, several screens. The Project view's Overview draws one of three
 // arrangements, chosen by the workspace's .web-tools.json entry rather than by
 // any control a reader touches: a declared `landing` page in a frame, else the
-// installation view where an `installation` manifest is declared, else the
-// README (the three x-show conditions on projectTab==='overview' in
+// PowerShell outpost view where a `powershellOutpost` manifest is declared,
+// else the README (the three x-show conditions on projectTab==='overview' in
 // app/index.html). A reader cannot switch between them, so each is a unit of
 // its own; the README and landing renderings draw from the shell.
 const RENDERINGS = {
   'project/overview': [
     { key: 'readme', name: 'README', own: false },
-    { key: 'installation', name: 'installation', own: true },
+    { key: 'powershell-outpost', name: 'PowerShell outpost', own: true },
     { key: 'landing', name: 'landing page', own: false },
   ],
 };
