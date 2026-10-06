@@ -236,9 +236,10 @@ With a token, the app keeps a **derived** cache of the account's repo configs
 in the registry repo, built by `lib/kits/repo-config-cache.js`. `refreshConfigCache`
 enumerates the account's repos (`gh.repos()`) and folds each one's
 `.web-tools.json` into `web-tools-private/state/configs.json`, appending a
-bounded on-change version history per repo. A per-browser throttle
-(`localStorage`, default 6h) keeps the crawl occasional, forced after a config
-save; a material-change check keeps commits sparse.
+bounded on-change version history per repo. A repo not pushed since this
+browser last read its config is skipped (a `pushed_at` mark in `localStorage`),
+so a pass over a quiet account reads no repo's config; a config save forces a
+full pass, and a material-change check keeps commits sparse.
 
 This cache is the **read path** for estate membership, so
 a normal load is two GETs (the cache + the account list), not an N-repo scan; a

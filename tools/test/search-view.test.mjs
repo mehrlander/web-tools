@@ -75,7 +75,7 @@ const shell = {
   estateRepos: [{ repo: 'me/tools' }, { repo: 'me/home' }],
   searchSeed: { q: 'seeded', mode: 'contents' },   // consumed by init, below
   _synced: 0,
-  syncUrl() { shell._synced++; },
+  syncUrl() { shell._synced++; shell._lastReplaced = !!shell._restoring; },
   _browsed: [],
   async ensureBrowser(repo, ref) { shell._browsed.push([repo, ref]); },
   _opened: [],
@@ -335,14 +335,18 @@ test('the open file rides the address, and the route out to the Files view still
   assert.equal(shell.searchSeed.file, '');
 });
 
-test('a session hit dispatches web-tools:open-session', async () => {
+test('a session hit selects the local reader and retains the submitted query', async () => {
   ANSWER = { hits: [{ id: 'aaaa1111', day: '2026-08-02', ask: 'the ask', frag: 'the frag' }], total: 1 };
   data.mode = 'sessions'; data.q = 'ask';
   await data.run();
   const seen = [];
   window.document.addEventListener('web-tools:open-session', e => seen.push(e.detail));
+  data.q = 'a different, unsubmitted query';
   data.openHit(data.hits[0]);
-  assert.deepEqual(j(seen), [{ id: 'aaaa1111', day: '2026-08-02' }]);
+  assert.deepEqual(j(seen), [], 'inspection stays in Search');
+  assert.equal(data.sessionId, 'aaaa1111');
+  assert.equal(shell.searchSeed.q, 'ask');
+  assert.equal(shell.searchSeed.sessionId, 'aaaa1111');
 });
 
 // ── The chats lane ──────────────────────────────────────────────────────────
@@ -362,7 +366,7 @@ test('sessions mode loads the index kit, and says so when no shard answered', as
   ANSWER = { hits: [], total: 0, indexed: 0, months: 3 };
   await data.run();
   assert.match(data.error, /No search index/);
-  assert.match(data.error, /session rows only/);
+  assert.match(data.error, /Session rows only/);
 });
 
 test('chats mode loads its kit once, searches the archive, and reports progress', async () => {
@@ -638,4 +642,220 @@ test('a deck of one folder lists bare filenames', async () => {
   assert.equal(DECK.o.title, 'a.js');
   assert.equal(DECK.o.subtitle, 'tools@dev · lib', 'the header still says where');
   DECK.o.onClose();
+});
+
+// Session reader lifecycle, independently of swipeDeck's geometry. Its two
+// tracks share a selected record while history owns dismissal, so the mock
+// distinguishes a neutral drop from close() navigating Back.
+const SESSION_ROWS = [
+  { id: 'aaaa1111', day: '2026-10-01', title: 'First discussion', onDiscussion: true },
+  { id: 'bbbb2222', day: '2026-10-02', title: 'Second discussion', onDiscussion: true },
+  { id: 'cccc3333', day: '2026-10-03', title: 'Title only', onRow: true },
+];
+let INLINE, EXPANDED;
+function readerDecks() {
+  shell.view = 'search';
+  const core = (count, render, options) => ({
+    count, render, options, track: window.document.createElement('div'), moves: [], drops: [], listeners: [],
+    go(i) { this.moves.push(i); },
+    drop(i) { this.drops.push(i); },
+    onSlide(fn) { this.listeners.push(fn); },
+    slide(i) { this.listeners.forEach(fn => fn(i)); },
+  });
+  window.swipeDeck = {
+    core: (...args) => INLINE = core(...args),
+    open: options => EXPANDED = {
+      options, deck: core(options.count, options.render, options), closed: 0, dropped: 0,
+      close() { this.closed++; },
+      drop() { this.dropped++; options.onClose?.(); },
+      setTitle(title) { this.title = title; },
+    },
+  };
+}
+async function sessionAnswer(extra = {}) {
+  data.clear(); readerDecks();
+  ANSWER = { hits: SESSION_ROWS, total: 3, ...extra };
+  data.mode = 'sessions'; data.q = 'captured'; data.sessionIds = null; data.sessionScope = null;
+  await data.run();
+}
+
+test('an immediately cached first search waits for reader refs to mount', async () => {
+  readerDecks();
+  ANSWER = { hits: SESSION_ROWS, total: 3 };
+  shell.searchSeed = { q: 'captured', mode: 'sessions', sessionId: 'bbbb2222' };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'searchView()');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(); await tick();
+  const fresh = Alpine.$data(el);
+  assert.equal(fresh.sessionId, 'bbbb2222');
+  assert.equal(fresh.hits.length, 3);
+  assert.equal(shell._lastReplaced, true, 'automatic first selection completes the existing routed entry');
+  assert.ok(el.querySelector('[x-ref="sessionTrack"]')?.firstElementChild,
+    'a warm Activity index must not leave the new Search reader empty');
+  Alpine.destroyTree(el); el.remove();
+});
+
+test('session list, inline reader and expanded reader keep one selection and executed query', async () => {
+  await sessionAnswer();
+  data.selectSession('bbbb2222');
+  assert.equal(INLINE.moves.at(-1), 1);
+  data.expandSessions();
+  assert.equal(EXPANDED.options.start, 1);
+  data.q = 'draft not submitted';
+  EXPANDED.deck.slide(2);
+  assert.equal(data.sessionId, 'cccc3333');
+  assert.equal(INLINE.moves.at(-1), 2);
+  assert.equal(shell.searchSeed.q, 'captured');
+  assert.equal(shell.searchSeed.sessionId, 'cccc3333');
+  INLINE.slide(0);
+  assert.equal(EXPANDED.deck.moves.at(-1), 0);
+  assert.equal(EXPANDED.title, 'First discussion');
+  assert.equal(data.sessionId, 'aaaa1111');
+});
+
+test('restoring the same Search address leaves an expanded parent reader intact', async () => {
+  await sessionAnswer();
+  data.selectSession('bbbb2222'); data.expandSessions();
+  const track = INLINE, expanded = EXPANDED;
+  const calls = CALLS.filter(c => c[0] === 'sessions').length;
+  window.document.dispatchEvent(new window.CustomEvent('web-tools:search-seed', { detail: j(shell.searchSeed) }));
+  await tick();
+  assert.equal(CALLS.filter(c => c[0] === 'sessions').length, calls,
+    'Back out of a source deck replays the same URL, not a new search');
+  assert.equal(INLINE, track);
+  assert.equal(expanded.closed, 0, 'restoration must not issue another history Back');
+  assert.equal(expanded.dropped, 0);
+  assert.equal(data.sessionId, 'bbbb2222');
+});
+
+test('closing expanded results retains the swiped selection through the older parent address', async () => {
+  await sessionAnswer();
+  const parent = j(shell.searchSeed);
+  data.expandSessions();
+  EXPANDED.deck.slide(2);
+  EXPANDED.options.onClose();
+  window.document.dispatchEvent(new window.CustomEvent('web-tools:search-seed', { detail: parent }));
+  await tick();
+  assert.equal(data.sessionId, 'cccc3333');
+  assert.equal(shell.searchSeed.sessionId, 'cccc3333');
+  assert.equal(INLINE.moves.at(-1), 2);
+});
+
+test('restoring a different executed query still performs a new search', async () => {
+  await sessionAnswer();
+  const before = CALLS.filter(c => c[0] === 'sessions').length;
+  window.document.dispatchEvent(new window.CustomEvent('web-tools:search-seed', { detail: {
+    q: 'earlier query', mode: 'sessions', sessionId: 'bbbb2222',
+  } }));
+  await tick();
+  assert.equal(CALLS.filter(c => c[0] === 'sessions').length, before + 1);
+  assert.equal(data.executedQuery, 'earlier query');
+  assert.equal(shell.searchSeed.q, 'earlier query');
+  assert.equal(data.sessionId, 'bbbb2222');
+});
+
+test('a scoped result set retains membership, curated order and the selected id', async () => {
+  await sessionAnswer();
+  window.document.dispatchEvent(new window.CustomEvent('web-tools:search-seed', { detail: {
+    q: 'captured', mode: 'sessions', sessionId: 'cccc3333',
+    sessionIds: ['cccc3333', 'bbbb2222'], sessionScope: { scope: 'week' },
+  } }));
+  await tick();
+  assert.deepEqual(j(data.sessionHits.map(h => h.id)), ['cccc3333', 'bbbb2222']);
+  assert.equal(data.sessionId, 'cccc3333');
+  assert.equal(INLINE.options.start, 0);
+  assert.deepEqual(j(shell.searchSeed.sessionIds), ['cccc3333', 'bbbb2222']);
+  await data.clearSessionScope();
+  assert.equal(data.sessionHits.length, 3);
+  assert.equal(data.sessionId, 'cccc3333');
+  assert.equal(shell.searchSeed.sessionIds, null);
+});
+
+test('a non-runnable restored seed removes old results and invalidates pending work', async () => {
+  await sessionAnswer();
+  const original = window.EstateSearch.sessions;
+  let finish;
+  window.EstateSearch.sessions = () => new Promise(resolve => { finish = resolve; });
+  try {
+    data.q = 'pending query';
+    const pending = data.run();
+    await tick();
+    window.document.dispatchEvent(new window.CustomEvent('web-tools:search-seed', { detail: {
+      q: '', mode: 'sessions', sessionIds: null,
+    } }));
+    await tick();
+    finish({ indexed: 1, hits: SESSION_ROWS, total: 3 });
+    await pending;
+    assert.equal(data.busy, false);
+    assert.equal(data.hits.length, 0);
+    assert.equal(data.sessionId, '');
+    assert.equal(data.ran, false);
+  } finally { window.EstateSearch.sessions = original; }
+});
+
+test('an empty-query mode change cannot reuse the previous session results', async () => {
+  await sessionAnswer();
+  data.q = '';
+  data.setMode('chats');
+  await tick();
+  assert.equal(data.hits.length, 0);
+  assert.equal(data.sessionId, '');
+  assert.equal(data.ran, false);
+});
+
+test('clearing an expanded result reader tears down without asynchronous Back navigation', async () => {
+  await sessionAnswer();
+  data.expandSessions();
+  const expanded = EXPANDED;
+  data.clear();
+  assert.equal(expanded.closed, 0, 'close() traverses history and could overwrite the cleared route');
+  assert.equal(expanded.dropped, 1);
+  assert.equal(data.hits.length, 0);
+});
+
+test('invalidating results drops their owned source descendants, not an unrelated parent', async () => {
+  await sessionAnswer();
+  const config = [];
+  Alpine.data('sessionBrief', options => { config.push(options); return {}; });
+  const slide = window.document.createElement('div');
+  window.document.body.append(slide);
+  INLINE.render(0, slide);
+  const dropped = [];
+  const unrelated = { drop: () => dropped.push('unrelated') };
+  const source = { drop: () => dropped.push('source'), el: window.document.createElement('div') };
+  const child = { drop: () => dropped.push('child') };
+  window.swipeDeck.stack = [unrelated, source, child];
+  config[0].onOpen(source);
+  data.clear();
+  assert.deepEqual(dropped, ['child', 'source']);
+  const delayed = { drop: () => dropped.push('delayed') };
+  config[0].onOpen(delayed);
+  assert.deepEqual(dropped, ['child', 'source', 'delayed'], 'a late source open cannot revive stale results');
+  Alpine.destroyTree(slide); slide.remove();
+});
+
+test('Activity-only metadata matches belong to their original query and never widen its scope', async () => {
+  data.mode = 'sessions'; data.q = 'joined branch title';
+  data.sessionExtraQuery = data.q;
+  data.sessionExtraIds = ['aaaa1111', 'bbbb2222'];
+  data.sessionIds = ['aaaa1111'];
+  ANSWER = { hits: [
+    { id: 'aaaa1111', day: '2026-10-04', onActivity: true, matchNote: 'Activity details match' },
+    { id: 'bbbb2222', day: '2026-10-04', onActivity: true },
+  ], total: 2 };
+  CALLS = [];
+  await data.run();
+  assert.deepEqual(j(CALLS.find(c => c[0] === 'sessions')[1].includeIds), ['aaaa1111', 'bbbb2222']);
+  assert.deepEqual(j(data.hits.map(h => h.id)), ['aaaa1111']);
+  assert.match(data.sessionRowNote(data.hits[0]), /Activity details match/);
+  data.sessionCounts = { aaaa1111: { occurrences: 0, exchanges: 0 } };
+  assert.match(data.sessionRowNote(data.hits[0]), /Activity details match/);
+  assert.deepEqual(j(shell.searchSeed.sessionExtraIds), ['aaaa1111', 'bbbb2222']);
+  data.q = 'another query';
+  CALLS = [];
+  await data.run();
+  assert.deepEqual(j(CALLS.find(c => c[0] === 'sessions')[1].includeIds), []);
+  assert.deepEqual(j(data.sessionIds), ['aaaa1111'], 'editing text retains the independent Activity scope');
 });
