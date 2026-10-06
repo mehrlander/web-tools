@@ -7,8 +7,9 @@
 // copy of each number and the copy was the half that aged.
 //
 // Both sides of that are gone. The view prints no interval, because there is no
-// schedule to name: nothing here has ever run on a timer, and the intervals were
-// floors with a promise written on them. Each crawl now gates itself per unit of
+// schedule of the source to name: the intervals were floors with a promise
+// written on them. (A timer does exist since 2026-10-05, the freshness rule in
+// shell-freshness.test.mjs, and it is about the reading on screen.) Each crawl now gates itself per unit of
 // work on whether its source moved, which is evidence rather than a guess, and
 // what remains of the clock is one shared debounce nothing renders.
 //
@@ -26,6 +27,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
+import { makeShell } from './shell.mjs';
 
 const shellSrc = readFileSync(path.join(repoRoot, 'app', 'index.html'), 'utf8');
 const viewSrc = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'state-view.js'), 'utf8');
@@ -143,28 +145,46 @@ test('an incomplete fold leaves the store looking moved, which it is', () => {
 
 // ── Arrival ────────────────────────────────────────────────────────────────
 
-test('opening State runs all three crawls', () => {
+// Executed rather than read since 2026-10-05: goState routes through the
+// shell's checkCache, the path the freshness rule uses, so the harness can
+// stage each crawl's answer and watch what the arrival does with it.
+function stateShell() {
+  const h = makeShell();
+  h.shell.hasToken = () => true;
+  h.shell.syncUrl = () => {};
+  h.shell.checkStamp = () => Date.now();
+  const calls = [];
+  h.shell.refreshConfigCache = async (force) => { calls.push(['configs', force]); return { committed: false }; };
+  h.shell.refreshActivityCache = async (force, o) => { calls.push(['activity', force, o?.deep]); return { doc: { repos: {} }, sha: 'a1' }; };
+  h.shell.refreshSessionsCache = async (force) => { calls.push(['sessions', force]); return { doc: { rows: [] }, sha: 's1' }; };
+  h.shell.confirmCache = async () => {};
+  return { ...h, calls };
+}
+const drain = async () => { for (let i = 0; i < 20; i++) await new Promise(r => setImmediate(r)); };
+
+test('opening State runs all three crawls', async () => {
   // It used to run none, on the argument that a view whose subject is age must
   // not answer its own question before you read it. That held while a crawl
   // cost a full pass; with the gates inside, a look that finds nothing costs
   // about one call each, and the view someone opens BECAUSE they suspect a lag
-  // should not be the one view that declines to fix it.
-  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
-                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
-  assert.match(go, /this\.refreshConfigCache\?\.\(\)/);
-  assert.match(go, /this\.refreshActivityCache\?\.\(false, \{ deep: false \}\)/);
-  assert.match(go, /this\.refreshSessionsCache\?\.\(\)/);
+  // should not be the one view that declines to fix it. Unlike the freshness
+  // rule, it checks all three whatever their age: arriving here is asking.
+  const h = stateShell();
+  h.shell.goState('sessions');
+  await drain();
+  assert.deepEqual(h.calls.map(c => c[0]).sort(), ['activity', 'configs', 'sessions']);
 });
 
-test('the arrival passes are unforced, or the gates would never fire', () => {
+test('the arrival passes are unforced, or the gates would never fire', async () => {
   // A forced pass skips every gate by design. Arriving with force would make
   // every visit a full estate crawl, which is the cost the gates exist to
-  // avoid and the reason arriving is affordable at all.
-  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
-                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
-  assert.doesNotMatch(go, /refreshConfigCache\?\.\(true\)/);
-  assert.doesNotMatch(go, /refreshSessionsCache\?\.\(true\)/);
-  assert.doesNotMatch(go, /refreshActivityCache\?\.\(true/);
+  // avoid and the reason arriving is affordable at all. The activity pass also
+  // leaves out its content scan here.
+  const h = stateShell();
+  h.shell.goState();
+  await drain();
+  for (const c of h.calls) assert.equal(c[1], false, c[0] + ' must be unforced');
+  assert.equal(h.calls.find(c => c[0] === 'activity')[2], false, 'no scan on arrival');
 });
 
 // ── A kick that lands has to say so ────────────────────────────────────────
@@ -176,27 +196,26 @@ test('the arrival passes are unforced, or the gates would never fire', () => {
 // had finished a second earlier. Nothing threw, nothing logged, and the only
 // symptom was a number that looked plausible.
 
-test('goState announces each kick as it lands, and once when all settle', () => {
-  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
-                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
-  assert.match(go, /web-tools:cache-checked/);
+test('goState announces each kick as it lands, and once when all settle', async () => {
+  const h = stateShell();
+  h.shell.goState();
+  await drain();
+  const checked = h.events.filter(e => e.type === 'web-tools:cache-checked');
   // Per kick, so a row updates as its own crawl lands rather than at the pace
   // of the slowest of the three.
-  assert.match(go, /checked\(false\)/);
-  // And once at the end: a crawl that committed also moved `updated`, which no
+  assert.equal(checked.filter(e => !e.detail.settled).length, 3);
+  // And once at the end: a crawl that committed also moved `written`, which no
   // localStorage read can see.
-  assert.match(go, /Promise\.all\([\s\S]*?\]\)\.then\(\(\) => checked\(true\)\)/);
-  // A crawl that threw must not strand the announcement, or one failing crawl
-  // freezes the other two rows' ages for the life of the page. The `finally`
-  // that carries this is asserted whole further down.
-  assert.match(go, /Promise\.resolve\(run\(\)\)\.catch\(\(\) => \{\}\)/);
+  assert.equal(checked.filter(e => e.detail.settled).length, 1);
+  assert.equal(checked.at(-1).detail.settled, true, 'the settled pass comes last');
 });
 
-test('goState announces committed activity and sessions caches', () => {
-  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
-                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
-  assert.match(go, /this\.announceActivity\(r\)/, 'announces in-memory activity document');
-  assert.match(go, /this\.announceSessions\(r\)/, 'announces in-memory sessions document');
+test('goState announces the activity and sessions documents it was handed', async () => {
+  const h = stateShell();
+  h.shell.goState();
+  await drain();
+  assert.equal(h.events.filter(e => e.type === 'web-tools:activity-refreshed').length, 1);
+  assert.equal(h.events.filter(e => e.type === 'web-tools:sessions-refreshed').length, 1);
 });
 
 test('the view listens for it, and cleans the listener up', () => {
@@ -221,26 +240,35 @@ test('the manual events are still separate, since they mean something else', () 
 // stretch where the view had something live to report was the stretch it said
 // nothing at all.
 
-test('the arrival flag is separate from the buttons, and has to be', () => {
+test('the arrival flag is separate from the buttons, and has to be', async () => {
   // The `*Refreshing` flags bracket a run whose progress slot is opened and
   // closed, and closeCrawl writes that run's call log, which is a COMMIT.
   // Borrowing them for the arrival kicks would put a commit on every visit to
   // this view. That is the whole reason for a second flag rather than reuse.
   assert.match(shellSrc, /^ {2}crawlChecking: \{ configs: false, activity: false, sessions: false \},$/m);
-  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
-                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
-  assert.doesNotMatch(go, /openCrawl|configRefreshing|activityRefreshing|sessionsRefreshing/,
-    'an arrival kick must not borrow the button machinery');
-  assert.match(go, /mark\(key, true\)/);
+  const h = stateShell();
+  h.shell.openCrawl = () => assert.fail('an arrival check must not open a progress slot');
+  let during = null;
+  h.shell.refreshSessionsCache = async () => {
+    during = { checking: h.shell.crawlChecking.sessions, button: h.shell.sessionsRefreshing };
+    return { doc: { rows: [] }, sha: 's1' };
+  };
+  h.shell.goState();
+  await drain();
+  assert.deepEqual(during, { checking: true, button: false });
 });
 
-test('a crawl that threw still stops saying it is checking', () => {
-  // `finally`, not `then`: a failed crawl has still stopped running, and a row
-  // left spinning forever over one is a worse reading than the stale age it
-  // replaced, because it claims work is happening.
-  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
-                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
-  assert.match(go, /\.finally\(\(\) => \{ mark\(key, false\); checked\(false\); \}\)/);
+test('a crawl that threw still stops saying it is checking', async () => {
+  // A failed crawl has still stopped running, and a row left spinning forever
+  // over one is a worse reading than the stale age it replaced, because it
+  // claims work is happening. Nor may it strand the settled announcement.
+  const h = stateShell();
+  h.shell.refreshSessionsCache = async () => { throw new Error('GitHub Error 409'); };
+  h.shell.goState();
+  await drain();
+  assert.equal(h.shell.crawlChecking.sessions, false);
+  assert.match(h.shell.cacheCheck.sessions.failed, /409/);
+  assert.equal(h.events.filter(e => e.type === 'web-tools:cache-checked' && e.detail.settled).length, 1);
 });
 
 test('the row reads the flag, which is what subscribes it', () => {

@@ -145,6 +145,47 @@ test('missing shards and failures leave metadata available with a concise incomp
   assert.deepEqual(ids(data.sessionDeckRows), ['bbbb2222', 'eeee5555']);
 });
 
+test('freshness confirmation refreshes discussion only when the session cache changes', async () => {
+  let searches = 0, resets = 0;
+  const { data, window } = estate(async () => result([++searches === 1 ? 'aaaa1111' : 'cccc3333']));
+  window.GH = { FRESH: { cache: 'no-store' } };
+  window.EstateSearch.reset = () => resets++;
+  data.hasToken = () => true;
+  data.$nextTick = () => {};
+  data._loaded.sessions = true;
+  data.cacheSha_.sessions = 's1';
+  const rows = data.sessionRows_;
+  let servedSha = 's2';
+  const reads = [];
+  data.regGH = () => ({ async get(path, opts) {
+    reads.push({ path, opts });
+    if (path !== 'state/sessions.json') throw new Error('404');
+    return { text: JSON.stringify({ rows }), sha: servedSha };
+  } });
+  await data.refreshSessionDiscussion();
+  await data.confirmCache({ key: 'sessions', sha: 's1' });
+  assert.equal(reads.length, 0);
+  assert.equal(resets, 0);
+  assert.equal(searches, 1);
+  await data.confirmCache({ key: 'sessions', sha: 's2' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(reads[0].opts, window.GH.FRESH);
+  assert.equal(data.cacheSha_.sessions, 's2');
+  assert.equal(resets, 1);
+  assert.equal(searches, 2);
+  assert.deepEqual(data.discussionHits, ['cccc3333']);
+  const retainedRows = data.sessionRows_;
+  await data.reloadSessions({ rows }, 's2');
+  assert.equal(data.sessionRows_, retainedRows);
+  assert.equal(resets, 1, 'an unchanged handed document keeps the shared index');
+  await data.confirmCache({ key: 'sessions', sha: 's3' });
+  assert.equal(resets, 1, 'a lagging read that still yields the shown copy does not discard its index');
+  await data.reloadSessions({ rows }, 's4');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(resets, 2, 'a changed handed document refreshes discussion too');
+  assert.equal(searches, 3);
+});
+
 test('Inspect snapshots scope before the query, including empty scopes and local-only matches', async () => {
   const { data, searches } = estate();
   data.inspectSessionMatches();

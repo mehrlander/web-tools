@@ -172,6 +172,9 @@
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
+  // What waits on the owner: user calls, and the Text collection's proposed
+  // edits by file, behind the Waiting view and the Docs tab's markers.
+  await gh.load('kits/user-calls.js');
   // Findings: the fold over the notes store that the Tending view lists and
   // the Activity panes show beside their subjects (window.Findings).
   await gh.load('kits/findings.js');
@@ -449,11 +452,16 @@ html.dk-dragging main{transition:none !important}
            or from the sidebar Repos index. Repos reach the header through their
            published VIEWS, not through a list of themselves. -->
       <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+        <!-- An entry's badge is a count waiting on the reader (Waiting's open
+             user calls, Proposals' pending edits); it carried a `badge` that
+             nothing drew until 2026-10-04. -->
         <template x-for="v in estateNav" :key="v.view">
-          <button @click="v.go()" :title="v.label"
-                  class="shrink-0 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
-                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'"
-                  x-text="v.label"></button>
+          <button @click="v.go()" :title="v.label" :data-nav="v.view"
+                  class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
+                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
+            <span x-text="v.label"></span>
+            <span x-show="v.badge" class="badge badge-xs badge-warning tabular-nums" x-text="v.badge"></span>
+          </button>
         </template>
         <div x-show="appNav.length" class="shrink-0 mx-1.5 h-5 w-px bg-base-300"></div>
         <template x-for="v in appNav" :key="v.key">
@@ -1857,6 +1865,19 @@ html.dk-dragging main{transition:none !important}
       </div>
     </div>
 
+    <!-- The Waiting view: what waits on the owner, the open user calls and the
+         Text collection's proposed edits by file (lib/alpineComponents/waiting.js,
+         lib/kits/user-calls.js). Lazy-mounted like Proposals. The pane does not
+         scroll: the view is two containers that split its height, a list over
+         a strip of detail cards, and each scrolls inside itself. -->
+    <div x-show="view==='waiting'" data-pane="waiting" class="h-full overflow-hidden">
+      <div class="h-full px-3 py-3 lg:p-6">
+        <template x-if="waitingSeen">
+          <div x-data="waiting()" class="h-full"></div>
+        </template>
+      </div>
+    </div>
+
     <!-- The Tending view: findings from tending passes, kept as notes in the
          registry's notes store (lib/kits/findings.js), each linked to the
          branches, pull requests, tasks, snags and sessions it concerns. Its own
@@ -2278,6 +2299,8 @@ function app(){ return {
   stageTab: '',     // the Stage's sub-address; 'errands' opens the errand panel
   proposalCount: 0, // pending cross-repo edit proposals; gates the nav entry
   proposalsSeen: false,
+  waitingCount: 0,  // open user calls; the Waiting entry's badge
+  waitingSeen: false,
   tendingSeen: false,
   tendingTab: '',   // '' (Attention) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
@@ -2329,6 +2352,19 @@ function app(){ return {
   // the same commit: `tickCrawl` no-ops without an open slot, and opening one
   // is what writes the log. A word is honest and free; a bar is not.
   crawlChecking: { configs: false, activity: false, sessions: false },
+  // What each cache's last check left behind, in THIS tab: `at` is when the copy
+  // on screen was last confirmed against its source (this browser's stamp, ms),
+  // `tried` when a check last started, and `failed` the reason the last one
+  // came back without confirming anything. The age pills read this and nothing
+  // else; see "Freshness" for the rule that keeps `at` inside CHECK_MS.
+  cacheCheck: {
+    configs: { at: 0, tried: 0, failed: '' },
+    activity: { at: 0, tried: 0, failed: '' },
+    sessions: { at: 0, tried: 0, failed: '' },
+  },
+  // A minute hand for the pills, so "checked 3m" advances between checks
+  // rather than reading "now" until the next one starts.
+  clock: Date.now(),
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -2386,7 +2422,7 @@ function app(){ return {
       // a load that lands straight on ?view=sessions routes before auth
       // resolves, so the pane's own arrival kick ran against no token and
       // declined, and nothing afterwards went back for it. Announced through
-      // warmSessionsCache, so a commit reaches the pane.
+      // checkCache, so a commit reaches the pane.
       //
       // ONE BOOT PATH. This watcher used to repeat the sidebar read, the
       // mailbox and the proposals count that init() had already fired, and
@@ -2414,14 +2450,15 @@ function app(){ return {
           .then(() => this.refreshConfigCache())
           .then(r => r?.committed ? this.loadEstateSidebar() : null)
           .catch(() => {});
-        // Only what the pane on screen reads (warmEstateCaches), once the
-        // address has been routed: a deep link to ?view=sessions lands before
-        // auth resolves, so its own arrival kick ran against no token and
+        // Only what the pane on screen reads (ensureFresh), once the address
+        // has been routed: a deep link to ?view=sessions lands before auth
+        // resolves, so its own arrival kick ran against no token and
         // declined, and this is what goes back for it.
-        this._routed.then(() => this.warmEstateCaches());
+        this._routed.then(() => this.ensureFresh());
         if (this._inboxToken !== window.TOKEN) {
           this._inboxToken = window.TOKEN;
           this.loadProposalCount();
+          this.loadWaitingCount();
         }
       }
       // Announced for views that mount before auth resolves and would otherwise
@@ -2458,6 +2495,7 @@ function app(){ return {
     this._sidebarToken = this.hasToken() ? window.TOKEN : '';
     this._inboxToken = this._sidebarToken;
     this.loadProposalCount();
+    this.loadWaitingCount();
 
     // A ref switch keeps the ?ref deep link honest. It used to fire only in the
     // Files view, where the picker was; the browsed ref is now read by the
@@ -3006,7 +3044,7 @@ function app(){ return {
     this.configRefreshing = true;
     this.openCrawl('configs', 'Reading configs', 'repos');
     try {
-      await this.refreshConfigCache(true);
+      this.noteCheck('configs', await this.refreshConfigCache(true));
       await this.loadEstateSidebar();
       document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
     } finally { this.configRefreshing = false; this.closeCrawl('configs'); }
@@ -3026,9 +3064,12 @@ function app(){ return {
   // it is wrong in both directions at once: a repo pushed thirty seconds ago
   // waits out the clock while a quiet estate pays a full crawl for having
   // waited. The State view then printed the interval as "auto every 30m", which
-  // read as a schedule and was not one, since nothing here has ever run on a
-  // timer. The crawls fire when a view that reads them is opened, so the
-  // interval was only ever a floor with a promise written on it.
+  // read as a schedule and was not one, since nothing here ran on a timer then.
+  // The crawls fired when a view that reads them was opened, so the interval
+  // was only ever a floor with a promise written on it. There is a timer now
+  // (see "Freshness"), and it is about the READING rather than the source: it
+  // fires when what a pill shows turns five minutes old, and the gates below
+  // still decide what that check costs.
   //
   // The evidence was already in the building. Every one of these crawls can ask
   // its source what moved for about the price of one call: the account repo
@@ -3265,6 +3306,7 @@ function app(){ return {
     this.openCrawl('activity', 'Refreshing activity', 'repos');
     try {
       const r = await this.refreshActivityCache(true, { deep: true });
+      this.noteCheck('activity', r);
       this.announceActivity(r);
       this.reportActivityRefresh(r);
     } finally { this.activityRefreshing = false; this.closeCrawl('activity'); }
@@ -3275,9 +3317,11 @@ function app(){ return {
   // every caller dispatched the bare event by hand, so the Sessions pane went
   // back to the API for a file the crawl was holding, and its age pill reported
   // the last COMMIT rather than the last check. See the crawl's own note.
+  // `sha` is main's blob sha for the copy handed over (the commit's, or the
+  // base it matched), which is what a later freshness confirm compares.
   announceSessions(r){
     document.dispatchEvent(new CustomEvent('web-tools:sessions-refreshed',
-      { detail: r?.doc ? { cache: r.doc } : null }));
+      { detail: r?.doc ? { cache: r.doc, sha: r.sha || '' } : null }));
   },
 
   // Announce a finished activity crawl, handing the document along. A listener
@@ -3287,7 +3331,7 @@ function app(){ return {
   // which is why this is an addition and not a change of contract.
   announceActivity(r){
     document.dispatchEvent(new CustomEvent('web-tools:activity-refreshed',
-      { detail: r?.doc ? { cache: r.doc } : null }));
+      { detail: r?.doc ? { cache: r.doc, sha: r.sha || '' } : null }));
   },
 
   // The crawl's one moment of feedback, and the reason the toast belongs at the
@@ -3635,6 +3679,7 @@ function app(){ return {
       // mark nothing will ask about again.
       this.writeWatermarks(nextMarks);
       const changed = A.changedRepos(prev, next);
+      let sha = base?.sha || '';   // as in the sessions crawl: main's copy of what this hands over
       if (changed.length){
         // The run record rides this commit (lib/kits/crawl-runs.js). `pass` says
         // whether the scan ran, which is an order-of-magnitude difference in
@@ -3650,8 +3695,8 @@ function app(){ return {
           skipped: skipped.length,
           pass: deep ? 'scan' : 'quick',
         }) ?? prev?.runs;
-        await this.saveFold(reg, A.CACHE_PATH, next,
-                            'Update activity cache (state/activity.json)', base);
+        sha = (await this.saveFold(reg, A.CACHE_PATH, next,
+                                   'Update activity cache (state/activity.json)', base))?.content?.sha || sha;
       }
       // The file-name index rides every pass, changed or not: its gate is each
       // member's default-branch tip, which `next` now holds, so a quiet estate
@@ -3662,7 +3707,7 @@ function app(){ return {
       // event does not have to: it is 370 KB and the crawl is holding it
       // already. Measured 2026-08-17, one refresh read state/activity.json
       // eleven times for 7.2 MB, and two of those reads were exactly this.
-      return { total: members.length, changed, failed, skipped, committed: changed.length > 0, doc: next };
+      return { total: members.length, changed, failed, skipped, committed: changed.length > 0, doc: next, sha };
     } catch(e){
       console.warn('activity cache refresh:', e?.message || e);
       return { total: members.length, changed: [], failed, skipped, error: e?.message || String(e) };
@@ -3884,6 +3929,9 @@ function app(){ return {
       const complete = !deferred && Object.keys(fetched).length === take.length;
       if (complete) this._setMarks(this._sessionsMarkKey, { listing: fingerprint });
       const changed = S.cacheChanged(prev, next);
+      // The blob sha of the copy main now holds for what this pass hands over:
+      // the base it matched, or the commit below.
+      let sha = base?.sha || '';
       if (changed){
         // The run record rides this commit (lib/kits/crawl-runs.js). `checked`
         // is the whole listing and `read` the records this pass actually
@@ -3893,8 +3941,8 @@ function app(){ return {
           at: new Date().toISOString(), ms: Date.now() - t0,
           checked: listing.length, read: Object.keys(fetched).length, deferred,
         }) ?? prev?.runs;
-        await this.saveFold(reg, S.CACHE_PATH, next,
-                            'Update sessions cache (state/sessions.json)', base);
+        sha = (await this.saveFold(reg, S.CACHE_PATH, next,
+                                   'Update sessions cache (state/sessions.json)', base))?.content?.sha || sha;
         // THE PHONE'S COPY, written in the same pass and only when the cache
         // itself moved. It is a separate 46 KB file rather than a view of the
         // megabyte above, because its whole reason to exist is that the phone
@@ -3975,7 +4023,7 @@ function app(){ return {
       // whether or not it was worth committing, which is the honest answer to
       // "when was this last checked".
       return { total: listing.length, read: Object.keys(fetched).length,
-               deferred, committed: changed, titlesAt: next.titlesAt || '', doc: next };
+               deferred, committed: changed, titlesAt: next.titlesAt || '', doc: next, sha };
     } catch(e){
       console.warn('sessions cache refresh:', e?.message || e);
       return { error: e?.message || String(e) };
@@ -3994,6 +4042,7 @@ function app(){ return {
     this.openCrawl('sessions', 'Listing records', 'records');
     try {
       const r = await this.refreshSessionsCache(true);
+      this.noteCheck('sessions', r);
       this.announceSessions(r);
       const toast = Alpine.store('toast');
       if (!toast || !r) return;
@@ -4038,12 +4087,14 @@ function app(){ return {
       this.openCrawl('sessions', 'Listing records', 'records');
       try { s = await this.refreshSessionsCache(true); }
       finally { this.sessionsRefreshing = false; this.closeCrawl('sessions'); }
+      this.noteCheck('sessions', s);
       this.announceSessions(s);
 
       this.activityRefreshing = true;
       this.openCrawl('activity', 'Refreshing activity', 'repos');
       try { a = await this.refreshActivityCache(true, { deep: true }); }
       finally { this.activityRefreshing = false; this.closeCrawl('activity'); }
+      this.noteCheck('activity', a);
       this.announceActivity(a);
     } finally {
       this.activityGroupRefreshing = false;
@@ -4326,6 +4377,14 @@ function app(){ return {
   // token-gated like everything that touches the registry; the count is what
   // gates the nav entry, so an empty channel is invisible rather than a stop
   // with nothing behind it. The Proposals component does the real work.
+  // How many user calls are open: one listing of the store's user-calls/ and
+  // a read per call, so it runs at boot. The Waiting view's proposed edits are
+  // not counted here, since counting them means reading the Text collection.
+  async loadWaitingCount(){
+    if (!this.hasToken() || !window.UserCalls) { this.waitingCount = 0; return; }
+    try { this.waitingCount = (await window.UserCalls.list()).filter(c => c.open).length; }
+    catch { this.waitingCount = 0; }
+  },
   async loadProposalCount(){
     if (!this.hasToken() || !window.RepoProposals) { this.proposalCount = 0; return; }
     const P = window.RepoProposals;
@@ -5708,6 +5767,7 @@ function app(){ return {
       } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
+    { key: 'waiting',   open(){ this.goWaiting(); } },
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
     // The Search view's address carries the ran search (sq + friends, stamped
@@ -6399,6 +6459,12 @@ function app(){ return {
       // estate's motion, and Tending reads what a pass concluded about that
       // motion, across branches, pull requests, trackers and snags alike.
       { view: 'tending', icon: 'ph-plant', label: 'Tending', go: () => this.goTending() },
+      // Waiting: the owner's queue, user calls and proposed edits. Standing
+      // with a token, since proposed edits are rarely none and counting them
+      // costs the Text collection; the badge is the open user calls.
+      ...(this.hasToken() || this.waitingCount || this.view === 'waiting'
+        ? [{ view: 'waiting', icon: 'ph-tray', label: 'Waiting', badge: this.waitingCount, go: () => this.goWaiting() }]
+        : []),
       { view: 'lists', views: ['lists', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goLists() },
       { view: 'repos',    icon: 'ph-squares-four', label: 'Repos',    go: () => this.goRepos() },
@@ -6468,11 +6534,11 @@ function app(){ return {
   // just changed (a repo's views for the estate's, say). It now closes only
   // when you say so, by the scrim or the X. The pinned desktop sidebar never
   // closed, so the two behave alike now.
-  // Repos kicks its own throttled crawl on arrival, the way Open and Sessions
-  // do. It was the one estate pane that did not, warmed only at boot and by its
-  // own Refresh, so a session that opened elsewhere and walked over to Repos an
-  // hour later read whatever the boot had left.
-  goRepos(){ this.estateSeen = true; this.view = 'repos'; this.warmConfigCache(); this.syncUrl(); },
+  // Repos consults the freshness rule on arrival, the way Branches and
+  // Sessions do. It was once the one estate pane that did not, warmed only at
+  // boot and by its own Refresh, so a session that opened elsewhere and walked
+  // over to Repos an hour later read whatever the boot had left.
+  goRepos(){ this.estateSeen = true; this.view = 'repos'; this.ensureFresh(); this.syncUrl(); },
   // Lists: Pin, To-do, Jot, Ping and Note in one pane, at ?view=lists. The
   // older ?view=todo and ?view=jots addresses land here too, and stamp
   // ?view=lists.
@@ -6523,6 +6589,7 @@ function app(){ return {
   },
   // The Proposals view: pending cross-repo edits awaiting the user's confirm.
   goProposals(){ this.proposalsSeen = true; this.view = 'proposals'; this.syncUrl(); },
+  goWaiting(){ this.waitingSeen = true; this.view = 'waiting'; this.syncUrl(); },
   // State kicks ALL THREE, which is the reverse of what it used to do, and the
   // reverse is the point. It kicked nothing on the argument that a view whose
   // subject is age must not answer its own question before you read it. That
@@ -6559,35 +6626,19 @@ function app(){ return {
     // cheap one as it lands: the `checked` stamps are localStorage and re-read
     // for nothing. When all three have settled, one more pass says so, and the
     // view re-reads everything once, since a crawl that committed also moved
-    // the `updated` date, which is a commit read per file.
-    const checked = (settled) => document.dispatchEvent(
-      new CustomEvent('web-tools:cache-checked', { detail: { settled } }));
-    const mark = (key, on) => { this.crawlChecking = { ...this.crawlChecking, [key]: on }; };
-    const kick = (key, run) => {
-      mark(key, true);
-      // `finally` rather than `then`: a crawl that threw has still stopped
-      // running, and a row left saying "checking…" forever over a failed crawl
-      // is a worse reading than the stale age it replaced.
-      return Promise.resolve(run()).catch(() => {})
-        .finally(() => { mark(key, false); checked(false); });
-    };
+    // the `written` date, which is a commit read per file.
+    //
+    // checkCache marks `crawlChecking` for the row, announces whatever it
+    // lands, records the outcome for the pills, and fires the cheap
+    // cache-checked pass as each settles. The State view's arrival differs
+    // from the freshness rule in one way only: it checks all three whatever
+    // their age, since arriving here is asking.
     Promise.all([
-      kick('configs', async () => {
-        const r = await this.refreshConfigCache?.();
-        if (r?.committed) document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
-        return r;
-      }),
-      kick('activity', async () => {
-        const r = await this.refreshActivityCache?.(false, { deep: false });
-        if (r?.committed) this.announceActivity(r);
-        return r;
-      }),
-      kick('sessions', async () => {
-        const r = await this.refreshSessionsCache?.();
-        if (r?.committed) this.announceSessions(r);
-        return r;
-      }),
-    ]).then(() => checked(true));
+      this.checkCache('configs'),
+      this.checkCache('activity', { deep: false }),
+      this.checkCache('sessions'),
+    ]).then(() => document.dispatchEvent(
+      new CustomEvent('web-tools:cache-checked', { detail: { settled: true } })));
     // Announced even when the view is already mounted: arriving from a second
     // age pill has to move the highlight, and re-setting `view` to the value it
     // already holds is not something Alpine reacts to.
@@ -6596,8 +6647,8 @@ function app(){ return {
   },
   // Open is the estate's cross-repo live-branch view; the one estate component
   // renders it by reading the shell view (internal key 'activity'). A visit
-  // kicks the throttled activity crawl (like Repos kicks the config crawl) so
-  // the cache is warm and self-healing.
+  // consults the freshness rule (as Repos does), so the cache is warm and
+  // self-healing.
   BRANCH_WINDOW_DEFAULT: 1,   // days; the pane's question is "what am I working on", which is usually today (was 7 until 2026-08-08)
   branchWindow: 1,
   setBranchWindow(d){ this.branchWindow = +d || this.BRANCH_WINDOW_DEFAULT; this.syncUrl(); },
@@ -6608,113 +6659,181 @@ function app(){ return {
     const m = /^(\d+(?:\.\d+)?)(h?)$/i.exec(s || '');
     return m ? +m[1] / (m[2] ? 24 : 1) : 0;
   },
-  goBranches(){ this.estateSeen = true; this.view = 'branches'; this.arrivalActivityRefresh?.(); this.syncUrl(); },
+  goBranches(){ this.estateSeen = true; this.view = 'branches'; this.ensureFresh(); this.syncUrl(); },
   goActivity(){ this.goBranches(); },
-  // Arrival kick: one throttled crawl, scan included. Un-awaited by design;
-  // there is no progress UI on this path, and the view re-reads on the event.
-  // The scan is what keeps the branch verdicts current without anyone
-  // pressing Refresh, and the pushed-at gate inside the crawl reduces it to the
-  // repos that took a push, so it can afford to ride every arrival past the
-  // throttle. It was two passes here as well until 2026-08-17, for the same
-  // reason and at the same price: the second repeated the first's cheap reads.
-  async arrivalActivityRefresh(){
-    try {
-      const r = await this.refreshActivityCache(false, { deep: true });
-      if (r?.committed) this.announceActivity(r);
-    } catch(e){ console.warn('arrival activity refresh:', e?.message || e); }
+
+  // ── Freshness: the rule behind every age pill ──────────────────────────
+  //
+  // THE RULE. While a pill on screen reads a cache, its reading is at most
+  // CHECK_MS old, or a check of that cache is running, or the last check failed
+  // and the pill says so. "Old" is counted from when this tab last CONFIRMED the
+  // copy it shows against the source, not from when the file was last written:
+  // a check that finds nothing new commits nothing, so a write time keeps aging
+  // over a store that was looked at a minute ago, and a pill reading it would
+  // trip the rule forever.
+  //
+  // WHY A RULE AND NOT A LIST OF EVENTS. Until 2026-10-05 the checks ran on
+  // events: the boot, a navigation into a pane, a return after five minutes
+  // hidden, a bfcache restore, and the pill itself. Each was added to close the
+  // gap the one before had left, and the list still had one. A tab that stays
+  // open and visible fires none of them, and on 2026-10-05 a Sessions pane sat
+  // on "as of 23h" in front of its reader while session records landed all
+  // night. The pill held the age and nothing consulted it. Now the age is the
+  // trigger, and the events are only the moments it is consulted: load,
+  // arrival, return, and a timer set for the moment the oldest reading on
+  // screen turns CHECK_MS old.
+  //
+  // A SKIPPED CRAWL STILL HAS TO ANSWER. The crawls keep their cost guards (the
+  // one-minute floor, the per-unit motion gates), and those compare the store
+  // with what THIS BROWSER last folded, a record every tab of it shares. A tab
+  // whose sibling already folded the news is skipped, and used to keep showing
+  // its own older copy. So a pass that hands back no document confirms
+  // instead: one listing of state/ gives main's blob sha per file, and the
+  // estate re-reads only a file whose sha is not the one it is showing.
+  CHECK_MS: 5 * 60 * 1000,
+  // The caches each view's pills read. Sessions draws a branch tile under every
+  // row, so it keeps both current; State reads all three.
+  VIEW_CACHES: {
+    repos: ['configs'], branches: ['activity'], activity: ['activity'],
+    sessions: ['sessions', 'activity'], state: ['configs', 'activity', 'sessions'],
   },
-  // The Repos pane's half of the same contract. Its cards reload on
-  // web-tools:configs-refreshed, which until now only the manual Refresh
-  // dispatched, so the config crawl had the identical silence the sessions
-  // crawl did: a background pass could commit a new cache and leave the cards
-  // and the age pill drawn from the one before it.
-  async warmConfigCache(){
+  freshKeys(){ return this.VIEW_CACHES[this.view] || []; },
+  // When a cache is next due: CHECK_MS after its last confirmation or its last
+  // attempt, whichever is later. Counting the attempt is what stops a check
+  // that keeps failing from being retried in a tight loop.
+  freshDue(key){
+    const c = this.cacheCheck[key] || {};
+    return Math.max(c.at || 0, c.tried || 0) + this.CHECK_MS;
+  },
+  checkStamp(key){
+    const k = { configs: this._cacheCheckKey, activity: this._activityCheckKey,
+                sessions: this._sessionsCheckKey }[key];
+    try { return +localStorage.getItem(k) || 0; } catch { return 0; }
+  },
+  cachePath(key){
+    return key === 'configs' ? (window.RepoConfigCache?.CACHE_PATH || 'state/configs.json')
+         : key === 'activity' ? (window.RepoActivityCache?.CACHE_PATH || 'state/activity.json')
+         : (window.RepoSessionsCache?.CACHE_PATH || 'state/sessions.json');
+  },
+
+  // Consult the rule for the view on screen: check every cache it reads that
+  // is due, then arm the timer for the next one. Safe to call on any event,
+  // since a reading inside the window costs nothing. A hidden tab does no work
+  // and arms nothing; its return is a visibilitychange, which calls this.
+  ensureFresh(){
+    if (!this.hasToken() || document.hidden) return;
+    const due = this.freshKeys().filter(k => this.freshDue(k) <= Date.now() && !this.crawlChecking[k]);
+    // The settled pass makes the State view re-read its commit dates (a call
+    // per file), and that view stays mounted once seen, so it is announced
+    // only while State is the view on screen.
+    if (due.length) Promise.all(due.map(k => this.checkCache(k))).then(() => {
+      if (this.view === 'state')
+        document.dispatchEvent(new CustomEvent('web-tools:cache-checked', { detail: { settled: true } }));
+    });
+    this.scheduleFresh();
+  },
+  scheduleFresh(){
+    clearTimeout(this._freshTimer);
+    const keys = this.freshKeys();
+    if (!keys.length || !this.hasToken()) return;
+    const next = Math.min(...keys.map(k => this.freshDue(k)));
+    this._freshTimer = setTimeout(() => this.ensureFresh(), Math.max(1000, next - Date.now()));
+    this._freshTimer?.unref?.();
+  },
+
+  // One check of one cache: the unforced crawl, then whatever puts the newest
+  // copy on screen. A crawl that ran hands its document over; one that
+  // declined (the floor, a motion gate) or that never hands one (configs)
+  // confirms by sha. Every outcome is recorded, and `crawlChecking` is what the
+  // pills and the State rows read while it runs. `deep` is the activity
+  // crawl's content scan, which the State view's arrival leaves out.
+  // A second call while one runs joins it, as the crawls themselves do, so the
+  // State view's arrival waits on a check the timer had already started.
+  _checks: {},
+  checkCache(key, opts){
+    if (!this.hasToken()) return Promise.resolve(null);
+    if (this._checks[key]) return this._checks[key];
+    const run = this._checkCache(key, opts);
+    this._checks = { ...this._checks, [key]: run };
+    return run.finally(() => { this._checks = { ...this._checks, [key]: null }; });
+  },
+  async _checkCache(key, { deep = true } = {}){
+    this.crawlChecking = { ...this.crawlChecking, [key]: true };
+    this.cacheCheck = { ...this.cacheCheck, [key]: { ...this.cacheCheck[key], tried: Date.now() } };
+    let r = null;
     try {
-      const r = await this.refreshConfigCache(false);
-      if (r?.committed) document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
-    } catch(e){ console.warn('arrival config refresh:', e?.message || e); }
+      if (key === 'configs'){
+        r = await this.refreshConfigCache(false);
+        if (r?.committed) document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
+        else if (r && !r.error) await this.confirmCache(key);
+      } else {
+        r = key === 'activity'
+          ? await this.refreshActivityCache(false, { deep })
+          : await this.refreshSessionsCache(false);
+        if (r?.doc) key === 'activity' ? this.announceActivity(r) : this.announceSessions(r);
+        else if (r && !r.error) await this.confirmCache(key);
+      }
+    } catch(e){
+      r = { error: e?.message || String(e) };
+      console.warn(key + ' check:', r.error);
+    } finally {
+      this.noteCheck(key, r);
+      this.crawlChecking = { ...this.crawlChecking, [key]: false };
+      document.dispatchEvent(new CustomEvent('web-tools:cache-checked', { detail: { settled: false } }));
+      this.scheduleFresh();
+    }
+    return r;
+  },
+  // Record what a check came back with, manual or background. It counts as a
+  // confirmation only when it ran without error AND this browser's stamp is
+  // inside the window: a crawl that declined for want of input ("no estate
+  // members in the config cache yet") looked at nothing, and the reason it gave
+  // is what the pill reports. A failure keeps the last good `at`, so the pill
+  // can say how old the copy it is still showing is.
+  noteCheck(key, r){
+    const prior = this.cacheCheck[key] || {};
+    const at = this.checkStamp(key);
+    const ok = !!r && !r.error && Date.now() - at < this.CHECK_MS;
+    this.cacheCheck = { ...this.cacheCheck, [key]: ok
+      ? { at, tried: prior.tried || Date.now(), failed: '' }
+      : { at: prior.at || 0, tried: prior.tried || Date.now(),
+          failed: r?.error || r?.reason || 'the check did not run' } };
+  },
+  // Main's blob sha for one cache file, announced for the estate to compare
+  // with the copy it shows. One FRESH listing of the directory: the contents
+  // API's own lag can still answer with the sha before a write this page just
+  // made, which is why the estate reconciles a re-read against LastWrite
+  // rather than trusting the listing alone.
+  async confirmCache(key){
+    const path = this.cachePath(key);
+    const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+    const list = await reg.req('contents/' + path.replace(/\/[^/]+$/, '') + '?ref=main', window.GH.FRESH);
+    const sha = (Array.isArray(list) ? list : []).find(e => e.path === path)?.sha || '';
+    document.dispatchEvent(new CustomEvent('web-tools:cache-confirm', { detail: { key, path, sha } }));
   },
 
   // ── Coming back to a page that never left ─────────────────────────────
-  // Every cache-backed pane warms itself on ARRIVAL, and arrival means a
-  // navigation inside a running app: goActivity, goSessions, goState. On a
-  // phone there is no such navigation. Safari keeps the page and restores it,
-  // so the boot ran once, whenever the tab was first opened, and each pane has
-  // been rendering the copy it read then for as long as the tab has existed.
-  //
-  // That is what an age pill stuck at "as of 1d" is reporting, and it is the
-  // worst reading the estate can show: it is precise, it is correct, and the
-  // one control it offers re-crawls a cache the mounted view will not re-read.
-  // A reader who can see the lag and cannot clear it is being told the app
-  // knows and has decided not to act.
-  //
-  // So the return itself is treated as the arrival. Hidden for less than
-  // REVISIT_MS is a tab flick and warms nothing; longer runs exactly the
-  // throttled crawls a fresh arrival would run, and each announces on commit
-  // so the pane re-reads rather than sitting on what it mounted with.
-  //
-  // A bfcache restore always warms, whatever the clock says: `pageshow` with
-  // `persisted` means the page came back with no boot at all, which is the
-  // case this whole handler exists for and the one where a missed
-  // visibilitychange would leave the reading frozen for good.
-  REVISIT_MS: 5 * 60 * 1000,
-  _hiddenAt: 0,
+  // On a phone there is no navigation to count as an arrival: Safari keeps the
+  // page and restores it, so the boot ran once, whenever the tab was opened.
+  // The return is therefore the arrival, and since the rule reads the age, a
+  // tab flick costs nothing: a reading inside the window is left alone. A
+  // bfcache restore (`pageshow` with `persisted`) brings the page back with no
+  // boot at all, so it consults the rule as well.
   wireRevisit(){
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { this._hiddenAt = Date.now(); return; }
-      // No recorded hide means the page was restored or resumed without one,
-      // so the away time is unknown rather than zero, and unknown warms.
-      if (!this._hiddenAt || Date.now() - this._hiddenAt >= this.REVISIT_MS) this.warmEstateCaches();
-      this._hiddenAt = 0;
-    });
-    window.addEventListener('pageshow', (e) => { if (e.persisted) this.warmEstateCaches(); });
-  },
-  // Only what the pane on screen actually reads. The branch crawl is the
-  // expensive one (tens of seconds when the estate has moved), so it runs for
-  // the view that renders it and not for a reader sitting on Chats. State
-  // reads both, so it warms both.
-  warmEstateCaches(){
-    if (!this.hasToken()) return;
-    const v = this.view;
-    if (v === 'sessions' || v === 'state') this.warmSessionsCache();
-    if (v === 'branches' || v === 'activity' || v === 'state') this.arrivalActivityRefresh();
-    if (v === 'repos' || v === 'state') this.warmConfigCache();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.ensureFresh(); });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) this.ensureFresh(); });
+    const tick = setInterval(() => { this.clock = Date.now(); }, 60 * 1000);
+    tick?.unref?.();
   },
 
-  // Activity's other pill: the sessions that made the branches. Kicks its own
-  // throttled crawl on visit, the way Open kicks the activity crawl, so the
-  // cache warms itself and a cold one is one tap from being warm.
-  // TWO CACHES, because this pane renders two. The session records are its
-  // rows and the branch cache is its tiles: every session nests the Branches
-  // pane's own row under it, so arriving here on a cold branch cache draws
-  // current sessions over stale branches. Cheap to ask for: a non-forced
-  // refresh returns skipped inside CRAWL_FLOOR_MS and joins any crawl already
-  // in flight, so a pill tap costs nothing the floor has not already paid.
+  // Activity's other pill: the sessions that made the branches. TWO CACHES,
+  // because this pane renders two: the session records are its rows and the
+  // branch cache is its tiles, so arriving here on a stale branch cache would
+  // draw current sessions over old branches. VIEW_CACHES carries the pair.
   goSessions(){
     this.estateSeen = true; this.view = 'sessions';
-    this.warmSessionsCache(); this.arrivalActivityRefresh?.();
+    this.ensureFresh();
     this.syncUrl();
-  },
-  // The sessions half of the arrival kick, and it exists because the plain
-  // refreshSessionsCache call it replaces was SILENT. A crawl that commits a
-  // new cache has changed nothing the reader can see until the pane re-reads
-  // the file, and the pane re-reads on web-tools:sessions-refreshed, which
-  // only the manual Refresh dispatched. So a background pass could do all its
-  // work, save a current cache, and leave the pill still saying "as of 1d"
-  // over it, with the one control it offers being the crawl that had just run.
-  // Announcing on commit is what closes that: same shape as
-  // arrivalActivityRefresh, which had it from the start.
-  //
-  // The gate is `doc OR committed`, not `committed` alone, and the widening is
-  // the 2026-08-27 fix seen from this end. A pass that RAN and found nothing to
-  // commit still checked the store, and the document it built says so; only a
-  // pass that was THROTTLED has neither a document nor a commit, and that one
-  // must stay silent or every arrival costs a read of a megabyte for no news.
-  async warmSessionsCache(){
-    try {
-      const r = await this.refreshSessionsCache(false);
-      if (r?.doc || r?.committed) this.announceSessions(r);
-    } catch(e){ console.warn('arrival sessions refresh:', e?.message || e); }
   },
   // Chats warms nothing, and the absence is the design. The other three panes
   // read a crawl cache this shell keeps fresh; the archive's month shards are

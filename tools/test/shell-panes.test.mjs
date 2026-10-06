@@ -100,6 +100,7 @@ test('every pill tap has an arm in goSub naming a method the shell defines', () 
 test('no pane is declared that the nav cannot reach', () => {
   const { shell } = makeShell();
   shell.proposalCount = 1;
+  shell.waitingCount = 1;
   // A nav entry reaches every view it declares, not just its primary one:
   // `views` is what navOn() highlights on, so it is what "reachable" means.
   // Activity has covered three sub-views this way for a while; Surfaces now
@@ -147,11 +148,12 @@ test('the Activity nav and the signed-in front door both open Sessions', () => {
 
 // The pane draws session rows AND a branch tile under each, so arriving on it
 // with a cold branch cache would draw current sessions over stale branches.
-test('arriving at Sessions warms both caches it renders', () => {
+test('arriving at Sessions checks both caches it renders', () => {
   const { shell } = makeShell();
   const called = [];
-  shell.warmSessionsCache = () => { called.push('sessions'); };
-  shell.arrivalActivityRefresh = () => { called.push('activity'); };
+  shell.hasToken = () => true;
+  shell.syncUrl = () => {};
+  shell.checkCache = (key) => { called.push(key); return Promise.resolve(null); };
   shell.goSessions();
   assert.deepEqual(called.sort(), ['activity', 'sessions']);
 });
