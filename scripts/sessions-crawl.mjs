@@ -20,19 +20,50 @@
 // GH_TOKEN (or GITHUB_TOKEN). GH_TOKEN also reads the session-titles export in
 // mehrlander/chat-histories; a token that cannot see it leaves every title as
 // the cache already had it, which is the kit's rule for any failed titles read.
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REGISTRY = 'mehrlander/web-tools-private';
-const dryRun = process.argv.slice(2).includes('--dry-run');
+
+const args = process.argv.slice(2);
+const dryRun = args.includes('--dry-run');
+
+function getArg(flag) {
+  const prefix = flag + '=';
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === flag && i + 1 < args.length) return args[i + 1];
+    if (args[i].startsWith(prefix)) return args[i].slice(prefix.length);
+  }
+  return null;
+}
+const gitArg = getArg('--git');
+const gitPath = gitArg ? path.resolve(process.cwd(), gitArg) : null;
+const outArg = getArg('--out');
+const outDir = outArg ? path.resolve(process.cwd(), outArg) : null;
 
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 const writeToken = process.env.GH_WRITE_TOKEN || token;
-if (!writeToken) {
+if (!gitPath && !writeToken) {
   console.error('No token. Set GH_WRITE_TOKEN (or GH_TOKEN) to one that can read and write ' + REGISTRY + '.');
   process.exit(1);
+}
+if (gitPath && !outDir && !dryRun && !writeToken) {
+  console.error('No token. Set GH_WRITE_TOKEN (or GH_TOKEN) to one that can read and write ' + REGISTRY + ', or pass --out <dir>.');
+  process.exit(1);
+}
+
+function git(cmdArgs, input) {
+  return execFileSync('git', ['-c', 'core.protectNTFS=false', ...cmdArgs], {
+    cwd: gitPath,
+    input,
+    encoding: 'utf8',
+    maxBuffer: 50 * 1024 * 1024,
+    windowsHide: true,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 }
 
 // The browser files, as browser files: gh-api.js exports the class, and every
@@ -48,7 +79,31 @@ for (const file of ['lib/gh-fetch.js', 'lib/gh-store.js', 'lib/kits/csv.js',
 }
 const { RepoSessionsCache: S, SessionIndex: X, CrawlRuns, SessionsCrawl: C } = win;
 
-const reg = new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
+const reg = gitPath ? {
+  req: async (p) => {
+    if (p.startsWith('git/trees/')) {
+      const out = git(['ls-tree', '-r', '-z', 'origin/main']);
+      const tree = [];
+      for (const entry of out.split('\0')) {
+        if (!entry) continue;
+        const tab = entry.indexOf('\t');
+        if (tab === -1) continue;
+        const meta = entry.slice(0, tab);
+        const pth = entry.slice(tab + 1);
+        const [, type, sha] = meta.split(' ');
+        tree.push({ path: pth, sha, type });
+      }
+      return { tree };
+    }
+    if (p.startsWith('git/blobs/')) {
+      const sha = p.slice('git/blobs/'.length);
+      const content = git(['cat-file', 'blob', sha]);
+      return { content };
+    }
+    throw new Error(`Unsupported git endpoint: ${p}`);
+  },
+  decode: (c) => c,
+} : new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
 
 // The first read a new token makes, and so the one that explains itself:
 // GitHub answers a repository the credential cannot see with 404, which reads
@@ -72,6 +127,16 @@ if (!listing.length) {
 // must stop the pass: folding onto null would publish a cache holding only the
 // records this pass happened to read.
 async function readFold(p) {
+  if (gitPath) {
+    let sha;
+    try {
+      sha = git(['rev-parse', `origin/main:${p}`]).trim();
+    } catch {
+      return null;
+    }
+    const text = git(['cat-file', 'blob', sha]);
+    return { doc: JSON.parse(text), sha };
+  }
   try {
     const r = await reg.get(p, GH.FRESH);
     return { doc: JSON.parse(r.text), sha: r.sha };
@@ -83,6 +148,13 @@ async function readFold(p) {
 const written = [];
 async function saveFold(p, doc, message, base) {
   if (dryRun) { written.push(p); return null; }
+  if (outDir) {
+    const target = path.join(outDir, p);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, JSON.stringify(doc, null, 2) + '\n');
+    written.push(p);
+    return { content: { sha: '' } };
+  }
   const res = await reg.save(p, doc, message, { sha: base?.sha });
   written.push(p);
   return res;
@@ -90,7 +162,7 @@ async function saveFold(p, doc, message, base) {
 
 const r = await C.fold({
   reg, S, listing, readFold, saveFold,
-  readTitles: () => C.readTitles(new GH({ token, repo: S.TITLES_REPO }), S),
+  readTitles: () => token ? C.readTitles(new GH({ token, repo: S.TITLES_REPO }), S) : null,
   loadIndex: async () => X,
   runs: CrawlRuns,
   // Which venue ran it, so a reader comparing durations in the run ring can
@@ -100,4 +172,4 @@ const r = await C.fold({
 
 console.log(`${r.total} records listed; read ${r.read}${r.deferred ? `, ${r.deferred} deferred to the next pass` : ''}.`);
 if (!written.length) console.log('No material change; nothing to commit.');
-else console.log((dryRun ? 'Dry run, would write: ' : 'Committed: ') + written.join(', '));
+else console.log((dryRun ? 'Dry run, would write: ' : outDir ? 'Wrote: ' : 'Committed: ') + written.join(', '));
