@@ -53,7 +53,8 @@ export default async function (page) {
     const list = document.querySelector('[data-waiting-rows]'), on = list && list.querySelector('[aria-current="true"]');
     const lb = list && list.getBoundingClientRect(), ob = on && on.getBoundingClientRect();
     console.log('WAITING ' + JSON.stringify({ summary: x.summary, tab: x.tab, open: x.openCalls.map((c) => c.id),
-      at: x.at, rows: x.rows.length, cur: x.cur && x.cur.id, review: document.querySelector('[data-waiting-open]')?.getAttribute('href'), card: s ? Math.round(s.scrollLeft / (s.clientWidth || 1)) : null,
+      at: x.at, rows: x.rows.length, cur: x.cur && x.cur.id, review: document.querySelector('[data-waiting-open]')?.getAttribute('href'),
+      headName: !!document.querySelector('[data-waiting-name]'), head: Math.round(document.querySelector('[data-waiting-head]')?.getBoundingClientRect().height || 0), card: s ? Math.round(s.scrollLeft / (s.clientWidth || 1)) : null,
       listOn: on ? on.dataset.key : null, rowInList: !!(ob && lb && ob.top >= lb.top - 1 && ob.bottom <= lb.bottom + 1),
       diffs: document.querySelectorAll('[data-waiting-diff] .md-diff-ins, [data-waiting-diff] .md-diff-del').length,
       groups: x.groupsOf(x.tab === 'calls' ? 'edit' : x.tab).map((g) => g.repo + ' ' + g.staged + '/' + g.files.length), badge: window.__shell.waitingCount,
