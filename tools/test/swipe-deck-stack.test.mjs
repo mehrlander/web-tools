@@ -170,6 +170,15 @@ const drivable = (core, width = 400) => {
   return core;
 };
 
+test('a cold late-result address builds only its own neighbourhood', async () => {
+  const built = [];
+  const c = drivable(sd.core(67, i => built.push(i), { start: 66 }));
+  c.go(66, 'instant');
+  await tick(3);
+  assert.deepEqual(built.slice().sort((a, b) => a - b), [65, 66]);
+  assert.equal(c.builtCount, 2, 'the first two unrelated records must not be fetched');
+});
+
 test('a slide the reader has left is emptied, and rebuilt on return', async () => {
   const built = [], freed = [];
   const c = drivable(sd.core(8, (i, el) => { built.push(i); el.textContent = 'slide ' + i; },
@@ -258,4 +267,3 @@ test('only the topmost deck answers a click on the ground', async () => {
   over.close(); await tick(3);
   under.close(); await tick(3);
 });
-

@@ -61,7 +61,7 @@ class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
     log.push('get:' + this.repo + ':' + p);
-    if (p === PATH) return { text: JSON.stringify(record) };
+    if (p === PATH) return { text: JSON.stringify({ ...record, readFrom: this.repo }) };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(p) {
@@ -234,6 +234,23 @@ test('the record is read once, however many mounts ask for it', () => {
   // version of it that survives concurrent slides: caching after the await lets
   // every caller miss and fetch.
   assert.equal(gets().filter(g => g === 'get:' + STORE + ':' + PATH).length, 1);
+});
+
+test('record reads share a promise per repository and path without crossing stores', async () => {
+  const boxes = [];
+  window.__otherStore = { path: PATH, repo: 'another/private', framed: true, compact: true };
+  for (let i = 0; i < 2; i++) {
+    const box = window.document.createElement('div');
+    box.setAttribute('x-data', 'sessionBrief(window.__otherStore)');
+    window.document.body.append(box);
+    Alpine.initTree(box);
+    boxes.push(box);
+  }
+  await tick(6);
+  assert.equal(gets().filter(g => g === 'get:another/private:' + PATH).length, 1);
+  assert.ok(boxes.every(box => Alpine.$data(box).record.readFrom === 'another/private'));
+  assert.equal(lent().record.readFrom, STORE);
+  boxes.forEach(box => { Alpine.destroyTree(box); box.remove(); });
 });
 
 test('the record overwrites what the row lent', () => {

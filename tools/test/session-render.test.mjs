@@ -658,7 +658,7 @@ test('find path normalization agrees with SessionIndex with and without that kit
 
 test('empty and normalized-empty AND queries return an explicit empty result', () => {
   for (const query of ['', ' \n\t ', null, undefined, '///', 'merge /']) {
-    assert.deepEqual(find(REC, query), { terms: [], hits: [], total: 0, matchedTerms: [], allTerms: false });
+    assert.deepEqual(find(REC, query), { terms: [], hits: [], total: 0, occurrenceTotal: 0, matchedTerms: [], allTerms: false });
   }
   const none = find(REC, 'not-captured');
   assert.deepEqual(none.terms, ['not-captured']);
@@ -686,6 +686,8 @@ test('find counts every matching turn while bounding previews per exchange', () 
   assert.equal(result.total, 41, 'repeated occurrences are not additional passages');
   assert.equal(result.hits.length, 1);
   assert.equal(result.hits[0].total, 41);
+  assert.equal(result.occurrenceTotal, 2001, 'occurrences include turns and text beyond every snippet cap');
+  assert.equal(result.hits[0].occurrenceTotal, 2001);
   assert.equal(result.hits[0].passages.length, 3);
   assert.ok(result.hits[0].passages.every(p => p.text.length <= 242));
 });
@@ -709,10 +711,41 @@ test('find excludes tools, subagents, metadata, injected records and relayed pro
     injected: [{ body: 'excluded injected body', head: 'excluded head', kind: 'skill' }],
   });
   assert.equal(find(r, 'excluded').total, 0);
+  assert.equal(find(r, 'excluded').occurrenceTotal, 0);
   assert.equal(find(r, 'ordinary').total, 2);
   assert.ok(turns(r).some(t => t.origin === 'peer'), 'deck provenance must survive without removing its card');
   assert.equal(groups(turns(r)).filter(c => c.some(t => t.role === 'user')).length, 4,
     'search eligibility must not renumber the existing deck');
+});
+
+test('exact occurrence totals distinguish repeated words from passages and exchanges', () => {
+  const r = findRecord([say('foo foobar FOO', 0), say('bar', 10)], [say('foobar', 1)]);
+  const result = find(r, 'foo foobar FOO bar');
+  assert.equal(result.total, 3);
+  assert.equal(result.hits.length, 2);
+  assert.equal(result.occurrenceTotal, 5, 'overlapping literal terms count one captured occurrence');
+  assert.deepEqual(result.hits.map(h => h.occurrenceTotal), [4, 1]);
+  assert.deepEqual(result.matchedTerms, ['foo', 'foobar', 'bar']);
+  assert.equal(result.allTerms, true);
+  const parts = window.sessionRender.findParts('foo foobar FOO', result.terms);
+  assert.deepEqual(parts.filter(p => p.match).map(p => p.text), ['foo', 'foobar', 'FOO']);
+});
+
+test('literal highlight spans preserve Unicode source and agree with occurrence counts', () => {
+  for (const [text, query, expected] of [
+    ['İ café CAFÉ 東京 🧭 <img a+b a+b', 'i café 東京 🧭 <img a+b', 8],
+    ['İİ', 'i \u0307', 2],
+    ['aaaaa', 'aa aaa', 2],
+    ['abc bc', 'ab bc', 2],
+  ]) {
+    const result = find(findRecord([say(text, 0)]), query);
+    const parts = window.sessionRender.findParts(text, result.terms);
+    assert.equal(parts.map(p => p.text).join(''), text);
+    assert.equal(result.occurrenceTotal, expected, query);
+    assert.equal(parts.filter(p => p.match).length, expected, query);
+    assert.ok(parts.every(p => p.text.isWellFormed()));
+  }
+  assert.deepEqual(window.sessionRender.findParts('ordinary', ['']), [{ text: 'ordinary', match: false }]);
 });
 
 test('find card indices and exchange labels agree with the exporter for irregular records', () => {

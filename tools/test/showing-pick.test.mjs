@@ -54,7 +54,7 @@ test('a lib change resolves to ?use=, which is the call the repo got wrong by ha
   assert.ok(d.carried.length >= 3);
 });
 
-test('a lib file several pages gh.load is offered to each, and the app lands on its view', () => {
+test('a shared reader is offered to each page and requires an explicit app view', () => {
   const d = run('lib/kits/session-render.js,dist/web-tools.js');
   const pages = d.links.map(l => l.page);
   assert.ok(pages.includes('pages/session.html'), 'the page that names it in a gh.load chain');
@@ -63,8 +63,14 @@ test('a lib file several pages gh.load is offered to each, and the app lands on 
     assert.doesNotMatch(link.url, /\\|%5c/i, 'render URLs must not inherit filesystem separators');
   }
   const app = d.links.find(l => l.page === 'app/index.html');
-  assert.equal(app.view, 'sessions', 'one declaring route means the link can land on it');
-  assert.match(app.url, /&view=sessions$/);
+  assert.equal(app.view, null, 'Search and Sessions share the reader, so neither route is implied');
+  assert.equal(new URL(app.url).searchParams.has('view'), false);
+  assert.match(d.warnings.join(' '), /2 routes \(search, sessions\)/);
+  for (const view of ['search', 'sessions']) {
+    const explicit = run('lib/kits/session-render.js,dist/web-tools.js', ['--query', 'view=' + view]);
+    const link = explicit.links.find(l => l.page === 'app/index.html');
+    assert.equal(new URL(link.url).searchParams.get('view'), view, 'the requested view reaches the shared reader');
+  }
 });
 
 test('a page file resolves to the toss, since ?use= never swaps a page shell', () => {
