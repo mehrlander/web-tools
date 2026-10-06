@@ -92,7 +92,9 @@
           <button class="join-item btn btn-xs" :class="unit==='r' && 'btn-active'"
                   @click="unit='r'; draw()">Prose only</button>
         </div>
-        <label class="flex items-center gap-1.5">
+        <!-- data-slot: the Map's Growth unit's Threshold dial (web-tools
+             data/ui-units/codebook.md, "Slots"); nothing at runtime reads it. -->
+        <label class="flex items-center gap-1.5" data-slot="frame:dial">
           <span class="opacity-60">min edits</span>
           <input type="range" class="range range-xs w-24" min="1" max="30"
                  x-model.number="minEdits" @input="draw()">
