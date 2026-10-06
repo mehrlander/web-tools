@@ -69,6 +69,7 @@ and the rule lived in prose that three files repeated and nothing executed.
 
 import argparse
 import csv
+import os
 import json
 import re
 import subprocess
@@ -293,10 +294,13 @@ def classify(paths):
             b["renderer"].append(p)
         elif p.startswith("dist/"):
             b["dist"].append(p)
+        # A kit's demo is a page file that happens to live under lib/, and
+        # Pages serves it from the default branch like any other: ?use= swaps
+        # the code it loads, never the page, so a new demo has no ?use= link.
+        elif (p.startswith(("pages/", "lib/")) and p.endswith(".html")) or p == "app/index.html":
+            b["shell"].append(p)
         elif p.startswith("lib/"):
             b["lib"].append(p)
-        elif (p.startswith("pages/") and p.endswith(".html")) or p == "app/index.html":
-            b["shell"].append(p)
         else:
             b["other"].append(p)
     return b
@@ -730,6 +734,78 @@ def routes_on_hash(page):
 GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏"}
 
 
+# LOOK LINKS (lib/kits/look.js): a page that loads the kit, or boots the
+# loader that brings it on demand, lands on a place when its fragment asks, so
+# the moment a link to it is handed over is the moment to say so, and to check
+# any anchor the link already names. The anchor
+# reading lives in scripts/look-link.py, imported rather than repeated; where
+# that file is absent (this script fetched alone into another repo) the hint
+# is simply not given.
+LOOK_KEYS = ("show", "tap", "walk", "steps")
+_look = []
+
+
+def look_link():
+    if not _look:
+        mod = None
+        f = Path(__file__).with_name("look-link.py")
+        if f.exists():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("look_link", f)
+            mod = importlib.util.module_from_spec(spec)
+            try:
+                spec.loader.exec_module(mod)
+            except Exception:
+                mod = None
+        _look.append(mod)
+    return _look[0]
+
+
+def look_hints(subjects, at, warn):
+    ll = look_link()
+    if not ll:
+        return []
+    from urllib.parse import parse_qsl
+    asked = dict(parse_qsl(at or "", keep_blank_values=True))
+    keys = [k for k in LOOK_KEYS if k in asked]
+    hints = []
+    for p, _ in subjects:
+        try:
+            info = ll.read_page((ROOT / p).read_text(errors="ignore"), p)
+        except OSError:
+            continue
+        if not info["takes"]:
+            continue
+        if keys:
+            steps = None
+            if "steps" in asked:
+                try:
+                    steps = ll.decode(asked["steps"])
+                except Exception:
+                    warn.append(f"the look link's steps= cannot be read; make it with {look_cmd()} make {p} --steps '<json>'.")
+                    continue
+            for miss in ll.asked(info, show=asked.get("show"), tap=asked.get("tap"),
+                                 walk=asked.get("walk"), steps=steps):
+                warn.append(f"look link on {p}: {miss}, so the reader would get a \"not on this page\" card. "
+                            f"Its anchors: {look_cmd()} anchors {p}")
+        elif info["names"] or info["prefixes"] or info["walks"]:
+            # Only a page that declares anchors gets the hint: every page that
+            # boots the loader takes look links, and a hint on all of them
+            # would be noise at every handover.
+            names = sorted(info["names"])
+            hints.append({"page": p, "anchors": names[:6], "more": max(0, len(names) - 6),
+                          "prefixes": sorted(info["prefixes"]), "walks": sorted(info["walks"])})
+    return hints
+
+
+def look_cmd():
+    f = Path(__file__).with_name("look-link.py")
+    try:
+        return "python3 " + os.path.relpath(f, Path.cwd())
+    except ValueError:
+        return "python3 " + str(f)
+
+
 def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref=""):
     if not hosted and mech in ("use",):
         warn.append("this repo serves no pages, so ?use= has nothing to pin: use the toss instead.")
@@ -744,13 +820,14 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
     links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
+    look = look_hints(subjects, at, warn)
     over = [l for l in links if len(l["url"]) >= MCP_URL_CAP]
     if over:
         warn.append(f"{len(over)} link(s) run {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
                     "MCP-written PR body or comment. There, drop the link to the chat caption "
                     "(SURFACING.md's shortening ladder) rather than trimming the address by hand.")
     return {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
-            "repo": slug, "links": links, "why": why, "warnings": warn}
+            "repo": slug, "links": links, "why": why, "warnings": warn, "look": look}
 
 
 def lines(d):
@@ -782,6 +859,13 @@ def lines(d):
             out.append(f"({len(d['carried'])} more pages import the pre-build, so they LOAD the change "
                        "without rendering it: " + ", ".join(d["carried"][:4])
                        + ("…" if len(d["carried"]) > 4 else "") + ")")
+        for h in d.get("look", []):
+            more = [f"+{h['more']} more"] if h["more"] else []
+            named = h["anchors"] + more + [x + "*" for x in h["prefixes"]]
+            walks = f"; walks: {', '.join(h['walks'])}" if h["walks"] else ""
+            make = f"{look_cmd()} make {h['page']} --show <anchor> --say '<why>'"
+            out.append(f"look: {h['page']} takes look links, so the link can land on the place you mean "
+                       f"(anchors: {', '.join(named)}{walks}). Rerun with --at \"$({make})\".")
     for w in d["warnings"]:
         out.append("! " + w)
     return out
