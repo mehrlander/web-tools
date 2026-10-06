@@ -310,7 +310,7 @@ test('searchSessions answers from the index and hits open via web-tools:open-ses
   const seen = [];
   window.document.addEventListener('web-tools:open-session', e => seen.push(e.detail));
   data.act(hits[0]);
-  assert.deepEqual(j(seen), [{ id: 'aaaa1111', day: '2026-08-02' }]);
+  assert.deepEqual(j(seen), [{ id: 'aaaa1111', day: '2026-08-02', find: 'archive prefix' }]);
   assert.equal(data.q, '');
   data.q = 'archive prefix';
   data.act(data.rows.find(r => r.kind === 'clear'));

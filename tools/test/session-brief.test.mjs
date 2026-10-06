@@ -55,13 +55,13 @@ const facts = {
 const log = [];
 const gets = () => log.filter(l => l.startsWith('get:'));
 // The store's tree listing, which is what the once-only rule is about. A
-// standalone mount also lists each repo's calls/ folder, a different read.
-const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/calls'));
+// standalone mount also lists each repo's user-calls/ folder, a different read.
+const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/user-calls'));
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
     log.push('get:' + this.repo + ':' + p);
-    if (p === PATH) return { text: JSON.stringify(record) };
+    if (p === PATH) return { text: JSON.stringify({ ...record, readFrom: this.repo }) };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(p) {
@@ -234,6 +234,23 @@ test('the record is read once, however many mounts ask for it', () => {
   // version of it that survives concurrent slides: caching after the await lets
   // every caller miss and fetch.
   assert.equal(gets().filter(g => g === 'get:' + STORE + ':' + PATH).length, 1);
+});
+
+test('record reads share a promise per repository and path without crossing stores', async () => {
+  const boxes = [];
+  window.__otherStore = { path: PATH, repo: 'another/private', framed: true, compact: true };
+  for (let i = 0; i < 2; i++) {
+    const box = window.document.createElement('div');
+    box.setAttribute('x-data', 'sessionBrief(window.__otherStore)');
+    window.document.body.append(box);
+    Alpine.initTree(box);
+    boxes.push(box);
+  }
+  await tick(6);
+  assert.equal(gets().filter(g => g === 'get:another/private:' + PATH).length, 1);
+  assert.ok(boxes.every(box => Alpine.$data(box).record.readFrom === 'another/private'));
+  assert.equal(lent().record.readFrom, STORE);
+  boxes.forEach(box => { Alpine.destroyTree(box); box.remove(); });
 });
 
 test('the record overwrites what the row lent', () => {
@@ -533,7 +550,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // what that kit calls its own case: a string a reader looks at. This file
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
-  const noted = [...el.querySelectorAll('[data-title-tip]')];
+  const noted = [...el.querySelectorAll('[data-title-tip]')]
+    .filter(n => !n.closest('[role="search"]'));
   // Every fact, plus notes that are not facts about the SESSION: the id, the
   // `running <ref>` marker naming the ref this page's own code booted from,
   // the scope row, whose note says what tapping it will do, the pages mark,
@@ -756,4 +774,3 @@ test('mountRaw mounts JsonExplorer on demand and destroy cleans it up', async ()
   data.destroy();
   assert.equal(destroyed, true, 'destroy cleans up _rawExplorer');
 });
-

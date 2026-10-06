@@ -7,8 +7,8 @@ description: "Hand over a look link: a page link whose fragment scrolls to one e
 
 A **look link** is a page link whose `#fragment` puts a **look marker** on one
 element: the page scrolls there, tints it, and shows a card saying why. A marker
-can also ring a control until the reader taps it, and a **walk** is a sequence of
-markers that advances on each tap. The grammar is in the header of
+can also ring a control the reader must tap before going on, and a **walk** is a
+sequence of markers. The grammar is in the header of
 [`lib/kits/look.js`](../../lib/kits/look.js).
 
 Write "look marker" and "look link" in full; "marker" alone means other things here.
@@ -17,7 +17,7 @@ Write "look marker" and "look link" in full; "marker" alone means other things h
 
 Whenever a reply would locate something on a page in words, send the link and
 let the reply say what to notice. One place is `show`, or `tap` when the reader
-should press it; three or more ordered taps are a walk. Where no route below
+should press it; three or more ordered steps are a walk. Where no route below
 reaches the page, say it in words.
 
 ## Making the link
@@ -53,7 +53,7 @@ Prefer `data-at` names and ids: only they are checked before sending.
 - A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); it loads
   the kit when a fragment asks.
 - Any page through a toss link (🥏); the renderer adds the kit.
-- A page that loads `lib/kits/land.js`, then `lib/kits/look.js`.
+- A page that loads `lib/kits/look.js`.
 - Not a page framed by the budget-drs app until its shell forwards the look
   keys (`SUBMITTAL_OPEN`); link the framed page on its own.
 

@@ -50,7 +50,7 @@ scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and fil
 scripts/upstream-skills.py,"compares each outside skill's pinned version with what its author holds now, and every held or vendored copy with its pin; --pin records a new pin",scripts,194,npm:upstreams,yes,yes,yes
 scripts/userscript-stub.py,,scripts,217,argv,no,yes,yes
 scripts/xlsx-picker-sweep.mjs,,scripts,104,imported,yes,yes,yes
-skills/hooks/account-skills.py,"compares the claude.ai account's synced skills with docs/account-skills.csv and the plugin's own copies, printing one line at session start only when something needs attention; by hand it lists every skill's state, writes the observation, and builds upload zips",skills/hooks,274,hook:SessionStart,yes,yes,yes
+skills/hooks/account-skills.py,"compares the claude.ai account's synced skills with docs/account-skills.csv and the plugin's own copies, printing one line at session start only when something needs attention; by hand it lists every skill's state, writes the observation, and builds upload zips",skills/hooks,334,hook:SessionStart,yes,yes,yes
 skills/hooks/ask-question-guard.sh,refuses AskUserQuestion in every session the plugin reaches and says to ask in prose; the project-settings deny in home and web-tools stays as a backstop,skills/hooks,38,hook:PreToolUse,no,yes,yes
 skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,298,imported,no,no,yes
 skills/hooks/environment-report.sh,"Prints at session start which commit of the setup script built the environment, and says to rebuild when it has moved on main.",skills/hooks,27,hook:SessionStart,no,yes,yes
@@ -96,7 +96,7 @@ tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,too
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",tools/render,370,npm:preview,yes,yes,yes
-tools/render/scenarios/activity-chrome-probe.mjs,,tools/render/scenarios,80,driver,no,no,no
+tools/render/scenarios/activity-chrome-probe.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/activity-fake.mjs,seed fake activity data so the token-gated Open view renders for a shot,tools/render/scenarios,111,driver,no,no,no
 tools/render/scenarios/activity-findings.mjs,,tools/render/scenarios,41,driver,no,no,no
 tools/render/scenarios/activity-pr-abandoned.mjs,the same seed opened on the Abandoned scope chip,tools/render/scenarios,11,driver,no,no,no
@@ -127,6 +127,7 @@ tools/render/scenarios/annotate-touch-scroll.mjs,"drag real touch events through
 tools/render/scenarios/annotate-triple-tap.mjs,"the buffer scrolled to its newest line in a box of whole lines, then three taps in a run taking the whole thing",tools/render/scenarios,102,driver,no,no,no
 tools/render/scenarios/annotate-units-demo.mjs,"the two unit modes, element pick and region drag, driven through real pointer events",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/app-deck-subject.mjs,"the app's branch deck naming the document a slide is showing, two levels down: a real fab adopting it, and the drilled file deck taking the subject and handing it back",tools/render/scenarios,115,driver,no,no,no
+tools/render/scenarios/app-waiting.mjs,,tools/render/scenarios,63,driver,no,no,no
 tools/render/scenarios/approve-app-view.mjs,"approve.html as a promoted app view, with the shell drawn around it: stages the estate config a headless run has no token to read",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/approve-header.mjs,,tools/render/scenarios,291,driver,no,no,no
 tools/render/scenarios/audit-absorb.mjs,,tools/render/scenarios,160,driver,no,no,no
@@ -174,6 +175,8 @@ tools/render/scenarios/deck-chrome.mjs,,tools/render/scenarios,144,driver,no,no,
 tools/render/scenarios/deck-split.mjs,,tools/render/scenarios,45,driver,yes,no,no
 tools/render/scenarios/dictate-notes.mjs,,tools/render/scenarios,66,driver,no,no,no
 tools/render/scenarios/dictate-page.mjs,"pages/dictate.html mid-dictation with SpeechRecognition stubbed: committed text, a live hypothesis, the mark row and the header instruments. Options take it on to a word selected by long press (the casing face) and the armed target",tools/render/scenarios,77,driver,no,no,yes
+tools/render/scenarios/dictate-proposed.mjs,"pages/dictate.html reviewing the proposal queue: file mode with &proposed, a file's queued Text collection proposals staged as change cards",tools/render/scenarios,31,driver,no,no,no
+tools/render/scenarios/dictate-user-call.mjs,,tools/render/scenarios,77,driver,no,no,no
 tools/render/scenarios/diff-tool-at.mjs,the diff tool's address field driving the browse panel over captured API fixtures,tools/render/scenarios,187,driver,no,no,no
 tools/render/scenarios/diff-tool-grab.mjs,"the Sources tab with both slots in GitHub mode, the @-grab row on screen",tools/render/scenarios,15,driver,no,no,no
 tools/render/scenarios/diff-tool-loaded.mjs,diff-tool in its loaded state: two versions diffed on the Diff tab,tools/render/scenarios,65,driver,no,no,no

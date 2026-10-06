@@ -28,7 +28,7 @@
     <button tabindex="0" class="btn btn-sm gap-1"><i class="ph ph-link"></i>Links<i class="ph ph-caret-down text-xs"></i></button>
     <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box w-[min(26rem,calc(100vw-2rem))] z-50 shadow-lg mt-1 p-2">
       <template x-for="l in links" :key="l.label">
-        <li><a :href="l.href" @click="if (location.href.endsWith(l.href)) { $event.preventDefault(); Look.fromLocation(); } $nextTick(() => document.activeElement.blur())" class="flex flex-col items-start gap-0.5">
+        <li><a :href="l.href" @click="tab = 'summary'; editing = null; if (location.href.endsWith(l.href)) { $event.preventDefault(); Look.fromLocation(); } $nextTick(() => document.activeElement.blur())" class="flex flex-col items-start gap-0.5">
           <span x-text="l.label"></span>
           <code class="font-mono text-xs text-base-content/60 truncate w-full" x-text="l.href"></code>
         </a></li>
@@ -134,11 +134,12 @@
 <script type="application/json" id="look-walks">
 {
   "change-licenses": [
-    { "at": "tab-elements",  "tap": true, "say": "Open the Elements tab." },
+    { "at": "total",         "say": "This is the request's two-year total." },
+    { "at": "tab-elements",  "tap": true, "say": "Open Elements to see the lines behind it." },
     { "at": "row-licenses",  "say": "Software licenses is the line to change." },
     { "at": "edit-licenses", "tap": true, "say": "Tap the pencil to edit its FY27 amount." },
     { "at": "save-licenses", "tap": true, "say": "Type the new figure in the box, then tap Save." },
-    { "at": "total",         "say": "The two-year total picks up the change here." }
+    { "at": "total",         "say": "The total now includes the new figure." }
   ]
 }
 </script>

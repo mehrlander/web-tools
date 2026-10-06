@@ -100,6 +100,7 @@ const ROWS = [
 
 function seedSessions() {
   data.activityQuery = '';
+  data.sessionDiscussion = false;
   data.sessionRows_ = ROWS;
   data.activity = {};
   data.sessionScope = 'all';
@@ -215,19 +216,27 @@ test('the count says what the query left and what it searched', () => {
   assert.equal(data.sessionQueryCount, '');
 });
 
-test('the exhaustive pass is a named hop, carrying the query as typed', () => {
+test('Discussion stays in Activity; Inspect is the explicit query handoff', async () => {
   seedSessions();
   SEARCHES.length = 0;
   data.activityQuery = '  merge guide  ';
   data.openSessionGrep();
+  assert.equal(data.sessionDiscussion, true);
+  assert.equal(SEARCHES.length, 0);
+  window.EstateSearch = { sessions: async () => ({ hits: [], indexed: true, missing: [] }) };
+  window.SessionIndex = {};
+  await data.refreshSessionDiscussion(true);
+  data.inspectSessionMatches();
   // Field by field: the object crosses the vm boundary, so it is structurally
   // equal to a literal here and never reference-equal to one.
   assert.equal(SEARCHES.length, 1);
   assert.equal(SEARCHES[0].q, 'merge guide', 'trimmed, so a stray space is not searched');
   assert.equal(SEARCHES[0].mode, 'sessions');
+  data.openSessionGrep();
+  assert.equal(data.sessionDiscussion, false);
   // An empty box hands off nothing rather than opening the whole store.
   data.activityQuery = '   ';
-  data.openSessionGrep();
+  data.inspectSessionMatches();
   assert.equal(SEARCHES.length, 1);
 });
 
