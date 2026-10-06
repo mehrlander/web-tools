@@ -1583,14 +1583,14 @@ html.dk-dragging main{transition:none !important}
             <!-- Files has two modes: the folder-at-a-time browser, and Docs,
                  the workspace's markdown as one tree (&tab=docs). The Map's
                  compact count chip, as the PowerShell outpost view's filters. -->
-            <div x-show="projectTab==='files' || projectTab==='docs'" class="mt-3 flex items-center gap-1" role="group" aria-label="All files or docs" data-files-mode>
+            <div x-show="projectTab==='files' || projectTab==='docs'" class="mt-3 flex items-center gap-1" role="group" aria-label="All files or docs" data-files-mode data-slot="frame:subtabs">
               <button @click="goProjectTab('files')" :aria-pressed="projectTab==='files'"
                       class="btn btn-xs gap-1" :class="projectTab==='files' ? 'btn-neutral' : 'btn-ghost'">
                 <i class="ph ph-folder-simple text-sm"></i>All files</button>
               <button @click="goProjectTab('docs')" :aria-pressed="projectTab==='docs'"
                       class="btn btn-xs gap-1" :class="projectTab==='docs' ? 'btn-neutral' : 'btn-ghost'">
                 <i class="ph ph-files text-sm"></i>Docs<span x-show="projectDocsCount" class="opacity-60 tabular-nums" x-text="projectDocsCount"></span></button>
-              <label x-show="projectTab==='docs'" class="ml-auto input input-xs input-bordered flex items-center gap-1 w-44 max-w-[45%]">
+              <label x-show="projectTab==='docs'" class="ml-auto input input-xs input-bordered flex items-center gap-1 w-44 max-w-[45%]" data-slot="frame:search">
                 <i class="ph ph-magnifying-glass opacity-50"></i>
                 <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
                      the tree instead of opening the sidebar finder. -->
