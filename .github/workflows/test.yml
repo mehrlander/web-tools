@@ -49,7 +49,10 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    # Session branches too: GitHub builds no merge ref for a conflicted pull
+    # request, so its pull_request run never starts and its newest commit would
+    # otherwise carry no check at all (docs/SNAGS.md ci-run-silently-not-started).
+    branches: [main, 'claude/**', 'codex/**', 'gemini/**', 'agent/**']
     # The monthly WSL snapshot commits data and touches no code, so there is
     # nothing for the suite to say about it.
     paths-ignore: ['pages/wsl-sync/data/**']
