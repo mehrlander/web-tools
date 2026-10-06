@@ -36,18 +36,17 @@ test('repoProjects: string and object entries normalize to {path, label, board, 
       projects: [
         'news',
         { path: 'projects/budget-drs' },
-        // A stale `icon` is ignored rather than being an error: the rows
-        // stopped drawing one, and a manifest may still carry the field.
+        // A `ph-` icon is kept as given: the rows draw it as that glyph.
         { path: 'projects/budget-wa/', label: 'WA budget', icon: 'ph-bank' },
       ],
     },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [
-    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' },
+    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' },
     { path: 'projects/budget-drs', label: 'budget-drs',
-      board: 'projects/budget-drs/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' },
+      board: 'projects/budget-drs/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' },
     { path: 'projects/budget-wa', label: 'WA budget',
-      board: 'projects/budget-wa/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' },
+      board: 'projects/budget-wa/tracker/board.md', landing: '', icon: 'ph-bank', inbox: null, powershellOutpost: '' },
   ]);
 });
 
@@ -97,7 +96,7 @@ test('repoProjects: junk entries drop instead of throwing', () => {
     'mehrlander/home': { projects: [null, 42, {}, { path: '' }, { label: 'no path' }, 'ok'] },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'),
-    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' }]);
+    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' }]);
 });
 
 // The workspace's own tray, and the reason it is DECLARED where `board` above
@@ -175,12 +174,12 @@ test('the open project resolves to its declared entry, or a derived one', () => 
   shell.loadProjectReadme = async () => {};
   shell.goProject('projects/a');
   assert.deepEqual(shell.project, { path: 'projects/a', label: 'Alpha',
-                                    board: 'projects/a/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' });
+                                    board: 'projects/a/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' });
   // A deep link may name a workspace the manifest has not caught up with; the
   // view still opens, on the conventions the path itself implies.
   shell.goProject('projects/unlisted');
   assert.deepEqual(shell.project, { path: 'projects/unlisted', label: 'unlisted',
-                                    board: 'projects/unlisted/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' });
+                                    board: 'projects/unlisted/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' });
 });
 
 test('repoProjects prefers the OPEN repo\'s live manifest over the estate cache', () => {
@@ -358,9 +357,12 @@ test('the sidebar markup wires the project rows to the shell methods', () => {
     'the board button no longer opens through openProjectBoard');
   assert.match(page, /:href="projectGithubUrl\(r\.repo, p\)"/,
     'the github button no longer links through projectGithubUrl');
-  // The leading glyph is gone on purpose: every row took the same defaulted
-  // icon, so a column of identical marks distinguished nothing.
-  assert.doesNotMatch(page, /:class="p\.icon"/, 'project rows draw a leading icon again');
+  // The leading glyph came back as each project's OWN icon: it had gone because
+  // every row took the same defaulted glyph, which distinguished nothing.
+  assert.match(page, /:src="projectIconSrc\(r\.repo, p\)"/, 'an estate project row no longer draws its icon');
+  assert.match(page, /:src="projectIconSrc\(\$store\.browser\.repo, p\)"/, 'a repo sidebar project row no longer draws its icon');
+  assert.equal((page.match(/:class="projectGlyph\(p\)"|projectGlyph\(p\), view==='project'/g) || []).length, 2,
+    'both project lists fall back to the stock glyph where a project has no picture');
 });
 
 test('the repo sidebar carries the same list, and the pane binds the open one', () => {
@@ -491,6 +493,106 @@ test('projectPages is the workspace slice of the repo catalog, derived not decla
   browserStore.ref = 'claude/branch';
   assert.equal(shell.projectPages[0].live,
     '../pages/toss-render.html#gh=mehrlander/home@claude/branch:projects/budget-drs/app/view/app.html');
+});
+
+test('a route into the project\'s landing is a card that opens the App tab there, and the landing itself is not', () => {
+  const { shell, browserStore } = makeShell({
+    browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
+  });
+  const APP = 'projects/budget-drs/app/view/app.html';
+  browserStore.config = {
+    projects: [{ path: 'projects/budget-drs', landing: APP }],
+    pages: [
+      { path: APP, title: 'Budget DRS', appView: true },
+      { path: APP, query: 'view=submittal', title: 'Submittal' },
+      { path: APP, query: '?view=spend&tab=acfr', title: 'Spend: ACFR' },
+      { path: 'projects/budget-drs/cem/cem.html', query: 'tab=q9', title: 'CEM' },
+    ],
+  };
+  shell.syncUrl = () => {};
+  shell.loadProjectReadme = async () => {};
+  shell.goProject('projects/budget-drs', 'pages');
+  const items = shell.projectPages;
+  assert.deepEqual(items.map(i => i.label), ['Submittal', 'Spend: ACFR', 'CEM'],
+    'the landing with no query is the App tab already, so it is no card');
+  assert.deepEqual(items.map(i => i.route), ['view=submittal', 'view=spend&tab=acfr', null],
+    'a query on the landing is a route; a query on another page is only that page\'s address');
+  assert.equal(new Set(items.map(i => i.key)).size, 3, 'one page, several cards, distinct keys');
+  assert.equal(items[1].live, '../pages/toss-render.html#gh=mehrlander/home:' + APP + '?view=spend&tab=acfr');
+  assert.equal(items[2].live, '../pages/toss-render.html#gh=mehrlander/home:projects/budget-drs/cem/cem.html?tab=q9');
+  assert.equal(items[1].thumb, 'thumbs/mehrlander/home/projects/budget-drs/app/view/app@view-spend-tab-acfr.png');
+  assert.equal(items[2].thumb, '', 'only a route card reads a cached shot; a page keeps its live preview');
+
+  shell.openProjectApp('?view=spend&tab=acfr');
+  assert.equal(shell.projectPane, 'app');
+  assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/home:' + APP + '?view=spend&tab=acfr');
+  const q = shell.deepLinkParams(new URLSearchParams());
+  assert.equal(q.get('tab'), 'app');
+  assert.equal(q.get('item'), 'view=spend&tab=acfr', 'the route rides the address as &item=');
+  assert.equal(new URLSearchParams(shell.projectAppHref('view=submittal').split('?')[1]).get('item'), 'view=submittal');
+
+  shell.openProjectApp('');
+  assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/home:' + APP, 'the App button is the app\'s front');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+
+  shell.goProject('projects/budget-drs', 'app', 'view=submittal');
+  assert.equal(shell.projectAppRoute, 'view=submittal', 'a cold link lands on its route');
+  shell.goProject('projects/other', 'app');
+  assert.equal(shell.projectAppRoute, '', 'another project starts at its own front');
+});
+
+test('a route card takes a plain click in place and leaves a modified one to its link', () => {
+  const { shell } = makeShell();
+  const opened = [];
+  shell.openProjectApp = (r) => opened.push(r);
+  let prevented = 0;
+  const ev = (mods = {}) => ({ preventDefault: () => { prevented++; }, ...mods });
+  shell.followProjectRoute(ev(), 'view=a');
+  shell.followProjectRoute(ev({ metaKey: true }), 'view=b');
+  shell.followProjectRoute(ev({ ctrlKey: true }), 'view=c');
+  assert.deepEqual(opened, ['view=a']);
+  assert.equal(prevented, 1);
+  assert.match(page, /@click="followProjectRoute\(\$event, pg\.route\)" data-project-route/,
+    'the route card face no longer routes its click through followProjectRoute');
+});
+
+test('the repo Pages gallery gives a page query its own tile, and never defaults an app to live', async () => {
+  const { shell, gallery, browserStore, win } = makeShell({
+    browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
+  });
+  const APP = 'projects/budget-drs/app/view/app.html';
+  browserStore.config = {
+    projects: [{ path: 'projects/budget-drs', landing: APP }],
+    pages: [
+      { path: APP, title: 'Budget DRS' },
+      { path: APP, query: 'view=submittal', title: 'Submittal' },
+      { path: 'tools/map.html', title: 'Map' },
+    ],
+  };
+  win.__shell = shell;
+  await gallery.load();
+  const items = gallery.groups[0].items;
+  assert.deepEqual(items.map(i => i.view), ['shot', 'shot', 'live'],
+    'an app with no cached shot opens on the missing-shot face; a page stays live');
+  assert.deepEqual(items.map(i => i.shotMissing), [true, true, false]);
+  assert.equal(items[1].href, '../pages/toss-render.html#gh=mehrlander/home:' + APP + '?view=submittal');
+  assert.equal(new Set(items.map(i => i.href)).size, 3, 'the tiles key on href, so a route is its own tile');
+});
+
+test('the app\'s thumb path and the thumb builder\'s name one file', () => {
+  // repo-pages-shots.mjs writes the cache the galleries read; a route folded
+  // into the name differently on either side would be a shot nothing finds.
+  const fn = (src, name) => {
+    const m = src.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\}'));
+    assert.ok(m, name + ' was not found');
+    return new Function('return (' + m[0] + ')')();
+  };
+  const app = fn(page, 'catalogThumbPath');
+  const builder = fn(readFileSync(path.join(repoRoot, 'tools/build/repo-pages-shots.mjs'), 'utf8'), 'thumbRel');
+  for (const [p, q] of [['a/b.html', ''], ['a/app.html', 'view=spend&tab=acfr'], ['a/app.htm', '?View=Fund'], ['x.html', '&&']]) {
+    assert.equal(app('o/r', p, q), 'thumbs/o/r/' + builder(p, q), p + ' ' + q);
+  }
+  assert.equal(app('o/r', 'a/b.html', ''), 'thumbs/o/r/a/b.png', 'a page with no query keeps the name it always had');
 });
 
 test('groupProjectDocs: root leads, folders alphabetical, READMEs lead their folder', () => {
@@ -671,10 +773,10 @@ test('the pane wires the tabs, the app frame, the pages grid, and the docs tree'
   assert.match(page, /@click="goProjectTab\('docs'\)"/, 'Files has lost its Docs mode');
   assert.match(page, /x-if="projectPane==='app'"/, 'the landing is no longer the App tab');
   assert.match(page, /:src="projectLandingUrl"/, 'the landing iframe is gone');
-  assert.match(page, /data-project-app/, 'the app icon beside the name is gone');
-  assert.match(page, /:src="projectAppIcon"/, 'the app icon no longer draws the declared landingIcon');
-  assert.match(page, /data-project-app\s+x-effect="loadProjectAppIcon\(\)"/,
-    'the icon loads off the App button, so it follows the manifest arriving after the pane opened');
+  assert.match(page, /@click="openProjectApp\(''\)" :aria-pressed="projectPane==='app'" data-project-app/,
+    'the App button beside the name no longer opens the app at its front');
+  assert.match(page, /data-project-switch>\s*<img x-show="projectIconSrc\(\$store\.browser\.repo, project\)"/,
+    'the project mark no longer draws the project\'s icon');
   assert.match(page, /x-for="pg in projectPages"/, 'the pages grid no longer iterates projectPages');
   assert.match(page, /x-for="r in projectDocsRows"/, 'the docs tree is gone');
   assert.match(page, /openProjectDoc\(r\.rel\)/, 'a docs row no longer opens in the reader');
@@ -682,14 +784,41 @@ test('the pane wires the tabs, the app frame, the pages grid, and the docs tree'
   assert.match(page, /x-html="projectDocsIndexHtml"/, 'the curated docs/README.md lead is gone');
 });
 
-test('repoProjects carries a landingIcon only beside a landing', () => {
+test('repoProjects carries a project\'s icon root-relative, with or without a landing', () => {
   const { shell } = makeShell();
   const rows = shell.repoProjects('a/b', { projects: [
-    { path: 'x', landing: '/x/app.html', landingIcon: '/x/icon.svg' },
-    { path: 'y', landingIcon: 'y/icon.svg' },
+    { path: 'x', landing: '/x/app.html', icon: '/x/icon.svg' },
+    { path: 'y', icon: ' y/icon.svg ' },
+    { path: 'z', icon: 'ph-newspaper' },
+    { path: 'w', icon: 7 },
+    { path: 'v', landingIcon: 'v/icon.svg' },
   ] });
-  assert.equal(rows[0].landingIcon, 'x/icon.svg');
-  assert.equal(rows[1].landingIcon, '', 'an icon with no app has nothing to open');
+  assert.deepEqual(rows.map(r => r.icon), ['x/icon.svg', 'y/icon.svg', 'ph-newspaper', '', ''],
+    'a file path loses its leading slash, a glyph is kept, junk and the retired landingIcon read as none');
+});
+
+test('a project\'s icon is read once per repo@ref, and a glyph or no icon draws the stock mark', async () => {
+  const reads = [];
+  const { shell, browserStore } = makeShell({ browserStore: { repo: 'a/b', ref: 'main', defaultRef: 'main',
+    gh: { get: async (f) => { reads.push(f); if (f === 'gone.svg') throw new Error('404'); return { text: '<svg/>' }; } } } });
+  const p = { path: 'x', icon: 'x/icon.svg' };
+  assert.equal(shell.projectIconSrc('a/b', p), '', 'nothing to draw before the read lands');
+  assert.equal(shell.projectIconSrc('a/b', p), '');
+  await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(reads, ['x/icon.svg'], 'two renders asked, one read went out');
+  assert.equal(shell.projectIconSrc('a/b', p), 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg/>'));
+  browserStore.ref = 'claude/branch';
+  assert.equal(shell.projectIconSrc('a/b', p), '', 'another ref is another file');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(reads.length, 2);
+  assert.equal(shell.projectIconSrc('a/b', { path: 'g', icon: 'gone.svg' }), '');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(shell.projectIconSrc('a/b', { path: 'g', icon: 'gone.svg' }), '', 'a failed read draws the glyph and is not retried');
+  assert.equal(reads.filter(f => f === 'gone.svg').length, 1);
+  assert.equal(shell.projectIconSrc('a/b', { path: 'z', icon: 'ph-newspaper' }), '');
+  assert.equal(shell.projectGlyph({ icon: 'ph-newspaper' }), 'ph-newspaper');
+  assert.equal(shell.projectGlyph({ icon: 'z/icon.svg' }), 'ph-kanban');
+  assert.equal(shell.projectGlyph({ icon: '' }), 'ph-kanban');
 });
 
 test('a README whose title repeats the project name loses that title', () => {
@@ -706,7 +835,7 @@ test('the two sidebar project lists are sized the same', () => {
   // for a while; the guideline made that argument unnecessary. Both now carry
   // the same row metrics, and this is what catches one drifting from the other.
   const rows = [...page.matchAll(
-    /class="flex items-center min-w-0 flex-1 px-2 py-1\.5 text-base text-left transition-colors/g)];
+    /class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1\.5 text-base text-left transition-colors/g)];
   assert.equal(rows.length, 2, 'the two project lists no longer share their row size');
   const blocks = [...page.matchAll(/flex flex-col gap-0\.5 ml-4 pl-2 border-l border-base-300/g)];
   assert.equal(blocks.length, 2, 'the two project blocks no longer share their guideline and gap');
@@ -898,7 +1027,10 @@ test('the project mark opens the repo\'s projects in the shared menu, the open o
   assert.match(items.at(-1).url, /github\.com\/mehrlander\/home\/tree\/.*projects\/budget-drs/);
   assert.equal(items[0].head, true);
   assert.deepEqual(items.filter(i => i.current).map(i => i.label), ['budget-drs']);
-  assert.equal(items.find(i => i.current).icon, 'ph-check');
+  // Each project row carries its own mark, the open one included: its label
+  // in primary marks it, so the check that used to replace its glyph is gone.
+  assert.deepEqual(items.slice(1, 4).map(i => i.icon), ['ph-kanban', 'ph-kanban', 'ph-kanban']);
+  assert.deepEqual(items.slice(1, 4).map(i => i.img), ['', '', ''], 'no icon declared, no picture');
   items.find(i => i.label === 'wps').run();
   assert.equal(shell.projectPath, 'projects/wps');
   assert.equal(shell.projectTab, 'docs', 'a tab every project has is kept');

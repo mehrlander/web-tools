@@ -1,7 +1,7 @@
 // screenshot.mjs interaction scenario: the PROJECT VIEW's App tab, which a
 // workspace that declares a `landing` page gains: that page whole in a frame
-// (app/index.html, projectLandingUrl), with the tab drawn as the `landingIcon`
-// SVG beside the project name.
+// (app/index.html, projectLandingUrl), opened by the App button beside the
+// project name, under a mark drawn as the project's `icon` SVG.
 //
 //   node tools/render/screenshot.mjs app/index.html \
 //     --script tools/render/scenarios/project-app.mjs \
@@ -19,7 +19,7 @@ export default async function (page) {
     const shell = window.__shell;
     const store = window.Alpine.store('browser');
     const ICON = 'lib/favicon.svg';
-    const MANIFEST = { projects: [{ path: 'site', label: 'site', landing: 'pages/doc-growth.html', landingIcon: ICON }] };
+    const MANIFEST = { projects: [{ path: 'site', label: 'site', landing: 'pages/doc-growth.html', icon: ICON }] };
     store.gh = {
       repo: 'mehrlander/web-tools', ref: 'main',
       async get(p) {
