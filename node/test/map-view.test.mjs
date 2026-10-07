@@ -1345,7 +1345,10 @@ test('the reading deck labels the paragraph a pending edit would change', async 
     const note = data.deckProposalNote({ ...edits[0], notes: [{ by: 'owner', at: 't', note: 'check the tone' }] }).textContent;
     assert.doesNotMatch(note, /Remove words/, "a purpose's general definition is not a note");
     assert.match(note, /check the tone/, 'a comment left on the proposal is');
-    assert.match(note, /Claude/, 'the proposer is named (as a mark, where the mark kit is loaded)');
+    assert.doesNotMatch(note, /Claude/, 'the proposer is the signature pill\'s, not the note\'s');
+    const sign = data.deckProposalSign(edits[0]);
+    assert.ok(sign?.matches('[data-deck-proposal-sign]'), 'a proposal with an author or a basis is signed');
+    assert.equal(data.deckProposalSign({ ...edits[0], author: '', basis: '' }), null, 'one with neither is not');
     assert.equal(data.deckEdits('docs/none.md').length, 0);
   } finally {
     data.docPending = null;
@@ -1353,11 +1356,25 @@ test('the reading deck labels the paragraph a pending edit would change', async 
   }
 });
 
-test('a proposal basis is named in place, never linked away', () => {
-  assert.deepEqual(data.basisLabel('https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification/README.md').label,
-    'doc simplification run');
-  assert.equal(data.basisLabel('https://github.com/mehrlander/web-tools/pull/807').label, 'PR #807');
-  assert.equal(data.basisLabel(''), null);
+test('a proposal basis is read into fields, and its tip counts from the collection', () => {
+  if (!window.TextCollection) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/text-collection.js'), 'utf8'))();
+  const RUN = 'https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification/README.md';
+  assert.deepEqual({ ...data.basisOf(RUN) }, { kind: 'run', run: '2026-09-27-doc-simplification', date: '2026-09-27',
+    name: 'Doc simplification run', short: 'Sep 27' });
+  assert.deepEqual({ ...data.basisOf('https://github.com/mehrlander/web-tools/pull/807') },
+    { kind: 'pr', repo: 'mehrlander/web-tools', name: 'PR #807', short: '#807' });
+  assert.equal(data.basisOf(''), null);
+  const e = { path: 'docs/x.md', author: 'Claude', purpose: 'tighten', kind: 'tighten', basis: RUN };
+  const counted = data.deckSignBody(e, { proposals: 562, files: [{ repo: data.hub(), path: 'docs/x.md', proposals: 117 }],
+    repos: ['a', 'b', 'c', 'd'], by_purpose: { update: 108, tighten: 419 }, by_author: { Claude: 562 }, rejected: 2, notes: 1 });
+  const fields = Object.fromEntries([...counted.querySelectorAll('dt')].map(dt => [dt.textContent, dt.nextElementSibling.textContent]));
+  assert.deepEqual(fields, { 'Proposed by': 'Claude', Purpose: 'tighten', 'Run date': '2026-09-27',
+    Filed: '562 proposals · 1 document · 4 repos', Purposes: 'tighten 419 · update 108',
+    'This document': '117 filed · 0 pending', Reviews: '2 rejected · 1 comment' });
+  assert.match(counted.querySelector('a').getAttribute('href'), /text-lab\.html\?pane=runs&run=2026-09-27-doc-simplification$/,
+    'the run opens in Text Lab, never on GitHub');
+  assert.equal(data.deckSignBody({ ...e, basis: 'https://github.com/mehrlander/web-tools/pull/807' }, null).querySelector('a'), null,
+    'a pull request basis links nowhere');
 });
 
 // Apply swaps one block in the file as main holds it and commits with the sha

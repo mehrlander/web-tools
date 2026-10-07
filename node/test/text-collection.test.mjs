@@ -310,3 +310,37 @@ test('occurrences.json puts each original\'s files on its view, and absent is un
   assert.match(bad.warnings.join('\n'), /occurrences\.json is not JSON/);
   assert.equal(T.view(bad, bad.variants[0]).at, null);
 });
+
+test('bases counts each basis from the rows: a run by its folder, rejections by the staging rule', async () => {
+  const RUN = 'https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification/README.md';
+  const row = (from, to, path, basis) => JSON.stringify({ from: ID[from], to: ID[to], repo: 'mehrlander/web-tools', path, basis });
+  const proposals = [
+    row('families', 'bill-section families', 'docs/a.md', RUN),
+    row('chrome', 'decoration', 'docs/a.md', RUN),
+    row('old wording', 'new wording', 'docs/b.md', RUN),
+    row('families', 'bill-section families', 'docs/c.md', BASIS),
+  ].join('\n') + '\n';
+  const reviews = [
+    JSON.stringify({ from: ID.chrome, to: ID.decoration, by: 'a', at: 't', vote: 'down', note: 'keep the word' }),
+    JSON.stringify({ from: ID['old wording'], to: ID['new wording'], by: 'a', at: 't', vote: 'down' }),
+    JSON.stringify({ from: ID['old wording'], to: ID['new wording'], by: 'b', at: 't', vote: 'up' }),
+  ].join('\n') + '\n';
+  const built = await T.build({ ...args({ proposals }), files: { ...args({ proposals }).files, reviews } });
+  const all = T.bases(built);
+  assert.deepEqual([...all.keys()], [RUN, BASIS]);
+  const run = all.get(RUN);
+  assert.equal(run.run, '2026-09-27-doc-simplification');
+  assert.equal(run.date, '2026-09-27');
+  assert.equal(run.proposals, 3);
+  assert.deepEqual(run.files.map(f => [f.path, f.proposals]), [['docs/a.md', 2], ['docs/b.md', 1]]);
+  assert.deepEqual(run.repos, ['mehrlander/web-tools']);
+  assert.deepEqual(run.by_purpose, { qualify: 1, rephrase: 1, repair: 1 });
+  assert.deepEqual(run.by_author, { 'guarded editorial pass': 2, 'doc-audit': 1 });
+  assert.equal(run.rejected, 1, 'a down vote another reader answered with an up is not a rejection');
+  assert.equal(run.notes, 1);
+  const pr = all.get(BASIS);
+  assert.deepEqual([pr.run, pr.date, pr.proposals], ['', '', 1], 'a pull request basis is no run');
+  assert.equal(T.basisRun('https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification-reconciliation/README.md').run,
+    '2026-09-27-doc-simplification-reconciliation');
+  assert.equal(T.basisRun(BASIS), null);
+});

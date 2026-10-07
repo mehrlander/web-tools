@@ -332,12 +332,34 @@ test('a change carries a note and actions that show only while it is selected', 
   });
 });
 
+test('a signature takes the right-hand corner, moves the actions left, and shows with the selection', () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  return mdDiff.render(host, 'One.\n\nOld text here.\n', 'One.\n\nNew text here.\n', {
+    actions: () => [{ label: 'Apply', run() {} }, { label: 'Close', icon: 'ph-x', run() {} }],
+    sign: () => Object.assign(window.document.createElement('button'), { textContent: 'Sep 27' }),
+  }).then(() => {
+    const box = host.querySelector('.md-diff-change');
+    const bar = box.querySelector('.md-diff-actions');
+    const sign = box.querySelector('.md-diff-sign');
+    assert.equal(sign.textContent, 'Sep 27');
+    assert.ok(sign.classList.contains('right-3') && bar.classList.contains('left-3'), 'the two pills take opposite sides');
+    const close = bar.querySelectorAll('button')[1];
+    assert.equal(close.getAttribute('aria-label'), 'Close', 'an icon action keeps its name for a screen reader');
+    assert.ok(close.querySelector('i.ph-x'));
+    assert.ok(sign.classList.contains('invisible') && !sign.classList.contains('!visible'));
+    box.dispatchEvent(new window.CustomEvent('md-diff:here', { bubbles: true, detail: { at: 0 } }));
+    assert.ok(sign.classList.contains('!visible'), 'shown once selected');
+    host.remove();
+  });
+});
+
 test('without a note or actions a container adds neither', () => {
   const host = window.document.createElement('div');
   window.document.body.append(host);
   return mdDiff.render(host, 'One.\n\nOld text here.\n', 'One.\n\nNew text here.\n').then(() => {
     const box = host.querySelector('.md-diff-change');
-    assert.equal(box.querySelector('.md-diff-note, .md-diff-actions'), null);
+    assert.equal(box.querySelector('.md-diff-note, .md-diff-actions, .md-diff-sign'), null);
     host.remove();
   });
 });
