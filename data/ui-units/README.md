@@ -3,7 +3,7 @@
 Tables of the user interface the Web Tools app and the budget-drs app show:
 one row per unit, the ring each sits in, and which shared kits its files call.
 It is the input to a catalog of the estate's display patterns, rendered in the
-Map view's UI tab as Dimensions and the Gallery. This folder holds a snapshot, its
+Map view as Dimensions and the Gallery. This folder holds a snapshot, its
 coding, its screenshots, and the draft [codebook](codebook.md), not a
 registry: nothing here is gated, and nothing is authoritative until the owner
 has assessed the codes.

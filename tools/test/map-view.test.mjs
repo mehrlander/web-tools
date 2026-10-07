@@ -800,8 +800,8 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'aims', 'growth', 'policy']),
-    'Docs exposes Inventory first, then Purpose, Growth, and Policy');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'aims', 'growth', 'policy', 'claims', 'registries']),
+    'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
@@ -845,8 +845,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests']),
-    'Harness exposes Automation and Tests; Context is its own tab');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'context', 'surfacing']),
+    'Harness exposes Automation, Tests, Skills, Context, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -897,7 +897,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   window.__shell = undefined;
 });
 
-test('Context is a top-level tab that renders the public circles and derives the overlaps', async () => {
+test('Context opens under Harness, renders the public circles, and derives the overlaps', async () => {
   window.__shell = { mapTab: 'context', goMapTab: () => {} };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'map()');
@@ -905,7 +905,7 @@ test('Context is a top-level tab that renders the public circles and derives the
   Alpine.initTree(el);
   await tick(3);
   const state = Alpine.$data(el);
-  assert.equal(state.displayTab, 'context', 'Context is its own tab, not a Harness subview');
+  assert.equal(state.displayTab, 'harness', 'Context is a Harness subview, still addressed as ?tab=context');
   assert.ok(state.ctxReg, 'the public registry loaded on the deep link');
   const rows = window.Csv.rows(readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8'));
   assert.equal(state.ctxReg.rows.length, rows.length, 'every public row is in the model');
