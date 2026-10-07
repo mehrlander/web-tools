@@ -49,16 +49,16 @@ agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a
 agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows"
 agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard"
 agents,team,panel,,"one seat of the review panel, defined by how it searches; the review-panel skill convenes the seats blind and the closer weighs them"
-peeves,area,writing,,"prose in documents, skills, instructions and drafts"
-peeves,area,naming,,the words chosen for things
-peeves,area,chat-reply,,replies in the conversation
-peeves,area,questions,,when and how to ask the owner something
-peeves,area,reporting,,"what a reply hands over: links, screenshots, state"
-peeves,area,process,,how the work is run
-peeves,area,git-pr,,"branches, pull requests and merging"
-peeves,area,page-design,,what a page or view looks like and how it behaves
-peeves,area,code,,code and data as written
-peeves,detector,reader,,a reviewer's judgment; the peeves-critic's job
-peeves,detector,lint,,a script that lists or fails on it
-peeves,detector,hook,,refused or flagged at edit or commit time
-peeves,detector,measure,,"web-tools' page-measures pass, on a rendered page"
+peeves,area,writing,Writing,"prose in documents, skills, instructions and drafts"
+peeves,area,naming,Naming,the words chosen for things
+peeves,area,chat-reply,Replies,replies in the conversation
+peeves,area,questions,Questions,when and how to ask the owner something
+peeves,area,reporting,Reporting,"what a reply hands over: links, screenshots, state"
+peeves,area,process,Process,how the work is run
+peeves,area,git-pr,Git and PRs,"branches, pull requests and merging"
+peeves,area,page-design,Pages,what a page or view looks like and how it behaves
+peeves,area,code,Code,code and data as written
+peeves,detector,reader,Reader,a reviewer's judgment; the peeves-critic's job
+peeves,detector,lint,Lint,a script that lists or fails on it
+peeves,detector,hook,Hook,refused or flagged at edit or commit time
+peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered page"

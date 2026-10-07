@@ -25,6 +25,15 @@ test('every peeve can be checked: a statement, what tripping it looks like, a se
   }
 });
 
+test('every peeve has its own short name, the label the Map view lists it by', () => {
+  const names = rows.map(r => r.name);
+  assert.equal(new Set(names).size, names.length, 'two peeves share a name');
+  for (const r of rows) {
+    assert.ok(r.name, `${r.id}: no name`);
+    assert.ok(r.name.split(/\s+/).length <= 6, `${r.id}: "${r.name}" is a sentence, not a name`);
+  }
+});
+
 test('a peeve a script or hook catches names the document or check that does', () => {
   for (const r of rows.filter(r => r.detector !== 'reader'))
     assert.ok(r.owner, `${r.id}: detector ${r.detector} with no owner naming it`);
