@@ -132,6 +132,20 @@ the condition this document exists to catch. They stay kits, since each
 registers a namespace, which is the attachment that decides; the op layer is
 where a new page-free function goes, not a migration target for the 27.
 
+## Placing a script: settled 2026-10-06
+
+A script outside `lib/` is placed by three questions, asked in order.
+
+1. **Capability, or the instrument of one event?** A capability runs again and
+   has a caller: the commit hook, CI, an npm script, or a documented procedure.
+   An instrument served one event and lives with that event's record.
+2. **Which family?** A pipeline step lives with its pipeline; a script used by
+   one skill lives in that skill's folder.
+3. **What does it need to run?** Python with only its standard library goes in
+   the Python script folder (`scripts/`); Node with this repo's packages goes in
+   the Node script folder (`tools/`). Otherwise language decides, over the
+   layer table.
+
 ## tools/, which is the weak layer
 
 Since 2026-08-08 the accounting below is committed as data:
