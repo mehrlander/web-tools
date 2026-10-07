@@ -292,7 +292,7 @@ changes touch:
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `node/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
-| `node/`, `python/` | `npm run tools-index` | derived fields in `docs/harness.csv` |
+| `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |
