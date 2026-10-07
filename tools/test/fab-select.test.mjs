@@ -175,3 +175,17 @@ test('forgetting the offer drops it and the range with it', async () => {
   await d.noteSelection();
   assert.equal(window.Annotate.enabled, false, 'nothing to note, so nothing came on');
 });
+
+test('a page that notes a selection itself declares so, and the offer stands down there', async () => {
+  // Dictate: its own note is the one that travels in the answer, so a second
+  // "+ note" filing elsewhere would lose what the reader wrote.
+  doc.documentElement.setAttribute('data-fab-no-sel-offer', '');
+  select(doc.getElementById('p1').firstChild, 4, 19);
+  await settle();
+  assert.equal(d.selOffer, null);
+  doc.documentElement.removeAttribute('data-fab-no-sel-offer');
+  select(doc.getElementById('p1').firstChild, 4, 19);
+  await settle();
+  assert.ok(d.selOffer, 'any other page keeps the offer');
+  d.dropSelOffer();
+});
