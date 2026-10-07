@@ -1705,3 +1705,70 @@ test('a deck that never opens does not leave the card undismissable', async () =
     assert.equal(data.rowCard, null, 'the guard is released when there is nothing to guard');
   } finally { window.sessionRender.open = real; }
 });
+
+test('topicBadge relays turn count and return visits multiplier', () => {
+  assert.equal(data.topicBadge(null), '');
+  assert.equal(data.topicBadge({ turns: 0 }), '');
+  assert.equal(data.topicBadge({ turns: 1, spans: [[0, 0]] }), '1');
+  assert.equal(data.topicBadge({ turns: 4, spans: [[0, 0], [3, 5]] }), '4 · 2×');
+});
+
+test('sessionTopicHopPaths traces stem and upward return arcs', () => {
+  const rowNoAgenda = { topics: ['A', 'B'] };
+  assert.deepEqual(plain(data.sessionTopicHopPaths(rowNoAgenda)), { stem: '', hops: '' });
+
+  const agenda = [
+    { topic: 'A', turns: [0, 0] },
+    { topic: 'B', turns: [1, 2] },
+    { topic: 'A', turns: [3, 5] },
+    { topic: 'C', turns: [6, 6] },
+  ];
+  const S = window.RepoSessionsCache;
+  const row = { id: 'hop1', topicAgenda: S.topicStretches(agenda) };
+  const paths = data.sessionTopicHopPaths(row);
+  assert.ok(paths.stem.startsWith('M 8 12 L 8 '), 'stem connects the topic line');
+  assert.ok(paths.hops.includes('C'), 'upward return to earlier topic generates a curved arc');
+});
+
+test('openSessionTopicCard opens in-place prose card and toggles off on re-tap', () => {
+  const S = window.RepoSessionsCache;
+  const agenda = [
+    { topic: 'First Work', turns: [0, 1], state: { glyph: '🟢', name: 'Ready', line: 'Ready' } },
+    { topic: 'Second Work', turns: [2, 2] },
+  ];
+  const row = S.summarize(rec({
+    short: 'topcard1', session_id: 'topcard1-0000-0000-0000-000000000000',
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'ask 1' },
+              { at: '2026-08-05T13:30:00Z', text: 'ask 2' },
+              { at: '2026-08-05T14:00:00Z', text: 'ask 3' }],
+    replies: [{ at: '2026-08-05T13:15:00Z', text: 'ans 1' },
+              { at: '2026-08-05T13:45:00Z', text: 'ans 2' },
+              { at: '2026-08-05T14:30:00Z', text: 'ans 3' }],
+  }), 'top1');
+  row.topicAgenda = S.topicStretches(agenda);
+
+  const ev = { currentTarget: {} };
+  data.openSessionAtTopic(row, 'First Work', ev);
+  assert.ok(data.rowCard, 'a card opens in place');
+  assert.equal(data.rowCard.cls, 'topic');
+  assert.equal(data.rowCard.topic, 'First Work');
+  assert.equal(data.rowCard.count, 2, 'two turns in First Work');
+  assert.equal(data.rowCard.topicGlyph, '🟢');
+  assert.ok(data.rowCard.turns.some(t => t.inTopic), 'turns inside the topic are flagged');
+
+  // Tapping the same topic again toggles it off
+  data.openSessionAtTopic(row, 'First Work', ev);
+  assert.equal(data.rowCard, null, 'tapping again toggles off the topic card');
+
+  // Calling without an event delegates to full session detail
+  const origDetail = data.openSessionDetail;
+  let calledDetail = null;
+  data.openSessionDetail = (r) => { calledDetail = r; };
+  try {
+    data.openSessionAtTopic(row, 'First Work');
+    assert.equal(data._openCard?.topic, 'First Work');
+    assert.equal(calledDetail, row);
+  } finally {
+    data.openSessionDetail = origDetail;
+  }
+});
