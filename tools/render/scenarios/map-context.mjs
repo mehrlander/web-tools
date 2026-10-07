@@ -1,8 +1,5 @@
-// Context Delivery: row groups, source connections and a topic round-trip.
-// npm run shot -- app/index.html --query "view=map&tab=context"
-//   --script tools/render/scenarios/map-context.mjs --full
-// Data is read from disk explicitly: the renderer otherwise honors committed
-// refs for CSVs, so before a commit it would pair new code with the old schema.
+// Context: declared question paths and the complete source table.
+// The working-tree fixtures pair registry edits with the current code before a commit.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
@@ -23,48 +20,62 @@ export default async function (page) {
       while (state.ctxLoading) await new Promise(resolve => setTimeout(resolve, 20));
       state.ctxReg = null;
       await state.loadContextReg();
+      state.openCtxDeliveryTopic('conventions-delivery');
     } finally { window.GH.prototype.get = get; }
   }, files);
-  assert.equal(await page.getByRole('combobox', { name: 'Delivery classification' }).count(), 0);
-  const matrix = page.locator('[data-context-matrix]');
-  assert.equal(await matrix.locator('thead th').count(), 4);
-  assert.equal(await matrix.locator('tbody').count(), 5);
-  const source = page.locator('[data-context-source="plugin-default"]');
-  await source.click();
-  const inspector = page.locator('[data-context-inspector]');
-  assert.match(await inspector.innerText(), /The conventions \(default skill\)/);
-  assert.match(await inspector.innerText(), /Session record/);
-  assert.doesNotMatch(await inspector.innerText(), /tokens|Footprint/);
-  const connections = inspector.locator('[data-context-connections]');
-  await connections.getByRole('button', { name: 'Conventions directive', exact: true }).click();
-  await connections.getByRole('button', { name: 'The portable plugin', exact: true }).click();
-  await connections.getByRole('button', { name: 'Environment setup script', exact: true }).click();
+  assert.equal(await page.locator('[data-context-matrix]').count(), 0);
+  assert.equal(await page.locator('[data-context-path]').count(), 2);
+  assert.match(await page.locator('[data-context-paths]').innerText(), /asks to read/);
+  await page.locator('[data-context-path-source="plugin-writing"]').click();
+  let inspector = page.locator('[data-context-inspector]');
+  assert.equal(await inspector.locator('h3').innerText(), 'Qualified writing rules');
+  assert.match(await inspector.innerText(), /No joined tally/);
+
+  await page.getByRole('button', { name: 'Sources', exact: true }).click();
+  const table = page.locator('[data-context-table]');
+  const count = await page.locator('[data-context-source-row]').count();
+  assert.equal(count, 31);
+  await table.locator('[data-context-source="env-setup"]').click();
+  inspector = page.locator('[data-context-inspector]');
   assert.equal(await inspector.locator('h3').innerText(), 'Environment setup script');
-  await source.click();
-  await inspector.getByRole('button', { name: /How the conventions arrive/ }).click();
-  await page.getByRole('button', { name: 'View How the conventions arrive in Delivery', exact: true }).click();
+  assert.equal(await inspector.count(), 1, 'one expanded source owns the inspector');
+  assert.equal(await page.locator('[data-context-source-row]').count(), count, 'selection never filters the table');
+  await table.locator('[data-context-source="env-setup"]').click();
+  assert.equal(await page.locator('[data-context-inspector]').count(), 0, 'the table can show only its rows');
+  await table.locator('[data-context-source="env-setup"]').click();
+  await inspector.locator('summary').click();
+  await inspector.locator('[data-context-connections]').getByRole('button', { name: 'The portable plugin', exact: true }).click();
+  assert.equal(await page.locator('[data-context-inspector] h3').innerText(), 'The portable plugin');
+
+  const tableSize = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+  assert.ok(tableSize.scroll <= tableSize.width + 1, JSON.stringify(tableSize));
+  await page.getByRole('button', { name: 'Questions', exact: true }).click();
+  const chooseQuestion = async key => {
+    const picker = page.getByRole('combobox', { name: 'Context question' });
+    if (await picker.isVisible()) await picker.selectOption(key);
+    else await page.locator('[data-context-question="' + key + '"]').click();
+  };
+  await chooseQuestion('askuserquestion');
+  assert.equal(await page.locator('[data-context-path]').count(), 0, 'topic association has no arrows');
+  assert.ok(await page.locator('[data-context-related-source]').count() >= 2);
+  await chooseQuestion('pr-lifecycle');
+  assert.match(await page.locator('[data-context-paths]').innerText(), /create_pull_request/);
+  await chooseQuestion('conventions-delivery');
+  await page.locator('[data-context-path-source="plugin-writing"]').click();
+  await page.getByRole('button', { name: 'Compare the sources →', exact: true }).click();
+  await page.getByRole('button', { name: 'View How do the conventions arrive? in Questions', exact: true }).click();
   const result = await page.evaluate(() => {
     const el = [...document.querySelectorAll('[x-data]')].find(el => el.getAttribute('x-data') === 'map()');
     const s = window.Alpine.$data(el);
+    for (const box of document.querySelectorAll('*')) if (box.scrollTop) box.scrollTop = 0;
+    window.scrollTo(0, 0);
     return { lens: s.ctxLens, selected: s.ctxSpectraActive.id, topic: s.ctxTopic,
-      classes: s.ctxDeliveryGroups.map(d => d.id),
-      rows: [...document.querySelectorAll('[data-context-group]')].map(body => ({
-        span: body.rows[0].cells[0].colSpan, columns: body.rows[1].cells.length,
-        left: body.rows[1].cells[0].getBoundingClientRect().left,
-        headerLeft: body.closest('table').tHead.rows[0].cells[0].getBoundingClientRect().left
-      })),
+      sources: s.ctxAll.length, paths: s.ctxQuestionPaths.length,
       width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth };
   });
   assert.equal(result.lens, 'delivery');
-  assert.equal(result.selected, 'plugin-default');
+  assert.equal(result.selected, 'plugin-writing');
   assert.equal(result.topic, 'conventions-delivery');
-  assert.ok(!result.classes.includes('unclassified'), 'all public rows declare their classification');
-  assert.ok(result.rows.every(r => r.span === 4 && r.columns === 4 && Math.abs(r.left - r.headerLeft) < 1), 'row groups share the four scope columns');
   assert.ok(result.scrollWidth <= result.width + 1, JSON.stringify(result));
-  await page.evaluate(() => {
-    document.querySelector('[data-context-matrix]').scrollLeft = 0;
-    for (const el of document.querySelectorAll('*')) if (el.scrollTop) el.scrollTop = 0;
-    window.scrollTo(0, 0);
-  });
   console.log('Context browser checks:', JSON.stringify(result));
 }

@@ -218,6 +218,7 @@ context-sources,tally,recorded,,none,column,yes,,locator,"the key this source ha
 context-sources,topics,recorded,,none,column,yes,,label,"the overlap topics this source speaks to, semicolon separated, each a row in docs/context-topics.csv"
 context-sources,gloss,recorded,,value,column,yes,,value,one sentence on what the source does
 context-sources,assistant,recorded,,none,column,yes,,label,"the assistant whose delivery is inventoried; omitted by older Claude-only registries"
+context-sources,role,recorded,,counted,column,yes,content;automation;configuration,label,"what the source is: readable material, executable machinery, or configuration; blank means not classified"
 context-sources,discretion,recorded,,counted,column,yes,injected;prodded;reactive;pulled;outside,label,"how delivery is initiated or whether the source only configures or executes outside context; blank means not classified"
 context-links,gloss,recorded,,value,column,yes,,value,the condition and meaning of a declared connection; its basis is the originating source file and it is not an execution receipt
 context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it

@@ -110,12 +110,13 @@ test('tally keys have one of the two shapes the Measured lens joins on', () => {
 });
 
 test('the private half, where present, shares the base schema and holds only private circles', { skip: !privText && 'web-tools-private is not checked out beside this repo' }, () => {
-  const optional = new Set(['assistant', 'discretion']);
+  const optional = new Set(['assistant', 'discretion', 'role']);
   const columns = text => header(text).split(',');
   assert.deepEqual(columns(privText).filter(c => !optional.has(c)), columns(srcText).filter(c => !optional.has(c)), 'the two halves have different base columns');
   for (const c of columns(privText)) assert.ok(columns(srcText).includes(c), 'unknown private column: ' + c);
   const deliveryValues = new Set(['injected', 'prodded', 'reactive', 'pulled', 'outside']);
   for (const r of privRows.filter(r => r.discretion)) assert.ok(deliveryValues.has(r.discretion), r.id + ': unknown delivery classification');
+  for (const r of privRows.filter(r => r.role)) assert.ok(['content', 'automation', 'configuration'].includes(r.role), r.id + ': unknown role');
   const allowed = new Set(['account', 'environment', 'user', 'repo']);
   for (const r of privRows) assert.ok(allowed.has(r.circle), r.id + ': circle "' + r.circle + '" belongs in the public half');
 });

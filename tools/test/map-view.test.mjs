@@ -901,7 +901,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   window.__shell = undefined;
 });
 
-test('Context is a top-level tab that renders the public circles and derives the overlaps', async () => {
+test('Context is a top-level tab that joins the public inventory and derives the overlaps', async () => {
   window.__shell = { mapTab: 'context', goMapTab: () => {} };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'map()');
@@ -914,12 +914,9 @@ test('Context is a top-level tab that renders the public circles and derives the
   const rows = window.Csv.rows(readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8'));
   assert.equal(state.ctxReg.rows.length, rows.length, 'every public row is in the model');
 
-  // With no token the private circles say why they are empty, rather than
-  // rendering as circles that supply nothing.
-  const account = state.ctxCircles.find(c => c.key === 'account');
-  assert.equal(account.rows.length, 0);
-  assert.match(state.ctxGap(account), /token/);
-  assert.equal(state.ctxGap(state.ctxCircles.find(c => c.key === 'plugin')), '', 'a public circle has no gap line');
+  assert.equal(state.ctxAll.filter(r => r.circle === 'account').length, 0);
+  assert.equal(state.ctxSourceTable.length, rows.length, 'the table projects the complete loaded inventory');
+  assert.match(el.textContent, /private sources need a token/);
 
   // Overlap membership is derived from the rows, never authored on the topic.
   const ask = state.ctxOverlaps.find(o => o.topic === 'askuserquestion');
@@ -960,7 +957,7 @@ async function contextState(query = '') {
   } };
 }
 
-test('Delivery uses every registry source, including later additions and the legacy private schema', async () => {
+test('The source table uses every registry source, including later additions and the legacy private schema', async () => {
   const { state, host, close } = await contextState();
   try {
     assert.deepEqual([...state.ctxSpectraMechanisms.map(m => m.id)], [...state.ctxAll.map(r => r.id)]);
@@ -974,34 +971,99 @@ test('Delivery uses every registry source, including later additions and the leg
     const legacy = state.ctxSpectraMechanisms.find(m => m.id === 'private-preferences');
     assert.equal(legacy.env, 'claude');
     assert.equal(legacy.discretionId, 'unclassified', 'missing data is not guessed');
-    assert.ok(state.ctxSpectraCellItems('universal', 'unclassified').some(m => m.id === legacy.id));
+    assert.equal(state.ctxRoleLabel(legacy.source.role), 'Role not classified');
+    assert.deepEqual([...state.ctxSourceTable.map(m => m.id)].sort(), [...state.ctxAll.map(r => r.id)].sort());
     assert.ok(state.ctxOverlaps.find(t => t.topic === 'writing-rules').rows.some(r => r.id === legacy.id));
     state.selectCtxSource(legacy.id);
+    state.setCtxLens('sources');
     await tick(2);
+    assert.equal(host.querySelectorAll('[data-context-source-row]').length, state.ctxAll.length);
+    assert.equal(host.querySelector('[data-context-matrix]'), null);
     assert.match(host.querySelector('[data-context-inspector]').textContent, /Nothing records it/);
     assert.match(host.querySelector('[data-context-inspector]').textContent, /No joined tally/);
     assert.doesNotMatch(host.querySelector('[data-context-inspector]').textContent, /tokens|Footprint/);
   } finally { close(); }
 });
 
-test('Delivery keeps every category visible and an assistant filter cannot leave a hidden inspector', async () => {
+test('A question highlights the inventory without hiding rows and an assistant filter cannot leave a hidden inspector', async () => {
   const { state, close } = await contextState();
   try {
     state.selectCtxSource('wt-claude');
-    const classes = new Set(state.ctxSpectraMechanisms.map(m => m.discretionId));
-    assert.deepEqual([...state.ctxDeliveryGroups.map(d => d.id)].sort(), [...classes].sort());
+    const count = state.ctxSourceTable.length;
     state.setCtxAssistant('gemini');
     assert.equal(state.ctxSpectraActive, null, 'empty results have no unrelated inspector');
     state.openCtxDeliveryTopic('askuserquestion');
     assert.equal(state.ctxSpectraEnv, 'all');
+    assert.equal(state.ctxSourceTable.length, count, 'a topic is a highlight, never an inventory filter');
     const members = state.ctxAll.filter(r => r.topicList.includes('askuserquestion'));
     assert.deepEqual([...state.ctxSpectraVisible.filter(m => m.topics.includes('askuserquestion')).map(m => m.id)], [...members.map(r => r.id)]);
     assert.ok(members.some(r => r.id === state.ctxSpectraActive.id));
     const id = state.ctxSpectraActive.id;
-    state.openCtxTopic('askuserquestion'); state.setCtxLens('when'); state.setCtxLens('circles'); state.setCtxLens('delivery');
+    state.openCtxTopic('askuserquestion'); state.setCtxLens('when');
+    assert.equal(state.ctxLens, 'sources', 'legacy timing links reach the source table');
+    state.setCtxLens('circles');
+    assert.equal(state.ctxLens, 'sources', 'legacy scope links reach the source table');
+    state.setCtxLens('delivery');
     assert.equal(state.ctxSpectraActive.id, id, 'changing the view preserves identity');
     const query = new URL(window.location.href).searchParams;
     assert.equal(query.get('ctxtopic'), 'askuserquestion'); assert.equal(query.get('ctxsource'), id);
+  } finally { close(); }
+});
+
+test('Question paths separate a request from its material and never turn shared topics into arrows', async () => {
+  const { state, host, close } = await contextState('&ctxtopic=conventions-delivery');
+  try {
+    assert.equal(state.ctxQuestionPaths.length, 2);
+    const [prompt, reading] = state.ctxQuestionPaths;
+    assert.equal(prompt.from.id, 'hook-invoke-default');
+    assert.equal(prompt.kind, 'prompts');
+    assert.equal(prompt.triggers[0].event, 'SessionStart');
+    assert.match(prompt.triggers[0].matcher, /compact/);
+    assert.equal(reading.from.id, 'plugin-default');
+    assert.equal(reading.kind, 'asks to read');
+    assert.deepEqual([...reading.targets.map(r => r.id)].sort(), ['plugin-surfacing', 'plugin-writing']);
+    assert.ok(state.ctxQuestionRelated.some(r => r.id === 'wt-claude'), 'related instructions have no invented delivery edge');
+    state.skillUses = { default: { sessions: 7 } };
+    assert.equal(state.ctxMeasurement(reading.targets[0]), 'No joined tally', 'a skill invocation does not prove a document was read');
+    await tick(2);
+    host.querySelector('[data-context-path-source="plugin-writing"]').click();
+    await tick(2);
+    assert.equal(state.ctxSpectraActive.id, 'plugin-writing');
+    assert.equal(new URL(window.location.href).searchParams.get('ctxsource'), 'plugin-writing');
+    state.openCtxDeliveryTopic('askuserquestion');
+    assert.equal(state.ctxQuestionPaths.length, 0, 'a shared topic supplies no causal edges');
+    assert.equal(state.ctxQuestionRelated.length, state.ctxQuestion.rows.length);
+    state.openCtxDeliveryTopic('repo-hooks');
+    const before = state.ctxQuestionPaths[0].triggers.length;
+    state.ctxReg.hooks.TestEvent = [{ matcher: 'a second trigger', hooks: [{ command: 'bash /plugin/hooks/session-dispatch.sh' }] }];
+    assert.equal(state.ctxQuestionPaths[0].triggers.length, before + 1, 'every registration condition survives');
+  } finally { close(); }
+});
+
+test('Source details close in place and never carry an unrelated selection into a question', async () => {
+  const { state, host, close } = await contextState('&ctxlens=sources');
+  try {
+    assert.equal(state.ctxSpectraActive, null, 'the inventory opens without expanded details');
+    const count = state.ctxSourceTable.length;
+    const button = host.querySelector('[data-context-source="session-messages"]');
+    button.click();
+    await tick(2);
+    assert.equal(host.querySelectorAll('[data-context-inspector]').length, 1);
+    button.click();
+    await tick(2);
+    assert.equal(host.querySelectorAll('[data-context-inspector]').length, 0);
+    assert.equal(host.querySelectorAll('[data-context-source-row]').length, count);
+    assert.equal(new URL(window.location.href).searchParams.get('ctxsource'), null);
+    state.selectCtxSource('session-messages');
+    state.ctxTopic = 'conventions-delivery';
+    state.setCtxLens('delivery');
+    assert.equal(state.ctxSpectraActive, null, 'a source with no matching topic is not shown as part of a question');
+    state.selectCtxSource('env-setup');
+    assert.equal(state.ctxQuestion.topic, 'plugin-currency', 'following a source selects its actual question');
+    assert.equal(state.ctxSpectraActive.id, 'env-setup');
+    state.selectCtxSource('session-messages');
+    assert.equal(state.ctxLens, 'sources', 'a source without a topic is still reachable');
+    assert.equal(state.ctxSpectraActive.id, 'session-messages');
   } finally { close(); }
 });
 
