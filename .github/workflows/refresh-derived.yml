@@ -1,55 +1,28 @@
 name: Refresh derived files
 
-# The commit hook's repair pass, run on main after a write that never went
-# through a local commit. .githooks/pre-commit keeps every deterministic derived
-# file in step with its source, but only inside a checkout where it is
-# configured, so a write through GitHub's API (the app's Dictate, Proposals and
-# Stage writes), an MCP push, an edit on github.com, or a merge made with the web
-# button lands its source change and leaves the derived files where they were.
-# Measured 2026-10-07: one proposed tightening applied to docs/stage.md through
-# a hook-less commit left docs/docs.csv at 7366 words against the file's 7308,
-# and docs-registry.test.mjs failed on the next run. Until this workflow, main
-# stayed that way until a session noticed and repaired it by hand.
+# Runs the commit hook's repair pass (`npm run artifacts:refresh`, which is
+# `git hook run pre-commit -- --all`) on main after each push, and commits what
+# moved. A write through GitHub's API, an MCP push, an edit on github.com or a
+# web merge never runs the hook, so it leaves derived files stale.
 #
-# THE PASS IS THE HOOK'S OWN, not a second runner. `npm run artifacts:refresh`
-# is `git hook run pre-commit -- --all`, the mode the hook keeps for "a clean
-# fetched tree whose committed artifacts may already be stale (for example,
-# after an API write or server-side merge)": every leg runs in the hook's order
-# with the hook's warn-or-block policy. On a clean main it took 15.6s in the
-# sandbox and changed nothing, from a depth-1 clone as well as a full one.
+# It repairs only what a generator can recompute. A change that needs a person,
+# such as a rewritten sentence docs/policies.csv quotes, stays red in test.yml.
 #
-# WHAT IT CANNOT REPAIR is anything a generator cannot recompute. The case
-# measured the same day: a proposal that rewrites a sentence docs/policies.csv
-# quotes leaves the quote unfound in the document it cites, and only a person
-# can choose the new quote. The pass restamps what it can, and the test run at
-# the end goes red on the rest, naming the row.
-#
-# THE REPAIR GETS ITS OWN TEST RUN. test.yml still runs on every push to main,
-# so a stale push is checked as it landed and goes red, which is true of that
-# commit. The repair commit is pushed with the workflow's own token, and such a
-# push starts no workflow run, so without the dispatch below the repaired head
-# would carry no check at all. The dispatch fires only when a repair was
-# pushed: when nothing was stale, test.yml's own run on the push is the check.
-#
-# NO LOOP, for the same reason: the repair commit is pushed with GITHUB_TOKEN,
-# so it starts neither this workflow nor activity-cache.yml (whose hourly pass
-# picks it up). The WSL snapshot commits the same way (wsl-fetch.yml), which is
-# the precedent for a bot commit on main in this repo.
+# The repair is pushed with GITHUB_TOKEN, and such a push starts no workflow
+# run. That is why this cannot loop, and why the last step dispatches test.yml
+# onto the repaired head, which would otherwise carry no check.
 
 on:
   push:
     branches: [main]
-    # The monthly data snapshot touches no hook source, as in test.yml.
-    paths-ignore: ['pages/wsl-sync/data/**']
+    paths-ignore: ['pages/wsl-sync/data/**']   # as in test.yml
   workflow_dispatch:
 
 permissions:
   contents: write   # the repair commit
-  actions: write    # dispatching test.yml onto a repair it pushed
+  actions: write    # dispatching test.yml
 
-# One pass at a time, queued rather than cancelled, as activity-cache.yml does:
-# two passes pushing to main would race, and a queued pass refreshes whatever
-# main has become by the time it starts.
+# Queued, not cancelled: two passes pushing to main would race.
 concurrency:
   group: refresh-derived
   cancel-in-progress: false
@@ -63,30 +36,23 @@ jobs:
         with:
           ref: main
 
-      # 22 for the same reason as test.yml: the hook's node legs are written
-      # against it. Python 3 and git 2.36+ (for `git hook run`) come with the
-      # runner, and every python leg uses the standard library only.
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '22'   # as in test.yml
 
       - name: Install
         run: npm install --no-audit --no-fund
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
-      # The hooks path is the one line `npm run setup` would write; the rest of
-      # setup (the CSV merge driver, the dependency check) concerns a checkout a
-      # person works in, and this one only runs the pass and commits.
       - name: Run the hook's repair pass
         run: |
           git config core.hooksPath .githooks
           npm run artifacts:refresh
 
-      # --no-verify because the pass this commit carries IS the pre-commit hook,
-      # and the commit-msg consent gate asks a session what it rests on, which a
-      # regeneration does not need to answer. A rejected push means main moved
-      # under the pass; the run that newer push started refreshes the newer tree.
+      # --no-verify: the pre-commit hook has just run, and the commit-msg
+      # consent gate is for sessions. A rejected push means main moved; the
+      # newer push's run repairs the newer tree.
       - name: Commit and push what moved
         id: push
         run: |

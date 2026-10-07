@@ -374,15 +374,18 @@ session wrap-up, per the root `CLAUDE.md` ("Per-session refresh: thumbnails"). U
 `pages/index.html` degrades gracefully: a missing thumb shows the
 "no screenshot" placeholder.
 
-Nothing is generated server-side: GitHub Pages serves `main` as-is, with no
+GitHub Pages serves `main` as-is, with no
 deploy build. The one verification workflow, `.github/workflows/test.yml`, runs
 `npm test` on pull requests and pushes to `main`, except pushes limited to
 `pages/wsl-sync/data/**`. It reports results without committing changes. GitHub's API, MCP writes, the web merge button, and other
-server-side merges cannot execute a local checkout's hooks. Before a server
+server-side merges cannot execute a local checkout's hooks; on `main`,
+`.github/workflows/refresh-derived.yml` runs `npm run artifacts:refresh` after
+each push and commits what moved. Before a server
 merge, merge the current base into the branch in a ready local checkout, run
 `npm test`, and push the refreshed branch. Follow a printed
 `git -c core.editor=true merge --continue` when the combined tree needed
-restamping. If a remote write already produced the exact tree to repair, fetch
+restamping. If a remote write left a tree that workflow did not repair (a
+branch, or a test still red after it ran), fetch
 and check out that tree locally, run `npm run artifacts:refresh` followed by
 `npm test`, then run any additional generator the test names and commit and push
 the repair. Setup alone makes no claim about those paths.
