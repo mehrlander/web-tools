@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="peeves-critic agent">
+  <title>peeves-critic agent</title>
+  <desc>A cat's head with narrowed eyes and a flat mouth, unimpressed, for the critic that reviews work against the owner's pet peeves. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#d97706">
+    <path fill-rule="evenodd" d="M4.5 3 L12.5 9.5 L19.5 9.5 L27.5 3 L28 16 C28 24 22.5 29 16 29 C9.5 29 4 24 4 16 Z M8.5 15.2 L14 16.4 L14 18.9 L8.5 17.7 Z M23.5 15.2 L18 16.4 L18 18.9 L23.5 17.7 Z M13 22.8 L19 22.8 L19 25.3 L13 25.3 Z"/>
+  </g>
+</svg>

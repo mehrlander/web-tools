@@ -49,10 +49,13 @@ Extend it in SNAGS first, here second.
 
 One subagent each; a reader given two jobs lets one prime the other.
 
-- **Style**: assess against the house rules by file path (web-tools:
-  `skills/html-style/SKILL.md`), never from memory, with rule-by-rule
-  verdicts naming regions. Checklist first: a style verdict on a broken render
-  grades the failure as a design choice.
+- **Style**: the plugin's `house-style-critic` agent (`portable:house-style-critic`),
+  given the page's source path and the shots. It preloads the house rules and
+  returns a verdict per rule naming regions. Where the plugin's agents are not
+  installed, a subagent told to assess against the rules by file path
+  (web-tools: `skills/html-style/SKILL.md`), never from memory, in the same
+  shape. Checklist first: a style verdict on a broken render grades the failure
+  as a design choice.
 - **Comprehension**: two questions, no checklist, no stated intent: how do you
   interpret this page's premise, and what does it convey informationally? A
   premise the reader gets wrong is a design finding, not a reader error.

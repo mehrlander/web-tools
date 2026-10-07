@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="house-style-critic agent">
+  <title>house-style-critic agent</title>
+  <desc>A house whose walls are a page layout: a roof over three panes, for the critic that judges a page against the house style. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#e11d48">
+    <path fill-rule="evenodd" d="M16 3 L30 14.5 L27 14.5 L27 29 L5 29 L5 14.5 L2 14.5 Z M8 17 L14 17 L14 26 L8 26 Z M16.5 17 L24 17 L24 20.5 L16.5 20.5 Z M16.5 23 L24 23 L24 26 L16.5 26 Z"/>
+  </g>
+</svg>

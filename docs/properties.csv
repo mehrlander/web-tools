@@ -33,7 +33,7 @@ kits,tested,computed,node/build/kits-index.mjs,value,column,yes,yes;no,label,a f
 content,creation_mode,recorded,,none,column,yes,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,label,what the artifact IS epistemically; the portable content skill owns the convention
 content,analysis_use,recorded,,none,column,yes,concept-vocabulary;prose-review;semantic-search;source-corpus;exclude,label,"what the artifact is good for downstream. The domain is closed and is owned by the content skill, not here; docs/owners.csv records the copy"
 content,description,recorded,,none,column,yes,,value,one line on the artifact
-portable,kind,recorded,,value,column,yes,skill;doc;script;dir,label,what species of thing travels
+portable,kind,recorded,,value,column,yes,skill;agent;doc;script;dir,label,what species of thing travels
 portable,command,recorded,,none,column,yes,,value,the invocation name; present on kind:skill rows only
 portable,title,recorded,,none,column,yes,,value,display name
 portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time. Kept on the skills, whose skills row carries a model-facing trigger description rather than a reader's one-liner"
@@ -300,3 +300,20 @@ upstream-skills,rationale,recorded,,value,column,yes,,value,"why the skill is of
 upstream-skills,seen,recorded,,value,column,yes,,value,the date the row was entered
 upstream-skills,ours,recorded,,none,column,yes,,locator,"the folder under skills/ that ships a copy, for a vendored or adapted skill"
 upstream-skills,held,recorded,,none,column,yes,,locator,the folder under outside/ that keeps a pinned copy the plugin never ships
+agents,kind,recorded,,value,column,yes,definition;inline,label,"whether the agent is a Claude Code definition file the platform loads and a session invokes by name, or a role whose prompt is written inside a skill and spawned through the Agent tool"
+agents,team,recorded,,counted,column,yes,critic;panel,label,"which group of definitions an agent belongs to: a critic reviews against a written standard; a panel seat is one way of searching, convened with the others by the review-panel skill. Blank on an inline reader, which belongs to the skill that spawns it"
+agents,icon,recorded,,counted,column,yes,,locator,"the definition's SVG icon, drawn in the project-icon system (one colour, solid ink, no strokes); blank on an inline reader"
+agents,path,recorded,,value,column,yes,,locator,"the file that defines the agent: the definition file for a definition, the skill or prompt file holding the role for an inline reader"
+agents,anchor,recorded,,counted,column,yes,,value,"for an inline reader, a verbatim phrase from its file that introduces the role; the gate requires the file to still contain it. Blank on a definition, whose file is the agent"
+agents,model,recorded,,counted,column,yes,haiku;sonnet;opus;inherit,label,"the model the agent runs on, where its source names one. A COPY of the frontmatter on a definition, held to it by the gate; blank where an inline role names only a relative tier"
+agents,tools,recorded,,none,column,no,,value,"the tools a definition is limited to, semicolon-separated, a COPY of its frontmatter held by the gate; blank on an inline reader, which runs with the tools of the agent type it is spawned as"
+agents,preloads,recorded,,none,column,no,,value,"the skills a definition preloads at startup through its `skills` frontmatter, a COPY held by the gate; this is the agent's backing documentation"
+agents,memory,recorded,,none,column,yes,user;project;local,label,"a definition's persistent memory scope, a COPY of its `memory` frontmatter: project keeps the memory folder in the repository, where it is reviewed and committed like any file; blank where the agent keeps none"
+agents,role,recorded,,value,column,yes,,value,"what the agent does, in one or two sentences a reader can act on"
+peeves,name,recorded,,value,column,yes,,value,"the peeve in a few words, the label a row shows before its statement is opened"
+peeves,area,recorded,,value,column,yes,writing;naming;chat-reply;questions;reporting;process;git-pr;page-design;code,label,"the kind of work the peeve is about, the axis the list is read by"
+peeves,peeve,recorded,,value,column,yes,,value,"the behavior, stated so a reviewer can check a piece of work against it"
+peeves,look_for,recorded,,value,column,yes,,value,"what tripping the peeve looks like in the work: the words, classes or moves a reviewer would find"
+peeves,owner,recorded,,counted,column,yes,,value,"the document or check that already states the rule, when one does; that owner's wording governs and the row only points at it"
+peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
+peeves,sessions,recorded,,value,column,yes,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
