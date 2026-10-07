@@ -20,6 +20,11 @@ const harnessPaths = new Set(
 const skillPaths = new Set(
   parseCsv(readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'utf8'))
     .filter(s => s.description).map(s => `skills/${s.name}/SKILL.md`));
+// And the agents registry owns the description of every agent definition the
+// plugin ships, so an agent row here inherits its role rather than restating it.
+const agentPaths = new Set(
+  parseCsv(readFileSync(path.join(repoRoot, 'docs', 'agents.csv'), 'utf8'))
+    .filter(a => a.kind === 'definition' && a.role).map(a => a.path));
 
 // The catalog used to carry `hub` and a `plugin` block, and this test asserted
 // them. Both were copies: .claude-plugin/marketplace.json is the file the
@@ -35,7 +40,7 @@ test('the set is typed and non-empty, and the plugins match the marketplace', ()
   assert.ok(marketplace.plugins.map(p => p.name).includes('portable'));
   assert.ok(manifest.items.length > 10);
   for (const it of manifest.items) {
-    assert.ok(['skill', 'doc', 'dir', 'script'].includes(it.kind), it.path + ': kind');
+    assert.ok(['skill', 'agent', 'doc', 'dir', 'script'].includes(it.kind), it.path + ': kind');
     assert.ok(it.path && it.title, it.path + ': path/title');
     // `role` is required only where no registry already describes the file. The
     // set inherits from `harness`: on the nine scripts docs/harness.csv describes, a
@@ -43,7 +48,7 @@ test('the set is typed and non-empty, and the plugins match the marketplace', ()
     // ownership gate in properties-registry.test.mjs now forbids. The Map view
     // joins the registry value for display, so the row is not left blank to a
     // reader. See docs/registries.md, "One owner per assertion".
-    assert.ok(it.role || harnessPaths.has(it.path) || skillPaths.has(it.path),
+    assert.ok(it.role || harnessPaths.has(it.path) || skillPaths.has(it.path) || agentPaths.has(it.path),
       it.path + ': needs a role, since no registry carries a description for it');
   }
 });
@@ -93,6 +98,34 @@ test('every explicitly registered portable skill resolves inside the plugin sour
     assert.ok(existsSync(path.join(skillDir, 'SKILL.md')),
       `portable plugin skill has no SKILL.md: ${entry}`);
   }
+});
+
+// Agents travel the same way, through their own list. A declared `agents` list
+// replaces the plugin's default scan of agents/ rather than adding to it, so a
+// definition file missing from the list ships as dead weight and is never
+// loaded. The roster is the kind=agent,use=plugin rows, as skills are.
+test('the portable plugin registers exactly the agents its distribution rows call plugin', () => {
+  const catalogued = manifest.items
+    .filter(i => i.kind === 'agent' && i.use === 'plugin')
+    .map(i => './' + path.posix.relative(
+      String(portablePlugin.source || '').replace(/^\.\//, ''), i.path))
+    .sort();
+  const registered = (portablePlugin.agents || []).map(String).sort();
+  assert.deepEqual(registered, catalogued,
+    'marketplace agents must exactly match kind=agent,use=plugin rows in docs/portable.csv');
+  const sourceDir = path.resolve(repoRoot, portablePlugin.source);
+  for (const entry of registered) {
+    const file = path.resolve(sourceDir, entry);
+    const rel = path.relative(sourceDir, file);
+    assert.ok(rel && !rel.startsWith('..') && !path.isAbsolute(rel),
+      `portable agent escapes its source boundary: ${entry}`);
+    assert.ok(entry.endsWith('.md') && existsSync(file), `portable plugin lists a missing agent file: ${entry}`);
+  }
+  const agentsDir = path.join(sourceDir, 'agents');
+  const onDisk = existsSync(agentsDir)
+    ? readdirSync(agentsDir).filter(f => f.endsWith('.md')).map(f => './agents/' + f).sort() : [];
+  assert.deepEqual(registered, onDisk,
+    'every definition file under the plugin\'s agents/ is registered, and nothing else is');
 });
 
 // The registry also describes every skill directory in the source tree. That

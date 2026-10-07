@@ -74,6 +74,7 @@ doc,,docs/github/markdown.md,GitHub markdown,"what GitHub's renderer does with M
 doc,,docs/github/mcp-server-routing.md,MCP server routing,unexpected approval prompts with two GitHub MCP servers are often routing artifacts,on-demand
 dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code web sandbox: network, persistence, testing recipes",on-demand
 dir,,docs/envelopes,Content envelopes,"the envelope family: the surface contract, chat-results, and the schemas that validate them",on-demand
+agent,,skills/agents/house-style-critic.md,House-style critic,,plugin
 dir,,skills,Plugin source,"the portable plugin's source tree: every skill it carries and the hook bundle, also served as static files that load-skill fetches",plugin
 script,,skills/tasks/build-board.py,build-board.py,regenerate a tracker's board.md from task frontmatter; ships inside the plugin,plugin
 script,,skills/in-flight/in-flight.py,in-flight.py,classify a branch estate into live / merged / unrelated / undecidable and reconcile tracker claims against it; ships inside the plugin,plugin

@@ -64,7 +64,7 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // [address key, label]. Every key predates the regroup, so a published
 // ?view=map&tab=<key> link still lands on the reading it named.
 const GROUPS = [
-  ['Harness', [['harness', 'Automation'], ['tests', 'Tests'], ['skills', 'Skills'], ['context', 'Context'], ['surfacing', 'Surfacing']]],
+  ['Harness', [['harness', 'Automation'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['context', 'Context'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
   ['Reach', [['set', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
