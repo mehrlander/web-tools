@@ -74,17 +74,6 @@ const TYPES = {
 };
 export const typeFor = p => TYPES[path.extname(p).toLowerCase()] || 'application/octet-stream';
 
-// Packages whose CDN default file differs from what package.json main/browser
-// would pick. jsDelivr/unpkg serve the browser-global build for these; npm main
-// is a CommonJS/ESM entry that won't run from a plain <script>.
-const CDN_DEFAULT = {
-  'alpinejs': 'dist/cdn.min.js',
-  '@alpinejs/collapse': 'dist/cdn.min.js',
-  '@alpinejs/sort': 'dist/cdn.min.js',
-  'daisyui': 'daisyui.css',
-  'tabulator-tables': 'dist/js/tabulator.min.js',
-};
-
 // Resolve a package + optional subpath to a file under node_modules. `esm`
 // marks a jsDelivr `/+esm` import: prefer the package's ESM entry
 // (exports["."].import / module), since the UMD/browser default those CDN
@@ -115,16 +104,12 @@ function siblingFile(repoRoot, owner, name, rel) {
   return existsSync(fp) && statSync(fp).isFile() ? fp : null;
 }
 
-function nodeFile(repoRoot, pkg, sub, esm, combine) {
+// `cdn` is 'jsdelivr' or 'unpkg': the two hosts pick a bare spec's default
+// file by different rules, measured 2026-10-07 against the real CDNs for the
+// installed versions (node/test/cdn-npm-default.test.mjs pins it).
+function nodeFile(repoRoot, pkg, sub, esm, cdn) {
   const dir = path.join(repoRoot, 'node_modules', pkg);
   if (sub) return path.join(dir, sub);
-  // CDN_DEFAULT models the /npm/ route, which honors the `unpkg` field. The
-  // /combine/ route does NOT: it resolves through package.json main, so a bare
-  // `npm/alpinejs` spec there yields dist/module.cjs.js and the page gets a
-  // CommonJS file that defines no global. Applying the map to a combine request
-  // serves a working Alpine no browser would ever receive, so the page renders
-  // here and ships dead (SNAGS: combine-serves-cjs).
-  if (!combine && CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
   const pj = path.join(dir, 'package.json');
   if (existsSync(pj)) {
     try {
@@ -140,21 +125,22 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
       // module field, so the chain fell straight through to ./excel.js and the
       // page died with "process is not defined" the first time it wrote a
       // workbook. Written as a rule so the next such package resolves itself.
-      // A /combine/ spec has a rule of its own, measured 2026-10-06 against
-      // the bytes jsDelivr served for every bare spec this repo combines (nine
-      // packages): `jsdelivr`, then a string `browser`, then `main`. It reads
-      // neither `unpkg` nor `module`. The chain below it read both, so a bare
-      // `npm/tabulator-tables` got the ESM build, threw "Unexpected token
-      // 'export'", and took the whole combined script down with it, Tailwind and
-      // Phosphor included; transform.html's committed thumbnail was that broken
-      // render. A bare `npm/alpinejs` got the working build jsDelivr does not
-      // send, which is combine-serves-cjs surviving its own fix.
+      // jsDelivr, on /combine/ and plain /npm/ alike, reads `jsdelivr`, then a
+      // string `browser`, then `main`. It reads neither `unpkg` nor `module`,
+      // whatever its own entrypoints API reports: on 2026-10-07 that API named
+      // dist/cdn.min.js for alpinejs while the route served dist/module.cjs.js.
+      // A chain that read `module` gave a bare `npm/tabulator-tables` its ESM
+      // build, which threw "Unexpected token 'export'" and took a whole
+      // combined script down with it; one that read `unpkg`, or a per-package
+      // table, gave a bare `npm/alpinejs` the working build jsDelivr never
+      // sends (SNAGS: combine-serves-cjs). unpkg reads `unpkg`, then `main`,
+      // and ignores `browser` too: a bare `daisyui@5` there is index.js.
       const def = esm
         ? (dot && (dot.import || dot.module || dot.default)) || j.module
           || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
-        : combine
-          ? j.jsdelivr || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
-          : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
+        : cdn === 'unpkg'
+          ? j.unpkg || j.main || 'index.js'
+          : j.jsdelivr || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}
   }
@@ -214,7 +200,7 @@ const UMD_ESM = {
   jszip: { file: 'dist/jszip.min.js', global: 'JSZip' },
 };
 
-function readSpec(spec, repoRoot, combine) {
+function readSpec(spec, repoRoot, cdn) {
   const { pkg: cdnPkg, sub, esm } = parseNpm(spec);
   if (esm && !sub && UMD_ESM[cdnPkg]) {
     const { file, global } = UMD_ESM[cdnPkg];
@@ -228,7 +214,7 @@ function readSpec(spec, repoRoot, combine) {
   }
   const pkg = (PKG_ALIAS[cdnPkg] && existsSync(path.join(repoRoot, 'node_modules', PKG_ALIAS[cdnPkg], sub)))
     ? PKG_ALIAS[cdnPkg] : cdnPkg;
-  let fp = nodeFile(repoRoot, pkg, sub, esm, combine);
+  let fp = nodeFile(repoRoot, pkg, sub, esm, cdn);
   // jsDelivr auto-minifies: a `.min.js`/`.min.css` URL works on the CDN even
   // when the npm tarball ships only the unminified file (e.g. codemirror@5).
   if (!existsSync(fp) && /\.min\.(js|css)$/.test(fp)) {
@@ -745,7 +731,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
     const parts = [];
     let ct = null, miss = [];
     for (const s of specs) {
-      const r = readSpec(s, repoRoot, true);
+      const r = readSpec(s, repoRoot, 'jsdelivr');
       if (r) { parts.push(Buffer.from(r.body)); ct = ct || r.contentType; }
       else miss.push(s);
     }
@@ -758,12 +744,12 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
 
   // --- Third-party libs: jsDelivr /npm/ and unpkg ---
   if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith('/npm/')) {
-    const r = readSpec(u.pathname.slice(1), repoRoot);
+    const r = readSpec(u.pathname.slice(1), repoRoot, 'jsdelivr');
     if (r) return { kind: 'fulfill', body: Buffer.from(r.body), contentType: r.contentType, tag: `npm ${u.pathname}` };
     return { kind: 'empty', contentType: typeFor(u.pathname), tag: `MISS ${u.pathname}` };
   }
   if (host === 'unpkg.com') {
-    const r = readSpec(u.pathname.slice(1), repoRoot);
+    const r = readSpec(u.pathname.slice(1), repoRoot, 'unpkg');
     if (r) return { kind: 'fulfill', body: Buffer.from(r.body), contentType: r.contentType, tag: `unpkg ${u.pathname}` };
     return { kind: 'empty', contentType: typeFor(u.pathname), tag: `MISS unpkg ${u.pathname}` };
   }
