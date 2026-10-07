@@ -56,7 +56,7 @@
         <i class="ph-bold" :class="show ? 'ph-eye-slash' : 'ph-eye'"></i>
       </button>
     </div>
-    <label class="label cursor-pointer justify-start gap-2 py-0">
+    <label class="label cursor-pointer justify-start gap-2 py-0 whitespace-normal">
       <input type="checkbox" class="checkbox checkbox-sm" x-model="remember" @change="remember ? persist() : forget()">
       <span class="label-text text-xs text-base-content/60">
         Remember on this device (<code class="text-[11px]">localStorage.ghToken</code> — shared with the Pages tools' sign-in)
