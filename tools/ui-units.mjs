@@ -240,6 +240,25 @@ if (has('home', bdApp)) {
     }
     const fn = RENDER[key];
     const own = fn && defines.has(fn) ? closure(defines.get(fn)) : [];
+    // A view module may load files of its own on first open rather than through
+    // a tag in app.html: the Submittal view declares SUBMITTAL_DIR, SUBMITTAL_LOAD
+    // and SUBMITTAL_MARKUP in views/submittal.js. Those files are where it draws,
+    // so they are its files too; the payloads among them carry no kit calls and
+    // are left out (a name ending in data.js, and the workbook's images).
+    for (const f of [...own]) {
+      const t = read('home', f);
+      const dir = (t.match(/const (\w+)_DIR = "([^"]+)";/) || []);
+      if (!dir[1]) continue;
+      const names = [...((t.match(new RegExp(`const ${dir[1]}_LOAD = \\[([\\s\\S]*?)\\];`)) || [])[1] || '')
+        .matchAll(/"([\w.-]+)"/g)].map(x => x[1]);
+      const markup = (t.match(new RegExp(`const ${dir[1]}_MARKUP = "([^"]+)";`)) || [])[1];
+      for (const n of [...names, markup].filter(Boolean)) {
+        if (/data\.js$|^workbook-images\.js$/.test(n)) continue;
+        // The directory is relative to the app's document, not to views/.
+        const p = path.posix.normalize(`${BD}/app/view/${dir[2]}${n}`);
+        if (has('home', p) && !own.includes(p)) own.push(p);
+      }
+    }
     const files = own.join(';');
     const attribution = own.length ? 'derived' : 'shell';
     const ring = { app_ring: 1, ring_basis: `VIEWS.${key} in ${bdApp}, promoted by home` };
