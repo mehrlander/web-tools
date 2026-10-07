@@ -5,52 +5,60 @@ const artifactDir = 'C:/Users/mehrl/.gemini/antigravity/brain/26c2bc15-08fb-4950
 
 const modes = [
   {
+    id: 'databar-nonum',
+    label: '✨ Data Bar (From Text, No Number)',
+    tag: 'Text Underlay · No Digits',
+    badge: 'Requested Direction',
+    file: 'cropped-databar-nonum.png',
+    desc: 'Starts exactly at the text boundary (leaving icon glyph and outer hop arc clean). Proportional width highlights conversational weight with zero visual clutter.'
+  },
+  {
+    id: 'databar-withnum',
+    label: 'Data Bar (From Text, With Number)',
+    tag: 'Text Underlay · With Count',
+    badge: 'Hybrid',
+    file: 'cropped-databar-withnum.png',
+    desc: 'Starts at the text boundary (clean icon glyph) but preserves the quiet tabular count (· 4) at the tail.'
+  },
+  {
+    id: 'databar-old',
+    label: 'Data Bar (From Icon - Previous)',
+    tag: 'Icon + Text Tint',
+    badge: 'Previous',
+    file: 'cropped-databar.png',
+    desc: 'The previous variant that tinted across the entire row including the emoji icon.'
+  },
+  {
     id: 'ticks',
-    label: '1. Timeline Ticks',
+    label: 'Timeline Micro-Ticks',
     tag: '|||| 4',
-    badge: 'Mirroring timeline rail',
+    badge: 'Rail Mirror',
     file: 'cropped-ticks.png',
-    desc: 'Discrete vertical cyan ticks (one tick per turn, matching the session timeline above). Highly legible for 1–6 turns, with a quiet + for 8+ turns.'
+    desc: 'Discrete vertical cyan ticks (one tick per turn, matching the session timeline above). Direct visual count.'
   },
   {
     id: 'bar',
-    label: '2. Spark Bar',
+    label: 'Micro Spark Bar',
     tag: '[▬▬] 4',
-    badge: 'Proportional capsule',
+    badge: 'Proportional Capsule',
     file: 'cropped-bar.png',
-    desc: 'Micro horizontal capsule whose width scales continuously with turns (5px/turn). Gives an instantaneous perception of conversational length.'
-  },
-  {
-    id: 'databar',
-    label: '3. Data Bar',
-    tag: 'bg-tint',
-    badge: 'Row background fill',
-    file: 'cropped-databar.png',
-    desc: 'Subtle translucent background fill (bg-primary/8) spanning proportionally behind the topic name according to its share of the session.'
+    desc: 'Continuous horizontal capsule whose width scales proportionally with turns (5px/turn).'
   },
   {
     id: 'pips',
-    label: '4. Intensity Pips',
+    label: 'Intensity Pips',
     tag: '●●○ 2',
-    badge: '3-tier meter',
+    badge: '3-tier Gauge',
     file: 'cropped-pips.png',
-    desc: 'Stepped 3-dot gauge (●○○ for 1 turn, ●●○ for 2–3 turns, ●●● for 4+ turns). Compact, low visual noise, quick threshold scanning.'
-  },
-  {
-    id: 'weight',
-    label: '5. Typographic Weight',
-    tag: 'bolder/lighter',
-    badge: 'Text hierarchy',
-    file: 'cropped-weight.png',
-    desc: 'Scales typographic prominence: major topics (4+ turns) are bold and high-contrast; 1-turn mentions remain muted and lighter.'
+    desc: 'Stepped 3-dot gauge (●○○ for 1 turn, ●●○ for 2–3 turns, ●●● for 4+ turns).'
   },
   {
     id: 'dot',
-    label: '6. Quiet Dot (Current)',
+    label: 'Quiet Dot (Baseline)',
     tag: '· 4',
-    badge: 'Minimal baseline',
+    badge: 'Minimal Text',
     file: 'cropped-dot.png',
-    desc: 'The clean baseline: middle dot separator with quiet tabular mono count, leaving full visual prominence to the return hop arcs.'
+    desc: 'Middle dot separator with quiet tabular mono count, leaving maximum focus on the return hop arcs.'
   }
 ];
 
@@ -68,7 +76,6 @@ const html = `<!DOCTYPE html>
   <meta charset="utf-8">
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
-    /* Custom scrollbars and transitions */
     .tab-btn.active {
       background-color: var(--primary, #3b82f6);
       color: #ffffff;
@@ -89,11 +96,11 @@ const html = `<!DOCTYPE html>
     <!-- Header -->
     <div class="flex items-center justify-between pb-2 border-b border-[var(--border)] mb-2.5">
       <div>
-        <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Topic Turn Size & Hop Rail Mockups</h3>
-        <p class="text-sm font-medium text-[var(--foreground)]">Real rendered screenshots across 6 visual directions</p>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Data Bar Starting From Text (No Number)</h3>
+        <p class="text-sm font-medium text-[var(--foreground)]">Real rendered screenshots comparing the new text-origin bar</p>
       </div>
       <div class="flex items-center gap-1">
-        <button id="view-mode-tabs" onclick="setViewMode('tabs')" class="px-2 py-0.5 text-xs rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] font-medium">Tabs</button>
+        <button id="view-mode-tabs" onclick="setViewMode('tabs')" class="px-2 py-0.5 text-xs rounded border border-[var(--border)] bg-[var(--primary)] text-white font-medium">Tabs</button>
         <button id="view-mode-stack" onclick="setViewMode('stack')" class="px-2 py-0.5 text-xs rounded border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] font-medium">Stack All</button>
       </div>
     </div>
@@ -103,16 +110,15 @@ const html = `<!DOCTYPE html>
       ${modes.map((m, idx) => `
         <button onclick="selectTab('${m.id}')" id="tab-${m.id}"
                 class="tab-btn ${idx === 0 ? 'active' : ''} px-2 py-1 text-xs rounded-md border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors flex items-center gap-1">
-          <span>${m.label.split('.')[1]}</span>
-          <span class="font-mono text-[10px] opacity-75">(${m.tag})</span>
+          <span>${m.label.replace('✨ ', '')}</span>
         </button>
       `).join('')}
     </div>
 
     <!-- Tab View: Single Shot with details -->
     <div id="single-view" class="space-y-2">
-      <div class="preview-box rounded-lg p-2 flex items-center justify-center overflow-hidden">
-        <img id="active-img" src="${b64Data['ticks']}" alt="Mockup preview" class="rounded max-w-full h-auto shadow-xs border border-black/5" />
+      <div class="preview-box rounded-lg p-3 flex items-center justify-center overflow-hidden min-h-[140px]">
+        <img id="active-img" src="${b64Data['databar-nonum']}" alt="Mockup preview" class="rounded max-w-full h-auto shadow-xs border border-black/5" />
       </div>
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-2 text-xs flex items-baseline justify-between gap-2">
         <div id="active-desc" class="text-[var(--muted-foreground)] leading-relaxed">
@@ -124,16 +130,16 @@ const html = `<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- Stacked View: All 6 together for instant scan -->
+    <!-- Stacked View: All together for instant scan -->
     <div id="stack-view" class="hidden space-y-3 max-h-[360px] overflow-y-auto pr-1">
       ${modes.map(m => `
-        <div class="border border-[var(--border)] rounded-lg p-2 bg-[var(--card)]">
+        <div class="border border-[var(--border)] rounded-lg p-2.5 bg-[var(--card)]">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-xs font-semibold text-[var(--foreground)]">${m.label}</span>
             <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-[var(--primary)]/10 text-[var(--primary)]">${m.badge}</span>
           </div>
-          <div class="preview-box rounded p-1 mb-1.5">
-            <img src="${b64Data[m.id]}" alt="${m.label}" class="rounded w-full h-auto" />
+          <div class="preview-box rounded p-2 mb-1.5 flex justify-center">
+            <img src="${b64Data[m.id]}" alt="${m.label}" class="rounded max-w-full h-auto" />
           </div>
           <p class="text-[11px] text-[var(--muted-foreground)] leading-normal">${m.desc}</p>
         </div>
@@ -174,6 +180,7 @@ const html = `<!DOCTYPE html>
         btnStack.classList.add('bg-[var(--primary)]', 'text-white');
         btnStack.classList.remove('text-[var(--muted-foreground)]');
         btnTabs.classList.remove('bg-[var(--primary)]', 'text-white');
+        btnTabs.classList.add('text-[var(--muted-foreground)]');
       } else {
         single.classList.remove('hidden');
         stack.classList.add('hidden');
@@ -181,6 +188,7 @@ const html = `<!DOCTYPE html>
         btnTabs.classList.add('bg-[var(--primary)]', 'text-white');
         btnTabs.classList.remove('text-[var(--muted-foreground)]');
         btnStack.classList.remove('bg-[var(--primary)]', 'text-white');
+        btnStack.classList.add('text-[var(--muted-foreground)]');
       }
     }
   </script>
