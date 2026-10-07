@@ -97,7 +97,7 @@ tools/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at
 tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
 tools/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",tools,421,npm:setup,yes,yes,yes
-tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,800,imported,no,yes,yes
+tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,805,imported,no,yes,yes
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/measure.mjs,,tools/render,174,imported,no,no,yes
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
@@ -134,7 +134,7 @@ tools/render/scenarios/annotate-touch-scroll.mjs,"drag real touch events through
 tools/render/scenarios/annotate-triple-tap.mjs,"the buffer scrolled to its newest line in a box of whole lines, then three taps in a run taking the whole thing",tools/render/scenarios,102,driver,no,no,no
 tools/render/scenarios/annotate-units-demo.mjs,"the two unit modes, element pick and region drag, driven through real pointer events",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/app-deck-subject.mjs,"the app's branch deck naming the document a slide is showing, two levels down: a real fab adopting it, and the drilled file deck taking the subject and handing it back",tools/render/scenarios,115,driver,no,no,no
-tools/render/scenarios/app-waiting.mjs,,tools/render/scenarios,63,driver,no,no,no
+tools/render/scenarios/app-waiting.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/approve-app-view.mjs,"approve.html as a promoted app view, with the shell drawn around it: stages the estate config a headless run has no token to read",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/approve-header.mjs,,tools/render/scenarios,291,driver,no,no,no
 tools/render/scenarios/audit-absorb.mjs,,tools/render/scenarios,160,driver,no,no,no
