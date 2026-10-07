@@ -41,9 +41,9 @@ these are the third or fourth answer to their question and the earlier ones
 failed for reasons that have not changed.
 
 Adding a mod: create `mods/<name>.js`, add it to `MODS` in
-[`tools/build/console-suite.mjs`](../tools/build/console-suite.mjs) (the
+[`node/build/console-suite.mjs`](../node/build/console-suite.mjs) (the
 build fails if the manifest and directory disagree), cover it in
-[`tools/test/console-suite.test.mjs`](../tools/test/console-suite.test.mjs).
+[`node/test/console-suite.test.mjs`](../node/test/console-suite.test.mjs).
 
 ## The working set
 
@@ -344,7 +344,7 @@ grow, and lasso all show live.
 ## Testing
 
 `npm test` drives the assembled suite under jsdom
-([`tools/test/console-suite.test.mjs`](../tools/test/console-suite.test.mjs)),
+([`node/test/console-suite.test.mjs`](../node/test/console-suite.test.mjs)),
 and pins the committed `suite.js` to a fresh `assemble()` so a stale artifact
 fails the run.
 
@@ -352,10 +352,10 @@ jsdom's layout is inert (every box 0×0, computed styles uniform), so the
 geometry-dependent behavior — `visible`, census geoReg, lasso rectangles,
 `grow {by:'style'}`, geometric joins — is exercised by a second, manual pass
 through real Chromium:
-[`tools/test/playground-pass.mjs`](../tools/test/playground-pass.mjs) drives
+[`node/test/playground-pass.mjs`](../node/test/playground-pass.mjs) drives
 [`pages/console-playground.html`](../../pages/console-playground.html)
 (fixtures for every mod: a table, hashy cards, class-less soup, a truly
 virtualized feed, an offline `/fake-api/`, microdata). Run it with
-`node tools/test/playground-pass.mjs`; it exits nonzero on any failure.
+`node node/test/playground-pass.mjs`; it exits nonzero on any failure.
 The playground doubles as the interactive demo — the suite is pre-loaded,
 open the console and work the loop.

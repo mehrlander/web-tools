@@ -10,8 +10,6 @@ form has two carriers:
   `#gh=owner/repo&pr=<n>` for a PR's own head and base.
 
 The takeover is documented below, in [Branch detail: the takeover](#branch-detail-the-takeover).
-The overlay, the sidebar's second ref and drop-on-a-branch are in
-[branch-overlay.md](../branch-overlay.md).
 
 ## Landed, differs, missing
 
@@ -31,7 +29,7 @@ unit-tested, and shared by the activity crawl and the live scan
 Read these, not `ahead_by`: squash merges and history rewrites make ref-level
 "unmerged" unreliable, and a branch with no merge base reports its whole line.
 The kit is a browser port of home's `tools/unmerged-branches.sh`, held in
-agreement with it by `scripts/check-branch-status.mjs`. It is advisory; deleting
+agreement with it by `node/check-branch-status.mjs`. It is advisory; deleting
 a branch happens on GitHub.
 
 ## Branch detail: the takeover
@@ -86,4 +84,4 @@ the lent missing paths instead.
   the guide, version chip and default branch are keyed on repo and ref and
   survive it.
 
-`tools/render/scenarios/branch-deck.mjs` measures the deck end to end.
+`node/render/scenarios/branch-deck.mjs` measures the deck end to end.

@@ -6,8 +6,8 @@ Measured 2026-08-10 across `mehrlander/web-tools` and `mehrlander/home`, with
 two instruments that make every figure below one command away:
 
 ```bash
-python3 scripts/embedded-prose.py . pages lib --weight   # text in no data file
-python3 scripts/text-carriers.py . --fields           # the data files we have
+python3 python/embedded-prose.py . pages lib --weight   # text in no data file
+python3 python/text-carriers.py . --fields           # the data files we have
 ```
 
 Re-derive rather than cite. The numbers move as the repos do.
@@ -47,7 +47,7 @@ a three-row gloss table is not worth a CSV.
 
 # Part 1: the data files we have
 
-[`scripts/text-carriers.py`](../scripts/text-carriers.py) finds every CSV column
+[`python/text-carriers.py`](../python/text-carriers.py) finds every CSV column
 and JSON key whose values are sentences, then asks whether anything in the repo
 names the file and whether the text is the estate's own voice or quoted source.
 
@@ -98,7 +98,7 @@ means somewhere else.
 
 # Part 2: text that never reached a data file
 
-[`scripts/embedded-prose.py`](../scripts/embedded-prose.py) reads `.js`, `.mjs`,
+[`python/embedded-prose.py`](../python/embedded-prose.py) reads `.js`, `.mjs`,
 `.html`, and `.py`, splits what it finds into the three kinds, and separates
 generated payloads and supplied files, whose text has a data file somewhere else.
 It reads the repo's `data/design/content.csv` where one exists, so it reports
@@ -360,7 +360,7 @@ that, which is why `use_when` is required rather than optional:
 
 It is portable, because a concept named once should be the same concept in every
 repo, and it is declared in [`docs/properties.csv`](properties.csv) with
-[`tools/test/text-fields-registry.test.mjs`](../tools/test/text-fields-registry.test.mjs)
+[`node/test/text-fields-registry.test.mjs`](../node/test/text-fields-registry.test.mjs)
 as its gate. That test holds the size (a vocabulary that admits a new name
 whenever a file uses one is not a vocabulary), the typing, and two properties
 that are invisible on reading the file: the alias map has to be a function, and
@@ -394,7 +394,7 @@ thirteenth name, `payload`, rather than an alias to something it is not.
 
 That is the intended way for the vocabulary to grow: a name is added when a
 file turns out to hold a kind the set genuinely lacks, and the count in
-[`text-fields-registry.test.mjs`](../tools/test/text-fields-registry.test.mjs)
+[`text-fields-registry.test.mjs`](../node/test/text-fields-registry.test.mjs)
 has to move in the same commit, so growth is deliberate.
 
 The alias lists were built from the observed names, not invented: the run that
@@ -475,9 +475,9 @@ misfire.
 
 So the recommended gate is narrow: fail on an undeclared text table and on an
 off-vocabulary field name, and report everything else. Same posture as
-[`scripts/dead-links.py`](../scripts/dead-links.py), which gates the
+[`python/dead-links.py`](../python/dead-links.py), which gates the
 cross-repo classes and never gates the internal one, and
-[`unclaimed-code.py`](../scripts/unclaimed-code.py), which never
+[`unclaimed-code.py`](../python/unclaimed-code.py), which never
 gates at all.
 
 Placement follows the estate's existing owner split:
@@ -565,7 +565,7 @@ per file against the code.
 | `lib/kits/swipe-deck.js` | 8,088 | 60% | 1,300 to 1,800 | 900 to 1,300 |
 | `lib/alpineComponents/stage.js` | 21,111 | 41% | 700 to 1,600 | 500 to 1,200 |
 | `pages/toss-render.html` | 7,019 | 44% | 1,300 to 2,100 | 1,100 to 1,600 |
-| `tools/render/cdn.mjs` | 1,376 | 34% | 100 to 180 | 220 to 320 |
+| `node/render/cdn.mjs` | 1,376 | 34% | 100 to 180 | 220 to 320 |
 | home `views/spend.js` | 9,572 | 27% | 2,800 to 3,600 | 500 to 1,150 |
 | home `build-submittal.py` | 8,235 | 41% | 1,550 to 2,300 | 1,650 to 2,300 |
 
@@ -604,7 +604,7 @@ too long in general" remains uncheckable and a ceiling would still misfire. But
 a **dated claim** is checkable in the only sense that matters, which is that it
 can be listed and re-read:
 
-    python3 scripts/embedded-prose.py . lib pages app --dated
+    python3 python/embedded-prose.py . lib pages app --dated
 
 `--dated` lists every comment block asserting an ISO date, oldest first, marking
 those carrying a figure beside the date, since a figure counts something that
@@ -634,9 +634,9 @@ is not repeated, because a second copy is the thing this whole pass is against.
 
 Dropped as already held, with what holds them: the 867px-track-in-a-430px-panel
 regression and the three-link width chain
-([`swipe-deck-width.test.mjs`](../tools/test/swipe-deck-width.test.mjs)); the
+([`swipe-deck-width.test.mjs`](../node/test/swipe-deck-width.test.mjs)); the
 44px phone floor and `size:'tight'`
-([`deck-entry-parity.test.mjs`](../tools/test/deck-entry-parity.test.mjs));
+([`deck-entry-parity.test.mjs`](../node/test/deck-entry-parity.test.mjs));
 `--deck-head` and `--deck-side` (`app/index.html` sets them); the charset and
 inline-deps findings (`toss-charset.mjs`, `toss-inline-deps.test.mjs`); the
 slide-retention DOM counts (`swipe-deck-stack.test.mjs` and

@@ -45,8 +45,8 @@ scanners reach files outside `lib app pages`.
 ## Related
 
 - `docs/SNAGS.md`: third recurrence of `house-style-not-consulted`
-- `scripts/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
-- `scripts/stranded-titles.py`: sibling scanner with the same root limit
+- `python/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
+- `python/stranded-titles.py`: sibling scanner with the same root limit
 - `skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
 - `skills/html-style/SKILL.md`: discovery half that PR #554 fixed
 - PR #554: style-guide discovery half

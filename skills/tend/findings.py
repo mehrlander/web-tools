@@ -2,7 +2,7 @@
 """Findings: what a tending pass concluded, stored as notes, and when to look again.
 
 docs/views/tending.md states the record and its lifecycle; lib/kits/findings.js
-folds and compares the same way, held to it by tools/test/findings.test.mjs.
+folds and compares the same way, held to it by node/test/findings.test.mjs.
 `check` observes witnesses from the checkouts beside the store and the crawl's
 cache, settled findings included.
 
@@ -346,6 +346,11 @@ def observe(w, assessed, local, store_repo):
         return {"missing": True}
     if kind == "branch":   # contains
         if note.git(co, "cat-file", "-e", f"{w['contains']}^{{commit}}", check=False).returncode:
+            # A shallow clone never fetched the older commits, so an absent one
+            # there means "cannot see", not "gone" (docs/SNAGS.md
+            # shallow-clone-reads-as-gone).
+            if note.git(co, "rev-parse", "--is-shallow-repository", check=False).stdout.strip() == "true":
+                return {"error": f"{repo} is a shallow clone; run git fetch --unshallow origin in it"}
             return {"missing": True}
         anc = note.git(co, "merge-base", "--is-ancestor", w["contains"], f"origin/{at}", check=False).returncode
         return {"contained": anc == 0}

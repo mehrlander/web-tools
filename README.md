@@ -247,9 +247,9 @@ Three docs go deeper:
   `<head>` block, what each piece of the boot chain contributes, how
   `gh.load()` works, the timing rules, the footgun list, and how that same
   contract lets a page be frozen into an offline **build**.
-- **[tools/README.md](tools/README.md)**: the Node harness under `tools/` —
-  [`render/`](tools/render/) (headless jsdom + Chromium rendering of a page,
-  offline, for screenshots and logic checks) and [`build/`](tools/build/) (the
+- **[node/README.md](node/README.md)**: the Node harness under `node/` —
+  [`render/`](node/render/) (headless jsdom + Chromium rendering of a page,
+  offline, for screenshots and logic checks) and [`build/`](node/build/) (the
   `load → build → bake → export` pipeline that snapshots a page's `gh.load`
   chain into a standalone offline artifact, with a byte-identical `verify-build`
   check).
@@ -284,7 +284,7 @@ The shape of a loaded page in one block:
 
 The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any loader page. A branch name is cache-safe: under `?use=`, [`lib/entry.js`](lib/entry.js) fetches `gh-api.js` from `raw.githubusercontent` (a five-minute cache, fetched `no-store`) and blob-imports it, and everything `gh-api.js` then loads comes fresh through the contents API at that ref, so no SHA is needed. With no `?use=`, `entry.js` imports main's `gh-api.js` natively from GitHub Pages instead; [docs/loader.md](docs/loader.md) has why the two routes differ.
 
-`?use=` covers the *loaded code* but not the page's own HTML/boot script, which is pinned to whatever main serves. To preview branch edits to the HTML shell itself, the FAB's "Render page" box fetches the current page's HTML as text via the contents API at the branch you pick from the dropdown — private-safe — then hosts it in an overlay iframe via `srcdoc`. Because an `srcdoc` document's `location` has no query string, the host stamps a small prelude into the fetched HTML so the embedded page's runtime tracks the chosen ref: it sets `window.__ref` (read it directly if you like) and patches `URLSearchParams.get('use')` to return that ref, so any page already following the `?use=` convention picks it up unmodified. A `<base>` is stamped in too so the page's relative links resolve against its real directory.
+`?use=` covers the *loaded code* but not the page's own HTML/boot script, which is pinned to whatever main serves. To preview branch edits to the HTML itself, render the page through toss-render (`pages/toss-render.html#gh=owner/repo@<ref>:<path>`, which the FAB's ref bar opens); `npm run showing` picks the link.
 
 Recent pages that make good templates:
 
@@ -308,7 +308,7 @@ The command configures the committed Git hooks and the registry CSV merge
 driver for the checkout, installs usable development dependencies, and ends
 with a readiness check. It is safe to run again. It does not regenerate tracked
 artifacts or install a Playwright browser. If npm itself cannot start, the
-dependency-free equivalent is `node tools/checkout-setup.mjs`.
+dependency-free equivalent is `node node/checkout-setup.mjs`.
 In Windows PowerShell, use the `npm.cmd` spelling for all of these commands
 (`npm.cmd run setup`, `npm.cmd run ready`, and `npm.cmd test`); this bypasses a
 stale or policy-blocked PowerShell npm shim while using the same npm runtime.

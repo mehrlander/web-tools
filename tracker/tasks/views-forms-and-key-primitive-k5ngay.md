@@ -124,7 +124,7 @@ tables, which name the role a link addresses and keep the word.
 - `docs/app-routes.csv`, `docs/routes-routes.csv`: the `doc` column precedent.
 - `lib/alpineComponents/fab.js`: `readLayers`, `_typeLayers`, the object model comment above `SUBJECT_ICON`.
 - `lib/kits/swipe-deck.js`, `lib/kits/subject-channel.js`: where the deck announces.
-- `docs/registries.md`, `docs/registries.csv`, `docs/column-primitives.md`, `tools/test/properties-registry.test.mjs`: part 3.
+- `docs/registries.md`, `docs/registries.csv`, `docs/column-primitives.md`, `node/test/properties-registry.test.mjs`: part 3.
 - `docs/subjects.csv`: part 4.
 - PR #756 (`typed-subject-registry-xys5g4`): the registry and the FAB captions this builds on.
 

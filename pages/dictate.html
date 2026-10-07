@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="winter">
+<html lang="en" data-theme="winter" data-fab-no-sel-offer>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
@@ -421,10 +421,10 @@
   // cache, so every gh.load below still runs and simply costs no network. One
   // same-origin request of 189k (64k over the wire) replaces the fourteen.
   //
-  // It is walked from THIS page's reach (tools/build/build.mjs), not the whole
+  // It is walked from THIS page's reach (node/build/build.mjs), not the whole
   // library: dist/web-tools.js would be 1.4 MB gzipped for a page that touches
   // a tenth of it. Tracked, refreshed by the commit hook, and held to its
-  // sources by tools/test/derived-artifacts.test.mjs.
+  // sources by node/test/derived-artifacts.test.mjs.
   //
   // ?use=<ref> keeps working the way the app's does: the build is fetched from
   // raw.githubusercontent at that ref and blob-imported, since jsDelivr's /gh/

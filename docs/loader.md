@@ -29,7 +29,7 @@ because that same contract is what lets a page be frozen into an offline
 **build** — how load and build are two readings of one set of rules (see
 [Load and build are one contract](#load-and-build-are-one-contract)). The
 build/bake tooling and the render harness that exercises all of this live
-under [`tools/`](../tools/README.md).
+under [`node/`](../node/README.md).
 
 ## The loader-based page pattern, annotated
 
@@ -408,7 +408,8 @@ anything we add:
    Concretely: every `gh.load('alpineComponents/*.js')` call must happen
    *before* `gh.load('alpine-bundle.js')`. Alpine doesn't start until
    alpine-bundle injects the Alpine `<script>` tag, so the serial `await`s
-   in the module script guarantee this.
+   in the module script guarantee this. `alpineComponents/viewer.js` is
+   exempt: it registers at once if Alpine is already running.
 3. **`alpine-bundle.js` is the boot signal.** It registers the `browser`
    and `toasts` stores on `alpine:init`, then appends Alpine's script tag.
    Whenever Alpine loads, its `alpine:init` fires, our handlers run, stores
@@ -456,7 +457,7 @@ anything we add:
 
    The build fixes its own two instances of this by forcing `url-params.js`
    and `repo-address.js` into the auto-boot chain, and
-   [`tools/build/build-lib.mjs`](../tools/build/build-lib.mjs) says why in
+   [`node/build/build-lib.mjs`](../node/build/build-lib.mjs) says why in
    those words. That does not extend to a kit only one page wants, so such a
    page declares a **ready gate**: a plain `<script>` *above* the module
    creating `window.__depsReady`, the module resolving `window.__depsDone()`
@@ -464,7 +465,7 @@ anything we add:
    `await window.__depsReady`. The promise has to be created above the module
    because a component that starts during the import would otherwise find the
    promise itself undefined. Held by
-   [`tools/test/page-deps-gate.test.mjs`](../tools/test/page-deps-gate.test.mjs),
+   [`node/test/page-deps-gate.test.mjs`](../node/test/page-deps-gate.test.mjs),
    which is static: the failure is a race, so a passing run proves nothing and
    only the shape can be pinned.
 
@@ -499,14 +500,14 @@ A short list of footguns to avoid when adding new files:
 - **A backtick inside an HTML or CSS comment in a template literal.**
   The backtick ends the JavaScript string even though the embedded markup
   treats it as a comment. Name the term in plain words and run `node --check`
-  before the build. [`lib-parses.test.mjs`](../tools/test/lib-parses.test.mjs)
+  before the build. [`lib-parses.test.mjs`](../node/test/lib-parses.test.mjs)
   also checks that loadable files compile as function bodies.
 
 ## Load and build are one contract
 
 The same rules that make a file *loadable* also make a page *buildable* into a
 single offline artifact — because the build is the loader, not a separate
-pipeline. `tools/build/build.mjs` (and the in-browser FAB export) emit the
+pipeline. `node/build/build.mjs` (and the in-browser FAB export) emit the
 real `gh-api.js` with exactly one thing overridden: `GH.prototype.get` reads
 from an inlined `path → source` cache instead of the network. Everything
 above still applies verbatim — same `new Function('gh', text)`, same
@@ -543,7 +544,7 @@ the mechanism:
 
 The operational side — the four verbs `load → build → bake → export`, the
 commands, and the byte-identical `verify-build` guarantee — lives in
-[`tools/README.md`](../tools/README.md).
+[`node/README.md`](../node/README.md).
 
 ## Consumers in other repos
 
@@ -590,8 +591,7 @@ Two things differ from a page in this repo:
   framed page sets `data-no-fab` on `<html>`, since the FAB belongs to the
   shell.
 
-Worked examples in `mehrlander/home`: `projects/budget-drs/submittal/submittal.html`
-and `projects/budget-drs/app/view/app.html` (the chain),
+Worked examples in `mehrlander/home`: `projects/budget-drs/app/view/app.html` (the chain),
 `projects/surfacer/app/surfacer.html` (the pre-build).
 
 ## Options for adding new capability

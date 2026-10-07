@@ -12,7 +12,7 @@ kept as two separate files because that separation is the point.
 A **stored template** is a pairing of one rows file with one layout, and nothing
 in a layout can change a figure. The second layout exists so that claim is
 demonstrated rather than asserted, and
-[`tools/test/report-layout.test.mjs`](../../tools/test/report-layout.test.mjs)
+[`node/test/report-layout.test.mjs`](../../node/test/report-layout.test.mjs)
 holds it: both layouts must yield the same amounts under different column keys.
 
 ## Where the rows came from

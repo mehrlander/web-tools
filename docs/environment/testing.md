@@ -14,7 +14,7 @@ Reach for the lightest tool that proves the thing:
 - **boot logic / component state, no pixels** → `npm run preview` (jsdom with
   the real Alpine runtime)
 - **unit logic for kits and components** → `npm test` (node:test +
-  `tools/test/bootstrap.mjs`)
+  `node/test/bootstrap.mjs`)
 - **static traversal only** → cheerio / linkedom / a Python parser (table at
   the end)
 
@@ -25,9 +25,9 @@ npm run shot -- pages/<page>.html [--ref <ref>] [--query "k=v&..."] \
   [--script <file>] [--build] [--out <png>] [--width N] [--height N] [--full]
 ```
 
-[`tools/render/screenshot.mjs`](../../tools/render/screenshot.mjs) serves the
+[`node/render/screenshot.mjs`](../../node/render/screenshot.mjs) serves the
 working tree over loopback and intercepts every external request through
-[`tools/render/cdn.mjs`](../../tools/render/cdn.mjs), which resolves three
+[`node/render/cdn.mjs`](../../node/render/cdn.mjs), which resolves three
 kinds of traffic:
 
 - **Own code** (the `lib/entry.js` import from Pages, the raw `gh-api.js` it
@@ -40,7 +40,7 @@ kinds of traffic:
   repo-atlas, which maps by them). Two fidelity gaps to remember: the
   metadata match is exact-path, so `gh.req('')`'s trailing slash misses it
   (request `https://api.github.com/repos/<repo>` in full), and the walk
-  serves the *working tree*, so gitignored files (`tools/.preview`, an
+  serves the *working tree*, so gitignored files (`node/.preview`, an
   un-gitignored scratch dir) appear in local renders but not in the live
   API's response.
   Identity endpoints (`/user`, `/user/repos`) are not impersonated; "who am I"
@@ -55,9 +55,9 @@ kinds of traffic:
   section owns the web-tools harness specifics.
 
 Output is a PNG plus a log (intercepts, `__loadedScripts`, console, errors)
-under `tools/.preview/`. `--script` runs an async `(page) => {}` to drive the
+under `node/.preview/`. `--script` runs an async `(page) => {}` to drive the
 page into a state first. `--build` renders through `dist/<page>.js` instead of
-the live chain; see [`tools/README.md`](../../tools/README.md) for the build /
+the live chain; see [`node/README.md`](../../node/README.md) for the build /
 verify-build companions.
 
 **A scenario that re-loads the page at a new fragment has to reload.** Inside a
@@ -69,7 +69,7 @@ navigation itself succeeded. Follow the goto with `page.reload()` when the point
 is what the page does *on load* at that fragment. Measured 2026-08-06 while
 covering data-view's `#item=` addressing, where three of eight assertions passed
 against stale state before the reload was added
-([`tools/render/scenarios/data-view-item.mjs`](../../tools/render/scenarios/data-view-item.mjs)).
+([`node/render/scenarios/data-view-item.mjs`](../../node/render/scenarios/data-view-item.mjs)).
 
 ### What renders: three page categories
 
@@ -99,7 +99,7 @@ npm run shot -- pages/repo-atlas.html --query "repo=mehrlander/web-tools"
   0.5.0 while `node_modules` holds the current plugin. From 2026-08-01 until the
   alias landed, every shot of a prose surface rendered **unstyled prose**. Now
   package.json installs 0.5.0 a second time as `typography-dist`, and
-  `PKG_ALIAS` in `tools/render/cdn.mjs` maps the CDN path onto it. `npm run
+  `PKG_ALIAS` in `node/render/cdn.mjs` maps the CDN path onto it. `npm run
   setup` installs it, so nothing is vendored by hand. The log line for a page
   loading it should read `combine N/N` with no `MISS`. The trip is logged as
   `headless-shot-prose-flat` in [SNAGS.md](../SNAGS.md).
@@ -198,7 +198,7 @@ Other remote imports are left alone because some sit inside template strings
 that emit user-facing snippets, where a rewrite would corrupt the output. A
 page that calls a live non-repo API endpoint gets an empty JSON array and
 renders its empty state. Internals: the header comment of
-[`tools/render/preview.mjs`](../../tools/render/preview.mjs).
+[`node/render/preview.mjs`](../../node/render/preview.mjs).
 
 ## npm test: unit suites
 
@@ -206,7 +206,7 @@ renders its empty state. Internals: the header comment of
 tests, offline via npm-vendored libs). The suite caught a real bug on its
 first run: a `versionchange` deadlock in `kits/persistence.js`.
 
-[`tools/test/bootstrap.mjs`](../../tools/test/bootstrap.mjs) does the heavy
+[`node/test/bootstrap.mjs`](../../node/test/bootstrap.mjs) does the heavy
 lifting: `makeWindow()` applies the jsdom globals and polyfills below and
 captures warnings/errors into a `problems` array (assert it stays empty, with
 `setMedia(bool)` for breakpoint flips); `startAlpine(window, [paths])` loads
@@ -313,7 +313,7 @@ const settle = async () => { await Alpine.nextTick(); await new Promise(r => set
 missing; the callback simply has not run yet. Both directions land within a
 frame in real Chromium, so a failure here is the harness reporting on itself
 rather than a defect in the page. Found while testing the Lists view's in-place
-editing (`tools/test/estate-list-edit.test.mjs`), and confirmed in Chromium
+editing (`node/test/estate-list-edit.test.mjs`), and confirmed in Chromium
 before the tests were changed.
 
 ## Fallback: driving Chromium directly

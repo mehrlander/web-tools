@@ -13,9 +13,6 @@ which shows the whole document tinted by label, removed units struck through, an
 lets them relabel, remove, add a note, split, merge, or drag a unit's edges, then
 save to the branch.
 
-The scripts are in [`scripts/annotate/`](../scripts/annotate/); the builder is
-[`tools/build/audit-payload.py`](../tools/build/audit-payload.py).
-
 ## Vocabularies
 
 A vocabulary is a TSV of `label`, `side`, `gloss`, and an optional `color`
@@ -24,31 +21,31 @@ A vocabulary is a TSV of `label`, `side`, `gloss`, and an optional `color`
 
 ## The pass
 
-1. **Segment.** `python3 scripts/annotate/segment.py <file> <first-line> <last-line> > units.jsonl`
+1. **Segment.** `python3 python/annotate/segment.py <file> <first-line> <last-line> > units.jsonl`
 2. **Label.** Write `labels.tsv` with columns `uid`, `label`, `verdict`.
 3. **Build and hand over.**
-   `python3 tools/build/audit-payload.py standoff <doc> <run-dir> [--vocab <tsv>] [--question <text>]`,
+   `python3 python/annotate/audit-payload.py standoff <doc> <run-dir> [--vocab <tsv>] [--question <text>]`.
    The page loads the standoff from `?src=<spec>`, and Save writes it back;
    `… payload <doc> <run-dir> --inject <page>` embeds it instead. Hand the user
    the page before rewriting anything.
 4. **Rewrite** from the corrected annotation.
-   `python3 scripts/annotate/materialize.py <standoff.json> <doc> --out <file>`
+   `python3 python/annotate/materialize.py <standoff.json> <doc> --out <file>`
    drafts it from the `DROP`s and insertions, and lists the noted units to reword.
 5. **Check.**
-   `python3 scripts/annotate/check.py units.jsonl labels.tsv <original> <rewrite> [--section <heading>]`,
-   then `python3 scripts/annotate/seams.py` with the same arguments. `check.py`
+   `python3 python/annotate/check.py units.jsonl labels.tsv <original> <rewrite> [--section <heading>]`,
+   then `python3 python/annotate/seams.py` with the same arguments. `check.py`
    over-reports: most candidates on loose prose are reworded survivors, so probe
    each for its distinctive words before calling it a loss. If the rewrite
    removes a `KEEP` unit after all, change its verdict to `DROP`.
 6. **Record** surprises in
-   [`scripts/annotate/LOG.md`](../scripts/annotate/LOG.md).
+   [`python/annotate/LOG.md`](../python/annotate/LOG.md).
 
 The scripts cannot see a definition that exists only in a tooltip, or a paragraph
 repeated within one file. Look for both, and run the repo's own gates as well.
 
 ## Revising the annotation
 
-The page and `python3 scripts/annotate/ops.py <standoff.json> <patch.json> <doc> [--write]`
+The page and `python3 python/annotate/ops.py <standoff.json> <patch.json> <doc> [--write]`
 apply a patch, a list of operations keyed by `uid`. A patch that breaks the
 annotation is refused whole; without `--write` it is a dry run.
 

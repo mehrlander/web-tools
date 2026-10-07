@@ -108,7 +108,7 @@ cannot, and needs re-anchoring by hand or by a re-annotation pass.
 
 ### Verdicts
 
-The vocabulary [`scripts/dead-links.py`](../scripts/dead-links.py) already uses,
+The vocabulary [`python/dead-links.py`](../python/dead-links.py) already uses,
 extended by two:
 
 | Verdict | Means |
@@ -150,7 +150,9 @@ trap).
 registry; spans pinned by a document hash in standoffs; quote anchors on notes;
 content-addressed passages; notes addressed to any locator, with
 `note.py show <about>` as the inbound lookup for notes; and the broken test with
-its verdicts in `dead-links.py`.
+its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
+notes and spans in standoffs; the pre-commit hook runs it on what a commit
+changes.
 
 **Does not exist yet:** a declared stance per kind of reference; stored witnesses
 on anything but standoffs; the cascade; an inbound index across kinds of

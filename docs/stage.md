@@ -138,8 +138,8 @@ flavor can answer).
 transform workbench states: `StageIntake.mdOf` owns the options and the GFM
 plugin (which is what turns a pasted web-page TABLE into a table rather than a
 run of cells) and throws rather than fetching, since a lazy fetch inside a tap
-spends the gesture and then reports the loss as something else. Two files and
-31 KB, fetched the first time somebody chooses the item and never on a paste
+spends the gesture and then reports the loss as something else. Two files,
+fetched the first time somebody chooses the item and never on a paste
 where nobody does. Cached against the **source text**, not the name: two pastes
 on one day carry the same sniffed name, so a name-keyed cache hands the second
 one the first one's markdown.
@@ -318,7 +318,7 @@ Stage-view actions:
   viewer's `fill` body never became a scroll container and the box's own
   `overflow-hidden` clipped whatever passed the cap with no scrollbar
   anywhere. Pinning the height fixes both, and
-  [`tools/test/stage-reader-height.mjs`](../tools/test/stage-reader-height.mjs)
+  [`node/test/stage-reader-height.mjs`](../node/test/stage-reader-height.mjs)
   (`npm run test:reader-height`) holds it: neither claim is visible in a
   screenshot or reachable from jsdom, which has no layout, so the check
   measures the box on a 2-line file and a 4,000-line file and then scrolls the
@@ -636,7 +636,7 @@ is `#gz=` rather than an empty `#stage=`:
 link cannot do: a before and an after that exist only as text, compared by a
 reader with no token, no account, and no access to the repo the edit came from.
 A short before/after pair mints to about 350 characters.
-[`tools/test/stage-gz-review.mjs`](../tools/test/stage-gz-review.mjs) holds it
+[`node/test/stage-gz-review.mjs`](../node/test/stage-gz-review.mjs) holds it
 end to end with `api.github.com` blocked outright, which is the only form of
 that claim worth making: the shell reads its own repo on boot to orient itself,
 so counting requests would never reach zero and would say nothing about whether

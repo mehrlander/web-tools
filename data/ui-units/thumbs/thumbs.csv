@@ -17,7 +17,7 @@ web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone
 web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-06,app/index.html?view=map&tab=skills,slots @59,card-grid
 web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-06,app/index.html?view=map&tab=surfacing,slots @59,card-grid
 web-tools:map/tests,web-tools-map-tests.desk.jpg,web-tools-map-tests.phone.jpg,2026-10-06,app/index.html?view=map&tab=tests,slots @59,list
-web-tools:map/views,web-tools-map-views.desk.jpg,web-tools-map-views.phone.jpg,2026-10-06,app/index.html?view=map&tab=views · tools/render/scenarios/map-views.mjs,slots @59,list
+web-tools:map/views,web-tools-map-views.desk.jpg,web-tools-map-views.phone.jpg,2026-10-06,app/index.html?view=map&tab=views · node/render/scenarios/map-views.mjs,slots @59,list
 web-tools:pages/approve.html,web-tools-pages-approve-html.desk.jpg,web-tools-pages-approve-html.phone.jpg,2026-10-06,pages/approve.html,,
 web-tools:pages/branch.html,web-tools-pages-branch-html.desk.jpg,web-tools-pages-branch-html.phone.jpg,2026-10-06,pages/branch.html?#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz,slots @37,header-swiper
 web-tools:pages/links.html,web-tools-pages-links-html.desk.jpg,web-tools-pages-links-html.phone.jpg,2026-10-06,pages/links.html,slots @126,list
@@ -28,31 +28,31 @@ web-tools:pages/shortcuts.html,web-tools-pages-shortcuts-html.desk.jpg,web-tools
 web-tools:pages/text-lab.html,web-tools-pages-text-lab-html.desk.jpg,web-tools-pages-text-lab-html.phone.jpg,2026-10-06,pages/text-lab.html,slots @44,list
 web-tools:view/app,web-tools-view-app.desk.jpg,web-tools-view-app.phone.jpg,2026-10-06,app/index.html?app=mehrlander/web-tools:pages/text-lab.html,slots @57,host
 web-tools:view/atlas,web-tools-view-atlas.desk.jpg,web-tools-view-atlas.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=atlas,slots @57,figure
-web-tools:view/branches,web-tools-view-branches.desk.jpg,web-tools-view-branches.phone.jpg,2026-10-06,app/index.html?view=branches · tools/render/scenarios/activity-fake.mjs,slots @69,list
-web-tools:view/chats,web-tools-view-chats.desk.jpg,web-tools-view-chats.phone.jpg,2026-10-06,app/index.html?view=activity · tools/render/scenarios/chats-pane.mjs,slots @69,
+web-tools:view/branches,web-tools-view-branches.desk.jpg,web-tools-view-branches.phone.jpg,2026-10-06,app/index.html?view=branches · node/render/scenarios/activity-fake.mjs,slots @69,list
+web-tools:view/chats,web-tools-view-chats.desk.jpg,web-tools-view-chats.phone.jpg,2026-10-06,app/index.html?view=activity · node/render/scenarios/chats-pane.mjs,slots @69,
 web-tools:view/config,web-tools-view-config.desk.jpg,web-tools-view-config.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=config,slots @59,tool
 web-tools:view/files,web-tools-view-files.desk.jpg,web-tools-view-files.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=files&path=docs,slots @61,linked-swiper
-web-tools:view/jots,web-tools-view-jots.desk.jpg,web-tools-view-jots.phone.jpg,2026-10-06,app/index.html?view=lists · tools/render/scenarios/estate-sessions.mjs,slots @69,list-stack
+web-tools:view/jots,web-tools-view-jots.desk.jpg,web-tools-view-jots.phone.jpg,2026-10-06,app/index.html?view=lists · node/render/scenarios/estate-sessions.mjs,slots @69,list-stack
 web-tools:view/landing,web-tools-view-landing.desk.jpg,web-tools-view-landing.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools,slots @59,document
-web-tools:view/lists,web-tools-view-lists.desk.jpg,web-tools-view-lists.phone.jpg,2026-10-06,app/index.html?view=lists · tools/render/scenarios/estate-sessions.mjs,slots @69,list-stack
+web-tools:view/lists,web-tools-view-lists.desk.jpg,web-tools-view-lists.phone.jpg,2026-10-06,app/index.html?view=lists · node/render/scenarios/estate-sessions.mjs,slots @69,list-stack
 web-tools:view/pages,web-tools-view-pages.desk.jpg,web-tools-view-pages.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=pages,slots @59,card-grid
-web-tools:view/project/app,web-tools-view-project-app.desk.jpg,web-tools-view-project-app.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · tools/render/scenarios/project-app.mjs,slots @113,host
-web-tools:view/project/board,web-tools-view-project-board.desk.jpg,web-tools-view-project-board.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&tab=board · tools/render/scenarios/project-board-typed.mjs,slots @113,list
+web-tools:view/project/app,web-tools-view-project-app.desk.jpg,web-tools-view-project-app.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · node/render/scenarios/project-app.mjs,slots @113,host
+web-tools:view/project/board,web-tools-view-project-board.desk.jpg,web-tools-view-project-board.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&tab=board · node/render/scenarios/project-board-typed.mjs,slots @113,list
 web-tools:view/project/docs,web-tools-view-project-docs.desk.jpg,web-tools-view-project-docs.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=docs,slots @113,list-detail
 web-tools:view/project/files,web-tools-view-project-files.desk.jpg,web-tools-view-project-files.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=files,slots @113,linked-swiper
-web-tools:view/project/outpost,web-tools-view-project-outpost.desk.jpg,web-tools-view-project-outpost.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · tools/render/scenarios/project-outpost.mjs,slots @113,list-detail
+web-tools:view/project/outpost,web-tools-view-project-outpost.desk.jpg,web-tools-view-project-outpost.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · node/render/scenarios/project-outpost.mjs,slots @113,list-detail
 web-tools:view/project/overview,web-tools-view-project-overview.desk.jpg,web-tools-view-project-overview.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=overview,slots @113,document
-web-tools:view/project/pages,web-tools-view-project-pages.desk.jpg,web-tools-view-project-pages.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools&view=project&project=docs&tab=pages,slots @113,card-grid
-web-tools:view/proposals,web-tools-view-proposals.desk.jpg,web-tools-view-proposals.phone.jpg,2026-10-06,app/index.html?view=landing · tools/render/scenarios/proposals-demo.mjs,slots @105,list
+web-tools:view/project/pages,web-tools-view-project-pages.desk.jpg,web-tools-view-project-pages.phone.jpg,2026-10-06,app/index.html?repo=mehrlander/web-tools · node/render/scenarios/project-pages-routes.mjs,slots @113,card-grid
+web-tools:view/proposals,web-tools-view-proposals.desk.jpg,web-tools-view-proposals.phone.jpg,2026-10-06,app/index.html?view=landing · node/render/scenarios/proposals-demo.mjs,slots @105,list
 web-tools:view/public,web-tools-view-public.desk.jpg,web-tools-view-public.phone.jpg,2026-10-06,app/index.html?view=public,slots @149,list-detail
-web-tools:view/repos,web-tools-view-repos.desk.jpg,web-tools-view-repos.phone.jpg,2026-10-06,app/index.html?view=repos · tools/render/scenarios/repos-abandoned-badge.mjs,slots @113,card-grid
-web-tools:view/search,web-tools-view-search.desk.jpg,web-tools-view-search.phone.jpg,2026-10-06,app/index.html?view=search · tools/render/scenarios/search-files.mjs,slots @59,list-detail
-web-tools:view/sessions,web-tools-view-sessions.desk.jpg,web-tools-view-sessions.phone.jpg,2026-10-06,app/index.html?view=sessions · tools/render/scenarios/estate-sessions.mjs,slots @59,list
+web-tools:view/repos,web-tools-view-repos.desk.jpg,web-tools-view-repos.phone.jpg,2026-10-06,app/index.html?view=repos · node/render/scenarios/repos-abandoned-badge.mjs,slots @113,card-grid
+web-tools:view/search,web-tools-view-search.desk.jpg,web-tools-view-search.phone.jpg,2026-10-06,app/index.html?view=search · node/render/scenarios/search-files.mjs,slots @59,list-detail
+web-tools:view/sessions,web-tools-view-sessions.desk.jpg,web-tools-view-sessions.phone.jpg,2026-10-06,app/index.html?view=sessions · node/render/scenarios/estate-sessions.mjs,slots @59,list
 web-tools:view/shell,web-tools-view-shell.desk.jpg,web-tools-view-shell.phone.jpg,2026-10-06,app/index.html,slots @0,host
 web-tools:view/stage,web-tools-view-stage.desk.jpg,web-tools-view-stage.phone.jpg,2026-10-06,app/index.html?view=stage,slots @69,tool
 web-tools:view/stage/errands,web-tools-view-stage-errands.desk.jpg,web-tools-view-stage-errands.phone.jpg,2026-10-06,app/index.html?view=stage&tab=errands,slots @194,list
-web-tools:view/state,web-tools-view-state.desk.jpg,web-tools-view-state.phone.jpg,2026-10-06,app/index.html?view=state · tools/render/scenarios/state-view.mjs,slots @59,list
-web-tools:view/tending,web-tools-view-tending.desk.jpg,web-tools-view-tending.phone.jpg,2026-10-06,app/index.html?view=landing · tools/render/scenarios/tending-stand-in.mjs,slots @69,list
+web-tools:view/state,web-tools-view-state.desk.jpg,web-tools-view-state.phone.jpg,2026-10-06,app/index.html?view=state · node/render/scenarios/state-view.mjs,slots @59,list
+web-tools:view/tending,web-tools-view-tending.desk.jpg,web-tools-view-tending.phone.jpg,2026-10-06,app/index.html?view=landing · node/render/scenarios/tending-stand-in.mjs,slots @69,list
 web-tools:view/tools,web-tools-view-tools.desk.jpg,web-tools-view-tools.phone.jpg,2026-10-06,app/index.html?view=tools,slots @113,card-grid
 web-tools:view/waiting,web-tools-view-waiting.desk.jpg,web-tools-view-waiting.phone.jpg,2026-10-06,app/index.html?view=waiting,slots @69,linked-swiper
 web-tools:view/writes,web-tools-view-writes.desk.jpg,web-tools-view-writes.phone.jpg,2026-10-06,app/index.html?view=writes,slots @69,

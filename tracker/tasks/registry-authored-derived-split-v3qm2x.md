@@ -4,7 +4,6 @@ title: Separate authored from derived data across the registries
 status: backlog
 opened: 2026-08-18
 size: M
-awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10
 ---
 # Separate authored from derived data across the registries
 
@@ -55,7 +54,7 @@ not win it, so the third `awaiting` decision is not a decision.
 
 **The harm it predicted happened, and is one row.** The argument for going first
 was that a property added beside a false `mode` inherits the falsehood.
-`pages.note` is still `mode: computed`, `deriver: tools/build/pages-index.mjs`,
+`pages.note` is still `mode: computed`, `deriver: node/build/pages-index.mjs`,
 while a human writes the 26 blurbs. So `column_primitive` did land beside a false
 row. One of 178.
 
@@ -113,9 +112,9 @@ adopted.
 - `lib/alpineComponents/map.js`: holds the five glossaries Layer 3 moves, warning words among them
 - `lib/alpineComponents/estate.js`, `lib/alpineComponents/file-review.js`: the other Layer 3 carriers (`ADOPT_VERDICT`, `DUE`, `STATUS_TAG`)
 - `docs/docs.csv`, `docs/harness.csv`: two registries whose columns carry a warning word as a value (`reach: orphan`, `invocation: none found`)
-- `tools/build/pages-index.mjs`, `tools/build/docs-reach.mjs`: Layer 2's authored blocks, inside generators
+- `node/build/pages-index.mjs`, `node/build/docs-reach.mjs`: Layer 2's authored blocks, inside generators
 - `docs/registries.csv`: decision 3's subject, 11 authored columns beside one computed
-- `tools/test/properties-registry.test.mjs`: where this task's gate and `column-primitive-across-registries-r8qiea` meet
+- `node/test/properties-registry.test.mjs`: where this task's gate and `column-primitive-across-registries-r8qiea` meet
 - `docs/column-primitives.md`: the neighbouring task's doctrine, read before settling the order
 - task `align-map-view-cleanup-40afu8`: its item 5 waits on this task's Layer 3
 
@@ -174,3 +173,4 @@ table inside 145 KB of machine output.
   about 35 lines. Layer 3 has moved 37 values and has not reached `docs.reach` or
   `harness.invocation`, the two that release Map's item 5. Recommended shape
   written above; size L to M.
+- 2026-10-07: Decided. The owner took the recommended shape (user call 2708d02c-web-tools-answers): fix `pages.note` first as an XS, split `tests` only, a named exception each for `registries`, `harness` and `docs`, then Layer 3 for `docs.reach` and `harness.invocation`.

@@ -4,7 +4,6 @@ title: Pinch-zoom and pan for pdf-inspect's page view
 status: backlog
 opened: 2026-07-26
 size: M
-awaiting: CSS transform then settle, recommended in the body; live re-render is the alternative
 ---
 # Pinch-zoom and pan for pdf-inspect's page view
 
@@ -60,3 +59,4 @@ axis picker and saved views exist so the gesture is never the only route.
 - 2026-07-26: Filed at the wrap-up of PR #294, from using the page on a phone.
 - 2026-09-17: Marked awaiting zoom strategy (CSS transform then settle vs live re-render).
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-07: Decided. Pinch applies a CSS transform to the canvas and its overlay together, and re-renders at the new scale when the gesture ends, as recommended (user call 2708d02c-web-tools-answers).

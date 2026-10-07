@@ -8,7 +8,7 @@
 <!--
   audit-render.html — a document coloured by what each of its units IS.
 
-  The audit pass (scripts/annotate, doc-audit's fourth question) puts one
+  The audit pass (python/annotate, doc-audit's fourth question) puts one
   label on every unit of a document. This page is where you look at the result:
   the whole document, every unit tinted, a legend that filters, and the density
   figure that says whether the document is worth a rewrite at all.
@@ -30,7 +30,7 @@
     read    the document as markdown, every unit tinted.
 
   Payload: audit/1, from ?src=<spec>, #gz=<base64url>, or the embedded default.
-  Built by tools/build/audit-payload.py (--inject refreshes the block below).
+  Built by python/annotate/audit-payload.py (--inject refreshes the block below).
 -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -983,7 +983,7 @@ window.__audit = {
 
     // EDITING. Every rule about a standoff (the invariants, the four
     // operations, the serialization, where a save may land) lives in
-    // lib/kits/standoff.js, and scripts/annotate/ops.py is the same rules
+    // lib/kits/standoff.js, and python/annotate/ops.py is the same rules
     // in Python. This page is the view: it decides what to offer and where to
     // put it, and delegates what an operation MEANS.
     patch: [], at: 0, base: null, menu: null, boundaries: [], splitNote: '', opErr: '',
@@ -2306,7 +2306,7 @@ window.__audit = {
           <span class="text-error" x-show="saveErr" x-text="saveErr"></span>
         </div>
         <p class="text-xs opacity-60 mt-2 font-mono">
-          python3 scripts/annotate/ops.py &lt;standoff.json&gt; patch.json &lt;doc.md&gt; --write
+          python3 python/annotate/ops.py &lt;standoff.json&gt; patch.json &lt;doc.md&gt; --write
         </p>
         <form method="dialog" class="modal-backdrop"><button class="btn btn-sm btn-block mt-3">close</button></form>
       </div>

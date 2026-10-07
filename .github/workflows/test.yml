@@ -1,20 +1,21 @@
 name: Tests
 
-# The repo's one VERIFICATION workflow. Everything else under .github/workflows/
-# is an errand (a cron or a button), and an errand's run has no commit under
-# review to attach to, so it lives in the Actions tab and nowhere else. This one
-# is triggered by a pull request, so its result attaches to the PR's head commit
-# and becomes a check: the green or red mark in the merge box, the Checks tab,
-# and the tick beside the commit wherever GitHub lists it.
+# One of the repo's two VERIFICATION workflows; page-measures.yml is the other.
+# Everything else under
+# .github/workflows/ is an errand (a cron or a button), and an errand's run has
+# no commit under review to attach to, so it lives in the Actions tab and nowhere
+# else. This one is triggered by a pull request, so its result attaches to the
+# PR's head commit and becomes a check: the green or red mark in the merge box,
+# the Checks tab, and the tick beside the commit wherever GitHub lists it.
 #
 # Why it exists: the configured git hooks regenerate deterministic artifacts
 # during ordinary commits and local merge completion, but checkout setup can be
 # skipped, --no-verify can bypass the hooks, and GitHub API/MCP/server-side
-# writes cannot run them. tools/test/derived-artifacts.test.mjs is deliberately
+# writes cannot run them. node/test/derived-artifacts.test.mjs is deliberately
 # independent of that refresh path. Here it runs on every PR, so stale output is
 # caught by the platform rather than accepted because local setup looked ready.
 #
-# The suite is browser-free: `node --test` globs tools/test/**/*.test.mjs, and
+# The suite is browser-free: `node --test` globs node/test/**/*.test.mjs, and
 # every Playwright-driven check (subject-actions, render-copy, the pdf probes) is
 # deliberately named without `.test.` and stays a manual run. That is what lets
 # the install below skip the browser download.
