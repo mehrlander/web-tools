@@ -1,0 +1,128 @@
+=== screenshot: app/index.html ===
+png: ../../../tmp/claude-0/-home-user/2708d02c-fb4f-596e-875c-79c3f3bcdf50/scratchpad/board.png
+requests: fulfill=39 empty=0 continue=0
+
+--- loadedScripts ok (77) ---
+  gh-api.js
+  gh-boot.js
+  vanilla-bundle.js
+  gh-auth.js
+  gh-fetch.js
+  kits/repo-address.js
+  kits/source-peek.js
+  kits/traffic.js
+  kits/claude-mark.js
+  kits/assistant-mark.js
+  kits/console.js
+  kits/url-params.js
+  kits/csv.js
+  alpineComponents/branch-brief.js
+  alpineComponents/call-form.js
+  alpineComponents/config.js
+  alpineComponents/console.js
+  alpineComponents/crumb-bar.js
+  alpineComponents/estate.js
+  alpineComponents/fab.js
+  alpineComponents/file-browser.js
+  alpineComponents/file-review.js
+  alpineComponents/installation-view.js
+  alpineComponents/map.js
+  alpineComponents/path-picker.js
+  alpineComponents/powershell-file.js
+  alpineComponents/proposals.js
+  alpineComponents/public-browse.js
+  alpineComponents/quick-find.js
+  alpineComponents/ref-picker.js
+  alpineComponents/ref-switch.js
+  alpineComponents/repo-menu.js
+  alpineComponents/repo.js
+  alpineComponents/search-view.js
+  alpineComponents/session-brief.js
+  alpineComponents/stage.js
+  alpineComponents/state-view.js
+  alpineComponents/tending.js
+  alpineComponents/tools.js
+  alpineComponents/viewer.js
+  alpine-bundle.js
+  gh-store.js
+  kits/crawl-runs.js
+  kits/last-write.js
+  kits/repo-config-cache.js
+  kits/branch-status.js
+  kits/repo-activity-cache.js
+  kits/activity-crawl.js
+  kits/file-index.js
+  kits/write-kinds.js
+  kits/closing-state.js
+  kits/repo-sessions-cache.js
+  kits/route-activity.js
+  kits/route-join.js
+  kits/errands.js
+  kits/repo-proposals.js
+  kits/findings.js
+  kits/persistence.js
+  kits/visit-log.js
+  kits/file-correspondence.js
+  kits/installation.js
+  kits/sync-status.js
+  kits/powershell-workspace.js
+  kits/powershell-language.js
+  kits/powershell-editor.js
+  kits/estate-search.js
+  kits/portable-align.js
+  kits/repo-checks.js
+  kits/github-links.js
+  kits/text-diff.js
+  kits/dock-split.js
+  kits/guide-render.js
+  kits/title-tip.js
+  kits/stage-handoff.js
+  kits/io.js
+  kits/src-doc.js
+  kits/md-doc.js
+
+--- intercepts (40) ---
+combine 3/3
+combine 2/2
+npm /npm/@phosphor-icons/web@2.1.2/src/regular/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/thin/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/light/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/bold/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/fill/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/duotone/style.css
+unpkg /@alpinejs/collapse
+unpkg /alpinejs
+api repo meta
+npm /npm/@phosphor-icons/web@2.1.2/src/regular/Phosphor.woff2
+api README.md @main
+api commits
+api .web-tools.json @main
+api docs/assistant-branches.csv @main
+npm /npm/marked/marked.min.js
+api commit 8a0f016
+api commit a078a3e
+api commit bc94986
+api commit ef63272
+api commit 07ab431
+api commit 2ab3666
+api tracker/board.csv @main
+api commits data/checks-reading/explanations.csv
+combine 2/2
+api commits tools/test/app-routes.test.mjs
+api commits tools/test/derived-artifacts.test.mjs
+api commits tools/test/diff-tool-engine.test.mjs
+api commits tools/test/docs-registry.test.mjs
+api commits tools/test/gh-boot-pageboot.test.mjs
+api commits tools/test/graphql-schema.test.mjs
+api commits tools/test/one-escape-helper.test.mjs
+api commits tools/test/properties-registry.test.mjs
+api commits tools/test/render-copy.mjs
+api commits tools/test/surfacing-manifest.test.mjs
+api commits tools/test/tests-registry.test.mjs
+npm /npm/prismjs/components/prism-bash.min.js
+npm /npm/@phosphor-icons/web@2.1.2/src/duotone/Phosphor-Duotone.woff2
+script tools/render/scenarios/project-board-review.mjs
+
+--- console (0) ---
+
+--- errors (0) ---

@@ -1,0 +1,267 @@
+=== screenshot: app/index.html ===
+png: ../../../tmp/claude-0/-home-user/2708d02c-fb4f-596e-875c-79c3f3bcdf50/scratchpad/shots/cold-branch.png
+requests: fulfill=154 empty=0 continue=6
+
+--- loadedScripts ok (83) ---
+  gh-api.js
+  gh-boot.js
+  vanilla-bundle.js
+  gh-auth.js
+  gh-fetch.js
+  kits/repo-address.js
+  kits/source-peek.js
+  kits/traffic.js
+  kits/claude-mark.js
+  kits/assistant-mark.js
+  kits/console.js
+  kits/url-params.js
+  kits/csv.js
+  alpineComponents/branch-brief.js
+  alpineComponents/config.js
+  alpineComponents/console.js
+  alpineComponents/crumb-bar.js
+  alpineComponents/estate.js
+  alpineComponents/fab.js
+  alpineComponents/file-browser.js
+  alpineComponents/file-review.js
+  alpineComponents/installation-view.js
+  alpineComponents/map.js
+  alpineComponents/path-picker.js
+  alpineComponents/powershell-file.js
+  alpineComponents/proposals.js
+  alpineComponents/public-browse.js
+  alpineComponents/quick-find.js
+  alpineComponents/ref-picker.js
+  alpineComponents/ref-switch.js
+  alpineComponents/repo-menu.js
+  alpineComponents/repo.js
+  alpineComponents/search-view.js
+  alpineComponents/session-brief.js
+  alpineComponents/stage.js
+  alpineComponents/state-view.js
+  alpineComponents/tending.js
+  alpineComponents/tools.js
+  alpineComponents/user-call-form.js
+  alpineComponents/viewer.js
+  alpineComponents/waiting.js
+  alpine-bundle.js
+  gh-store.js
+  kits/crawl-runs.js
+  kits/last-write.js
+  kits/repo-config-cache.js
+  kits/branch-status.js
+  kits/repo-activity-cache.js
+  kits/activity-crawl.js
+  kits/file-index.js
+  kits/write-kinds.js
+  kits/closing-state.js
+  kits/repo-sessions-cache.js
+  kits/sessions-crawl.js
+  kits/route-activity.js
+  kits/route-join.js
+  kits/errands.js
+  kits/repo-proposals.js
+  kits/user-calls.js
+  kits/findings.js
+  kits/persistence.js
+  kits/visit-log.js
+  kits/file-correspondence.js
+  kits/installation.js
+  kits/sync-status.js
+  kits/powershell-workspace.js
+  kits/powershell-language.js
+  kits/powershell-editor.js
+  kits/estate-search.js
+  kits/portable-align.js
+  kits/repo-checks.js
+  kits/github-links.js
+  kits/text-diff.js
+  kits/dock-split.js
+  kits/guide-render.js
+  kits/title-tip.js
+  kits/stage-handoff.js
+  kits/io.js
+  kits/src-doc.js
+  kits/md-doc.js
+  kits/md-variants.js
+  kits/md-diff.js
+  kits/text-collection.js
+
+--- intercepts (155) ---
+combine 3/3
+combine 2/2
+npm /npm/@phosphor-icons/web@2.1.2/src/regular/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/thin/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/light/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/bold/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/fill/style.css
+npm /npm/@phosphor-icons/web@2.1.2/src/duotone/style.css
+unpkg /@alpinejs/collapse
+unpkg /alpinejs
+api repo meta
+npm /npm/@phosphor-icons/web@2.1.2/src/regular/Phosphor.woff2
+git-api web-tools README.md @main
+git-api web-tools commits  @main
+git-api web-tools .web-tools.json @main
+git-api web-tools-private state/session-menu.json @main
+git-api web-tools-private dir user-calls @main
+npm /npm/marked/marked.min.js
+api commit 188250c
+api commit b04c62b
+api commit c8ac287
+api commit c8af01b
+api commit 0dfbb99
+api commit 86b5b1f
+git-api web-tools tracker/board.csv @main
+git-api web-tools commits data/checks-reading/explanations.csv @main
+git-api web-tools-private user-calls/2708d02c-account-skills.json @main
+git-api web-tools-private user-calls/2708d02c-close-four-tasks.json @main
+git-api web-tools-private user-calls/2708d02c-close-nine-prs.json @main
+git-api web-tools-private user-calls/2708d02c-home-answers.json @main
+git-api web-tools-private user-calls/2708d02c-merge-708.json @main
+git-api web-tools-private user-calls/2708d02c-merge-729.json @main
+git-api web-tools-private user-calls/2708d02c-merge-767.json @main
+git-api web-tools-private user-calls/2708d02c-merge-773.json @main
+git-api web-tools-private user-calls/2708d02c-merge-874.json @main
+git-api web-tools-private user-calls/2708d02c-merge-883.json @main
+git-api web-tools-private user-calls/2708d02c-merge-886.json @main
+git-api web-tools-private user-calls/2708d02c-merge-90.json @main
+git-api web-tools-private user-calls/2708d02c-refresh-nine-prs.json @main
+git-api web-tools-private user-calls/2708d02c-web-tools-answers.json @main
+git-api web-tools-private user-calls/5f95d663-budget-drs-app-route.json @main
+git-api web-tools-private user-calls/5f95d663-merge-web-tools-884.json @main
+git-api web-tools-private user-calls/5f95d663-power-query-graph.json @main
+git-api web-tools-private user-calls/a710e806-text-tools-tighten.json @main
+combine 2/2
+git-api MISS home pull NaN
+git-api MISS home pull NaN
+git-api home pull 773 open
+git-api web-tools pull 886 open
+git-api home pull 708 open
+git-api home pull 729 open
+git-api home pull 767 open
+git-api web-tools pull 874 open
+git-api web-tools pull 883 open
+git-api web-tools-private pull 90 open
+git-api web-tools pull 870 merged
+git-api home projects/text/passages.jsonl @main
+git-api home projects/text/variants.jsonl @main
+git-api home projects/text/proposals.jsonl @main
+git-api home projects/text/purposes.csv @main
+git-api MISS home projects/text/reviews.jsonl @main
+git-api home projects/text/occurrences.json @main
+npm /npm/prismjs/components/prism-bash.min.js
+git-api web-tools docs/pdf-structure.md @main
+git-api home .claude/skills/README.md @main
+git-api home CLAUDE.md @main
+git-api home README.md @main
+git-api home me/README.md @main
+git-api shortcut-tools CLAUDE.md @main
+git-api shortcut-tools README.md @main
+git-api shortcut-tools docs/idioms.md @main
+git-api shortcut-tools workflows/README.md @main
+git-api web-tools CLAUDE.md @main
+git-api web-tools docs/APP.md @main
+git-api web-tools docs/MARKETPLACE.md @main
+git-api web-tools docs/SNAGS.md @main
+git-api web-tools docs/branch-overlay.md @main
+git-api web-tools docs/forms/branch.md @main
+git-api web-tools docs/loader.md @main
+git-api web-tools docs/manifest.md @main
+git-api web-tools docs/views/proposals.md @main
+git-api MISS web-tools docs/show-repo.md @main
+git-api web-tools docs/showing.md @main
+git-api web-tools docs/stage.md @main
+git-api web-tools docs/venues.md @main
+git-api web-tools lib/kits/README.md @main
+git-api web-tools tools/README.md @main
+git-api MISS web-tools-private DESIGN.md @main
+git-api web-tools-private README.md @main
+git-api web-tools-private sessions/README.md @main
+git-api web-tools tools/test/claude-md.test.mjs @main
+git-api web-tools .claude-plugin/marketplace.json @main
+git-api web-tools docs/surfacing-course.md @main
+git-api MISS web-tools skills/daisy-alpine/references/mechanics.md @main
+git-api web-tools docs/SURFACING.md @main
+git-api web-tools scripts/derived-csv-merge.mjs @main
+git-api web-tools scripts/annotate/segment.py @main
+git-api web-tools docs/environment/capabilities.md @main
+git-api web-tools lib/kits/messaging.js @main
+git-api web-tools lib/kits/data-shelf.js @main
+git-api web-tools lib/kits/wring.js @main
+git-api web-tools lib/kits/treemap.js @main
+git-api web-tools lib/build.js @main
+git-api web-tools lib/kits/annotate.js @main
+git-api web-tools lib/kits/wsl-core.js @main
+git-api web-tools lib/kits/wsl.js @main
+git-api web-tools lib/kits/pdf.js @main
+git-api web-tools lib/kits/xlsx.js @main
+git-api web-tools lib/kits/xlsx-write.js @main
+git-api web-tools tools/build/bake.mjs @main
+git-api web-tools .githooks/pre-commit @main
+git-api web-tools docs/code-layers.md @main
+git-api MISS web-tools .claude/skills/show-repo/SKILL.md @main
+git-api home projects/budget-drs/app/view/README.md @main
+git-api home tools/README.md @main
+git-api home tools/generate-full-picture.sh @main
+git-api home tools/verify-artifacts.sh @main
+git-api shortcut-tools docs/shortcuts-format-notes.md @main
+git-api web-tools-private sessions/tools/record.py @main
+git-api web-tools-private sessions/tools/search.py @main
+git-api home .claude/hooks/session-memory-manifest.sh @main
+git-api web-tools-private proposals/README.md @main
+git-api web-tools app/index.html @main
+git-api home projects/text/README.md @main
+git-api web-tools-private state/configs.json @main
+git-api web-tools docs/assistant-branches.csv @main
+git-api web-tools-private state/activity.json @main
+git-api web-tools-private state/sessions.json @main
+git-api web-tools-private notes/notes.jsonl @main
+git-api web-tools docs/app-routes.csv @main
+git-api web-tools docs/vocabularies.csv @main
+git-api web-tools-private notes/notes.jsonl @main
+git-api web-tools data/design/content.csv @claude/waiting-answer-in-place
+git-api web-tools docs/app-routes.csv @claude/waiting-answer-in-place
+git-api web-tools docs/vocabularies.csv @claude/waiting-answer-in-place
+git-api web-tools docs/map-tabs.csv @claude/waiting-answer-in-place
+git-api web-tools compare ahead
+git-api MISS web-tools pull 0
+git-api web-tools-private state/session-topics.json @main
+git-api MISS web-tools pull 0
+git-api web-tools-private notes/notes.jsonl @main
+git-api web-tools-private notes/notes.jsonl @main
+git-api home data/design/content.csv @claude/item-detail
+git-api MISS home pull 0
+script /tmp/claude-0/-home-user/2708d02c-fb4f-596e-875c-79c3f3bcdf50/scratchpad/scen/cold-branch.mjs
+git-api home compare diverged
+git-api web-tools-private state/activity.json @main
+api repo meta
+git-api MISS web-tools-private pull 0
+api web-tools-private/data/design/content.csv
+git-api MISS web-tools-private compare main...codex%2Fcontext-delivery-alignment
+git-api MISS web-tools pull 0
+git-api MISS web-tools-private pull 0
+git-api MISS home pull 0
+git-api MISS shortcut-tools pull 0
+
+--- console (18) ---
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[error] Failed to load resource: the server responded with a status of 404 (Not Found)
+
+--- errors (0) ---
