@@ -212,7 +212,9 @@ is catalogued in [testing.md](testing.md).
 
 **Two gates, not one.** Traffic goes through a TLS-inspecting proxy, and GitHub
 git traffic goes through a **separate** GitHub proxy that scopes operations to
-the authorized repo and limits push to the current branch. A sibling repo like
+the authorized repo. It does not limit push to the current branch: a push to
+`main` or another branch lands, though deleting a branch does not
+([SNAGS.md](../SNAGS.md#web-session-cannot-delete-branches)). A sibling repo like
 `<repo>.wiki.git` returns `Proxy error: repository not authorized` (502) even
 though `github.com` itself is allowed, which is a different failure mode from a
 host denial.

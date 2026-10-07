@@ -408,7 +408,8 @@ anything we add:
    Concretely: every `gh.load('alpineComponents/*.js')` call must happen
    *before* `gh.load('alpine-bundle.js')`. Alpine doesn't start until
    alpine-bundle injects the Alpine `<script>` tag, so the serial `await`s
-   in the module script guarantee this.
+   in the module script guarantee this. `alpineComponents/viewer.js` is
+   exempt: it registers at once if Alpine is already running.
 3. **`alpine-bundle.js` is the boot signal.** It registers the `browser`
    and `toasts` stores on `alpine:init`, then appends Alpine's script tag.
    Whenever Alpine loads, its `alpine:init` fires, our handlers run, stores
@@ -590,8 +591,7 @@ Two things differ from a page in this repo:
   framed page sets `data-no-fab` on `<html>`, since the FAB belongs to the
   shell.
 
-Worked examples in `mehrlander/home`: `projects/budget-drs/submittal/submittal.html`
-and `projects/budget-drs/app/view/app.html` (the chain),
+Worked examples in `mehrlander/home`: `projects/budget-drs/app/view/app.html` (the chain),
 `projects/surfacer/app/surfacer.html` (the pre-build).
 
 ## Options for adding new capability
