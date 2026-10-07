@@ -138,8 +138,8 @@ flavor can answer).
 transform workbench states: `StageIntake.mdOf` owns the options and the GFM
 plugin (which is what turns a pasted web-page TABLE into a table rather than a
 run of cells) and throws rather than fetching, since a lazy fetch inside a tap
-spends the gesture and then reports the loss as something else. Two files and
-31 KB, fetched the first time somebody chooses the item and never on a paste
+spends the gesture and then reports the loss as something else. Two files,
+fetched the first time somebody chooses the item and never on a paste
 where nobody does. Cached against the **source text**, not the name: two pastes
 on one day carry the same sniffed name, so a name-keyed cache hands the second
 one the first one's markdown.
