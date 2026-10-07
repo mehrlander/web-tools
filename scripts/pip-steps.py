@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Render a walkthrough as an MP4 of still cards, one card per screen.
 
 The point is not motion. iOS Picture-in-Picture is the only mechanism that keeps

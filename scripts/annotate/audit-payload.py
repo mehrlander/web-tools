@@ -18,9 +18,9 @@ the artifact:
              rides VERBATIM under its own key: what the page shows in its
              Standoff view is the committed file, not a re-derivation of it.
 
-    python3 tools/build/audit-payload.py standoff <doc.md> <run-dir> \
+    python3 scripts/annotate/audit-payload.py standoff <doc.md> <run-dir> \
         [--addr owner/repo@ref:path] [--self owner/repo] [--question <text>] [--vocab <labels.tsv>] [--reset]
-    python3 tools/build/audit-payload.py payload <doc.md> <run-dir> \
+    python3 scripts/annotate/audit-payload.py payload <doc.md> <run-dir> \
         [--inject <page.html>]
 """
 import sys, json, csv, re, hashlib, pathlib

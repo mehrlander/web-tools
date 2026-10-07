@@ -1,6 +1,6 @@
 """Prepare the original demo for an Excel refresh; never fabricate result caches.
 
-Usage: python tools/build/repair-demonstration-pivot.py INPUT.xlsx OUTPUT.xlsx
+Usage: python docs/research/excel-chart-cleanup-2026-09-25/repair-demonstration-pivot.py INPUT.xlsx OUTPUT.xlsx
 Open OUTPUT in Excel, refresh all, calculate, save, then run the fixture tests.
 The input is the pre-cleanup demonstration workbook from PR 792, not a generic
 workbook. ZIP parts unrelated to this repair retain their original bytes.

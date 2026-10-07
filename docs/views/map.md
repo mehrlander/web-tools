@@ -2,50 +2,13 @@
 
 `?view=map[&tab=<key>]` (`lib/alpineComponents/map.js`) makes the coordination
 layer inspectable. Most tabs render a hub registry; federated tabs assemble
-each repository's declarations. [map-tabs.csv](../map-tabs.csv) holds each
-address's lede and a longer account of the tab, one row per address, and the
-lede's ↗ opens that row; the table below is the index.
+each repository's declarations. Each address's lede and account, which names
+the files it reads, is a row of [map-tabs.csv](../map-tabs.csv); the test
+holding each registry is its `gate` in [registries.csv](../registries.csv).
 
-The shell owns the tab (`MAP_TABS` and `MAP_SUBVIEWS` in `app/index.html`,
-validated before `map()` mounts). The default, `set`, stays out of the URL.
-`?view=portable` resolves to the Map and `?view=routes` to UI › Views.
-
-| Tab (`&tab=`) | Reads | Held by |
-| --- | --- | --- |
-| Distribution (`set`) | [portable.csv](../portable.csv) | `portable-manifest.test.mjs` |
-| Surfacing | [surfacing.csv](../surfacing.csv), indexing [SURFACING.md](../SURFACING.md) | `surfacing-manifest.test.mjs`, `surfacing-lead-anchor.test.mjs` |
-| Showing | [showing-mechanisms.csv](../showing-mechanisms.csv), [routes-modes.csv](../routes-modes.csv), [routes-routes.csv](../routes-routes.csv), [routes.json](../routes.json) | `routes-manifest.test.mjs` |
-| Docs: Inventory (`docs`), Purpose (`aims`), Growth (`growth`) | [docs.csv](../docs.csv); [aims.json](../aims.json) and its CSVs; `data/doc-growth/*.json` | `docs-registry.test.mjs` |
-| Docs: Policy (`policy`) | [policies.csv](../policies.csv); [policy-topics.csv](../policy-topics.csv) | `policies-registry.test.mjs` |
-| Themes (`claims`) | [themes.csv](../themes.csv), [owners.csv](../owners.csv) | `owners-registry.test.mjs`, `derived-artifacts.test.mjs` |
-| Harness: Automation (`harness`), Tests (`tests`), Context (`context`) | [harness.csv](../harness.csv), [tests.csv](../tests.csv), `pages/session-context.html` | `tests-registry.test.mjs`, `derived-artifacts.test.mjs` |
-| Kits | [kits.csv](../kits.csv) | `kits-register.test.mjs` |
-| Skills | the shipped skill catalog | `skills-registry.test.mjs` |
-| Data (`data`) | each declaring repo's [CSV census](../csv-census.md) | `csv-census.test.mjs`, `map-data-census.test.mjs` |
-| UI: Dimensions (`dimensions`), Gallery (`patterns`), Views (`views`) | [data/ui-units/](../../data/ui-units/README.md); [app-routes.csv](../app-routes.csv) | `app-routes.test.mjs` |
-| Registries | [registries.csv](../registries.csv) | `properties-registry.test.mjs` |
-
-**Two ownership exceptions.** In Surfacing, `SURFACING.md` is authoritative and
-`surfacing.csv` is its gated index; a card's title lands on its bullet through
-`lib/kits/land.js`. The Docs Inventory's readership column is token-gated,
-and it is absent (not blank) without a token.
- 
-## Harness: execution environments and automation
-
-The Harness tab (`?view=map&tab=harness`) makes the operational scaffolding
-wrapped around models inspectable across three subviews:
-
-- **Automation (`harness`)**: reads `docs/harness.csv`, the catalog of hooks,
-  scripts, CI workflows, and commit gates.
-- **Tests (`tests`)**: reads `docs/tests.csv`, every test file and assertion.
-- **Context (`context`)**: renders `pages/session-context.html`, documenting the
-  content delivery routes and durable traces from context to decisions.
-
-Detailed documentation of the two primary harnesses (the Claude Code cloud
-container and the Antigravity local host) lives under `docs/environment/`
-([docs/environment/README.md](../environment/README.md),
-[docs/environment/antigravity-local.md](../environment/antigravity-local.md), and
-[docs/environment/harness-comparison.md](../environment/harness-comparison.md)).
+The shell validates `?tab=` against `MAP_TABS` and `MAP_SUBVIEWS` in
+`app/index.html` before `map()` mounts. `SUBVIEWS` in `map.js` groups the
+addresses under tabs.
 
 ## Views: the app's own destinations
 
