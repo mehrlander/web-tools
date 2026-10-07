@@ -82,11 +82,11 @@ tools/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the s
 tools/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge build.mjs and the suite share,tools/build,19,imported,no,yes,no
 tools/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",tools/build,173,npm:kits-index,yes,no,yes
 tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,tools/build,451,npm:pages-index,yes,yes,yes
-tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",tools/build,85,npm:pages-shots,no,yes,no
+tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",tools/build,85,npm:pages-shots,no,yes,yes
 tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,yes,yes
 tools/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",tools/build,90,npm:registries-reach,yes,yes,yes
 tools/build/repair-demonstration-pivot.py,,tools/build,46,none found,no,yes,no
-tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,tools/build,167,argv,no,yes,no
+tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,tools/build,184,argv,no,yes,yes
 tools/build/sample-workbook.mjs,,tools/build,437,npm:sample-workbook,yes,yes,yes
 tools/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,tools/build,267,npm:snags-index,yes,yes,yes
 tools/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",tools/build,244,npm:tests-index,yes,no,yes
@@ -258,6 +258,7 @@ tools/render/scenarios/project-board-typed.mjs,,tools/render/scenarios,46,driver
 tools/render/scenarios/project-board.mjs,the project view's Board pill with task links resolved into the shell viewer,tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/project-docs.mjs,the project view's Docs pill: the workspace's markdown from one tree read,tools/render/scenarios,77,driver,no,no,no
 tools/render/scenarios/project-outpost.mjs,,tools/render/scenarios,79,driver,no,no,no
+tools/render/scenarios/project-pages-routes.mjs,"the project view's Pages pill with route cards into the workspace's app, over a public stand-in",tools/render/scenarios,57,driver,no,no,no
 tools/render/scenarios/project-pages.mjs,the project view's Pages pill: the workspace's slice of the repo catalog,tools/render/scenarios,63,driver,no,no,no
 tools/render/scenarios/project-view.mjs,the project view with a workspace selected and its README rendered,tools/render/scenarios,74,driver,no,no,no
 tools/render/scenarios/proposals-deliver-demo.mjs,"the two delivery buttons beside the staleness guard, stubbed registry",tools/render/scenarios,51,driver,no,no,no

@@ -13,7 +13,7 @@ web-tools:view/project/board,,tools/render/scenarios/project-board-typed.mjs,,,,
 web-tools:view/project/docs,repo=mehrlander/web-tools&view=project&project=docs&tab=docs,,,,,,
 web-tools:view/project/files,repo=mehrlander/web-tools&view=project&project=docs&tab=files,,,,,,
 web-tools:view/project/outpost,repo=mehrlander/web-tools,tools/render/scenarios/project-outpost.mjs,,,,,"a stand-in workspace declaring a PowerShell outpost manifest, answered with the PowerShell outpost view test's fixture; the one real one is private"
-web-tools:view/project/pages,repo=mehrlander/web-tools&view=project&project=docs&tab=pages,,,,,,
+web-tools:view/project/pages,repo=mehrlander/web-tools,tools/render/scenarios/project-pages-routes.mjs,,,,,"a stand-in workspace whose landing is a public page of this repo, with two route cards into it and one ordinary page; the one real set, the budget-drs app's routes, is private"
 web-tools:pages/shortcut-log.html,,tools/render/scenarios/placeholder-token.mjs,,,no-script,,"the script reads the private registry from the sibling checkout, so the check runs with it and the shot, which lands in this public store, is taken without it"
 web-tools:pages/shortcuts.html,,tools/render/scenarios/placeholder-token.mjs,,,no-script,,"the script reads the private registry from the sibling checkout, so the check runs with it and the shot, which lands in this public store, is taken without it"
 web-tools:pages/branch.html,#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz,,,,,,a branch to read; the page routes on its fragment
