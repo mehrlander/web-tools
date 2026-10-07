@@ -96,7 +96,7 @@ lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-tit
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",391,yes,no,3,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,162,no,no,2,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,7,yes
-lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,139,no,no,3,yes
+lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,153,no,no,3,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",316,no,no,2,yes
 lib/kits/wring.js,wring,"single-document template induction: give it one document with repeated structure (a log, an HTML page) and it returns the recurring templates (fixed…",1320,no,no,4,yes
