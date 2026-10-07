@@ -289,7 +289,13 @@ function esmEntry(dir, sub) {
   }
   return null;
 }
-const BARE = /((?:^|[^\w$.])(?:import|export)\s*(?:[^'"`;]*?\s+from\s*)?)(['"])([^'"./][^'"]*)\2|(\bimport\s*\(\s*)(['"])([^'"./][^'"]*)\5/g;
+// A bare specifier in an import or export statement, static or dynamic. The
+// keyword must not follow a quote or `@`, and the specifier holds no
+// whitespace or comma: CodeMirror's language packages carry the words as data
+// (`"@import":204` in @lezer/css, `label: "import"` in lang-javascript), and
+// without both guards the rewrite landed inside those strings and every page
+// that loads lang-javascript or lang-html threw a SyntaxError.
+const BARE = /((?:^|[^\w$.'"`@])(?:import|export)\s*(?:[^'"`;]*?\s+from\s*)?)(['"])([^'"./\s,][^'"\s,]*)\2|(\bimport\s*\(\s*)(['"])([^'"./\s,][^'"\s,]*)\5/g;
 export function readEsm(pathname, repoRoot) {
   const spec = decodeURIComponent(pathname.replace(/^\/+/, '')).replace(/^v\d+\//, '').replace(/^stable\//, '');
   const m = spec.match(/^(@[^/@]+\/[^/@]+|[^/@]+)(?:@[^/]+)?(?:\/(.*))?$/);

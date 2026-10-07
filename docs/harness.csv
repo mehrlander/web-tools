@@ -42,7 +42,7 @@ node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, ins
 node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,154,imported,yes,yes,yes
 node/git-change.mjs,,node,292,argv,yes,no,yes
 node/gold-set.mjs,,node,200,npm:gold-set,yes,yes,no
-node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,791,imported,no,yes,yes
+node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,797,imported,no,yes,yes
 node/render/measure.mjs,,node/render,174,imported,no,no,yes
 node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,158,imported,no,yes,no
 node/render/page-measures.mjs,,node/render,113,npm:page-measures,yes,no,yes
