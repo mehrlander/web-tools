@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="closer agent">
+  <title>closer agent</title>
+  <desc>A gavel over its sound block, for the seat that weighs the findings and states the decision. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#475569">
+    <g transform="rotate(-40 14 11)">
+      <rect x="7" y="7" width="14" height="7.5" rx="1"/>
+      <rect x="12.75" y="14.5" width="2.5" height="15"/>
+    </g>
+    <rect x="3" y="26" width="13" height="3.5" rx="0.8"/>
+  </g>
+</svg>
