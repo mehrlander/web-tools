@@ -15,9 +15,9 @@ export default async (page) => {
     st.loading = false;
     st.sessionsLoading = false;
     st.sessionScope = 'all';
-    st.takeSessions(cache);
     st.sessionTopicsDoc = topics;
-    st.sessionRows_ = st.joinSessionTopics(st.sessionRows_);
+    st.takeSessions(cache);
+    st.setLens('list');
   }, { cache, topics });
   await page.waitForTimeout(1500);
 
@@ -28,7 +28,7 @@ export default async (page) => {
   const outDir = path.resolve(here, '..', '.preview');
   const artifactDir = 'C:\\Users\\mehrl\\.gemini\\antigravity\\brain\\26c2bc15-08fb-4950-ad6e-f28d365ccfec';
 
-  const modes = ['ticks', 'bar', 'databar', 'pips', 'weight', 'dot'];
+  const modes = ['chrono-bar', 'databar', 'chrono-rail', 'ticks'];
   for (const mode of modes) {
     await page.evaluate((m) => {
       const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));

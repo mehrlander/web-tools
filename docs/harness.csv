@@ -98,9 +98,11 @@ tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the defau
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
 tools/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",tools,421,npm:setup,yes,yes,yes
 tools/render/build-chrono-comparison.mjs,,tools/render,192,none found,yes,no,no
+tools/render/build-fixed-widget.mjs,,tools/render,86,none found,yes,no,no
 tools/render/build-mockup-widget.mjs,,tools/render,186,none found,yes,no,no
 tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,805,imported,no,yes,yes
 tools/render/crop-duo.mjs,,tools/render,36,none found,no,no,no
+tools/render/crop-fixed-shots.mjs,,tools/render,50,none found,no,no,no
 tools/render/crop-possibilities.mjs,,tools/render,38,none found,no,no,no
 tools/render/measure.mjs,,tools/render,174,imported,no,no,yes
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
@@ -290,7 +292,7 @@ tools/render/scenarios/session-contents.mjs,"enters the session deck from the ou
 tools/render/scenarios/session-exchange-card.mjs,,tools/render/scenarios,58,driver,no,no,no
 tools/render/scenarios/session-set.mjs,"seed a token and wait for the set's own line, so the token-gated Sessions pane renders a named set for a shot",tools/render/scenarios,27,driver,no,no,no
 tools/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",tools/render/scenarios,166,driver,no,no,no
-tools/render/scenarios/session-topics.mjs,,tools/render/scenarios,80,driver,no,no,no
+tools/render/scenarios/session-topics.mjs,,tools/render/scenarios,81,driver,no,no,no
 tools/render/scenarios/shoot-cards.mjs,,tools/render/scenarios,50,driver,no,no,no
 tools/render/scenarios/shortcut-log-app-view.mjs,,tools/render/scenarios,73,driver,no,no,no
 tools/render/scenarios/showing-paste-rows.mjs,,tools/render/scenarios,27,driver,no,no,no
