@@ -150,7 +150,9 @@ trap).
 registry; spans pinned by a document hash in standoffs; quote anchors on notes;
 content-addressed passages; notes addressed to any locator, with
 `note.py show <about>` as the inbound lookup for notes; and the broken test with
-its verdicts in `dead-links.py`.
+its verdicts in `dead-links.py`. `scripts/annotate/anchors.py` tests quotes on
+notes and spans in standoffs; the pre-commit hook runs it on what a commit
+changes.
 
 **Does not exist yet:** a declared stance per kind of reference; stored witnesses
 on anything but standoffs; the cascade; an inbound index across kinds of
