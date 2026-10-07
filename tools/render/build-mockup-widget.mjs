@@ -5,60 +5,44 @@ const artifactDir = 'C:/Users/mehrl/.gemini/antigravity/brain/26c2bc15-08fb-4950
 
 const modes = [
   {
+    id: 'chrono-bar',
+    label: '1. Chrono Swimlane (No Hops, No Digits)',
+    tag: 'Chrono Swimlane · 1 Bar/Cross-section',
+    badge: 'Chrono Concept A',
+    file: 'cropped-chrono-bar.png',
+    desc: 'Each topic highlights its exact turn intervals from left to right. At any vertical line, exactly one topic is active. Returns appear as a second bar on the same row. Bouncy hop line and numbers are completely eliminated.'
+  },
+  {
+    id: 'chrono-rail',
+    label: '2. Dedicated Chrono Rail (Clean Text)',
+    tag: 'Right Track · Clean Text',
+    badge: 'Chrono Concept B',
+    file: 'cropped-chrono-rail.png',
+    desc: 'An 80px micro timeline capsule on the right side of each topic. Topic text is 100% clean and untinted. Active turns illuminate in sequence down the stack. No bouncy line, no numbers.'
+  },
+  {
+    id: 'chrono-ticks',
+    label: '3. Chronological Ticks (Discrete Marks)',
+    tag: 'Timeline Ticks · Exact Columns',
+    badge: 'Chrono Concept C',
+    file: 'cropped-chrono-ticks.png',
+    desc: 'Vertical cyan tick marks placed at the exact turn column for each topic. Mirrors the session timeline rail, with exactly one tick per vertical slice across the topic rows.'
+  },
+  {
+    id: 'chrono-hops',
+    label: '4. Chrono Swimlane + Bouncy Hop Arc',
+    tag: 'Chrono + Hop Arc',
+    badge: 'Comparison',
+    file: 'cropped-chrono-hops.png',
+    desc: 'Chronological swimlane bar with the outer return hop line retained, showing the visual contrast when the hop line is kept vs omitted.'
+  },
+  {
     id: 'databar-nonum',
-    label: '✨ Data Bar (From Text, No Number)',
-    tag: 'Text Underlay · No Digits',
-    badge: 'Requested Direction',
+    label: '5. Proportional Data Bar (Left-Aligned)',
+    tag: 'Left-Aligned · Turn Share',
+    badge: 'Previous Baseline',
     file: 'cropped-databar-nonum.png',
-    desc: 'Starts exactly at the text boundary (leaving icon glyph and outer hop arc clean). Proportional width highlights conversational weight with zero visual clutter.'
-  },
-  {
-    id: 'databar-withnum',
-    label: 'Data Bar (From Text, With Number)',
-    tag: 'Text Underlay · With Count',
-    badge: 'Hybrid',
-    file: 'cropped-databar-withnum.png',
-    desc: 'Starts at the text boundary (clean icon glyph) but preserves the quiet tabular count (· 4) at the tail.'
-  },
-  {
-    id: 'databar-old',
-    label: 'Data Bar (From Icon - Previous)',
-    tag: 'Icon + Text Tint',
-    badge: 'Previous',
-    file: 'cropped-databar.png',
-    desc: 'The previous variant that tinted across the entire row including the emoji icon.'
-  },
-  {
-    id: 'ticks',
-    label: 'Timeline Micro-Ticks',
-    tag: '|||| 4',
-    badge: 'Rail Mirror',
-    file: 'cropped-ticks.png',
-    desc: 'Discrete vertical cyan ticks (one tick per turn, matching the session timeline above). Direct visual count.'
-  },
-  {
-    id: 'bar',
-    label: 'Micro Spark Bar',
-    tag: '[▬▬] 4',
-    badge: 'Proportional Capsule',
-    file: 'cropped-bar.png',
-    desc: 'Continuous horizontal capsule whose width scales proportionally with turns (5px/turn).'
-  },
-  {
-    id: 'pips',
-    label: 'Intensity Pips',
-    tag: '●●○ 2',
-    badge: '3-tier Gauge',
-    file: 'cropped-pips.png',
-    desc: 'Stepped 3-dot gauge (●○○ for 1 turn, ●●○ for 2–3 turns, ●●● for 4+ turns).'
-  },
-  {
-    id: 'dot',
-    label: 'Quiet Dot (Baseline)',
-    tag: '· 4',
-    badge: 'Minimal Text',
-    file: 'cropped-dot.png',
-    desc: 'Middle dot separator with quiet tabular mono count, leaving maximum focus on the return hop arcs.'
+    desc: 'All bars start at the text (left: 22px) and extend proportionally to total topic turns, with outer-edge return hop line.'
   }
 ];
 
@@ -96,8 +80,8 @@ const html = `<!DOCTYPE html>
     <!-- Header -->
     <div class="flex items-center justify-between pb-2 border-b border-[var(--border)] mb-2.5">
       <div>
-        <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Data Bar Starting From Text (No Number)</h3>
-        <p class="text-sm font-medium text-[var(--foreground)]">Real rendered screenshots comparing the new text-origin bar</p>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Chronological Sequence & Volume Concepts</h3>
+        <p class="text-sm font-medium text-[var(--foreground)]">Single bar at any vertical cross-section (No bouncy line needed)</p>
       </div>
       <div class="flex items-center gap-1">
         <button id="view-mode-tabs" onclick="setViewMode('tabs')" class="px-2 py-0.5 text-xs rounded border border-[var(--border)] bg-[var(--primary)] text-white font-medium">Tabs</button>
@@ -110,7 +94,7 @@ const html = `<!DOCTYPE html>
       ${modes.map((m, idx) => `
         <button onclick="selectTab('${m.id}')" id="tab-${m.id}"
                 class="tab-btn ${idx === 0 ? 'active' : ''} px-2 py-1 text-xs rounded-md border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors flex items-center gap-1">
-          <span>${m.label.replace('✨ ', '')}</span>
+          <span>${m.label.split('.')[1] || m.label}</span>
         </button>
       `).join('')}
     </div>
@@ -118,9 +102,9 @@ const html = `<!DOCTYPE html>
     <!-- Tab View: Single Shot with details -->
     <div id="single-view" class="space-y-2">
       <div class="preview-box rounded-lg p-3 flex items-center justify-center overflow-hidden min-h-[140px]">
-        <img id="active-img" src="${b64Data['databar-nonum']}" alt="Mockup preview" class="rounded max-w-full h-auto shadow-xs border border-black/5" />
+        <img id="active-img" src="${b64Data['chrono-bar']}" alt="Mockup preview" class="rounded max-w-full h-auto shadow-xs border border-black/5" />
       </div>
-      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-2 text-xs flex items-baseline justify-between gap-2">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-2.5 text-xs flex items-baseline justify-between gap-2">
         <div id="active-desc" class="text-[var(--muted-foreground)] leading-relaxed">
           ${modes[0].desc}
         </div>
@@ -131,7 +115,7 @@ const html = `<!DOCTYPE html>
     </div>
 
     <!-- Stacked View: All together for instant scan -->
-    <div id="stack-view" class="hidden space-y-3 max-h-[360px] overflow-y-auto pr-1">
+    <div id="stack-view" class="hidden space-y-3 max-h-[380px] overflow-y-auto pr-1">
       ${modes.map(m => `
         <div class="border border-[var(--border)] rounded-lg p-2.5 bg-[var(--card)]">
           <div class="flex items-center justify-between mb-1.5">
