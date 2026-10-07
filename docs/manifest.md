@@ -84,8 +84,7 @@ The fields themselves are **not listed here.** They live as data in
 [`docs/manifest.json`](manifest.json), one row per field with its type, its
 consumer, and what it does, held to the estate's real manifests by
 `node/test/manifest-registry.test.mjs`. This section used to carry that list as
-3,000 words of prose, 8% of all documentation in the repo, and prose could not
-be checked against anything: `quickLink` was live in two of the four manifests
+prose, and prose could not be checked against anything: `quickLink` was live in two of the four manifests
 and appeared in no field list, and `pages[].order` was declared by two repos and
 read by no code at all. Both surfaced on the gate's first run.
 
