@@ -97,8 +97,10 @@ tools/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at
 tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
 tools/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",tools,421,npm:setup,yes,yes,yes
+tools/render/build-chrono-comparison.mjs,,tools/render,192,none found,yes,no,no
 tools/render/build-mockup-widget.mjs,,tools/render,186,none found,yes,no,no
 tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,805,imported,no,yes,yes
+tools/render/crop-duo.mjs,,tools/render,36,none found,no,no,no
 tools/render/crop-possibilities.mjs,,tools/render,38,none found,no,no,no
 tools/render/measure.mjs,,tools/render,174,imported,no,no,yes
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
