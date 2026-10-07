@@ -1,5 +1,5 @@
 path,role,layer,lines,invocation,emits,named,tested
-.claude/environment-setup.sh,"The environment's setup script: installs the portable plugin and records its own text, commit and run time for the environment report.",.claude,16,env:build,no,yes,yes
+.claude/environment-setup.sh,"The environment's setup script: installs the portable plugin and records its own text, commit and run time for the environment report.",.claude,16,imported,no,yes,yes
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
 .githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,no,yes,yes
