@@ -41,6 +41,7 @@ skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,po
 skill,/portable:pptx,skills/pptx/SKILL.md,pptx,,plugin
 skill,/portable:question-margin,skills/question-margin/SKILL.md,question-margin,,plugin
 skill,/portable:reduction-panel,skills/reduction-panel/SKILL.md,reduction-panel,,plugin
+skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin
 skill,/portable:reorient-me,skills/reorient-me/SKILL.md,reorient-me,,plugin
 skill,/portable:report-distiller,skills/report-distiller/SKILL.md,report-distiller,,plugin
 skill,/portable:safe-html-templating,skills/safe-html-templating/SKILL.md,safe-html-templating,,plugin
@@ -75,6 +76,12 @@ doc,,docs/github/mcp-server-routing.md,MCP server routing,unexpected approval pr
 dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code web sandbox: network, persistence, testing recipes",on-demand
 dir,,docs/envelopes,Content envelopes,"the envelope family: the surface contract, chat-results, and the schemas that validate them",on-demand
 agent,,skills/agents/house-style-critic.md,House-style critic,,plugin
+agent,,skills/agents/conservator.md,Conservator,,plugin
+agent,,skills/agents/radical-editor.md,Radical editor,,plugin
+agent,,skills/agents/source-historian.md,Source historian,,plugin
+agent,,skills/agents/novice-reader.md,Novice reader,,plugin
+agent,,skills/agents/counterexample-hunter.md,Counterexample hunter,,plugin
+agent,,skills/agents/closer.md,Closer,,plugin
 dir,,skills,Plugin source,"the portable plugin's source tree: every skill it carries and the hook bundle, also served as static files that load-skill fetches",plugin
 script,,skills/tasks/build-board.py,build-board.py,regenerate a tracker's board.md from task frontmatter; ships inside the plugin,plugin
 script,,skills/in-flight/in-flight.py,in-flight.py,classify a branch estate into live / merged / unrelated / undecidable and reconcile tracker claims against it; ships inside the plugin,plugin

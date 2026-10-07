@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="conservator agent">
+  <title>conservator agent</title>
+  <desc>A shield with a keyhole cut through it, for the seat that guards what a change would lose. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#0f766e">
+    <path fill-rule="evenodd" d="M16 2.5 L28 6.5 L28 15 C28 22 22.5 27 16 29.5 C9.5 27 4 22 4 15 L4 6.5 Z M16 9 A3.5 3.5 0 0 1 18.2 15.2 L19 22 L13 22 L13.8 15.2 A3.5 3.5 0 0 1 16 9 Z"/>
+  </g>
+</svg>

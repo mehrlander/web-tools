@@ -64,6 +64,14 @@ test('a definition row copies its file\'s frontmatter exactly', () => {
     assert.equal(r.tools || '', asList(fm.tools), `${r.id}: tools`);
     assert.equal(r.preloads || '', asList(fm.skills), `${r.id}: preloads`);
     assert.equal(r.anchor || '', '', `${r.id}: a definition is its own file and takes no anchor`);
+    assert.ok(r.team, `${r.id}: a definition belongs to a team, the tab it shows under`);
+    // The icon is drawn in the project-icon system, so it carries a title and
+    // one fill, and draws nothing with strokes.
+    assert.ok(r.icon && existsSync(path.join(repoRoot, r.icon)), `${r.id}: no icon file at ${r.icon}`);
+    const svg = readFileSync(path.join(repoRoot, r.icon), 'utf8');
+    assert.match(svg, /<title>[^<]+<\/title>/, `${r.icon}: no <title>`);
+    assert.doesNotMatch(svg, /stroke=/, `${r.icon}: strokes; the icon system is solid ink`);
+    assert.equal(new Set(svg.match(/fill="#[0-9a-f]{6}"/gi) || []).size, 1, `${r.icon}: one colour`);
   }
 });
 
@@ -86,5 +94,7 @@ test('an inline reader still appears where its row says it does', () => {
       `${r.id}: "${r.anchor}" is no longer in ${r.path}; the role moved, was renamed, or is gone`);
     assert.equal((r.tools || '') + (r.preloads || ''), '',
       `${r.id}: tools and preloads are frontmatter fields, and an inline reader has no frontmatter`);
+    assert.equal((r.team || '') + (r.icon || ''), '',
+      `${r.id}: an inline reader belongs to its skill, so it takes no team and no icon`);
   }
 });

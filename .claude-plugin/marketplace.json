@@ -57,6 +57,7 @@
         "./pptx",
         "./question-margin",
         "./reduction-panel",
+        "./review-panel",
         "./reorient-me",
         "./report-distiller",
         "./safe-html-templating",
@@ -79,7 +80,13 @@
         "./xlsx"
       ],
       "agents": [
-        "./agents/house-style-critic.md"
+        "./agents/house-style-critic.md",
+        "./agents/conservator.md",
+        "./agents/radical-editor.md",
+        "./agents/source-historian.md",
+        "./agents/novice-reader.md",
+        "./agents/counterexample-hunter.md",
+        "./agents/closer.md"
       ],
       "keywords": [
         "conventions",

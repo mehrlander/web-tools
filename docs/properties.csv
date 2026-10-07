@@ -301,6 +301,8 @@ upstream-skills,seen,recorded,,value,column,yes,,value,the date the row was ente
 upstream-skills,ours,recorded,,none,column,yes,,locator,"the folder under skills/ that ships a copy, for a vendored or adapted skill"
 upstream-skills,held,recorded,,none,column,yes,,locator,the folder under outside/ that keeps a pinned copy the plugin never ships
 agents,kind,recorded,,value,column,yes,definition;inline,label,"whether the agent is a Claude Code definition file the platform loads and a session invokes by name, or a role whose prompt is written inside a skill and spawned through the Agent tool"
+agents,team,recorded,,counted,column,yes,critic;panel,label,"which group of definitions an agent belongs to: a critic reviews against a written standard; a panel seat is one way of searching, convened with the others by the review-panel skill. Blank on an inline reader, which belongs to the skill that spawns it"
+agents,icon,recorded,,counted,column,yes,,locator,"the definition's SVG icon, drawn in the project-icon system (one colour, solid ink, no strokes); blank on an inline reader"
 agents,path,recorded,,value,column,yes,,locator,"the file that defines the agent: the definition file for a definition, the skill or prompt file holding the role for an inline reader"
 agents,anchor,recorded,,counted,column,yes,,value,"for an inline reader, a verbatim phrase from its file that introduces the role; the gate requires the file to still contain it. Blank on a definition, whose file is the agent"
 agents,model,recorded,,counted,column,yes,haiku;sonnet;opus;inherit,label,"the model the agent runs on, where its source names one. A COPY of the frontmatter on a definition, held to it by the gate; blank where an inline role names only a relative tier"
