@@ -110,7 +110,6 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 | Repo configuration, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
 | Proposals | [views/proposals.md](views/proposals.md) |
 | The branch takeover | [forms/branch.md](forms/branch.md) |
-| Branch overlays and the sidebar's second ref | [branch-overlay.md](branch-overlay.md) |
 | Choosing a presentation | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 | Standalone changeset review | [review.html](../pages/review.html) |
 

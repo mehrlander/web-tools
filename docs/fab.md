@@ -1,6 +1,6 @@
 # The FAB
 
-The FAB is the draggable floating button every page and app view carries, and the drawer it opens ([`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js)). This document is its account. Until 2026-09-28 the same text was the component's `description` string, about 2,100 words shown at 13px in the drawer's own Inspect tab; the string now names this file instead. The text below is that string divided under headings, with two changes: the drawer's four tabs are now named, since the string said four and described three, and a short section on the fourth, Text, is added.
+The FAB is the draggable floating button every page and app view carries, and the drawer it opens ([`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js)). This document is its account.
 
 ## The launcher
 
@@ -8,7 +8,7 @@ Draggable floating button that doubles as a view-mode indicator: its launcher sh
 
 ## The drawer
 
-Opens a right-side drawer with four tabs (Render, Inspect, Traffic, and Text), under a one-line READOUT strip carried on all but Notes (what this page load cost, how many calls browsing has added, what is left of the rate limit) which is also the way the Traffic tab is found.
+Opens a right-side drawer with four tabs (Render, Inspect, Traffic, and Text), under a one-line READOUT strip carried on all but Text (what this page load cost, how many calls browsing has added, what is left of the rate limit) which is also the way the Traffic tab is found.
 
 ## The layer strip
 
@@ -16,7 +16,7 @@ Above the tabs, not inside one, sits the LAYER strip naming the frame stack this
 
 ## Render: the ref bar
 
-Render (the default) leads with a ref bar naming the ref this view is rendered at, which opens a dropdown of the branches carrying a different version of this page (blob-compare against the default branch); one tap renders there, outside a toss by navigating to toss-render (the one renderer, no bespoke overlay), inside one by re-addressing in place via __tossNavigate.
+Render (the default) leads with a ref bar naming the ref this view is rendered at, which opens a dropdown of the branches carrying a different version of this page (blob-compare against the default branch); one tap renders there, outside a toss by navigating to toss-render, inside one by re-addressing in place via __tossNavigate; over a file deck or the Stage's reader it asks __deckNavigate first, which re-renders where the reader stands.
 
 ## Render: the width bar
 
@@ -32,7 +32,7 @@ Above it the repo/path block carries two controls: the PATH is a picker (alpineC
 
 ## Render: the branch guide
 
-The body of the tab is the branch's GUIDE, its PR body rendered as markdown, with the links inside re-aimed at what can show them (a blob link to a page becomes a toss of that page, one to markdown or data becomes a data-view read) and lifted into a chip strip deduped by file; arrows step through every PR the branch has had, newest first, since a merge ends a PR but not the branch. With no PR the pane reports the ref's standing instead (the commit it is at, the PR that code came from, how long ago) and the file's own last change on that ref, which is where the version chip went; the guide reads with one REST call on open and never waits on the branch scan, which is the dropdown's and runs when it opens.
+The body of the tab is the branch's GUIDE, its PR body rendered as markdown, with the links inside re-aimed at what can show them (a blob link to a page becomes a toss of that page, one to markdown or data becomes a data-view read) and lifted into a chip strip deduped by file; arrows step through every PR the branch has had, newest first, since a merge ends a PR but not the branch. With no PR the pane reports the ref's standing instead (the commit it is at, the PR that code came from, how long ago) and the file's own last change on that ref; the guide reads with one REST call on open and never waits on the branch scan, which is the dropdown's and runs when it opens.
 
 ## Inspect
 
@@ -44,11 +44,11 @@ Traffic answers the size question in three bands that do not share a unit: BOOT 
 
 ## Text
 
-Text reads what the page says, as against the other three tabs, which report how it was delivered. The string this document replaces did not describe it; [`node/test/fab-text.test.mjs`](../node/test/fab-text.test.mjs) states what the tab reports and which of its figures are gated.
+Text reads what the page says, as against the other three tabs, which report how it was delivered. [`node/test/fab-text.test.mjs`](../node/test/fab-text.test.mjs) states what the tab reports and which of its figures are gated.
 
 ## Notes and the annotator
 
-Notes was a fifth tab and is not: the annotator's set is read in its own card now (kits/annotate.js), whose expander opens the list, either serialization and the actions on the set, so the drawer carries no second implementation of that view and no handshake to keep it in step. What survives here is STARTING the annotator, from the take grid, from the launcher menu, and from a SELECTION: select text anywhere on the page and a compact "+ note" offer appears ON the passage (teleported to the body, since the launcher's own transform would trap a fixed child, and carrying no quote because the words are right there), one tap on which loads the annotator, aims it at the document the passage is in, and opens the composer on that passage; the one listener this component arms on the host document (selectionchange, debounced) exists for it, and it stands down while the annotator is on, whose own chip and selection bar offer the same thing.
+The annotator's set is read in its own card (kits/annotate.js), whose expander opens the list, either serialization and the actions on the set. The drawer only STARTS the annotator: from the take grid, from the launcher menu, and from a SELECTION: select text anywhere on the page and a compact "+ note" offer appears ON the passage (teleported to the body, since the launcher's own transform would trap a fixed child, and carrying no quote because the words are right there), one tap on which loads the annotator, aims it at the document the passage is in, and opens the composer on that passage; the one listener this component arms on the host document (selectionchange, debounced) exists for it, and it stands down while the annotator is on, whose own chip and selection bar offer the same thing.
 
 ## The launcher menu
 
@@ -60,7 +60,7 @@ A take menu sits under the render tab in every context the drawer appears in, to
 
 ## Other controls
 
-A header hard-refresh button reloads bypassing the browser cache, for Safari on iOS. Plus a collapsible console and a compact version chip.
+A header hard-refresh button reloads bypassing the browser cache, for Safari on iOS. Plus a collapsible console.
 
 ## One per viewport
 
