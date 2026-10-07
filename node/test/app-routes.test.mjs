@@ -209,9 +209,8 @@ test('the two sub-tab encodings, counted', () => {
   // Policy too, which had been addressable all along. 25 to 27 on 2026-10-06:
   // the project view's Overview became the README alone, and the landing page
   // and the PowerShell outpost view it used to show took tabs of their own,
-  // App and Outpost. 27 to 32 on 2026-10-07:
-  // the repo landing view gained tabs: Overview, App, Board, Pages and Files.
-  assert.equal(params, 32, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // App and Outpost.
+  assert.equal(params, 27, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
