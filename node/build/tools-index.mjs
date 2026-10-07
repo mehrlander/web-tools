@@ -34,7 +34,10 @@
 //                 ci:<events>   a .github/workflows/ file; the events come from
 //                               its top-level `on:` block, '+'-joined
 //                 none found    no route the derivation can see
-//   emits       writes a file (a generator rather than a reader)
+//   emits       writes a file (a generator rather than a reader); for a
+//               workflow, runs `git push`, so its run lands a commit (added
+//               2026-10-07: the file-write patterns below never match YAML, so
+//               wsl-fetch.yml, which commits to main monthly, read as a reader)
 //   named       its path or basename appears in any tracked .md file
 //   tested      its basename appears in a file under node/test/
 //   layer, lines
@@ -146,6 +149,64 @@ function workflowEvents(src) {
   return events.join('+') || 'unknown';
 }
 
+// ── The commit hook's steps: docs/hook-legs.csv ────────────────────────────
+//
+// The harness registry has one row for .githooks/pre-commit, and that row is
+// the least informative in it: the file is nineteen steps, each watching some
+// paths and regenerating some files, and which step keeps which file true is
+// the question a reader of the Harness tab is actually asking. Since
+// refresh-derived.yml (2026-10-07) runs the same steps on main after a write
+// that skipped the hook, the list also says what main is repaired against.
+//
+// Read off the hook's own structure rather than authored: each step opens with
+// a `# --- leg <name>: <gloss> ---` header, guards on `changed <paths>`, runs
+// an `npm run` script or a python3 script, and passes what it wrote to
+// `stage`. A step with nothing to stage only warns. A step guarded by
+// `refresh_all = 0` is skipped by `npm run artifacts:refresh`, the repair
+// pass, which is the one fact about a step that the header never states.
+export const HOOK_LEG_COLS = ['order', 'leg', 'gloss', 'watches', 'runs', 'stages', 'mode', 'in_repair'];
+const HOOK = '.githooks/pre-commit';
+
+export function deriveHookLegs(src) {
+  const lines = src.split('\n');
+  const legs = [];
+  let cur = null;
+  const add = (list, xs) => { for (const x of xs) if (x && !list.includes(x)) list.push(x); };
+  for (const line of lines) {
+    const head = line.match(/^# --- leg ([\w-]+):\s*(.*?)\s*-*\s*$/);
+    if (head) {
+      cur = { leg: head[1], gloss: head[2].trim(), watches: [], runs: [], stages: [], skipRepair: false };
+      legs.push(cur);
+      continue;
+    }
+    if (!cur || /^\s*#/.test(line)) continue;
+    // Two guard shapes: the `changed` helper, and (pages-catalogs) a
+    // `git status --porcelain -- <paths>` it filters further itself.
+    const guard = line.match(/\bchanged\s+(.+?);\s*then\b/) || line.match(/git status --porcelain -- (.+?)\s*\|/);
+    // A shell variable (`"$thumb"`, the thumbnail check) is a computed path,
+    // not a watched one.
+    if (guard) add(cur.watches, guard[1].split(/\s+/).map(s => s.replace(/^['"]|['"]$/g, '')).filter(s => !s.startsWith('$')));
+    // A command named inside a warning (`refresh at wrap-up: npm run
+    // pages-shots`) is advice to the reader, not a step the hook runs.
+    if (/^\s*echo\b/.test(line)) continue;
+    add(cur.runs, [...line.matchAll(/\bnpm run ([\w:-]+)/g)].map(m => 'npm run ' + m[1]));
+    add(cur.runs, [...line.matchAll(/\bpython3 ([\w./-]+\.py)/g)].map(m => m[1]));
+    const st = line.match(/^\s*stage\s+(.+?)\s*$/);
+    if (st) add(cur.stages, st[1].split(/\s+/));
+    if (/\$refresh_all"?\s*=\s*0/.test(line)) cur.skipRepair = true;
+  }
+  return legs.map((l, i) => ({
+    order: String(i + 1),
+    leg: l.leg,
+    gloss: l.gloss,
+    watches: l.watches.join(';'),
+    runs: l.runs.join(';'),
+    stages: l.stages.join(';'),
+    mode: l.stages.length ? 'regenerates' : 'warns',
+    in_repair: l.skipRepair ? 'no' : 'yes',
+  }));
+}
+
 /**
  * Derive the machine-visible fields for every harness file on disk.
  * @param {string} repoRoot
@@ -210,7 +271,8 @@ export function deriveTools(repoRoot) {
       // them: three of the generators whose output the derived-artifacts gate
       // exists to hold. A field claiming "writes a file" was wrong about the
       // files most depended on being right.
-      emits: /writeFileSync|\bwriteFile\(|open\([^)]*['"][wa]/.test(src) ? 'yes' : 'no',
+      emits: (/writeFileSync|\bwriteFile\(|open\([^)]*['"][wa]/.test(src) ||
+              (rel.startsWith('.github/workflows/') && /^[^#\n]*\bgit push\b/m.test(src))) ? 'yes' : 'no',
       named: (prose.includes(rel) || prose.includes(base)) ? 'yes' : 'no',
       tested: tests.includes(base) ? 'yes' : 'no',
     });
@@ -286,22 +348,34 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   registry.tools = rows;
 
   const bytes = writeCsv(registry.tools, HARNESS_COLS);
+  // The hook's steps ride the same generator, the same hook leg and the same
+  // --check, so the derived-artifacts gate already holding harness.csv holds
+  // this file too.
+  const legsFile = path.join(repoRoot, 'docs', 'hook-legs.csv');
+  const legs = deriveHookLegs(read(repoRoot, HOOK));
+  const legBytes = writeCsv(legs, HOOK_LEG_COLS);
   if (checkOnly) {
-    let current = null;
-    try { current = readFileSync(file, 'utf8'); } catch { /* absent counts as stale */ }
-    if (current !== bytes) {
-      console.error('docs/harness.csv is behind its sources; run: npm run tools-index');
+    const stale = [];
+    for (const [f, want] of [[file, bytes], [legsFile, legBytes]]) {
+      let current = null;
+      try { current = readFileSync(f, 'utf8'); } catch { /* absent counts as stale */ }
+      if (current !== want) stale.push(path.relative(repoRoot, f));
+    }
+    if (stale.length) {
+      console.error(stale.join(' and ') + (stale.length > 1 ? ' are' : ' is') + ' behind its sources; run: npm run tools-index');
       process.exit(1);
     }
     process.exit(0);
   }
   writeFileSync(file, bytes);
+  writeFileSync(legsFile, legBytes);
 
   const layers = {};
   for (const t of rows) layers[t.layer] = (layers[t.layer] || 0) + 1;
   const named = rows.filter(t => t.named === 'yes').length;
   const tested = rows.filter(t => t.tested === 'yes').length;
   const blank = rows.filter(t => !t.role).length;
+  console.log(`tools-index: ${legs.length} hook steps in docs/hook-legs.csv`);
   console.log(`tools-index: ${rows.length} files (` +
               Object.entries(layers).map(([l, n]) => `${n} ${l}`).join(', ') + `); ` +
               `${named} named, ${tested} tested`);

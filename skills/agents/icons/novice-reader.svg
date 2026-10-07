@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="novice-reader agent">
+  <title>novice-reader agent</title>
+  <desc>An open book, two pages apart, for the seat that reads as a newcomer. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#2563eb">
+    <path d="M2.5 8 C7 5.8 11.5 6.2 14.75 8.3 L14.75 27.3 C11.5 25.2 7 24.8 2.5 27 Z"/>
+    <path d="M29.5 8 C25 5.8 20.5 6.2 17.25 8.3 L17.25 27.3 C20.5 25.2 25 24.8 29.5 27 Z"/>
+  </g>
+</svg>

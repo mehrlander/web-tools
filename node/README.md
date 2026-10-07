@@ -85,9 +85,7 @@ Playwright `page` (`ctx.repoRoot` too). Scenarios live in
 [`node/render/scenarios/`](render/scenarios/); the PNG/log pick up the scenario
 name in their suffix.
 
-Every driver lives there and there is nowhere else to put one. Two of them,
-`sidebar-projects.mjs` and `sidebar-projects-overlay.mjs`, still overlap on
-their default path; only the overlay posture distinguishes them.
+Every driver lives there and there is nowhere else to put one.
 
 Example — the FAB's Export controls, opened to the Render
 tab with "Fully offline" ticked:
@@ -292,7 +290,7 @@ changes touch:
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `node/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
-| `node/`, `python/` | `npm run tools-index` | derived fields in `docs/harness.csv` |
+| `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |
@@ -374,15 +372,18 @@ session wrap-up, per the root `CLAUDE.md` ("Per-session refresh: thumbnails"). U
 `pages/index.html` degrades gracefully: a missing thumb shows the
 "no screenshot" placeholder.
 
-Nothing is generated server-side: GitHub Pages serves `main` as-is, with no
+GitHub Pages serves `main` as-is, with no
 deploy build. The one verification workflow, `.github/workflows/test.yml`, runs
 `npm test` on pull requests and pushes to `main`, except pushes limited to
 `pages/wsl-sync/data/**`. It reports results without committing changes. GitHub's API, MCP writes, the web merge button, and other
-server-side merges cannot execute a local checkout's hooks. Before a server
+server-side merges cannot execute a local checkout's hooks; on `main`,
+`.github/workflows/refresh-derived.yml` runs `npm run artifacts:refresh` after
+each push and commits what moved. Before a server
 merge, merge the current base into the branch in a ready local checkout, run
 `npm test`, and push the refreshed branch. Follow a printed
 `git -c core.editor=true merge --continue` when the combined tree needed
-restamping. If a remote write already produced the exact tree to repair, fetch
+restamping. If a remote write left a tree that workflow did not repair (a
+branch, or a test still red after it ran), fetch
 and check out that tree locally, run `npm run artifacts:refresh` followed by
 `npm test`, then run any additional generator the test names and commit and push
 the repair. Setup alone makes no claim about those paths.

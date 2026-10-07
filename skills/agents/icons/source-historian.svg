@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="source-historian agent">
+  <title>source-historian agent</title>
+  <desc>An hourglass between two bars, for the seat that traces where things came from. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#b45309">
+    <rect x="5" y="3" width="22" height="3"/>
+    <rect x="5" y="26" width="22" height="3"/>
+    <path d="M8 8.5 L24 8.5 L17.2 16 L24 23.5 L8 23.5 L14.8 16 Z"/>
+  </g>
+</svg>

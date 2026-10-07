@@ -17,3 +17,4 @@ what each skill does,docs/portable.csv role,paraphrase,"none; deliberately short
 the working conventions text,skills/default/ (the plugin ships a copy of each traveling doc so an installed session reads it off disk),copy,"gate (derived-artifacts.test.mjs, byte-for-byte against docs/)"
 the assistant attribution table,AGENTS.md,copy,
 the assistant attribution table,GEMINI.md,pointer,
+what each agent is given,"docs/agents.csv model, tools and preloads columns",copy,"registry, field by field and both directions for definitions, by quoted anchor for readers (agents-registry.test.mjs)"

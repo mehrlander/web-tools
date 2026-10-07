@@ -1,0 +1,80 @@
+name: Refresh derived files
+
+# Runs the commit hook's repair pass (`npm run artifacts:refresh`, which is
+# `git hook run pre-commit -- --all`) on main after each push, and commits what
+# moved. A write through GitHub's API, an MCP push, an edit on github.com or a
+# web merge never runs the hook, so it leaves derived files stale.
+#
+# It repairs only what a generator can recompute. A change that needs a person,
+# such as a rewritten sentence docs/policies.csv quotes, stays red in test.yml.
+#
+# The repair is pushed with GITHUB_TOKEN, and such a push starts no workflow
+# run. That is why this cannot loop, and why the last step dispatches test.yml
+# onto the repaired head, which would otherwise carry no check.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['pages/wsl-sync/data/**']   # as in test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write   # the repair commit
+  actions: write    # dispatching test.yml
+
+# Queued, not cancelled: two passes pushing to main would race.
+concurrency:
+  group: refresh-derived
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'   # as in test.yml
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: Run the hook's repair pass
+        run: |
+          git config core.hooksPath .githooks
+          npm run artifacts:refresh
+
+      # --no-verify: the pre-commit hook has just run, and the commit-msg
+      # consent gate is for sessions. A rejected push means main moved; the
+      # newer push's run repairs the newer tree.
+      - name: Commit and push what moved
+        id: push
+        run: |
+          git status --porcelain
+          if git diff --cached --quiet; then
+            echo "Nothing stale on main."
+            echo "pushed=none" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='github-actions[bot]@users.noreply.github.com' \
+              commit --no-verify -m "Refresh derived files after ${GITHUB_SHA::7}" \
+                     -m "$(git diff --cached --name-only)"
+          if git push origin HEAD:main; then
+            echo "pushed=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Refresh derived files::main moved during the pass; the newer push's run repairs it."
+            echo "pushed=superseded" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch the suite onto the repaired head
+        if: steps.push.outputs.pushed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run test.yml --ref main

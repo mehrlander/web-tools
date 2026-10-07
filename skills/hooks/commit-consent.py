@@ -230,7 +230,7 @@ If you cannot quote words that name this task, do not commit it. Unstage the
 file and put it to the user instead.
 
 When you share the task link in discussion, use the task marker
-(docs/SURFACING.md; display form in docs/surfacing-extended.md)."""
+(docs/TRACKER.md, under the board: `🎫 [title](tasks/<file>.md)`)."""
 
 DOC_PROMPT = """Commit rejected: {what}.
 
