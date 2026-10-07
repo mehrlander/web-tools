@@ -1706,16 +1706,16 @@ test('a deck that never opens does not leave the card undismissable', async () =
   } finally { window.sessionRender.open = real; }
 });
 
-test('topicBadge relays turn count and return visits multiplier', () => {
+test('topicBadge relays turn count as a clean string', () => {
   assert.equal(data.topicBadge(null), '');
   assert.equal(data.topicBadge({ turns: 0 }), '');
   assert.equal(data.topicBadge({ turns: 1, spans: [[0, 0]] }), '1');
-  assert.equal(data.topicBadge({ turns: 4, spans: [[0, 0], [3, 5]] }), '4 · 2×');
+  assert.equal(data.topicBadge({ turns: 4, spans: [[0, 0], [3, 5]] }), '4');
 });
 
-test('sessionTopicHopPaths traces stem and upward return arcs', () => {
+test('sessionTopicHopPaths traces return arcs from emoji edge into margin', () => {
   const rowNoAgenda = { topics: ['A', 'B'] };
-  assert.deepEqual(plain(data.sessionTopicHopPaths(rowNoAgenda)), { stem: '', hops: '' });
+  assert.equal(data.sessionTopicHopPaths(rowNoAgenda), '');
 
   const agenda = [
     { topic: 'A', turns: [0, 0] },
@@ -1725,9 +1725,9 @@ test('sessionTopicHopPaths traces stem and upward return arcs', () => {
   ];
   const S = window.RepoSessionsCache;
   const row = { id: 'hop1', topicAgenda: S.topicStretches(agenda) };
-  const paths = data.sessionTopicHopPaths(row);
-  assert.ok(paths.stem.startsWith('M 8 12 L 8 '), 'stem connects the topic line');
-  assert.ok(paths.hops.includes('C'), 'upward return to earlier topic generates a curved arc');
+  const hops = data.sessionTopicHopPaths(row);
+  assert.ok(hops.includes('C'), 'upward return to earlier topic generates a curved arc');
+  assert.ok(hops.startsWith('M 0 '), 'arc starts at the outer edge of the emoji');
 });
 
 test('openSessionTopicCard opens in-place prose card and toggles off on re-tap', () => {
