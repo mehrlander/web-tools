@@ -62,10 +62,7 @@ every navigation, writing the slug where the open view has one and the five-key
 `appRepo`/`appPath`/`appLabel`/`appIcon` form where it does not. A page without
 a slug therefore cannot hold a short address: the middle form,
 `?app=owner/repo[@ref]:path`, parses and opens, but the first tap inside the app
-replaces it with the long one. That was the state of five of the estate's six
-promoted views until 2026-09-04, when only the budget-drs lens carried a slug,
-because `?app=` was built for it (tracker task `app-view-address-and-icon-tc1a91`)
-and the field was applied once rather than across the set.
+replaces it with the long one.
 
 A deep link INTO a promoted page rides the fragment, not the query. The shell
 owns the query and the subject owns the fragment, so
@@ -84,8 +81,7 @@ The fields themselves are **not listed here.** They live as data in
 [`docs/manifest.json`](manifest.json), one row per field with its type, its
 consumer, and what it does, held to the estate's real manifests by
 `node/test/manifest-registry.test.mjs`. This section used to carry that list as
-3,000 words of prose, 8% of all documentation in the repo, and prose could not
-be checked against anything: `quickLink` was live in two of the four manifests
+prose, and prose could not be checked against anything: `quickLink` was live in two of the four manifests
 and appeared in no field list, and `pages[].order` was declared by two repos and
 read by no code at all. Both surfaced on the gate's first run.
 
@@ -200,8 +196,7 @@ fetch; the open repo reads its own live manifest instead, the one `loadConfig`
 fetched at the browsed ref, so inside a repo the list follows the ref and needs
 no cache entry. That split is why a `projects` field existing only on a branch is
 invisible from the estate (the cache is a main-derived artifact) until it merges,
-while the repo's own sidebar shows it as soon as you browse the branch; the
-**branch overlay** above previews the estate side live.
+while the repo's own sidebar shows it as soon as you browse the branch.
 
 **Two fields are not the app's.** `conventions` is read by the portable
 conventions and `sessions` by a plugin hook outside any page. The registry's

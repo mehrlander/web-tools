@@ -10,8 +10,6 @@ form has two carriers:
   `#gh=owner/repo&pr=<n>` for a PR's own head and base.
 
 The takeover is documented below, in [Branch detail: the takeover](#branch-detail-the-takeover).
-The overlay, the sidebar's second ref and drop-on-a-branch are in
-[branch-overlay.md](../branch-overlay.md).
 
 ## Landed, differs, missing
 
