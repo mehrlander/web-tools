@@ -264,3 +264,31 @@ test('the markup offers the deck door on the list, each group, and each text run
   assert.match(SRC, /@click="openRunDeck\(r\)"/);
   assert.match(SRC, /variantFoot\(p, \{ deckAt: variantRows\.indexOf\(p\) \}\)/, 'a row opens the deck at itself');
 });
+
+test('a run the collection\'s proposals cite is listed from them, and ?run= marks it', async () => {
+  const h = harness('?run=2026-09-27-doc-simplification');
+  assert.equal(h.model.pane, 'runs', '?run= implies the runs pane');
+  h.model.home = {
+    req: async () => [{ type: 'dir', name: '2026-09-27-doc-simplification' }, { type: 'dir', name: '2026-09-27-behavior-trim' }],
+    get: async p => {
+      if (p.endsWith('behavior-trim/files.jsonl')) return { text: JSON.stringify({ repo: 'mehrlander/home', path: 'CLAUDE.md', variants: 2 }) + '\n' };
+      if (p.endsWith('doc-simplification/README.md')) return { text: '# Doc simplification, 2026-09-27\n' };
+      throw new Error('404');
+    },
+  };
+  const cite = (run) => ({ run, date: run.slice(0, 10), proposals: 3,
+    files: [{ repo: 'mehrlander/web-tools', path: 'docs/a.md', proposals: 2 }, { repo: 'mehrlander/home', path: 'b.md', proposals: 1 }] });
+  h.window.TextCollection.bases = () => new Map([
+    ['run-readme', cite('2026-09-27-doc-simplification')],
+    ['gone', cite('2026-09-01-not-a-folder')],
+    ['pr', { run: '', date: '', proposals: 1, files: [] }],
+  ]);
+  await h.model.loadTextRuns();
+  assert.deepEqual(h.model.textRuns.map(r => r.name), ['2026-09-27-doc-simplification', '2026-09-27-behavior-trim'],
+    'a cited run is listed beside the declared ones, and a citation with no folder is not');
+  const cited = h.model.textRuns[0];
+  assert.equal(cited.title, 'Doc simplification, 2026-09-27');
+  assert.equal(cited.unit, 'proposals');
+  assert.deepEqual(cited.files.map(f => [f.path, f.variants]), [['docs/a.md', 2], ['b.md', 1]]);
+  assert.match(SRC, /:id="'run-' \+ r\.name"/, 'each run row is addressable');
+});

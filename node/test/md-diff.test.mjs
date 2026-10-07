@@ -302,3 +302,64 @@ test('a wholly removed block still has its one reading', () => {
     host.remove();
   });
 });
+
+test('a change carries a note and actions that show only while it is selected', () => {
+  // The host's explanation of a change (a proposal's reason, a call's why) and
+  // what can be done about it, shown with the selection the way Dictate's
+  // cards show theirs, so an unselected document stays a document.
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  const ran = [];
+  return mdDiff.render(host,
+    'Keep this.\n\nThe old wording of a sentence.\n',
+    'Keep this.\n\nThe new wording of a sentence.\n',
+    {
+      note: (chg) => 'why: ' + (chg.kind || ''),
+      actions: (chg, i) => [{ label: 'Apply', run: (c, n) => ran.push([n, c.old]) }],
+    },
+  ).then(() => {
+    const box = host.querySelector('.md-diff-change');
+    const note = box.querySelector('.md-diff-note');
+    const bar = box.querySelector('.md-diff-actions');
+    assert.ok(note && bar, 'the note and the action pill are built');
+    assert.match(note.textContent, /^why: /);
+    assert.ok(!note.classList.contains('!block') && bar.classList.contains('invisible'), 'hidden until selected');
+    box.dispatchEvent(new window.CustomEvent('md-diff:here', { bubbles: true, detail: { at: 0 } }));
+    assert.ok(note.classList.contains('!block') && bar.classList.contains('!visible'), 'shown once selected');
+    bar.querySelector('button').click();
+    assert.deepEqual(ran, [[0, 'The old wording of a sentence.']], 'an action receives its change and index');
+    host.remove();
+  });
+});
+
+test('a signature takes the right-hand corner, moves the actions left, and shows with the selection', () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  return mdDiff.render(host, 'One.\n\nOld text here.\n', 'One.\n\nNew text here.\n', {
+    actions: () => [{ label: 'Apply', run() {} }, { label: 'Close', icon: 'ph-x', run() {} }],
+    sign: () => Object.assign(window.document.createElement('button'), { textContent: 'Sep 27' }),
+  }).then(() => {
+    const box = host.querySelector('.md-diff-change');
+    const bar = box.querySelector('.md-diff-actions');
+    const sign = box.querySelector('.md-diff-sign');
+    assert.equal(sign.textContent, 'Sep 27');
+    assert.ok(sign.classList.contains('right-3') && bar.classList.contains('left-3'), 'the two pills take opposite sides');
+    const close = bar.querySelectorAll('button')[1];
+    assert.equal(close.getAttribute('aria-label'), 'Close', 'an icon action keeps its name for a screen reader');
+    assert.ok(close.querySelector('i.ph-x'));
+    assert.ok(sign.classList.contains('invisible') && !sign.classList.contains('!visible'));
+    box.dispatchEvent(new window.CustomEvent('md-diff:here', { bubbles: true, detail: { at: 0 } }));
+    assert.ok(sign.classList.contains('!visible'), 'shown once selected');
+    host.remove();
+  });
+});
+
+test('without a note or actions a container adds neither', () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  return mdDiff.render(host, 'One.\n\nOld text here.\n', 'One.\n\nNew text here.\n').then(() => {
+    const box = host.querySelector('.md-diff-change');
+    assert.equal(box.querySelector('.md-diff-note, .md-diff-actions, .md-diff-sign'), null);
+    host.remove();
+  });
+});
