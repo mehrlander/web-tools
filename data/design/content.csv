@@ -8,8 +8,8 @@ approvals/,hybrid-authored,exclude,"Approval envelopes (docs/envelopes/approval.
 sites/,hybrid-authored,prose-review,Long-form written pages
 popups/,hybrid-authored,exclude,Browser tool markup
 lib/,hybrid-authored,exclude,Library JavaScript; code register
-tools/,hybrid-authored,exclude,Build and test tooling; code register
-scripts/,hybrid-authored,exclude,Utility scripts; code register
+node/,hybrid-authored,exclude,Node tooling and scripts; code register
+python/,hybrid-authored,exclude,Python scripts; code register
 bookmarklets/,hybrid-authored,exclude,Single-purpose JavaScript
 console/,hybrid-authored,exclude,Console snippets
 pages/,hybrid-authored,exclude,"Browser pages and their thumbnails; the prose lives in HTML comments, not extractable as text"

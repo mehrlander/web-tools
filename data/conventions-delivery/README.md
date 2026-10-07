@@ -5,7 +5,7 @@ session took delivery of the portable conventions: `import` (a resolved
 `@`-import put `docs/SURFACING.md` in context), `invoke` (no import, and the
 session called the Skill tool on the conventions skill), or `neither`.
 Regenerate with
-`python3 scripts/conventions-delivery.py <sessions-dir> --csv <path>`, which
+`python3 python/conventions-delivery.py <sessions-dir> --csv <path>`, which
 prints the summary and writes the rows in one run. The script's own header owns
 the definitions and the two traps behind them; this file records what the run
 found.

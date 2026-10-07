@@ -5,7 +5,7 @@ web-tools page, how to present it. This is its reference: the file's contract, t
 membership rule, the config cache, errands, inbox and outbox, proposals,
 the repo menu, and editing the manifest from the app. The field list itself
 stays data, one row per key in [manifest-fields.csv](manifest-fields.csv), held
-to the estate's real manifests by `tools/test/manifest-registry.test.mjs`; this
+to the estate's real manifests by `node/test/manifest-registry.test.mjs`; this
 doc is the prose around that registry, not a second copy of it.
 
 That registry is the structured stage for the field reference: one row per key, with its type, the tool that reads
@@ -76,14 +76,14 @@ framed page's params already collide on `view` and `tab`, and the pages gallery
 claims `q` from outside the route table, where a convention would never have
 looked. The rule and its fallback for contexts that strip the '#' are in
 [`lib/kits/url-params.js`](../lib/kits/url-params.js) (`subject()`), pinned by
-`tools/test/url-params.test.mjs` and `tools/test/app-view-address.test.mjs`.
+`node/test/url-params.test.mjs` and `node/test/app-view-address.test.mjs`.
 
-Every path in that config is an address, and nothing used to read them: `dead-links.py` enumerates a repo with `git ls-files *.md`, so a declared page could be moved or deleted with no check anywhere noticing. [`scripts/declared-paths.py`](../scripts/declared-paths.py) checks `landing`, `pages[].path` and `stage.files` against the working tree and sibling checkouts, and belongs in the declaring repo's own verify suite: the mover is the only party who can catch a rename at the moment of the rename. That makes declaring a page load-bearing rather than decorative. If it is worth another repo embedding, it is worth declaring here.
+Every path in that config is an address, and nothing used to read them: `dead-links.py` enumerates a repo with `git ls-files *.md`, so a declared page could be moved or deleted with no check anywhere noticing. [`python/declared-paths.py`](../python/declared-paths.py) checks `landing`, `pages[].path` and `stage.files` against the working tree and sibling checkouts, and belongs in the declaring repo's own verify suite: the mover is the only party who can catch a rename at the moment of the rename. That makes declaring a page load-bearing rather than decorative. If it is worth another repo embedding, it is worth declaring here.
 
 The fields themselves are **not listed here.** They live as data in
 [`docs/manifest.json`](manifest.json), one row per field with its type, its
 consumer, and what it does, held to the estate's real manifests by
-`tools/test/manifest-registry.test.mjs`. This section used to carry that list as
+`node/test/manifest-registry.test.mjs`. This section used to carry that list as
 3,000 words of prose, 8% of all documentation in the repo, and prose could not
 be checked against anything: `quickLink` was live in two of the four manifests
 and appeared in no field list, and `pages[].order` was declared by two repos and
@@ -295,7 +295,7 @@ token:
   list. The page runs every step itself, shows its progress in a banner, and
   writes `errands/results/<id>.json` with the token the device already holds.
   Use it only for what a device alone can say, such as whether iOS keeps the
-  tab alive; `tools/test/probe-driver.mjs` checks the driver before a person
+  tab alive; `node/test/probe-driver.mjs` checks the driver before a person
   is asked to open anything.
 - **`laptop-daemon`** (venue `personal-laptop`) asks Gemini, through the
   Gemini home laptop daemon, to do something, usually to answer a prompt. File

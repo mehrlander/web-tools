@@ -7,7 +7,7 @@ manifest the rebuild emitted, and why that file is here.
 
 **This is the third of the three checks named for that kit, and the only one no
 sandbox can run.** The other two are in
-[`tools/test/xlsx-write.test.mjs`](../tools/test/xlsx-write.test.mjs): a
+[`node/test/xlsx-write.test.mjs`](../node/test/xlsx-write.test.mjs): a
 mechanical package check, broken five ways on purpose so a checker that always
 passes cannot pass; and SheetJS parsing the output, because a defect the writer
 and the reader share is invisible to a check using only those two. Both pass on
@@ -61,7 +61,7 @@ ambiguous between "the picker broke this" and "you dropped the sheet it needed",
 which is the one thing a gold set must not be.
 
 That rule is enforced rather than remembered:
-[`scripts/gold-set.mjs`](../scripts/gold-set.mjs) refuses a selection whose kept
+[`node/gold-set.mjs`](../node/gold-set.mjs) refuses a selection whose kept
 sheets reach a dropped one, and follows the **defined-name hop** to find out,
 because these forms point across sheets through named ranges rather than by
 literal sheet name. A check reading formulas alone finds nothing and calls a
@@ -100,7 +100,7 @@ npm run gold-set -- --check # is this folder behind its sources?
 ```
 
 Both need the `home` checkout beside this one, since the sources are not in this
-repo. The selection lives in `scripts/gold-set.mjs` as a declared list with a
+repo. The selection lives in `node/gold-set.mjs` as a declared list with a
 reason per file; changing which workbooks are here means editing that list, and
 the script deletes anything in this folder the list no longer claims.
 

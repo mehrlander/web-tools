@@ -44,7 +44,7 @@ Traffic answers the size question in three bands that do not share a unit: BOOT 
 
 ## Text
 
-Text reads what the page says, as against the other three tabs, which report how it was delivered. The string this document replaces did not describe it; [`tools/test/fab-text.test.mjs`](../tools/test/fab-text.test.mjs) states what the tab reports and which of its figures are gated.
+Text reads what the page says, as against the other three tabs, which report how it was delivered. The string this document replaces did not describe it; [`node/test/fab-text.test.mjs`](../node/test/fab-text.test.mjs) states what the tab reports and which of its figures are gated.
 
 ## Notes and the annotator
 

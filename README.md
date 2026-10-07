@@ -247,9 +247,9 @@ Three docs go deeper:
   `<head>` block, what each piece of the boot chain contributes, how
   `gh.load()` works, the timing rules, the footgun list, and how that same
   contract lets a page be frozen into an offline **build**.
-- **[tools/README.md](tools/README.md)**: the Node harness under `tools/` —
-  [`render/`](tools/render/) (headless jsdom + Chromium rendering of a page,
-  offline, for screenshots and logic checks) and [`build/`](tools/build/) (the
+- **[node/README.md](node/README.md)**: the Node harness under `node/` —
+  [`render/`](node/render/) (headless jsdom + Chromium rendering of a page,
+  offline, for screenshots and logic checks) and [`build/`](node/build/) (the
   `load → build → bake → export` pipeline that snapshots a page's `gh.load`
   chain into a standalone offline artifact, with a byte-identical `verify-build`
   check).
@@ -308,7 +308,7 @@ The command configures the committed Git hooks and the registry CSV merge
 driver for the checkout, installs usable development dependencies, and ends
 with a readiness check. It is safe to run again. It does not regenerate tracked
 artifacts or install a Playwright browser. If npm itself cannot start, the
-dependency-free equivalent is `node tools/checkout-setup.mjs`.
+dependency-free equivalent is `node node/checkout-setup.mjs`.
 In Windows PowerShell, use the `npm.cmd` spelling for all of these commands
 (`npm.cmd run setup`, `npm.cmd run ready`, and `npm.cmd test`); this bypasses a
 stale or policy-blocked PowerShell npm shim while using the same npm runtime.

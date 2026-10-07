@@ -50,7 +50,7 @@ heading is named at the terminal.
 
 **The mechanical half is a registry**, [`snags.csv`](snags.csv): a row per snag
 carrying its slug, one-line title, sightings, count and `→` targets, written by
-the same run and held to this file by `tools/test/derived-artifacts.test.mjs`.
+the same run and held to this file by `node/test/derived-artifacts.test.mjs`.
 The generator was already reading the log as data; the records just did not
 survive the run, so nothing could hold the extraction to a schema and no other
 surface could read it. The prose stays here, because the paragraph explaining
@@ -197,13 +197,13 @@ session reading the output rather than the skill would reopen settled work.
 The check now says the clone is shallow and reads the witness as
 unverifiable. *(seen: 2026-10-06)*
 → [`skills/tend/findings.py`](../skills/tend/findings.py), held by
-`tools/test/findings-shallow.test.mjs`
+`node/test/findings-shallow.test.mjs`
 
 ### public-shot-reads-a-private-sibling: a public thumbnail showed the owner's open user calls
 
 A UI-unit shot of the Waiting view, a public repo's image, drew three open user
 calls with their questions, a recommendation and a session id. The render shim
-(`tools/render/cdn.mjs`) answered the view's contents reads from whatever
+(`node/render/cdn.mjs`) answered the view's contents reads from whatever
 checkout sat beside this one, web-tools-private included, with no token, which
 GitHub would never do for a private repository. Earlier units had been guarded
 one at a time (stand-in rows, `shot: no-script`); a view that arrived with a
@@ -218,13 +218,13 @@ default. Caught on the contact sheet before commit. *(seen: 2026-10-06)*
 supports, although `lib/alpineComponents/map.js` still fetched
 `state/sessions.json`. Two new data strings, `'skills/hooks/*-guard.sh'` and
 `'~/.gemini/antigravity/builtin/skills/*'`, each carry a slash-star, and
-`stripComments` in `tools/build/docs-reach.mjs` matches it as a block-comment
+`stripComments` in `node/build/docs-reach.mjs` matches it as a block-comment
 opener and deletes everything to the next star-slash: 1,076 lines of code.
 The stripper knows line comments and URLs but not string literals, and three
 scanners share it (docs-reach, registries-reach, cache-readers). The stripper
 now scans string, regex and template literals, and the stars in map.js are
 plain again. *(seen: 2026-10-06)*
-→ [`tools/build/docs-reach.mjs`](../tools/build/docs-reach.mjs), held by `docs-registry.test.mjs`
+→ [`node/build/docs-reach.mjs`](../node/build/docs-reach.mjs), held by `docs-registry.test.mjs`
 
 ### account-check-reads-the-interim-manifest: every skill "missing" at session start
 
@@ -252,7 +252,7 @@ goes on the renderer: `toss-render.html?refs=owner/repo@ref#gh=…`. `--query`
 carries only the page's own parameters; `showing.py --refs owner/repo@ref`
 puts the selection on the renderer, and warns when `--query` carries one.
 *(seen: 2026-10-03)*
-→ [`docs/loader.md`](loader.md#the-selection), [`scripts/showing.py`](../scripts/showing.py) `--refs`
+→ [`docs/loader.md`](loader.md#the-selection), [`python/showing.py`](../python/showing.py) `--refs`
 
 ### ready-to-assess-hands-over-the-assessment: ❇️ closed a reply that asked the reader to review
 
@@ -278,7 +278,7 @@ or a token-bearing page. Found in the first `/tend` deletion trial.
 
 ### triage-bare-branch-name-reads-as-orphan: every branch reported "no merge base"
 
-`scripts/stranded-triage.py . <branch>` with a bare name such as
+`python/stranded-triage.py . <branch>` with a bare name such as
 `codex/some-branch` resolves no local ref in a fresh clone, and the script
 prints `no merge base with origin/main` and "nothing to report". That is the
 wording of an orphaned history, over branches with ordinary merge bases. Pass
@@ -323,7 +323,7 @@ of a different problem. What separated them was a control, not more reasoning:
 the identical `shortcuts://` link tapped in a chat client filed its row in the
 device log, and tapped in the page filed nothing.
 *(seen: 2026-09-20)*
-→ [`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js) names the set once as `TAPPABLE`, and [`tools/test/fab-menu.test.mjs`](../tools/test/fab-menu.test.mjs) reads the rendered menu back against it rather than trusting the selector
+→ [`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js) names the set once as `TAPPABLE`, and [`node/test/fab-menu.test.mjs`](../node/test/fab-menu.test.mjs) reads the rendered menu back against it rather than trusting the selector
 
 ### hook-not-run-in-foreign-checkout: the check is red and the diff is right
 
@@ -353,7 +353,7 @@ the count was right and the control was broken. The assertion that separates
 the two is that `location.href` does not change.
 
 → [`lib/kits/md-diff.js`](../lib/kits/md-diff.js) (`setNumbers`, since removed),
-[`tools/render/scenarios/md-diff-jump.mjs`](../tools/render/scenarios/md-diff-jump.mjs)
+[`node/render/scenarios/md-diff-jump.mjs`](../node/render/scenarios/md-diff-jump.mjs)
 
 ### task-premise-outlived-the-repo: a task's stated decisions were settled elsewhere while it sat
 
@@ -383,7 +383,7 @@ fails after them. One line in the frame's console separates them:
 non-empty is the first, empty sends the search to `embedView`. Served over plain
 HTTP the whole app works, so the difference is the API path, not the page.
 The corrected move meanwhile is to hand over the framed page on its own.
-`scripts/showing.py` does not know any of this: it reads `hosted: false` from
+`python/showing.py` does not know any of this: it reads `hosted: false` from
 the manifest and still prints the app route, so the rule that says run it rather
 than read it currently prints the link that does not work.
 
@@ -394,7 +394,7 @@ took the envelope as the page, mounted base64 text, and inlined nothing. The
 harness now answers raw, and `fetchEmbedText` now decodes an envelope the way
 the renderer's `readContents` does, so if the live empty pane was this, it is
 fixed; the console line above still settles whether it was.
-→ [scripts/showing.py](../scripts/showing.py) *(seen: 2026-09-17, 2026-09-29)*
+→ [python/showing.py](../python/showing.py) *(seen: 2026-09-17, 2026-09-29)*
 
 ### variant-plus-opacity-generates-nothing: the rule was not faint, it was absent
 
@@ -439,9 +439,9 @@ empty, and `raw.githubusercontent.com/<other-repo>` matches nothing and reaches
 for a network the sandbox refuses. Reading the empty table as a page bug cost one
 round trip; the `--- intercepts ---` block in the shot log is what settles it,
 and a source the page fetched appearing there under `skip` or not appearing at
-all is the tell. `tools/render/cdn.mjs` now serves `../<repo>` when that path is
+all is the tell. `node/render/cdn.mjs` now serves `../<repo>` when that path is
 a git checkout, so the sibling's working tree answers the way this repo's already
-did. → [tools/render/cdn.mjs](../tools/render/cdn.mjs) *(seen: 2026-09-14)*
+did. → [node/render/cdn.mjs](../node/render/cdn.mjs) *(seen: 2026-09-14)*
 
 ### nudge-names-an-unresolvable-skill: the prod fired and its command did not exist
 
@@ -471,7 +471,7 @@ from a document the project or skill channel reaches, and a claim that
 The corrected move is to check inbound links first, discarding `docs/README.md`,
 which indexes the whole folder.
 *(seen: 2026-09-10 x2)*
-→ [`docs-reach.mjs`](../tools/build/docs-reach.mjs), the five channel definitions
+→ [`docs-reach.mjs`](../node/build/docs-reach.mjs), the five channel definitions
 
 ### csv-rewrite-restamps-every-line: a one-row edit that arrives as a whole-file diff
 
@@ -531,7 +531,7 @@ there, and the same holds for `&quot;`.
 SIBLING BUT NOT THE SAME SNAG, and the difference decides whether a gate can
 see it. `backtick-in-an-html-comment-ends-the-template` below is a PARSE error:
 the file does not compile, so `new Function(src)` catches it and
-tools/test/lib-parses.test.mjs has held that class since 2026-08-14. This one
+node/test/lib-parses.test.mjs has held that class since 2026-08-14. This one
 compiles perfectly. The string is well-formed JavaScript and wrong only for the
 language inside it, so it breaks when Alpine evaluates the decoded attribute,
 which happens when the element renders. The jsdom suite passed throughout,
@@ -619,7 +619,7 @@ backspace key beside a shift the same branch had put a divider between;
 was found by a check. Both were found by running the script by hand because the
 page it drives was about to be handed over. The corrected move: after changing a
 page, run the browser checks that drive it, since the suite's green says nothing
-about them. → [tools/README.md](../tools/README.md#the-refresh-model),
+about them. → [node/README.md](../node/README.md#the-refresh-model),
 [CLAUDE.md](../CLAUDE.md)
 
 ### tightest-band-becomes-the-default: one page's spacing, spent on seven surfaces
@@ -677,7 +677,7 @@ shape rather than the case: any `===` between something read out of Alpine state
 and something read from a module's own scope has this bug. Where a kit offers no
 predicate, compare a primitive it carries, never the object. (`onTop` is a
 getter, so `onTop()` throws; the gate for this is
-`tools/test/estate-deck-subject.test.mjs`.)
+`node/test/estate-deck-subject.test.mjs`.)
 
 ### tick-count-guesses-a-chain: a passing test that starts failing on somebody else's change
 An Alpine assertion that waits `tick(n)` is guessing how many flushes a chain of
@@ -692,8 +692,8 @@ sticky-row binding, and only when its file ran beside another.
 The corrected move is to wait for the CONDITION, not for a number: poll the
 thing being asserted up to a generous bound and return whatever it settled on,
 so the test fails with the real value and passes as soon as the DOM agrees.
-`settle`/`settlesTo` in `tools/test/branch-brief-groups.test.mjs` and
-`tools/test/file-review-card.test.mjs` are the shape. Related to
+`settle`/`settlesTo` in `node/test/branch-brief-groups.test.mjs` and
+`node/test/file-review-card.test.mjs` are the shape. Related to
 `headless-shot-prose-flat` only in kind: both are a measurement taken before the
 thing being measured exists.
 Again on 2026-09-08, with this entry already written: a new estate gate waited
@@ -724,7 +724,7 @@ looking: that one is a READER handed `?use=` by a page that skips the loader,
 this one is the SESSION shooting a page that imports the pre-build. Same
 sentence either way, "the lib you edited is not the lib on screen", with a
 different cause and a different fix. *(seen: 2026-09-06)*
-→ [tools/README.md](../tools/README.md#the-pre-build)
+→ [node/README.md](../node/README.md#the-pre-build)
 
 ### toss-carries-no-page-address: a render link that resolved, rendered, and opened an empty form
 `npm run showing` builds a toss address and stops at the page path.
@@ -741,7 +741,7 @@ toss-render hands the framed page as a real `location.hash`
 (`…:pages/branch.html#gh=owner/repo&pr=594`). `showing.py --at '<fragment>'` puts
 it there, and absent one the script names every subject that reads its own hash.
 *(seen: 2026-09-05)*
-→ [showing.md](showing.md), and the classifier at [../scripts/showing.py](../scripts/showing.py)
+→ [showing.md](showing.md), and the classifier at [../python/showing.py](../python/showing.py)
 
 ### id-called-the-filename-stem: a session id read off the store's own directory listing found no record
 `session-brief.js` resolved an id by `p.endsWith('-' + id + '.json')`, so
@@ -753,7 +753,7 @@ A link is built by reading a listing, and a listing shows stems, so the wrong
 half of that sentence is the half a reader acts on. The corrected move is both:
 a leading date is stripped now so either form resolves, and the three strings
 name which part of the filename an id is. *(seen: 2026-09-05)*
-→ [lib/alpineComponents/session-brief.js](../lib/alpineComponents/session-brief.js), gated by [tools/test/session-brief.test.mjs](../tools/test/session-brief.test.mjs)
+→ [lib/alpineComponents/session-brief.js](../lib/alpineComponents/session-brief.js), gated by [node/test/session-brief.test.mjs](../node/test/session-brief.test.mjs)
 ### touch-synthesises-a-hover: the same gate, missed on the second of two elements
 
 **Two defects, one panel, found in one sweep**, and the second only after the
@@ -787,7 +787,7 @@ reach the open panel's OWN trigger, which leaves every other route as it was.
 Both halves are the general shape this file has now hit three times: **two
 handlers racing for one gesture.** →
 [`lib/kits/session-export.js`](../lib/kits/session-export.js), gated in
-`tools/test/session-export-open.test.mjs`, whose harness stubs matchMedia to
+`node/test/session-export-open.test.mjs`, whose harness stubs matchMedia to
 `matches: false` and so tests the coarse-pointer path by default.
 
 ### boot-throw-hides-behind-x-cloak: a bad `?use=` ref rendered as a broken page, not a bad link
@@ -839,7 +839,7 @@ entirely without costing anything. The same pass fixed a quieter one: painting
 the tone with `className.replace(/text-\S+/g, '')` stripped `text-xs` along with
 the colour, so the readout also grew. Tone is a `data-tone` attribute now.
 
-Held by `tools/render/scenarios/audit-boots.mjs`, which logs the worst
+Held by `node/render/scenarios/audit-boots.mjs`, which logs the worst
 arguments there are from the earliest point a page script can reach, then
 asserts the page mounted, painted, answers a tap, and reports the fault.
 *(seen: 2026-09-07)*
@@ -889,7 +889,7 @@ Not the same as `page-skips-the-loader-ignores-use` below, though the index
 pairs them: there, `?use=` reaches a page that has opted out of the loader, so
 the **lib** is wrong; here it reaches the loader fine and the **page file** is
 main's. One link shape, two ways to show the wrong thing.
-→ [../CLAUDE.md](../CLAUDE.md) "Showing: which link shows what"; [scripts/showing.py](../scripts/showing.py)
+→ [../CLAUDE.md](../CLAUDE.md) "Showing: which link shows what"; [python/showing.py](../python/showing.py)
 
 ### merge-drops-authored-csv-cells: taking one side of a derived registry loses the authored half, and the generator refills it blank
 
@@ -905,10 +905,10 @@ to restore the authored cells from your own commit before staging,
 `git show <sha>:docs/tests.csv`, and to check `protects` for blanks after any
 merge that touched the file. The systematic fix is a union merge driver on the
 row-per-line registries, so an additive conflict stops being a conflict at all;
-`scripts/derived-csv-merge.mjs` has been that driver since 2026-09-15 (#682),
+`node/derived-csv-merge.mjs` has been that driver since 2026-09-15 (#682),
 for the registries `.gitattributes` names. *(seen: 2026-09-04 ×2)*
-→ [tools/README.md, the refresh model](../tools/README.md#the-refresh-model), and
-[../scripts/derived-csv-merge.mjs](../scripts/derived-csv-merge.mjs)
+→ [node/README.md, the refresh model](../node/README.md#the-refresh-model), and
+[../node/derived-csv-merge.mjs](../node/derived-csv-merge.mjs)
 
 ### consumer-tag-outlives-the-merge: a lib file loaded by a plain `<script src>` at `@main` in another repo showed the old code a day after the merge
 
@@ -927,7 +927,7 @@ finished and goes on serving the old copy (2026-09-03).
 → [loader.md, Consumers in other repos](loader.md#consumers-in-other-repos)
 
 ### shallow-clone-has-no-merge-base: the render-link script reported "nothing" over a nine-file branch
-`scripts/showing.py` reads its input from `git diff --name-only origin/main...HEAD`.
+`python/showing.py` reads its input from `git diff --name-only origin/main...HEAD`.
 A Claude Code web sandbox clones shallow, so `origin/main` and `HEAD` share no
 ancestor inside the graft boundary and the three-dot form dies with
 `fatal: no merge base`. `sh()` returns `.stdout.strip()` and never reads the exit
@@ -948,10 +948,10 @@ day:** `sh()` takes `check=True`, the two reads that decide the answer
 (`changed`, `diff_text`) ask for it, and a failed read is now its own mechanism,
 `unknown`, printing "CANNOT TELL" rather than borrowing the words of "nothing to
 show". `diff_remedy` names the shallow case and the command. Held by
-`tools/test/showing-pick.test.mjs`, which drives a real orphan-base diff rather
+`node/test/showing-pick.test.mjs`, which drives a real orphan-base diff rather
 than a file fixture, since every other test there hands the script its input and
 would have passed throughout. →
-[showing.md](showing.md), and the classifier at [../scripts/showing.py](../scripts/showing.py);
+[showing.md](showing.md), and the classifier at [../python/showing.py](../python/showing.py);
 [`skills/sandbox-traps/SKILL.md`](../skills/sandbox-traps/SKILL.md) for the
 shallow-clone family this belongs to. *(seen: 2026-09-03)*
 
@@ -989,7 +989,7 @@ format: each language stays native inside itself and converts where a number
 crosses, so the 37 places the page indexes the document are untouched and a
 document with no astral character maps to itself. →
 [`lib/kits/standoff.js`](../lib/kits/standoff.js): `Standoff.adopt`/`emit`/`emitPatch` carry it and
-`tools/test/standoff-kit.test.mjs` holds the round trip.
+`node/test/standoff-kit.test.mjs` holds the round trip.
 
 ### an-unlayered-rule-beats-every-layer: `max-w-none` reads as the undo and is not one
 Tailwind v4 emits its utilities inside `@layer utilities`. A plain stylesheet
@@ -1041,7 +1041,7 @@ component is missing: the wrong first diagnosis here was that the new element
 had broken `x-if`'s single-root rule.
 *(seen: 2026-09-08)*
 → [`docs/loader.md`](loader.md) for what a component file must satisfy, and
-[`tools/test/lib-parses.test.mjs`](../tools/test/lib-parses.test.mjs) for the
+[`node/test/lib-parses.test.mjs`](../node/test/lib-parses.test.mjs) for the
 gate, which has held this class since 2026-08-14.
 
 ### safari-button-sizes-from-unclipped-content: the child clipped, the fade landed, and the button stayed tall
@@ -1061,7 +1061,7 @@ space it cost, so the gate moved to the estate's other clamped trigger: the
 outline row's title, a two-line `line-clamp` that is a `role="button"` div for
 exactly this reason. →
 [`lib/kits/session-export.js`](../lib/kits/session-export.js) at `asTrigger`
-carries the live case, gated in `tools/test/session-brief.test.mjs`.
+carries the live case, gated in `node/test/session-brief.test.mjs`.
 
 ### line-clamp-is-not-a-height: the utility collided with a display four times in one branch, then failed only on the phone
 `line-clamp-N` sets `display`, so a second display utility on the same element
@@ -1079,13 +1079,13 @@ A container of blocks takes a `max-height` with a mask, never a clamp. That
 fourth case was removed with its block on 2026-09-06 and the rule is kept for
 the next container of blocks that wants clamping; the first three are live. →
 [`lib/kits/session-export.js`](../lib/kits/session-export.js) carries the worked
-cases, gated in `tools/test/session-export-open.test.mjs`.
+cases, gated in `node/test/session-export-open.test.mjs`.
 
 ### untracked-file-invisible-to-the-suite: a local green over a file the scanner never enumerated
 `npm test` passed twice, 2707/0, over a brand-new `docs/routes-paste.csv`
 carrying three column names the field vocabulary did not account for. CI caught
 it on the first push. Nothing was flaky and nothing differed about the runner:
-`scripts/text-carriers.py` enumerates the files it scans with `git ls-files`,
+`python/text-carriers.py` enumerates the files it scans with `git ls-files`,
 which lists tracked files only, so an untracked new file is not absent from the
 check's answer, it is absent from its QUESTION. The suite was green by omission, and a
 green suite is the one thing that reads as permission to push. Any check that
@@ -1107,16 +1107,16 @@ two branches that did not know about each other:
 was the newest entry in the log with its corrected move already written down,
 and the session that hit it had that move in context. Reading costs nothing and
 did not happen, twice. So it is now mechanical:
-[../tools/test/untracked-carriers.test.mjs](../tools/test/untracked-carriers.test.mjs)
+[../node/test/untracked-carriers.test.mjs](../node/test/untracked-carriers.test.mjs)
 fails when a governed file sits in the working tree and not in the index, which
 is the condition under which every other gate's green means nothing. Fixing the
 eleven enumerators would have been the wrong altitude, since they read the
 tracked set deliberately and two say so in their own docstrings; what was
 missing was the one check that notices they are reading a tree the push will
 not produce. Its own first run failed on itself.
-→ [../scripts/text-carriers.py](../scripts/text-carriers.py), and the gate at [../tools/test/text-vocabulary-conformance.test.mjs](../tools/test/text-vocabulary-conformance.test.mjs)
+→ [../python/text-carriers.py](../python/text-carriers.py), and the gate at [../node/test/text-vocabulary-conformance.test.mjs](../node/test/text-vocabulary-conformance.test.mjs)
 ### showing-blocks-a-new-page-on-its-own-favicon: a page added on the branch always trips the shell rule
-`scripts/showing.py` matches its shell-change patterns against the DIFF, so for
+`python/showing.py` matches its shell-change patterns against the DIFF, so for
 a page the branch CREATES the diff is the whole file and every pattern in it
 fires. Here `rel="icon"` did, and the script printed an honest no-link over a
 favicon nobody was showing, on a branch whose actual change (a context menu, a
@@ -1125,10 +1125,10 @@ an edited page and inverts on a new one: the tell is a `why:` naming something
 the turn did not touch. The corrected move is to render the page at the pushed
 SHA and read the console before accepting the refusal, since the question the
 rule is standing in for is whether the link works. *(seen: 2026-08-30)*
-→ [showing.md](showing.md), and the classifier at [../scripts/showing.py](../scripts/showing.py)
+→ [showing.md](showing.md), and the classifier at [../python/showing.py](../python/showing.py)
 
 ### showing-whitelists-pages-only: the render-link script named two pages the branch never touched
-`scripts/showing.py` recognizes a renderable page by path: `pages/*.html` or
+`python/showing.py` recognizes a renderable page by path: `pages/*.html` or
 `app/index.html`. A branch whose only HTML sits elsewhere (here
 `dump/2026-08-28-question-lane.html`, a dated prototype) matches neither, so the
 script fell through to its default and printed 🥏 links for `app/index.html` and
@@ -1140,7 +1140,7 @@ which rule fired and here described a page change that had not happened. The
 honesty rule is the backstop the script cannot supply: where no link reaches a
 change, say so. *(seen: 2026-08-28)* Since 2026-10-06 the classifier treats
 any HTML outside `archive/` as a page file, kit demos and `dump/` included.
-→ [showing.md](showing.md), and the classifier at [../scripts/showing.py](../scripts/showing.py)
+→ [showing.md](showing.md), and the classifier at [../python/showing.py](../python/showing.py)
 
 ### registry-scope-disagrees-with-its-gate: the cell describing the rule named two extensions where the gate walks three
 `docs/registries.csv`'s `scope` for the documents registry read "every .md and
@@ -1154,7 +1154,7 @@ cell to its gate, and nothing can, since scope exists to be read rather than
 executed. The corrected move is to NAME the gate instead of restating it, so a
 scope cell that has to describe a set says where the set is defined and a reader
 who needs the exact answer goes one hop to get it. *(seen: 2026-08-26)*
-→ [registries.csv](registries.csv), and the gate at [../tools/test/docs-registry.test.mjs](../tools/test/docs-registry.test.mjs)
+→ [registries.csv](registries.csv), and the gate at [../node/test/docs-registry.test.mjs](../node/test/docs-registry.test.mjs)
 
 ### test-supplies-the-missing-dependency: a green check over a feature nobody could reach
 `kits/dock-split.js` is an OPTIONAL dependency: swipe-deck mounts the drag seam
@@ -1169,7 +1169,7 @@ consistent. The move: an optional dependency needs one assertion made from the
 host's OWN boot, with nothing supplied, and it belongs in the host's test rather
 than the kit's. Costs two lines; here it went into deck-dock-reflow.mjs, which
 already boots the real app. *(seen: 2026-08-23)*
-→ [tools/test/deck-dock-reflow.mjs](../tools/test/deck-dock-reflow.mjs)
+→ [node/test/deck-dock-reflow.mjs](../node/test/deck-dock-reflow.mjs)
 
 ### id-in-a-component-body: two mounts, one id, and the second one renders into the first
 An `id` promises the element is unique on the page, so a mode module that found
@@ -1184,7 +1184,7 @@ it looks like from outside is a slide whose header names one document while its
 pager, byte size and canvas belong to another, with nothing thrown. The move:
 inside a component's body use a `data-` attribute and scope the lookup to the
 component's own root, and scope any staleness counter to the instance. *(seen: 2026-08-23)*
-→ [lib/alpineComponents/viewer.js](../lib/alpineComponents/viewer.js), gated by [tools/test/viewer-many.mjs](../tools/test/viewer-many.mjs)
+→ [lib/alpineComponents/viewer.js](../lib/alpineComponents/viewer.js), gated by [node/test/viewer-many.mjs](../node/test/viewer-many.mjs)
 
 ### template-escape-in-a-plain-method: a tooltip separator that renders as backslash-n
 An Alpine component's markup is a template literal, so a newline inside a title
@@ -1195,7 +1195,7 @@ tooltip joined the busiest paths into one run-on line with the escapes showing.
 Invisible to every check the repo has: a title attribute renders whatever it is
 given, no test read the string, and nothing about the source looks wrong beside
 the two correct uses forty lines up. Caught 2026-08-26 while adding a caveat to
-the same label. Gated now by `tools/test/estate-sessions.test.mjs`, which
+the same label. Gated now by `node/test/estate-sessions.test.mjs`, which
 asserts the string carries no `\\n` and breaks into lines. *(seen: 2026-08-26)*
 → [lib/alpineComponents/estate.js](../lib/alpineComponents/estate.js)
 
@@ -1215,7 +1215,7 @@ a title and the page needs no address. *(seen: 2026-08-26)*
 → [pages/session.html](../pages/session.html), [pages/branch.html](../pages/branch.html)
 
 ### pipe-eats-the-exit-code: a runner that reports a fatal, read through a pipe that returns zero
-`tools/render/screenshot.mjs` exits 1 when a scenario throws, and the whole of
+`node/render/screenshot.mjs` exits 1 when a scenario throws, and the whole of
 this session read it as `npm run shot -- … | tail -8`. A shell pipeline returns
 the exit code of the LAST command, so `tail` reported success over every fatal
 underneath it. Two scenarios rotted behind that: `audit-edit` had been clicking
@@ -1417,11 +1417,11 @@ failure is a warning, not a blank screen, and the working page is the tell for
 nothing. The corrected move: when a rendered change does not appear, read the
 shot log before re-reading the diff, and treat "it still looks like before" as
 a load question rather than a markup one. `npm test` now catches the parse case
-(`tools/test/lib-parses.test.mjs` compiles every loadable lib file the way the
+(`node/test/lib-parses.test.mjs` compiles every loadable lib file the way the
 loader does), which leaves the general shape uncovered: any load failure still
 degrades to the last build, quietly.
 *(seen: 2026-08-14)*
-→ [loader.md](loader.md); the parse case is gated by tools/test/lib-parses.test.mjs
+→ [loader.md](loader.md); the parse case is gated by node/test/lib-parses.test.mjs
 
 ### stub-hides-the-wiring: a test that stubs a lazy dependency cannot see it go missing
 The Match pane loads `kits/estate-search.js` on first use, and every test for
@@ -1433,7 +1433,7 @@ lazily, one test must stub the LOADER and assert the fetch, not stub the thing
 the loader would have produced. Generalizes to every `gh.load` inside a
 component, which is most of them.
 *(seen: 2026-08-13)*
-→ [loader.md](loader.md); the case is `tools/test/fab-text.test.mjs`, "match loads its kit before using it"
+→ [loader.md](loader.md); the case is `node/test/fab-text.test.mjs`, "match loads its kit before using it"
 
 ### x-data-scope-shadows-component-names: a mount's config read a component, not the host's field
 Mounting a child component with a config that closes over host state, the
@@ -1571,7 +1571,7 @@ falling back to the last version that has it, which its own response header says
 path onto it, byte-identical to what the CDN serves. No task: the fix is the
 one the vendoring doc already prescribed, applied to the one package whose two
 names disagree.
-→ [environment/testing.md](environment/testing.md); the map is `tools/render/cdn.mjs`
+→ [environment/testing.md](environment/testing.md); the map is `node/render/cdn.mjs`
 
 ### pre-build-boots-alpine-early: a page's own gh.load chain runs after its components init
 `branch.html` died with `Cannot read properties of undefined (reading 'fetchBrief')`.
@@ -1743,7 +1743,7 @@ found nine live, one of them a tab in the Map view's own strip, so it graduated
 to a gate: `npm run icon-scan` resolves every `ph-` name in lib, pages and app
 against the installed stylesheet, and the suite runs it with `--check`.
 *(seen: 2026-07-28, 2026-08-31)*
-→ [../skills/phosphor-icons/SKILL.md](../skills/phosphor-icons/SKILL.md), [../scripts/blank-icons.py](../scripts/blank-icons.py)
+→ [../skills/phosphor-icons/SKILL.md](../skills/phosphor-icons/SKILL.md), [../python/blank-icons.py](../python/blank-icons.py)
 
 ---
 
@@ -1794,7 +1794,7 @@ abandoned attempt already named the tractable route: read daisyUI's own
 stylesheet for the families it ships rather than probe a rendered page.
 
 **Built the same day, by that route.** `npm run family-scan`
-([`../scripts/dead-family.py`](../scripts/dead-family.py)) derives the supported
+([`../python/dead-family.py`](../python/dead-family.py)) derives the supported
 set from `node_modules/daisyui/daisyui.css`, so the answer tracks the installed
 version rather than a list here going stale. daisyUI 5.7.28 defines 207 classes
 on a semantic colour across 25 families, and only three of them are Tailwind
@@ -1912,12 +1912,12 @@ reading, not the script.) *(seen: 2026-08-05)*
 **Second trip, first filed as an entry of its own**
 (`app-shot-read-as-impossible`). `screenshot.mjs app/index.html` at a deep-link
 address drew a blank page and `gh is not defined`, and the session reported that
-the app cannot be shot headless. It can: a scenario in `tools/render/scenarios/`,
+the app cannot be shot headless. It can: a scenario in `node/render/scenarios/`,
 run with `--script`, stages the `configs.json` the shell otherwise reads through
 a token, then drives the shell (`sidebar-view-labels.mjs` is the worked
 example). The same tell both times: a missing setup step concluded to be a
 missing capability from one failed run. *(seen: 2026-09-16)*
-→ [tools/README.md](../tools/README.md)
+→ [node/README.md](../node/README.md)
 
 ### shrank-instead-of-questioned: shrank a redundant artifact instead of asking whether it should exist
 Told
@@ -2021,7 +2021,7 @@ cache-safe." It defeats the MODULE cache, keyed by URL; nothing was defeating
 the HTTP cache, keyed by the same URL, and a branch ref MOVES. So a preview
 could serve an earlier push with nothing on screen to say so, which is invisible
 by construction rather than merely easy to miss. All 33 loaders now pass
-`cache: 'no-store'`, and `tools/test/use-ref-no-store.test.mjs` holds them
+`cache: 'no-store'`, and `node/test/use-ref-no-store.test.mjs` holds them
 there, since the bug is a missing argument in files nobody edits together. The
 general shape: **a comment asserting an absence of a problem is where to look
 first when the problem is present**, and one that names a mechanism ("the module
@@ -2100,7 +2100,7 @@ never drawn and leave the branch list's state on its rail alone. Use tens.
 Three sightings in one day: one text colour, one fill, and one straggler a hand
 sweep had left behind. *(seen: 2026-08-19 ×3)*
 → [the house style](../skills/html-style/SKILL.md), and the gate at
-[../scripts/dead-opacity.py](../scripts/dead-opacity.py)
+[../python/dead-opacity.py](../python/dead-opacity.py)
 
 **2026-08-19, corrected and closed by a gate.** Two claims above are narrower
 than they read, and the difference decides what a scan may flag. It is not that
@@ -2114,7 +2114,7 @@ listed: every step off the tens fails, `/75` among them, and so do `/0` and
 the same pass that wrote this entry, leaving **one**, which is fixed here.
 `branchAccent` was among the 193 and draws. Recurrence is now mechanical rather
 than remembered: `npm run opacity-scan`, gated by
-`tools/test/dead-opacity.test.mjs`.
+`node/test/dead-opacity.test.mjs`.
 
 ### pages-shots-vacuous-ok: a thumbnail refresh shot nothing and exited 0
 
@@ -2126,7 +2126,7 @@ run exits 0 and reads as done. Corrected move: pass the path with its extension
 (`pages/diff-tool.html`), and read the count rather than the word `ok`. The
 generator should refuse an argument that selected nothing, which is the real fix.
 *(seen: 2026-08-19)*
-→ [../tools/build/pages-shots.mjs](../tools/build/pages-shots.mjs), and the
+→ [../node/build/pages-shots.mjs](../node/build/pages-shots.mjs), and the
 invocation in [../CLAUDE.md](../CLAUDE.md) under "Per-session refresh".
 
 ### private-blob-404s-signed-out: a live file reads as a broken link from a phone
@@ -2175,7 +2175,7 @@ turns the PR red. `docs/themes.csv` is the widest one here: any `.md` anywhere
 moves it. Sibling of the entry below, which is the same source of truth failing
 as a conflict rather than as a staleness. *(seen: 2026-08-31)*
 → the maintenance field on `docs/themes.csv` in [docs.csv](docs.csv);
-[derived-artifacts.test.mjs](../tools/test/derived-artifacts.test.mjs)
+[derived-artifacts.test.mjs](../node/test/derived-artifacts.test.mjs)
 
 ### derived-field-conflicts-per-branch: a merge conflict on a line no human wrote
 
@@ -2191,7 +2191,7 @@ or ours-merge driver for the derived keys would end it, and it has now
 recurred, so the condition that sentence set is met.
 
 **Fixed 2026-09-15 (#682), and the fix is narrower than "no more conflicts".**
-[`scripts/derived-csv-merge.mjs`](../scripts/derived-csv-merge.mjs) is a git
+[`node/derived-csv-merge.mjs`](../node/derived-csv-merge.mjs) is a git
 merge driver over the ten registries in
 [`.gitattributes`](../.gitattributes) that have a computed column. It reads
 `docs/properties.csv` for which cells a deriver owns and which a person wrote,
@@ -2202,7 +2202,7 @@ command. That is the trade, and it is the point: a stale number is a red check,
 a conflict was no check at all. Registration is per clone, from
 `.claude/hooks/session-githooks.sh`, so a clone that never ran the hook still
 gets the old conflict.
-→ [`scripts/derived-csv-merge.mjs`](../scripts/derived-csv-merge.mjs) and the
+→ [`node/derived-csv-merge.mjs`](../node/derived-csv-merge.mjs) and the
 attribute list beside it; the derived-field rule in [CLAUDE.md](../CLAUDE.md).
 
 ### hand-rolled-use-block-boots-nothing: a copied boot block was rewritten instead, and shipped blank
@@ -2214,12 +2214,12 @@ because no test sets `use` and the toss's own `#gh=` route is what injects it,
 so tapping the link was the first time that branch had ever run the block. All
 31 other pages carrying it were already correct, which is what the block being
 copied rather than authored buys. Now gated by
-[../tools/test/use-boot-block.test.mjs](../tools/test/use-boot-block.test.mjs),
+[../node/test/use-boot-block.test.mjs](../node/test/use-boot-block.test.mjs),
 which holds four facts across both boot families and found a second one on its
 first run: `pages/inquiry.html` blob-imported the pre-build without checking
 the response, so a bad ref would have imported GitHub's 404 page as
 JavaScript. *(seen: 2026-08-22, 2026-08-30)*
-→ [loader.md](loader.md), and the gate at [../tools/test/use-boot-block.test.mjs](../tools/test/use-boot-block.test.mjs)
+→ [loader.md](loader.md), and the gate at [../node/test/use-boot-block.test.mjs](../node/test/use-boot-block.test.mjs)
 
 ### page-skips-the-loader-ignores-use: a page outside the loader opts out of `?use=` with no error
 
@@ -2232,9 +2232,9 @@ premise is that the page boots through the loader, and transform.html loads
 `gh.load` opts out silently and the wrong link looks identical to the right
 one. Until the page is aligned or the exception recorded where links are
 minted, the honest lib-change view for it is the 🥏 address toss at the SHA.
-*(seen: 2026-08-11)* Since 2026-10-06 `scripts/showing.py` reads relative
+*(seen: 2026-08-11)* Since 2026-10-06 `python/showing.py` reads relative
 script tags and offers that toss itself.
-→ [loader.md](loader.md), and the picker at [../scripts/showing.py](../scripts/showing.py);
+→ [loader.md](loader.md), and the picker at [../python/showing.py](../python/showing.py);
 the other way `?use=` shows the wrong thing is `use-swaps-the-lib-not-the-page`
 ### combine-serves-cjs: a jsDelivr /combine/ spec served the CommonJS build, and the local mirror hid it
 
@@ -2252,7 +2252,7 @@ at once, every `x-text` renders empty, and `x-for` emits nothing, so the page
 reads as one still loading rather than one that failed. It was reported as a
 spinner that never resolves.
 
-What made it ship is the local mirror. `tools/render/cdn.mjs` keeps a
+What made it ship is the local mirror. `node/render/cdn.mjs` keeps a
 `CDN_DEFAULT` map that rewrites a bare `alpinejs` spec to `dist/cdn.min.js`,
 whose comment states that jsDelivr serves the browser build for these packages.
 That is true of `/npm/` and false of `/combine/`, so every headless shot loaded
@@ -2272,7 +2272,7 @@ its committed thumbnail included, while the live page was fine. The thrown
 error had been in every shot log for that page; what got it read was a
 prototype of the page-measures pass reporting 24 blank icons on it.
 → [doc-growth.md](doc-growth.md); the combine rule is pinned by
-[../tools/test/cdn-combine-default.test.mjs](../tools/test/cdn-combine-default.test.mjs).
+[../node/test/cdn-combine-default.test.mjs](../node/test/cdn-combine-default.test.mjs).
 The plain `/npm/` route is not: `CDN_DEFAULT` says it honors `unpkg`, and
 jsDelivr served `dist/module.cjs.js` for a bare `npm/alpinejs` on 2026-10-06.
 No page uses that spec.
@@ -2338,12 +2338,12 @@ survive a plain rebuild, so re-anchor by exact text before resetting. *(seen: 20
 
 ### guards-shift-the-offsets: three of segment.py's five guards are not length-preserving
 
-`scripts/annotate/segment.py` masks `e.g.`, `i.e.`, `etc.` and `vs.` with one
+`python/annotate/segment.py` masks `e.g.`, `i.e.`, `etc.` and `vs.` with one
 character each, computes offsets on the masked string, and emits them against
 the original, so every unit after an occurrence is short. Pad each token to the
 width it replaces before relying on offsets from a document that uses them.
 *(seen: 2026-08-31)*
-→ [`scripts/annotate/segment.py`](../scripts/annotate/segment.py), the segmenter
+→ [`python/annotate/segment.py`](../python/annotate/segment.py), the segmenter
 
 ### empty-params-answer-the-address: a framed page parsed an empty string and got its own address back
 
@@ -2357,7 +2357,7 @@ took it for the view's selection, and dropped the forward it existed to make.
 The Node test of the method passed, since Node's `URLSearchParams` is unpatched;
 the selection probe, which runs the real renderer, caught it. Test a string
 before parsing it when it may be empty, and test a method that parses inside a
-realm that carries the real prelude (`tools/test/app-view-inherit.test.mjs`).
+realm that carries the real prelude (`node/test/app-view-inherit.test.mjs`).
 *(seen: 2026-09-28)*
 → [loader.md](loader.md#under-the-toss)
 
@@ -2367,7 +2367,7 @@ realm that carries the real prelude (`tools/test/app-view-inherit.test.mjs`).
 on a branch, is shown through the toss renderer: `pages/toss-render.html` is a
 shell served from the default branch, it fetches the addressed page and renders
 it in an iframe, and it mounts the fab (the floating panel) for the whole view.
-`scripts/showing.py` mints that link for every page change, and until 2026-09-08
+`python/showing.py` mints that link for every page change, and until 2026-09-08
 it minted `toss-render.html?use=<sha>#gh=owner/repo@<sha>:<path>`.
 
 **The symptom.** On an iPhone, tapping the fab on such a link freezes the view
@@ -2433,7 +2433,7 @@ blob route at main. `pages/scratch/shell-pin-probe.html` separates the two, with
 a positive control, and runs from Pages once merged.
 *(seen: 2026-09-08, 2026-09-28)*
 
-→ `scripts/showing.py` and `ref-switch.js` no longer pin the shell, gated by
-`tools/test/showing-pick.test.mjs` and `tools/test/ref-switch.test.mjs`; the
+→ `python/showing.py` and `ref-switch.js` no longer pin the shell, gated by
+`node/test/showing-pick.test.mjs` and `node/test/ref-switch.test.mjs`; the
 mechanism stays open, and [loader.md](loader.md#under-the-toss) states how a
 toss picks a Web Tools version instead.

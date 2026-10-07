@@ -1,7 +1,7 @@
 name: Page measures
 
 # Renders every page a pull request touches in headless Chromium and reports
-# what tools/render/measure.mjs reads off it: sideways scroll at phone width and
+# what node/render/measure.mjs reads off it: sideways scroll at phone width and
 # the element causing it, blank icons, empty tables, text the design system
 # never reached, house-style markup, and how far the page moved from its
 # committed thumbnail. The report is the run's job summary; the desktop and
@@ -18,7 +18,7 @@ name: Page measures
 # measures are signals, not verdicts: a page may scroll sideways on purpose, a
 # table may be empty because the render could not reach its data. It goes red
 # only when the pass itself is broken, and the first thing it does is prove it
-# is not: tools/test/page-measures.mjs runs every measure against a page with
+# is not: node/test/page-measures.mjs runs every measure against a page with
 # known defects, so a "none" in the report comes from detectors shown to fire
 # on this same run.
 
@@ -27,9 +27,9 @@ on:
     paths:
       - 'pages/**/*.html'
       - 'lib/kits/demos/**/*.html'
-      - 'tools/render/**'
-      - 'tools/test/page-measures.mjs'
-      - 'tools/test/fixtures/page-measures.html'
+      - 'node/render/**'
+      - 'node/test/page-measures.mjs'
+      - 'node/test/fixtures/page-measures.html'
       - '.github/workflows/page-measures.yml'
   workflow_dispatch:
 
@@ -64,12 +64,12 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Prove every measure fires
-        run: node tools/test/page-measures.mjs
+        run: node node/test/page-measures.mjs
 
       # A manual run has no merge commit to diff against, so it measures every page.
       - name: Measure the pages
         run: >-
-          node tools/render/page-measures.mjs
+          node node/render/page-measures.mjs
           ${{ github.event_name == 'pull_request' && '--base HEAD^1' || '--all' }}
           --summary "$GITHUB_STEP_SUMMARY"
 
@@ -77,5 +77,5 @@ jobs:
         if: always()
         with:
           name: page-measures
-          path: tools/.preview/page-measures/
+          path: node/.preview/page-measures/
           if-no-files-found: ignore

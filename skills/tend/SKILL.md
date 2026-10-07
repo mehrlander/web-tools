@@ -93,7 +93,7 @@ its class:
 | merged-tip | Tip SHA equals `head.sha` of a merged pull request. |
 | closed-tip | Tip SHA equals `head.sha` of a pull request closed without merging. |
 | ancestor | `git rev-list --count origin/<b> --not origin/main` prints `0`. |
-| content-settled | `python3 scripts/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |
+| content-settled | `python3 python/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 

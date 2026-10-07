@@ -10,7 +10,7 @@ and what the suite checks. What each field means is not here. It is in
 [`properties.csv`](properties.csv), one row per non-key column; and
 [`vocabularies.csv`](vocabularies.csv), one row per value of each closed
 domain. All three render in the app's **Map view, Registries tab**. The gate is
-[`properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs).
+[`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Settled 2026-08-08; the origin instrument is budget-drs's `properties.csv` in
 `mehrlander/home`. The dated account of how the model was reached and what its
@@ -92,8 +92,8 @@ space, declared per registry as `identity`:
 So `href: toss-render.html` in `pages` and `path: pages/toss-render.html` in
 `tools` are one target, and a registry id spelled `skills` is not the path
 `skills`. Matching is exact: a directory locator does not match the files below
-it. Nesting is written into scopes instead. The `harness` scope covers `tools/`
-and `scripts/` and excludes `tools/test/`, which `tests` owns.
+it. Nesting is written into scopes instead. The `harness` scope covers `node/`
+and `python/` and excludes `node/test/`, which `tests` owns.
 
 ### Two questions, not a kind
 
@@ -155,7 +155,7 @@ assertions that have none, not whether a CSV would be convenient to read.
 8. Run `npm run registries-reach` if app code changed, then `npm test`.
 
 If the header of `registries.csv` changes, change `REGISTRY_COLS` in
-[`registries-load.mjs`](../tools/build/registries-load.mjs) in the same commit;
+[`registries-load.mjs`](../node/build/registries-load.mjs) in the same commit;
 the writer uses that list.
 
 ## Storage rules
@@ -177,7 +177,7 @@ it, and check the diff's line count before staging.
 
 ## What the suite checks
 
-[`properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs),
+[`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs),
 by its test names:
 
 - the writer's column list matches the file it writes
@@ -210,7 +210,7 @@ each have a registry row, and every non-key column in both has a declaration.
 `title` and `gloss` identify a registry in the Map view. `area` groups the tab
 by one question: does the target have a path in this repository (`files`) or
 not (`names`). A topical grouping was tried first and did not hold. `renders_in`
-is derived by [`registries-reach.mjs`](../tools/build/registries-reach.mjs)
+is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs)
 from the files under `lib/`, `pages/` and `app/` that name the registry's path.
 That directory list is literal (`APP_DIRS`); when the app moves, move it. An
 empty `renders_in` says no app surface reads the registry, which is a question

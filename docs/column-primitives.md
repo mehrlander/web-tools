@@ -188,7 +188,7 @@ registry's existing domain test holds every row to `id`, `label`, `locator` or
 which a separate gate requires.
 
 The countable half needed a test, in
-[`tools/test/properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs):
+[`node/test/properties-registry.test.mjs`](../node/test/properties-registry.test.mjs):
 a declared `id` must be its registry's key, and a declared `label` must either
 declare a closed set or actually repeat. Nothing holds `locator` or `value`,
 and that asymmetry is the doctrine's own, since only two of the four tests are

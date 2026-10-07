@@ -30,7 +30,7 @@ the tree. The parts are stable across layouts; the collection is not.
 The counterexample proves the rule. **Leave `fab.js` alone**: its `chrome` means
 words inside `BUTTON/A/LABEL/SUMMARY/OPTION/TH/NAV` versus body prose, with an
 enumerated tag set, a derived `chromeShare`, seven assertions in
-`tools/test/fab-text.test.mjs` and a recorded decision in `docs/text-tools.md`.
+`node/test/fab-text.test.mjs` and a recorded decision in `docs/text-tools.md`.
 A collective noun is stable when something enumerates its extent.
 
 ## The work
@@ -75,7 +75,7 @@ its exemptions from what survives step 2, not before.
 - `docs/SNAGS.md`: `live-term-wider-referent` origin
 - `skills/html-style/SKILL.md`: definitional chrome rules 5 and 7
 - `lib/alpineComponents/fab.js`: leave alone; enumerated `chrome` is the counterexample
-- `tools/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned
+- `node/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned
 - task `promote-shortcuts-skill-to-plugin-5d74br`: cites this as the one-member-collective lesson
 - PR #425: analysis that filed the rename-vs-parts finding
 

@@ -33,7 +33,7 @@ At depth 2 the icon arrives dimmed twice and the tab's icon and label describe d
 
 The FAB around a nested preview shows **both sides, attributed**: `detect()` collects page-contributed actions from the subject as well as the shell, and the shell's rows carry a stacked-windows glyph. That is a preview with a footnote rather than a clean one, so say which rows you mean.
 
-Invoking across the window boundary is handled rather than avoided, and [`tools/test/subject-actions.mjs`](../tools/test/subject-actions.mjs) is the statement of how.
+Invoking across the window boundary is handled rather than avoided, and [`node/test/subject-actions.mjs`](../node/test/subject-actions.mjs) is the statement of how.
 
 **A framed toss carries main's lib, including the FAB**: a branch change to `fab.js` shows through `?top`, where the page mounts its own, or a `?use=` pin.
 

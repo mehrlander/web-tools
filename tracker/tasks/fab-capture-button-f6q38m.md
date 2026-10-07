@@ -11,7 +11,7 @@ size: S
 The capture mechanism exists. PR #339 shipped the Copy-capture button on the
 FAB's Inspect header: it serializes the drawer's diagnostic bundle (scripts,
 components, console, reads as path+size) with the mode naming its fidelity,
-held by `tools/test/fab-capture.test.mjs`. What remains is the second delivery
+held by `node/test/fab-capture.test.mjs`. What remains is the second delivery
 half of the original design: committing a capture instead of only copying it.
 
 - **Destination: default first, override second.** A fixed path in
@@ -34,7 +34,7 @@ the page.
 ## Related
 
 - `lib/alpineComponents/fab.js`: Inspect header capture UI; clipboard half already here
-- `tools/test/fab-capture.test.mjs`: holds the Copy-capture serialization path
+- `node/test/fab-capture.test.mjs`: holds the Copy-capture serialization path
 - `lib/kits/repo-activity-cache.js`: proven browser-commit-to-private pattern to reapply
 - task `live-confirm-graphql-queries-7maacy`: FAB capture is its confirming instrument
 - PR #339: clipboard first cut; write path remains
