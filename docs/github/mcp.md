@@ -76,9 +76,16 @@ Only the character count matters, not host, fragment, `@`/`:`, or encoding.
   it picks up the quotes. The backtick itself can land anywhere near the URL in
   the stored body, not at a fixed offset.
 
-Check first with `python3 python/mcp-link-safe.py --check`; shorten per the
-table in [SURFACING.md](../SURFACING.md), or move the link into the chat reply,
-which renders it clean.
+Check first with `python3 python/mcp-link-safe.py --check`, and shorten in
+this order:
+
+| Too long | Shorten it to |
+| --- | --- |
+| a toss carrying `?use=` and `#gh=` together | `#gh=` only |
+| a `#gh=` address on a `claude/…` branch | the commit SHA |
+| a compare URL with a `#diff-<hex>` anchor | the plain compare URL |
+| a deep `:path` in a toss | the branch page, or a `#gz=` in chat |
+| anything still over | drop the link from the body and put it in the chat reply, which renders it clean |
 
 **A different fault, same shape: an angle-bracket placeholder is eaten**, read
 back as an unknown HTML tag and dropped. `` `stale -> <id>` `` reads back as
