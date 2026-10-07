@@ -122,7 +122,7 @@
   const CHAPTERS = [...new Set(NOTES.map(n => n.group))];
   const firstOf = g => NOTES.findIndex(n => n.group === g);
   // window.esc, from lib/vanilla-bundle.js, which the boot chain above loads
-  // first. One escape helper in the repo, held by tools/test/one-escape-helper.
+  // first. One escape helper in the repo, held by node/test/one-escape-helper.
   const esc = window.esc;
 
   // ── The dock hook: this page's claim that it can hold a deck beside itself ──
