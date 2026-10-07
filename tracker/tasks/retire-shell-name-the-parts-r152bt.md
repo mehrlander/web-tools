@@ -5,7 +5,6 @@ status: backlog
 project: app
 opened: 2026-08-15
 size: M
-awaiting: user-call 2708d02c-web-tools-answers; one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body
 ---
 # Retire `shell`, and name the parts instead of the collection
 
@@ -129,3 +128,4 @@ third value, so that half is settled and this note no longer asks it.
   third state: absent has to mean the default, so a two-valued spelling cannot
   force-show.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-07: Decided. The spelling is `?header=0|1`, as recommended (user call 2708d02c-web-tools-answers).

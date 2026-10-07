@@ -1,10 +1,9 @@
 ---
 id: pr-body-open-threads-z5o66p
 title: Make the PR bodies' open threads readable as one list
-status: backlog
+status: done
 opened: 2026-08-09
-size: M
-awaiting: user-call 2708d02c-close-four-tasks
+closed: 2026-10-07
 ---
 # Make the PR bodies' open threads readable as one list
 
@@ -62,3 +61,4 @@ GitHub by hand, and ticking it there marks it in the body it came from.
   2026-08-09 reading; note which way the gap moved, since the repo was near
   PR #440 then and is at #581 now. The order-of-magnitude finding widened.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-07: Closed as overtaken, on the owner's answer to user call 2708d02c-close-four-tasks: the tend skill reads every PR body's open threads as part of a pass, so the list this task wanted exists as the pass's input.
