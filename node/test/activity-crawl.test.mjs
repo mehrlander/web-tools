@@ -140,3 +140,47 @@ test('a FAILED PR index is omitted, so the fold keeps the stored one', async () 
   assert.deepEqual(merged.branchPRs, GOOD_ROWS);
   assert.equal(merged.prReach, '2026-08-01T00:00:00Z');
 });
+
+// ── An exact answer of "no session" stands ─────────────────────────────────
+//
+// #915 on 2026-10-07: gemini/repo-view-presentation was open, three commits
+// ahead of main, none with a trailer, so the compare behind its PR row
+// answered "no session", exactly. The history walk guessed session_013LbCHB
+// off a commit main had merged, and the guess won because the exact answer
+// was an empty list.
+
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/branch-status.js'), 'utf8'))(win);
+const BS = win.BranchStatus;
+
+const crawlOne = ({ aheadBy, guess }) => {
+  const head = 'gemini/repo-view-presentation';
+  class OneBranch extends CrawlGH {
+    async pulls(){ return [{ number: 915, head, updatedAt: '2026-10-07T20:29:31Z' }]; }
+    async compare(){
+      return { ahead_by: aheadBy, behind_by: 83, total_commits: aheadBy, files: [],
+               commits: Array.from({ length: aheadBy }, (_, i) => ({ commit: { message: `own commit ${i}`, committer: { date: '2026-10-07T05:36:40Z' } } })) };
+    }
+    async branchesDatedSessions(){
+      return { branches: [{ name: head, date: '2026-10-07T20:29:30Z', sha: '3ef6891', subject: 'fix(shell)' }],
+               sessions: { [head]: guess }, ordered: true, capped: false };
+    }
+  }
+  const B = { ...B_STUB, fileStats: BS.fileStats, renderablePages: BS.renderablePages, compareFields: BS.compareFields };
+  return C.crawlRepo('mehrlander/web-tools', { default_branch: 'main', pushed_at: '2026-10-07T20:30:00Z' },
+                     Date.parse('2026-10-07T20:32:00Z'),
+                     { makeGH: () => new OneBranch(), B, checks: null, cfg: null, deep: true, prev: null })
+    .then(out => out.scan.branches.find(b => b.name === head));
+};
+
+test('an exact compare that found no trailer is not overruled by the history walk', async () => {
+  const row = await crawlOne({ aheadBy: 3, guess: 'https://claude.ai/code/session_013LbCHBfPqJKsZ6dioCN9Lu' });
+  assert.deepEqual(row.sessions, []);
+  assert.equal(row.sessionsExact, true);
+});
+
+test('a compare with nothing ahead says nothing about authorship, so the walk still answers', async () => {
+  const guess = 'https://claude.ai/code/session_011JKNtBXapiLmbAr9wJ2iEh';
+  const row = await crawlOne({ aheadBy: 0, guess });
+  assert.deepEqual(row.sessions, [guess]);
+  assert.equal(row.sessionsExact, false);
+});
