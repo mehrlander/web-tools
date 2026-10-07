@@ -26,6 +26,7 @@
         "./content-registry",
         "./concept-index",
         "./drop-link",
+        "./look-markers",
         "./file-retrieval",
         "./scour",
         "./gold-set",

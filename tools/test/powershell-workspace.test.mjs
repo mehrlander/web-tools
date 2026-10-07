@@ -46,13 +46,13 @@ function harness(options = {}) {
       };
     } },
   };
-  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/installation.js'), 'utf8'))(win);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/powershell-outpost.js'), 'utf8'))(win);
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/powershell-workspace.js'), 'utf8'))(win);
   const gh = {
     repo: REPO, ref: 'main',
     async get(address, opts) {
       calls.push({ method: 'get', address, ref: this.ref, opts });
-      assert.equal(address, P + '/data/installation.json');
+      assert.equal(address, P + '/data/outpost.json');
       return { text: JSON.stringify(manifest), sha: 'd'.repeat(40) };
     },
     async req(address, opts = {}) {
@@ -173,7 +173,7 @@ test('recovery memory survives failed storage and isolates edits by workspace', 
 
 test('snapshot resolves one immutable revision before reading any source material', async () => {
   const { K, gh, calls, writes } = harness();
-  const result = await K.snapshot({ gh, project: { path: P, installation: P + '/data/installation.json' }, ref: 'main' });
+  const result = await K.snapshot({ gh, project: { path: P, powershellOutpost: P + '/data/outpost.json' }, ref: 'main' });
   assert.equal(calls[0].address, 'commits/main');
   assert.equal(calls[0].opts.cache, 'no-store');
   assert.equal(calls.find(c => c.method === 'get').ref, REV);
@@ -189,7 +189,7 @@ test('snapshot resolves one immutable revision before reading any source materia
 test('snapshot refuses a truncated tree instead of showing an incomplete corpus', async () => {
   const { K, gh, state, writes } = harness();
   state.truncated = true;
-  await assert.rejects(K.snapshot({ gh, project: { path: P, installation: P + '/data/installation.json' } }), /truncated/);
+  await assert.rejects(K.snapshot({ gh, project: { path: P, powershellOutpost: P + '/data/outpost.json' } }), /truncated/);
   assert.equal(writes.length, 0);
 });
 

@@ -5,7 +5,6 @@ status: backlog
 opened: 2026-09-22
 project: app
 size: L
-depends-on: typed-subject-registry-xys5g4
 ---
 # Split the app reference by view and form, and make the registries one model
 
@@ -143,3 +142,4 @@ column; the FAB captions a deck slide by its type with a deck row above it;
 - 2026-09-24: claimed on claude/show-docs-restructure-fc9r96 for part 1, with the scope widened to every route and the owner's trim rule added above.
 - 2026-09-24: part 1 on claude/show-docs-restructure-fc9r96, PR #778: show-repo.md split into docs/views/ and docs/forms/ (31,586 words to 5,333), doc columns on app-routes.csv and subjects.csv held by app-routes.test.mjs, routes folded into the Map doc. Parts 2 to 4 remain.
 - 2026-09-24: part 1 done on claude/show-docs-restructure-fc9r96 (PR #778, ready to merge); returned to backlog for parts 2 to 4. Also open: four code comments in app/index.html and lib still say "Installation pill", left for the next shell change.
+- 2026-10-06: Dropped depends-on typed-subject-registry-xys5g4, done 2026-09-22 (#756). Parts 2 to 4 remain open. Tending pass.

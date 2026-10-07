@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// The Overview's file deck (installation-view.js openFileDeck, one
+// The PowerShell outpost view's file deck (powershell-outpost-view.js openFileDeck, one
 // alpineComponents/powershell-file.js per slide) under real Alpine, Tailwind,
 // daisyUI and CodeMirror 6, with GitHub fixture reads and every CDN asset
 // resolved from node_modules through tools/render/cdn.mjs. Holds what jsdom
 // cannot: the real editor opens read-only, Edit unlocks it and pauses the
 // swipe, typed text keeps the file's CRLF separators in the browser draft,
 // arrow keys stay in the editor, Problems follows the draft, the header menu
-// opens under its button, the Overview offers the draft for publication, and
+// opens under its button, the PowerShell outpost view offers the draft for publication, and
 // nothing is written to GitHub.
 // Run explicitly: node tools/test/powershell-file-browser.mjs
 // SHOTS=<dir> also writes phone and desktop screenshots there.
@@ -20,10 +20,10 @@ import { chromium } from 'playwright';
 import { repoRoot } from '../repo-root.mjs';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 
-const project = 'projects/wps', repo = 'fixture/installation', revision = 'a'.repeat(40);
+const project = 'projects/wps', repo = 'fixture/outpost', revision = 'a'.repeat(40);
 const blob = text => createHash('sha1').update('blob ' + Buffer.byteLength(text) + '\0').update(text).digest('hex');
 const files = {
-  [project + '/data/installation.json']: JSON.stringify({ root: 'Documents\\WindowsPowerShell', observations: project + '/data/observations.csv',
+  [project + '/data/outpost.json']: JSON.stringify({ root: 'Documents\\WindowsPowerShell', observations: project + '/data/observations.csv',
     correspondence: [{ repo: 'app/Modules/', area: 'Modules', installs: 'Modules/' }] }),
   [project + '/app/Modules/Fixture/A.psm1']: 'function Get-Message {\r\n    param([string]$Name)\r\n    "Hello, $Name"\r\n}\r\n',
   [project + '/app/Modules/Fixture/B.psm1']: 'function Get-Total {\n    param([int[]]$Values)\n    ($Values | Measure-Object -Sum).Sum\n}\n',
@@ -39,8 +39,8 @@ files[project + '/data/observations.csv'] = 'date,path,kind,revision,blob_sha,lo
   + ['2026-09-01T00:00:00Z', C, 'installed', oldRevision, blob(oldC), createHash('sha256').update(oldC).digest('hex'), '', 'copy', ''].join(',') + '\n';
 const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entries(files).map(([p, t]) => [p, blob(t)])),
   oldRevision, old: { [C]: { text: oldC, sha: blob(oldC) } } };
-const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/swipe-deck.js', 'alpineComponents/powershell-file.js', 'alpineComponents/installation-view.js'];
-const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installation source pane verification</title>
+const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/swipe-deck.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
+const html = `<!doctype html><html><head><meta charset="utf-8"><title>PowerShell outpost source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5/daisyui.css">
@@ -69,7 +69,7 @@ window.GH = class {
     throw Object.assign(new Error('Not found'), { status: 404 });
   }
 };
-window.__shell = { installationItem: '', syncUrl() {}, goProject() {}, goStage() {}, openFile() {},
+window.__shell = { powershellOutpostItem: '', syncUrl() {}, goProject() {}, goStage() {}, openFile() {},
   compared: [], pasted: 0,
   async openCorrespondence(target, text, name, source) { this.compared.push({ path: target.path, text, name, source }); },
   pasteAnywhere() { this.pasted++; } };
@@ -78,7 +78,7 @@ document.addEventListener('alpine:init', () => Alpine.store('browser',
 </script>
 ${scripts.map(file => '<script src="/lib/' + file + '"></script>').join('\n')}
 <script defer src="/node_modules/alpinejs/dist/cdn.min.js"></script>
-</head><body class="p-4"><div id="mount" x-data="installationView({ path: '${project}', installation: '${project}/data/installation.json' })"></div></body></html>`;
+</head><body class="p-4"><div id="mount" x-data="powershellOutpostView({ path: '${project}', powershellOutpost: '${project}/data/outpost.json' })"></div></body></html>`;
 
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url, 'http://fixture').pathname;
@@ -172,7 +172,7 @@ try {
       assert.ok(top, 'the first menu row is not covered by the slide');
       if (process.env.SHOTS) await v.page.screenshot({ path: process.env.SHOTS + '/file-deck-' + name + '-menu.png' });
     });
-    await check(name + ': Publish drafts closes the deck and opens the Overview panel with the draft', async () => {
+    await check(name + ': Publish drafts closes the deck and opens the PowerShell outpost view panel with the draft', async () => {
       await v.page.locator('.sd-hdr-menu li', { hasText: 'Publish drafts' }).click();
       await v.page.waitForSelector('[data-publish] input[aria-label="New branch"]', { state: 'visible', timeout: 10000 });
       assert.equal(await v.page.evaluate(() => window.swipeDeck.stack.length), 0);

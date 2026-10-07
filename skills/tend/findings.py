@@ -116,6 +116,21 @@ def witness_errors(w):
     return []
 
 
+USER_CALL = re.compile(r"^[\w.-]+/[\w.-]+(?:@[^\s:]+)?:user-calls/[\w.-]+\.json$")
+
+
+def decision_errors(f):
+    """A decision the owner must make is a user call, read and answered in the
+    Waiting view; a finding names it as a subject and never asks it itself."""
+    errs = []
+    if str(f.get("choice") or "").strip():
+        errs.append("a finding does not ask: file the decision as a user call (user-calls/user-call.py in the "
+                    "registry) and name it among the subjects")
+    if f.get("kind") == "answer" and not any(USER_CALL.match(s) for s in f.get("subjects") or []):
+        errs.append("an answer finding names its user call among its subjects")
+    return errs
+
+
 def validate(f):
     errs = []
     if f.get("kind") not in KINDS:
@@ -130,8 +145,9 @@ def validate(f):
             errs.append(f"subject is not a locator: {s!r}")
     if not str(f.get("why", "")).strip():
         errs.append("a finding needs a why")
-    if f.get("kind") != "superseded" and not (str(f.get("next", "")).strip() or str(f.get("choice", "")).strip()):
-        errs.append("an open finding needs a recommended next step or a choice")
+    errs += decision_errors(f)
+    if f.get("kind") != "superseded" and not str(f.get("next", "")).strip():
+        errs.append("an open finding needs a next step")
     if f.get("kind") == "superseded" and not (f.get("evidence") or f.get("witnesses")):
         errs.append("a superseded finding needs evidence or witnesses, so it can be checked")
     for w in f.get("witnesses") or []:
@@ -170,6 +186,8 @@ def update(repo, store, fid, u, author):
                     "settle once next and choice are \"\"")
     if status == "resolved" and any(body.get(k) for k in ("next", "choice")):
         errs.append("the owner resolved this finding; renew attention with status: \"open\" to give it new work")
+    if status not in CLOSED:
+        errs += decision_errors({**res, "choice": body.get("choice")})
     errs += [e for w in body.get("witnesses") or [] for e in witness_errors(w)]
     if body.get("kind") and body["kind"] not in KINDS:
         errs.append(f"kind {body['kind']!r} is not one of {', '.join(KINDS)}")
@@ -328,6 +346,11 @@ def observe(w, assessed, local, store_repo):
         return {"missing": True}
     if kind == "branch":   # contains
         if note.git(co, "cat-file", "-e", f"{w['contains']}^{{commit}}", check=False).returncode:
+            # A shallow clone never fetched the older commits, so an absent one
+            # there means "cannot see", not "gone" (docs/SNAGS.md
+            # shallow-clone-reads-as-gone).
+            if note.git(co, "rev-parse", "--is-shallow-repository", check=False).stdout.strip() == "true":
+                return {"error": f"{repo} is a shallow clone; run git fetch --unshallow origin in it"}
             return {"missing": True}
         anc = note.git(co, "merge-base", "--is-ancestor", w["contains"], f"origin/{at}", check=False).returncode
         return {"contained": anc == 0}

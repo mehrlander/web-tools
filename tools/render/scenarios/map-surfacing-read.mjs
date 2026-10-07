@@ -23,9 +23,9 @@
 
 export default async (page) => {
   await page.waitForFunction(() => window.__shell && window.Alpine, null, { timeout: 15000 });
-  await page.evaluate(() => window.__shell.goMap());
-  await page.waitForSelector('[role="tab"]:has-text("Surfacing")', { timeout: 15000 });
-  await page.locator('[role="tab"]', { hasText: 'Surfacing' }).click();
+  // Surfacing is a Harness subview, so its button is not drawn until Harness
+  // is open; the address reaches it directly.
+  await page.evaluate(() => window.__shell.goMap('surfacing'));
   await page.waitForSelector('text=Reference is a link', { timeout: 15000 });
   await page.waitForTimeout(400);
 

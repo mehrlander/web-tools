@@ -91,12 +91,22 @@ const CDN_DEFAULT = {
 // fields point at has no named exports for an `import { x }` to bind to.
 // (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
+// SHOT_SIBLINGS, when set, names the only sibling checkouts a render may read,
+// comma-separated; any other sibling is answered as missing, the way GitHub
+// answers a private repository to a reader with no token. tools/build/
+// ui-shots.mjs sets it for a public unit's shots, so a pane that reads a private
+// repository cannot put that repository's content in a public image, however it
+// reads it. Found 2026-10-06: the Waiting view's shot showed the owner's open
+// user calls, read from web-tools-private beside this checkout.
+const siblingAllowed = (name) => process.env.SHOT_SIBLINGS == null
+  || process.env.SHOT_SIBLINGS.split(',').includes(name);
+
 // A checkout of another repo in this estate, beside this one. Returns the file
 // path when the sibling exists, is a git checkout, and holds the file; null
 // otherwise, so every caller falls through to its own rule. It never leaves the
 // parent directory: `rel` is resolved and then required to stay inside.
 function siblingFile(repoRoot, owner, name, rel) {
-  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name)) return null;
+  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name) || !siblingAllowed(name)) return null;
   const root = path.resolve(repoRoot, '..', name);
   if (root === path.resolve(repoRoot)) return null;
   if (!existsSync(path.join(root, '.git'))) return null;
@@ -130,10 +140,21 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
       // module field, so the chain fell straight through to ./excel.js and the
       // page died with "process is not defined" the first time it wrote a
       // workbook. Written as a rule so the next such package resolves itself.
+      // A /combine/ spec has a rule of its own, measured 2026-10-06 against
+      // the bytes jsDelivr served for every bare spec this repo combines (nine
+      // packages): `jsdelivr`, then a string `browser`, then `main`. It reads
+      // neither `unpkg` nor `module`. The chain below it read both, so a bare
+      // `npm/tabulator-tables` got the ESM build, threw "Unexpected token
+      // 'export'", and took the whole combined script down with it, Tailwind and
+      // Phosphor included; transform.html's committed thumbnail was that broken
+      // render. A bare `npm/alpinejs` got the working build jsDelivr does not
+      // send, which is combine-serves-cjs surviving its own fix.
       const def = esm
         ? (dot && (dot.import || dot.module || dot.default)) || j.module
           || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
-        : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
+        : combine
+          ? j.jsdelivr || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
+          : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}
   }
@@ -391,10 +412,15 @@ function gitEvidence(u, repoRoot) {
     try { e = (JSON.parse(r.stdout).repos || {})[`${owner}/${name}`]; } catch {}
     const n = +rest;
     const open = e && (e.openPRs || []).find(p => p.number === n);
-    if (open) return json({ number: n, state: 'open', merged_at: null, updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
+    // The cache's `head` is the branch name; a read naming the PR's branch
+    // (the Waiting view's link to Activity's takeover) needs it as GitHub
+    // shapes it. No sha: the cache keeps none, so a check-run read misses.
+    const head = (p) => (p.head ? { ref: p.head, repo: { full_name: `${owner}/${name}` } } : undefined);
+    if (open) return json({ number: n, state: 'open', merged_at: null, draft: !!open.draft, head: head(open),
+                            updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
     const last = e && (e.branchPRs || []).find(p => p.number === n && p.state !== 'open');
     if (last) return json({ number: n, state: last.state === 'merged' ? 'closed' : last.state,
-                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null,
+                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null, head: head(last),
                             updated_at: last.updatedAt || '' }, `${name} pull ${n} ${last.state}`);
     return missing(`${name} pull ${n}`);
   }
@@ -471,12 +497,18 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // the same way on every page, with or without ?use=.
   // The ref is stripped by the exact --ref value (branch names carry slashes,
   // so segment-counting can't find where the path starts); with no ref known,
-  // fall back to dropping one segment. ---
+  // take the first split that names a file here, as the sibling rule above
+  // does, else drop one segment. A nested toss addressed at claude/<slug>
+  // otherwise asked for <slug>/lib/gh-api.js, and the page reported only
+  // "gh is not defined". ---
   if (host === 'raw.githubusercontent.com' && u.pathname.startsWith(`/${REPO}/`)) {
     const after = u.pathname.slice(`/${REPO}/`.length);
-    const tail = (ref && after.startsWith(ref + '/'))
-      ? after.slice(ref.length + 1)
-      : after.replace(/^[^/]+\//, '');
+    const isFile = (t) => { const f = path.join(repoRoot, decodeURIComponent(t)); return existsSync(f) && statSync(f).isFile(); };
+    let tail = after.replace(/^[^/]+\//, '');
+    if (ref && after.startsWith(ref + '/')) tail = after.slice(ref.length + 1);
+    else for (let i = after.indexOf('/'); i >= 0; i = after.indexOf('/', i + 1)) {
+      if (isFile(after.slice(i + 1))) { tail = after.slice(i + 1); break; }
+    }
     const rel = decodeURIComponent(tail);
     const fp = path.join(repoRoot, rel);
     if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `raw ${rel}` };
@@ -667,7 +699,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // checked out falls through to the miss below rather than reaching the
   // network, so the render stays offline either way.
   const sibling = /^\/repos\/[^/]+\/([^/]+)\/contents\/(.*)$/.exec(u.pathname);
-  if (host === 'api.github.com' && sibling) {
+  if (host === 'api.github.com' && sibling && siblingAllowed(sibling[1])) {
     const [, name, tail] = sibling;
     const root = path.join(repoRoot, '..', name);
     const rel = decodeURIComponent(tail).replace(/\/$/, '').replace(/\?.*$/, '');
@@ -752,6 +784,19 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   }
   if (host === 'cdnjs.cloudflare.com') {
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `skip ${host}${u.pathname}` };
+  }
+
+  // --- The live GitHub API, off on request ---------------------------------
+  // SHOT_NO_LIVE_API=1 answers every api.github.com call no rule above did with
+  // a local 404, instead of passing it on. The app shell spends about seventy
+  // unauthenticated calls per load (open pull requests, branch comparisons,
+  // GraphQL) whatever the view, against GitHub's sixty an hour, and past that
+  // limit a 403 makes it swap the view for its token prompt. A 404 reads as
+  // missing data instead, so a batch of shots no longer depends on which run
+  // crossed the limit. Off by default; tools/build/ui-recipes.mjs sets it.
+  if (host === 'api.github.com' && process.env.SHOT_NO_LIVE_API) {
+    return { kind: 'fulfill', status: 404, contentType: 'application/json; charset=utf-8',
+             body: '{"message":"Not Found (local render: live API off)"}', tag: `api off ${u.pathname}` };
   }
 
   // --- Allowed hosts (Google Fonts, GitHub raw, data APIs): pass through ---

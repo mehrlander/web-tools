@@ -44,6 +44,10 @@ const optionPattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: '(ph-[a-z-]+)'/g;
 const TABS = [...tabsBlock.matchAll(optionPattern)].map(m => ({ k: m[1], n: m[2], i: m[3] }));
 const SUBVIEWS = [...subviewsBlock.matchAll(optionPattern)]
   .map(m => ({ k: m[1], n: m[2], i: m[3] }));
+// The same block read per tab, the way tools/ui-units.mjs reads it to label a
+// unit: each group's key, then its options in strip order.
+const SUBVIEW_GROUPS = [...subviewsBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)]
+  .map(m => ({ parent: m[1], options: [...m[2].matchAll(optionPattern)].map(o => [o[1], o[2]]) }));
 const parentBlock = src.match(/SUBVIEW_PARENT:\s*\{([^}]+)\}/)?.[1] || '';
 const SUBVIEW_PARENT = Object.fromEntries(
   [...parentBlock.matchAll(/(?:^|,)\s*([a-z]+): '([a-z]+)'(?=\s*(?:,|$))/g)]
@@ -55,6 +59,17 @@ const routeKeys = name => (shell.match(new RegExp(`const ${name} = \\[([^\\]]+)\
   .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
 const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 
+// The grouping the owner settled on 2026-10-07 (discussion around PR #887):
+// four tabs, in strip order, each with its subviews in strip order as
+// [address key, label]. Every key predates the regroup, so a published
+// ?view=map&tab=<key> link still lands on the reading it named.
+const GROUPS = [
+  ['Harness', [['harness', 'Automation'], ['tests', 'Tests'], ['skills', 'Skills'], ['context', 'Context'], ['surfacing', 'Surfacing']]],
+  ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
+  ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
+  ['Reach', [['set', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
+];
+
 test('every tab in the strip is one entry in the array that generates it', () => {
   // 12 to 13 on 2026-09-05: the Kits tab. 13 to 14 on 2026-09-08: the Views tab.
   // 14 to 13 on 2026-09-09: the Injection tab retired with the injection hook,
@@ -65,13 +80,19 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 11 to 12 on 2026-09-27: Context left Harness to become its own tab.
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   // 10 to 11: Data aggregates the declared CSV inventories.
-  assert.equal(TABS.length, 13, 'thirteen top-level tabs, or this test is reading the wrong literal');
-  // 5 to 6 on 2026-10-01: Policy joined Docs, the rules the documentation settles.
-  assert.equal(SUBVIEWS.length, 6, 'Docs carries four choices and Harness two');
-  assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', policy: 'docs', tests: 'harness' });
-  assert.deepEqual(SUBVIEWS.slice(0, 3).map(s => [s.k, s.n]),
-    [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth']],
-    'Docs leads with its inventory; Purpose and Growth keep their established route keys');
+  // 13 to 4 on 2026-10-07: every address regrouped under GROUPS above.
+  assert.equal(TABS.length, 4, 'four top-level tabs, or this test is reading the wrong literal');
+  assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
+  assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
+    'each tab carries exactly its subviews, in order, under their established keys');
+  for (const t of TABS)
+    assert.equal(t.k, SUBVIEW_GROUPS.find(g => g.parent === t.k)?.options[0][0],
+      `${t.n} shares its key with the subview it lands on`);
+  // The parent map restates SUBVIEWS for the lookup displayTab makes, so it
+  // must say exactly what the groups say, and nothing for a landing subview.
+  const parents = Object.fromEntries(SUBVIEW_GROUPS.flatMap(g => g.options.slice(1).map(([k]) => [k, g.parent])));
+  assert.deepEqual(SUBVIEW_PARENT, parents, 'SUBVIEW_PARENT agrees with SUBVIEWS');
+  assert.deepEqual(routeKeys('MAP_TABS'), TABS.map(t => t.k), 'the shell lists the tabs in strip order');
   // One x-for per level, not hand-copied buttons: the copies are what let a tab
   // ship without a sentence, and what let the Injection tab ship without an icon.
   const buttons = src.match(/role="tab" @click="setTab\(/g) || [];
@@ -118,7 +139,7 @@ test('a narrative is bounded, so the manual does not regrow in a cell', () => {
 });
 
 test('reader labels clarify the stable route keys', () => {
-  const distribution = TABS.find(t => t.k === 'set');
+  const distribution = SUBVIEWS.find(t => t.k === 'set');
   assert.ok(distribution, 'the long-lived ?tab=set route remains declared');
   assert.equal(distribution.n, 'Distribution',
     'the reader sees the cross-repository purpose rather than the internal Portable name');
@@ -196,11 +217,14 @@ test('a lede is one sentence and stays one', () => {
   }
 });
 
+// The band was 12 to 30 words until 2026-10-06, when the owner asked for
+// glosses of three to ten words: on a phone the lede sits above every tab's
+// content, and the detail it used to carry lives in the row's narrative.
 test('a lede is bounded, because the ones that rot are the ones that grew', () => {
   for (const t of LEDES) {
     const words = t.g.split(/\s+/).length;
-    assert.ok(words >= 12, `${t.n}: ${words} words is a label, not a lede`);
-    assert.ok(words <= 30, `${t.n}: ${words} words; say what the rows are and stop`);
+    assert.ok(words >= 3, `${t.n}: ${words} words is a label, not a lede`);
+    assert.ok(words <= 10, `${t.n}: ${words} words; say what the rows are and stop`);
   }
 });
 

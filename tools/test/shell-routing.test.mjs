@@ -142,6 +142,7 @@ test('the second key rides along, for the views that carry one', () => {
     ['search', (s) => { s.searchSeed = { q: 'tracker', mode: 'names' }; }, 'sq', 'tracker'],
     ['map', (s) => { s.mapTab = 'showing'; }, 'tab', 'showing'],
     ['branches', (s) => { s.detailSpec = 'mehrlander/web-tools@main'; }, 'detail', 'mehrlander/web-tools@main'],
+    ['waiting', (s) => { s.waitingCall = '2708d02c-close-four-tasks'; }, 'call', '2708d02c-close-four-tasks'],
   ];
   for (const [view, seed, key, want] of cases) {
     const { shell: s } = makeShell({ browserStore: {
@@ -482,4 +483,23 @@ test('a row landing round-trips with its file and clears on the next open', () =
   // Half a pair names no row, so it is not kept.
   s.openFile('docs/map-tabs.csv', { col: 'tab', row: '' });
   assert.equal(s.filesAt, null);
+});
+
+// openBranchSpec is how any view hands a branch to Activity's takeover. The
+// estate mounts lazily and reads `&detail=` only at mount, so from a view that
+// has not mounted it the address IS the hand-off. It once wrote the address
+// beside goBranches, whose whitelist rebuild erased it: from Waiting the link
+// landed on the plain branch list (measured headless 2026-10-06).
+test('a branch opened from another view keeps its &detail= through the sync', () => {
+  const { shell: s, history: h, events } = makeShell({ search: '?view=waiting',
+    browserStore: { repo: 'mehrlander/home', ref: '', defaultRef: 'main', activeFile: null, path: '' } });
+  const urls = [];
+  h.pushState = (_s, _t, u) => urls.push(String(u));
+  h.replaceState = (_s, _t, u) => urls.push(String(u));
+  s.view = 'waiting'; s.estateSeen = false;
+  s.openBranchSpec('mehrlander/web-tools', 'claude/x');
+  const last = new URLSearchParams(String(urls.at(-1) || '').split('?')[1] || '');
+  assert.equal(last.get('view'), 'branches');
+  assert.equal(last.get('detail'), 'mehrlander/web-tools@claude/x', 'the address the estate reads at mount');
+  assert.ok(events.some((e) => e.type === 'web-tools:open-branch-detail'), 'a mounted estate is told too');
 });

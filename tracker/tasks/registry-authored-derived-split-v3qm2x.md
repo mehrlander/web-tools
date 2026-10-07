@@ -4,7 +4,6 @@ title: Separate authored from derived data across the registries
 status: backlog
 opened: 2026-08-18
 size: M
-awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10
 ---
 # Separate authored from derived data across the registries
 
@@ -174,3 +173,4 @@ table inside 145 KB of machine output.
   about 35 lines. Layer 3 has moved 37 values and has not reached `docs.reach` or
   `harness.invocation`, the two that release Map's item 5. Recommended shape
   written above; size L to M.
+- 2026-10-07: Decided. The owner took the recommended shape (user call 2708d02c-web-tools-answers): fix `pages.note` first as an XS, split `tests` only, a named exception each for `registries`, `harness` and `docs`, then Layer 3 for `docs.reach` and `harness.invocation`.

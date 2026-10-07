@@ -35,7 +35,7 @@ range, but row 30 is its totals row. Its actual records are rows 6–29.
 Including row 30 in the PivotTable source created a blank category and doubled
 the grand totals: budget 42,900, actual 43,190, variance 290.
 
-[repair-demonstration-pivot.py](../../../tools/build/repair-demonstration-pivot.py)
+[repair-demonstration-pivot.py](repair-demonstration-pivot.py)
 prepares a separate copy of the pre-cleanup workbook. It changes the source to
 the table name, requests refresh on load, and adds reconciliation formulas with
 no fabricated result caches. It preserves the other ZIP parts. It is deliberately

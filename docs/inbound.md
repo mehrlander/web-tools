@@ -21,6 +21,7 @@ it. See "What was measured" below.
 | errand, `errands/requests/` | a session, answered by a person in the browser | pull | yes | by token |
 | `chron/dump/`, drained | the user | pull | yes | yes |
 | A tracker task | anyone | pull | yes | yes |
+| A commit on a branch, polled on a schedule | anyone with repo write | pull, on the poller's clock | yes | yes: a scheduled Codex check, while its machine and app run (2026-10-01) |
 
 Two columns carry the whole argument.
 

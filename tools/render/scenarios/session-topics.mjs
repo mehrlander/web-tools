@@ -19,6 +19,7 @@
 // from that file rather than the checkout, which is how a format the poller
 // has not published yet gets shot. TAP=<n> then taps the n-th topic in the
 // detail's list (from 0), which scrolls the outline to it under its header.
+// ROWTAP=<n> taps the n-th topic line in the list itself.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +44,15 @@ export default async (page) => {
     st.sessionRows_ = st.joinSessionTopics(st.sessionRows_);
   }, { cache, topics, scope: process.env.SCOPE || '' });
   await page.waitForTimeout(1200);
+  // ROWTAP=<n> taps the n-th topic line on the first listed row, which opens
+  // that session at the topic.
+  if (process.env.ROWTAP) {
+    await page.evaluate((n) => {
+      const btn = [...document.querySelectorAll('button[title$="open the session here"], button[title="Open the session here"]')][Number(n)];
+      btn?.click();
+    }, process.env.ROWTAP);
+    await page.waitForTimeout(3000);
+  }
   if (process.env.OPEN) {
     await page.evaluate((id) => {
       const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));

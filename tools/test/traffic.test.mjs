@@ -271,6 +271,7 @@ async function bootWithStub({ fetchImpl, getImpl } = {}) {
   const win = {
     gh: new FakeGH(),
     fetch: fetchImpl || (async () => ({ status: 200, headers: { get: () => null } })),
+    location: { hash: '' },
     addEventListener() {},
     dispatchEvent(e) { events.push(e.type); },
   };
@@ -346,6 +347,7 @@ test('the via marker attributes the right fetch, even with gets interleaved', as
   const resolvers = [];
   const win = {
     fetch: () => new Promise(res => resolvers.push(() => res({ status: 200, headers: { get: () => null } }))),
+    location: { hash: '' },
     addEventListener() {}, dispatchEvent() {},
   };
   class StubGH {

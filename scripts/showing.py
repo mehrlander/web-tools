@@ -69,7 +69,9 @@ and the rule lived in prose that three files repeated and nothing executed.
 
 import argparse
 import csv
+import os
 import json
+import posixpath
 import re
 import subprocess
 import sys
@@ -242,18 +244,28 @@ def ref_facts(ref):
 
 def page_files():
     pages = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "pages").rglob("*.html"))
+    # A kit demo boots the loader and gh.loads its kit like any page, so a kit
+    # change reaches its demo by ?use=, and a demo is the page that draws it.
+    pages += sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "lib/kits/demos").glob("*.html"))
     app = "app/index.html"
     if (ROOT / app).exists():
         pages.append(app)
     return pages
 
 
+SCRIPT_SRC = re.compile(r"<script\b[^>]*\bsrc=['\"]([^'\"]+)['\"]", re.I)
+
+
 def consumers():
     """lib path -> the pages that load it. Read from the pages themselves: a
     gh.load argument is a path under lib/, and a page importing the pre-build
     adopts the whole of it. Derived rather than declared, because a declared
-    copy is a second list to keep in step with the imports it describes."""
-    out = {}
+    copy is a second list to keep in step with the imports it describes.
+
+    The third map is the pages that load a lib file by a relative <script src>
+    (pages/transform.html loads its workbench that way). ?use= is a loader
+    convention, so it never reaches those; only a toss at the branch does."""
+    out, tagged = {}, {}
     prebuilt = []
     for page in page_files():
         try:
@@ -262,9 +274,15 @@ def consumers():
             continue
         for arg in re.findall(r"gh\.load\(\s*['\"]([^'\"]+)['\"]", src):
             out.setdefault(f"lib/{arg}", set()).add(page)
+        for ref in SCRIPT_SRC.findall(src):
+            if "://" in ref or ref.startswith("/"):
+                continue
+            target = posixpath.normpath(posixpath.join(posixpath.dirname(page), ref.split("?")[0]))
+            if target.startswith("lib/"):
+                tagged.setdefault(target, set()).add(page)
         if "dist/web-tools.js" in src or "dist/app.js" in src:
             prebuilt.append(page)
-    return out, prebuilt
+    return out, prebuilt, tagged
 
 
 def routes_for(paths):
@@ -293,10 +311,14 @@ def classify(paths):
             b["renderer"].append(p)
         elif p.startswith("dist/"):
             b["dist"].append(p)
+        # Any HTML is a page file, wherever it sits: a kit demo under lib/, a
+        # dated prototype in dump/. Pages serves every one of them from the
+        # default branch, and ?use= swaps the code a page loads, never the
+        # page, so each needs the toss. archive/ alone is exempt.
+        elif p.endswith(".html") and not p.startswith("archive/"):
+            b["shell"].append(p)
         elif p.startswith("lib/"):
             b["lib"].append(p)
-        elif (p.startswith("pages/") and p.endswith(".html")) or p == "app/index.html":
-            b["shell"].append(p)
         else:
             b["other"].append(p)
     return b
@@ -437,7 +459,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
     facts = ref_facts(ref) if use_git else {"sha": ref, "branch": "", "pushed": True}
     sha = facts["sha"]
     b = classify(paths)
-    loads, prebuilt = consumers()
+    loads, prebuilt, tagged = consumers()
     warn, why, subjects = [], [], []
 
     if not facts["pushed"]:
@@ -509,6 +531,15 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
             if page != "app/index.html" or not keys:
                 subjects.append((page, None, "gh.load"))
         carried = sorted(set(prebuilt) - direct - {s[0] for s in subjects})
+        by_tag = sorted({pg for p in b["lib"] for pg in tagged.get(p, set())})
+        if not subjects and by_tag:
+            why.append("only lib/ changed, and the page" + ("s" if len(by_tag) > 1 else "")
+                       + " reaching it load" + ("" if len(by_tag) > 1 else "s")
+                       + " it by a relative <script src>, which ?use= never swaps: a toss at the branch reads the page's relative scripts at the same commit.")
+            plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
+            if plan["known"] and plan["behind"]:
+                warn.append(f"the branch is {plan['behind']} commit(s) behind main, so this shows it as it stands, without main's later changes.")
+            return decision("toss-gh", [(p, None) for p in by_tag], sha, slug, hosted, why, warn, facts, at, query)
         if not subjects and carried:
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
@@ -730,6 +761,78 @@ def routes_on_hash(page):
 GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏"}
 
 
+# LOOK LINKS (lib/kits/look.js): a page that loads the kit, or boots the
+# loader that brings it on demand, lands on a place when its fragment asks, so
+# the moment a link to it is handed over is the moment to say so, and to check
+# any anchor the link already names. The anchor
+# reading lives in scripts/look-link.py, imported rather than repeated; where
+# that file is absent (this script fetched alone into another repo) the hint
+# is simply not given.
+LOOK_KEYS = ("show", "tap", "walk", "steps")
+_look = []
+
+
+def look_link():
+    if not _look:
+        mod = None
+        f = Path(__file__).with_name("look-link.py")
+        if f.exists():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("look_link", f)
+            mod = importlib.util.module_from_spec(spec)
+            try:
+                spec.loader.exec_module(mod)
+            except Exception:
+                mod = None
+        _look.append(mod)
+    return _look[0]
+
+
+def look_hints(subjects, at, warn):
+    ll = look_link()
+    if not ll:
+        return []
+    from urllib.parse import parse_qsl
+    asked = dict(parse_qsl(at or "", keep_blank_values=True))
+    keys = [k for k in LOOK_KEYS if k in asked]
+    hints = []
+    for p, _ in subjects:
+        try:
+            info = ll.read_page((ROOT / p).read_text(errors="ignore"), p)
+        except OSError:
+            continue
+        if not info["takes"]:
+            continue
+        if keys:
+            steps = None
+            if "steps" in asked:
+                try:
+                    steps = ll.decode(asked["steps"])
+                except Exception:
+                    warn.append(f"the look link's steps= cannot be read; make it with {look_cmd()} make {p} --steps '<json>'.")
+                    continue
+            for miss in ll.asked(info, show=asked.get("show"), tap=asked.get("tap"),
+                                 walk=asked.get("walk"), steps=steps):
+                warn.append(f"look link on {p}: {miss}, so the reader would get a \"not on this page\" card. "
+                            f"Its anchors: {look_cmd()} anchors {p}")
+        elif info["names"] or info["prefixes"] or info["walks"]:
+            # Only a page that declares anchors gets the hint: every page that
+            # boots the loader takes look links, and a hint on all of them
+            # would be noise at every handover.
+            names = sorted(info["names"])
+            hints.append({"page": p, "anchors": names[:6], "more": max(0, len(names) - 6),
+                          "prefixes": sorted(info["prefixes"]), "walks": sorted(info["walks"])})
+    return hints
+
+
+def look_cmd():
+    f = Path(__file__).with_name("look-link.py")
+    try:
+        return "python3 " + os.path.relpath(f, Path.cwd())
+    except ValueError:
+        return "python3 " + str(f)
+
+
 def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref=""):
     if not hosted and mech in ("use",):
         warn.append("this repo serves no pages, so ?use= has nothing to pin: use the toss instead.")
@@ -744,13 +847,14 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
     links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
+    look = look_hints(subjects, at, warn)
     over = [l for l in links if len(l["url"]) >= MCP_URL_CAP]
     if over:
         warn.append(f"{len(over)} link(s) run {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
                     "MCP-written PR body or comment. There, drop the link to the chat caption "
                     "(SURFACING.md's shortening ladder) rather than trimming the address by hand.")
     return {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
-            "repo": slug, "links": links, "why": why, "warnings": warn}
+            "repo": slug, "links": links, "why": why, "warnings": warn, "look": look}
 
 
 def lines(d):
@@ -782,9 +886,41 @@ def lines(d):
             out.append(f"({len(d['carried'])} more pages import the pre-build, so they LOAD the change "
                        "without rendering it: " + ", ".join(d["carried"][:4])
                        + ("…" if len(d["carried"]) > 4 else "") + ")")
+        for h in d.get("look", []):
+            more = [f"+{h['more']} more"] if h["more"] else []
+            named = h["anchors"] + more + [x + "*" for x in h["prefixes"]]
+            walks = f"; walks: {', '.join(h['walks'])}" if h["walks"] else ""
+            make = f"{look_cmd()} make {h['page']} --show <anchor> --say '<why>'"
+            out.append(f"look: {h['page']} takes look links, so the link can land on the place you mean "
+                       f"(anchors: {', '.join(named)}{walks}). Rerun with --at \"$({make})\".")
     for w in d["warnings"]:
         out.append("! " + w)
     return out
+
+
+# A cross-repo selection belongs on the RENDERER's query, before the `#`:
+# toss-render stamps window.__refs from its own location.search only, so a
+# refs= inside the framed page's query (--query, after `#gh=`) never reaches
+# the selection and the page reads the other repo at main. Seen 2026-10-03,
+# when a page said "No proposals queued" about proposals filed on a branch
+# (docs/SNAGS.md refs-in-page-query-ignored-by-toss). --refs is that half, so
+# the whole link still comes from one command.
+def host_refs(d, refs, query):
+    warn = d.setdefault("warnings", [])
+    if "refs=" in (query or ""):
+        warn.append("--query carries refs=, which reaches the framed page and not the renderer, so "
+                    "the selection is ignored: pass it as --refs owner/repo@ref instead.")
+    if not refs:
+        return d
+    sel = "&".join("refs=" + r for r in refs)
+    for l in d.get("links", []):
+        head, sep, frag = l["url"].partition("#")
+        if not head.endswith("pages/toss-render.html") and "pages/toss-render.html?" not in head:
+            warn.append(f"--refs rides only on a toss link, and {l['page']} is linked by "
+                        f"{d.get('mechanism')}, which has no renderer to carry it.")
+            continue
+        l["url"] = head + ("&" if "?" in head else "?") + sel + sep + frag
+    return d
 
 
 def main():
@@ -802,6 +938,9 @@ def main():
                     help="the addressed page's own ?query, for a page that routes on one rather "
                          "than on a hash (e.g. --query 'view=sessions'). Without it a link to such "
                          "a page opens whichever view it defaults to.")
+    ap.add_argument("--refs", action="append", default=[], metavar="OWNER/REPO@REF[:PATH]",
+                    help="a cross-repo selection for the renderer's own query (repeatable), e.g. "
+                         "--refs mehrlander/home@<branch>; --query carries only the page's own parameters")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--overlay", choices=["yes", "no"], help="(for tests) treat main's renderer as reading refs= path entries, or not, instead of asking git")
     ap.add_argument("--main-changed", default="", help="(for tests, with --files) the files main changed since the branch point")
@@ -835,6 +974,7 @@ def main():
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
                          [], [diff_remedy(e, a.base, a.ref)], facts)
+    d = host_refs(d, a.refs, a.query)
     print(json.dumps(d, indent=2) if a.json else "\n".join(lines(d)))
     return 0
 

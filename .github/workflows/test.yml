@@ -1,11 +1,12 @@
 name: Tests
 
-# The repo's one VERIFICATION workflow. Everything else under .github/workflows/
-# is an errand (a cron or a button), and an errand's run has no commit under
-# review to attach to, so it lives in the Actions tab and nowhere else. This one
-# is triggered by a pull request, so its result attaches to the PR's head commit
-# and becomes a check: the green or red mark in the merge box, the Checks tab,
-# and the tick beside the commit wherever GitHub lists it.
+# One of the repo's two VERIFICATION workflows; page-measures.yml is the other.
+# Everything else under
+# .github/workflows/ is an errand (a cron or a button), and an errand's run has
+# no commit under review to attach to, so it lives in the Actions tab and nowhere
+# else. This one is triggered by a pull request, so its result attaches to the
+# PR's head commit and becomes a check: the green or red mark in the merge box,
+# the Checks tab, and the tick beside the commit wherever GitHub lists it.
 #
 # Why it exists: the configured git hooks regenerate deterministic artifacts
 # during ordinary commits and local merge completion, but checkout setup can be
@@ -49,7 +50,10 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    # Session branches too: GitHub builds no merge ref for a conflicted pull
+    # request, so its pull_request run never starts and its newest commit would
+    # otherwise carry no check at all (docs/SNAGS.md ci-run-silently-not-started).
+    branches: [main, 'claude/**', 'codex/**', 'gemini/**', 'agent/**']
     # The monthly WSL snapshot commits data and touches no code, so there is
     # nothing for the suite to say about it.
     paths-ignore: ['pages/wsl-sync/data/**']

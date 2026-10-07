@@ -1,7 +1,9 @@
 ---
 id: files-pane-finds-deck-reads-ubu13s
 title: Let the Files pane find and the deck read, and stop it doing both
-status: backlog
+status: done
+closed: 2026-10-06
+session: claude/view-754-web-tools-gqq3wl
 opened: 2026-08-26
 project: web-tools
 size: M
@@ -69,3 +71,4 @@ Not a rewrite. The collapsed row is the output of
   the `cardOpts` hedge is still there and `openFileDeckAt` is still the method.
   #574 changed widths, not this structure. Body cut from 683 words.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-06: Closed as delivered: #761 made the Files pane one swiper with a single header row and no in-place expander, and #782 added the deck button, which opens the full deck at the file in view (`openFileDeckAt`). Found by the 2026-10-06 tending pass.
