@@ -283,8 +283,9 @@
     it. A held draft still wins, being the reader's own progress through the
     queue, and Clear all edits stages the queue again. Two limits. A block
     with several proposals stages the first and hides the rest. And a discard
-    lives only in this browser's draft: the collection records no answer of
-    no, so once the draft ends a discarded proposal is staged again.
+    here lives only in this browser's draft, so once the draft ends it is
+    staged again; a rejection in the Docs reader is a down vote in
+    reviews.jsonl, and a rejected proposal is not staged.
 
     AND IT ANSWERS A DOCUMENTATION CALL, with `&user-call=`. A user call
     (web-tools-private user-calls/user-call.py, kind documentation) is one
@@ -1052,10 +1053,17 @@
           const V = window.mdVariants;
           const index = await V.index({ token: this.token || undefined });
           const here = (v) => (v?.proposals || []).some((p) => p.repo === FILE.repo && p.path === FILE.path);
+          // Rejected in the Docs reader or Text Lab: a down vote in reviews.jsonl
+          // with no up vote. It stays rejected, so it is not staged again.
+          const R = window.TextCollection?.reviewsFor;
+          const rejected = (v) => {
+            const r = R && v?.from?.passage_id ? R(index, v.from.passage_id, v.to?.passage_id) : null;
+            return !!(r && r.down.length && !r.up.length);
+          };
           const planned = V.plan(base, index, { file: FILE });
           // The block's pick decides its kind, as it does in the Waiting
           // view's count, so a link from there opens what it counted.
-          const kept = (v) => here(v) && (!PROPOSED_KIND || V.kind(v.purpose) === PROPOSED_KIND);
+          const kept = (v) => here(v) && !rejected(v) && (!PROPOSED_KIND || V.kind(v.purpose) === PROPOSED_KIND);
           planned.blocks = planned.blocks.filter((b) => kept(b.variants[b.pick]));
           const n = planned.blocks.length;
           const more = planned.blocks.filter((b) => b.variants.filter(here).length > 1).length;
