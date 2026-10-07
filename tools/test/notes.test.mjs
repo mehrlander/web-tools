@@ -86,3 +86,13 @@ test('the skill is registered with the plugin and the portable index', () => {
     .find((p) => p.path === 'skills/notes/SKILL.md');
   assert.equal(row?.command, '/portable:notes');
 });
+
+test('a note may vote, withdraw writes an empty vote, and anything else is refused', () => {
+  const about = 'mehrlander/web-tools-private:user-calls/aaaa1111-x.json';
+  const r = run('add', about, 'Still holds.', '--author', 'gemini', '--vote', 'up');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(onMain().at(-1).vote, 'up');
+  assert.equal(run('add', about, 'Taken back.', '--author', 'gemini', '--vote', 'withdraw').status, 0);
+  assert.equal(onMain().at(-1).vote, '', 'withdraw is the empty vote, as in the Text collection');
+  assert.notEqual(run('add', about, 'x', '--author', 'gemini', '--vote', 'agrees').status, 0);
+});

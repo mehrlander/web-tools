@@ -4,6 +4,7 @@ title: Make the PR bodies' open threads readable as one list
 status: backlog
 opened: 2026-08-09
 size: M
+awaiting: user-call 2708d02c-close-four-tasks
 ---
 # Make the PR bodies' open threads readable as one list
 
