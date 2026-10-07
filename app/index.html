@@ -151,6 +151,9 @@
   // The estate's file names (window.FileIndex), a leg of the same crawl: it
   // gates on the default-branch tips the activity pass has just read.
   await gh.load('kits/file-index.js');
+  // Every estate repo's Markdown with word counts (window.DocIndex), the same
+  // crawl's other index; the Map's Docs tab reads it for repos past the hub.
+  await gh.load('kits/doc-index.js');
   // What wrote a commit, read off the commit (window.WriteKinds). Beside the
   // activity cache because it classifies exactly what that cache stores.
   await gh.load('kits/write-kinds.js');

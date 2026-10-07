@@ -10,7 +10,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .github/workflows/page-measures.yml,,.github/workflows,82,ci:pull_request+workflow_dispatch,no,yes,no
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,120,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
-node/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",node,266,npm:activity-refresh,no,no,yes
+node/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",node,273,npm:activity-refresh,no,no,yes
 node/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,node/build,53,npm:bake,yes,yes,no
 node/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",node/build,161,npm:build:app,yes,yes,yes
 node/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",node/build,113,npm:build:lib,yes,yes,yes
@@ -40,6 +40,7 @@ node/build/verify-build.mjs,prove a page's dist build renders byte-identical to 
 node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,145,imported,no,yes,no
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,yes,yes,yes
 node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,154,imported,yes,yes,yes
+node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,70,argv,yes,no,no
 node/git-change.mjs,,node,292,argv,yes,no,yes
 node/gold-set.mjs,,node,200,npm:gold-set,yes,yes,no
 node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,805,imported,no,yes,yes
