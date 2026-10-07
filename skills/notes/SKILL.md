@@ -26,8 +26,12 @@ One JSON line per note in the store's `notes.jsonl`:
 {"id":"n…","at":"<UTC ISO>","author":"…","about":"<locator>","text":"…"}
 ```
 
-`anchor` is optional: a text-quote anchor (`exact`, `prefix`, `suffix`), for a
-note about a passage.
+`anchor` is optional: the passage a note is about, as a W3C text quote
+selector (`exact`, `prefix`, `suffix`).
+
+`vote` is optional on a note about a user call: `up` or `down` on its
+recommendation, empty to withdraw. An author's latest vote counts, as in the
+Text collection's reviews.
 
 `finding` marks a tending conclusion
 ([`docs/views/tending.md`](../../docs/views/tending.md)). Change one with

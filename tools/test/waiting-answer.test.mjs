@@ -53,7 +53,7 @@ const NOTES = [
   // The pass's own update to that finding: a reply that carries `finding`.
   { id: 'nu1', at: '2026-10-06T06:00:00Z', author: 'claude/tend-pass', about: 'note:nf1', text: 'Closed with the call.',
     finding: { status: 'settled', subjects: ['acme/widget#1', CALL_LOC] } },
-  { id: 'ng1', at: '2026-10-06T08:00:00Z', author: 'gemini', about: CALL_LOC, text: 'All three still hold.', stance: 'agrees' },
+  { id: 'ng1', at: '2026-10-06T08:00:00Z', author: 'gemini', about: CALL_LOC, text: 'All three still hold.', vote: 'up' },
   { id: 'no1', at: '2026-10-06T09:00:00Z', author: 'me', about: 'note:ng1', text: 'Good.' },
 ];
 const put = [];
@@ -345,7 +345,7 @@ test('an address naming a call opens Waiting on it, and the shell then forgets i
   assert.equal(data.picked.calls, 's1-close-two', 'an unknown id moves nothing');
 });
 
-test('a call carries its notes and findings, a stance reaches the row, and a note is kept without answering', async () => {
+test('a call carries its notes and findings, a vote reaches the row, and a note is kept without answering', async () => {
   const decision = CALLS[1];
   decision.open = true; decision.answers = [];
   await until(() => data.allNotes.length === 4);
@@ -353,13 +353,13 @@ test('a call carries its notes and findings, a stance reaches the row, and a not
   assert.deepEqual(Array.from(data.noteRows(decision), (x) => x.n.id + '@' + x.d), ['nf1@0', 'ng1@0', 'no1@1'],
     'the finding naming it once, then Gemini, then the reply nested under Gemini');
   assert.equal(data.noteRows(decision)[0].n.finding.status, 'settled', 'the finding as its update left it');
-  assert.match(data.callLine(decision), / · Gemini agrees /, 'who weighed in, and when');
+  assert.match(data.callLine(decision), / · Gemini votes up /, 'who voted, which way, and when');
   assert.equal(data.whoOf('me'), 'You', 'the store\'s owner is the owner');
   assert.equal(data.whoOf('gemini'), 'Gemini');
   data.picked.calls = decision.id;
   const card = () => el.querySelector('[data-waiting-detail-call][data-id="s1-close-two"]');
   await until(() => card()?.querySelectorAll('[data-waiting-note-row]').length === 3);
-  assert.equal(card().querySelector('[data-waiting-note-row][data-stance="agrees"] .badge').textContent, 'Agrees');
+  assert.equal(card().querySelector('[data-waiting-note-row][data-vote="up"] .badge').textContent.trim(), 'Votes up');
 
   const answersBefore = posted.length;
   await data.saveNote(decision, '  Hold #2 a day.  ');
@@ -397,10 +397,20 @@ test('Ask Gemini files a call check with what GitHub shows, and its verdict come
   assert.equal(data.geminiBusy(merge), true, 'one check at a time');
 
   NOTES.push({ id: 'ngc1', at: new Date().toISOString(), author: 'gemini', about: 'me/store:user-calls/s1-merge-7.json',
-               text: 'Merged already.', stance: 'moot' });
-  RESULTS[data.checks[merge.id].id] = { ok: true, message: 'Gemini moot: Merged already.', closedAt: new Date().toISOString() };
+               text: 'Merged already, so nothing is left to vote on.' });
+  RESULTS[data.checks[merge.id].id] = { ok: true, message: 'Gemini: moot. Merged already.', closedAt: new Date().toISOString() };
   await until(() => data.checks[merge.id].stage === 'done');
   await until(() => data.allNotes.some((n) => n.id === 'ngc1'));
-  assert.match(data.callLine(merge), / · Gemini calls it moot /, 'the verdict reaches the row');
-  assert.match(data.geminiTip(merge), /^Checked .*Gemini moot: Merged already\. Ask again/);
+  assert.equal(data.noteRows(merge).at(-1).n.text, 'Merged already, so nothing is left to vote on.', 'the verdict reaches the card');
+  assert.doesNotMatch(data.callLine(merge), /Gemini votes/, 'a moot call gets a note and no vote');
+  assert.match(data.geminiTip(merge), /^Checked .*Gemini: moot\. Merged already\. Ask again/);
+});
+
+test('a withdrawn vote leaves the row: an author\'s latest vote is the one that counts', async () => {
+  const decision = CALLS[1];
+  NOTES.push({ id: 'ng2', at: '2026-10-06T10:00:00Z', author: 'gemini', about: CALL_LOC, text: 'Taken back.', vote: '' });
+  await data.loadNotes();
+  await until(() => data.allNotes.some((n) => n.id === 'ng2'));
+  assert.doesNotMatch(data.callLine(decision), /Gemini votes/);
+  NOTES.pop();
 });

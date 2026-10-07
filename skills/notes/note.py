@@ -6,8 +6,9 @@ A note is one JSON line in <store>/notes.jsonl:
   {"id": "n…", "at": "<UTC ISO>", "author": "…", "about": "<locator>", "text": "…"}
 
 plus an optional "anchor" (a text-quote anchor from lib/kits/annotate.js) and
-an optional "stance" (agrees, disagrees or moot) for a note that weighs in on
-a recommendation, such as a second opinion on a user call.
+an optional "vote" on a note about a user call: "up" or "down" on its
+recommendation, "" to withdraw. An author's latest vote counts, as in the Text
+collection's reviews.
 Notes are never edited or deleted. A correction or an addition is a new note
 whose `about` is `note:<id>`.
 
@@ -22,8 +23,8 @@ refetches and retries on the new tip. Reads come from origin/main after a fetch,
 not from the working tree, which may be days behind.
 
 Usage:
-  note.py add <about> <text> [--author A] [--anchor JSON] [--stance S]
-  note.py reply <note-id> <text> [--author A] [--stance S]
+  note.py add <about> <text> [--author A] [--anchor JSON] [--vote up|down|withdraw]
+  note.py reply <note-id> <text> [--author A] [--vote up|down|withdraw]
   note.py show <about>        notes about a subject, replies nested
   note.py list [--author A]   every note, newest first
 """
@@ -40,8 +41,8 @@ import tempfile
 import time
 from datetime import datetime, timezone
 
-# A note's stance on a recommendation, when it takes one (lib/kits/notes.js).
-STANCES = ("agrees", "disagrees", "moot")
+# A vote on a user call's recommendation (lib/kits/notes.js); withdraw writes "".
+VOTES = ("up", "down", "withdraw")
 LOCATOR = re.compile(
     r"^(?:note:n[0-9a-z]+"                      # another note
     r"|[\w.-]+/[\w.-]+"                         # owner/repo
@@ -161,9 +162,9 @@ def main(argv):
     ap.add_argument("--store", help="the notes folder, when the search would not find it")
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("add"); a.add_argument("about"); a.add_argument("text")
-    a.add_argument("--author"); a.add_argument("--anchor"); a.add_argument("--stance", choices=STANCES)
+    a.add_argument("--author"); a.add_argument("--anchor"); a.add_argument("--vote", choices=VOTES)
     r = sub.add_parser("reply"); r.add_argument("id"); r.add_argument("text"); r.add_argument("--author")
-    r.add_argument("--stance", choices=STANCES)
+    r.add_argument("--vote", choices=VOTES)
     s = sub.add_parser("show"); s.add_argument("about")
     l = sub.add_parser("list"); l.add_argument("--author")
     args = ap.parse_args(argv)
@@ -181,8 +182,8 @@ def main(argv):
                 "author": args.author or default_author(), "about": about, "text": args.text.strip()}
         if getattr(args, "anchor", None):
             note["anchor"] = json.loads(args.anchor)
-        if args.stance:
-            note["stance"] = args.stance
+        if args.vote:
+            note["vote"] = "" if args.vote == "withdraw" else args.vote
         append(repo, store, note)
         print(note["id"])
     elif args.cmd == "show":

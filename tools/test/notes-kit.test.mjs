@@ -100,10 +100,11 @@ test('a page locator is the file without its ref, from a blob URL or a toss link
   assert.equal(N.listItem('o/r', 'lists/jots.json', 'j1'), 'o/r:lists/jots.json#j1');
 });
 
-test('a note may take a stance on a recommendation, and only a known one', () => {
-  const n = N.make({ about: 'a/b:user-calls/x.json', text: 'Still holds.', author: 'gemini', stance: 'agrees' });
-  assert.equal(n.stance, 'agrees');
-  assert.equal('stance' in note('a/b', 'plain'), false, 'a plain note carries no stance');
-  assert.throws(() => N.make({ about: 'a/b', text: 'x', author: 'me', stance: 'shrugs' }), /stance/);
-  assert.deepEqual([...N.STANCES], ['agrees', 'disagrees', 'moot']);
+test('a note may vote up or down on a user call, or withdraw with an empty vote, and nothing else', () => {
+  const n = N.make({ about: 'a/b:user-calls/x.json', text: 'Still holds.', author: 'gemini', vote: 'up' });
+  assert.equal(n.vote, 'up');
+  assert.equal(N.make({ about: 'a/b', text: 'x', author: 'me', vote: '' }).vote, '', 'an empty vote withdraws one');
+  assert.equal('vote' in note('a/b', 'plain'), false, 'a plain note carries no vote');
+  assert.throws(() => N.make({ about: 'a/b', text: 'x', author: 'me', vote: 'agrees' }), /vote/);
+  assert.deepEqual([...N.VOTES], ['up', 'down']);
 });
