@@ -10,3 +10,4 @@ the MCP readback strips HTML from PR bodies,statement,,"docs/environment/capabil
 the code layers and their admission rules,statement,,docs/code-layers.md
 the content registry classification vocabulary,statement,,skills/content-registry/SKILL.md (the skill owns the convention; CLAUDE.md says so)
 the house style for pages,statement,,skills/html-style/SKILL.md (the rules go where they fire: a session in another repo loads the skill unprompted on page work and may never fetch a doc)
+what each agent is given,family,every agent in the roster,"the agent's own definition file for a definition (its frontmatter is what the platform loads), and the skill's own text for a reader spawned inside a skill"

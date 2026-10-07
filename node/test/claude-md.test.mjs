@@ -40,8 +40,8 @@ test('CLAUDE.md delegates the showing material to the mechanisms table and the f
 //
 // If this fails, see skills/doc-craft/SKILL.md ("Living Documentation
 // Rules"). Look to trim redundant state details, enforced rules, or
-// duplicated content. Material could also be moved. Sessions load this every
-// turn, so use the doc-craft annotation pass.
+// duplicated content. Sessions load this every turn, so use the doc-craft
+// annotation pass.
 //
 // Raising the limit requires user approval.
 const LIMIT = 1600;

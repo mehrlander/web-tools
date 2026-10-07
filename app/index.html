@@ -151,6 +151,9 @@
   // The estate's file names (window.FileIndex), a leg of the same crawl: it
   // gates on the default-branch tips the activity pass has just read.
   await gh.load('kits/file-index.js');
+  // Every estate repo's Markdown with word counts (window.DocIndex), the same
+  // crawl's other index; the Map's Docs tab reads it for repos past the hub.
+  await gh.load('kits/doc-index.js');
   // What wrote a commit, read off the commit (window.WriteKinds). Beside the
   // activity cache because it classifies exactly what that cache stores.
   await gh.load('kits/write-kinds.js');
@@ -1326,22 +1329,13 @@ html.dk-dragging main{transition:none !important}
       </div>
     </div>
 
-    <!-- Landing + Pages: web-tools' gallery, a manifest-designated custom page,
-         or a default overview, all in the 'landing' view; plus the standalone
-         'pages' view (showPagesNav / goPages()) that a repo reaches when it has
-         both `landing` and a `pages` catalog, since `landing` took the front
-         door. Both views share one gallery mount below rather than duplicating
-         it, so the two entry points never drift apart. -->
-    <div x-show="view==='landing' || view==='pages'" class="h-full overflow-y-auto">
+    <!-- Pages: web-tools' own catalog, or any repo's `pages` entries, reached
+         at ?view=pages or via the repo sidebar/tabs. -->
+    <div x-show="view==='pages'" class="h-full overflow-y-auto">
 
       <div class="!max-w-none px-6 py-8">
 
-        <!-- Two blocks, one per view, and no decision between them: `landing` is
-             the overview and `pages` is the gallery, always. The three-way
-             landingKind() this replaced is described where it used to live. A
-             repo's own declared landing page renders through the app view, not
-             here. -->
-        <div x-show="view==='pages'">
+        <div>
           <div x-data="gallery()">
             <p x-show="isDefault" class="text-base-content/50 text-base mb-6">
               Browser-based tools and demos. Cards toggle between a
@@ -1462,42 +1456,267 @@ html.dk-dragging main{transition:none !important}
           </div>
         </div>
 
-        <!-- Default landing for any other repo: an overview — stats, README,
-             and a jump to the atlas. 'pages' view never wants this, even on a
-             stray deep link to a repo with no pages catalog. -->
-        <div x-show="view==='landing'">
-          <div x-data="overview()">
-            <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
-              <div class="min-w-0">
-                <h1 class="text-2xl font-bold tracking-tight font-mono truncate" x-text="repo"></h1>
-                <p x-show="desc" class="text-base-content/60 mt-1" x-text="desc"></p>
-              </div>
-              <button @click="goAtlas()" class="btn btn-outline gap-1.5 shrink-0">
-                <i class="ph ph-map-trifold"></i> Atlas
+      </div>
+    </div>
+
+    <!-- Repo landing: the repo's front page, presented with the same structure
+         as the project view: the repo mark with the switcher menu, the name,
+         the App launcher when a companion app is declared, GitHub link,
+         and metadata badges. Below them, a tabstrip switches between Overview
+         (the README), App (live iframe), Board (root tracker), Pages (the repo's
+         catalog), Files (file browser), and Atlas. -->
+    <div x-show="view==='landing'" class="h-full flex flex-col">
+      <div class="flex flex-col h-full min-h-0">
+        <div class="shrink-0 px-6 pt-6">
+          <!-- Masthead -->
+          <div class="flex items-center gap-2.5 min-w-0">
+            <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'repos', { align: 'left' })"
+                    class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors bg-primary/10 text-primary hover:bg-primary/20"
+                    :aria-expanded="!!repoMenuAt && menuKind === 'repos'" aria-haspopup="menu"
+                    :title="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch>
+              <i class="ph-duotone text-xl" :class="repoGlyph($store.browser.repo)"></i>
+              <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i>
+            </button>
+            <h1 class="text-xl font-bold tracking-tight font-mono truncate" x-text="$store.browser.repo"></h1>
+            <template x-if="repoLanding">
+              <button @click="openRepoApp('')" :aria-pressed="landingPane==='app'" data-repo-app
+                      :title="'Open ' + ($store.browser.repo.split('/')[1] || $store.browser.repo) + '\'s app'"
+                      :aria-label="'Open ' + ($store.browser.repo.split('/')[1] || $store.browser.repo) + '\'s app'"
+                      class="shrink-0 rounded p-0.5 transition-colors"
+                      :class="landingPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
+                <i class="ph ph-app-window text-base text-primary"></i>
               </button>
-            </div>
+            </template>
+            <a :href="githubUrlFor($store.browser.repo)" target="_blank" rel="noopener"
+               class="text-base-content/40 hover:text-base-content shrink-0 transition-colors"
+               :title="$store.browser.repo + ' on GitHub'">
+              <i class="ph ph-github-logo text-base"></i>
+            </a>
+          </div>
 
-            <div x-show="repoObj" class="flex flex-wrap gap-1.5 mb-6">
-              <span class="badge badge-ghost gap-1"><i class="ph" :class="repoObj?.private?'ph-lock':'ph-globe'"></i>
-                <span x-text="visibility"></span></span>
-              <span class="badge badge-ghost gap-1"><i class="ph ph-star"></i><span x-text="stars"></span></span>
-              <span class="badge badge-ghost gap-1"><i class="ph ph-git-fork"></i><span x-text="forks"></span></span>
-              <span class="badge badge-ghost gap-1"><i class="ph ph-git-branch"></i><span x-text="defaultRef"></span></span>
-              <span x-show="pushed" class="badge badge-ghost gap-1"><i class="ph ph-clock"></i>
-                <span x-text="'pushed '+pushed"></span></span>
-            </div>
+          <p x-show="$store.browser.repoObj?.description" class="text-sm text-base-content/60 mt-1 truncate" x-text="$store.browser.repoObj?.description"></p>
+          <div x-show="$store.browser.repoObj" class="flex flex-wrap items-center gap-1.5 mt-2">
+            <span class="badge badge-ghost badge-sm gap-1">
+              <i class="ph" :class="$store.browser.repoObj?.private ? 'ph-lock' : 'ph-globe'"></i>
+              <span x-text="$store.browser.repoObj?.private ? 'private' : 'public'"></span>
+            </span>
+            <span class="badge badge-ghost badge-sm gap-1">
+              <i class="ph ph-star"></i><span x-text="$store.browser.repoObj?.stargazers_count ?? 0"></span>
+            </span>
+            <span class="badge badge-ghost badge-sm gap-1">
+              <i class="ph ph-git-fork"></i><span x-text="$store.browser.repoObj?.forks_count ?? 0"></span>
+            </span>
+            <span class="badge badge-ghost badge-sm gap-1">
+              <i class="ph ph-git-branch"></i><span x-text="$store.browser.repoObj?.default_branch || $store.browser.defaultRef || ''"></span>
+            </span>
+            <span x-show="repoPushed" class="badge badge-ghost badge-sm gap-1">
+              <i class="ph ph-clock"></i><span x-text="'pushed ' + repoPushed"></span>
+            </span>
+          </div>
 
+          <!-- Tabstrip -->
+          <div class="mt-2 inline-flex max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
+            <button role="tab" @click="goLandingTab('overview')" :aria-selected="landingPane==='overview'"
+                    class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                    :class="landingPane==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+              <i class="ph ph-house text-base hidden sm:inline"></i>Overview</button>
+            <button role="tab" x-show="repoLanding" @click="goLandingTab('app')" :aria-selected="landingPane==='app'"
+                    class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                    :class="landingPane==='app' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+              <i class="ph ph-app-window text-base hidden sm:inline"></i>App</button>
+            <button role="tab" x-show="repoBoardFile" @click="goLandingTab('board')" :aria-selected="landingPane==='board'"
+                    class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                    :class="landingPane==='board' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+              <i class="ph ph-list-checks text-base hidden sm:inline"></i>Board</button>
+            <button role="tab" x-show="repoPagesCount > 0 || isDefaultRepo" @click="goLandingTab('pages')" :aria-selected="landingPane==='pages'"
+                    class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                    :class="landingPane==='pages' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+              <i class="ph ph-squares-four text-base hidden sm:inline"></i>Pages
+              <span x-show="repoPagesCount" class="font-mono text-xs opacity-60" x-text="repoPagesCount"></span></button>
+            <button role="tab" @click="goLandingTab('files')" :aria-selected="landingPane==='files'"
+                    class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
+                    :class="landingPane==='files' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+              <i class="ph ph-folder-simple text-base hidden sm:inline"></i>Files</button>
+            <button role="tab" @click="goAtlas()"
+                    class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors text-base-content/60 hover:text-base-content">
+              <i class="ph ph-map-trifold text-base hidden sm:inline"></i>Atlas</button>
+          </div>
+        </div>
+
+        <!-- App: live toss-render iframe -->
+        <template x-if="landingPane==='app'">
+          <iframe :src="repoLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
+        </template>
+
+        <!-- Files: fileBrowser component -->
+        <template x-if="landingPane==='files'">
+          <div class="grow min-h-0 flex flex-col px-6 pb-6 mt-4">
+            <template x-for="r in [$store.browser.repo]" :key="r + '@' + $store.browser.ref">
+              <div class="grow min-h-0" data-pattern="linked-swiper" x-data="fileBrowser({ repo: r, ref: $store.browser.ref || '', dir: '' })"></div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Content Panes (Overview, Board, Pages) -->
+        <div x-show="landingPane!=='files' && landingPane!=='app'"
+             class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
+
+          <!-- Overview: README reader -->
+          <div x-show="landingPane==='overview'" x-data="overview()">
             <div x-show="loading" class="flex justify-center py-16">
               <span class="loading loading-dots loading-md opacity-30"></span>
             </div>
             <article x-show="!loading && html" data-pattern="document" class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                     @click="onRepoReadmeClick($event)"
                      x-html="html"></article>
             <p x-show="!loading && !html" class="text-base-content/40 italic text-base py-8">
-              No README found on this ref. Use the sidebar to browse files, or open the atlas.
+              No README found on this ref. Use the tabs above to browse files, or open the atlas.
             </p>
           </div>
-        </div>
 
+          <!-- Board: tracker board -->
+          <div x-show="landingPane==='board'">
+            <div x-show="repoBoardLoading" class="flex justify-center py-16">
+              <span class="loading loading-dots loading-md opacity-30"></span>
+            </div>
+            <div x-show="!repoBoardLoading && repoBoardTasks" class="space-y-5"
+                 data-pattern="list" data-part="list">
+              <template x-if="repoBoardTasks">
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                  <span class="badge badge-ghost" x-text="repoBoardReview().open + ' open'"></span>
+                  <span class="badge badge-warning badge-outline" x-show="repoBoardReview().awaiting"
+                        x-text="repoBoardReview().awaiting + ' awaiting someone'"></span>
+                  <span class="badge badge-ghost" x-show="repoBoardReview().stale"
+                        x-text="repoBoardReview().stale + ' quiet 3+ weeks'"></span>
+                  <span class="badge badge-ghost" x-show="repoBoardReview().untouched"
+                        x-text="repoBoardReview().untouched + ' never logged'"></span>
+                </div>
+              </template>
+              <template x-for="g in repoBoardGroups" :key="g.key">
+                <section>
+                  <button class="flex w-full items-center gap-2 py-1 text-left"
+                          @click="g.key==='done' && (repoBoardShowDone = !repoBoardShowDone)" data-part="group">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/60"
+                        x-text="g.label"></h3>
+                    <span class="badge badge-sm badge-ghost" x-text="g.tasks.length" data-part="meta"></span>
+                    <span x-show="g.key==='done'" class="text-xs text-base-content/40"
+                          x-text="repoBoardShowDone ? 'hide' : 'show'"></span>
+                  </button>
+                  <ul x-show="g.key!=='done' || repoBoardShowDone" class="space-y-1.5">
+                    <template x-for="t in g.tasks" :key="t.file">
+                      <li class="rounded-lg px-3 py-2 hover:bg-base-200/60" data-part="item">
+                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <a href="#" @click.prevent="openRepoBoardTask(t)"
+                             class="link link-hover font-medium" x-text="t.title" data-part="title"></a>
+                          <span x-show="t.size" class="badge badge-sm badge-outline font-mono"
+                                x-text="t.size" data-part="meta"></span>
+                          <span x-show="t.session" class="font-mono text-xs text-base-content/50"
+                                x-text="t.session" data-part="meta"></span>
+                        </div>
+                        <div x-show="t.awaiting && !awaitingCall(t)" class="mt-0.5 text-sm text-warning"
+                             x-text="'awaiting: ' + t.awaiting" data-part="meta"></div>
+                        <a x-show="!!awaitingCall(t)" href="#" @click.prevent="goWaiting(awaitingCall(t))" data-board-call
+                           class="mt-0.5 inline-flex items-center gap-1 text-sm text-warning link link-hover" data-part="meta">
+                          <i class="ph ph-tray"></i><span x-text="'Your call: ' + callLabel(awaitingCall(t))"></span></a>
+                        <div x-show="t.blockedBy" class="mt-0.5 text-sm text-base-content/60"
+                             x-text="t.blockedBy" data-part="meta"></div>
+                        <div x-show="t.status!=='done'" class="mt-0.5 text-xs text-base-content/40" data-part="meta">
+                          <span x-show="t.lastActivity"
+                                x-text="boardTaskAge(t) + 'd since last log · ' + t.logEntries + (t.logEntries === 1 ? ' entry' : ' entries')"></span>
+                          <span x-show="!t.lastActivity" class="italic">no progress log</span>
+                        </div>
+                      </li>
+                    </template>
+                  </ul>
+                </section>
+              </template>
+            </div>
+            <article x-show="!repoBoardLoading && !repoBoardTasks && repoBoardHtml"
+                     @click="onRepoBoardClick($event)"
+                     class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                     x-html="repoBoardHtml"></article>
+            <p x-show="!repoBoardLoading && !repoBoardTasks && !repoBoardHtml"
+               class="text-base-content/40 italic text-base py-8">
+              No board file on this ref. Open the repo's files instead.
+            </p>
+          </div>
+
+          <!-- Pages: gallery component -->
+          <div x-show="landingPane==='pages'">
+            <div x-data="gallery()">
+              <div x-show="!loaded" class="flex justify-center py-20">
+                <span class="loading loading-dots loading-md opacity-30"></span>
+              </div>
+              <template x-if="loaded">
+                <div>
+                  <p x-show="!groups.some(g => g.items.length)" class="text-base-content/40 italic text-base py-8">
+                    No pages found in this repository.
+                  </p>
+                  <div data-pattern="card-grid" data-part="list">
+                    <template x-for="g in groups" :key="g.label || 'main'">
+                      <section class="mb-10">
+                        <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2" data-part="group">
+                          <i class="ph ph-folder"></i><span x-text="g.label"></span>
+                          <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
+                        </h2>
+                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          <template x-for="p in g.items" :key="p.href">
+                            <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
+                              <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
+                                <a :href="p.href" x-show="p.view==='shot'" class="block w-full h-full">
+                                  <img :src="p.thumb" :alt="p.label" loading="lazy"
+                                       class="w-full h-full object-cover object-top"
+                                       @error="p.shotMissing = true" x-show="!p.shotMissing">
+                                  <div x-show="p.shotMissing"
+                                       class="w-full h-full flex items-center justify-center text-base-content/30 text-base gap-1">
+                                    <i class="ph ph-image-broken"></i> no screenshot
+                                  </div>
+                                </a>
+                                <template x-if="p.view==='live'">
+                                  <iframe :src="p.live" loading="lazy"
+                                          sandbox="allow-scripts allow-same-origin allow-popups"
+                                          class="w-full h-full bg-base-100"></iframe>
+                                </template>
+                                <pre x-show="p.view==='html'"
+                                     class="w-full h-full overflow-auto m-0 p-2 text-base leading-snug bg-base-100"
+                                     x-text="p.source"></pre>
+                                <div class="join absolute top-1.5 right-1.5 shadow" data-part="actions">
+                                  <button class="btn join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
+                                          @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
+                                  <button class="btn join-item" :class="p.view==='live' && 'btn-primary btn-active'"
+                                          @click="show(p,'live')" title="Live preview"><i class="ph ph-play"></i></button>
+                                  <button class="btn join-item" :class="p.view==='html' && 'btn-primary btn-active'"
+                                          @click="show(p,'html')" title="HTML source"><i class="ph ph-code"></i></button>
+                                </div>
+                              </div>
+                              <div class="card-body p-3 gap-1 bg-base-200/60">
+                                <div class="flex items-baseline justify-between gap-2">
+                                  <a :href="p.href" class="font-semibold text-base hover:text-primary transition-colors truncate"
+                                     x-text="p.label" data-part="title"></a>
+                                  <div class="flex items-center gap-1.5 shrink-0" data-part="links">
+                                    <button @click="inspect(p)" title="Open the source in the file browser"
+                                            class="text-base-content/30 hover:text-primary transition-colors cursor-pointer">
+                                      <i class="ph ph-sidebar-simple"></i></button>
+                                    <a :href="p.code" target="_blank"
+                                       class="text-base-content/30 hover:text-base-content/60" title="Source on GitHub">
+                                      <i class="ph ph-github-logo"></i></a>
+                                  </div>
+                                </div>
+                                <p class="text-base text-base-content/50" x-text="p.note || p.title" data-part="summary"></p>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      </section>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -2138,7 +2357,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['harness', 'dimensions', 'docs', 'reach'];
-const MAP_SUBVIEWS = ['tests', 'skills', 'context', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'aims', 'growth', 'policy', 'claims', 'registries', 'set', 'outposts', 'data'];
+const MAP_SUBVIEWS = ['tests', 'skills', 'agents', 'peeves', 'context', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'aims', 'growth', 'policy', 'claims', 'registries', 'set', 'outposts', 'data'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
@@ -2484,6 +2703,8 @@ function app(){ return {
     // `activeFile` is the STAGE PREVIEW's concern and no longer a view state
     // here, and a repo switch simply goes to the repo.
     this.$watch(() => Alpine.store('browser').repo, () => {
+      this.landingTab = 'overview';
+      this.landingAppRoute = '';
       this.view = 'landing';
       this.syncUrl();
     });
@@ -2496,6 +2717,7 @@ function app(){ return {
       // An open project is repo@ref-scoped like the rest: switching the ref
       // under it re-reads whatever its open tab renders from where you now are.
       if (this.view === 'project') this.refreshProjectPane();
+      if (this.view === 'landing') this.refreshLandingPane();
     });
 
     // Estate membership needs a token to resolve, since it is read from the
@@ -5040,6 +5262,180 @@ function app(){ return {
     return window.GithubLinks.pathUrl(repo, p.path, ref);
   },
 
+  // ── The repo landing view: a repo's front page ───────────────────────────
+  // Mirrored from the project view: the repo mark with the switcher menu, the name,
+  // the App launcher when a companion app is declared, GitHub link, and metadata
+  // badges. Below them, a tabstrip switches between Overview (the README),
+  // App (live iframe), Board (root tracker), Pages (the repo's catalog), Files,
+  // and Atlas.
+  landingTab: 'overview',   // 'overview' | 'app' | 'board' | 'pages' | 'files'
+  landingAppRoute: '',      // page query for app if any
+  repoBoardTasks: null,
+  repoBoardLoading: false,
+  repoBoardHtml: '',
+  _repoBoardKey: '',
+  repoBoardShowDone: false,
+
+  get isDefaultRepo(){
+    const s = Alpine.store('browser');
+    return s.repo === this.DEFAULT_REPO;
+  },
+  repoGlyph(repo){
+    const s = Alpine.store('browser');
+    const r = repo || s.repo;
+    const item = (this.estateRepos || []).find(x => x.repo === r);
+    if (item?.icon) return item.icon.startsWith('ph-') ? item.icon : 'ph-' + item.icon;
+    const cfg = s.config || this.estateConfigs?.[r];
+    const icon = cfg?.icon;
+    if (icon) return icon.startsWith('ph-') ? icon : 'ph-' + icon;
+    return 'ph-folder-simple';
+  },
+  get repoLanding(){
+    const s = Alpine.store('browser');
+    const cfg = s.config || this.estateConfigs?.[s.repo];
+    if (typeof cfg?.landing === 'string' && cfg.landing) return cfg.landing;
+    if (typeof cfg?.showing?.app === 'string' && cfg.showing.app) return cfg.showing.app;
+    if (Array.isArray(cfg?.pages)) {
+      const short = (s.repo || '').split('/')[1] || s.repo;
+      const ownApp = cfg.pages.find(p => p && p.path && (
+        (p.slug && p.slug === short) ||
+        (p.appView && (p.path === 'app/index.html' || p.path.startsWith('app/'))) ||
+        p.path === 'app/index.html'
+      ));
+      if (ownApp) return ownApp.path;
+    }
+    return '';
+  },
+  get repoLandingUrl(){
+    const path = this.repoLanding;
+    if (!path) return '';
+    const s = Alpine.store('browser');
+    const declRef = s.ref && s.ref !== s.defaultRef ? s.ref : '';
+    const t = resolveCatalogPath(path, s.repo, declRef);
+    const refSuffix = t.ref ? '@' + t.ref : '';
+    const query = this.landingAppRoute ? (this.landingAppRoute.startsWith('?') ? this.landingAppRoute : '?' + this.landingAppRoute) : '';
+    return '../pages/toss-render.html#gh=' + t.repo + refSuffix + ':' + t.path + query;
+  },
+  get repoBoardFile(){
+    const s = Alpine.store('browser');
+    const cfg = s.config || this.estateConfigs?.[s.repo];
+    if (cfg?.tracker === false) return '';
+    if (typeof cfg?.tracker === 'string' && cfg.tracker) return cfg.tracker;
+    return 'tracker/board.md';
+  },
+  get repoBoardCsvFile(){
+    const f = this.repoBoardFile;
+    return f ? f.replace(/\.md$/, '.csv') : '';
+  },
+  get repoPagesCount(){
+    const s = Alpine.store('browser');
+    if (this.isDefaultRepo) return '';
+    const cfg = s.config || this.estateConfigs?.[s.repo];
+    return Array.isArray(cfg?.pages) ? cfg.pages.length : 0;
+  },
+  get repoPushed(){
+    const s = Alpine.store('browser');
+    const p = s.repoObj?.pushed_at;
+    return (s.gh && p && s.gh.ago) ? s.gh.ago(p) : '';
+  },
+  get landingPane(){
+    const t = this.landingTab;
+    if (t === 'app' && !this.repoLanding) return 'overview';
+    return t;
+  },
+  goLanding(tab, item){
+    this.landingTab = ['board', 'pages', 'files', 'app'].includes(tab) ? tab : 'overview';
+    if (this.landingTab === 'app') this.landingAppRoute = typeof item === 'string' ? item.replace(/^\?/, '') : '';
+    this.view = 'landing';
+    this.syncUrl();
+    this.refreshLandingPane();
+  },
+  goLandingTab(tab){
+    this.landingTab = tab;
+    this.syncUrl();
+    this.refreshLandingPane();
+  },
+  openRepoApp(route){
+    this.landingAppRoute = String(route || '').replace(/^\?/, '');
+    this.goLandingTab('app');
+  },
+  refreshLandingPane(){
+    if (this.landingTab === 'board') this.loadRepoBoard();
+  },
+  async loadRepoBoard(force){
+    const s = Alpine.store('browser');
+    const file = this.repoBoardFile;
+    if (!file || !s.repo || !s.gh) return;
+    const key = s.repo + '@' + s.ref + ':' + file;
+    if (key === this._repoBoardKey && !force) return;
+    this._repoBoardKey = key;
+    this.repoBoardLoading = true;
+    this.repoBoardHtml = ''; this.repoBoardTasks = null;
+    let tasks = null;
+    try {
+      const j = await s.gh.get(this.repoBoardCsvFile);
+      const rows = window.Csv.rows(j.text);
+      if (rows.length) tasks = rows.map(r => ({ ...r, logEntries: Number(r.logEntries) || 0 }));
+    } catch {}
+    if (key !== this._repoBoardKey) return;
+    if (tasks){
+      this.repoBoardTasks = tasks;
+      this.repoBoardLoading = false;
+      return;
+    }
+    let res = null;
+    try { res = await s.gh.get(file); } catch {}
+    if (key !== this._repoBoardKey) return;
+    if (res){
+      try { await loadMarked(); this.repoBoardHtml = mdHtml(res.text); }
+      catch { this.repoBoardHtml = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
+    }
+    this.repoBoardLoading = false;
+  },
+  get repoBoardGroups(){
+    const t = this.repoBoardTasks;
+    if (!t) return [];
+    return [['backlog', 'On deck'], ['in-progress', 'In progress'],
+            ['blocked', 'Blocked'], ['done', 'Done']]
+      .map(([key, label]) => ({ key, label, tasks: t.filter(x => x.status === key) }))
+      .filter(g => g.tasks.length);
+  },
+  repoBoardReview(now = Date.now()){
+    const open = (this.repoBoardTasks || []).filter(t => t.status !== 'done');
+    return {
+      open: open.length,
+      awaiting: open.filter(t => t.awaiting).length,
+      untouched: open.filter(t => !t.lastActivity).length,
+      stale: open.filter(t => (this.boardTaskAge(t, now) ?? 0) >= 21),
+    };
+  },
+  openRepoBoardTask(t){
+    const base = this.repoBoardFile.split('/').slice(0, -1).join('/');
+    const path = this.resolveRepoRelative(base, t?.href || '');
+    if (path) this.openFile(path);
+  },
+  onRepoBoardClick(e){
+    this.openRelativeLink(e, this.repoBoardFile.split('/').slice(0, -1).join('/'));
+  },
+  onRepoReadmeClick(e){
+    this.openRelativeLink(e, '');
+  },
+  get estateRepoMenuItems(){
+    const current = Alpine.store('browser').repo;
+    return (this.estateRepos || []).map(r => ({
+      key: 'repo:' + r.repo,
+      label: r.short,
+      title: r.repo,
+      icon: r.icon || 'ph-folder-simple',
+      current: r.repo === current,
+      head: true,
+      run: () => {
+        this.closeRepoMenu();
+        if (r.repo !== current) this.openPinned(r.repo);
+      },
+    }));
+  },
+
   // Auth state drives which pinned private repos are dimmed, the token-gated
   // sidebar sections, and the Repos dashboard's account control (which reads
   // both of these through window.__shell, the header shield having gone).
@@ -5359,6 +5755,7 @@ function app(){ return {
   get repoMenuItems(){
     if (this.menuKind === 'github') return this.githubMenuItems;
     if (this.menuKind === 'projects') return this.projectMenuItems;
+    if (this.menuKind === 'repos') return this.estateRepoMenuItems;
     if (this.menuKind !== 'repo') return [...this.menuExtra, ...this.repoActionItems];
     // THE REPO, TWICE, then where it goes on GitHub, as one FLAT list. The two
     // named rows carry the same name under two marks, this app's and GitHub's,
@@ -5724,8 +6121,12 @@ function app(){ return {
     // left the hub's own landing with an empty query and no address at all, so
     // this row puts it back for this view only. Nothing else changes shape.
     { key: 'landing', self: true,
-      open(){ this.goLanding(); },
-      stamp(p, s){ if (s.repo) p.set('repo', s.repo); } },
+      open(u){ this.goLanding(u?.tab, u?.item); },
+      stamp(p, s){
+        if (s.repo) p.set('repo', s.repo);
+        if (this.landingTab && this.landingTab !== 'overview') p.set('tab', this.landingTab);
+        if (this.landingTab === 'app' && this.landingAppRoute) p.set('item', this.landingAppRoute);
+      } },
     { key: 'pages',    open(){ this.goPages(); } },
     { key: 'atlas',    open(){ this.goAtlas(); } },
     { key: 'config',   open(){ this.goConfig(); } },
@@ -6011,7 +6412,7 @@ function app(){ return {
   async routeFromUrl(url){
     if (!url) return false;
     if (url.file) { await this.openFile(url.file, url.col && url.row ? { col: url.col, row: url.row } : null); return true; }
-    const r = this.routeForUrl(url.view);
+    const r = this.routeForUrl(url.view) || (url.repo ? this.routeFor('landing') : null);
     if (!r || (r.when && !r.when(url))) return false;
     await r.open.call(this, url);
     return true;
@@ -6967,7 +7368,6 @@ function app(){ return {
   // than stamping itself, and the next syncUrl writes the address the pane
   // actually has now.
   goRoutes(){ this.goMap('views'); },
-  goLanding(){ this.view = 'landing'; this.syncUrl(); },
   goPages(){ this.view = 'pages'; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.syncUrl(); },
   // The repo sidebar's Files row: hand the central surface this repo at the ref
