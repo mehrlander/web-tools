@@ -1,4 +1,4 @@
-// screenshot.mjs interaction scenario: the Map's UI > Views tab, every address
+// screenshot.mjs interaction scenario: the Map's Browser > Views tab, every address
 // the app can be sent to, read with a token the harness does not check.
 //
 //   npm run shot -- app/index.html --query "view=map&tab=views" \

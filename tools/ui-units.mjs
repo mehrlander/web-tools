@@ -83,9 +83,9 @@ const codeFiles = (s) => (s || '').split(';').map(x => x.trim()).filter(x => /\.
 const routes = csv('web-tools', 'docs/app-routes.csv');
 const mapTabs = csv('web-tools', 'docs/map-tabs.csv');
 // The Map's tab and subview names, read from the strip map() draws, so a unit
-// is labelled the way a reader meets it ("Map: UI › Gallery") rather than by
-// its key ("Map: patterns"). A subview is named under its tab; a tab whose own
-// key is its first subview (Docs, Harness, UI) is named by that subview.
+// is labelled the way a reader meets it ("Map: Browser › Gallery") rather than
+// by its key ("Map: patterns"). A subview is named under its tab; a tab's own
+// key is its first subview's, so it is named by that subview.
 const mapSrc = read('web-tools', 'lib/alpineComponents/map.js');
 const optionsIn = (block) => [...(block || '').matchAll(/\{ k: '([a-z]+)', n: '([^']+)'/g)].map(m => ({ k: m[1], n: m[2] }));
 const mapTabNames = new Map(optionsIn(mapSrc.match(/\n\s*TABS:\s*\[([\s\S]*?)\n\s*\],/)?.[1]).map(o => [o.k, o.n]));
