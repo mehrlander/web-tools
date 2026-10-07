@@ -297,14 +297,11 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
 // this holds is that every declared path is a file that exists and says when
 // it reaches a session. A sibling renamed or deleted fails here rather than
 // leaving a dead door.
-//
-// The derivation it replaces was not merely unable to see the new shape; it
-// was already wrong. surfacing-extended.md had been a sibling since 2026-09-07
-// and no door reached it, because it was never a heading in the first place.
+
 test('Surfacing declares a door per sibling document, and each one exists', async () => {
   await data.loadSurf();
   const doors = Array.from(data.surf.regions, r => ({ path: r.path, gloss: r.gloss }));
-  assert.ok(doors.length >= 2, 'the course and the extended routes both get a door');
+  assert.ok(doors.length >= 1, 'the course gets a door');
   for (const d of doors) {
     assert.ok(existsSync(path.join(repoRoot, d.path)), 'door to a file that is gone: ' + d.path);
     assert.ok(d.gloss, 'a door must say when its document reaches a session: ' + d.path);

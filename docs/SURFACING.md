@@ -38,25 +38,21 @@ templates.
 
 * **Surfacing caption.** Use:
   `🌿 [<branch>](…/pages/branch.html#gh=<owner>/<repo>@<branch>) · <N> files · [this turn](…/commit/<sha>)`
-  Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. Mention files in prose only when something non-obvious must be said about them. Token-less readers and MCP URL caps take the fallbacks in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
+  Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. Mention files in prose only when something non-obvious must be said about them.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
 * **Guide pointer 🧭.** Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide region; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
 
-The task marker 🎫, the session diff, and review the diff 🔍 follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
-
 ### Showing something
 
-* **Toss a live view 🥏.** Render an unhosted page with `toss-render.html#gh=owner/repo[@ref]:path`. It may take a trailing `#frag` and `?w=<px>`. If `#gh=` is unavailable because of token or allowlist access, use the `#gz=` fallback in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md). Obtain an `@ref` SHA with `git rev-parse HEAD` and confirm it was pushed with `git rev-parse origin/<branch>`.
+* **Toss a live view 🥏.** Render an unhosted page with `toss-render.html#gh=owner/repo[@ref]:path`. It may take a trailing `#frag` and `?w=<px>`. If `#gh=` is unavailable because of token or allowlist access, carry the page in the link with `#gz=` ([showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md#viewer-context)). Obtain an `@ref` SHA with `git rev-parse HEAD` and confirm it was pushed with `git rev-parse origin/<branch>`.
 
 * **Show pixels.** For a visual change, inspect and include a headless screenshot. Measure `scrollWidth` for horizontal overflow.
 
 * **Hand over the artifact.** Send an artifact with `SendUserFile`, not a path. Images preview inline; HTML, zip, and audio download.
 
 Run `npm run showing` before handing over a render link, and paste the line it prints. Re-run it for every link on every commit, and append nothing to what it prints: ask for a query with `--query` or a fragment with `--at`. It reads the branch's changed files and either names the page and mechanism that reach them, or reports that no link does.
-
-Uncommon ways to hand something over (lead with the live view, publish an artifact 📦, stage a fileset 🗂️, envelopes, an approval 🕹️ among them, data toss 📊, clipboard 📋/run 📲 links): follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
 ### PR events
 

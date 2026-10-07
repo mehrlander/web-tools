@@ -27,8 +27,7 @@ import { repoRoot } from './bootstrap.mjs';
 
 const leads = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8'))
   .map(r => r.lead);
-const doc = ['SURFACING.md', 'surfacing-extended.md']
-  .map(f => readFileSync(path.join(repoRoot, 'docs', f), 'utf8')).join('\n\n');
+const doc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
 
 // The component's own two functions, copied here rather than imported: map.js
 // is an Alpine component that needs a browser realm to evaluate, and the rule
