@@ -29,9 +29,9 @@ For another maintainer's document, item 4 becomes a recommendation memo.
 
 Material that doesn't earn its place is shortened, extracted, or delegated.
 
- * **Shorten:** Tighten or delete redundant pairs, hedges, throat-clearing, and restated context.
- * **Extract:** Move coherent, in-depth material to its own new linked piece. Apply the naming test first: title the region; if it names a coherent topic, extract; if it resists naming, it was not separable, so keep it.
- * **Delegate:** Point to a separate document that already covers the material (a canonical reference, an upstream spec, the changelog). Extract builds the home; delegate uses one that exists.
+ * **Shorten:** Tighten or cut redundant pairs, hedges, throat-clearing, and restated context.
+ * **Extract:** Move a distinct ancillary topic to its own linked piece, titled by that topic (avoid a general "overflow document").
+ * **Delegate:** Link a document that already covers the material, such as a canonical reference or an upstream spec.
 
 ## Method
 
