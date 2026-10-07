@@ -1313,3 +1313,41 @@ test('a bold run that is not the item lead-in is not the anchor', () => {
   assert.equal(data.findLead(box, 'Boundary'), null, 'a mid-paragraph run is not a lead-in');
   assert.ok(data.findLead(box, 'Show pixels'), 'the lead-in still resolves');
 });
+
+// Proposals on the page: the reading deck labels the paragraph each pending
+// edit would change. A Text proposal names a whole block; a documentation
+// call's edit names a phrase, widened here to the block it sits in. Matched on
+// rendered text, so the real marked renders both the document and the block.
+test('the reading deck labels the paragraph a pending edit would change', async () => {
+  const { marked } = await import('marked');
+  const prior = window.marked;
+  window.marked = marked;
+  if (!window.mdDiff) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))();
+  const md = '# Title\n\nKeep this paragraph.\n\nAn **old** paragraph to tighten.\n\nA paragraph with a phrase here inside.\n';
+  const box = window.document.createElement('div');
+  box.innerHTML = marked.parse(md);
+  data.docPending = new Map([['docs/x.md', {
+    staged: 1, calls: [{ id: 'c1', kind: 'documentation', question: 'Fix the phrase?', why: 'general',
+      edits: [{ from: 'a phrase here', to: 'a better phrase', why: 'the old phrase misleads' }] }],
+    items: [{ from: 'An **old** paragraph to tighten.', to: 'A paragraph, tightened.', kind: 'tighten',
+      purpose: 'tighten', gloss: 'Remove words.', author: 'Claude', basis: 'https://example.com/run' }],
+  }]]);
+  try {
+    const n = await data.markDeckProposals(box, 'docs/x.md', md);
+    assert.equal(n, 2, 'both edits find their paragraph');
+    const chips = [...box.querySelectorAll('[data-deck-proposal]')];
+    assert.deepEqual(chips.map(c => c.dataset.deckProposal), ['tighten', 'call']);
+    assert.match(chips[0].parentElement.textContent, /paragraph to tighten/);
+    assert.match(chips[1].parentElement.textContent, /phrase here inside/);
+    const edits = data.deckEdits('docs/x.md');
+    const call = edits.find(e => e.kind === 'call');
+    assert.equal(call.why, 'the old phrase misleads', "a call edit's own reason wins over the call's");
+    const note = data.deckProposalNote({ ...edits[0] }).textContent;
+    assert.match(note, /^Tighten · tighten: Remove words\./);
+    assert.match(note, /proposed by Claude · basis/);
+    assert.equal(data.deckEdits('docs/none.md').length, 0);
+  } finally {
+    data.docPending = null;
+    if (prior === undefined) delete window.marked; else window.marked = prior;
+  }
+});
