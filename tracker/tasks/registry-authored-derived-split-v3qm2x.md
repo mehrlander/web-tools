@@ -4,7 +4,7 @@ title: Separate authored from derived data across the registries
 status: backlog
 opened: 2026-08-18
 size: M
-awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10
+awaiting: user-call 2708d02c-web-tools-answers; one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10
 ---
 # Separate authored from derived data across the registries
 

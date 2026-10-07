@@ -1703,8 +1703,13 @@ html.dk-dragging main{transition:none !important}
                               <span x-show="t.session" class="font-mono text-xs text-base-content/50"
                                     x-text="t.session" data-part="meta"></span>
                             </div>
-                            <div x-show="t.awaiting" class="mt-0.5 text-sm text-warning"
+                            <div x-show="t.awaiting && !awaitingCall(t)" class="mt-0.5 text-sm text-warning"
                                  x-text="'awaiting: ' + t.awaiting" data-part="meta"></div>
+                            <!-- A task an open user call decides links to it in
+                                 Waiting, where it is answered. -->
+                            <a x-show="!!awaitingCall(t)" href="#" @click.prevent="goWaiting(awaitingCall(t))" data-board-call
+                               class="mt-0.5 inline-flex items-center gap-1 text-sm text-warning link link-hover" data-part="meta">
+                              <i class="ph ph-tray"></i><span x-text="'Your call: ' + callLabel(awaitingCall(t))"></span></a>
                             <div x-show="t.blockedBy" class="mt-0.5 text-sm text-base-content/60"
                                  x-text="t.blockedBy" data-part="meta"></div>
                             <!-- Last activity is the signal board.md cannot
@@ -2136,13 +2141,11 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 
 // The Map view's top-level tabs, in render order, plus addressable
 // subviews. Named HERE rather than in map() because the shell validates the
-// ?tab= param before the component mounts. Aims remains ?tab=aims under Docs
-// as Purpose, Growth remains ?tab=growth under Docs, and Tests remains
-// ?tab=tests under Harness, so old links still land on the exact reading they
-// named even though none needs a top-level stop. UI lands on Dimensions, and
-// its Gallery keeps the ?tab=patterns it was first published at.
-const MAP_TABS = ['set', 'context', 'outposts', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'dimensions', 'skills', 'data', 'registries'];
-const MAP_SUBVIEWS = ['aims', 'growth', 'policy', 'tests', 'patterns', 'views'];
+// ?tab= param before the component mounts. A tab shares its key with the
+// subview it lands on; every other address is a subview and keeps the key it
+// was first published at, so an old ?tab= link still lands where it pointed.
+const MAP_TABS = ['harness', 'dimensions', 'docs', 'set'];
+const MAP_SUBVIEWS = ['tests', 'skills', 'context', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'aims', 'growth', 'policy', 'claims', 'registries', 'outposts', 'data'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
@@ -2403,6 +2406,11 @@ function app(){ return {
   proposalsSeen: false,
   waitingCount: 0,  // open user calls; the Waiting entry's badge
   waitingSeen: false,
+  // A user call an address names (?view=waiting&call=<id>), handed to the
+  // Waiting view to select once and then forgotten, so a later pick in the
+  // view does not leave a stale address stamped beside it.
+  waitingCall: new URLSearchParams(location.search).get('call') || '',
+  userCallIndex: {},      // call id -> the call, from the badge's read
   tendingSeen: false,
   tendingTab: '',   // '' (Open) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
@@ -4333,7 +4341,11 @@ function app(){ return {
   // not counted here, since counting them means reading the Text collection.
   async loadWaitingCount(){
     if (!this.hasToken() || !window.UserCalls) { this.waitingCount = 0; return; }
-    try { this.waitingCount = (await window.UserCalls.list()).filter(c => c.open).length; }
+    try {
+      const list = await window.UserCalls.list();
+      this.userCallIndex = Object.fromEntries(list.map(c => [c.id, c]));
+      this.waitingCount = list.filter(c => c.open).length;
+    }
     catch { this.waitingCount = 0; }
   },
   async loadProposalCount(){
@@ -5926,7 +5938,8 @@ function app(){ return {
       } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
-    { key: 'waiting',   open(){ this.goWaiting(); } },
+    { key: 'waiting',   open(u){ this.goWaiting(u.call); },
+      stamp(p){ if (this.waitingCall) p.set('call', this.waitingCall); } },
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
     // The Search view's address carries the ran search (sq + friends, stamped
@@ -6056,7 +6069,7 @@ function app(){ return {
   // ANY row can stamp must be here, or the address carries it out of the only
   // screen that means it. tools/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
-  VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
+  VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'call', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'set', 'topic', 'lens', 'grain', 'find',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
@@ -6116,7 +6129,7 @@ function app(){ return {
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
              session: p.get('session') || '', find: p.get('find') || '',
              pane: p.get('pane') || '', card: p.get('card'),
-             item: p.get('item') || '',
+             item: p.get('item') || '', call: p.get('call') || '',
              window: this.parseWindowParam(p.get('window')) };
   },
 
@@ -6744,7 +6757,20 @@ function app(){ return {
   },
   // The Proposals view: pending cross-repo edits awaiting the user's confirm.
   goProposals(){ this.proposalsSeen = true; this.view = 'proposals'; this.syncUrl(); },
-  goWaiting(){ this.waitingSeen = true; this.view = 'waiting'; this.syncUrl(); },
+  // With a call id, Waiting opens on that call: a mounted view hears the
+  // event, one mounting reads waitingCall when its list lands.
+  goWaiting(call){
+    if (call) this.waitingCall = call;
+    this.waitingSeen = true; this.view = 'waiting'; this.syncUrl();
+    if (call) document.dispatchEvent(new CustomEvent('web-tools:waiting-call', { detail: { id: call } }));
+  },
+  // A task held by an open user call says so in its awaiting line,
+  // `awaiting: user-call <id>` (docs/TRACKER.md), and the board links it.
+  awaitingCall(t){
+    const m = String(t?.awaiting || '').match(/\buser-call\s+([0-9a-f]{8}-[a-z0-9-]+)/);
+    return m ? m[1] : '';
+  },
+  callLabel(id){ const c = this.userCallIndex[id]; return c?.name || c?.question || id; },
   // State kicks ALL THREE, which is the reverse of what it used to do, and the
   // reverse is the point. It kicked nothing on the argument that a view whose
   // subject is age must not answer its own question before you read it. That
@@ -7702,11 +7728,15 @@ function app(){ return {
   },
 
   // Open the branch takeover deck for a repo@name branch.
+  //
+  // Through detailSpec, not a replaceState of its own: goBranches' syncUrl
+  // rebuilds the query from a whitelist and re-stamps `detail` from that field
+  // alone, so an address written beside it was erased before a lazily mounted
+  // estate could read it. From any view but Activity the event below then had
+  // no listener, and the link landed on the plain branch list. The event still
+  // fires for an estate already mounted, which reads `&detail=` only at mount.
   openBranchSpec(repo, name){
-    const p = new URLSearchParams(location.search);
-    p.set('view', 'branches');
-    p.set('detail', repo + '@' + name);
-    history.replaceState(null, '', location.pathname + '?' + p.toString());
+    this.detailSpec = repo + '@' + name;
     this.goBranches();
     document.dispatchEvent(new CustomEvent('web-tools:open-branch-detail', {
       detail: { repo, name }

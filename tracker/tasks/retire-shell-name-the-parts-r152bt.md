@@ -5,7 +5,7 @@ status: backlog
 project: app
 opened: 2026-08-15
 size: M
-awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body
+awaiting: user-call 2708d02c-web-tools-answers; one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body
 ---
 # Retire `shell`, and name the parts instead of the collection
 

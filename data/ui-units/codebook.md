@@ -34,7 +34,7 @@ what the dimension holds, the test that decides it, and whether a unit takes
 exactly one of its codes (`per_unit` is `one`) or any number of them (`any`).
 A sixth row, `ring`, is computed rather than coded (README, "Rings"). The
 codes a dimension divides the units into are the rows of `codes.csv` whose
-`axis` names it. The Map view's UI tab renders both files: Dimensions shows
+`axis` names it. The Map view renders both files: Dimensions shows
 each dimension with its codes and counts, and Gallery groups the units' shots
 by any one of them.
 

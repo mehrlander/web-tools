@@ -4,7 +4,7 @@ title: Pinch-zoom and pan for pdf-inspect's page view
 status: backlog
 opened: 2026-07-26
 size: M
-awaiting: CSS transform then settle, recommended in the body; live re-render is the alternative
+awaiting: user-call 2708d02c-web-tools-answers; CSS transform then settle, recommended in the body; live re-render is the alternative
 ---
 # Pinch-zoom and pan for pdf-inspect's page view
 

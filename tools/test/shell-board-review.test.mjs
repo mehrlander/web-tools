@@ -185,3 +185,21 @@ test('the pane markup binds the projection, both branches of the fallback', () =
   assert.match(page, /x-show="!projectBoardLoading && !projectBoardTasks && projectBoardHtml"/,
     'the markdown article renders only when there is no projection');
 });
+
+// A task an open user call decides says `awaiting: user-call <id>`, and the
+// board links it to the call in Waiting by the call's name, read with the badge.
+test('an awaiting line naming a user call links to it in Waiting, by name', () => {
+  const { shell, events } = makeShell({ browserStore: { repo: 'mehrlander/web-tools' } });
+  assert.equal(shell.awaitingCall(T({ awaiting: 'user-call 2708d02c-close-four-tasks' })), '2708d02c-close-four-tasks');
+  assert.equal(shell.awaitingCall(T({ awaiting: 'your yes: user-call 2708d02c-web-tools-answers, item 3' })), '2708d02c-web-tools-answers',
+    'the id may sit inside other words');
+  assert.equal(shell.awaitingCall(T({ awaiting: 'OFM ruling: candidate 1' })), '', 'free text stays text');
+  shell.userCallIndex = { '2708d02c-close-four-tasks': { id: '2708d02c-close-four-tasks', name: 'Four Overtaken Tasks' } };
+  assert.equal(shell.callLabel('2708d02c-close-four-tasks'), 'Four Overtaken Tasks');
+  assert.equal(shell.callLabel('2708d02c-unknown'), '2708d02c-unknown', 'an unread call is named by its id');
+  shell.goWaiting('2708d02c-close-four-tasks');
+  assert.equal(shell.view, 'waiting');
+  assert.ok(events.some((e) => e.type === 'web-tools:waiting-call' && e.detail.id === '2708d02c-close-four-tasks'),
+    'a mounted Waiting view is told which call');
+  assert.ok(page.includes('@click.prevent="goWaiting(awaitingCall(t))"'), 'the board row carries the link');
+});
