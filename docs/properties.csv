@@ -1,35 +1,35 @@
 registry,property,mode,deriver,required,form,exclusive,values,column_primitive,gloss
-csv-census,rows,computed,scripts/csv-census.py,value,column,yes,,value,number of CSV records after the header record
-csv-census,columns,computed,scripts/csv-census.py,value,column,yes,,value,number of fields in the first CSV record
-csv-census,bytes,computed,scripts/csv-census.py,value,column,yes,,value,physical byte length of the indexed CSV blob
-csv-census,headers,computed,scripts/csv-census.py,value,column,yes,,value,JSON array of parsed header strings preserving blanks and duplicates
+csv-census,rows,computed,python/csv-census.py,value,column,yes,,value,number of CSV records after the header record
+csv-census,columns,computed,python/csv-census.py,value,column,yes,,value,number of fields in the first CSV record
+csv-census,bytes,computed,python/csv-census.py,value,column,yes,,value,physical byte length of the indexed CSV blob
+csv-census,headers,computed,python/csv-census.py,value,column,yes,,value,JSON array of parsed header strings preserving blanks and duplicates
 docs,subject,recorded,,none,column,yes,,value,"what the document is about, one line"
 docs,status,recorded,,none,column,yes,living;record;measured,label,"whether the document is kept true, preserved as written, or derived from measurement"
-docs,reach,computed,tools/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
-docs,words,computed,tools/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
+docs,reach,computed,node/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
+docs,words,computed,node/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
 docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true; a bare row is counted by the registry rather than hidden
 docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
 tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
 tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
-tests,assertions,computed,tools/build/tests-index.mjs,counted,column,yes,,value,"how many assertions the file makes. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
-tests,assertion_names,computed,tools/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
-tests,method,computed,tools/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
-tests,runner,computed,tools/build/tests-index.mjs,value,column,yes,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
-tests,boot_smoke,computed,tools/build/tests-index.mjs,counted,column,no,,label,"which assertions only check a component mounts, as indices into assertion_names; the property is per assertion, so a file-level count is the length rather than the record. Blank on the same browser-driven checks, for the same reason"
+tests,assertions,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many assertions the file makes. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
+tests,assertion_names,computed,node/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
+tests,method,computed,node/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
+tests,runner,computed,node/build/tests-index.mjs,value,column,yes,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
+tests,boot_smoke,computed,node/build/tests-index.mjs,counted,column,no,,label,"which assertions only check a component mounts, as indices into assertion_names; the property is per assertion, so a file-level count is the length rather than the record. Blank on the same browser-driven checks, for the same reason"
 harness,role,recorded,,counted,column,yes,,value,what the file is for; blanks are counted rather than hidden
-harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;scripts/annotate;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
-harness,lines,computed,tools/build/tools-index.mjs,value,column,yes,,value,file length
-harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
-harness,emits,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
-harness,named,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
-harness,tested,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ exercises it
-kits,namespace,computed,tools/build/kits-index.mjs,value,column,yes,,value,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
-kits,gloss,computed,tools/build/kits-index.mjs,counted,column,yes,,value,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"
-kits,lines,computed,tools/build/kits-index.mjs,value,column,yes,,value,file length
-kits,boot,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,label,gh-boot.js loads it on every chain-boot page: a fact about what a page pays to start
-kits,demo,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,label,lib/kits/demos/<name>.html exists
-kits,users,computed,tools/build/kits-index.mjs,value,column,yes,,value,"how many other files under lib/, pages/ and app/ name the kit by its load path; zero is the warning state"
-kits,tested,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ names it
+harness,layer,computed,node/build/tools-index.mjs,value,column,yes,python;python/annotate;node;node/build;node/render;node/render/scenarios;.githooks;.claude;.claude/hooks;skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
+harness,lines,computed,node/build/tools-index.mjs,value,column,yes,,value,file length
+harness,invocation,computed,node/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
+harness,emits,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
+harness,named,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
+harness,tested,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,a file under node/test/ exercises it
+kits,namespace,computed,node/build/kits-index.mjs,value,column,yes,,value,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
+kits,gloss,computed,node/build/kits-index.mjs,counted,column,yes,,value,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"
+kits,lines,computed,node/build/kits-index.mjs,value,column,yes,,value,file length
+kits,boot,computed,node/build/kits-index.mjs,value,column,yes,yes;no,label,gh-boot.js loads it on every chain-boot page: a fact about what a page pays to start
+kits,demo,computed,node/build/kits-index.mjs,value,column,yes,yes;no,label,lib/kits/demos/<name>.html exists
+kits,users,computed,node/build/kits-index.mjs,value,column,yes,,value,"how many other files under lib/, pages/ and app/ name the kit by its load path; zero is the warning state"
+kits,tested,computed,node/build/kits-index.mjs,value,column,yes,yes;no,label,a file under node/test/ names it
 content,creation_mode,recorded,,none,column,yes,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,label,what the artifact IS epistemically; the portable content skill owns the convention
 content,analysis_use,recorded,,none,column,yes,concept-vocabulary;prose-review;semantic-search;source-corpus;exclude,label,"what the artifact is good for downstream. The domain is closed and is owned by the content skill, not here; docs/owners.csv records the copy"
 content,description,recorded,,none,column,yes,,value,one line on the artifact
@@ -44,13 +44,13 @@ owners,applies_to,recorded,,none,column,yes,,value,the population a family rule 
 owners,authoritative,recorded,,value,column,yes,,value,the one file that owns the statement; every other mention is a repetition
 skills,group,recorded,,value,column,yes,prose;documents;web;device;windows;session,label,"what the skill is FOR, the axis a reader browses on; authored, since nothing on disk carries a subject"
 skills,description,recorded,,value,column,yes,,value,"the skill's trigger description. A COPY: the authoritative file is the skill's own SKILL.md, per the family rule in docs/owners.csv"
-pages,top,computed,tools/build/pages-index.mjs,value,column,yes,,label,"the top-level segment under pages/ the page sits in, which drives the gallery's location chips; every page below drop/ scopes to one drop chip. A root page reads main"
-pages,group,computed,tools/build/pages-index.mjs,counted,column,yes,,locator,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
-pages,label,computed,tools/build/pages-index.mjs,value,column,yes,,value,the short name the catalog card and the picker show
-pages,title,computed,tools/build/pages-index.mjs,value,column,yes,,value,"the page's own <title>, read from the file"
-pages,note,computed,tools/build/pages-index.mjs,counted,column,yes,,value,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
-pages,thumb,computed,tools/build/pages-index.mjs,value,column,yes,,locator,"the committed screenshot path; refreshed once per session, never by the commit hook"
-pages,code,computed,tools/build/pages-index.mjs,value,column,yes,,locator,the GitHub blob URL for the page source
+pages,top,computed,node/build/pages-index.mjs,value,column,yes,,label,"the top-level segment under pages/ the page sits in, which drives the gallery's location chips; every page below drop/ scopes to one drop chip. A root page reads main"
+pages,group,computed,node/build/pages-index.mjs,counted,column,yes,,locator,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
+pages,label,computed,node/build/pages-index.mjs,value,column,yes,,value,the short name the catalog card and the picker show
+pages,title,computed,node/build/pages-index.mjs,value,column,yes,,value,"the page's own <title>, read from the file"
+pages,note,computed,node/build/pages-index.mjs,counted,column,yes,,value,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
+pages,thumb,computed,node/build/pages-index.mjs,value,column,yes,,locator,"the committed screenshot path; refreshed once per session, never by the commit hook"
+pages,code,computed,node/build/pages-index.mjs,value,column,yes,,locator,the GitHub blob URL for the page source
 tracker-tasks,title,computed,skills/tasks/build-board.py,value,column,yes,,value,"the task's short imperative, read from its frontmatter"
 tracker-tasks,status,computed,skills/tasks/build-board.py,value,column,yes,backlog;in-progress;blocked;done;dormant,label,where the task sits. Domain owned by docs/TRACKER.md
 tracker-tasks,opened,computed,skills/tasks/build-board.py,value,column,yes,,value,the date the task was filed
@@ -145,7 +145,7 @@ registries,gate,recorded,,value,column,yes,,locator,the test that fails when the
 registries,area,recorded,,value,column,yes,files;names,label,the reader grouping in the Registries tab
 registries,title,recorded,,value,column,yes,,value,display name
 registries,gloss,recorded,,value,column,yes,,value,one line on what the registry is for
-registries,renders_in,computed,tools/build/registries-reach.mjs,counted,column,no,,label,"the lib/, pages/ and app/ files naming the path in code; empty marks a registry no app surface reads"
+registries,renders_in,computed,node/build/registries-reach.mjs,counted,column,no,,label,"the lib/, pages/ and app/ files naming the path in code; empty marks a registry no app surface reads"
 properties,mode,recorded,,value,column,yes,recorded;computed,label,whether the value is authored or derived
 properties,deriver,recorded,,counted,column,yes,,locator,"the script that computes the value, required when mode is computed"
 properties,required,recorded,,value,column,yes,value;counted;none,label,"what the gate enforces: every row filled, blanks counted, or nothing"
@@ -162,11 +162,11 @@ vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means,
 vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
 tracker-tags,tag,computed,skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
 tracker-tags,value,computed,skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
-snags,title,computed,tools/build/snags-index.mjs,value,column,yes,,value,"the snag's one-line symptom, read off its heading"
-snags,seen,computed,tools/build/snags-index.mjs,none,list,no,,value,"every date the snag was hit, oldest first; an undated entry is empty, not absent"
-snags,count,computed,tools/build/snags-index.mjs,value,column,yes,,label,"how many times it bit, the field the recurrence rule turns on"
-snags,last_seen,computed,tools/build/snags-index.mjs,none,column,yes,,value,"the most recent sighting, the log's own sort key"
-snags,targets,computed,tools/build/snags-index.mjs,none,list,no,,locator,"the docs the entry points at with →, which carry the fix"
+snags,title,computed,node/build/snags-index.mjs,value,column,yes,,value,"the snag's one-line symptom, read off its heading"
+snags,seen,computed,node/build/snags-index.mjs,none,list,no,,value,"every date the snag was hit, oldest first; an undated entry is empty, not absent"
+snags,count,computed,node/build/snags-index.mjs,value,column,yes,,label,"how many times it bit, the field the recurrence rule turns on"
+snags,last_seen,computed,node/build/snags-index.mjs,none,column,yes,,value,"the most recent sighting, the log's own sort key"
+snags,targets,computed,node/build/snags-index.mjs,none,list,no,,locator,"the docs the entry points at with →, which carry the fix"
 aims-goals,key,recorded,,none,column,yes,,id,"stable identifier, one word"
 aims-goals,name,recorded,,none,column,yes,,value,the goal as a title
 aims-goals,gloss,recorded,,none,column,yes,,value,the goal in one sentence
@@ -177,13 +177,13 @@ aims-reading,repo,recorded,,none,column,yes,,value,owner/repo when the document 
 aims-reading,path,recorded,,none,column,yes,,id,path within its repo
 aims-reading,private,recorded,,none,column,yes,true,label,set when the link resolves only for the owner
 aims-reading,gloss,recorded,,none,column,yes,,value,why this document is on the list
-themes,a,computed,scripts/duplicated-claims.py,none,column,yes,,locator,"first file of the pair, sorted"
-themes,b,computed,scripts/duplicated-claims.py,none,column,yes,,locator,second file of the pair
-themes,w,computed,scripts/duplicated-claims.py,none,column,yes,,value,"shared 10-word windows, the edge weight"
-themes,rule,computed,scripts/duplicated-claims.py,none,column,yes,true,label,whether the shared text states a rule
-themes,quoted,computed,scripts/duplicated-claims.py,none,list,yes,,value,"sample runs of the shared text, semicolon-joined"
-themes,shingle,computed,scripts/duplicated-claims.py,none,column,yes,,label,"words per window for this emission, identical on every row"
-themes,scanned,computed,scripts/duplicated-claims.py,none,column,yes,,label,"files scanned for this emission, identical on every row"
+themes,a,computed,python/duplicated-claims.py,none,column,yes,,locator,"first file of the pair, sorted"
+themes,b,computed,python/duplicated-claims.py,none,column,yes,,locator,second file of the pair
+themes,w,computed,python/duplicated-claims.py,none,column,yes,,value,"shared 10-word windows, the edge weight"
+themes,rule,computed,python/duplicated-claims.py,none,column,yes,true,label,whether the shared text states a rule
+themes,quoted,computed,python/duplicated-claims.py,none,list,yes,,value,"sample runs of the shared text, semicolon-joined"
+themes,shingle,computed,python/duplicated-claims.py,none,column,yes,,label,"words per window for this emission, identical on every row"
+themes,scanned,computed,python/duplicated-claims.py,none,column,yes,,label,"files scanned for this emission, identical on every row"
 sources,source,recorded,,none,column,yes,,locator,the named set a glob belongs to
 sources,glob,recorded,,none,column,yes,,locator,"one path pattern, anchored to a real directory"
 assistant-branches,repo,recorded,,none,column,yes,,value,owner/name of the repository the branch lives in
@@ -223,42 +223,42 @@ context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the 
 map-tabs,gloss,recorded,,value,column,yes,,value,"the lede: what the rows at this address are, in one sentence, never what the reader can do with them"
 map-tabs,refs,recorded,,counted,list,no,,locator,"the lede's links: phrase=path pairs, each phrase a verbatim span of the lede and each path the file or folder (ending in /) it opens"
 map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
-doc-overlap-docs,sha,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
-doc-overlap-docs,prose_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"
-doc-overlap-docs,passages,computed,scripts/doc-overlap.py,value,column,yes,,value,how many passages the file was cut into
-doc-overlap-docs,shingles,computed,scripts/doc-overlap.py,value,column,yes,,value,"distinct 10-word shingles in the file, the denominator of its literal share"
-doc-overlap-matches,end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of the source passage, in UTF-16 code units"
-doc-overlap-matches,line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line the source passage starts on
-doc-overlap-matches,words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the source passage's word count, what it adds to its file's share"
-doc-overlap-matches,hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the source passage text
-doc-overlap-matches,target_start,computed,scripts/doc-overlap.py,value,column,yes,,locator,"start of the best-matching passage in the other file, in UTF-16 code units"
-doc-overlap-matches,target_end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of that passage, in UTF-16 code units"
-doc-overlap-matches,target_line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line that passage starts on
-doc-overlap-matches,target_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the other passage's word count; with words, what decides whether a pair involves a short passage"
-doc-overlap-matches,target_hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
-doc-overlap-matches,cosine,computed,scripts/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
-doc-overlap-gold,seed,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,the seed of the sample the row was drawn in; each sample is scored on its own
-doc-overlap-gold,stratum,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
-doc-overlap-gold,stratum_size,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs in the stratum, the numerator of the row weight"
-doc-overlap-gold,stratum_seats,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs drawn from the stratum, the denominator of the row weight"
-doc-overlap-gold,audit,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the seed flagged the row for an audit of an agreement before the run
-doc-overlap-gold,cosine,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"the pair's cosine in matches.csv, the higher direction"
-doc-overlap-gold,literal,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
-doc-overlap-gold,short,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
-doc-overlap-gold,a_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
-doc-overlap-gold,a_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
-doc-overlap-gold,a_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
-doc-overlap-gold,a_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
-doc-overlap-gold,a_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
-doc-overlap-gold,b_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
-doc-overlap-gold,b_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
-doc-overlap-gold,b_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
-doc-overlap-gold,b_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
-doc-overlap-gold,b_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-docs,sha,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
+doc-overlap-docs,prose_words,computed,python/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"
+doc-overlap-docs,passages,computed,python/doc-overlap.py,value,column,yes,,value,how many passages the file was cut into
+doc-overlap-docs,shingles,computed,python/doc-overlap.py,value,column,yes,,value,"distinct 10-word shingles in the file, the denominator of its literal share"
+doc-overlap-matches,end,computed,python/doc-overlap.py,value,column,yes,,locator,"end of the source passage, in UTF-16 code units"
+doc-overlap-matches,line,computed,python/doc-overlap.py,value,column,yes,,locator,line the source passage starts on
+doc-overlap-matches,words,computed,python/doc-overlap.py,value,column,yes,,value,"the source passage's word count, what it adds to its file's share"
+doc-overlap-matches,hash,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the source passage text
+doc-overlap-matches,target_start,computed,python/doc-overlap.py,value,column,yes,,locator,"start of the best-matching passage in the other file, in UTF-16 code units"
+doc-overlap-matches,target_end,computed,python/doc-overlap.py,value,column,yes,,locator,"end of that passage, in UTF-16 code units"
+doc-overlap-matches,target_line,computed,python/doc-overlap.py,value,column,yes,,locator,line that passage starts on
+doc-overlap-matches,target_words,computed,python/doc-overlap.py,value,column,yes,,value,"the other passage's word count; with words, what decides whether a pair involves a short passage"
+doc-overlap-matches,target_hash,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
+doc-overlap-matches,cosine,computed,python/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
+doc-overlap-gold,seed,computed,python/doc-overlap-gold.py,value,column,yes,,label,the seed of the sample the row was drawn in; each sample is scored on its own
+doc-overlap-gold,stratum,computed,python/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
+doc-overlap-gold,stratum_size,computed,python/doc-overlap-gold.py,value,column,yes,,value,"pairs in the stratum, the numerator of the row weight"
+doc-overlap-gold,stratum_seats,computed,python/doc-overlap-gold.py,value,column,yes,,value,"pairs drawn from the stratum, the denominator of the row weight"
+doc-overlap-gold,audit,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the seed flagged the row for an audit of an agreement before the run
+doc-overlap-gold,cosine,computed,python/doc-overlap-gold.py,value,column,yes,,value,"the pair's cosine in matches.csv, the higher direction"
+doc-overlap-gold,literal,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
+doc-overlap-gold,short,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
+doc-overlap-gold,a_path,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
+doc-overlap-gold,a_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,a_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,a_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,a_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,b_path,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
+doc-overlap-gold,b_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,b_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,b_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,b_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
 doc-overlap-gold,reader_relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,"the reader agent's relation, blind to the cosine"
 doc-overlap-gold,reader_confidence,recorded,,value,column,yes,high;medium;low,label,the reader agent's confidence
 doc-overlap-gold,rationale,recorded,,value,column,yes,,value,the reader agent's one-clause reason
-doc-overlap-gold,sent,computed,scripts/doc-overlap-gold.py,value,column,yes,disagree;conflict;fragment;audit;review,label,why the row reached a skeptic
+doc-overlap-gold,sent,computed,python/doc-overlap-gold.py,value,column,yes,disagree;conflict;fragment;audit;review,label,why the row reached a skeptic
 doc-overlap-gold,verdict,recorded,,value,column,yes,confirm;overturn,label,the skeptic agent's verdict on the reader's relation
 doc-overlap-gold,note,recorded,,value,column,yes,,value,"the skeptic agent's reason, quoting the words that decide it"
 doc-overlap-gold,relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,the final relation: the skeptic's

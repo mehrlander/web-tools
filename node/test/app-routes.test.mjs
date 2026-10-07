@@ -1,0 +1,515 @@
+// docs/app-routes.csv: the Web Tools app's own destinations stated as data,
+// and lib/kits/route-activity.js, the fold that ranks them. Two things to hold.
+//
+// The MANIFEST has to agree with the router. app/index.html's VIEWS table is
+// the authority on which addresses exist (it dispatches and stamps them); the
+// manifest is the authority on what each one is for and which files draw it.
+// A route in one and not the other is exactly the drift that made three
+// hand-copied else-if chains disagree before VIEWS existed, so it fails here.
+//
+// The FOLD has to be honest about its coarseness: a wide file must not date a
+// row it cannot speak for, and the shell must stay out of attribution.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import path from 'node:path';
+import { repoRoot } from './bootstrap.mjs';
+import { parseCsv, splitList } from '../build/registries-load.mjs';
+
+const src = readFileSync(path.join(repoRoot, 'lib/kits/route-activity.js'), 'utf8');
+const window = {};
+new Function('window', src)(window);
+const R = window.routeActivity;
+
+// Assembled from two CSVs since 2026-08-16, and through the FOLD'S OWN builder
+// since 2026-08-22: this file, estate.js and branch-brief.js each wrote the
+// shape out by hand, which put the one non-obvious part of it (the shell is a
+// row keyed `shell`, not a sibling key) in three places to be wrong in. Only
+// the parse stays here, since the browser and the suite reach for different
+// CSV readers.
+const rows = (f) => parseCsv(readFileSync(path.join(repoRoot, 'docs', f), 'utf8'));
+const manifest = R.manifest(
+  rows('app-routes.csv').map(r => ({
+    ...r, files: splitList(r.files).filter(Boolean), tabs: splitList(r.tabs).filter(Boolean),
+  })),
+  rows('vocabularies.csv'));
+const shellSrc = readFileSync(path.join(repoRoot, manifest.app), 'utf8');
+
+// The VIEWS keys, read out of the shell. Deliberately strict about the block
+// boundary: a parse that came back short would let a missing route pass as
+// "not in VIEWS", so the count is asserted before anything is compared.
+function viewKeys(src) {
+  const block = src.match(/\n {2}VIEWS: \[([\s\S]*?)\n {2}\],/);
+  assert.ok(block, 'VIEWS table not found in ' + manifest.app);
+  const keys = [...block[1].matchAll(/\{ key: '([a-z]+)'/g)].map(m => m[1]);
+  const declared = (block[1].match(/\{ key: '/g) || []).length;
+  assert.equal(keys.length, declared, 'a VIEWS row did not parse; check the literal shape');
+  assert.ok(keys.length > 15, 'VIEWS parsed suspiciously short: ' + keys.length);
+  return keys;
+}
+
+// ── A key any row stamps must be a key every stamp clears ──────────────────
+//
+// deepLinkParams() deletes VIEW_KEYS unconditionally and then lets ONE row
+// stamp, so the address never depends on what the base happened to hold. That
+// promise holds only while the two lists agree. They stopped agreeing for a
+// week: the Sessions row gained `session`, `set`, `lens` and `grain` on
+// 2026-09-08 and 09-09, none of them reached VIEW_KEYS, and the four were
+// written but never cleared. They rode onto every later screen, and because
+// each is seeded from location.search at construction, a cold load of one of
+// those addresses armed the Sessions pane with a record and a lens nobody
+// asked for.
+//
+// Read out of the source rather than executed, following this file's own
+// method: the shell is a 3,000-line inline literal with no export.
+function stampedKeys(src) {
+  const block = src.match(/\n {2}VIEWS: \[([\s\S]*?)\n {2}\],/);
+  assert.ok(block, 'VIEWS table not found');
+  return [...new Set([...block[1].matchAll(/p\.set\('([a-zA-Z]+)'/g)].map(m => m[1]))];
+}
+
+// EVERY way a key gets cleared, not just the list. deepLinkParams clears in
+// two ways and both are load-bearing: the VIEW_KEYS loop, and a set-or-delete
+// pair for the two keys that belong to no view (`repo` and `shell` are
+// repo- and reading-scoped, so they are written outside the table and their
+// else-branch is their clear). A test that knew only the list would demand
+// `repo` be added to it, which would be wrong: VIEW_KEYS is deleted before the
+// stamp, and `repo` is decided after.
+function clearedKeys(src) {
+  const list = src.match(/\n {2}VIEW_KEYS: \[([\s\S]*?)\],\n/);
+  assert.ok(list, 'VIEW_KEYS not found');
+  const keys = [...list[1].matchAll(/'([a-zA-Z]+)'/g)].map(m => m[1]);
+  assert.ok(keys.length > 15, 'VIEW_KEYS parsed suspiciously short: ' + keys.length);
+  const fn = src.match(/\n {2}deepLinkParams\(base\)\{([\s\S]*?)\n {2}\},/);
+  assert.ok(fn, 'deepLinkParams not found');
+  const deleted = [...fn[1].matchAll(/p\.delete\('([a-zA-Z]+)'\)/g)].map(m => m[1]);
+  return keys.concat(deleted);
+}
+
+test('every key a VIEWS row stamps is cleared before the next stamp', () => {
+  const cleared = new Set(clearedKeys(shellSrc));
+  for (const k of stampedKeys(shellSrc)) {
+    assert.ok(cleared.has(k),
+      `VIEWS stamps '${k}' and VIEW_KEYS does not clear it, so it rides onto every later screen`);
+  }
+});
+
+// The inverse is NOT asserted. VIEW_KEYS deliberately holds keys nothing
+// stamps: `file` and `path` are the retired Files view's, kept so a stale one
+// is cleared rather than carried, and `on` is the ?on= fallback that exists to
+// be deleted and never written. A test demanding symmetry would have to be
+// taught those three exceptions and would then fail for the next deliberate
+// one, which is a worse trade than leaving this direction to the reader.
+
+test('every route the router dispatches is described, and nothing else is', () => {
+  const inRouter = new Set(viewKeys(shellSrc));
+  const inManifest = new Set(manifest.routes.map(r => r.key));
+  for (const k of inRouter) assert.ok(inManifest.has(k), `VIEWS key '${k}' has no row in docs/app-routes.csv`);
+  for (const k of inManifest) assert.ok(inRouter.has(k), `docs/app-routes.csv describes '${k}', which VIEWS does not dispatch`);
+});
+
+test('every row says what it is, where it is, and what draws it', () => {
+  const groups = new Set(manifest.groups.map(g => g.key));
+  assert.ok(existsSync(path.join(repoRoot, manifest.shell)), 'shell missing: ' + manifest.shell);
+  for (const r of manifest.routes) {
+    assert.ok(r.address, r.key + ': address');
+    assert.ok(r.label, r.key + ': label');
+    assert.ok(r.what, r.key + ': what');
+    assert.ok(groups.has(r.group), `${r.key}: unknown group '${r.group}'`);
+    assert.ok(Array.isArray(r.files), r.key + ': files is an array');
+    for (const p of r.files) {
+      assert.ok(existsSync(path.join(repoRoot, p)), `${r.key}: declared file missing: ${p}`);
+    }
+    // A row with no files of its own is a claim about the app, not an
+    // omission, so it has to say so out loud rather than read as unfinished.
+    if (!r.files.length) assert.ok(r.note, r.key + ': no files, so state why in `note`');
+    // The shell carries every route, so naming it on one would make that row
+    // move whenever anything moved.
+    assert.ok(!r.files.includes(manifest.shell), r.key + ': the shell is not a route\'s own file');
+  }
+});
+
+// The nav stops, read out of the shell: each entry's `views` array is the set
+// of ?view= keys that one header button owns.
+function navStops(src) {
+  const nav = src.match(/get estateNav\(\)\{([\s\S]*?)\n {2}\},/);
+  assert.ok(nav, 'estateNav not found in ' + manifest.app);
+  const stops = [];
+  const row = /\{ view: '([a-z]+)',(?:\s*views: \[([^\]]*)\],)?[^}]*?label: '([^']+)'/g;
+  for (const [, key, views, label] of nav[1].matchAll(row)) {
+    stops.push({ label, keys: views ? [...views.matchAll(/'([a-z]+)'/g)].map(m => m[1]) : [key] });
+  }
+  assert.ok(stops.length > 5, 'estateNav parsed suspiciously short: ' + stops.length);
+  return stops;
+}
+
+// `stop` is the level the router flattens away, so it is the one field that
+// could quietly stop being true: six sub-tabs are addressed as their own
+// ?view= key, and nothing but this check ties them back to the button they
+// actually live under. Repo- and shell-group routes are not in estateNav (they
+// are reached from the sidebar), so they declare their own stop and are only
+// held to being non-empty.
+test('every estate route declares the nav stop that actually owns it', () => {
+  const stops = navStops(shellSrc);
+  const owner = new Map();
+  for (const s of stops) for (const k of s.keys) owner.set(k, s.label);
+  for (const r of manifest.routes) {
+    assert.ok(r.stop, r.key + ': stop');
+    if (r.group !== 'estate') continue;
+    assert.ok(owner.has(r.key), `${r.key}: in the estate group but not in estateNav`);
+    assert.equal(r.stop, owner.get(r.key),
+      `${r.key}: declares stop "${r.stop}" but estateNav puts it under "${owner.get(r.key)}"`);
+  }
+});
+
+// The flattening itself, asserted as a figure rather than left as folklore.
+// It moves only when a sub-tab is promoted, demoted, or re-encoded, and each of
+// those is a decision someone should have to restate here.
+test('the two sub-tab encodings, counted', () => {
+  const stops = navStops(shellSrc);
+  const flattened = stops.reduce((n, s) => n + s.keys.length - 1, 0);
+  const params = manifest.routes.reduce((n, r) => n + (r.tabs || []).length, 0);
+  // 6 to 7 on 2026-08-23: State stopped being a nav stop of its own and became
+  // Activity's last pill, which is the promotion this figure exists to make
+  // somebody restate. Back to 6 the same day: the Guides pill was retired, so
+  // its key is gone rather than re-encoded. 6 to 5 on 2026-08-27, when the
+  // Stage's Saved pill went and `surfaces` became an alias rather than a key
+  // of its own: an alias is not a sub-tab, since nothing addresses it.
+  //
+  // 5 to 6 on 2026-09-08, and only one of that day's two changes moved it.
+  // Activity gained Writes, which reads the commit stream for who wrote it
+  // rather than what changed: that is the +1. Routes left Activity for a tab
+  // of the Map view the same day and KEPT its key, so one flattened key moved
+  // from the Activity stop to the Map stop and the total did not notice. This
+  // figure counts how many sub-tabs wear a top-level key, not where they hang,
+  // so a relocation is invisible to it by design; a promotion or a retirement
+  // is what moves it.
+  //
+  // 6 to 7 on 2026-10-06: Tending left the header for the Activity stop, whose
+  // rows open it, and kept its own ?view= key.
+  assert.equal(flattened, 7, 'sub-tabs addressed as their own ?view= key');
+  // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
+  // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
+  // tab, which is the Routes pane arriving from Activity. 16 to 17 on
+  // 2026-09-14: the project view gained an Installation pill, shown only for a
+  // workspace whose manifest entry declares an installation manifest. 17 to 18
+  // on 2026-09-16: the Stage took `&tab=errands`, which is the first value here
+  // that opens a PANEL rather than switching a tab. It reuses this key rather
+  // than minting one because the courier needs an address to land on from our
+  // own origin, and a second sub-address grammar for one destination would be
+  // the more expensive answer.
+  // 18 to 19: the Map gained its Data inventory tab. 19 to 20 on 2026-10-02:
+  // it gained an Outposts tab, for estate material held where no commit reaches.
+  // 20 to 21 on 2026-10-04: it gained a Patterns tab, the UI units coded
+  // against their codebook. 21 to 22 on 2026-10-05: UI gained Dimensions, the
+  // dimensions those units are coded on, and Patterns became its Gallery.
+  // 22 to 25 on 2026-10-06, with no address added: the Map's row named 16 of
+  // the 19 tabs docs/map-tabs.csv declares, and now names Context, Growth and
+  // Policy too, which had been addressable all along. 25 to 27 on 2026-10-06:
+  // the project view's Overview became the README alone, and the landing page
+  // and the PowerShell outpost view it used to show took tabs of their own,
+  // App and Outpost.
+  assert.equal(params, 27, 'sub-tabs addressed as ?view=<parent>&tab=');
+});
+
+test('an alias is a retired key, so it never doubles as a live one', () => {
+  const keys = new Set(manifest.routes.map(r => r.key));
+  for (const r of manifest.routes) {
+    if (r.alias) assert.ok(!keys.has(r.alias), `${r.key}: alias '${r.alias}' is also a live key`);
+  }
+});
+
+// ── The fold ────────────────────────────────────────────────────────────────
+
+const FIXTURE = {
+  shell: 'shell.html',
+  shellNote: 'the shell',
+  groups: [{ key: 'a', label: 'A' }, { key: 'b', label: 'B' }],
+  routes: [
+    { key: 'one',   address: '?view=one',   label: 'One',   group: 'a', what: '.', files: ['one.js', 'wide.js'] },
+    { key: 'two',   address: '?view=two',   label: 'Two',   group: 'a', what: '.', files: ['wide.js'] },
+    { key: 'three', address: '?view=three', label: 'Three', group: 'b', what: '.', files: ['wide.js'] },
+    { key: 'four',  address: '?view=four',  label: 'Four',  group: 'b', what: '.', files: [] },
+  ],
+};
+
+test('shared is derived from being named twice, never authored', () => {
+  const c = R.routesByFile(FIXTURE);
+  assert.deepEqual(c.get('one.js'), ['one']);
+  assert.deepEqual(c.get('wide.js'), ['one', 'two', 'three']);
+});
+
+test('a wide file does not date a row it cannot speak for', () => {
+  const touches = {
+    'one.js':  { date: '2026-08-01', subject: 'narrow' },
+    'wide.js': { date: '2026-08-12', subject: 'wide' },
+  };
+  const rows = R.rank(FIXTURE, { touches });
+  const one = rows.find(r => r.key === 'one');
+  // 'one' has a narrow file, so its date is that file's, older though it
+  // is: the newer wide commit says nothing about this route in particular.
+  assert.equal(one.lastTouch.subject, 'narrow');
+  assert.equal(one.borrowed, false);
+  // 'two' has nothing but the wide file, so it borrows and says so.
+  const two = rows.find(r => r.key === 'two');
+  assert.equal(two.lastTouch.subject, 'wide');
+  assert.equal(two.borrowed, true);
+});
+
+test('the shell is excluded from attribution and reported on its own', () => {
+  const touches = { 'shell.html': { date: '2026-08-13', subject: 'router' } };
+  const rows = R.rank(FIXTURE, { touches });
+  assert.ok(rows.every(r => !r.lastTouch), 'a shell commit dated a route');
+  const s = R.shellRow(FIXTURE, { touches });
+  assert.equal(s.path, 'shell.html');
+  assert.equal(s.routes, 4);
+  assert.equal(s.touch.subject, 'router');
+});
+
+test('a route with no code of its own is a row, flagged, not a gap', () => {
+  const four = R.rank(FIXTURE, {}).find(r => r.key === 'four');
+  assert.equal(four.hasOwnCode, false);
+  assert.equal(four.quiet, true);
+});
+
+test('branches join on the files they touch, carrying the hits', () => {
+  const branches = [
+    { repo: 'o/r', name: 'claude/x', files: ['one.js', 'README.md'] },
+    { repo: 'o/r', name: 'claude/y', files: ['README.md'] },
+  ];
+  const rows = R.rank(FIXTURE, { branches });
+  const one = rows.find(r => r.key === 'one');
+  assert.equal(one.branches.length, 1);
+  assert.deepEqual(one.branches[0].hits, ['one.js']);
+  assert.equal(rows.find(r => r.key === 'four').branches.length, 0);
+});
+
+// The tiers, and the reason they beat a flat sort by date. 'one' is dated by
+// its own narrow file and is the OLDER date; 'two' and 'three' borrow the
+// newer wide one. A flat sort would put the borrowers on top, which is the
+// reading the pane exists not to make.
+test('a row dated by its own code outranks every borrowed one, however fresh', () => {
+  const touches = {
+    'one.js':  { date: '2026-08-01' },
+    'wide.js': { date: '2026-08-12' },
+  };
+  assert.deepEqual(R.rank(FIXTURE, { touches }).map(r => r.key),
+                   ['one', 'two', 'three', 'four']);
+});
+
+test('undated rows fall to the bottom rather than to the top', () => {
+  const touches = { 'wide.js': { date: '2026-08-12' } };
+  const rows = R.rank(FIXTURE, { touches });
+  assert.ok(rows.findIndex(r => r.key === 'four') > rows.findIndex(r => r.key === 'two'),
+            'an undated row sorted above a dated one');
+});
+
+// The branch join takes the same rule as the date. Without it a PR editing one
+// wide file reports work open on every route that file carries.
+test('a branch hitting only a wide file is near a route, not open on it', () => {
+  const branches = [
+    { pr: 1, files: ['one.js'] },              // narrow: open on 'one'
+    { pr: 2, files: ['wide.js'] },             // wide only: near 'one', 'two', 'three'
+  ];
+  const rows = R.rank(FIXTURE, { branches });
+  const one = rows.find(r => r.key === 'one');
+  assert.deepEqual(one.branches.map(b => b.pr), [1]);
+  assert.deepEqual(one.nearBranches.map(b => b.pr), [2]);
+  const two = rows.find(r => r.key === 'two');
+  assert.deepEqual(two.branches.map(b => b.pr), []);
+  assert.deepEqual(two.nearBranches.map(b => b.pr), [2]);
+});
+
+test('pathsToRead is every declared file plus the shell, deduped', () => {
+  assert.deepEqual(R.pathsToRead(FIXTURE).sort(), ['one.js', 'shell.html', 'wide.js']);
+});
+
+// Grouping by stop takes its order FROM the ranking rather than recomputing it,
+// which is what keeps "freshest first" true at both levels at once. 'two' and
+// 'three' share a stop; 'one' is dated by its own narrow file and so leads
+// the ranking, and its stop leads with it.
+const STOPPED = {
+  ...FIXTURE,
+  routes: FIXTURE.routes.map(r => ({ ...r, stop: r.key === 'one' ? 'One' : r.key === 'four' ? 'Four' : 'Pair' })),
+};
+
+test('stops order by their freshest member, rows by recency inside', () => {
+  const touches = { 'one.js': { date: '2026-08-01' }, 'wide.js': { date: '2026-08-12' } };
+  const g = R.stops(R.rank(STOPPED, { touches }));
+  assert.deepEqual(g.map(s => s.stop), ['One', 'Pair', 'Four']);
+  assert.deepEqual(g[1].rows.map(r => r.key), ['two', 'three']);
+  assert.equal(g[0].lastTouch.date, '2026-08-01');
+});
+
+test('a stop owning one route says so, so it need not render as a section', () => {
+  const g = R.stops(R.rank(STOPPED, {}));
+  assert.deepEqual(g.map(s => s.solo), [true, false, true]);
+  assert.equal(g.find(s => s.stop === 'Pair').rows.length, 2);
+});
+
+// The join run backwards, for the Branches pane. It has to agree with the
+// forward direction exactly: two panes disagreeing about the same pair of facts
+// would be worse than one of them not showing it.
+test('routesTouched applies the same narrow/wide rule as the forward join', () => {
+  const r = R.routesTouched(FIXTURE, ['one.js', 'README.md']);
+  assert.deepEqual(r.on.map(x => x.key), ['one']);
+  assert.deepEqual(r.near.map(x => x.key), []);
+  const wide = R.routesTouched(FIXTURE, ['wide.js']);
+  // A wide-only hit is near every route that file carries and on none.
+  assert.deepEqual(wide.on.map(x => x.key), []);
+  assert.deepEqual(wide.near.map(x => x.key), ['one', 'two', 'three']);
+});
+
+// The near set gets one slot in both views, so the sentence behind that slot is
+// folded here rather than written twice. It was written twice: branch-brief
+// collapsed the set and the estate's branch rows rendered a ghosted LINK per
+// route, which is the disagreement routesTouched exists to prevent, and the
+// links offered exactly the addresses the near rule says to withhold.
+test('nearNote names the routes, the shared files, and why they do not count', () => {
+  const { near } = R.routesTouched(FIXTURE, ['wide.js']);
+  const note = R.nearNote(near);
+  assert.match(note, /^One, Two, Three: touched only through wide\.js, /);
+  assert.match(note, /cannot be said to change them$/);
+  // Each shared file once, however many routes carry it.
+  assert.equal(note.split('wide.js').length - 1, 1);
+  assert.equal(R.nearNote([]), '', 'no near set, no note to show');
+  assert.equal(R.nearNote(undefined), '');
+});
+
+test('routesTouched never counts the shell, and reports the hits it used', () => {
+  assert.deepEqual(R.routesTouched(FIXTURE, ['shell.html']), { on: [], near: [] });
+  const r = R.routesTouched(FIXTURE, ['one.js', 'wide.js']);
+  assert.deepEqual(r.on[0].hits, ['one.js', 'wide.js']);
+});
+
+// The two directions on one fixture: whatever the forward join calls open on a
+// route, the reverse join calls that route open for the branch, and likewise
+// for near. Asserted rather than assumed, since they are separate code paths.
+test('the forward and reverse joins agree', () => {
+  const files = ['one.js', 'wide.js'];
+  const forward = R.rank(FIXTURE, { branches: [{ pr: 1, files }] });
+  const reverse = R.routesTouched(FIXTURE, files);
+  assert.deepEqual(forward.filter(r => r.branches.length).map(r => r.key).sort(),
+                   reverse.on.map(r => r.key).sort());
+  assert.deepEqual(forward.filter(r => r.nearBranches.length).map(r => r.key).sort(),
+                   reverse.near.map(r => r.key).sort());
+});
+
+test('a stop sums the work open across its rows', () => {
+  const branches = [{ pr: 1, files: ['one.js'] }, { pr: 2, files: ['wide.js'] }];
+  const g = R.stops(R.rank(STOPPED, { branches }));
+  // PR 2 hits only the wide file, so it is `near` on every row and open on none.
+  assert.equal(g.find(s => s.stop === 'One').open, 1);
+  assert.equal(g.find(s => s.stop === 'Pair').open, 0);
+});
+
+// ── The address the reverse join was missing ────────────────────────────────
+//
+// routesTouched has answered "what is this branch working on" since the Routes
+// pane shipped, and the estate's branch rows have painted its answer. What the
+// chips did with it was call the shell's dispatcher, which walks the page you
+// are already on to that view: main, rendered from main, at the one moment the
+// branch was the point. These hold the address that fixes it.
+
+test('a route opens AT a ref, which is the whole reason to draw the join', () => {
+  const stage = manifest.routes.find(r => r.key === 'stage');
+  assert.ok(stage, 'the stage route is declared');
+  assert.equal(R.viewUrl(stage, 'abc123'),
+    'https://mehrlander.github.io/web-tools/app/?use=abc123&view=stage');
+});
+
+// A Map chip names the tab a branch changes, from the files each tab's lede
+// links in docs/map-tabs.csv, and its link lands on that tab. Carried from
+// web-tools #850, where the same idea was substring tests in the kit.
+test('a Map hit names the tab most of its files belong to, and the link lands there', () => {
+  const tabFiles = R.tabFilesFrom(rows('map-tabs.csv'));
+  assert.deepEqual(tabFiles.policy, ['docs/policies.csv', 'docs/policy-topics.csv']);
+  assert.ok(!Object.values(tabFiles).flat().some(p => p.endsWith('/')), 'a folder link claims nothing');
+  const m = { ...manifest, routes: manifest.routes.map(r => r.key === 'map' ? { ...r, tabFiles } : r) };
+  const map = (files) => R.routesTouched(m, files).on.find(r => r.key === 'map');
+  // A branch that adds a CSV also restamps the census, the Data tab's file.
+  const policy = map(['docs/policies.csv', 'docs/policy-topics.csv', 'data/csv-census.csv', 'lib/alpineComponents/map.js']);
+  assert.equal(policy.tab, 'policy');
+  assert.equal(R.viewUrl(policy, 'abc123'),
+    'https://mehrlander.github.io/web-tools/app/?use=abc123&view=map&tab=policy');
+  assert.equal(map(['docs/policies.csv', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
+  assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
+  assert.equal(R.routesTouched(manifest, ['docs/policies.csv']).on.find(r => r.key === 'map').tab, undefined,
+    'no tabFiles, no tab: the estate rows, which do not read the registry, are unchanged');
+});
+
+// The same address python/showing.py writes for the lib-only case, and the
+// agreement is the point: two answers to "where do I look at this branch" is
+// the state this replaced.
+test('the app and the script agree on the lib-only address', () => {
+  const py = readFileSync(path.join(repoRoot, 'python/showing.py'), 'utf8');
+  const m = py.match(/q = f"\?use=\{sha\}" \+ \(f"&view=\{view\}" if view else ""\)/);
+  assert.ok(m, 'showing.py still writes ?use=<sha>&view=<key>; update the kit if it moved');
+  const stage = manifest.routes.find(r => r.key === 'stage');
+  assert.ok(R.viewUrl(stage, 'deadbeef').endsWith('/app/?use=deadbeef&view=stage'));
+});
+
+test('a route whose address carries a placeholder yields no link at all', () => {
+  // A link that lands nowhere is worse than no link, so the rule is a bare
+  // ?view= and nothing else. Two live rows exercise both sides.
+  const placeholder = manifest.routes.filter(r => /[<&]/.test(r.address || ''));
+  assert.ok(placeholder.length, 'the manifest still declares a placeholder address');
+  for (const r of placeholder) {
+    assert.equal(R.openable(r), false, r.key + ' carries a placeholder and is not openable');
+    assert.equal(R.viewUrl(r, 'abc123'), '');
+  }
+  const bare = manifest.routes.filter(r => /^\?view=[a-z]+$/.test(r.address || ''));
+  assert.ok(bare.length > 10, 'most routes are plain ?view= addresses');
+  for (const r of bare) assert.ok(R.viewUrl(r, 'x').includes('&view=' + r.key));
+});
+
+// Every live row happens to carry an address, so this one is synthetic on
+// purpose: the guard exists for a row that arrives without one, and asserting
+// the manifest contains such a row would fail the day someone gives it one.
+test('a row with no address, or none at all, is not openable', () => {
+  assert.equal(R.openable({ key: 'x' }), false);
+  assert.equal(R.openable(null), false);
+  assert.equal(R.viewUrl({ key: 'x' }, 'abc'), '');
+});
+
+// ?use= fetches the BUNDLE, not lib/, so this is the one caveat that turns a
+// link which resolves and renders into a link that shows last week's code.
+test('a lib change without a rebuilt pre-build is reported, not swallowed', () => {
+  assert.equal(R.bundleStale(['lib/alpineComponents/stage.js']), true);
+  assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/app.js']), false);
+  assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/web-tools.js']), true,
+    'the app pins its own bundle now; the whole-library one is not what ?use= fetches here');
+  assert.equal(R.bundleStale(['pages/branch.html']), false, 'a page change does not ride the bundle');
+  assert.equal(R.bundleStale([]), false);
+});
+
+test('the manifest builder keeps the shell out of the routes and names it twice', () => {
+  assert.equal(manifest.routes.some(r => r.key === 'shell'), false);
+  assert.equal(manifest.shell, manifest.app);
+  assert.ok(manifest.shellNote, 'the shell carries its own note');
+  assert.ok(manifest.groups.length > 1, 'group glosses came from the vocabulary');
+  assert.equal(manifest.groups.every(g => g.key && g.label), true);
+});
+
+// ── docs/views/ and docs/forms/ answer to the two registries ───────────────
+//
+// Each view's document is named on its app-routes row, and each form's on its
+// subjects row. Held both ways: a named doc exists, and a file in either folder
+// is named by a row, so a document cannot drift out of the app's own index.
+test('every doc a view or a type names exists, and every view or form doc is named', async () => {
+  const { readdirSync } = await import('node:fs');
+  const named = new Set();
+  for (const [file, key] of [['app-routes.csv', 'key'], ['subjects.csv', 'key']]) {
+    for (const r of rows(file)) {
+      if (!r.doc) continue;
+      assert.ok(existsSync(path.join(repoRoot, r.doc)), `${file} ${r[key]}: doc missing on disk: ${r.doc}`);
+      named.add(r.doc);
+    }
+  }
+  for (const dir of ['docs/views', 'docs/forms']) {
+    for (const f of readdirSync(path.join(repoRoot, dir)).filter(f => f.endsWith('.md'))) {
+      assert.ok(named.has(`${dir}/${f}`), `${dir}/${f} is named by no app-routes or subjects row`);
+    }
+  }
+});

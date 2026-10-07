@@ -57,7 +57,7 @@ TAG_COLS = ("task", "tag", "value")
 
 
 def csv_text(rows, cols):
-    # Same quoting as the estate's other CSV writers (tools/build/registries-load.mjs):
+    # Same quoting as the estate's other CSV writers (node/build/registries-load.mjs):
     # quote only when the cell holds a comma, a quote, or a newline, and double
     # an interior quote. Kept here rather than imported because this file is
     # portable and stdlib-only, and `csv` would emit CRLF by default.

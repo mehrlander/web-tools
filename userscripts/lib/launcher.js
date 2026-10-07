@@ -39,13 +39,13 @@
 // and a constructed sheet is CSSOM, which does not. Measured against
 // `script-src 'self'; style-src 'self'`, where the bookmarklet route is refused
 // outright and this one mounts intact.
-// The build stamp, written here by scripts/userscript-stub.py from a hash of
+// The build stamp, written here by python/userscript-stub.py from a hash of
 // this file's own contents. It lives in the body rather than the stub because
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '8523816';
-const BUILT = '2026-09-27T15:52:28Z';
+const BUILD = '05ce848';
+const BUILT = '2026-10-07T03:27:42Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp

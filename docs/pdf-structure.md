@@ -337,7 +337,7 @@ output vocabulary, and settling that vocabulary is open work on both sides.
 Pinned: **pdf.js 3.4.120** and **pdf-lib 1.17.1**. pdf-lib is current (upstream
 has not released since); pdf.js is three majors behind, and whether to move is a
 question that recurs and usually gets answered from a changelog. It is answered
-here by running: `node tools/test/pdf-version-probe.mjs` puts the same fixture
+here by running: `node node/test/pdf-version-probe.mjs` puts the same fixture
 and the same analysis through each version with only the library swapped.
 
 Measured 2026-07-25 on Chromium 141:
@@ -450,7 +450,7 @@ green.
 
 ## Testing
 
-- `node --test tools/test/pdf-kit.test.mjs` covers `geom`, `stream`, and
+- `node --test node/test/pdf-kit.test.mjs` covers `geom`, `stream`, and
   `lattice` under jsdom with hand-built fixtures. Hand-built on purpose: with a
   real PDF, a failure is ambiguous between the extractor and the analysis, and
   the analysis is what those tests are about.
@@ -458,9 +458,9 @@ green.
   pdf-lib at coordinates the test chooses. This is the only way to have an answer
   key, and it is where the typed-array colour bug surfaced. Needs a browser, so
   neither is part of `npm test`.
-  - `tools/test/pdf-kit-browser.mjs` opens a ruled table with a white rule and a
+  - `node/test/pdf-kit-browser.mjs` opens a ruled table with a white rule and a
     dotted leader in it, and checks the kit returns what went in. A second
     document holds an open-perimeter table and an unruled header.
-  - `tools/test/pdf-ink-alignment.mjs` renders the page and scans the pixels, so
+  - `node/test/pdf-ink-alignment.mjs` renders the page and scans the pixels, so
     the box-versus-ink and glyph-boundary numbers above are measurements rather
     than claims. Run it with `--keep` to retain the fixture PDF.

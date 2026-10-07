@@ -11,11 +11,11 @@ name: Tests
 # Why it exists: the configured git hooks regenerate deterministic artifacts
 # during ordinary commits and local merge completion, but checkout setup can be
 # skipped, --no-verify can bypass the hooks, and GitHub API/MCP/server-side
-# writes cannot run them. tools/test/derived-artifacts.test.mjs is deliberately
+# writes cannot run them. node/test/derived-artifacts.test.mjs is deliberately
 # independent of that refresh path. Here it runs on every PR, so stale output is
 # caught by the platform rather than accepted because local setup looked ready.
 #
-# The suite is browser-free: `node --test` globs tools/test/**/*.test.mjs, and
+# The suite is browser-free: `node --test` globs node/test/**/*.test.mjs, and
 # every Playwright-driven check (subject-actions, render-copy, the pdf probes) is
 # deliberately named without `.test.` and stays a manual run. That is what lets
 # the install below skip the browser download.

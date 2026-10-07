@@ -5,10 +5,10 @@ name: Activity cache
 # the branch review and the estate cards are current when someone opens them
 # rather than current only after someone opens them. The hourly pass also folds
 # the session records into state/sessions.json and the phone's
-# state/session-menu.json (scripts/sessions-crawl.mjs), which nothing but a
+# state/session-menu.json (node/sessions-crawl.mjs), which nothing but a
 # browser wrote before 2026-10-05. The crawl is the same code
 # the app runs: lib/kits/activity-crawl.js, driven here by
-# scripts/activity-crawl.mjs (its header carries the design and the one
+# node/activity-crawl.mjs (its header carries the design and the one
 # constraint that decided it).
 #
 # WHY IT LIVES IN THE PUBLIC REPO. Two reasons, and neither is where the file it

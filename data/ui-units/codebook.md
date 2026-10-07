@@ -12,7 +12,7 @@ A **unit** is one row of `units.csv`: an app view, a view's tab, or a page.
 A tab whose data, not its reader, chooses between arrangements (the Project
 Overview) is one unit per arrangement, and a route that only lands on a tab
 (`lands` in `docs/app-routes.csv`) is an address of that tab's unit.
-`tools/ui-units.mjs` computes three things a reader does not code:
+`node/ui-units.mjs` computes three things a reader does not code:
 
 - **`app_ring`**: how far the unit sits from the Web Tools app's center, from
   the declaration named in `ring_basis` (README, "Rings").
@@ -88,7 +88,7 @@ supplies the claim:
 | coded | the unit's one `body` code in `coded.csv` | a reader's judgment against the code's test |
 | declared | `data-pattern` on the element holding the arrangement | the unit's own markup |
 | construction | a kit in the code's `kits` cell among the unit's `built_on` | `codes.csv` names the kit; the reader records the call |
-| behavior | the code's promise, tried on the page driven headless | `tools/build/ui-instances.mjs`, into `instances.csv` |
+| behavior | the code's promise, tried on the page driven headless | `node/build/ui-instances.mjs`, into `instances.csv` |
 
 Every coded unit has the first; the other three are present only where they
 apply. A pattern can also have characteristics that are not part of its
@@ -157,10 +157,10 @@ of its declaration. The behavior each code promises: for `list`, at least one
 item shown; for `card-grid`, at least one card; for `list-detail`, picking an unselected item changes (or first
 shows) the detail and moves the selection to it. A declaration hidden at the
 unit's address, or a list with nothing in it there, is unchecked rather than
-failed, until a scenario script (`tools/render/scenarios/`) gives it stand-in
+failed, until a scenario script (`node/render/scenarios/`) gives it stand-in
 rows; `shots.csv` names the scenario a unit is checked and shot with.
 
-`tools/build/ui-instances.mjs` runs both checks and writes `instances.csv`,
+`node/build/ui-instances.mjs` runs both checks and writes `instances.csv`,
 one row per unit it loaded.
 
 ## Slots
@@ -191,7 +191,7 @@ code's.
   `region`. A control nobody marked is in neither column; it shows in the
   shots as a control with no outline.
 
-`tools/build/ui-shots.mjs` outlines frame slots solid and the body dashed, in
+`node/build/ui-shots.mjs` outlines frame slots solid and the body dashed, in
 their dimension's `color` from `dimensions.csv`, labels each with its code's
 name, and crops from the topmost slot.
 

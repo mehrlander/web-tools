@@ -36,14 +36,14 @@ table cell.
 ## The generator
 
 Hand-building nested links with correct blob/tree URLs is exactly the
-tedious, error-prone work to script. [`scripts/build-tree.py`](../../scripts/build-tree.py)
+tedious, error-prone work to script. [`python/build-tree.py`](../../python/build-tree.py)
 (python3 stdlib, argv-parameterized, raw-URL fetchable) emits the table.
 It produces structure, links, and icons; it leaves the gloss column empty,
 because a one-line "what this is" needs judgement the walker lacks (same
 split as `build-board.py`: the tool rolls up, the human writes the prose).
 
 ```
-python3 scripts/build-tree.py <root> [--repo owner/repo] [--ref REF]
+python3 python/build-tree.py <root> [--repo owner/repo] [--ref REF]
     [--depth N] [--mode codespan|braille|ascii] [--all]
     [--ignore GLOB] [--gloss] [--indent N]
 ```
@@ -52,7 +52,7 @@ Defaults: `--mode codespan`, `--ref main`, repo inferred from
 `git remote get-url origin`, tracked files only (`git ls-files`),
 `.git`/`node_modules`/`dist` always pruned, depth unlimited. Fetch it in
 another repo from
-`https://raw.githubusercontent.com/mehrlander/web-tools/main/scripts/build-tree.py`.
+`https://raw.githubusercontent.com/mehrlander/web-tools/main/python/build-tree.py`.
 
 The flow: run the script for the skeleton (the skill passes `--depth 1` for
 the bare view), then append the curated **Major folders** block below it

@@ -138,7 +138,7 @@ same bridge. Inside a toss the cards are in the frame and the listening fab is
 the shell's, so it publishes on a window the cards are not in; the deck relays
 shell to frame, one direction, for as long as it is open.
 
-`tools/render/scenarios/sidebar-compare.mjs` runs the round trip in a browser,
+`node/render/scenarios/sidebar-compare.mjs` runs the round trip in a browser,
 which is the only place the two halves meet: jsdom holds the publish
 (`fab-toss.test.mjs`) and the adoption (`file-review-card.test.mjs`)
 separately. `SHOT=menu` and `SHOT=card` point the same scenario at the picker
