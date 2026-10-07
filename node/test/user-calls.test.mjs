@@ -44,7 +44,8 @@ const FILES = {
   'mehrlander/home:projects/text/variants.jsonl': PAIRS.map(([a, b]) =>
     JSON.stringify({ from: sha(a), to: sha(b), author: 'Claude', purpose: 'update' })).join('\n') + '\n',
   'mehrlander/home:projects/text/proposals.jsonl': PAIRS.map(([a, b, p, basis]) =>
-    JSON.stringify({ from: sha(a), to: sha(b), repo: 'mehrlander/web-tools', path: p, basis })).join('\n') + '\n',
+    JSON.stringify({ from: sha(a), to: sha(b), repo: 'mehrlander/web-tools', path: p, basis,
+                     ...(a === 'Kept as it is.' ? { why: 'The old sentence names a file that is gone.' } : {}) })).join('\n') + '\n',
   'mehrlander/home:projects/text/reviews.jsonl': REVIEWS.map((r) => JSON.stringify(r)).join('\n') + '\n',
   'mehrlander/web-tools:docs/x.md': DOC,
 };
@@ -86,9 +87,9 @@ test('a proposal counts only as Dictate would stage it: one block the file still
   assert.equal(x.staged, 1, 'the two-block one is never staged, the applied one is gone, and the rejected one is not pending');
   assert.deepEqual(x.bases, ['https://github.com/mehrlander/web-tools/pull/1'], 'the bases are the staged ones only');
   assert.deepEqual(x.items, [{ from: 'Kept as it is.', to: 'Kept.', author: 'Claude', purpose: 'update', kind: 'edit',
-    basis: 'https://github.com/mehrlander/web-tools/pull/1', gloss: '', fromId: sha('Kept as it is.'), toId: sha('Kept.'),
+    basis: 'https://github.com/mehrlander/web-tools/pull/1', why: 'The old sentence names a file that is gone.', gloss: '', fromId: sha('Kept as it is.'), toId: sha('Kept.'),
     notes: [{ by: 'owner', at: '2026-10-07T00:00:01Z', note: 'check the tone' }] }],
-    'each staged block carries its text as it stands and as proposed, its kind, its passage ids and its comments');
+    'each staged block carries its text as it stands and as proposed, its kind, its reason, its passage ids and its comments');
   assert.deepEqual(x.calls.map((c) => c.id), ['a1-doc'], 'the open documentation call is filed under its document, ref dropped');
   assert.equal(by.has('mehrlander/web-tools:docs/missing.md'), false, 'a file that cannot be read holds nothing');
 });

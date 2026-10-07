@@ -344,3 +344,14 @@ test('bases counts each basis from the rows: a run by its folder, rejections by 
     '2026-09-27-doc-simplification-reconciliation');
   assert.equal(T.basisRun(BASIS), null);
 });
+
+test('a proposal\'s optional why rides onto its view, and does not make a second proposal', async () => {
+  const row = { from: ID.families, to: ID['bill-section families'], repo: 'mehrlander/web-tools', path: 'docs/text-tools.md', basis: BASIS };
+  const proposals = [JSON.stringify({ ...row, why: 'The old word was ambiguous.' }), JSON.stringify(row)].join('\n') + '\n';
+  const built = await T.build(args({ proposals }));
+  assert.equal(built.proposals.length, 1, 'a row differing only in why repeats the proposal');
+  assert.match(built.warnings.join('\n'), /a repeated proposal/);
+  const v = T.view(built, built.variants.find(x => x.from === ID.families));
+  assert.equal(v.proposals[0].why, 'The old word was ambiguous.');
+  assert.equal('why' in T.view(index, index.variants.find(x => x.from === ID.families)).proposals[0], false, 'absent stays absent');
+});
