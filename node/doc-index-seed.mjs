@@ -7,10 +7,12 @@
 //   node node/doc-index-seed.mjs [--registry ../web-tools-private] [--repo owner/name ...] [--write]
 //
 // Each repo is read at the default-branch tip state/files.json last recorded,
-// from the sibling checkout named like the repo, so the crawl's tip gate sees
-// an entry it can carry. A repo with no checkout beside this one is skipped,
-// and the crawl builds it in its first run. Without --write it prints what it
-// would store.
+// from a checkout named like the repo beside this one (or under its owner's
+// folder, where a cloud session puts a read-only clone), so the crawl's tip
+// gate sees an entry it can carry. A shallow clone that lacks that commit is
+// read at its own tip instead, and the crawl catches up from there. A repo
+// with no checkout is skipped, and the crawl builds it in its first run.
+// Without --write it prints what it would store.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -37,11 +39,13 @@ const git = (dir, ...a) => execFileSync('git', ['-C', dir, ...a], { encoding: 'u
 const got = {};
 for (const [repo, e] of Object.entries(files.repos || {})) {
   if (only.length && !only.includes(repo)) continue;
-  const dir = path.join(root, '..', repo.split('/').pop());
-  if (!existsSync(path.join(dir, '.git'))) { console.log(`${repo}: no checkout at ${dir}, left to the crawl`); continue; }
-  try { git(dir, 'cat-file', '-e', e.sha + '^{commit}'); }
-  catch { git(dir, 'fetch', '-q', 'origin'); }
-  const blobs = git(dir, 'ls-tree', '-r', e.sha).split('\n').flatMap(line => {
+  const dir = [path.join(root, '..', repo.split('/').pop()), path.join(root, '..', repo)]
+    .find(d => existsSync(path.join(d, '.git')));
+  if (!dir) { console.log(`${repo}: no checkout, left to the crawl`); continue; }
+  const has = (sha) => { try { git(dir, 'cat-file', '-e', sha + '^{commit}'); return true; } catch { return false; } };
+  if (!has(e.sha)) git(dir, 'fetch', '-q', 'origin');
+  const sha = has(e.sha) ? e.sha : git(dir, 'rev-parse', 'origin/HEAD').trim();
+  const blobs = git(dir, 'ls-tree', '-r', sha).split('\n').flatMap(line => {
     const m = /^\d+ blob ([0-9a-f]{40})\t(.+)$/.exec(line);
     return m && D.isDoc(m[2]) ? [{ blob: m[1], path: m[2] }] : [];
   });
@@ -57,8 +61,8 @@ for (const [repo, e] of Object.entries(files.repos || {})) {
     at = nl + 1 + size + 1;
     return { path: b.path, blob: b.blob, words: D.countWords(text) };
   });
-  got[repo] = { sha: e.sha, at: new Date().toISOString(), truncated: false, ...D.encode(docs) };
-  console.log(`${repo}: ${got[repo].docs} documents, ${got[repo].words} words at ${e.sha.slice(0, 7)}`);
+  got[repo] = { sha, at: new Date().toISOString(), truncated: false, ...D.encode(docs) };
+  console.log(`${repo}: ${got[repo].docs} documents, ${got[repo].words} words at ${sha.slice(0, 7)}${sha === e.sha ? '' : ' (the clone\'s tip)'}`);
 }
 
 const scope = [...new Set([...Object.keys(prev?.repos || {}), ...Object.keys(got)])];
