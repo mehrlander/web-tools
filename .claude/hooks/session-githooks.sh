@@ -15,7 +15,7 @@
 # Nothing here depends on ordering against the sibling session scripts, which
 # the dispatcher runs in parallel.
 #
-# tools/checkout-setup.mjs owns the actual configuration and verification. This
+# node/checkout-setup.mjs owns the actual configuration and verification. This
 # wrapper exists only so Claude's dispatcher can perform the cheap git-only half
 # automatically. Codex, Gemini, and an ordinary terminal use `npm run setup`.
 #
@@ -23,7 +23,7 @@
 # the shared command's concrete error and the explicit recovery command reach
 # session output. `npm run ready` remains the read-only answer afterward.
 DIR="${CLAUDE_PROJECT_DIR:-.}"
-if output=$(node "$DIR/tools/checkout-setup.mjs" --root "$DIR" --git-only --quiet 2>&1); then
+if output=$(node "$DIR/node/checkout-setup.mjs" --root "$DIR" --git-only --quiet 2>&1); then
   exit 0
 fi
 

@@ -22,7 +22,7 @@ reaches the page, say it in words.
 
 ## Making the link
 
-Use `scripts/look-link.py` (from another repo, `../web-tools/scripts/look-link.py`):
+Use `python/look-link.py` (from another repo, `../web-tools/python/look-link.py`):
 
     look-link.py anchors <page>
     look-link.py make <page> --show <anchor> --say "<why>"

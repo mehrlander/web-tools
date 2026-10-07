@@ -60,8 +60,8 @@ Use "0. None." when nothing remains.
 * Keep the guide region below about 250 lines.
 * Do not list files, diff statistics, or CI results there.
 * Put session context that belongs nowhere else in the guide or a PR comment, never in a tracker task.
-* Make ✴️ asks in the reply and copy them into the PR body.
-* Update the guide after every push that materially changes state, rewriting only between the markers with `update_pull_request`. Verify URLs first with `python3 scripts/mcp-link-safe.py --check body.md`.
+* Make ✴️ requests in the reply and copy them into the PR body.
+* Update the guide after every push that materially changes state, rewriting only between the markers with `update_pull_request`. Verify URLs first with `python3 python/mcp-link-safe.py --check body.md`.
 * Ask binary decisions as **Question?** Yes / No, followed by the recommendation and consequence.
 * Do not create your own action item. If automation can perform it, do it now; if only the user can, make it ✴️.
 * Correct discovered facts immediately.

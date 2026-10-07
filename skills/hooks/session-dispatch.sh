@@ -2,7 +2,7 @@
 # SessionStart hook: run every checkout's own session scripts.
 #
 # The harness has no glob for session-start scripts. `npm test` discovers 70
-# files from `tools/test/**/*.test.mjs`, and git discovers its hooks from a
+# files from `node/test/**/*.test.mjs`, and git discovers its hooks from a
 # folder once `core.hooksPath` is set, but a Claude Code hook has to be named
 # individually in `.claude/settings.json`, and that file is read only when the
 # session's project root IS that repo. In a multi-repo session the root sits
@@ -17,7 +17,7 @@
 #     anything else in that folder ->  ignored
 #
 # So web-tools' own session-start.sh is picked up and its build-on-commit.sh is
-# not, exactly as tools/test/bootstrap.mjs stays out of `node --test`. A repo
+# not, exactly as node/test/bootstrap.mjs stays out of `node --test`. A repo
 # opts a script out by naming it something else. The NAME is the declaration,
 # which is why this does not also require the executable bit: a lost mode bit
 # should not turn into a script that silently stops running.

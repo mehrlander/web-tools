@@ -1,6 +1,6 @@
 node_modules
 node_modules/
-tools/.preview/
+node/.preview/
 __pycache__/
 *.pyc
 dist/*
@@ -21,5 +21,5 @@ _bake_out.css
 # is a download, not a repo artifact
 tools/concept-lab/data/concreteness.tsv
 
-# Debug screenshot dropped by tools/test/playground-pass.mjs (SHOT_PATH overrides)
+# Debug screenshot dropped by node/test/playground-pass.mjs (SHOT_PATH overrides)
 playground-census.png

@@ -111,7 +111,7 @@ if changed lib/; then
 fi
 
 # --- leg dictate-build: lib/ or pages/dictate.html -> dist/dictate.js ---------
-# The dictation page adopts its own build (tools/build/build.mjs), so a change to
+# The dictation page adopts its own build (node/build/build.mjs), so a change to
 # lib/ or to the page's reach re-emits it. It is the one PER-PAGE build that is
 # tracked, and it is tracked because the page imports it: the chain it replaces
 # was fourteen serial contents-API round trips, which is what made the page slow
@@ -125,7 +125,7 @@ if changed lib/ pages/dictate.html; then
 fi
 
 # --- leg app-build: lib/ or app/index.html -> dist/app.js (the app's pre-build) ---
-# The app imports its own walked build (tools/build/build-app.mjs), so a change
+# The app imports its own walked build (node/build/build-app.mjs), so a change
 # to the page's reach re-emits it too.
 if changed lib/ app/index.html; then
   if npm run build:app --silent >/dev/null 2>&1; then
@@ -163,7 +163,7 @@ if [ "$refresh_all" = 1 ] || [ -n "$changed_pages" ]; then
   fi
 
   # --- leg thumb-nudge: thumbnail nudge (warn only, never regenerate) ---------
-  # `virt` mirrors the SOURCES table in tools/build/pages-shots.mjs: a kit demo
+  # `virt` mirrors the SOURCES table in node/build/pages-shots.mjs: a kit demo
   # is shot under its virtual folder, not its real path, and pages-shots names
   # its arguments the same way. Get this wrong and the nudge points at a
   # thumbnail that does not exist and hands over a command that shoots nothing.
@@ -184,12 +184,12 @@ if [ "$refresh_all" = 1 ] || [ -n "$changed_pages" ]; then
   done <<< "$changed_pages"
 fi
 
-# --- leg tests-registry: tools/test/ -> the test registry's derived fields ----
+# --- leg tests-registry: node/test/ -> the test registry's derived fields ----
 # Must precede leg docs-reach, not follow it. This writes docs/tests.csv, and
 # docs/tests.csv is a row in docs/docs.json, so a restamp here invalidates any
 # word count 3a had already taken. Running it after 3a leaves the suite failing
 # on exactly one row, which is how the ordering was found.
-if changed tools/test package.json tools/build/tests-index.mjs; then
+if changed node/test package.json node/build/tests-index.mjs; then
   if npm run tests-index --silent >/dev/null 2>&1; then
     stage docs/tests.csv
   else
@@ -197,12 +197,17 @@ if changed tools/test package.json tools/build/tests-index.mjs; then
   fi
 fi
 
-# --- leg harness-census: tools/ or scripts/ -> the harness census's derived fields ---
+# --- leg harness-census: node/, python/, .claude/, .github/workflows/ or any .md -> the harness census's derived fields ---
 # docs/harness.csv is authored only in `role` and the layer glossary; layer,
 # lines, invocation, emits, named, and tested are stamped from the tree, and a
 # rename or a new npm script moves them without touching the registry.
+# `named` reads every tracked .md file, so a doc that first mentions a script
+# (CLAUDE.md is the usual one) flips it with no code change; the leg watched
+# code paths only and left that flip to CI until 2026-10-07.
 # artifacts-lockstep runs the generator's --check as the backstop.
-if changed tools scripts skills/hooks .githooks package.json tools/build/tools-index.mjs docs/harness.csv; then
+# .github/workflows joined the trigger the same day: adding a workflow
+# (refresh-derived.yml) left its row missing until the suite said so.
+if changed node python .claude skills/hooks .githooks .github/workflows package.json node/build/tools-index.mjs docs/harness.csv '*.md'; then
   if npm run tools-index --silent >/dev/null 2>&1; then
     stage docs/harness.csv
   else
@@ -214,7 +219,7 @@ fi
 # docs/kits.csv authors nothing: namespace, headline, boot, demo, users and
 # tested are all read off the tree, so any change on the shelf, to a demo, to a
 # page that loads a kit, or to the boot manifest can move a row.
-if changed lib pages app tools/test tools/build/kits-index.mjs docs/kits.csv; then
+if changed lib pages app node/test node/build/kits-index.mjs docs/kits.csv; then
   if npm run kits-index --silent >/dev/null 2>&1; then
     stage docs/kits.csv
   else
@@ -227,7 +232,7 @@ fi
 # files that name each registry, stamped the way leg docs-reach stamps reach. Must
 # precede 3a: this writes docs/registries.csv, which is a docs/ file whose
 # word count 3a measures. properties-registry.test.mjs is the backstop.
-if changed lib pages docs/registries.csv tools/build/registries-reach.mjs; then
+if changed lib pages docs/registries.csv node/build/registries-reach.mjs; then
   if npm run registries-reach --silent >/dev/null 2>&1; then
     stage docs/registries.csv
   else
@@ -274,7 +279,7 @@ fi
 # length changes the second, and both edits are nowhere near docs/docs.json.
 # Restamp before leg docs-readme so the README projects the new value in the same commit.
 # docs-registry.test.mjs is the backstop where the hook does not run.
-if changed skills lib pages docs tools/build/docs-reach.mjs; then
+if changed skills lib pages docs node/build/docs-reach.mjs; then
   if npm run docs-reach --silent >/dev/null 2>&1; then
     stage docs/docs.csv
   else
@@ -287,7 +292,7 @@ fi
 # that installed the plugin reads them off disk. docs/ is authoritative; this
 # keeps the copy from drifting in the commit that moves the source, which is
 # how it drifted before (resynced by hand in 2b785b2).
-if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md tools/build/vendor-docs.mjs; then
+if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md node/build/vendor-docs.mjs; then
   if npm run vendor-docs --silent >/dev/null 2>&1; then
     stage skills/default/SURFACING.md skills/default/surfacing-course.md skills/default/QUALIFIED-WRITING.md
   else
@@ -299,7 +304,7 @@ fi
 # docs/themes.csv is the duplication graph the Map view's Themes tab reads, and
 # every edge in it is a fact about prose, so any .md edit can move it. Cheap
 # (about 1.2s) and byte-stable by construction: keys sorted, one separator.
-if changed '*.md' scripts/duplicated-claims.py; then
+if changed '*.md' python/duplicated-claims.py; then
   if npm run themes-graph --silent >/dev/null 2>&1; then
     stage docs/themes.csv
   else
@@ -310,7 +315,7 @@ fi
 # --- leg docs-readme: docs/docs.json -> docs/README.md ------------------------
 # The docs index is a projection of the documentation registry; regenerate it
 # whenever the registry (or the generator) has pending changes.
-if changed docs/docs.csv tools/build/docs-readme.mjs; then
+if changed docs/docs.csv node/build/docs-readme.mjs; then
   if npm run docs-readme --silent >/dev/null 2>&1; then
     stage docs/README.md
   else
@@ -342,17 +347,17 @@ fi
 # --- leg csv-census: each tracked CSV -> the repo's own Data census -----------
 # Run after every other CSV-producing leg and after their outputs were staged:
 # csv-census.py measures index blobs, the exact bytes the commit will contain.
-if changed '*.csv' .web-tools.json scripts/csv-census.py; then
-  if python3 scripts/csv-census.py >/dev/null 2>&1; then
+if changed '*.csv' .web-tools.json python/csv-census.py; then
+  if python3 python/csv-census.py >/dev/null 2>&1; then
     stage data/csv-census.csv
   else
-    echo "build hook: 'python3 scripts/csv-census.py' failed - data/csv-census.csv may be stale" >&2
+    echo "build hook: 'python3 python/csv-census.py' failed - data/csv-census.csv may be stale" >&2
   fi
 fi
 
 # --- leg reading-columns: reading columns (warn only) -------------------------
 # The PreToolUse guard in the portable plugin refuses these as they are written,
-# and tools/test/reading-column.test.mjs fails CI on any that land, so this leg
+# and node/test/reading-column.test.mjs fails CI on any that land, so this leg
 # exists for the third case only: a file edited outside this session's harness,
 # where the guard never ran and the suite has not been run yet.
 if [ -f skills/hooks/reading-column.py ]; then
@@ -367,8 +372,8 @@ fi
 # --- leg sunset-markers: SUNSET markers now due (warn only) -------------------
 # Back-compat shims are tagged SUNSET(YYYY-MM-DD); warn at commit time once a
 # marker's date has passed so it gets removed rather than lingering forever.
-if [ -f scripts/sunset-scan.py ]; then
-  out="$(python3 scripts/sunset-scan.py 2>/dev/null || true)"
+if [ -f python/sunset-scan.py ]; then
+  out="$(python3 python/sunset-scan.py 2>/dev/null || true)"
   [ -n "$out" ] && printf '%s\n' "$out" >&2 || true
 fi
 
@@ -378,10 +383,10 @@ fi
 # commit that edits the passage leaves them pointing at text that is no longer
 # there; this names each one against the staged text and never blocks, since
 # editing a passage someone noted is often the point. The rules, and the repair
-# for a standoff, are in scripts/annotate/anchors.py. About 50ms when nothing
+# for a standoff, are in python/annotate/anchors.py. About 50ms when nothing
 # is staged.
-if [ "$refresh_all" = 0 ] && [ -f scripts/annotate/anchors.py ]; then
-  out="$(python3 scripts/annotate/anchors.py --staged 2>&1 || true)"
+if [ "$refresh_all" = 0 ] && [ -f python/annotate/anchors.py ]; then
+  out="$(python3 python/annotate/anchors.py --staged 2>&1 || true)"
   [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/build hook: /' >&2 || true
 fi
 

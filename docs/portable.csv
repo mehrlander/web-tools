@@ -41,6 +41,8 @@ skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,po
 skill,/portable:pptx,skills/pptx/SKILL.md,pptx,,plugin
 skill,/portable:question-margin,skills/question-margin/SKILL.md,question-margin,,plugin
 skill,/portable:reduction-panel,skills/reduction-panel/SKILL.md,reduction-panel,,plugin
+skill,/portable:peeves,skills/peeves/SKILL.md,peeves,,plugin
+skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin
 skill,/portable:reorient-me,skills/reorient-me/SKILL.md,reorient-me,,plugin
 skill,/portable:report-distiller,skills/report-distiller/SKILL.md,report-distiller,,plugin
 skill,/portable:safe-html-templating,skills/safe-html-templating/SKILL.md,safe-html-templating,,plugin
@@ -74,24 +76,32 @@ doc,,docs/github/markdown.md,GitHub markdown,"what GitHub's renderer does with M
 doc,,docs/github/mcp-server-routing.md,MCP server routing,unexpected approval prompts with two GitHub MCP servers are often routing artifacts,on-demand
 dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code web sandbox: network, persistence, testing recipes",on-demand
 dir,,docs/envelopes,Content envelopes,"the envelope family: the surface contract, chat-results, and the schemas that validate them",on-demand
+agent,,skills/agents/house-style-critic.md,House-style critic,,plugin
+agent,,skills/agents/peeves-critic.md,Peeves critic,,plugin
+agent,,skills/agents/conservator.md,Conservator,,plugin
+agent,,skills/agents/radical-editor.md,Radical editor,,plugin
+agent,,skills/agents/source-historian.md,Source historian,,plugin
+agent,,skills/agents/novice-reader.md,Novice reader,,plugin
+agent,,skills/agents/counterexample-hunter.md,Counterexample hunter,,plugin
+agent,,skills/agents/closer.md,Closer,,plugin
 dir,,skills,Plugin source,"the portable plugin's source tree: every skill it carries and the hook bundle, also served as static files that load-skill fetches",plugin
 script,,skills/tasks/build-board.py,build-board.py,regenerate a tracker's board.md from task frontmatter; ships inside the plugin,plugin
 script,,skills/in-flight/in-flight.py,in-flight.py,classify a branch estate into live / merged / unrelated / undecidable and reconcile tracker claims against it; ships inside the plugin,plugin
-script,,scripts/sunset-scan.py,sunset-scan.py,,on-demand
-script,,scripts/unclaimed-code.py,unclaimed-code.py,,on-demand
-script,,scripts/doc-placement.py,doc-placement.py,,on-demand
-script,,scripts/csv-census.py,csv-census.py,,on-demand
-script,,scripts/declared-paths.py,declared-paths.py,,on-demand
-script,,scripts/dead-links.py,dead-links.py,,on-demand
-script,,scripts/embedded-prose.py,embedded-prose.py,,on-demand
-script,,scripts/stranded-titles.py,stranded-titles.py,,on-demand
-script,,scripts/dead-opacity.py,dead-opacity.py,,on-demand
-script,,scripts/mcp-link-safe.py,mcp-link-safe.py,,on-demand
-script,,scripts/showing.py,showing.py,,on-demand
-script,,scripts/text-carriers.py,text-carriers.py,,on-demand
-script,,scripts/build-tree.py,build-tree.py,,on-demand
-script,,scripts/ocr-pdf.py,ocr-pdf.py,,on-demand
-script,,scripts/page-strips.py,page-strips.py,,on-demand
+script,,python/sunset-scan.py,sunset-scan.py,,on-demand
+script,,python/unclaimed-code.py,unclaimed-code.py,,on-demand
+script,,python/doc-placement.py,doc-placement.py,,on-demand
+script,,python/csv-census.py,csv-census.py,,on-demand
+script,,python/declared-paths.py,declared-paths.py,,on-demand
+script,,python/dead-links.py,dead-links.py,,on-demand
+script,,python/embedded-prose.py,embedded-prose.py,,on-demand
+script,,python/stranded-titles.py,stranded-titles.py,,on-demand
+script,,python/dead-opacity.py,dead-opacity.py,,on-demand
+script,,python/mcp-link-safe.py,mcp-link-safe.py,,on-demand
+script,,python/showing.py,showing.py,,on-demand
+script,,python/text-carriers.py,text-carriers.py,,on-demand
+script,,python/build-tree.py,build-tree.py,,on-demand
+script,,python/ocr-pdf.py,ocr-pdf.py,,on-demand
+script,,python/page-strips.py,page-strips.py,,on-demand
 doc,,docs/column-primitives.md,Column primitives,"what kind of thing a column holds: id, label, locator, value. The role axis, its crossing with the claim-versus-support position, and the dependency that a value domain is only askable under label or locator",reference
 doc,,docs/surfacing-course.md,Surfacing course,"the canonical guide-PR lifecycle; a byte-matched copy ships beside the default skill for PR work, and the pr-subscribe-hint hook injects it after an MCP-created PR",plugin
 doc,,docs/direct-to-main.csv,Direct-to-main registry,the registry of approved direct-to-main processes and synchronization discipline,reference

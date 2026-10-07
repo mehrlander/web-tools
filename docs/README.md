@@ -1,6 +1,6 @@
 # docs
 
-<!-- GENERATED from docs/docs.csv by tools/build/docs-readme.mjs; do not hand-edit. -->
+<!-- GENERATED from docs/docs.csv by node/build/docs-readme.mjs; do not hand-edit. -->
 
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
@@ -10,9 +10,9 @@ corrected by markers, never rewritten; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
-**Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 19 are named by CLAUDE.md,
-15 by a skill, 35 by a page or component. The remaining 54 are
+**Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
+2 arrive in every session's context, 18 are named by CLAUDE.md,
+15 by a skill, 36 by a page or component. The remaining 53 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -31,14 +31,13 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
-- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: the takeover, file substitution, the sidebar's second ref, and drop-on-a-branch
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
-- [`harness.csv`](harness.csv) — the harness registry: every tools/ and scripts/ file, its role, and how it is invoked
+- [`harness.csv`](harness.csv) — the harness registry: every node/ and python/ file, its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
@@ -65,7 +64,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
 - [`surfacing-course.md`](surfacing-course.md) — the guide-PR lifecycle: the PR body as a workstream’s running record, its template, and the six phases
-- [`surfacing-extended.md`](surfacing-extended.md) — the ways of handing something over that most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
 - [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
@@ -95,6 +93,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
+- [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
 
 ## docs/doc-craft-specimens/
 
@@ -173,5 +172,5 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
 - [`lists.md`](views/lists.md) *(orphan)* — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them
 
-11 shared statements are registered in
+12 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

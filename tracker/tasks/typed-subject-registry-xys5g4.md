@@ -42,7 +42,7 @@ subject, and each layer row's glyph takes the type's icon from the registry.
 - `docs/app-routes.csv`: its `group` column (estate, repo, shell) is the subject type a view takes; re-glossed, not renamed.
 - `docs/APP.md`: the sidebar paragraph listed files and branches among a repo's views while its own list below says Files is a route out; the model exposes that wobble.
 - `lib/alpineComponents/fab.js`: `readLayers`, `layerIcon`, the Render tab identity block.
-- `tools/test/routes-manifest.test.mjs`, `tools/test/fab-layers.test.mjs`: the checks that hold the join and the derivation.
+- `node/test/routes-manifest.test.mjs`, `node/test/fab-layers.test.mjs`: the checks that hold the join and the derivation.
 
 ## Done when
 

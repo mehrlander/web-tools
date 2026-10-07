@@ -67,7 +67,7 @@ priority: high        # example open tag: not acted on until promoted
 
 Rules: high-signal only (skip "might be related"); one line per pointer; grooming may append without rewriting the body; do not encode a product decision here (`awaiting:` and open questions stay elsewhere). Filing may omit Related when nothing is known yet; refining should add it when the connections are found.
 
-**A path here must resolve, and a check enforces it.** The shape it keys on is the one the example shows: where a bullet opens with backticked tokens before its first colon, each is read as a repository path and must exist. A bullet opening with `task ` or `PR ` is a reference of another kind, and backticks after the colon are prose, so neither is path-checked; a path that does not exist yet can still be named after the colon, where it reads as description rather than as a pointer to open. `tools/test/tracker-tasks.test.mjs` holds this, and the same file holds the no-em-dash line above. Both rules were stated here and enforced nowhere until 2026-09-17, when one grooming pass broke both inside the pass that added this section.
+**A path here must resolve, and a check enforces it.** The shape it keys on is the one the example shows: where a bullet opens with backticked tokens before its first colon, each is read as a repository path and must exist. A bullet opening with `task ` or `PR ` is a reference of another kind, and backticks after the colon are prose, so neither is path-checked; a path that does not exist yet can still be named after the colon, where it reads as description rather than as a pointer to open. `node/test/tracker-tasks.test.mjs` holds this, and the same file holds the no-em-dash line above. Both rules were stated here and enforced nowhere until 2026-09-17, when one grooming pass broke both inside the pass that added this section.
 
 **A pointer leaving the prose moves here rather than disappearing.** A cross-reference can go stale in one sense and stay live in another: a sibling task that closed is no longer a dependency, and is still where the reasoning happened. Refinement that cuts such a reference out of a paragraph puts it in Related with its new status. This is what makes the section cheaper than prose rather than merely shorter.
 
@@ -138,7 +138,7 @@ Run `<action>` for <the subject, in one line>.
 
 `status: dormant` renders on **no section at all**. It is preserved-but-not-surfaced: the task file and its history stay in `tasks/`, and the row still reaches `board.csv` so a consumer asked for it can find it, but a reader of the board never meets it. `blocked` and a parked `awaiting:` both say "not now" to a session while still asking to be read every pass; `dormant` says "do not bring this up". The operating rule that follows from it belongs to the skill, not here.
 
-One line per task, each prefixed with the 🎫 task marker ([SURFACING.md](SURFACING.md) owns the marker), keyed by title (not id); in-progress lines also show the owning branch. Nothing else: an open tag is never rendered, per the two-layer rule above.
+One line per task, each prefixed with the 🎫 task marker, keyed by title (not id); in-progress lines also show the owning branch. Nothing else: an open tag is never rendered, per the two-layer rule above.
 
 **The title is a link to the task file**, `🎫 [title](tasks/<file>.md)`, so the board is a table of contents: the row says what the work is and one tap reaches the file. The href is relative to the **board's** folder, since that is the one base both consumers resolve against: GitHub renders `board.md` in place, and the Web Tools app's board pane resolves a row's relative href against the board file's folder and opens the task in its viewer. It targets the file on disk rather than the `id` field, so a task whose id drifted from its filename still links to something that exists. A task's next step belongs in its Progress log, never in a frontmatter key. The board is a faithful projection of the task files. Regenerate and commit both rollups with any commit that changes what the board shows: status, owning branch, or an unmet dependency.
 
@@ -200,7 +200,7 @@ Everything else is an open, authored section, the record-level analogue of an op
 
 **Do not copy what the task files and `board.csv` already carry.** Titles, statuses, sizes, and logs live in the tasks; the record cites ids and states judgment about them. `basis` may carry the open counts as read (`onDeck`, `inProgress`, `blocked`) to fix the scale of what was assessed; that is an anchor, not data for a consumer.
 
-The board generator does not read `assessments/`, the board does not render them, and no gate owns them: an authored record has no source to be held to. What is checked is only the identity and the four required keys (web-tools: `tools/test/tracker-assessments.test.mjs`).
+The board generator does not read `assessments/`, the board does not render them, and no gate owns them: an authored record has no source to be held to. What is checked is only the identity and the four required keys (web-tools: `node/test/tracker-assessments.test.mjs`).
 
 ## Conflicts
 

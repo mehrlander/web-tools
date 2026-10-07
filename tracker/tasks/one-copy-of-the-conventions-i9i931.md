@@ -89,7 +89,7 @@ uninjected.
 - `CLAUDE.md`: conventions home after PR #634 (`docs/CONVENTIONS.md` retired)
 - `.claude-plugin/marketplace.json`: declares skill payload source; why docs/ does not travel today
 - `.githooks/pre-commit`: regenerates / polices portable copies
-- `tools/test/portable-manifest.test.mjs`: byte-parity / manifest gate for copies that travel
+- `node/test/portable-manifest.test.mjs`: byte-parity / manifest gate for copies that travel
 - PR #634: retired CONVENTIONS dual-store and injection hook; narrowed this task to SURFACING
 
 ## Done when

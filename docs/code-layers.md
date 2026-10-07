@@ -13,7 +13,7 @@ at the task that owns the decision. The `lib/` root versus `lib/kits/` boundary
 was in that state from 2026-07-26, was settled on 2026-08-07, and the tree was
 migrated onto the rule on 2026-08-08; the section below states the rule.
 
-Measured with [`scripts/unclaimed-code.py`](../scripts/unclaimed-code.py)
+Measured with [`python/unclaimed-code.py`](../python/unclaimed-code.py)
 (`npm run code-scan`), which reports per-layer counts of files, files any
 prose names, and files a test exercises. It is advisory and heuristic. Its use
 here is the layer column, not the individual row: one unnamed file is noise, a
@@ -27,8 +27,8 @@ column of them is a category nobody has stated.
 | `lib/kits/` **kit** | everything else that registers a `window` namespace | `window.<Name>` |
 | `lib/alpineComponents/` **component** | renders and holds reactive state | `Alpine.data(name, fn)` |
 | `lib/ops/` **op** | is one function expression, reaching neither `window` nor `document` | nothing in a page: its caller evaluates the text |
-| `scripts/` **standalone** | argv-driven, runs from any repo root, no repo of its own | a shell invocation |
-| `tools/` **tooling** | exercises or builds this repo, in Node, never shipped to a page | a `node`/`npm` invocation |
+| `python/` **Python** | is Python | a `python3` invocation |
+| `node/` **Node** | is Node, never shipped to a page | a `node`/`npm` invocation |
 
 ### `lib/` root or `lib/kits/`: settled 2026-08-07
 
@@ -47,7 +47,7 @@ made, `content-registry.js` and `estate-search.js`, were kits by the rule
 before it landed, which is the rule demonstrating its own necessity),
 `build.js` moved out of `lib/kits/` to `lib/` root, and
 `diagnostic-vanilla-bundle.js` was deleted with zero consumers.
-[`tools/test/code-layers.test.mjs`](../tools/test/code-layers.test.mjs) holds
+[`node/test/code-layers.test.mjs`](../node/test/code-layers.test.mjs) holds
 the boundary in all three directions, off the same scan, so the next misfiled
 file fails the suite instead of accumulating.
 
@@ -67,7 +67,7 @@ property nothing could check:
   file would change folders without changing.
 
 Attachment is the only property that is mechanical, stable under unrelated
-change, and already satisfied by the code. [`npm run code-shape`](../scripts/code-shape.py)
+change, and already satisfied by the code. [`npm run code-shape`](../python/code-shape.py)
 reads it, so the boundary can be held by a test rather than by anyone
 remembering.
 
@@ -108,7 +108,7 @@ per-kit table is [`docs/kits.csv`](kits.csv), shown in the app's Kits tab.
 expression, one serialisable argument in, one serialisable result out, and no
 reference to `window` or `document`. It attaches to nothing a page holds; the
 caller evaluates the text and calls what comes back. That is the whole rule,
-and [`code-shape.py`](../scripts/code-shape.py) reports it as `expression`.
+and [`code-shape.py`](../python/code-shape.py) reports it as `expression`.
 
 It is a layer rather than a stricter kind of kit because the same file has two
 runners that share nothing else: a page in this app, and a phone with no page
@@ -140,38 +140,37 @@ A script outside `lib/` is placed by three questions, asked in order.
    has a caller: the commit hook, CI, an npm script, or a documented procedure.
    An instrument served one event and lives with that event's record.
 2. **Which family?** A pipeline step lives with its pipeline; a script used by
-   one skill lives in that skill's folder.
+   one skill lives in that skill's folder; a script a platform runs lives with
+   that platform's files (`.githooks/`, `.github/workflows/`, `.claude/`,
+   `skills/hooks/`).
 3. **What does it need to run?** Python with only its standard library goes in
-   the Python script folder (`scripts/`); Node with this repo's packages goes in
-   the Node script folder (`tools/`). Otherwise language decides, over the
+   the Python script folder (`python/`); Node with this repo's packages goes in
+   the Node script folder (`node/`). Otherwise language decides, over the
    layer table.
 
-## tools/, which is the weak layer
+## node/, which is the weak layer
 
 Since 2026-08-08 the accounting below is committed as data:
 [`docs/harness.csv`](harness.csv), the harness registry, one row per code file
-under `tools/` and `scripts/` (`tools/test/` stays with the test registry).
+under `node/` and `python/` (`node/test/` stays with the test registry).
 `role` is authored and a blank role is counted rather than hidden;
 invocation, named, and tested are stamped by
-[`tools/build/tools-index.mjs`](../tools/build/tools-index.mjs) and held in
+[`node/build/tools-index.mjs`](../node/build/tools-index.mjs) and held in
 step with its sources by the suite. It renders in the Web Tools app's Map view, Harness tab. The
 registry does not change the judgment below; it makes the gap it describes
 visible per file rather than per column.
 
-[`tools/README.md`](../tools/README.md) states the folder split
+[`node/README.md`](../node/README.md) states the folder split
 (`render/`, `build/`, `test/`, `graphql/`) and names the files that carry the
 contract between them. Below that line most files are named nowhere, and the
 scan shows the gap is not spread evenly: it is concentrated in the two folders
 of `--script` interaction drivers.
 
-**Every `--script` driver lives in [`tools/render/scenarios/`](../tools/render/scenarios/).**
+**Every `--script` driver lives in [`node/render/scenarios/`](../node/render/scenarios/).**
 There is nowhere else, and that is worth stating because there briefly was: a
 sibling `render/scripts/` accumulated twenty-nine files of the same shape that
-`tools/README.md` never mentioned, and the two folders each grew their own
-`sidebar-projects.mjs` against the same UI before being folded together. The
-survivors are `sidebar-projects.mjs` and `sidebar-projects-overlay.mjs`, which
-still overlap on their default path; only the overlay posture distinguishes
-them.
+`node/README.md` never mentioned, and the two folders each grew their own
+`sidebar-projects.mjs` against the same UI before being folded together.
 
 `tools/concept-lab/` was a fourth thing here until 2026-08-25, when it moved to
 the private `home` estate under `projects/local-models/`. The shared text

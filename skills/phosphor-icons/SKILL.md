@@ -37,7 +37,7 @@ Two ways to get there, and only the first is recoverable by machine:
   Font Awesome has `arrow-down-to-bracket`, and all three are plausible enough
   to type. Check the manifest below rather than trusting recall.
 
-In web-tools, `npm run icon-scan` ([`scripts/blank-icons.py`](https://github.com/mehrlander/web-tools/blob/main/scripts/blank-icons.py))
+In web-tools, `npm run icon-scan` ([`python/blank-icons.py`](https://github.com/mehrlander/web-tools/blob/main/python/blank-icons.py))
 resolves every `ph-` name in the tree against the installed stylesheet and the
 suite gates it. Elsewhere, the same check is a grep against
 `node_modules/@phosphor-icons/web/src/regular/style.css`.

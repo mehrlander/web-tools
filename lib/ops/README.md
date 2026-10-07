@@ -13,8 +13,8 @@ inside a `data:` URL it never displays (shortcut-tools' `Run-Op`, over the
 `Get-FromJs` route that library documents as its one door to JavaScript).
 Same code, two runners.
 
-Held by [`tools/test/code-layers.test.mjs`](../../tools/test/code-layers.test.mjs)
-off [`scripts/code-shape.py`](../../scripts/code-shape.py), which reports an op
+Held by [`node/test/code-layers.test.mjs`](../../node/test/code-layers.test.mjs)
+off [`python/code-shape.py`](../../python/code-shape.py), which reports an op
 as attaching to `expression`. The rule and its place among the other layers:
 [`docs/code-layers.md`](../../docs/code-layers.md).
 
@@ -51,7 +51,7 @@ wording, order or verbs is therefore a commit here and costs no install, which
 is the point: that repo ranks the device as the expensive resource.
 
 Two rules the result has to keep, both learned from the phone rather than
-inferred, and both held by `tools/test/ops.test.mjs`:
+inferred, and both held by `node/test/ops.test.mjs`:
 
 - **The caption never pads.** iOS draws the prompt in a proportional font, so
   leading spaces move a line by an amount no character count predicts.

@@ -36,7 +36,7 @@ Stage links (`#stage=`) and private-repo access require the browser's stored `gh
 - `&shell=full|nav|none` sets how much chrome surrounds the view (below).
 - Retired keys still resolve: `activity` to Sessions, `portable` to Map, `surfaces` to Stage, `landing` to the plain `?repo=` form.
 
-The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../tools/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../tools/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
+The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
 
 ## Navigation
 
@@ -110,7 +110,6 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 | Repo configuration, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
 | Proposals | [views/proposals.md](views/proposals.md) |
 | The branch takeover | [forms/branch.md](forms/branch.md) |
-| Branch overlays and the sidebar's second ref | [branch-overlay.md](branch-overlay.md) |
 | Choosing a presentation | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 | Standalone changeset review | [review.html](../pages/review.html) |
 

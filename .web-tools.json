@@ -64,17 +64,17 @@
       "kind": "newer-than",
       "path": "data/checks-reading/explanations.csv",
       "sources": [
-        "tools/test/app-routes.test.mjs",
-        "tools/test/derived-artifacts.test.mjs",
-        "tools/test/diff-tool-engine.test.mjs",
-        "tools/test/docs-registry.test.mjs",
-        "tools/test/gh-boot-pageboot.test.mjs",
-        "tools/test/graphql-schema.test.mjs",
-        "tools/test/one-escape-helper.test.mjs",
-        "tools/test/properties-registry.test.mjs",
-        "tools/test/render-copy.mjs",
-        "tools/test/surfacing-manifest.test.mjs",
-        "tools/test/tests-registry.test.mjs"
+        "node/test/app-routes.test.mjs",
+        "node/test/derived-artifacts.test.mjs",
+        "node/test/diff-tool-engine.test.mjs",
+        "node/test/docs-registry.test.mjs",
+        "node/test/gh-boot-pageboot.test.mjs",
+        "node/test/graphql-schema.test.mjs",
+        "node/test/one-escape-helper.test.mjs",
+        "node/test/properties-registry.test.mjs",
+        "node/test/render-copy.mjs",
+        "node/test/surfacing-manifest.test.mjs",
+        "node/test/tests-registry.test.mjs"
       ],
       "label": "checks reading"
     }

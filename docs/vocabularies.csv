@@ -2,12 +2,12 @@ registry,property,value,label,gloss
 app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate (docs/subjects.csv), the constellation read as one thing."
 app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view."
 app-routes,group,shell,Shell,Addresses that are not a screen of their own.
-harness,layer,scripts,,"standalone and portable: argv-driven, runs from any repo root, travels via the hub"
-harness,layer,scripts/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation"
-harness,layer,tools,,repo-root harness files that fit no folder below
-harness,layer,tools/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
-harness,layer,tools/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"
-harness,layer,tools/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken
+harness,layer,python,,Python scripts
+harness,layer,python/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation"
+harness,layer,node,,Node files at the folder root
+harness,layer,node/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
+harness,layer,node/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"
+harness,layer,node/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken
 properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry"
 properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class"
 properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry"
@@ -45,3 +45,20 @@ upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the p
 upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
 upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
 upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"
+agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name"
+agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows"
+agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard"
+agents,team,panel,,"one seat of the review panel, defined by how it searches; the review-panel skill convenes the seats blind and the closer weighs them"
+peeves,area,writing,Writing,"prose in documents, skills, instructions and drafts"
+peeves,area,naming,Naming,the words chosen for things
+peeves,area,chat-reply,Replies,replies in the conversation
+peeves,area,questions,Questions,when and how to ask the owner something
+peeves,area,reporting,Reporting,"what a reply hands over: links, screenshots, state"
+peeves,area,process,Process,how the work is run
+peeves,area,git-pr,Git and PRs,"branches, pull requests and merging"
+peeves,area,page-design,Pages,what a page or view looks like and how it behaves
+peeves,area,code,Code,code and data as written
+peeves,detector,reader,Reader,a reviewer's judgment; the peeves-critic's job
+peeves,detector,lint,Lint,a script that lists or fails on it
+peeves,detector,hook,Hook,refused or flagged at edit or commit time
+peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered page"

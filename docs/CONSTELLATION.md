@@ -121,7 +121,7 @@ A residual is a question, not a defect, and two answers close it: a document abo
 folder becomes that folder's `README.md`; a document about the workspace moves to its
 `docs/`. Where neither reading fits, leave it and say which it failed.
 
-Counted by [`scripts/doc-placement.py`](../scripts/doc-placement.py)
+Counted by [`python/doc-placement.py`](../python/doc-placement.py)
 (`npm run doc-placement`), which takes repo paths and reports the four slots plus the
 residual by directory. It sorts on basename shape, so it cannot separate the third slot
 from a file that drifted, and reports what else is in the directory instead: eight

@@ -11,7 +11,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 DIR="${CLAUDE_PROJECT_DIR:-.}"
-if output=$(node "$DIR/tools/checkout-setup.mjs" --root "$DIR" --dependencies-only --quiet 2>&1); then
+if output=$(node "$DIR/node/checkout-setup.mjs" --root "$DIR" --dependencies-only --quiet 2>&1); then
   exit 0
 fi
 
