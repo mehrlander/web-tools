@@ -234,7 +234,7 @@ node/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any o
 node/render/scenarios/session-topics.mjs,,node/render/scenarios,79,driver,no,no,no
 node/render/scenarios/shortcut-log-app-view.mjs,,node/render/scenarios,73,driver,no,no,no
 node/render/scenarios/showing-paste-rows.mjs,,node/render/scenarios,27,driver,no,no,no
-node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,no,yes,yes
+node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,no,no,yes
 node/render/scenarios/sidebar-projects.mjs,drive the app's sidebar into the nested-projects state,node/render/scenarios,66,driver,no,yes,no
 node/render/scenarios/sidebar-repo-menus.mjs,the sidebar Repos index with one row's two menus open,node/render/scenarios,61,driver,no,no,no
 node/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",node/render/scenarios,67,driver,no,yes,no
