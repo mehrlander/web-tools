@@ -38,7 +38,7 @@ const PAGE = `<!doctype html><html><head></head><body class="bg">
 </body></html>`;
 
 // vanilla-bundle.js first, because peek escapes panel text with the window.esc
-// it puts there rather than defining a second one (tools/test/one-escape-helper).
+// it puts there rather than defining a second one (node/test/one-escape-helper).
 // It is boot-loaded on every loader page, so this is the real arrangement.
 const boot = () => {
   const { window } = makeWindow({ html: PAGE });
