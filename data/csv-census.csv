@@ -20,7 +20,7 @@ data/ui-units/signals.csv,173,26,22278,"[""file"",""repo"",""lines"",""deck_open
 data/ui-units/thumbs/thumbs.csv,57,7,9574,"[""unit"",""desk"",""phone"",""shot_at"",""recipe"",""focus"",""pattern""]"
 data/ui-units/units.csv,159,30,51471,"[""unit"",""as_of"",""at"",""repo"",""app_ring"",""ring_basis"",""host"",""kind"",""group"",""view"",""tab"",""label"",""address"",""files"",""attribution"",""listed"",""reachable"",""deck_open"",""deck_core"",""deck_drill"",""deck_entry"",""record_deck"",""file_deck"",""dock_split"",""source_peek"",""tabulator"",""alpine_xdata"",""inner_html"",""kits"",""hand""]"
 docs/account-skills.csv,43,4,1872,"[""name"",""want"",""twin"",""note""]"
-docs/agents.csv,14,8,3046,"[""id"",""kind"",""path"",""anchor"",""model"",""tools"",""preloads"",""role""]"
+docs/agents.csv,14,8,3095,"[""id"",""kind"",""path"",""anchor"",""model"",""tools"",""preloads"",""role""]"
 docs/aims-goals.csv,5,3,380,"[""key"",""name"",""gloss""]"
 docs/aims-initiatives.csv,5,3,839,"[""key"",""name"",""gloss""]"
 docs/aims-reading.csv,5,4,378,"[""repo"",""path"",""private"",""gloss""]"

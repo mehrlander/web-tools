@@ -1,5 +1,5 @@
 id,kind,path,anchor,model,tools,preloads,role
-portable:house-style-critic,definition,skills/agents/house-style-critic.md,,sonnet,Read;Grep;Glob,portable:html-style,"Judges one page against the house style's eleven numbered rules from a context that did not build the page, returning a verdict per rule that names a region or a line."
+portable:house-style-critic,definition,skills/agents/house-style-critic.md,,sonnet,Read;Grep;Glob,portable:html-style,"Judges one page against the house style's eleven numbered rules from a context that did not build the page, returning a verdict per rule that names a region or a line. Screenshot-review's Style step calls it by name."
 reduction-panel:section-reader,inline,skills/reduction-panel/SKILL.md,**Section readers.**,haiku,,,"One per section of a document: a telegraphic version, a tightened version, and a list of cuts that change nothing a reader would do."
 reduction-panel:judge,inline,skills/reduction-panel/SKILL.md,**The judge.**,sonnet,,,"Reads the whole file and every section pass: which cuts stand, what each wrong cut loses, what a per-section pass could not see, and its own reduction."
 screenshot-review:blind-reader,inline,skills/screenshot-review/SKILL.md,**Blind reader**,haiku,,,"Given only a screenshot's path, describes the page as a first-time viewer and flags what a person would notice."
