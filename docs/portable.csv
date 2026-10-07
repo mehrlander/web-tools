@@ -41,6 +41,7 @@ skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,po
 skill,/portable:pptx,skills/pptx/SKILL.md,pptx,,plugin
 skill,/portable:question-margin,skills/question-margin/SKILL.md,question-margin,,plugin
 skill,/portable:reduction-panel,skills/reduction-panel/SKILL.md,reduction-panel,,plugin
+skill,/portable:peeves,skills/peeves/SKILL.md,peeves,,plugin
 skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin
 skill,/portable:reorient-me,skills/reorient-me/SKILL.md,reorient-me,,plugin
 skill,/portable:report-distiller,skills/report-distiller/SKILL.md,report-distiller,,plugin
@@ -76,6 +77,7 @@ doc,,docs/github/mcp-server-routing.md,MCP server routing,unexpected approval pr
 dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code web sandbox: network, persistence, testing recipes",on-demand
 dir,,docs/envelopes,Content envelopes,"the envelope family: the surface contract, chat-results, and the schemas that validate them",on-demand
 agent,,skills/agents/house-style-critic.md,House-style critic,,plugin
+agent,,skills/agents/peeves-critic.md,Peeves critic,,plugin
 agent,,skills/agents/conservator.md,Conservator,,plugin
 agent,,skills/agents/radical-editor.md,Radical editor,,plugin
 agent,,skills/agents/source-historian.md,Source historian,,plugin

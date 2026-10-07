@@ -56,6 +56,7 @@
         "./powershell-ise-theming",
         "./pptx",
         "./question-margin",
+        "./peeves",
         "./reduction-panel",
         "./review-panel",
         "./reorient-me",
@@ -81,6 +82,7 @@
       ],
       "agents": [
         "./agents/house-style-critic.md",
+        "./agents/peeves-critic.md",
         "./agents/conservator.md",
         "./agents/radical-editor.md",
         "./agents/source-historian.md",

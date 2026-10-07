@@ -63,6 +63,7 @@ test('a definition row copies its file\'s frontmatter exactly', () => {
     assert.equal(r.model || '', fm.model || '', `${r.id}: model`);
     assert.equal(r.tools || '', asList(fm.tools), `${r.id}: tools`);
     assert.equal(r.preloads || '', asList(fm.skills), `${r.id}: preloads`);
+    assert.equal(r.memory || '', fm.memory || '', `${r.id}: memory`);
     assert.equal(r.anchor || '', '', `${r.id}: a definition is its own file and takes no anchor`);
     assert.ok(r.team, `${r.id}: a definition belongs to a team, the tab it shows under`);
     // The icon is drawn in the project-icon system, so it carries a title and
@@ -94,7 +95,7 @@ test('an inline reader still appears where its row says it does', () => {
       `${r.id}: "${r.anchor}" is no longer in ${r.path}; the role moved, was renamed, or is gone`);
     assert.equal((r.tools || '') + (r.preloads || ''), '',
       `${r.id}: tools and preloads are frontmatter fields, and an inline reader has no frontmatter`);
-    assert.equal((r.team || '') + (r.icon || ''), '',
-      `${r.id}: an inline reader belongs to its skill, so it takes no team and no icon`);
+    assert.equal((r.team || '') + (r.icon || '') + (r.memory || ''), '',
+      `${r.id}: an inline reader belongs to its skill, so it takes no team, icon or memory`);
   }
 });
