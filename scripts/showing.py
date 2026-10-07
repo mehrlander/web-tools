@@ -898,6 +898,31 @@ def lines(d):
     return out
 
 
+# A cross-repo selection belongs on the RENDERER's query, before the `#`:
+# toss-render stamps window.__refs from its own location.search only, so a
+# refs= inside the framed page's query (--query, after `#gh=`) never reaches
+# the selection and the page reads the other repo at main. Seen 2026-10-03,
+# when a page said "No proposals queued" about proposals filed on a branch
+# (docs/SNAGS.md refs-in-page-query-ignored-by-toss). --refs is that half, so
+# the whole link still comes from one command.
+def host_refs(d, refs, query):
+    warn = d.setdefault("warnings", [])
+    if "refs=" in (query or ""):
+        warn.append("--query carries refs=, which reaches the framed page and not the renderer, so "
+                    "the selection is ignored: pass it as --refs owner/repo@ref instead.")
+    if not refs:
+        return d
+    sel = "&".join("refs=" + r for r in refs)
+    for l in d.get("links", []):
+        head, sep, frag = l["url"].partition("#")
+        if not head.endswith("pages/toss-render.html") and "pages/toss-render.html?" not in head:
+            warn.append(f"--refs rides only on a toss link, and {l['page']} is linked by "
+                        f"{d.get('mechanism')}, which has no renderer to carry it.")
+            continue
+        l["url"] = head + ("&" if "?" in head else "?") + sel + sep + frag
+    return d
+
+
 def main():
     ap = argparse.ArgumentParser(description="Which render link shows this branch's changes.")
     ap.add_argument("--base", default="origin/main")
@@ -913,6 +938,9 @@ def main():
                     help="the addressed page's own ?query, for a page that routes on one rather "
                          "than on a hash (e.g. --query 'view=sessions'). Without it a link to such "
                          "a page opens whichever view it defaults to.")
+    ap.add_argument("--refs", action="append", default=[], metavar="OWNER/REPO@REF[:PATH]",
+                    help="a cross-repo selection for the renderer's own query (repeatable), e.g. "
+                         "--refs mehrlander/home@<branch>; --query carries only the page's own parameters")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--overlay", choices=["yes", "no"], help="(for tests) treat main's renderer as reading refs= path entries, or not, instead of asking git")
     ap.add_argument("--main-changed", default="", help="(for tests, with --files) the files main changed since the branch point")
@@ -946,6 +974,7 @@ def main():
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
                          [], [diff_remedy(e, a.base, a.ref)], facts)
+    d = host_refs(d, a.refs, a.query)
     print(json.dumps(d, indent=2) if a.json else "\n".join(lines(d)))
     return 0
 

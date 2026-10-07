@@ -308,6 +308,20 @@ test('--query joins the view on a framed link rather than being dropped', () => 
     'the query joins with & because the framed page reads one query span');
 });
 
+// A cross-repo selection rides on the renderer's own query, before the `#`;
+// inside --query it reaches the framed page instead and the renderer reads the
+// other repo at main (docs/SNAGS.md refs-in-page-query-ignored-by-toss).
+test('--refs puts the selection on the renderer, and refs= in --query is flagged', () => {
+  const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--refs', 'mehrlander/home@claude/x', '--refs', 'mehrlander/web-tools@y']);
+  assert.equal(d.mechanism, 'toss-app');
+  assert.match(d.links[0].url,
+    /pages\/toss-render\.html\?refs=mehrlander\/home@claude\/x&refs=mehrlander\/web-tools@y#gh=/);
+  const q = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--query', 'tab=abs&refs=mehrlander/home@claude/x']);
+  assert.ok(q.warnings.some(w => /pass it as --refs/.test(w)), 'refs= in --query is named');
+});
+
 test('--at puts a fragment on a framed link', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--at', 'note=abc']);
