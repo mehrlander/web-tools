@@ -65,7 +65,10 @@ test('pasteRoute navigates to branch detail on branch paste', async () => {
     },
     win: { RepoAddress: { fromPaste: () => null } },
   });
+  // Either history call: the address is the shell's sync, which pushes a new
+  // entry for a new URL and replaces only an unchanged one.
   history.replaceState = (a, b, url) => stamped.push(url);
+  history.pushState = (a, b, url) => stamped.push(url);
 
   const cd = fakeClipboard('web-tools@claude/my-test-branch');
   const handled = await shell.pasteRoute(cd);

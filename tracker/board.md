@@ -5,24 +5,19 @@ _Generated from tasks/. Do not hand-edit._
 ## On deck
 - 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · L
 - 🎫 [Reach the take-away menu from the app's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
-- 🎫 [Finish commentary trim: accuracy pass or paired fan-out](tasks/comment-trim-rule-first-b0o3bu.md) · M
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
-- 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) · M
-- 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md) · M
-- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M (awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded)
-- 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M (awaiting: the reader/writer split, recommended in the body and unanswered since filing)
+- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M
+- 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
-- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M (awaiting: CSS transform then settle, recommended in the body; live re-render is the alternative)
+- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
-- 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md) · M
-- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M (awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10)
-- 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M (awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body)
+- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M
+- 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
-- 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
 - 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
@@ -49,6 +44,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Fold chat-results into the surface schema, or keep it a sibling](tasks/chat-results-surface-profile-q4m8ra.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Name the code layers and account for tools/](tasks/code-layer-taxonomy-q15jp2.md) (`claude/web-tools-tracker-review-ij4pjj`)
 - 🎫 [Collapse quickLinks into a projection of the repos manifest](tasks/collapse-quicklinks-projection-80oprp.md) (`claude/tracker-status-cjogjn`)
+- 🎫 [Finish commentary trim: accuracy pass or paired fan-out](tasks/comment-trim-rule-first-b0o3bu.md)
 - 🎫 [One HTML-escape helper, and decoding left to the source that knows](tasks/consolidate-escape-helpers-gxverk.md) (`claude/web-tools-tracker-review-2vumr8`)
 - 🎫 [Confirm-gated cross-repo edit proposals via a web-tools-private channel](tasks/cross-repo-edit-proposals-evo1ml.md) (`claude/tracker-status-cjogjn`)
 - 🎫 [Have data-view open at an addressed item via the fragment](tasks/data-view-consume-fragment-nxlpbs.md) (`claude/web-tools-tracker-review-ij4pjj`)
@@ -63,6 +59,8 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Generalize FAB embed handling to declared embeds](tasks/fab-declared-embeds-1jtpll.md)
 - 🎫 [Let the FAB collect a toss subject's page actions, not just the shell's](tasks/fab-subject-side-actions-t7r4nc.md)
 - 🎫 [Give the file-review collapsed row more than a name and a count](tasks/file-review-collapsed-density-2rvxfn.md) (`claude/show-repo-progress-b8l63x`)
+- 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) (`claude/view-754-web-tools-gqq3wl`)
+- 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md)
 - 🎫 [Generalize the gallery to a per-repo pages catalog](tasks/generalize-gallery-pages-catalog-m3b8pa.md) (`claude/web-tools-app-views-m3pkyo`)
 - 🎫 [Finish GitHub jump-over coverage across show-repo views](tasks/github-jumpover-coverage-7bkgmk.md) (`claude/github-icon-placement-3d06i7`)
 - 🎫 [Check GraphQL query shape offline against GitHub's published schema](tasks/graphql-schema-contract-check-cpuvb5.md) (`claude/web-tools-tracker-review-bw48ga`)
@@ -76,6 +74,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [One parser for the owner/repo\[@ref\]:path address](tasks/one-repo-address-parser-5gtv92.md) (`claude/web-tools-tracker-review-bw48ga`)
 - 🎫 [pdf.flow's `start` does not survive the column's own layout](tasks/pdf-flow-start-does-not-hold-461ldz.md) (`claude/budget-drs-kits-analysis-krcugt`)
 - 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) (`claude/open-ended-exploration-9zkc1y`)
+- 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md)
 - 🎫 [Private-repo landing federation via the home registry](tasks/private-repo-landing-federation-u50nns.md)
 - 🎫 [Decide whether apple-shortcuts-actions belongs in the portable plugin](tasks/promote-shortcuts-skill-to-plugin-5d74br.md)
 - 🎫 [Two gaps the proposal channel showed on first use](tasks/proposals-diff-and-removal-w1y9lk.md) (`claude/web-tools-project-tracker-reo5qo`)
@@ -103,6 +102,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Stand up the project tracker](tasks/stand-up-project-tracker-3t7h04.md) (`claude/tracker-concept-assessment-yto1m1`)
 - 🎫 [Make the cache-to-surface dependency checkable, not prose](tasks/surface-census-feeds-relation-anle6b.md) (`claude/surface-census-feeds-relation-1v5n23`)
 - 🎫 [Carry commentary on a stage (prompts= link field, seed of a surface schema)](tasks/surface-schema-commentary-on-stage-hqz0uu.md) (`claude/web-tools-diff-review-s0nrq7`)
+- 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) (`claude/marker-repetition-ci-churn-dywy6v`)
 - 🎫 [Make the take-away menu work inside a toss](tasks/take-away-inside-a-toss-k73cjq.md)
 - 🎫 [Toggle-only Tailwind classes do generate, and the spinners do spin](tasks/toggle-only-tailwind-classes-gxi5tq.md) (`claude/web-tools-tracker-review-m49yxc`)
 - 🎫 [Pass a trailing fragment through toss-render to the rendered page](tasks/toss-fragment-passthrough-558xcw.md) (`claude/toss-render-data-formats-4t55x7`)

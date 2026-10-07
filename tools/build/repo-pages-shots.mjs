@@ -11,10 +11,15 @@
 //   --repo   the source repo the catalog belongs to (e.g. mehrlander/home)
 //   --root   a local checkout of that repo (its .web-tools.json is read here)
 //   --out    the thumb cache root to write into (e.g. ../web-tools-private/thumbs)
-//   [paths]  optional: only shoot these catalog page paths (default: all local ones)
+//   [paths]  optional: only shoot these catalog page paths (default: all local ones);
+//            a bare path takes every entry for that page, `path?query` one route
 //
-// Output: <out>/<owner>/<repo>/<page-path>.png, one 16:10 PNG per catalog page,
-// so the gallery's cache lookup is a pure function of repo + page path. Only
+// Output: <out>/<owner>/<repo>/<page-path>.png, one 16:10 PNG per catalog entry,
+// so the gallery's cache lookup is a pure function of repo + page path. An
+// entry's `query` is the address the page is shot at and is folded into the
+// name, <page-path>@<query-slug>.png, so each route into an app (one page, many
+// entries) has its own shot; app/index.html's catalogThumbPath computes the
+// same name, and the two must stay in step. Only
 // catalog entries whose target resolves to --repo are shot; a cross-repo entry
 // (owner/repo:path pointing elsewhere) belongs to that repo's own shoot and is
 // logged and skipped here.
@@ -53,6 +58,13 @@ function parseArgs(argv) {
   return o;
 }
 
+// The cache file for an entry, below <out>/<owner>/<repo>/: the mirror of the
+// app's catalogThumbPath, without its thumbs/<owner>/<repo>/ prefix.
+function thumbRel(pagePath, query) {
+  const slug = String(query || '').replace(/^\?/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return pagePath.replace(/\.html?$/, '') + (slug ? '@' + slug : '') + '.png';
+}
+
 // Mirror of the app's resolveCatalogPath: an entry path is either a bare
 // in-repo path or an `owner/repo[@ref]:path` cross-repo address.
 function resolveCatalogPath(rawPath, declRepo) {
@@ -87,10 +99,12 @@ for (const entry of catalog) {
   if (!entry || !entry.path) continue;
   const t = resolveCatalogPath(entry.path, opts.repo);
   if (t.repo !== opts.repo) { console.log(`skip (cross-repo) ${entry.path}`); continue; }
-  if (opts.pages.length && !opts.pages.includes(t.path)) continue;
+  const query = typeof entry.query === 'string' ? entry.query.replace(/^\?/, '') : '';
+  const named = query ? t.path + '?' + query : t.path;
+  if (opts.pages.length && !opts.pages.includes(t.path) && !opts.pages.includes(named)) continue;
   const abs = path.join(sourceRoot, t.path);
   if (!existsSync(abs)) { console.log(`skip (missing) ${t.path}`); continue; }
-  targets.push({ path: t.path, abs });
+  targets.push({ path: t.path, query, named, abs });
 }
 if (!targets.length) { console.error('No shootable pages resolved.'); process.exit(1); }
 
@@ -115,12 +129,15 @@ const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certifi
 const results = [];
 for (const t of targets) {
   const [owner, name] = opts.repo.split('/');
-  const out = path.join(outRoot, owner, name, t.path.replace(/\.html?$/, '.png'));
+  const out = path.join(outRoot, owner, name, thumbRel(t.path, t.query));
   await mkdir(path.dirname(out), { recursive: true });
-  process.stdout.write(`shooting ${opts.repo}:${t.path} ... `);
+  process.stdout.write(`shooting ${opts.repo}:${t.named} ... `);
 
+  // The entry's own query is the address it names; a page's shot-query meta
+  // only stands in for an entry that names none.
   const html = await readFile(t.abs, 'utf8');
-  const q = html.match(/<meta\s+name="shot-query"\s+content="([^"]*)"/);
+  const meta = html.match(/<meta\s+name="shot-query"\s+content="([^"]*)"/);
+  const q = t.query ? [null, t.query] : meta;
   const errorLines = [];
 
   const ctx = await browser.newContext({ viewport: { width: WIDTH, height: HEIGHT } });
@@ -152,7 +169,7 @@ for (const t of targets) {
     await ctx.close();
   }
   console.log(ok ? 'ok' : 'FAILED');
-  results.push({ path: t.path, out, ok, errors: errorLines });
+  results.push({ path: t.named, out, ok, errors: errorLines });
 }
 await browser.close();
 server.close();

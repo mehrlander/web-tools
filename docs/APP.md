@@ -40,7 +40,7 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 ## Navigation
 
-**Header.** The estate navigation (`estateNav`) lists Activity, Lists, Repos, Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow, one button each, from `sidebarAppViews`, the same list the sidebar renders; keep one list so the two cannot disagree. The rail (`rail: true` links) and the ref switch appear on desktop. Select a repo in Repos.
+**Header.** The estate navigation (`estateNav`) lists Activity, Waiting (with a token), Lists, Repos, Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow, one button each, from `sidebarAppViews`, the same list the sidebar renders; keep one list so the two cannot disagree. The rail (`rail: true` links) and the ref switch appear on desktop. Select a repo in Repos.
 
 **Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos and app views.
 

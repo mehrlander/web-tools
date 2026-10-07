@@ -1515,3 +1515,153 @@ test('beats survive the prose cut, because the list draws them on every row', ()
   assert.ok(!('turns' in lean), 'the prose does not');
   assert.ok(!S.PROSE_KEYS.includes('beats'));
 });
+
+// ── Topics, joined from web-tools-private's state/session-topics.json ────────
+// The follow-up's rollup is joined on read by the pane, so the join has to be
+// safe to repeat: a re-join with a newer rollup must replace, and a row the
+// rollup stopped naming must lose what it carried rather than keep a stale
+// summary.
+
+const TOPICS_DOC = {
+  version: 1,
+  sessions: {
+    d456b017: { title: 'Share Sheet Shortcut', topics: ['shortcuts', 'share-sheet', 7], summary: 'Wired it.' },
+    ca1777ac: { title: '', topics: [], summary: '' },
+  },
+};
+
+test('withTopics joins title, topics and summary by short id, prefixed', () => {
+  const rows = [{ id: 'd456b017', day: '2026-09-24' }, { id: 'ffffffff', day: '2026-09-30' }];
+  const [a, b] = S.withTopics(rows, TOPICS_DOC);
+  assert.deepEqual(a.topics, ['shortcuts', 'share-sheet']);
+  assert.equal(a.topicTitle, 'Share Sheet Shortcut');
+  assert.equal(a.topicSummary, 'Wired it.');
+  assert.equal(b, rows[1], 'a row the rollup does not name is returned as is');
+  assert.equal(rows[0].topics, undefined, 'the input rows are not mutated');
+});
+
+test('withTopics drops empty fields, and a re-join replaces or clears', () => {
+  const [empty] = S.withTopics([{ id: 'ca1777ac' }], TOPICS_DOC);
+  assert.deepEqual(Object.keys(empty), ['id'], 'an entry with nothing in it adds nothing');
+  const joined = S.withTopics([{ id: 'd456b017' }], TOPICS_DOC);
+  const newer = { sessions: { d456b017: { title: 'Renamed', topics: ['apple-shortcuts'] } } };
+  const [again] = S.withTopics(joined, newer);
+  assert.equal(again.topicTitle, 'Renamed');
+  assert.deepEqual(again.topics, ['apple-shortcuts']);
+  assert.equal(again.topicSummary, undefined, 'a summary the newer rollup lacks does not survive');
+  const [gone] = S.withTopics(joined, { sessions: {} });
+  assert.deepEqual(Object.keys(gone), ['id']);
+  const [unread] = S.withTopics(joined, null);
+  assert.deepEqual(Object.keys(unread), ['id'], 'no rollup means no topics, not the last ones seen');
+});
+
+test('labelOf: the export title, then Gemini\'s, then the branch slug', () => {
+  const base = { id: 'd456b017', repos: [{ name: 'web-tools', branch: 'claude/share-sheet-shortcut-x1y2z3' }] };
+  assert.equal(S.labelOf({ ...base, title: 'Owner title', topicTitle: 'Gemini title' }), 'Owner title');
+  assert.equal(S.labelOf({ ...base, topicTitle: 'Gemini title' }), 'Gemini title');
+  assert.equal(S.labelOf(base), S.nameOf(base));
+});
+
+test('the text box reaches topics, the Gemini title and the summary', () => {
+  const [row] = S.withTopics([{ id: 'd456b017', ask: 'Build it' }], TOPICS_DOC);
+  assert.ok(S.matches(row, 'share-sheet'));
+  assert.ok(S.matches(row, 'share sheet'), 'a hyphenated topic answers to its spaced form');
+  assert.ok(S.matches(row, 'wired'));
+  assert.ok(S.matches(row, 'shortcut'));
+  assert.ok(!S.matches({ id: 'd456b017', ask: 'Build it' }, 'share-sheet'), 'and an unjoined row does not');
+});
+
+// ── The agenda: stretches of turns, the session page's topic headers ─────────
+// Format 4 stretches carry their instant and closing state; format 3 entries
+// carry a topic and a range only. Both come out as one shape.
+const F4 = [
+  { topic: 'Note badges', kind: 'new', minor: false, turns: [0, 16], at: '2026-10-01T16:19:45Z',
+    state: { glyph: '🟡', name: 'Pending', line: '🟡 **Pending:** CI', at: '2026-10-01T18:40:00Z' } },
+  { topic: 'Shorter render links', kind: 'improve', minor: false, turns: [17, 20], at: '2026-10-02T03:40:26Z',
+    state: { glyph: '🟢', name: 'Ready to continue', line: '🟢 **Ready to continue:** pushed', at: '' } },
+  { topic: 'Quick question', kind: 'explore', minor: true, turns: [21, 21], at: '2026-10-02T04:57:32Z', state: null },
+  { topic: 'note badges', kind: 'fix', minor: false, turns: [22, 24], at: '2026-10-02T04:59:58Z',
+    state: { glyph: '🟣', name: 'Merged', line: '🟣 **Merged:** shipped', at: '' } },
+];
+
+test('topicStretches: format 4 entries in order, with kind, minor, instant and state', () => {
+  const out = S.topicStretches([F4[1], F4[0], F4[2], F4[3]]);
+  assert.deepEqual(out.map(e => [e.topic, e.start, e.end]),
+    [['Note badges', 0, 16], ['Shorter render links', 17, 20], ['Quick question', 21, 21], ['note badges', 22, 24]]);
+  assert.equal(out[0].at, '2026-10-01T16:19:45Z');
+  assert.equal(out[1].kind, 'improve');
+  assert.equal(out[2].minor, true);
+  assert.equal(out[2].state, null);
+  assert.equal(out[3].state.name, 'Merged');
+});
+
+test('topicStretches: a format 3 entry passes with nulls; malformed entries drop', () => {
+  const out = S.topicStretches([
+    { topic: 'Old shape', turns: [0, 30] },
+    { topic: '', turns: [0, 1] }, { topic: 'No range' }, { topic: 'Backwards', turns: [5, 2] },
+    { topic: 'Bad kind', kind: 'refactor', turns: [31, 32], state: { name: 'no glyph' } },
+  ]);
+  assert.deepEqual(out.map(e => e.topic), ['Old shape', 'Bad kind']);
+  assert.deepEqual([out[0].kind, out[0].at, out[0].state, out[0].minor], [null, '', null, false]);
+  assert.equal(out[1].kind, null, 'a kind outside the four is dropped');
+  assert.equal(out[1].state, null, 'a state with no glyph is no state');
+  assert.deepEqual(S.topicStretches(null), []);
+});
+
+test('topicList: each topic once, its stretches, turns, and its LAST stretch\'s state', () => {
+  const list = S.topicList(S.topicStretches(F4));
+  assert.deepEqual(list.map(t => t.topic), ['Note badges', 'Shorter render links', 'Quick question'],
+    'a return folds into the topic it returns to, matched without case');
+  const notes = list[0];
+  assert.deepEqual(notes.spans, [[0, 16], [22, 24]]);
+  assert.equal(notes.turns, 20);
+  assert.equal(notes.first, 0);
+  assert.equal(notes.state.name, 'Merged', 'the state is the last stretch\'s, not the first');
+  assert.equal(notes.kind, 'new', 'the first kind given stands');
+  assert.equal(list[2].minor, true);
+  const reopened = S.topicList(S.topicStretches([F4[3], { ...F4[0], turns: [30, 31], state: null }]));
+  assert.equal(reopened[0].state, null, 'reopened and not closed again reads as unclosed');
+});
+
+test('withTopics joins the agenda as topicAgenda, and a re-join clears it', () => {
+  const doc = { sessions: { '4ffa8342': { title: 'T', topics: ['Note badges'], agenda: F4 } } };
+  const [row] = S.withTopics([{ id: '4ffa8342' }], doc);
+  assert.equal(row.topicAgenda.length, 4);
+  assert.equal(row.topicAgenda[1].topic, 'Shorter render links');
+  const [again] = S.withTopics([row], { sessions: { '4ffa8342': { title: 'T', topics: ['x'] } } });
+  assert.equal(again.topicAgenda, undefined, 'an agenda the newer rollup lacks does not survive');
+});
+
+// ── Areas: topics grouped across sessions by a closed list ──────────────────
+const A_ROWS = [
+  { id: 'a', day: '2026-10-01', topicAgenda: S.topicStretches([
+    { topic: 'Note badges', kind: 'new', area: 'Dictation page', turns: [0, 4] },
+    { topic: 'Shorter links', kind: 'improve', area: 'Toss render', turns: [5, 6] },
+    { topic: 'note badges', kind: 'fix', area: 'Dictation page', turns: [7, 9] },
+    { topic: 'Quick question', kind: 'explore', area: 'Other', minor: true, turns: [10, 10] }]) },
+  { id: 'b', day: '2026-10-03', topicAgenda: S.topicStretches([
+    { topic: 'Paragraph notes', kind: 'improve', area: 'Dictation page', turns: [0, 3] }]) },
+  { id: 'c', day: '2026-10-02', topics: ['Old shape'], topicAgenda: S.topicStretches([
+    { topic: 'Old shape', turns: [0, 8] }]) },
+];
+
+test('topicStretches carries an area when one is named, null otherwise', () => {
+  const [a, b] = S.topicStretches([{ topic: 'x', area: ' Stage ', turns: [0, 1] }, { topic: 'y', area: 7, turns: [2, 3] }]);
+  assert.equal(a.area, 'Stage');
+  assert.equal(b.area, null);
+  assert.equal(S.topicList(S.topicStretches([{ topic: 'x', area: 'Stage', turns: [0, 1] }]))[0].area, 'Stage');
+});
+
+test('areaCounts: sessions and topics per area, by kind, busiest first; asides and unfiled topics left out', () => {
+  assert.deepEqual(S.areaCounts(A_ROWS), [
+    { area: 'Dictation page', sessions: 2, topics: 2, kinds: { new: 1, improve: 1 }, last: '2026-10-03' },
+    { area: 'Toss render', sessions: 1, topics: 1, kinds: { improve: 1 }, last: '2026-10-01' },
+  ], 'a return to a topic counts it once, with the kind it first had');
+});
+
+test('carriesTopic: the filter takes a topic name or an area', () => {
+  assert.ok(S.carriesTopic(A_ROWS[2], 'Old shape'));
+  assert.ok(S.carriesTopic(A_ROWS[0], 'Toss render'));
+  assert.ok(!S.carriesTopic(A_ROWS[1], 'Toss render'));
+  assert.ok(S.carriesTopic(A_ROWS[1], ''), 'no filter passes everything');
+});

@@ -3,7 +3,7 @@ app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate
 app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view."
 app-routes,group,shell,Shell,Addresses that are not a screen of their own.
 harness,layer,scripts,,"standalone and portable: argv-driven, runs from any repo root, travels via the hub"
-harness,layer,scripts/annotate,,"standalone scripts that segment, patch, project, and check a standoff annotation; they import each other, so they share a folder"
+harness,layer,scripts/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation"
 harness,layer,tools,,repo-root harness files that fit no folder below
 harness,layer,tools/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
 harness,layer,tools/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"
@@ -37,3 +37,11 @@ skills,group,web,Web,"building something that renders in a browser: markup, comp
 skills,group,device,Device,"the handset is the constraint, not an incidental viewport: Shortcuts, the iOS pasteboard, a sheet-presented drag"
 skills,group,windows,Windows,the Microsoft stack is the constraint: PowerShell and Office Scripts
 skills,group,session,Session,"the working session itself is the subject: memory, prompts, scheduling, and the skills mechanism"
+outposts,reports,owner,Owner,"the owner supplies each observation, so the record grows only when someone remembers to"
+outposts,reports,outpost,Outpost,"the outpost reports itself and a session or device reads it, with nobody acting"
+upstream-skills,status,watching,Watching,"noted, not yet read"
+upstream-skills,status,studied,Studied,"read, and discussed in notes addressed to it"
+upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the plugin never ships"
+upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
+upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
+upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"

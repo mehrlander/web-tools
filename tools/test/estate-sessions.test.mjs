@@ -109,8 +109,7 @@ const shell = {
   goBranches() { this.view = 'branches'; },
   goActivity() { this.view = 'branches'; },
   goSessions() { this.view = 'sessions'; },
-  goTodo() { this.view = 'todo'; },
-  goJots() { this.view = 'jots'; },
+  goLists() { this.view = 'lists'; },
 };
 window.__shell = shell;
 
@@ -134,13 +133,12 @@ const ago = (d) => new Date(Date.now() - d * DAY).toISOString();
 
 // ── The tab getter: two collapses, different shapes ─────────────────────────
 
-test('todo and jots both resolve to one Lists pane; branches and sessions stay apart', () => {
-  shell.view = 'todo';   assert.equal(data.tab, 'lists');
-  shell.view = 'jots';   assert.equal(data.tab, 'lists', '?view=jots must still land somewhere real');
+test('lists is one pane; branches and sessions stay apart', () => {
+  shell.view = 'lists';  assert.equal(data.tab, 'lists');
   shell.view = 'branches'; assert.equal(data.tab, 'branches');
   shell.view = 'activity'; assert.equal(data.tab, 'branches');
   shell.view = 'sessions'; assert.equal(data.tab, 'sessions');
-  shell.view = 'estate'; assert.equal(data.tab, 'repos');
+  shell.view = 'repos';  assert.equal(data.tab, 'repos');
 });
 
 test('the Sessions pill routes through the shell, so the URL keeps stamping', () => {
@@ -375,19 +373,24 @@ test('the token headline is output, not the cache reads that dwarf it', () => {
   assert.match(data.tokenLabel(row), /cache read 92466018/);
 });
 
-test('the finder\'s open-session event switches panes and opens the record\'s reader', async () => {
+test('the finder\'s open-session event opens the shared brief with the submitted query', async () => {
   const shellStub = window.__shell;
   shellStub.goSessions = () => { shellStub._wentSessions = true; };
   seed([rec()]);
-  FILES = { 'sessions/2026/08/2026-08-05-b8fae678.json': rec() };
-  OPENED = [];
-  window.document.dispatchEvent(new window.CustomEvent('web-tools:open-session',
-    { detail: { id: 'b8fae678', day: '2026-08-05' } }));
-  // The handler awaits the fetch; give the microtask queue a beat.
-  await new Promise(r => setTimeout(r, 20));
-  assert.equal(shellStub._wentSessions, true);
-  assert.equal(data.openSessionId, 'b8fae678');
-  assert.equal(OPENED.length, 1);
+  const mount = data.mountSessionDeck;
+  let mounts = 0;
+  data.mountSessionDeck = () => { mounts++; };
+  try {
+    window.document.dispatchEvent(new window.CustomEvent('web-tools:open-session',
+      { detail: { id: 'b8fae678', day: '2026-08-05', find: 'cache invalidation' } }));
+    assert.equal(shellStub._wentSessions, true);
+    assert.equal(data.sessionDeckRow.id, 'b8fae678');
+    assert.equal(data.sessionDeck.find, 'cache invalidation');
+    assert.equal(data._openCard.find, 'cache invalidation');
+    assert.equal(mounts, 1);
+  } finally {
+    data.mountSessionDeck = mount; data.sessionDeck = null; data._openCard = null;
+  }
 });
 
 // ── The pointer, and the address it names ───────────────────────────────────

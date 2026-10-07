@@ -185,7 +185,10 @@ test('the two sub-tab encodings, counted', () => {
   // figure counts how many sub-tabs wear a top-level key, not where they hang,
   // so a relocation is invisible to it by design; a promotion or a retirement
   // is what moves it.
-  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 6 to 7 on 2026-10-06: Tending left the header for the Activity stop, whose
+  // rows open it, and kept its own ?view= key.
+  assert.equal(flattened, 7, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
@@ -196,8 +199,18 @@ test('the two sub-tab encodings, counted', () => {
   // than minting one because the courier needs an address to land on from our
   // own origin, and a second sub-address grammar for one destination would be
   // the more expensive answer.
-  // 18 to 19: the Map gained its Data inventory tab.
-  assert.equal(params, 19, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 18 to 19: the Map gained its Data inventory tab. 19 to 20 on 2026-10-02:
+  // it gained an Outposts tab, for estate material held where no commit reaches.
+  // 20 to 21 on 2026-10-04: it gained a Patterns tab, the UI units coded
+  // against their codebook. 21 to 22 on 2026-10-05: UI gained Dimensions, the
+  // dimensions those units are coded on, and Patterns became its Gallery.
+  // 22 to 25 on 2026-10-06, with no address added: the Map's row named 16 of
+  // the 19 tabs docs/map-tabs.csv declares, and now names Context, Growth and
+  // Policy too, which had been addressable all along. 25 to 27 on 2026-10-06:
+  // the project view's Overview became the README alone, and the landing page
+  // and the PowerShell outpost view it used to show took tabs of their own,
+  // App and Outpost.
+  assert.equal(params, 27, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
@@ -404,6 +417,26 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
   assert.ok(stage, 'the stage route is declared');
   assert.equal(R.viewUrl(stage, 'abc123'),
     'https://mehrlander.github.io/web-tools/app/?use=abc123&view=stage');
+});
+
+// A Map chip names the tab a branch changes, from the files each tab's lede
+// links in docs/map-tabs.csv, and its link lands on that tab. Carried from
+// web-tools #850, where the same idea was substring tests in the kit.
+test('a Map hit names the tab most of its files belong to, and the link lands there', () => {
+  const tabFiles = R.tabFilesFrom(rows('map-tabs.csv'));
+  assert.deepEqual(tabFiles.policy, ['docs/policies.csv', 'docs/policy-topics.csv']);
+  assert.ok(!Object.values(tabFiles).flat().some(p => p.endsWith('/')), 'a folder link claims nothing');
+  const m = { ...manifest, routes: manifest.routes.map(r => r.key === 'map' ? { ...r, tabFiles } : r) };
+  const map = (files) => R.routesTouched(m, files).on.find(r => r.key === 'map');
+  // A branch that adds a CSV also restamps the census, the Data tab's file.
+  const policy = map(['docs/policies.csv', 'docs/policy-topics.csv', 'data/csv-census.csv', 'lib/alpineComponents/map.js']);
+  assert.equal(policy.tab, 'policy');
+  assert.equal(R.viewUrl(policy, 'abc123'),
+    'https://mehrlander.github.io/web-tools/app/?use=abc123&view=map&tab=policy');
+  assert.equal(map(['docs/policies.csv', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
+  assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
+  assert.equal(R.routesTouched(manifest, ['docs/policies.csv']).on.find(r => r.key === 'map').tab, undefined,
+    'no tabFiles, no tab: the estate rows, which do not read the registry, are unchanged');
 });
 
 // The same address scripts/showing.py writes for the lib-only case, and the

@@ -66,7 +66,7 @@ const Alpine = await startAlpine(window, [
 const data = Alpine.$data(window.document.getElementById('sv'));
 const group = () => data.rowGroups.find(g => g.group?.key === 'activity');
 
-test('the fold: configs stands alone, the activity two travel together', () => {
+test('the fold: configs stands alone, the activity rows travel together', () => {
   // Joined rather than deep-compared: Alpine hands the getter's result back
   // through a reactive proxy, so a strict deepEqual fails on the prototype
   // while reporting the values as identical, which reads as a real failure.
@@ -74,7 +74,9 @@ test('the fold: configs stands alone, the activity two travel together', () => {
   assert.equal(data.rowGroups[0].group, null);
   // A group takes the position of its FIRST member, so declaring one never
   // reorders the list: configs stays on top exactly where CACHES puts it.
-  assert.equal(group().rows.map(r => r.key).join(' '), 'activity sessions');
+  // File names is a leg of the activity crawl, so it sits between the two
+  // crawls' rows under the same press.
+  assert.equal(group().rows.map(r => r.key).join(' '), 'activity files sessions');
 });
 
 test('a grouped row surrenders its own button, an ungrouped one keeps it', () => {
@@ -179,8 +181,8 @@ test('a cache row draws the views that declare a read of it', async () => {
   await data.loadRouteReads();
   // Both directions on one relation. Repos declares configs, so configs draws
   // Repos; anything the manifest does not name draws nothing at all.
-  assert.ok(data.routeReads.estate.includes('configs'), 'the manifest parsed no reads for Repos');
-  assert.ok(data.feedsOf('configs').includes('estate'));
+  assert.ok(data.routeReads.repos.includes('configs'), 'the manifest parsed no reads for Repos');
+  assert.ok(data.feedsOf('configs').includes('repos'));
   assert.ok(data.feedsOf('sessions').includes('search'));
   // Joined, not deep-compared, for the reason the fold assertion above states:
   // Alpine hands these back through a reactive proxy, which fails deepEqual on

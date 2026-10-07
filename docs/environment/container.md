@@ -28,14 +28,17 @@ Packages installed during a session do not transfer to other sessions unless the
 
 ### What `~/.claude` carries
 
-*(measured 2026-07-30)*
+*(measured 2026-07-30; layout re-checked 2026-10-06)*
 
 The home directory is two layers with different lifetimes, and the modification
 times separate them cleanly. Written fresh at boot: `skills/` (the account's own
-skills, 39 of them), `session-env/`, and the harness's hook scripts. Restored
-from the environment snapshot, carrying the timestamp of the day that snapshot
-was built: `settings.json`, `CLAUDE.md`, and `plugins/`, including
-`plugins/installed_plugins.json` and the plugin cache below it.
+skills, under `skills/synced/<id>/`), `session-env/`, and the harness's three
+hook scripts, which sit at the top of `~/.claude` with no `hooks/` folder:
+`stop-hook-git-check.sh`, `stop-hook-reply-gate.py` and
+`user-prompt-submit-reply-reminder.py`. Restored from the environment snapshot,
+carrying the timestamp of the day that snapshot was built: `settings.json` and
+`plugins/`, including `plugins/installed_plugins.json` and the plugin cache
+below it. There is no `~/.claude/CLAUDE.md`.
 
 `projects/` was listed as written fresh at boot too, and it is not. Measured
 2026-07-30: a session's own material persists across a restart of its VM,
@@ -187,8 +190,10 @@ session with `claude plugin marketplace update web-tools`, then
 For later sessions the owner edits the environment settings, which forces a
 rebuild.
 
-If `portable` loads, ignore a `daisy-alpine ... FAILED` line from the old
-refresher; it names the retired plugin.
+A build from this script announces itself at session start with a line
+beginning `Environment built`, and leaves neither `~/.claude/env-manifest.txt`
+nor a `~/.claude/hooks/` folder; finding either means the environment predates
+it.
 
 ## The session transcript
 

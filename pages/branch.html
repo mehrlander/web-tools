@@ -287,6 +287,7 @@
 
       async open(t) {
         let repo = t.repo, ref = t.ref, base = t.base;
+        let pull = t.pull || null;
         // A PR names its own head and base, so a link to one needs neither. It
         // also fixes the comparison the PR was actually opened against, which
         // for a merged PR is not today's default branch.
@@ -294,7 +295,11 @@
           try {
             const g = new window.GH({ token: window.TOKEN, repo });
             const p = await window.BranchBrief.fetchPullTarget(g, t.pr);
-            if (p) { ref = ref || p.branch; base = base || p.base; }
+            if (p) {
+              ref = ref || p.branch;
+              base = base || p.base;
+              pull = p.pull || null;
+            }
           } catch (e) { console.warn('pr resolve:', e?.message || e); }
         }
         if (!ref) return;
@@ -325,10 +330,23 @@
         // session.html carried the identical defect and fixed it on
         // 2026-09-01; tools/test/branch-brief-groups.test.mjs now holds both
         // pages to the literal.
-        this.target = { repo, branch: ref, base, authored, pr: t.pr || '', framed: false,
+        this.target = { repo, branch: ref, base, authored, pr: t.pr || '', pull, framed: false,
                         // `&pane=` names a section and `&file=` opens the file
                         // deck on one path; the component owns what each means.
-                        pane: t.pane || '', file: t.file || '' };
+                        pane: t.pane || '', file: t.file || '',
+                        onMeta: (meta) => {
+                          if (!meta || !meta.pr) return;
+                          // If branch has landed/pruned and fell back to the PR boundary diff,
+                          // update the address hash to the canonical permanent PR link.
+                          if (meta.prFallback) {
+                            try {
+                              let h = '#gh=' + meta.repo + '&pr=' + meta.pr;
+                              if (meta.pane) h += '&pane=' + meta.pane;
+                              if (t.file) h += '&file=' + encodeURIComponent(t.file);
+                              history.replaceState(null, '', h);
+                            } catch {}
+                          }
+                        } };
         window.__branchTarget = this.target;
         this.$nextTick(() => {
           // A fresh element each time: Alpine cannot re-initialise a tree it
@@ -346,6 +364,8 @@
           // above stays the one place the layout is stated.
           el.className = old.className;
           el.setAttribute('x-data', 'branchBrief(window.__branchTarget)');
+          // The page's body slot (web-tools data/ui-units/codebook.md, "Slots").
+          el.setAttribute('data-pattern', 'header-swiper');
           old.replaceWith(el);
           Alpine.initTree(el);
         });

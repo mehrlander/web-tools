@@ -236,9 +236,10 @@ With a token, the app keeps a **derived** cache of the account's repo configs
 in the registry repo, built by `lib/kits/repo-config-cache.js`. `refreshConfigCache`
 enumerates the account's repos (`gh.repos()`) and folds each one's
 `.web-tools.json` into `web-tools-private/state/configs.json`, appending a
-bounded on-change version history per repo. A per-browser throttle
-(`localStorage`, default 6h) keeps the crawl occasional, forced after a config
-save; a material-change check keeps commits sparse.
+bounded on-change version history per repo. A repo not pushed since this
+browser last read its config is skipped (a `pushed_at` mark in `localStorage`),
+so a pass over a quiet account reads no repo's config; a config save forces a
+full pass, and a material-change check keeps commits sparse.
 
 This cache is the **read path** for estate membership, so
 a normal load is two GETs (the cache + the account list), not an N-repo scan; a
@@ -249,7 +250,7 @@ per-repo write flows (add-to-estate, the placement editor) read a repo's **live*
 config, not this cache, whenever they
 operate on that repo. Stage history falls out for free: a repo's declared
 `stage.files` lives in its config, so versioning the config versions the declared
-stage. Layer model: `web-tools-private/DESIGN.md`.
+stage. Layer model: `web-tools-private/README.md`, "Three layers".
 
 ## Errands (`errands/requests` → `errands/results`)
 
@@ -296,6 +297,11 @@ token:
   Use it only for what a device alone can say, such as whether iOS keeps the
   tab alive; `tools/test/probe-driver.mjs` checks the driver before a person
   is asked to open anything.
+- **`laptop-daemon`** (venue `personal-laptop`) asks Gemini, through the
+  Gemini home laptop daemon, to do something, usually to answer a prompt. File
+  it with `sessions/tools/errand_runner.py` in web-tools-private. While the
+  laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
+  reply to the result file. Declining the errand on the Stage cancels it.
 
 ## Inbox and outbox
 

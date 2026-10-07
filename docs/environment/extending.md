@@ -136,7 +136,7 @@ The hook applies only to sessions using a branch that contains its configuration
 
 **Why its own entry rather than a line inside the dispatcher.** The output cap applies per hook entry, not across the event: measured 2026-08-30, the dispatcher's 28,670 characters were cut while a separate 298-character `SessionStart` hook in the same session arrived whole. Folded in, the directive would be the first thing truncated on a heavy session, which is the failure that retired the injection channel. The directive also leads the message, so it survives a truncated preview.
 
-A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the field declared in [`docs/manifest-fields.csv`](../manifest-fields.csv) since PR #222. A checkout with no `CLAUDE.md` is never named: the import is the delivery channel, so a directory without one has no channel to be missing. Coverage is [`tools/test/invoke-default.test.mjs`](../../tools/test/invoke-default.test.mjs), which asserts both directions, since a directive that never fires and one that always fires look equally like success from outside.
+A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the field declared in [`docs/manifest-fields.csv`](../manifest-fields.csv) since PR #222. Every checkout counts, with or without a `CLAUDE.md`: since 2026-09-29 (#843) a folder holding `.git`, a `CLAUDE.md` or a `.web-tools.json` is one, so a session whose only checkout is web-tools-private is prodded too. Coverage is [`tools/test/invoke-default.test.mjs`](../../tools/test/invoke-default.test.mjs), which asserts both directions, since a directive that never fires and one that always fires look equally like success from outside.
 
 #### Stop: the session recorder
 
@@ -188,7 +188,7 @@ Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sess
 
 #### SessionStart: the environment report
 
-*Added 2026-09-29.* [`environment-report.sh`](../../skills/hooks/environment-report.sh) reads `~/.claude/environment-setup.ran`, which the setup script writes, and prints the time and commit of the build. It compares the saved script with the one in the marketplace checkout of `main`, and when they differ it says to edit the environment settings to rebuild. It is silent when the file is absent. Coverage is [`tools/test/environment-report.test.mjs`](../../tools/test/environment-report.test.mjs).
+*Added 2026-09-29.* [`environment-report.sh`](../../skills/hooks/environment-report.sh) reads `~/.claude/environment-setup.ran`, which the setup script writes, and prints the time and commit of the build. It compares the saved script with the one in the marketplace checkout of `main`, and when they differ it says to edit the environment settings to rebuild. It is silent when the file is absent. Its line reads `Environment built 2026-10-03T02:23:58Z from scripts/environment-setup.sh at 701b3ef.`, first seen live on 2026-09-29. Coverage is [`tools/test/environment-report.test.mjs`](../../tools/test/environment-report.test.mjs).
 
 #### PreToolUse: the AskUserQuestion guard
 
@@ -226,7 +226,7 @@ This setup uses:
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
 
   **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the project row is dormant; the only guard is the plugin's `ask-question-guard.sh`. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
-- `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
+- `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`, and nothing else. *(verified 2026-10-06)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.
 

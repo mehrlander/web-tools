@@ -29,25 +29,24 @@ test('repoProjects: absent, non-array, or empty config yields no rows', () => {
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [], 'a bare string field is not a list');
 });
 
-test('repoProjects: string and object entries normalize to {path, label, board, inbox, installation}', () => {
+test('repoProjects: string and object entries normalize to {path, label, board, inbox, powershellOutpost}', () => {
   const { shell } = makeShell();
   shell.estateConfigs = {
     'mehrlander/home': {
       projects: [
         'news',
         { path: 'projects/budget-drs' },
-        // A stale `icon` is ignored rather than being an error: the rows
-        // stopped drawing one, and a manifest may still carry the field.
+        // A `ph-` icon is kept as given: the rows draw it as that glyph.
         { path: 'projects/budget-wa/', label: 'WA budget', icon: 'ph-bank' },
       ],
     },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [
-    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', inbox: null, installation: '' },
+    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' },
     { path: 'projects/budget-drs', label: 'budget-drs',
-      board: 'projects/budget-drs/tracker/board.md', landing: '', inbox: null, installation: '' },
+      board: 'projects/budget-drs/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' },
     { path: 'projects/budget-wa', label: 'WA budget',
-      board: 'projects/budget-wa/tracker/board.md', landing: '', inbox: null, installation: '' },
+      board: 'projects/budget-wa/tracker/board.md', landing: '', icon: 'ph-bank', inbox: null, powershellOutpost: '' },
   ]);
 });
 
@@ -97,7 +96,7 @@ test('repoProjects: junk entries drop instead of throwing', () => {
     'mehrlander/home': { projects: [null, 42, {}, { path: '' }, { label: 'no path' }, 'ok'] },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'),
-    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', inbox: null, installation: '' }]);
+    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' }]);
 });
 
 // The workspace's own tray, and the reason it is DECLARED where `board` above
@@ -175,12 +174,12 @@ test('the open project resolves to its declared entry, or a derived one', () => 
   shell.loadProjectReadme = async () => {};
   shell.goProject('projects/a');
   assert.deepEqual(shell.project, { path: 'projects/a', label: 'Alpha',
-                                    board: 'projects/a/tracker/board.md', landing: '', inbox: null, installation: '' });
+                                    board: 'projects/a/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' });
   // A deep link may name a workspace the manifest has not caught up with; the
   // view still opens, on the conventions the path itself implies.
   shell.goProject('projects/unlisted');
   assert.deepEqual(shell.project, { path: 'projects/unlisted', label: 'unlisted',
-                                    board: 'projects/unlisted/tracker/board.md', landing: '', inbox: null, installation: '' });
+                                    board: 'projects/unlisted/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' });
 });
 
 test('repoProjects prefers the OPEN repo\'s live manifest over the estate cache', () => {
@@ -358,9 +357,12 @@ test('the sidebar markup wires the project rows to the shell methods', () => {
     'the board button no longer opens through openProjectBoard');
   assert.match(page, /:href="projectGithubUrl\(r\.repo, p\)"/,
     'the github button no longer links through projectGithubUrl');
-  // The leading glyph is gone on purpose: every row took the same defaulted
-  // icon, so a column of identical marks distinguished nothing.
-  assert.doesNotMatch(page, /:class="p\.icon"/, 'project rows draw a leading icon again');
+  // The leading glyph came back as each project's OWN icon: it had gone because
+  // every row took the same defaulted glyph, which distinguished nothing.
+  assert.match(page, /:src="projectIconSrc\(r\.repo, p\)"/, 'an estate project row no longer draws its icon');
+  assert.match(page, /:src="projectIconSrc\(\$store\.browser\.repo, p\)"/, 'a repo sidebar project row no longer draws its icon');
+  assert.equal((page.match(/:class="projectGlyph\(p\)"|projectGlyph\(p\), view==='project'/g) || []).length, 2,
+    'both project lists fall back to the stock glyph where a project has no picture');
 });
 
 test('the repo sidebar carries the same list, and the pane binds the open one', () => {
@@ -409,30 +411,37 @@ test('both project lists hang off the same rule, and the card carries neither li
     'the card no longer reports branch activity');
 });
 
-test('a landing takes the Overview slot, rendered through toss-render at the browsed ref', () => {
+test('a landing is the App tab, rendered through toss-render at the browsed ref, and the Overview stays the README', () => {
   const { shell, browserStore } = makeShell({
     browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
   });
-  browserStore.config = { projects: [{ path: 'projects/a', landing: 'projects/a/app.html' }] };
+  browserStore.config = { projects: [{ path: 'projects/a', landing: 'projects/a/app.html' }, { path: 'projects/plain' }] };
   shell.syncUrl = () => {};
   const reads = [];
   shell.loadProjectReadme = async () => reads.push('readme');
   shell.loadProjectDocs = async () => reads.push('docs');
   shell.goProject('projects/a');
+  assert.equal(shell.projectTab, 'overview');
+  assert.deepEqual(reads, ['readme'], 'the Overview is the README even where a landing is declared');
+  shell.goProjectTab('app');
+  assert.deepEqual(reads, ['readme'], 'the App tab reads nothing itself: its frame loads the page');
   assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/home:projects/a/app.html');
-  assert.deepEqual(reads, [], 'a landing Overview must not fetch the README it will not render');
   // Off the default branch the landing follows the browsed ref, like
   // projectGithubUrl: inside a repo the honest list is the one on the ref you
   // are standing on, and its landing is too.
   browserStore.ref = 'claude/b';
   assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/home@claude/b:projects/a/app.html');
-  // The pills load only what they render: Docs fetches its listing, Pages
+  // The tabs load only what they render: Docs fetches its listing, Pages
   // fetches nothing (a pure derivation off the manifest already in hand).
   shell.goProjectTab('docs');
-  assert.deepEqual(reads, ['docs']);
+  assert.deepEqual(reads, ['readme', 'docs']);
   shell.goProjectTab('pages');
-  assert.deepEqual(reads, ['docs']);
+  assert.deepEqual(reads, ['readme', 'docs']);
+  // App exists only where a landing is declared; asked of another workspace it draws the Overview.
+  shell.goProject('projects/plain', 'app');
+  assert.equal(shell.projectPane, 'overview');
 });
+
 
 test('the FAB busts out of a project landing embed', () => {
   const { shell, browserStore } = makeShell({
@@ -441,15 +450,18 @@ test('the FAB busts out of a project landing embed', () => {
   browserStore.config = { projects: [{ path: 'projects/a', label: 'Alpha', landing: 'projects/a/app.html' }] };
   shell.view = 'project';
   shell.projectPath = 'projects/a';
-  shell.projectTab = 'overview';
+  shell.projectTab = 'app';
   const acts = shell.actions;
   assert.equal(acts.length, 1);
   assert.equal(acts[0].label, 'Open Alpha landing full-page');
   assert.match(acts[0].run().nav, /toss-render\.html#gh=mehrlander\/home:projects\/a\/app\.html$/);
-  // The other pills are not an embed, so there is nothing to bust out of.
+  // The other tabs are not an embed, the README Overview included, so there is nothing to bust out of.
+  shell.projectTab = 'overview';
+  assert.deepEqual(shell.actions, []);
   shell.projectTab = 'docs';
   assert.deepEqual(shell.actions, []);
 });
+
 
 test('projectPages is the workspace slice of the repo catalog, derived not declared', () => {
   const { shell, browserStore } = makeShell({
@@ -481,6 +493,106 @@ test('projectPages is the workspace slice of the repo catalog, derived not decla
   browserStore.ref = 'claude/branch';
   assert.equal(shell.projectPages[0].live,
     '../pages/toss-render.html#gh=mehrlander/home@claude/branch:projects/budget-drs/app/view/app.html');
+});
+
+test('a route into the project\'s landing is a card that opens the App tab there, and the landing itself is not', () => {
+  const { shell, browserStore } = makeShell({
+    browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
+  });
+  const APP = 'projects/budget-drs/app/view/app.html';
+  browserStore.config = {
+    projects: [{ path: 'projects/budget-drs', landing: APP }],
+    pages: [
+      { path: APP, title: 'Budget DRS', appView: true },
+      { path: APP, query: 'view=submittal', title: 'Submittal' },
+      { path: APP, query: '?view=spend&tab=acfr', title: 'Spend: ACFR' },
+      { path: 'projects/budget-drs/cem/cem.html', query: 'tab=q9', title: 'CEM' },
+    ],
+  };
+  shell.syncUrl = () => {};
+  shell.loadProjectReadme = async () => {};
+  shell.goProject('projects/budget-drs', 'pages');
+  const items = shell.projectPages;
+  assert.deepEqual(items.map(i => i.label), ['Submittal', 'Spend: ACFR', 'CEM'],
+    'the landing with no query is the App tab already, so it is no card');
+  assert.deepEqual(items.map(i => i.route), ['view=submittal', 'view=spend&tab=acfr', null],
+    'a query on the landing is a route; a query on another page is only that page\'s address');
+  assert.equal(new Set(items.map(i => i.key)).size, 3, 'one page, several cards, distinct keys');
+  assert.equal(items[1].live, '../pages/toss-render.html#gh=mehrlander/home:' + APP + '?view=spend&tab=acfr');
+  assert.equal(items[2].live, '../pages/toss-render.html#gh=mehrlander/home:projects/budget-drs/cem/cem.html?tab=q9');
+  assert.equal(items[1].thumb, 'thumbs/mehrlander/home/projects/budget-drs/app/view/app@view-spend-tab-acfr.png');
+  assert.equal(items[2].thumb, '', 'only a route card reads a cached shot; a page keeps its live preview');
+
+  shell.openProjectApp('?view=spend&tab=acfr');
+  assert.equal(shell.projectPane, 'app');
+  assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/home:' + APP + '?view=spend&tab=acfr');
+  const q = shell.deepLinkParams(new URLSearchParams());
+  assert.equal(q.get('tab'), 'app');
+  assert.equal(q.get('item'), 'view=spend&tab=acfr', 'the route rides the address as &item=');
+  assert.equal(new URLSearchParams(shell.projectAppHref('view=submittal').split('?')[1]).get('item'), 'view=submittal');
+
+  shell.openProjectApp('');
+  assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/home:' + APP, 'the App button is the app\'s front');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+
+  shell.goProject('projects/budget-drs', 'app', 'view=submittal');
+  assert.equal(shell.projectAppRoute, 'view=submittal', 'a cold link lands on its route');
+  shell.goProject('projects/other', 'app');
+  assert.equal(shell.projectAppRoute, '', 'another project starts at its own front');
+});
+
+test('a route card takes a plain click in place and leaves a modified one to its link', () => {
+  const { shell } = makeShell();
+  const opened = [];
+  shell.openProjectApp = (r) => opened.push(r);
+  let prevented = 0;
+  const ev = (mods = {}) => ({ preventDefault: () => { prevented++; }, ...mods });
+  shell.followProjectRoute(ev(), 'view=a');
+  shell.followProjectRoute(ev({ metaKey: true }), 'view=b');
+  shell.followProjectRoute(ev({ ctrlKey: true }), 'view=c');
+  assert.deepEqual(opened, ['view=a']);
+  assert.equal(prevented, 1);
+  assert.match(page, /@click="followProjectRoute\(\$event, pg\.route\)" data-project-route/,
+    'the route card face no longer routes its click through followProjectRoute');
+});
+
+test('the repo Pages gallery gives a page query its own tile, and never defaults an app to live', async () => {
+  const { shell, gallery, browserStore, win } = makeShell({
+    browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
+  });
+  const APP = 'projects/budget-drs/app/view/app.html';
+  browserStore.config = {
+    projects: [{ path: 'projects/budget-drs', landing: APP }],
+    pages: [
+      { path: APP, title: 'Budget DRS' },
+      { path: APP, query: 'view=submittal', title: 'Submittal' },
+      { path: 'tools/map.html', title: 'Map' },
+    ],
+  };
+  win.__shell = shell;
+  await gallery.load();
+  const items = gallery.groups[0].items;
+  assert.deepEqual(items.map(i => i.view), ['shot', 'shot', 'live'],
+    'an app with no cached shot opens on the missing-shot face; a page stays live');
+  assert.deepEqual(items.map(i => i.shotMissing), [true, true, false]);
+  assert.equal(items[1].href, '../pages/toss-render.html#gh=mehrlander/home:' + APP + '?view=submittal');
+  assert.equal(new Set(items.map(i => i.href)).size, 3, 'the tiles key on href, so a route is its own tile');
+});
+
+test('the app\'s thumb path and the thumb builder\'s name one file', () => {
+  // repo-pages-shots.mjs writes the cache the galleries read; a route folded
+  // into the name differently on either side would be a shot nothing finds.
+  const fn = (src, name) => {
+    const m = src.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\}'));
+    assert.ok(m, name + ' was not found');
+    return new Function('return (' + m[0] + ')')();
+  };
+  const app = fn(page, 'catalogThumbPath');
+  const builder = fn(readFileSync(path.join(repoRoot, 'tools/build/repo-pages-shots.mjs'), 'utf8'), 'thumbRel');
+  for (const [p, q] of [['a/b.html', ''], ['a/app.html', 'view=spend&tab=acfr'], ['a/app.htm', '?View=Fund'], ['x.html', '&&']]) {
+    assert.equal(app('o/r', p, q), 'thumbs/o/r/' + builder(p, q), p + ' ' + q);
+  }
+  assert.equal(app('o/r', 'a/b.html', ''), 'thumbs/o/r/a/b.png', 'a page with no query keeps the name it always had');
 });
 
 test('groupProjectDocs: root leads, folders alphabetical, READMEs lead their folder', () => {
@@ -566,15 +678,51 @@ test('loadProjectDocs leads with docs/README.md and counts source packages inste
   assert.equal(shell.isSourcePackageDoc('data/sources.md'), false);
 });
 
-test('a docs row opens the file in the shell viewer', () => {
-  const { shell } = makeShell();
-  const opened = [];
-  shell.openFile = async (p) => opened.push(p);
-  shell.projectPath = 'projects/a';
+test('a doc opens in the reader beside the tree, and its path rides as &item=', () => {
+  const { shell } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.syncUrl = () => {};
+  const loads = [];
+  shell.loadProjectDocs = async () => {};
+  shell.loadProjectDoc = () => loads.push(shell.projectDocSel);
+  shell.goProject('projects/a', 'docs');
   shell.openProjectDoc('notes/x.md');
   shell.openProjectDoc('');
-  assert.deepEqual(opened, ['projects/a/notes/x.md']);
+  assert.equal(shell.projectDocSel, 'notes/x.md');
+  assert.equal(loads.at(-1), 'notes/x.md');
+  const p = shell.deepLinkParams(new URLSearchParams());
+  assert.equal(p.get('tab'), 'docs');
+  assert.equal(p.get('item'), 'projects/a/notes/x.md');
+  // An address restores it, and another workspace starts with nothing open.
+  shell.goProject('projects/b', 'docs');
+  assert.equal(shell.projectDocSel, '');
+  shell.goProject('projects/a', 'docs', 'projects/a/notes/x.md');
+  assert.equal(shell.projectDocSel, 'notes/x.md');
+  shell.closeProjectDoc();
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
 });
+
+test('Docs nests the listing into a tree, counts rolled up, the first level open', () => {
+  const { shell } = makeShell();
+  const f = (rel) => ({ rel, name: rel.split('/').pop() });
+  shell.projectDocs = [
+    { dir: '', files: [f('README.md')] },
+    { dir: 'app', files: [f('app/README.md')] },
+    { dir: 'app/view', files: [f('app/view/a.md'), f('app/view/b.md')] },
+    { dir: 'docs', files: [f('docs/x.md')] },
+  ];
+  const show = () => shell.projectDocsRows.map(r => '  '.repeat(r.depth)
+    + (r.kind === 'dir' ? r.name + '/ ' + r.n + (r.open ? '' : ' (closed)') : r.name));
+  assert.deepEqual(show(), ['README.md', 'app/ 3', '  README.md', '  view/ 2 (closed)', 'docs/ 1', '  x.md']);
+  const view = shell.projectDocsRows.find(r => r.dir === 'app/view');
+  shell.toggleProjectDocsDir(view.dir, view.open);
+  assert.deepEqual(show().slice(3, 6), ['  view/ 2', '    a.md', '    b.md'], 'a tap opens a folder and it stays open');
+  const app = shell.projectDocsRows.find(r => r.dir === 'app');
+  shell.toggleProjectDocsDir(app.dir, app.open);
+  assert.deepEqual(show(), ['README.md', 'app/ 3 (closed)', 'docs/ 1', '  x.md']);
+  shell.projectDocsQ = 'b.md';
+  assert.deepEqual(show(), ['app/ 1', '  view/ 1', '    b.md'], 'a filter opens every folder holding a match');
+});
+
 
 test('a non-default pill rides the deep link as &tab=, and boot routes it back', () => {
   const { shell, history } = makeShell({
@@ -611,30 +759,83 @@ test('a non-default pill rides the deep link as &tab=, and boot routes it back',
   assert.equal(s2.projectTab, 'docs', 'the project row does not route the tab off the URL');
 });
 
-test('the pane wires the pills, the landing embed, the pages grid, and the docs rows', () => {
-  assert.match(page, /@click="goProjectTab\('overview'\)"/, 'the Overview pill is gone');
-  assert.match(page, /x-show="projectBoardFile"[^>]*@click="goProjectTab\('board'\)"/,
-    'the Board pill must exist for a file board only');
+test('the pane wires the tabs, the app frame, the pages grid, and the docs tree', () => {
+  assert.match(page, /@click="goProjectTab\('overview'\)"/, 'the Overview tab is gone');
+  assert.match(page, /x-show="project\.powershellOutpost" @click="goProjectTab\('outpost'\)"/,
+    'the Outpost tab must appear where a PowerShell outpost is declared');
+  assert.match(page, /x-show="projectBoardFile" @click="goProjectTab\('board'\)"/,
+    'the Board tab must exist for a file board only');
   assert.match(page, /@click="onBoardClick\(\$event\)"/,
     'the rendered board no longer resolves its relative links in-app');
   assert.match(page, /x-html="projectBoardHtml"/, 'the board pane is gone');
-  assert.match(page, /x-show="project\.board && !projectBoardFile"/,
-    'the header Board button must yield to the pill for a file board');
-  assert.match(page, /x-show="projectPages\.length"[^>]*@click="goProjectTab\('pages'\)"/,
-    'the Pages pill must hide when the workspace claims no pages');
-  assert.match(page, /@click="goProjectTab\('docs'\)"/, 'the Docs pill is gone');
+  assert.match(page, /@click="goProjectTab\('pages'\)" :disabled="!projectPages\.length"/,
+    'the Pages tab is always offered, disabled where the workspace claims no pages');
+  assert.match(page, /@click="goProjectTab\('docs'\)"/, 'Files has lost its Docs mode');
+  assert.match(page, /x-if="projectPane==='app'"/, 'the landing is no longer the App tab');
   assert.match(page, /:src="projectLandingUrl"/, 'the landing iframe is gone');
+  assert.match(page, /@click="openProjectApp\(''\)" :aria-pressed="projectPane==='app'" data-project-app/,
+    'the App button beside the name no longer opens the app at its front');
+  assert.match(page, /data-project-switch>\s*<img x-show="projectIconSrc\(\$store\.browser\.repo, project\)"/,
+    'the project mark no longer draws the project\'s icon');
   assert.match(page, /x-for="pg in projectPages"/, 'the pages grid no longer iterates projectPages');
-  assert.match(page, /@click="openProjectDoc\(f\.rel\)"/, 'a docs row no longer opens in the viewer');
-  assert.match(page, /x-html="projectDocsIndexHtml"/, 'the curated DOCS.md lead is gone');
+  assert.match(page, /x-for="r in projectDocsRows"/, 'the docs tree is gone');
+  assert.match(page, /openProjectDoc\(r\.rel\)/, 'a docs row no longer opens in the reader');
+  assert.match(page, /x-html="projectDocHtml"/, 'the docs reader is gone');
+  assert.match(page, /x-html="projectDocsIndexHtml"/, 'the curated docs/README.md lead is gone');
 });
+
+test('repoProjects carries a project\'s icon root-relative, with or without a landing', () => {
+  const { shell } = makeShell();
+  const rows = shell.repoProjects('a/b', { projects: [
+    { path: 'x', landing: '/x/app.html', icon: '/x/icon.svg' },
+    { path: 'y', icon: ' y/icon.svg ' },
+    { path: 'z', icon: 'ph-newspaper' },
+    { path: 'w', icon: 7 },
+    { path: 'v', landingIcon: 'v/icon.svg' },
+  ] });
+  assert.deepEqual(rows.map(r => r.icon), ['x/icon.svg', 'y/icon.svg', 'ph-newspaper', '', ''],
+    'a file path loses its leading slash, a glyph is kept, junk and the retired landingIcon read as none');
+});
+
+test('a project\'s icon is read once per repo@ref, and a glyph or no icon draws the stock mark', async () => {
+  const reads = [];
+  const { shell, browserStore } = makeShell({ browserStore: { repo: 'a/b', ref: 'main', defaultRef: 'main',
+    gh: { get: async (f) => { reads.push(f); if (f === 'gone.svg') throw new Error('404'); return { text: '<svg/>' }; } } } });
+  const p = { path: 'x', icon: 'x/icon.svg' };
+  assert.equal(shell.projectIconSrc('a/b', p), '', 'nothing to draw before the read lands');
+  assert.equal(shell.projectIconSrc('a/b', p), '');
+  await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(reads, ['x/icon.svg'], 'two renders asked, one read went out');
+  assert.equal(shell.projectIconSrc('a/b', p), 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg/>'));
+  browserStore.ref = 'claude/branch';
+  assert.equal(shell.projectIconSrc('a/b', p), '', 'another ref is another file');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(reads.length, 2);
+  assert.equal(shell.projectIconSrc('a/b', { path: 'g', icon: 'gone.svg' }), '');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(shell.projectIconSrc('a/b', { path: 'g', icon: 'gone.svg' }), '', 'a failed read draws the glyph and is not retried');
+  assert.equal(reads.filter(f => f === 'gone.svg').length, 1);
+  assert.equal(shell.projectIconSrc('a/b', { path: 'z', icon: 'ph-newspaper' }), '');
+  assert.equal(shell.projectGlyph({ icon: 'ph-newspaper' }), 'ph-newspaper');
+  assert.equal(shell.projectGlyph({ icon: 'z/icon.svg' }), 'ph-kanban');
+  assert.equal(shell.projectGlyph({ icon: '' }), 'ph-kanban');
+});
+
+test('a README whose title repeats the project name loses that title', () => {
+  const { shell } = makeShell();
+  assert.equal(shell.dropRepeatedTitle('<h1 id="wps">wps</h1>\n<p>Body</p>', 'wps'), '<p>Body</p>');
+  assert.equal(shell.dropRepeatedTitle('<h1>Budget <code>DRS</code></h1><p>x</p>', 'budget drs'), '<p>x</p>');
+  assert.equal(shell.dropRepeatedTitle('<h1>Something else</h1><p>x</p>', 'wps'), '<h1>Something else</h1><p>x</p>');
+  assert.equal(shell.dropRepeatedTitle('<p>No title</p>', 'wps'), '<p>No title</p>');
+});
+
 
 test('the two sidebar project lists are sized the same', () => {
   // The estate's nested rows were smaller and dimmer than the repo sidebar's
   // for a while; the guideline made that argument unnecessary. Both now carry
   // the same row metrics, and this is what catches one drifting from the other.
   const rows = [...page.matchAll(
-    /class="flex items-center min-w-0 flex-1 px-2 py-1\.5 text-base text-left transition-colors/g)];
+    /class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1\.5 text-base text-left transition-colors/g)];
   assert.equal(rows.length, 2, 'the two project lists no longer share their row size');
   const blocks = [...page.matchAll(/flex flex-col gap-0\.5 ml-4 pl-2 border-l border-base-300/g)];
   assert.equal(blocks.length, 2, 'the two project blocks no longer share their guideline and gap');
@@ -643,121 +844,146 @@ test('the two sidebar project lists are sized the same', () => {
   assert.doesNotMatch(page, /-mt-1 ml-4 pl-2/, 'the project block pulls up again');
 });
 
-// ── The installation view, which IS the Overview where one is declared ──────
-// A workspace whose manifest entry names an installation.json opens on that
-// view. It had a fifth pill named Installation until 2026-09-14, when it became
-// the workspace's Overview instead: the name described the manifest it reads
-// rather than what the workspace is for. Declared, never derived, since the
-// view writes to the ledger that file names. Its selected file rides the
-// address as &item= and takes a page-wide paste or drop the way an open Files
-// result does.
+// ── The PowerShell outpost view, which fills the Overview where one is declared ────────
+// A workspace whose manifest entry names an outpost.json opens on that view in
+// its Overview tab. Declared, never derived, since the view writes to the
+// ledger that file names. Its selected file rides the address as &item= and
+// takes a page-wide paste or drop the way an open Files result does.
 
-test('repoProjects: `installation` is carried root-relative, and only when declared', () => {
+test('repoProjects: `powershellOutpost` is carried root-relative, and only when declared', () => {
   const { shell } = makeShell();
   shell.estateConfigs = { 'mehrlander/home': { projects: [
-    { path: 'projects/wps', installation: '/projects/wps/data/installation.json/' },
-    { path: 'projects/a', installation: 7 },
+    { path: 'projects/wps', powershellOutpost: '/projects/wps/data/outpost.json/' },
+    { path: 'projects/a', powershellOutpost: 7 },
     { path: 'projects/b' },
   ] } };
-  assert.deepEqual(shell.repoProjects('mehrlander/home').map(p => p.installation),
-    ['projects/wps/data/installation.json', '', '']);
+  assert.deepEqual(shell.repoProjects('mehrlander/home').map(p => p.powershellOutpost),
+    ['projects/wps/data/outpost.json', '', '']);
 });
 
-test('goProject: the retired `installation` spelling lands on the Overview, and the item stamps', () => {
+test('goProject: a declaring workspace has an Outpost tab, and its item stamps', () => {
   const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
-  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', installation: 'projects/wps/data/installation.json' }] } };
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' }] } };
   shell.refreshProjectPane = () => {};
-  shell.goProject('projects/wps', 'installation', 'projects/wps/app/Modules/Forms/Forms.psm1');
-  assert.equal(shell.projectTab, 'overview', 'the retired pill name falls through to the Overview it became');
-  assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
+  shell.goProject('projects/wps', 'outpost', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  assert.equal(shell.projectTab, 'outpost');
+  assert.equal(shell.powershellOutpostItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
   const p = shell.deepLinkParams(new URLSearchParams());
   assert.equal(p.get('view'), 'project');
-  assert.equal(p.get('tab'), null, 'the Overview is the default tab, so it stamps none');
+  assert.equal(p.get('tab'), 'outpost');
   assert.equal(p.get('item'), 'projects/wps/app/Modules/Forms/Forms.psm1');
-  // The link a pre-2026-09-14 session handed out still round-trips: ?tab=
-  // gone from the stamp, ?item= alone is enough to restore the selection.
-  shell.installationItem = '';
-  shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
-  assert.equal(shell.projectTab, 'overview');
-  assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
-  // The pill's file is the page-wide correspondence target, at the browsed ref
+  // The view's file is the page-wide correspondence target, at the browsed ref
   // when it is not the default, and only for a file the comparison can take.
   shell.view = 'project';
   win.FileCorrespondence = { applies: t => /\.(ps1|psm1|xaml)$/.test(t.path) };
   assert.deepEqual(shell.selectedCorrespondence, { repo: 'mehrlander/home', path: 'projects/wps/app/Modules/Forms/Forms.psm1', ref: '' });
   browserStore.ref = 'feat/x';
   assert.equal(shell.selectedCorrespondence.ref, 'feat/x');
-  shell.installationItem = 'projects/wps/app/Modules/ISE/Tools/Buttons.xml';
+  shell.powershellOutpostItem = 'projects/wps/app/Modules/ISE/Tools/Buttons.xml';
   assert.equal(shell.selectedCorrespondence, null, 'an XML tool file is not a comparison target');
-  shell.installationItem = 'projects/wps/app/Modules/Forms/Forms.psm1';
+  shell.powershellOutpostItem = 'projects/wps/app/Modules/Forms/Forms.psm1';
+  // The README Overview is not the outpost view, so a paste there names no file.
+  shell.projectTab = 'overview';
+  assert.equal(shell.selectedCorrespondence, null);
   // Leaving for another workspace clears the item; a bare tab stamps none.
   shell.goProject('projects/other', 'docs');
-  assert.equal(shell.installationItem, '');
+  assert.equal(shell.powershellOutpostItem, '');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
-  // Switching pills within the workspace keeps the item out of the stamp, so
+  // Switching tabs within the workspace keeps the item out of the stamp, so
   // a Docs link does not carry one.
-  shell.goProject('projects/wps', 'installation', 'x.ps1');
+  shell.goProject('projects/wps', 'outpost', 'x.ps1');
   shell.goProjectTab('docs');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
-  // And a workspace that declares no manifest never stamps an item, however
-  // the selection got set: the gate is the declaration, not the tab name.
+  // A workspace that declares no outpost has no Outpost tab: asking for one
+  // draws the Overview, and the paste target follows what is drawn.
   shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/plain' }] } };
-  shell.goProject('projects/plain', '', 'projects/plain/x.ps1');
-  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+  shell.goProject('projects/plain', 'outpost', 'projects/plain/x.ps1');
+  assert.equal(shell.projectPane, 'overview');
+  assert.equal(shell.selectedCorrespondence, null);
 });
 
-test('an installation Overview does not fetch the README either', () => {
+// A cold link names the tab before the manifest that declares it has been
+// read. Checked against the manifest at that moment, &tab=outpost fell back to
+// the Overview for good; kept as asked, it is drawn once the manifest arrives.
+test('a cold link to Outpost or App is drawn once the manifest declares it', () => {
+  const { shell, browserStore } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.syncUrl = () => {};
+  const reads = [];
+  shell.loadProjectReadme = async () => reads.push('readme');
+  shell.goProject('projects/wps', 'outpost', 'projects/wps/app/Profile.ps1');
+  assert.equal(shell.projectTab, 'outpost', 'the request is kept');
+  assert.equal(shell.projectPane, 'overview', 'nothing declares the outpost yet');
+  assert.deepEqual(reads, ['readme'], 'the Overview standing in has its README');
+  browserStore.config = { projects: [
+    { path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' },
+    { path: 'projects/budget-drs', landing: 'projects/budget-drs/app/view/app.html' },
+  ] };
+  assert.equal(shell.projectPane, 'outpost');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), 'projects/wps/app/Profile.ps1');
+  browserStore.config = null;
+  shell.goProject('projects/budget-drs', 'app');
+  assert.equal(shell.projectPane, 'overview');
+  browserStore.config = { projects: [{ path: 'projects/budget-drs', landing: 'projects/budget-drs/app/view/app.html' }] };
+  assert.equal(shell.projectPane, 'app');
+});
+
+
+test('the Overview reads the README in every workspace, and the Outpost tab reads none', () => {
   const { shell, browserStore } = makeShell({
     browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
   });
   browserStore.config = { projects: [
-    { path: 'projects/wps', installation: 'projects/wps/data/installation.json' },
+    { path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' },
     { path: 'projects/plain' },
   ] };
   shell.syncUrl = () => {};
   const reads = [];
   shell.loadProjectReadme = async () => reads.push('readme');
   shell.goProject('projects/wps');
-  assert.deepEqual(reads, [], 'the same rule a landing Overview follows: do not read what you will not render');
-  // A workspace declaring neither still opens on its README, so it still reads it.
+  assert.equal(shell.projectTab, 'overview');
+  assert.deepEqual(reads, ['readme'], 'a declared outpost no longer takes the Overview');
+  shell.goProjectTab('outpost');
+  assert.deepEqual(reads, ['readme'], 'the outpost view reads its own manifest');
   shell.goProject('projects/plain');
-  assert.deepEqual(reads, ['readme']);
+  assert.deepEqual(reads, ['readme', 'readme']);
 });
 
-test('the drop target follows the view to the Overview', () => {
+
+test('the drop target follows the outpost view to its Outpost tab', () => {
   const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
   shell.estateConfigs = { 'mehrlander/home': { projects: [
-    { path: 'projects/wps', installation: 'projects/wps/data/installation.json' },
+    { path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' },
     { path: 'projects/plain' },
   ] } };
   shell.refreshProjectPane = () => {};
   win.FileCorrespondence = { applies: () => true };
   shell.view = 'project';
-  shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  shell.goProject('projects/wps', 'outpost', 'projects/wps/app/Modules/Forms/Forms.psm1');
   assert.equal(shell.selectedCorrespondence?.path, 'projects/wps/app/Modules/Forms/Forms.psm1',
-    'the Overview of a declaring workspace still takes a page-wide drop');
-  // A workspace with no manifest has no installation selection to compare
-  // against, even with an item set, or a plain README Overview would silently
-  // claim every drop on the page.
-  shell.goProject('projects/plain', '', 'projects/plain/x.ps1');
+    'the Outpost tab takes a page-wide drop');
+  shell.goProjectTab('overview');
+  assert.equal(shell.selectedCorrespondence, null, 'the README Overview claims no drop');
+  // A workspace with no manifest has no PowerShell outpost selection to compare
+  // against, even with an item set, or its README would silently claim every
+  // drop on the page.
+  shell.goProject('projects/plain', 'outpost', 'projects/plain/x.ps1');
   assert.equal(shell.selectedCorrespondence, null);
 });
 
-test('the view is the Overview in the pane, keyed per workspace and ref', () => {
-  assert.doesNotMatch(page, /goProjectTab\('installation'\)/, 'the pill is gone, not merely relabelled');
-  assert.match(page, /x-show="projectTab==='overview' && project\.installation"/);
-  assert.match(page, /x-show="projectTab==='overview' && !project\.installation"/,
-    'and the README Overview stands aside for it rather than stacking');
-  assert.match(page, /x-for="p in \(projectTab==='overview' && project\.installation \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
-  assert.match(page, /x-data="installationView\(p\)"/);
-  assert.match(page, /gh\.load\('kits\/installation\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
+test('the outpost view is the Outpost tab in the pane, keyed per workspace and ref', () => {
+  assert.match(page, /x-show="projectPane==='outpost'"/);
+  assert.match(page, /x-show="projectPane==='overview'"/,
+    'and the README is the Overview whatever else the workspace declares');
+  assert.match(page, /x-for="p in \(projectPane==='outpost' \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
+  assert.match(page, /x-data="powershellOutpostView\(p\)"/);
+  assert.match(page, /gh\.load\('kits\/powershell-outpost\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
 });
 
+
 // ── The README peek on a project's GitHub icon ───────────────────────────────
-// The README stopped being a tab when the Overview became the workspace's own
-// front page, so it hangs off the GitHub icon instead: the tap opens the
-// folder, the hover shows the README. See kits/source-peek.js for why a folder
-// icon carries a card at all.
+// Each project row in the two sidebar lists carries a GitHub icon: the tap
+// opens the folder, the hover shows the README. See kits/source-peek.js for why
+// a folder icon carries a card at all.
 
 test('projectReadmePeek addresses the workspace README, at the browsed ref only for the open repo', () => {
   const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'feat/x', defaultRef: 'main' } });
@@ -777,7 +1003,43 @@ test('projectReadmePeek addresses the workspace README, at the browsed ref only 
 
 test('every project GitHub icon carries the README peek', () => {
   const icons = page.match(/:href="projectGithubUrl\([^"]*\)"/g) || [];
-  assert.equal(icons.length, 3, 'the header button and the two project rows');
+  assert.equal(icons.length, 2, 'the two project rows; the masthead\'s GitHub door is a row of the project switcher');
   assert.equal((page.match(/:data-peek="projectReadmePeek\([^"]*\)"/g) || []).length, icons.length,
     'each one peeks, or the README is reachable from some project lists and not others');
+});
+
+
+// ── The project switcher on the Project view's mark ─────────────────────────
+test('the project mark opens the repo\'s projects in the shared menu, the open one marked', () => {
+  const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'news' }, { path: 'projects/budget-drs', label: 'budget-drs' }, { path: 'projects/wps' }] } };
+  shell.refreshProjectPane = () => {};
+  shell.goProject('projects/budget-drs', 'docs');
+  shell.menuRepo = 'mehrlander/home'; shell.menuKind = 'projects';
+  // The kit does the encoding (github-links.test.mjs covers it); the menu only
+  // has to hand it the open project's repo and folder.
+  win.GithubLinks = { pathUrl: (repo, p, ref) => `https://github.com/${repo}/tree/${ref || 'main'}/${p}` };
+  const items = shell.repoMenuItems;
+  delete win.GithubLinks;
+  assert.deepEqual(items.map(i => i.label), ['home', 'news', 'budget-drs', 'wps', 'budget-drs on GitHub'],
+    'the repo, its projects, then the open project\'s folder on GitHub');
+  assert.equal(items.at(-1).external, true);
+  assert.match(items.at(-1).url, /github\.com\/mehrlander\/home\/tree\/.*projects\/budget-drs/);
+  assert.equal(items[0].head, true);
+  assert.deepEqual(items.filter(i => i.current).map(i => i.label), ['budget-drs']);
+  // Each project row carries its own mark, the open one included: its label
+  // in primary marks it, so the check that used to replace its glyph is gone.
+  assert.deepEqual(items.slice(1, 4).map(i => i.icon), ['ph-kanban', 'ph-kanban', 'ph-kanban']);
+  assert.deepEqual(items.slice(1, 4).map(i => i.img), ['', '', ''], 'no icon declared, no picture');
+  items.find(i => i.label === 'wps').run();
+  assert.equal(shell.projectPath, 'projects/wps');
+  assert.equal(shell.projectTab, 'docs', 'a tab every project has is kept');
+  shell.goProject('projects/wps', 'board');
+  shell.repoMenuItems.find(i => i.label === 'news').run();
+  assert.equal(shell.projectTab, 'overview', 'a tab the next project may lack falls back to its Overview');
+});
+
+test('the markup wires the project mark to the switcher', () => {
+  assert.match(page, /data-project-switch/);
+  assert.match(page, /toggleRepoMenu\(\$store\.browser\.repo, \$event\.currentTarget, 'projects'/);
 });

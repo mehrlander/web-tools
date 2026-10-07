@@ -335,7 +335,7 @@ const settle = async () => { await Alpine.nextTick(); await new Promise(r => set
 
 test('the pencil swaps the row text for a field, and swaps it back on cancel', async () => {
   await seedTodos([{ id: 't1', text: 'a typo to fix', done: false, created_at: '2026-09-01T10:00:00Z' }]);
-  window.__shell.view = 'todo';   // `tab` is a getter over the shell's view
+  window.__shell.view = 'lists';   // `tab` is a getter over the shell's view
   await settle();
 
   const row = todoRows().find(el => el.textContent.includes('a typo to fix'));
@@ -357,7 +357,7 @@ test('the pencil swaps the row text for a field, and swaps it back on cancel', a
 test('the row stands its other controls down while the field is open', async () => {
   await seedTodos([{ id: 't1', text: 'editing me', done: false, urgent: true,
                      created_at: '2026-09-01T10:00:00Z' }]);
-  window.__shell.view = 'todo';   // `tab` is a getter over the shell's view
+  window.__shell.view = 'lists';   // `tab` is a getter over the shell's view
   data.editId = null;
   await settle();
 
@@ -382,7 +382,7 @@ test('only one row is ever open, across the whole view', async () => {
     { id: 't1', text: 'first to-do', done: false, created_at: '2026-09-01T10:00:00Z' },
     { id: 't2', text: 'second to-do', done: false, created_at: '2026-09-02T10:00:00Z' },
   ]);
-  window.__shell.view = 'todo';   // `tab` is a getter over the shell's view
+  window.__shell.view = 'lists';   // `tab` is a getter over the shell's view
   await settle();
 
   data.startTodoEdit(data.todoItems[0]);
@@ -551,7 +551,7 @@ test('the outside-click commit is disarmed until the opening click is over', asy
 test('the editor is a textarea, so a long item wraps instead of scrolling sideways', async () => {
   await seedTodos([{ id: 't1', done: false, created_at: '2026-09-01T10:00:00Z',
     text: 'Check the CEM survey, which came on August 19 last year and wants an answer before the allotment closes' }]);
-  window.__shell.view = 'todo';
+  window.__shell.view = 'lists';
   data.editId = null;          // a prior test may have left a row open
   await settle();
 
@@ -571,7 +571,7 @@ test('the editor is a textarea, so a long item wraps instead of scrolling sidewa
 
 test('the display text mounts and unmounts rather than being hidden', async () => {
   await seedTodos([{ id: 't1', text: 'here and gone', done: false, created_at: '2026-09-01T10:00:00Z' }]);
-  window.__shell.view = 'todo';
+  window.__shell.view = 'lists';
   data.editId = null;
   await settle();
 
