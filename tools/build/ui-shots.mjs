@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The UI units' screenshots: one desktop and one phone shot of every coded
-// unit, as the JPEG thumbnails the Map's UI > Patterns gallery shows.
+// unit, as the JPEG thumbnails the Map's Browser > Gallery shows.
 //
 //   node tools/build/ui-shots.mjs [--only <text>] [--jobs N] [--reuse]
 //

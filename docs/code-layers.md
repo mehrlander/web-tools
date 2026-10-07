@@ -28,7 +28,7 @@ column of them is a category nobody has stated.
 | `lib/alpineComponents/` **component** | renders and holds reactive state | `Alpine.data(name, fn)` |
 | `lib/ops/` **op** | is one function expression, reaching neither `window` nor `document` | nothing in a page: its caller evaluates the text |
 | `scripts/` **standalone** | argv-driven, runs from any repo root, no repo of its own | a shell invocation |
-| `tools/` **harness** | exercises or builds this repo, in Node, never shipped to a page | a `node`/`npm` invocation |
+| `tools/` **tooling** | exercises or builds this repo, in Node, never shipped to a page | a `node`/`npm` invocation |
 
 ### `lib/` root or `lib/kits/`: settled 2026-08-07
 
