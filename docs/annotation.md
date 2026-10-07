@@ -13,9 +13,6 @@ which shows the whole document tinted by label, removed units struck through, an
 lets them relabel, remove, add a note, split, merge, or drag a unit's edges, then
 save to the branch.
 
-The scripts are in [`scripts/annotate/`](../scripts/annotate/); the builder is
-[`tools/build/audit-payload.py`](../tools/build/audit-payload.py).
-
 ## Vocabularies
 
 A vocabulary is a TSV of `label`, `side`, `gloss`, and an optional `color`
@@ -27,7 +24,7 @@ A vocabulary is a TSV of `label`, `side`, `gloss`, and an optional `color`
 1. **Segment.** `python3 scripts/annotate/segment.py <file> <first-line> <last-line> > units.jsonl`
 2. **Label.** Write `labels.tsv` with columns `uid`, `label`, `verdict`.
 3. **Build and hand over.**
-   `python3 tools/build/audit-payload.py standoff <doc> <run-dir> [--vocab <tsv>] [--question <text>]`,
+   `python3 scripts/annotate/audit-payload.py standoff <doc> <run-dir> [--vocab <tsv>] [--question <text>]`.
    The page loads the standoff from `?src=<spec>`, and Save writes it back;
    `… payload <doc> <run-dir> --inject <page>` embeds it instead. Hand the user
    the page before rewriting anything.
