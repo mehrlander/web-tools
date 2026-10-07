@@ -25,7 +25,7 @@ work/sandbox,work,Sandbox diagnosis,How a session reads failures in the cloud sa
 app/shell,app,App shell and configuration,"What the Web Tools app is for, its addresses, and the .web-tools.json manifest"
 app/views,app,Views,"What individual views show, read and write"
 app/stage,app,Stage and envelopes,"The stage fileset transport, envelopes, and published artifacts"
-app/branch,app,Branch page,"The branch page, its file deck, and the branch overlay"
+app/branch,app,Branch page,"The branch page and its file deck"
 app/proposals,app,Proposals,How a proposed change to a repository is recorded and delivered
 ui/daisy-components,ui,Page house style,"What a page looks like: layout, components, and what it never carries"
 ui/typography,ui,Type and text measure,"Type sizes, text width and wrapping on a page"

@@ -170,10 +170,7 @@ of `--script` interaction drivers.
 There is nowhere else, and that is worth stating because there briefly was: a
 sibling `render/scripts/` accumulated twenty-nine files of the same shape that
 `node/README.md` never mentioned, and the two folders each grew their own
-`sidebar-projects.mjs` against the same UI before being folded together. The
-survivors are `sidebar-projects.mjs` and `sidebar-projects-overlay.mjs`, which
-still overlap on their default path; only the overlay posture distinguishes
-them.
+`sidebar-projects.mjs` against the same UI before being folded together.
 
 `tools/concept-lab/` was a fourth thing here until 2026-08-25, when it moved to
 the private `home` estate under `projects/local-models/`. The shared text

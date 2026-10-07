@@ -310,11 +310,10 @@ test('projectGithubUrl points at the folder, at the ref a row tap would browse',
   browserStore.ref = 'claude/some-branch';
   assert.equal(shell.projectGithubUrl('mehrlander/web-tools', p),
     'https://github.com/mehrlander/web-tools/tree/claude/some-branch/projects/budget-wa');
-  // Under a branch overlay, the branch a tap would open the repo at wins, even
-  // for a repo that is not the open one.
-  shell.overlayRefFor = (repo) => (repo === 'mehrlander/home' ? 'claude/overlay' : '');
+  // The browsed ref belongs to the open repo only; another repo's row still
+  // names no ref.
   assert.equal(shell.projectGithubUrl('mehrlander/home', p),
-    'https://github.com/mehrlander/home/tree/claude/overlay/projects/budget-wa');
+    'https://github.com/mehrlander/home/tree/HEAD/projects/budget-wa');
 });
 
 test('a project deep-links as ?repo&view=project&project=', () => {
