@@ -161,10 +161,14 @@ export const APP_EXT = new Set(['.js', '.html', '.mjs']);
 // consumes it before the block branch can start. The `[^:]` guard keeps a
 // URL's `//` from reading as a comment, as before.
 export function stripComments(text) {
-  return text
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/\/\*[\s\S]*?\*\/|(^|[^:])\/\/.*$/gm,
-      (m, pre) => (pre === undefined ? ' ' : pre));
+  const noHtml = text.replace(/<!--[\s\S]*?-->/g, ' ');
+  return noHtml.replace(
+    /(["'`])(?:\\.|(?!\1)[^\\])*\1|(\/\*[\s\S]*?\*\/|(?:^|[^:])\/\/[^\r\n]*)/g,
+    (m, quote, comment) => {
+      if (comment) return comment.startsWith('//') || comment.startsWith('/*') ? ' ' : comment[0] + ' ';
+      return m;
+    }
+  );
 }
 
 export function readCorpus(repoRoot, dirs, exts, strip = false) {

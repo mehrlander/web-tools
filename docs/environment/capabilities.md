@@ -60,8 +60,8 @@ Four things measured on one live session:
   after the fact rather than only at the moment it happens: the `hook_success`
   attachment's `stdout` is the full output and its `content` is what was
   injected. `web-tools-private` `sessions/tools/record.py` reads the pair into
-  each record's `startup_delivery` (schema 7), and the Map view's Injection tab
-  renders it.
+  each record's `startup_delivery` (schema 7), and the Map view's Context tab
+  (Delivery lens) renders it.
 - **The receipts are the half that is lost.** They print last, so a cut
   session's `startup_context` is byte-identical to a delivered session's. Any
   reading of what a session *received* has to come from the delivery pair above,

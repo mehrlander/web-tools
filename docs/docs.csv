@@ -32,7 +32,7 @@ docs/envelopes/shorter.md,the shorter envelope contract: a document and a shorte
 docs/envelopes/surface.md,the surface format contract,living,orphan,2396,"authored; named by the envelope primitive; declares the sibling schemas the validation source of truth and carries a Stale banner saying nothing validates against them, which is the honest state rather than the intended one",
 docs/envelopes/workbook-extract.md,the workbook-extract envelope contract: sheet readings and individual modeled objects,living,orphan,3299,"authored; prose contract for lib/kits/xlsx-extract.js, with the schema beside it; states why this is a profile over data-view rather than a sibling of it",
 docs/environment/README.md,"the environment docs' front door, and their update discipline",living,orphan,345,authored; states the rules the four concern files follow,
-docs/environment/capabilities.md,what the sandbox can run and reach,measured,project,3685,"authored; per-claim verification dates, edited in place and re-dated, probes preferred over assertions",
+docs/environment/capabilities.md,what the sandbox can run and reach,measured,project,3687,"authored; per-claim verification dates, edited in place and re-dated, probes preferred over assertions",
 docs/environment/container.md,what the box is and what persists across sessions,measured,project,2635,"authored; per-claim verification dates, edited in place",
 docs/environment/extending.md,the Claude Code component model and the hooks this repo runs,living,project,4666,"authored; mostly stable conceptual knowledge, only the repo-specific inventory is dated",
 docs/environment/testing.md,how to test HTML and JS in the sandbox,measured,project,3198,"authored; per-claim verification dates, edited in place",
