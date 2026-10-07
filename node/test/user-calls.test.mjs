@@ -79,7 +79,7 @@ test('a proposal counts only as Dictate would stage it: one block the file still
   assert.equal(x.staged, 1, 'the two-block one is never staged, and the applied one is gone');
   assert.deepEqual(x.bases, ['https://github.com/mehrlander/web-tools/pull/1'], 'the bases are the staged ones only');
   assert.deepEqual(x.items, [{ from: 'Kept as it is.', to: 'Kept.', author: 'Claude', purpose: 'update', kind: 'edit',
-    basis: 'https://github.com/mehrlander/web-tools/pull/1' }], 'each staged block carries its text as it stands and as proposed, and its kind');
+    basis: 'https://github.com/mehrlander/web-tools/pull/1', gloss: '' }], 'each staged block carries its text as it stands and as proposed, its kind, and its purpose\'s definition (none in this collection)');
   assert.deepEqual(x.calls.map((c) => c.id), ['a1-doc'], 'the open documentation call is filed under its document, ref dropped');
   assert.equal(by.has('mehrlander/web-tools:docs/missing.md'), false, 'a file that cannot be read holds nothing');
 });
