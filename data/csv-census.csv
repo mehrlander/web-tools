@@ -61,4 +61,4 @@ skills/doc-craft/binding/runs.csv,12,9,1238,"[""date"",""target"",""units"",""wo
 skills/file-retrieval/sources.csv,9,2,196,"[""source"",""glob""]"
 skills/manifest.csv,62,3,30984,"[""name"",""group"",""description""]"
 tracker/board-tags.csv,12,3,674,"[""task"",""tag"",""value""]"
-tracker/board.csv,101,15,25544,"[""id"",""title"",""status"",""project"",""depends-on"",""opened"",""closed"",""session"",""size"",""awaiting"",""blockedBy"",""file"",""href"",""lastActivity"",""logEntries""]"
+tracker/board.csv,101,15,24725,"[""id"",""title"",""status"",""project"",""depends-on"",""opened"",""closed"",""session"",""size"",""awaiting"",""blockedBy"",""file"",""href"",""lastActivity"",""logEntries""]"

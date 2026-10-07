@@ -1,10 +1,9 @@
 ---
 id: comment-trim-rule-first-b0o3bu
 title: Finish commentary trim: accuracy pass or paired fan-out
-status: backlog
+status: done
 opened: 2026-09-08
-size: M
-awaiting: user-call 2708d02c-close-four-tasks
+closed: 2026-10-07
 ---
 # Finish commentary trim: accuracy pass or paired fan-out
 
@@ -141,3 +140,4 @@ does not lapse if the pass itself is judged not worth running.
   conventions now in `CLAUDE.md`.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
 - 2026-10-06: 183d2401 (2026-09-08, the owner's web edit) removed 'Prose that describes state' and its comment subsection, so no file on main holds the rule this task builds on. Tending pass; whether to close is an open finding.
+- 2026-10-07: Closed on the owner's answer to user call 2708d02c-close-four-tasks. The rule this task put first ('The same rule, in a comment') was removed by the owner's 183d2401 edit on 2026-09-08, and the task's own argument is that a trim without it is undone within weeks. A new task, starting from whatever rule is wanted, replaces this one if the trim comes back.
