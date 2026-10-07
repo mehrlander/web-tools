@@ -19,7 +19,7 @@ That is the honest reading, not a defect, and the mode earns its place two ways:
 the few bubbles that float clear are the large documents nobody is maintaining,
 which neither other mode surfaces, and under playback a file climbs as it goes
 quiet and drops the moment it is edited. It is derived from the churn array
-rather than carried in the payload, since it is the same fact counted backwards. [`scripts/doc-growth.py`](../scripts/doc-growth.py) produces the
+rather than carried in the payload, since it is the same fact counted backwards. [`python/doc-growth.py`](../python/doc-growth.py) produces the
 payload; [`pages/doc-growth.html`](../pages/doc-growth.html) reads it.
 
 It exists because documentation length is easy to worry about and hard to see.
@@ -30,7 +30,7 @@ and the app's reference doc alone went from 5,279 words to 28,397 across 181 com
 ## Pointing it at a repository
 
 ```bash
-python3 scripts/doc-growth.py <clone> -o data/doc-growth/<name>.json --name owner/repo
+python3 python/doc-growth.py <clone> -o data/doc-growth/<name>.json --name owner/repo
 ```
 
 `--days` changes the sampling interval, `--ext` the file type, and `--min-edits`
@@ -69,7 +69,7 @@ prose. The page toggles between them.
 
 Every commit shifts the last frame, so a hook that regenerated the payload would
 make every commit touch it, and the artifact could never be byte-deterministic in
-the way [`tools/README.md`](../tools/README.md#the-refresh-model) requires. It is
+the way [`node/README.md`](../node/README.md#the-refresh-model) requires. It is
 refreshed on demand instead, and `generated` in the payload says when. This is
 also why it is neither a registry ([registries.md](registries.md): a registry
 carries assertions, and this carries measurements) nor a projection of one.
@@ -165,7 +165,7 @@ registry, and the trend is a column on it.
 ## Verifying it against the real CDN
 
 `npm run shot` mirrors CDN requests from `node_modules` through
-`tools/render/cdn.mjs`, and that mirror rewrites a bare `npm/alpinejs` spec to
+`node/render/cdn.mjs`, and that mirror rewrites a bare `npm/alpinejs` spec to
 the browser build. jsDelivr's `/combine/` route does not: it resolves through
 package.json `main`, which is CommonJS for both Alpine and fflate. So this page
 loaded perfectly in every headless shot while being inert in an actual browser,

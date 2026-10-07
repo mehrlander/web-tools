@@ -1028,7 +1028,7 @@ async function loadRepo(repo, ref, deepPath) {
   }
 }
 
-// deterministic driver for headless interaction tests (tools/render, npm run shot --script)
+// deterministic driver for headless interaction tests (node/render, npm run shot --script)
 window.__atlas = {
   get S() { return S; },
   zoomTo: path => { const n = dirByPath(path); if (n) setViewRoot(n); },

@@ -76,7 +76,7 @@ Only the character count matters, not host, fragment, `@`/`:`, or encoding.
   it picks up the quotes. The backtick itself can land anywhere near the URL in
   the stored body, not at a fixed offset.
 
-Check first with `python3 scripts/mcp-link-safe.py --check`; shorten per the
+Check first with `python3 python/mcp-link-safe.py --check`; shorten per the
 table in [SURFACING.md](../SURFACING.md), or move the link into the chat reply,
 which renders it clean.
 

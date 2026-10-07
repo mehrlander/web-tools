@@ -25,9 +25,9 @@ upload.
 (frontmatter `name` and `description`), a row in `manifest.csv`, its path in the
 `portable` roster in `marketplace.json`, and a row in `docs/portable.csv` with
 `kind` `skill` and `use` `plugin`.
-`tools/test/portable-manifest.test.mjs` and `tools/test/skills-registry.test.mjs`
+`node/test/portable-manifest.test.mjs` and `node/test/skills-registry.test.mjs`
 fail until they agree. Every skill's description costs context in every session,
 so add one only when it earns that. **Removing a skill** takes the same four
-entries out; `tools/test/plugin-skill-refs.test.mjs` then fails on any skill that
+entries out; `node/test/plugin-skill-refs.test.mjs` then fails on any skill that
 still names it. Search `docs/` and the consumer repos for other mentions, and
 delete any claude.ai upload of it.

@@ -23,7 +23,7 @@ rejection costs session links on uncovered rows and says nothing.
 ## Related
 
 - `lib/alpineComponents/fab.js`: sole call site (`branchSessions` behind a `typeof` guard)
-- `tools/test/fab-capture.test.mjs`: capture path that settled `branchesForPath`
+- `node/test/fab-capture.test.mjs`: capture path that settled `branchesForPath`
 - task `fab-capture-button-f6q38m`: write-path sibling; a capture still confirms this
 - PR #297: `branchSessions` / `messageBody` shape
 - PR #339: partial-data graphql fix found by the first FAB capture

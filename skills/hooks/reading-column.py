@@ -8,11 +8,11 @@ sentence wider than the cap breaks mid-phrase beside a full-width page. Measured
 break reads as arbitrary. Rule 8 still wants `text-balance`; the cap is the
 defect.
 
-WHY THIS SHIPS WITH THE PLUGIN RATHER THAN LIVING IN scripts/. The class is a
+WHY THIS SHIPS WITH THE PLUGIN RATHER THAN LIVING IN python/. The class is a
 model default, not a repo habit, so it arrives in every repo the same way. The
 hook that refuses it (reading-column-guard.sh, beside this file) has to run from
 any project root, so its engine has to travel with it. One file serves both the
-hook and `npm run reading-column`; a second copy under scripts/ would be the
+hook and `npm run reading-column`; a second copy under python/ would be the
 duplicate the registries doctrine warns about.
 
 Three findings, all mechanical:
@@ -66,7 +66,7 @@ import re
 import sys
 
 # The sizes rule 3 names. Held to the skill's text by
-# tools/test/reading-column.test.mjs.
+# node/test/reading-column.test.mjs.
 COLUMN_SIZES = ['prose', '2xl', '3xl', '4xl']
 
 COLUMN = re.compile(r'\bmax-w-(?:' + '|'.join(COLUMN_SIZES) + r')\b')

@@ -93,7 +93,7 @@ bookmark therefore opens the window before it does anything else.
 
 The Stage hears only the window that opened it, stages what arrives without
 sending it, and takes the destination from the errand record, never from a
-message. Held by `tools/test/stage-courier.test.mjs`.
+message. Held by `node/test/stage-courier.test.mjs`.
 
 ## Where it does not work
 
@@ -142,6 +142,6 @@ PDFs want the Stage's upload intake instead.
 ## Testing an errand before it ships
 
 The sandbox browser cannot reach external hosts, so the exchange is exercised in
-jsdom (`tools/test/stage-courier.test.mjs`) with the registry reads stubbed. Run
+jsdom (`node/test/stage-courier.test.mjs`) with the registry reads stubbed. Run
 the errand script alone against a saved copy of the page first, then the
 courier end to end in a real browser.

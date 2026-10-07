@@ -5,7 +5,7 @@ and until 2026-08-20 nothing said which were which: the distinction sat inside
 twenty-two prose `scope` sentences, where it could not be grouped, filtered, or
 counted. `span` is now a column ([registries.csv](registries.csv), domain in
 [vocabularies.csv](vocabularies.csv), gated by
-`tools/test/properties-registry.test.mjs`), and the Map view's Registries tab
+`node/test/properties-registry.test.mjs`), and the Map view's Registries tab
 carries both counts.
 
 This document is the reasoning the column cannot hold, and the measurement that

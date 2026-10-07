@@ -164,11 +164,11 @@ the failure.
 ### What the account's setup script must do
 
 The environment settings in claude.ai hold one line, which fetches and runs
-[`scripts/environment-setup.sh`](../../scripts/environment-setup.sh) from this
+[`.claude/environment-setup.sh`](../../.claude/environment-setup.sh) from this
 repo's `main`:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/scripts/environment-setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/environment-setup.sh | bash
 ```
 
 The script lives here because the setup script cannot reach a private repo. It
