@@ -187,6 +187,20 @@ fail with `net::ERR_CONNECTION_RESET`, whether the proxy is passed through
 Playwright's `proxy:` option or `--proxy-server`, with `ignoreHTTPSErrors` and
 `--ignore-certificate-errors` set. The cause was not chased.
 
+**Re-measured 2026-09-29: the browser now has egress, and it is unreliable.**
+Through Playwright's `proxy:` option, Chromium reached Pages, raw, the contents
+API and jsDelivr, and the proxy authenticated GitHub API calls (a 15,000-request
+budget, private repositories readable). But one to three requests per page load
+died with `net::ERR_TOO_MANY_RETRIES`, over HTTP/2 and still with
+`--disable-http2`, scattered across hosts, and the proxy's own
+`recentRelayFailures` named none of them; one contents read answered 403. A
+loopback page server does not work alongside it: Chromium sent the page load to
+the proxy despite a `bypass`, and the proxy answered 405. What worked is serving
+the page by interception at a stand-in `https://` origin and letting every other
+request go live ([`tools/test/showing-refs-live.mjs`](../../tools/test/showing-refs-live.mjs)).
+So a live run can confirm what a page asked for and where it booted; a complete
+page load is not something to count on.
+
 That asymmetry is the load-bearing half. A repo page cannot be booted as-is in
 the headless browser, and not because a CDN is denied: the browser has no egress
 at all, so [tools/render/cdn.mjs](../../tools/render/cdn.mjs)'s interception is
@@ -198,7 +212,9 @@ is catalogued in [testing.md](testing.md).
 
 **Two gates, not one.** Traffic goes through a TLS-inspecting proxy, and GitHub
 git traffic goes through a **separate** GitHub proxy that scopes operations to
-the authorized repo and limits push to the current branch. A sibling repo like
+the authorized repo. It does not limit push to the current branch: a push to
+`main` or another branch lands, though deleting a branch does not
+([SNAGS.md](../SNAGS.md#web-session-cannot-delete-branches)). A sibling repo like
 `<repo>.wiki.git` returns `Proxy error: repository not authorized` (502) even
 though `github.com` itself is allowed, which is a different failure mode from a
 host denial.

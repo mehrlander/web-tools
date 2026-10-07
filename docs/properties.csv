@@ -19,7 +19,7 @@ tests,boot_smoke,computed,tools/build/tests-index.mjs,counted,column,no,,label,"
 harness,role,recorded,,counted,column,yes,,value,what the file is for; blanks are counted rather than hidden
 harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;scripts/annotate;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
 harness,lines,computed,tools/build/tools-index.mjs,value,column,yes,,value,file length
-harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
+harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
 harness,emits,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
 harness,named,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
 harness,tested,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ exercises it
@@ -129,6 +129,7 @@ app-routes,note,recorded,,none,column,yes,,value,"why a row has no files, or wha
 app-routes,doc,recorded,,none,column,yes,,locator,"the document for this view; blank where the row's what and note say enough, and a shared reference (stage.md, manifest.md) where one already owns the view"
 app-routes,alias,recorded,,none,column,yes,,locator,a retired key that still resolves
 app-routes,tabs,recorded,,none,column,no,,label,the sub-tabs addressable within it
+app-routes,lands,recorded,,none,column,yes,,value,"the tab address a bare visit settles on, for a route that draws no screen of its own: the Map opens on a tab, ?view=routes forwards to the Map's Views tab, and ?view=project opens on its Overview"
 app-routes,stop,recorded,,counted,column,yes,,value,"the nav destination it is reached as. Several routes collapse onto one stop (Activity and Lists each gather more than one ?view= key), so this is the level the router flattens away; the gate holds every estate route's value to estateNav; blank on the shell row, which draws every route and is addressable as none of them"
 app-routes,reads,recorded,,counted,column,no,,value,"the derived state sources this view consumes, semicolon-separated. The value domain is state-view.js's own source list rather than an enumeration here, so the two cannot part; the gate holds every entry to it and to a file on this row that actually reads it. Blank on 16 of 21, which is the reading the field exists to make: most destinations draw nothing the estate keeps derived"
 registries,path,recorded,,value,column,yes,,locator,"the file the registry lives in; one table per file, so a path is a plain file path with nothing after it"
@@ -196,8 +197,8 @@ subjects,doc,recorded,,none,column,yes,,locator,the document for the form that d
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
 subjects,icon,recorded,,value,column,yes,,value,the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal
 subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
-run-methods,venues,recorded,,value,list,no,,value,the machines a person may run this method's script on; an errand's run.venue must be one
-run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted,value,how the script's output comes back; filled into run.outputReturn when a record omits it
+run-methods,venues,recorded,,value,list,no,,value,"the machines this method's script runs on, a person's or a hosted runner; an errand's run.venue must be one"
+run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted;job-log;self-filed,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
 context-sources,circle,recorded,,value,column,yes,account;environment;user;plugin;repo;session,label,"where the source is defined, outermost first: the claude.ai account, the cloud environment, user scope in the container, the portable plugin, a checked-out repo, or the session itself"
@@ -212,10 +213,90 @@ context-sources,reach,recorded,,value,column,yes,every;checkout;root;invoke;pr,l
 context-sources,read,recorded,,value,column,yes,yes;copy;no,label,"whether a session can read the source itself: yes, only through a committed copy, or not at all"
 context-sources,change,recorded,,value,column,yes,pr;owner;session;none,label,"who can change it: anyone through a pull request, only the owner in a settings page, the session itself, or nobody"
 context-sources,evidence,recorded,,value,column,yes,receipt;reconstructed;recorded;none,label,"how we know it arrived: the delivering script says so, a hook reconstructs it, the session record captures it, or nothing records it"
-context-sources,status,recorded,,value,column,yes,current;retiring;planned,label,"current, retiring once the setup script is replaced, or planned"
+context-sources,status,recorded,,value,column,yes,current;retiring;planned,label,"current, retiring (still present, with its replacement already live), or planned"
 context-sources,tally,recorded,,none,column,yes,,locator,"the key this source has in the session store tally: startup:<path> for an instruction file, skill:<name> for a skill"
 context-sources,topics,recorded,,none,column,yes,,label,"the overlap topics this source speaks to, semicolon separated, each a row in docs/context-topics.csv"
 context-sources,gloss,recorded,,value,column,yes,,value,one sentence on what the source does
 context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it
 context-topics,verdict,recorded,,value,column,yes,layered;redundant;conflicting;transitional,label,"whether the overlap is layered by design, redundant, conflicting, or transitional while a replacement lands"
 context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the topic, in a sentence or two"
+map-tabs,gloss,recorded,,value,column,yes,,value,"the lede: what the rows at this address are, in one sentence, never what the reader can do with them"
+map-tabs,refs,recorded,,counted,list,no,,locator,"the lede's links: phrase=path pairs, each phrase a verbatim span of the lede and each path the file or folder (ending in /) it opens"
+map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
+doc-overlap-docs,sha,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
+doc-overlap-docs,prose_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"
+doc-overlap-docs,passages,computed,scripts/doc-overlap.py,value,column,yes,,value,how many passages the file was cut into
+doc-overlap-docs,shingles,computed,scripts/doc-overlap.py,value,column,yes,,value,"distinct 10-word shingles in the file, the denominator of its literal share"
+doc-overlap-matches,end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of the source passage, in UTF-16 code units"
+doc-overlap-matches,line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line the source passage starts on
+doc-overlap-matches,words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the source passage's word count, what it adds to its file's share"
+doc-overlap-matches,hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the source passage text
+doc-overlap-matches,target_start,computed,scripts/doc-overlap.py,value,column,yes,,locator,"start of the best-matching passage in the other file, in UTF-16 code units"
+doc-overlap-matches,target_end,computed,scripts/doc-overlap.py,value,column,yes,,locator,"end of that passage, in UTF-16 code units"
+doc-overlap-matches,target_line,computed,scripts/doc-overlap.py,value,column,yes,,locator,line that passage starts on
+doc-overlap-matches,target_words,computed,scripts/doc-overlap.py,value,column,yes,,value,"the other passage's word count; with words, what decides whether a pair involves a short passage"
+doc-overlap-matches,target_hash,computed,scripts/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over that passage text
+doc-overlap-matches,cosine,computed,scripts/doc-overlap.py,value,column,yes,,value,"cosine between the two passage embeddings, to 3 places; nominates reading, does not establish agreement"
+doc-overlap-gold,seed,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,the seed of the sample the row was drawn in; each sample is scored on its own
+doc-overlap-gold,stratum,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,"the sampling cell: cosine band, shared shingles, short passage"
+doc-overlap-gold,stratum_size,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs in the stratum, the numerator of the row weight"
+doc-overlap-gold,stratum_seats,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"pairs drawn from the stratum, the denominator of the row weight"
+doc-overlap-gold,audit,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the seed flagged the row for an audit of an agreement before the run
+doc-overlap-gold,cosine,computed,scripts/doc-overlap-gold.py,value,column,yes,,value,"the pair's cosine in matches.csv, the higher direction"
+doc-overlap-gold,literal,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
+doc-overlap-gold,short,computed,scripts/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
+doc-overlap-gold,a_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
+doc-overlap-gold,a_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,a_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,a_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,a_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,b_path,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
+doc-overlap-gold,b_start,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
+doc-overlap-gold,b_end,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
+doc-overlap-gold,b_line,computed,scripts/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
+doc-overlap-gold,b_hash,computed,scripts/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,reader_relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,"the reader agent's relation, blind to the cosine"
+doc-overlap-gold,reader_confidence,recorded,,value,column,yes,high;medium;low,label,the reader agent's confidence
+doc-overlap-gold,rationale,recorded,,value,column,yes,,value,the reader agent's one-clause reason
+doc-overlap-gold,sent,computed,scripts/doc-overlap-gold.py,value,column,yes,disagree;conflict;fragment;audit;review,label,why the row reached a skeptic
+doc-overlap-gold,verdict,recorded,,value,column,yes,confirm;overturn,label,the skeptic agent's verdict on the reader's relation
+doc-overlap-gold,note,recorded,,value,column,yes,,value,"the skeptic agent's reason, quoting the words that decide it"
+doc-overlap-gold,relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,the final relation: the skeptic's
+doc-overlap-gold,reading,recorded,,value,column,yes,yes;no,label,whether seeing one passage beside the other helps a reader
+doc-overlap-gold,consolidate,recorded,,value,column,yes,yes;no,label,whether one passage could be replaced by a link to the other
+policy-topics,domain,recorded,,value,column,yes,prose;surfacing;architecture;work;app;ui,label,"the area a topic belongs to, the first level of the tree"
+policy-topics,title,recorded,,value,column,yes,,value,the topic's name as the rail shows it
+policy-topics,gloss,recorded,,value,column,yes,,value,what the rules under the topic govern
+policies,topic_id,recorded,,value,column,yes,,label,the topic in docs/policy-topics.csv the rule sits under
+policies,level,recorded,,value,column,yes,principle;policy;standard,label,"the rule's depth: a principle other rules serve, a decision, or a standard's checkable form"
+policies,statement,recorded,,value,column,yes,,value,"the rule in one sentence, standing alone"
+policies,canonical_doc,recorded,,none,column,yes,,locator,the file that states the rule; blank where no web-tools document was found stating it
+policies,quoted,recorded,,none,column,yes,,value,a verbatim passage of canonical_doc that states the rule; the suite finds it in that file
+policies,since,recorded,,none,column,yes,,value,"the date the cited document gives for the rule's adoption, where it gives one"
+policies,intent_class,recorded,,value,column,yes,user-mandate;dialogue-ratified;model-extrapolated;organic-precedent;unknown,label,"who set the rule: the owner by instruction, the owner and a model in dialogue, a model alone, settled practice, or unknown"
+policies,origin_session,recorded,,none,column,yes,,locator,the session record in web-tools-private where the rule was set
+policies,user_prompt_quote,recorded,,none,column,yes,,value,the owner's words in that session establishing the rule
+policies,enforcement,recorded,,none,column,yes,,locator,"the test, hook, script or npm command that holds the rule, where the document names one that exists"
+policies,status,recorded,,value,column,yes,lead;sourced;checked,label,"lead: a quote on the row is unverified; sourced: quoted is found in canonical_doc; checked: confirmed by a second reading"
+outposts,title,recorded,,value,column,yes,,value,display name
+outposts,gloss,recorded,,value,column,yes,,value,"where the material sits, and what about that place keeps commits out"
+outposts,declared,recorded,,value,column,yes,,locator,the committed file saying what the outpost should hold
+outposts,observed,recorded,,value,column,yes,,locator,"where the latest observation of what it does hold is read from: a repo path, a container path, or a description where it arrives by hand"
+outposts,reports,recorded,,value,column,yes,owner;outpost,label,"who supplies the observation: the owner, by pasting, confirming or exporting, or the outpost itself, with nobody acting"
+outposts,cadence,recorded,,value,column,yes,,value,how often an observation arrives
+outposts,check,recorded,,value,column,yes,,locator,the code that compares the observation with the declaration
+outposts,record,recorded,,none,column,yes,,locator,where dated observations are committed; blank where nothing keeps them past the session
+outposts,upkeep,recorded,,value,column,yes,,value,"the cheapest step that brings the outpost back in line, which is usually the owner's"
+outposts,doc,recorded,,value,column,yes,,locator,the document that owns this outpost's particulars
+account-skills,want,recorded,,value,column,yes,on;off,label,whether the skill should be on the account
+account-skills,twin,recorded,,none,column,yes,,locator,the folder under skills/ the account copy should match; blank where the plugin holds no copy
+account-skills,note,recorded,,none,column,yes,,value,"why the row is declared the way it is, where that is not obvious"
+upstream-skills,author,recorded,,value,column,yes,,value,who wrote the skill
+upstream-skills,upstream,recorded,,value,column,yes,,locator,"where the skill lives: owner/repo:path for a folder on GitHub, or a URL where it is not"
+upstream-skills,status,recorded,,value,column,yes,watching;studied;held;vendored;adapted;declined,label,"how far the estate has taken the skill, from noting it to shipping a copy"
+upstream-skills,pinned,recorded,,none,column,yes,,value,the upstream commit whose folder the fingerprint describes; blank where our copy matches no commit upstream
+upstream-skills,digest,recorded,,none,column,yes,,value,"the fingerprint of the pinned version: every file in the folder, by relative path and bytes"
+upstream-skills,rationale,recorded,,value,column,yes,,value,"why the skill is of interest, and what was taken from it"
+upstream-skills,seen,recorded,,value,column,yes,,value,the date the row was entered
+upstream-skills,ours,recorded,,none,column,yes,,locator,"the folder under skills/ that ships a copy, for a vendored or adapted skill"
+upstream-skills,held,recorded,,none,column,yes,,locator,the folder under outside/ that keeps a pinned copy the plugin never ships

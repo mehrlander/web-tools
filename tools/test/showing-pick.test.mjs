@@ -24,6 +24,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const SCRIPT = path.join(repoRoot, 'scripts/showing.py');
 const ZERO = '0'.repeat(40);
+// A link spells a commit at 12 characters; the JSON keeps it whole.
+const Z12 = ZERO.slice(0, 12);
 
 function run(files, extra = []) {
   const out = execFileSync('python3', [SCRIPT, '--files', files, '--json', ...extra],
@@ -44,14 +46,15 @@ test('a lib change resolves to ?use=, which is the call the repo got wrong by ha
   assert.equal(d.mechanism, 'use');
   const app = d.links.find(l => l.page === 'app/index.html');
   assert.ok(app, 'the app is the subject, since app-routes.csv declares the file as its code');
-  assert.match(app.url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/app/\\?use=${ZERO}`));
+  assert.match(app.url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/app/\\?use=${Z12}(&|$)`));
+  assert.equal(d.sha, ZERO, 'the JSON keeps the whole commit; only the link is short');
   // Not seven links. A page importing the pre-build LOADS every component and
   // renders few, so those are reported as carried rather than offered.
   assert.equal(d.links.length, 1);
   assert.ok(d.carried.length >= 3);
 });
 
-test('a lib file several pages gh.load is offered to each, and the app lands on its view', () => {
+test('a shared reader is offered to each page and requires an explicit app view', () => {
   const d = run('lib/kits/session-render.js,dist/web-tools.js');
   const pages = d.links.map(l => l.page);
   assert.ok(pages.includes('pages/session.html'), 'the page that names it in a gh.load chain');
@@ -60,8 +63,14 @@ test('a lib file several pages gh.load is offered to each, and the app lands on 
     assert.doesNotMatch(link.url, /\\|%5c/i, 'render URLs must not inherit filesystem separators');
   }
   const app = d.links.find(l => l.page === 'app/index.html');
-  assert.equal(app.view, 'sessions', 'one declaring route means the link can land on it');
-  assert.match(app.url, /&view=sessions$/);
+  assert.equal(app.view, null, 'Search and Sessions share the reader, so neither route is implied');
+  assert.equal(new URL(app.url).searchParams.has('view'), false);
+  assert.match(d.warnings.join(' '), /2 routes \(search, sessions\)/);
+  for (const view of ['search', 'sessions']) {
+    const explicit = run('lib/kits/session-render.js,dist/web-tools.js', ['--query', 'view=' + view]);
+    const link = explicit.links.find(l => l.page === 'app/index.html');
+    assert.equal(new URL(link.url).searchParams.get('view'), view, 'the requested view reaches the shared reader');
+  }
 });
 
 test('a page file resolves to the toss, since ?use= never swaps a page shell', () => {
@@ -80,7 +89,7 @@ test('a page file resolves to the toss, since ?use= never swaps a page shell', (
   // pin with no frame survives, and a frame under an unpinned shell survives
   // with the subject still pinned to the branch.
   assert.doesNotMatch(l.url, /toss-render\.html\?use=/);
-  assert.match(l.url, /toss-render\.html#gh=mehrlander\/web-tools@0{40}:pages\/session\.html$/);
+  assert.match(l.url, /toss-render\.html#gh=mehrlander\/web-tools@0{12}:pages\/session\.html$/);
 });
 
 test('the renderer previews by nesting rather than by rendering itself', () => {
@@ -104,6 +113,31 @@ test('docs and tools get an honest no-link rather than a link that shows nothing
   const d = run('docs/showing.md,tools/test/x.test.mjs');
   assert.equal(d.mechanism, 'none-needed');
   assert.equal(d.links.length, 0);
+});
+
+test('any HTML outside archive/ is a page file, a kit demo or a dated prototype alike', () => {
+  // showing-whitelists-pages-only: a branch whose only HTML sat in dump/ was
+  // handed links to two pages it never touched.
+  for (const file of ['lib/kits/demos/md-diff.html', 'dump/2026-08-28-question-lane.html']) {
+    const d = run(file);
+    assert.equal(d.mechanism, 'toss-gh', file);
+    assert.deepEqual(d.links.map(l => l.page), [file]);
+  }
+  assert.equal(run('archive/alp/repo/index.html').mechanism, 'none-needed');
+});
+
+test('a kit change reaches its demo, which gh.loads the kit like any page', () => {
+  const d = run('lib/kits/md-diff.js,dist/web-tools.js');
+  assert.equal(d.mechanism, 'use');
+  assert.ok(d.links.some(l => l.page === 'lib/kits/demos/md-diff.html'));
+});
+
+test('a lib file only a relative script tag loads is tossed on that page, never ?use=', () => {
+  // page-skips-the-loader-ignores-use: transform.html loads its workbench with
+  // a bare <script src>, so ?use= showed main's code with no error.
+  const d = run('lib/alpineComponents/transform-workbench.js,dist/web-tools.js');
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.deepEqual(d.links.map(l => l.page), ['pages/transform.html']);
 });
 
 test('lib without a rebuilt pre-build warns, since ?use= fetches dist', () => {
@@ -225,11 +259,12 @@ test('a framed page resolves to the app carrying its view, never to the page on 
   const [l] = d.links;
   assert.equal(l.page, 'projects/budget-drs/app/view/app.html');
   assert.equal(l.view, 'submittal');
-  assert.match(l.url, new RegExp(`#gh=mehrlander/home@${ZERO}:projects/budget-drs/app/view/app\\.html\\?view=submittal$`));
+  assert.match(l.url, new RegExp(`#gh=mehrlander/home@${Z12}:projects/budget-drs/app/view/app\\.html\\?view=submittal$`));
   assert.doesNotMatch(l.url, /\?use=/, 'the renderer is web-tools main; the ref belongs to the framed repo');
-  // The address is over the MCP body cap, and the warning says where that
-  // matters rather than shortening it by hand.
-  assert.ok(d.warnings.some(w => /150\+ characters/.test(w)));
+  // The MCP body-cap warning fires exactly when the address reaches the cap,
+  // and says where that matters rather than shortening it by hand. This one
+  // fell under it on 2026-10-02, when commits went to 12 characters.
+  assert.equal(d.warnings.some(w => /150\+ characters/.test(w)), l.url.length >= 150);
 });
 
 test("a change under the app's own folder is the app, bare, since the path does not name a view", () => {
@@ -248,7 +283,7 @@ test('an HTML file the manifest does not frame is tossed on its own and said to 
   const d = runIn(framedRepo(), 'created/thing.html,chron/2026/09/x.md');
   assert.equal(d.mechanism, 'toss-app');
   assert.equal(d.links[0].page, 'created/thing.html');
-  assert.match(d.links[0].url, /#gh=mehrlander\/home@0{40}:created\/thing\.html$/);
+  assert.match(d.links[0].url, /#gh=mehrlander\/home@0{12}:created\/thing\.html$/);
   assert.ok(d.warnings.some(w => /not declared under showing\.views/.test(w)));
 });
 
@@ -273,9 +308,134 @@ test('--query joins the view on a framed link rather than being dropped', () => 
     'the query joins with & because the framed page reads one query span');
 });
 
+// A cross-repo selection rides on the renderer's own query, before the `#`;
+// inside --query it reaches the framed page instead and the renderer reads the
+// other repo at main (docs/SNAGS.md refs-in-page-query-ignored-by-toss).
+test('--refs puts the selection on the renderer, and refs= in --query is flagged', () => {
+  const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--refs', 'mehrlander/home@claude/x', '--refs', 'mehrlander/web-tools@y']);
+  assert.equal(d.mechanism, 'toss-app');
+  assert.match(d.links[0].url,
+    /pages\/toss-render\.html\?refs=mehrlander\/home@claude\/x&refs=mehrlander\/web-tools@y#gh=/);
+  const q = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--query', 'tab=abs&refs=mehrlander/home@claude/x']);
+  assert.ok(q.warnings.some(w => /pass it as --refs/.test(w)), 'refs= in --query is named');
+});
+
 test('--at puts a fragment on a framed link', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--at', 'note=abc']);
   assert.equal(d.mechanism, 'toss-app');
   assert.match(d.links[0].url, /#note=abc$/);
+});
+
+// ── The overlay (docs/loader.md, "The selection") ───────────────────────────
+// Main at a pinned commit with the branch's changed files over it, offered only
+// when it is the merge preview: main changed none of those files since the
+// branch point, and the branch removes none. --overlay yes stands in for a main
+// whose renderer and build read path entries; --main-changed, --removed and
+// --behind stand in for the git facts.
+const B12 = 'b'.repeat(12);
+test('a lib change on a branch behind main, touching nothing main touched, is an overlay pinned to main', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/kits/other.js']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.links.find(l => l.page === 'app/index.html').url,
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
+    + `#gh=mehrlander/web-tools@${B12}:app/index.html`, 'main is pinned, the build left out, the one file over it');
+  assert.ok(d.warnings.some(w => /150\+ characters/.test(w)), 'an overlay still passes the MCP body cap, and says so');
+  assert.ok(d.why.some(w => /9 commit\(s\) behind main.*a merge would produce/.test(w)));
+});
+
+test('main having changed an overlaid file refuses the overlay and says neither link is the merge', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/alpineComponents/estate.js']);
+  assert.equal(d.mechanism, 'use');
+  assert.ok(d.warnings.some(w => /main has changed 1 of this branch's files.*Neither link shows the merge/.test(w)));
+  assert.ok(d.why.some(w => /as it stands: 9 commit\(s\) behind main/.test(w)), 'the fallback does not claim to be the real thing');
+});
+
+test('a deleted or renamed file refuses the overlay', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2', '--removed', 'lib/kits/old.js']);
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.ok(d.warnings.some(w => /deletes or renames lib\/kits\/old\.js/.test(w)));
+});
+
+test('on a lagging branch a changed page is addressed at the branch, with pinned main under it and its other files over it', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/kits/branch-status.js`
+    + `#gh=mehrlander/web-tools@${Z12}:pages/diff-tool.html`);
+  assert.ok(d.why.some(w => /2 commit\(s\) behind main.*a merge would produce/.test(w)));
+});
+
+test('while main cannot read path entries, a lib change stays on ?use=', () => {
+  const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'no']);
+  assert.equal(d.mechanism, 'use');
+});
+
+test('past the cap the overlay steps aside and says so', () => {
+  const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).join(',');
+  const d = run(many, ['--overlay', 'yes', '--behind', '2']);
+  assert.equal(d.mechanism, 'use');
+  assert.ok(d.warnings.some(w => /past the overlay's 20/.test(w)));
+});
+
+test('a generated catalog both sides changed is read at main, named, and does not refuse the overlay', () => {
+  const d = run('lib/alpineComponents/estate.js,docs/tests.csv,dist/web-tools.js',
+    ['--overlay', 'yes', '--behind', '3', '--main-changed', 'docs/tests.csv']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.ok(!d.links[0].url.includes('docs/tests.csv'), 'a regenerated file is not overlaid');
+  assert.ok(d.why.some(w => /generated file\(s\).*docs\/tests\.csv.*read at main/.test(w)));
+});
+
+// Level with main, a merge fast-forwards, so the branch's own commit is the
+// merge and one ref shows it. The overlay listed main and every changed file
+// as separate refs even then, which is how a branch zero commits behind
+// handed over links several hundred characters long (2026-10-02).
+test('level with main, a changed page is the plain toss at the branch, not an overlay', () => {
+  const d = run('pages/diff-tool.html,lib/kits/branch-status.js,dist/web-tools.js', ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.links[0].url, `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:pages/diff-tool.html`);
+  assert.ok(d.why.some(w => /level with main.*fast-forward/.test(w)));
+  assert.ok(!d.warnings.some(w => /overlay/.test(w)), 'nothing to refuse when no overlay is wanted');
+});
+
+test('level with main, a rebuilt lib change is ?use= at the branch, and the cap does not apply', () => {
+  const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).concat('dist/web-tools.js').join(',');
+  const d = run(many, ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'use');
+  assert.ok(!d.warnings.some(w => /past the overlay/.test(w)));
+});
+
+test('level with main, a lib change with no rebuilt bundle keeps the overlay, which steps around the stale build', () => {
+  const d = run('lib/alpineComponents/estate.js', ['--overlay', 'yes']);
+  assert.equal(d.mechanism, 'overlay');
+  assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
+});
+
+test('a kit demo is a page file under lib/, so it is tossed rather than reached by ?use=', () => {
+  // ?use= swaps the code a page loads, never the page: Pages serves the demo
+  // file from the default branch, so a new demo had no ?use= link that showed
+  // it, and the classifier used to offer the pre-build's pages instead.
+  const d = run('lib/kits/look.js,lib/kits/demos/look.html,dist/web-tools.js');
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.deepEqual(d.links.map(l => l.page), ['lib/kits/demos/look.html']);
+});
+
+test('a page that takes look links says so, and a look link naming no anchor is caught', () => {
+  // The hint arrives at the handover, which is when a session decides what the
+  // link says; the check catches a renamed anchor before the reader does.
+  let d = run('lib/kits/demos/look.html');
+  assert.equal(d.look.length, 1);
+  assert.equal(d.look[0].page, 'lib/kits/demos/look.html');
+  assert.ok(d.look[0].anchors.includes('btn-export'));
+  assert.ok(d.look[0].walks.includes('change-licenses'));
+  d = run('lib/kits/demos/look.html', ['--at', 'tap=btn-export&say=here']);
+  assert.deepEqual(d.look, [], 'a link already carrying a look key needs no hint');
+  assert.ok(!d.warnings.some(w => /look link/.test(w)), 'and a resolving anchor draws no warning');
+  d = run('lib/kits/demos/look.html', ['--at', 'tap=renamed-button']);
+  assert.ok(d.warnings.some(w => /'renamed-button' is not an anchor/.test(w)));
+  d = run('pages/approve.html');
+  assert.deepEqual(d.look, [], 'a page without the kit gets no hint');
 });

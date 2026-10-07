@@ -15,7 +15,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
-import { deriveReach, deriveWords, CHANNELS } from '../build/docs-reach.mjs';
+import { deriveReach, deriveWords, CHANNELS, stripComments } from '../build/docs-reach.mjs';
 
 const registry = { documents: parseCsv(readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8'))
   .map(d => ({ ...d, words: +d.words })) };
@@ -113,4 +113,28 @@ test('paths named as document rows resolve inside the repo', () => {
     assert.ok(existsSync(path.join(repoRoot, d.path)), 'missing on disk: ' + d.path);
     assert.ok(statSync(path.join(repoRoot, d.path)).isFile(), 'not a file: ' + d.path);
   }
+});
+
+// Reach reads the app with its comments stripped, so a stripper that takes
+// code for a comment drops real references in silence. Each case here is a
+// shape that did, or nearly did (docs/SNAGS.md
+// comment-stripper-reads-a-string-as-a-comment).
+test('the comment stripper keeps strings and regex literals and strips only comments', () => {
+  const kept = (src, s) => assert.ok(stripComments(src).includes(s), `stripped ${s} from ${src}`);
+  const gone = (src, s) => assert.ok(!stripComments(src).includes(s), `kept ${s} from ${src}`);
+  // A slash-star inside a quoted string is a glob, not a comment.
+  kept("const g = 'skills/*-guard.sh';\nfetch('state/sessions.json');\n/* later */", 'state/sessions.json');
+  // A regex literal holding slashes is not a line comment.
+  kept("s.replace(/\\//g, '_'); load('docs/a.md');", 'docs/a.md');
+  // A slash-star inside a line comment does not open a block.
+  kept("// surfaces/*.surface\nload('docs/b.md');", 'docs/b.md');
+  // Comments go, in code and inside a template's CSS alike.
+  gone("/* docs/c.md */ x();", 'docs/c.md');
+  gone("x(); // docs/d.md", 'docs/d.md');
+  gone("const css = `a { b: c } /* docs/e.md */ d {}`;", 'docs/e.md');
+  // A template's comment never takes its closing backtick, so what follows
+  // stays code.
+  kept("const t = `x // y`;\nload('docs/f.md');\nconst u = `z`;", 'docs/f.md');
+  // A URL's double slash is not a comment.
+  kept("const u = https://example.com/docs/g.md;", 'docs/g.md');
 });

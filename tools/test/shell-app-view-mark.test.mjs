@@ -90,7 +90,7 @@ test('leaving an app view restores the Web Tools favicon and tile', async () => 
   const { shell, doc } = onAppView();
   await shell.applyAppIcon('me/home:app.html', SVG);
 
-  shell.view = 'estate';
+  shell.view = 'repos';
   shell.appView = null;
   shell.syncUrl();                       // every route change passes through stamp()
   assert.deepEqual(icons(doc), [BASE_ICON], 'the shell gets its own mark back');
@@ -129,7 +129,7 @@ test('a cold address link takes the page\'s title over the filename it invented'
   assert.equal(doc.title, 'DRS budget lens · Web Tools');
 
   // And it goes when the view does, rather than captioning the next screen.
-  shell.view = 'estate';
+  shell.view = 'repos';
   shell.appView = null;
   shell.syncUrl();
   assert.equal(doc.title, 'Web Tools');

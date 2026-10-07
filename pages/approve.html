@@ -47,7 +47,8 @@
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
-  const ref = new URLSearchParams(location.search).get('use');
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -231,7 +232,8 @@ document.addEventListener('alpine:init', () => {
         } else if (src) {
           const [addr, ...rest] = src.split(':');
           const [repo, ref] = addr.split('@');
-          this.env = JSON.parse((await new GH({ token: this.token, repo, ref: ref || '' }).get(rest.join(':'))).text);
+          // A read-only instance: no @ref follows the selection. The reply write below keeps its own ref.
+          this.env = JSON.parse((await new GH({ token: this.token, repo, ...(ref ? { ref } : {}) }).get(rest.join(':'))).text);
         } else {
           this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }
@@ -322,6 +324,9 @@ document.addEventListener('alpine:init', () => {
         // one request, not a place to browse a repo from.
         announce: false,
       });
+      // The deck is the page's body slot (web-tools data/ui-units/codebook.md,
+      // "Slots"); the kit builds it at runtime, so it is marked here.
+      this._deck?.el?.setAttribute('data-pattern', 'deck-page');
     },
 
     async send(decision) {

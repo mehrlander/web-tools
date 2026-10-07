@@ -83,7 +83,8 @@
   // stylesheet that is loaded separately and may have failed for the same
   // reason the bundle did.
   const bootFailed = (e) => {
-    const ref = new URLSearchParams(location.search).get('use');
+    const q = new URLSearchParams(location.search);
+    const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
     document.body?.removeAttribute('x-cloak');
     const box = document.createElement('div');
     box.setAttribute('role', 'alert');
@@ -108,7 +109,8 @@
   };
 
   try {
-    const ref = new URLSearchParams(location.search).get('use');
+    const q = new URLSearchParams(location.search);
+    const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
     if (ref) {
       const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
       if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -240,8 +242,13 @@
         // session, so they are orthogonal to the three ways of naming one.
         const pane = pick('pane');
         const card = parseInt(pick('card'), 10);
+        const find = (pick('find') || '').trim();
+        // `now` names the ref the action message is read from, main by default.
+        const nowRef = pick('now');
         const at = { ...(['outline', 'files', 'raw'].includes(pane) ? { pane } : {}),
-                     ...(Number.isInteger(card) ? { start: card } : {}) };
+                     ...(Number.isInteger(card) ? { start: card } : {}),
+                     ...(find ? { find } : {}),
+                     ...(nowRef ? { nowRef } : {}) };
         const gz = pick('gz');
         if (gz) return { kind: 'gz', gz, at };
         const id = pick('id');
@@ -320,7 +327,7 @@
           // nothing. So a tossed session had no title and no id anywhere on
           // screen, and only the facts strip said which one it was (reported
           // 2026-09-01 from the phone).
-          opts = { ...opts, framed: false, ...(t.at || {}) };
+          opts = { ...opts, framed: false, ...(t.at || {}), onFind: value => this.stampFind(value) };
           this.target = opts;
           window.__sessionTarget = opts;
           this.$nextTick(() => {
@@ -338,6 +345,21 @@
         } catch (e) {
           this.err = e?.message || String(e);
         } finally { this.busy = false; }
+      },
+
+      stampFind(value){
+        // A toss frame's address belongs to its host. Its copy-link action
+        // carries the reading; replacing this blob address cannot publish it.
+        if (!/^https?:$/.test(location.protocol)) return;
+        const url = new URL(location.href);
+        const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+        const p = ['id', 'gh', 'gz', 'branch'].some(k => hash.has(k)) ? hash : url.searchParams;
+        url.searchParams.delete('find'); hash.delete('find');
+        url.searchParams.delete('card'); hash.delete('card');
+        const find = String(value || '').trim();
+        if (find) p.set('find', find);
+        url.hash = hash.toString();
+        history.replaceState(history.state, '', url.href);
       },
 
       async readGz(gz){

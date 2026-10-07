@@ -1717,3 +1717,189 @@ test('the marker takes the screen from the caret while it is up', () => {
   assert.equal(host.querySelector('[data-d="caret"]'), null,
     'a caret inside the marker is a second thing to look at in a one-question moment');
 });
+
+// ── Paragraphs: join, split, move ──────────────────────────────────────────
+// The edits behind the Rendered view's seam and the drag. Each is one undo
+// step, and each tidies both seams it touches the way the delete key does.
+const doc = (t, caret) => { const d = engine(); d.text = t; if (caret != null) d.caretAt(caret); return d; };
+
+test('a paragraph break is found from either side of it and from the blank line', () => {
+  const t = 'One ends.\n\nTwo starts.';
+  const d = doc(t);
+  for (const i of [9, 10, 11]) assert.deepEqual(d.breakAt(i), { start: 9, end: 11 }, `at ${i}`);
+  assert.equal(d.breakAt(3), null, 'inside a word is not a break');
+  assert.equal(doc('one\ntwo').breakAt(3), null, 'a single newline is a soft wrap, not a break');
+});
+
+test('join closes a break to one space and keeps both sentences as written', () => {
+  const d = doc('One ends.\n\nTwo starts.\n\nThree.');
+  assert.equal(d.join(11), true);
+  assert.equal(d.text, 'One ends. Two starts.\n\nThree.');
+  assert.deepEqual(d.range, { start: 10, end: 10 }, 'the caret sits where the second began');
+  d.undo();
+  assert.equal(d.text, 'One ends.\n\nTwo starts.\n\nThree.', 'one step back');
+  assert.equal(d.join(3), false, 'no break, no edit');
+});
+
+test('split opens a break at the caret and takes the spaces with it', () => {
+  const d = doc('First half. Second half.', 11);
+  assert.equal(d.split(), true);
+  assert.equal(d.text, 'First half.\n\nSecond half.');
+  assert.deepEqual(d.range, { start: 13, end: 13 }, 'the caret starts the new paragraph');
+  const e = doc('First half. Second half.', 12);
+  e.split();
+  assert.equal(e.text, 'First half.\n\nSecond half.', 'either side of the space cuts the same');
+  assert.equal(doc('abc', 0).split(), false, 'not at the start');
+  assert.equal(doc('a.\n\nb', 3).split(), false, 'not inside a break already');
+});
+
+test('backspace at the start of a paragraph joins it with a space, not glued', () => {
+  const d = doc('One ends.\n\nTwo starts.', 11);
+  d.backWord();
+  assert.equal(d.text, 'One ends. Two starts.');
+});
+
+test('move carries a sentence to the gap below as its own paragraph: a split by drag', () => {
+  const t = 'Keep this. Move this.\n\nNext para.';
+  const d = doc(t);
+  assert.equal(d.move(11, 21, t.indexOf('\n\n'), true), true);
+  assert.equal(d.text, 'Keep this.\n\nMove this.\n\nNext para.');
+  assert.deepEqual(d.range, { start: 12, end: 22 }, 'the moved words stay selected');
+  d.undo();
+  assert.equal(d.text, t, 'one step back');
+});
+
+test('move carries a whole paragraph onto the end of another: a join by drag, no empty paragraph left', () => {
+  const t = 'First para.\n\nSecond para.\n\nThird.';
+  const d = doc(t);
+  assert.equal(d.move(13, 25, 11), true);
+  assert.equal(d.text, 'First para. Second para.\n\nThird.');
+});
+
+test('move within a paragraph spaces both seams and refuses a drop onto itself', () => {
+  const t = 'alpha beta gamma delta';
+  const d = doc(t);
+  assert.equal(d.move(6, 10, 22), true, 'beta to the end');
+  assert.equal(d.text, 'alpha gamma delta beta');
+  assert.equal(doc(t).move(6, 10, 8), false, 'inside itself');
+  assert.equal(doc(t).move(6, 10, 5), false, 'onto the space touching it');
+  const e = doc('one two, three');
+  e.move(4, 7, 0);
+  assert.equal(e.text, 'two one, three', 'a mark after the hole takes no space before it');
+});
+
+test('move lands a paragraph between two others and closes the hole it left', () => {
+  const t = 'A.\n\nB.\n\nC.';
+  const d = doc(t);
+  assert.equal(d.move(8, 10, 2, true), true);
+  assert.equal(d.text, 'A.\n\nC.\n\nB.');
+});
+
+test('the paragraph key at a caret mid-text splits cleanly, one undo step', () => {
+  const d = doc('First half. Second half.', 12);
+  d.punct('¶');
+  assert.equal(d.text, 'First half.\n\nSecond half.', 'no space stranded on either side');
+  d.undo();
+  assert.equal(d.text, 'First half. Second half.');
+});
+
+// ── Found by review, 2026-09-27 ────────────────────────────────────────────
+// Each of these failed on the code the review read.
+test('a move leaves unrelated lines alone even when they look like a list marker', () => {
+  const t = 'Score was\n10.\n\nMove me. Stay here.\n';
+  const d = doc(t);
+  d.move(t.indexOf('Move'), t.indexOf('Move') + 8, t.length - 1);
+  assert.equal(d.text, 'Score was\n10.\n\nStay here. Move me.\n');
+});
+
+test('a list item or heading carried away takes its marker line with it, and the file keeps its ending', () => {
+  const a = doc('Para.\n\n- only');
+  a.move(9, 13, 0);
+  assert.equal(a.text, 'only Para.', 'no final newline invented');
+  const b = doc('Para.\n\n- only\n');
+  b.move(9, 13, 0, true);
+  assert.equal(b.text, 'only\n\nPara.\n');
+  const c = doc('# Head\n\nPara.\n');
+  c.move(2, 6, c.text.length - 1);
+  assert.equal(c.text, 'Para. Head\n', 'no stray first line');
+  const e = doc('> quoted\n\nPara.\n');
+  e.move(2, 8, e.text.length - 1);
+  assert.equal(e.text, 'Para. quoted\n');
+});
+
+test('a task item or a list inside a quote, carried away, takes its marker with it', () => {
+  // Both left a bare "- [ ]" or "> -" behind until 2026-10-01.
+  const t = 'Para.\n\n- [ ] only\n';
+  const a = doc(t);
+  a.move(t.indexOf('only'), t.indexOf('only') + 4, 0, true);
+  assert.equal(a.text, 'only\n\nPara.\n');
+  const u = 'Para.\n\n- [x] first\n- [ ] second\n';
+  const b = doc(u);
+  b.move(u.indexOf('second'), u.indexOf('second') + 6, 0, true);
+  assert.equal(b.text, 'second\n\nPara.\n\n- [x] first\n', 'the list stays tight');
+  const v = 'Para.\n\n> - quoted item\n';
+  const c = doc(v);
+  c.move(v.indexOf('quoted'), v.length - 1, 0, true);
+  assert.equal(c.text, 'quoted item\n\nPara.\n');
+  const w = 'Para.\n\n> 1. step\n';
+  const e = doc(w);
+  e.move(w.indexOf('step'), w.indexOf('step') + 4, 0, true);
+  assert.equal(e.text, 'step\n\nPara.\n');
+});
+
+test('a split at a line break makes one paragraph break, and none at the end of the content', () => {
+  const d = doc('Line one\nline two\n');
+  assert.equal(d.split(8), true);
+  assert.equal(d.text, 'Line one\n\nline two\n');
+  assert.equal(doc('Para one two.\n').canSplit(13), false, 'the end of the content is not a split');
+});
+
+test('a move whose selection carries its spaces does not glue the words it leaves', () => {
+  const d = doc('alpha beta gamma delta');
+  d.move(5, 11, 22);
+  assert.equal(d.text, 'alpha gamma delta beta');
+});
+
+test('a move that changes nothing is not an edit and leaves no undo step', () => {
+  const d = doc('A.\n\nB.\n');
+  assert.equal(d.move(0, 2, 0, true), false);
+  // Setting the text was itself a step; one undo must reach past it, which it
+  // would not if the no-op had recorded a step of its own.
+  d.undo();
+  assert.notEqual(d.text, 'A.\n\nB.\n');
+});
+
+// Found by the second review, 2026-09-27, in the first round's fixes.
+test('a middle list item carried away leaves the list tight', () => {
+  const d = doc('- one\n- two\n- three\n');
+  d.move(8, 11, d.text.length, true);
+  assert.equal(d.text, '- one\n- three\n\ntwo\n');
+});
+
+test('an inline drop at the start of a paragraph lands there, not at the end of the one before', () => {
+  const t = 'One two.\n\nThree four.\n\nFive six.\n';
+  const d = doc(t);
+  d.move(t.indexOf('six'), t.indexOf('six') + 3, t.indexOf('Three'));
+  assert.equal(d.text, 'One two.\n\nsix Three four.\n\nFive.\n');
+});
+
+test('prose that only looks like a marker keeps its line', () => {
+  const t = 'Year:\n2019. Done.\n\nP.\n';
+  const d = doc(t);
+  d.move(t.indexOf('Done.'), t.indexOf('Done.') + 5, t.length - 1);
+  assert.equal(d.text, 'Year:\n2019.\n\nP. Done.\n');
+  const u = '#hashtag and more.\n\nP.\n';
+  const e = doc(u);
+  e.move(1, 18, u.length - 1);
+  assert.equal(e.text, '#\n\nP. hashtag and more.\n');
+});
+
+test('a split at an indented or quoted continuation is not offered', () => {
+  assert.equal(doc('- a\n  more\n\nP.\n').canSplit(3), false, 'a list item continuation');
+  assert.equal(doc('> a\n> b\n').canSplit(3), false, 'a quote continuation');
+  assert.equal(doc('- a b\n').canSplit(3), false, 'mid-line on a list item');
+  assert.equal(doc('1. a b\n').canSplit(4), false, 'mid-line on a numbered item');
+  assert.equal(doc('> a b\n').canSplit(3), false, 'mid-line in a quote');
+  assert.equal(doc('- a\n\n  more words\n').canSplit(8), false, 'mid-line in a continuation paragraph');
+  assert.equal(doc('Plain a b.\n').canSplit(7), true, 'prose still splits');
+});

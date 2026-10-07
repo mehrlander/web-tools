@@ -21,7 +21,7 @@
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
 //
-// resolveCdn(url, repoRoot, ref?) classifies a request URL and returns one of:
+// resolveCdn(url, repoRoot, ref?, headers?) classifies a request URL and returns one of:
 // (ref is the render's --ref value, used to strip a slashed branch name from a
 // raw.githubusercontent own-code URL; optional, only the raw case reads it.)
 //   { kind:'fulfill', body, contentType }  serve these local bytes
@@ -41,9 +41,17 @@
 
 import { readFileSync, existsSync, statSync, lstatSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
+
+// The git blob sha of some bytes, which is what the contents API reports as a
+// file's `sha`. gh-boot records it per loaded file (window.__ghFiles), and it
+// is the one piece of evidence that says WHICH version of a file ran. A
+// placeholder here would leave any check built on it untestable headlessly.
+export const blobSha = (bytes) =>
+  createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
 
 // Serialized git/trees body, built once per process (see the trees branch).
 let treeBodyCache = null;
@@ -83,12 +91,22 @@ const CDN_DEFAULT = {
 // fields point at has no named exports for an `import { x }` to bind to.
 // (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
+// SHOT_SIBLINGS, when set, names the only sibling checkouts a render may read,
+// comma-separated; any other sibling is answered as missing, the way GitHub
+// answers a private repository to a reader with no token. tools/build/
+// ui-shots.mjs sets it for a public unit's shots, so a pane that reads a private
+// repository cannot put that repository's content in a public image, however it
+// reads it. Found 2026-10-06: the Waiting view's shot showed the owner's open
+// user calls, read from web-tools-private beside this checkout.
+const siblingAllowed = (name) => process.env.SHOT_SIBLINGS == null
+  || process.env.SHOT_SIBLINGS.split(',').includes(name);
+
 // A checkout of another repo in this estate, beside this one. Returns the file
 // path when the sibling exists, is a git checkout, and holds the file; null
 // otherwise, so every caller falls through to its own rule. It never leaves the
 // parent directory: `rel` is resolved and then required to stay inside.
 function siblingFile(repoRoot, owner, name, rel) {
-  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name)) return null;
+  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name) || !siblingAllowed(name)) return null;
   const root = path.resolve(repoRoot, '..', name);
   if (root === path.resolve(repoRoot)) return null;
   if (!existsSync(path.join(root, '.git'))) return null;
@@ -122,10 +140,21 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
       // module field, so the chain fell straight through to ./excel.js and the
       // page died with "process is not defined" the first time it wrote a
       // workbook. Written as a rule so the next such package resolves itself.
+      // A /combine/ spec has a rule of its own, measured 2026-10-06 against
+      // the bytes jsDelivr served for every bare spec this repo combines (nine
+      // packages): `jsdelivr`, then a string `browser`, then `main`. It reads
+      // neither `unpkg` nor `module`. The chain below it read both, so a bare
+      // `npm/tabulator-tables` got the ESM build, threw "Unexpected token
+      // 'export'", and took the whole combined script down with it, Tailwind and
+      // Phosphor included; transform.html's committed thumbnail was that broken
+      // render. A bare `npm/alpinejs` got the working build jsDelivr does not
+      // send, which is combine-serves-cjs surviving its own fix.
       const def = esm
         ? (dot && (dot.import || dot.module || dot.default)) || j.module
           || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
-        : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
+        : combine
+          ? j.jsdelivr || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
+          : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}
   }
@@ -309,13 +338,20 @@ const commitJson = (fields, files) => {
 };
 const FMT = '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%cn%x1f%cI%x1f%B%x1e';
 const json = (status, body, tag) => ({ kind: 'fulfill', status, contentType: 'application/json; charset=utf-8', tag, body: JSON.stringify(body) });
-function localCommits(u, root) {
+function localCommits(u, root, accept = '') {
   const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 << 20 });
   const rev = (r) => (!r || r === 'main' || r === 'HEAD') ? 'HEAD' : r;
   const one = u.pathname.match(/\/commits\/([^/]+)$/);
   if (one) {
     const r = git('show', '--no-patch', FMT, rev(decodeURIComponent(one[1])));
     if (r.status !== 0) return json(404, { message: 'No commit found for SHA: ' + one[1] }, `api commit ${one[1]} (absent)`);
+    // The sha media type answers the bare 40 hex characters and nothing else.
+    // The app's ?use= boot resolves a branch name this way, and so does the
+    // shell-pin probe; answered as JSON, both read the whole document as a ref.
+    if (/vnd\.github\.sha/.test(accept)) {
+      return { kind: 'fulfill', status: 200, contentType: 'application/vnd.github.sha; charset=utf-8',
+               tag: `api commit ${one[1].slice(0, 7)} (sha)`, body: r.stdout.split('\x1f')[0].trim() };
+    }
     const num = git('show', '--numstat', '--format=', rev(decodeURIComponent(one[1]))).stdout.trim();
     const files = num ? num.split('\n').map(l => {
       const [a, d, filename] = l.split('\t');
@@ -334,7 +370,99 @@ function localCommits(u, root) {
   return json(200, list, `api commits${q.get('path') ? ' ' + q.get('path') : ''}`);
 }
 
-export function resolveCdn(rawUrl, repoRoot, ref) {
+// SHOT_GIT_API's answers (see its call in resolveCdn). Returns null for a
+// request it does not own, so every other rule still applies.
+function gitEvidence(u, repoRoot) {
+  const m = /^\/repos\/([^/]+)\/([^/]+)\/(branches|compare|pulls|contents|commits)(?:\/(.*))?$/.exec(u.pathname);
+  if (!m) return null;
+  const [, owner, name, what, rest = ''] = m;
+  const root = `${owner}/${name}` === REPO ? repoRoot : path.join(repoRoot, '..', name);
+  if (!existsSync(path.join(root, '.git'))) return null;
+  const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', maxBuffer: 64 << 20 });
+  const json = (body, tag, status = 200) => ({ kind: 'fulfill', status, contentType: 'application/json; charset=utf-8',
+                                              tag: 'git-api ' + tag, body: JSON.stringify(body) });
+  const missing = (tag) => json({ message: 'Not Found' }, 'MISS ' + tag, 404);
+  const commitOf = (ref) => {
+    for (const c of [`refs/remotes/origin/${ref}`, ref]) {
+      const r = git('rev-parse', '--verify', '-q', `${c}^{commit}`);
+      if (r.status === 0) return r.stdout.trim();
+    }
+    return '';
+  };
+  const dec = decodeURIComponent;
+  if (what === 'branches') {
+    const sha = commitOf(dec(rest));
+    return sha ? json({ name: dec(rest), commit: { sha } }, `${name} branch ${dec(rest)}`) : missing(`${name} branch ${dec(rest)}`);
+  }
+  if (what === 'compare') {
+    const [base, head] = dec(rest).split('...');
+    const b = commitOf(base), h = commitOf(head);
+    if (!b || !h) return missing(`${name} compare ${rest}`);
+    const count = (range) => +git('rev-list', '--count', range).stdout.trim() || 0;
+    const ahead = count(`${b}..${h}`), behind = count(`${h}..${b}`);
+    const status = b === h ? 'identical' : behind === 0 ? 'ahead' : ahead === 0 ? 'behind' : 'diverged';
+    return json({ status, ahead_by: ahead, behind_by: behind }, `${name} compare ${status}`);
+  }
+  if (what === 'pulls') {
+    // Pull requests are not in git; the crawl's cache in the registry is the
+    // nearest record, which is also what findings.py check reads.
+    const store = path.join(repoRoot, '..', 'web-tools-private');
+    const r = spawnSync('git', ['-C', store, 'show', 'origin/main:state/activity.json'], { encoding: 'utf8', maxBuffer: 256 << 20 });
+    let e = null;
+    try { e = (JSON.parse(r.stdout).repos || {})[`${owner}/${name}`]; } catch {}
+    const n = +rest;
+    const open = e && (e.openPRs || []).find(p => p.number === n);
+    // The cache's `head` is the branch name; a read naming the PR's branch
+    // (the Waiting view's link to Activity's takeover) needs it as GitHub
+    // shapes it. No sha: the cache keeps none, so a check-run read misses.
+    const head = (p) => (p.head ? { ref: p.head, repo: { full_name: `${owner}/${name}` } } : undefined);
+    if (open) return json({ number: n, state: 'open', merged_at: null, draft: !!open.draft, head: head(open),
+                            updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
+    const last = e && (e.branchPRs || []).find(p => p.number === n && p.state !== 'open');
+    if (last) return json({ number: n, state: last.state === 'merged' ? 'closed' : last.state,
+                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null, head: head(last),
+                            updated_at: last.updatedAt || '' }, `${name} pull ${n} ${last.state}`);
+    return missing(`${name} pull ${n}`);
+  }
+  const ref = u.searchParams.get('ref') || u.searchParams.get('sha') || '';
+  if (!ref) return null;
+  const at = commitOf(ref);
+  if (!at) return null;
+  if (what === 'contents') {
+    const rel = dec(rest).replace(/\/$/, '');
+    const spec = rel ? `${at}:${rel}` : `${at}^{tree}`;
+    const type = git('cat-file', '-t', spec).stdout.trim();
+    if (type === 'tree') {
+      const entries = git('ls-tree', spec).stdout.split('\n').filter(Boolean).map(line => {
+        const [meta, nm] = line.split('\t');
+        const [, kind, sha] = meta.split(' ');
+        return { name: nm, path: rel ? `${rel}/${nm}` : nm, type: kind === 'tree' ? 'dir' : 'file', sha, size: 0 };
+      });
+      return json(entries, `${name} dir ${rel || '/'} @${ref}`);
+    }
+    if (type === 'blob') {
+      const bytes = spawnSync('git', ['-C', root, 'show', spec], { maxBuffer: 64 << 20 }).stdout;
+      return json({ content: bytes.toString('base64'), encoding: 'base64', sha: git('rev-parse', spec).stdout.trim(),
+                    size: bytes.length }, `${name} ${rel} @${ref}`);
+    }
+    return missing(`${name} ${rel} @${ref}`);
+  }
+  if (what === 'commits' && !rest) {
+    const p = u.searchParams.get('path');
+    const args = ['log', `-${+(u.searchParams.get('per_page') || 30)}`, '--format=%H%x09%cI%x09%s'];
+    if (u.searchParams.get('since')) args.push(`--since=${u.searchParams.get('since')}`);
+    args.push(at);
+    if (p) args.push('--', p);
+    const rows = git(...args).stdout.split('\n').filter(Boolean).map(l => {
+      const [sha, date, message] = l.split('\t');
+      return { sha, commit: { message, committer: { date } } };
+    });
+    return json(rows, `${name} commits ${p || ''} @${ref}`);
+  }
+  return null;
+}
+
+export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
   const host = u.host;
@@ -369,12 +497,18 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   // the same way on every page, with or without ?use=.
   // The ref is stripped by the exact --ref value (branch names carry slashes,
   // so segment-counting can't find where the path starts); with no ref known,
-  // fall back to dropping one segment. ---
+  // take the first split that names a file here, as the sibling rule above
+  // does, else drop one segment. A nested toss addressed at claude/<slug>
+  // otherwise asked for <slug>/lib/gh-api.js, and the page reported only
+  // "gh is not defined". ---
   if (host === 'raw.githubusercontent.com' && u.pathname.startsWith(`/${REPO}/`)) {
     const after = u.pathname.slice(`/${REPO}/`.length);
-    const tail = (ref && after.startsWith(ref + '/'))
-      ? after.slice(ref.length + 1)
-      : after.replace(/^[^/]+\//, '');
+    const isFile = (t) => { const f = path.join(repoRoot, decodeURIComponent(t)); return existsSync(f) && statSync(f).isFile(); };
+    let tail = after.replace(/^[^/]+\//, '');
+    if (ref && after.startsWith(ref + '/')) tail = after.slice(ref.length + 1);
+    else for (let i = after.indexOf('/'); i >= 0; i = after.indexOf('/', i + 1)) {
+      if (isFile(after.slice(i + 1))) { tail = after.slice(i + 1); break; }
+    }
     const rel = decodeURIComponent(tail);
     const fp = path.join(repoRoot, rel);
     if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `raw ${rel}` };
@@ -388,10 +522,24 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     const [owner, name] = REPO.split('/');
     if (host === `${owner}.github.io` && u.pathname.startsWith(`/${name}/`)) {
       const rel = decodeURIComponent(u.pathname.slice(name.length + 2));
-      const fp = path.join(repoRoot, rel);
+      // A directory is its index.html, as Pages serves it (app/ is the app).
+      let fp = path.join(repoRoot, rel);
+      if (existsSync(fp) && statSync(fp).isDirectory()) fp = path.join(fp, 'index.html');
       if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `pages ${rel}` };
       return { kind: 'empty', contentType: 'application/octet-stream', tag: `MISS pages ${rel}` };
     }
+  }
+
+  // --- The estate's evidence, from git, when a render asks for it ---------
+  //
+  // SHOT_GIT_API=1 answers the reads a finding's witnesses need (branch tip,
+  // compare, pull request state, contents at a ref with git's object shas)
+  // from origin's refs in the sibling checkouts. Off by default: the rules
+  // above serve the working tree so a render shows uncommitted work, and a
+  // witness check needs the recorded objects. tending-findings.mjs sets it.
+  if (host === 'api.github.com' && process.env.SHOT_GIT_API) {
+    const hit = gitEvidence(u, repoRoot);
+    if (hit) return hit;
   }
 
   // --- Own repo metadata: /repos/<REPO> (identity-free page boots) ---
@@ -416,7 +564,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   // does: the checkout is the ref being rendered.
   if (host === 'api.github.com' && /^\/repos\/[^/]+\/[^/]+\/commits(\/[^/]+)?$/.test(u.pathname)
       && u.pathname.startsWith(`/repos/${REPO}/commits`)) {
-    return localCommits(u, repoRoot);
+    return localCommits(u, repoRoot, headers.accept || headers.Accept || '');
   }
 
   // --- Own repo tree: git/trees/<ref> (the Pages lens scan) ---
@@ -504,7 +652,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         tag: `api ${tail} @${u.searchParams.get('ref')}`,
         body: JSON.stringify({
           content: atRef.toString('base64'),
-          encoding: 'base64', sha: 'local', size: atRef.length, html_url: '',
+          encoding: 'base64', sha: blobSha(atRef), size: atRef.length, html_url: '',
         }),
       };
     }
@@ -531,7 +679,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${tail}`,
         body: JSON.stringify({
           content: bytes.toString('base64'),
-          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
+          encoding: 'base64', sha: blobSha(bytes), size: bytes.length, html_url: '',
         }),
       };
     }
@@ -551,7 +699,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   // checked out falls through to the miss below rather than reaching the
   // network, so the render stays offline either way.
   const sibling = /^\/repos\/[^/]+\/([^/]+)\/contents\/(.*)$/.exec(u.pathname);
-  if (host === 'api.github.com' && sibling) {
+  if (host === 'api.github.com' && sibling && siblingAllowed(sibling[1])) {
     const [, name, tail] = sibling;
     const root = path.join(repoRoot, '..', name);
     const rel = decodeURIComponent(tail).replace(/\/$/, '').replace(/\?.*$/, '');
@@ -572,11 +720,19 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
       // DecompressionStream reported the damage as "Failed to fetch"
       // (2026-09-18, the viewer's Proposals mode, now Variants, over home's drafts.jsonl.gz).
       const bytes = readFileSync(fp);
+      // The raw media type answers the file itself, as GitHub does. The
+      // budget-drs app's tenant reader asks for it and takes the body as the
+      // page; answered with the JSON envelope it mounted base64 text as the
+      // tenant and inlined nothing (found 2026-09-29, the selection probe R8).
+      if (/vnd\.github\.raw/.test(String(headers.accept || headers.Accept || ''))) {
+        return { kind: 'fulfill', contentType: 'application/vnd.github.raw; charset=utf-8',
+                 tag: `api ${name}/${rel} (raw)`, body: bytes };
+      }
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,
         body: JSON.stringify({
           content: bytes.toString('base64'),
-          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
+          encoding: 'base64', sha: blobSha(bytes), size: bytes.length, html_url: '',
         }),
       };
     }
@@ -628,6 +784,19 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   }
   if (host === 'cdnjs.cloudflare.com') {
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `skip ${host}${u.pathname}` };
+  }
+
+  // --- The live GitHub API, off on request ---------------------------------
+  // SHOT_NO_LIVE_API=1 answers every api.github.com call no rule above did with
+  // a local 404, instead of passing it on. The app shell spends about seventy
+  // unauthenticated calls per load (open pull requests, branch comparisons,
+  // GraphQL) whatever the view, against GitHub's sixty an hour, and past that
+  // limit a 403 makes it swap the view for its token prompt. A 404 reads as
+  // missing data instead, so a batch of shots no longer depends on which run
+  // crossed the limit. Off by default; tools/build/ui-recipes.mjs sets it.
+  if (host === 'api.github.com' && process.env.SHOT_NO_LIVE_API) {
+    return { kind: 'fulfill', status: 404, contentType: 'application/json; charset=utf-8',
+             body: '{"message":"Not Found (local render: live API off)"}', tag: `api off ${u.pathname}` };
   }
 
   // --- Allowed hosts (Google Fonts, GitHub raw, data APIs): pass through ---

@@ -507,7 +507,7 @@ test('retained variants use the private home collection and match the exact text
     'hidden Alpine bindings still evaluate');
   assert.equal(address.token, 'current-saved-token');
   assert.equal(address.repo, 'mehrlander/home');
-  assert.equal(address.ref, 'main');
+  assert.equal(address.ref, undefined, 'no ref named: the read follows the selection');
   assert.equal(options.quiet, true, 'an optional background read cannot replace the host page');
   assert.equal(d.textPriorState, 'done');
   assert.equal(d.textPrior.selection.text, answer.selection.text);

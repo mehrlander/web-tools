@@ -4,7 +4,12 @@
 //
 //   node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>]
 //       [--query <k=v&...>] [--hash <fragment>] [--out <png>] [--width N]
-//       [--height N] [--wait MS] [--full] [--touch]
+//       [--height N] [--wait MS] [--full] [--touch] [--script <file>] [--eval <js>]
+//       [--measure]
+//
+// --eval runs a JS expression in the page after --script and before the shot,
+// and prints its result as `eval: <json>`, as home's tools/screenshot.mjs does,
+// so a caller can learn where something sits in the picture it gets back.
 //
 // The page is served from the on-disk working tree over loopback; every external
 // request is intercepted and resolved by tools/render/cdn.mjs — own code (entry.js
@@ -17,6 +22,12 @@
 // import is rewritten to the local build. Used by tools/build/verify-build.mjs
 // to prove the two render identically.
 //
+// --measure reads the settled page after the shot (tools/render/measure.mjs):
+// overflow at desktop and phone width, blank icons, empty tables, unstyled
+// text, house-style markup, and how far the shot moved from the page's
+// committed thumbnail. Its findings print in the log; the full record lands in
+// <png>.measures.json, and the phone-width view in <png>.phone.png.
+//
 // Output PNG + a render log land under tools/.preview/ (gitignored) by default.
 
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
@@ -27,17 +38,19 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from './cdn.mjs';
+import { measure, findings, signals } from './measure.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function parseArgs(argv) {
-  const o = { full: false, touch: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, query: null, hash: null, out: null, script: null };
+  const o = { full: false, touch: false, build: false, measure: false, width: 1280, height: 800, wait: 2500, ref: null, query: null, hash: null, out: null, script: null, eval: null };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--full') o.full = true;
     else if (a === '--touch') o.touch = true;
     else if (a === '--build') o.build = true;
+    else if (a === '--measure') o.measure = true;
     else if (a === '--ref') o.ref = argv[++i];
     else if (a === '--query') o.query = argv[++i];
     else if (a === '--hash') o.hash = argv[++i];
@@ -46,6 +59,7 @@ function parseArgs(argv) {
     else if (a === '--height') o.height = +argv[++i];
     else if (a === '--wait') o.wait = +argv[++i];
     else if (a === '--script') o.script = argv[++i];
+    else if (a === '--eval') o.eval = argv[++i];
     else rest.push(a);
   }
   o.page = rest[0];
@@ -54,7 +68,7 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.page) {
-  console.error('Usage: node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>] [--query <k=v&...>] [--script <file>] [--out <png>] [--full]');
+  console.error('Usage: node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>] [--query <k=v&...>] [--script <file>] [--out <png>] [--full] [--measure]');
   process.exit(2);
 }
 const pageAbs = path.join(repoRoot, opts.page);
@@ -136,7 +150,7 @@ const page = await ctx.newPage();
 await page.route('**/*', route => {
   const url = route.request().url();
   if (url.startsWith(`http://127.0.0.1:${port}`)) return route.continue();
-  const r = resolveCdn(url, repoRoot, opts.ref);
+  const r = resolveCdn(url, repoRoot, opts.ref, route.request().headers());
   tally[r.kind]++;
   if (r.tag) log.push(r.tag);
   if (r.kind === 'continue') return route.continue();
@@ -159,6 +173,7 @@ const qs = [opts.ref ? `use=${encodeURIComponent(opts.ref)}` : '', opts.query ||
 const frag = opts.hash ? '#' + opts.hash.replace(/^#/, '') : '';
 const target = `http://127.0.0.1:${port}${pageUrlPath}${qs ? '?' + qs : ''}${frag}`;
 let loadedScripts = [];
+let measures = null;
 try {
   await page.goto(target, { waitUntil: 'load', timeout: 30000 });
   // Let the gh.load chain + Alpine settle.
@@ -176,7 +191,10 @@ try {
     await fn(page, { repoRoot });
     log.push(`script ${opts.script}`);
   }
+  if (opts.eval) console.log('eval:', JSON.stringify(await page.evaluate(opts.eval)));
   await page.screenshot({ path: pngPath, fullPage: opts.full });
+  if (opts.measure) measures = await measure(page, { repoRoot, pagePath: opts.page, pngPath,
+    phonePng: pngPath.replace(/\.png$/, '.phone.png') });
 } catch (e) {
   errorLines.push(`[fatal] ${e.message}`);
 } finally {
@@ -231,11 +249,14 @@ if (preBuildPage) {
 const thrown = errorLines.filter(l => /^\[(pageerror|fatal)\]/.test(l));
 if (thrown.length) warnings.push(`${thrown.length} thrown error(s): ${thrown[0].slice(0, 120)}`);
 
+const found = measures ? findings(measures) : [];
 const summary = [
   `=== screenshot: ${opts.page}${opts.build ? ' [build]' : ''}${opts.ref ? ` @ ${opts.ref}` : ''} ===`,
   ...(warnings.length ? ['', '!!! WARNINGS !!!', ...warnings.map(w => `  ${w}`), ''] : []),
   `png: ${path.relative(repoRoot, pngPath)}`,
   `requests: fulfill=${tally.fulfill} empty=${tally.empty} continue=${tally.continue}`,
+  ...(measures ? ['', `--- measures (${measures.ms} ms) ---`,
+    ...(found.length ? found.map(f => `  ${f}`) : ['  no findings']), `  ${signals(measures)}`] : []),
   '',
   `--- loadedScripts ok (${okScripts.length}) ---`,
   ...okScripts.map(s => `  ${s}`),
@@ -255,4 +276,9 @@ await writeFile(logPath, summary);
 console.log(summary);
 console.log(`\nwrote: ${path.relative(repoRoot, pngPath)}`);
 console.log(`wrote: ${path.relative(repoRoot, logPath)}`);
+if (measures) {
+  const json = pngPath.replace(/\.png$/, '.measures.json');
+  await writeFile(json, JSON.stringify({ ...measures, warnings, thrown: thrown.length }, null, 1));
+  console.log(`wrote: ${path.relative(repoRoot, json)}`);
+}
 process.exit(errorLines.some(l => /\[fatal\]/.test(l)) ? 1 : 0);

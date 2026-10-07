@@ -28,14 +28,17 @@ Packages installed during a session do not transfer to other sessions unless the
 
 ### What `~/.claude` carries
 
-*(measured 2026-07-30)*
+*(measured 2026-07-30; layout re-checked 2026-10-06)*
 
 The home directory is two layers with different lifetimes, and the modification
 times separate them cleanly. Written fresh at boot: `skills/` (the account's own
-skills, 39 of them), `session-env/`, and the harness's hook scripts. Restored
-from the environment snapshot, carrying the timestamp of the day that snapshot
-was built: `settings.json`, `CLAUDE.md`, and `plugins/`, including
-`plugins/installed_plugins.json` and the plugin cache below it.
+skills, under `skills/synced/<id>/`), `session-env/`, and the harness's three
+hook scripts, which sit at the top of `~/.claude` with no `hooks/` folder:
+`stop-hook-git-check.sh`, `stop-hook-reply-gate.py` and
+`user-prompt-submit-reply-reminder.py`. Restored from the environment snapshot,
+carrying the timestamp of the day that snapshot was built: `settings.json` and
+`plugins/`, including `plugins/installed_plugins.json` and the plugin cache
+below it. There is no `~/.claude/CLAUDE.md`.
 
 `projects/` was listed as written fresh at boot too, and it is not. Measured
 2026-07-30: a session's own material persists across a restart of its VM,
@@ -160,22 +163,37 @@ the failure.
 
 ### What the account's setup script must do
 
-The canonical copy is `environment/setup.sh` in web-tools-private; the
-environment panel in claude.ai settings holds a paste of it. It must install
-`portable` at user scope, because plugins load at session start and a session
-rooted above the checkouts reads no project settings. It writes nothing else:
-no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny. The plugin refresher,
-the `AskUserQuestion` guard and the session-store default are plugin hooks
-([extending.md](extending.md#pretooluse-the-askuserquestion-guard)).
+The environment settings in claude.ai hold one line, which fetches and runs
+[`scripts/environment-setup.sh`](../../scripts/environment-setup.sh) from this
+repo's `main`:
+
+```
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/scripts/environment-setup.sh | bash
+```
+
+The script lives here because the setup script cannot reach a private repo. It
+installs `portable` at user scope, because plugins load at session start and a
+session rooted above the checkouts reads no project settings. It then saves its
+own text, the commit it came from and when it ran to
+`~/.claude/environment-setup.ran`, which the plugin's environment report prints
+from at every session start
+([extending.md](extending.md#sessionstart-the-environment-report)). It writes
+no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
+
+Changing the script does not rebuild the environment. A rebuild runs whatever
+is on `main` at that moment, and happens when the owner edits the environment
+settings or the cached build expires.
 
 **If the installed plugin fails to load, its refresher cannot run.** Recover the
 session with `claude plugin marketplace update web-tools`, then
 `claude plugin update --scope user portable@web-tools` and `/reload-plugins`.
-For later sessions the owner edits any byte of the setup script, which forces a
+For later sessions the owner edits the environment settings, which forces a
 rebuild.
 
-If `portable` loads, ignore a `daisy-alpine ... FAILED` line from the old
-refresher; it names the retired plugin.
+A build from this script announces itself at session start with a line
+beginning `Environment built`, and leaves neither `~/.claude/env-manifest.txt`
+nor a `~/.claude/hooks/` folder; finding either means the environment predates
+it.
 
 ## The session transcript
 

@@ -20,6 +20,12 @@
 //                 imported      another harness file imports or invokes it
 //                 argv          carries a shebang; run by hand
 //               The push routes (an event asks), added 2026-09-10:
+//                 env:build     the environment's setup script, fetched and
+//                               piped to bash by the claude.ai environment
+//                               settings when a snapshot is built. Those
+//                               settings live outside the repo, so the file is
+//                               recognized by the curl line in its own header
+//                               that fetches its own path into bash
 //                 git:<name>    lives in .githooks/; the filename is the event
 //                 session:SessionStart  a .claude/hooks/session-*.sh, run by
 //                               the plugin's dispatcher at session start
@@ -112,6 +118,15 @@ function pluginHookEvents(repoRoot) {
   return out;
 }
 
+/** Whether a file's source carries the one-line install that fetches the file's
+ *  own path and pipes it to bash, which is how the environment settings run the
+ *  setup script. Without this rule the script read as `imported`, because the
+ *  environment-report hook names it to compare its text, not to run it. */
+function fetchesItselfIntoBash(rel, src) {
+  const own = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('curl\\b[^\\n]*/' + own + '\\s*\\|\\s*bash\\b').test(src);
+}
+
 /** The top-level `on:` events of a workflow, '+'-joined. Reads the two YAML
  *  shapes the platform accepts (a nested block, or `on: [a, b]`) with a line
  *  scan rather than a YAML library, which the suite deliberately does not
@@ -170,6 +185,7 @@ export function deriveTools(repoRoot) {
     const base = path.posix.basename(rel);
     let invocation;
     if (rel.startsWith('tools/render/scenarios/')) invocation = 'driver';
+    else if (fetchesItselfIntoBash(rel, src)) invocation = 'env:build';
     else if (rel.startsWith('.githooks/')) invocation = 'git:' + base;
     else if (rel.startsWith('.claude/hooks/session-')) invocation = 'session:SessionStart';
     else if (hookEvents.has(base)) invocation = 'hook:' + hookEvents.get(base);
@@ -202,6 +218,38 @@ export function deriveTools(repoRoot) {
   return out;
 }
 
+/**
+ * A MOVED FILE KEEPS ITS ROLE. Rows are keyed by path, so a move reads as one
+ * row dropped and one added blank, and the authored half is lost without a
+ * word: moving the plugin's hooks into skills/hooks/ on 2026-09-27 blanked nine
+ * roles that way. Carry a role across when exactly one dropped row and exactly
+ * one added row share a basename, and never when either side is ambiguous,
+ * since a guessed role is worse than a blank one.
+ * @param {Map<string, {role?: string}>} byPath  registry rows by path, mutated
+ * @param {string[]} added  paths new to the registry this run
+ * @param {string[]} gone   paths no longer on disk
+ * @returns {string[]} one "from -> to" line per carried role
+ */
+export function carryMovedRoles(byPath, added, gone) {
+  const byBase = (list) => {
+    const m = new Map();
+    for (const p of list) {
+      const b = path.posix.basename(p);
+      m.set(b, m.has(b) ? null : p);
+    }
+    return m;
+  };
+  const goneByBase = byBase(gone), addedByBase = byBase(added);
+  const carried = [];
+  for (const [b, to] of addedByBase) {
+    const from = goneByBase.get(b);
+    if (!to || !from || !byPath.get(from)?.role) continue;
+    byPath.get(to).role = byPath.get(from).role;
+    carried.push(`${from} -> ${to}`);
+  }
+  return carried;
+}
+
 // ── CLI: restamp (or --check) docs/tools.csv ───────────────────────────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
@@ -223,6 +271,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     }
   }
   const gone = [...byPath.keys()].filter(p => !derived.has(p));
+
+  const carried = carryMovedRoles(byPath, added, gone);
+
   const rows = [...byPath.values()].filter(t => derived.has(t.path));
 
   for (const t of rows) {
@@ -254,7 +305,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   console.log(`tools-index: ${rows.length} files (` +
               Object.entries(layers).map(([l, n]) => `${n} ${l}`).join(', ') + `); ` +
               `${named} named, ${tested} tested`);
-  for (const p of added) console.log('  added   ' + p + '  (role is blank; say what it is for)');
+  for (const p of added) if (!byPath.get(p).role) console.log('  added   ' + p + '  (role is blank; say what it is for)');
   for (const p of gone) console.log('  dropped ' + p);
+  for (const c of carried) console.log('  carried role ' + c);
   if (blank) console.log(`  ${blank} row(s) do not say what they are for`);
 }

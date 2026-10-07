@@ -142,7 +142,7 @@ shown, not acted on.
 ## File a runnable task
 
 A task whose method is already a skill carries `action: <skill-name>` and is
-written thin, since the reasoning lives in the skill; add `runner: <machine>`
+written thin, since the reasoning lives in the skill; add `venue: <channel>`
 when the session must happen somewhere particular. If the procedure is not a
 skill yet, writing the skill is part of filing the task. Work needing no
 session belongs in a hook, a test, or CI, not here. Prefer a parameter that
@@ -155,7 +155,7 @@ title: <short imperative>
 status: backlog
 opened: <YYYY-MM-DD>
 action: <skill-name>
-runner: <machine, when it is pinned>
+venue: <channel, when it is pinned>
 ---
 # <title>
 
@@ -168,8 +168,8 @@ Run `<action>` for <the subject, in one line>.
 <the observable condition>
 ```
 
-A machine finds its queue with `grep -rl 'runner: <machine>' */tracker/tasks/
-*/*/tracker/tasks/`; both tags ride into `board-tags.csv`.
+Both tags ride into `board-tags.csv`. Neither is a queue: one-off work for a
+machine goes out as an errand (`docs/TRACKER.md`).
 
 ## Claim, update, close
 
@@ -209,7 +209,7 @@ Flag a `backlog` or `blocked` task
 that is superseded, stale, a duplicate, framed for work that has since landed
 or shifted, or oversized, and an `in-progress` task whose `session:` branch is
 merged or gone. Check status, not only prose: waiting on an event or a machine
-is `backlog` with `awaiting:` or `runner:`, since `blocked` reads as "do not
+is `backlog` with `awaiting:` or `venue:`, since `blocked` reads as "do not
 try"; a `done` without `closed:` or a `backlog` with `session:` is the same
 class of finding. Propose; confirm before closing, reframing, or splitting.
 A task whose `## Done when` a merged pull request meets is not a refinement

@@ -78,6 +78,8 @@
     Alpine.data('links', () => ({
       REPO: 'mehrlander/home',
       PATH: 'links/board.json',
+      // Read-modify-write: read and save at one ref. The selection never moves
+      // a file the page writes back; ?data= moves both together.
       DATA_REF: new URLSearchParams(location.search).get('data') || 'main',
       APP_URL: 'https://mehrlander.github.io/web-tools/app/',
 
@@ -307,14 +309,20 @@
       <!-- ── the columns ──────────────────────────────────────────────── -->
       <!-- A grid with items-start, not CSS column-count: balancing minimises
            height and collapses unbreakable areas into fewer columns. -->
-      <div class="grid items-start gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <!-- data-pattern and data-part declare this a List and name its parts
+           (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing
+           at runtime reads them. An area's name and a group's label are both
+           group headings; the rail above repeats pinned entries and is not
+           part of it. -->
+      <div class="grid items-start gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+           data-pattern="list" data-part="list">
         <template x-for="a in board.areas" :key="a.id">
           <section :style="`--a:${accent(a)}`">
 
             <div class="flex items-baseline gap-2">
               <i class="ph text-sm text-[var(--a)] translate-y-px shrink-0" :class="a.icon"></i>
               <template x-if="!editing">
-                <h2 class="font-semibold text-[15px] tracking-tight" x-text="a.label"></h2>
+                <h2 class="font-semibold text-[15px] tracking-tight" x-text="a.label" data-part="group"></h2>
               </template>
               <template x-if="editing">
                 <div class="flex flex-wrap gap-1.5">
@@ -328,7 +336,7 @@
               <button x-show="a.dossier"
                       class="text-[10.5px] font-semibold uppercase tracking-[.085em] text-[var(--a)] opacity-55 hover:opacity-100 transition-opacity"
                       @click="toggleDossier(a)" x-text="open===a.id ? 'hide' : 'notes'"></button>
-              <span class="font-mono text-[10px] opacity-25" x-text="count(a)"></span>
+              <span class="font-mono text-[10px] opacity-25" x-text="count(a)" data-part="meta"></span>
               <button x-show="editing" class="text-[11px] text-error opacity-60 hover:opacity-100"
                       @click="removeArea(a)">remove</button>
             </div>
@@ -340,13 +348,13 @@
                 <div class="mb-3.5 last:mb-0">
                   <div x-show="g.label"
                        class="text-[10.5px] font-semibold uppercase tracking-[.085em] mb-1 text-[color-mix(in_oklch,var(--a)_78%,transparent)]"
-                       x-text="g.label"></div>
+                       x-text="g.label" data-part="group"></div>
 
                   <template x-for="it in g.items" :key="it.id">
                     <!-- Inline flow, not a flex row: a long qualifier wraps and
                          hangs under the title instead of truncating. -->
                     <div class="group relative pl-[18px] pr-4 py-[1px] text-[13.5px] leading-[1.45]"
-                         :title="it.note || ''">
+                         :title="it.note || ''" data-part="item">
 
                       <a x-show="href(it)" :href="href(it)" target="_blank" rel="noopener"
                          class="absolute -inset-x-1.5 inset-y-0" :aria-label="it.title"></a>
@@ -354,25 +362,25 @@
                               class="absolute -inset-x-1.5 inset-y-0" :aria-label="it.title"></button>
 
                       <i class="absolute left-0 top-[4px] text-[11px] w-3.5 text-[var(--a)] opacity-45 group-hover:opacity-90 transition-opacity"
-                         :class="[icon(it, a), it.kind === 'action' ? 'ph-fill' : 'ph']"></i>
+                         :class="[icon(it, a), it.kind === 'action' ? 'ph-fill' : 'ph']" data-part="meta"></i>
 
                       <span :class="{ 'font-mono text-[12px]': it.kind === 'repo',
                                       'text-primary group-hover:underline underline-offset-2': linkable(it),
                                       'font-medium': !linkable(it),
                                       'underline decoration-dotted underline-offset-[3px]': it.kind === 'snippet' }"
-                            x-text="it.title"></span>
+                            x-text="it.title" data-part="title"></span>
 
                       <template x-for="d in (it.doors || [])" :key="d.url">
                         <span class="text-[12px]"><span class="opacity-25 mx-1">·</span><a
                           :href="d.url" target="_blank" rel="noopener"
                           class="relative text-[var(--a)] opacity-60 hover:opacity-100 hover:underline underline-offset-2 transition-opacity"
-                          x-text="d.label"></a></span>
+                          x-text="d.label" data-part="links"></a></span>
                       </template>
 
                       <!-- Anchored to the first line's right edge rather than
                            flowed, so a wrapped qualifier does not push it onto
                            a line of its own. -->
-                      <i x-show="it.rail" class="ph-fill ph-push-pin absolute right-0 top-[5px] text-[9px] text-[var(--a)] opacity-40"></i>
+                      <i x-show="it.rail" class="ph-fill ph-push-pin absolute right-0 top-[5px] text-[9px] text-[var(--a)] opacity-40" data-part="meta"></i>
                     </div>
                   </template>
                 </div>

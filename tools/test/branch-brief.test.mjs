@@ -469,3 +469,142 @@ test('forget: one branch, or all of them', async () => {
   await BB.readBrief(gh, at);
   assert.equal(n.compare, 3);
 });
+
+// ── PR fallback for merged and pruned branches ──────────────────────────────
+
+test('fetchBrief falls back to PR boundary SHAs when branch compare returns 404', async () => {
+  const pull = {
+    number: 42,
+    base: { ref: 'main', sha: 'base111' },
+    head: { ref: 'feature', sha: 'head222' },
+    merged_at: '2026-09-20T00:00:00Z',
+  };
+  const gh = {
+    async compare(base, head) {
+      if (base === 'main' && head === 'feature') {
+        throw Object.assign(new Error('404'), { status: 404 });
+      }
+      if (base === 'base111' && head === 'head222') {
+        return compare({ ahead_by: 3, total_commits: 3 });
+      }
+      throw new Error(`unexpected compare: ${base}...${head}`);
+    },
+    async req(path) {
+      if (path.startsWith('pulls?')) return [pull];
+      return [];
+    },
+  };
+  const r = await BB.fetchBrief(gh, { repo: 'acme/w', branch: 'feature', base: 'main' });
+  assert.equal(r.noBase, false);
+  assert.equal(r.prFallback, true);
+  assert.equal(r.compare?.total_commits, 3);
+  assert.equal(r.pull?.number, 42);
+});
+
+test('fetchBrief falls back to PR boundary SHAs when branch compare is 0 ahead on merged PR', async () => {
+  const pull = {
+    number: 55,
+    base: { ref: 'main', sha: 'baseAAA' },
+    head: { ref: 'merged-branch', sha: 'headBBB' },
+    merged_at: '2026-09-22T00:00:00Z',
+  };
+  const gh = {
+    async compare(base, head) {
+      if (base === 'main' && head === 'merged-branch') {
+        return { ahead_by: 0, behind_by: 0, total_commits: 0, files: [], commits: [] };
+      }
+      if (base === 'baseAAA' && head === 'headBBB') {
+        return compare({ ahead_by: 2, total_commits: 2 });
+      }
+      throw new Error(`unexpected compare: ${base}...${head}`);
+    },
+    async req(path) {
+      if (path.startsWith('pulls?')) return [pull];
+      return [];
+    },
+  };
+  const r = await BB.fetchBrief(gh, { repo: 'acme/w', branch: 'merged-branch', base: 'main' });
+  assert.equal(r.noBase, false);
+  assert.equal(r.prFallback, true);
+  assert.equal(r.compare?.total_commits, 2);
+  assert.equal(r.pull?.number, 55);
+});
+
+test('assemble with prFallback marks state as landed and ahead as 0 while preserving files and commits', () => {
+  const pull = {
+    number: 77,
+    title: 'shipped feature',
+    merged_at: '2026-09-24T00:00:00Z',
+    base: { sha: 'base777' },
+    head: { sha: 'head777' },
+  };
+  const b = BB.assemble({
+    repo: 'acme/w', branch: 'f', base: 'main',
+    compare: compare({ ahead_by: 4, total_commits: 4 }),
+    pull, prFallback: true,
+  });
+  assert.equal(b.state, 'landed');
+  assert.equal(b.ahead, 0);
+  assert.equal(b.behind, 0);
+  assert.equal(b.commitCount, 4);
+  assert.equal(b.files.length, 1);
+  assert.equal(b.commits.length, 2);
+  assert.equal(b.prFallback, true);
+  assert.equal(b.mergeBase, 'base777');
+});
+
+test('fetchPullTarget falls back to head.sha when head.ref is absent', async () => {
+  const gh = {
+    async req(path) {
+      if (path === 'pulls/88') {
+        return {
+          number: 88,
+          head: { sha: 'sha888' },
+          base: { ref: 'main', sha: 'base888' },
+        };
+      }
+      return null;
+    },
+  };
+  const t = await BB.fetchPullTarget(gh, 88);
+  assert.ok(t);
+  assert.equal(t.branch, 'sha888');
+  assert.equal(t.base, 'main');
+  assert.equal(t.pull?.number, 88);
+});
+
+test('readBrief caches and propagates fallback to subsequent readCompare', async () => {
+  BB.forget();
+  const pull = {
+    number: 99,
+    base: { ref: 'main', sha: 'b99' },
+    head: { ref: 'pruned', sha: 'h99' },
+    merged_at: '2026-09-23T00:00:00Z',
+  };
+  let calls = 0;
+  const gh = {
+    async compare(base, head) {
+      calls++;
+      if (base === 'main' && head === 'pruned') {
+        throw Object.assign(new Error('404'), { status: 404 });
+      }
+      if (base === 'b99' && head === 'h99') {
+        return compare({ ahead_by: 1, total_commits: 1 });
+      }
+      throw new Error(`unexpected compare: ${base}...${head}`);
+    },
+    async req(path) {
+      if (path.startsWith('pulls?')) return [pull];
+      return [];
+    },
+  };
+  const at = { repo: 'acme/w', branch: 'pruned', base: 'main' };
+  const r = await BB.readBrief(gh, at);
+  assert.equal(r.prFallback, true);
+  assert.equal(r.compare?.total_commits, 1);
+  const cmp = await BB.readCompare(gh, at);
+  assert.equal(cmp.prFallback, true);
+  assert.equal(cmp.compare?.total_commits, 1);
+  // Subsequent readCompare within TTL hits cache
+  assert.equal(calls, 2);
+});

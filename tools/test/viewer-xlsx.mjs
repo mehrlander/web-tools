@@ -253,7 +253,7 @@ const state = () => page.evaluate(() => {
     modes: (v?.availableModes || []).map(m => m.id),
     stats: v?.stats || '',
     tabs: [...(tabs?.children || [])].map(b => b.textContent.trim()),
-    active: [...(tabs?.children || [])].findIndex(b => b.classList.contains('btn-active')),
+    active: [...(tabs?.children || [])].findIndex(b => b.classList.contains('tab-active')),
     msg: msg ? msg.textContent.trim() : '(gone)',
     cells,
   };

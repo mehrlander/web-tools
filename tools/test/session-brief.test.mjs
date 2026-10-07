@@ -54,12 +54,14 @@ const facts = {
 // tallies cannot say which came first.
 const log = [];
 const gets = () => log.filter(l => l.startsWith('get:'));
-const trees = () => log.filter(l => l.startsWith('tree:'));
+// The store's tree listing, which is what the once-only rule is about. A
+// standalone mount also lists each repo's user-calls/ folder, a different read.
+const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/user-calls'));
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
     log.push('get:' + this.repo + ':' + p);
-    if (p === PATH) return { text: JSON.stringify(record) };
+    if (p === PATH) return { text: JSON.stringify({ ...record, readFrom: this.repo }) };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(p) {
@@ -169,7 +171,7 @@ test('a unit word rides only the values that do not name themselves', () => {
   // calls.
   const units = Object.fromEntries(lent().strip.map(f => [f.k, f.unit]));
   assert.deepEqual(units,
-    { day: '', ran: '', calls: 'calls', failures: 'failed', repos: '' });
+    { day: '', ran: '', calls: 'tool calls', failures: 'failed', repos: '' });
 });
 
 test('the strip counts a zero rather than dropping it, and drops what is absent', () => {
@@ -232,6 +234,23 @@ test('the record is read once, however many mounts ask for it', () => {
   // version of it that survives concurrent slides: caching after the await lets
   // every caller miss and fetch.
   assert.equal(gets().filter(g => g === 'get:' + STORE + ':' + PATH).length, 1);
+});
+
+test('record reads share a promise per repository and path without crossing stores', async () => {
+  const boxes = [];
+  window.__otherStore = { path: PATH, repo: 'another/private', framed: true, compact: true };
+  for (let i = 0; i < 2; i++) {
+    const box = window.document.createElement('div');
+    box.setAttribute('x-data', 'sessionBrief(window.__otherStore)');
+    window.document.body.append(box);
+    Alpine.initTree(box);
+    boxes.push(box);
+  }
+  await tick(6);
+  assert.equal(gets().filter(g => g === 'get:another/private:' + PATH).length, 1);
+  assert.ok(boxes.every(box => Alpine.$data(box).record.readFrom === 'another/private'));
+  assert.equal(lent().record.readFrom, STORE);
+  boxes.forEach(box => { Alpine.destroyTree(box); box.remove(); });
 });
 
 test('the record overwrites what the row lent', () => {
@@ -531,10 +550,12 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // what that kit calls its own case: a string a reader looks at. This file
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
-  const noted = [...el.querySelectorAll('[data-title-tip]')];
-  // Every fact, plus three notes that are not facts about the SESSION: the id,
-  // the `running <ref>` marker naming the ref this page's own code booted from,
-  // and the scope row, whose note says what tapping it will do. They are found
+  const noted = [...el.querySelectorAll('[data-title-tip]')]
+    .filter(n => !n.closest('[role="search"]'));
+  // Every fact, plus notes that are not facts about the SESSION: the id, the
+  // `running <ref>` marker naming the ref this page's own code booted from,
+  // the scope row, whose note says what tapping it will do, the pages mark,
+  // and the follow-up summary's note saying Gemini wrote it, not the record. They are found
   // by SUBTRACTING the strip rather than by matching their own text, so the
   // count stays exact without a second list to keep in step.
   //
@@ -545,10 +566,10 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // comparison.
   const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  assert.equal(extras.length, 4,
-    'the id, the running-ref marker, the scope row, and the pages mark off-strip: '
+  assert.equal(extras.length, 5,
+    'the id, the running-ref marker, the scope row, the pages mark, and the Gemini summary off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim())));
-  assert.equal(noted.length, d.strip.length + 4, 'every fact and those four, and nothing else');
+  assert.equal(noted.length, d.strip.length + 5, 'every fact and those five, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -707,7 +728,7 @@ test('branchGroups groups session fileRows by repository and branch', async () =
   assert.equal(groups[0].repo, 'web-tools');
   assert.equal(groups[0].branch, 'feat/json-explorer');
   assert.equal(groups[0].files.length, 2);
-  assert.match(groups[0].branchUrl, /branch\.html#gh=web-tools@feat%2Fjson-explorer/);
+  assert.match(groups[0].branchUrl, /branch\.html#gh=me\/web-tools@feat%2Fjson-explorer/);
 
   assert.equal(groups[1].repo, 'other-repo');
   assert.equal(groups[1].branch, 'main');
@@ -753,4 +774,3 @@ test('mountRaw mounts JsonExplorer on demand and destroy cleans it up', async ()
   data.destroy();
   assert.equal(destroyed, true, 'destroy cleans up _rawExplorer');
 });
-

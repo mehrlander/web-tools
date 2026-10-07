@@ -1212,3 +1212,59 @@ test('the lit tick is not the position marker, so the rail says two things once'
   assert.notEqual(lit, here, 'and the lit tick is a different one');
   assert.doesNotMatch(lit.className, /bg-primary/, 'drawn in the neutral, not the accent');
 });
+
+// ── The agenda: the outline grouped by topic ─────────────────────────────────
+// The follow-up's stretches (web-tools-private sessions/topics/) become one
+// section per stretch, each opening on a sticky header naming its topic. The
+// header sticks under the rail, and a return to an earlier topic says so.
+const STRETCHES = [
+  { topic: 'Clamp the first line', kind: 'new', minor: false, start: 0, end: 0,
+    at: '2026-09-01T10:00:00Z', state: { glyph: '🟡', name: 'Pending', line: '🟡 **Pending:** CI', at: '' } },
+  { topic: 'Second ask', kind: 'improve', minor: false, start: 1, end: 1,
+    at: '2026-09-01T10:30:00Z', state: null },
+];
+
+test('cardStretches: by instant, by prompt index without one, and -1 with no agenda', () => {
+  const cards = SE.model(RECORD).cards;
+  const n = cards.length;
+  // Spread into this realm: the kit runs in jsdom's, and deepEqual compares prototypes.
+  const of = (...a) => [...SE.cardStretches(...a)];
+  assert.deepEqual(of(STRETCHES, cards, RECORD).slice(0, 2), [0, 1]);
+  const f3 = STRETCHES.map(({ topic, start, end }) => ({ topic, start, end }));
+  assert.deepEqual(of(f3, cards, RECORD).slice(0, 2), [0, 1], 'format 3 reads the record\'s prompts');
+  assert.deepEqual(of(f3, cards, { prompts: [] }).slice(0, 2), [0, 1], 'and counts asks with none');
+  assert.equal(of(STRETCHES, cards, RECORD)[n - 1], 1, 'a card with no ask stays with the stretch before');
+  assert.deepEqual(of([], cards, RECORD), [...cards].map(() => -1));
+});
+
+test('with an agenda the list is sections, each under a sticky header', () => {
+  const view = build({ agenda: STRETCHES });
+  const secs = [...view.el.querySelectorAll('section[data-stretch]')];
+  assert.equal(secs.length, 2);
+  const heads = secs.map(s => s.firstElementChild);
+  assert.ok(heads.every(h => h.hasAttribute('data-topic-head')));
+  assert.match(heads[0].textContent, /Clamp the first line/);
+  assert.match(heads[0].textContent, /turn 1/, 'turns are numbered from 1, as the page numbers them');
+  assert.match(heads[0].textContent, /🟡/, 'the state the stretch ended on rides at the end');
+  assert.match(heads[0].className, /\bsticky\b/);
+  assert.match(heads[0].getAttribute('style'), /var\(--chrome-h,0px\) \+ var\(--rail-h,0px\)/);
+  assert.ok(secs[0].querySelector('[class*="border-b"]'), 'the cards sit inside their section');
+  assert.equal(view.jumpTo(1), true);
+  assert.equal(view.jumpTo(7), false, 'a stretch that is not there is a dead tap, and says so');
+});
+
+test('a return to an earlier topic is marked, and a minor aside is quieter', () => {
+  const back = [STRETCHES[0], { ...STRETCHES[1], topic: 'clamp THE first line', minor: true }];
+  const view = build({ agenda: back });
+  const heads = [...view.el.querySelectorAll('[data-topic-head]')];
+  assert.match(heads[1].textContent, /↩/);
+  assert.match(heads[1].getAttribute('title'), /comes back to this topic/);
+  assert.match(heads[1].className, /text-base-content\/50/);
+  assert.doesNotMatch(heads[0].textContent, /↩/);
+});
+
+test('without an agenda nothing changes: no sections, no headers', () => {
+  const view = build();
+  assert.equal(view.el.querySelectorAll('section, [data-topic-head]').length, 0);
+  assert.equal(view.jumpTo(0), false);
+});

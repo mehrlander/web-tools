@@ -133,6 +133,29 @@ test('every declared subfield key used by a real manifest has a subfield row', (
     'these member keys are live in a manifest but have no row in docs/manifest-fields.csv');
 });
 
+// Every project is drawn by its own icon, wherever it is named: the masthead
+// mark, both sidebar lists, the switcher. The set began with the budget-drs
+// app's mark, the one the owner keeps in Chrome's shortcuts bar. Without one a
+// project falls back to the stock kanban glyph, which works and says nothing
+// about whose project it is, so a project without an icon is the gap. A `ph-`
+// glyph is accepted; a file must exist in the repo that declares it.
+test('every project names an icon, and an icon file exists', () => {
+  const gaps = [];
+  for (const [repo, m] of manifests()) {
+    if (m.__unparsable) continue;
+    const root = repo === 'mehrlander/web-tools' ? repoRoot : path.join(repoRoot, '..', repo.split('/')[1]);
+    for (const e of Array.isArray(m.projects) ? m.projects : []) {
+      const o = typeof e === 'string' ? { path: e } : e;
+      if (!o || typeof o !== 'object' || !o.path) continue;
+      const icon = typeof o.icon === 'string' ? o.icon.trim() : '';
+      if (!icon) gaps.push(`${repo}: ${o.path} has no icon`);
+      else if (!icon.startsWith('ph-') && !existsSync(path.join(root, icon.replace(/^\/+/, ''))))
+        gaps.push(`${repo}: ${o.path}'s icon ${icon} is missing`);
+    }
+  }
+  assert.deepEqual(gaps, [], 'give the project an SVG icon in its repo and name it in projects[].icon');
+});
+
 test('a manifest value matches its declared type', () => {
   const declared = new Map(topRows.map(f => [f.key, f.type]));
   const actual = v => Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v;

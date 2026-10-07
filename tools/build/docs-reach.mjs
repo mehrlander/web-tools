@@ -151,20 +151,72 @@ export const APP_EXT = new Set(['.js', '.html', '.mjs']);
 // scanners with different rules would disagree about what "the app names it"
 // means, which is the drift a single owner exists to prevent.
 //
-// Block and line comments are stripped in ONE alternation, not two passes.
-// The two-pass version (blocks first, then lines) had a real defect found by
-// registries-reach's first run: a `/*` INSIDE a line comment (estate.js writes
-// `surfaces/*.surface` in one) opened a phantom block that swallowed
-// everything to the next `*/`, hundreds of code lines, so paths named in that
-// span read as unreferenced. One pass fixes it by leftmost-match: the `//`
-// sits earlier on its line than the `/*` it contains, so the line branch
-// consumes it before the block branch can start. The `[^:]` guard keeps a
-// URL's `//` from reading as a comment, as before.
+// One left-to-right scan, so whichever opens first wins: a `/*` inside a line
+// comment stays in that comment (estate.js writes `surfaces/*.surface` in one,
+// and a two-pass version once opened a phantom block there), and a `/*` or
+// `//` inside a quoted string stays in the string. The string case is the one
+// an alternation of regexes could not see: `'skills/hooks/*-guard.sh'` in
+// map.js opened a block that ran to the next `*/`, 1,076 lines later, and map's
+// read of state/sessions.json vanished from the census (docs/SNAGS.md
+// comment-stripper-reads-a-string-as-a-comment). A regex literal is skipped
+// whole, so `/\//g` no longer reads as a line comment either.
+//
+// A template literal is the exception, because CSS and markup live in them:
+// a `/* ... */` inside one is a comment there too, and is stripped, but only
+// when it opens with a space or a star (a comment, not a `src/*.js` glob) and
+// closes before the template does. A `//` in one runs to the line's end or the
+// closing backtick, whichever is first. Neither may consume the backtick, so
+// the pairing of templates, and everything after it, cannot flip.
+//
+// A quoted string ends at its line's end even unclosed, so an apostrophe in
+// HTML prose misreads one line at most. The `:` guard keeps a URL's `//` in
+// unquoted text from reading as a comment.
+const REGEX_AFTER = /[(,=:[!&|?{};]$|(?:^|[^\w$])(?:return|typeof|case|in|of|delete|void|throw|yield|await)$/;
+
 export function stripComments(text) {
-  return text
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/\/\*[\s\S]*?\*\/|(^|[^:])\/\/.*$/gm,
-      (m, pre) => (pre === undefined ? ' ' : pre));
+  text = text.replace(/<!--[\s\S]*?-->/g, ' ');
+  const n = text.length;
+  let out = '', from = 0, i = 0;
+  const cut = (at, to, keep = '') => { out += text.slice(from, at) + keep; from = to; return to; };
+  const tick = (at) => { for (let j = at; j < n; j++) { if (text[j] === '\\') j++; else if (text[j] === '`') return j; } return n; };
+  while (i < n) {
+    const c = text[i], d = text[i + 1];
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < n && text[j] !== c && text[j] !== '\n') j += text[j] === '\\' ? 2 : 1;
+      i = j + 1;
+    } else if (c === '`') {
+      const close = tick(i + 1);
+      let j = i + 1;
+      while (j < close) {
+        if (text[j] === '\\') j += 2;
+        else if (text[j] === '/' && text[j + 1] === '*' && /[\s*]/.test(text[j + 2] || '')) {
+          const end = text.indexOf('*/', j + 2);
+          j = end > 0 && end < close ? cut(j, end + 2, ' ') : j + 2;
+        } else if (text[j] === '/' && text[j + 1] === '/' && text[j - 1] !== ':') {
+          const eol = text.indexOf('\n', j);
+          j = cut(j, eol < 0 || eol > close ? close : eol);
+        } else j++;
+      }
+      i = close + 1;
+    } else if (c === '/' && d === '*') {
+      const end = text.indexOf('*/', i + 2);
+      i = cut(i, end < 0 ? n : end + 2, ' ');
+    } else if (c === '/' && d === '/' && text[i - 1] !== ':') {
+      const eol = text.indexOf('\n', i);
+      i = cut(i, eol < 0 ? n : eol);
+    } else if (c === '/' && REGEX_AFTER.test(text.slice(Math.max(0, i - 8), i).trimEnd())) {
+      let j = i + 1, cls = false;
+      while (j < n && text[j] !== '\n' && (cls || text[j] !== '/')) {
+        if (text[j] === '\\') j++;
+        else if (text[j] === '[') cls = true;
+        else if (text[j] === ']') cls = false;
+        j++;
+      }
+      i = j + 1;
+    } else i++;
+  }
+  return out + text.slice(from);
 }
 
 export function readCorpus(repoRoot, dirs, exts, strip = false) {
