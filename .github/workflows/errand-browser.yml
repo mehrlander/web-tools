@@ -6,7 +6,7 @@ name: Errand · browser
 # reads the RESULT lines back from the job log; the errand it serves, if any,
 # is named by the `errand` input and closed by that session.
 #
-# The first check is tools/test/top-mode-live.mjs: top mode through the
+# The first check is node/test/top-mode-live.mjs: top mode through the
 # deployed launcher and the renderer under test, in WebKit (Safari's engine)
 # and Chromium, against live GitHub.
 #
@@ -31,8 +31,8 @@ on:
   pull_request:
     paths:
       - '.github/workflows/errand-browser.yml'
-      - 'tools/test/top-mode-live.mjs'
-      - 'tools/test/webkit-reload-isolate.mjs'
+      - 'node/test/top-mode-live.mjs'
+      - 'node/test/webkit-reload-isolate.mjs'
 
 # Read-only: the job's token is handed to the pages as their GitHub token, so
 # it must be able to do nothing but read.
@@ -73,7 +73,7 @@ jobs:
           echo "under test: $SHA"
           status=0
           for e in $ENGINES; do
-            node tools/test/top-mode-live.mjs --sha "$SHA" --engine "$e" --root under-test || status=1
+            node node/test/top-mode-live.mjs --sha "$SHA" --engine "$e" --root under-test || status=1
           done
           exit $status
 
@@ -86,4 +86,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           SHA=$(git -C under-test rev-parse HEAD)
-          node tools/test/webkit-reload-isolate.mjs --sha "$SHA" --engine webkit
+          node node/test/webkit-reload-isolate.mjs --sha "$SHA" --engine webkit

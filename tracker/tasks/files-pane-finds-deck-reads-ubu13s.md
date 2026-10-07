@@ -46,8 +46,8 @@ Compare pane with the second ref owned by the sidebar.
 
 - `lib/kits/file-deck.js`: declares Files-as-list vs deck-as-read; still mounts both
 - `pages/review.html`: remaining four-tab dossier host once the list stops expanding
-- `tools/test/file-review-card.test.mjs`: pins current row-expansion behaviour
-- `tools/test/branch-brief-cards.test.mjs`: companion pin that moves with the split
+- `node/test/file-review-card.test.mjs`: pins current row-expansion behaviour
+- `node/test/branch-brief-cards.test.mjs`: companion pin that moves with the split
 - task `file-review-collapsed-density-2rvxfn`: collapsed-row predecessor this finishes
 - task `sidebar-compare-view-lkjang`: deck reading surface predecessor
 - PR #518: 430px measurement that filed the chrome-and-expansion problem

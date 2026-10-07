@@ -63,7 +63,7 @@ Measured in the harness unless marked read.
 
 ## Closing the gap to a direct `?use=` link: two approaches, measured
 
-For a web-tools page with only `lib/` changed, a toss already loads what `pages/x.html?use=<ref>` loads, and it also reaches private repositories and changed page files. What it lacked, measured in `tools/test/showing-mode-compare.mjs` (E10) across four scenarios, with F as today's renderer:
+For a web-tools page with only `lib/` changed, a toss already loads what `pages/x.html?use=<ref>` loads, and it also reaches private repositories and changed page files. What it lacked, measured in `node/test/showing-mode-compare.mjs` (E10) across four scenarios, with F as today's renderer:
 
 | Measured in Chromium, harness | F: frame | A: frame, the renderer's library at a chosen ref | B: top mode |
 |---|---|---|---|

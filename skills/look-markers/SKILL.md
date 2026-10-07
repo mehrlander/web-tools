@@ -22,7 +22,7 @@ reaches the page, say it in words.
 
 ## Making the link
 
-Use `scripts/look-link.py` (from another repo, `../web-tools/scripts/look-link.py`):
+Use `python/look-link.py` (from another repo, `../web-tools/python/look-link.py`):
 
     look-link.py anchors <page>
     look-link.py make <page> --show <anchor> --say "<why>"
@@ -54,8 +54,7 @@ Prefer `data-at` names and ids: only they are checked before sending.
   the kit when a fragment asks.
 - Any page through a toss link (🥏); the renderer adds the kit.
 - A page that loads `lib/kits/look.js`.
-- Not a page framed by the budget-drs app until its shell forwards the look
-  keys (`SUBMITTAL_OPEN`); link the framed page on its own.
+- Not inside a frame of the budget-drs app; link the framed page itself.
 
 ## Giving a page anchors
 

@@ -1,26 +1,26 @@
 unit,query,script,click,focus,shot,region,note
 web-tools:view/app,app=mehrlander/web-tools:pages/text-lab.html,,,,,,an app view by its page address; a slug needs the token-loaded table
-web-tools:view/branches,view=branches,tools/render/scenarios/activity-fake.mjs,,,,,stand-in rows; the pane needs a token
-web-tools:view/sessions,view=sessions,tools/render/scenarios/estate-sessions.mjs,,,,,stand-in rows; the pane needs a token
-web-tools:view/lists,view=lists,tools/render/scenarios/estate-sessions.mjs,,,,,stand-in rows; the pane needs a token
-web-tools:view/jots,view=lists,tools/render/scenarios/estate-sessions.mjs,,,,,?view=jots resolves to Lists
-web-tools:view/proposals,view=landing,tools/render/scenarios/proposals-demo.mjs,,,,,"a stubbed registry; the scenario opens Proposals itself once its token is set, so the shot starts on another view"
-web-tools:view/state,view=state,tools/render/scenarios/state-view.mjs,,,,,stubbed registry reads
-web-tools:view/repos,view=repos,tools/render/scenarios/repos-abandoned-badge.mjs,,,,,stand-in rows; the grid needs a token
+web-tools:view/branches,view=branches,node/render/scenarios/activity-fake.mjs,,,,,stand-in rows; the pane needs a token
+web-tools:view/sessions,view=sessions,node/render/scenarios/estate-sessions.mjs,,,,,stand-in rows; the pane needs a token
+web-tools:view/lists,view=lists,node/render/scenarios/estate-sessions.mjs,,,,,stand-in rows; the pane needs a token
+web-tools:view/jots,view=lists,node/render/scenarios/estate-sessions.mjs,,,,,?view=jots resolves to Lists
+web-tools:view/proposals,view=landing,node/render/scenarios/proposals-demo.mjs,,,,,"a stubbed registry; the scenario opens Proposals itself once its token is set, so the shot starts on another view"
+web-tools:view/state,view=state,node/render/scenarios/state-view.mjs,,,,,stubbed registry reads
+web-tools:view/repos,view=repos,node/render/scenarios/repos-abandoned-badge.mjs,,,,,stand-in rows; the grid needs a token
 web-tools:view/files,repo=mehrlander/web-tools&view=files&path=docs,,,,,,a folder with files of its own
 web-tools:view/project/overview,repo=mehrlander/web-tools&view=project&project=docs&tab=overview,,,,,,"the fallback project the shell builds for an undeclared path, whose Overview is its README like every workspace's"
-web-tools:view/project/board,,tools/render/scenarios/project-board-typed.mjs,,,,,"a stand-in workspace whose board is web-tools' own root tracker, read from the working tree; the typed board is the read that declares a List"
+web-tools:view/project/board,,node/render/scenarios/project-board-typed.mjs,,,,,"a stand-in workspace whose board is web-tools' own root tracker, read from the working tree; the typed board is the read that declares a List"
 web-tools:view/project/docs,repo=mehrlander/web-tools&view=project&project=docs&tab=docs,,,,,,
 web-tools:view/project/files,repo=mehrlander/web-tools&view=project&project=docs&tab=files,,,,,,
-web-tools:view/project/outpost,repo=mehrlander/web-tools,tools/render/scenarios/project-outpost.mjs,,,,,"a stand-in workspace declaring a PowerShell outpost manifest, answered with the PowerShell outpost view test's fixture; the one real one is private"
-web-tools:view/project/pages,repo=mehrlander/web-tools,tools/render/scenarios/project-pages-routes.mjs,,,,,"a stand-in workspace whose landing is a public page of this repo, with two route cards into it and one ordinary page; the one real set, the budget-drs app's routes, is private"
-web-tools:pages/shortcut-log.html,,tools/render/scenarios/placeholder-token.mjs,,,no-script,,"the script reads the private registry from the sibling checkout, so the check runs with it and the shot, which lands in this public store, is taken without it"
-web-tools:pages/shortcuts.html,,tools/render/scenarios/placeholder-token.mjs,,,no-script,,"the script reads the private registry from the sibling checkout, so the check runs with it and the shot, which lands in this public store, is taken without it"
+web-tools:view/project/outpost,repo=mehrlander/web-tools,node/render/scenarios/project-outpost.mjs,,,,,"a stand-in workspace declaring a PowerShell outpost manifest, answered with the PowerShell outpost view test's fixture; the one real one is private"
+web-tools:view/project/pages,repo=mehrlander/web-tools,node/render/scenarios/project-pages-routes.mjs,,,,,"a stand-in workspace whose landing is a public page of this repo, with two route cards into it and one ordinary page; the one real set, the budget-drs app's routes, is private"
+web-tools:pages/shortcut-log.html,,node/render/scenarios/placeholder-token.mjs,,,no-script,,"the script reads the private registry from the sibling checkout, so the check runs with it and the shot, which lands in this public store, is taken without it"
+web-tools:pages/shortcuts.html,,node/render/scenarios/placeholder-token.mjs,,,no-script,,"the script reads the private registry from the sibling checkout, so the check runs with it and the shot, which lands in this public store, is taken without it"
 web-tools:pages/branch.html,#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz,,,,,,a branch to read; the page routes on its fragment
 web-tools:pages/approve.html,,,,,,,first paint without an envelope is its error line; a #gz= envelope would show the reviewer
-web-tools:view/chats,view=activity,tools/render/scenarios/chats-pane.mjs,,,,,stand-in rows: the archive read from a chat-histories checkout beside this repo; without one the pane shows its read error
-web-tools:view/search,,tools/render/scenarios/search-files.mjs,,,,,"a folder walked into with a file open beside the list, from the committed tree"
-web-tools:view/tending,view=landing,tools/render/scenarios/tending-stand-in.mjs,,,,,"three stand-in findings: the real notes store is private, and this store is public; the scenario opens Tending itself once its token is set, so the shot starts on another view"
-web-tools:map/views,view=map&tab=views,tools/render/scenarios/map-views.mjs,,,,,the routes and their dates read from this checkout; the tab needs a token
-web-tools:view/project/app,repo=mehrlander/web-tools,tools/render/scenarios/project-app.mjs,,,,,"a stand-in workspace whose landing is a public page of this repo; the one real one, the budget-drs app, is private"
+web-tools:view/chats,view=activity,node/render/scenarios/chats-pane.mjs,,,,,stand-in rows: the archive read from a chat-histories checkout beside this repo; without one the pane shows its read error
+web-tools:view/search,,node/render/scenarios/search-files.mjs,,,,,"a folder walked into with a file open beside the list, from the committed tree"
+web-tools:view/tending,view=landing,node/render/scenarios/tending-stand-in.mjs,,,,,"three stand-in findings: the real notes store is private, and this store is public; the scenario opens Tending itself once its token is set, so the shot starts on another view"
+web-tools:map/views,view=map&tab=views,node/render/scenarios/map-views.mjs,,,,,the routes and their dates read from this checkout; the tab needs a token
+web-tools:view/project/app,repo=mehrlander/web-tools,node/render/scenarios/project-app.mjs,,,,,"a stand-in workspace whose landing is a public page of this repo; the one real one, the budget-drs app, is private"
 web-tools:view/stage/errands,,,,,,"[data-slot=""frame:panel-toggle""], [data-pattern=""list""]",the Errands panel and its toggle are the unit; the Stage around them is a unit of its own

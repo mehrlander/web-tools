@@ -85,7 +85,7 @@
 
   The build already solved this once, for itself: url-params.js and
   repo-address.js are forced into the auto-boot chain precisely because "a
-  page's own gh.load chain runs AFTER this import" (tools/build/build-lib.mjs).
+  page's own gh.load chain runs AFTER this import" (node/build/build-lib.mjs).
   That fix does not extend to a kit only one page wants, so the page has to
   state its own readiness.
 
@@ -328,7 +328,7 @@
         // behind !framed (reported 2026-09-04, measured through the toss at
         // 1440x900 with the media query matching and the flag still true).
         // session.html carried the identical defect and fixed it on
-        // 2026-09-01; tools/test/branch-brief-groups.test.mjs now holds both
+        // 2026-09-01; node/test/branch-brief-groups.test.mjs now holds both
         // pages to the literal.
         this.target = { repo, branch: ref, base, authored, pr: t.pr || '', pull, framed: false,
                         // `&pane=` names a section and `&file=` opens the file

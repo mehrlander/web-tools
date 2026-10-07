@@ -71,7 +71,7 @@ copy, or a decline.
   license beside it. The plugin ships only `skills/`, so a held copy reaches no
   session and costs no context. A **vendored** copy ships in `skills/` exactly
   as pinned; an **adapted** one ships after changes of our own.
-- [`scripts/upstream-skills.py`](../scripts/upstream-skills.py), or
+- [`python/upstream-skills.py`](../python/upstream-skills.py), or
   `npm run upstreams`, fetches each pinned folder by a shallow sparse clone and
   says whether it moved since the pin. `--offline` checks only that every held
   and vendored copy still matches its pin, which the suite runs.

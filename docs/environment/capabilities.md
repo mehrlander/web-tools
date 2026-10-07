@@ -197,13 +197,13 @@ died with `net::ERR_TOO_MANY_RETRIES`, over HTTP/2 and still with
 loopback page server does not work alongside it: Chromium sent the page load to
 the proxy despite a `bypass`, and the proxy answered 405. What worked is serving
 the page by interception at a stand-in `https://` origin and letting every other
-request go live ([`tools/test/showing-refs-live.mjs`](../../tools/test/showing-refs-live.mjs)).
+request go live ([`node/test/showing-refs-live.mjs`](../../node/test/showing-refs-live.mjs)).
 So a live run can confirm what a page asked for and where it booted; a complete
 page load is not something to count on.
 
 That asymmetry is the load-bearing half. A repo page cannot be booted as-is in
 the headless browser, and not because a CDN is denied: the browser has no egress
-at all, so [tools/render/cdn.mjs](../../tools/render/cdn.mjs)'s interception is
+at all, so [node/render/cdn.mjs](../../node/render/cdn.mjs)'s interception is
 what every render depends on, for every host rather than only the CDN ones. The
 technique in portable form is [`../headless-vendoring.md`](../headless-vendoring.md),
 and where the interceptor still falls short of jsDelivr's value-adds
@@ -250,7 +250,7 @@ move rather than a GitHub trick: an API that publishes a **static schema** turns
 the failure this code actually hits: a wrong field name, a wrong nesting, a
 missing required argument. `npm run graphql-schema` prunes the 1.5 MB document to
 the ~2 KB slice the repo's queries reach, which is what makes it committable;
-[`tools/test/graphql-schema.test.mjs`](../../tools/test/graphql-schema.test.mjs)
+[`node/test/graphql-schema.test.mjs`](../../node/test/graphql-schema.test.mjs)
 runs the check in the normal suite.
 
 What stays out of reach is semantics: whether a field holds what we assume, how

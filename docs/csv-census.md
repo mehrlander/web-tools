@@ -8,13 +8,13 @@ fetches one inventory per declaration; source CSVs are fetched when opened
 in Files. The hub follows the preview's `?use=` ref; other repositories are
 read at `main`. Without a token, only the public hub inventory is read.
 
-Use the standalone `scripts/csv-census.py` from Web Tools, either copied into
+Use the standalone `python/csv-census.py` from Web Tools, either copied into
 the repository or invoked with `--root <checkout>`. Stage source CSV changes
 before generating, then stage the output alongside them:
 
 ```sh
-python scripts/csv-census.py
-python scripts/csv-census.py --check
+python python/csv-census.py
+python python/csv-census.py --check
 ```
 
 The script reads the checkout's manifest for the output path and

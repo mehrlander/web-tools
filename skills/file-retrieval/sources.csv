@@ -5,6 +5,5 @@ tracker,tracker/**/*.md
 skills,skills/**/*.md
 lib,lib/**/*.js
 pages,pages/**/*.html
-tools,tools/**/*.md
-tools,tools/**/*.py
-tools,scripts/**/*.py
+tools,node/**/*.md
+tools,python/**/*.py

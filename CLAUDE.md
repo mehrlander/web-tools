@@ -14,7 +14,7 @@ The mechanisms, what each reaches and misses, and the rule for picking one are *
 
 **So do not decide it by reading. Run it:** `npm run showing` reads the branch's
 changed files and prints the render line to paste, or an honest no-link with the
-reason ([`scripts/showing.py`](scripts/showing.py)). It
+reason ([`python/showing.py`](python/showing.py)). It
 happened again on 2026-08-22, with the `?use=` trap itself in context, which is
 why the last rule this section stated in prose is now executable. The honesty
 rule survives, since no script supplies it: only a page renders this way, for a
@@ -31,21 +31,21 @@ The Claude Code web settings for this account enable "Create pull requests autom
 
 ## The pre-build & the build-on-commit hook
 
-`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both are tracked. See [`tools/README.md`](tools/README.md#the-pre-build).
+`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both are tracked. See [`node/README.md`](node/README.md#the-pre-build).
 
 The `gh.load` chain it replaces is the repo's default, not a legacy path: 36 page files use it, and [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in at all is the prior question, answered once in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`. It is also the argument that load and build are two readings of one set of rules, which is why the pre-build works at all.
 
-Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`tools/README.md`](tools/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.
+Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.
 
 Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
 
 **Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).
 
-**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`tools/test/derived-artifacts.test.mjs`](tools/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.
+**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.
 
-Regenerating by hand after touching `lib/` or `pages/` is still the fast path; the test makes forgetting loud instead of silent. Why each generator has to be byte-deterministic, and the tracker board's 2026-08-05 counterexample, are in [`tools/README.md`](tools/README.md#the-refresh-model).
+Regenerating by hand after touching `lib/` or `pages/` is still the fast path; the test makes forgetting loud instead of silent. Why each generator has to be byte-deterministic, and the tracker board's 2026-08-05 counterexample, are in [`node/README.md`](node/README.md#the-refresh-model).
 
-**And a third owner, which does not depend on anyone remembering.** The test only speaks when the suite is run, so [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR. That is the whole reason it exists: a hook that may not fire, guarded by a test that may not be run, was a chain with no link the platform enforced. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `tools/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. One caveat worth knowing: `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.
+**And a third owner, which does not depend on anyone remembering.** The test only speaks when the suite is run, so [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR. That is the whole reason it exists: a hook that may not fire, guarded by a test that may not be run, was a chain with no link the platform enforced. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. One caveat worth knowing: `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.
 
 ## Project tracker
 

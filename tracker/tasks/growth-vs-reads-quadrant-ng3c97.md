@@ -69,7 +69,7 @@ has something specific to disagree with. Added 2026-09-17; none is acted on.
 
 - `lib/alpineComponents/map.js`: Docs tab host; `loadDocsReg`, `loadDocReads`, `docGrowth` already here
 - `docs/docs.csv`: registry the quadrant joins against (hub only, not federated Growth)
-- `tools/test/map-view.test.mjs`: Docs on-demand load and registry coverage
+- `node/test/map-view.test.mjs`: Docs on-demand load and registry coverage
 - PR #528: Doc words + readership presence landed apart; this crosses them
 - PR #534: Growth federated; settled that this view belongs on Docs
 

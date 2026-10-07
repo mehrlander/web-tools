@@ -27,7 +27,7 @@ Editing workflow:
 
 ```bash
 vim userscripts/lib/launcher.js
-python3 scripts/userscript-stub.py launcher --ref main --name 'wt launcher' \
+python3 python/userscript-stub.py launcher --ref main --name 'wt launcher' \
     --description '...' --match '*://*/*'      # re-stamps body and stub
 git commit && git push
 ```
@@ -61,7 +61,7 @@ raw.githubusercontent with a cache-buster rather than from the CDN, since a
 manifest served by the cache it describes can be stale in exactly the case it
 exists to detect. It **stays silent on failure**, because a strict `connect-src`
 refuses that fetch and an unlooked-up answer reading as a good one is worse than
-no verdict. `tools/test/userscript-stubs.test.mjs` holds the manifest to the
+no verdict. `node/test/userscript-stubs.test.mjs` holds the manifest to the
 body and the stamp to the file it was computed from, and holds the stub and its
 bookmarklet twin to one address. A body must define `window.wt<Lib>` and do nothing on load;
 the stub calls it, so one body serves both routes.

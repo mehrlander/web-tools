@@ -222,7 +222,7 @@
   // whose prelude receives its source (refForSource). Path entries first,
   // longest match wins, then the repository's entry, then what the page
   // implies. gh-api.js and the launcher carry the same function;
-  // tools/test/refs-select.test.mjs holds the copies to one behaviour.
+  // node/test/refs-select.test.mjs holds the copies to one behaviour.
   function refForIn(E, I, repo, path, pathOnly) {
     var own = Object.prototype.hasOwnProperty;
     repo = String(repo || ''); path = String(path == null ? '' : path).replace(/^\/+/, '');
@@ -438,7 +438,7 @@
     // Permissions Policy defaults `microphone` to `self`, and an address-mode
     // frame is same-origin (allow-same-origin, over a blob: URL that inherits
     // this origin), so Chromium already answers allowsFeature('microphone')
-    // with true without this line: tools/test/toss-microphone.mjs. Safari is
+    // with true without this line: node/test/toss-microphone.mjs. Safari is
     // not measured, and WebKit has been the stricter of the two about capture
     // inside a frame for as long as it has had one. The line is worth keeping
     // because the implicit grant is load-bearing on a sandbox flag several
@@ -455,7 +455,7 @@
     // finds no <meta charset> in a page that never had one, and falls back to
     // the locale default (windows-1252). The Blob is built from a JS string, so
     // its bytes are always UTF-8, and every non-ASCII character then renders as
-    // its mojibake: 🎉 as ðŸŽ‰. Held by tools/test/toss-charset.mjs.
+    // its mojibake: 🎉 as ðŸŽ‰. Held by node/test/toss-charset.mjs.
     const next = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
     // Revoke the previous render's URL only after the new one is committed, so
     // a rapid re-toss can't pull the document out from under a pending load.
@@ -1225,7 +1225,7 @@ document.addEventListener('click',function(e){
   // truncates the code and leaks the remainder as body text, silently. Escaping
   // is lossless, since the close sequence can only legally appear inside a JS
   // or CSS string and the browser parses the escaped form back to the original
-  // there. Held by tools/test/toss-inline-deps.test.mjs.
+  // there. Held by node/test/toss-inline-deps.test.mjs.
   function escapeClose(text, tag) {
     return String(text).replace(new RegExp('</(' + tag + ')', 'gi'), '<\\/$1');
   }
@@ -1687,7 +1687,7 @@ document.addEventListener('click',function(e){
   // docs/routes.json is this table's OWNER; the literal below is its inlined
   // copy, kept inline so the critical render path stays vanilla and takes no
   // fetch. Edit the manifest, then mirror it here (three fields per key);
-  // tools/test/routes-manifest.test.mjs fails if the two drift.
+  // node/test/routes-manifest.test.mjs fails if the two drift.
   const TOSS_ROUTES = {
     'chat-results': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/chat-results.html' },
     'data':         { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/data-view.html' },
