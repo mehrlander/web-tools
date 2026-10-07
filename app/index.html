@@ -2316,7 +2316,7 @@ function app(){ return {
   estateSeen: false,      // mount the estate component lazily, on first visit
   configSeen: false,      // mount the config-view component lazily, on first visit
   mapSeen: false,         // mount the map component lazily, on first visit
-  mapTab: 'set',          // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
+  mapTab: 'reach',        // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
   toolsSeen: false,       // mount the tools component lazily, on first visit
   searchSeen: false,      // mount the search view lazily, on first visit
   // What the Search view is showing, parked by goSearch (the finder's gate, the
@@ -5923,7 +5923,7 @@ function app(){ return {
       stamp(p){
         // Same `tab` key the project view stamps, and the same rule: the
         // default stays out of the URL so a plain ?view=map link keeps working.
-        if (this.mapTab && this.mapTab !== 'set') p.set('tab', this.mapTab);
+        if (this.mapTab && this.mapTab !== 'reach') p.set('tab', this.mapTab);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6722,7 +6722,7 @@ function app(){ return {
   // authoritative, so an absent one means the default. Anything unrecognized
   // falls back rather than leaving every section hidden.
   goMap(tab){
-    if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : 'set';
+    if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : 'reach';
     this.mapSeen = true; this.view = 'map'; this.syncUrl();
   },
   // A tab tap from inside map(): stamp the URL so back and forward walk the
