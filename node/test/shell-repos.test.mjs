@@ -7,11 +7,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { page, makeShell } from './shell.mjs';
 
-test('repoGlyph: resolves from estateRepos or config icon, falls back to ph-git-repository', () => {
+test('repoGlyph: resolves from estateRepos or config icon, falls back to ph-folder-simple', () => {
   const { shell, browserStore } = makeShell({ browserStore: { repo: 'mehrlander/home' } });
   
   // 1. Fallback when unconfigured
-  assert.equal(shell.repoGlyph('mehrlander/home'), 'ph-git-repository');
+  assert.equal(shell.repoGlyph('mehrlander/home'), 'ph-folder-simple');
 
   // 2. From estateRepos (with or without ph- prefix)
   shell.estateRepos = [{ repo: 'mehrlander/home', icon: 'house' }];

@@ -5369,7 +5369,7 @@ function app(){ return {
     const cfg = s.config || this.estateConfigs?.[r];
     const icon = cfg?.icon;
     if (icon) return icon.startsWith('ph-') ? icon : 'ph-' + icon;
-    return 'ph-git-repository';
+    return 'ph-folder-simple';
   },
   get repoLanding(){
     const s = Alpine.store('browser');
@@ -5507,7 +5507,7 @@ function app(){ return {
       key: 'repo:' + r.repo,
       label: r.short,
       title: r.repo,
-      icon: r.icon || 'ph-git-repository',
+      icon: r.icon || 'ph-folder-simple',
       current: r.repo === current,
       head: true,
       run: () => {
