@@ -4,7 +4,7 @@ title: Build our own JSON tree for display, keep vanilla-jsoneditor for editing
 status: backlog
 opened: 2026-07-25
 size: M
-awaiting: the reader/writer split, recommended in the body and unanswered since filing
+awaiting: user-call 2708d02c-web-tools-answers; the reader/writer split, recommended in the body and unanswered since filing
 ---
 # Build our own JSON tree for display, keep vanilla-jsoneditor for editing
 

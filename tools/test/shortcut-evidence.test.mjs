@@ -1,4 +1,4 @@
-// lib/kits/shortcut-evidence.js — the phone's log read as installation
+// lib/kits/shortcut-evidence.js — the phone's log read as outpost
 // evidence. Every row shape below is copied from shortcuts/log/ in
 // web-tools-private, because the defect this kit exists to fix was a shape
 // read wrongly: a paste row's `build` is Library-Paste's own stamp, and the page

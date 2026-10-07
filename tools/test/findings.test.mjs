@@ -193,11 +193,17 @@ test('a branch row matches by the branch or by a pull request it heads', () => {
   assert.equal(F.touchesRepo(f, 'acme/widget'), true);
 });
 
-test('open findings read a question for the owner first, then by kind', () => {
-  const mk = (id, kind, choice, at) => ({ id, at, kind, choice, open: true });
-  const order = F.sortOpen([mk('a', 'overlap', '', '2026-10-03'), mk('b', 'unreached', '', '2026-10-02'),
-                            mk('c', 'overlap', 'Keep which?', '2026-10-01'), mk('d', 'answer', '', '2026-10-01')]);
-  assert.deepEqual(plain(order.map(f => f.id)), ['c', 'd', 'b', 'a']);
+test('open findings read by kind, then newest', () => {
+  const mk = (id, kind, at) => ({ id, at, kind, open: true });
+  const order = F.sortOpen([mk('a', 'overlap', '2026-10-03'), mk('b', 'unreached', '2026-10-02'),
+                            mk('c', 'overlap', '2026-10-01'), mk('d', 'answer', '2026-10-01')]);
+  assert.deepEqual(plain(order.map(f => f.id)), ['d', 'b', 'a', 'c']);
+});
+
+test('a user call is a subject the view links to its page', () => {
+  const p = F.parse('me/registry:user-calls/5f95d663-keep-profile.json');
+  assert.equal(p.type, 'call');
+  assert.equal(p.repo, 'me/registry');
 });
 
 // One set of cases for both comparisons; findings.py reads them from a file

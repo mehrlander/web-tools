@@ -4,7 +4,7 @@ title: Read a document's growth against its readership, on the Docs tab
 status: backlog
 opened: 2026-08-28
 size: M
-awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded
+awaiting: user-call 2708d02c-web-tools-answers; four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded
 ---
 # Read a document's growth against its readership, on the Docs tab
 

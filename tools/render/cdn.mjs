@@ -140,10 +140,21 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
       // module field, so the chain fell straight through to ./excel.js and the
       // page died with "process is not defined" the first time it wrote a
       // workbook. Written as a rule so the next such package resolves itself.
+      // A /combine/ spec has a rule of its own, measured 2026-10-06 against
+      // the bytes jsDelivr served for every bare spec this repo combines (nine
+      // packages): `jsdelivr`, then a string `browser`, then `main`. It reads
+      // neither `unpkg` nor `module`. The chain below it read both, so a bare
+      // `npm/tabulator-tables` got the ESM build, threw "Unexpected token
+      // 'export'", and took the whole combined script down with it, Tailwind and
+      // Phosphor included; transform.html's committed thumbnail was that broken
+      // render. A bare `npm/alpinejs` got the working build jsDelivr does not
+      // send, which is combine-serves-cjs surviving its own fix.
       const def = esm
         ? (dot && (dot.import || dot.module || dot.default)) || j.module
           || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
-        : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
+        : combine
+          ? j.jsdelivr || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
+          : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}
   }
@@ -401,10 +412,15 @@ function gitEvidence(u, repoRoot) {
     try { e = (JSON.parse(r.stdout).repos || {})[`${owner}/${name}`]; } catch {}
     const n = +rest;
     const open = e && (e.openPRs || []).find(p => p.number === n);
-    if (open) return json({ number: n, state: 'open', merged_at: null, updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
+    // The cache's `head` is the branch name; a read naming the PR's branch
+    // (the Waiting view's link to Activity's takeover) needs it as GitHub
+    // shapes it. No sha: the cache keeps none, so a check-run read misses.
+    const head = (p) => (p.head ? { ref: p.head, repo: { full_name: `${owner}/${name}` } } : undefined);
+    if (open) return json({ number: n, state: 'open', merged_at: null, draft: !!open.draft, head: head(open),
+                            updated_at: open.updatedAt || '' }, `${name} pull ${n} open`);
     const last = e && (e.branchPRs || []).find(p => p.number === n && p.state !== 'open');
     if (last) return json({ number: n, state: last.state === 'merged' ? 'closed' : last.state,
-                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null,
+                            merged_at: last.state === 'merged' ? (last.updatedAt || 'merged') : null, head: head(last),
                             updated_at: last.updatedAt || '' }, `${name} pull ${n} ${last.state}`);
     return missing(`${name} pull ${n}`);
   }

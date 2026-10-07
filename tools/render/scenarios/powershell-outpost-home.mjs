@@ -1,5 +1,5 @@
 // Answer the GitHub API for mehrlander/home from the sibling checkout, so the
-// Installation tab of the wps workspace renders headlessly with real files and
+// PowerShell outpost view of the wps workspace renders headlessly with real files and
 // real blob shas. cdn.mjs impersonates only this repo; the project view's
 // subject is a PRIVATE sibling, and without this every read of it fails on the
 // sandbox's spent anonymous quota and the pane says the listing failed.
@@ -8,7 +8,7 @@
 // side needs states the checkout does not hold on its own:
 //   WPS_OBSERVATIONS=<file>  serve that file as projects/wps/data/observations.csv
 //   WPS_ITEM=<repo path>     open the tab on that file (rides as &item=)
-//   WPS_TAB=<tab>            the project tab to open (default: installation)
+//   WPS_TAB=<tab>            the project tab to open (default: outpost)
 //   WPS_DEBUG=1              print the pane's loaded state, since a shot that
 //                            catches it mid-boot looks like a broken pane
 // The blob sha is git's own (sha1 over "blob <size>\0" + bytes) so the derived
@@ -46,6 +46,14 @@ export default async (page, { repoRoot }) => {
   };
   const json = (route, body, status = 200) =>
     route.fulfill({ status, contentType: 'application/json; charset=utf-8', body: JSON.stringify(body) });
+  // The viewer too. With the fake token below, /user and /user/repos reach the
+  // live API and come back 401, and a 401 on a request the boot path does not
+  // mark quiet raises gh-auth's token prompt over the whole page. Which path
+  // boot takes depends on whether cdn.mjs finds a web-tools-private checkout
+  // beside this one, so without this answer the shot drew the prompt there
+  // and the pane everywhere else.
+  await page.route(/^https:\/\/api\.github\.com\/user(?:\/repos)?(?:\?.*)?$/, route =>
+    json(route, new URL(route.request().url()).pathname === '/user/repos' ? [] : { login: REPO.split('/')[0] }));
   await page.route(`https://api.github.com/repos/${REPO}**`, route => {
     const u = new URL(route.request().url());
     const rest = u.pathname.slice(`/repos/${REPO}`.length).replace(/^\//, '');
@@ -73,14 +81,14 @@ export default async (page, { repoRoot }) => {
   url.searchParams.set('repo', REPO);
   url.searchParams.set('view', 'project');
   url.searchParams.set('project', 'projects/wps');
-  url.searchParams.set('tab', process.env.WPS_TAB || 'installation');
+  url.searchParams.set('tab', process.env.WPS_TAB || 'outpost');
   if (process.env.WPS_ITEM) url.searchParams.set('item', process.env.WPS_ITEM);
   await page.evaluate(() => { window.TOKEN = 'FAKE'; try { localStorage.setItem('ghToken', 'FAKE'); } catch {} });
   await page.goto(url.toString(), { waitUntil: 'load' });
   await page.waitForTimeout(5000);
   if (process.env.WPS_DEBUG) {
     const state = await page.evaluate(() => {
-      const el = document.querySelector('[x-data^="installationView"]');
+      const el = document.querySelector('[x-data^="powershellOutpostView"]');
       if (!el) return { mounted: false };
       const d = window.Alpine.$data(el);
       return { mounted: true, loading: d.loading, err: d.err, items: d.items?.length, tab: window.__shell?.projectTab };

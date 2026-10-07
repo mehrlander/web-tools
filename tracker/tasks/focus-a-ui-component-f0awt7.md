@@ -4,6 +4,7 @@ title: Let a brief cover one picked region instead of a whole page
 status: backlog
 opened: 2026-07-26
 size: M
+awaiting: user-call 2708d02c-close-four-tasks
 ---
 # Let a brief cover one picked region instead of a whole page
 

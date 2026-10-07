@@ -70,7 +70,6 @@ test('found: open, with work outstanding, every witness holding', () => {
     kind: 'unreached', title: 'A report never reached main',
     subjects: ['acme/evidence@claude/x', 'acme/evidence#7'],
     why: 'Two facts in it are missing from docs/a.md.', next: 'Fold the two facts into docs/a.md.',
-    choice: 'Retire the report branch afterwards? I recommend yes.',
     witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob(), why: 'the doc it was compared against' },
                 { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
   })).split(' ')[0];
@@ -95,21 +94,27 @@ test('evidence outside the subjects changes, and check names it', () => {
   assert.match(c.moved[0].detail, /docs: add a second line/);
 });
 
-test('a step done is progress: settling with an inherited next or choice is refused', () => {
+test('a step done is progress: settling with an inherited next is refused', () => {
   assert.match(refused({ text: 'Folded the facts in.', finding: { status: 'settled', did: 'Folded the two facts in' } }),
-    /settled with work outstanding \(next: .*choice: /);
-  assert.match(refused({ text: 'Folded the facts in.', finding: { status: 'settled', did: 'Folded the two facts in', next: '' } }),
-    /outstanding \(choice: 'Retire the report branch/);
-  py('update', id, jfile({ text: 'Folded the facts in; the branch question remains.',
-    finding: { did: 'Folded the two facts into docs/a.md', next: '',
+    /settled with work outstanding \(next: 'Fold the two facts/);
+  py('update', id, jfile({ text: 'Folded the facts in; the branch remains.',
+    finding: { did: 'Folded the two facts into docs/a.md', next: 'Retire the report branch.',
                witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob() }] } }));
   const f = both(id);
-  assert.equal(f.status, 'open', 'the inherited choice keeps it open');
+  assert.equal(f.status, 'open', 'the step that remains keeps it open');
   assert.equal(f.outstanding, true);
 });
 
+test('a finding never asks: a decision is a user call it names', () => {
+  assert.match(refused({ text: 'One question.', finding: { choice: 'Retire the branch?' } }), /file the decision as a user call/);
+  assert.match(refused({ text: 'Needs the owner.', finding: { kind: 'answer' } }), /names its user call among its subjects/);
+  py('update', id, jfile({ text: 'Retiring the branch needs the owner\'s word.',
+    finding: { kind: 'answer', subjects: ['acme/evidence@claude/x', 'acme/evidence#7', 'acme/store:user-calls/abcd1234-retire-x.json'] } }));
+  assert.equal(both(id).status, 'open');
+});
+
 test('settled once nothing remains; the refreshed witness holds', () => {
-  py('update', id, jfile({ text: 'Retired the branch.', finding: { status: 'settled', did: 'Retired the report branch', choice: '' } }));
+  py('update', id, jfile({ text: 'Retired the branch.', finding: { status: 'settled', did: 'Retired the report branch', next: '' } }));
   const f = both(id);
   assert.equal(f.status, 'settled');
   assert.equal(f.outstanding, false);
