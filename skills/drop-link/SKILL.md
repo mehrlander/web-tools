@@ -55,6 +55,3 @@ in the form, so the prefill is a default, not a decision.
 - The link requires the user to be signed into GitHub in the browser that
   opens it; on a phone that is usually true. There is no token machinery
   involved: it is GitHub's own editor.
-- This is a deliberately *ambient* write (it targets the named branch, and
-  the form shows that branch), so read and write frames match; see
-  docs/APP.md "The branch overlay" for the frame vocabulary.
