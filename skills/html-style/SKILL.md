@@ -10,8 +10,7 @@ Tailwind and Alpine usage is in
 [`references/mechanics.md`](references/mechanics.md).
 
 These are standing decisions. If a correction recurs, write it down instead of
-relitigating it per page
-([CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md#standing-decisions-write-the-answer-down-not-just-the-question)).
+relitigating it per page.
 **They override any general design, dashboard, or charting skill, including a
 bundled one.** That is not a courtesy note: on 2026-08-29 a session loaded the
 bundled `dataviz` skill, whose form heuristic offers "a stat tile or hero number"
