@@ -1,20 +1,17 @@
-// The UI units' census and coding, held to the app they describe. Without this
-// a new view or tab reaches no table: data/ui-units/units.csv changes only when
-// someone reruns tools/ui-units.mjs, and nothing asked whether a unit was ever
-// coded. The Map's UI > Dimensions tab sat uncounted for a day for exactly that
-// reason (2026-10-06).
+// Checks two tables in data/ui-units. units.csv lists the UI units, one row per
+// view, tab or page the apps show. coded.csv holds the codes a reader assigned
+// each unit on each codebook dimension (frame, body, reach, binding, phone).
 //
-// What it holds, from the registries the router itself is held to:
-//   every first-class address of the Web Tools app is a unit, and a route that
-//     lands on a tab (docs/app-routes.csv, lands) is an address of that tab's
-//     unit rather than a unit of its own;
+// The checks:
+//   every first-class address of the Web Tools app (docs/app-routes.csv,
+//     docs/map-tabs.csv) is a unit, and a route that lands on a tab
+//     (app-routes.csv, lands) is an address of that tab's unit, not a unit;
 //   every Web Tools unit is still an address, so a retired tab leaves no row;
 //   every unit in rings 0 to 2 is coded, with the commit it was read at;
-//   every coded value is a code of its dimension, one where the dimension
-//     takes one (data/ui-units/dimensions.csv, per_unit).
-// The coding checks run over home's private tables too where a sibling
-// checkout of home is present; CI has only this repo, so there they cover the
-// public units alone.
+//   every coded value is in codes.csv for its dimension, and a dimension that
+//     takes one code (dimensions.csv, per_unit) has exactly one.
+// The coding checks also cover home's tables when a sibling checkout of home is
+// present. CI has only this repo, so there they cover the Web Tools units alone.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -31,9 +28,8 @@ const mapTabs = rows(path.join(repoRoot, 'docs/map-tabs.csv'));
 const UI = path.join(repoRoot, 'data/ui-units');
 const HOME_UI = path.join(repoRoot, '..', 'home', 'data/ui-units');
 const stores = [UI, ...(existsSync(path.join(HOME_UI, 'coded.csv')) ? [HOME_UI] : [])];
-const units = rows(path.join(UI, 'units.csv'));
 // The app's own views and tabs, ring 0; a promoted page shares the host but is no route.
-const app = units.filter(u => u.host === 'Web Tools app' && u.app_ring === '0');
+const app = rows(path.join(UI, 'units.csv')).filter(u => u.host === 'Web Tools app' && u.app_ring === '0');
 const addrs = (u) => String(u.address || '').split(' | ').map(x => x.trim());
 
 test('every first-class address of the Web Tools app is a UI unit', () => {
@@ -71,10 +67,10 @@ test('every Web Tools unit is still an address of the app', () => {
 test('every unit in rings 0 to 2 is coded, with the commit it was read at', () => {
   for (const dir of stores) {
     const coded = new Map(rows(path.join(dir, 'coded.csv')).map(c => [c.unit, c]));
-    const census = rows(path.join(dir, 'units.csv'));
-    for (const u of census.filter(u => u.app_ring !== '' && +u.app_ring <= 2))
+    const units = rows(path.join(dir, 'units.csv'));
+    for (const u of units.filter(u => u.app_ring !== '' && +u.app_ring <= 2))
       assert.ok(coded.has(u.unit), `${u.unit} (ring ${u.app_ring}) is not coded; ${FIX}`);
-    const known = new Set(census.map(u => u.unit));
+    const known = new Set(units.map(u => u.unit));
     for (const c of coded.values()) {
       assert.ok(known.has(c.unit), `${c.unit} is coded but not in ${path.relative(repoRoot, dir)}/units.csv`);
       assert.match(c.at || '', /^[0-9a-f]{7,40}$/, `${c.unit}: at must name the commit the unit was read at`);
