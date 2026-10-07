@@ -845,8 +845,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'context', 'surfacing']),
-    'Harness exposes Automation, Tests, Skills, Context, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'agents', 'peeves', 'context', 'surfacing']),
+    'Harness exposes Automation, Tests, Skills, Agents, Context, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -969,7 +969,7 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   history.replaceState = (a, b, url) => stamped.push(url);
 
   shell.goMap();
-  assert.equal(shell.mapTab, 'set');
+  assert.equal(shell.mapTab, 'reach');
   assert.doesNotMatch(stamped.at(-1), /tab=/, 'the default stays out of the URL');
   assert.match(stamped.at(-1), /view=map/);
 
@@ -981,10 +981,10 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   shell.goMap();
   assert.equal(shell.mapTab, 'docs', 'returning to Map does not reset the tab');
   shell.goMap('');
-  assert.equal(shell.mapTab, 'set', 'an absent param means the default');
+  assert.equal(shell.mapTab, 'reach', 'an absent param means the default');
 
   shell.goMap('bogus');
-  assert.equal(shell.mapTab, 'set', 'an unknown tab falls back rather than hiding every section');
+  assert.equal(shell.mapTab, 'reach', 'an unknown tab falls back rather than hiding every section');
 
   // Leaving the view drops the key rather than stranding it on the next URL.
   shell.mapTab = 'docs';

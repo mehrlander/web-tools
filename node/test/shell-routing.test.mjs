@@ -302,8 +302,8 @@ test('the sidebar re-derives with the mode, or it outlives the header', () => {
 test('an unknown shell mode reads as the default rather than blanking the app', () => {
   // A hand-edited or truncated ?shell= must not hide the header with no way
   // back: an unrecognized value is not a fourth mode, it is no mode.
-  // Surrounding whitespace is trimmed rather than rejected, the way ?overlay=
-  // is read, so `shell=%20none` is `none` and is not in this list.
+  // Surrounding whitespace is trimmed rather than rejected, so
+  // `shell=%20none` is `none` and is not in this list.
   for (const bad of ['', 'hidden', 'nav-only', 'FULL', '1']) {
     const { shell: s } = makeShell({ search: '?shell=' + encodeURIComponent(bad), browserStore: { repo: '' } });
     s.readShellMode();

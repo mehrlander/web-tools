@@ -85,9 +85,7 @@ Playwright `page` (`ctx.repoRoot` too). Scenarios live in
 [`node/render/scenarios/`](render/scenarios/); the PNG/log pick up the scenario
 name in their suffix.
 
-Every driver lives there and there is nowhere else to put one. Two of them,
-`sidebar-projects.mjs` and `sidebar-projects-overlay.mjs`, still overlap on
-their default path; only the overlay posture distinguishes them.
+Every driver lives there and there is nowhere else to put one.
 
 Example — the FAB's Export controls, opened to the Render
 tab with "Fully offline" ticked:
@@ -292,7 +290,7 @@ changes touch:
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `node/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
-| `node/`, `python/` | `npm run tools-index` | derived fields in `docs/harness.csv` |
+| `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |

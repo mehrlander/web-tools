@@ -3,7 +3,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
 .githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,no,yes,yes
-.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,392,git:pre-commit,no,yes,yes
+.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,394,git:pre-commit,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through node/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists; the hourly pass also folds the session records into state/sessions.json and the phone's state/session-menu.json through node/sessions-crawl.mjs",.github/workflows,154,ci:push+repository_dispatch+schedule+workflow_dispatch,no,no,yes
 .github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,90,ci:workflow_dispatch+pull_request,no,yes,yes
@@ -11,7 +11,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .github/workflows/refresh-derived.yml,runs the commit hook's repair pass on main after each push and commits what moved,.github/workflows,81,ci:push+workflow_dispatch,yes,yes,no
 .github/workflows/test.yml,"runs npm test on pull requests and pushes; reports, never commits",.github/workflows,120,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,yes,yes,no
-node/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",node,266,npm:activity-refresh,no,no,yes
+node/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",node,273,npm:activity-refresh,no,no,yes
 node/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,node/build,53,npm:bake,yes,yes,no
 node/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",node/build,161,npm:build:app,yes,yes,yes
 node/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",node/build,113,npm:build:lib,yes,yes,yes
@@ -41,9 +41,10 @@ node/build/verify-build.mjs,prove a page's dist build renders byte-identical to 
 node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,145,imported,no,yes,no
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,yes,yes,yes
 node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,154,imported,yes,yes,yes
+node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,74,argv,yes,no,no
 node/git-change.mjs,,node,292,argv,yes,no,yes
 node/gold-set.mjs,,node,200,npm:gold-set,yes,yes,no
-node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,805,imported,no,yes,yes
+node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,797,imported,no,yes,yes
 node/render/measure.mjs,,node/render,174,imported,no,no,yes
 node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,158,imported,no,yes,no
 node/render/page-measures.mjs,,node/render,113,npm:page-measures,yes,no,yes
@@ -235,8 +236,7 @@ node/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any o
 node/render/scenarios/session-topics.mjs,,node/render/scenarios,79,driver,no,no,no
 node/render/scenarios/shortcut-log-app-view.mjs,,node/render/scenarios,73,driver,no,no,no
 node/render/scenarios/showing-paste-rows.mjs,,node/render/scenarios,27,driver,no,no,no
-node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,no,yes,yes
-node/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,node/render/scenarios,51,driver,no,yes,no
+node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,no,no,yes
 node/render/scenarios/sidebar-projects.mjs,drive the app's sidebar into the nested-projects state,node/render/scenarios,66,driver,no,yes,no
 node/render/scenarios/sidebar-repo-menus.mjs,the sidebar Repos index with one row's two menus open,node/render/scenarios,61,driver,no,no,no
 node/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",node/render/scenarios,67,driver,no,yes,no

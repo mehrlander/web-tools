@@ -377,10 +377,9 @@ so screenshot the viewport, not `fullPage`. Each library is a separate tag (no
 ## Edge cases (the parts this recipe deliberately omits)
 
 - **`esm.sh` / `cdnjs` modules** aren't plain npm files; `esm.sh` does
-  server-side CJS→ESM bundling that a raw tarball doesn't reproduce. Libraries
-  loaded that way (e.g. CodeMirror 6 via `esm.sh`) won't resolve from
-  `node_modules` alone. They usually load lazily, so the page still boots and
-  screenshots; the component just won't mount until used.
+  server-side CJS→ESM bundling that a raw tarball doesn't reproduce. The mirror
+  serves an installed ESM package (CodeMirror 6 included); a CJS-only or
+  uninstalled one answers empty, and `cdnjs` is not mirrored.
 - **`/+esm` imports.** A jsDelivr `...@x/+esm` URL wants the package's ESM entry,
   not the browser-global default. If your pages use these, resolve such specs to
   `package.json` `exports["."].import` (or `module`). CJS-only packages still

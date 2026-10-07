@@ -5,7 +5,7 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 4,console-suite,"console/ -> console/suite.js (base + mods, one paste)",console/base.js;console/mods/,npm run build:console,console/suite.js,regenerates,yes
 5,pages-catalogs,a catalogued .html -> the three catalogs,pages/;lib/kits/demos/,npm run pages-index,pages/README.md;pages/index.html;pages/pages.csv,regenerates,yes
 6,tests-registry,node/test/ -> the test registry's derived fields,node/test;package.json;node/build/tests-index.mjs,npm run tests-index,docs/tests.csv,regenerates,yes
-7,harness-census,"node/, python/, .claude/ or .github/workflows/ -> the harness census's derived fields",node;python;.claude;skills/hooks;.githooks;.github/workflows;package.json;node/build/tools-index.mjs;docs/harness.csv,npm run tools-index,docs/harness.csv;docs/hook-legs.csv,regenerates,yes
+7,harness-census,"node/, python/, .claude/, .github/workflows/ or any .md -> the harness census's derived fields",node;python;.claude;skills/hooks;.githooks;.github/workflows;package.json;node/build/tools-index.mjs;docs/harness.csv;*.md,npm run tools-index,docs/harness.csv;docs/hook-legs.csv,regenerates,yes
 8,kits-registry,lib/kits/ -> the kits registry,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,regenerates,yes
 9,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
 10,snags-index,"docs/SNAGS.md -> its index, plus the repeat warning",docs/SNAGS.md,npm run snags-index,docs/SNAGS.md;docs/snags.csv,regenerates,yes
