@@ -2239,8 +2239,8 @@ the other way `?use=` shows the wrong thing is `use-swaps-the-lib-not-the-page`
 ### combine-serves-cjs: a jsDelivr /combine/ spec served the CommonJS build, and the local mirror hid it
 
 `npm/alpinejs@3` inside a `cdn.jsdelivr.net/combine/` URL resolves through
-package.json `main`, which for Alpine is `dist/module.cjs.js`. Combine does not
-honor the `unpkg` field that the plain `/npm/` route uses, so the page received
+package.json `main`, which for Alpine is `dist/module.cjs.js`. jsDelivr ignores
+the `unpkg` field on every route, so the page received
 404 KB containing zero occurrences of `window.Alpine` and threw "module is not
 defined". `fflate` fails the same way (`main` is `./lib/index.cjs`);
 `tabulator-tables` does not, because its `main` is already a UMD, which is why
@@ -2255,7 +2255,7 @@ spinner that never resolves.
 What made it ship is the local mirror. `node/render/cdn.mjs` keeps a
 `CDN_DEFAULT` map that rewrites a bare `alpinejs` spec to `dist/cdn.min.js`,
 whose comment states that jsDelivr serves the browser build for these packages.
-That is true of `/npm/` and false of `/combine/`, so every headless shot loaded
+That is false of every jsDelivr route, so every headless shot loaded
 a working Alpine the real CDN would never send, and the page passed every local
 check while being dead in a browser. Name the explicit file path in a combine
 spec, and verify a CDN-dependent page against bytes actually fetched from the
@@ -2273,9 +2273,9 @@ error had been in every shot log for that page; what got it read was a
 prototype of the page-measures pass reporting 24 blank icons on it.
 → [doc-growth.md](doc-growth.md); the combine rule is pinned by
 [../node/test/cdn-combine-default.test.mjs](../node/test/cdn-combine-default.test.mjs).
-The plain `/npm/` route is not: `CDN_DEFAULT` says it honors `unpkg`, and
-jsDelivr served `dist/module.cjs.js` for a bare `npm/alpinejs` on 2026-10-06.
-No page uses that spec.
+The plain `/npm/` route follows the same rule, and unpkg reads `unpkg` then
+`main`; both are pinned by
+[../node/test/cdn-npm-default.test.mjs](../node/test/cdn-npm-default.test.mjs).
 
 ### crawl-is-the-only-clock: a merged manifest change did not reach the nav
 

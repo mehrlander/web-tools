@@ -71,7 +71,7 @@
 <div class="h-screen flex flex-col gap-2 p-2">
 
   <!-- Header -->
-  <div class="panel rounded-lg flex items-center gap-3 px-3 py-2 shrink-0">
+  <div class="panel rounded-lg flex flex-wrap items-center gap-3 px-3 py-2 shrink-0">
     <div class="flex items-center gap-2 text-[15px] font-semibold" style="color:var(--ink)">
       <i class="ph ph-map-trifold text-lg" style="color:var(--cat-code)"></i>
       Repo Atlas
@@ -80,9 +80,9 @@
          data/ui-units/codebook.md, "Slots"): the repo and ref boxes are the
          Atlas view's Selector, the file filter its Search box, the right rail
          its Filter rail, and the map its body. -->
-    <div class="flex items-center gap-1.5" data-slot="frame:selector">
-      <input id="repoInput" class="field w-56" placeholder="owner/repo" spellcheck="false">
-      <input id="refInput" class="field w-28" placeholder="ref (default)" spellcheck="false">
+    <div class="flex items-center gap-1.5 min-w-0 max-w-full" data-slot="frame:selector">
+      <input id="repoInput" class="field w-56 min-w-0 shrink" placeholder="owner/repo" spellcheck="false">
+      <input id="refInput" class="field w-28 min-w-0 shrink" placeholder="ref (default)" spellcheck="false">
       <button id="goBtn" class="field cursor-pointer hover:border-black/20" title="Load repo">
         <i class="ph ph-arrow-right"></i>
       </button>
@@ -91,9 +91,9 @@
       </button>
       <input id="dirInput" type="file" webkitdirectory multiple class="hidden">
     </div>
-    <div class="relative" data-slot="frame:search">
+    <div class="relative min-w-0 max-w-full" data-slot="frame:search">
       <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-sm" style="color:var(--ink-3)"></i>
-      <input id="searchInput" class="field w-52" style="padding-left:28px" placeholder="filter files… (Esc clears)" spellcheck="false">
+      <input id="searchInput" class="field w-52 max-w-full" style="padding-left:28px" placeholder="filter files… (Esc clears)" spellcheck="false">
     </div>
     <div id="matchChip" class="chip hidden num" style="color:var(--ink-2)"></div>
     <div class="grow"></div>

@@ -969,7 +969,7 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   history.replaceState = (a, b, url) => stamped.push(url);
 
   shell.goMap();
-  assert.equal(shell.mapTab, 'set');
+  assert.equal(shell.mapTab, 'reach');
   assert.doesNotMatch(stamped.at(-1), /tab=/, 'the default stays out of the URL');
   assert.match(stamped.at(-1), /view=map/);
 
@@ -981,10 +981,10 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   shell.goMap();
   assert.equal(shell.mapTab, 'docs', 'returning to Map does not reset the tab');
   shell.goMap('');
-  assert.equal(shell.mapTab, 'set', 'an absent param means the default');
+  assert.equal(shell.mapTab, 'reach', 'an absent param means the default');
 
   shell.goMap('bogus');
-  assert.equal(shell.mapTab, 'set', 'an unknown tab falls back rather than hiding every section');
+  assert.equal(shell.mapTab, 'reach', 'an unknown tab falls back rather than hiding every section');
 
   // Leaving the view drops the key rather than stranding it on the next URL.
   shell.mapTab = 'docs';

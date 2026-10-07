@@ -26,7 +26,7 @@ const { window } = makeWindow({ html: '<!doctype html><html><head><title>Host</t
 const doc = window.document;
 window.marked = marked;
 // vanilla-bundle first: the card's drawn readings escape through the window.esc
-// it puts there rather than defining a second one (tools/test/one-escape-helper).
+// it puts there rather than defining a second one (node/test/one-escape-helper).
 window.eval(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'));
 window.eval(readFileSync(path.join(repoRoot, 'lib/kits/peek.js'), 'utf8'));
 loadKit('src-doc.js', { window });

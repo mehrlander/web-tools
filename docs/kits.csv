@@ -50,7 +50,7 @@ lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants r
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
 lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",137,no,no,8,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,4,yes
-lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,305,no,yes,6,yes
+lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,305,no,yes,7,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2302,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,357,no,yes,7,yes
