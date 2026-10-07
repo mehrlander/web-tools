@@ -11,6 +11,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
 scripts/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",scripts,266,npm:activity-refresh,no,no,yes
 scripts/annotate/anchors.py,,scripts/annotate,265,imported,no,yes,yes
+scripts/annotate/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",scripts/annotate,153,imported,no,yes,yes
 scripts/annotate/check.py,,scripts/annotate,82,imported,no,yes,yes
 scripts/annotate/materialize.py,,scripts/annotate,174,imported,yes,yes,yes
 scripts/annotate/ops.py,,scripts/annotate,355,imported,no,yes,yes
@@ -42,7 +43,7 @@ scripts/look-link.py,"make a look link for a page (the fragment lib/kits/look.js
 scripts/mcp-link-safe.py,"report markdown links the GitHub MCP write path would defang: a URL of 150 characters or more inside a markdown link is stored wrapped in backticks and renders dead, 149 or fewer survives, and the label never counts. Measures a slash-joined pair as one fused span, since )/[ does not end the URL token. --check gates; --unescape-entities is for a body read back through the MCP",scripts,250,imported,no,yes,yes
 scripts/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the result",scripts,187,imported,no,yes,no
 scripts/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",scripts,97,argv,no,no,no
-scripts/pip-steps.py,,scripts,208,none found,no,no,no
+scripts/pip-steps.py,,scripts,209,argv,no,no,no
 scripts/sessions-crawl.mjs,"refresh state/sessions.json, the phone's state/session-menu.json and the session search shards in web-tools-private without a browser, from the hourly activity-cache Action, so the phone's Claude menu knows a session nobody has opened the app since. A second CALLER of the app's own sessions crawl (lib/kits/sessions-crawl.js), not a second crawler. REST only, so unlike activity-crawl.mjs it needs no GraphQL preflight",scripts,176,npm:sessions-refresh,yes,no,yes
 scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",scripts,955,npm:showing,no,yes,yes
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
@@ -69,7 +70,6 @@ skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's 
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,89,hook:Stop,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,73,hook:PostToolUse,no,no,yes
 skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",skills/hooks,48,hook:PostToolUse,no,no,no
-tools/build/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",tools/build,153,imported,no,yes,yes
 tools/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,tools/build,53,npm:bake,yes,yes,no
 tools/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",tools/build,161,npm:build:app,yes,yes,yes
 tools/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",tools/build,113,npm:build:lib,yes,yes,yes
@@ -86,7 +86,6 @@ tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and p
 tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",tools/build,85,npm:pages-shots,no,yes,yes
 tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,yes,yes
 tools/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",tools/build,90,npm:registries-reach,yes,yes,yes
-tools/build/repair-demonstration-pivot.py,,tools/build,46,none found,no,yes,no
 tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,tools/build,184,argv,no,yes,yes
 tools/build/sample-workbook.mjs,,tools/build,437,npm:sample-workbook,yes,yes,yes
 tools/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,tools/build,267,npm:snags-index,yes,yes,yes
@@ -99,7 +98,6 @@ tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the defau
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
 tools/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",tools,421,npm:setup,yes,yes,yes
 tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,805,imported,no,yes,yes
-tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/measure.mjs,,tools/render,174,imported,no,no,yes
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/page-measures.mjs,,tools/render,113,npm:page-measures,yes,no,yes
@@ -191,6 +189,7 @@ tools/render/scenarios/diff-tool-loaded.mjs,diff-tool in its loaded state: two v
 tools/render/scenarios/diff-tool-roots.mjs,the browse panel's root list over a stubbed repo listing,tools/render/scenarios,42,driver,no,no,no
 tools/render/scenarios/diff-tool-sources.mjs,the Sources tab with the normalization strip open and two prose drafts loaded,tools/render/scenarios,25,driver,no,no,no
 tools/render/scenarios/entities-stub.mjs,"pages/entities.html against the committed index, token-free",tools/render/scenarios,35,driver,no,no,no
+tools/render/scenarios/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/estate-crawl-progress.mjs,"Branches or Sessions mid-crawl: the pane seeded, then the shell's progress slot written by hand",tools/render/scenarios,61,driver,no,no,no
 tools/render/scenarios/estate-jots.mjs,the estate's Jots view with a populated pile,tools/render/scenarios,89,driver,no,no,no
 tools/render/scenarios/estate-open.mjs,Activity's Open view seeded token-free so the list renders headlessly,tools/render/scenarios,205,driver,no,no,no
