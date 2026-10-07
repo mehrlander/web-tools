@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="counterexample-hunter agent">
+  <title>counterexample-hunter agent</title>
+  <desc>A sight reticle: a ring, four ticks and a centre dot, for the seat that hunts the case where a claim fails. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#9333ea">
+    <path fill-rule="evenodd" d="M4 16.25 A12 12 0 1 0 28 16.25 A12 12 0 1 0 4 16.25 Z M6.5 16.25 A9.5 9.5 0 1 0 25.5 16.25 A9.5 9.5 0 1 0 6.5 16.25 Z"/>
+    <rect x="14.75" y="2" width="2.5" height="7.5"/>
+    <rect x="14.75" y="23" width="2.5" height="7.5"/>
+    <rect x="2" y="15" width="7.5" height="2.5"/>
+    <rect x="22.5" y="15" width="7.5" height="2.5"/>
+    <circle cx="16" cy="16.25" r="2.6"/>
+  </g>
+</svg>

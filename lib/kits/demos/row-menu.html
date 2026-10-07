@@ -130,13 +130,13 @@
   <section class="space-y-2">
     <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A plain table, calling open() itself</h2>
     <div class="flex flex-wrap items-start gap-4">
-      <table id="plain" class="table table-sm w-auto text-[14px] border border-base-300">
+      <table id="plain" class="table table-sm w-auto max-w-full text-[14px] border border-base-300">
         <thead><tr><th>Page</th><th>Route</th><th>Kind</th></tr></thead>
         <tbody>
-          <tr data-page="branch.html" data-route="#gh=owner/repo@branch" data-kind="branch"><td>branch.html</td><td class="font-mono text-[13px]">#gh=owner/repo@branch</td><td>branch</td></tr>
-          <tr data-page="review.html" data-route="#gh=owner/repo@branch&amp;base=main" data-kind="diff"><td>review.html</td><td class="font-mono text-[13px]">#gh=owner/repo@branch&amp;base=main</td><td>diff</td></tr>
-          <tr data-page="data-view.html" data-route="#data=owner/repo:path" data-kind="data"><td>data-view.html</td><td class="font-mono text-[13px]">#data=owner/repo:path</td><td>data</td></tr>
-          <tr data-page="toss-render.html" data-route="#gz=payload" data-kind="render"><td>toss-render.html</td><td class="font-mono text-[13px]">#gz=payload</td><td>render</td></tr>
+          <tr data-page="branch.html" data-route="#gh=owner/repo@branch" data-kind="branch"><td>branch.html</td><td class="font-mono text-[13px] break-all">#gh=owner/repo@branch</td><td>branch</td></tr>
+          <tr data-page="review.html" data-route="#gh=owner/repo@branch&amp;base=main" data-kind="diff"><td>review.html</td><td class="font-mono text-[13px] break-all">#gh=owner/repo@branch&amp;base=main</td><td>diff</td></tr>
+          <tr data-page="data-view.html" data-route="#data=owner/repo:path" data-kind="data"><td>data-view.html</td><td class="font-mono text-[13px] break-all">#data=owner/repo:path</td><td>data</td></tr>
+          <tr data-page="toss-render.html" data-route="#gz=payload" data-kind="render"><td>toss-render.html</td><td class="font-mono text-[13px] break-all">#gz=payload</td><td>render</td></tr>
         </tbody>
       </table>
       <pre id="tsv" class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto min-w-64 min-h-24">Show the TSV puts it here, and holds the menu open.</pre>
