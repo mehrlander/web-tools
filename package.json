@@ -123,6 +123,8 @@
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",
     "@alpinejs/sort": "^3.15.12",
+    "@codemirror/lang-html": "^6.4.12",
+    "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/lang-xml": "^6.1.0",
     "@codemirror/legacy-modes": "^6.5.4",
     "@phosphor-icons/web": "^2.1.2",
