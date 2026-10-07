@@ -209,7 +209,7 @@ fi
 # (refresh-derived.yml) left its row missing until the suite said so.
 if changed node python .claude skills/hooks .githooks .github/workflows package.json node/build/tools-index.mjs docs/harness.csv '*.md'; then
   if npm run tools-index --silent >/dev/null 2>&1; then
-    stage docs/harness.csv
+    stage docs/harness.csv docs/hook-legs.csv
   else
     echo "build hook: 'npm run tools-index' failed — docs/harness.csv may be stale" >&2
   fi
