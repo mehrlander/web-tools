@@ -17,11 +17,16 @@ type Commit implements GitObject {
   messageBody: String!
   messageHeadline: String!
   oid: GitObjectID!
+  parents(after: String, before: String, first: Int, last: Int): CommitConnection!
 }
 
 input CommitAuthor {
   emails: [String!]
   id: ID
+}
+
+type CommitConnection {
+  nodes: [Commit]
 }
 
 type CommitHistoryConnection {
