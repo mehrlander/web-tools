@@ -8,6 +8,8 @@
 //   - safety bounds: corruption, truncation, path traversal, hash mismatch
 
 import test from 'node:test';
+import { deflateSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
@@ -227,6 +229,39 @@ test('unpackPackfile & inspectChange: round-trips a real Git thin bundle with de
   } finally {
     fixture.cleanup();
   }
+});
+
+// Adjacent pack entries are separate zlib members, not concatenated streams.
+// The bootstrap's pinned pako-git alias matches the browser's Pako 2.1.0.
+function adjacentBlobPack({ corruptChecksum = false } = {}) {
+  const texts = ['alpha', '', 'beta'];
+  const members = texts.map((text, i) => {
+    const zipped = deflateSync(Buffer.from(text));
+    if (corruptChecksum && i === 0) zipped[zipped.length - 1] ^= 1;
+    return Buffer.concat([Buffer.from([0x30 | text.length]), zipped]);
+  });
+  const header = Buffer.alloc(12);
+  header.write('PACK');
+  header.writeUInt32BE(2, 4);
+  header.writeUInt32BE(texts.length, 8);
+  const body = Buffer.concat([header, ...members]);
+  return { texts, bytes: new Uint8Array(Buffer.concat([body, createHash('sha1').update(body).digest()])) };
+}
+
+test('unpackPackfile: Pako 2 stops at each adjacent zlib member, including an empty blob', async () => {
+  const { texts, bytes } = adjacentBlobPack();
+  const { objects } = await GitChange.unpackPackfile(bytes);
+  assert.equal(objects.size, texts.length);
+  for (const text of texts) {
+    const data = new TextEncoder().encode(text);
+    const sha = await GitChange.hashGitObject('blob', data);
+    assert.deepEqual(objects.get(sha).data, data);
+  }
+});
+
+test('unpackPackfile: bounded member inflation still rejects an invalid Adler-32 checksum', async () => {
+  const { bytes } = adjacentBlobPack({ corruptChecksum: true });
+  await assert.rejects(GitChange.unpackPackfile(bytes), /Decompression failed for object 0.*incorrect data check/);
 });
 
 // ── Security & Edge Cases ──────────────────────────────────────────────────
