@@ -1,0 +1,20 @@
+order,leg,gloss,watches,runs,stages,mode,in_repair
+1,pre-build,lib/ -> dist/web-tools.js (the pre-build),lib/,npm run build:lib,dist/web-tools.js,regenerates,yes
+2,dictate-build,lib/ or pages/dictate.html -> dist/dictate.js,lib/;pages/dictate.html,npm run build:dictate,dist/dictate.js,regenerates,yes
+3,app-build,lib/ or app/index.html -> dist/app.js (the app's pre-build),lib/;app/index.html,npm run build:app,dist/app.js,regenerates,yes
+4,console-suite,"console/ -> console/suite.js (base + mods, one paste)",console/base.js;console/mods/,npm run build:console,console/suite.js,regenerates,yes
+5,pages-catalogs,a catalogued .html -> the three catalogs,pages/;lib/kits/demos/,npm run pages-index,pages/README.md;pages/index.html;pages/pages.csv,regenerates,yes
+6,tests-registry,node/test/ -> the test registry's derived fields,node/test;package.json;node/build/tests-index.mjs,npm run tests-index,docs/tests.csv,regenerates,yes
+7,harness-census,"node/, python/, .claude/ or .github/workflows/ -> the harness census's derived fields",node;python;.claude;skills/hooks;.githooks;.github/workflows;package.json;node/build/tools-index.mjs;docs/harness.csv,npm run tools-index,docs/harness.csv;docs/hook-legs.csv,regenerates,yes
+8,kits-registry,lib/kits/ -> the kits registry,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,regenerates,yes
+9,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
+10,snags-index,"docs/SNAGS.md -> its index, plus the repeat warning",docs/SNAGS.md,npm run snags-index,docs/SNAGS.md;docs/snags.csv,regenerates,yes
+11,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
+12,plugin-copies,the traveling docs -> the plugin's copies,docs/SURFACING.md;docs/surfacing-course.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/SURFACING.md;skills/default/surfacing-course.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
+13,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
+14,docs-readme,docs/docs.json -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes
+15,tracker-board,tracker/tasks/ -> tracker/board.md + board.json,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,regenerates,yes
+16,csv-census,each tracked CSV -> the repo's own Data census,*.csv;.web-tools.json;python/csv-census.py,python/csv-census.py,data/csv-census.csv,regenerates,yes
+17,reading-columns,reading columns (warn only),,skills/hooks/reading-column.py,,warns,yes
+18,sunset-markers,SUNSET markers now due (warn only),,python/sunset-scan.py,,warns,yes
+19,anchors,annotations into what this commit changes (warn only),,python/annotate/anchors.py,,warns,no
