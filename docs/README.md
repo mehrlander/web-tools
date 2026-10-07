@@ -25,7 +25,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`SNAGS.md`](SNAGS.md) — the friction log: one line per snag, symptom then corrected move
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
-- [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
 - [`aims-reading.csv`](aims-reading.csv) — the guided reading list Docs/Purpose offers a new reader
@@ -95,6 +94,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
+- [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
 
 ## docs/doc-craft-specimens/
 

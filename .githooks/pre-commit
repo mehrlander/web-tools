@@ -197,7 +197,7 @@ if changed node/test package.json node/build/tests-index.mjs; then
   fi
 fi
 
-# --- leg harness-census: node/, python/, .claude/ or any .md -> the harness census's derived fields ---
+# --- leg harness-census: node/, python/, .claude/, .github/workflows/ or any .md -> the harness census's derived fields ---
 # docs/harness.csv is authored only in `role` and the layer glossary; layer,
 # lines, invocation, emits, named, and tested are stamped from the tree, and a
 # rename or a new npm script moves them without touching the registry.
@@ -205,7 +205,9 @@ fi
 # (CLAUDE.md is the usual one) flips it with no code change; the leg watched
 # code paths only and left that flip to CI until 2026-10-07.
 # artifacts-lockstep runs the generator's --check as the backstop.
-if changed node python .claude skills/hooks .githooks package.json node/build/tools-index.mjs docs/harness.csv '*.md'; then
+# .github/workflows joined the trigger the same day: adding a workflow
+# (refresh-derived.yml) left its row missing until the suite said so.
+if changed node python .claude skills/hooks .githooks .github/workflows package.json node/build/tools-index.mjs docs/harness.csv '*.md'; then
   if npm run tools-index --silent >/dev/null 2>&1; then
     stage docs/harness.csv
   else
