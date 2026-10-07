@@ -372,4 +372,17 @@ if [ -f scripts/sunset-scan.py ]; then
   [ -n "$out" ] && printf '%s\n' "$out" >&2 || true
 fi
 
+# --- leg anchors: annotations into what this commit changes (warn only) -------
+# A note's quote and a standoff's spans point into a document by its words and
+# its bytes, from the notes store and from any checkout beside this one. A
+# commit that edits the passage leaves them pointing at text that is no longer
+# there; this names each one against the staged text and never blocks, since
+# editing a passage someone noted is often the point. The rules, and the repair
+# for a standoff, are in scripts/annotate/anchors.py. About 50ms when nothing
+# is staged.
+if [ "$refresh_all" = 0 ] && [ -f scripts/annotate/anchors.py ]; then
+  out="$(python3 scripts/annotate/anchors.py --staged 2>&1 || true)"
+  [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/build hook: /' >&2 || true
+fi
+
 exit 0
