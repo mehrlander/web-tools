@@ -69,6 +69,8 @@ const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
 const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
 const ctxCsv = readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8');
 const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.csv'), 'utf8');
+const ctxLinksCsv = readFileSync(path.join(repoRoot, 'docs', 'context-links.csv'), 'utf8');
+const ctxHooksJson = readFileSync(path.join(repoRoot, 'skills', 'hooks', 'hooks.json'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
@@ -110,6 +112,8 @@ window.GH = class {
     if (p === 'docs/kits.csv') return { text: kitsCsv };
     if (p === 'docs/context-sources.csv') return { text: ctxCsv };
     if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
+    if (p === 'docs/context-links.csv') return { text: ctxLinksCsv };
+    if (p === 'skills/hooks/hooks.json') return { text: ctxHooksJson };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
     return { text: toCsv(manifest.items) };
@@ -980,17 +984,16 @@ test('Delivery uses every registry source, including later additions and the leg
   } finally { close(); }
 });
 
-test('Delivery filters cannot leave a hidden inspector and a topic restores all of its sources', async () => {
+test('Delivery keeps every category visible and an assistant filter cannot leave a hidden inspector', async () => {
   const { state, close } = await contextState();
   try {
     state.selectCtxSource('wt-claude');
-    state.setCtxDeliveryFilter('discretion', 'pulled');
-    assert.ok(state.ctxSpectraVisible.some(m => m.id === state.ctxSpectraActive.id));
-    assert.notEqual(state.ctxSpectraActive.id, 'wt-claude');
-    state.setCtxDeliveryFilter('assistant', 'gemini');
+    const classes = new Set(state.ctxSpectraMechanisms.map(m => m.discretionId));
+    assert.deepEqual([...state.ctxDeliveryGroups.map(d => d.id)].sort(), [...classes].sort());
+    state.setCtxAssistant('gemini');
     assert.equal(state.ctxSpectraActive, null, 'empty results have no unrelated inspector');
     state.openCtxDeliveryTopic('askuserquestion');
-    assert.equal(state.ctxSpectraEnv, 'all'); assert.equal(state.ctxSpectraFilterDiscretion, '');
+    assert.equal(state.ctxSpectraEnv, 'all');
     const members = state.ctxAll.filter(r => r.topicList.includes('askuserquestion'));
     assert.deepEqual([...state.ctxSpectraVisible.filter(m => m.topics.includes('askuserquestion')).map(m => m.id)], [...members.map(r => r.id)]);
     assert.ok(members.some(r => r.id === state.ctxSpectraActive.id));
@@ -1000,6 +1003,59 @@ test('Delivery filters cannot leave a hidden inspector and a topic restores all 
     const query = new URL(window.location.href).searchParams;
     assert.equal(query.get('ctxtopic'), 'askuserquestion'); assert.equal(query.get('ctxsource'), id);
   } finally { close(); }
+});
+
+test('Context connections navigate source identity and keep registration separate from delivery receipts', async () => {
+  const { state, host, close } = await contextState('&ctxsource=plugin-default');
+  try {
+    const prod = state.ctxActiveConnections.find(e => e.kind === 'prompts');
+    assert.equal(prod.from.id, 'hook-invoke-default');
+    assert.equal(prod.to.id, 'plugin-default');
+    assert.equal(prod.basis, 'skills/hooks/invoke-default.sh');
+    await tick(2);
+    [...host.querySelectorAll('[data-context-connections] button')].find(b => b.textContent === 'Conventions directive').click();
+    assert.equal(state.ctxSpectraActive.id, prod.from.id);
+    const registration = state.ctxActiveConnections.find(e => e.kind === 'registers');
+    assert.equal(registration.from.id, 'plugin-package');
+    assert.equal(registration.basis, 'skills/hooks/hooks.json');
+    assert.equal(state.ctxSpectraActive.source.evidence, 'receipt', 'a connection never rewrites the source evidence');
+    let opened;
+    state.openFileDeck = rows => { opened = rows[0].path; };
+    state.openCtxConnectionBasis(registration);
+    assert.equal(opened, 'skills/hooks/hooks.json');
+    // New registrations are derived, including their actual matcher, without
+    // needing another row in the curated connection table.
+    state.ctxReg.rows.push(state.ctxRow({ id: 'new-hook', item: 'New hook', repo: 'mehrlander/web-tools',
+      path: 'skills/hooks/new-hook.sh', circle: 'plugin', arrives: 'hook', discretion: 'reactive' }));
+    state.ctxReg.hooks.TestEvent = [{ matcher: 'example', hooks: [{ command: 'bash /plugin/hooks/new-hook.sh' }] }];
+    state.selectCtxSource('new-hook');
+    assert.equal(state.ctxActiveConnections[0].from.id, 'plugin-package');
+    assert.equal(state.ctxActiveConnections[0].gloss, 'TestEvent: example');
+    state.ctxReg.links.push({ from: 'missing', to: 'plugin-default', kind: 'prompts', gloss: 'Unavailable endpoint' });
+    assert.ok(state.ctxConnections.every(e => e.from && e.to));
+  } finally { close(); }
+});
+
+test('Context sources remain usable when connection files are unavailable or malformed', async () => {
+  const { state, close } = await contextState('&ctxsource=plugin-default');
+  const get = window.GH.prototype.get;
+  try {
+    const count = state.ctxAll.length;
+    for (const failure of ['missing', 'malformed']) {
+      window.GH.prototype.get = async function (name, ...args) {
+        if (failure === 'missing' && name === 'docs/context-links.csv') throw new Error('Not found');
+        if (failure === 'malformed' && name === 'skills/hooks/hooks.json') return { text: '{' };
+        return get.call(this, name, ...args);
+      };
+      state.ctxReg = null;
+      await state.loadContextReg();
+      assert.equal(state.ctxAll.length, count);
+      assert.equal(state.ctxSpectraActive.id, 'plugin-default');
+      assert.equal(state.ctxErr, '');
+      assert.match(state.ctxConnectionsErr, /unavailable/);
+      assert.equal(state.ctxConnections.length, 0, 'an unavailable graph cannot leave partial connections behind');
+    }
+  } finally { window.GH.prototype.get = get; close(); }
 });
 
 test('Context validates lens addresses, restores source/topic links and joins real measurements', async () => {
