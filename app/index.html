@@ -935,7 +935,11 @@ html.dk-dragging main{transition:none !important}
                      unnecessary: once something says "these belong to that",
                      shrinking them says it a second time and costs legibility.
                      What still separates a project from a repo is the rule and
-                     the empty icon column, which is enough.
+                     the project's own icon, drawn in its own colour at 14 px in
+                     a 16 px slot where the repo rows draw a muted glyph, which
+                     is enough. 14, because an SVG drawn edge to edge reads a
+                     size larger than a Phosphor glyph in the same box, which
+                     keeps a margin inside its own.
 
                      The two trailing buttons are the repo row's pattern at
                      project scale, and the pair is short because a workspace has
@@ -984,7 +988,10 @@ html.dk-dragging main{transition:none !important}
                 <template x-for="p in repoProjects(r.repo)" :key="r.repo + ':' + p.path">
                   <div class="flex items-center rounded-lg transition-colors hover:bg-base-200">
                     <button @click="openProject(r.repo, p)" :title="r.repo + ': ' + p.path"
-                            class="flex items-center min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors text-base-content/80">
+                            class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors text-base-content/80">
+                      <span class="flex size-4 shrink-0 items-center justify-center">
+                        <img x-show="projectIconSrc(r.repo, p)" :src="projectIconSrc(r.repo, p)" alt="" class="block size-3.5">
+                        <i x-show="!projectIconSrc(r.repo, p)" class="ph text-base text-base-content/40" :class="projectGlyph(p)"></i></span>
                       <span class="truncate" x-text="p.label"></span>
                     </button>
                     <a :href="projectGithubUrl(r.repo, p)" :data-peek="projectReadmePeek(r.repo, p)"
@@ -1164,8 +1171,11 @@ html.dk-dragging main{transition:none !important}
           <div class="flex items-center rounded-lg transition-colors hover:bg-base-200"
                :class="view==='project' && projectPath===p.path && 'bg-primary/10'">
             <button @click="goProject(p.path)" :title="p.path"
-                    class="flex items-center min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors"
+                    class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors"
                     :class="view==='project' && projectPath===p.path ? 'text-primary font-semibold' : 'text-base-content/80'">
+              <span class="flex size-4 shrink-0 items-center justify-center">
+                <img x-show="projectIconSrc($store.browser.repo, p)" :src="projectIconSrc($store.browser.repo, p)" alt="" class="block size-3.5">
+                <i x-show="!projectIconSrc($store.browser.repo, p)" class="ph text-base" :class="[projectGlyph(p), view==='project' && projectPath===p.path ? '' : 'text-base-content/40']"></i></span>
               <span class="truncate" x-text="p.label"></span>
             </button>
             <a :href="projectGithubUrl($store.browser.repo, p)" :data-peek="projectReadmePeek($store.browser.repo, p)"
@@ -1520,27 +1530,29 @@ html.dk-dragging main{transition:none !important}
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-6 pt-6">
             <!-- A project's masthead, on one line: the project mark, which is
-                 the switcher (the repo's projects in the shared anchored menu,
-                 with the project's folder on GitHub), then the name, the app's
-                 own icon where the workspace declares a landing (its
-                 landingIcon, an SVG in the repo; the App tab has no pill of its
+                 the project's own icon (its manifest `icon`, an SVG in the repo,
+                 drawn in its own colour on a neutral tile; the kanban glyph on
+                 the primary tint where none is declared) and the switcher (the
+                 repo's projects in the shared anchored menu, with the project's
+                 folder on GitHub), then the name, the App button where the
+                 workspace declares a landing (the App tab has no pill of its
                  own), and the repository, which opens the repo. -->
             <div class="flex items-center gap-2.5 min-w-0">
               <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'projects', { align: 'left' })"
-                      class="relative shrink-0 size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
+                      class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors"
+                      :class="projectIconSrc($store.browser.repo, project) ? 'bg-base-200 hover:bg-base-300' : 'bg-primary/10 text-primary hover:bg-primary/20'"
                       :aria-expanded="!!repoMenuAt && menuKind === 'projects'" aria-haspopup="menu"
                       :title="'Projects in ' + $store.browser.repo" :aria-label="'Projects in ' + $store.browser.repo" data-project-switch>
-                <i class="ph-duotone ph-kanban text-xl"></i>
+                <img x-show="projectIconSrc($store.browser.repo, project)" :src="projectIconSrc($store.browser.repo, project)" alt="" class="block size-5">
+                <i x-show="!projectIconSrc($store.browser.repo, project)" class="ph-duotone text-xl" :class="projectGlyph(project)"></i>
                 <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i></button>
               <h1 class="text-xl font-bold tracking-tight truncate" x-text="project.label"></h1>
               <template x-if="project.landing">
-                <button @click="goProjectTab('app')" :aria-pressed="projectPane==='app'" data-project-app
-                        x-effect="loadProjectAppIcon()"
+                <button @click="openProjectApp('')" :aria-pressed="projectPane==='app'" data-project-app
                         :title="'Open ' + project.label + '\'s app'" :aria-label="'Open ' + project.label + '\'s app'"
                         class="shrink-0 rounded p-0.5 transition-colors"
                         :class="projectPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
-                  <img x-show="projectAppIcon" :src="projectAppIcon" alt="" class="block size-4">
-                  <i x-show="!projectAppIcon" class="ph ph-app-window text-base text-primary"></i></button>
+                  <i class="ph ph-app-window text-base text-primary"></i></button>
               </template>
               <button @click="goLanding()" class="min-w-0 truncate font-mono text-xs text-base-content/40 hover:text-primary transition-colors"
                       :title="$store.browser.repo" x-text="$store.browser.repo"></button>
@@ -1599,9 +1611,10 @@ html.dk-dragging main{transition:none !important}
             </div>
 
             <!-- App: the workspace's landing page itself, full-bleed under the
-                 header, like a repo's custom landing, opened from the app icon
-                 beside the name. The FAB carries the bust-out to the
-                 full-viewport page. -->
+                 header, like a repo's custom landing, opened from the App
+                 button beside the name, or at a route (a page query, stamped
+                 as &item=) from a route card in Pages. The FAB carries the
+                 bust-out to the full-viewport page. -->
             <template x-if="projectPane==='app'">
               <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
@@ -1726,8 +1739,15 @@ html.dk-dragging main{transition:none !important}
                    a nested x-data the shell's selection cannot repaint): a lazy
                    live preview that is itself the link, the title, and the
                    GitHub source jump-over. The repo's own Pages view keeps the
-                   shot/live/source toggles one level up. -->
-              <div x-show="projectTab==='pages'">
+                   shot/live/source toggles one level up.
+
+                   A ROUTE card (an entry whose page is the project's landing,
+                   with a query) is a door into the app rather than a page: its
+                   face is the cached shot of that route, else the project's
+                   icon, never a live frame, and it opens the App tab at the
+                   route (openProjectApp) through a real link (projectAppHref),
+                   so it still opens in a new tab. See projectPages for why. -->
+              <div x-show="projectTab==='pages'" x-effect="loadProjectPageThumbs()">
                 <!-- data-pattern and data-part declare this a Card grid and name
                      its parts (data/ui-units/codebook.md, "Declaring a pattern
                      in markup"); nothing at runtime reads them. -->
@@ -1737,14 +1757,29 @@ html.dk-dragging main{transition:none !important}
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
                     <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
-                      <a :href="pg.live" class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
-                        <iframe :src="pg.live" loading="lazy"
-                                sandbox="allow-scripts allow-same-origin"
-                                class="w-full h-full bg-base-100 pointer-events-none"></iframe>
-                      </a>
+                      <template x-if="pg.route === null">
+                        <a :href="pg.live" class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
+                          <iframe :src="pg.live" loading="lazy"
+                                  sandbox="allow-scripts allow-same-origin"
+                                  class="w-full h-full bg-base-100 pointer-events-none"></iframe>
+                        </a>
+                      </template>
+                      <template x-if="pg.route !== null">
+                        <a :href="projectAppHref(pg.route)" @click="followProjectRoute($event, pg.route)" data-project-route
+                           class="block relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
+                          <img x-show="projectPageThumbs[pg.thumb]" :src="projectPageThumbs[pg.thumb]" alt=""
+                               class="w-full h-full object-cover object-top">
+                          <div x-show="!projectPageThumbs[pg.thumb]" class="w-full h-full flex items-center justify-center">
+                            <img x-show="projectIconSrc($store.browser.repo, project)" :src="projectIconSrc($store.browser.repo, project)" alt="" class="block size-16 opacity-80">
+                            <i x-show="!projectIconSrc($store.browser.repo, project)" class="ph ph-app-window text-5xl text-base-content/30"></i>
+                          </div>
+                        </a>
+                      </template>
                       <div class="card-body p-3 gap-1">
                         <div class="flex items-baseline justify-between gap-2">
-                          <a :href="pg.live" class="font-semibold text-base hover:text-primary transition-colors truncate"
+                          <a :href="pg.route === null ? pg.live : projectAppHref(pg.route)"
+                             @click="pg.route !== null && followProjectRoute($event, pg.route)"
+                             class="font-semibold text-base hover:text-primary transition-colors truncate"
                              x-text="pg.label" data-part="title"></a>
                           <a :href="pg.code" target="_blank" rel="noopener"
                              class="text-base-content/30 hover:text-base-content/60 shrink-0" title="Source on GitHub" data-part="links">
@@ -2077,6 +2112,20 @@ function resolveCatalogPath(rawPath, declRepo, declRef){
   if (m) return { repo: m[1], ref: m[2] || '', path: m[3] };
   return { repo: declRepo, ref: declRef || '', path: rawPath };
 }
+
+// A catalog page's file in the private thumb cache (web-tools-private), written
+// by tools/build/repo-pages-shots.mjs, which mirrors this: the page's path with
+// .png for .html, and a `query` folded into the name, so each route into an app
+// has its own shot. Keep the two in step.
+function catalogThumbPath(repo, path, query){
+  const slug = String(query || '').replace(/^\?/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return 'thumbs/' + repo + '/' + String(path).replace(/\.html?$/, '') + (slug ? '@' + slug : '') + '.png';
+}
+
+// Project icon files already asked for, so a render that wants one asks once
+// (projectIconSrc). Outside the shell's data because it is bookkeeping no view
+// draws, and a reactive copy would re-run every binding that consulted it.
+const PROJECT_ICONS_ASKED = new Set();
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -4392,9 +4441,14 @@ function app(){ return {
   // second field. An entry names its own with `tracker` (a repo-root-relative
   // board file, or a folder) and drops the button with `tracker: false`.
   //
-  // An entry's `icon` is read no more: the rows no longer draw one (the field
-  // defaulted, so every row took the same glyph and it distinguished nothing).
-  // A stale `icon` in a manifest is simply ignored rather than being an error.
+  // An entry's `icon` is the project's own picture: a repo-root-relative SVG
+  // the repo keeps, drawn wherever the project is named (the masthead mark,
+  // both sidebar lists, the switcher). Declared rather than derived, because a
+  // project with none keeps the stock kanban glyph, so a wrong guess would be
+  // a 404 per row for nothing. A value starting `ph-` is drawn as that
+  // Phosphor glyph, since every other icon field in the manifest takes one.
+  // It replaced `landingIcon` on 2026-10-06: an app's icon and its project's
+  // were the same file, and the masthead drew it twice.
   // A caller holding the manifest already (the estate cards read their own copy
   // of the cache, and on a cold estate a live scan rather than the cache) passes
   // it as `cfg` and gets the same normalizing, so the rule for what a project
@@ -4419,10 +4473,8 @@ function app(){ return {
       // overview. Junk (non-string, empty) reads as undeclared.
       const landing = (typeof o.landing === 'string' && o.landing)
         ? o.landing.replace(/^\/+/, '').replace(/\/+$/, '') : '';
-      // `landingIcon`: the app's own icon, an SVG beside its landing, drawn
-      // after the project's name as the way into the app.
-      const landingIcon = landing && typeof o.landingIcon === 'string' && o.landingIcon
-        ? o.landingIcon.replace(/^\/+/, '') : '';
+      const icon = typeof o.icon === 'string' && o.icon.trim()
+        ? o.icon.trim().replace(/^\/+/, '') : '';
       // `inbox` is the repo field one level down: where a deposit aimed at this
       // workspace lands, in the same parseBox grammar (a bare folder is
       // repo-root-relative like `tracker` and `landing`, `@ref:dir` names a
@@ -4450,7 +4502,7 @@ function app(){ return {
       // guessed path would be a write target nothing reads.
       const powershellOutpost = (typeof o.powershellOutpost === 'string' && o.powershellOutpost)
         ? o.powershellOutpost.replace(/^\/+/, '').replace(/\/+$/, '') : '';
-      out.push({ path, label: o.label || path.split('/').pop(), board, landing, landingIcon, inbox, powershellOutpost });
+      out.push({ path, label: o.label || path.split('/').pop(), board, landing, icon, inbox, powershellOutpost });
     }
     return out;
   },
@@ -4483,8 +4535,9 @@ function app(){ return {
   projectPath: '',
   projectTab: 'overview',   // 'overview' | 'app' | 'outpost' | 'board' | 'pages' | 'files' | 'docs' (Files' Docs mode)
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
-  projectAppIcon: '',       // the landing's icon (landingIcon) as a data URL, drawn after the name
-  _projectIconKey: '',
+  projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
+  projectAppRoute: '',      // the App tab's page query, a route into the app (?view=…), stamped as &item=
+  projectPageThumbs: {},    // a route card's cached shot by thumb path, as a data URL ('' when the cache has none)
   projectHtml: '',
   projectLoading: false,
   _projectKey: '',
@@ -4517,7 +4570,7 @@ function app(){ return {
     // safe guess at all. One shape either way, so a consumer need not test for
     // the key's presence.
     return found || { path: this.projectPath, label: this.projectPath.split('/').pop(),
-                      board: this.projectPath + '/tracker/board.md', landing: '', landingIcon: '', inbox: null, powershellOutpost: '' };
+                      board: this.projectPath + '/tracker/board.md', landing: '', icon: '', inbox: null, powershellOutpost: '' };
   },
   // The tab drawn, which is the tab asked for unless that is App or Outpost
   // and the workspace does not declare a landing or a PowerShell outpost,
@@ -4531,18 +4584,22 @@ function app(){ return {
     if (!p) return;
     if (p !== this.projectPath) {
       this.projectDocsQ = ''; this.powershellOutpostItem = ''; this.projectDocSel = ''; this.projectDocsOpen = {};
+      this.projectAppRoute = '';
     }
     this.projectPath = p;
     // App and Outpost are kept as asked even where nothing declares them yet:
     // a cold link arrives before the manifest does. projectPane draws the
     // Overview in their place until the workspace is seen to declare them.
     this.projectTab = ['board', 'pages', 'docs', 'files', 'app', 'outpost'].includes(tab) ? tab : 'overview';
-    // A deep link may name the file the tab is about: the outpost view reads
-    // it at mount and stamps it back as it moves, and Docs opens it.
+    // A deep link may name what the tab is about: the outpost view reads its
+    // file at mount and stamps it back as it moves, Docs opens its document,
+    // and App opens the app at its route, a page query. The App tab with no
+    // item is the app's own front.
     if (typeof item === 'string' && item) {
       if (this.projectTab === 'outpost') this.powershellOutpostItem = item;
       if (this.projectTab === 'docs' && item.startsWith(p + '/')) this.projectDocSel = item.slice(p.length + 1);
     }
+    if (this.projectTab === 'app') this.projectAppRoute = typeof item === 'string' ? item.replace(/^\?/, '') : '';
     this.view = 'project';
     this.syncUrl();
     this.refreshProjectPane();
@@ -4552,33 +4609,74 @@ function app(){ return {
     this.syncUrl();
     this.refreshProjectPane();
   },
+  // The App tab at a route into the app ('' for its front), which is where
+  // the App button goes and where a route card in Pages goes. The frame's
+  // address carries the route, so changing it reloads the app there.
+  openProjectApp(route){
+    this.projectAppRoute = String(route || '').replace(/^\?/, '');
+    this.goProjectTab('app');
+  },
+  // A route card's click: a plain one opens the route in place, and one with a
+  // modifier (a new tab or window) is left to the link it is.
+  followProjectRoute(ev, route){
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+    ev.preventDefault();
+    this.openProjectApp(route);
+  },
+  // The same place as an address, so a route card is a real link: open in a
+  // new tab, copied, or followed cold. Built from the shell's own deep link
+  // for the screen in view, with the tab and item swapped.
+  projectAppHref(route){
+    const p = this.deepLinkParams(new URLSearchParams());
+    p.set('tab', 'app');
+    if (route) p.set('item', route); else p.delete('item');
+    return location.pathname + '?' + p.toString();
+  },
   // Load what the open tab actually renders, and nothing else: the README
   // feeds the Overview, the board feeds Board, and the docs listing feeds
   // Docs (its tree read is the one project fetch worth deferring). Pages is a
-  // pure derivation off the manifest already in hand, so it loads nothing.
+  // derivation off the manifest already in hand; the one read it makes, a
+  // route card's cached shot, is driven from its pane (loadProjectPageThumbs),
+  // since a cold link opens the pane before the manifest arrives.
   refreshProjectPane(){
     if (this.projectTab === 'docs') { this.loadProjectDocs(); this.loadProjectDoc(); }
     else if (this.projectTab === 'board') this.loadProjectBoard();
     else if (this.projectPane === 'overview') this.loadProjectReadme();
   },
-  // The app's icon: an SVG the workspace keeps beside its landing, read once
-  // per repo@ref and drawn through an <img> of a data URL, where an SVG's
-  // scripts never run. A landing with no icon draws a stock app glyph.
-  // An x-effect on the App button drives it, because a cold deep link opens
-  // the pane before the manifest naming the icon arrives, and the pane's own
-  // refresh does not run again when it does. The key is set before the read,
-  // so a failed read is not retried, and writing it re-runs the effect once,
-  // which finds the key unchanged and stops.
-  async loadProjectAppIcon(){
-    const s = Alpine.store('browser'), f = this.project?.landingIcon;
-    const key = f ? s.repo + '@' + s.ref + ':' + f : '';
-    if (key === this._projectIconKey) return;
-    this._projectIconKey = key;
-    this.projectAppIcon = '';
-    if (!key || !s.gh) return;
+  // A project's icon: the SVG its manifest entry names, read once per
+  // repo@ref and drawn through an <img> of a data URL, where an SVG's scripts
+  // never run. '' means draw the stock glyph (projectGlyph): no icon declared,
+  // a `ph-` glyph declared, the read not back yet, or the read failed. The read
+  // is asked outside the render that wanted it (a microtask), so a binding
+  // never writes the state it is reading; the key is taken before the read, so
+  // a failed one is not retried.
+  //
+  // The open repo reads at the browsed ref through its own client, the way its
+  // project list does; another repo's row (the estate sidebar) reads that
+  // repo's manifest ref, the overlay branch where one is previewed.
+  projectIconSrc(repo, p){
+    const f = p?.icon;
+    if (!repo || !f || f.startsWith('ph-')) return '';
+    const s = Alpine.store('browser');
+    const ref = repo === s.repo ? (s.ref || '') : this.overlayRefFor(repo);
+    const key = repo + '@' + ref + ':' + f;
+    if (!PROJECT_ICONS_ASKED.has(key)) {
+      PROJECT_ICONS_ASKED.add(key);
+      queueMicrotask(() => this.loadProjectIcon(key, repo, ref, f));
+    }
+    return this.projectIcons[key] || '';
+  },
+  // The glyph drawn while there is no picture: a declared `ph-` glyph, else the
+  // kanban, which is what every project drew before icons were declared.
+  projectGlyph(p){ return p?.icon?.startsWith('ph-') ? p.icon : 'ph-kanban'; },
+  async loadProjectIcon(key, repo, ref, f){
+    const s = Alpine.store('browser');
+    const gh = repo === s.repo && s.gh ? s.gh
+      : window.GH ? new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo, ...(ref ? { ref } : {}) }) : null;
+    if (!gh) return;
     try {
-      const j = await s.gh.get(f);
-      if (key === this._projectIconKey) this.projectAppIcon = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
+      const j = await gh.get(f);
+      this.projectIcons[key] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
     } catch {}
   },
   // The landing rendered live through toss-render #gh=, the same private-safe
@@ -4590,7 +4688,8 @@ function app(){ return {
     if (!p || !p.landing) return '';
     const s = Alpine.store('browser');
     const ref = s.ref && s.ref !== s.defaultRef ? '@' + s.ref : '';
-    return '../pages/toss-render.html#gh=' + s.repo + ref + ':' + p.landing;
+    return '../pages/toss-render.html#gh=' + s.repo + ref + ':' + p.landing
+      + (this.projectAppRoute ? '?' + this.projectAppRoute : '');
   },
   // The workspace's slice of the repo catalog, DERIVED rather than declared: an
   // entry belongs to the open project when its resolved path sits under the
@@ -4598,6 +4697,17 @@ function app(){ return {
   // `project` key (the escape for a page that lives elsewhere, cross-repo
   // included). One catalog, one owner; a second per-project list would be the
   // rival-list drift the estate's membership cleanup retired.
+  //
+  // An entry's `query` is handed to the page, so one page can be several
+  // cards. Where that page is the project's own landing, the card is a ROUTE
+  // into the app (`route` is its query) and opens the App tab there, and the
+  // landing with no query is left out, since the App tab is that page at that
+  // address already. A route card never mounts a live preview: a landing is a
+  // whole app, and a private one is inlined file by file through the contents
+  // API on every mount (home's budget-drs app: 46 files, about 9.7 MB), so six
+  // of them in a grid would load the app six times to draw six previews. It
+  // shows its cached shot (`thumb`, loadProjectPageThumbs) or the project's
+  // icon instead.
   get projectPages(){
     const p = this.project;
     const s = Alpine.store('browser');
@@ -4610,17 +4720,39 @@ function app(){ return {
       const claimed = e.project === p.path;
       const inFolder = t.repo === s.repo && t.path.startsWith(p.path + '/');
       if (!claimed && !inFolder) continue;
-      const url = '../pages/toss-render.html#gh=' + t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path;
+      const q = typeof e.query === 'string' ? e.query.replace(/^\?/, '') : '';
+      const app = !!p.landing && t.repo === s.repo && t.path === p.landing;
+      if (app && !q) continue;
+      const url = '../pages/toss-render.html#gh=' + t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path + (q ? '?' + q : '');
       const blobRef = t.ref || (t.repo === s.repo ? (s.defaultRef || 'main') : 'main');
       out.push({
-        key: t.repo + ':' + t.path,
+        key: t.repo + ':' + t.path + (q ? '?' + q : ''),
         label: e.title || t.path.split('/').pop(),
         note: e.note || '',
         live: url,
         code: 'https://github.com/' + t.repo + '/blob/' + blobRef + '/' + t.path,
+        route: app ? q : null,
+        thumb: app ? catalogThumbPath(t.repo, t.path, q) : '',
       });
     }
     return out;
+  },
+  // A route card's cached shot, read once from the private thumb cache the
+  // repo Pages view also reads (gallery().loadThumbs), token-gated as a data
+  // URL since a private repo's shot has no plain URL. Driven by an x-effect on
+  // the pane, so it runs again when the manifest arrives after a cold link;
+  // the key is set before the read, which stops that effect re-running it.
+  loadProjectPageThumbs(){
+    if (this.projectTab !== 'pages') return;
+    const want = this.projectPages.filter(pg => pg.thumb && !(pg.thumb in this.projectPageThumbs));
+    if (!want.length || !this.hasToken() || !window.GH) return;
+    const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+    for (const pg of want) {
+      this.projectPageThumbs[pg.thumb] = '';
+      reg.req('contents/' + pg.thumb + '?ref=main').then(d => {
+        if (d && d.content) this.projectPageThumbs[pg.thumb] = 'data:image/png;base64,' + d.content.replace(/\s/g, '');
+      }).catch(() => {});
+    }
   },
   // ── Board: the tracker board as a navigable surface ───────────────────────
   // The generated board.md rendered in-pane rather than as a jump out of the
@@ -5335,9 +5467,10 @@ function app(){ return {
     ].filter(Boolean);
   },
   // The Project view's switcher, opened from the project mark: the repo's own
-  // front as the head row, then every project its manifest declares, the open
-  // one marked. A project opens on the tab in view when every project has it
-  // (Overview, Docs, Files), else on its Overview.
+  // front as the head row, then every project its manifest declares under its
+  // own icon (a picture where one is declared and read, else its glyph), the
+  // open one's label in primary. A project opens on the tab in view when every
+  // project has it (Overview, Docs, Files), else on its Overview.
   get projectMenuItems(){
     const repo = this.menuRepo;
     const tab = ['overview', 'docs', 'files'].includes(this.projectTab) ? this.projectTab : 'overview';
@@ -5345,7 +5478,7 @@ function app(){ return {
     return [
       { key: 'open', head: true, label: repo.split('/')[1] || repo, mark: 'app', title: 'Open ' + repo + ' here' },
       ...this.repoProjects(repo).map(p => ({ key: 'project:' + p.path, label: p.label, title: p.path,
-        icon: p.path === this.projectPath ? 'ph-check' : 'ph-kanban', current: p.path === this.projectPath,
+        icon: this.projectGlyph(p), img: this.projectIconSrc(repo, p), current: p.path === this.projectPath,
         run: () => this.goProject(p.path, tab) })),
       // The open project's own doors, which the masthead no longer draws: its
       // folder on GitHub, and a task board kept as a folder (a file board is
@@ -5679,6 +5812,7 @@ function app(){ return {
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
         if (this.projectTab === 'outpost' && this.powershellOutpostItem) p.set('item', this.powershellOutpostItem);
         if (this.projectTab === 'docs' && this.projectDocSel) p.set('item', this.projectPath + '/' + this.projectDocSel);
+        if (this.projectTab === 'app' && this.projectAppRoute) p.set('item', this.projectAppRoute);
       } },
     // Repos was addressed ?view=estate until 2026-10-02; the alias keeps old
     // links landing.
@@ -8390,18 +8524,27 @@ function gallery(){
             (Number.isFinite(b.p.order) ? b.p.order : 0)
           ) || (a.idx - b.idx))
           .map(x => x.p);
+        // An entry's `query` rides into the page, so one page can be several
+        // tiles. A tile whose page is a project's declared landing is a whole
+        // app, so it never DEFAULTS to live: without a cached shot it opens on
+        // the missing-shot face, and live stays one tap away on its toggle.
+        // Project view's Pages, projectPages, says why at more length.
+        const landings = new Set((window.__shell?.repoProjects(repo) || [])
+          .filter(pr => pr.landing).map(pr => repo + ':' + pr.landing));
         const items = declared.map(p => {
           const t = resolveCatalogPath(p.path, repo, declRef);
+          const q = typeof p.query === 'string' ? p.query.replace(/^\?/, '') : '';
           const refSuffix = t.ref ? '@' + t.ref : '';
-          const url = tossUrl(t.repo, refSuffix, t.path);
+          const url = tossUrl(t.repo, refSuffix, t.path + (q ? '?' + q : ''));
           const blobRef = t.ref || (t.repo === repo ? (s.defaultRef || 'main') : 'main');
+          const app = landings.has(t.repo + ':' + t.path);
           return {
             href: url, live: url, thumb: '',
             label: p.title || t.path.split('/').pop(),
             title: p.title || '', note: p.note || '',
             code: 'https://github.com/' + t.repo + '/blob/' + blobRef + '/' + t.path,
-            repo: t.repo, ref: t.ref, path: t.path,
-            view: 'live', source: '', shotMissing: false,
+            repo: t.repo, ref: t.ref, path: t.path, query: q,
+            view: app ? 'shot' : 'live', source: '', shotMissing: app,
           };
         });
         await this.loadThumbs(items);
@@ -8411,23 +8554,24 @@ function gallery(){
     },
 
     // Fill in each tile's cached screenshot from the private thumb cache, keyed
-    // by the page's target repo + path (thumbs/<owner>/<repo>/<path>.png in the
+    // by the page's target repo, path and query (catalogThumbPath, in the
     // registry repo, written by tools/build/repo-pages-shots.mjs). Private-safe:
     // read token-gated as a data URL, since a private repo's thumb has no plain
     // URL and an <img src> cannot carry auth. A tile with a cached shot defaults
-    // to it (a fast, clickable link); one without keeps the live default. No
-    // token, no cache read: everything stays live.
+    // to it (a fast, clickable link); one without keeps its default, live for a
+    // page and the missing-shot face for an app. No token, no cache read.
     async loadThumbs(items){
       const shell = window.__shell;
       if (!shell?.hasToken?.() || !window.GH) return;
       const reg = new window.GH({ token: window.TOKEN, repo: shell.REGISTRY_REPO, ref: 'main' });
       await Promise.all(items.map(async it => {
-        const rel = 'thumbs/' + it.repo + '/' + it.path.replace(/\.html?$/, '.png');
+        const rel = catalogThumbPath(it.repo, it.path, it.query);
         try {
           const data = await reg.req('contents/' + rel + '?ref=main');
           if (data && data.content) {
             it.thumb = 'data:image/png;base64,' + data.content.replace(/\s/g, '');
             it.view = 'shot';
+            it.shotMissing = false;
           }
         } catch { /* 404: no cached shot, keep the live default */ }
       }));
