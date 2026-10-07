@@ -18,7 +18,7 @@ files extending its prototype, and the boot bundles. A kit is not defined by
 portability or by use across apps: the rule sorts on attachment alone, and the
 reasoning is in [`docs/code-layers.md`](../../docs/code-layers.md).
 
-`tools/test/code-layers.test.mjs` holds the boundary in all three directions,
+`node/test/code-layers.test.mjs` holds the boundary in all three directions,
 so a misfiled arrival fails the suite.
 
 The line is **no Alpine and no DOM opinions of its own**, not "no DOM": `cm6.js`
@@ -236,7 +236,7 @@ wring.reconstruct(template, slots)    // Stage 5: exact reconstruction
 
 Demo pages: `pages/demos/wring-text.html` (logs/records → templates) and
 `pages/demos/wring-dom.html` (DOM signatures or pasted HTML → repeated components).
-Kit liveness test: `tools/test/wring.test.mjs` (part of `npm test`; loads the
+Kit liveness test: `node/test/wring.test.mjs` (part of `npm test`; loads the
 kit the way `gh.load` does and checks the pipeline invariants end-to-end).
 
 ### treemap.js
@@ -244,7 +244,7 @@ kit the way `gh.load` does and checks the pipeline invariants end-to-end).
 Pure logic for mapping a file tree as a treemap — no DOM, no colors
 (rendering stays with the page; `pages/repo-atlas.html` is the consumer).
 Extracted so the kernels run under `npm test`
-(`tools/test/treemap.test.mjs`: tiling invariants, rollups, taxonomy).
+(`node/test/treemap.test.mjs`: tiling invariants, rollups, taxonomy).
 
 `squarify` tiles the rect exactly (area ∝ weight, no overlap) and guards
 degenerate input: zero/empty weights and extreme skew emit zero-size
@@ -274,7 +274,7 @@ asks the network for its modules. `bakeable` is the honest predicate for
 "there is nothing to inline," which is a real state (a page with no chain is already a
 standalone artifact). See "Load and build are one contract" in
 [`docs/loader.md`](../../docs/loader.md) and the pipeline in
-[`tools/README.md`](../../tools/README.md).
+[`node/README.md`](../../node/README.md).
 
 ### export.js
 
@@ -321,7 +321,7 @@ cover what the header does not.
 A declared render also carries the kind's own vocabulary, from the `KIND` literal
 here, which is why the annotator's aim reads **Markdown section** rather than
 the implementation's word for it. `docs/routes-kinds.csv` is the owner of that
-row and `tools/test/routes-manifest.test.mjs` holds the two together; the same
+row and `node/test/routes-manifest.test.mjs` holds the two together; the same
 arrangement `docs/routes-routes.csv` has with toss-render's inlined
 `TOSS_ROUTES`. Declaring is what a render OPTS INTO, and a render that skips it
 is indistinguishable from a page with no markdown on it: a render that calls
@@ -382,7 +382,7 @@ Documented in its header comment: [`peek.js`](peek.js). The library half
 (`atom`, `chainOf`, `selectorFor`, `covers`) is documented at each function.
 The page half is [`pages/peek.html`](../../pages/peek.html); the browser facts
 (pointer path, outlines, auto-dock) are driven by
-`tools/render/scenarios/peek-walk.mjs`, since jsdom has no layout.
+`node/render/scenarios/peek-walk.mjs`, since jsdom has no layout.
 
 ### wsl-core.js
 
@@ -425,7 +425,7 @@ takes the second, and nothing takes both. That matters to anyone rendering
 rather than editing: the viewer's `pdf` mode
 ([`alpineComponents/viewer.js`](../alpineComponents/viewer.js)) draws a page
 with pdf.js alone, so it no longer pulls roughly a megabyte of editor library
-it never calls before the first pixel. `tools/test/viewer-pdf.mjs` asserts that
+it never calls before the first pixel. `node/test/viewer-pdf.mjs` asserts that
 request is never made, since the regression is invisible from the pixels.
 
 A viewer also does not want `open()`. It parses every page's text and operator
@@ -521,7 +521,7 @@ entered one.
 
 `analyze(parts)`, the pure entry point, takes `[[path, xmlString], ...]` or
 `{path: xmlString}` for already-extracted `.xml`/`.rels` parts, so it's
-testable with plain fixture strings (`tools/test/xlsx.test.mjs`) and needs no
+testable with plain fixture strings (`node/test/xlsx.test.mjs`) and needs no
 real `.xlsx` file or JSZip. One known limitation remains: cell-to-column
 mapping trusts each `<c>`'s `r` attribute, falling back to positional order
 only when `r` is absent, which is standard but not universal among third-party
@@ -560,7 +560,7 @@ the reason this kit keeps it; the same fact is derived into the item's `note`,
 so today's data-view reader shows the cut without knowing this format.
 
 **Where a survey count and an extract's rows would disagree, the count is
-wrong,** and `tools/test/xlsx-extract.test.mjs` holds them equal per kind: a
+wrong,** and `node/test/xlsx-extract.test.mjs` holds them equal per kind: a
 picker showing 400 beside an item holding 12 is a lie about the file rather than
 about the cut.
 
@@ -621,11 +621,11 @@ still read. `manifest.cellLoss` separates those from real loss, so the count is
 flagged only when something else goes.
 
 `pages/xlsx-picker.html` is the interface over it, through
-`alpineComponents/xlsx-picker.js`; `scripts/xlsx-picker-sweep.mjs` runs it over
+`alpineComponents/xlsx-picker.js`; `node/xlsx-picker-sweep.mjs` runs it over
 a directory of real workbooks. **`npm run gold-set`** builds the committed
 [`gold-set/`](../../gold-set/): three chosen workbooks, rebuilt with a sheet
 dropped, for someone to open in Excel. The selection is declared in
-`scripts/gold-set.mjs` with a reason per file, and the script refuses any
+`node/gold-set.mjs` with a reason per file, and the script refuses any
 selection whose kept sheets still read a dropped one, following the defined-name
 hop that these forms actually point through. The folder is committed rather than
 regenerated on demand because the sources are in a private repo, so a session
@@ -705,7 +705,7 @@ rendered page no longer carries. Headings come with their `w14:paraId`, on
 2,713 of the corpus's 3,713 paragraphs: the Word analogue of a cell address,
 and the unit an aim would be built on. `KIND` is the kit's copy of its
 `docs/routes-kinds.csv` row, held to the registry by
-`tools/test/routes-manifest.test.mjs`.
+`node/test/routes-manifest.test.mjs`.
 
 **Boundaries, each a case where the kit declines rather than guesses.** A
 `w:sym` run (a symbol typed into the text rather than a list level) is not
@@ -726,7 +726,7 @@ can differ by a line's worth of font metrics. Header geometry is the painter's: 
 margin, body at its top margin, a floating logo where its anchor puts it, so a
 logo that overlaps body text in the render most likely overlaps in Word.
 
-**Held two ways.** `tools/test/docx.test.mjs` exercises `normalize()` on
+**Held two ways.** `node/test/docx.test.mjs` exercises `normalize()` on
 fixture XML with a control at every level and a bullet in each font.
 `npm run test:viewer-docx` drives the real viewer in a browser: the fixture
 document opens on the page render, a cell-level label is drawn, the bullet is a
@@ -759,7 +759,7 @@ examples.
 | `brief.js` | the FAB's "Take this page" menu | page + its own modules as one pasteable markdown brief |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; live here, reference snapshot at `archive/wring/` |
 | `treemap.js` | `pages/repo-atlas.html` | squarified treemap kernels + file taxonomy |
-| `../build.js` | `tools/build/` + the FAB export | one emitter, two consumers; `lib/` root since 2026-08-08 (extends `GH.prototype`) |
+| `../build.js` | `node/build/` + the FAB export | one emitter, two consumers; `lib/` root since 2026-08-08 (extends `GH.prototype`) |
 | `export.js` | the FAB's export control | page + `read()` data as a zip |
 | `dom-shot.js` | the FAB's Image takes | visible view, full page, or a Peek-picked element rendered to PNG with explicit fidelity warnings; lazy modern-screenshot |
 | `wsl-core.js` | `pages/wsl-sync/` + Node fetch | dependency-free; libs injected |

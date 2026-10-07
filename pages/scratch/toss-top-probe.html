@@ -241,7 +241,7 @@
       // back when the page wrote none, and each `refs` entry unless the page
       // wrote one for the same target (a repository, or a repository and a
       // path). The renderer's ?top carries the same function, topKeepSource;
-      // tools/test/toss-top-mode.test.mjs holds the two to one behaviour.
+      // node/test/toss-top-mode.test.mjs holds the two to one behaviour.
       // probe and steps (the self-driving check, below) are kept the same way,
       // or a page write mid-run would drop the driver's own instructions.
       const kept = [...real].filter(([k]) => ['refs', 'lib', 'probe', 'steps'].includes(k));

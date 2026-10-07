@@ -32,7 +32,7 @@ A baked page built from the canonical boot block still carries the `?use=` branc
 ## Related
 
 - `lib/kits/export.js`: `bakeHtml` / `collectCache` shared by renderCopy and zip
-- `tools/test/render-copy.mjs`: test that found and still reports `cdnRefs`
+- `node/test/render-copy.mjs`: test that found and still reports `cdnRefs`
 - `dist/web-tools.js`: offline build context for why run-time CDN refs matter
 - PR #288: adjacent `#data=` / export era; this gap filed with renderCopy
 

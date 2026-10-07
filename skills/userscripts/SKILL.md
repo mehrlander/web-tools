@@ -26,14 +26,14 @@ Every edit yields three synchronized artifacts via the build generator:
 2. `userscripts/launcher.user.js`: Safari Userscripts stub with GM storage permissions and background loader.
 3. `bookmarklets/launcher.js`: Standalone bookmarklet loader reading from GitHub Pages.
 
-All changes must pass the 7 test assertions in `tools/test/userscript-stubs.test.mjs`.
+All changes must pass the 7 test assertions in `node/test/userscript-stubs.test.mjs`.
 
 ## The process
 
 1. **Edit source**: Make changes in `userscripts/lib/launcher.js`. Keep slides, extractors, icons, and action handlers self-contained.
 2. **Re-stamp build**:
    ```bash
-   python scripts/userscript-stub.py launcher --ref main \
+   python python/userscript-stub.py launcher --ref main \
        --name "wt launcher" \
        --description "The Web Tools launcher and swipe deck" \
        --match "*://*/*"
@@ -41,14 +41,14 @@ All changes must pass the 7 test assertions in `tools/test/userscript-stubs.test
    This computes the SHA256 build hash, updates `builds.json`, synchronizes the version in `launcher.user.js`, and regenerates `bookmarklets/launcher.js`.
 3. **Verify gate tests**:
    ```bash
-   node --test tools/test/userscript-stubs.test.mjs
+   node --test node/test/userscript-stubs.test.mjs
    ```
    Ensures the stub body exists, both host routes load the same body, SHA256 stamps match, the manifest agrees with the body, and versioned `@require` lines are intact.
 4. **Ship actively to main**: Commit and merge directly to `main`. Do not park changes on feature branches for previewing. Behavior can only be observed on a physical device running over live web pages, and the installed stub reads `main`. Landing on `main` turns the phone into an immediate test environment where tapping `[ ⟳ ]` loads the new build instantly.
 
 ## Key insights
 
-- **Active merging over GitHub Flow.** Branch-based previewing is an anti-pattern for Userscripts. Previewing a branch on device requires re-stamping with `--ref <branch>`, pushing, opening Safari, and manually re-installing the extension stub. Once `tools/test/userscript-stubs.test.mjs` passes, merge each change directly to `main` for device verification. `main` is the hot-reload source for the phone.
+- **Active merging over GitHub Flow.** Branch-based previewing is an anti-pattern for Userscripts. Previewing a branch on device requires re-stamping with `--ref <branch>`, pushing, opening Safari, and manually re-installing the extension stub. Once `node/test/userscript-stubs.test.mjs` passes, merge each change directly to `main` for device verification. `main` is the hot-reload source for the phone.
 - **No manual re-installation.** The installed stub declares `@grant GM.getValue`, `@grant GM.setValue`, and `@grant GM.xmlHttpRequest`. On page load, the stub queries `builds.json` using a timestamp query parameter to bypass cache. When a new build hash is detected, it downloads the body into GM storage. The next page load evaluates the cached body. The refresh button `[ ⟳ ]` in the drawer header triggers an immediate update check.
 - **Host separation.** Raw GitHub serves `text/plain` with `nosniff`. Safari Userscripts can fetch and evaluate this text, but bookmarklets injecting `<script>` tags cannot. Bookmarklets read from `https://mehrlander.github.io/web-tools/userscripts/lib/launcher.js`, whose ten-minute cache needs no purge.
 - **Physical gesture requirement.** iOS Safari blocks programmatic navigation to `shortcuts://` schemes (`location.href = ...`) without an active user gesture. All Shortcut actions must bind to physical `<a>` elements rendered in the DOM.

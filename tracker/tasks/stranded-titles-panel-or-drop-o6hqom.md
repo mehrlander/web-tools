@@ -41,7 +41,7 @@ land together.
 
 ## Related
 
-- `scripts/stranded-titles.py`: `npm run stranded-titles`; re-run before deciding (body table is pre-#610)
+- `python/stranded-titles.py`: `npm run stranded-titles`; re-run before deciding (body table is pre-#610)
 - `lib/alpineComponents/map.js`: start here after Map cleanup; largest untouched carrier at filing
 - `lib/alpineComponents/estate.js`: worked precedent for building a panel from a stranded title
 - `lib/alpineComponents/state-view.js`, `lib/alpineComponents/fab.js`: other concentrated carriers in the filing table

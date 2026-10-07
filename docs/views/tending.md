@@ -35,7 +35,7 @@ nothing.
 | `owner/repo#N` + `state` | the state differs, or an open pull request was updated since |
 
 A ref or path that is gone reads broken. `findings.py check` applies the same
-rule, held to the view's by the cases in `tools/test/findings.test.mjs`, but
+rule, held to the view's by the cases in `node/test/findings.test.mjs`, but
 reads pull requests from the crawl's cache, so one the cache lacks reads
 unverifiable there.
 

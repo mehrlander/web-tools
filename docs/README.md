@@ -1,6 +1,6 @@
 # docs
 
-<!-- GENERATED from docs/docs.csv by tools/build/docs-readme.mjs; do not hand-edit. -->
+<!-- GENERATED from docs/docs.csv by node/build/docs-readme.mjs; do not hand-edit. -->
 
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
@@ -10,7 +10,7 @@ corrected by markers, never rewritten; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
-**Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
+**Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
 15 by a skill, 35 by a page or component. The remaining 54 are
 marked *(orphan)* below: nothing points at them except this index.
@@ -38,7 +38,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
-- [`harness.csv`](harness.csv) — the harness registry: every tools/ and scripts/ file, its role, and how it is invoked
+- [`harness.csv`](harness.csv) — the harness registry: every node/ and python/ file, its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
