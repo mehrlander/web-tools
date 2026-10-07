@@ -38,9 +38,8 @@ test('docs/QUALIFIED-WRITING.md stays under its ceiling', () => {
   const n = words(read('docs/QUALIFIED-WRITING.md'));
   assert.ok(n < WRITING_LIMIT,
     `docs/QUALIFIED-WRITING.md is ${n} words, over its ${WRITING_LIMIT}-word ` +
-    'ceiling. It loads at every session start beside SURFACING.md. Trim, or ' +
-    'move material to a document the plugin does not push. Raising the limit ' +
-    'requires user approval.');
+    'ceiling. It loads at every session start beside SURFACING.md. Trim it. ' +
+    'Raising the limit requires user approval.');
 });
 
 test('docs/SURFACING.md stays under its ceiling', () => {
