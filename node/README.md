@@ -85,9 +85,7 @@ Playwright `page` (`ctx.repoRoot` too). Scenarios live in
 [`node/render/scenarios/`](render/scenarios/); the PNG/log pick up the scenario
 name in their suffix.
 
-Every driver lives there and there is nowhere else to put one. Two of them,
-`sidebar-projects.mjs` and `sidebar-projects-overlay.mjs`, still overlap on
-their default path; only the overlay posture distinguishes them.
+Every driver lives there and there is nowhere else to put one.
 
 Example — the FAB's Export controls, opened to the Render
 tab with "Fully offline" ticked:
