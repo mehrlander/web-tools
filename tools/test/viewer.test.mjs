@@ -458,7 +458,7 @@ test('the sheet mode is exclusive, and the image mode still is too', () => {
 
 test('one exclusive mode per file, which is what resolveDefaultMode assumes', () => {
   const R = window.ViewRegistry;
-  for (const ext of ['xlsx', 'xlsm', 'png', 'pdf', 'docx', 'md', 'csv', 'json', 'js']) {
+  for (const ext of ['xlsx', 'xlsm', 'png', 'pdf', 'docx', 'pptx', 'md', 'csv', 'json', 'js']) {
     const exclusive = R.getModes({ name: 'f.' + ext, ext, content: '' }).filter(m => m.exclusive);
     assert.ok(exclusive.length <= 1, `${ext} has ${exclusive.length} exclusive modes`);
   }
@@ -474,6 +474,23 @@ test('a Word document opens on the page render, and the reading view is still of
   assert.equal(resolve('form.docx', '', 'raw'), 'page', 'a host\'s blanket raw cannot mean "the ZIP as text"');
   // And a workbook is untouched by the document pair.
   assert.ok(!R.getModes({ name: 'f.xlsx', ext: 'xlsx', content: '' }).some(m => m.id === 'page'));
+});
+
+test('a PowerPoint deck opens on the slides render, and only a deck does', () => {
+  const R = window.ViewRegistry;
+  const modes = R.getModes({ name: 'brief.pptx', ext: 'pptx', content: '' });
+  assert.equal(modes.find(m => m.exclusive)?.id, 'slides');
+  assert.equal(resolve('brief.pptx', '', 'raw'), 'slides', 'a host\'s blanket raw cannot mean "the ZIP as text"');
+  assert.equal(R.KIND({ ext: 'pptx' }), 'presentation');
+  assert.match(R.mimeFor('pptx'), /presentationml/);
+  for (const ext of ['docx', 'xlsx', 'pdf']) {
+    assert.ok(!R.getModes({ name: 'f.' + ext, ext, content: '' }).some(m => m.id === 'slides'), ext);
+  }
+  // The painter and its font are pinned, never @latest.
+  assert.match(R.PPTX_RENDERER, /@aiden0z\/pptx-renderer@\d+\.\d+\.\d+\//);
+  assert.match(R.CARLITO, /@fontsource\/carlito@\d+\.\d+\.\d+\//);
+  // The machine's Calibri is asked for before Carlito stands in.
+  for (const f of R.deckFonts()) assert.match(f.source, /^local\('Calibri[^']*'\), url\(/, f.family);
 });
 
 test('the page render scrubs a link it cannot vouch for and opens the rest in a new tab', () => {
