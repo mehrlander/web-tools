@@ -51,7 +51,7 @@ const tests = [
       top: topN(d.slice(0,5).map(x=>[x.word,x.count])), sample: sampleLookup(w=>map.get(w)) }
   }),
 
-  test("wordfreq-en-25k", "json", "https://cdn.jsdelivr.net/gh/aparrish/wordfreq-en-25000@main/wordfreq-en-25000-log.json", d => {
+  test("wordfreq-en-25k", "json", "https://raw.githubusercontent.com/aparrish/wordfreq-en-25000/main/wordfreq-en-25000-log.json", d => {
     const map = new Map(d.map(([w,v]) => [w.toLowerCase(), +v]))
     freqSources.push({ name:"wordfreq-25k", unit:"log10", get:w=>map.get(w.toLowerCase())??null })
     return { unit: "log10 freq", shape: `array(${d.length.toLocaleString()}) [word,score]`,
@@ -66,7 +66,7 @@ const tests = [
       top: words.slice(0,8).join(", "), sample: sampleLookup(w=>map.get(w),v=>`#${v}`) }
   }),
 
-  test("FrequencyWords en_50k", "text", "https://cdn.jsdelivr.net/gh/hermitdave/FrequencyWords@master/content/2018/en/en_50k.txt", t => {
+  test("FrequencyWords en_50k", "text", "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt", t => {
     const lines = t.trim().split(/\r?\n/)
     const map = new Map(lines.map(s=>{ const [w,c]=s.split(/\s+/); return [w.toLowerCase(),+c] }))
     freqSources.push({ name:"FreqWords", unit:"count", get:w=>map.get(w.toLowerCase())??null })
@@ -87,7 +87,7 @@ const tests = [
       top: `POS: ${[...posSet].slice(0,8).join(", ")}`, sample: sampleLookup(w=>d[w.toUpperCase()]?.pos) }
   }),
 
-  test("word_freq_32k", "json", "https://cdn.jsdelivr.net/gh/BilboBlockins/word-frequency-list-json@master/word_freq_32k.json", d => {
+  test("word_freq_32k", "json", "https://raw.githubusercontent.com/BilboBlockins/word-frequency-list-json/master/word_freq_32k.json", d => {
     const get = w => d[w.toLowerCase()] ?? d[w] ?? null
     freqSources.push({ name:"word_freq_32k", unit:"count", get })
     return { unit: "raw count", shape: `keys=${Object.keys(d).length.toLocaleString()}`,

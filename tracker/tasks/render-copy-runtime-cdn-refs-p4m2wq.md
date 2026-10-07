@@ -1,9 +1,10 @@
 ---
 id: render-copy-runtime-cdn-refs-p4m2wq
 title: Inline the run-time CDN references a rendering copy still carries
-status: backlog
+status: done
 project: export
 opened: 2026-07-27
+closed: 2026-09-26
 size: S
 ---
 # Inline the run-time CDN references a rendering copy still carries
@@ -31,7 +32,7 @@ A baked page built from the canonical boot block still carries the `?use=` branc
 ## Related
 
 - `lib/kits/export.js`: `bakeHtml` / `collectCache` shared by renderCopy and zip
-- `tools/test/render-copy.mjs`: test that found and still reports `cdnRefs`
+- `node/test/render-copy.mjs`: test that found and still reports `cdnRefs`
 - `dist/web-tools.js`: offline build context for why run-time CDN refs matter
 - PR #288: adjacent `#data=` / export era; this gap filed with renderCopy
 
@@ -42,3 +43,4 @@ A baked page built from the canonical boot block still carries the `?use=` branc
   divergence the task was holding for has no substance. What remains is writing
   the rewrite. Sized S.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-09-26: Closed by PR #806, which removed jsDelivr for own code. The kit demos now read their proof-frame injects through the loader (`vanilla-demo.js` declares them on `window.__frameScripts`) and `collectCache` carries them, so `bakeHtml` covers them for both `renderCopy` and the offline zip. `cdnRefs` now counts run-time `lib/` references on GitHub Pages, and a page that follows the loader leaves none. The plain `-export.zip` still keeps whatever it does not bake, by design.

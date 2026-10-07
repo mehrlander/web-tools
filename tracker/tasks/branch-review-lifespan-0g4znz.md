@@ -2,7 +2,7 @@
 id: branch-review-lifespan-0g4znz
 title: Show the branch lifespan in the per-repo branch review too
 status: done
-project: show-repo
+project: app
 opened: 2026-07-26
 closed: 2026-07-31
 session: claude/project-pages-docs-udzi51

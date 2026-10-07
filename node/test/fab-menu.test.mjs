@@ -1,0 +1,992 @@
+// fab-menu.test.mjs — the launcher's long-press menu, and the `menu` opt-in
+// contract a page fills it with.
+//
+// The menu is the fab's third page contract, after `actions` (verbs in the
+// drawer's take grid) and `toggles` (state on the Render tab). It is the one
+// for a verb wanted BEFORE the drawer opens, which is what makes its timing
+// the whole subject here:
+//
+//   IT IS READ AT OPEN TIME, NOT AT SCAN TIME. The drawer's component scan is
+//   detect(), and detect() runs when the DRAWER opens. A menu sourced from it
+//   would be empty on the first long press of a page load, which is the press
+//   that matters. So openFabMenu does its own narrow read.
+//
+//   IT READS EACH ELEMENT'S OWN SCOPE. Alpine's $data returns the merged data
+//   STACK, so every component nested inside a contributor answers for the
+//   contributor's properties too. detect() carries a long note about the day
+//   that shipped fourteen copies of the app's contract; this read must not
+//   reintroduce it one contract over.
+//
+//   A ROW THAT FAILS REPORTS. The menu closes before a row runs, so a throw or
+//   a rejected promise has nothing on screen to attach itself to and would
+//   otherwise be a tap that silently did nothing.
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
+const doc = window.document;
+const Alpine = await startAlpine(window, [
+  // The declaration pair rides along because the launcher menu asks what the
+  // page declared, and a stub would let the fab agree with a shape the kits do
+  // not actually write. src-doc first: md-doc declares through it. Loading them
+  // costs nothing, since declare and declaredIn touch no marked, which md-doc
+  // only reads inside the parsing paths.
+  'lib/kits/src-doc.js', 'lib/kits/md-doc.js',
+  'lib/kits/guide-render.js', 'lib/alpineComponents/path-picker.js', 'lib/alpineComponents/fab.js',
+]);
+
+async function mountFab() {
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  return Alpine.$data(host.firstElementChild);
+}
+
+// A contributor mounted into the page the fab is floating over, exactly as
+// the app is: a plain x-data whose scope carries `menu`.
+async function mountPage(html) {
+  const host = doc.createElement('div');
+  host.innerHTML = html;
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(2);
+  return host;
+}
+
+// Wait for an x-show binding to settle, bounded. Alpine applies effects on its
+// own schedule and a test that counts flushes is measuring the scheduler.
+const shown = async (get) => {
+  for (let i = 0; i < 20 && (!get() || get().style.display === 'none'); i++) await tick(1);
+  return get();
+};
+
+const clearPages = () => {
+  [...doc.body.children].forEach(el => {
+    if (!el.querySelector('[x-data*="fab()"]')) el.remove();
+  });
+};
+
+test('with nothing declaring one, the menu is the built-in row alone', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.openFabMenu();
+  assert.equal(d.fabMenu, true);
+  assert.equal(d.pageMenu.length, 0,
+    'a page that contributes nothing must not grow a divider under the aim rows');
+});
+
+test('a page contributes its rows, and they carry the side they came from', async () => {
+  clearPages();
+  const d = await mountFab();
+  // A fixture, not the app's actual row: what this file guards is the fab's
+  // READ of the contract, and the shell owns its own wording (shell-intake).
+  await mountPage(`<div x-data="{ menu: [{ label: 'Do the thing', icon: 'ph-clipboard-text', run(){} }] }"></div>`);
+  d.openFabMenu();
+  assert.equal(d.pageMenu.length, 1);
+  assert.equal(d.pageMenu[0].label, 'Do the thing');
+  assert.equal(d.pageMenu[0].icon, 'ph-clipboard-text');
+  assert.equal(d.pageMenu[0].side, 'shell');
+});
+
+test('the read happens on every open, so a component that mounts late still lands', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.openFabMenu();
+  assert.equal(d.pageMenu.length, 0, 'nothing to contribute yet');
+  await mountPage(`<div x-data="{ menu: [{ label: 'Late', run(){} }] }"></div>`);
+  d.openFabMenu();
+  assert.equal(d.pageMenu.length, 1,
+    'a menu cached at boot would be permanently wrong on a lazily mounted view');
+});
+
+test('a component nested inside a contributor does not contribute it a second time', async () => {
+  clearPages();
+  const d = await mountFab();
+  await mountPage(`<div x-data="{ menu: [{ label: 'Once', run(){} }] }">
+      <div x-data="{ other: 1 }"><div x-data="{ third: 2 }"></div></div>
+    </div>`);
+  d.openFabMenu();
+  assert.equal(d.pageMenu.length, 1,
+    'reading $data instead of the element’s own scope is how one row became fourteen');
+});
+
+test('the fab does not read its own subtree', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.openFabMenu();
+  assert.equal(d.pageMenu.length, 0,
+    'the drawer is full of x-data; none of it is the page');
+});
+
+test('a row with no label is dropped rather than painted blank', async () => {
+  clearPages();
+  const d = await mountFab();
+  await mountPage(`<div x-data="{ menu: [{ icon: 'ph-dot', run(){} }, { label: 'Real', run(){} }] }"></div>`);
+  d.openFabMenu();
+  // Joined rather than deep-equalled: pageMenu is built inside the jsdom realm,
+  // so its Array is not this realm's and deepStrictEqual fails on the prototype
+  // while reporting "same structure but not reference-equal".
+  assert.equal([...d.pageMenu].map(m => m.label).join(','), 'Real');
+});
+
+test('a contributor whose menu getter throws is skipped, not fatal', async () => {
+  clearPages();
+  const d = await mountFab();
+  await mountPage(`<div x-data="{ get menu(){ throw new Error('nope') } }"></div>`);
+  await mountPage(`<div x-data="{ menu: [{ label: 'Survivor', run(){} }] }"></div>`);
+  d.openFabMenu();
+  assert.equal([...d.pageMenu].map(m => m.label).join(','), 'Survivor',
+    'one bad contributor must not take the whole menu down with it');
+});
+
+// ── The paste row ─────────────────────────────────────────────────────────
+//
+// Built in rather than contributed since 2026-08-22, which is what makes its
+// two endings the subject. A document that can SHOW the stage takes its own
+// paste and stays put; every other one parks the paste and leaves for the app,
+// because the stage is a store array held for one page load and the navigation
+// that reaches a Stage is what would otherwise discard it.
+//
+// The test for the first ending is a mounted component exposing pasteAnywhere,
+// read off each element's OWN scope for the same reason readPageMenu is: a
+// component nested inside the app answers for the app's methods through the
+// merged data stack, so a nested-scope read would find a host on every page
+// that has one anywhere above it.
+
+// A clipboard kit and a handoff kit, stubbed at the shape the row uses. The
+// real ones are exercised by their own files; what this one watches is the
+// ORDER, since the whole design turns on nothing being awaited before the read.
+function stubPasteKits(win, { flavors = [{ kind: 'text', type: 'text/plain', text: 'x' }] } = {}) {
+  const log = [];
+  win.io = { pasteItems: async () => { log.push('read'); return flavors; } };
+  win.StageHandoff = { put: async (fl) => { log.push('park:' + fl.length); return fl.length; } };
+  return log;
+}
+
+test('off the app, the paste is parked and the app is opened on the Stage', async () => {
+  clearPages();
+  const d = await mountFab();
+  const log = stubPasteKits(window);
+  const went = [];
+  d._go = (u) => went.push(u);
+  await d.pasteToStage();
+  assert.deepEqual(log, ['read', 'park:1'], 'the clipboard is read first and parked after');
+  assert.deepEqual(went, ['https://mehrlander.github.io/web-tools/app/?view=stage']);
+  assert.equal(d.outError, '', 'a paste that worked has nothing to report');
+});
+
+test('on a document that can show the stage, the paste stays put', async () => {
+  clearPages();
+  const d = await mountFab();
+  const log = stubPasteKits(window);
+  const went = [];
+  d._go = (u) => went.push(u);
+  let staged = 0;
+  await mountPage(`<div x-data="{ pasteAnywhere(){ window.__stagedHere = (window.__stagedHere || 0) + 1 } }"></div>`);
+  await d.pasteToStage();
+  staged = window.__stagedHere || 0;
+  assert.equal(staged, 1, 'the app owns its own paste; the fab must not take it away');
+  assert.deepEqual(log, [], 'nothing is read or parked when the page will do it');
+  assert.deepEqual(went, [], 'a document already showing the Stage has nowhere to go');
+  delete window.__stagedHere;
+});
+
+test('a component nested inside the host does not make every page a host', async () => {
+  clearPages();
+  const d = await mountFab();
+  stubPasteKits(window);
+  d._go = () => {};
+  await mountPage(`<div x-data="{ pasteAnywhere(){} }"><div x-data="{ other: 1 }"></div></div>`);
+  // The nested child answers for pasteAnywhere through the merged stack; the
+  // scan must find the real host, and exactly one of them.
+  assert.ok(d._stageHost(), 'the host itself is still found');
+});
+
+test('an empty clipboard reports rather than navigating to an empty Stage', async () => {
+  clearPages();
+  const d = await mountFab();
+  stubPasteKits(window, { flavors: [] });
+  const went = [];
+  d._go = (u) => went.push(u);
+  await d.pasteToStage();
+  assert.match(d.outError, /Nothing came off the clipboard/);
+  assert.deepEqual(went, []);
+  assert.equal(d.open, true, 'the menu has closed, so the drawer is where a failure can be read');
+  assert.equal(d.activeTab, 'render');
+});
+
+test('a refused park reports and stays, rather than leaving for a Stage with nothing on it', async () => {
+  clearPages();
+  const d = await mountFab();
+  stubPasteKits(window);
+  window.StageHandoff = { put: async () => { throw new Error('That paste is 4096K, too large to carry across'); } };
+  const went = [];
+  d._go = (u) => went.push(u);
+  await d.pasteToStage();
+  assert.match(d.outError, /too large to carry across/);
+  assert.deepEqual(went, []);
+});
+
+test('a tap that beats the warm-up is told so, in the clipboard\'s own terms', async () => {
+  clearPages();
+  const d = await mountFab();
+  delete window.io;
+  const went = [];
+  d._go = (u) => went.push(u);
+  // Reported, never rejected: the row is wired straight to the markup, so a
+  // rejection here would reach nobody at all.
+  await d.pasteToStage();
+  assert.match(d.outError, /still loading/);
+  assert.equal(d.open, true);
+  assert.deepEqual(went, []);
+});
+
+// The third built-in row. It is not part of the `menu` contract (nothing on
+// the page can move it or take it away), so what is worth holding is that it
+// stays a FIXED address: the deployed app at the default branch, carrying no
+// ref, no ?use= pin, and nothing off the view it is leaving.
+test('the home row aims at the deployed app, not at this view', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.repo = 'mehrlander/home';
+  d.path = 'projects/budget-drs/app/view/app.html';
+  d.ref = 'claude/some-branch';
+  assert.equal(d.homeUrl, 'https://mehrlander.github.io/web-tools/app/');
+});
+
+test('a re-pointed shell goes home to its own base', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.appBase = 'https://example.test/app/';
+  assert.equal(d.homeUrl, 'https://example.test/app/',
+    'writing the address out a second time is how the two copies part');
+});
+
+test('running a row calls its run', async () => {
+  const d = await mountFab();
+  let ran = 0;
+  d.runMenuRow({ label: 'x', run: () => { ran++; } });
+  assert.equal(ran, 1);
+});
+
+test('a row that throws reports rather than escaping', async () => {
+  const d = await mountFab();
+  d.outError = '';
+  d.runMenuRow({ label: 'x', run: () => { throw new Error('clipboard refused'); } });
+  assert.equal(d.outError, 'clipboard refused');
+});
+
+test('a row that rejects reports too, instead of an unhandled rejection nobody sees', async () => {
+  const d = await mountFab();
+  d.outError = '';
+  d.runMenuRow({ label: 'x', run: () => Promise.reject(new Error('async refused')) });
+  await tick(2);
+  assert.equal(d.outError, 'async refused');
+});
+
+test('a malformed row is a no-op, not a crash', async () => {
+  const d = await mountFab();
+  assert.doesNotThrow(() => { d.runMenuRow(null); d.runMenuRow({ label: 'x' }); });
+});
+
+// ── Raising the menu spends the gesture that raised it ───────────────────────
+//
+// Both routes to the menu sit on the launcher, and the launcher's other job is
+// the drawer. A right-click still delivers pointerdown and pointerup around the
+// contextmenu event, so the menu opened and the pointerup behind it read an
+// ordinary tap: `fabMenu = false; toggle()`, which closed the menu it had just
+// raised and left the drawer open instead. The long press already set a flag
+// for exactly this; only the right-click did not.
+
+test('a right-click raises the menu and does not also toggle the drawer', async () => {
+  const d = await mountFab();
+  d.open = false;
+  d.onDown({ clientX: 0, clientY: 0, pointerId: 1, currentTarget: { setPointerCapture(){} } });
+  d.onContextMenu();
+  assert.equal(d.fabMenu, true, 'the menu is up');
+  d.onUp({});
+  assert.equal(d.fabMenu, true, 'and the pointerup behind it must not close it');
+  assert.equal(d.open, false, 'nor open the drawer under it');
+});
+
+test('the press it consumed does not eat the NEXT ordinary tap', async () => {
+  // The flag is per gesture. onDown clears it, so a contextmenu whose pointerup
+  // never arrives (a platform that swallows it) cannot leave the launcher inert.
+  const d = await mountFab();
+  d.onDown({ clientX: 0, clientY: 0, pointerId: 1, currentTarget: { setPointerCapture(){} } });
+  d.onContextMenu();
+  // no onUp: the gesture is abandoned
+  d.onDown({ clientX: 0, clientY: 0, pointerId: 2, currentTarget: { setPointerCapture(){} } });
+  assert.equal(d._lpFired, false, 'a fresh press starts unspent');
+  d._clearLongPress();
+  d.onUp({});
+  assert.equal(d.open, true, 'so the next tap still opens the drawer');
+});
+
+// ── The aim rows ───────────────────────────────────────────────────────────
+//
+// The menu had one note destination and the card had four aims, so three of
+// them were two taps further in. Since 2026-09-03 the four aims are icon
+// buttons sharing one "Note" row rather than four full-width rows, so their
+// labels moved from a visible span to aria-label; rowLabels reads both, and
+// these tests check the one aim that is conditional, since the other three
+// are unconditional buttons and a template test would only be re-reading the
+// template.
+
+const rowLabels = (host) => [
+  ...[...host.querySelectorAll('button span')].map(e => e.textContent.trim()),
+  ...[...host.querySelectorAll('button[aria-label]')].map(e => e.getAttribute('aria-label')),
+].filter(Boolean);
+
+// A declared markdown render, made the way kits/md-doc.js makes one, so the
+// fab is reading a real declaration rather than a shape a stub agreed to.
+function declareMarkdown() {
+  const box = doc.createElement('div');
+  doc.body.appendChild(box);
+  window.mdDoc.declare(box, {
+    addr: { repo: 'mehrlander/web-tools', ref: 'main', path: 'docs/APP.md' },
+    sections: [{ index: 0, depth: 1, title: 'The Web Tools app', slug: 'the-web-tools-app' }],
+    source: '# The Web Tools app\n',
+  });
+  return box;
+}
+
+test('with nothing declared, the aim rows are the three that work anywhere', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.openFabMenu();
+  await tick(2);
+  assert.equal(d.annKind, null, 'nothing declared, so no kind');
+  const labels = rowLabels(d.$root);
+  assert.ok(labels.includes('Note the page'));
+  assert.ok(labels.includes('Note an element'));
+  assert.ok(labels.includes('Note a region'));
+  assert.ok(!labels.some(l => l.startsWith('Note a markdown')),
+    'an aim that cannot hit anything must not be offered');
+});
+
+test('a declared render puts its own name on the row', async () => {
+  clearPages();
+  const box = declareMarkdown();
+  const d = await mountFab();
+  d.openFabMenu();
+  await tick(2);
+  assert.equal(d.annKind.kind, 'markdown');
+  // The label is the registry's, not this file's: docs/routes-kinds.csv owns
+  // aim_label and kits/md-doc.js carries it onto the declaration.
+  assert.equal(d.annKind.aimLabel, 'Markdown section');
+  assert.ok(rowLabels(d.$root).includes('Note a markdown section'));
+
+  // AND ITS OWN GLYPH, for the same reason and from the same row. This file
+  // wrote out ph-text-align-left until 2026-09-06, so the next kind to declare
+  // would have arrived wearing markdown's icon under its own name.
+  assert.equal(d.annKind.aimIcon, 'ph-file-md');
+  const btn = [...d.$root.querySelectorAll('button')]
+    .find(b => (b.getAttribute('aria-label') || '') === 'Note a markdown section');
+  assert.ok(btn, 'the declared aim has a button');
+  assert.match(btn.querySelector('i').className, /\bph-file-md\b/,
+    'the row draws the glyph the kind declared');
+  assert.doesNotMatch(btn.querySelector('i').className, /text-align-left/);
+  box.remove();
+});
+
+// ── The row raises the card, and it is the only thing that puts it down ─────
+//
+// The card had a collapsed state that read as putting it away and was not: it
+// stayed, smaller, still over the page. Nothing anywhere called disable(), so a
+// card raised by a long press could not be put down by one. With the collapsed
+// state gone (2026-09-06) this row owns both halves.
+
+test('the hide row appears only where there is a card, and puts it away', async () => {
+  clearPages();
+  const calls = [];
+  let live = false;
+  window.Annotate = {
+    get enabled() { return live; },
+    enable() { live = true; calls.push('enable'); },
+    disable() { live = false; calls.push('disable'); },
+    notePage() { calls.push('page'); },
+  };
+  const d = await mountFab();
+
+  d.openFabMenu();
+  await tick(2);
+  assert.equal(d.annOn, false, 'nothing running, so nothing to put away');
+  const off = () => [...d.$root.querySelectorAll('button')]
+    .find(b => (b.getAttribute('aria-label') || '') === 'Hide the note card');
+  assert.equal(off().style.display, 'none', 'and the row is not offered');
+
+  // ITS OWN ROW, not a fifth glyph on the aims. A fifth key overflowed the
+  // w-56 menu and was clipped away entirely, and an X at the end of four aims
+  // reads as a fifth aim.
+  const aims = d.$root.querySelector('[aria-label="Note the page"]').parentElement;
+  assert.ok(!aims.contains(off()), 'it does not ride the aims group');
+  assert.match(off().textContent, /Hide notes/, 'it is a labelled row like every other verb here');
+
+  await d.annAim('page');
+  assert.deepEqual(calls, ['enable', 'page']);
+
+  d.openFabMenu();
+  assert.equal(d.annOn, true, 'a card is up, read at open time');
+  // x-show applies on Alpine's own schedule, so this waits for the condition
+  // rather than for a fixed number of flushes: asserting after tick(2) passed
+  // and then did not, which is a gate that reports the scheduler rather than
+  // the behaviour.
+  await shown(off);
+  assert.notEqual(off().style.display, 'none');
+  off().click();
+  await tick(2);
+  assert.deepEqual(calls, ['enable', 'page', 'disable'], 'and the tap unmounts the card');
+  assert.equal(d.annOn, false);
+  delete window.Annotate;
+});
+
+// The three that are not declared are this component's own, and they have to
+// keep matching kits/annotate.js's AIM_ICON glyph for glyph: one aim, one mark,
+// whichever control starts it.
+test('the built-in aims wear the same glyphs the card does', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.openFabMenu();
+  await tick(2);
+  const glyph = (label) => {
+    const b = [...d.$root.querySelectorAll('button')]
+      .find(x => (x.getAttribute('aria-label') || '') === label);
+    assert.ok(b, 'no row: ' + label);
+    return b.querySelector('i').className;
+  };
+  assert.match(glyph('Note the page'), /\bph-file\b/);
+  assert.match(glyph('Note an element'), /\bph-crosshair-simple\b/);
+  assert.match(glyph('Note a region'), /\bph-frame-corners\b/);
+
+  const card = readFileSync(path.join(repoRoot, 'lib/kits/annotate.js'), 'utf8');
+  const lit = card.match(/const AIM_ICON = \{([\s\S]*?)\};/);
+  assert.ok(lit, 'kits/annotate.js no longer carries AIM_ICON');
+  for (const [key, g] of [['page', 'ph-file'], ['pick', 'ph-crosshair-simple'],
+                          ['region', 'ph-frame-corners']]) {
+    assert.match(lit[1], new RegExp(key + ":\\s*'" + g + "'"),
+      'the card and the launcher disagree about the ' + key + ' aim');
+  }
+});
+
+test('a declaration with no sections offers no row', async () => {
+  clearPages();
+  const box = doc.createElement('div');
+  doc.body.appendChild(box);
+  window.mdDoc.declare(box, { addr: {}, sections: [], source: 'no headings here' });
+  const d = await mountFab();
+  d.openFabMenu();
+  await tick(2);
+  assert.equal(d.annKind, null,
+    'a heading-less markdown file declares, and there is still nothing to aim at');
+  box.remove();
+});
+
+test('each row arms its own aim on the kit, and turns the annotator on first', async () => {
+  clearPages();
+  const calls = [];
+  window.Annotate = {
+    enabled: false,
+    enable() { this.enabled = true; calls.push('enable'); },
+    notePage(o) { calls.push('page:' + JSON.stringify(o)); },
+    startPick(o) { calls.push('pick:' + (o && o.aim ? o.aim : 'el')); },
+    startRegion() { calls.push('region'); },
+    declaredKind: () => null,
+    items: [],
+  };
+  const d = await mountFab();
+  await d.annAim('page');
+  await d.annAim('pick');
+  await d.annAim('section');
+  await d.annAim('region');
+  assert.deepEqual(calls,
+    ['enable', 'page:{"listen":false}', 'pick:el', 'pick:section', 'region'],
+    'the first aim enables and the rest find it already on');
+  delete window.Annotate;
+});
+
+// The toss case, and the bug the probe fixes. subjectReached is set inside
+// detect(), which runs when the DRAWER opens, so before a reader has opened the
+// drawer it is still false: a long press over a readable toss annotated the
+// shell. Measured in a browser 2026-08-31 (toss-render over data-view, the
+// frame holding a declared render, the fab reporting no kind), and held here.
+test('over a toss, the subject frame is probed rather than taken on the scan flag', async () => {
+  clearPages();
+  const framed = doc.implementation.createHTMLDocument('subject');
+  const box = framed.createElement('div');
+  framed.body.appendChild(box);
+  window.mdDoc.declare(box, {
+    addr: { repo: 'mehrlander/web-tools', ref: 'main', path: 'docs/APP.md' },
+    sections: [{ index: 0, depth: 1, title: 'The Web Tools app', slug: 'the-web-tools-app' }],
+    source: '# The Web Tools app\n',
+  });
+  window.__tossFrame = { contentDocument: framed, contentWindow: { document: framed } };
+
+  const d = await mountFab();
+  d.viaToss = true;
+  assert.equal(d.subjectReached, false, 'the drawer has not been opened, so no scan has run');
+  assert.equal(d._annDoc(), framed, 'the frame is readable now, whatever the scan flag says');
+  d.openFabMenu();
+  await tick(2);
+  assert.equal(d.annKind && d.annKind.kind, 'markdown',
+    'the kind is the subject frame\'s, not the shell\'s');
+
+  delete window.__tossFrame;
+});
+
+test('a sealed frame falls back to the shell rather than throwing', async () => {
+  clearPages();
+  window.__tossFrame = { get contentDocument() { throw new Error('cross-origin'); } };
+  const d = await mountFab();
+  d.viaToss = true;
+  assert.equal(d._annDoc(), doc, 'an unreadable subject leaves the shell as all there is');
+  assert.equal(d._declaredKind(), null);
+  delete window.__tossFrame;
+});
+
+test('the probe is standing equipment: the menu arms it, and the same row takes it off', async () => {
+  // WHY THE FAB OWNS THIS AT ALL. kits/probe.js was reachable only through
+  // `?probe=` on the address, so a reader already looking at the fault had to
+  // retype the URL to instrument it, on the phone where that class of fault
+  // lives. The precedent is the fab's own crash trail, which left
+  // pages/audit-render.html for the same reason: a diagnostic that lives on
+  // one page can be run on one page.
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  let asked = null;
+  window.gh = {
+    load: async (p) => {
+      asked = p;
+      if (p === 'kits/probe.js') new window.Function(kit)();
+    },
+  };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+
+  assert.equal(d.probeOn, false);
+  await d.openProbe();
+  assert.equal(asked, 'kits/probe.js');
+  assert.equal(d.probeOn, true, 'the row has to actually arm it, not only ask for the file');
+  assert.ok(doc.getElementById('wt-probe'), 'and the overlay is what says so on screen');
+
+  // THE ROW HAS TO SAY IT WILL. `probeOn` reads across into another realm's
+  // window.Probe, which Alpine cannot track, so a label bound to it renders
+  // once and then lies: measured in a browser, the row still closed the probe
+  // and still read "Probe". A reader with no keyboard has only this row, and no
+  // reason to press it. The mirror is refreshed where annOn is, at menu-open.
+  d.openFabMenu();
+  assert.equal(d.probeArmed, true, 'the label reads the mirror, not the live cross-realm value');
+  d.fabMenu = false;
+
+  // One control with two meanings, because a menu read in the half-second
+  // before a finger lifts has no room for a pair of rows.
+  await d.openProbe();
+  assert.equal(d.probeOn, false);
+  assert.equal(doc.getElementById('wt-probe'), null);
+  d.openFabMenu();
+  assert.equal(d.probeArmed, false);
+  d.fabMenu = false;
+});
+
+test('the launcher menu carries the probe row, wired to the method that arms it', () => {
+  // The row and the method are two files apart in review and one tap apart in
+  // use: a renamed method leaves a row that looks right and does nothing.
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+  assert.match(src, /fabMenu = false; openProbe\(\)/,
+    'the menu row must call openProbe');
+  assert.match(src, /probeArmed \? 'Probe off' : 'Probe'/,
+    'and its label carries the state rather than a second row');
+  assert.doesNotMatch(src, /x-text="probeOn/,
+    'bound to the live cross-realm read, the label renders once and then lies');
+});
+
+test('the probe row carries the verbs a phone cannot press, and only while one is on', async () => {
+  // Every one of the probe's verbs was a keyboard chord, which is no verb at
+  // all on the device this instrument is aimed at: a reader who armed a probe
+  // on a phone, watched the fault happen and wanted to send it had nothing to
+  // press. Reported 2026-09-10, from a phone.
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+  const verbs = () => [...doc.querySelectorAll('button[aria-label]')]
+    .map((b) => b.getAttribute('aria-label'))
+    .filter((l) => /capture|trace|overlay/.test(l));
+
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(), [], 'off, there is nothing to send and nothing to hold');
+
+  await d.openProbe();
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(),
+    ['Send the capture', 'Hold the trace', 'Move the overlay to the next corner']);
+
+  // Hold, whose glyph is the state: a mirror again, since the kit's flag is a
+  // cross-realm read Alpine cannot track.
+  await d.probeVerb('hold');
+  assert.equal(window.Probe.held, true);
+  assert.equal(d.probeHeld, true, 'the pause glyph has to flip or it lies the way the label did');
+  await d.probeVerb('hold');
+  assert.equal(d.probeHeld, false);
+
+  // Move, because on a phone the overlay covers whatever it is parked over.
+  const corner = () => doc.getElementById('wt-probe').getAttribute('data-corner');
+  const first = corner();
+  await d.probeVerb('move');
+  assert.notEqual(corner(), first);
+
+  await d.openProbe();   // off, and the verbs go with it
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(), []);
+});
+
+test('send files where there is a token and hands over the capture where there is not', async () => {
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+
+  // THE ROUTE IS DECIDED BEFORE THE AWAIT, which is the whole reason
+  // `probeCanFile` exists as a mirror rather than as a fallback after a failed
+  // write: iOS spends the gesture on the first await, so a share offered after
+  // a refused file arrives with no transient activation and is refused too.
+  let sent = null;
+  window.PageReport = { watch() {}, send: async (doc) => { sent = doc; return { ok: true, path: 'logs/page/2026-09-10/x-1234.json' }; } };
+  window.localStorage.setItem('ghToken', 'a-token');
+  await d.openProbe();
+  d.openFabMenu();
+  await tick(1);
+  assert.equal(d.probeCanFile, true);
+  await d.probeVerb('send');
+  assert.ok(sent && sent.probeId, 'the capture itself is what goes, not a summary of it');
+  assert.match(d.outMsg, /^Filed x-1234\.json/);
+
+  // No token, no write: the honest answer on a phone is the share sheet, and
+  // the clipboard behind it for a browser with neither.
+  window.localStorage.removeItem('ghToken');
+  let copied = null;
+  window.navigator.clipboard = { writeText: async (t) => { copied = t; } };
+  d.openFabMenu();
+  await tick(1);
+  assert.equal(d.probeCanFile, false);
+  await d.probeVerb('send');
+  assert.ok(copied && JSON.parse(copied).probeId, 'and it is the same capture, whole');
+  assert.match(d.outMsg, /clipboard/);
+  // AND IT SAYS SO WHERE THE READER IS LOOKING. `outMsg` is a line inside the
+  // drawer's take area, which a row tapped from the launcher menu never opens,
+  // so a send that reported only there reported to nobody. Filing has the kit's
+  // own note on the overlay; this path builds the JSON itself and would have
+  // had nothing, so it writes a trace line instead.
+  assert.ok(window.Probe.trace().some((r) => r.tag === 'probe:send' && /clipboard/.test(r.detail)),
+    'the outcome has to reach the overlay, not a panel that is shut');
+
+  await d.openProbe();
+  window.PageReport = undefined;
+});
+
+test('a probe that cannot load opens the drawer, since that is where the reason is', async () => {
+  // The failure path is the one that must be readable: the reader taps Probe,
+  // nothing appears, and without this the sentence saying why sits behind a
+  // drawer they have no reason to open. Success leaves it shut, because the
+  // overlay appearing is the answer.
+  clearPages();
+  const d = await mountFab();
+  // An earlier case in this file left the kit's closure alive in this window,
+  // so the idle object it installs still carries a working arm(): clear it, or
+  // this is a test of a probe that loads perfectly.
+  window.Probe = undefined;
+  window.gh = { load: async () => {} };          // resolves, registers nothing
+  d.open = false;
+  await d.openProbe();
+  assert.equal(d.probeArmed, false);
+  assert.equal(d.open, true, 'a failure has to put its own explanation on screen');
+  assert.match(d.outMsg, /\?probe=/);
+});
+
+// ── The gesture that raises the menu must not also toggle the drawer ────────
+//
+// A long press and a right-click raise the SAME menu, and both have to spend
+// the gesture, since the release behind either still reaches onUp. The long
+// press does it with a flag set by its own timer. The right-click did it with
+// a flag set by onContextMenu, and that half was wrong for a reason no reading
+// of this file would have caught: it assumed the contextmenu event lands
+// BETWEEN pointerdown and pointerup. macOS and Linux raise the context menu on
+// the press, so it does; Windows raises it on the release, so pointerup ran
+// first with the flag still false and toggled the drawer under the menu.
+//
+// Both orders are dispatched here, against the component's own handlers
+// through the template's bindings, because the defect is not in either
+// handler's body. It is in the order they run in, which only a dispatched
+// sequence can express.
+async function mountFabSurface() {
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const root = host.firstElementChild;
+  const surface = root.querySelector('[data-dom-shot-ignore]');
+  // jsdom implements no pointer capture, and onDown calls for it unguarded.
+  surface.setPointerCapture = () => {};
+  return { d: Alpine.$data(root), surface };
+}
+
+const sendPointer = (el, type, init) =>
+  el.dispatchEvent(new window.MouseEvent(type, {
+    bubbles: true, cancelable: true, clientX: 10, clientY: 10, button: 0, ...init,
+  }));
+
+test('right-click raises the menu without toggling the drawer, in either platform\'s event order', async () => {
+  clearPages();
+  const { d, surface } = await mountFabSurface();
+
+  // macOS and Linux: the context menu is raised by the PRESS.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 2, buttons: 2 });
+  sendPointer(surface, 'contextmenu', { button: 2 });
+  sendPointer(surface, 'pointerup', { button: 2, buttons: 0 });
+  await tick(2);
+  assert.equal(d.fabMenu, true, 'the menu is what a right-click is for');
+  assert.equal(d.open, false, 'and the drawer is not');
+
+  // Windows: the context menu is raised by the RELEASE, so pointerup arrives
+  // first. This is the order the 2026-09-08 fix did not cover.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 2, buttons: 2 });
+  sendPointer(surface, 'pointerup', { button: 2, buttons: 0 });
+  sendPointer(surface, 'contextmenu', { button: 2 });
+  await tick(2);
+  assert.equal(d.fabMenu, true);
+  assert.equal(d.open, false, 'the release must not toggle the drawer ahead of the menu');
+
+  // AND IT MUST NOT CLOSE ONE EITHER. toggle() is symmetric, so a right-click
+  // over an open drawer failed the same way in the other direction: the reader
+  // asked for a menu and lost the panel they were reading.
+  d.open = true; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 2, buttons: 2 });
+  sendPointer(surface, 'pointerup', { button: 2, buttons: 0 });
+  sendPointer(surface, 'contextmenu', { button: 2 });
+  await tick(2);
+  assert.equal(d.open, true, 'a right-click leaves the drawer exactly as it found it');
+});
+
+test('a ctrl+click reporting button 0 still spends its gesture, and a plain tap still opens the drawer', async () => {
+  clearPages();
+  const { d, surface } = await mountFabSurface();
+
+  // Safari on macOS reports button 0 for a ctrl+click and raises contextmenu
+  // from it, so the button number says nothing and onContextMenu's flag is the
+  // only thing that stops the release from toggling. This is why that flag is
+  // kept rather than replaced by the button read.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 0, buttons: 1, ctrlKey: true });
+  sendPointer(surface, 'contextmenu', { button: 0, ctrlKey: true });
+  sendPointer(surface, 'pointerup', { button: 0, buttons: 0, ctrlKey: true });
+  await tick(2);
+  assert.equal(d.fabMenu, true);
+  assert.equal(d.open, false);
+
+  // The gesture the launcher exists for is untouched: press, release, drawer.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 0, buttons: 1 });
+  sendPointer(surface, 'pointerup', { button: 0, buttons: 0 });
+  await tick(2);
+  assert.equal(d.open, true, 'a left tap still opens the drawer');
+  assert.equal(d.fabMenu, false);
+});
+
+// ── The touch guard, and what it must not cancel ─────────────────────────────
+//
+// holdTouch cancels touchstart across the launcher's whole subtree, because
+// only a cancelled touch stops a drag from reaching the host of a sheet-
+// presented in-app browser (docs/ios-sheet-drags.md). A cancelled touchstart
+// also suppresses the compatibility click AND an anchor's navigation, so every
+// element the subtree activates by a tap has to be exempt.
+//
+// It named 'button' alone until 2026-09-20, which shipped the credential rows
+// dead on every touch device: they are anchors, because that is the form that
+// hands a custom scheme to the system, so the tap produced no navigation, no
+// click, and not even the report those rows carry for a hand-off nothing
+// accepts. It was invisible from a desktop browser, which has no touchstart,
+// and invisible from the suite, which had nothing reading the two together.
+//
+// These read the RENDERED menu rather than the selector, so a row added in a
+// third element type fails here instead of on a phone.
+const sendTouch = (el, type = 'touchstart') => {
+  const ev = new window.Event(type, { bubbles: true, cancelable: true });
+  el.dispatchEvent(ev);
+  return ev;
+};
+
+const menuOf = (root) => root.querySelector('.absolute.bottom-full');
+
+test('every tappable row in the launcher menu survives the touch guard', async () => {
+  clearPages();
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const root = host.firstElementChild;
+  const d = Alpine.$data(root);
+
+  d.hasToken = false;          // the credential section is gated on it
+  d.openFabMenu();
+  await tick(4);
+
+  const menu = menuOf(root);
+  assert.ok(menu, 'the menu container renders');
+
+  // Everything carrying a click handler is what a reader taps.
+  const clickable = [...menu.querySelectorAll('*')].filter(el =>
+    el.getAttributeNames().some(n => n === '@click' || n === 'x-on:click'));
+  assert.ok(clickable.length >= 4, 'the menu has rows to check: ' + clickable.length);
+
+  for (const el of clickable) {
+    const ev = sendTouch(el);
+    assert.equal(ev.defaultPrevented, false,
+      'a tap on <' + el.tagName.toLowerCase() + '> row "'
+      + (el.textContent || '').trim().slice(0, 24)
+      + '" is cancelled by holdTouch, so on a phone it does nothing at all');
+  }
+});
+
+test('and the row that hands a custom scheme to the system is an anchor', async () => {
+  clearPages();
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const root = host.firstElementChild;
+  const d = Alpine.$data(root);
+  d.hasToken = false;
+  d.openFabMenu();
+  await tick(4);
+
+  // A click handler cannot navigate to a custom scheme reliably; the anchor's
+  // own href is what the system takes. Both rows that leave for Shortcuts are
+  // therefore anchors, and each is exempt from the guard above.
+  const schemed = [...menuOf(root).querySelectorAll('a')]
+    .filter(a => (a.getAttribute('href') || '').startsWith('shortcuts://'));
+  assert.ok(schemed.length >= 2,
+    'Get token and Test the bridge both carry a shortcuts:// href: ' + schemed.length);
+  for (const a of schemed) {
+    assert.equal(sendTouch(a).defaultPrevented, false);
+  }
+});
+
+test('the launcher disc itself is still guarded, which is what the guard is for', async () => {
+  clearPages();
+  const { surface } = await mountFabSurface();
+  // The drag surface is a div driven by pointer events, so cancelling its
+  // touchstart costs it nothing and buys the drag inside a sheet.
+  assert.equal(sendTouch(surface).defaultPrevented, true,
+    'exempting the rows must not exempt the drag handle');
+});
+
+// ── The token card ───────────────────────────────────────────────────────────
+//
+// The trip is: tap Get token, Shortcuts runs, swipe back. The card is what the
+// reader comes back TO, so what is pinned here is that it raises itself on the
+// return rather than waiting for a second long press, and that it refuses a
+// value that is not shaped like a token. A wrong string saved silently fails
+// later as a 401 on some unrelated read, which is the failure this whole
+// section exists to end, arriving by the other door.
+async function mountForCard() {
+  clearPages();
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  return { root: host.firstElementChild, d: Alpine.$data(host.firstElementChild) };
+}
+
+const returnToPage = () => doc.dispatchEvent(new window.Event('visibilitychange'));
+
+test('coming back from Shortcuts raises the paste card, without a second long press', async () => {
+  const { d } = await mountForCard();
+  d.hasToken = false;
+  d._awaitingToken = true;
+  returnToPage();
+  await tick(2);
+  assert.equal(d.tokenCard, true, 'the card is what the reader comes back to');
+  assert.equal(d._awaitingToken, false, 'and the arming is spent, so an ordinary tab switch later does nothing');
+});
+
+test('and it does not raise itself on a tab switch nobody asked for', async () => {
+  const { d } = await mountForCard();
+  d.hasToken = false;
+  d.tokenCard = false;
+  d._awaitingToken = false;          // no Get token tap preceded this
+  returnToPage();
+  await tick(2);
+  assert.equal(d.tokenCard, false);
+});
+
+test('a token that arrived while away means there is nothing to paste', async () => {
+  const { d } = await mountForCard();
+  d._awaitingToken = true;
+  d._readToken = () => true;         // the trip succeeded by some other route
+  returnToPage();
+  await tick(2);
+  assert.equal(d.tokenCard, false, 'no card over a browser that now has a token');
+  assert.equal(d.hasToken, true);
+});
+
+test('the card lives outside the launcher root, whose transform would trap it', async () => {
+  const { root } = await mountForCard();
+  const card = doc.querySelector('[data-fab-token-card]');
+  assert.ok(card, 'the card renders');
+  assert.equal(root.contains(card), false,
+    'a position:fixed child inside the drag transform is positioned against it and travels with the launcher');
+});
+
+test('saving refuses what is not shaped like a token, and says what it got', async () => {
+  const { d } = await mountForCard();
+  d.tokenCard = true;
+
+  d.tokenDraft = '';
+  d.saveTokenDraft();
+  assert.match(d.tokenMsg, /Nothing in the field/);
+
+  d.tokenDraft = 'hello world';
+  d.saveTokenDraft();
+  assert.match(d.tokenMsg, /does not look like a GitHub token/);
+  assert.match(d.tokenMsg, /11 characters/, 'the length is the part that separates an empty paste from a wrong one');
+  assert.equal(d.tokenCard, true, 'and the card stays up, since the reader has to act');
+
+  // The shapes GitHub actually issues, plus the classic 40-hex.
+  assert.equal(d._looksLikeToken('ghp_' + 'A'.repeat(36)), true);
+  assert.equal(d._looksLikeToken('github_pat_' + 'a1B2'.repeat(10)), true);
+  assert.equal(d._looksLikeToken('0123456789abcdef0123456789abcdef01234567'), true);
+  assert.equal(d._looksLikeToken('ghp_short'), false);
+  assert.equal(d._looksLikeToken('0123456789abcdef'), false);
+});
+
+test('the clipboard reader and the save check ask the same question', async () => {
+  const { d } = await mountForCard();
+  // One answer, from one place: two copies of the shape test would be two
+  // answers to give a reader about the same string.
+  const good = 'ghp_' + 'B'.repeat(36);
+  assert.equal(d._tokenFromFlavors([
+    { kind: 'text', type: 'text/html', text: '<code>' + good + '</code>' },
+    { kind: 'text', type: 'text/plain', text: '  ' + good + '  ' },
+  ]), good, 'the first flavor that IS a token, not the first flavor');
+  assert.equal(d._tokenFromFlavors([{ kind: 'text', type: 'text/plain', text: 'nope' }]), '');
+});

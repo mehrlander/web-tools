@@ -2,10 +2,9 @@
 id: retire-shell-name-the-parts-r152bt
 title: Retire `shell`, and name the parts instead of the collection
 status: backlog
-project: show-repo
+project: app
 opened: 2026-08-15
 size: M
-awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body
 ---
 # Retire `shell`, and name the parts instead of the collection
 
@@ -31,7 +30,7 @@ the tree. The parts are stable across layouts; the collection is not.
 The counterexample proves the rule. **Leave `fab.js` alone**: its `chrome` means
 words inside `BUTTON/A/LABEL/SUMMARY/OPTION/TH/NAV` versus body prose, with an
 enumerated tag set, a derived `chromeShare`, seven assertions in
-`tools/test/fab-text.test.mjs` and a recorded decision in `docs/text-tools.md`.
+`node/test/fab-text.test.mjs` and a recorded decision in `docs/text-tools.md`.
 A collective noun is stable when something enumerates its extent.
 
 ## The work
@@ -56,11 +55,11 @@ bodies and artifacts. The FAB's three-segment bar becomes two toggles.
 **2. Replace the other five senses** with words already in the same sentences:
 `window.__app` (the house pattern is `__<componentName>` and the body is
 `x-data="app()"`, so `__shell` is the only back-pointer not named for its
-component); the application's name per `docs/APP.md`'s split; **native** versus
+component); the application's name, Web Tools, per `docs/APP.md`; **native** versus
 **embedded** views; **the page file**; and **nested/top-level document**.
 
 **3. A handful of definitional `chrome` sentences**, not a sweep. The defining
-uses are `skills/daisy-alpine/SKILL.md` rules 5 and 7 and `docs/showing.md`'s
+uses are `skills/html-style/SKILL.md` rules 5 and 7 and `docs/showing.md`'s
 nesting section.
 
 **4. A check, written from the residue.** A ban without one does not hold (home's
@@ -72,11 +71,11 @@ its exemptions from what survives step 2, not before.
 
 - `app/index.html`: `?shell=` / `shellMode` live here; split into `?header=` and `?sidebar=`
 - `docs/showing.md`: three senses of `shell` in one nesting section
-- `docs/APP.md`: application naming split step 2 aligns with
+- `docs/APP.md`: the application's name, which step 2 uses
 - `docs/SNAGS.md`: `live-term-wider-referent` origin
-- `skills/daisy-alpine/SKILL.md`: definitional chrome rules 5 and 7
+- `skills/html-style/SKILL.md`: definitional chrome rules 5 and 7
 - `lib/alpineComponents/fab.js`: leave alone; enumerated `chrome` is the counterexample
-- `tools/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned
+- `node/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned
 - task `promote-shortcuts-skill-to-plugin-5d74br`: cites this as the one-member-collective lesson
 - PR #425: analysis that filed the rename-vs-parts finding
 
@@ -129,3 +128,4 @@ third value, so that half is settled and this note no longer asks it.
   third state: absent has to mean the default, so a two-valued spelling cannot
   force-show.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-07: Decided. The spelling is `?header=0|1`, as recommended (user call 2708d02c-web-tools-answers).

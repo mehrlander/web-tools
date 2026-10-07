@@ -27,7 +27,7 @@ Editing workflow:
 
 ```bash
 vim userscripts/lib/launcher.js
-python3 scripts/userscript-stub.py launcher --ref main --name 'wt launcher' \
+python3 python/userscript-stub.py launcher --ref main --name 'wt launcher' \
     --description '...' --match '*://*/*'      # re-stamps body and stub
 git commit && git push
 ```
@@ -38,16 +38,16 @@ zero manual extension sheets required.
 
 **The bookmarklet cannot follow it there**, so the two routes read different
 hosts on purpose. Raw serves `text/plain` with `nosniff`, which a browser
-refuses to execute from a script tag; jsDelivr serves it as JavaScript. So the
-bookmarklet keeps the CDN and keeps needing the purge, and the generator prints
-that URL. The test holds the two to the same ref and path, which is what decides
-which body runs.
+refuses to execute from a script tag; GitHub Pages serves it as JavaScript,
+with a ten-minute cache and no purge step, but only as main has it. The test
+holds the two to the same path, which is what decides which body runs. (The
+bookmarklet read jsDelivr until 2026-09-26, which cached a branch for about
+twelve hours and rate-limited purges.)
 
 **A branch pin costs the one thing a commit pin gave free**, knowing which copy
-ran, and a purge does not settle it either: jsDelivr propagates per edge, so for
-a while after a push a reload can land on either body (measured 2026-09-06, six
-of eight reads on the old one). Purging is also rate-limited, roughly hourly per
-path. So the drawer header answers the freshness question three ways, each
+ran, and any cache between a push and the phone widens the gap: under
+jsDelivr, a reload after a push could land on either body for a while
+(measured 2026-09-06, six of eight reads on the old one). So the drawer header answers the freshness question three ways, each
 weaker than the next but each available where the others are not:
 
 | Shown | Answers |
@@ -61,7 +61,7 @@ raw.githubusercontent with a cache-buster rather than from the CDN, since a
 manifest served by the cache it describes can be stale in exactly the case it
 exists to detect. It **stays silent on failure**, because a strict `connect-src`
 refuses that fetch and an unlooked-up answer reading as a good one is worse than
-no verdict. `tools/test/userscript-stubs.test.mjs` holds the manifest to the
+no verdict. `node/test/userscript-stubs.test.mjs` holds the manifest to the
 body and the stamp to the file it was computed from, and holds the stub and its
 bookmarklet twin to one address. A body must define `window.wt<Lib>` and do nothing on load;
 the stub calls it, so one body serves both routes.

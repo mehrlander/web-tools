@@ -1,0 +1,698 @@
+// lib/kits/estate-search.js — the shared search core: the per-(repo, ref) tree
+// cache with its failure backoff (a failed fetch is remembered briefly, never
+// cached as an empty tree), file-name search across repos with per-repo error
+// reporting, the code-search call's shape (scope qualifier, text-match
+// fragments), the session grep over what a record quotes, and reset. Driven
+// over a fake GH; no network, no pixels, no Alpine.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { makeWindow, startAlpine } from './bootstrap.mjs';
+
+const REGISTRY = 'me/registry';
+// The chat archive is a SECOND store this kit reads, through kits/chat-archive.js
+// rather than directly: that kit owns the shard memo, so the lane here adds no
+// cache and the test can prove the memo by counting reads.
+const ARCHIVE = 'me/chats';
+
+let FILES = {};    // registry "<path>" -> parsed JSON
+let CHAT_FILES = {};   // archive "<path>" -> parsed JSON; absent -> 404
+let CHAT_READS = [];   // every archive path actually fetched
+// "<repo>@<ref>" -> blob entries, each a path or a { path, size }; absent ->
+// the fetch throws. The two forms exist because the trees API reports a blob's
+// size on the entry and most of these tests do not care what it is.
+let TREES = {};
+let SEARCH = null; // response served for /search/code
+// The two knobs the code lane's own diagnosis needs. SEARCH_REJECT stands in
+// for a browser-level rejection (status 0, no response ever seen); RATE is what
+// /rate_limit answers, or null to make that call fail too.
+let SEARCH_REJECT = null;
+let RATE = null;
+let RATE_CALLS = 0;
+let TREE_CALLS = [];
+let SESSION_GET = null;
+let READ_CALLS = [];
+
+class FakeGH {
+  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; this.token = conf.token; }
+  get headers() { return { Accept: 'application/vnd.github.v3+json' }; }
+  async get(name) {
+    READ_CALLS.push(name);
+    if (SESSION_GET && (name === 'state/sessions.json' || name.startsWith('state/sessions-index/')))
+      return SESSION_GET(this, name);
+    if (this.repo === REGISTRY && FILES[name]) return { text: JSON.stringify(FILES[name]) };
+    if (this.repo === ARCHIVE) {
+      CHAT_READS.push(name);
+      if (CHAT_FILES[name]) return { text: JSON.stringify(CHAT_FILES[name]) };
+    }
+    throw Object.assign(new Error('404'), { status: 404 });
+  }
+  async req(path) {
+    const tm = String(path).match(/^git\/trees\/([^?]+)/);
+    if (tm) {
+      const key = this.repo + '@' + decodeURIComponent(tm[1]);
+      TREE_CALLS.push(key);
+      if (TREES[key]) return {
+        tree: TREES[key].map(e => (typeof e === 'string'
+          ? { type: 'blob', path: e }
+          : { type: 'blob', path: e.path, size: e.size })),
+        truncated: false,
+      };
+      throw Object.assign(new Error('GitHub Error 404'), { status: 404 });
+    }
+    if (String(path).startsWith('/search/code')) {
+      if (SEARCH_REJECT) throw SEARCH_REJECT;
+      if (SEARCH) return SEARCH;
+    }
+    if (String(path) === '/rate_limit') {
+      RATE_CALLS++;
+      if (!RATE) throw Object.assign(new Error('Network error on GET /rate_limit: Failed to fetch'), { status: 0 });
+      return RATE;
+    }
+    throw Object.assign(new Error('404'), { status: 404 });
+  }
+}
+
+const { window } = makeWindow();
+window.TOKEN = 'tkn';
+window.GH = FakeGH;
+await startAlpine(window, [
+  'lib/alpine-bundle.js',
+  'lib/kits/closing-state.js',
+  'lib/kits/repo-sessions-cache.js',
+  'lib/kits/chat-archive.js',
+  'lib/kits/session-index.js',
+  'lib/kits/file-index.js',
+  'lib/kits/estate-search.js',
+]);
+const ES = window.EstateSearch;
+
+test('tree: one fetch per (repo, ref), then the cache answers', async () => {
+  TREES = { 'me/tools@HEAD': ['a.js', 'lib/b.js'] };
+  TREE_CALLS = [];
+  const t1 = await ES.tree('me/tools', '', 'tkn');
+  const t2 = await ES.tree('me/tools', 'HEAD', 'tkn');
+  assert.deepEqual([...t1.paths], ['a.js', 'lib/b.js']);
+  assert.equal(t1, t2);                       // '' and 'HEAD' are one key
+  assert.deepEqual(TREE_CALLS, ['me/tools@HEAD']);
+});
+
+test('tree: a failure is not cached as an empty tree, and backs off rather than hammering', async () => {
+  TREE_CALLS = [];
+  await assert.rejects(() => ES.tree('me/gone', '', 'tkn'), /GitHub Error 404/);
+  // Within the backoff window the fetch is not retried; the error says so.
+  await assert.rejects(() => ES.tree('me/gone', '', 'tkn'), /recently failed/);
+  assert.equal(TREE_CALLS.length, 1);
+});
+
+test('names: matches across repos at their own refs; an unreadable tree is reported, not fatal', async () => {
+  TREES = {
+    'me/tools@HEAD': ['lib/gh-api.js', 'README.md'],
+    'me/tools@dev':  ['lib/gh-api.js', 'lib/only-on-dev.js'],
+  };
+  const res = await ES.names({ q: 'gh-api', repos: [{ repo: 'me/tools', ref: 'dev' }], token: 'tkn' });
+  assert.deepEqual([...res.hits.map(h => h.path)], ['lib/gh-api.js']);
+  assert.equal(res.hits[0].ref, 'dev');
+  const mixed = await ES.names({
+    q: 'js', repos: [{ repo: 'me/tools', ref: 'dev' }, { repo: 'me/gone', ref: '' }], token: 'tkn' });
+  assert.equal(mixed.hits.length, 2);          // dev tree still answered
+  assert.equal(mixed.errors.length, 1);
+  assert.match(mixed.errors[0], /me\/gone/);
+});
+
+test('names: a folder scope narrows before the cap, and an empty query under one is a listing', async () => {
+  ES.reset();   // the tree cache is per-module, so an earlier test's tree would answer instead
+  TREES = {
+    'me/tools@HEAD': ['lib/kits/a.js', 'lib/kits/b.js', 'lib/gh-api.js', 'docs/kits.md', 'kits'],
+  };
+  const repos = [{ repo: 'me/tools', ref: '' }];
+  // An empty query is the listing: every path under the scope, and nothing else.
+  const listed = await ES.names({ q: '', repos, token: 'tkn', under: 'lib/kits' });
+  assert.deepEqual([...listed.hits.map(h => h.path)], ['lib/kits/a.js', 'lib/kits/b.js']);
+  // The scope is a path prefix, not a substring: 'docs/kits.md' names the same
+  // segment and is out, and the bare file 'kits' is in only as itself.
+  const bare = await ES.names({ q: '', repos, token: 'tkn', under: 'kits' });
+  assert.deepEqual([...bare.hits.map(h => h.path)], ['kits']);
+  // Slashes are forgiving, and the cap counts scoped hits rather than spending
+  // itself outside the scope.
+  const capped = await ES.names({ q: '', repos, token: 'tkn', under: '/lib/kits/', cap: 1 });
+  assert.deepEqual([...capped.hits.map(h => h.path)], ['lib/kits/a.js']);
+  assert.equal(capped.total, 2);
+  // No scope is the whole tree, unchanged.
+  assert.equal((await ES.names({ q: '', repos, token: 'tkn' })).total, 5);
+});
+
+test('level: one level of the tree, folders and files, off the same cache', async () => {
+  ES.reset();
+  TREES = { 'me/tools@HEAD': [
+    'README.md', 'lib/gh-api.js', 'lib/kits/a.js', 'lib/kits/demos/b.js', 'docs/x.md',
+  ] };
+  TREE_CALLS = [];
+  const root = await ES.level({ repo: 'me/tools', ref: '', under: '', token: 'tkn' });
+  assert.deepEqual([...root.dirs.map(d => d.name)], ['docs', 'lib']);
+  assert.deepEqual([...root.files.map(f => f.path)], ['README.md']);
+  // A folder's count is the blobs BELOW it, which is what one recursive read
+  // knows and what says whether it is worth opening.
+  assert.equal(root.dirs.find(d => d.name === 'lib').n, 3);
+
+  const lib = await ES.level({ repo: 'me/tools', ref: '', under: 'lib', token: 'tkn' });
+  assert.deepEqual([...lib.dirs.map(d => d.path)], ['lib/kits']);
+  assert.deepEqual([...lib.files.map(f => f.path)], ['lib/gh-api.js']);
+
+  const kits = await ES.level({ repo: 'me/tools', ref: '', under: '/lib/kits/', token: 'tkn' });
+  assert.deepEqual([...kits.dirs.map(d => d.name)], ['demos']);
+  assert.deepEqual([...kits.files.map(f => f.path)], ['lib/kits/a.js']);
+
+  // Four levels, one fetch: descending is free after the repo is read once,
+  // which is the whole reason browsing and searching share a cache.
+  assert.deepEqual(TREE_CALLS, ['me/tools@HEAD']);
+});
+
+test('sizes ride the same tree read, so a listing and a match both carry them', async () => {
+  ES.reset();
+  TREES = { 'me/tools@HEAD': [
+    { path: 'README.md', size: 512 },
+    { path: 'lib/gh-api.js', size: 9001 },
+    'lib/no-size.js',                       // an entry the API answered without one
+  ] };
+  TREE_CALLS = [];
+
+  const t = await ES.tree('me/tools', '', 'tkn');
+  assert.equal(t.sizes['lib/gh-api.js'], 9001);
+  assert.equal(t.sizes['lib/no-size.js'], undefined);
+
+  // The browse lane: a file row carries its own size, a folder row does not.
+  const root = await ES.level({ repo: 'me/tools', ref: '', under: '', token: 'tkn' });
+  assert.deepEqual([...root.files.map(f => [f.path, f.size])], [['README.md', 512]]);
+  assert.equal('size' in root.dirs[0], false);
+  const lib = await ES.level({ repo: 'me/tools', ref: '', under: 'lib', token: 'tkn' });
+  assert.deepEqual([...lib.files.map(f => f.size)], [9001, undefined]);
+
+  // The search lane: same number, same cache, no second fetch for any of it.
+  const res = await ES.names({ q: 'gh-api', repos: [{ repo: 'me/tools', ref: '' }], token: 'tkn' });
+  assert.equal(res.hits[0].size, 9001);
+  assert.deepEqual(TREE_CALLS, ['me/tools@HEAD']);
+});
+
+test('code: scope rides the query, fragments become clipped snippets', async () => {
+  SEARCH = { total_count: 1, items: [{
+    path: 'lib/x.js', repository: { full_name: 'me/tools' },
+    text_matches: [{ fragment: 'the needle sits here in the haystack of a longer line' }],
+  }] };
+  const res = await ES.code({ q: 'needle', scope: 'user:me', token: 'tkn' });
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].path, 'lib/x.js');
+  assert.match(res.hits[0].frag, /needle sits here/);
+});
+
+// ── The code lane's diagnosis ────────────────────────────────────────────────
+//
+// A rejected fetch is the browser refusing to hand the response over, so the
+// page never sees a status and gh-api can only report "Failed to fetch". These
+// hold the second call that turns that into a reading. `status: 0` is the
+// signal, set by gh-api on exactly that path.
+const REJECTED = () => Object.assign(
+  new Error('Network error on GET /search/code?q=x: Failed to fetch'), { status: 0 });
+const budget = (remaining, limit = 10, inSecs = 42) => ({
+  resources: { code_search: { limit, remaining, reset: Math.round(Date.now() / 1000) + inSecs } },
+});
+
+test('code: a spent code-search limit is named, with the seconds until it resets', async () => {
+  SEARCH_REJECT = REJECTED(); RATE = budget(0); RATE_CALLS = 0;
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
+    assert.match(e.message, /Code search is rate limited: 0 of 10 left, resets in 4[12]s\./);
+    assert.equal(e.status, 0);
+    assert.match(e.cause.message, /Failed to fetch/, 'the browser\'s own words are kept underneath');
+    return true;
+  });
+  assert.equal(RATE_CALLS, 1, 'one extra call, and only on a rejection');
+});
+
+test('code: budget left means the refusal was not the limit, and says so', async () => {
+  SEARCH_REJECT = REJECTED(); RATE = budget(9);
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
+    assert.match(e.message, /Not the rate limit: 9 of 10 left/);
+    assert.match(e.message, /repo scope/, 'and names the thing left to check');
+    return true;
+  });
+});
+
+test('code: when /rate_limit fails too, the unreachable host is named as that', async () => {
+  SEARCH_REJECT = REJECTED(); RATE = null;
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
+    // All three outcomes have to be TOLD APART by their wording. Passing the
+    // original through here read exactly like the un-diagnosed behaviour, so a
+    // reader could not tell whether the second call had run.
+    assert.match(e.message, /could not be reached at all/);
+    assert.doesNotMatch(e.message, /Failed to fetch/,
+      'the browser\'s words are the cause, not the message');
+    assert.match(e.cause.message, /Failed to fetch/, 'and they are still on the cause');
+    return true;
+  });
+});
+
+test('code: a GitHub answer speaks for itself and costs no second call', async () => {
+  SEARCH_REJECT = Object.assign(new Error('GitHub Error 422: Validation Failed'), { status: 422 });
+  RATE = budget(0); RATE_CALLS = 0;
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }),
+    /GitHub Error 422: Validation Failed/);
+  assert.equal(RATE_CALLS, 0, 'a status means the page saw the response; there is nothing to diagnose');
+  SEARCH_REJECT = null;
+});
+
+test('sessions: what was SAID is answered from the index, newest first', async () => {
+  // The store is not read at all any more. The shards are, one per month, and
+  // they are built by the same kit the crawl builds them with, so this drives
+  // the real encoder rather than a transcription of it.
+  const X = window.SessionIndex;
+  FILES = {
+    'state/sessions.json': { rows: [
+      { id: 'aaaa1111', day: '2026-08-02' },
+      { id: 'bbbb2222', day: '2026-08-05' },
+    ] },
+    'state/sessions-index/2026-08.json': X.buildShard({
+      aaaa1111: X.tokens('about the wayback urls'),
+      bbbb2222: X.tokens('other · wayback again please'),
+    }),
+  };
+  const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...res.hits.map(h => h.id)], ['bbbb2222', 'aaaa1111']);
+  assert.equal(res.indexed, 1, 'one shard answered');
+  // Nothing to quote when the conversation is what matched: the index holds
+  // terms, not text.
+  assert.equal(res.hits[0].frag, 'said in the conversation');
+  // The shard is cached: a changed registry answers the same until reset.
+  FILES['state/sessions-index/2026-08.json'] = X.buildShard({ aaaa1111: X.tokens('edited away') });
+  assert.equal((await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' })).hits.length, 2);
+  ES.reset();
+  assert.deepEqual([...(await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' })).hits.map(h => h.id)], []);
+});
+
+test('sessions: a substring reaches inside a term, which whole words cannot', async () => {
+  ES.reset();
+  const X = window.SessionIndex;
+  FILES = {
+    'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02' }] },
+    'state/sessions-index/2026-08.json': X.buildShard({
+      aaaa1111: X.tokens('touched lib/kits/estate-search.js today'),
+    }),
+  };
+  // `search.js` is not a whole term here; it lives inside the path. The lane
+  // scans the dictionary for it, which is the rule the index is exact under.
+  for (const q of ['search.js', 'estate-search', 'lib/kits', 'ESTATE']) {
+    ES.reset();
+    assert.deepEqual([...(await ES.sessions({ q, registry: REGISTRY, token: 'tkn' })).hits.map(h => h.id)],
+                     ['aaaa1111'], `should find: ${q}`);
+  }
+});
+
+test('sessions: a month with no shard is reported, not counted as searched', async () => {
+  ES.reset();
+  FILES = { 'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02' }] } };
+  const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.indexed, 0, 'no shard answered, and the caller has to be able to see that');
+  assert.equal(res.months, 1);
+  assert.equal(res.hits.length, 0);
+  assert.deepEqual([...res.missing], ['2026-08']);
+  FILES['state/sessions-index/2026-08.json'] = window.SessionIndex.buildShard({
+    aaaa1111: window.SessionIndex.tokens('wayback is available now'),
+  });
+  const retried = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.equal(retried.indexed, 1, 'the failed month retries without a reset');
+  assert.deepEqual([...retried.missing], []);
+  assert.deepEqual([...retried.hits.map(h => h.id)], ['aaaa1111']);
+});
+
+const deferred = () => {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+};
+const sessionJson = value => ({ text: JSON.stringify(value) });
+
+test('sessions: concurrent questions share cold row and shard reads', async () => {
+  ES.reset();
+  const rows = deferred(), shard = deferred(), startedShard = deferred();
+  const calls = [];
+  SESSION_GET = async (_gh, name) => {
+    calls.push(name);
+    if (name === 'state/sessions.json') {
+      await rows.promise;
+      return sessionJson({ rows: [{ id: 'aaaa1111', day: '2026-08-02' }] });
+    }
+    startedShard.resolve();
+    await shard.promise;
+    return sessionJson(window.SessionIndex.buildShard({ aaaa1111: window.SessionIndex.tokens('cobalt orchard') }));
+  };
+  try {
+    const a = ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    const b = ES.sessions({ q: 'orchard', registry: REGISTRY, token: 'tkn' });
+    assert.equal(calls.filter(p => p === 'state/sessions.json').length, 1);
+    rows.resolve();
+    await startedShard.promise;
+    assert.equal(calls.filter(p => p.startsWith('state/sessions-index/')).length, 1);
+    shard.resolve();
+    const answers = await Promise.all([a, b]);
+    for (const answer of answers) {
+      assert.deepEqual([...answer.hits.map(h => h.id)], ['aaaa1111']);
+      assert.equal(answer.hits[0].onRow, false);
+      assert.equal(answer.hits[0].onDiscussion, true);
+    }
+    assert.equal(calls.length, 2, 'neither caller fetches full session records');
+  } finally { rows.resolve(); shard.resolve(); SESSION_GET = null; }
+});
+
+test('sessions: a failed month leaves successful matches usable and retries only the gap', async () => {
+  ES.reset();
+  const calls = [];
+  let available = false;
+  SESSION_GET = async (_gh, name) => {
+    calls.push(name);
+    if (name === 'state/sessions.json') return sessionJson({ rows: [
+      { id: 'aaaa1111', day: '2026-08-02' }, { id: 'bbbb2222', day: '2026-09-02' },
+    ] });
+    if (name.endsWith('2026-08.json') && !available) throw new Error('temporary shard failure');
+    const id = name.endsWith('2026-08.json') ? 'aaaa1111' : 'bbbb2222';
+    return sessionJson(window.SessionIndex.buildShard({ [id]: window.SessionIndex.tokens('cobalt') }));
+  };
+  try {
+    const first = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...first.hits.map(h => h.id)], ['bbbb2222']);
+    assert.deepEqual([...first.missing], ['2026-08']);
+    assert.equal(first.indexed, 1); assert.equal(first.months, 2);
+    available = true;
+    const second = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...second.hits.map(h => h.id)], ['bbbb2222', 'aaaa1111']);
+    assert.deepEqual([...second.missing], []);
+    assert.equal(calls.filter(p => p.endsWith('2026-08.json')).length, 2);
+    assert.equal(calls.filter(p => p.endsWith('2026-09.json')).length, 1);
+  } finally { SESSION_GET = null; }
+});
+
+test('sessions: changing registry or credential cannot reuse another identity\'s rows', async () => {
+  ES.reset();
+  const calls = [];
+  SESSION_GET = async (gh, name) => {
+    calls.push([gh.repo, gh.token, name]);
+    const id = gh.repo === 'other/registry' ? 'bbbb2222' : gh.token === 'credential-two' ? 'cccc3333' : 'aaaa1111';
+    return sessionJson(name === 'state/sessions.json'
+      ? { rows: [{ id, day: '2026-08-02', title: 'Shared lookup' }] }
+      : window.SessionIndex.buildShard({ [id]: window.SessionIndex.tokens('shared lookup') }));
+  };
+  try {
+    for (const [registry, token, expected] of [
+      [REGISTRY, 'credential-one', 'aaaa1111'],
+      ['other/registry', 'credential-one', 'bbbb2222'],
+      [REGISTRY, 'credential-two', 'cccc3333'],
+    ]) {
+      const res = await ES.sessions({ q: 'shared', registry, token });
+      assert.deepEqual([...res.hits.map(h => h.id)], [expected]);
+    }
+    await ES.sessions({ q: 'lookup', registry: REGISTRY, token: 'credential-two' });
+    assert.equal(calls.length, 6, 'the unchanged current identity still uses its cache');
+    assert.doesNotMatch(JSON.stringify(ES.stats()), /credential|other\/registry/);
+  } finally { SESSION_GET = null; }
+});
+
+test('sessions: reset detaches rows and shards still loading in the previous cache', async () => {
+  ES.reset();
+  const oldRows = deferred(), oldShard = deferred(), oldShardStarted = deferred();
+  let generation = 0, rowCalls = 0;
+  SESSION_GET = async (_gh, name) => {
+    const old = generation === 0;
+    if (name === 'state/sessions.json') {
+      rowCalls++;
+      if (old) await oldRows.promise;
+      return sessionJson({ rows: old
+        ? [{ id: 'aaaa1111', day: '2026-08-02' }]
+        : [{ id: 'bbbb2222', day: '2026-08-02' }, { id: 'cccc3333', day: '2026-08-03' }] });
+    }
+    if (old) { oldShardStarted.resolve(); await oldShard.promise; }
+    return sessionJson(window.SessionIndex.buildShard(old
+      ? { aaaa1111: window.SessionIndex.tokens('cobalt old') }
+      : { bbbb2222: window.SessionIndex.tokens('cobalt new'), cccc3333: window.SessionIndex.tokens('cobalt new') }));
+  };
+  try {
+    const old = ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    oldRows.resolve();
+    await oldShardStarted.promise;
+    ES.reset(); generation = 1;
+    const fresh = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...fresh.hits.map(h => h.id)], ['cccc3333', 'bbbb2222']);
+    oldShard.resolve(); await old;
+    const again = await ES.sessions({ q: 'cobalt', registry: REGISTRY, token: 'tkn' });
+    assert.deepEqual([...again.hits.map(h => h.id)], ['cccc3333', 'bbbb2222']);
+    assert.equal(ES.stats().rows, 2);
+    assert.equal(ES.stats().shards, 1);
+    assert.equal(rowCalls, 2, 'the stale completion neither replaces nor invalidates the fresh cache');
+  } finally { oldRows.resolve(); oldShard.resolve(); SESSION_GET = null; }
+});
+
+test('sessions: the row is searched beside the index, and the hit says which answered', async () => {
+  ES.reset();
+  const X = window.SessionIndex;
+  FILES = {
+    'state/sessions.json': { titlesAt: '2026-08-04', rows: [
+      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'],
+        title: 'FAB naming convention' },
+    ] },
+    'state/sessions-index/2026-08.json': X.buildShard({ aaaa1111: X.tokens('about the app button') }),
+  };
+  // The title as it was read in the sidebar, which the slug cannot reach:
+  // "convention" is the word the branch name truncated away.
+  const byTitle = await ES.sessions({ q: 'naming convention', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...byTitle.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(byTitle.hits[0].frag, /^title:/);
+  assert.equal(byTitle.hits[0].onRow, true);
+  assert.equal(byTitle.hits[0].onDiscussion, false);
+  assert.equal(byTitle.hits[0].title, 'FAB naming convention');
+  assert.match(byTitle.hits[0].matchNote, /^title:/);
+  // Both spellings of the name still answer, which is the promise the retired
+  // nameSegs carried and RepoSessionsCache.searchSegs carries now. Which
+  // segment gets QUOTED follows searchSegs' own order, title before name, so
+  // the spaced query quotes the title that holds both words and the slug
+  // quotes the name, which is the only segment that holds a hyphen.
+  const spaced = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...spaced.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(spaced.hits[0].frag, /^title:/);
+  const slug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...slug.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(slug.hits[0].frag, /^name:/);
+  // And the conversation still answers on its own, through the index.
+  const said = await ES.sessions({ q: 'app button', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...said.hits.map(h => h.id)], ['aaaa1111']);
+  assert.equal(said.hits[0].onRow, false);
+  assert.equal(said.hits[0].onDiscussion, true);
+  assert.equal(said.hits[0].matchNote, '');
+  assert.equal(said.hits[0].frag, 'said in the conversation');
+});
+
+test('sessions: a match on what was said beats the name to the note line', async () => {
+  ES.reset();
+  FILES = {
+    'state/sessions.json': { rows: [
+      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/wayback-urls-todqvq'] },
+    ] },
+    'sessions/2026/08/2026-08-02-aaaa1111.json':
+      { day: '2026-08-02', opening_ask: 'about the wayback urls', prompts: [], last_message: '' },
+  };
+  const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.hits.length, 1);
+  assert.doesNotMatch(res.hits[0].frag, /session name:/);
+});
+
+test('sessions: terms in separate metadata fields do not pretend to be a quoted passage', async () => {
+  ES.reset();
+  FILES = { 'state/sessions.json': { rows: [
+    { id: 'aaaa1111', day: '2026-08-02', title: 'Cobalt project', files: [['orchard.txt', 1]] },
+  ] } };
+  const res = await ES.sessions({ q: 'cobalt orchard', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.hits.length, 1);
+  assert.equal(res.hits[0].onRow, true);
+  assert.equal(res.hits[0].onDiscussion, false);
+  assert.equal(res.hits[0].matchNote, 'Session details match');
+});
+
+test('sessions: joined Activity matches apply only to the requested call and known rows', async () => {
+  ES.reset(); READ_CALLS = [];
+  FILES = {
+    'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02', title: 'A plain session' }] },
+    'state/sessions-index/2026-08.json': window.SessionIndex.buildShard({
+      aaaa1111: window.SessionIndex.tokens('ordinary recorded prose'),
+    }),
+  };
+  const args = { q: 'joined-branch', registry: REGISTRY, token: 'tkn' };
+  assert.equal((await ES.sessions(args)).hits.length, 0);
+  const included = await ES.sessions({ ...args, includeIds: ['aaaa1111', 'not-a-known-row'] });
+  assert.deepEqual([...included.hits.map(h => h.id)], ['aaaa1111']);
+  assert.equal(included.hits[0].onActivity, true);
+  assert.equal(included.hits[0].onRow, false);
+  assert.equal(included.hits[0].onDiscussion, false);
+  assert.equal(included.hits[0].matchNote, 'Activity details match');
+  assert.equal((await ES.sessions(args)).hits.length, 0, 'the included match never enters the ordinary cache');
+  assert.deepEqual(READ_CALLS, ['state/sessions.json', 'state/sessions-index/2026-08.json'],
+    'all three calls share row and shard reads, with no full-record fetch');
+});
+
+test('clip: one line of context around the first case-insensitive hit', () => {
+  const long = 'x'.repeat(100) + ' the NEEDLE appears ' + 'y'.repeat(100);
+  const c = ES.clip(long, 'needle');
+  assert.match(c, /^…/);
+  assert.match(c, /NEEDLE appears/);
+  assert.ok(c.length < 130);
+});
+
+test('code: the three rejection outcomes are told apart by their wording', async () => {
+  // The rule the pass-through broke. A diagnosis whose outcomes read alike is
+  // not a diagnosis: the reader cannot tell which of the three happened, and
+  // one of them is indistinguishable from no diagnosis at all.
+  const said = async (rate) => {
+    SEARCH_REJECT = REJECTED(); RATE = rate;
+    try { await ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }); return '(no error)'; }
+    catch (e) { return e.message; }
+  };
+  const msgs = [await said(null), await said(budget(0)), await said(budget(9))];
+  assert.equal(new Set(msgs).size, 3, 'each outcome must read differently:\n  ' + msgs.join('\n  '));
+  // And none of them may be the browser's own words, which say nothing.
+  for (const m of msgs) assert.doesNotMatch(m, /^Network error on GET/);
+  SEARCH_REJECT = null;
+});
+
+// ── The chats lane ──────────────────────────────────────────────────────────
+// The sessions lane's opposite number: it matches what a SUMMARY says about a
+// chat rather than what a record quotes, so it reads about 10 MB of monthly
+// catalog shards instead of the whole record store. What is worth holding is
+// the economy (the frontier is the spine, shards are read once, a month with no
+// shard is reported rather than thrown) and the labelling that lets a hit say
+// which field answered.
+
+const A_FRONTIER = {
+  archived_through: '2026-07-06',
+  providers: {
+    Claude:  { frontier: '2026-07-06', chats: 3, months: ['2026-06', '2026-07'], snapshots: ['2026-06-01'] },
+    ChatGPT: { frontier: '2026-05-30', chats: 1, months: ['2026-05'], snapshots: ['2026-07-06'] },
+  },
+};
+const CLAUDE_URL = 'https://claude.ai/chat/aaaaaaaa-0000-0000-0000-000000000001';
+const GEMINI_URL = 'gemini-session/341';
+
+function seedArchive() {
+  CHAT_FILES = {
+    'annotations/catalog/frontier.json': A_FRONTIER,
+    // July has only the hand layer, June only the machine layer: most months
+    // carry exactly one, which is why a 404 on either is normal.
+    'annotations/catalog/by-month/2026-07.json': [
+      { url: CLAUDE_URL, date: '2026-07-02', title: 'Packing a bookmarklet with gzip',
+        summary: 'A base64url envelope so the payload rides in the fragment.',
+        tags: ['bookmarklets', 'compression'] },
+    ],
+    'annotations/summaries/by-month/2026-06.json': [
+      { url: GEMINI_URL, date: '2026-06-11', title: 'Allotment schedule walkthrough',
+        summary: 'Worked through the allotment packet by fund.', tags: ['wa-budget'] },
+    ],
+    // 2026-05 is named by the frontier and has NEITHER layer: a hole in the
+    // archive, which the lane reports beside the hits.
+  };
+  CHAT_READS = [];
+}
+
+test('chats: the frontier is the spine, and every month it names is read', async () => {
+  seedArchive();
+  const res = await ES.chats({ q: 'gzip', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.months, 3, 'three months on the spine, deduped across providers');
+  // Spread into this realm's Array: startAlpine evaluates the kit in a vm
+  // context, so its arrays are structurally equal and not reference-equal.
+  assert.deepEqual([...res.missing], ['2026-05']);
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].title, 'Packing a bookmarklet with gzip');
+  assert.equal(res.hits[0].provider, 'claude');
+  assert.equal(res.hits[0].open, CLAUDE_URL);
+  // The frontier plus two shards per month; the missing month costs two 404s.
+  assert.ok(CHAT_READS.includes('annotations/catalog/frontier.json'));
+});
+
+test('chats: a shard is read once, so a second query costs nothing', async () => {
+  const before = CHAT_READS.length;
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].title, 'Allotment schedule walkthrough');
+  // chat-archive memoizes the merged month, so nothing new was fetched. Only
+  // the month with no shard at all is re-attempted, since a failed read is
+  // never memoized as an empty month.
+  const fresh = CHAT_READS.slice(before);
+  assert.ok(fresh.every(p => p.includes('2026-05')), `unexpected refetch: ${fresh.join(', ')}`);
+});
+
+test('chats: a Gemini row is a hit with no address, not a dead link', async () => {
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.hits[0].url, GEMINI_URL);
+  assert.equal(res.hits[0].open, '', 'Takeout keeps no per-conversation URL');
+});
+
+test('chats: the quoted fragment says which field answered', async () => {
+  const byTag = await ES.chats({ q: 'wa-budget', repo: ARCHIVE, token: 'tkn' });
+  assert.match(byTag.hits[0].frag, /^tags:/);
+  const byTitle = await ES.chats({ q: 'bookmarklet', repo: ARCHIVE, token: 'tkn' });
+  assert.match(byTitle.hits[0].frag, /^title:/);
+  const bySummary = await ES.chats({ q: 'base64url', repo: ARCHIVE, token: 'tkn' });
+  assert.match(bySummary.hits[0].frag, /^summary:/);
+});
+
+test('chats: progress counts shards, so a long read can say how far along it is', async () => {
+  seedArchive();
+  window.chatArchive.forget();
+  const seen = [];
+  await ES.chats({ q: 'gzip', repo: ARCHIVE, token: 'tkn', onProgress: (p) => seen.push(p) });
+  assert.equal(seen.length, 3);
+  assert.deepEqual([...seen.map(p => p.done)], [1, 2, 3]);
+  assert.ok(seen.every(p => p.total === 3));
+});
+
+test('chats: months caps the walk from the newest end', async () => {
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn', months: 1 });
+  assert.equal(res.months, 1);
+  assert.equal(res.total, 0, 'June holds the hit and only July was read');
+});
+
+test('chats: without the archive kit the lane says so rather than answering empty', async () => {
+  const kit = window.chatArchive;
+  delete window.chatArchive;
+  try {
+    await assert.rejects(() => ES.chats({ q: 'x', repo: ARCHIVE, token: 'tkn' }),
+      /chat archive kit has not loaded/);
+  } finally { window.chatArchive = kit; }
+});
+
+// ── The file-name index (state/files.json) ─────────────────────────────────
+
+test('indexNames: one read of the registry index answers every repo, scoped to the members asked for', async () => {
+  ES.reset();
+  FILES['state/files.json'] = { generatedAt: '2026-10-01T00:00:00Z', repos: {
+    'me/wt': { sha: '1', dirs: { 'data/design': ['content.csv'] } },
+    'me/priv': { sha: '2', dirs: { '': ['DESIGN.md', 'README.md'] } },
+    'me/hidden': { sha: '3', dirs: { '': ['design.txt'] } },
+  } };
+  TREE_CALLS = [];
+  const res = await ES.indexNames({ q: 'design', registry: REGISTRY, token: 'tkn', repos: ['me/wt', 'me/priv'] });
+  // Joined: the hits come back from the jsdom realm, whose arrays fail a
+  // strict deepEqual on the prototype alone.
+  assert.equal(res.hits.map(h => h.repo + ':' + h.path).join(' '), 'me/priv:DESIGN.md me/wt:data/design/content.csv');
+  assert.equal(res.total, 2);
+  assert.equal(res.at, '2026-10-01T00:00:00Z');
+  assert.equal(TREE_CALLS.length, 0, 'no tree read: the index is the answer');
+  assert.equal(ES.stats().fileIndex, true);
+  delete FILES['state/files.json'];
+});
+
+test('indexNames: a registry with no index answers null, so the caller falls back to tree reads', async () => {
+  ES.reset();
+  assert.equal(await ES.indexNames({ q: 'design', registry: REGISTRY, token: 'tkn' }), null);
+  assert.equal(await ES.fileIndex({ registry: REGISTRY, token: 'tkn' }), null);
+});
+
+test('setFileIndex: what the crawl wrote is what the next search reads', async () => {
+  ES.reset();
+  ES.setFileIndex({ repos: { 'me/a': { sha: '9', dirs: { '': ['fresh.md'] } } } });
+  const res = await ES.indexNames({ q: 'fresh', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.hits.map(h => h.path).join(' '), 'fresh.md');
+});

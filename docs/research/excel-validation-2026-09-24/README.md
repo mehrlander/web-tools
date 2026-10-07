@@ -1,5 +1,7 @@
 # Native Excel validation research, September 24, 2026
 
+**October 7 status correction:** [PR 792 merged on September 30](https://github.com/mehrlander/web-tools/pull/792). The [dated status update](../excel-chart-review-2026-09-25/README.md#status-correction-october-7-2026) distinguishes the merged chart and PivotTable corrections from the historical findings below. The original specimen, source records, and downloadable archive remain unchanged; their defects and renderer observations are not assertions about current main.
+
 This research accompanies [PR 791](https://github.com/mehrlander/web-tools/pull/791). It records native Excel inspection, controlled chart creation and export, the browser viewer's behavior, actual workbook downloads, and a prototype that serves Excel-rendered chart images with their workbook.
 
 The browser experiments used revision `5109699ac5eea3ca510947859ff9e5cb3980676e`. PR 791 subsequently merged with a different final head. These observations describe the tested revision and retained fixtures; they do not certify the later merge or current viewer.

@@ -1,52 +1,33 @@
-# skills — Marcus's personal skill library
+# skills
 
-Static resource. **Not a registered skill folder.** Sits at `web-tools/skills/`, not `web-tools/.claude/skills/`, deliberately: putting anything here under `.claude/skills/` would register it as an auto-fire skill in every web-tools session, which is exactly what the library-load model exists to avoid.
+The source of the `portable` plugin: one folder per skill, plus the plugin's
+hooks in `hooks/`. The plugin registers every skill that
+[`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) lists,
+as `/portable:<name>`, in every session that installs it.
 
-## Two roles this repo plays
+`manifest.csv` has one row per skill: `name`, `group`, and the `description`
+its `SKILL.md` carries. Each folder's `SKILL.md` is the skill; companion files
+(`scripts/`, `references/`, `assets/`) sit beside it.
 
-| Path | Role | What Claude sees at session start |
-|---|---|---|
-| `web-tools/.claude/skills/&lt;name&gt;/SKILL.md` | Registered skill | Available and matchable via description |
-| `web-tools/skills/&lt;name&gt;/SKILL.md` | Library resource | Not registered anywhere; fetched on demand |
+Without the plugin, `/load-skill` fetches a skill by URL from
+`https://raw.githubusercontent.com/mehrlander/web-tools/main/skills`.
 
-Every `SKILL.md`-bearing directory under `.claude/skills/` is registered when
-this checkout is the project. The portable plugin explicitly registers the same
-16 directories in [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)
-and exposes them under `/portable:<name>`. Everything under `skills/` remains
-library content that the `load-skill` mechanism can pull in.
+## Editing
 
-**Promoted out of this library:** `apple-shortcuts-actions` now lives at
-[`.claude/skills/apple-shortcuts-actions/`](../.claude/skills/apple-shortcuts-actions/)
-and ships with the portable plugin (`/portable:apple-shortcuts-actions`). It is
-no longer a library fetch target.
+Edit a skill in place. A session picks up the change at its next start, when the
+plugin's refresher moves to `main`.
 
-**One exception, and the marketplace declares it.** A library skill can also be published as its own plugin in [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json). A repo that enables that plugin gets the skill ambient: model-invocable, firing on matching work without being asked. Nothing moves into this repo's own `.claude/skills/`, so the library-load model here is unchanged, and the marketplace file is the only list of which skills are promoted that way.
+**A copy uploaded to claude.ai is not updated by edits here**, and in a session
+that has both, either copy may fire. Re-upload after editing, or delete the
+upload.
 
-## The library
-
-`manifest.csv` lists every available skill. Each entry has:
-
-- `name`: the slug that matches the folder name (`arriving-together`, `xlsx`, etc.)
-- `description`: the same description text the skill's own `SKILL.md` carries in its frontmatter, provided so consumers can decide relevance without fetching every body.
-
-The `SKILL.md` inside each folder is the canonical body of the skill. Companion files (`scripts/`, `references/`, `assets/`) live at sibling paths under the same folder.
-
-## How this gets loaded
-
-Via the `load-skill` mechanism at `.claude/skills/load-skill/SKILL.md`. Given a skill name, `load-skill` resolves to `<source>/<name>/SKILL.md` and fetches. `<source>` defaults to `https://raw.githubusercontent.com/mehrlander/web-tools/main/skills`; a caller can pass another source URL to pull from a different published library.
-
-Trigger phrases live in the `load-skill` skill's description. Only fire on explicit signals: `"load skill X"`, `"load-skill X"`, `"/load-skill X"`, `"fetch the X skill"`, `"load my X skill"`. Never on general topic overlap. The library is opt-in per session, not opportunistic.
-
-## Editing skills
-
-Skill bodies are edited in place here. Any repo that loads them picks up the change on next fetch: the URL always points at `main`. No target repo needs to be updated when a body changes.
-
-**That holds for `/load-skill` and not for an account-level install.** A skill also installed at claude.ai account scope has a second copy this library does not reach, and that copy is the one that fires unprompted, while the library's is fetched deliberately. Editing here therefore leaves the stale version in charge. Either drop the account copy and let `/load-skill` be the only route, or re-upload after every edit. Measured 2026-08-10: `apple-shortcuts-actions` was rewritten in the library while the account copy went on triggering on a renamed shortcut and a superseded payload format. That skill has since been promoted into the portable plugin (see above), so the library is no longer its home.
-
-Adding a new skill: create `web-tools/skills/<name>/SKILL.md` with the standard YAML frontmatter (`name`, `description`), then add an entry to `manifest.csv`. That's it. Callers see the new skill on their next manifest fetch.
-
-Removing a skill: delete its folder and remove its manifest entry. Consumers that had already resolved a URL to it will fail on next fetch; that's the intended failure mode.
-
-## Snapshot lineage
-
-The initial population of this library on 2026-07-10 mirrors the set that lived at Marcus's claude.ai account skills at that date. An earlier snapshot of the same set lived in the home repo at `me/claude-skills/` (dated 2026-07-07) and was removed the day this library landed. Going forward, this folder is the source of truth.
+**Adding a skill** takes four entries: the folder with its `SKILL.md`
+(frontmatter `name` and `description`), a row in `manifest.csv`, its path in the
+`portable` roster in `marketplace.json`, and a row in `docs/portable.csv` with
+`kind` `skill` and `use` `plugin`.
+`node/test/portable-manifest.test.mjs` and `node/test/skills-registry.test.mjs`
+fail until they agree. Every skill's description costs context in every session,
+so add one only when it earns that. **Removing a skill** takes the same four
+entries out; `node/test/plugin-skill-refs.test.mjs` then fails on any skill that
+still names it. Search `docs/` and the consumer repos for other mentions, and
+delete any claude.ai upload of it.

@@ -10,9 +10,9 @@ Six envelope formats exist today, from the most general to the most specific.
 
 | Member | Contract | Renders through | Carries |
 | --- | --- | --- | --- |
-| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | show-repo's estate view; the Surfacer desktop app | a curated, annotated set of cross-repo items for any reason |
+| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | the Web Tools app's estate view; the Surfacer desktop app | a curated, annotated set of cross-repo items for any reason |
 | **Chat-results** | [`chat-results.md`](chat-results.md) | [`pages/chat-results.html`](../../pages/chat-results.html) | what a search over the chat archives found |
-| **Stage** | [`docs/show-repo.md`](../show-repo.md), `StageLink` | show-repo | a fileset in transit, plus authored review prompts and a mode |
+| **Stage** | [`docs/stage.md`](../stage.md), `StageLink` | the Web Tools app | a fileset in transit, plus authored review prompts and a mode |
 | **Data view** | [`data-view.md`](data-view.md) | [`pages/data-view.html`](../../pages/data-view.html) | data itself: a CSV, a JSON array, a log, or several of them with a view each |
 | **Shorter** | [`shorter.md`](shorter.md) | [`pages/shorter.html`](../../pages/shorter.html) | a document and, optionally, a shortening of it to adjudicate against it |
 | **Workbook extract** | [`workbook-extract.md`](workbook-extract.md) + [`schemas/workbook-extract-v2.schema.json`](schemas/workbook-extract-v2.schema.json) | [`pages/data-view.html`](../../pages/data-view.html) | selected sheet readings and individual workbook objects, with provenance |

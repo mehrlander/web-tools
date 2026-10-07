@@ -10,9 +10,7 @@
   // The chain boot, then the trio: dictate is the composer's voice buffer and
   // peek is the card's DOM reading, both read at the point of use, both before
   // annotate so its card never mounts deciding it has neither.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/dictate.js');
   await gh.load('kits/peek.js');
   await gh.load('kits/annotate.js');

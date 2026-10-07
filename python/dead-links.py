@@ -1,0 +1,409 @@
+#!/usr/bin/env python3
+"""Report markdown links that no longer resolve, in three classes.
+
+  internal    a link to another file in the same repo
+  cross-repo  a relative path that escapes the repo root into a sibling
+              checkout (../../budget-wa/...). It never resolves on github.com
+              and resolves locally only when that checkout happens to be there
+  github      an owner URL at main whose path is gone, in either form:
+              github.com/OWNER/REPO/blob|tree/main/... or
+              raw.githubusercontent.com/OWNER/REPO/main/...
+  skill       a living instruction file (CLAUDE.md, AGENTS.md, GEMINI.md, a
+              .claude/ skill, agent or command, and in web-tools each skill's
+              own files) naming a portable skill, as /portable:<name> or as a
+              skills/<name>/ path into web-tools, that web-tools
+              skills/manifest.csv does not list
+
+The cross-repo class is the one with no owner on either side. A store can
+reorganize without knowing who reads it, and the reader finds out only if
+someone happens to run something. mehrlander/home held 45 dead links into
+mehrlander/budget-wa across two moves of one estate, and ran broken for a day
+before an unrelated suite turned it up (2026-08-03). Both repos now run this.
+
+Nothing here is repo-specific: the root is argv, siblings are discovered rather
+than listed, and the owner is a flag. One copy serves every caller.
+
+Two findings worth keeping, because both produced confident wrong answers:
+
+  A ref can contain slashes (claude/some-branch-abc123), so a URL cannot be
+  split into ref and path without knowing the ref. Only .../main/... is
+  checkable, and a link to a branch points at a moving target anyway.
+
+  A shallow checkout cannot answer where a file went: `git log` truncates with
+  no error, so every trace reads "never existed". Claude Code web checkouts are
+  shallow. Run `git rev-parse --is-shallow-repository` before concluding a
+  target was deleted rather than renamed; see web-tools
+  docs/environment/container.md.
+
+The skill class needs no path resolution across repos, which is why it could
+ship when the census's general code-span gate (home
+chron/2026/09/2026-09-06-hand-typed-fact-census.md, gate 2) could not: a skill
+name has one authority, web-tools skills/manifest.csv. It exists because a
+retired name in an instruction file sends every session to a skill that is not
+there, and home, spend-wa, budget-wa and chat-histories all carried one until
+2026-10-07, two of them after a hand fix the day before.
+
+Verdicts are ok, dead, or unverifiable. A link into a store with no checkout is
+*unverifiable*, never dead: absence of a checkout is not evidence of a bad path,
+and a one-repo machine must not fail on it. The same holds for a skill
+reference when no web-tools manifest is on disk.
+
+Usage:
+  python3 dead-links.py [ROOT] [--owner NAME] [--cross-repo] [--check]
+
+  ROOT          repo to scan (default: cwd)
+  --owner       GitHub owner whose URLs are checkable (default: mehrlander)
+  --cross-repo  report only the cross-repo, github and skill classes
+  --check       exit 1 if any cross-repo, github or skill finding is dead;
+                implies --cross-repo. The internal class is never gated: it
+                turns on judgment this cannot supply (a target may have been
+                retired on purpose, and repointing would be guessing).
+
+The manifest resolves from ROOT when ROOT is web-tools, then from the checkout
+this script runs from (the marketplace clone or a sibling), then from a sibling
+web-tools beside ROOT. A copy fetched alone into .web-tools-scripts/ has no
+manifest beside it and falls through to the sibling.
+
+Sibling checkouts resolve by $REPO_NAME (upper, dashes to underscores), then
+$REPO_NAME_REPO, then a directory beside ROOT. A bare $HOME is never consulted:
+it is the user's home directory, and reading it marks every link into a repo
+named "home" dead.
+"""
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+LINK = re.compile(r'(?<!!)\[([^\]]*)\]\(\s*(<[^>]*>|[^)\s]+)')
+FENCE = re.compile(r'^\s*(```|~~~)')
+# Shapes that are documentation of a path, not a path: filename templates and
+# elided middles. Checking them produces noise no reader can act on. A bare `$`
+# counts, not only `${`: the bare-URL scan below reads fenced shell, where a loop
+# variable (`.../docs/$f.md`) is a template with no braces on it.
+TEMPLATE = re.compile(r'YYYY|MM/|[<>]|\$|\.\.\.')
+
+
+def strip_uncheckable(text):
+    """Blank fenced blocks, inline code, and blockquotes, preserving line numbers.
+
+    Blockquotes go because captured or quoted material carries someone else's
+    links, which this repo neither owns nor can fix.
+    """
+    out, fence = [], None
+    for line in text.split("\n"):
+        m = FENCE.match(line)
+        if fence:
+            out.append("")
+            if m and line.strip().startswith(fence):
+                fence = None
+            continue
+        if m:
+            fence = m.group(1)
+            out.append("")
+            continue
+        if line.lstrip().startswith(">"):
+            out.append("")
+            continue
+        out.append(re.sub(r'`[^`]*`', "", line))
+    return "\n".join(out)
+
+
+def sibling_root(root, name):
+    var = name.upper().replace("-", "_")
+    for key in (var, f"{var}_REPO"):
+        if key != "HOME" and os.environ.get(key):
+            return Path(os.environ[key])
+    return root.parent / name
+
+
+def store_stamp(root, name):
+    """The store's own tip, printed beside a dead verdict.
+
+    A checkout that is merely old answers as confidently as a current one, and
+    the verdict reads the same either way, so the age belongs next to it. This
+    stays local: what "current" is cannot be known without the network, and this
+    check runs offline by design.
+    """
+    base = root if name == root.name else sibling_root(root, name)
+    out = subprocess.run(["git", "-C", str(base), "log", "-1", "--format=%h %cs"],
+                         capture_output=True, text=True)
+    return out.stdout.strip() or None
+
+
+# The two URL forms that address a file in one of the owner's repos at main.
+# Both are checked the same way and reported in the same class, because the
+# failure is the same: a path that moved leaves the URL pointing at nothing.
+#
+# The raw form was uncovered until 2026-08-05. It is the form a doc reaches for
+# when the reader is a machine (curl, WebFetch) rather than a browser, so it
+# clusters in the docs most likely to be pasted into another session, and a
+# rename breaks it silently.
+#
+# Only `main` is checked, in both forms. A URL pinned to a tag or a SHA points
+# at history on purpose, and a checkout cannot speak to it.
+def _repo_url(prefix, middle):
+    return re.compile(prefix + r'/([\w.-]+)/' + middle + r'/(.*)')
+
+
+def build_patterns(owner):
+    o = re.escape(owner)
+    return (
+        _repo_url(rf'https://github\.com/{o}', r'(?:blob|tree)/main'),
+        _repo_url(rf'https://raw\.githubusercontent\.com/{o}', r'(?:refs/heads/)?main'),
+    )
+
+
+GH_URL = RAW_URL = None  # set per run by scan(), which knows the owner
+
+
+def classify(root, owner, src, target):
+    """Return (class, verdict, detail), or None when the link is not ours to check."""
+    path = target.strip("<>").split("#")[0]
+    if not path or path.startswith(("mailto:", "tel:")):
+        return None
+
+    m = GH_URL.match(path) or RAW_URL.match(path)
+    if m:
+        repo, rel = m.group(1), m.group(2)
+        base = root if repo == root.name else sibling_root(root, repo)
+        if not base.exists():
+            return ("github", "unverifiable", f"no {repo} checkout")
+        return ("github", "ok" if (base / rel).exists() else "dead", f"{repo}:{rel}")
+    if path.startswith("http"):
+        return None
+
+    resolved = (src.parent / path).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        # Escapes the repo. The first segment below the shared parent names the
+        # sibling, which is how this avoids carrying a per-repo list of stores.
+        name = None
+        try:
+            name = resolved.relative_to(root.parent).parts[0]
+        except (ValueError, IndexError):
+            pass
+        if name and not sibling_root(root, name).exists():
+            return ("cross-repo", "unverifiable", f"no {name} checkout")
+        return ("cross-repo", "ok" if resolved.exists() else "dead", path)
+    return ("internal", "ok" if resolved.exists() else "dead", path)
+
+
+def scan(root, owner):
+    global GH_URL, RAW_URL
+    GH_URL, RAW_URL = build_patterns(owner)
+    files = subprocess.run(["git", "-C", str(root), "ls-files", "*.md"],
+                           capture_output=True, text=True).stdout.split()
+    findings = []
+    for f in files:
+        p = root / f
+        try:
+            text = strip_uncheckable(p.read_text(encoding="utf-8"))
+        except (UnicodeDecodeError, OSError):
+            continue
+        for m in LINK.finditer(text):
+            if TEMPLATE.search(m.group(2)):
+                continue
+            got = classify(root, owner, p, m.group(2))
+            if not got or got[1] == "ok":
+                continue
+            findings.append((got[0], got[1], f, text[:m.start()].count("\n") + 1,
+                             m.group(1)[:44], got[2]))
+        findings.extend(bare_urls(root, owner, p))
+    return findings
+
+
+# Bare owner URLs, scanned over the ORIGINAL text: fences, inline code, and all.
+# Everything else here reads stripped text, because a fenced link is usually an
+# illustration. An owner URL at main is the exception, and not by preference: it
+# is a fetch target, so a fence is where it is most likely to be load-bearing and
+# least likely to be decorative: a copy-paste `curl` written bare inside a fence
+# is the one line that matters, and every other rule here would skip it.
+#
+# Measured 2026-08-05: 4 owner raw URLs written as markdown links (all in shipped
+# skills) plus 5 checkable bare ones. The rest carry ${ref} or <path> templates
+# and are filtered by TEMPLATE, as they should be.
+BARE_URL = re.compile(r'https://(?:raw\.githubusercontent\.com|github\.com)/[^\s)`"\'<>]+')
+
+
+def bare_urls(root, owner, src):
+    try:
+        text = src.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return []
+    out = []
+    for m in BARE_URL.finditer(text):
+        url = m.group(0).rstrip('.,;:')
+        # Already counted by the markdown-link pass.
+        if text[max(0, m.start() - 2):m.start()] == "](":
+            continue
+        if TEMPLATE.search(url):
+            continue
+        got = classify(root, owner, src, url)
+        if not got or got[1] == "ok":
+            continue
+        out.append((got[0], got[1], str(src.relative_to(root)),
+                    text[:m.start()].count("\n") + 1, "(bare url)", got[2]))
+    return out
+
+
+# The skill class. A reference counts only in a living instruction file, the
+# files a session reads as orders; a chron entry or a doc naming a retired skill
+# is a record of it. Two shapes, both unambiguous:
+#
+#   /portable:<name>   the namespaced command, read anywhere in the file,
+#                      fences and code spans included, because an instruction
+#                      to run a command is most often written as code
+#   skills/<name>/     a path into web-tools: inside any web-tools URL in any
+#                      repo, and in web-tools itself inside a code span, a
+#                      fence or a link target, never bare prose ("skills/
+#                      plugins/connectors" in setup-cowork is a sentence)
+#
+# Outside a web-tools URL, `.claude/skills/<name>/` is the scanned repo's OWN
+# skill folder, not the plugin's, and is not read as a reference to web-tools.
+# Inside one it is web-tools' pre-2026-09 skill folder, and the name is read.
+INSTRUCTION = re.compile(
+    r'(^|/)(CLAUDE|AGENTS|GEMINI)\.md$|(^|/)\.claude/(skills|agents|commands)/.+\.md$')
+WEB_TOOLS_SKILL_FILE = re.compile(r'^skills/[^/]+/.+\.md$')
+PORTABLE_REF = re.compile(r'/portable:([a-z][\w-]*)')
+SKILL_DIR = r'skills/([a-z][\w-]*)(?=/|[)\s#`]|$)'
+LOCAL_SKILL_PATH = re.compile(r'(?<!\.claude/)(?<![\w.-])' + SKILL_DIR)
+INLINE_CODE = re.compile(r'`[^`\n]*`')
+# The one folder under skills/ that is not a skill: the plugin's hooks, named as
+# such in web-tools skills/README.md. A reference to it is a path, not a skill.
+NOT_A_SKILL = {"hooks"}
+
+
+def find_manifest(root):
+    here = Path(__file__).resolve().parent.parent
+    for base in (root, here, sibling_root(root, "web-tools")):
+        m = base / "skills" / "manifest.csv"
+        if m.is_file():
+            return m
+    return None
+
+
+def manifest_names(manifest):
+    import csv
+    with manifest.open(newline="", encoding="utf-8") as fh:
+        return {row["name"] for row in csv.DictReader(fh) if row.get("name")}
+
+
+def code_spans(text):
+    """Character ranges a path may sit in: fenced blocks, inline code, link targets."""
+    spans, pos, fence = [], 0, None
+    for line in text.split("\n"):
+        m = FENCE.match(line)
+        if fence or m:
+            spans.append((pos, pos + len(line)))
+            if fence and m and line.strip().startswith(fence):
+                fence = None
+            elif not fence and m:
+                fence = m.group(1)
+        pos += len(line) + 1
+    spans += [mm.span() for mm in INLINE_CODE.finditer(text)]
+    spans += [mm.span(2) for mm in LINK.finditer(text)]
+    return spans
+
+
+def skill_refs(text, owner, in_web_tools):
+    """Yield (offset, reference, name) for every skill named by command or path."""
+    for m in PORTABLE_REF.finditer(text):
+        yield m.start(), m.group(0), m.group(1)
+    url = re.compile(rf'https://(?:github\.com|raw\.githubusercontent\.com)/'
+                     rf'{re.escape(owner)}/web-tools/[^\s)`"\'<>]+')
+    for u in url.finditer(text):
+        for m in re.finditer(r'(?<![\w.-])' + SKILL_DIR, u.group(0)):
+            yield u.start() + m.start(), m.group(0), m.group(1)
+    if in_web_tools:
+        spans = code_spans(text)
+        for m in LOCAL_SKILL_PATH.finditer(text):
+            if any(a <= m.start() < b for a, b in spans) and not url_at(text, m.start(), url):
+                yield m.start(), m.group(0), m.group(1)
+
+
+def url_at(text, offset, url):
+    """True when offset sits inside a web-tools URL, already read by the URL pass."""
+    line_start = text.rfind("\n", 0, offset) + 1
+    line_end = text.find("\n", offset)
+    line = text[line_start:line_end if line_end != -1 else None]
+    return any(a <= offset - line_start < b for a, b in (u.span() for u in url.finditer(line)))
+
+
+def scan_skills(root, owner, manifest):
+    in_web_tools = manifest is not None and manifest.parent.parent == root
+    known = manifest_names(manifest) if manifest else None
+    files = subprocess.run(["git", "-C", str(root), "ls-files", "*.md"],
+                           capture_output=True, text=True).stdout.split()
+    findings = []
+    for f in files:
+        if not (INSTRUCTION.search(f) or (in_web_tools and WEB_TOOLS_SKILL_FILE.match(f))):
+            continue
+        try:
+            text = (root / f).read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        seen = set()
+        for offset, ref, name in skill_refs(text, owner, in_web_tools):
+            line = text[:offset].count("\n") + 1
+            if (line, ref) in seen or name in NOT_A_SKILL:
+                continue
+            seen.add((line, ref))
+            if known is None:
+                findings.append(("skill", "unverifiable", f, line, ref, "no web-tools manifest"))
+            elif name not in known:
+                findings.append(("skill", "dead", f, line, ref,
+                                 f"no skill named {name} in web-tools skills/manifest.csv"))
+    return findings
+
+
+def main(argv):
+    args = [a for a in argv if not a.startswith("--")]
+    flags = [a for a in argv if a.startswith("--")]
+    owner = next((f.split("=", 1)[1] for f in flags if f.startswith("--owner=")), "mehrlander")
+    check = "--check" in flags
+    only_cross = check or "--cross-repo" in flags
+
+    root = Path(args[0] if args else ".").resolve()
+    manifest = find_manifest(root)
+    findings = scan(root, owner) + scan_skills(root, owner, manifest)
+    if only_cross:
+        findings = [x for x in findings if x[0] != "internal"]
+
+    dead = [x for x in findings if x[1] == "dead"]
+    unver = [x for x in findings if x[1] == "unverifiable"]
+    for cls in ("cross-repo", "github", "skill", "internal"):
+        rows = [x for x in dead if x[0] == cls]
+        if rows:
+            print(f"\n== {cls}: {len(rows)} dead")
+            if cls == "skill":
+                stamp = subprocess.run(
+                    ["git", "-C", str(manifest.parent), "log", "-1", "--format=%h %cs"],
+                    capture_output=True, text=True).stdout.strip()
+                print(f"   manifest {manifest}{' at ' + stamp if stamp else ''}; a "
+                      f"skill added upstream since then reads as absent here")
+            for store in sorted({d.split(":")[0] for c, *_, d in rows
+                                 if c != "skill" and ":" in d}):
+                stamp = store_stamp(root, store)
+                if stamp:
+                    print(f"   store {store} at {stamp}; a verdict is only as "
+                          f"current as the store it was read against")
+            for _, _, f, ln, label, detail in rows:
+                print(f"  {f}:{ln}  [{label}] -> {detail}")
+    if unver:
+        print(f"\n== unverifiable: {len(unver)} link(s), "
+              f"{', '.join(sorted({x[5] for x in unver}))}")
+        print("   Not evidence of a bad path. Check out the store, or set its "
+              "$REPO_NAME, and rerun.")
+    print(f"\ndead-links: {len(dead)} dead, {len(unver)} unverifiable, "
+          f"across {len(set(x[2] for x in findings))} file(s)")
+    if check and dead:
+        print("FAIL: a cross-repo link or a portable skill reference no longer "
+              "resolves", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

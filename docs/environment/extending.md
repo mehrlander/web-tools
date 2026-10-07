@@ -11,7 +11,7 @@ plugin hook:
   derived artifacts when their sources change. A merge whose combined refresh
   changes the index pauses for `git -c core.editor=true merge --continue`, so
   the final tree is written through the ordinary commit path. See the
-  [`tools/README.md`](../../tools/README.md#the-refresh-model) refresh model.
+  [`node/README.md`](../../node/README.md#the-refresh-model) refresh model.
 * A `Stop` hook carried by the `portable` plugin, which records the session where a checkout declares a store. It runs in every session that installs the plugin, not only in sessions on this repo, which is the point of putting it there. See [Stop: the session recorder](#stop-the-session-recorder) below.
 * A `SessionStart` hook, also carried by the plugin, which tells a session whose record store is *not* checked out to invoke the skill that fetches it. See [SessionStart: the sessions-store directive](#sessionstart-the-sessions-store-directive) below.
 
@@ -19,7 +19,7 @@ plugin hook:
 
 The cause is **where the session's project root sits**, which is not something this repository controls. A session can open with the repo one level *below* the root: primary working directory `/home/user`, repo at `/home/user/web-tools`, arriving as an additional directory. Claude Code then reads project settings from `/home/user/.claude/settings.json`, which does not exist, so this repo's `.claude/settings.json` is never loaded and none of its hooks are registered. Confirmed three ways: the session transcript is written to `~/.claude/projects/-home-user/`, naming the root; `/home/user/.claude/` is absent; and a probe at line 1 of the hook script never wrote its log, for a `$CLAUDE_PROJECT_DIR`-relative command and an absolute one alike. Repo-side settings edits cannot reach it, because the file holding them is the file that is not read. The tell is cheap: `ls ~/.claude/projects/` names the root the session is using.
 
-Two consequences worth carrying. Any repo whose hooks matter has to treat them as best-effort, not as a guarantee. And a silent guarantee needs a backstop that does not depend on the harness: `tools/test/derived-artifacts.test.mjs` re-runs the generators in `--check` mode inside `npm test`, so a stale artifact fails the suite wherever it is run. Regenerating by hand (`npm run build:lib`, `npm run pages-index`) after touching a source is still the fast path; the test is what makes forgetting loud.
+Two consequences worth carrying. Any repo whose hooks matter has to treat them as best-effort, not as a guarantee. And a silent guarantee needs a backstop that does not depend on the harness: `node/test/derived-artifacts.test.mjs` re-runs the generators in `--check` mode inside `npm test`, so a stale artifact fails the suite wherever it is run. Regenerating by hand (`npm run build:lib`, `npm run pages-index`) after touching a source is still the fast path; the test is what makes forgetting loud.
 
 **Resolved 2026-08-06 by leaving the harness, and made explicit 2026-09-18.** The two paragraphs above stand as the diagnosis, and the fix follows from them: a hook that must not depend on the project root should not be a Claude Code hook. Git resolves its hooks from the repository being committed to and has no notion of a session root, so the refresher moved to `.githooks/pre-commit` and the `PreToolUse` block came out of `.claude/settings.json`. The stdin JSON parse and the `git commit` gate came off with it, both being scaffolding for the event it no longer listens to.
 
@@ -77,7 +77,7 @@ MCP tool definitions consume context. Claude Code can defer loading them through
 `session-start.sh`:
 
 1. Exits unless `CLAUDE_CODE_REMOTE=true`.
-2. Calls `tools/checkout-setup.mjs --dependencies-only`.
+2. Calls `node/checkout-setup.mjs --dependencies-only`.
 3. Stays silent on success and prints the shared command's concrete failure plus
    `npm run setup` / `npm run ready` recovery on failure.
 
@@ -106,7 +106,7 @@ The remaining packages are local copies of libraries used by the pages at runtim
 
 The dependencies support:
 
-* `npm run preview <page-path>` through `tools/render/preview.mjs`.
+* `npm run preview <page-path>` through `node/render/preview.mjs`.
 * `npm run shot`, `build`, `bake`, and `verify-build`.
 * jsdom and Alpine logic tests.
 
@@ -128,7 +128,7 @@ The hook applies only to sessions using a branch that contains its configuration
 
 #### SessionStart: the invoke-default directive
 
-*Added 2026-09-10.* [`.claude/skills/hooks/invoke-default.sh`](../../.claude/skills/hooks/invoke-default.sh), a second `SessionStart` entry in the plugin's [`hooks.json`](../../.claude/skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
+*Added 2026-09-10.* [`skills/hooks/invoke-default.sh`](../../skills/hooks/invoke-default.sh), a second `SessionStart` entry in the plugin's [`hooks.json`](../../skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
 
 **It asks whether they ARRIVED, not whether a repo intends them**, and the two answers differ. home's `CLAUDE.md` names `/web-tools` in prose and imports nothing, so a session on home alone starts without the primitives while looking configured. `lib/kits/portable-align.js`'s `conventionsWired()` answers the intent question for the app's adoption column and is deliberately not reused here; they are different claims, so no `owners.csv` repetition is owed.
 
@@ -136,11 +136,11 @@ The hook applies only to sessions using a branch that contains its configuration
 
 **Why its own entry rather than a line inside the dispatcher.** The output cap applies per hook entry, not across the event: measured 2026-08-30, the dispatcher's 28,670 characters were cut while a separate 298-character `SessionStart` hook in the same session arrived whole. Folded in, the directive would be the first thing truncated on a heavy session, which is the failure that retired the injection channel. The directive also leads the message, so it survives a truncated preview.
 
-A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the field declared in [`docs/manifest-fields.csv`](../manifest-fields.csv) since PR #222. A checkout with no `CLAUDE.md` is never named: the import is the delivery channel, so a directory without one has no channel to be missing. Coverage is [`tools/test/invoke-default.test.mjs`](../../tools/test/invoke-default.test.mjs), which asserts both directions, since a directive that never fires and one that always fires look equally like success from outside.
+A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the field declared in [`docs/manifest-fields.csv`](../manifest-fields.csv) since PR #222. Every checkout counts, with or without a `CLAUDE.md`: since 2026-09-29 (#843) a folder holding `.git`, a `CLAUDE.md` or a `.web-tools.json` is one, so a session whose only checkout is web-tools-private is prodded too. Coverage is [`node/test/invoke-default.test.mjs`](../../node/test/invoke-default.test.mjs), which asserts both directions, since a directive that never fires and one that always fires look equally like success from outside.
 
 #### Stop: the session recorder
 
-*Added 2026-07-30.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks.
+*Added 2026-07-30.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`skills/hooks/hooks.json`](../../skills/hooks/hooks.json), running [`skills/hooks/session-record.sh`](../../skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks.
 
 **The marketplace entry declares nothing, and must not.** A `hooks` key on the entry refuses the whole plugin: the file-path and array forms are not supported there, only an inline object. The suite pins the key's **absence**, because adding it reads as diligence.
 
@@ -150,13 +150,13 @@ A plugin install is the only channel that repeats, because the platform performs
 
 **Finding the target without naming it.** The hook holds no repo name and no knowledge of the record format. A checkout whose `.web-tools.json` declares `"sessions": "<dir>"` owns the store, and `<store>/tools/on-stop.sh` does the recording and publishing, so the store can change its schema without a plugin release. Discovery is a bounded candidate list, since this runs on every turn: the project root, its children, and its siblings, which are the three shapes a session takes (root above the checkouts, root is the store, root is one checkout beside the store). `SESSIONS_STORE` names a store directly and skips the search.
 
-**Cost, since it fires at every idle of every session.** No store checked out means one `grep` over whatever manifests exist, measured at 10 ms, then exit. With a store, the delegate parses the transcript, measured at roughly 100 ms on a 400 KB transcript and growing with session length. Every path exits 0: a logger that cannot find its store is an ordinary state, not an error to report into someone's session.
+**Cost, since it fires at every idle of every session.** No store checked out means one `grep` over whatever manifests exist, measured at 10 ms, then exit. With a store, the delegate parses the transcript, measured at roughly 100 ms on a long transcript and growing with session length. Every path exits 0: a logger that cannot find its store is an ordinary state, not an error to report into someone's session.
 
 **When it fires, measured 2026-09-21.** Stop fires when the session idles, not once per assistant message. A turn the harness auto-continues (the "say what you are doing, then continue" nudge a background session receives) produces no Stop from any hook; the launcher's own git-check hook, instrumented alongside this one, was silent on the same turns. So the recorder's loss window is *until the next idle*, not one turn, and a long autonomous run can end its container before it idles once. Nothing plugin-side changes that. What a session can do is end a turn deliberately when it has something worth keeping, which is also what the sessions skill asks for after a clone.
 
 Two states are deliberately quiet rather than loud. A checkout can declare the store on a branch that predates the tooling, so a declaration whose `tools/on-stop.sh` is absent is declined rather than reported. And a malformed manifest is skipped, not raised.
 
-Coverage is [`tools/test/session-record-hook.test.mjs`](../../tools/test/session-record-hook.test.mjs): the three discovery shapes, byte-identical payload hand-off, the quiet paths, the override, and the assertion that the hook sits at the default location with no redeclaration on the entry. A script present on disk but not wired to the loader is the failure this change exists to fix, so that last one is not ceremony.
+Coverage is [`node/test/session-record-hook.test.mjs`](../../node/test/session-record-hook.test.mjs): the three discovery shapes, byte-identical payload hand-off, the quiet paths, the override, and the assertion that the hook sits at the default location with no redeclaration on the entry. A script present on disk but not wired to the loader is the failure this change exists to fix, so that last one is not ceremony.
 
 **Three things measured while wiring it, all worth knowing before trusting a plugin hook.**
 
@@ -172,15 +172,27 @@ The skill count remains the useful second half of a `details` check, confirming 
 
 #### SessionStart: the sessions-store directive
 
-*Added 2026-09-21.* [`invoke-sessions.sh`](../../.claude/skills/hooks/invoke-sessions.sh), its own `SessionStart` entry in the same `hooks.json`, on the [`invoke-default`](#sessionstart-checkout-delegates) pattern: it asks whether the store is *checked out*, and when it is not, prints one line telling the session to invoke [`/portable:sessions`](../../.claude/skills/sessions/SKILL.md), which attaches the store and clones it beside the project root.
+*Added 2026-09-21.* [`invoke-sessions.sh`](../../skills/hooks/invoke-sessions.sh), its own `SessionStart` entry in the same `hooks.json`, on the [`invoke-default`](#sessionstart-checkout-delegates) pattern: it asks whether the store is *checked out*, and when it is not, prints one line telling the session to invoke [`/portable:sessions`](../../skills/sessions/SKILL.md), which attaches the store and clones it beside the project root.
 
-**The gap it closes was measured the day it was written.** A task-spawned session begins in an empty working directory and attaches exactly the repos its task names. One ran for hours on 2026-09-21 with the recorder installed, firing, and finding nothing, because nothing had put `web-tools-private` beside the root. That silence is the recorder's designed behaviour for a session that was never meant to be recorded, and it is indistinguishable from the failure. The difference is whether anything *declared* that the session should be recorded, so that is what this reads.
+**The gap it closes was measured the day it was written.** A task-spawned session begins in an empty working directory and attaches exactly the repos its task names. One ran for hours on 2026-09-21 with the recorder installed, firing, and finding nothing, because nothing had put `web-tools-private` beside the root. Where no store is checked out, the hook now always prints its directive, because a store name always exists: the default below.
 
-**The plugin still names no repo.** The Stop hook finds the store by a checkout's `sessions` declaration; this finds where to *get* the store by a checkout's `sessionsStore` declaration (`docs/manifest-fields.csv`), an owner/repo string on the repos whose sessions should be recorded, or by `SESSIONS_STORE_REPO` in the environment. The env var is not a convenience. It is the only voice a session has when it starts with no checkout at all, which is the spawned shape exactly; the same provisioning that installs the plugin into every container is where it belongs.
+**Where the store's name comes from**, in order: `SESSIONS_STORE_REPO` in the environment; a checkout's `sessionsStore` in `.web-tools.json` (`docs/manifest-fields.csv`); otherwise `mehrlander/web-tools-private`, hard-coded in the hook and in the `sessions` skill. Every consumer of the marketplace gets that default, so a session with no access to the private repo is told to fetch a store it cannot reach.
 
 **A hook cannot do the fetch.** An unattached private repo is unreachable from a shell in the sandbox (`git ls-remote` on one fails at the credential prompt), and attaching is a tool only the model holds. So the hook speaks and the skill acts, and the skill ends by asking the session to end its turn, because a record is written at idle and not before.
 
-Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sessions.test.mjs): speech on a pointer with no store, silence on a runnable store or on no pointer, the env var speaking for an empty root, the three search shapes, the soft failures, and the assertion that it holds its own hook entry so it cannot share the dispatcher's output budget.
+Coverage is [`node/test/invoke-sessions.test.mjs`](../../node/test/invoke-sessions.test.mjs): speech on a pointer with no store, silence on a runnable store, the built-in store speaking when nothing names one, the env var speaking for an empty root, the three search shapes, the soft failures, and the assertion that it holds its own hook entry so it cannot share the dispatcher's output budget.
+
+#### SessionStart: the plugin refresher
+
+*Added 2026-09-27.* [`refresh-plugin.sh`](../../skills/hooks/refresh-plugin.sh) moves `portable` to the tip of web-tools `main` each session and prints one line when the pin moves; its log is `/tmp/refresh-plugin.log`. Skills from the new pin appear within the session. Hooks that already fired at session start ran from the old pin. It cannot recover a pin that fails to load; [container.md](container.md#what-the-accounts-setup-script-must-do) has the recovery.
+
+#### SessionStart: the environment report
+
+*Added 2026-09-29.* [`environment-report.sh`](../../skills/hooks/environment-report.sh) reads `~/.claude/environment-setup.ran`, which the setup script writes, and prints the time and commit of the build. It compares the saved script with the one in the marketplace checkout of `main`, and when they differ it says to edit the environment settings to rebuild. It is silent when the file is absent. Its line reads `Environment built 2026-10-03T02:23:58Z from .claude/environment-setup.sh at 701b3ef.`, first seen live on 2026-09-29. Coverage is [`node/test/environment-report.test.mjs`](../../node/test/environment-report.test.mjs).
+
+#### PreToolUse: the AskUserQuestion guard
+
+*Added 2026-09-27.* [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) denies `AskUserQuestion` and tells the session to ask in prose. A plugin cannot ship `permissions.deny`: its `settings.json` honors only `agent` and `subagentStatusLine`. **Not verified:** whether `PreToolUse` fires for `AskUserQuestion`. The setup script writes no deny, so in a session rooted above the checkouts the guard is the only one. If an `AskUserQuestion` prompt appears in a session, the guard is not firing.
 
 ### LSP servers
 
@@ -213,8 +225,8 @@ This setup uses:
 
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
 
-  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the user-scope deny is the one in force and the project row is dormant, which is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
-- `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
+  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the project row is dormant; the only guard is the plugin's `ask-question-guard.sh`. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
+- `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`, and nothing else. *(verified 2026-10-06)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.
 
@@ -222,10 +234,12 @@ The Local scope (`.claude/settings.local.json`) is per-user and meant to stay un
 
 Skill and agent descriptions consume context even when their full contents are not invoked. Full skill contents enter the conversation when the skill runs and remain there for the session.
 
-The [`claude plugin inspect`](https://code.claude.com/docs/en/plugins-reference#plugin-inspect) command reports the plugin inventory and two cost estimates:
+`claude plugin details <plugin>` reports the plugin inventory and two cost estimates:
 
 * **Always-on:** listing text included in every session, including skill descriptions, agent descriptions, and command names.
 * **On-invoke:** context added when a component runs.
+
+Measured 2026-09-27: `portable`, carrying every skill, costs about 10,400 always-on tokens, against about 3,700 for the two plugins it replaced.
 
 | Component  | Function                                             |
 | ---------- | ---------------------------------------------------- |
@@ -239,7 +253,7 @@ The [`claude plugin inspect`](https://code.claude.com/docs/en/plugins-reference#
 ## The session dispatcher (as of 2026-09-09, moved from the retired PORTABLE.md)
 
 The harness has no glob for session-start scripts. `npm test` finds its whole
-suite from `tools/test/**/*.test.mjs`, and git finds its hooks from a folder
+suite from `node/test/**/*.test.mjs`, and git finds its hooks from a folder
 once `core.hooksPath` is set, but a Claude Code hook has to be named
 individually in `.claude/settings.json`, and that file is read **only when the
 session's project root is that repo**. A session spanning several checkouts has
@@ -259,8 +273,8 @@ anything else in that folder ->  ignored
 So a repo adopts it by **naming a file**, with nothing declared anywhere, and
 opts a script out the same way, by calling it something else. web-tools' own
 `session-start.sh` and `session-githooks.sh` are picked up, while their shared
-`tools/checkout-setup.mjs` implementation is called only by those wrappers,
-exactly as `tools/test/bootstrap.mjs` stays out of `node --test`. The name is
+`node/checkout-setup.mjs` implementation is called only by those wrappers,
+exactly as `node/test/bootstrap.mjs` stays out of `node --test`. The name is
 the whole declaration, which is why the executable bit is not also required: a
 lost mode bit should not quietly turn a script off.
 

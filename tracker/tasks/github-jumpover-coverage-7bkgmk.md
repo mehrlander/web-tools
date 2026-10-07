@@ -2,7 +2,7 @@
 id: github-jumpover-coverage-7bkgmk
 title: Finish GitHub jump-over coverage across show-repo views
 status: done
-project: show-repo
+project: app
 opened: 2026-07-17
 closed: 2026-07-30
 session: claude/github-icon-placement-3d06i7

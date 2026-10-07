@@ -1,7 +1,9 @@
 ---
 id: files-pane-finds-deck-reads-ubu13s
 title: Let the Files pane find and the deck read, and stop it doing both
-status: backlog
+status: done
+closed: 2026-10-06
+session: claude/view-754-web-tools-gqq3wl
 opened: 2026-08-26
 project: web-tools
 size: M
@@ -44,8 +46,8 @@ Compare pane with the second ref owned by the sidebar.
 
 - `lib/kits/file-deck.js`: declares Files-as-list vs deck-as-read; still mounts both
 - `pages/review.html`: remaining four-tab dossier host once the list stops expanding
-- `tools/test/file-review-card.test.mjs`: pins current row-expansion behaviour
-- `tools/test/branch-brief-cards.test.mjs`: companion pin that moves with the split
+- `node/test/file-review-card.test.mjs`: pins current row-expansion behaviour
+- `node/test/branch-brief-cards.test.mjs`: companion pin that moves with the split
 - task `file-review-collapsed-density-2rvxfn`: collapsed-row predecessor this finishes
 - task `sidebar-compare-view-lkjang`: deck reading surface predecessor
 - PR #518: 430px measurement that filed the chrome-and-expansion problem
@@ -69,3 +71,4 @@ Not a rewrite. The collapsed row is the output of
   the `cardOpts` hedge is still there and `openFileDeckAt` is still the method.
   #574 changed widths, not this structure. Body cut from 683 words.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-06: Closed as delivered: #761 made the Files pane one swiper with a single header row and no in-place expander, and #782 added the deck button, which opens the full deck at the file in view (`openFileDeckAt`). Found by the 2026-10-06 tending pass.

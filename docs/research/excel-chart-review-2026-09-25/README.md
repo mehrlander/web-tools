@@ -1,5 +1,31 @@
 # Excel work: what landed and what remains
 
+## Status correction, October 7, 2026
+
+[PR 792](https://github.com/mehrlander/web-tools/pull/792) merged on September 30, 2026 at 13:50:09 UTC, with final head `1405f21e3332769d4d93db7a2a31dcc604471794` and merge commit [`74ed55b1bdf9bfa86d9889909886ebce06db8202`](https://github.com/mehrlander/web-tools/commit/74ed55b1bdf9bfa86d9889909886ebce06db8202). That merge is an ancestor of the main revision checked for this update, [`19eab94dad6c79f76934c2469fd49f37d2e43273`](https://github.com/mehrlander/web-tools/commit/19eab94dad6c79f76934c2469fd49f37d2e43273). PR 792 is no longer an open renderer proposal.
+
+The September 25 assessment below and the [retained review](source/README.md) describe renderer revision `3263a62ec6588e6e60df1afbf77697b3d1e9582c` and then-main `f1db9653`. Their references to an open PR, an unchanged head, missing renderer code, and doubled totals on main are historical findings. They are not claims about the October 7 tree. The original assessment remains below so its reasoning and receipts can still be read together.
+
+| September 25 finding | Status at checked October 7 main | Basis and limit |
+| --- | --- | --- |
+| Main has no independent chart renderer. | Main contains the SVG chart renderer merged through PR 792. | [Renderer source](https://github.com/mehrlander/web-tools/blob/19eab94dad6c79f76934c2469fd49f37d2e43273/lib/kits/xlsx-chart.js); browser previews remain approximations. |
+| Blank values become zero, sparse indices shift, and axis/marker settings are discarded. | The parser resolves worksheet values, retains sparse indices, and reads explicit axis and marker settings; the renderer handles blank policies and those settings. | [Parser](https://github.com/mehrlander/web-tools/blob/19eab94dad6c79f76934c2469fd49f37d2e43273/lib/kits/xlsx.js) and [existing regression cases](https://github.com/mehrlander/web-tools/blob/19eab94dad6c79f76934c2469fd49f37d2e43273/node/test/xlsx-chart.test.mjs). These address the demonstrated cases, not general Excel fidelity. |
+| Stacked charts are rendered as clustered; scatter disappears. | Unsupported grouping and chart types retain an explicit preview-unavailable notice. | The same parser, renderer, and regression cases establish the fallback; stacked and scatter rendering is still unsupported. |
+| The example PivotTable includes the totals row and doubles grand totals. | The shipped workbook uses the `Financials` table, has 24 cache records, and saves totals of 21,450 budget, 21,595 actual, and 145 variance. | [Workbook](https://github.com/mehrlander/web-tools/blob/19eab94dad6c79f76934c2469fd49f37d2e43273/docs/examples/demonstration-workbooks.xlsx) and [package checks](https://github.com/mehrlander/web-tools/blob/19eab94dad6c79f76934c2469fd49f37d2e43273/node/test/demonstration-pivot.test.mjs); saved values do not constitute a new Excel recalculation. |
+| Four PASS formulas omit the PivotTable. | Seven saved checks pass, including three `GETPIVOTDATA` comparisons with the source table. | The package checks inspect formulas and saved results and independently sum source records. |
+
+The checked example workbook's SHA-256 is `0e410ac0b7297b75970a4998531070c9633bcba3d9e01fb47c0cb87e7125fd7f`. It differs from the original `998d5483...` specimen preserved in the adjacent research bundle. The [separate implementation follow-up](../excel-chart-cleanup-2026-09-25/README.md) supplies the repair and browser receipts, including its own native Excel provenance. Those prior native/browser runs are not new tests by this documentation update. Its historical commands use `tools/test/`; the equivalent checks now live under `node/test/` on checked main.
+
+On October 7, `node --test node/test/xlsx-chart.test.mjs node/test/demonstration-pivot.test.mjs node/test/xlsx.test.mjs` passed all 107 existing tests against the combined tree. The application code and shipped workbook matched checked main. This was a parser, SVG, and saved-package check; no native Excel session or browser capture was repeated.
+
+This update preserves both frozen `source/` trees and the original downloadable ZIP without changing their bytes. The two existing read-only verifiers still check 103 original files and 32 later review files, respectively, plus their workbook and image assertions. The six skill files remain preserved as historical source; this update does not revalidate an installed skill or deploy a renderer.
+
+Remaining implementation work includes unsupported chart features, broader fidelity checks, and an unattended native rendering worker with immutable workbook/image publication. The earlier recommendation to repair the example workbook and resolve PR 792's merge conflicts has been superseded by that PR's merged work. These implementation boundaries do not block publication of the research. PR 796 remains a documentation-only publication; its live checks and merge readiness belong in [the PR](https://github.com/mehrlander/web-tools/pull/796).
+
+## Historical assessment, September 25, 2026
+
+Everything below retains the September 25 assessment, including its then-current status and proposed next steps. Read present-tense statements within that dated scope.
+
 Assessment on September 25, 2026. The related conversation covered faithful workbook previews, our own browser chart renderer, using the installed Excel application as a reference, and retaining experiments so later agents can extend the work. We produced a working validation method and several tested examples. An unattended native rendering service and a general Excel-compatible browser renderer remain future work.
 
 ## GitHub state at this assessment

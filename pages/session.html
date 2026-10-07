@@ -16,7 +16,7 @@
   session.html — one recorded session as a readable conversation.
 
   The sibling of branch.html, and the same argument: every session surface was
-  a LIST (show-repo's Sessions pane, search.py's rows), and each ended in a
+  a LIST (the app's Sessions pane, search.py's rows), and each ended in a
   summary because there was nowhere of ours to go. 🌿 is where you read a
   branch; this is where you read the session that made it.
 
@@ -83,7 +83,8 @@
   // stylesheet that is loaded separately and may have failed for the same
   // reason the bundle did.
   const bootFailed = (e) => {
-    const ref = new URLSearchParams(location.search).get('use');
+    const q = new URLSearchParams(location.search);
+    const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
     document.body?.removeAttribute('x-cloak');
     const box = document.createElement('div');
     box.setAttribute('role', 'alert');
@@ -108,7 +109,8 @@
   };
 
   try {
-    const ref = new URLSearchParams(location.search).get('use');
+    const q = new URLSearchParams(location.search);
+    const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
     if (ref) {
       const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
       if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
@@ -152,7 +154,7 @@
 
      Document scroll is only half the shape the house style asks for, and this
      page shipped for two days with the other half missing: `min-h-dvh` plus
-     STICKY CHROME (daisy-alpine rule 5). Nothing was sticky, so the tab row,
+     STICKY CHROME (html-style rule 5). Nothing was sticky, so the tab row,
      the outline's Cards chips and its export bar all scrolled away with the
      head. session-brief pins them now; the numbers are in its own header. This
      line is unchanged and stays that way. -->
@@ -200,7 +202,7 @@
 
        That split is the whole point of the lift (2026-08-27). The markup used
        to live in this file, which made this page the only host it could ever
-       have; show-repo's Sessions pane now mounts the same component per slide,
+       have; the app's Sessions pane now mounts the same component per slide,
        so a session is swipeable there and reads identically in both places
        because there is one definition. The argument, and the iframe it rules
        out, is branch-brief.js's header. -->
@@ -240,8 +242,13 @@
         // session, so they are orthogonal to the three ways of naming one.
         const pane = pick('pane');
         const card = parseInt(pick('card'), 10);
+        const find = (pick('find') || '').trim();
+        // `now` names the ref the action message is read from, main by default.
+        const nowRef = pick('now');
         const at = { ...(['outline', 'files', 'raw'].includes(pane) ? { pane } : {}),
-                     ...(Number.isInteger(card) ? { start: card } : {}) };
+                     ...(Number.isInteger(card) ? { start: card } : {}),
+                     ...(find ? { find } : {}),
+                     ...(nowRef ? { nowRef } : {}) };
         const gz = pick('gz');
         if (gz) return { kind: 'gz', gz, at };
         const id = pick('id');
@@ -314,13 +321,13 @@
           // iframe, which is why its own address bar stands down once a session
           // is loaded. The brief's `framed` says something else: that a HOST
           // draws the title and the id, so the view need not repeat them. That
-          // is true of show-repo's Sessions pane, which mounts the COMPONENT
+          // is true of the app's Sessions pane, which mounts the COMPONENT
           // inside a deck whose header carries both. It is true of nothing that
           // embeds this PAGE: the only embedder is the toss, and the toss draws
           // nothing. So a tossed session had no title and no id anywhere on
           // screen, and only the facts strip said which one it was (reported
           // 2026-09-01 from the phone).
-          opts = { ...opts, framed: false, ...(t.at || {}) };
+          opts = { ...opts, framed: false, ...(t.at || {}), onFind: value => this.stampFind(value) };
           this.target = opts;
           window.__sessionTarget = opts;
           this.$nextTick(() => {
@@ -338,6 +345,21 @@
         } catch (e) {
           this.err = e?.message || String(e);
         } finally { this.busy = false; }
+      },
+
+      stampFind(value){
+        // A toss frame's address belongs to its host. Its copy-link action
+        // carries the reading; replacing this blob address cannot publish it.
+        if (!/^https?:$/.test(location.protocol)) return;
+        const url = new URL(location.href);
+        const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+        const p = ['id', 'gh', 'gz', 'branch'].some(k => hash.has(k)) ? hash : url.searchParams;
+        url.searchParams.delete('find'); hash.delete('find');
+        url.searchParams.delete('card'); hash.delete('card');
+        const find = String(value || '').trim();
+        if (find) p.set('find', find);
+        url.hash = hash.toString();
+        history.replaceState(history.state, '', url.href);
       },
 
       async readGz(gz){

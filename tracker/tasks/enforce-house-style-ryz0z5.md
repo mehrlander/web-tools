@@ -23,7 +23,7 @@ Three pieces, one outcome:
   `stats`, `stat-value`, or KPI-tile grid as a defect, which is a grep, not a
   judgment. Gate it the way `dead-opacity.py` gates, since there is no judgment
   in it. **Rule 3 (reading columns) turned out to be equally mechanical and was
-  done first**, in PR #565: `.claude/skills/hooks/reading-column.py` plus a
+  done first**, in PR #565: `skills/hooks/reading-column.py` plus a
   `PreToolUse` guard, with 69 violations cleared. What remains here is rule 1;
   the rest (page prose, type sized for reading, browsing takes the viewport)
   turn on reading the page.
@@ -45,10 +45,10 @@ scanners reach files outside `lib app pages`.
 ## Related
 
 - `docs/SNAGS.md`: third recurrence of `house-style-not-consulted`
-- `scripts/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
-- `scripts/stranded-titles.py`: sibling scanner with the same root limit
-- `.claude/skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
-- `skills/daisy-alpine/SKILL.md`: discovery half that PR #554 fixed
+- `python/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
+- `python/stranded-titles.py`: sibling scanner with the same root limit
+- `skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
+- `skills/html-style/SKILL.md`: discovery half that PR #554 fixed
 - PR #554: style-guide discovery half
 - PR #565: rule 3 (reading columns) shipped; residual is rule 1 plus scanner roots
 

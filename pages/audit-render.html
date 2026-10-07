@@ -8,7 +8,7 @@
 <!--
   audit-render.html — a document coloured by what each of its units IS.
 
-  The audit pass (scripts/annotate, doc-audit's fourth question) puts one
+  The audit pass (python/annotate, doc-audit's fourth question) puts one
   label on every unit of a document. This page is where you look at the result:
   the whole document, every unit tinted, a legend that filters, and the density
   figure that says whether the document is worth a rewrite at all.
@@ -30,7 +30,7 @@
     read    the document as markdown, every unit tinted.
 
   Payload: audit/1, from ?src=<spec>, #gz=<base64url>, or the embedded default.
-  Built by tools/build/audit-payload.py (--inject refreshes the block below).
+  Built by python/annotate/audit-payload.py (--inject refreshes the block below).
 -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -436,24 +436,9 @@ window.__audit = {
 /* AUDIT:END */
 </script>
 <script type="module">
-  // ?use=<branch|tag|sha> picks which ref the lib chain loads from; defaults to
-  // main. gh-api.js auto-boots window.gh from its import URL or __ghBlobBoot.
-  // This is the house block, copied rather than rewritten: a hand-rolled one
-  // shipped with `{ref, base}` where gh-api wants `{repo, ref}`, and nothing
-  // caught it because no test sets `use`. The toss's own #gh= route injects
-  // use=<ref> through its params shim, so tapping a branch toss was the first
-  // time this branch had ever run.
+  // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
   const p = new URLSearchParams(location.search);
-  const ref = p.get('use');
-  if (ref) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
-    try { await import(u); } finally { URL.revokeObjectURL(u); }
-  } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
-  }
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('vanilla-bundle.js');   // window.esc; the suite gates local copies
   await gh.load('kits/md-doc.js');
   await gh.load('kits/swipe-deck.js');
@@ -461,7 +446,7 @@ window.__audit = {
   await gh.load('kits/standoff.js');       // the annotation's rules, shared with ops.py
   await gh.load('kits/dictate.js');        // Dictate.pins: the settled edge-pin treatment
   await gh.load('kits/page-report.js');
-  await gh.load('kits/note.js');           // the chips' notes
+  await gh.load('kits/title-tip.js');           // the chips' title-tips
   // THE OPT-IN, and it is the page's, not the reader's. Reporting is on from
   // here: a failure that needs a tap before it is recorded is a failure nobody
   // records, and the person holding the phone is the last one who should have
@@ -861,7 +846,7 @@ window.__audit = {
     },
     // WHAT A CHIP'S NOTE SAYS: what Reading's modal used to hold, per key.
     // The gloss, the key's share of the document, and the side it belongs to
-    // with that side's share. Kept inside note.js's six
+    // with that side's share. Kept inside title-tip.js's six
     // lines, since a note that would scroll is a card.
     noteTitle(k) {
       const sd = this.side(k);
@@ -998,7 +983,7 @@ window.__audit = {
 
     // EDITING. Every rule about a standoff (the invariants, the four
     // operations, the serialization, where a save may land) lives in
-    // lib/kits/standoff.js, and scripts/annotate/ops.py is the same rules
+    // lib/kits/standoff.js, and python/annotate/ops.py is the same rules
     // in Python. This page is the view: it decides what to offer and where to
     // put it, and delegates what an operation MEANS.
     patch: [], at: 0, base: null, menu: null, boundaries: [], splitNote: '', opErr: '',
@@ -1273,11 +1258,11 @@ window.__audit = {
     },
     dim(u) { return this.off[this.keyOf(u)] ? .12 : 1 },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
-    // ONE TAP, ONE THING, ON A TOUCHSCREEN. note.js opens a chip's note on
-    // tap where nothing can hover, so a tap there used to open the note and
-    // dim the label at once. There the first tap shows the note and the next
+    // ONE TAP, ONE THING, ON A TOUCHSCREEN. title-tip.js opens a chip's tip on
+    // tap where nothing can hover, so a tap there used to open the tip and
+    // dim the label at once. There the first tap shows the tip and the next
     // tap on the same chip, which closes it, dims. A pointer that hovers gets
-    // the note on hover, so every click dims.
+    // the tip on hover, so every click dims.
     noteFor: null,
     chipTap(k) {
       if (matchMedia('(hover: none)').matches && this.noteFor !== k) { this.noteFor = k; return; }
@@ -2070,7 +2055,7 @@ window.__audit = {
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
                   :class="off[k] && 'opacity-40'"
-                  :data-note="noteText(k)" :data-note-title="noteTitle(k)" data-note-bare
+                  :data-title-tip="noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
                   @click="chipTap(k)">
             <span x-text="k"></span>
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
@@ -2321,7 +2306,7 @@ window.__audit = {
           <span class="text-error" x-show="saveErr" x-text="saveErr"></span>
         </div>
         <p class="text-xs opacity-60 mt-2 font-mono">
-          python3 scripts/annotate/ops.py &lt;standoff.json&gt; patch.json &lt;doc.md&gt; --write
+          python3 python/annotate/ops.py &lt;standoff.json&gt; patch.json &lt;doc.md&gt; --write
         </p>
         <form method="dialog" class="modal-backdrop"><button class="btn btn-sm btn-block mt-3">close</button></form>
       </div>

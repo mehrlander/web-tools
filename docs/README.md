@@ -1,6 +1,6 @@
 # docs
 
-<!-- GENERATED from docs/docs.csv by tools/build/docs-readme.mjs; do not hand-edit. -->
+<!-- GENERATED from docs/docs.csv by node/build/docs-readme.mjs; do not hand-edit. -->
 
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
@@ -10,16 +10,15 @@ corrected by markers, never rewritten; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
-**Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
+**Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-13 by a skill, 27 by a page or component. The remaining 83 are
+15 by a skill, 35 by a page or component. The remaining 88 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
 
 - [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, and the name split
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
-- [`HTML-STYLE.md`](HTML-STYLE.md) — a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
@@ -32,16 +31,15 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
-- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: the takeover, file substitution, the sidebar's second ref, and drop-on-a-branch
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
-- [`harness.csv`](harness.csv) — the harness registry: every tools/ and scripts/ file, its role, and how it is invoked
+- [`harness.csv`](harness.csv) — the harness registry: every node/ and python/ file, its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
-- [`inbound.md`](inbound.md) *(measured)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
+- [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
 - [`ios-sheet-drags.md`](ios-sheet-drags.md) — why a drag inside a sheet-presented in-app browser dismisses the sheet, and the two fixes, measured on device
 - [`kits.csv`](kits.csv) — the kits registry: every module on the kit shelf, its namespace, its own headline, and who loads it
@@ -52,7 +50,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
-- [`powershell-workspace.md`](powershell-workspace.md) *(orphan)* — the PowerShell Code workspace: exact browser drafts, pinned GitHub source, deliberate publication and installation handoff
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
 - [`registries.csv`](registries.csv) — every registry the estate declares: its file, target, scope, and gate
 - [`registries.md`](registries.md) — the registry model: targets, keys, identity spaces, properties, assertions; one owner per assertion; how to add a registry and what the suite checks
@@ -62,7 +59,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`routes-paste.csv`](routes-paste.csv) — what a paste becomes on each surface that reads the clipboard, and what each one declines to
 - [`routes-routes.csv`](routes-routes.csv) — the toss routes: which content type opens in which renderer page
 - [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the showing frame
-- [`show-repo.md`](show-repo.md) — the show-repo shell: routing, chrome, shared gestures, transfer and boundaries
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — why the showing boundaries sit where they are: the frame and the record behind routes.json
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
@@ -84,7 +80,20 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
-- [`csv-census.md`](csv-census.md) *(orphan)* — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
+- [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
+- [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
+- [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule
+- [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address ledes and the longer account of each tab
+- [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
+- [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
+- [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
+- [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
+- [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
+- [`policy-topics.csv`](policy-topics.csv) — the topics and areas the policy catalog is grouped by
+- [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
+- [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
+- [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
+- [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
 
 ## docs/doc-craft-specimens/
 
@@ -121,6 +130,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`container.md`](environment/container.md) *(measured)* — what the box is and what persists across sessions
 - [`extending.md`](environment/extending.md) — the Claude Code component model and the hooks this repo runs
 - [`testing.md`](environment/testing.md) *(measured)* — how to test HTML and JS in the sandbox
+- [`antigravity-local.md`](environment/antigravity-local.md) *(measured, orphan)* — the Antigravity local host environment: daemon runtime, SQLite storage, and brain workspace
+- [`harness-comparison.md`](environment/harness-comparison.md) *(measured, orphan)* — structural comparison of the Claude Code cloud harness and Antigravity local harness
 
 ## docs/favicons/
 
@@ -140,9 +151,14 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
 
+## docs/research/excel-chart-cleanup-2026-09-25/
+
+- [`README.md`](research/excel-chart-cleanup-2026-09-25/README.md) *(record, orphan)* — Excel chart semantics and PivotTable cleanup evidence from September 25, 2026
+- [`verification.json`](research/excel-chart-cleanup-2026-09-25/verification.json) *(record, orphan)* — browser verification results and workbook/source hashes for the Excel cleanup
+
 ## docs/research/excel-chart-review-2026-09-25/
 
-- [`README.md`](research/excel-chart-review-2026-09-25/README.md) *(record, orphan)* — September 25 assessment of merged Excel work, open renderer work, and published validation evidence
+- [`README.md`](research/excel-chart-review-2026-09-25/README.md) *(record, orphan)* — September 25 Excel assessment preserved beneath an October 7 update on merged PR 792
 
 ## docs/research/excel-chart-review-2026-09-25/source/
 
@@ -156,7 +172,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/research/excel-validation-2026-09-24/
 
-- [`README.md`](research/excel-validation-2026-09-24/README.md) *(record, orphan)* — entry point to the September 24 native Excel validation research and frozen evidence
+- [`README.md`](research/excel-validation-2026-09-24/README.md) *(record, orphan)* — September 24 native Excel evidence with an October 7 status correction
 
 ## docs/research/excel-validation-2026-09-24/source/
 
@@ -215,15 +231,17 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
 - [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
-- [`estate.md`](views/estate.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
-- [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)
-- [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the installation view on its Overview with the observations ledger
+- [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer
+- [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the PowerShell outpost view in its Outpost tab: what it lists, its one write, and the rules its file handling keeps
 - [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
 - [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
 - [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history
-- [`todo.md`](views/todo.md) *(orphan)* — the Lists view: To-do, Jot and Pins, and the registry files behind them
 - [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
 - [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
+- [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
+- [`tending.md`](views/tending.md) — the Tending view: the finding record, how a finding changes, and how its witnesses are checked
+- [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
+- [`lists.md`](views/lists.md) *(orphan)* — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them
 
 11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

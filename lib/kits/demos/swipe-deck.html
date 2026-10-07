@@ -8,9 +8,7 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
   // The chain boot, so the FAB arrives and the kit is fetched at the previewed ref.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
-  await import(`${base}/gh-api.js`);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/swipe-deck.js');
 
   // ── Sample content ───────────────────────────────────────────────────────
@@ -237,6 +235,7 @@
   // ── The same track, docked in the page ───────────────────────────────────
   const inline = window.swipeDeck.core(NOTES.length, renderNote(false), {
     innerClass: 'mx-auto', slideClass: 'bg-base-100',
+    keys: document.getElementById('inline-card'),   // Left and Right, over the card
   });
   document.getElementById('track-host').append(inline.track);
   const pos = document.getElementById('inline-pos');
@@ -274,7 +273,7 @@
 
   <section class="space-y-2">
     <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">The same track, docked in the page</h2>
-    <div class="flex h-[26rem] flex-col overflow-hidden rounded-box border border-base-300">
+    <div id="inline-card" class="flex h-[26rem] flex-col overflow-hidden rounded-box border border-base-300">
       <div id="track-host" class="flex min-h-0 flex-1"></div>
       <div class="flex items-center gap-3 border-t border-base-300 px-3 py-2">
         <button id="inline-prev" class="btn btn-circle btn-sm btn-ghost" aria-label="Previous"><i class="ph ph-arrow-left"></i></button>
@@ -303,8 +302,9 @@
 
   <section class="space-y-2">
     <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">From a script</h2>
-    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>const inline = swipeDeck.core(notes.length, render, { innerClass: 'mx-auto' });
-host.append(inline.track);           // a track with chrome of your own
+    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>const inline = swipeDeck.core(notes.length, render, { innerClass: 'mx-auto', keys: card });
+host.append(inline.track);           // a track with chrome of your own; keys: the arrows step
+                                     // it while the pointer is over the card
 inline.onSlide(i =&gt; say(i));
 
 const deck = swipeDeck.open({        // the takeover

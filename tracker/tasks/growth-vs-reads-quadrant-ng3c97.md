@@ -4,7 +4,6 @@ title: Read a document's growth against its readership, on the Docs tab
 status: backlog
 opened: 2026-08-28
 size: M
-awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded
 ---
 # Read a document's growth against its readership, on the Docs tab
 
@@ -70,7 +69,7 @@ has something specific to disagree with. Added 2026-09-17; none is acted on.
 
 - `lib/alpineComponents/map.js`: Docs tab host; `loadDocsReg`, `loadDocReads`, `docGrowth` already here
 - `docs/docs.csv`: registry the quadrant joins against (hub only, not federated Growth)
-- `tools/test/map-view.test.mjs`: Docs on-demand load and registry coverage
+- `node/test/map-view.test.mjs`: Docs on-demand load and registry coverage
 - PR #528: Doc words + readership presence landed apart; this crosses them
 - PR #534: Growth federated; settled that this view belongs on Docs
 
@@ -92,3 +91,4 @@ opens its document in the deck the table's rows already use.
   pass. This is the only one of the board's parked tasks whose questions were
   genuinely open on both sides; the rest were waiting on a yes.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-07: Decided. The owner took all four recommended answers (user call 2708d02c-web-tools-answers): recent slope, presence, labelled corners, injected docs excluded and named on the view. The task is ready to build as written.

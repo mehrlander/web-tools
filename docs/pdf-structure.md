@@ -118,6 +118,9 @@ Five stages, in dependency order:
    between consecutive anchors *are* the logical rows and columns. A cell
    covering several gaps is a span.
 
+With `infer` on, `close` runs between stages 1 and 2 and `project` after text
+assignment; see [Inferred geometry](#inferred-geometry).
+
 The anchor system is the part worth understanding, because it changes what you
 do rather than only what you know: the grid is **derived from the data, not
 assumed**. Nothing needs to know the table's shape in advance, ragged row
@@ -136,7 +139,7 @@ nothing but coordinate rounding.
 
 ## Tolerances
 
-Four values, each failing in its own direction. Defaults are in `pdf.config`,
+Five values, each failing in its own direction. Defaults are in `pdf.config`,
 and every function takes an override.
 
 | Name | Default | What it does | What breaks when it is too large |
@@ -145,6 +148,7 @@ and every function takes an override.
 | `join` | 3.0 | bridges gaps between collinear segments | two tables merge into one |
 | `intersect` | 1.0 | how close H and V must come to cross | grid bleed: one table's rules join another's |
 | `minEdge` | 5.0 | shortest segment that counts as a rule | checkboxes and tick marks vanish |
+| `reach` | 36 | how far past an open side's rule ends text may extend that side | margin text joins the first or last column |
 
 Clustering is single-link, which has a consequence worth stating: values chain.
 With `snap: 1.6`, coordinates at 10, 11.5, and 13 all land together, because
@@ -183,11 +187,30 @@ than most inputs in every way except three.
   junction walk, the network is unusable. `geom.joinCollinear` handles this, and
   a 120-segment leader is in the browser fixture for that reason.
 
-- **Missing perimeters.** Outer borders are frequently not drawn, so the
-  top-left corner the cell walk starts from does not exist and the table yields
-  nothing. Not yet handled. The fix is to close the table with the bounding box
-  of the text overlapping the discovered interior rules, and it is the main
-  known gap.
+- **Missing perimeters.** Outer borders are often not drawn, so the cell walk
+  finds no top-left corner. `lattice.close` supplies the missing edges; see
+  [Inferred geometry](#inferred-geometry).
+
+## Inferred geometry
+
+Everything else `lattice` reports traces to a mark on the page. With `infer` on
+(the default; `{ infer: false }` turns it off), two stages add geometry the page
+does not draw:
+
+- **`close`** gives each open side of a ruled region a virtual edge, at the rule
+  ends (basis `rules`) or out to text within `reach` (basis `text`). A drawn
+  border is never moved.
+- **`project`** splits an unruled header cell along the body's column rules,
+  only where no header text crosses the cut and every piece holds text, so a
+  centred title spanning columns stays whole.
+
+Each table lists what was invented in `inferred` (`{edge, at, basis}`, empty
+when nothing was), and each cell lists its undrawn sides in its own `inferred`.
+Check these before trusting a comparison: lattice and stream agreeing across a
+`text` edge is not independent evidence, because that edge came from the text
+stream reads.
+
+A table ruled in one direction only has no junctions, so it stays `stream`'s.
 
 ## The visual layer, measured
 
@@ -314,7 +337,7 @@ output vocabulary, and settling that vocabulary is open work on both sides.
 Pinned: **pdf.js 3.4.120** and **pdf-lib 1.17.1**. pdf-lib is current (upstream
 has not released since); pdf.js is three majors behind, and whether to move is a
 question that recurs and usually gets answered from a changelog. It is answered
-here by running: `node tools/test/pdf-version-probe.mjs` puts the same fixture
+here by running: `node node/test/pdf-version-probe.mjs` puts the same fixture
 and the same analysis through each version with only the library swapped.
 
 Measured 2026-07-25 on Chromium 141:
@@ -427,7 +450,7 @@ green.
 
 ## Testing
 
-- `node --test tools/test/pdf-kit.test.mjs` covers `geom`, `stream`, and
+- `node --test node/test/pdf-kit.test.mjs` covers `geom`, `stream`, and
   `lattice` under jsdom with hand-built fixtures. Hand-built on purpose: with a
   real PDF, a failure is ambiguous between the extractor and the analysis, and
   the analysis is what those tests are about.
@@ -435,8 +458,9 @@ green.
   pdf-lib at coordinates the test chooses. This is the only way to have an answer
   key, and it is where the typed-array colour bug surfaced. Needs a browser, so
   neither is part of `npm test`.
-  - `tools/test/pdf-kit-browser.mjs` opens a ruled table with a white rule and a
-    dotted leader in it, and checks the kit returns what went in.
-  - `tools/test/pdf-ink-alignment.mjs` renders the page and scans the pixels, so
+  - `node/test/pdf-kit-browser.mjs` opens a ruled table with a white rule and a
+    dotted leader in it, and checks the kit returns what went in. A second
+    document holds an open-perimeter table and an unruled header.
+  - `node/test/pdf-ink-alignment.mjs` renders the page and scans the pixels, so
     the box-versus-ink and glyph-boundary numbers above are measurements rather
     than claims. Run it with `--keep` to retain the fixture PDF.

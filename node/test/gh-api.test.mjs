@@ -1,0 +1,252 @@
+// gh-api.test.mjs — unit tests for GH.recentFiles(): the batched-parallel
+// walk that feeds the app's sidebar Recent panel. gh-api.js is a plain ES
+// module whose window-only paths (console capture, jsDelivr bootstrap) are
+// guarded, so Node imports it directly; req() is stubbed with canned data.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+const { default: GH } = await import('../../lib/gh-api.js');
+
+// A fake commit history: commit i (newest first) touches the given files.
+// Dates descend with i so per-file dates are distinguishable.
+const makeGh = (filesPerCommit, opts = {}) => {
+  const gh = new GH({ repo: 'o/r' });
+  const calls = { list: 0, details: [], maxInFlight: 0 };
+  let inFlight = 0;
+  gh.req = async (path) => {
+    if (path.startsWith('commits?')) {
+      calls.list++;
+      return filesPerCommit.map((_, i) => ({
+        sha: 's' + i,
+        commit: { author: { date: `2026-01-${String(30 - i).padStart(2, '0')}` } },
+      }));
+    }
+    const i = Number(path.replace('commits/s', ''));
+    calls.details.push(i);
+    inFlight++;
+    calls.maxInFlight = Math.max(calls.maxInFlight, inFlight);
+    await new Promise(r => setTimeout(r, 5));
+    inFlight--;
+    if (opts.fail?.includes(i)) throw new Error('detail ' + i + ' failed');
+    return { files: filesPerCommit[i].map(f => ({ filename: f })) };
+  };
+  return { gh, calls };
+};
+
+test('collects n distinct paths newest-first with per-commit dates', async () => {
+  const { gh } = makeGh([['a', 'b'], ['b', 'c'], ['d'], ['e']]);
+  const out = await gh.recentFiles(3);
+  assert.deepEqual(out.map(f => f.path), ['a', 'b', 'c']);
+  // 'b' keeps the date of the newest commit that touched it (commit 0).
+  assert.deepEqual(out.map(f => f.date), ['2026-01-30', '2026-01-30', '2026-01-29']);
+  assert.deepEqual(out.map(f => f.sha), ['s0', 's0', 's1']);
+});
+
+test('fetches details in parallel batches, not serially', async () => {
+  const commits = Array.from({ length: 12 }, (_, i) => ['f' + i]);
+  const { gh, calls } = makeGh(commits);
+  await gh.recentFiles(8);
+  assert.ok(calls.maxInFlight > 1, `expected concurrent detail fetches, saw max ${calls.maxInFlight}`);
+});
+
+test('stops fetching once n paths are found', async () => {
+  // First batch of 6 commits already yields 8 distinct files.
+  const commits = Array.from({ length: 16 }, (_, i) => ['x' + i, 'y' + i]);
+  const { gh, calls } = makeGh(commits);
+  const out = await gh.recentFiles(8);
+  assert.equal(out.length, 8);
+  assert.ok(calls.details.length <= 6, `expected one batch of detail calls, saw ${calls.details.length}`);
+});
+
+test('a failed detail fetch is skipped, not fatal', async () => {
+  const { gh } = makeGh([['a'], ['b'], ['c']], { fail: [1] });
+  const out = await gh.recentFiles(3);
+  assert.deepEqual(out.map(f => f.path), ['a', 'c']);
+});
+
+test('returns fewer than n when commits run out', async () => {
+  const { gh } = makeGh([['a'], ['a']]);
+  const out = await gh.recentFiles(5);
+  assert.deepEqual(out.map(f => f.path), ['a']);
+});
+
+test('load() keeps an in-flight tally on the class for the boot guard', async () => {
+  // gh-boot's load-race guard reads GH._loading / GH._loadQuietAt to tell a
+  // chain still in flight from a page that loads nothing, so the counter has
+  // to rise while a load is pending, pool across instances, and stamp the
+  // quiet time on completion, success and failure alike.
+  const gh = new GH({ repo: 'o/r' });
+  let release;
+  gh.get = () => new Promise(r => { release = () => r({ text: 'void 0' }); });
+  const before = GH._loading || 0;
+  const p = gh.load('slow.js');
+  await new Promise(r => setTimeout(r, 5));
+  assert.equal(GH._loading, before + 1, 'in flight while the fetch is pending');
+  release();
+  await p;
+  assert.equal(GH._loading, before, 'settles back on completion');
+  assert.ok(Date.now() - GH._loadQuietAt < 1000, 'quiet time stamped at completion');
+
+  const failing = new GH({ repo: 'o/r' });
+  failing.get = async () => { throw new Error('404'); };
+  await assert.rejects(() => failing.load('gone.js'));
+  assert.equal(GH._loading, before, 'a failed load never leaks the counter');
+});
+
+// ── req(): one retry when the connection drops ───────────────────────────────
+// A rejected fetch is not GitHub saying anything, it is the network, and on a
+// phone that is weather rather than an error. Measured 2026-08-17: a refresh on
+// 5G died at "Activity refresh failed: Load failed" after 300-odd successful
+// calls, so one retry is the difference between a dropped packet and a wasted
+// crawl. Reads only: a PUT that failed to answer may still have landed.
+const withFetch = async (impl, fn) => {
+  // req() memoises a GET per URL for a minute across every GH; each fake
+  // network starts from an empty table so a prior test's answer cannot stand
+  // in for the one this test scripts.
+  GH.memoClear();
+  const real = globalThis.fetch;
+  globalThis.fetch = impl;
+  try { return await fn(); } finally { globalThis.fetch = real; }
+};
+const ok = (body = {}) => ({ ok: true, status: 200, headers: { get: () => null }, json: async () => body });
+
+test('a dropped read is retried once and then succeeds', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  const out = await withFetch(async () => {
+    if (++tries === 1) throw new TypeError('Load failed');
+    return ok({ ok: 1 });
+  }, () => gh.req('branches?per_page=100'));
+  assert.equal(tries, 2);
+  assert.deepEqual(out, { ok: 1 });
+});
+
+test('the shared read memo never crosses authenticated identities', async () => {
+  const seen = [];
+  const [left, right] = await withFetch(async (_url, options) => {
+    const authorization = options.headers.Authorization;
+    seen.push(authorization);
+    return ok({ authorization });
+  }, async () => {
+    const a = new GH({ token: 'account-a', repo: 'o/private' });
+    const b = new GH({ token: 'account-b', repo: 'o/private' });
+    return Promise.all([a.req('contents/private.json'), b.req('contents/private.json')]);
+  });
+  assert.equal(seen.length, 2, 'each credential reaches the network once');
+  assert.equal(left.authorization, 'Bearer account-a');
+  assert.equal(right.authorization, 'Bearer account-b');
+});
+
+test('tuple-form Authorization stays out of the shared memo key', async () => {
+  const secret = 'Bearer tuple-account-secret';
+  const gh = new GH({ repo: 'o/private' });
+  await withFetch(async (_url, options) => {
+    assert.deepEqual(options.headers, [['Authorization', secret], ['Accept', 'application/json']]);
+    return ok({ ok: true });
+  }, () => gh.req('contents/private.json', {
+    headers: [['Authorization', secret], ['Accept', 'application/json']],
+  }));
+  const keys = [...GH._memo.keys()];
+  assert.equal(keys.length, 1);
+  assert.ok(!keys[0].includes(secret), 'a valid HeadersInit tuple must use the opaque auth scope');
+});
+
+test('a read that keeps dropping throws, naming the call', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => { tries++; throw new TypeError('Load failed'); },
+    () => assert.rejects(() => gh.req('branches?per_page=100'),
+      // "Load failed" alone is a toast nobody can act on.
+      /Network error on GET branches\?per_page=100: Load failed/));
+  assert.equal(tries, 2, 'one retry, not a loop');
+});
+
+test('a write is not retried, since it may have landed', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => { tries++; throw new TypeError('Load failed'); },
+    () => assert.rejects(() => gh.req('contents/x.json', { method: 'PUT', body: '{}' }),
+                         /Network error on PUT/));
+  assert.equal(tries, 1);
+});
+
+test('an HTTP error is not a dropped connection and is not retried', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => {
+    tries++;
+    return { ok: false, status: 409, headers: { get: () => '4986' },
+             json: async () => ({ message: 'x does not match abc' }) };
+  }, () => assert.rejects(() => gh.req('contents/x.json'), /GitHub Error 409/));
+  assert.equal(tries, 1, 'GitHub answered; the answer will not change in 600ms');
+});
+
+// ── req(): a cached answer in another reader's shape ─────────────────────────
+// GitHub tags every representation of a contents URL with one strong ETag, the
+// blob sha. After toss-render read skills/session-review/SKILL.md?ref=main with
+// the raw media type, Chromium revalidated the app's JSON read of that URL with
+// the raw copy's ETag, took GitHub's 304, and handed back the markdown, which
+// JSON.parse refused at its second hyphen (2026-09-28). The double below plays
+// that cache: any read it may answer from storage gets the raw copy, and only
+// a read that bypasses it reaches the JSON GitHub would send.
+const MD = '---\nname: session-review\n---\n# Session review\n';
+const typed = (type, body) => ({
+  ok: true, status: 200,
+  headers: { get: k => (k.toLowerCase() === 'content-type' ? type : null) },
+  text: async () => body,
+});
+const RAW = () => typed('application/vnd.github.raw+json; charset=utf-8', MD);
+const META = () => typed('application/json; charset=utf-8', JSON.stringify({
+  sha: 'bbfb', size: MD.length, html_url: 'u', encoding: 'base64',
+  content: Buffer.from(MD).toString('base64'),
+}));
+
+test('a raw copy served from the cache is re-read past it, and the file comes back', async () => {
+  const gh = new GH({ repo: 'mehrlander/web-tools' });
+  const modes = [];
+  const file = await withFetch(async (_url, init) => {
+    modes.push(init.cache ?? 'default');
+    return init.cache === 'reload' ? META() : RAW();
+  }, () => gh.get('skills/session-review/SKILL.md'));
+  assert.equal(file.text, MD);
+  assert.equal(file.sha, 'bbfb');
+  // 'no-cache' would revalidate with the stale ETag and earn the same 304.
+  assert.deepEqual(modes, ['default', 'reload'], 'one extra read, and it skips the validator');
+});
+
+test('a JSON answer costs no second read', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  const file = await withFetch(async () => { tries++; return META(); }, () => gh.get('SKILL.md'));
+  assert.equal(file.text, MD);
+  assert.equal(tries, 1);
+});
+
+test('a non-JSON answer that survives the reload names its type', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => { tries++; return RAW(); },
+    () => assert.rejects(() => gh.req('contents/SKILL.md?ref=main'),
+      // Not "No number after minus sign in JSON at position 1".
+      /GitHub answered GET contents\/SKILL\.md\?ref=main as application\/vnd\.github\.raw\+json, not JSON/));
+  assert.equal(tries, 2, 'one reload, not a loop');
+});
+
+test('a FRESH read already skipped the cache, so it is not repeated', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  await withFetch(async () => { tries++; return RAW(); },
+    () => assert.rejects(() => gh.req('contents/SKILL.md', GH.FRESH), /not JSON/));
+  assert.equal(tries, 1);
+});
+
+test('a JSON answer under another vnd.github label still parses', async () => {
+  // Only the file-body types trigger the re-read; a search's text-match JSON
+  // must not start throwing if GitHub ever labels it with its own name.
+  const gh = new GH({ repo: 'o/r' });
+  let tries = 0;
+  const out = await withFetch(async () => { tries++; return typed('application/vnd.github.text-match+json', '{"total_count":0}'); },
+    () => gh.req('/search/code?q=x'));
+  assert.deepEqual(out, { total_count: 0 });
+  assert.equal(tries, 1);
+});

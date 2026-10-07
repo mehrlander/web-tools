@@ -1,0 +1,877 @@
+// lib/kits/session-render.js — the record-to-conversation mapping: the merge that
+// interleaves three parallel lists, and the grouping the swipe deck pages on.
+//
+// Loads the real IIFE against a stub window, so these assert the shipped code
+// rather than a transcription of it. `turns`, `groups` and `describe` are pure;
+// only `open`/`deck` touch chatRender or the DOM, so neither is needed here.
+//
+// The two things worth guarding, both of which pass a naive check:
+//
+//   The MERGE is by `at` at one-second granularity, and an assistant turn
+//   shares its timestamp with the tool calls it issued, since both are read
+//   from one transcript message. Sorting on `at` alone leaves that tie to
+//   concatenation order, which puts the calls above the sentence introducing
+//   them. It looks fine on any fixture whose seconds happen not to collide.
+//
+//   The GROUPING is one card per exchange, and what makes that readable is
+//   the FOLD, in two levels. A run of tool calls plus the short sentence that
+//   introduced it ("Now let me render it") is one STEP; a run of adjacent
+//   steps is one SEQUENCE. The first version split a card at each prose turn
+//   as well, because without any of this a slide carried a hundred expanded
+//   tool entries. Every piece is pinned here, since dropping any one brings
+//   the slab back in a smaller size: no folding at all is the original slab,
+//   folding calls alone leaves the narration between question and answer,
+//   folding steps alone leaves seven or eight lines of preparation, and
+//   folding prose by length alone would swallow the answer itself.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { JSDOM } from 'jsdom';
+import { repoRoot } from './bootstrap.mjs';
+
+const src = readFileSync(path.join(repoRoot, 'lib/kits/session-render.js'), 'utf8');
+const window = {};
+const document = { createElement: () => ({ style: {}, append() {}, setAttribute() {} }) };
+new Function('window', 'document', src)(window, document);
+const { turns, groups, blocks, outline, find, describe } = window.sessionRender;
+
+const at = s => `2026-08-07T15:00:${String(s).padStart(2, '0')}Z`;
+
+// A schema-4 record with the one shape the rank exists for: the reply at :05
+// and both of its calls carry the SAME timestamp.
+const REC = {
+  schema: 4,
+  short: 'abc12345',
+  day: '2026-08-07',
+  started: at(0),
+  ended: at(30),
+  exchanges: 2,
+  prompts_stored: 2,
+  calls_total: 3,
+  repos: [{ name: 'web-tools' }, { name: 'home' }],
+  opening_ask: 'Do we capture session content?',
+  prompts: [
+    { at: at(0), text: 'Do we capture session content?' },
+    { at: at(20), text: 'Please proceed.' },
+  ],
+  replies: [
+    { at: at(5), text: 'Let me look at the plugin.' },
+    { at: at(12), text: 'Yes, and here is what it holds.' },
+  ],
+  calls: [
+    { at: at(5), name: 'Bash', ok: true, bytes: 40, arg: 'ls sessions/', body: 'README.md' },
+    { at: at(5), name: 'Read', ok: true, bytes: 4821 },
+    { at: at(14), name: 'Bash', ok: false, bytes: 60, arg: 'npm run broken', body: 'exit 1' },
+  ],
+};
+
+const shape = list => list.map(t => t.role).join(',');
+
+test('the merge interleaves the three lists in transcript order', () => {
+  const t = turns(REC);
+  assert.equal(shape(t), 'user,assistant,tool,tool,assistant,tool,user',
+    'expected ask, reply, its two calls, reply, its call, ask');
+});
+
+test('a reply sorts above the calls that share its timestamp', () => {
+  const t = turns(REC);
+  const reply = t.findIndex(x => x.md === 'Let me look at the plugin.');
+  const firstCall = t.findIndex(x => x.role === 'tool');
+  assert.ok(reply < firstCall,
+    'the calls sorted above the sentence that introduced them; the per-kind rank is not breaking the `at` tie');
+});
+
+test('a card is one exchange: the ask and everything before the next ask', () => {
+  const g = groups(turns(REC));
+  assert.deepEqual(g.map(shape), [
+    'user,assistant,tool,tool,assistant,tool',
+    'user',
+  ]);
+});
+
+test('a short turn that introduces work folds with the work it introduced', () => {
+  // REC's two replies are both step narration: short, and immediately
+  // followed by the calls they announce. Expanded, they sit between the
+  // question and the reply that answers it.
+  const b = blocks(groups(turns(REC))[0]);
+  assert.deepEqual(b.map(x => x.steps ? 'seq:' + x.steps.length : x.turn.role), ['user', 'seq:2']);
+  assert.deepEqual(b[1].steps.map(st => st.tools.length), [2, 1],
+    'a fold per call would condense nothing; a fold across the prose would lose the order');
+  assert.equal(b[1].steps[0].lead, 'Let me look at the plugin.',
+    'the sentence is the label: it places a run that the tool names only describe');
+});
+
+test('adjacent steps collapse into one sequence, and a lone step does not', () => {
+  // The complaint one level up: seven folded steps still stand between the
+  // question and its answer, so the run folds again. Wrapping a single step
+  // would name nothing its own label does not, and would cost a tap.
+  const one = { ...REC, replies: [{ at: at(5), text: 'Let me look at the plugin.' }],
+    calls: REC.calls.filter(c => c.at === at(5)) };
+  const b = blocks(groups(turns(one))[0]);
+  assert.deepEqual(b.map(x => x.steps ? 'seq' : x.tools ? 'step' : x.turn.role), ['user', 'step']);
+});
+
+test('a sequence counts its steps and its calls, since that line is the card', () => {
+  const b = blocks(groups(turns(REC))[0]);
+  assert.equal(b[1].label, '2 steps  ·  3 calls  ·  2× Bash, Read  ·  1 failed');
+});
+
+test('a turn long enough to be saying something stays expanded', () => {
+  // The guard on the fold above, and the reason it is length rather than
+  // position: an assistant turn can report a finding AND keep working, and
+  // hiding that one loses the answer. Measured over the store, narration runs
+  // a median of 97 characters and an answer 3,499, so the two barely overlap.
+  const long = 'Verified. Blue means merged, and the tint comes from one function. '.repeat(6);
+  const rec = { ...REC, replies: [{ at: at(5), text: long }] };
+  const b = blocks(groups(turns(rec))[0]);
+  assert.deepEqual(b.map(x => x.tools ? 'run' : x.turn.role), ['user', 'assistant', 'run']);
+  assert.ok(!b[2].lead, 'an expanded turn must not also be repeated as a fold label');
+});
+
+test('a step says what it holds, since a closed fold is all a reader sees', () => {
+  const [, seq] = blocks(groups(turns(REC))[0]);
+  assert.equal(seq.steps[0].label, '2 calls  ·  Bash, Read');
+  assert.equal(seq.steps[1].label, '1 call  ·  Bash  ·  1 failed',
+    'a failure inside a closed fold is invisible unless the summary names it');
+});
+
+test('a real session shape stays readable: three asks, three cards, the work folded', () => {
+  // The shape the fold exists for: 3 asks, 60 calls, one prose turn
+  // introducing each run of 5.
+  const prompts = [0, 20, 40].map(s => ({ at: at(s), text: `ask at ${s}` }));
+  const replies = [], calls = [];
+  for (let i = 0; i < 12; i++) {
+    replies.push({ at: at(i * 5 + 1), text: `step ${i}` });
+    for (let k = 0; k < 5; k++) calls.push({ at: at(i * 5 + 2), name: 'Bash', ok: true, bytes: 1, arg: 'x', body: 'y' });
+  }
+  const g = groups(turns({ schema: 4, prompts, replies, calls, exchanges: 3, prompts_stored: 3 }));
+  assert.equal(g.length, 3, 'a question and its answer must land on one slide');
+  const b = g.map(blocks);
+  assert.deepEqual(b.map(x => x.length), [2, 2, 2],
+    'a card is the ask and one line for the work, not sixty entries');
+  const seqs = b.map(card => card[1]);
+  assert.ok(seqs.every(q => q.steps.length === 4), 'four steps behind each sequence');
+  assert.ok(seqs.every(q => q.steps.every(st => st.tools.length === 5 && st.lead)),
+    'each step keeps its five calls and the sentence that introduced them');
+  assert.ok(seqs.every(q => /^4 steps {2}· {2}20 calls/.test(q.label)));
+});
+
+test('a complete schema-4 record gets no capture note', () => {
+  assert.ok(!turns(REC).some(t => t.role === 'meta'),
+    'a clean record should not carry a disclaimer nobody asked for');
+});
+
+test('a schema-3 record says its prose was not captured', () => {
+  const t = turns({ ...REC, schema: 3, replies: [], last_message: 'The final word.' });
+  const note = t.find(x => x.role === 'meta');
+  assert.ok(note, 'no capture note on a record that is missing its answering half');
+  assert.match(note.md, /prose was not captured/i);
+});
+
+test('the capture note folds into the first card rather than taking a slide', () => {
+  const g = groups(turns({ ...REC, schema: 3, replies: [], last_message: 'The final word.' }));
+  assert.equal(g[0][0].role, 'meta', 'the note should lead the first card');
+  assert.ok(g[0].length > 1, 'the note took a slide of its own; the deck opens on a disclaimer');
+});
+
+test('last_message is shown, and last, when there are no replies', () => {
+  const t = turns({ ...REC, schema: 3, replies: [], last_message: 'The final word.' });
+  const last = t[t.length - 1];
+  assert.equal(last.md, 'The final word.');
+  assert.match(last.label, /final turn only/,
+    'the one surviving turn must be labelled as such, or it reads as the whole answer');
+});
+
+test('caps and drops are named in the note', () => {
+  const t = turns({ ...REC, exchanges: 900, prompts_stored: 2, replies_elided: 3, bodies_dropped: 7 });
+  const note = t.find(x => x.role === 'meta');
+  assert.match(note.md, /2 of 900 asks stored/);
+  assert.match(note.md, /3 prose turns elided/);
+  assert.match(note.md, /7 result bodies dropped/);
+});
+
+test('a failing call is labelled and a body-less call states its size', () => {
+  const t = turns(REC);
+  const failed = t.find(x => x.role === 'tool' && /failed/.test(x.label));
+  assert.ok(failed, 'a failing call must be distinguishable from a succeeding one');
+  const dropped = t.find(x => x.label === 'Read');
+  assert.match(dropped.md, /4\.7 KB returned, body not kept/,
+    'a dropped body must still say how much there was; "nothing" and "not kept" are different claims');
+});
+
+test('a Bash arg is fenced as bash so it reads as a command', () => {
+  const t = turns(REC);
+  const call = t.find(x => x.label === 'Bash');
+  assert.match(call.md, /```bash\nls sessions\/\n```/);
+});
+
+test('describe carries the facts the deck header needs', () => {
+  const d = describe(REC);
+  assert.match(d.title, /Do we capture session content/);
+  assert.match(d.subtitle, /abc12345/);
+  assert.match(d.subtitle, /web-tools, home/);
+  assert.match(d.subtitle, /2 asks/);
+});
+
+test('the closing summary is its own card, last, carrying what the pane used to', () => {
+  // This content is why removing the Sessions pane's inline expansion loses
+  // nothing: the file list moved here rather than being dropped.
+  const g = groups(turns({ ...REC, files_total: 1, files: { 'web-tools/a.js': { edit: 5 } } }));
+  const last = g[g.length - 1];
+  assert.equal(last.length, 1, 'the summary must not read as the tail of the last exchange');
+  assert.equal(last[0].role, 'meta');
+  assert.match(last[0].label, /What this session touched/);
+});
+
+test('the summary spells out the per-kind file breakdown and keeps its caveat', () => {
+  const t = turns({
+    ...REC,
+    files_total: 2,
+    files: { 'web-tools/a.js': { read: 1, edit: 5 }, 'home/b.md': { read: 2 } },
+    tools: { Bash: 40, Read: 3 },
+  });
+  const s = t[t.length - 1];
+  assert.match(s.md, /`web-tools\/a\.js` — 5 edit, 1 read/,
+    'how a file was touched, not just how often');
+  const aIdx = s.md.indexOf('web-tools/a.js'), bIdx = s.md.indexOf('home/b.md');
+  assert.ok(aIdx < bIdx, 'busiest first');
+  assert.match(s.md, /`Bash` — 40/);
+  assert.match(s.md, /injected at session start/,
+    'the counts say the opposite of the truth without their caveat');
+});
+
+test('a record with nothing to summarise gets no closing card', () => {
+  const g = groups(turns({ schema: 4, prompts: [{ at: at(0), text: 'hi' }], exchanges: 1, prompts_stored: 1 }));
+  assert.equal(g.length, 1, 'an empty summary card would be a blank slide at the end');
+});
+
+test('an empty schema-4 record renders nothing rather than throwing', () => {
+  assert.deepEqual(turns({ schema: 4 }), []);
+  assert.deepEqual(groups([]), []);
+});
+
+test('a record with no schema field is treated as schema 1, not as complete', () => {
+  // The default matters: `schema || 1` is what makes an unversioned or
+  // malformed record report its gaps instead of passing as a clean capture.
+  const t = turns({});
+  assert.equal(t.length, 1);
+  assert.equal(t[0].role, 'meta');
+  assert.match(t[0].md, /prose was not captured/i);
+});
+
+// ── The outline ────────────────────────────────────────────────────────────
+// The titler is mechanical: a card's title is the first sentence of its ask,
+// and the first sentence of the reply when the ask carries nothing. Measured
+// over the store's card leads on 2026-08-09, the residue split four ways, and
+// three of those four are extraction bugs rather than anything a model would
+// fix. These guard the three fixes, since each of them looks like a cosmetic
+// nicety and is the difference between an outline that orients and one that
+// reads as noise.
+
+const outlineOf = rec => outline(rec).map(c => c.title);
+
+// An exchange opened by an ask that says nothing, which is the case the
+// understudy exists for: "go", "yes", "please proceed".
+const answered = (text, rest = {}) =>
+  ({ ...REC, prompts: [{ at: at(0), text: 'go' }], replies: [{ at: at(5), text }], ...rest });
+
+test('a card is titled by the ask that opened it', () => {
+  assert.equal(outlineOf(REC)[0], 'Do we capture session content?');
+});
+
+test('an ask that says nothing hands the title to the reply under it', () => {
+  // A great many asks are "go" or "please proceed". Under the old grouping
+  // those headed a card of their own with the answering card beside them;
+  // now the prose is on the same card and can be read for the title.
+  const c = outline(answered('The registry now names every page, which is what it was missing.',
+    { calls: [] }))[0];
+  assert.equal(c.title, 'The registry now names every page, which is what it was missing.');
+  assert.equal(c.source, 'reply-sentence');
+});
+
+test('the title prefers a reply the reader can still see over a folded step', () => {
+  // "Let me check the Sessions tab" is narration and folds; titling the card
+  // with it names something no longer on screen. The answer under it is what
+  // the card is about.
+  const answer = 'Verified. Blue means merged, and the tint comes from one function. '.repeat(6);
+  const rec = { ...REC,
+    prompts: [{ at: at(0), text: 'go' }],
+    replies: [{ at: at(2), text: 'Let me check what the Sessions tab does.' },
+              { at: at(9), text: answer }],
+    calls: [{ at: at(3), name: 'Bash', arg: 'ls' }] };
+  const c = outline(rec)[0];
+  assert.match(c.title, /^Blue means merged/,
+    '"Verified." is under the minimum, so the titler falls through to the sentence after it');
+  assert.equal(c.source, 'reply-sentence');
+});
+
+test('a lead that opens with chrome is skipped, not shown as the title', () => {
+  // Every file-modifying reply opens with the branch anchor, so this shape
+  // heads a card in most working sessions. Taking the first sentence naively
+  // titles those cards with a URL.
+  const rec = answered('Working branch: [claude/some-branch](https://github.com/o/r/tree/b)\n\n'
+    + 'The registry now names every page, which is what the registry was missing.', { calls: [] });
+  assert.equal(outline(rec)[0].title,
+    'The registry now names every page, which is what the registry was missing.');
+});
+
+test('a lead too short to say anything falls through to the next sentence', () => {
+  const rec = answered('Done. The derived-artifacts gate now re-runs each generator in check mode.', { calls: [] });
+  assert.equal(outline(rec)[0].title, 'The derived-artifacts gate now re-runs each generator in check mode.');
+});
+
+test('with no usable prose, the title says what the card ran', () => {
+  // The honest fallback, and it is marked as one: `source` lets the renderer
+  // style a derived title differently from a narrated one, so a reader can
+  // tell which rows the session actually described.
+  // One ask means one card, so all three of REC's calls land on it.
+  const c = outline(answered('Done.'))[0];
+  assert.equal(c.title, 'Ran 2× Bash, Read');
+  assert.equal(c.source, 'tool-calls');
+});
+
+test('the run summary counts repeats and keeps first-run order', () => {
+  const rec = answered('x', { calls: [
+    { at: at(5), name: 'Bash', arg: 'a' }, { at: at(5), name: 'Read', arg: 'b' },
+    { at: at(5), name: 'Bash', arg: 'c' }, { at: at(5), name: 'Bash', arg: 'd' },
+  ] });
+  assert.equal(outline(rec)[0].ran, '3× Bash, Read');
+});
+
+test('a long title is cut at a word boundary and marked as cut', () => {
+  const long = 'The registry ' + 'names every page and every kit and every doc '.repeat(4) + 'exactly once.';
+  const title = outline(answered(long, { calls: [] }))[0].title;
+  assert.ok(title.length <= 97, 'capped: ' + title.length);
+  assert.match(title, /…$/);
+  assert.doesNotMatch(title, /\s…$/, 'trailing space before the ellipsis');
+});
+
+test('one outline row per deck card, in the same order', () => {
+  const o = outline(REC);
+  assert.equal(o.length, groups(turns(REC)).length);
+  assert.deepEqual(o.map(c => c.i), o.map((_, i) => i));
+});
+
+// `kind` is what the outline's glyph is drawn from, and it is the one thing
+// about a card a reader cannot get from its title: whether the exchange was
+// worked or merely discussed. About four in five cards in the store are
+// `work`, which is why the other three are worth marking. If `calls` ever
+// stops being the discriminator, every discussion in the list silently
+// becomes work and the thing a reader is scanning for disappears.
+
+test('an exchange that ran tools is work; one settled in prose is the answer', () => {
+  // REC is one worked exchange and one ask nothing came back on.
+  assert.deepEqual(outline(REC).map(c => c.kind), ['work', 'ask']);
+
+  // Take the calls away and the same exchange is a conversation.
+  assert.deepEqual(outline({ ...REC, calls: [] }).map(c => c.kind), ['answer', 'ask']);
+});
+
+test('a meta card is a note, never an answer', () => {
+  // The closing summary and the capture note are assistant-shaped in neither
+  // role nor content, and styling them as replies would put a rule beside a
+  // renderer's own footnote.
+  // The closing summary is the standalone meta card; a leading capture note
+  // folds into card 0 and the ask there still leads it, which is why the
+  // fixture supplies `tools` rather than a gap.
+  const o = outline({ schema: 4, tools: { Bash: 2 },
+    prompts: [{ at: at(0), text: 'Anything?' }], replies: [], calls: [] });
+  assert.ok(o.every(c => c.kind !== 'answer'));
+  assert.ok(o.some(c => c.kind === 'note'));
+});
+
+
+// ── The deck's contents list ────────────────────────────────────────────────
+//
+// The deck pages `groups(turns(record))` and the list is built from
+// `outline(record)`, which derives the same cards. That is the invariant the
+// whole feature rests on: row `i` IS slide `i`, by construction rather than by
+// a mapping that could drift. `one outline row per deck card` above pins the
+// count; these pin what the row then says and what the labeler hands the kit.
+
+test('a card carries the number of the ask that opened it', () => {
+  // One card per exchange, so this now counts 1, 2, 3 down the conversation
+  // cards. It stays a separate field from `i` because the meta cards are also
+  // slides: "the second question" and "slide 2" are different addresses.
+  assert.deepEqual(outline(REC).map(c => c.exchange), [1, 2]);
+});
+
+test('a card before the first ask is exchange 0 rather than joining the ask after it', () => {
+  // A leading capture note folds into card 0, so reaching this needs a record
+  // whose first card is a standalone meta one. The closing summary is that
+  // card when there are no prompts at all.
+  const o = outline({ schema: 4, tools: { Bash: 1 }, prompts: [], replies: [], calls: [] });
+  assert.ok(o.length, 'the summary card is there to be numbered');
+  assert.equal(o[0].exchange, 0, 'nothing has been asked yet, and the count says so');
+});
+
+// Loading the shipped open() means stubbing the two kits it delegates to, which
+// is what lets a pure-function harness assert the wiring: the options object
+// swipe-deck receives is the whole contract between them.
+const load = (rel, w, doc) =>
+  new Function('window', 'document', readFileSync(path.join(repoRoot, rel), 'utf8'))(w, doc);
+
+const deckOpts = async (record) => {
+  const w = {};
+  const doc = { createElement: () => ({ style: {}, append() {}, setAttribute() {} }) };
+  load('lib/kits/session-render.js', w, doc);
+  w.chatRender = { ready: async () => {}, message: () => ({}) };
+  let seen = null;
+  w.swipeDeck = { open: (opts) => { seen = opts; return { deck: {} }; } };
+  await w.sessionRender.open(record);
+  return seen;
+};
+
+test('the deck is handed a labeler, so the header mark opens a contents list', async () => {
+  const opts = await deckOpts(REC);
+  assert.equal(typeof opts.index, 'function',
+    'without this the mark is a plaque and thirty cards are reachable only by swiping');
+  assert.equal(opts.count, groups(turns(REC)).length);
+});
+
+test('a row carries the card title, what it ran, and a mark for its kind', async () => {
+  const opts = await deckOpts(REC);
+  const line = outline(REC);
+  const row = opts.index(0);
+  assert.equal(row.title, line[0].title, 'the list and the outline say the same thing');
+  assert.equal(row.subtitle, line[0].ran, 'a work card is placed by what it ran');
+  assert.match(row.icon, /^ph-/, 'and the kind is a glyph, which the title cannot be wrong about');
+  assert.notEqual(opts.index(0).icon, opts.index(1).icon,
+    'a worked exchange does not look like an unanswered ask');
+});
+
+test('the labeler asks for no dot grouping, now that a card is an exchange', async () => {
+  // The pager puts a margin before each new group. That earned its keep when
+  // one exchange spanned six cards; with one card per exchange it would put a
+  // gap between every pair of dots, separating nothing.
+  const opts = await deckOpts(REC);
+  assert.ok([0, 1].every(i => opts.index(i).group === undefined));
+});
+
+test('a labeler asked past the end answers rather than throwing', async () => {
+  // The kit calls the labeler once per slide for the dots and again per row,
+  // and a deck whose count and outline ever disagreed would take the whole
+  // list down with it. One row failing is not the list failing.
+  const opts = await deckOpts(REC);
+  assert.deepEqual(opts.index(99), {});
+});
+
+// ── The fan-out (schema 8) ──────────────────────────────────────────────────
+//
+// A dispatch's own result is a launch receipt, so before schema 8 a card that
+// ran 126 agents rendered 126 lines saying a dispatch succeeded. The record now
+// carries what each agent DID, and drawing that raised the opposite problem,
+// reported from a phone on 2026-09-08: "if I try to expand it, it gets
+// overloaded." Two independent things caused it, and both are pinned here.
+//
+//   THE FOLD held everything. Adjacent tool calls merge into one run and
+//   adjacent runs into one sequence, so a fan-out interleaved with the main
+//   loop's own Bash calls became a single fold labelled "173 calls" that opened
+//   onto both halves at once.
+//
+//   THE BODY held everything. Every agent drew its full call list and the whole
+//   content of every file it wrote. Measured on the two largest records on
+//   file, that is 886 KB and 8.0 MB of markdown, against returns of 12 KB and
+//   129 KB: the part a reader opened the card for is 1.5% of what arrived.
+const agentRec = (n, { calls = 2, wrote = 4000 } = {}) => {
+  const pad = i => String(i).padStart(2, '0');
+  const agents = [], dispatch = [];
+  for (let i = 0; i < n; i++) {
+    const id = 'toolu_' + pad(i);
+    agents.push({
+      id: 'a' + pad(i), label: 'Reader batch ' + pad(i), model: 'sonnet',
+      tool_use_id: id, started: at(10), ended: at(30),
+      tokens: { output: 300 }, returned: 'Batch ' + pad(i) + ': 40 records.',
+      calls: [
+        ...Array.from({ length: calls }, (_, j) => ({ name: 'Bash', arg: 'python3 step' + j + '.py' })),
+        { name: 'Write', arg: 'out/' + pad(i) + '.json', content: 'x'.repeat(wrote) },
+      ],
+    });
+    dispatch.push({ name: 'Agent', at: at(10), arg: 'label ' + pad(i), agent: id, ok: true, bytes: 90 });
+  }
+  return {
+    prompts: [{ at: at(0), text: 'Score the classifier.' }],
+    replies: [{ at: at(40), text: 'Done.' }],
+    // A shell call on either side, which is what made one fold hold the lot.
+    calls: [{ name: 'Bash', at: at(5), arg: 'ls', body: 'a\nb' }, ...dispatch,
+            { name: 'Bash', at: at(35), arg: 'git status', body: 'clean' }],
+    agents,
+  };
+};
+
+const foldsOf = rec => {
+  const card = groups(turns(rec)).find(c => c.some(t => t.role === 'user'));
+  return blocks(card);
+};
+
+test('a dispatch run is its own fold, not a step inside the shell work', () => {
+  const bs = foldsOf(agentRec(8));
+  const fan = bs.filter(b => b.tools?.length && b.tools[0].agent);
+  assert.equal(fan.length, 1, 'the eight dispatches are one block of their own');
+  assert.equal(fan[0].tools.length, 8, 'and the Bash calls around them stayed out of it');
+  assert.ok(bs.some(b => b.tools?.length && !b.tools[0].agent),
+    'the shell calls still have a fold; splitting must not swallow them');
+  // sequence() combines adjacent tool blocks, and would hand the split straight
+  // back if a fan-out were allowed to join one.
+  assert.ok(!bs.some(b => b.steps?.some(st => st.tools?.[0]?.agent)),
+    'a fan-out must never be absorbed into a sequence fold');
+});
+
+test('the fan-out fold counts agents and names the models, not "8× Agent"', () => {
+  const fan = foldsOf(agentRec(8)).find(b => b.tools?.[0]?.agent);
+  assert.match(fan.label, /^8 agents/, 'the count is of agents, since every call here is one');
+  assert.match(fan.label, /8× sonnet/, 'and the interesting axis is who did the work');
+  assert.doesNotMatch(fan.label, /Agent/, 'the tool name is the one fact the count already gave');
+});
+
+test('a refused dispatch is counted as refused, never as an agent that ran', () => {
+  // No agent ran: the harness turned the dispatch away at the concurrency cap.
+  // Counting the two together reported 126 agents on a fan-out where 124 worked.
+  const rec = agentRec(8);
+  rec.calls.push({ name: 'Agent', at: at(31), arg: 'over the cap', ok: false, bytes: 40 });
+  const fan = foldsOf(rec).find(b => b.tools?.[0]?.agent);
+  assert.match(fan.label, /^8 agents/);
+  assert.match(fan.label, /1 refused/);
+});
+
+test('past the density threshold an agent draws its return and its shape, not its files', () => {
+  const many = foldsOf(agentRec(8)).find(b => b.tools?.[0]?.agent).tools;
+  const md = many[0].md;
+  assert.match(md, /Batch 00: 40 records\./, 'the return is the whole point and always shows');
+  assert.match(md, /3 calls/, 'the shape shows: how many calls, how long, how much authored');
+  assert.match(md, /3.9 KB authored/, 'and the total it wrote, which stands in for the fences');
+  assert.match(md, /\*\*Wrote\*\* `out\/00\.json`/, 'and WHICH file, since a byte count answers less');
+  assert.doesNotMatch(md, /xxxxx/, 'but not the file itself, which is what overloaded the fold');
+  assert.ok(md.length < 400, `a scanned agent is a few lines, got ${md.length} chars`);
+});
+
+test('below the threshold nothing changes: a review panel arrives whole', () => {
+  // Three agents writing 4 KB each is exactly what a reader wants on screen,
+  // and for a structured fan-out the authored file IS the answer.
+  const few = foldsOf(agentRec(3)).find(b => b.tools?.[0]?.agent).tools;
+  const md = few[0].md;
+  assert.match(md, /xxxxx/, 'the file content is inline');
+  assert.match(md, /- `Bash` — python3 step0\.py/, 'and so is the call list');
+});
+
+test('the density is the record\'s, so a card does not switch register mid-scroll', () => {
+  // Built per turn, before the runs are grouped, and that is the truer unit: a
+  // session that dispatched a hundred agents is one a reader scans throughout.
+  const rec = agentRec(8);
+  const fan = foldsOf(rec).find(b => b.tools?.[0]?.agent).tools;
+  assert.ok(fan.every(t => !/xxxxx/.test(t.md)), 'every agent in the run reads the same way');
+});
+
+// ── The header's title, when the prompt arrived with attachments ─────────────
+// Same defect the row's ask had, one surface over: a prompt opening with three
+// attached files opens with about 300 characters of upload path, so the brief's
+// header read as a UUID. The rule is repo-sessions-cache's (askParts), reached
+// through the global, so this also has to hold what happens when that kit is
+// absent, which is the case on every page that never loads it.
+
+const UP = '/root/.claude/uploads/aaaa1111-bbbb-cccc-dddd-eeee00001111/';
+const ATTACHED =
+  `@"${UP}22288270-COREPAM_Decision_Package.docx" ` +
+  `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" ` +
+  'Please review the attached documents.';
+
+function withCacheKit() {
+  const w = { ...window };
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(w);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/closing-state.js'), 'utf8'))(w);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-sessions-cache.js'), 'utf8'))(w);
+  return w.RepoSessionsCache;
+}
+
+test('the title is the question, not the upload paths', () => {
+  const kit = withCacheKit();
+  window.RepoSessionsCache = kit;
+  try {
+    assert.match(describe({ short: 'aaaa1111', opening_ask: ATTACHED }).title,
+                 /^Please review the attached documents/);
+    // A prompt that was ONLY attachments has no prose to title with, so the
+    // names stand in rather than leaving the header on the bare short id.
+    const namesOnly = describe({ short: 'aaaa1111', opening_ask: `@"${UP}22288270-Only_File.docx"` });
+    assert.match(namesOnly.title, /Only_File\.docx/);
+  } finally { delete window.RepoSessionsCache; }
+});
+
+test('without the cache kit the title is what it always was, not empty', () => {
+  // This kit renders on pages that never load repo-sessions-cache. Failing open
+  // means the paths come back, which is the behaviour before the lift; failing
+  // closed would blank a header.
+  assert.equal('RepoSessionsCache' in window, false);
+  const d = describe({ short: 'aaaa1111', opening_ask: ATTACHED });
+  assert.match(d.title, /uploads/);
+  assert.equal(describe({ short: 'aaaa1111' }).title, 'aaaa1111');
+});
+
+// Find must point back into the existing reading model. A second grouping can
+// return a plausible snippet and still open the wrong exchange, especially
+// when a capture note, pre-ask reply or missing timestamp shifts the cards.
+const findRecord = (prompts = [], replies = [], rest = {}) => ({
+  schema: 14, prompts, replies, ...rest,
+});
+const say = (text, n, extra = {}) => ({ text, ...(n == null ? {} : { at: at(n) }), ...extra });
+
+test('find preserves partial exchanges when AND terms are distributed across the session', () => {
+  const r = findRecord(
+    [say('Please merge this.', 0), say('Read the guide.', 10), say('Merge the next change.', 20)],
+    [say('The result is ready.', 1), say('The reading is ready.', 11), say('The guide covers it.', 21)],
+  );
+  const result = find(r, 'MERGE   guide');
+  assert.deepEqual(result.terms, ['merge', 'guide']);
+  assert.equal(result.allTerms, true);
+  assert.equal(result.total, 4);
+  assert.deepEqual(result.hits.map(h => [h.card, h.exchange, h.allTerms, h.total]),
+    [[0, 1, false, 1], [1, 2, false, 1], [2, 3, true, 2]]);
+  assert.deepEqual(result.hits.map(h => h.matchedTerms), [['merge'], ['guide'], ['merge', 'guide']]);
+  assert.deepEqual(result.hits[2].passages.map(p => [p.role, p.label]),
+    [['user', 'You'], ['assistant', 'Assistant']]);
+});
+
+test('find uses term matching, not phrase order or regular expressions', () => {
+  const r = findRecord([say('Guide first, then merge. The literal is a.*b.', 0)]);
+  assert.equal(find(r, 'merge guide').hits[0].allTerms, true);
+  assert.equal(find(r, 'a.*b').total, 1);
+  assert.equal(find(findRecord([say('axxxb', 0)]), 'a.*b').total, 0);
+  assert.equal(find(r, '"merge guide"').total, 0, 'quotes are literal, not an undocumented phrase mode');
+});
+
+test('find path normalization agrees with SessionIndex with and without that kit loaded', () => {
+  const w = {};
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/session-index.js'), 'utf8'))(w);
+  const r = findRecord([say('Read lib/kits/estate-search.js and .claude/uploads/ROW_V.', 0)]);
+  const shard = w.SessionIndex.buildShard({ sample: w.SessionIndex.tokens(w.SessionIndex.docText(r)) });
+  for (const query of ['.claude/uploads/', 'SEARCH.JS', '/lib/kits/ row_v', '.js', '..', 'lib /']) {
+    const fallback = find(r, query);
+    window.SessionIndex = w.SessionIndex;
+    let loaded;
+    try { loaded = find(r, query); } finally { delete window.SessionIndex; }
+    assert.deepEqual(loaded, fallback, query);
+    assert.equal(loaded.allTerms, w.SessionIndex.search([shard], query).has('sample'), query);
+  }
+  assert.deepEqual(find(r, 'ROW_V row_v').terms, ['row_v'], 'duplicate query terms count once');
+});
+
+test('empty and normalized-empty AND queries return an explicit empty result', () => {
+  for (const query of ['', ' \n\t ', null, undefined, '///', 'merge /']) {
+    assert.deepEqual(find(REC, query), { terms: [], hits: [], total: 0, occurrenceTotal: 0, matchedTerms: [], allTerms: false });
+  }
+  const none = find(REC, 'not-captured');
+  assert.deepEqual(none.terms, ['not-captured']);
+  assert.equal(none.total, 0);
+  assert.equal(none.allTerms, false);
+});
+
+test('find searches whole logical turns across blank lines and long middles', () => {
+  const text = 'Merge the branch.\n\n' + 'This is other captured prose. '.repeat(6000) + '\n\nUse the guide.';
+  const r = findRecord([say('Please check the change.', 0)], [say(text, 1)]);
+  const all = find(r, 'merge guide');
+  assert.equal(all.total, 1);
+  assert.equal(all.hits[0].allTerms, true);
+  assert.deepEqual(all.hits[0].passages[0].matchedTerms, ['merge', 'guide']);
+  const tail = find(r, 'guide').hits[0].passages[0].text;
+  assert.match(tail, /Use the guide\.$/);
+  assert.ok(tail.length <= 242, 'snippet grew with transcript size');
+  assert.ok(text.replace(/\s+/g, ' ').includes(tail.replace(/^…|…$/g, '')));
+});
+
+test('find counts every matching turn while bounding previews per exchange', () => {
+  const r = findRecord([say('Needle in the ask.', 0)],
+    Array.from({ length: 40 }, (_, n) => say('Needle '.repeat(50), n + 1)));
+  const result = find(r, 'needle');
+  assert.equal(result.total, 41, 'repeated occurrences are not additional passages');
+  assert.equal(result.hits.length, 1);
+  assert.equal(result.hits[0].total, 41);
+  assert.equal(result.occurrenceTotal, 2001, 'occurrences include turns and text beyond every snippet cap');
+  assert.equal(result.hits[0].occurrenceTotal, 2001);
+  assert.equal(result.hits[0].passages.length, 3);
+  assert.ok(result.hits[0].passages.every(p => p.text.length <= 242));
+});
+
+test('find excludes tools, subagents, metadata, injected records and relayed prompt origins', () => {
+  const r = findRecord([
+    say('Ordinary ask.', 0),
+    say('excluded peer prose', 1, { origin: 'peer' }),
+    say('excluded notification prose', 2, { origin: 'task_notification' }),
+    say('excluded alias prose', 3, { origin: 'task-notification' }),
+  ], [say('Ordinary reply.', 4)], {
+    opening_ask: 'excluded title-only text',
+    last_message: 'excluded stale fallback',
+    files: { 'excluded/metadata.md': { read: 1 } },
+    tools: { excluded: 1 },
+    calls: [
+      { at: at(5), name: 'Bash', arg: 'excluded argument', body: 'excluded result', ok: true },
+      { at: at(6), name: 'Agent', agent: 'one', body: 'excluded receipt', ok: true },
+    ],
+    agents: [{ tool_use_id: 'one', returned: 'excluded agent reply', calls: [] }],
+    injected: [{ body: 'excluded injected body', head: 'excluded head', kind: 'skill' }],
+  });
+  assert.equal(find(r, 'excluded').total, 0);
+  assert.equal(find(r, 'excluded').occurrenceTotal, 0);
+  assert.equal(find(r, 'ordinary').total, 2);
+  assert.ok(turns(r).some(t => t.origin === 'peer'), 'deck provenance must survive without removing its card');
+  assert.equal(groups(turns(r)).filter(c => c.some(t => t.role === 'user')).length, 4,
+    'search eligibility must not renumber the existing deck');
+});
+
+test('exact occurrence totals distinguish repeated words from passages and exchanges', () => {
+  const r = findRecord([say('foo foobar FOO', 0), say('bar', 10)], [say('foobar', 1)]);
+  const result = find(r, 'foo foobar FOO bar');
+  assert.equal(result.total, 3);
+  assert.equal(result.hits.length, 2);
+  assert.equal(result.occurrenceTotal, 5, 'overlapping literal terms count one captured occurrence');
+  assert.deepEqual(result.hits.map(h => h.occurrenceTotal), [4, 1]);
+  assert.deepEqual(result.matchedTerms, ['foo', 'foobar', 'bar']);
+  assert.equal(result.allTerms, true);
+  const parts = window.sessionRender.findParts('foo foobar FOO', result.terms);
+  assert.deepEqual(parts.filter(p => p.match).map(p => p.text), ['foo', 'foobar', 'FOO']);
+});
+
+test('literal highlight spans preserve Unicode source and agree with occurrence counts', () => {
+  for (const [text, query, expected] of [
+    ['İ café CAFÉ 東京 🧭 <img a+b a+b', 'i café 東京 🧭 <img a+b', 8],
+    ['İİ', 'i \u0307', 2],
+    ['aaaaa', 'aa aaa', 2],
+    ['abc bc', 'ab bc', 2],
+  ]) {
+    const result = find(findRecord([say(text, 0)]), query);
+    const parts = window.sessionRender.findParts(text, result.terms);
+    assert.equal(parts.map(p => p.text).join(''), text);
+    assert.equal(result.occurrenceTotal, expected, query);
+    assert.equal(parts.filter(p => p.match).length, expected, query);
+    assert.ok(parts.every(p => p.text.isWellFormed()));
+  }
+  assert.deepEqual(window.sessionRender.findParts('ordinary', ['']), [{ text: 'ordinary', match: false }]);
+});
+
+test('find card indices and exchange labels agree with the exporter for irregular records', () => {
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/session-export.js'), 'utf8'))(window, document);
+  const records = [
+    findRecord([say('needle ask', 2)], [say('needle before ask', 1), say('needle answer', 3)],
+      { schema: 3, tools: { Bash: 1 } }),
+    findRecord([say('needle missing timestamp'), say('needle stamped', 2)],
+      [say('needle untimed reply'), say('needle timed reply', 3)]),
+    { schema: 1, opening_ask: 'needle title', last_message: 'needle final captured reply' },
+  ];
+  for (const r of records) {
+    const result = find(r, 'needle');
+    const model = window.sessionExport.model(r);
+    const line = outline(r);
+    for (const hit of result.hits) {
+      assert.equal(hit.exchange, line[hit.card].exchange);
+      assert.equal(hit.at, line[hit.card].at);
+      assert.equal(hit.title, line[hit.card].title);
+      assert.equal(hit.total, model.cards[hit.card].filter(t =>
+        (t.role === 'user' || t.role === 'assistant') && t.md.includes('needle')).length);
+      assert.ok(model.cards[hit.card].some(t => t.role === hit.passages[0].role));
+    }
+  }
+});
+
+test('find preserves Unicode wording and locates a match after length-changing lowercase', () => {
+  const source = 'İ'.repeat(500) + ' 🧭 CAFÉ 東京 guide résumé. ' + '🧭'.repeat(300);
+  const r = findRecord([], [say(source)]);
+  for (const query of ['café', '東京', 'RÉSUMÉ', '🧭']) {
+    const passage = find(r, query).hits[0].passages[0];
+    assert.ok(passage.text.toLowerCase().includes(query.toLowerCase()), query);
+    assert.ok(source.includes(passage.text.replace(/^…|…$/g, '')));
+    assert.equal(passage.text.isWellFormed(), true, 'snippet split a surrogate pair');
+    assert.ok(passage.text.length <= 242);
+  }
+});
+
+test('find returns captured markup as inert data without mutating its source', () => {
+  const text = '<img src=x onerror="alert(1)"> <script>needle</script> & <svg/onload=alert(2)>';
+  const r = findRecord([say(text, 0)], [say('A safe reply.', 1)]);
+  const before = JSON.stringify(r);
+  const result = find(r, 'needle');
+  assert.equal(result.hits[0].passages[0].text, text);
+  assert.equal(result.hits[0].passages[0].role, 'user');
+  assert.equal('html' in result.hits[0].passages[0], false);
+  assert.equal(JSON.stringify(r), before);
+});
+
+// A tiny message renderer records which turns session-render actually asks
+// chat-render to build. The DOM and details events are real; the assertion is
+// about prose visibility and lazy tool rendering, not markdown formatting.
+async function renderFindDeck(record, query, start = 0) {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const doc = dom.window.document;
+  const w = {};
+  load('lib/kits/session-render.js', w, doc);
+  const built = [];
+  w.chatRender = {
+    ready: async () => {},
+    message(turn) {
+      built.push(turn);
+      const node = doc.createElement('article');
+      node.dataset.testTurn = turn.role;
+      node.textContent = turn.md;
+      return node;
+    },
+  };
+  let opts;
+  w.swipeDeck = { open(options) { opts = options; return { deck: {} }; } };
+  await w.sessionRender.open(record, { find: query, start });
+  const host = doc.createElement('section');
+  doc.body.append(host);
+  opts.render(start, host);
+  return { dom, host, built, opts };
+}
+
+test('opening a source match reveals folded prose in order and leaves tools lazy', async () => {
+  const r = findRecord([say('Please investigate.', 0)], [
+    say('First preparation.', 1), say('Check the needle finding.', 3),
+    say('Last preparation.', 5), say('The complete answer is ready.', 7),
+  ], { calls: [2, 4, 6].map(n => ({ at: at(n), name: 'Bash', arg: 'step ' + n, body: 'tool body ' + n })) });
+  const { dom, host, built } = await renderFindDeck(r, 'needle');
+  try {
+    const marked = [...host.querySelectorAll('[data-session-prose-match]')];
+    assert.equal(marked.length, 1);
+    assert.equal(marked[0].textContent, 'Check the needle finding.');
+    assert.equal(marked[0].closest('details'), null, 'source prose is still hidden in its work fold');
+    assert.ok(marked[0].classList.contains('bg-warning/10'));
+    assert.deepEqual([...host.children].map(n => n.tagName), ['ARTICLE', 'DETAILS', 'ARTICLE', 'DETAILS', 'ARTICLE']);
+    assert.equal(built.filter(t => t.role === 'tool').length, 0, 'opening a match eagerly rendered tool bodies');
+    for (const details of host.querySelectorAll('details')) {
+      assert.equal(details.open, false);
+      details.open = true;
+      details.dispatchEvent(new dom.window.Event('toggle'));
+    }
+    assert.deepEqual([...host.querySelectorAll('[data-test-turn]')].map(n => n.textContent),
+      turns(r).filter(t => t.role !== 'meta').map(t => t.md),
+      'expanding the remaining work changed order or duplicated the matched intro');
+  } finally { dom.window.close(); }
+});
+
+test('source marking shares find eligibility, normalization and empty-query handling', async () => {
+  const r = findRecord([
+    say('Read .claude/uploads/needle.', 0),
+    say('needle peer prose', 3, { origin: 'peer' }),
+  ], [say('The needle answer. ' + 'Captured text. '.repeat(30), 1)], {
+    calls: [{ at: at(2), name: 'Bash', body: 'needle result' }],
+    files: { 'needle.md': { read: 1 } },
+  });
+  for (const [query, start, count] of [['NEEDLE', 0, 2], ['/.claude/uploads/', 0, 1],
+    ['needle', 1, 0], ['needle', 2, 0], ['', 0, 0], ['needle /', 0, 0]]) {
+    const { dom, host, built } = await renderFindDeck(r, query, start);
+    try {
+      assert.equal(host.querySelectorAll('[data-session-prose-match]').length, count, `${query}, card ${start}`);
+      assert.equal(built.filter(t => t.role === 'tool').length, 0);
+    } finally { dom.window.close(); }
+  }
+});
+
+test('opening without a source query retains the ordinary narration fold', async () => {
+  const { dom, host, built } = await renderFindDeck(REC, '');
+  try {
+    assert.equal(host.querySelectorAll('details').length, 1);
+    assert.equal(host.querySelector('details').open, false);
+    assert.equal(host.querySelectorAll('[data-session-prose-match]').length, 0);
+    assert.deepEqual(built.map(t => t.role), ['user']);
+  } finally { dom.window.close(); }
+});

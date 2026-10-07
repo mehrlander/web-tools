@@ -1,9 +1,9 @@
 ---
 id: focus-a-ui-component-f0awt7
 title: Let a brief cover one picked region instead of a whole page
-status: backlog
+status: done
 opened: 2026-07-26
-size: M
+closed: 2026-10-07
 ---
 # Let a brief cover one picked region instead of a whole page
 
@@ -87,3 +87,4 @@ resolved for a subtree even with Peek's chain in hand, said in one line here.
   unchanged and still refuses a whole-lib page while naming a per-component
   scope that has no entry point, which is now the whole task.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-07: Closed as overtaken, on the owner's answer to user call 2708d02c-close-four-tasks: the floating action button's Region picks one region of a page, which is the brief this task asked for.

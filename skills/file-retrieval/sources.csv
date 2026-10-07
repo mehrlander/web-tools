@@ -1,0 +1,9 @@
+source,glob
+docs,docs/**/*.md
+docs,*.md
+tracker,tracker/**/*.md
+skills,skills/**/*.md
+lib,lib/**/*.js
+pages,pages/**/*.html
+tools,node/**/*.md
+tools,python/**/*.py

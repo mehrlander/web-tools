@@ -15,7 +15,7 @@ First match wins:
 
 `#data=` is shorthand, not a separate path: toss-render resolves it onto `?src=` and never opens the payload. Same token gate as `#gh=` (a private file needs the viewer's stored token); for a token-less reader, send the bytes inline with `#gz=` instead. Files over 1 MB work: the page falls back to the git blobs API the way `gh.get` does.
 
-Resolving that way makes this page the document toss-render mounted, which is not the same as the thing addressed. The shell says so: it stamps the **envelope** as the toss subject and carries this page as `via`, so the drawer around the frame names the file being read rather than the reader. Only the take actions follow `via`, since they operate on this page's DOM. See [`docs/show-repo.md`](../show-repo.md) under the render tab.
+Resolving that way makes this page the document toss-render mounted, which is not the same as the thing addressed. The shell says so: it stamps the **envelope** as the toss subject and carries this page as `via`, so the drawer around the frame names the file being read rather than the reader. Only the take actions follow `via`, since they operate on this page's DOM. See [`docs/APP.md`](../APP.md) under Page controls.
 
 ## Addressing an item
 
@@ -37,7 +37,7 @@ Selecting an item **writes the address back**, so the URL always names what is o
 
 Only the position is written when a name would be ambiguous, and only a name when it reads back as that item, so the address is one the page has verified rather than one it assumed.
 
-The vocabulary belongs to the **envelope**, not to the page, so both directions live in [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) (`DataPayload.resolveItem`, `.addressItem`) beside the rest of what an item means, and `npm test` holds them. The page owns only the location read and write, which needs a browser: that half is held by [`tools/render/scenarios/data-view-item.mjs`](../../tools/render/scenarios/data-view-item.mjs) directly and [`data-view-item-tossed.mjs`](../../tools/render/scenarios/data-view-item-tossed.mjs) through a toss.
+The vocabulary belongs to the **envelope**, not to the page, so both directions live in [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) (`DataPayload.resolveItem`, `.addressItem`) beside the rest of what an item means, and `npm test` holds them. The page owns only the location read and write, which needs a browser: that half is held by [`node/render/scenarios/data-view-item.mjs`](../../node/render/scenarios/data-view-item.mjs) directly and [`data-view-item-tossed.mjs`](../../node/render/scenarios/data-view-item-tossed.mjs) through a toss.
 
 The viewport toggles are not part of this vocabulary. `bleed` is a preference about the reader's screen, not about what is being read, and would ride along on every copied link.
 

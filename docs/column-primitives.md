@@ -16,7 +16,7 @@ both in budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.
 | --- | --- | --- |
 | **id** | unique within a scope; no two rows share a value | a duplicate |
 | **label** | drawn from a declared set; rows share values, and the sharing is what makes it a class | a value outside the set |
-| **locator** | resolves to a target outside the row | a target that is gone |
+| **locator** | resolves to a target outside the row | a target that is gone, or one that changed under a pinned reference ([locators.md](locators.md) has the kinds and the tests) |
 | **value** | none of the above; the content itself | nothing mechanical to check |
 
 Every field takes exactly one. Two of the tests are countable: `id` against
@@ -188,7 +188,7 @@ registry's existing domain test holds every row to `id`, `label`, `locator` or
 which a separate gate requires.
 
 The countable half needed a test, in
-[`tools/test/properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs):
+[`node/test/properties-registry.test.mjs`](../node/test/properties-registry.test.mjs):
 a declared `id` must be its registry's key, and a declared `label` must either
 declare a closed set or actually repeat. Nothing holds `locator` or `value`,
 and that asymmetry is the doctrine's own, since only two of the four tests are

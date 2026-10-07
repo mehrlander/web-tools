@@ -1,0 +1,1667 @@
+// The sessions aggregate: summarize one record, fold many, and decide what a
+// crawl must re-read.
+//
+// This cache is the only one of the three whose SOURCE is a captured layer, and
+// captured means unregenerable. So the assertions here lean on the two places
+// that can quietly lose something: the scope rule (a pass that did not look at a
+// record must not delete its row) and the sha-keyed refetch (the live session's
+// record rewrites every Stop, and a crawl that misses that shows a session
+// frozen at its first turn).
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { repoRoot } from './bootstrap.mjs';
+
+const src = readFileSync(path.join(repoRoot, 'lib/kits/repo-sessions-cache.js'), 'utf8');
+// The title join parses the export through the shared CSV kit, so the fixture
+// window carries it the same way app/index.html's load chain does.
+const csvSrc = readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8');
+// The closing-state vocabulary is a kit of its own since 2026-09-02, loaded
+// ahead of this one in app/index.html; the fixture window mirrors that.
+const stateSrc = readFileSync(path.join(repoRoot, 'lib/kits/closing-state.js'), 'utf8');
+
+function load() {
+  const win = {};
+  new Function('window', csvSrc)(win);
+  new Function('window', stateSrc)(win);
+  new Function('window', src)(win);
+  return win.RepoSessionsCache;
+}
+
+const S = load();
+
+// A schema-3 record, trimmed to the fields the summary reads.
+function record(over = {}) {
+  return {
+    schema: 3,
+    session_id: 'b8fae678-e673-5c76-bea7-d52828fba16a',
+    short: 'b8fae678',
+    agent_session: 'https://claude.ai/code/session_01SXuNTtUx1sdmoQPbLE3Bqk',
+    day: '2026-08-05',
+    started: '2026-08-05T13:51:08Z',
+    ended: '2026-08-05T16:49:16Z',
+    repos: [
+      { name: 'web-tools', lines: 572, branch: 'claude/sessions-tab-3j05zm', head: 'abc1234' },
+      { name: 'home', lines: 3, branch: 'claude/sessions-tab-3j05zm', head: 'def5678' },
+    ],
+    opening_ask: 'Add a sessions tab to the activity view',
+    exchanges: 10,
+    assistant_messages: 340,
+    tools: { Bash: 132, Edit: 34, Read: 17, Grep: 3 },
+    tokens: { input: 624, output: 337631, cache_read: 92466018, cache_write: 3979906 },
+    files_total: 3,
+    files: {
+      'web-tools/lib/estate.js': { read: 2, edit: 9 },
+      'web-tools/docs/notes.md': { read: 1 },
+      'home/CLAUDE.md': { read: 4 },
+    },
+    calls_total: 206,
+    failures: 1,
+    transcript_bytes: 4115503,
+    ...over,
+  };
+}
+
+test('summarize keeps the scan fields and drops the bulk', () => {
+  const row = S.summarize(record(), 'sha111');
+  assert.equal(row.id, 'b8fae678');
+  assert.equal(row.agent, 'https://claude.ai/code/session_01SXuNTtUx1sdmoQPbLE3Bqk');
+  assert.equal(row.mins, 178);
+  assert.equal(row.exchanges, 10);
+  assert.equal(row.failures, 1);
+  assert.equal(row.sha, 'sha111');
+  // The summary is the thing a view can afford to hold for every session, so
+  // its size is part of the contract, not an accident.
+  assert.ok(JSON.stringify(row).length < 1200, 'summary row should stay small');
+  assert.ok(!('calls' in record() && row.callBodies), 'no call bodies in a row');
+});
+
+test('the fan-out figure takes schema 8 where it exists and the tally otherwise', () => {
+  // The union, and each half is the other's blind spot. Schema 8 knows what
+  // RAN; the tally counts attempts but is present from schema 4, so it reaches
+  // 30 of the store's records against the accurate field's 1.
+  const both = S.summarize(record({
+    tools: { Bash: 291, Agent: 126 }, agents_total: 124, agents_refused: 2,
+  }), 'x');
+  assert.equal(both.agents, 124, 'what ran, not what was attempted');
+  assert.equal(both.agentCalls, 126, 'the attempts stay readable beside it');
+  assert.equal(both.agentsRefused, 2);
+
+  // No schema 8: the tally carries the row rather than leaving it blank.
+  assert.equal(S.summarize(record({ tools: { Bash: 3, Agent: 9 } }), 'x').agents, 9);
+
+  // Below the TOOLS_KEPT cut it must still count: the whole reason neither
+  // half is read out of the row's own `tools`, which keeps the busiest six.
+  const lone = S.summarize(record({
+    tools: { Bash: 9, Edit: 8, Read: 7, Grep: 6, Glob: 5, Write: 4, Agent: 1 },
+  }), 'x');
+  assert.equal(lone.agents, 1);
+  assert.equal(lone.agentCalls, 1);
+  assert.equal(lone.tools.some(([n]) => n === 'Agent'), false);
+
+  // `Task` is the dispatch tool's earlier name, and no record in the store
+  // carries it: this pins the fallback, not an era anyone has seen.
+  assert.equal(S.summarize(record({ tools: { Task: 4 } }), 'x').agents, 4);
+
+  // No agents is 0, not undefined: the row hides the figure on falsy, and a
+  // missing key and a zero must reach that test the same way.
+  const none = S.summarize(record({ tools: { Bash: 3 } }), 'x');
+  assert.equal(none.agents, 0);
+  assert.equal(none.agentCalls, 0);
+  assert.equal(none.agentsRefused, 0);
+});
+
+test('summarize carries `attached`, and an older record gets [] not a guess', () => {
+  // Record schema 8. It is the container's repo list, so it is wider than
+  // `repos` (which is where the shell stood) and the two disagree by design.
+  const row = S.summarize(record({ attached: ['home', 'web-tools'] }), 'x');
+  assert.deepEqual(row.attached, ['home', 'web-tools']);
+
+  // Every record written before schema 8 stays empty permanently, since records
+  // are never revisited. Empty must read as "cannot say", so nothing here may
+  // fill it in from `repos`: a consumer that did would claim a scope the
+  // session never reported.
+  assert.deepEqual(S.summarize(record(), 'x').attached, []);
+});
+
+test('summarize carries each repo position against main, keeping null apart from absent', () => {
+  // Record schema 13. The recorder writes null where git could not answer (a
+  // shallow clone past the fork point, most often) and leaves the keys out of
+  // every record before 13. The row keeps that split, so the tip can tell a
+  // session that was measured from one that never was.
+  const row = S.summarize(record({ schema: 13, repos: [
+    { name: 'home', lines: 3, branch: 'claude/x', head: 'def5678',
+      base: null, behind_main: null, ahead_base: null },
+    { name: 'web-tools', lines: 572, branch: 'claude/x', head: 'abc1234',
+      base: '1111111', behind_main: 5, ahead_base: 3 },
+  ] }), 'x');
+  assert.deepEqual(row.repos[1], {
+    name: 'web-tools', branch: 'claude/x', lines: 572,
+    base: '1111111', behind_main: 5, ahead_base: 3,
+  });
+  assert.deepEqual(row.repos[0], {
+    name: 'home', branch: 'claude/x', lines: 3,
+    base: null, behind_main: null, ahead_base: null,
+  });
+
+  // An older record has no keys, and the row adds none: no null standing in
+  // for "not recorded", and `head` still stays out of the lean row.
+  assert.deepEqual(S.summarize(record(), 'x').repos[0],
+    { name: 'web-tools', branch: 'claude/sessions-tab-3j05zm', lines: 572 });
+});
+
+test('summarize ranks tools and files busiest-first, ties by name', () => {
+  const row = S.summarize(record(), 'x');
+  assert.deepEqual(row.tools[0], ['Bash', 132]);
+  assert.deepEqual(row.files[0], ['web-tools/lib/estate.js', 11]);
+  assert.deepEqual(row.files[1], ['home/CLAUDE.md', 4]);
+  assert.equal(row.filesTotal, 3);
+});
+
+test('branches dedupe and drop main, since they are the join key to the Open view', () => {
+  const row = S.summarize(record({
+    repos: [
+      { name: 'a', branch: 'claude/x-1', lines: 1 },
+      { name: 'b', branch: 'claude/x-1', lines: 2 },
+      { name: 'c', branch: 'main', lines: 3 },
+      { name: 'd', branch: '', lines: 4 },
+    ],
+  }), 'x');
+  assert.deepEqual(row.branches, ['claude/x-1']);
+});
+
+test('an older record with no agent id summarizes without one, not with a wrong one', () => {
+  const r = record();
+  delete r.agent_session;
+  delete r.files;
+  delete r.files_total;
+  r.schema = 2;
+  const row = S.summarize(r, 'x');
+  assert.equal(row.agent, '');
+  assert.deepEqual(row.files, []);
+  assert.equal(row.filesTotal, 0);
+  assert.equal(row.schema, 2);
+  // The branch fallback still resolves, which is the whole reason it is kept.
+  assert.deepEqual(row.branches, ['claude/sessions-tab-3j05zm']);
+});
+
+test('stalePaths refetches only what moved, including the live record every Stop', () => {
+  const prev = S.buildCache(null, {
+    'sessions/2026/08/2026-08-05-b8fae678.json': { record: record(), sha: 'sha1' },
+    'sessions/2026/08/2026-08-04-aaaaaaaa.json': {
+      record: record({ short: 'aaaaaaaa', day: '2026-08-04', started: '2026-08-04T09:00:00Z' }),
+      sha: 'sha2',
+    },
+  }, null, '2026-08-05T18:00:00Z');
+
+  const listing = [
+    { path: 'sessions/2026/08/2026-08-05-b8fae678.json', sha: 'sha1-MOVED' },
+    { path: 'sessions/2026/08/2026-08-04-aaaaaaaa.json', sha: 'sha2' },
+    { path: 'sessions/2026/08/2026-08-05-cccccccc.json', sha: 'sha3' },
+  ];
+  assert.deepEqual(S.stalePaths(prev, listing).sort(), [
+    'sessions/2026/08/2026-08-05-b8fae678.json',
+    'sessions/2026/08/2026-08-05-cccccccc.json',
+  ]);
+  assert.deepEqual(S.stalePaths(null, listing).length, 3, 'a cold cache fetches everything');
+});
+
+test('a crawl that did not look at a record keeps its row; a deleted record loses it', () => {
+  const p1 = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const p2 = 'sessions/2026/08/2026-08-04-aaaaaaaa.json';
+  const prev = S.buildCache(null, {
+    [p1]: { record: record(), sha: 'sha1' },
+    [p2]: { record: record({ short: 'aaaaaaaa', day: '2026-08-04', started: '2026-08-04T09:00:00Z' }), sha: 'sha2' },
+  }, null, '2026-08-05T18:00:00Z');
+  assert.equal(prev.rows.length, 2);
+
+  // Incremental crawl: p1 moved, p2 was not re-read but is still in the store.
+  const next = S.buildCache(prev, { [p1]: { record: record({ exchanges: 12 }), sha: 'sha9' } },
+                            [p1, p2], '2026-08-05T19:00:00Z');
+  assert.equal(next.rows.length, 2, 'an unread record must survive the fold');
+  assert.equal(next.rows.find(r => r.id === 'b8fae678').exchanges, 12);
+
+  // p2 removed from the store: now it genuinely goes.
+  const pruned = S.buildCache(next, {}, [p1], '2026-08-05T20:00:00Z');
+  assert.equal(pruned.rows.length, 1);
+  assert.equal(pruned.rows[0].id, 'b8fae678');
+});
+
+// Newest is LAST ACTIVITY, not start, and the fixture is built so the two
+// orders disagree: every row here starts in one sequence and ends in the
+// reverse one. A session runs for hours in this estate and the long ones
+// overlap, so ordering on `started` put a session that opened earlier and was
+// still being worked below one that opened later and had already stopped. That
+// is the bug this fixture exists to fail on: sort on `started` and it returns
+// the exact opposite list.
+test('rows come back newest-first by LAST ACTIVITY, not by start', () => {
+  const cache = S.buildCache(null, {
+    // Started last, ended first: a short session opened late in the day.
+    'sessions/2026/08/2026-08-05-aaaaaaaa.json': { record: record({ short: 'aaaaaaaa', day: '2026-08-05', started: '2026-08-05T11:00:00Z', ended: '2026-08-05T11:30:00Z' }), sha: 'a' },
+    'sessions/2026/08/2026-08-05-bbbbbbbb.json': { record: record({ short: 'bbbbbbbb', day: '2026-08-05', started: '2026-08-05T10:00:00Z', ended: '2026-08-05T14:00:00Z' }), sha: 'b' },
+    // Started first, ended last, and on the NEXT DAY: the row a day-precision
+    // sort filed under the day it began.
+    'sessions/2026/08/2026-08-05-cccccccc.json': { record: record({ short: 'cccccccc', day: '2026-08-05', started: '2026-08-05T09:00:00Z', ended: '2026-08-06T02:00:00Z' }), sha: 'c' },
+  }, null, '2026-08-06T04:00:00Z');
+  assert.deepEqual(cache.rows.map(r => r.id), ['cccccccc', 'bbbbbbbb', 'aaaaaaaa']);
+});
+
+// A row too old or too partial to carry `ended` still has to sort somewhere
+// definite, and a tie has to resolve the same way on every crawl: this file is
+// committed, so an order that depends on which records a pass happened to
+// refetch is a diff on nothing.
+test('the sort falls back to start, and ties break on id', () => {
+  const same = { day: '2026-08-05', started: '2026-08-05T09:00:00Z', ended: '2026-08-05T12:00:00Z' };
+  const cache = S.buildCache(null, {
+    'sessions/2026/08/2026-08-05-cccccccc.json': { record: record({ ...same, short: 'cccccccc' }), sha: 'c' },
+    'sessions/2026/08/2026-08-05-aaaaaaaa.json': { record: record({ ...same, short: 'aaaaaaaa' }), sha: 'a' },
+    // No `ended` at all: falls back to its own start, which is the latest here.
+    'sessions/2026/08/2026-08-05-bbbbbbbb.json': { record: record({ short: 'bbbbbbbb', day: '2026-08-05', started: '2026-08-05T13:00:00Z', ended: '' }), sha: 'b' },
+  }, null, '2026-08-05T18:00:00Z');
+  assert.deepEqual(cache.rows.map(r => r.id), ['bbbbbbbb', 'aaaaaaaa', 'cccccccc']);
+  assert.equal(S.lastAt({ ended: 'E', started: 'S' }), 'E');
+  assert.equal(S.lastAt({ started: 'S' }), 'S', 'a row with no ended still has a key');
+  assert.equal(S.lastAt({}), '', 'and a row with neither sorts last, not first');
+});
+
+test('attention counts distinct sessions, not just accesses', () => {
+  const heavyOnce = record({
+    short: 'aaaaaaaa', day: '2026-08-01', started: '2026-08-01T09:00:00Z',
+    files: { 'home/one-session-hammered-this.md': { edit: 40 } }, files_total: 1,
+  });
+  const mk = (short, day) => record({
+    short, day, started: `${day}T09:00:00Z`,
+    files: { 'web-tools/shared.js': { read: 1 } }, files_total: 1,
+  });
+  const cache = S.buildCache(null, {
+    'sessions/2026/08/2026-08-01-aaaaaaaa.json': { record: heavyOnce, sha: 'a' },
+    'sessions/2026/08/2026-08-02-bbbbbbbb.json': { record: mk('bbbbbbbb', '2026-08-02'), sha: 'b' },
+    'sessions/2026/08/2026-08-03-cccccccc.json': { record: mk('cccccccc', '2026-08-03'), sha: 'c' },
+    'sessions/2026/08/2026-08-04-dddddddd.json': { record: mk('dddddddd', '2026-08-04'), sha: 'd' },
+  }, null, '2026-08-05T18:00:00Z');
+
+  const top = cache.attention[0];
+  assert.equal(top.path, 'web-tools/shared.js', 'three sessions beat one busy session');
+  assert.equal(top.sessions, 3);
+  assert.equal(top.count, 3);
+  assert.equal(top.last, '2026-08-04T09:00:00Z');
+
+  const hammered = cache.attention.find(a => a.path === 'home/one-session-hammered-this.md');
+  assert.equal(hammered.sessions, 1);
+  assert.equal(hammered.count, 40);
+});
+
+// ── The docs slice ──────────────────────────────────────────────────────────
+// The registry's readership column reads docAttention, and the reason it is not
+// a filter over `attention` is that `attention` folds `files`, which is the
+// busiest FILES_KEPT of a session. A doc opened once in a busy session is
+// exactly the reading being counted and exactly what that cap discards, so the
+// assertions below pin the uncapped path.
+
+test('docFiles keeps every docs/ path, past where the busiest-files cap stops', () => {
+  const files = { 'web-tools/docs/quiet.md': { read: 1 } };
+  for (let i = 0; i < S.FILES_KEPT + 4; i++) files['web-tools/lib/busy' + i + '.js'] = { edit: 50 + i };
+  const row = S.summarize(record({ files, files_total: Object.keys(files).length }), 'x');
+
+  assert.equal(row.files.length, S.FILES_KEPT);
+  assert.ok(!row.files.some(([p]) => p.startsWith('web-tools/docs/')),
+    'the quiet doc is exactly what the busiest-files cap drops');
+  assert.deepEqual(row.docFiles, [['web-tools/docs/quiet.md', 1]],
+    'and exactly what the docs slice must keep');
+});
+
+test('docFiles matches a docs/ directory at any depth, and nothing merely named docs', () => {
+  const row = S.summarize(record({
+    files: {
+      'web-tools/docs/a.md': { read: 1 },
+      'home/projects/x/docs/b.md': { read: 2 },
+      'web-tools/docs.json': { read: 3 },          // a file, not the folder
+      'web-tools/lib/docsearch.js': { edit: 4 },   // a prefix, not a segment
+    },
+  }), 'x');
+  assert.deepEqual(row.docFiles.map(([p]) => p),
+    ['home/projects/x/docs/b.md', 'web-tools/docs/a.md']);
+});
+
+test('docAttention counts distinct sessions per doc and stays uncapped', () => {
+  const mk = (short, day, files) => record({ short, day, started: `${day}T09:00:00Z`, files });
+  const many = {};
+  for (let i = 0; i < 60; i++) many['web-tools/docs/many' + i + '.md'] = { read: 1 };
+  const cache = S.buildCache(null, {
+    'sessions/2026/08/2026-08-01-aaaaaaaa.json': { record: mk('aaaaaaaa', '2026-08-01', { 'web-tools/docs/hot.md': { read: 2 } }), sha: 'a' },
+    'sessions/2026/08/2026-08-02-bbbbbbbb.json': { record: mk('bbbbbbbb', '2026-08-02', { 'web-tools/docs/hot.md': { read: 1 }, 'web-tools/lib/x.js': { edit: 9 } }), sha: 'b' },
+    'sessions/2026/08/2026-08-03-cccccccc.json': { record: mk('cccccccc', '2026-08-03', many), sha: 'c' },
+  }, null, '2026-08-05T18:00:00Z');
+
+  const hot = cache.docAttention.find(a => a.path === 'web-tools/docs/hot.md');
+  assert.equal(hot.sessions, 2);
+  assert.equal(hot.count, 3);
+  assert.equal(hot.last, '2026-08-02T09:00:00Z');
+  assert.ok(!cache.docAttention.some(a => a.path === 'web-tools/lib/x.js'), 'docs only');
+  assert.equal(cache.docAttention.length, 61, 'no cap: 60 docs plus the hot one');
+});
+
+// The skill channel. Every fold above counts a file being opened; this one
+// counts a skill being invoked, and they are not the same event. The harness
+// loads a skill body on invocation without touching a file tool, so `files`
+// carries a skill's SKILL.md only when a session opened it to EDIT it. Folding
+// skills out of `files` therefore produces a number that looks like usage and
+// measures authorship, which is why these two channels stay apart.
+
+test('skillCallsOf reads invocation from the Skill call, not from any file read', () => {
+  const r = record({
+    files: { 'web-tools/skills/daisy-alpine/SKILL.md': { edit: 6 } },
+    calls: [
+      { name: 'Skill', arg: { skill: 'dataviz' } },
+      { name: 'Read', arg: 'web-tools/skills/daisy-alpine/SKILL.md' },
+      { name: 'Bash', arg: 'cat web-tools/skills/daisy-alpine/SKILL.md' },
+    ],
+  });
+  assert.deepEqual(S.skillCallsOf(r), { dataviz: 1 },
+    'editing a skill six times is not the skill firing, and reading it is not either');
+});
+
+test('skillCallsOf accepts an argument stored as JSON text, and drops anything else', () => {
+  const r = record({ calls: [
+    { name: 'Skill', arg: '{"skill":"tasks","args":"file a task"}' },
+    { name: 'Skill', arg: 'tasks' },        // bare string: no skill key to read
+    { name: 'Skill', arg: '{not json' },
+    { name: 'Skill', arg: { args: 'no skill named' } },
+    { name: 'Skill' },
+  ] });
+  assert.deepEqual(S.skillCallsOf(r), { tasks: 1 },
+    'a malformed argument is dropped rather than guessed at');
+});
+
+test('a plugin skill and its local twin fold onto one name', () => {
+  const r = record({ calls: [
+    { name: 'Skill', arg: { skill: 'portable:tasks' } },
+    { name: 'Skill', arg: { skill: 'tasks' } },
+  ] });
+  assert.deepEqual(S.skillCallsOf(r), { tasks: 2 },
+    'one library reached two ways is one skill');
+});
+
+test('skillAttention counts distinct sessions per skill and stays uncapped', () => {
+  const mk = (short, day, calls) => record({ short, day, started: `${day}T09:00:00Z`, calls });
+  const many = [];
+  for (let i = 0; i < 60; i++) many.push({ name: 'Skill', arg: { skill: 'lib' + i } });
+  const cache = S.buildCache(null, {
+    'sessions/2026/08/2026-08-01-aaaaaaaa.json': { record: mk('aaaaaaaa', '2026-08-01', [{ name: 'Skill', arg: { skill: 'tasks' } }]), sha: 'a' },
+    'sessions/2026/08/2026-08-02-bbbbbbbb.json': { record: mk('bbbbbbbb', '2026-08-02', [
+      { name: 'Skill', arg: { skill: 'tasks' } },
+      { name: 'Skill', arg: { skill: 'portable:tasks' } },
+    ]), sha: 'b' },
+    'sessions/2026/08/2026-08-03-cccccccc.json': { record: mk('cccccccc', '2026-08-03', many), sha: 'c' },
+  }, null, '2026-08-05T18:00:00Z');
+
+  const tasks = cache.skillAttention.find(a => a.path === 'tasks');
+  assert.equal(tasks.sessions, 2, 'two sessions invoked it');
+  assert.equal(tasks.count, 3, 'three calls across them');
+  assert.equal(tasks.last, '2026-08-02T09:00:00Z');
+  assert.equal(cache.skillAttention.length, 61,
+    'no cap: a skill that fired once must not fall off the list that reports never firing');
+});
+
+test('the skill fold never leaks into the doc fold, or the reverse', () => {
+  const cache = S.buildCache(null, {
+    'sessions/2026/08/2026-08-01-aaaaaaaa.json': { record: record({
+      files: { 'web-tools/docs/a.md': { read: 1 }, 'web-tools/skills/x/SKILL.md': { edit: 2 } },
+      calls: [{ name: 'Skill', arg: { skill: 'x' } }],
+    }), sha: 'a' },
+  }, null, '2026-08-05T18:00:00Z');
+
+  assert.deepEqual(cache.docAttention.map(a => a.path), ['web-tools/docs/a.md'],
+    'a skill file is not a doc');
+  assert.deepEqual(cache.skillAttention.map(a => a.path), ['x'],
+    'and the skill rollup is keyed by name, never by path');
+});
+
+test('a row built by an older summarizer is stale even when its sha never moves', () => {
+  const p = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const cache = S.buildCache(null, { [p]: { record: record(), sha: 'sha1' } }, null, '2026-08-05T18:00:00Z');
+  const listing = [{ path: p, sha: 'sha1' }];
+  assert.deepEqual(S.stalePaths(cache, listing), [], 'current rows stay put');
+
+  // What the store looked like before ROW_V existed: same bytes, older fold.
+  const older = JSON.parse(JSON.stringify(cache));
+  const row = older.rows.find(r => S.pathOf(r) === p);
+  delete row.v;
+  delete row.docFiles;
+  assert.deepEqual(S.stalePaths(older, listing), [p],
+    'a published record is frozen, so the version is the only thing that can say its row is behind');
+});
+
+// The guides slice: the session-to-guide edge that is exact and survives merge,
+// where the branch route says only that a head CONTAINS the file and goes dark
+// once the PR closes.
+test('guideFilesOf collects every guide a session touched, uncapped', () => {
+  const files = {
+    'web-tools/pages/guides/code-layers.html': { read: 1 },
+    'web-tools/pages/guides/second.html': { write: 4, edit: 2 },
+    // The shelf's own README is prose about the shelf, and a nested file is
+    // not on the flat shelf: both match guide-index.js's admission rule.
+    'web-tools/pages/guides/README.md': { read: 9 },
+    'web-tools/pages/guides/sub/deep.html': { read: 9 },
+    // A page that merely lives near the shelf is not on it.
+    'web-tools/pages/branch.html': { edit: 30 },
+    'home/docs/whatever.md': { read: 2 },
+  };
+  assert.deepEqual(S.guideFilesOf(files), [
+    ['web-tools/pages/guides/second.html', 6],
+    ['web-tools/pages/guides/code-layers.html', 1],
+  ]);
+  assert.deepEqual(S.guideFilesOf({}), []);
+});
+
+test('a guide opened once among many files still lands on the row', () => {
+  // The cap on `files` is the whole reason this is a separate slice: a session
+  // that touched forty files keeps the busiest eight, and a guide read once
+  // would fall off, reading as "wrote no guide" rather than as a truncation.
+  const files = { 'web-tools/pages/guides/code-layers.html': { read: 1 } };
+  for (let i = 0; i < 40; i++) files['web-tools/lib/file' + i + '.js'] = { edit: 50 + i };
+  const row = S.summarize({ files, files_total: 41, schema: 3 }, 'sha1');
+  assert.equal(row.files.length, S.FILES_KEPT);
+  assert.ok(!row.files.some(([p]) => p.includes('pages/guides/')), 'the cap drops it from files');
+  assert.deepEqual(row.guides, [['web-tools/pages/guides/code-layers.html', 1]],
+    'and the uncapped slice keeps it');
+});
+
+test('cacheChanged ignores the crawl stamp and the blob sha', () => {
+  const p = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const a = S.buildCache(null, { [p]: { record: record(), sha: 'sha1' } }, null, '2026-08-05T18:00:00Z');
+  // Same content, later crawl, and a blob sha that moved because the file was
+  // rewritten byte-identically. Nothing to commit.
+  const b = S.buildCache(a, { [p]: { record: record(), sha: 'sha2' } }, [p], '2026-08-05T19:00:00Z');
+  assert.equal(S.cacheChanged(a, b), false);
+
+  const c = S.buildCache(b, { [p]: { record: record({ exchanges: 11 }), sha: 'sha2' } }, [p], '2026-08-05T20:00:00Z');
+  assert.equal(S.cacheChanged(b, c), true);
+});
+
+test('isRecordPath admits records and refuses the sample and the tools', () => {
+  assert.equal(S.isRecordPath('sessions/2026/08/2026-08-05-b8fae678.json'), true);
+  assert.equal(S.isRecordPath('sessions/sample-record.json'), false);
+  assert.equal(S.isRecordPath('sessions/tools/record.py'), false);
+  assert.equal(S.isRecordPath('sessions/README.md'), false);
+});
+
+test('pathOf round-trips a row back to the store path it came from', () => {
+  const p = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const cache = S.buildCache(null, { [p]: { record: record(), sha: 'x' } }, null, 'now');
+  assert.equal(S.pathOf(cache.rows[0]), p);
+  assert.equal(cache.byPath, undefined, 'rows are the record set; the file keeps no second copy keyed by path');
+  // And a file from before the copy was dropped still diffs by sha through it.
+  const older = { byPath: { [p]: { ...cache.rows[0], sha: 'moved' } } };
+  assert.deepEqual(S.stalePaths(older, [{ path: p, sha: 'x' }]), [p]);
+});
+
+// The derived name. It stands in for a title the record cannot carry, so the
+// cases that matter are the two ways it can mislead: mangling a branch that has
+// no uniquifier to strip, and claiming a name for a session that has none.
+test('nameOf strips the claude/ prefix and the six-character uniquifier', () => {
+  assert.equal(S.nameOf({ branches: ['claude/fab-naming-todqvq'] }), 'fab-naming');
+  assert.equal(S.nameOf({ branches: ['claude/app-refresh-buttons-aklshi'] }),
+    'app-refresh-buttons');
+  // A one-word slug still has a suffix to shed, and shedding it must not eat
+  // the slug.
+  assert.equal(S.nameOf({ branches: ['claude/x-1g5p9v'] }), 'x');
+});
+
+test('nameOf leaves a hand-named branch whole rather than mangling it', () => {
+  // No uniquifier to strip, so the regex must not match and take the last
+  // hyphenated word with it.
+  assert.equal(S.nameOf({ branches: ['refactor-the-loader'] }), 'refactor-the-loader');
+});
+
+test('nameOf prefers a claude/ branch over one that is merely present first', () => {
+  assert.equal(S.nameOf({ branches: ['some-other-branch', 'claude/fab-naming-todqvq'] }),
+    'fab-naming');
+});
+
+test('nameOf says nothing rather than guessing when a session has no branch', () => {
+  assert.equal(S.nameOf({ branches: [] }), '');
+  assert.equal(S.nameOf({}), '');
+  assert.equal(S.nameOf(null), '');
+});
+
+// ── The title, joined from the export ────────────────────────────────────────
+// The join's design constraint is that the estate must DEGRADE when the export
+// is old or absent rather than go blank, so most of what is asserted here is
+// what happens when the second input is missing, stale, or broken.
+
+const AGENT = 'https://claude.ai/code/session_01SXuNTtUx1sdmoQPbLE3Bqk';
+const P = 'sessions/2026/08/2026-08-05-b8fae678.json';
+
+function titles(over = {}) {
+  return {
+    at: '2026-08-04',
+    path: 'claude-code-web/2026-08-04-sessions.csv',
+    byId: { session_01SXuNTtUx1sdmoQPbLE3Bqk: 'Sessions tab for the estate' },
+    ...over,
+  };
+}
+
+test('sessionIdOf reduces the record URL to the export bare id', () => {
+  assert.equal(S.sessionIdOf(AGENT), 'session_01SXuNTtUx1sdmoQPbLE3Bqk');
+  assert.equal(S.sessionIdOf('session_01SXuNTtUx1sdmoQPbLE3Bqk'), 'session_01SXuNTtUx1sdmoQPbLE3Bqk');
+  // A record with no session URL joins to nothing rather than to everything.
+  assert.equal(S.sessionIdOf(''), '');
+  assert.equal(S.sessionIdOf(null), '');
+  assert.equal(S.sessionIdOf('https://claude.ai/chat/abc-123'), '');
+});
+
+test('newestExport picks by the date in the filename and ignores everything else', () => {
+  const pick = S.newestExport([
+    { name: 'README.md', path: 'claude-code-web/README.md' },
+    { name: '2026-08-04-sessions.csv', path: 'claude-code-web/2026-08-04-sessions.csv' },
+    { name: '2026-08-11-sessions.csv', path: 'claude-code-web/2026-08-11-sessions.csv' },
+    { name: '2026-08-09-notes.csv', path: 'claude-code-web/2026-08-09-notes.csv' },
+  ]);
+  assert.deepEqual(pick, { at: '2026-08-11', path: 'claude-code-web/2026-08-11-sessions.csv' });
+  assert.equal(S.newestExport([{ name: 'README.md', path: 'claude-code-web/README.md' }]), null);
+  assert.equal(S.newestExport([]), null);
+});
+
+test('parseTitles keeps a title that contains a comma whole', () => {
+  // Not hypothetical: "Session title capture in history, adjusted" is a row in
+  // the first export on file, and a split on comma would cut it in half and
+  // shift session_id into the status column.
+  const csv = [
+    'title,url,session_id,status',
+    '"Session title capture in history, adjusted",https://claude.ai/code/session_01AAA,session_01AAA,',
+    '"Refresh buttons on show repo page",https://claude.ai/code/session_01BBB,session_01BBB,',
+  ].join('\n');
+  assert.deepEqual(S.parseTitles(csv), {
+    session_01AAA: 'Session title capture in history, adjusted',
+    session_01BBB: 'Refresh buttons on show repo page',
+  });
+});
+
+test('parseTitles falls back to the url column when session_id is missing', () => {
+  const csv = 'title,url\n"A session",https://claude.ai/code/session_01CCC';
+  assert.deepEqual(S.parseTitles(csv), { session_01CCC: 'A session' });
+  assert.deepEqual(S.parseTitles(''), {});
+});
+
+test('a title lands on the row it names and nowhere else', () => {
+  const cache = S.buildCache(null, {
+    [P]: { record: record(), sha: 'x' },
+    'sessions/2026/08/2026-08-04-aaaaaaaa.json': {
+      record: record({ short: 'aaaaaaaa', day: '2026-08-04', started: '2026-08-04T09:00:00Z',
+                       agent_session: 'https://claude.ai/code/session_01UNKNOWN' }),
+      sha: 'y',
+    },
+  }, null, 'now', titles());
+  const named = cache.rows.find(r => r.id === 'b8fae678');
+  const other = cache.rows.find(r => r.id === 'aaaaaaaa');
+  assert.equal(named.title, 'Sessions tab for the estate');
+  assert.ok(!('title' in other), 'a session the export does not name carries no title key');
+  assert.equal(cache.titlesAt, '2026-08-04');
+  assert.equal(cache.titlesFrom, 'claude-code-web/2026-08-04-sessions.csv');
+});
+
+test('labelOf falls back per row, so a list never goes blank', () => {
+  assert.equal(S.labelOf({ title: 'Sessions tab for the estate', branches: ['claude/x-1g5p9v'] }),
+               'Sessions tab for the estate');
+  assert.equal(S.labelOf({ branches: ['claude/fab-naming-todqvq'] }), 'fab-naming');
+  assert.equal(S.labelOf({ branches: [] }), '');
+});
+
+test('an unreadable export carries the titles the cache already had', () => {
+  // The load-bearing degradation. A day the desktop slept, a token that cannot
+  // see chat-histories, and a 500 are all `titles === null`, and none of them
+  // may cost a title that was already joined.
+  const first = S.buildCache(null, { [P]: { record: record(), sha: 'x' } }, null, 'now', titles());
+  const again = S.buildCache(first, {}, [P], 'later', null);
+  assert.equal(again.rows[0].title, 'Sessions tab for the estate');
+  assert.equal(again.titlesAt, '2026-08-04');
+  assert.equal(again.titlesFrom, 'claude-code-web/2026-08-04-sessions.csv');
+});
+
+test('a refetched record keeps its title, which its own blob cannot supply', () => {
+  // The live session's record rewrites on every Stop, so this is the common
+  // path rather than the edge: summarize() reads the record and a record has no
+  // title field, so the row would come back blank on the very session a reader
+  // is most likely to be looking at.
+  const first = S.buildCache(null, { [P]: { record: record(), sha: 'x' } }, null, 'now', titles());
+  const again = S.buildCache(first, { [P]: { record: record(), sha: 'MOVED' } }, [P], 'later', null);
+  assert.equal(again.rows[0].title, 'Sessions tab for the estate');
+  assert.equal(again.rows[0].sha, 'MOVED');
+});
+
+test('the fold does not edit the cache it is folding from', () => {
+  // withTitles copies rather than mutates, because carried-forward rows are the
+  // SAME objects the previous cache holds and cacheChanged compares the two
+  // afterwards. Mutating in place would edit the baseline and a new export
+  // would read as no change at all.
+  const first = S.buildCache(null, { [P]: { record: record(), sha: 'x' } }, null, 'now', null);
+  const next = S.buildCache(first, {}, [P], 'later', titles());
+  assert.ok(!('title' in first.rows[0]), 'the previous fold stays untitled');
+  assert.equal(next.rows[0].title, 'Sessions tab for the estate');
+  assert.equal(S.cacheChanged(first, next), true);
+});
+
+test('a rename lands, and a re-run of the same export does not', () => {
+  const first = S.buildCache(null, { [P]: { record: record(), sha: 'x' } }, null, 'now', titles());
+  const same = S.buildCache(first, {}, [P], 'later', titles());
+  assert.equal(S.cacheChanged(first, same), false);
+
+  const renamed = S.buildCache(first, {}, [P], 'later',
+    titles({ at: '2026-08-11', byId: { session_01SXuNTtUx1sdmoQPbLE3Bqk: 'Sessions tab, renamed' } }));
+  assert.equal(renamed.rows[0].title, 'Sessions tab, renamed');
+  assert.equal(S.cacheChanged(first, renamed), true);
+});
+
+test('a fresher export commits even when it renames nothing', () => {
+  // titlesAt is the one top-level key inside material(), and this is why: it is
+  // a claim shown on screen, so a surface that kept saying "titles as of
+  // 2026-08-04" after a newer capture landed would understate itself with no
+  // way for a reader to tell.
+  const first = S.buildCache(null, { [P]: { record: record(), sha: 'x' } }, null, 'now', titles());
+  const newer = S.buildCache(first, {}, [P], 'later', titles({ at: '2026-08-11' }));
+  assert.equal(newer.rows[0].title, first.rows[0].title);
+  assert.equal(S.cacheChanged(first, newer), true);
+});
+
+test('a title dropped from the export is dropped from the row', () => {
+  // A session deleted in the app leaves the sidebar and so leaves the export.
+  // The row falls back to its derived name rather than keeping a title nothing
+  // asserts any more; the export is the source of truth while it is readable.
+  const first = S.buildCache(null, { [P]: { record: record(), sha: 'x' } }, null, 'now', titles());
+  const gone = S.buildCache(first, {}, [P], 'later', titles({ at: '2026-08-11', byId: {} }));
+  assert.ok(!('title' in gone.rows[0]));
+  assert.equal(S.labelOf(gone.rows[0]), 'sessions-tab');
+});
+
+test('a record with no session URL joins to nothing and keeps its derived name', () => {
+  // 44 of the 143 rows on file when this landed are in exactly this state: the
+  // recorder only began reading the session id from the environment on
+  // 2026-08-07, and a record is never revisited, so those rows can never be
+  // titled by any export.
+  const r = record();
+  delete r.agent_session;
+  const cache = S.buildCache(null, { [P]: { record: r, sha: 'x' } }, null, 'now', titles());
+  assert.ok(!('title' in cache.rows[0]));
+  assert.equal(S.labelOf(cache.rows[0]), 'sessions-tab');
+});
+
+// The pointer. What is pinned is that the three routes it names all address the
+// SAME record: a block whose page link and store path disagree is worse than no
+// block at all, because both halves look right on their own.
+test('pointerOf addresses one record three ways and they agree', () => {
+  const row = S.summarize(record(), 'x');
+  const p = S.pointerOf(row, { dur: '2h58m' });
+  assert.match(p, /^Session b8fae678 · sessions-tab \(2026-08-05, 2h58m · web-tools, home\)$/m);
+  assert.match(p, /^Ask: Add a sessions tab to the activity view$/m);
+  assert.match(p,
+    /^Record: mehrlander\/web-tools-private:sessions\/2026\/08\/2026-08-05-b8fae678\.json$/m);
+  assert.match(p,
+    /^Read: https:\/\/mehrlander\.github\.io\/web-tools\/pages\/session\.html#id=b8fae678$/m);
+  assert.match(p,
+    /^Query: python3 web-tools-private\/sessions\/tools\/search\.py --show b8fae678$/m);
+  // The store is the shell's to name, and the checkout folder in the command
+  // follows it rather than being written twice.
+  const alt = S.pointerOf(row, { store: 'someone/other-store' });
+  assert.match(alt, /^Record: someone\/other-store:sessions\//m);
+  assert.match(alt, /^Query: python3 other-store\/sessions\/tools\/search\.py /m);
+});
+
+test('pointerOf states the Claude session only where the record named one', () => {
+  const has = S.pointerOf(S.summarize(record(), 'x'));
+  assert.match(has, /^In Claude: https:\/\/claude\.ai\/code\/session_01SXuNTtUx1sdmoQPbLE3Bqk$/m);
+  // Empty on every record written before 2026-08-07, and permanently so, since
+  // records are never revisited. A blank line claiming a session is worse than
+  // a missing one.
+  const without = S.pointerOf(S.summarize(record({ agent_session: '' }), 'x'));
+  assert.ok(!/In Claude:/.test(without));
+});
+
+test('pointerOf keeps the ask to one line, and omits it rather than showing an empty one', () => {
+  const multi = S.pointerOf(S.summarize(record({
+    opening_ask: 'Line one.\n\nLine two,\n  indented.',
+  }), 'x'));
+  assert.match(multi, /^Ask: Line one\. Line two, indented\.$/m);
+  assert.equal(multi.split('\n').filter(l => l.startsWith('Ask:')).length, 1);
+  const none = S.pointerOf(S.summarize(record({ opening_ask: '' }), 'x'));
+  assert.ok(!/^Ask:/m.test(none));
+});
+
+// ── The shell channel ────────────────────────────────────────────────────────
+// The readership column's founding caveat was that a doc read with `cat` or
+// `sed` leaves no trace, because `files` is built from file-tool inputs. It is
+// recoverable from `calls`, which every record already carries. These pin the
+// conservative half: what it refuses to count matters more than what it counts,
+// since an overstated readership argues for keeping a document nobody reads.
+
+test('a shell read of a doc counts, keyed to the checkout the command names', () => {
+  const rec = { repos: [{ name: 'web-tools' }, { name: 'home' }], calls: [
+    { name: 'Bash', arg: 'cat /home/user/web-tools/docs/SURFACING.md' },
+    { name: 'Bash', arg: 'cd /home/user/home && sed -n 1,40p docs/TRACKER.md' },
+  ] };
+  const out = S.shellDocsOf(rec);
+  assert.equal(out['web-tools/docs/SURFACING.md'], 1, 'an absolute path names its own checkout');
+  assert.equal(out['home/docs/TRACKER.md'], 1, 'a cd in the same command governs the relative path after it');
+});
+
+test('a docs path cut by the pre-schema-5 arg cap is dropped, not read as a shorter name', () => {
+  // Records before schema 5 stored `arg` cut to 200 characters with no marker,
+  // so `docs/SNAGS.md` at the cut read as `docs/SNAGS.m`. Three such rows sat
+  // in the Docs tab's unresolved strip on 2026-09-03.
+  const pad = 'x'.repeat(200 - 'cat  docs/SNAGS.m'.length);
+  const arg = 'cat ' + pad + ' docs/SNAGS.m';
+  assert.equal(arg.length, 200);
+  const old = { schema: 4, repos: [{ name: 'web-tools' }], calls: [{ name: 'Bash', arg }] };
+  assert.deepEqual(S.shellDocsOf(old), {}, 'the name the cap left is not a name anyone typed');
+  const current = { schema: 5, repos: [{ name: 'web-tools' }], calls: [{ name: 'Bash', arg }] };
+  assert.equal(S.shellDocsOf(current)['web-tools/docs/SNAGS.m'], 1,
+    'a schema-5 arg of exactly 200 characters is whole, and its path counts as typed');
+  const mid = { schema: 4, repos: [{ name: 'web-tools' }], calls: [
+    { name: 'Bash', arg: 'cat docs/SNAGS.md ' + 'x'.repeat(200 - 'cat docs/SNAGS.md '.length) }] };
+  assert.equal(S.shellDocsOf(mid)['web-tools/docs/SNAGS.md'], 1, 'a capped arg still counts a path the cap did not touch');
+});
+
+test('a bare path in a multi-checkout session is dropped rather than guessed', () => {
+  const many = { repos: [{ name: 'web-tools' }, { name: 'home' }], calls: [
+    { name: 'Bash', arg: 'grep -n toss docs/SURFACING.md' },
+  ] };
+  assert.deepEqual(S.shellDocsOf(many), {},
+    'two candidate checkouts and nothing to choose between them');
+
+  const one = { repos: [{ name: 'web-tools' }], calls: [
+    { name: 'Bash', arg: 'grep -n toss docs/SURFACING.md' },
+  ] };
+  assert.equal(S.shellDocsOf(one)['web-tools/docs/SURFACING.md'], 1,
+    'one checkout in the session makes the attribution unambiguous');
+});
+
+test('writing a doc is not reading it', () => {
+  const rec = { repos: [{ name: 'web-tools' }], calls: [
+    { name: 'Bash', arg: 'cat build.md > docs/SURFACING.md' },
+    { name: 'Bash', arg: "sed -i 's/a/b/' docs/CONVENTIONS.md" },
+    { name: 'Bash', arg: 'ls docs/' },
+    { name: 'Read', arg: '/home/user/web-tools/docs/loader.md' },
+  ] };
+  assert.deepEqual(S.shellDocsOf(rec), {},
+    'a redirect, an in-place edit, a listing with no path, and a non-Bash call');
+});
+
+test('the docs slice folds both channels and keeps the shell half legible', () => {
+  const rec = {
+    repos: [{ name: 'web-tools' }],
+    files: { 'web-tools/docs/loader.md': { read: 2 }, 'web-tools/lib/x.js': { edit: 9 } },
+    calls: [{ name: 'Bash', arg: 'cat /home/user/web-tools/docs/stage.md' }],
+  };
+  const row = S.summarize(rec, 'sha');
+  const by = Object.fromEntries(row.docFiles);
+  assert.equal(by['web-tools/docs/loader.md'], 2, 'the tool channel survives');
+  assert.equal(by['web-tools/docs/stage.md'], 1, 'the shell channel joins it');
+  assert.ok(!by['web-tools/lib/x.js'], 'still the docs slice only');
+  assert.deepEqual(row.docShell, [['web-tools/docs/stage.md', 1]],
+    'and the shell half is carried on its own, for the column to state the split');
+  assert.ok(!row.files.some(([p]) => p === 'web-tools/docs/stage.md'),
+    'files stays tool-only: it answers what the session was working on');
+});
+
+test('the summarizer version is bumped, so the cache heals rather than reading empty', () => {
+  assert.ok(S.ROW_V >= 4,
+    'a published record\'s sha never moves again, so a new field reaches the ' +
+    'back catalogue only through a version bump that stalePaths treats as stale');
+});
+
+// ── The closing state ───────────────────────────────────────────────────────
+// The row's answer to "does this still want me", read out of the session's own
+// prose rather than out of GitHub. Two things can go wrong and both are here:
+// reading the WRONG REPLY (the last one is routinely a PR-event acknowledgement
+// with the state a turn or two above it) and reading a QUOTATION (a session
+// that edited SURFACING.md has the whole vocabulary in its own text).
+
+const reply = (at, text) => ({ at, text });
+const stateOf = (replies, over = {}) => S.closingState({ replies, ...over });
+
+test('the state is the marker the reply closed with, as a key rather than a glyph', () => {
+  assert.equal(stateOf([reply('1', 'Shipped it.\n\n🟣 **Merged:** the branch is in.')]), 'merged');
+  assert.equal(stateOf([reply('1', '⚪ **Clean exit.** Nothing left here.')]), 'clean');
+  // Two spellings of one state: ⚪ and ⚪️ differ by a variation selector, and
+  // both are in the store. A glyph on the row would carry the difference onto
+  // the screen; a key cannot.
+  assert.equal(stateOf([reply('1', '⚪️ **Clean exit.** Nothing left here.')]), 'clean');
+  assert.equal(stateOf([reply('1', '✴️ **Needs you:** tap the link.')]), 'needs');
+  assert.equal(stateOf([reply('1', '✴ **Needs you:** tap the link.')]), 'needs');
+});
+
+test('it scans back past the wake replies, which is where most of the signal is', () => {
+  // The shape a subscribed session ends in: it closed, the PR merged, the wake
+  // arrived, and the last thing it said was that the event needed nothing.
+  // Reading the last reply alone finds a state on 148 of the 238 records on
+  // file; scanning back finds 183, and 102 of the last 102.
+  const s = stateOf([
+    reply('2026-08-05T16:00:00Z', 'Done.\n\n🟢 **Ready to continue:** the tab is next.'),
+    reply('2026-08-05T18:00:00Z', 'Both notices echo the merge I ran. Nothing to act on.'),
+  ]);
+  assert.equal(s, 'ready', 'the newest reply that CARRIES one, not the newest reply');
+});
+
+test('sorted by time, so a record whose replies arrive out of order still reads', () => {
+  const s = stateOf([
+    reply('2026-08-05T18:00:00Z', 'Nothing to act on.'),
+    reply('2026-08-05T16:00:00Z', '🟡 **Pending:** waiting on the export.'),
+  ]);
+  assert.equal(s, 'pending');
+});
+
+test('a quoted vocabulary is not a state: a list marker fails the pattern', () => {
+  // The session that edits SURFACING.md prints the whole vocabulary back. Every
+  // line of it is a bullet, and the closing state never is.
+  const doc = [
+    'The states are:',
+    '',
+    '- 🟢 **Ready to continue:** work is ready to do now.',
+    '- 🆚 **Choice needed:** a genuine choice remains.',
+    '- 🔴 **Closed:** the branch closed unmerged.',
+  ].join('\n');
+  assert.equal(stateOf([reply('1', doc)]), '', 'no state, rather than the last one quoted');
+  assert.equal(stateOf([reply('1', doc + '\n\n⚪ **Clean exit.** The doc is updated.')]), 'clean',
+    'and its own closing line still reads, under the quotation');
+});
+
+test('the last candidate wins, which is where a closing state sits', () => {
+  assert.equal(stateOf([reply('1', '🟡 **Pending:** first.\n\nmore\n\n🆚 **Choice needed:** last.')]),
+    'choice');
+});
+
+test('a record with no replies falls back to the tail, and empty means empty', () => {
+  assert.equal(S.closingState({ last_message: '🟠 **Attention:** the tail kept it' }), 'attention');
+  assert.equal(stateOf([reply('1', 'no marker anywhere in this one')]), '');
+  assert.equal(S.closingState({}), '');
+  assert.equal(S.closingState(null), '');
+});
+
+// ── The sequence behind the glyph ──────────────────────────────────────────
+// A session does not close once. Measured 2026-08-28: median 12 states a
+// record, and 180 of the 183 CHANGE state at least once. So the row's glyph is
+// the last frame of a history, and `states` is the history.
+
+test('every reply that closes in a state contributes one, chronological', () => {
+  const st = S.closingStates({ replies: [
+    reply('2026-08-05T10:00:00Z', 'a\n\n🟡 **Pending:** waiting.'),
+    reply('2026-08-05T11:00:00Z', 'b\n\nno state in this one'),
+    reply('2026-08-05T12:00:00Z', 'c\n\n🟢 **Ready to continue:** go.'),
+  ] });
+  assert.deepEqual(st.map(e => e[0]), ['pending', 'ready'], 'newest last');
+  assert.deepEqual(st.map(e => e[2]), ['10:00:00', '12:00:00'], 'each keeps its clock');
+});
+
+test('the message is the passage from the marker down, not the whole reply', () => {
+  // What sits above the marker is the work being reported, and the card that
+  // renders these is not a transcript of the session.
+  const st = S.closingStates({ replies: [
+    reply('1', 'I rebuilt the index and the check passes.\n\n⚪ **Clean exit.** Nothing left here.'),
+  ] });
+  assert.equal(st[0][1], '⚪ **Clean exit.** Nothing left here.');
+  assert.ok(!st[0][1].includes('rebuilt'), 'the work above it is not the message');
+});
+
+test('every passage is carried whole, priors included', () => {
+  // Heading the priors cut 68% of them: measured over the 1,703 passages the
+  // cap keeps, median 333 characters and p90 622. Two thirds of the card was a
+  // teaser for text that would have fit, and whole costs 675 KB across the
+  // store against 431 KB headed.
+  const body = 'A sentence of the kind a closing state is made of. '.repeat(9);
+  const st = S.closingStates({ replies: [
+    reply('1', '🟡 **Pending:** ' + body),
+    reply('2', '🟢 **Ready to continue:** short.'),
+  ] });
+  const [prior] = st;
+  assert.ok(prior[1].length > 400, 'the prior is not cut to a turn head: ' + prior[1].length);
+  assert.equal(prior.length, 4, 'and carries no dropped element, because nothing was');
+});
+
+test('one safety cap for the tail, and it says what it cut', () => {
+  // A bound rather than a head: it leaves 99% untouched and exists so a single
+  // 5,000-character entry is not a wall inside a card of twelve.
+  const huge = '🟠 **Attention:** ' + 'A sentence that goes on. '.repeat(200);
+  const [e] = S.closingStates({ replies: [reply('1', huge)] });
+  assert.ok(e[1].length <= 2000, 'bounded');
+  assert.ok(e[4] > 0, 'and the turn carries how much is missing, after the gap');
+  assert.ok(huge.length > 2000, 'the fixture actually exceeds the bound');
+});
+
+test('only the newest STATES_KEPT survive, and the row says the front was cut', () => {
+  const many = Array.from({ length: S.STATES_KEPT + 4 }, (_, i) =>
+    reply('2026-08-05T' + String(10 + i).padStart(2, '0') + ':00:00Z',
+          (i === 0 ? '🔵' : '🟢') + ' **A state:** number ' + i));
+  const st = S.closingStates({ replies: many });
+  assert.equal(st.length, S.STATES_KEPT);
+  assert.ok(!st.some(e => e[0] === 'short'), 'the oldest fell off the front');
+  assert.equal(S.statesPartial({ replies: many }), 'cut');
+  assert.equal(S.statesPartial({ replies: many.slice(0, 3) }), '', 'and says nothing when nothing was');
+});
+
+test('the tip and the sequence cannot disagree: one parser, one answer', () => {
+  const r = { replies: [
+    reply('1', '🟡 **Pending:** waiting.'),
+    reply('2', '🆚 **Choice needed:** pick one.'),
+    reply('3', 'An echo of the merge. Nothing to act on.'),
+  ] };
+  const st = S.closingStates(r);
+  assert.equal(S.closingState(r), st[st.length - 1][0]);
+  assert.equal(S.closingState(r), 'choice');
+});
+
+test('a state carries the user prompts since the one before it', () => {
+  // The one fact that tells two identical pairs of glyphs apart. Measured over
+  // the store's 2,411 consecutive pairs: 15% at zero (closed twice in one
+  // turn), 73% at one (the ordinary rhythm), 12% at two or more.
+  const st = S.closingStates({
+    prompts: [{ at: '2026-08-05T10:00:00Z' }, { at: '2026-08-05T12:30:00Z' },
+              { at: '2026-08-05T12:40:00Z' }, { at: '2026-08-05T13:00:00Z' }],
+    replies: [
+      reply('2026-08-05T11:00:00Z', '🟡 **Pending:** waiting.'),
+      reply('2026-08-05T11:10:00Z', '⚪ **Clean exit.** nobody spoke between these.'),
+      reply('2026-08-05T12:35:00Z', '🟢 **Ready:** one prompt later.'),
+      reply('2026-08-05T13:10:00Z', '🆚 **Choice needed:** two prompts later.'),
+    ],
+  });
+  assert.deepEqual(st.map(e => e[3]), [0, 0, 1, 2]);
+  assert.equal(st[0][3], 0, 'the first has no interval: prompts before it are the run-up');
+});
+
+test('the gap survives a truncated passage, which rides after it', () => {
+  // `dropped` stays last and stays optional, as priorTurns has it, so a cut
+  // entry is five long and an uncut one is four.
+  const huge = '🟠 **Attention:** ' + 'A sentence that goes on. '.repeat(200);
+  const st = S.closingStates({
+    prompts: [{ at: '2026-08-05T11:30:00Z' }],
+    replies: [reply('2026-08-05T11:00:00Z', '🟡 **Pending:** short.'),
+              reply('2026-08-05T12:00:00Z', huge)],
+  });
+  assert.equal(st[1].length, 5);
+  assert.equal(st[1][3], 1, 'gap at index 3');
+  assert.ok(st[1][4] > 0, 'dropped at index 4');
+  assert.equal(st[0].length, 4, 'and an uncut entry stops at the gap');
+});
+
+test('the row carries the sequence beside the tip', () => {
+  const row = S.summarize(record({ replies: [
+    reply('2026-08-05T14:00:00Z', '🟡 **Pending:** waiting.'),
+    reply('2026-08-05T16:00:00Z', '⚪ **Clean exit.** Done.'),
+  ] }), 'sha1');
+  assert.equal(row.state, 'clean');
+  assert.equal(row.states.length, 2);
+  assert.equal(row.statesCut, '');
+  // The scalar is kept because the chips filter on it and the histogram counts
+  // it; reaching into the array on every pass over 400 rows would be worse.
+  assert.equal(row.state, row.states[row.states.length - 1][0]);
+});
+
+test('the row carries it, so the pane draws a glyph without opening the record', () => {
+  const row = S.summarize(record({
+    replies: [reply('2026-08-05T16:00:00Z', 'Done.\n\n⚪ **Clean exit.** Merged and verified.')],
+  }), 'sha1');
+  assert.equal(row.state, 'clean');
+  // It is a SEPARATE axis from the branch rollup the rail draws: this row's
+  // session says it is finished, and says nothing about what became of the
+  // branch, which is the estate's job and may disagree.
+  assert.ok('state' in row, 'the field is on every row, present or empty');
+});
+
+// ── Startup context (record schema 6) ───────────────────────────────────────
+// The half of a session's file contact that no tool call records. What these
+// hold is the boundary between PRESENCE and ACCESS: `attention` counts tool
+// calls and may be summed, this counts sessions and may not. Folding the two
+// together would report a document present in forty sessions and opened in
+// three as having been read forty-three times, which is the failure the docs
+// registry was avoiding with a hard-coded "injected" string on two rows.
+const CONV = 'web-tools/docs/CONVENTIONS.md';
+const SURF = 'web-tools/docs/SURFACING.md';
+
+function withStartup(entries, over = {}) {
+  return { ...S.summarize(record({ startup_context: entries }), 'x'),
+           started: '2026-08-27T00:00:00Z', ...over };
+}
+
+test('startupOf keeps a file per channel, since one document arrives two ways', () => {
+  // Not hypothetical: CONVENTIONS.md is fetched from main by the conventions
+  // hook AND @-imported from a local checkout by web-tools/CLAUDE.md. On a
+  // feature branch those are different bytes under one name.
+  const row = withStartup([
+    { path: CONV, via: 'session_hook', basis: 'receipt' },
+    { path: CONV, via: 'project_instructions', basis: 'reconstructed' },
+  ]);
+  assert.deepEqual(row.startup, [[CONV, 'receipt', 'session_hook', '', null],
+                                 [CONV, 'reconstructed', 'project_instructions', '', null]]);
+});
+
+test('startupOf drops an entry with no path and sorts for a stable diff', () => {
+  const row = withStartup([
+    { path: 'home/CLAUDE.md', basis: 'reconstructed' },
+    { via: 'session_hook', basis: 'receipt' },
+    { path: CONV, basis: 'receipt' },
+  ]);
+  assert.deepEqual(row.startup.map(e => e[0]), ['home/CLAUDE.md', CONV]);
+});
+
+test('startupOf treats any basis but receipt as reconstructed', () => {
+  // The field is a claim about how the entry was obtained, so an unknown value
+  // must fall to the weaker side rather than being carried through as data.
+  const row = withStartup([{ path: CONV, basis: 'guessed' }]);
+  assert.deepEqual(row.startup, [[CONV, 'reconstructed', '', '', null]]);
+});
+
+test('startupAttention counts sessions, never occurrences', () => {
+  const rows = [withStartup([{ path: CONV, basis: 'receipt' }]),
+                withStartup([{ path: CONV, basis: 'receipt' }])];
+  const [e] = S.startupAttention(rows);
+  assert.equal(e.sessions, 2, 'two sessions, each holding it once');
+  assert.equal(e.receipt, 2);
+  assert.equal(e.reconstructed, 0);
+});
+
+test('a session holding one file by both channels still counts once, as a receipt', () => {
+  // The receipt wins deliberately rather than by sort order: it is the stronger
+  // claim, and counting the session on both sides would double it.
+  const [e] = S.startupAttention([withStartup([
+    { path: CONV, via: 'project_instructions', basis: 'reconstructed' },
+    { path: CONV, via: 'session_hook', basis: 'receipt' },
+  ])]);
+  assert.equal(e.sessions, 1);
+  assert.equal(e.receipt, 1);
+  assert.equal(e.reconstructed, 0);
+});
+
+test('startupAttention carries the newest session date, and ranks by reach', () => {
+  const rows = [
+    withStartup([{ path: CONV, basis: 'receipt' }], { started: '2026-08-01T00:00:00Z' }),
+    withStartup([{ path: CONV, basis: 'receipt' },
+                 { path: 'home/CLAUDE.md', basis: 'reconstructed' }],
+                { started: '2026-08-27T00:00:00Z' }),
+  ];
+  const got = S.startupAttention(rows);
+  assert.deepEqual(got.map(e => e.path), [CONV, 'home/CLAUDE.md']);
+  assert.equal(got[0].last, '2026-08-27T00:00:00Z', 'newest, not last seen');
+});
+
+test('a record predating schema 6 contributes nothing rather than a zero', () => {
+  // Every record written before this field existed is permanently without it,
+  // and an absent startup context must read as unmeasured, not as unused.
+  const row = { ...S.summarize(record(), 'x'), started: '2026-08-05T13:51:08Z' };
+  assert.deepEqual(row.startup, []);
+  assert.deepEqual(S.startupAttention([row]), []);
+});
+
+// ── The channel, which the container cannot see ────────────────────────────
+// ── Delivery, which every field above is blind to ──────────────────────────
+// A receipt is the injector's claim about what it supplied. Past a size
+// threshold the harness saves the hook's stdout to a file and passes the
+// session a ~2 KB preview, and the receipts print last, so they ride in the
+// discarded half. A cut session's `startup` is byte-identical to a delivered
+// session's, which is why this is read from the record's own delivery entries
+// and never inferred from the receipts.
+
+test('startupCutOf reads the harness wrapper, and says nothing when it cannot', () => {
+  const of = d => S.startupCutOf({ startup_delivery: d });
+  assert.equal(of([{ hook: 'SessionStart:startup', produced: 28670, delivered: 2238, truncated: true }]), true);
+  assert.equal(of([{ hook: 'SessionStart:startup', produced: 298, delivered: 297 }]), false);
+  assert.equal(of(undefined), null, 'a record predating schema 7 is unmeasured, not fine');
+  assert.equal(of([]), null, 'and so is a session where no SessionStart hook ran');
+  // One firing cut is the session cut: a resume that lands whole does not undo
+  // a startup that did not.
+  assert.equal(of([{ truncated: true }, { produced: 10, delivered: 10 }]), true);
+});
+// ── The prose leaves the row (2026-09-02) ──────────────────────────────────
+// summarize() still derives the scroll back, the states and the reply, since
+// a card opened on one row runs it on the record in the browser; the FILE
+// stores none of it, carried rows included, so an existing cache thins on its
+// next commit without a record re-read.
+test('buildCache stores lean rows: the prose keys are absent, the scalars stay', () => {
+  const p = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const cache = S.buildCache(null, { [p]: { record: record({
+    replies: [reply('2026-08-05T16:00:00Z', 'Done.\n\n⚪ **Clean exit.** Merged.')],
+  }), sha: 'x' } }, null, 'now');
+  const row = cache.rows[0];
+  for (const k of S.PROSE_KEYS) assert.ok(!(k in row), k + ' left the stored row');
+  assert.equal(row.state, 'clean', 'the closing-state scalar stays for the chips');
+  assert.ok('ask' in row && 'askAt' in row, 'the ask stays for the list');
+  // And what summarize() hands a card still has the prose.
+  const full = S.summarize(record({ replies: [reply('2026-08-05T16:00:00Z', 'Done.')] }), 'x');
+  assert.ok(Array.isArray(full.turns) && 'reply' in full && Array.isArray(full.states));
+});
+
+test('a carried row from an older file is thinned without a re-read', () => {
+  const p = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const fat = { ...S.summarize(record(), 'same'), turns: [['u', 'hi', '', 0]], reply: 'long reply' };
+  const prev = { rows: [fat] };
+  const next = S.buildCache(prev, {}, [p], 'now');
+  assert.equal(next.rows.length, 1, 'carried');
+  assert.ok(!('reply' in next.rows[0]) && !('turns' in next.rows[0]), 'and lean');
+  assert.deepEqual(S.stalePaths(next, [{ path: p, sha: 'same' }]), [], 'sha and version still match');
+  assert.equal(S.leanRow(null), null);
+});
+
+// ── The scroll back, whole ─────────────────────────────────────────────────
+// A card that offers to open one turn has to be able to find that turn in the
+// record, and the only address it has is a position in its own list. So the
+// two lists are one function with a head on the end of it, and this is what
+// holds them in step. There was a cap between them until 2026-09-08, which
+// made them the same length only from the tail; they are now the same list.
+
+test('fullTurns and priorTurns line up entry for entry', () => {
+  const prompts = [], replies = [];
+  for (let i = 0; i < 6; i++) {
+    prompts.push({ at: '2026-08-05T13:0' + i + ':00Z', text: 'ask number ' + i });
+    replies.push({ at: '2026-08-05T13:0' + i + ':30Z',
+                   text: 'A sentence answering ' + i + '. ' + 'And more of it. '.repeat(40) });
+  }
+  const r = record({ schema: 4, prompts, replies });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, head.length, 'nothing is capped at this size');
+  assert.deepEqual(full.map(e => e.k), head.map(e => e[0]), 'same roles, same order');
+  assert.deepEqual(full.map(e => e.ts), head.map(e => e[2]), 'same clocks');
+  const cut = head.findIndex(e => e[3]);
+  assert.ok(cut >= 0, 'the fixture has to cut something for this to mean anything');
+  assert.ok(full[cut].md.length > head[cut][1].length,
+    'and the whole turn at that index is longer than the head of it');
+  assert.ok(full[cut].md.startsWith('A sentence answering'));
+});
+
+test('a session past the old cap still lines up entry for entry', () => {
+  // 50 exchanges is 98 entries, well past the 60 the cap allowed, and the
+  // point of the fixture is that the two lists stay the same length anyway:
+  // a tap trades index i of the card for index i of the record.
+  const prompts = [], replies = [];
+  for (let i = 0; i < 50; i++) {
+    prompts.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':00Z', text: 'ask ' + i });
+    replies.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':30Z', text: 'answer ' + i });
+  }
+  const r = record({ schema: 4, prompts, replies });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, 98, 'the fixture has to overflow the old cap of 60');
+  assert.equal(head.length, full.length, 'and nothing is dropped');
+  assert.deepEqual(full.map(e => e.ts), head.map(e => e[2]),
+    'entry i of the card is entry i of the record, which is what a tap trades on');
+});
+
+test('an empty turn is dropped before the head, not after it', () => {
+  // Dropped downstream it would shorten the card's list and leave every index
+  // past it addressing the turn before.
+  const r = record({ schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'open' },
+              { at: '2026-08-05T13:02:00Z', text: '   ' },
+              { at: '2026-08-05T13:04:00Z', text: 'the second ask' }],
+    replies: [{ at: '2026-08-05T13:01:00Z', text: 'the first answer' },
+              { at: '2026-08-05T13:05:00Z', text: 'the last answer' }] });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, head.length);
+  assert.ok(!full.some(e => !e.img && !String(e.md).trim()), 'no blank entry survives');
+});
+
+// ── The phone's copy: state/session-menu.json ────────────────────────────────
+//
+// A second, purpose-built file rather than a view of the cache, because the
+// phone cannot afford the cache. The assertions that matter here are the two
+// that make it cheap: it carries three fields per session and no more, and it
+// is keyed by branch so a lookup is a lookup rather than a scan.
+
+const menuRow = (id, ended, ask, branches = [], agent = '') =>
+  ({ id, ended, ask, branches, agent });
+
+test('the menu index carries what a phone row needs and no more, keyed by branch, newest first', () => {
+  const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
+    menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', ['claude/older-aa11bb']),
+    menuRow('bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', ['claude/newer-cc22dd'],
+            'https://claude.ai/code/session_01abcDEF'),
+  ] };
+  const m = S.buildMenuIndex(cache);
+  assert.equal(m.generatedAt, cache.generatedAt, 'one stamp, so the two files cannot disagree about freshness');
+  // Field 3 is the claude.ai session id, reduced from the row's whole URL: the
+  // back tap opens the conversation with it, so it rides into BOTH shapes. A
+  // recent entry then carries its branch as a fifth field and a `branches`
+  // entry does not, because there the key already is one. The row's label leads
+  // with the slug, so without that field every recent row falls back to prose.
+  assert.deepEqual(m.recent, [
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'session_01abcDEF', 'claude/newer-cc22dd'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', '', 'claude/older-aa11bb'],
+  ]);
+  assert.deepEqual(m.branches['claude/newer-cc22dd'],
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'session_01abcDEF']);
+  // A ROW WITH NO HARNESS URL LEAVES THE FIELD EMPTY RATHER THAN GUESSING, and
+  // the op offers no claude.ai row for it. 384 of 400 rows on the live store
+  // carry one; the 16 that do not are an older schema, measured 2026-09-19.
+  assert.deepEqual(m.branches['claude/older-aa11bb'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', '']);
+  assert.deepEqual(Object.keys(m), ['generatedAt', 'recent', 'branches'],
+    'nothing else rides this file: every field added here is bytes over cellular');
+});
+
+test('the menu index is small enough to be worth having', () => {
+  // The whole reason it exists. A row of the cache carries a session's tool
+  // counts, token counts, file lists and closing reply; the phone needs an id,
+  // a timestamp and one line. Three fields against a row of about 1 KB.
+  const rows = Array.from({ length: 200 }, (_, i) => ({
+    id: String(i).padStart(8, '0'), ended: '2026-09-08T12:00:00Z',
+    ask: 'word '.repeat(60), branches: ['claude/b-' + i],
+    tools: [['Bash', 1600]], files: [['a/b.js', 12]], reply: 'x'.repeat(4000),
+  }));
+  const m = S.buildMenuIndex({ generatedAt: '2026-09-08T13:00:00Z', rows });
+  assert.ok(JSON.stringify(m).length < 200 * 200,
+    'a session costs well under 200 bytes here, was ' + Math.round(JSON.stringify(m).length / 200));
+  assert.equal(m.recent.length, S.MENU_RECENT, 'the recent list is bounded');
+  for (const e of Object.values(m.branches)) assert.ok(e[2].length <= S.MENU_ASK);
+});
+
+test('the menu index keeps the newest session for a branch and drops what could never be looked up', () => {
+  const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
+    menuRow('aaaaaaaa', '2026-09-08T10:00:00Z', 'First', ['claude/shared-aa11bb']),
+    menuRow('bbbbbbbb', '2026-09-08T12:00:00Z', 'Second', ['claude/shared-aa11bb']),
+    // No slash, so the op's branchOf would never call it a branch and no
+    // lookup could ever reach it. Carrying it is bytes for nothing.
+    menuRow('cccccccc', '2026-09-08T11:00:00Z', 'Slashless', ['hotfix']),
+  ] };
+  const m = S.buildMenuIndex(cache);
+  assert.deepEqual(m.branches['claude/shared-aa11bb'][0], 'bbbbbbbb', 'the newest session wins the key');
+  assert.deepEqual(Object.keys(m.branches), ['claude/shared-aa11bb']);
+});
+
+test('the ask reaches the phone as one plain line', () => {
+  // The row is drawn by Shortcuts, which renders no markdown, so a fence or a
+  // link would arrive as its own punctuation. Done here so the op receives a
+  // string it can put straight on a row.
+  const long = '**Bold** and `code` and [label](https://x.y/z)\nsecond line ' + 'word '.repeat(40);
+  const m = S.buildMenuIndex({ generatedAt: '', rows: [menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', long)] });
+  const ask = m.recent[0][2];
+  assert.doesNotMatch(ask, /[*`\[\]\n]/);
+  assert.ok(ask.length <= S.MENU_ASK);
+  assert.match(ask, /…$/);
+});
+
+test('the menu index commits only when the phone would see a difference', () => {
+  // The crawl stamps generatedAt on every pass whether or not anything moved,
+  // and the cache moves for things this file does not carry.
+  const rows = [menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Ask', ['claude/x-aa11bb'])];
+  const a = S.buildMenuIndex({ generatedAt: '2026-09-08T13:00:00Z', rows });
+  const b = S.buildMenuIndex({ generatedAt: '2026-09-08T14:00:00Z', rows });
+  assert.equal(S.menuChanged(a, b), false, 'a fresher stamp alone is not a change');
+  const c = S.buildMenuIndex({ generatedAt: '2026-09-08T14:00:00Z',
+    rows: [...rows, menuRow('bbbbbbbb', '2026-09-08T13:00:00Z', 'New one', ['claude/y-cc22dd'])] });
+  assert.equal(S.menuChanged(a, c), true);
+  assert.equal(S.menuChanged(null, a), true, 'the file not existing yet is a change');
+});
+
+// ── What the Sessions pane's text box can reach ──────────────────────────────
+// The prose left the row on 2026-09-02 (PROSE_KEYS), so a filter over these
+// rows reaches the opening ask, the two names, and the work's vocabulary, and
+// nothing said after the opening. Both directions are held: a miss on a phrase
+// spoken mid-session is correct behaviour here, not a bug to fix by widening
+// the haystack, and the pane routes such a query to the exhaustive pass.
+
+const SEARCH_ROW = {
+  id: '4835da35',
+  day: '2026-09-10',
+  title: 'CI subscription docs',
+  ask: 'Do we have documentation around CI?',
+  branches: ['claude/amazing-edison-k9dk2n'],
+  repos: [{ name: 'home', branch: 'claude/amazing-edison-k9dk2n', lines: 1 }],
+  attached: ['home', 'web-tools', 'web-tools-private'],
+  files: [['web-tools/lib/kits/estate-search.js', 4]],
+  docFiles: [['web-tools/docs/inbound.md', 1]],
+  guides: [],
+  skillCalls: [['markers', 2]],
+  tools: [['Bash', 33]],
+};
+
+test('the search segments are the row, labelled by which field they came from', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  assert.ok(segs.includes('title: CI subscription docs'));
+  assert.ok(segs.includes('ask: Do we have documentation around CI?'));
+  assert.ok(segs.includes('repo: home'));
+  assert.ok(segs.includes('attached: web-tools-private'));
+  assert.ok(segs.includes('file: web-tools/lib/kits/estate-search.js'));
+  assert.ok(segs.includes('doc: web-tools/docs/inbound.md'));
+  assert.ok(segs.includes('skill: markers'));
+  assert.ok(segs.includes('tool: Bash'));
+});
+
+test('the derived name rides in both spellings, so either one finds it', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  // The branch as stored, and the title as a person remembers saying it.
+  assert.ok(segs.includes('name: amazing-edison'));
+  assert.ok(segs.includes('name: amazing edison'));
+  assert.equal(C.matches(SEARCH_ROW, 'amazing edison'), true);
+});
+
+test('terms are ANDed across the row and ORed across its fields', () => {
+  const C = load();
+  assert.equal(C.matches(SEARCH_ROW, 'documentation'), true);
+  // One term from the ask, one from a file path: a session that opened that
+  // file while being asked that question is a real answer to both.
+  assert.equal(C.matches(SEARCH_ROW, 'documentation estate-search'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'documentation pensions'), false);
+  assert.equal(C.matches(SEARCH_ROW, ''), true);
+});
+
+test('a row carries no prose, so no filter over rows can find what was said', () => {
+  const C = load();
+  // The ask is on the row at ASK_CHARS and answers. A reply is not on the row
+  // at all, and this miss is what sends the reader to EstateSearch.sessions.
+  assert.equal(C.matches(SEARCH_ROW, 'CI'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'subscribe_pr_activity'), false);
+  // Stated structurally as well as by example: leanRow is what removed it.
+  assert.ok(C.PROSE_KEYS.includes('turns'));
+  assert.ok(C.PROSE_KEYS.includes('reply'));
+  assert.equal('turns' in C.leanRow({ turns: [['u', 'hi', '00:00:01']] }), false);
+});
+
+// ── Attachments come off the ask before the cap ──────────────────────────────
+// Claude Code writes one @"<upload path>" per attached file at the head of the
+// prompt, and ASK_CHARS was being spent on them: measured 2026-09-10, 7 of the
+// 372 rows on file opened with an upload mention and 3 held nothing but paths,
+// so the question never reached the cache. These hold the lift, the two fail-
+// open shapes, and the one thing that must NOT be touched, a typed @ reference.
+
+const UP = '/root/.claude/uploads/d657f526-3a5d-5fc8-9c67-9a9025374174/';
+const REAL_ASK =
+  `@"${UP}22288270-COREPAM_Decision_Package.docx" ` +
+  `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" ` +
+  `@"${UP}39298db0-CORE_PAM_IT_Addendum.docx" ` +
+  "Please review the attached documents with the drs budget app submittal view.";
+
+test('the ask keeps the question and the attachments become names', () => {
+  const C = load();
+  const { ask, files } = C.askParts(REAL_ASK);
+  assert.equal(ask, 'Please review the attached documents with the drs budget app submittal view.');
+  assert.deepEqual([...files], [
+    'COREPAM_Decision_Package.docx',
+    'IT_Fiscal_Workbook__CORE_PAM.xlsx',
+    'CORE_PAM_IT_Addendum.docx',
+  ]);
+  // The record's own 444 characters would have been cut at 240, inside the
+  // third path, which is what this exists to stop.
+  assert.ok(REAL_ASK.length > C.ASK_CHARS);
+  assert.ok(ask.length < C.ASK_CHARS);
+});
+
+test('the eight-hex prefix goes and a real name keeps its digits', () => {
+  const C = load();
+  // The harness prefix disambiguates two uploads of one name; the name under
+  // it starts with digits of its own and must survive.
+  assert.equal(C.attachName('/root/.claude/uploads/s1/0e001840-02.02DecisionPackageReduction.docx'),
+               '02.02DecisionPackageReduction.docx');
+  assert.equal(C.attachName('/root/.claude/uploads/s1/0181b50d-SKILL.md'), 'SKILL.md');
+});
+
+test('a typed @ reference is not an attachment and stays in the ask', () => {
+  const C = load();
+  // The rule anchors on the uploads DIRECTORY, never on the @ sigil. A repo
+  // path somebody typed is content, and stripping it would also drop it out of
+  // the search corpus.
+  const { ask, files } = C.askParts('Read @docs/SURFACING.md then @lib/gh-api.js');
+  assert.equal(ask, 'Read @docs/SURFACING.md then @lib/gh-api.js');
+  assert.equal(files.length, 0);
+});
+
+test('an upload shape it does not know is left alone, not guessed at', () => {
+  const C = load();
+  // Both fail-open cases: nothing under the uploads directory, and one segment
+  // where the layout has two. Taking "the last segment" would have called the
+  // first of these an attachment named `uploads` and deleted the mention.
+  for (const bad of ['@"/root/.claude/uploads/" hi', '@"/root/.claude/uploads/abc" hi']) {
+    const { ask, files } = C.askParts(bad);
+    assert.equal(ask, bad, `should be untouched: ${bad}`);
+    assert.equal(files.length, 0);
+  }
+  assert.equal(C.attachName('/root/.claude/uploads/'), '');
+  assert.equal(C.attachName('/nowhere/near/uploads/a/b.txt'), '');
+});
+
+test('what was typed is not otherwise rewritten', () => {
+  const C = load();
+  // Interior spacing and line structure survive: sessionAsk reads the lines to
+  // rebuild list boundaries, and double spaces are how somebody types.
+  assert.equal(C.askParts('plain  ask\nsecond line').ask, 'plain  ask\nsecond line');
+  assert.equal(C.askParts('').ask, '');
+  assert.equal(C.askParts(null).ask, '');
+});
+
+test('summarize lifts them onto the row, and only where there were some', () => {
+  const C = load();
+  const withFiles = C.summarize({ short: 'aaaa1111', opening_ask: REAL_ASK }, 'sha');
+  assert.equal(withFiles.attachments.length, 3);
+  assert.match(withFiles.ask, /^Please review/);
+  // 365 of 372 rows have none, and an absent key is how `title` says the same
+  // thing: no empty array on every row saying nothing.
+  const without = C.summarize({ short: 'bbbb2222', opening_ask: 'just a question' }, 'sha');
+  assert.equal('attachments' in without, false);
+  assert.equal(without.ask, 'just a question');
+});
+
+test('the names are searchable, apart from the ask', () => {
+  const C = load();
+  const row = C.summarize({ short: 'aaaa1111', opening_ask: REAL_ASK }, 'sha');
+  assert.ok(C.searchSegs(row).includes('attachment: COREPAM_Decision_Package.docx'));
+  assert.equal(C.matches(row, 'COREPAM_Decision_Package'), true);
+  // And the question is now findable, which it was not while the cap was spent
+  // on paths.
+  assert.equal(C.matches(row, 'submittal view'), true);
+  // The UUID directory is gone from the corpus, which is the other half.
+  assert.equal(C.matches(row, '9a9025374174'), false);
+});
+
+test('the row version moved, so a crawl re-summarizes every row already cached', () => {
+  const C = load();
+  // Without the bump the three rows whose ask is nothing but paths would keep
+  // it forever: their blob sha never moves again.
+  const row = (v) => ({ id: 'a', day: '2026-09-10', sha: 's1', v });
+  const listing = [{ path: C.pathOf(row(C.ROW_V)), sha: 's1' }];
+  // Both directions, so this cannot pass because the fixture path missed.
+  assert.equal(C.stalePaths({ rows: [row(C.ROW_V)] }, listing).length, 0,
+    'a row at the current version and the same sha is not re-read');
+  assert.equal(C.stalePaths({ rows: [row(C.ROW_V - 1)] }, listing).length, 1,
+    'a row a version behind is re-read even at the same sha');
+});
+
+// ── The rail's source: when the session spoke ─────────────────────────────
+// `beats` is the one field on the LEAN row that describes a session's internal
+// shape, so the two things worth holding are its units and its survival of the
+// prose cut. Everything else about the Activity list's rail is arithmetic on
+// these numbers, and arithmetic on the wrong unit is silent.
+
+test('a beat is minutes off the row own start, one per user turn, in order', () => {
+  const row = S.summarize(record({
+    started: '2026-08-05T13:51:08Z',
+    prompts: [
+      { at: '2026-08-05T13:51:08Z', text: 'first' },
+      { at: '2026-08-05T14:21:08Z', text: 'half an hour later' },
+      { at: '2026-08-05T13:56:08Z', text: 'out of order in the record' },
+    ],
+  }), 'x');
+  assert.deepEqual(row.beats, [0, 5, 30],
+    'minutes from started, sorted, whatever order the record holds them in');
+});
+
+test('a prompt before the recorded start stays negative rather than being clamped', () => {
+  // `started` and the first prompt agree on 194 of 225 records, so a handful of
+  // sessions really do open before their own recorded start. Clamping to zero
+  // would draw a burst at the origin that never happened; the renderer drops
+  // what falls outside its window instead.
+  const row = S.summarize(record({
+    started: '2026-08-05T13:51:08Z',
+    prompts: [{ at: '2026-08-05T13:41:08Z', text: 'ten minutes early' }],
+  }), 'x');
+  assert.deepEqual(row.beats, [-10]);
+});
+
+test('a record with no readable start has no beats, rather than beats from zero', () => {
+  const row = S.summarize(record({
+    started: '', prompts: [{ at: '2026-08-05T13:51:08Z', text: 'x' }],
+  }), 'x');
+  assert.deepEqual(row.beats, [], 'no anchor, so no offsets to be wrong about');
+});
+
+test('beats survive the prose cut, because the list draws them on every row', () => {
+  // The prose left the row in 2026-09 so the file would stop being mostly
+  // transcript; what reads prose is one card at a time and it fetches the
+  // record. The rail is the opposite case: drawn on every visible row, so
+  // fetching it per row is 298 record reads to paint one pane.
+  const row = S.summarize(record({
+    prompts: [{ at: '2026-08-05T14:51:08Z', text: 'x' }],
+  }), 'x');
+  const lean = S.leanRow(row);
+  assert.deepEqual(lean.beats, [60], 'beats stay');
+  assert.ok(!('turns' in lean), 'the prose does not');
+  assert.ok(!S.PROSE_KEYS.includes('beats'));
+});
+
+// ── Topics, joined from web-tools-private's state/session-topics.json ────────
+// The follow-up's rollup is joined on read by the pane, so the join has to be
+// safe to repeat: a re-join with a newer rollup must replace, and a row the
+// rollup stopped naming must lose what it carried rather than keep a stale
+// summary.
+
+const TOPICS_DOC = {
+  version: 1,
+  sessions: {
+    d456b017: { title: 'Share Sheet Shortcut', topics: ['shortcuts', 'share-sheet', 7], summary: 'Wired it.' },
+    ca1777ac: { title: '', topics: [], summary: '' },
+  },
+};
+
+test('withTopics joins title, topics and summary by short id, prefixed', () => {
+  const rows = [{ id: 'd456b017', day: '2026-09-24' }, { id: 'ffffffff', day: '2026-09-30' }];
+  const [a, b] = S.withTopics(rows, TOPICS_DOC);
+  assert.deepEqual(a.topics, ['shortcuts', 'share-sheet']);
+  assert.equal(a.topicTitle, 'Share Sheet Shortcut');
+  assert.equal(a.topicSummary, 'Wired it.');
+  assert.equal(b, rows[1], 'a row the rollup does not name is returned as is');
+  assert.equal(rows[0].topics, undefined, 'the input rows are not mutated');
+});
+
+test('withTopics drops empty fields, and a re-join replaces or clears', () => {
+  const [empty] = S.withTopics([{ id: 'ca1777ac' }], TOPICS_DOC);
+  assert.deepEqual(Object.keys(empty), ['id'], 'an entry with nothing in it adds nothing');
+  const joined = S.withTopics([{ id: 'd456b017' }], TOPICS_DOC);
+  const newer = { sessions: { d456b017: { title: 'Renamed', topics: ['apple-shortcuts'] } } };
+  const [again] = S.withTopics(joined, newer);
+  assert.equal(again.topicTitle, 'Renamed');
+  assert.deepEqual(again.topics, ['apple-shortcuts']);
+  assert.equal(again.topicSummary, undefined, 'a summary the newer rollup lacks does not survive');
+  const [gone] = S.withTopics(joined, { sessions: {} });
+  assert.deepEqual(Object.keys(gone), ['id']);
+  const [unread] = S.withTopics(joined, null);
+  assert.deepEqual(Object.keys(unread), ['id'], 'no rollup means no topics, not the last ones seen');
+});
+
+test('labelOf: the export title, then Gemini\'s, then the branch slug', () => {
+  const base = { id: 'd456b017', repos: [{ name: 'web-tools', branch: 'claude/share-sheet-shortcut-x1y2z3' }] };
+  assert.equal(S.labelOf({ ...base, title: 'Owner title', topicTitle: 'Gemini title' }), 'Owner title');
+  assert.equal(S.labelOf({ ...base, topicTitle: 'Gemini title' }), 'Gemini title');
+  assert.equal(S.labelOf(base), S.nameOf(base));
+});
+
+test('the text box reaches topics, the Gemini title and the summary', () => {
+  const [row] = S.withTopics([{ id: 'd456b017', ask: 'Build it' }], TOPICS_DOC);
+  assert.ok(S.matches(row, 'share-sheet'));
+  assert.ok(S.matches(row, 'share sheet'), 'a hyphenated topic answers to its spaced form');
+  assert.ok(S.matches(row, 'wired'));
+  assert.ok(S.matches(row, 'shortcut'));
+  assert.ok(!S.matches({ id: 'd456b017', ask: 'Build it' }, 'share-sheet'), 'and an unjoined row does not');
+});
+
+// ── The agenda: stretches of turns, the session page's topic headers ─────────
+// Format 4 stretches carry their instant and closing state; format 3 entries
+// carry a topic and a range only. Both come out as one shape.
+const F4 = [
+  { topic: 'Note badges', kind: 'new', minor: false, turns: [0, 16], at: '2026-10-01T16:19:45Z',
+    state: { glyph: '🟡', name: 'Pending', line: '🟡 **Pending:** CI', at: '2026-10-01T18:40:00Z' } },
+  { topic: 'Shorter render links', kind: 'improve', minor: false, turns: [17, 20], at: '2026-10-02T03:40:26Z',
+    state: { glyph: '🟢', name: 'Ready to continue', line: '🟢 **Ready to continue:** pushed', at: '' } },
+  { topic: 'Quick question', kind: 'explore', minor: true, turns: [21, 21], at: '2026-10-02T04:57:32Z', state: null },
+  { topic: 'note badges', kind: 'fix', minor: false, turns: [22, 24], at: '2026-10-02T04:59:58Z',
+    state: { glyph: '🟣', name: 'Merged', line: '🟣 **Merged:** shipped', at: '' } },
+];
+
+test('topicStretches: format 4 entries in order, with kind, minor, instant and state', () => {
+  const out = S.topicStretches([F4[1], F4[0], F4[2], F4[3]]);
+  assert.deepEqual(out.map(e => [e.topic, e.start, e.end]),
+    [['Note badges', 0, 16], ['Shorter render links', 17, 20], ['Quick question', 21, 21], ['note badges', 22, 24]]);
+  assert.equal(out[0].at, '2026-10-01T16:19:45Z');
+  assert.equal(out[1].kind, 'improve');
+  assert.equal(out[2].minor, true);
+  assert.equal(out[2].state, null);
+  assert.equal(out[3].state.name, 'Merged');
+});
+
+test('topicStretches: a format 3 entry passes with nulls; malformed entries drop', () => {
+  const out = S.topicStretches([
+    { topic: 'Old shape', turns: [0, 30] },
+    { topic: '', turns: [0, 1] }, { topic: 'No range' }, { topic: 'Backwards', turns: [5, 2] },
+    { topic: 'Bad kind', kind: 'refactor', turns: [31, 32], state: { name: 'no glyph' } },
+  ]);
+  assert.deepEqual(out.map(e => e.topic), ['Old shape', 'Bad kind']);
+  assert.deepEqual([out[0].kind, out[0].at, out[0].state, out[0].minor], [null, '', null, false]);
+  assert.equal(out[1].kind, null, 'a kind outside the four is dropped');
+  assert.equal(out[1].state, null, 'a state with no glyph is no state');
+  assert.deepEqual(S.topicStretches(null), []);
+});
+
+test('topicList: each topic once, its stretches, turns, and its LAST stretch\'s state', () => {
+  const list = S.topicList(S.topicStretches(F4));
+  assert.deepEqual(list.map(t => t.topic), ['Note badges', 'Shorter render links', 'Quick question'],
+    'a return folds into the topic it returns to, matched without case');
+  const notes = list[0];
+  assert.deepEqual(notes.spans, [[0, 16], [22, 24]]);
+  assert.equal(notes.turns, 20);
+  assert.equal(notes.first, 0);
+  assert.equal(notes.state.name, 'Merged', 'the state is the last stretch\'s, not the first');
+  assert.equal(notes.kind, 'new', 'the first kind given stands');
+  assert.equal(list[2].minor, true);
+  const reopened = S.topicList(S.topicStretches([F4[3], { ...F4[0], turns: [30, 31], state: null }]));
+  assert.equal(reopened[0].state, null, 'reopened and not closed again reads as unclosed');
+});
+
+test('withTopics joins the agenda as topicAgenda, and a re-join clears it', () => {
+  const doc = { sessions: { '4ffa8342': { title: 'T', topics: ['Note badges'], agenda: F4 } } };
+  const [row] = S.withTopics([{ id: '4ffa8342' }], doc);
+  assert.equal(row.topicAgenda.length, 4);
+  assert.equal(row.topicAgenda[1].topic, 'Shorter render links');
+  const [again] = S.withTopics([row], { sessions: { '4ffa8342': { title: 'T', topics: ['x'] } } });
+  assert.equal(again.topicAgenda, undefined, 'an agenda the newer rollup lacks does not survive');
+});
+
+// ── Areas: topics grouped across sessions by a closed list ──────────────────
+const A_ROWS = [
+  { id: 'a', day: '2026-10-01', topicAgenda: S.topicStretches([
+    { topic: 'Note badges', kind: 'new', area: 'Dictation page', turns: [0, 4] },
+    { topic: 'Shorter links', kind: 'improve', area: 'Toss render', turns: [5, 6] },
+    { topic: 'note badges', kind: 'fix', area: 'Dictation page', turns: [7, 9] },
+    { topic: 'Quick question', kind: 'explore', area: 'Other', minor: true, turns: [10, 10] }]) },
+  { id: 'b', day: '2026-10-03', topicAgenda: S.topicStretches([
+    { topic: 'Paragraph notes', kind: 'improve', area: 'Dictation page', turns: [0, 3] }]) },
+  { id: 'c', day: '2026-10-02', topics: ['Old shape'], topicAgenda: S.topicStretches([
+    { topic: 'Old shape', turns: [0, 8] }]) },
+];
+
+test('topicStretches carries an area when one is named, null otherwise', () => {
+  const [a, b] = S.topicStretches([{ topic: 'x', area: ' Stage ', turns: [0, 1] }, { topic: 'y', area: 7, turns: [2, 3] }]);
+  assert.equal(a.area, 'Stage');
+  assert.equal(b.area, null);
+  assert.equal(S.topicList(S.topicStretches([{ topic: 'x', area: 'Stage', turns: [0, 1] }]))[0].area, 'Stage');
+});
+
+test('areaCounts: sessions and topics per area, by kind, busiest first; asides and unfiled topics left out', () => {
+  assert.deepEqual(S.areaCounts(A_ROWS), [
+    { area: 'Dictation page', sessions: 2, topics: 2, kinds: { new: 1, improve: 1 }, last: '2026-10-03' },
+    { area: 'Toss render', sessions: 1, topics: 1, kinds: { improve: 1 }, last: '2026-10-01' },
+  ], 'a return to a topic counts it once, with the kind it first had');
+});
+
+test('carriesTopic: the filter takes a topic name or an area', () => {
+  assert.ok(S.carriesTopic(A_ROWS[2], 'Old shape'));
+  assert.ok(S.carriesTopic(A_ROWS[0], 'Toss render'));
+  assert.ok(!S.carriesTopic(A_ROWS[1], 'Toss render'));
+  assert.ok(S.carriesTopic(A_ROWS[1], ''), 'no filter passes everything');
+});

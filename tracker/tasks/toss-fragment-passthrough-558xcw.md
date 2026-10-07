@@ -2,7 +2,7 @@
 id: toss-fragment-passthrough-558xcw
 title: Pass a trailing fragment through toss-render to the rendered page
 status: done
-project: show-repo
+project: app
 opened: 2026-07-25
 closed: 2026-07-25
 session: claude/toss-render-data-formats-4t55x7

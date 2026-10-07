@@ -7,7 +7,7 @@ size: S
 ---
 # Hold SURFACING.md to surfacing.csv by content, not by lead-in
 
-`tools/test/surfacing-manifest.test.mjs` holds membership two ways: every
+`node/test/surfacing-manifest.test.mjs` holds membership two ways: every
 primitive bullet in the prose has a manifest row, and every row points at a
 real bullet. It matches on the bold lead-in only. The summaries are paraphrases
 and are deliberately unchecked, which `docs/docs.csv` says out loud.
@@ -25,7 +25,7 @@ the copy a session reads, so the delivered rule was the weaker one, and 338 of
 
 ## Related
 
-- `tools/test/surfacing-manifest.test.mjs`: lead-in-only membership gate that missed the drift
+- `node/test/surfacing-manifest.test.mjs`: lead-in-only membership gate that missed the drift
 - `docs/surfacing.csv`: manifest rows whose `boundary` clauses should stay in the prose
 - `docs/SURFACING.md`: prose bullets a session reads; source of the lost clause
 - `docs/docs.csv`: says summaries are paraphrases and deliberately unchecked

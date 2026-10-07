@@ -26,7 +26,9 @@ supposed to show. Put fresh readers in front of the image before the user is.
 Report all four results before the image travels or is cited as evidence, and
 fix or explain each discrepancy. Mechanical signals (the shot log's
 did-not-load warnings, `scrollWidth`, exit codes) answer questions no image
-can; the readers do not replace them.
+can; the readers do not replace them. In web-tools, `npm run shot -- <page>
+--measure` adds phone-width overflow, blank icons, empty tables and unstyled
+text to the shot log.
 
 ## Checklist
 
@@ -48,7 +50,7 @@ Extend it in SNAGS first, here second.
 One subagent each; a reader given two jobs lets one prime the other.
 
 - **Style**: assess against the house rules by file path (web-tools:
-  `skills/daisy-alpine/SKILL.md`), never from memory, with rule-by-rule
+  `skills/html-style/SKILL.md`), never from memory, with rule-by-rule
   verdicts naming regions. Checklist first: a style verdict on a broken render
   grades the failure as a design choice.
 - **Comprehension**: two questions, no checklist, no stated intent: how do you

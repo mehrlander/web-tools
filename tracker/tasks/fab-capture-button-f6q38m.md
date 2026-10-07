@@ -2,7 +2,7 @@
 id: fab-capture-button-f6q38m
 title: Persist FAB captures, the write path to state/captures/
 status: backlog
-project: show-repo
+project: app
 opened: 2026-07-26
 size: S
 ---
@@ -11,7 +11,7 @@ size: S
 The capture mechanism exists. PR #339 shipped the Copy-capture button on the
 FAB's Inspect header: it serializes the drawer's diagnostic bundle (scripts,
 components, console, reads as path+size) with the mode naming its fidelity,
-held by `tools/test/fab-capture.test.mjs`. What remains is the second delivery
+held by `node/test/fab-capture.test.mjs`. What remains is the second delivery
 half of the original design: committing a capture instead of only copying it.
 
 - **Destination: default first, override second.** A fixed path in
@@ -34,10 +34,11 @@ the page.
 ## Related
 
 - `lib/alpineComponents/fab.js`: Inspect header capture UI; clipboard half already here
-- `tools/test/fab-capture.test.mjs`: holds the Copy-capture serialization path
+- `node/test/fab-capture.test.mjs`: holds the Copy-capture serialization path
 - `lib/kits/repo-activity-cache.js`: proven browser-commit-to-private pattern to reapply
 - task `live-confirm-graphql-queries-7maacy`: FAB capture is its confirming instrument
 - PR #339: clipboard first cut; write path remains
+- `lib/kits/page-report.js`: `send(doc, { dir })` already commits a JSON document from the viewer's browser to web-tools-private, so the write path is one call with `dir: 'state/captures'`
 
 ## Done when
 
@@ -55,3 +56,4 @@ one viewer, in one browser, on one open.
   survey and the capture-button design points that shipped with PR #339 are
   history in this log, and the stale `next:` tag is dropped.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-10-06: Pointed at page-report.js, whose send() is the write path. Tending pass.

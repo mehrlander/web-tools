@@ -29,7 +29,7 @@
 // tells below, then an observer that removes this one if the real launcher
 // appears within a few seconds.
 //
-// WHY IT IS HAND-STYLED. The house style (skills/daisy-alpine) governs pages
+// WHY IT IS HAND-STYLED. The house style (skills/html-style) governs pages
 // built here; this is markup injected into someone else's document, where
 // Tailwind has nothing to compile against and every CDN tag is the first thing
 // a Content-Security-Policy refuses. So the winter theme's tokens are written
@@ -39,19 +39,20 @@
 // and a constructed sheet is CSSOM, which does not. Measured against
 // `script-src 'self'; style-src 'self'`, where the bookmarklet route is refused
 // outright and this one mounts intact.
-// The build stamp, written here by scripts/userscript-stub.py from a hash of
+// The build stamp, written here by python/userscript-stub.py from a hash of
 // this file's own contents. It lives in the body rather than the stub because
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '34e5d97';
-const BUILT = '2026-09-25T12:56:54Z';
+const BUILD = '05ce848';
+const BUILT = '2026-10-07T03:27:42Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
 // against this and says so when they differ, which is the only way a reader
-// learns that the edge they hit is behind: jsDelivr propagates a purge per
-// edge, so for a while after a push a reload can land on either body.
+// learns that the copy they got is behind: any cache between a push and the
+// device (GitHub Pages holds the bookmarklet's copy ten minutes) can serve the
+// previous body for a while after a push.
 //
 // It is read from raw.githubusercontent with a cache-buster rather than from
 // the CDN, because a manifest served from the same cache as the thing it
@@ -364,7 +365,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   // The selection is read when the drawer OPENS, not when the launcher mounts:
   // a page load has no selection, and the one the reader made a moment ago is
-  const SLIDES = [
+  const ALL_SLIDES = [
     { id: 'md', label: 'Markdown', ext: 'md', icon: 'note' },
     { id: 'sel', label: 'Selection', ext: 'txt', icon: 'cursor' },
     { id: 'text', label: 'Text', ext: 'txt', icon: 'textT' },
@@ -372,6 +373,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     { id: 'html', label: 'HTML', ext: 'html', icon: 'code' },
     { id: 'json', label: 'JSON', ext: 'json', icon: 'tree' },
   ];
+
+  const getSlides = () => {
+    const hasSel = !!(state.sel && state.sel.trim());
+    return hasSel ? ALL_SLIDES : ALL_SLIDES.filter(s => s.id !== 'sel');
+  };
 
   const getPref = key => {
     try {
@@ -1134,6 +1140,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       overflow-y: hidden; overscroll-behavior-y: contain;
       padding: 0;
     }
+    .deck-slide[hidden], .deck-tab[hidden], .pager .dot[hidden] {
+      display: none !important;
+    }
 
     /* Subtle inline slide controls */
     .slide-tools {
@@ -1397,7 +1406,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <button class="icon-btn copy-btn" aria-label="Copy current format" title="Copy">${svg(ICON.copy)}</button>
             <button class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
             <button class="icon-btn reread" aria-label="Recapture page content" title="Recapture">${svg(ICON.refresh)}</button>
-            <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span>6</span></div>
+            <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span class="total-slides">6</span></div>
           </div>
         </div>
         <div class="head-intro">
@@ -1433,17 +1442,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       </div>
       <div class="deck-nav">
         <div class="deck-bar">
-          <button class="deck-tab on" data-slide="0">Markdown</button>
-          <button class="deck-tab" data-slide="1">Selection</button>
-          <button class="deck-tab" data-slide="2">Text</button>
-          <button class="deck-tab" data-slide="3">Links</button>
-          <button class="deck-tab" data-slide="4" data-take-html>HTML</button>
-          <button class="deck-tab" data-slide="5">JSON</button>
+          <button class="deck-tab on" data-slide="0" data-slide-id="md">Markdown</button>
+          <button class="deck-tab" data-slide="1" data-slide-id="sel">Selection</button>
+          <button class="deck-tab" data-slide="2" data-slide-id="text">Text</button>
+          <button class="deck-tab" data-slide="3" data-slide-id="links">Links</button>
+          <button class="deck-tab" data-slide="4" data-slide-id="html" data-take-html>HTML</button>
+          <button class="deck-tab" data-slide="5" data-slide-id="json">JSON</button>
         </div>
       </div>
       <div class="deck-track" tabindex="0">
         <!-- Slide 0: Markdown -->
-        <div class="deck-slide active" data-slide-i="0">
+        <div class="deck-slide active" data-slide-i="0" data-slide-id="md">
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <div class="seg" role="group" aria-label="Markdown engine">
@@ -1463,7 +1472,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <!-- Slide 1: Selection -->
-        <div class="deck-slide" data-slide-i="1">
+        <div class="deck-slide" data-slide-i="1" data-slide-id="sel">
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <span class="tool-meta sel-count"></span>
@@ -1483,7 +1492,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <!-- Slide 2: Text -->
-        <div class="deck-slide" data-slide-i="2">
+        <div class="deck-slide" data-slide-i="2" data-slide-id="text">
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <span class="tool-meta text-count"></span>
@@ -1496,7 +1505,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <!-- Slide 3: Links -->
-        <div class="deck-slide" data-slide-i="3">
+        <div class="deck-slide" data-slide-i="3" data-slide-id="links">
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <button class="tool-btn" data-all>All</button>
@@ -1511,7 +1520,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <!-- Slide 4: HTML -->
-        <div class="deck-slide" data-slide-i="4" data-take-html>
+        <div class="deck-slide" data-slide-i="4" data-slide-id="html" data-take-html>
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <span class="tool-meta html-meta"></span>
@@ -1524,7 +1533,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <!-- Slide 5: JSON -->
-        <div class="deck-slide" data-slide-i="5">
+        <div class="deck-slide" data-slide-i="5" data-slide-id="json">
           <div class="slide-body">
             <div class="slide-body-inner">
               <div class="text slide-content json-content"></div>
@@ -1538,12 +1547,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <a class="act" data-send hidden>Stage</a>
           <a class="act" data-store hidden>Store</a>
           <div class="pager" aria-label="Deck pagination">
-            <button class="dot on" data-go="0" aria-label="Slide 1: Markdown"></button>
-            <button class="dot" data-go="1" aria-label="Slide 2: Selection"></button>
-            <button class="dot" data-go="2" aria-label="Slide 3: Text"></button>
-            <button class="dot" data-go="3" aria-label="Slide 4: Links"></button>
-            <button class="dot" data-go="4" aria-label="Slide 5: HTML"></button>
-            <button class="dot" data-go="5" aria-label="Slide 6: JSON"></button>
+            <button class="dot on" data-go="0" data-slide-id="md" aria-label="Slide 1: Markdown"></button>
+            <button class="dot" data-go="1" data-slide-id="sel" aria-label="Slide 2: Selection"></button>
+            <button class="dot" data-go="2" data-slide-id="text" aria-label="Slide 3: Text"></button>
+            <button class="dot" data-go="3" data-slide-id="links" aria-label="Slide 4: Links"></button>
+            <button class="dot" data-go="4" data-slide-id="html" aria-label="Slide 5: HTML"></button>
+            <button class="dot" data-go="5" data-slide-id="json" aria-label="Slide 6: JSON"></button>
           </div>
           <span class="size" hidden></span>
         </div>
@@ -1608,7 +1617,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const buildCapturePayload = (i = state.slide) => {
-    const slide = SLIDES[i] || SLIDES[0];
+    const slide = getSlides()[i] || getSlides()[0];
     const text = getSlideText(i);
     const slug = pageSlug();
     const activeFrame = (state.activeFrameIndex >= 0 && state.frames && state.frames[state.activeFrameIndex])
@@ -1691,7 +1700,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const getSlideText = (i = state.slide) => {
-    const slide = SLIDES[i] || SLIDES[0];
+    const slide = getSlides()[i] || getSlides()[0];
     switch (slide.id) {
       case 'md':
         return state.mdEngine === 'jina' ? (state.jinaMd || '') : (state.localMd || domToMarkdown());
@@ -1767,14 +1776,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const headSub = q('.head-sub span');
     const plaque = q('.plaque');
     const curEl = q('.cur-slide');
+    const totalEl = q('.total-slides');
     const headTools = q('.head-tools');
 
     if (state.fullscreen) {
-      const slide = SLIDES[state.slide] || SLIDES[0];
+      const slides = getSlides();
+      const slide = slides[state.slide] || slides[0];
       if (headTitle) headTitle.textContent = slide.label;
       if (headSub) headSub.textContent = (state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex]) ? `[Frame: ${state.frames[state.activeFrameIndex].title}]` : page.title;
       if (plaque) plaque.innerHTML = svg(ICON[slide.icon]);
       if (curEl) curEl.textContent = String(state.slide + 1);
+      if (totalEl) totalEl.textContent = String(slides.length);
       if (headTools) headTools.hidden = slide.id !== 'md';
     } else {
       if (headTitle) headTitle.textContent = page.title;
@@ -1969,7 +1981,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const renderActiveSlide = (i = state.slide) => {
-    const slide = SLIDES[i] || SLIDES[0];
+    const slide = getSlides()[i] || getSlides()[0];
     switch (slide.id) {
       case 'md': {
         const rawEl = q('.md-raw-wrap');
@@ -2097,11 +2109,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const syncSlideTabsAndDots = i => {
-    if (i < 0 || i >= SLIDES.length) return;
+    const slides = getSlides();
+    if (i < 0 || i >= slides.length) return;
     state.slide = i;
     updateHeader();
 
-    root.querySelectorAll('.deck-tab').forEach((t, idx) => {
+    const visibleTabs = Array.from(root.querySelectorAll('.deck-tab:not([hidden])'));
+    visibleTabs.forEach((t, idx) => {
       t.classList.toggle('on', idx === i);
       if (idx === i && !state.fullscreen) {
         const bar = q('.deck-bar');
@@ -2118,10 +2132,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         }
       }
     });
-    root.querySelectorAll('.deck-slide').forEach((s, idx) => {
+    const visibleSlides = Array.from(root.querySelectorAll('.deck-slide:not([hidden])'));
+    visibleSlides.forEach((s, idx) => {
       s.classList.toggle('active', idx === i);
     });
-    root.querySelectorAll('.pager .dot').forEach((d, idx) => {
+    const visibleDots = Array.from(root.querySelectorAll('.pager .dot:not([hidden])'));
+    visibleDots.forEach((d, idx) => {
       d.classList.toggle('on', idx === i);
     });
   };
@@ -2132,7 +2148,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const goToSlide = (i, smooth = true) => {
-    if (i < 0 || i >= SLIDES.length) return;
+    const slides = getSlides();
+    if (i < 0 || i >= slides.length) return;
     const track = q('.deck-track');
     if (track) {
       const w = track.clientWidth || window.innerWidth;
@@ -2146,7 +2163,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // of measuring at all, since the alternative is a URL that arrives truncated
   // and reads as complete.
   const refresh = () => {
-    const slide = SLIDES[state.slide] || SLIDES[0];
+    const slide = getSlides()[state.slide] || getSlides()[0];
     const text = getSlideText(state.slide);
     const slug = pageSlug();
     const filename = `${slug}-${slide.id}.${slide.ext}`;
@@ -2275,6 +2292,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // Built on the first open rather than at mount, for the reason the fab builds
   // its own body late: the launcher is on every page, the drawer on few.
   let read = false;
+  let lastOpenedWithSel = false;
+  const syncSelectionVisibility = () => {
+    const hasSel = !!(state.sel && state.sel.trim());
+    root.querySelectorAll('[data-slide-id="sel"]').forEach(el => {
+      el.hidden = !hasSel;
+      if (!hasSel) el.classList.remove('on', 'active');
+    });
+  };
+
   const openDrawer = () => {
     const selObj = getActiveSelection();
     state.sel = clean(String(selObj || ''));
@@ -2290,9 +2316,22 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     highlightOnPage(true);
     if (!read) { readPage(); read = true; }
     if (state.autoCheck) checkBuild();
-    if (state.sel) {
+
+    const hasSel = !!(state.sel && state.sel.trim());
+    syncSelectionVisibility();
+    const slides = getSlides();
+    if (hasSel) {
       state.slide = 1;
+      lastOpenedWithSel = true;
+    } else if (lastOpenedWithSel) {
+      state.slide = 0;
+      lastOpenedWithSel = false;
+    } else {
+      if (state.slide >= slides.length) {
+        state.slide = 0;
+      }
     }
+
     renderPageMeta();
     syncSlideUI(state.slide);
     panel.classList.add('open');
@@ -2576,8 +2615,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       rAF = 0;
       const w = track.clientWidth;
       if (!w) return;
+      const slides = getSlides();
       const idx = Math.round(track.scrollLeft / w);
-      const clamped = Math.max(0, Math.min(SLIDES.length - 1, idx));
+      const clamped = Math.max(0, Math.min(slides.length - 1, idx));
       if (clamped !== state.slide) {
         syncSlideTabsAndDots(clamped);
         renderActiveSlide(clamped);
@@ -2587,15 +2627,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   root.querySelectorAll('.deck-tab').forEach(tab => {
     tab.onclick = () => {
-      const i = parseInt(tab.dataset.slide, 10);
-      goToSlide(i);
+      const visibleTabs = Array.from(root.querySelectorAll('.deck-tab:not([hidden])'));
+      const i = visibleTabs.indexOf(tab);
+      if (i >= 0) goToSlide(i);
     };
   });
 
   root.querySelectorAll('.pager .dot').forEach(dot => {
     dot.onclick = () => {
-      const i = parseInt(dot.dataset.go, 10);
-      goToSlide(i);
+      const visibleDots = Array.from(root.querySelectorAll('.pager .dot:not([hidden])'));
+      const i = visibleDots.indexOf(dot);
+      if (i >= 0) goToSlide(i);
     };
   });
 

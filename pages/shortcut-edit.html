@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Shortcut Edit</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>✏️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<style type="text/tailwindcss">@theme inline{--color-primary:var(--color-primary);--color-secondary:var(--color-secondary);--color-accent:var(--color-accent);--color-neutral:var(--color-neutral);--color-base-100:var(--color-base-100);--color-base-200:var(--color-base-200);--color-base-300:var(--color-base-300);--color-base-content:var(--color-base-content);--color-info:var(--color-info);--color-success:var(--color-success);--color-warning:var(--color-warning);--color-error:var(--color-error);--color-primary-content:var(--color-primary-content);--color-secondary-content:var(--color-secondary-content);--color-accent-content:var(--color-accent-content);--color-neutral-content:var(--color-neutral-content);--color-info-content:var(--color-info-content);--color-success-content:var(--color-success-content);--color-warning-content:var(--color-warning-content);--color-error-content:var(--color-error-content);}</style>
+<script defer src="https://unpkg.com/alpinejs"></script>
+
+<!--
+  shortcut-edit.html — a proposed hand edit to a shortcut, shown where it goes.
+
+  A shortcut whose only copy is the device cannot be replaced by paste without
+  losing its file settings (share sheet, input types, icon), so a change to one
+  is a hand edit: cards pasted at one place in the editor. The editor has no
+  line numbers and no search, so the place has to be recognisable by what
+  surrounds it. This page is that reference, open in Safari beside the editor.
+
+  THE LINK CARRIES EVERYTHING. shortcut-tools' tools/edit.py applies the cards
+  to the newest exported copy of the shortcut, sketches it before and after,
+  and gzips {name, before, after, cards} into #gz=. No token and no fetch, so
+  the page opens anywhere and cannot disagree with what was proposed.
+
+  WHAT IS SHOWN. The after listing, in the Chains page's form (index gutter,
+  nesting kept as indent, verb in bold), with added lines marked and removed
+  lines struck through where they stood. Lines are matched on their text
+  without the index, since an insertion renumbers everything below it.
+  Unchanged runs far from a change collapse to a count. Each change names its
+  place as the blocks that enclose it and the lines either side, which is what
+  a reader scrolling the editor can actually match.
+-->
+</head>
+<body class="min-h-dvh bg-base-100">
+
+<div x-data="edit()" x-init="boot()" class="min-h-dvh flex flex-col">
+
+  <header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300 px-3 py-2 flex items-center gap-2">
+    <button x-show="body && proposals.length" @click="back()" class="btn btn-ghost btn-sm btn-square" aria-label="All edits"><i class="ph ph-arrow-left text-lg"></i></button>
+    <i x-show="!(body && proposals.length)" class="ph ph-pencil-simple-line text-xl text-base-content/50"></i>
+    <h1 class="font-semibold truncate" x-text="body ? body.name : 'Edits'"></h1>
+    <span x-show="body" class="badge badge-sm badge-success badge-soft font-mono shrink-0" x-text="tally" data-tally></span>
+    <div class="grow"></div>
+    <button x-show="body" @click="foldToChange()" class="btn btn-ghost btn-sm btn-square" aria-label="Fold to the change"><i class="ph ph-arrows-in-line-vertical text-lg"></i></button>
+    <button x-show="body" @click="expandAll()" class="btn btn-ghost btn-sm btn-square" aria-label="Expand all"><i class="ph ph-arrows-out-line-vertical text-lg"></i></button>
+  </header>
+
+  <p x-show="err" class="text-error px-3 py-3" x-text="err" data-error></p>
+
+  <!-- The list: every open proposal, with where it stands. -->
+  <!-- data-pattern and data-part declare this a List and name its parts
+       (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing at
+       runtime reads them. A pick replaces the list, so it has no detail. -->
+  <template x-if="!body && !err">
+    <div class="flex flex-col" data-list data-pattern="list" data-part="list">
+      <template x-for="p in proposals" :key="p.file">
+        <button @click="pick(p)" class="text-left px-3 py-3 border-b border-base-200 hover:bg-base-200 flex flex-col gap-1" data-proposal data-part="item">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold" x-text="p.body.name" data-part="title"></span>
+            <span class="badge badge-sm badge-success badge-soft font-mono" x-text="'+' + (p.body.expect.length - p.body.base.length)" data-part="meta"></span>
+            <div class="grow"></div>
+            <span class="badge badge-sm" :class="badge(p.status)" x-text="p.status.label" data-part="meta"></span>
+          </div>
+          <div class="text-sm text-base-content/70 line-clamp-2" x-text="p.body.why" data-part="summary"></div>
+          <div class="text-xs font-mono text-base-content/40" x-text="p.body.created" data-part="meta"></div>
+        </button>
+      </template>
+      <div x-show="loading" class="flex justify-center py-16"><span class="loading loading-dots loading-md opacity-30"></span></div>
+      <div x-show="!loading && !proposals.length" class="px-3 py-16 text-center text-base-content/40">No proposed edits.</div>
+    </div>
+  </template>
+
+  <template x-if="body">
+    <div class="flex flex-col gap-3 pt-3">
+
+      <div class="px-3 flex flex-wrap gap-2" data-actions>
+        <a :href="copyHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-primary btn-sm"><i class="ph ph-clipboard-text"></i>1 · Copy the cards</a>
+        <a :href="openHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-sm"><i class="ph ph-pencil-simple"></i><span x-text="'2 · Open ' + body.name"></span></a>
+        <a x-show="body.expect" :href="exportHref" :target="framed ? '_blank' : '_self'" rel="noopener" class="btn btn-sm"><i class="ph ph-check-circle"></i>3 · Export to check</a>
+      </div>
+
+      <div x-show="status" class="px-3 flex items-center gap-2 text-sm" data-status>
+        <span class="badge badge-sm" :class="badge(status)" x-text="status && status.label"></span>
+        <span class="text-base-content/70 min-w-0" x-text="status && status.detail"></span>
+        <button x-show="status && status.state !== 'checking'" @click="check()" class="btn btn-ghost btn-xs btn-square" aria-label="Check again"><i class="ph ph-arrows-clockwise"></i></button>
+      </div>
+
+      <template x-for="(h, n) in hunks" :key="n">
+        <button @click="jump(h.at)" class="px-3 text-left text-sm flex items-baseline gap-2" data-place>
+          <i class="ph-fill ph-plus-circle text-success self-center"></i>
+          <span><span class="font-semibold" x-text="h.verb"></span><template x-if="h.where"><span><span class="text-base-content/50"> in </span><code class="font-mono" x-text="h.where"></code></span></template><template x-if="h.above"><span><span class="text-base-content/50">, after </span><code class="font-mono" x-text="h.above"></code></span></template></span>
+        </button>
+      </template>
+
+      <div class="sm:mx-3 border-y sm:border border-base-300 sm:rounded-box py-1 font-mono text-sm" data-listing>
+        <template x-for="l in shown" :key="l.key">
+          <div>
+          <div :id="l.id" class="flex items-baseline pr-3" :role="l.kids ? 'button' : null"
+               :class="l.t === '+' ? 'bg-success/25 shadow-[inset_4px_0_0_var(--color-success)] py-1.5 font-semibold'
+                     : l.t === '-' ? 'bg-error/15 shadow-[inset_4px_0_0_var(--color-error)] py-1'
+                     : shut[l.key] ? 'bg-base-200/70 py-0.5' : 'py-0.5'" :data-op="l.t" @click="l.kids && toggle(l.key)">
+            <span class="w-8 shrink-0 text-right select-none"
+                  :class="l.t === '+' ? 'text-success' : l.t === '-' ? 'text-error' : 'text-base-content/35'"
+                  x-text="l.t === ' ' ? l.i : l.t"></span>
+            <span x-show="l.kids" class="w-4 shrink-0 text-center text-[0.6rem] leading-none text-base-content/40" data-toggle
+                    :aria-label="shut[l.key] ? 'Expand' : 'Collapse'">
+              <i class="ph-fill" :class="shut[l.key] ? 'ph-caret-right' : 'ph-caret-down'"></i></span>
+            <span x-show="!l.kids" class="w-4 shrink-0"></span>
+            <div class="min-w-0 grow" :class="[pad(l), shut[l.key] ? 'truncate' : 'break-words -indent-[2ch] pl-[2ch]']"><code :class="l.t === '-' && 'line-through opacity-60'"><template x-for="(g, q) in paint(l.s)" :key="q"><span :class="g.c" x-text="g.t"></span></template></code><span x-show="shut[l.key]" class="ml-2 text-xs text-base-content/45" data-preview x-text="'· ' + l.kids + ' · ' + preview(l)"></span></div>
+            <span x-show="l.t !== ' '" class="badge badge-xs shrink-0 self-center font-sans" :class="l.t === '+' ? 'badge-success' : 'badge-error'" x-text="l.t === '+' ? 'new' : 'remove'"></span>
+          </div>
+          <template x-if="l.why">
+            <div class="flex items-start gap-2 pl-4 pr-3 py-2 bg-success/10 shadow-[inset_4px_0_0_var(--color-success)] font-sans text-sm leading-snug text-base-content" data-why>
+              <i class="ph ph-info text-base text-base-content/60 shrink-0 mt-px"></i><span x-text="l.why"></span>
+            </div>
+          </template>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>
+
+<script>
+// sketch.py writes "%3d %s": a right-aligned index, then the nesting as two
+// spaces per level, the verb, and one summarised parameter.
+const INDEX = 4;
+const PADS = ['ml-0', 'ml-[2ch]', 'ml-[4ch]', 'ml-[6ch]', 'ml-[8ch]', 'ml-[10ch]', 'ml-[12ch]', 'ml-[14ch]', 'ml-[16ch]'];
+const parse = t => t.split('\n').filter(Boolean).map(raw => ({ i: raw.slice(0, INDEX).trim(), s: raw.slice(INDEX) }));
+const depth = s => s.match(/^ */)[0].length;
+
+const TOOLS = 'mehrlander/shortcut-tools', STORE = 'mehrlander/web-tools-private';
+const Q = new URLSearchParams(location.search);
+const REF = Q.get('ref') || 'main';   // the shortcut-tools ref proposals are read at
+
+// The action identifiers of one workflow plist, in order, or null when the
+// export does not parse.
+function actionIds(xml) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  if (doc.querySelector('parsererror')) return null;
+  const key = [...doc.querySelectorAll('plist > dict > key')].find(k => k.textContent === 'WFWorkflowActions');
+  const arr = key && key.nextElementSibling;
+  if (!arr) return [];
+  return [...arr.children].map(d => {
+    const k = [...d.children].find(c => c.tagName === 'key' && c.textContent === 'WFWorkflowActionIdentifier');
+    return k ? k.nextElementSibling.textContent : '';
+  });
+}
+
+async function inflate(b64) {
+  const b = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+  const bytes = Uint8Array.from(b, c => c.charCodeAt(0));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+
+// Longest common subsequence on the text without its index, and with each «N»
+// masked: an insertion renumbers every line below it, so the references do
+// too, and compared as written every later line would read as changed. The
+// cost is that a change to a reference alone goes unseen; an edit this page
+// shows adds or removes cards, which that does not hide.
+const key = s => s.replace(/«\d+»/g, '«»');
+function diff(a, b) {
+  const A = a.map(l => key(l.s)), B = b.map(l => key(l.s));
+  const n = a.length, m = b.length, L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { out.push({ t: ' ', ...b[j] }); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) out.push({ t: '-', ...a[i++] });
+    else out.push({ t: '+', ...b[j++] });
+  }
+  while (i < n) out.push({ t: '-', ...a[i++] });
+  while (j < m) out.push({ t: '+', ...b[j++] });
+  return out.map((l, k) => ({ ...l, key: k, id: 'D' + k }));
+}
+
+// The blocks enclosing line k: each earlier line at a shallower indent. A menu
+// case sits at its menu's indent, so the menu itself is named beside it.
+function path(lines, k) {
+  const out = [];
+  let d = depth(lines[k].s);
+  for (let i = k - 1; i >= 0 && d > 0; i--) {
+    const e = depth(lines[i].s);
+    if (e < d) {
+      out.unshift(lines[i].s.trim());
+      if (/^case\b/.test(lines[i].s.trim())) {
+        for (let j = i - 1; j >= 0; j--)
+          if (depth(lines[j].s) === e && /^menu\b/.test(lines[j].s.trim())) { out.unshift(lines[j].s.trim()); break; }
+          else if (depth(lines[j].s) < e) break;
+      }
+      d = e;
+    }
+  }
+  return out;
+}
+
+document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
+  body: null,
+  err: '',
+  proposals: [],
+  loading: false,
+  status: null,
+  lines: [],
+  shut: {},
+  hunks: [],
+  // Inside a sandboxed frame (the branch preview) a link cannot take the whole
+  // tab to another app, so the two shortcuts:// links open a new one there.
+  framed: (() => { try { return window.top !== window; } catch { return true; } })(),
+  get tally() {
+    const all = this.lines;
+    const add = all.filter(l => l.t === '+').length, del = all.filter(l => l.t === '-').length;
+    return [add && `+${add}`, del && `−${del}`].filter(Boolean).join(' ');
+  },
+  get copyHref() {
+    return 'shortcuts://run-shortcut?name=Copy-ActionFromUrl&input=text&text=' + encodeURIComponent(this.body.cards);
+  },
+  get exportHref() {
+    return 'shortcuts://run-shortcut?name=Dump-Named&input=text&text=' + encodeURIComponent('⟦' + this.body.name + '⟧');
+  },
+  get openHref() {
+    return 'shortcuts://open-shortcut?name=' + encodeURIComponent(this.body.name);
+  },
+
+  // Three ways in: a proposal carried whole in #gz=, one named by
+  // ?proposal=<file>, or none, which lists every file in shortcut-tools'
+  // proposals/ with where it stands.
+  async boot() {
+    const m = /[#&]gz=([^&]+)/.exec(location.hash);
+    if (m) {
+      try { this.show(await inflate(m[1])); } catch (e) { this.err = 'This link does not decode: ' + e.message; }
+      return;
+    }
+    this.loading = true;
+    try {
+      const want = Q.get('proposal');
+      const r = await fetch(`https://api.github.com/repos/${TOOLS}/contents/proposals?ref=${encodeURIComponent(REF)}`, { cache: 'no-store' });
+      const files = r.ok ? (await r.json()).filter(f => f.name.endsWith('.json')).map(f => f.name) : [];
+      this.proposals = await Promise.all(files.map(async file => ({
+        file, status: { state: 'checking', label: 'checking' },
+        body: await (await fetch(`https://raw.githubusercontent.com/${TOOLS}/${REF}/proposals/${encodeURIComponent(file)}`, { cache: 'no-store' })).json(),
+      })));
+      this.proposals.sort((a, b) => (b.body.created || '').localeCompare(a.body.created || ''));
+      const one = want && this.proposals.find(p => p.file === want);
+      if (want && !one) this.err = `No proposal ${want} at ${REF}.`;
+      if (one) this.pick(one);
+      for (const p of this.proposals) {
+        p.status = await this.verdict(p.body);
+        if (this.body === p.body) this.status = p.status;
+      }
+    } catch (e) {
+      this.err = String(e.message || e);
+    } finally {
+      this.loading = false;
+    }
+  },
+
+  pick(p) { this.show(p.body); this.status = p.status; window.scrollTo(0, 0); },
+  back() { this.body = null; this.status = null; this.lines = []; this.hunks = []; },
+  badge(st) {
+    return { applied: 'badge-success', pending: 'badge-warning', differs: 'badge-error' }[st && st.state] || 'badge-ghost';
+  },
+  async check() {
+    this.status = { state: 'checking', label: 'checking', detail: '' };
+    this.status = await this.verdict(this.body);
+    const p = this.proposals.find(x => x.body === this.body);
+    if (p) p.status = this.status;
+  },
+
+  // Where a proposal stands, from the newest export of its shortcut: the
+  // phone's exports land in web-tools-private's shortcuts/incoming/ and are
+  // folded into shortcuts/dumps/, both private, so this needs the token the
+  // other pages on this origin store. The newest zip holding the shortcut is
+  // compared action type by action type with the proposal's `expect` (the
+  // edit made) and `base` (not yet). It does not compare parameters, so a
+  // card pasted in place and then changed still reads as applied.
+  async verdict(b) {
+    if (!b.expect) return { state: 'unknown', label: 'no check', detail: 'This proposal carries no sequence to check against.' };
+    let token = '';
+    try { token = localStorage.getItem('ghToken') || ''; } catch {}
+    if (!token) return { state: 'unknown', label: 'unchecked', detail: 'Needs the GitHub token the other Web Tools pages use.' };
+    const H = { Authorization: 'token ' + token };
+    const list = async dir => {
+      const r = await fetch(`https://api.github.com/repos/${STORE}/contents/shortcuts/${dir}`, { headers: H, cache: 'no-store' });
+      return r.ok ? (await r.json()).filter(f => f.name.endsWith('.zip')).map(f => `shortcuts/${dir}/${f.name}`) : [];
+    };
+    const raw = async path => {
+      const r = await fetch(`https://api.github.com/repos/${STORE}/contents/${path}`,
+        { headers: { ...H, Accept: 'application/vnd.github.raw' }, cache: 'no-store' });
+      if (!r.ok) throw new Error(r.status + ' ' + path);
+      if (!/json/.test(r.headers.get('content-type') || '')) return r.arrayBuffer();
+      const j = await r.json();
+      return Uint8Array.from(atob((j.content || '').replace(/\n/g, '')), c => c.charCodeAt(0)).buffer;
+    };
+    try {
+      const JSZip = window.JSZip ?? (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+      const zips = [...await list('incoming'), ...await list('dumps')]
+        .sort((x, y) => y.split('/').pop().localeCompare(x.split('/').pop()));
+      for (const path of zips.slice(0, 6)) {
+        const z = await JSZip.loadAsync(await raw(path));
+        const f = z.file(b.name + '.wflow');
+        if (!f) continue;
+        const ids = actionIds(await f.async('string')), file = path.split('/').pop();
+        const same = (x, y) => x.length === y.length && x.every((v, i) => v === y[i]);
+        if (!ids) return { state: 'differs', label: 'unreadable', detail: `${file} holds ${b.name}, and it does not parse.` };
+        if (same(ids, b.expect)) return { state: 'applied', label: 'applied', detail: `The export in ${file} has the edit.` };
+        if (same(ids, b.base)) return { state: 'pending', label: 'not yet', detail: `The newest export, ${file}, is still the original.` };
+        const at = b.expect.findIndex((v, i) => ids[i] !== v);
+        return { state: 'differs', label: 'differs', detail: `${file} differs from the proposal at line ${at}.` };
+      }
+      return { state: 'unknown', label: 'no export', detail: `No recent export holds ${b.name}. Tap 3 to make one.` };
+    } catch (e) {
+      return { state: 'unknown', label: 'unchecked', detail: String(e.message || e) };
+    }
+  },
+
+  show(body) {
+    this.body = body; this.hunks = []; this.lines = []; this.shut = {};
+    const d = diff(parse(this.body.before), parse(this.body.after));
+
+    // One place per run of changed lines, named in the after listing's terms.
+    const kept = d.filter(l => l.t !== '-');
+    for (let k = 0; k < d.length; k++) {
+      if (d[k].t === ' ' || (k && d[k - 1].t !== ' ')) continue;
+      let e = k; while (e + 1 < d.length && d[e + 1].t !== ' ') e++;
+      const run = d.slice(k, e + 1), first = run.find(l => l.t === '+') || run[0];
+      const at = kept.indexOf(first);
+      const above = d.slice(0, k).reverse().find(l => l.t === ' ');
+      const below = d.slice(e + 1).find(l => l.t === ' ');
+      const add = run.filter(l => l.t === '+').length, del = run.filter(l => l.t === '-').length;
+      this.hunks.push({
+        at: d[k].id,
+        path: at >= 0 ? path(kept, at) : [],
+        where: at >= 0 ? (path(kept, at).slice(-1)[0] || '') : '',
+        verb: [add && `add ${add} card${add > 1 ? 's' : ''}`, del && `remove ${del}`].filter(Boolean).join(', '),
+        above: above ? above.s.trim() : '',
+        below: below ? below.s.trim() : '',
+      });
+    }
+
+    // The listing as a tree by indentation: a line's children are the lines
+    // under it at a deeper indent. Every block that holds no change starts
+    // folded, so the path to the change stays open and the rest shows as its
+    // outline. A menu's cases sit at the menu's own indent, so each case folds
+    // on its own rather than under the menu.
+    const parent = [], stack = [];
+    d.forEach((l, k) => {
+      const dp = depth(l.s);
+      while (stack.length && depth(d[stack[stack.length - 1]].s) >= dp) stack.pop();
+      parent[k] = stack.length ? stack[stack.length - 1] : -1;
+      stack.push(k);
+    });
+    const kids = d.map(() => 0), hot = d.map(l => l.t !== ' ');
+    d.forEach((l, k) => { for (let p = parent[k]; p >= 0; p = parent[p]) { kids[p]++; if (l.t !== ' ') hot[p] = true; } });
+    // The `end …` line a block's fold also hides: the first line after the
+    // block at its own depth, when that line is an end. A case never claims
+    // `end menu`, which closes the menu rather than the case, and an if never
+    // claims past its else, which is a branch of its own.
+    const closes = d.map(() => -1);
+    d.forEach((l, k) => {
+      if (!kids[k] || /^case\b/.test(l.s.trim())) return;
+      let j = k + 1; while (j < d.length && depth(d[j].s) > depth(l.s)) j++;
+      if (j < d.length && depth(d[j].s) === depth(l.s) && /^end\b/.test(d[j].s.trim())) closes[j] = k;
+    });
+    // The proposal's reason rides under its first added line.
+    const first = d.findIndex(l => l.t === '+');
+    this.lines = d.map((l, k) => ({ ...l, parent: parent[k], kids: kids[k], hot: hot[k], closes: closes[k],
+                                     why: k === first ? (this.body.why || '') : '' }));
+    this.foldToChange();
+    this.$nextTick(() => this.hunks[0] && this.jump(this.hunks[0].at));
+  },
+
+  get shown() {
+    return this.lines.filter(l => {
+      for (let p = l.parent; p >= 0; p = this.lines[p].parent) if (this.shut[p]) return false;
+      return !(l.closes >= 0 && this.shut[l.closes]);
+    });
+  },
+  // What a folded block holds, on one line: its direct children in order,
+  // each as its verb and argument, cut at PREVIEW characters.
+  preview(l) {
+    const PREVIEW = 90;
+    const out = this.lines.filter(c => c.parent === l.key).map(c => c.s.trim()).join(' ; ');
+    return out.length > PREVIEW ? out.slice(0, PREVIEW - 1) + '…' : out;
+  },
+  // The nesting as left padding rather than leading spaces, so a line that
+  // wraps hangs under its own first word instead of returning to the margin.
+  // Each depth is its own literal class, which Tailwind's browser build can see.
+  pad(l) { return PADS[Math.min(depth(l.s) / 2, PADS.length - 1)]; },
+  toggle(k) { this.shut = { ...this.shut, [k]: !this.shut[k] }; },
+  expandAll() { this.shut = {}; },
+  foldToChange() {
+    this.shut = Object.fromEntries(this.lines.filter(l => l.kids && !l.hot).map(l => [l.key, true]));
+  },
+
+  jump(id) { document.getElementById(id)?.scrollIntoView({ block: 'center' }); },
+
+  // The Chains page's colouring, as segments rather than markup: the verb
+  // bold, then «N» references, "literals" and $sources each in their own tone.
+  paint(s) {
+    const lead = s.match(/^ */)[0], rest = s.slice(lead.length);
+    const verb = /^[a-z#][a-z #<>.\-]*/.exec(rest);
+    const out = [];
+    if (verb) out.push({ t: verb[0], c: 'font-semibold' });
+    const tail = verb ? rest.slice(verb[0].length) : rest;
+    let at = 0;
+    for (const m of tail.matchAll(/«\d+»|"[^"]*"|\$[A-Za-z]+/g)) {
+      if (m.index > at) out.push({ t: tail.slice(at, m.index), c: '' });
+      const t = m[0];
+      out.push({ t, c: t.startsWith('«') ? 'text-primary' : t.startsWith('$') ? 'text-secondary' : 'text-success' });
+      at = m.index + t.length;
+    }
+    if (at < tail.length) out.push({ t: tail.slice(at), c: '' });
+    return out;
+  },
+})));
+</script>
+</body>
+</html>
