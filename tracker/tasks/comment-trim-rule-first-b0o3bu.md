@@ -4,6 +4,7 @@ title: Finish commentary trim: accuracy pass or paired fan-out
 status: backlog
 opened: 2026-09-08
 size: M
+awaiting: user-call 2708d02c-close-four-tasks
 ---
 # Finish commentary trim: accuracy pass or paired fan-out
 
