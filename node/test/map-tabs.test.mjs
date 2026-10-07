@@ -61,13 +61,14 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 
 // The grouping the owner settled on 2026-10-07 (discussion around PR #887):
 // four tabs, in strip order, each with its subviews in strip order as
-// [address key, label]. Every key predates the regroup, so a published
-// ?view=map&tab=<key> link still lands on the reading it named.
+// [address key, label]. Every key but `reach` predates the regroup, so a
+// published ?view=map&tab=<key> link still lands on the reading it named;
+// `reach` is the routes diagram the Reach tab lands on, added after it.
 const GROUPS = [
   ['Harness', [['harness', 'Automation'], ['tests', 'Tests'], ['skills', 'Skills'], ['context', 'Context'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
-  ['Reach', [['set', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
+  ['Reach', [['reach', 'Routes'], ['set', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
 ];
 
 test('every tab in the strip is one entry in the array that generates it', () => {
