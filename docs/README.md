@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-15 by a skill, 36 by a page or component. The remaining 54 are
+15 by a skill, 36 by a page or component. The remaining 53 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -32,7 +32,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
-- [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: the takeover, file substitution, the sidebar's second ref, and drop-on-a-branch
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
