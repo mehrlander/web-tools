@@ -65,6 +65,8 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // published ?view=map&tab=<key> link still lands on the reading it named;
 // `reach` is the routes diagram the Reach tab lands on, added after it.
 const GROUPS = [
+  ['Projects', [['projects', 'Projects']]],
+  ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
@@ -82,7 +84,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   // 10 to 11: Data aggregates the declared CSV inventories.
   // 13 to 4 on 2026-10-07: every address regrouped under GROUPS above.
-  assert.equal(TABS.length, 4, 'four top-level tabs, or this test is reading the wrong literal');
+  assert.equal(TABS.length, 6, 'six top-level tabs including projects and research');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
     'each tab carries exactly its subviews, in order, under their established keys');

@@ -89,6 +89,33 @@ membership (a repo opts in on its own config; there is no registry roster of
 members) and as the surface split (a repo owns the surface that tells its own
 story; the registry keeps only the curated, cross-repo ones).
 
+## Projects and research
+
+A project gathers related work that needs an ongoing home. Its README states
+what belongs there. A tracker records the work to do when coordination across
+sessions needs one; a project does not need a tracker to exist. Repositories
+declare their projects in `.web-tools.json`, which the Map's Projects view and
+the project navigation both read.
+
+Research keeps a question together with what was tried or gathered, the
+findings, and the material that lets someone inspect them. It lives outside
+`docs/`, usually under `research/` in its repository or project. A small probe
+can stand alone. Continuing work can gain a project without losing the original
+findings or requiring a new name for every method.
+
+The Map's Research view offers two entrances: **Probes** look into our tools,
+workflows, data, or assumptions; **Exploration** gathers information from
+outside sources. These describe the inquiry's main direction. A mixed inquiry
+can stay together. Words such as experiment, benchmark, instrument, and lab
+remain ordinary descriptions, not additional filing categories.
+
+Each repository's `research` declarations name the retained accounts and their
+direction. The Map links to those accounts, whose own links reach scripts,
+workbooks, captures, and sources. Research is excluded from the Docs inventory;
+documentation can explain a finding we now rely on and link to the research.
+Historical captures keep their original bytes, with later corrections written
+in the surrounding account. Maintained tools stay with their callers.
+
 ## Principle 6: documentation has four places, and everything else is a question
 
 Four slots. A markdown file in none of them is a **residual**.

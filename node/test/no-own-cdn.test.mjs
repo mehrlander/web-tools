@@ -27,7 +27,7 @@ const self = path.relative(repoRoot, fileURLToPath(import.meta.url)).split(path.
 
 const CODE = /\.(m?js|cjs|html|py|sh)$/;
 const EXEMPT = /^(archive|dump|tracker)\//;
-const FROZEN_EXCEL_SOURCES = 'docs/research/excel-validation-2026-09-24/source/technical/source-cache/';
+const FROZEN_EXCEL_SOURCES = 'research/excel-validation-2026-09-24/source/technical/source-cache/';
 const ROUTES = ['cdn.jsdelivr.net/gh/', 'data.jsdelivr.com', 'purge.jsdelivr.net'];
 
 const shouldScan = f => CODE.test(f) && !EXEMPT.test(f) &&
@@ -41,8 +41,8 @@ test('the frozen Excel source-cache exemption leaves active code and research pr
     'pages/data-view.html',
     'node/render/cdn.mjs',
     'docs/examples/preview.html',
-    'docs/research/excel-validation-2026-09-24/source/technical/scripts/browser-probe.mjs',
-    'docs/research/excel-validation-2026-09-24/source/technical/source-cache-new/viewer.js',
+    'research/excel-validation-2026-09-24/source/technical/scripts/browser-probe.mjs',
+    'research/excel-validation-2026-09-24/source/technical/source-cache-new/viewer.js',
     'docs/research/another-run/source/technical/source-cache/viewer.js',
   ]) assert.equal(shouldScan(f), true, f);
 });

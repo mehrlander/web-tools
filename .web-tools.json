@@ -7,7 +7,9 @@
   "scope": "The public hub: the Web Tools app, the browser tools and kits, and the portable conventions every repo pulls. Public on purpose, since conventions are not secret and a public hub is what lets private repos fetch them with no credentials at session start.",
   "tracker": "tracker/board.md",
   "growth": "data/doc-growth/web-tools.json",
-  "data": { "census": "data/csv-census.csv" },
+  "data": {
+    "census": "data/csv-census.csv"
+  },
   "checking": {
     "files": "data/checks-reading/2026-09-05-reading.csv",
     "comparisons": "data/checks-reading/explanations.csv",
@@ -77,6 +79,28 @@
         "node/test/tests-registry.test.mjs"
       ],
       "label": "checks reading"
+    }
+  ],
+  "research": [
+    {
+      "path": "research/excel-validation-2026-09-24/README.md",
+      "label": "Native Excel validation and workbook delivery",
+      "kind": "probe"
+    },
+    {
+      "path": "research/excel-chart-review-2026-09-25/README.md",
+      "label": "Excel chart rendering: findings and current status",
+      "kind": "probe"
+    },
+    {
+      "path": "research/excel-chart-cleanup-2026-09-25/README.md",
+      "label": "Excel chart and PivotTable corrections",
+      "kind": "probe"
+    },
+    {
+      "path": "research/DOC_CRAFT_STUDY.md",
+      "label": "Documentation problems and drafting proposals",
+      "kind": "probe"
     }
   ]
 }
