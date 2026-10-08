@@ -99,6 +99,24 @@ export default async function (page) {
   await chooseQuestion('conventions-delivery');
   await page.getByRole('button', { name: 'All questions ↑', exact: true }).click();
   await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-question-index'));
+
+  const sources = page.locator('[data-map-sources-button]:visible');
+  const panel = page.locator('[data-map-sources-panel]');
+  await sources.click();
+  await panel.waitFor({ state: 'visible' });
+  assert.match(await panel.innerText(), /docs\/context-sources\.csv/);
+  assert.match(await panel.innerText(), /skills\/hooks\/hooks\.json/);
+  await page.keyboard.press('Escape');
+  await panel.waitFor({ state: 'hidden' });
+  assert.ok(await sources.evaluate(e => e === document.activeElement), 'Escape restores the source control');
+  await sources.click();
+  await panel.getByRole('button', { name: 'Close sources', exact: true }).click();
+  await panel.waitFor({ state: 'hidden' });
+  await sources.click();
+  await page.getByRole('tab', { name: 'Tests', exact: true }).click();
+  await panel.waitFor({ state: 'hidden' });
+  await page.getByRole('tab', { name: 'Context', exact: true }).click();
+
   const result = await page.evaluate(() => {
     const el = [...document.querySelectorAll('[x-data]')].find(el => el.getAttribute('x-data') === 'map()');
     const s = window.Alpine.$data(el);

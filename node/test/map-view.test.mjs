@@ -135,6 +135,61 @@ await tick(3);
 const el = window.document.getElementById('map');
 const data = Alpine.$data(el);
 
+test('every Map address has one source control and keeps its description in the shared panel', () => {
+  const panel = el.querySelector('[data-map-sources-panel]');
+  assert.ok(panel.querySelector('[data-map-description]'));
+  assert.equal(data.mapSourcesOpen, false, 'descriptions are closed on arrival');
+  assert.equal(el.querySelector('[data-slot="frame:lede"]'), null);
+  for (const view of Object.values(data.SUBVIEWS).flat()) {
+    const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
+    assert.equal(section.querySelectorAll('[data-map-sources-button]').length, 1, view.k);
+    assert.equal(section.firstElementChild.dataset.slot, 'frame:toolbar', view.k + ': controls first');
+  }
+});
+
+test('source provenance follows the selected collection and preserves an external census ref', () => {
+  const old = { mapTab: data.mapTab, skillSet: data.skillSet, agentSet: data.agentSet,
+    docRepo: data.docRepo, dataScope: data.dataScope, dataCensus: data.dataCensus, lens: data.lens };
+  try {
+    const paths = () => Array.from(data.mapSources, s => s.path);
+    data.mapTab = 'skills'; data.skillSet = 'estate';
+    assert.ok(paths().includes('state/configs.json'));
+    assert.ok(!paths().includes('skills/manifest.csv'), 'estate is not the public skill manifest');
+    data.skillSet = 'outside';
+    assert.deepEqual(paths(), ['docs/upstream-skills.csv']);
+    data.skillSet = '';
+    for (const p of ['docs/portable.csv', 'skills/manifest.csv', 'state/configs.json', 'docs/upstream-skills.csv']) assert.ok(paths().includes(p), p);
+    data.mapTab = 'agents'; data.agentSet = 'estate';
+    assert.deepEqual(paths(), ['state/configs.json']);
+    data.mapTab = 'docs'; data.docRepo = 'mehrlander/home';
+    assert.ok(paths().includes('state/docs.json'));
+    assert.ok(!paths().includes('docs/docs.csv'));
+    data.mapTab = 'claims'; data.lens = 'owners';
+    assert.ok(paths().includes('docs/owners.csv'));
+    assert.ok(!paths().includes('docs/themes.csv'));
+    data.mapTab = 'data'; data.dataScope = 'mehrlander/home';
+    data.dataCensus = [{ repo: 'mehrlander/home', ref: 'feature/census', path: 'data/inventory.csv', files: [], state: 'ready' }];
+    assert.equal(data.mapSources[0].addr, 'mehrlander/home@feature/census:data/inventory.csv');
+    data.mapTab = 'views';
+    assert.ok(!paths().includes('state/activity.json'), 'live GitHub reads are not attributed to an unused cache');
+    assert.match(data.mapSourceNote, /GitHub commit history/);
+  } finally { Object.assign(data, old); }
+});
+
+test('opening a source keeps its repository and ref in the in-app reader', async () => {
+  const open = data.openFileDeck;
+  const calls = [];
+  data.openFileDeck = (...args) => calls.push(args);
+  try {
+    data.mapSourcesOpen = true;
+    await data.openMapSource({ path: 'data/census.csv', repo: 'mehrlander/home', ref: 'feature/census',
+      addr: 'mehrlander/home@feature/census:data/census.csv', role: 'CSV census' });
+    assert.equal(data.mapSourcesOpen, false);
+    assert.equal(calls[0][0][0].path, 'mehrlander/home@feature/census:data/census.csv');
+    assert.equal(calls[0][2].label().subtitle, 'mehrlander/home · feature/census');
+  } finally { data.openFileDeck = open; }
+});
+
 test('mounts and loads the public set with no startup warnings; adoption stays gated', () => {
   assert.deepEqual(problems, []);
   assert.ok(data.description.length > 0);
@@ -1441,22 +1496,13 @@ test('every closed domain on the registry pair carries a value gloss', async () 
   assert.equal(bare.join(', '), '', 'undefined values on the pair: ' + bare.join(', '));
 });
 
-// A JS template literal cannot hold a backtick, and the Registries section's
-// own header comment says so, which did not stop this pass from putting four
-// in a markup comment and taking the whole component down with a SyntaxError.
-// A warning that has already been ignored once is a check waiting to be
-// written.
-test('the Map template holds no backtick', () => {
+// Nested toolbar literals are valid; stray backticks in HTML comments are not.
+// Check the executable result, rather than treating the first nested literal
+// as the end of the whole template.
+test('the Map template parses and renders through its last section', () => {
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
-  const start = src.indexOf('template: `');
-  const body = src.slice(start + 'template: `'.length);
-  const literal = body.slice(0, body.indexOf('`'));
-  // A length threshold is not the check: a stray backtick 660 lines in still
-  // leaves thousands of characters behind it, which is how the first version of
-  // this test passed while the component was failing to parse. Name a marker
-  // from the LAST tab instead, so the literal has to reach its real end.
-  assert.ok(literal.includes(`x-show="mapTab==='registries'"`),
-    'the template literal reaches its last section, so no stray backtick closed it early');
+  assert.doesNotThrow(() => new window.Function(src));
+  assert.ok([...el.querySelectorAll('section')].some(s => s.getAttribute('x-show') === "mapTab==='views'"));
 });
 
 // The Skills tab, added 2026-08-19 when the plugin's skills and the on-demand

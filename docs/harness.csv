@@ -164,7 +164,7 @@ node/render/scenarios/files-view-tap-and-deck.mjs,,node/render/scenarios,61,driv
 node/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,node/render/scenarios,36,driver,no,yes,no
 node/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,node/render/scenarios,67,driver,no,no,no
 node/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,node/render/scenarios,53,driver,no,no,no
-node/render/scenarios/map-context.mjs,"Context grouping and list-detail flow: visible questions, source navigation, usage sorting and phone layout.",node/render/scenarios,117,driver,no,no,no
+node/render/scenarios/map-context.mjs,"Context grouping and list-detail flow: visible questions, source navigation, usage sorting and phone layout.",node/render/scenarios,135,driver,no,no,no
 node/render/scenarios/map-data-census.mjs,,node/render/scenarios,64,driver,no,no,yes
 node/render/scenarios/map-docs-cold.mjs,"the Map's Docs tab sorted coldest first, with the unresolved-reads strip: the ordering and the misspelled paths that make the readership column answerable",node/render/scenarios,93,driver,no,no,no
 node/render/scenarios/map-docs-reads.mjs,the Map's Docs tab with the readership column,node/render/scenarios,73,driver,no,no,no

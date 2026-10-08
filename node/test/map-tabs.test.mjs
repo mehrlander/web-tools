@@ -1,28 +1,7 @@
-// lib/alpineComponents/map.js — the Map view's tab strip, and the one sentence
-// each tab opens with.
-//
-// WHAT THIS HOLDS is a writing convention, which is an unusual thing to gate, so
-// the reason has to be exact. Before 2026-08-31 eleven of the twelve views opened
-// straight into cards with nothing saying what the cards were, and the twelfth
-// opened with three sentences whose last one was mechanics. The Owners tab had a
-// framing sentence and it was deleted on 2026-08-26 under the repo's own rule
-// against prose that describes state, on the argument that "the cards say what
-// the registry holds". That argument is wrong in a way worth catching: the cards
-// say what a ROW is and never what the SET is, and a reader arriving cold needs
-// the second one first.
-//
-// So the convention is narrow enough to be checkable. A lede says what the tab's
-// rows ARE. It never says what the reader can do with them, which is the line
-// between a lede and a manual, and it is the line prose on a page crosses when it
-// starts to rot. The shape assertions below are the whole of it: one sentence,
-// bounded, no second person, no imperative pointing at a control.
-//
-// The sentences live in docs/map-tabs.csv, one row per address, since
-// 2026-09-28; the keys, labels and icons stay in the TABS and SUBVIEWS arrays the
-// strip is generated from. A tab still cannot be added without a sentence, but
-// the reason is now a gate rather than a shared literal: the CSV's row set must
-// equal the shell's MAP_ROUTES in both directions. That is the load-bearing part:
-// a convention nothing renders from is a convention that lasts one session.
+// Map navigation and the descriptions retained in Sources and methods.
+// Every address needs a bounded account of its data. Descriptions live in
+// docs/map-tabs.csv and stay available on demand; operational controls now sit
+// directly below the subview strip, without a standing introductory sentence.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -103,7 +82,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /@click="setTab\(t\.k\)"/,
     'a top-level stop opens its own route, so Docs opens Inventory');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
-  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the lede is rendered from the selected tab, in runs');
+  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the source panel renders the selected description, including its references');
 });
 
 test('docs/map-tabs.csv holds one row per Map address, and no other', () => {

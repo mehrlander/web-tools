@@ -141,9 +141,10 @@ test('a selection naming a repo the cache no longer carries falls back to the hu
 
 // ── Skills ───────────────────────────────────────────────────────────────────
 
-test('Docs points at the Context tab, which renders in the app rather than an embedded page', () => {
-  const docs = el.querySelector('section[x-show="mapTab===\'docs\'"]');
-  assert.ok([...docs.querySelectorAll('button')].some(b => b.textContent.trim() === 'Session context'));
+test('Docs source panel points at Context in the app', () => {
+  const panel = el.querySelector('[data-map-sources-panel]');
+  const link = [...panel.querySelectorAll('button')].find(b => b.textContent.trim() === 'Session context ↗');
+  assert.equal(link?.getAttribute('@click'), "setTab('context')");
   assert.equal(el.querySelector('a[href*="session-context.html"]'), null, 'the retired page is no longer linked');
 });
 
