@@ -33,16 +33,18 @@ export default async (page) => {
   const topics = process.env.TOPICS
     ? JSON.parse(readFileSync(path.resolve(process.env.TOPICS), 'utf8'))
     : read('state/session-topics.json');
-  await page.evaluate(({ cache, topics, scope }) => {
+  await page.evaluate(({ cache, topics, scope, mode, lens }) => {
     const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
     st.authed = true;
     st.loading = false;
     st.sessionsLoading = false;
     if (scope) st.sessionScope = scope;
+    if (mode) st._topicSizeMode = mode;
     st.takeSessions(cache);
     st.sessionTopicsDoc = topics;
     st.sessionRows_ = st.joinSessionTopics(st.sessionRows_);
-  }, { cache, topics, scope: process.env.SCOPE || '' });
+    if (lens) st.setLens(lens);
+  }, { cache, topics, scope: process.env.SCOPE || 'all', mode: process.env.MODE || '', lens: process.env.LENS || 'list' });
   await page.waitForTimeout(1200);
   // ROWTAP=<n> taps the n-th topic line on the first listed row, which opens
   // that session at the topic.

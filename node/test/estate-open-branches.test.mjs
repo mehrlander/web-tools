@@ -343,6 +343,7 @@ test('the card lists only its own class, and then counts and lines come off that
   assert.deepEqual(plain_(data.rowCardList.map(f => f.path)), ['docs/a.md', 'docs/b.md']);
   // Only the half that happened: a card of new files does not report -0.
   assert.deepEqual(plain_(data.rowCardSummary), { count: 2, lines: '+52' });
+  assert.deepEqual(plain_(data.rowCardShape.exts), [['.md', 2]]);
 });
 
 test('a read for another branch is not this card-s', () => {
