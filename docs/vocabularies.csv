@@ -45,6 +45,14 @@ upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the p
 upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
 upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
 upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"
+context-sources,discretion,injected,Injected,Included automatically by the platform.
+context-sources,role,content,Content,Instruction text or other material that can be read; its presence here does not prove it entered a session.
+context-sources,role,automation,Automation,Executable machinery that delivers material or controls the environment.
+context-sources,role,configuration,Configuration,Settings and declarations that configure the available machinery.
+context-sources,discretion,prodded,Prodded,A directive asks the assistant to act; compliance is a separate step.
+context-sources,discretion,reactive,Reactive,Feedback or material arrives in response to an event.
+context-sources,discretion,pulled,Pulled,The user or assistant requests the material.
+context-sources,discretion,outside,Harness only,Configuration or execution outside model context; does not imply that its output can never enter context.
 agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name"
 agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows"
 agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard"
