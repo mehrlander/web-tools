@@ -1,5 +1,5 @@
 path,role,layer,lines,invocation,emits,named,tested
-.claude/environment-setup.sh,"The environment's setup script: installs the portable plugin and records its own text, commit and run time for the environment report.",.claude,16,env:build,no,yes,yes
+.claude/environment-setup.sh,"The environment's setup script: installs the portable plugin and records its own text, commit and run time for the environment report.",.claude,17,env:build,no,yes,yes
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
 .githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,no,yes,yes
@@ -8,9 +8,9 @@ path,role,layer,lines,invocation,emits,named,tested
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through node/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists; the hourly pass also folds the session records into state/sessions.json and the phone's state/session-menu.json through node/sessions-crawl.mjs",.github/workflows,154,ci:push+repository_dispatch+schedule+workflow_dispatch,no,no,yes
 .github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,90,ci:workflow_dispatch+pull_request,no,yes,yes
 .github/workflows/page-measures.yml,measures the pages a pull request changes in headless Chromium and reports; a finding never fails it,.github/workflows,82,ci:pull_request+workflow_dispatch,no,yes,no
-.github/workflows/refresh-derived.yml,runs the commit hook's repair pass on main after each push and commits what moved,.github/workflows,81,ci:push+workflow_dispatch,no,yes,no
+.github/workflows/refresh-derived.yml,runs the commit hook's repair pass on main after each push and commits what moved,.github/workflows,81,ci:push+workflow_dispatch,yes,yes,no
 .github/workflows/test.yml,"runs npm test on pull requests and pushes; reports, never commits",.github/workflows,120,ci:pull_request+push+workflow_dispatch,no,yes,no
-.github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
+.github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,yes,yes,no
 node/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",node,273,npm:activity-refresh,no,no,yes
 node/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,node/build,53,npm:bake,yes,yes,no
 node/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",node/build,161,npm:build:app,yes,yes,yes
@@ -32,7 +32,7 @@ node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another 
 node/build/sample-workbook.mjs,,node/build,437,npm:sample-workbook,yes,yes,yes
 node/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,node/build,267,npm:snags-index,yes,yes,yes
 node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,244,npm:tests-index,yes,no,yes
-node/build/tools-index.mjs,restamp the derived half of this registry,node/build,313,npm:tools-index,yes,yes,yes
+node/build/tools-index.mjs,restamp the derived half of this registry,node/build,388,npm:tools-index,yes,yes,yes
 node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,262,npm:ui-instances,yes,yes,no
 node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,312,imported,no,yes,no
 node/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at desktop and phone width and write the JPEG thumbnails and thumbs.csv the Map's UI > Patterns gallery reads, public units here and home's in web-tools-private",node/build,253,npm:ui-shots,yes,yes,no

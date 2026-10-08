@@ -23,6 +23,13 @@ harness,invocation,computed,node/build/tools-index.mjs,value,column,yes,,value,"
 harness,emits,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
 harness,named,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
 harness,tested,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,a file under node/test/ exercises it
+hook-legs,order,computed,node/build/tools-index.mjs,value,column,yes,,value,"the step's position in the hook, which is the order the steps run in; a later step can read what an earlier one wrote"
+hook-legs,gloss,computed,node/build/tools-index.mjs,value,column,yes,,value,"the step's own header line in the hook, after its name: what it reads and what it keeps current"
+hook-legs,watches,computed,node/build/tools-index.mjs,none,list,yes,,locator,the paths whose pending change runs the step in an ordinary commit; empty for a step that runs on every commit
+hook-legs,runs,computed,node/build/tools-index.mjs,value,list,yes,,value,the npm scripts and python scripts the step invokes
+hook-legs,stages,computed,node/build/tools-index.mjs,none,list,yes,,locator,the files the step regenerates and adds to the commit; empty for a step that only warns
+hook-legs,mode,computed,node/build/tools-index.mjs,value,column,yes,regenerates;warns,label,"regenerates when the step stages a file, warns when it only prints"
+hook-legs,in_repair,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,"whether npm run artifacts:refresh, the repair pass refresh-derived.yml runs on main, runs the step"
 kits,namespace,computed,node/build/kits-index.mjs,value,column,yes,,value,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
 kits,gloss,computed,node/build/kits-index.mjs,counted,column,yes,,value,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"
 kits,lines,computed,node/build/kits-index.mjs,value,column,yes,,value,file length
