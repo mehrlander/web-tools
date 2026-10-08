@@ -901,7 +901,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   window.__shell = undefined;
 });
 
-test('Context opens under Harness, joins the public inventory, and derives the overlaps', async () => {
+test('Context opens under Harness and derives question membership from the public inventory', async () => {
   window.__shell = { mapTab: 'context', goMapTab: () => {} };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'map()');
@@ -919,12 +919,13 @@ test('Context opens under Harness, joins the public inventory, and derives the o
   assert.match(el.textContent, /private sources need a token/);
 
   // Overlap membership is derived from the rows, never authored on the topic.
-  const ask = state.ctxOverlaps.find(o => o.topic === 'askuserquestion');
+  const ask = state.ctxQuestions.find(o => o.topic === 'askuserquestion');
   assert.ok(ask && ask.rows.length >= 2, 'the AskUserQuestion ban is spoken to by more than one source');
   assert.ok(ask.rows.every(r => r.topicList.includes('askuserquestion')));
   state.openCtxTopic('askuserquestion');
-  assert.equal(state.ctxLens, 'overlaps');
-  assert.equal(state.ctxOverlaps.length, 1, 'a chosen topic narrows the lens to itself');
+  assert.equal(state.ctxLens, 'delivery');
+  assert.equal(state.ctxQuestion.topic, 'askuserquestion');
+  assert.equal(state.ctxGroupedSources.length, ask.rows.length);
   state.ctxTopic = '';
 
   // The tally joins by key, and "not measured" never reads as zero.
@@ -973,7 +974,7 @@ test('The source table uses every registry source, including later additions and
     assert.equal(legacy.discretionId, 'unclassified', 'missing data is not guessed');
     assert.equal(state.ctxRoleLabel(legacy.source.role), 'Role not classified');
     assert.deepEqual([...state.ctxSourceTable.map(m => m.id)].sort(), [...state.ctxAll.map(r => r.id)].sort());
-    assert.ok(state.ctxOverlaps.find(t => t.topic === 'writing-rules').rows.some(r => r.id === legacy.id));
+    assert.ok(state.ctxQuestions.find(t => t.topic === 'writing-rules').rows.some(r => r.id === legacy.id));
     state.selectCtxSource(legacy.id);
     state.setCtxLens('sources');
     await tick(2);
@@ -985,7 +986,7 @@ test('The source table uses every registry source, including later additions and
   } finally { close(); }
 });
 
-test('A question highlights the inventory without hiding rows and an assistant filter cannot leave a hidden inspector', async () => {
+test('Question grouping uses the shared source table and source grouping restores the complete inventory', async () => {
   const { state, close } = await contextState();
   try {
     state.selectCtxSource('wt-claude');
@@ -994,13 +995,16 @@ test('A question highlights the inventory without hiding rows and an assistant f
     assert.equal(state.ctxSpectraActive, null, 'empty results have no unrelated inspector');
     state.openCtxDeliveryTopic('askuserquestion');
     assert.equal(state.ctxSpectraEnv, 'all');
-    assert.equal(state.ctxSourceTable.length, count, 'a topic is a highlight, never an inventory filter');
+    assert.equal(state.ctxSourceTable.length, count, 'the underlying inventory remains complete');
     const members = state.ctxAll.filter(r => r.topicList.includes('askuserquestion'));
     assert.deepEqual([...state.ctxSpectraVisible.filter(m => m.topics.includes('askuserquestion')).map(m => m.id)], [...members.map(r => r.id)]);
-    assert.ok(members.some(r => r.id === state.ctxSpectraActive.id));
+    assert.deepEqual([...state.ctxGroupedSources.map(m => m.id)].sort(), [...members.map(r => r.id)].sort());
+    assert.equal(state.ctxSpectraActive, null, 'selecting a question does not expand an arbitrary source');
+    state.selectCtxSource(members[0].id);
     const id = state.ctxSpectraActive.id;
     state.openCtxTopic('askuserquestion'); state.setCtxLens('when');
     assert.equal(state.ctxLens, 'sources', 'legacy timing links reach the source table');
+    assert.equal(state.ctxGroupedSources.length, count, 'source grouping shows all rows while highlighting the question');
     state.setCtxLens('circles');
     assert.equal(state.ctxLens, 'sources', 'legacy scope links reach the source table');
     state.setCtxLens('delivery');
@@ -1022,7 +1026,7 @@ test('Question paths separate a request from its material and never turn shared 
     assert.equal(reading.from.id, 'plugin-default');
     assert.equal(reading.kind, 'asks to read');
     assert.deepEqual([...reading.targets.map(r => r.id)].sort(), ['plugin-surfacing', 'plugin-writing']);
-    assert.ok(state.ctxQuestionRelated.some(r => r.id === 'wt-claude'), 'related instructions have no invented delivery edge');
+    assert.ok(state.ctxGroupedSources.some(r => r.id === 'wt-claude'), 'related instructions remain in the table without an invented delivery edge');
     state.skillUses = { default: { sessions: 7 } };
     assert.equal(state.ctxMeasurement(reading.targets[0]), 'No joined tally', 'a skill invocation does not prove a document was read');
     await tick(2);
@@ -1032,11 +1036,82 @@ test('Question paths separate a request from its material and never turn shared 
     assert.equal(new URL(window.location.href).searchParams.get('ctxsource'), 'plugin-writing');
     state.openCtxDeliveryTopic('askuserquestion');
     assert.equal(state.ctxQuestionPaths.length, 0, 'a shared topic supplies no causal edges');
-    assert.equal(state.ctxQuestionRelated.length, state.ctxQuestion.rows.length);
+    assert.equal(state.ctxGroupedSources.length, state.ctxQuestion.rows.length);
     state.openCtxDeliveryTopic('repo-hooks');
     const before = state.ctxQuestionPaths[0].triggers.length;
     state.ctxReg.hooks.TestEvent = [{ matcher: 'a second trigger', hooks: [{ command: 'bash /plugin/hooks/session-dispatch.sh' }] }];
     assert.equal(state.ctxQuestionPaths[0].triggers.length, before + 1, 'every registration condition survives');
+  } finally { close(); }
+});
+
+test('Every question is listed above one detail and the shared table, with no Context subtab row', async () => {
+  const { state, host, close } = await contextState();
+  try {
+    const workspace = host.querySelector('[data-context-workspace]');
+    assert.equal(workspace.querySelector('[data-slot="frame:subtabs"]'), null);
+    assert.equal(workspace.querySelector('[role="tablist"]'), null);
+    assert.equal(workspace.querySelector('select[aria-label="Context question"]'), null);
+    assert.equal(workspace.querySelectorAll('[data-context-question]').length, state.ctxQuestions.length);
+    workspace.querySelector('[data-context-question="house-style"]').click();
+    await tick(3);
+    assert.equal(state.ctxQuestion.topic, 'house-style');
+    assert.equal(workspace.querySelectorAll('[data-context-question-detail]').length, 1);
+    assert.equal(workspace.querySelectorAll('[data-context-table]').length, 1);
+    assert.match(workspace.querySelector('[data-context-question-detail]').textContent, /conflicting/);
+    assert.equal(window.document.activeElement, workspace.querySelector('[data-context-question-heading]'));
+    assert.equal(workspace.querySelectorAll('[data-context-source-row]').length, state.ctxQuestion.rows.length);
+    state.selectCtxSource('plugin-skill-list');
+    state.setCtxLens('sources');
+    await tick(2);
+    assert.equal(workspace.querySelectorAll('[data-context-source-row]').length, state.ctxAll.length);
+    assert.equal(workspace.querySelectorAll('[data-context-inspector]').length, 1);
+    state.setCtxLens('delivery');
+    await tick(2);
+    assert.equal(state.ctxSpectraActive.id, 'plugin-skill-list');
+    assert.equal(workspace.querySelectorAll('[data-context-inspector]').length, 1);
+  } finally { close(); }
+});
+
+test('Usage sorting keeps missing measurements distinct from zero and retains unclaimed session records', async () => {
+  const { state, host, close } = await contextState('&ctxlens=measured');
+  try {
+    assert.equal(state.ctxLens, 'sources', 'an old Measured address opens the common table');
+    assert.equal(state.ctxSort, 'usage');
+    const row = id => state.ctxAll.find(r => r.id === id);
+    assert.equal(state.ctxUsage(row('plugin-default')).sessions, null);
+    state.docStartup = {
+      'web-tools/CLAUDE.md': { path: 'web-tools/CLAUDE.md', sessions: 12, receipt: 5, reconstructed: 7, last: '2026-10-01' },
+      'stray/CLAUDE.md': { path: 'stray/CLAUDE.md', sessions: 3, reconstructed: 3, last: '2026-09-30' },
+    };
+    state.skillUses = Object.fromEntries(Array.from({ length: 27 }, (_, i) =>
+      ['outside-' + i, { path: 'outside-' + i, sessions: i + 1, last: '2026-10-01' }]));
+    state.skillUses.default = { path: 'default', sessions: 7, last: '2026-10-01' };
+    state.skillsReg = [{ name: 'default' }];
+    assert.equal(state.ctxSourceTable[0].id, 'wt-claude');
+    assert.equal(state.ctxSourceTable[1].id, 'plugin-default');
+    assert.equal(state.ctxUsage(row('wt-claude')).basis, 'At session start');
+    assert.equal(state.ctxUsage(row('plugin-default')).basis, 'Skill invoked');
+    assert.equal(state.ctxUsage(row('plugin-writing')).sessions, null, 'invoking default is not evidence of reading its documents');
+    const startup = state.docStartup['web-tools/CLAUDE.md'];
+    delete state.docStartup['web-tools/CLAUDE.md'];
+    assert.equal(state.ctxUsage(row('wt-claude')).sessions, 0, 'an absent entry in a loaded tally is a measured zero');
+    const firstUnknown = state.ctxSourceTable.findIndex(m => m.usage.sessions === null);
+    assert.ok(state.ctxSourceTable.slice(0, firstUnknown).every(m => m.usage.sessions >= 0));
+    assert.ok(state.ctxSourceTable.slice(firstUnknown).every(m => m.usage.sessions === null));
+    state.docStartup['web-tools/CLAUDE.md'] = startup;
+    assert.equal(state.ctxMeasuredSkills.length, 28, 'records beyond the old 24-row limit remain available');
+    assert.equal(state.ctxMeasuredStartup.find(m => m.path === 'stray/CLAUDE.md').row, null);
+    await tick(2);
+    const records = host.querySelector('[data-context-session-records]');
+    assert.match(records.textContent, /stray\/CLAUDE.md/);
+    assert.match(records.textContent, /outside-0/);
+    assert.match(records.textContent, /5 receipt · 7 reconstructed/);
+    state.selectCtxSource('plugin-default');
+    state.setCtxSort('name');
+    state.setCtxSort('usage');
+    assert.equal(state.ctxSpectraActive.id, 'plugin-default');
+    assert.equal(new URL(window.location.href).searchParams.get('ctxsort'), 'usage');
+    assert.equal(new URL(window.location.href).searchParams.get('ctxlens'), 'sources');
   } finally { close(); }
 });
 
@@ -1139,6 +1214,15 @@ test('Context validates lens addresses, restores source/topic links and joins re
     window.dispatchEvent(new window.PopStateEvent('popstate'));
     assert.equal(state.ctxLens, 'delivery'); assert.equal(state.ctxSpectraActive.id, 'wt-claude');
     assert.equal(state.ctxTopic, '');
+    for (const [lens, group, sort] of [['overlaps', 'delivery', 'name'], ['measured', 'sources', 'usage'],
+      ['circles', 'sources', 'name'], ['when', 'sources', 'name'], ['unknown', 'delivery', 'name']]) {
+      window.history.replaceState({}, '', '?view=map&tab=context&ctxlens=' + lens + '&ctxsort=invalid&ctxtopic=writing-rules&ctxsource=plugin-writing');
+      window.dispatchEvent(new window.PopStateEvent('popstate'));
+      assert.equal(state.ctxLens, group, lens + ' grouping');
+      assert.equal(state.ctxSort, sort, lens + ' sort');
+      assert.equal(state.ctxSpectraActive.id, 'plugin-writing');
+      assert.equal(state.ctxQuestion.topic, 'writing-rules');
+    }
   } finally { close(); }
 });
 

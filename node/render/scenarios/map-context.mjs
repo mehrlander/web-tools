@@ -1,11 +1,11 @@
-// Context: declared question paths and the complete source table.
+// Context: visible questions and source grouping share one table and inspector.
 // The working-tree fixtures pair registry edits with the current code before a commit.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 export default async function (page) {
   const files = Object.fromEntries(['docs/context-sources.csv', 'docs/context-topics.csv',
-    'docs/context-links.csv', 'skills/hooks/hooks.json'].map(p =>
+    'docs/context-links.csv', 'skills/hooks/hooks.json', 'docs/map-tabs.csv'].map(p =>
     [p, readFileSync(new URL('../../../' + p, import.meta.url), 'utf8')]));
   await page.waitForFunction(() => [...document.querySelectorAll('[x-data]')].some(el => el.getAttribute('x-data') === 'map()'));
   await page.evaluate(async files => {
@@ -20,10 +20,16 @@ export default async function (page) {
       while (state.ctxLoading) await new Promise(resolve => setTimeout(resolve, 20));
       state.ctxReg = null;
       await state.loadContextReg();
+      await state.loadTabLedes();
       state.openCtxDeliveryTopic('conventions-delivery');
     } finally { window.GH.prototype.get = get; }
   }, files);
   assert.equal(await page.locator('[data-context-matrix]').count(), 0);
+  const workspace = page.locator('[data-context-workspace]');
+  assert.equal(await workspace.locator('[data-slot="frame:subtabs"], [role="tablist"]').count(), 0);
+  assert.equal(await page.getByRole('combobox', { name: 'Context question', exact: true }).count(), 0);
+  assert.equal(await page.locator('[data-context-question]').count(), 12);
+  for (const question of await page.locator('[data-context-question]').all()) assert.ok(await question.isVisible());
   assert.equal(await page.locator('[data-context-path]').count(), 2);
   assert.match(await page.locator('[data-context-paths]').innerText(), /asks to read/);
   await page.locator('[data-context-path-source="plugin-writing"]').click();
@@ -31,7 +37,7 @@ export default async function (page) {
   assert.equal(await inspector.locator('h3').innerText(), 'Qualified writing rules');
   assert.match(await inspector.innerText(), /No joined tally/);
 
-  await page.getByRole('button', { name: 'Sources', exact: true }).click();
+  await page.getByRole('radio', { name: 'Source', exact: true }).check();
   const table = page.locator('[data-context-table]');
   const count = await page.locator('[data-context-source-row]').count();
   assert.equal(count, 31);
@@ -49,32 +55,61 @@ export default async function (page) {
 
   const tableSize = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
   assert.ok(tableSize.scroll <= tableSize.width + 1, JSON.stringify(tableSize));
-  await page.getByRole('button', { name: 'Questions', exact: true }).click();
+  await page.getByRole('radio', { name: 'Question', exact: true }).check();
   const chooseQuestion = async key => {
-    const picker = page.getByRole('combobox', { name: 'Context question' });
-    if (await picker.isVisible()) await picker.selectOption(key);
-    else await page.locator('[data-context-question="' + key + '"]').click();
+    await page.locator('[data-context-question="' + key + '"]').click();
+    await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-question-heading'));
   };
   await chooseQuestion('askuserquestion');
   assert.equal(await page.locator('[data-context-path]').count(), 0, 'topic association has no arrows');
-  assert.ok(await page.locator('[data-context-related-source]').count() >= 2);
+  assert.ok(await page.locator('[data-context-source-row]').count() >= 2);
+  assert.equal(await page.locator('[data-context-inspector]').count(), 0, 'a question does not open an arbitrary source');
   await chooseQuestion('pr-lifecycle');
   assert.match(await page.locator('[data-context-paths]').innerText(), /create_pull_request/);
   await chooseQuestion('conventions-delivery');
   await page.locator('[data-context-path-source="plugin-writing"]').click();
-  await page.getByRole('button', { name: 'Compare the sources →', exact: true }).click();
-  await page.getByRole('button', { name: 'View How do the conventions arrive? in Questions', exact: true }).click();
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-source-heading'));
+  await page.getByRole('radio', { name: 'Source', exact: true }).check();
+  assert.equal(await page.locator('[data-context-inspector] h3').innerText(), 'Qualified writing rules');
+
+  // Synthetic observations exercise the measurement UI, then are removed before the shot.
+  await page.evaluate(() => {
+    const s = window.Alpine.$data(document.querySelector('[data-context-workspace]'));
+    s.docStartup = { 'web-tools/CLAUDE.md': { path: 'web-tools/CLAUDE.md', sessions: 12, reconstructed: 12, last: '2026-10-01' },
+      'fixture/CLAUDE.md': { path: 'fixture/CLAUDE.md', sessions: 3, reconstructed: 3, last: '2026-10-01' } };
+    s.skillUses = { default: { path: 'default', sessions: 7, last: '2026-10-01' },
+      'fixture-skill': { path: 'fixture-skill', sessions: 2, last: '2026-10-01' } };
+  });
+  await page.getByRole('combobox', { name: 'Sort context sources' }).selectOption('usage');
+  assert.equal(await page.locator('[data-context-source-row]').first().getAttribute('data-context-source-row'), 'wt-claude');
+  assert.match(await page.locator('[data-context-source-row="wt-claude"]').innerText(), /12 sessions[\s\S]*At session start/);
+  assert.match(await page.locator('[data-context-source-row="plugin-default"]').innerText(), /7 sessions[\s\S]*Skill invoked/);
+  assert.match(await page.locator('[data-context-source-row="plugin-writing"]').innerText(), /Not measured/);
+  assert.equal(await page.locator('[data-context-inspector] h3').innerText(), 'Qualified writing rules', 'sorting preserves selection');
+  await page.locator('[data-context-session-records] > summary').click();
+  assert.match(await page.locator('[data-context-session-records]').innerText(), /fixture\/CLAUDE.md/);
+  assert.match(await page.locator('[data-context-session-records]').innerText(), /fixture-skill/);
+  await page.locator('[data-context-session-records] > summary').click();
+  await page.evaluate(() => {
+    const s = window.Alpine.$data(document.querySelector('[data-context-workspace]'));
+    s.docStartup = null; s.skillUses = null;
+    s.ctxSpectraSelected = ''; s.setCtxSort('name');
+  });
+  await page.getByRole('radio', { name: 'Question', exact: true }).check();
+  await chooseQuestion('conventions-delivery');
+  await page.getByRole('button', { name: 'All questions ↑', exact: true }).click();
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-question-index'));
   const result = await page.evaluate(() => {
     const el = [...document.querySelectorAll('[x-data]')].find(el => el.getAttribute('x-data') === 'map()');
     const s = window.Alpine.$data(el);
     for (const box of document.querySelectorAll('*')) if (box.scrollTop) box.scrollTop = 0;
     window.scrollTo(0, 0);
-    return { lens: s.ctxLens, selected: s.ctxSpectraActive.id, topic: s.ctxTopic,
-      sources: s.ctxAll.length, paths: s.ctxQuestionPaths.length,
+    return { lens: s.ctxLens, selected: s.ctxSpectraActive?.id || '', topic: s.ctxTopic,
+      sources: s.ctxAll.length, questionSources: s.ctxGroupedSources.length, paths: s.ctxQuestionPaths.length,
       width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth };
   });
   assert.equal(result.lens, 'delivery');
-  assert.equal(result.selected, 'plugin-writing');
+  assert.equal(result.selected, '');
   assert.equal(result.topic, 'conventions-delivery');
   assert.ok(result.scrollWidth <= result.width + 1, JSON.stringify(result));
   console.log('Context browser checks:', JSON.stringify(result));

@@ -104,7 +104,7 @@ test('a settings link, where given, is a claude.ai page', () => {
     assert.match(r.link, /^https:\/\/claude\.ai\//, r.id + ': link "' + r.link + '"');
 });
 
-test('tally keys have one of the two shapes the Measured lens joins on', () => {
+test('tally keys have one of the two shapes the usage column joins on', () => {
   for (const r of [...rows, ...privRows].filter(r => r.tally))
     assert.match(r.tally, /^(startup|skill):\S+$/, r.id + ': tally "' + r.tally + '"');
 });
