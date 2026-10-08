@@ -102,6 +102,16 @@ export default async function (page) {
 
   const sources = page.locator('[data-map-sources-button]:visible');
   const panel = page.locator('[data-map-sources-panel]');
+  await sources.scrollIntoViewIfNeeded();
+  // All questions uses smooth scrolling. A source panel deliberately closes
+  // when its anchor scrolls away, so finish that navigation before opening it.
+  await page.evaluate(() => new Promise(resolve => {
+    let timer;
+    const done = () => { document.removeEventListener('scroll', moved, true); resolve(); };
+    const moved = () => { clearTimeout(timer); timer = setTimeout(done, 150); };
+    document.addEventListener('scroll', moved, true);
+    moved();
+  }));
   await sources.click();
   await panel.waitFor({ state: 'visible' });
   assert.match(await panel.innerText(), /docs\/context-sources\.csv/);
@@ -113,9 +123,9 @@ export default async function (page) {
   await panel.getByRole('button', { name: 'Close sources', exact: true }).click();
   await panel.waitFor({ state: 'hidden' });
   await sources.click();
-  await page.getByRole('tab', { name: 'Tests', exact: true }).click();
+  await page.getByRole('tab', { name: /Tests/ }).click();
   await panel.waitFor({ state: 'hidden' });
-  await page.getByRole('tab', { name: 'Context', exact: true }).click();
+  await page.getByRole('tab', { name: /Context/ }).click();
 
   const result = await page.evaluate(() => {
     const el = [...document.querySelectorAll('[x-data]')].find(el => el.getAttribute('x-data') === 'map()');
