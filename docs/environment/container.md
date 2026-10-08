@@ -163,13 +163,23 @@ the failure.
 
 ### What the account's setup script must do
 
-The environment settings in claude.ai hold one line, which fetches and runs
+The environment settings in claude.ai hold two lines. The first fetches and runs
 [`.claude/environment-setup.sh`](../../.claude/environment-setup.sh) from this
-repo's `main`:
+repo's `main`; the second checks that the plugin installed:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/environment-setup.sh | bash
+curl -fsSL --retry 5 --retry-all-errors -o /tmp/s https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/environment-setup.sh && bash /tmp/s
+claude plugin list | grep -q portable || echo 'If `claude plugin list` lacks portable, tell the user and run: bash /home/user/web-tools-private/sessions/tools/install-hook.sh' > ~/.claude/CLAUDE.md
 ```
+
+The first line retries the fetch and runs the script only if the download
+succeeded. The `curl … | bash` line it replaced on 2026-10-07 reported success
+when the fetch failed: that day two seven-repo sessions logged a setup step of
+157 ms that the environment manager called successful, and both ran with no
+plugin. A resumed container skips the setup step, so nothing retried it. The
+second line writes `~/.claude/CLAUDE.md` only when the plugin is still missing,
+and the session reads that note at its first turn. It is the one channel from
+the build to the session that does not depend on the plugin.
 
 The script lives here because the setup script cannot reach a private repo. It
 installs `portable` at user scope, because plugins load at session start and a
@@ -177,8 +187,8 @@ session rooted above the checkouts reads no project settings. It then saves its
 own text, the commit it came from and when it ran to
 `~/.claude/environment-setup.ran`, which the plugin's environment report prints
 from at every session start
-([extending.md](extending.md#sessionstart-the-environment-report)). It writes
-no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
+([extending.md](extending.md#sessionstart-the-environment-report)). The script
+writes no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
 
 Changing the script does not rebuild the environment. A rebuild runs whatever
 is on `main` at that moment, and happens when the owner edits the environment

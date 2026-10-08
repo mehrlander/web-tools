@@ -35,7 +35,8 @@ const GH = loadFetch();
 const SESS = (id) => `https://claude.ai/code/session_${id}`;
 
 // A repo whose refs page as GraphQL returns them. `history` is the commit
-// bodies newest-first, exactly the field branchSessions reads.
+// bodies newest-first, each one's first parent the next, which is what
+// branchSessions walks.
 function fakeGH(pages) {
   const gh = Object.create(GH.prototype);
   gh.repo = 'acme/widget';
@@ -45,7 +46,9 @@ function fakeGH(pages) {
     return { repository: { refs: {
       pageInfo: { hasNextPage: call < pages.length, endCursor: 'c' + call },
       nodes: page.map(([name, bodies]) => ({
-        name, target: { history: { nodes: bodies.map(b => ({ messageBody: b })) } },
+        name, target: { history: { nodes: bodies.map((b, i) => ({
+          oid: `${name}-${i}`, messageBody: b, parents: { nodes: [{ oid: `${name}-${i + 1}` }] },
+        })) } },
       })),
     } } };
   };

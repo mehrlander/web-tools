@@ -824,13 +824,13 @@ test('a fence outranks the blank line inside it, and every other marker does not
 // fixture cannot stand in for this: the drift is proportional to how many emoji
 // precede a unit, so only a real document exercises the accumulation.
 //
-// TWO documents, because on 2026-09-07 the emoji-bearing primitives (📦 🗂️ 📊 📋
-// 📲 🎫 🔍) moved to docs/surfacing-extended.md so the injected half would fit
-// the SessionStart channel. SURFACING.md alone fell from 53 astral characters to
-// 37, under the floor below, while the corpus as a whole did not thin. The floor
-// is a claim about the CORPUS, so it counts the corpus; the round trip still
-// runs per document, since drift accumulates within one file.
-const EMOJI_DOCS = ['docs/SURFACING.md', 'docs/surfacing-extended.md'];
+// SEVERAL documents, because SURFACING.md alone fell under the floor below:
+// 53 astral characters before 2026-09-07, 23 after the rarer primitives (📦 🗂️
+// 📊 📋 📲 🎫 🔍) left it and their holding file, surfacing-extended.md, was
+// deleted on 2026-10-07. The floor is a claim about the CORPUS, so it counts the
+// corpus; the round trip still runs per document, since drift accumulates
+// within one file. The course and the tree skill are the next richest in emoji.
+const EMOJI_DOCS = ['docs/SURFACING.md', 'docs/surfacing-course.md', 'skills/tree/SKILL.md'];
 
 test('every unit of an emoji-carrying document resolves to the text segment.py recorded', () => {
   const astral = EMOJI_DOCS

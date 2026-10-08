@@ -301,14 +301,11 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
 // this holds is that every declared path is a file that exists and says when
 // it reaches a session. A sibling renamed or deleted fails here rather than
 // leaving a dead door.
-//
-// The derivation it replaces was not merely unable to see the new shape; it
-// was already wrong. surfacing-extended.md had been a sibling since 2026-09-07
-// and no door reached it, because it was never a heading in the first place.
+
 test('Surfacing declares a door per sibling document, and each one exists', async () => {
   await data.loadSurf();
   const doors = Array.from(data.surf.regions, r => ({ path: r.path, gloss: r.gloss }));
-  assert.ok(doors.length >= 2, 'the course and the extended routes both get a door');
+  assert.ok(doors.length >= 1, 'the course gets a door');
   for (const d of doors) {
     assert.ok(existsSync(path.join(repoRoot, d.path)), 'door to a file that is gone: ' + d.path);
     assert.ok(d.gloss, 'a door must say when its document reaches a session: ' + d.path);
@@ -849,8 +846,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'context', 'surfacing']),
-    'Harness exposes Automation, Tests, Skills, Context, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'agents', 'peeves', 'context', 'surfacing']),
+    'Harness exposes Automation, Tests, Skills, Agents, Context, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -1253,7 +1250,7 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   history.replaceState = (a, b, url) => stamped.push(url);
 
   shell.goMap();
-  assert.equal(shell.mapTab, 'set');
+  assert.equal(shell.mapTab, 'reach');
   assert.doesNotMatch(stamped.at(-1), /tab=/, 'the default stays out of the URL');
   assert.match(stamped.at(-1), /view=map/);
 
@@ -1265,10 +1262,10 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   shell.goMap();
   assert.equal(shell.mapTab, 'docs', 'returning to Map does not reset the tab');
   shell.goMap('');
-  assert.equal(shell.mapTab, 'set', 'an absent param means the default');
+  assert.equal(shell.mapTab, 'reach', 'an absent param means the default');
 
   shell.goMap('bogus');
-  assert.equal(shell.mapTab, 'set', 'an unknown tab falls back rather than hiding every section');
+  assert.equal(shell.mapTab, 'reach', 'an unknown tab falls back rather than hiding every section');
 
   // Leaving the view drops the key rather than stranding it on the next URL.
   shell.mapTab = 'docs';
@@ -1599,4 +1596,121 @@ test('a bold run that is not the item lead-in is not the anchor', () => {
     '<strong>Boundary:</strong> a viewport shot</p></li></ul>';
   assert.equal(data.findLead(box, 'Boundary'), null, 'a mid-paragraph run is not a lead-in');
   assert.ok(data.findLead(box, 'Show pixels'), 'the lead-in still resolves');
+});
+
+// Proposals on the page: the reading deck labels the paragraph each pending
+// edit would change. A Text proposal names a whole block; a documentation
+// call's edit names a phrase, widened here to the block it sits in. Matched on
+// rendered text, so the real marked renders both the document and the block.
+test('the reading deck labels the paragraph a pending edit would change', async () => {
+  const { marked } = await import('marked');
+  const prior = window.marked;
+  window.marked = marked;
+  if (!window.mdDiff) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))();
+  const md = '# Title\n\nKeep this paragraph.\n\nAn **old** paragraph to tighten.\n\nA paragraph with a phrase here inside.\n';
+  const box = window.document.createElement('div');
+  box.innerHTML = marked.parse(md);
+  data.docPending = new Map([['docs/x.md', {
+    staged: 1, calls: [{ id: 'c1', kind: 'documentation', question: 'Fix the phrase?', why: 'general',
+      edits: [{ from: 'a phrase here', to: 'a better phrase', why: 'the old phrase misleads' }] }],
+    items: [{ from: 'An **old** paragraph to tighten.', to: 'A paragraph, tightened.', kind: 'tighten',
+      purpose: 'tighten', gloss: 'Remove words.', author: 'Claude', basis: 'https://example.com/run' }],
+  }]]);
+  try {
+    const n = await data.markDeckProposals(box, 'docs/x.md', md);
+    assert.equal(n, 2, 'both edits find their paragraph');
+    const chips = [...box.querySelectorAll('[data-deck-proposal]')];
+    assert.deepEqual(chips.map(c => c.dataset.deckProposal), ['tighten', 'call']);
+    assert.match(chips[0].parentElement.textContent, /paragraph to tighten/);
+    assert.match(chips[1].parentElement.textContent, /phrase here inside/);
+    const edits = data.deckEdits('docs/x.md');
+    const call = edits.find(e => e.kind === 'call');
+    assert.equal(call.why, 'the old phrase misleads', "a call edit's own reason wins over the call's");
+    const note = data.deckProposalNote({ ...edits[0], notes: [{ by: 'owner', at: 't', note: 'check the tone' }] }).textContent;
+    assert.doesNotMatch(note, /Remove words/, "a purpose's general definition is not a note");
+    assert.match(note, /check the tone/, 'a comment left on the proposal is');
+    assert.doesNotMatch(note, /Claude/, 'the proposer is the signature pill\'s, not the note\'s');
+    const sign = data.deckProposalSign(edits[0]);
+    assert.ok(sign?.matches('[data-deck-proposal-sign]'), 'a proposal with an author or a basis is signed');
+    assert.equal(data.deckProposalSign({ ...edits[0], author: '', basis: '' }), null, 'one with neither is not');
+    assert.equal(data.deckEdits('docs/none.md').length, 0);
+  } finally {
+    data.docPending = null;
+    if (prior === undefined) delete window.marked; else window.marked = prior;
+  }
+});
+
+test('a proposal basis is read into fields, and its tip counts from the collection', () => {
+  if (!window.TextCollection) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/text-collection.js'), 'utf8'))();
+  const RUN = 'https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification/README.md';
+  assert.deepEqual({ ...data.basisOf(RUN) }, { kind: 'run', run: '2026-09-27-doc-simplification', date: '2026-09-27',
+    name: 'Doc simplification run', short: 'Sep 27' });
+  assert.deepEqual({ ...data.basisOf('https://github.com/mehrlander/web-tools/pull/807') },
+    { kind: 'pr', repo: 'mehrlander/web-tools', name: 'PR #807', short: '#807' });
+  assert.equal(data.basisOf(''), null);
+  const e = { path: 'docs/x.md', author: 'Claude', purpose: 'tighten', kind: 'tighten', basis: RUN };
+  const counted = data.deckSignBody(e, { proposals: 562, files: [{ repo: data.hub(), path: 'docs/x.md', proposals: 117 }],
+    repos: ['a', 'b', 'c', 'd'], by_purpose: { update: 108, tighten: 419 }, by_author: { Claude: 562 }, rejected: 2, notes: 1 });
+  const fields = Object.fromEntries([...counted.querySelectorAll('dt')].map(dt => [dt.textContent, dt.nextElementSibling.textContent]));
+  assert.deepEqual(fields, { 'Proposed by': 'Claude', Purpose: 'tighten', 'Run date': '2026-09-27',
+    Filed: '562 proposals · 1 document · 4 repos', Purposes: 'tighten 419 · update 108',
+    'This document': '117 filed · 0 pending', Reviews: '2 rejected · 1 comment' });
+  assert.match(counted.querySelector('a').getAttribute('href'), /text-lab\.html\?pane=runs&run=2026-09-27-doc-simplification$/,
+    'the run opens in Text Lab, never on GitHub');
+  assert.equal(data.deckSignBody({ ...e, basis: 'https://github.com/mehrlander/web-tools/pull/807' }, null).querySelector('a'), null,
+    'a pull request basis links nowhere');
+});
+
+// Apply swaps one block in the file as main holds it and commits with the sha
+// it read; a paragraph that is not there exactly once is refused, never
+// overwritten, and a paragraph docs/policies.csv quotes is refused too.
+test('Apply commits the one block with the sha it read, and refuses what moved', async () => {
+  const realGH = window.GH, realToken = window.TOKEN;
+  const file = '# T\n\nKeep.\n\nThe old paragraph.\n';
+  const puts = [];
+  window.GH = class {
+    constructor(o) { this.o = o; }
+    async get(p) {
+      if (p === 'docs/policies.csv') return { text: 'policy_id,canonical_doc,quoted\npol-x,docs/x.md,a quoted claim\n' };
+      return { text: file, sha: 'blob1' };
+    }
+    async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c0ffee1234' } }; }
+  };
+  window.GH.FRESH = { cache: 'no-store' };
+  window.TOKEN = 'gh_test';
+  try {
+    const sha = await data.commitBlockSwap('docs/x.md', 'The old paragraph.', 'The new paragraph.', 'msg via Web Tools');
+    assert.equal(sha, 'c0ffee1234');
+    assert.equal(puts.length, 1);
+    assert.equal(puts[0].body.sha, 'blob1', 'guarded by the blob it read');
+    assert.equal(puts[0].body.branch, 'main');
+    assert.equal(Buffer.from(puts[0].body.content, 'base64').toString('utf8'), '# T\n\nKeep.\n\nThe new paragraph.\n');
+    await assert.rejects(data.commitBlockSwap('docs/x.md', 'Not in the file.', 'x', 'm'), /changed on main/);
+    data._policyRows = null;
+    assert.equal(await data.policyQuoteIn({ path: 'docs/x.md', oldMd: 'It makes a quoted claim here.', newMd: 'It says less.' }), 'pol-x');
+    assert.equal(await data.policyQuoteIn({ path: 'docs/x.md', oldMd: 'Plain text.', newMd: 'Plainer.' }), '');
+  } finally {
+    window.GH = realGH;
+    if (realToken === undefined) delete window.TOKEN; else window.TOKEN = realToken;
+    data._policyRows = null;
+  }
+});
+
+test('a rejected or applied proposal leaves the row count and the paragraph', () => {
+  const e = { path: 'docs/x.md', kind: 'tighten', from: 'A.', to: 'B.' };
+  data.docPending = new Map([['docs/x.md', { staged: 2, calls: [], items: [{ from: 'A.', to: 'B.' }, { from: 'C.', to: 'D.' }] }]]);
+  const el = window.document.createElement('p');
+  el.textContent = 'A.';
+  const chip = window.document.createElement('button');
+  chip.dataset.deckProposal = 'tighten';
+  el.append(chip);
+  el.classList.add('outline');
+  try {
+    data.retireDeckProposal(e, el);
+    assert.equal(data.docPending.get('docs/x.md').staged, 1);
+    assert.equal(el.querySelector('[data-deck-proposal]'), null);
+    assert.ok(!el.classList.contains('outline'));
+    data.retireDeckProposal(e, el, true);
+    assert.equal(data.docPending.get('docs/x.md').staged, 2, 'an Undo puts it back');
+  } finally { data.docPending = null; }
 });

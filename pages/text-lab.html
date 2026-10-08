@@ -86,6 +86,7 @@
     ?variant=<id> opens one variant and implies the variants pane.
     ?deck=variants or ?deck=run:<dir>, with ?at=<n>, reopens a deck on a
                  slide. The variants deck reads the filters beside it.
+    ?run=<dir>   marks one run in the runs pane and implies that pane.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -168,7 +169,8 @@
 
       home: null,
       pane: (params.get('variant') || params.get('proposal')) ? 'variants'
-        : params.get('pane') === 'proposals' ? 'variants' : (params.get('pane') || 'probes'),
+        : params.get('pane') === 'proposals' ? 'variants'
+        : (params.get('pane') || (params.get('run') ? 'runs' : 'probes')),
       probes: [],
       concept: '',
       filterStanding: '',
@@ -194,6 +196,7 @@
       TEXT_RUNS: 'projects/text/runs',
       textRuns: [],
       textRunState: 'idle',
+      runFocus: params.get('run') || '',
       deckParam: params.get('deck') || '',
       deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
       loading: true,
@@ -699,33 +702,48 @@
       },
 
       // Text collection runs: folders under projects/text/runs/ that name their
-      // documents in files.jsonl. A folder without one is a run of another
-      // kind and is not listed here.
+      // documents in files.jsonl, and folders the collection's proposals cite
+      // as their basis, whose documents are counted from those proposals (a
+      // filing run writes no files.jsonl). A folder that is neither is a run of
+      // another kind and is not listed here.
       async loadTextRuns() {
         if (this.textRunState !== 'idle') return;
         this.textRunState = 'loading';
         try {
           const dirs = (await this.home.req(`contents/${this.TEXT_RUNS}?ref=${encodeURIComponent(this.DATA_REF)}`))
             .filter(d => d.type === 'dir').map(d => d.name).sort().reverse();
+          const titled = async (name) => {
+            try {
+              const readme = await this.home.get(`${this.TEXT_RUNS}/${name}/README.md`);
+              return (/^#\s+(.+)$/m.exec(readme.text) || [])[1] || name.slice(11).replace(/-/g, ' ');
+            } catch (_) { return name.slice(11).replace(/-/g, ' '); }   // a run without a README keeps its folder name
+          };
           const found = await Promise.all(dirs.map(async name => {
             const dir = `${this.TEXT_RUNS}/${name}`;
             try {
               const res = await this.home.get(`${dir}/files.jsonl`);
               const files = res.text.split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
-              let title = name.slice(11).replace(/-/g, ' ');
-              try {
-                const readme = await this.home.get(`${dir}/README.md`);
-                title = (/^#\s+(.+)$/m.exec(readme.text) || [])[1] || title;
-              } catch (_) { /* a run without a README keeps its folder name */ }
-              return { name, dir, date: name.slice(0, 10), title, files,
+              return { name, dir, date: name.slice(0, 10), title: await titled(name), files, unit: 'variants',
                        variants: files.reduce((n, f) => n + (f.variants || 0), 0) };
             } catch (_) { return null; }
           }));
-          this.textRuns = found.filter(Boolean);
+          const runs = found.filter(Boolean);
+          this.textRuns = runs;
           this.textRunState = 'done';
+          // Drawn first, extended second: the collection verifies every passage
+          // on read, and one that cannot be read leaves the list as it is.
+          await this.loadVariants();
+          const cited = this.variantIndex && window.TextCollection.bases ? window.TextCollection.bases(this.variantIndex) : new Map();
+          for (const b of cited.values()) {
+            if (!b.run || !dirs.includes(b.run) || runs.some(r => r.name === b.run)) continue;
+            runs.push({ name: b.run, dir: `${this.TEXT_RUNS}/${b.run}`, date: b.date, title: await titled(b.run), unit: 'proposals',
+                        files: b.files.map(f => ({ repo: f.repo, path: f.path, variants: f.proposals })), variants: b.proposals });
+          }
+          this.textRuns = [...runs].sort((x, y) => y.name.localeCompare(x.name));
           const want = this.deckParam.startsWith('run:') ? this.deckParam.slice(4) : '';
           const run = want && this.textRuns.find(r => r.name === want);
           if (run) { this.deckParam = ''; this.openRunDeck(run, this.deckAt); }
+          else if (this.runFocus) this.$nextTick(() => document.getElementById(`run-${this.runFocus}`)?.scrollIntoView({ block: 'center' }));
         } catch (e) {
           this.textRunState = 'error';
           this.error = `runs: ${e.message || e}`;
@@ -746,7 +764,7 @@
           count: files.length,
           start: at,
           title: run.title,
-          subtitle: `${run.date} · ${files.length} files · ${run.variants.toLocaleString()} variants`,
+          subtitle: `${run.date} · ${files.length} files · ${run.variants.toLocaleString()} ${run.unit}`,
           icon: 'ph-flask',
           innerClass: 'w-full min-w-0 mx-auto',
           index: i => ({ title: files[i].path.split('/').pop(),
@@ -756,14 +774,15 @@
             const f = files[i];
             const head = h('div', { class: 'flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs mb-4' },
               h('span', { class: 'font-medium' }, `${f.repo.split('/').pop()}/${f.path}`),
-              h('span', { class: 'opacity-60 tabular-nums' },
-                `${(f.words_before || 0).toLocaleString()} → ${(f.words_after || 0).toLocaleString()} words · ${f.variants} variants`));
-            const notes = h('details', { class: 'mb-5 text-base leading-7' },
+              h('span', { class: 'opacity-60 tabular-nums' }, (f.words_before
+                ? `${f.words_before.toLocaleString()} → ${(f.words_after || 0).toLocaleString()} words · ` : '')
+                + `${f.variants} ${run.unit}`));
+            const notes = (f.drafter || f.audit) && h('details', { class: 'mb-5 text-base leading-7' },
               h('summary', { class: 'cursor-pointer font-mono text-xs opacity-60' }, 'What changed, and what the audit restored'),
               h('p', { class: 'mt-2 text-pretty' }, f.drafter || ''),
               h('p', { class: 'mt-2 text-pretty opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
             const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-20' }));
-            slide.append(head, notes, doc);
+            slide.append(...[head, notes, doc].filter(Boolean));
             this.renderRunFile(doc, f);
           },
           onSlide: i => this.syncDeckAddress(`run:${run.name}`, i),
@@ -1215,11 +1234,12 @@
             text collection<span class="ml-2 tabular-nums" x-text="textRuns.length"></span>
           </h2>
           <template x-for="r in textRuns" :key="r.name">
-            <article class="border-b border-base-300 py-5 flex items-start gap-5">
+            <article :id="'run-' + r.name" class="border-b border-base-300 py-5 flex items-start gap-5"
+                     :class="r.name === runFocus && 'bg-primary/5'">
               <div class="grow min-w-0">
                 <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
                 <div class="mt-1 font-mono text-xs opacity-40 tabular-nums"
-                     x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' variants'"></div>
+                     x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' ' + r.unit"></div>
               </div>
               <div class="flex items-center gap-3 font-mono text-xs shrink-0">
                 <a class="opacity-40 hover:opacity-100 transition-opacity"

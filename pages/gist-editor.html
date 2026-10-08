@@ -18,7 +18,7 @@
 
 <body class="h-screen w-screen overflow-hidden bg-base-100 flex flex-col text-sm font-sans" x-data="gistApp()">
 
-  <div class="flex gap-2 p-2 border-b border-base-300 bg-base-200 items-center shrink-0">
+  <div class="flex flex-wrap gap-2 p-2 border-b border-base-300 bg-base-200 items-center shrink-0">
     <h1 class="text-[10px] font-black uppercase tracking-widest opacity-60 flex items-center gap-1.5 mr-2">
       <i class="ph ph-file-code text-primary text-base"></i> Gist Editor
     </h1>
@@ -29,14 +29,19 @@
       <i class="ph ph-floppy-disk"></i>Save
     </button>
     <button class="btn btn-sm gap-1" @click="copy()"><i class="ph ph-copy"></i>Copy</button>
+    <!-- Below sm the sidebar would leave the editor a sliver, so it takes the
+         screen in turn: this switches between history and the editor. -->
+    <button class="btn btn-sm gap-1 sm:hidden" x-show="!isNew" @click="side = !side" :class="side && 'btn-active'">
+      <i class="ph" :class="side ? 'ph-code' : 'ph-clock-counter-clockwise'"></i><span x-text="side ? 'Editor' : 'History'"></span>
+    </button>
 
-    <select class="select select-sm select-bordered w-64 ml-4" x-model="selectedId" @change="load(selectedId)" x-show="!isNew">
+    <select class="select select-sm select-bordered w-full sm:w-64 sm:ml-4" x-model="selectedId" @change="load(selectedId)" x-show="!isNew">
       <template x-for="g in gists" :key="g.id">
         <option :value="g.id" x-text="g.description || Object.keys(g.files)[0] || g.id"></option>
       </template>
     </select>
 
-    <input type="text" class="input input-sm input-bordered w-64 ml-4" x-model="meta.desc" placeholder="New gist description..." x-show="isNew">
+    <input type="text" class="input input-sm input-bordered w-full sm:w-64 sm:ml-4" x-model="meta.desc" placeholder="New gist description..." x-show="isNew">
     <label class="cursor-pointer label gap-2" x-show="isNew">
       <input type="checkbox" class="checkbox checkbox-sm" x-model="meta.public"> <span>Public</span>
     </label>
@@ -46,13 +51,13 @@
 
   <div class="flex flex-1 overflow-hidden">
 
-    <div class="w-80 flex flex-col border-r border-base-300 bg-base-200/40 shrink-0" x-show="!isNew">
+    <div class="w-full sm:w-80 flex-col border-r border-base-300 bg-base-200/40 shrink-0" x-show="!isNew" :class="side ? 'flex' : 'hidden sm:flex'">
 
       <div class="flex-1 overflow-y-auto p-2 border-b border-base-300">
         <h2 class="font-bold mb-2 uppercase text-xs opacity-70 flex items-center gap-1"><i class="ph ph-clock-counter-clockwise"></i>History</h2>
         <ul class="space-y-1">
           <template x-for="(v, i) in versions" :key="v.version">
-            <li class="p-2 border border-base-300 rounded bg-base-100 hover:bg-base-200 cursor-pointer flex flex-col gap-1" @click="loadSha(v.version)">
+            <li class="p-2 border border-base-300 rounded bg-base-100 hover:bg-base-200 cursor-pointer flex flex-col gap-1" @click="loadSha(v.version); side = false">
               <div class="flex justify-between items-center">
                 <span class="font-bold text-xs" x-text="i===0 ? 'Latest' : `Rev ${versions.length-i}`"></span>
                 <span class="text-[10px] opacity-60" x-text="new Date(v.committed_at).toLocaleString()"></span>
@@ -86,7 +91,7 @@
       </div>
     </div>
 
-    <div class="flex flex-col flex-1 overflow-hidden bg-base-100">
+    <div class="flex-col flex-1 overflow-hidden bg-base-100" :class="side ? 'hidden sm:flex' : 'flex'">
 
       <div class="flex gap-2 p-2 border-b border-base-300 items-center bg-base-200">
         <span class="font-bold text-xs uppercase opacity-70">Filename:</span>
@@ -111,6 +116,7 @@
       return {
         busy: false,
         isNew: false,
+        side: false,
         viewMode: 'edit', // 'edit' | 'diff'
         gists: [],
         selectedId: '',
