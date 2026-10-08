@@ -21,11 +21,12 @@
 //                 argv          carries a shebang; run by hand
 //               The push routes (an event asks), added 2026-09-10:
 //                 env:build     the environment's setup script, fetched and
-//                               piped to bash by the claude.ai environment
+//                               run by bash from the claude.ai environment
 //                               settings when a snapshot is built. Those
 //                               settings live outside the repo, so the file is
 //                               recognized by the curl line in its own header
-//                               that fetches its own path into bash
+//                               that fetches its own path into bash, piped
+//                               (`| bash`) or saved first (`-o f && bash f`)
 //                 git:<name>    lives in .githooks/; the filename is the event
 //                 session:SessionStart  a .claude/hooks/session-*.sh, run by
 //                               the plugin's dispatcher at session start
@@ -127,7 +128,7 @@ function pluginHookEvents(repoRoot) {
  *  environment-report hook names it to compare its text, not to run it. */
 function fetchesItselfIntoBash(rel, src) {
   const own = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp('curl\\b[^\\n]*/' + own + '\\s*\\|\\s*bash\\b').test(src);
+  return new RegExp('curl\\b[^\\n]*/' + own + '(?:\\s*\\|\\s*bash\\b|\\s+&&\\s*bash\\b)').test(src);
 }
 
 /** The top-level `on:` events of a workflow, '+'-joined. Reads the two YAML

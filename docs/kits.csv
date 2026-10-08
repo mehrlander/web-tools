@@ -1,5 +1,5 @@
 path,namespace,gloss,lines,boot,demo,users,tested
-lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the app on 2026-09-19 so the browser and a headless…",322,no,no,1,yes
+lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the app on 2026-09-19 so the browser and a headless…",333,no,no,1,yes
 lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5132,no,yes,18,yes
 lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier for AI assistants and human contributors across the estate.,156,yes,no,2,yes
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",466,no,no,9,yes
@@ -41,10 +41,10 @@ lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & S
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",774,no,yes,4,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1422,no,yes,16,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1488,no,yes,17,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1029,no,no,15,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",278,no,no,2,yes
-lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1254,no,no,4,yes
+lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1254,no,no,5,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",281,no,yes,5,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
@@ -90,13 +90,13 @@ lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,ye
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1535,no,yes,30,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",29,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
-lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",508,no,no,6,yes
+lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",340,no,yes,17,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",391,yes,no,3,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,162,no,no,2,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,7,yes
-lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,137,no,no,3,yes
+lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,153,no,no,3,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",316,no,no,2,yes
 lib/kits/wring.js,wring,"single-document template induction: give it one document with repeated structure (a log, an HTML page) and it returns the recurring templates (fixed…",1320,no,no,4,yes
