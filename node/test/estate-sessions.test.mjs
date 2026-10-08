@@ -1772,3 +1772,44 @@ test('openSessionTopicCard opens in-place prose card and toggles off on re-tap',
     data.openSessionDetail = origDetail;
   }
 });
+
+test('sessionTopicItems consolidates minor asides into Other and abuts zero-gap', () => {
+  const S = window.RepoSessionsCache;
+  const agenda = [
+    { topic: 'Topic 1', turns: [0, 4], minor: false },
+    { topic: 'Topic 2', turns: [5, 7], minor: false },
+    { topic: 'Aside 1', turns: [8, 8], minor: true },
+    { topic: 'Topic 3', turns: [9, 14], minor: false },
+    { topic: 'Topic 4', turns: [15, 16], minor: false },
+  ];
+  const row = { id: 'zero1', turn_count: 17, topicAgenda: S.topicStretches(agenda) };
+  const items = data.sessionTopicItems(row);
+  assert.equal(items.length, 5, 'five items including Other');
+  assert.equal(items[0].topic, 'Topic 1');
+  assert.equal(items[1].topic, 'Topic 2');
+  assert.equal(items[2].topic, 'Other');
+  assert.equal(items[2].minor, true);
+  assert.equal(items[2].turns, 1);
+  assert.deepEqual(plain(items[2].spans), [[8, 8]]);
+  assert.equal(items[3].topic, 'Topic 3');
+  assert.equal(items[4].topic, 'Topic 4');
+
+  // Verify label and tip
+  assert.equal(data.sessionTopicLabel(items[2]), 'Other · 1 turn aside');
+  assert.ok(data.sessionTopicTip(items[2]).includes('Other / asides'));
+
+  // Verify exact zero-gap abutting
+  const p1 = data.sessionTopicChronoPath(row, items[0]);
+  const p2 = data.sessionTopicChronoPath(row, items[1]);
+  const pOther = data.sessionTopicChronoPath(row, items[2]);
+  const p3 = data.sessionTopicChronoPath(row, items[3]);
+  const p4 = data.sessionTopicChronoPath(row, items[4]);
+
+  // Topic 1 ends at 5/17*100 = 29.41176%
+  // Topic 2 starts at 5/17*100 = 29.41176%
+  assert.ok(p1.includes('M 2 2 h 25.41176'), 'Topic 1 starts at 0 and spans width 29.41176');
+  assert.ok(p2.includes('M 31.41176'), 'Topic 2 starts at 29.41176 (x + r = 29.41176 + 2)');
+  assert.ok(pOther.includes('M 49.05882'), 'Other starts at 47.05882 (8/17*100)');
+  assert.ok(p3.includes('M 54.94117'), 'Topic 3 starts at 52.94117 (9/17*100)');
+  assert.ok(p4.includes('M 90.23529'), 'Topic 4 starts at 88.23529 (15/17*100)');
+});
