@@ -25,11 +25,10 @@ web-tools-private `thumbs/`, else the project's icon.
 An [outpost](../outposts.md) is a place outside Git that holds estate material.
 This view serves one of them, the work computer's PowerShell suite, mirrored in
 mehrlander/home's `projects/wps`. It shows each file's destination there and
-what was last observed of it. It also compares a pasted or dropped copy with
-GitHub and holds edits as browser drafts. It places nothing: the outpost's
-transfer is by hand, a paste into the ISE and a save ([`outposts.csv`](../outposts.csv)),
-so the view offers the GitHub text to copy and no script. `powershell-outpost.js`
-derives each file's state from the observations ledger.
+what was last observed of it. It also compares a pasted copy with GitHub and
+holds edits as browser drafts. It places nothing, per the PowerShell outpost
+protocol in [`outposts.csv`](../outposts.csv). `powershell-outpost.js` derives
+each file's state from the observations ledger.
 
 **The ledger is the view's only write.** It is appended, never rewritten, one
 row per confirmed file, committed on the browsed branch only after the reader

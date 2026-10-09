@@ -192,7 +192,7 @@ test('every outpost declares each part, and every locator into this repo resolve
   const ids = outposts.map(r => r.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const r of outposts) {
-    for (const k of ['title', 'gloss', 'declared', 'observed', 'reports', 'cadence', 'check', 'transfer', 'upkeep', 'doc']) {
+    for (const k of ['title', 'gloss', 'declared', 'observed', 'reports', 'cadence', 'check', 'outpost_protocol', 'upkeep', 'doc']) {
       assert.ok(r[k], `${r.id}: ${k} is blank`);
     }
     assert.ok(['owner', 'outpost'].includes(r.reports), `${r.id}: reports is ${r.reports}`);
