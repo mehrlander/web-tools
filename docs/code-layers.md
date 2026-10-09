@@ -136,9 +136,10 @@ where a new page-free function goes, not a migration target for the 27.
 
 A script outside `lib/` is placed by three questions, asked in order.
 
-1. **Capability, or the instrument of one event?** A capability runs again and
-   has a caller: the commit hook, CI, an npm script, or a documented procedure.
-   An instrument served one event and lives with that event's record.
+1. **Maintained tool, or script retained with a probe?** A maintained tool has
+   a caller: the commit hook, CI, an npm script, or a documented procedure.
+   A script retained to explain one probe lives with that probe's findings.
+   Calling either an instrument does not decide whether it is maintained.
 2. **Which family?** A pipeline step lives with its pipeline; a script used by
    one skill lives in that skill's folder; a script a platform runs lives with
    that platform's files (`.githooks/`, `.github/workflows/`, `.claude/`,

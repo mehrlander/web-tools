@@ -1,0 +1,127 @@
+{
+  "image": "excel-column.png",
+  "sha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587",
+  "imageDimensions": [
+    2464,
+    1322
+  ],
+  "plotBounds": [
+    229,
+    156,
+    2411,
+    1198
+  ],
+  "seriesRgb": [
+    37,
+    99,
+    235
+  ],
+  "axis": {
+    "min": -5,
+    "max": 15
+  },
+  "zeroBaselineY": 937.5,
+  "method": "Connected solid-color regions within observed plot bounds, grouped by categorical X position. Gridline centers determined from native pixels. No image resize or alteration.",
+  "limitations": "Measures outer painted edges, including stroke and pixel quantization. This is not a universal pass threshold or independent renderer comparison.",
+  "zeroCategoryHasNoColoredComponent": true,
+  "rawComponents": [
+    {
+      "bounds": [
+        392,
+        519,
+        612,
+        935
+      ],
+      "pixels": 92155
+    },
+    {
+      "bounds": [
+        1484,
+        939,
+        1703,
+        1147
+      ],
+      "pixels": 43595
+    },
+    {
+      "bounds": [
+        1550,
+        1002,
+        1561,
+        1009
+      ],
+      "pixels": 72
+    },
+    {
+      "bounds": [
+        1662,
+        1002,
+        1673,
+        1009
+      ],
+      "pixels": 72
+    },
+    {
+      "bounds": [
+        2028,
+        311,
+        2249,
+        935
+      ],
+      "pixels": 138130
+    }
+  ],
+  "measurements": [
+    {
+      "bounds": [
+        392,
+        519,
+        612,
+        935
+      ],
+      "pixels": 92155,
+      "componentCount": 1,
+      "categoryIndex": 0,
+      "expectedValue": 8,
+      "observedPaintEdgeY": 519,
+      "expectedGeometricEdgeY": 520.7,
+      "edgeDifferencePixels": -1.7,
+      "measuredValue": 8.033,
+      "absoluteError": 0.033
+    },
+    {
+      "bounds": [
+        1484,
+        939,
+        1703,
+        1147
+      ],
+      "pixels": 43739,
+      "componentCount": 3,
+      "categoryIndex": 2,
+      "expectedValue": -4,
+      "observedPaintEdgeY": 1147,
+      "expectedGeometricEdgeY": 1145.9,
+      "edgeDifferencePixels": 1.1,
+      "measuredValue": -4.021,
+      "absoluteError": 0.021
+    },
+    {
+      "bounds": [
+        2028,
+        311,
+        2249,
+        935
+      ],
+      "pixels": 138130,
+      "componentCount": 1,
+      "categoryIndex": 3,
+      "expectedValue": 12,
+      "observedPaintEdgeY": 311,
+      "expectedGeometricEdgeY": 312.3,
+      "edgeDifferencePixels": -1.3,
+      "measuredValue": 12.025,
+      "absoluteError": 0.025
+    }
+  ]
+}

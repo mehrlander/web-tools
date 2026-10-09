@@ -1,0 +1,199 @@
+{
+  "formatVersion": 1,
+  "rendererRevision": "3263a62ec6588e6e60df1afbf77697b3d1e9582c",
+  "description": "Unmodified PR 792 review outputs and the relevant earlier native-reference artifacts. Publication wrappers and this inventory are not part of the recorded run.",
+  "files": [
+    {
+      "path": "source/README.md",
+      "bytes": 9884,
+      "sha256": "55dad76ccfbf6b73ecf3e6a6c661cbe861208eec8110ec9f928b0711ae9bac86",
+      "provenance": "outputs/pr792-review/README.md"
+    },
+    {
+      "path": "source/browser-probe.txt",
+      "bytes": 1858,
+      "sha256": "db3475c4ee790efc4a231fe0f03126ac3ec836c881d9386199134634e1df211b",
+      "provenance": "outputs/pr792-review/browser-probe.txt"
+    },
+    {
+      "path": "source/excel-line-reference.png",
+      "bytes": 52347,
+      "sha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81",
+      "provenance": "outputs/pr792-review/excel-line-reference.png"
+    },
+    {
+      "path": "source/grouping-clustered.svg",
+      "bytes": 3694,
+      "sha256": "4fb285c579cf3f7757f9f9e3e74c7458710ff1e4deced6be9095d519f6d18169",
+      "provenance": "outputs/pr792-review/grouping-clustered.svg"
+    },
+    {
+      "path": "source/grouping-stacked.svg",
+      "bytes": 3694,
+      "sha256": "4fb285c579cf3f7757f9f9e3e74c7458710ff1e4deced6be9095d519f6d18169",
+      "provenance": "outputs/pr792-review/grouping-stacked.svg"
+    },
+    {
+      "path": "source/native-cases-column-chart-1.png",
+      "bytes": 4775,
+      "sha256": "cd2b45fc116141fc9e6e7cbb9584068ad34d6ea4170f92b76cca2a4014d28749",
+      "provenance": "outputs/pr792-review/native-cases-column-chart-1.png"
+    },
+    {
+      "path": "source/native-cases-column-chart-1.svg",
+      "bytes": 2253,
+      "sha256": "67cc6befe110cd13b2616540784ed8cc4d65c88feeb1337e37474d1cd2514eb2",
+      "provenance": "outputs/pr792-review/native-cases-column-chart-1.svg"
+    },
+    {
+      "path": "source/native-cases-column-page.png",
+      "bytes": 26023,
+      "sha256": "6448d880cc48fdef320ef006716c3d2c5704ff2b30493d9758d21733bfeb15c0",
+      "provenance": "outputs/pr792-review/native-cases-column-page.png"
+    },
+    {
+      "path": "source/native-cases-line-chart-1.png",
+      "bytes": 15189,
+      "sha256": "0dfb76934afd3c6194e6eccbe15fe55cbe12ec393ca644f982492a5dcf932ced",
+      "provenance": "outputs/pr792-review/native-cases-line-chart-1.png"
+    },
+    {
+      "path": "source/native-cases-line-chart-1.svg",
+      "bytes": 3319,
+      "sha256": "49d4ca9ad9f5d00cb1aa634b38bf6a496022d8ef9e743103de4bd75fd9ecb481",
+      "provenance": "outputs/pr792-review/native-cases-line-chart-1.svg"
+    },
+    {
+      "path": "source/native-cases-line-page.png",
+      "bytes": 38452,
+      "sha256": "18580cbb412dfee774ef30d5036ada3585001a8ec92681c55889635bab151a9c",
+      "provenance": "outputs/pr792-review/native-cases-line-page.png"
+    },
+    {
+      "path": "source/native-cases-scatter-page.png",
+      "bytes": 17788,
+      "sha256": "6addfae47fbddebe4bf6799d50f1aaf8d6e3d89aace6091c956d8cabcc0413cc",
+      "provenance": "outputs/pr792-review/native-cases-scatter-page.png"
+    },
+    {
+      "path": "source/pr-demo-columnandbar-chart-1.png",
+      "bytes": 9682,
+      "sha256": "3971e133abdb25c45559b55c033033c46746073101d5555bed59fa681f0a850a",
+      "provenance": "outputs/pr792-review/pr-demo-columnandbar-chart-1.png"
+    },
+    {
+      "path": "source/pr-demo-columnandbar-chart-1.svg",
+      "bytes": 3807,
+      "sha256": "761b7a0ce5138f9649fa0589f684c65bf6d9494d3e9ac412bfbbe66d86497285",
+      "provenance": "outputs/pr792-review/pr-demo-columnandbar-chart-1.svg"
+    },
+    {
+      "path": "source/pr-demo-columnandbar-chart-2.png",
+      "bytes": 6960,
+      "sha256": "1d73f90ab9394158c7eac944b74a5393e93f6598a9501c22b65dc5f9573db92c",
+      "provenance": "outputs/pr792-review/pr-demo-columnandbar-chart-2.png"
+    },
+    {
+      "path": "source/pr-demo-columnandbar-chart-2.svg",
+      "bytes": 2507,
+      "sha256": "5d472c095404b802dedc643761bc9a5cfa75f6607181bcc090cc36351d9c8b27",
+      "provenance": "outputs/pr792-review/pr-demo-columnandbar-chart-2.svg"
+    },
+    {
+      "path": "source/pr-demo-columnandbar-page.png",
+      "bytes": 60657,
+      "sha256": "b99a09f05a1d1dc72f9d2b9731a2fba0355fb409638c72fff44447ef69749c54",
+      "provenance": "outputs/pr792-review/pr-demo-columnandbar-page.png"
+    },
+    {
+      "path": "source/pr-demo-trendsandshares-chart-1.png",
+      "bytes": 11481,
+      "sha256": "9b499f8f86be5f3699926e5f48b0f9aba538d374114dff23bf63faf837bb1e47",
+      "provenance": "outputs/pr792-review/pr-demo-trendsandshares-chart-1.png"
+    },
+    {
+      "path": "source/pr-demo-trendsandshares-chart-1.svg",
+      "bytes": 5749,
+      "sha256": "466b3dc027ea3048552f7ec9dddb3a8f8c21bb1bbcb5524c957205e79e88fccb",
+      "provenance": "outputs/pr792-review/pr-demo-trendsandshares-chart-1.svg"
+    },
+    {
+      "path": "source/pr-demo-trendsandshares-chart-2.png",
+      "bytes": 13086,
+      "sha256": "9e009c5393d8c77d65ed85807fc4cc89c99d5d88439166b7b24664209226c4c4",
+      "provenance": "outputs/pr792-review/pr-demo-trendsandshares-chart-2.png"
+    },
+    {
+      "path": "source/pr-demo-trendsandshares-chart-2.svg",
+      "bytes": 1989,
+      "sha256": "595da85592ab3ad245a8d0087cb099c451655ce0554ab5040e8a29ce4cc8c545",
+      "provenance": "outputs/pr792-review/pr-demo-trendsandshares-chart-2.svg"
+    },
+    {
+      "path": "source/pr-demo-trendsandshares-page.png",
+      "bytes": 71711,
+      "sha256": "8223d5e41ac2b5c13851282f54b3970ea00d5fdd8396defedef1c23bf960bbdb",
+      "provenance": "outputs/pr792-review/pr-demo-trendsandshares-page.png"
+    },
+    {
+      "path": "source/pr792-demonstration-charts.xlsx",
+      "bytes": 18041,
+      "sha256": "a7a7cb831aeebd42ead3f129e1b2c5b99990a2a4ef9d72d19edb14adddd3b4dd",
+      "provenance": "mehrlander/web-tools@3263a62ec6588e6e60df1afbf77697b3d1e9582c:docs/examples/demonstration-charts.xlsx"
+    },
+    {
+      "path": "source/prior-gemini/Chart1_Direct.png",
+      "bytes": 9018,
+      "sha256": "a5949532b31e0e31a894c3d98ca3531e96986a574bb8051444be672373f5127c",
+      "provenance": "PR 792 author artifact directory: Chart1_Direct.png"
+    },
+    {
+      "path": "source/prior-gemini/Chart2_Direct.png",
+      "bytes": 7422,
+      "sha256": "81a0763ad9e6990d568f45197f9b47b631e88b567175c8274a7288bb1ad9d511",
+      "provenance": "PR 792 author artifact directory: Chart2_Direct.png"
+    },
+    {
+      "path": "source/prior-gemini/Chart3_Direct.png",
+      "bytes": 16090,
+      "sha256": "c3e072bd6134814f9f3336375eff33040d258e87ee134b1f82e0236322f87491",
+      "provenance": "PR 792 author artifact directory: Chart3_Direct.png"
+    },
+    {
+      "path": "source/prior-gemini/Chart4_Direct.png",
+      "bytes": 15077,
+      "sha256": "15bc6afe92c55781d5073afeeb898d9a700aec7d1bed22af512dd0a8e67bf3ce",
+      "provenance": "PR 792 author artifact directory: Chart4_Direct.png"
+    },
+    {
+      "path": "source/prior-gemini/Demonstration-Charts.xlsx",
+      "bytes": 19899,
+      "sha256": "edbe112466c209c50a94cd30f280a2a16d8586c9a2537a0a172267667c97dc3b",
+      "provenance": "PR 792 author artifact directory: Demonstration-Charts.xlsx"
+    },
+    {
+      "path": "source/prior-gemini/walkthrough.md",
+      "bytes": 10742,
+      "sha256": "df7874cd46a91580c5260c87b75a0258f324e02176305672eb60f1f4be0bf78b",
+      "provenance": "PR 792 author artifact directory: walkthrough.md"
+    },
+    {
+      "path": "source/probe-results.json",
+      "bytes": 14996,
+      "sha256": "9b87c61b377851044ac00eca1b7ef66cbe50b984da19910a7b417a1e67b60aa6",
+      "provenance": "outputs/pr792-review/probe-results.json"
+    },
+    {
+      "path": "source/probe.mjs",
+      "bytes": 9531,
+      "sha256": "f4719756f789c23e93c3a7129d5e42732bfdb7238803c5d7dcde15bb5f003e49",
+      "provenance": "outputs/pr792-review/probe.mjs"
+    },
+    {
+      "path": "source/xlsx-tests.txt",
+      "bytes": 7146,
+      "sha256": "e0ddc1b4b3343cd14e05a27e6d3b8fa97d839cda8ea9a33a2d47819e82b23b57",
+      "provenance": "outputs/pr792-review/xlsx-tests.txt"
+    }
+  ]
+}

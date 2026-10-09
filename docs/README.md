@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 37 by a page or component. The remaining 53 are
+15 by a skill, 37 by a page or component. The remaining 48 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -76,7 +76,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 - [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
 - [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
-- [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
@@ -93,13 +92,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
-- [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
 - [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
-
-## docs/doc-craft-specimens/
-
-- [`2026-09-08-naming-split.md`](doc-craft-specimens/2026-09-08-naming-split.md) *(record, orphan)* — a specimen from the doc-craft study: APP.md's naming-split history recast as a dated record
-- [`APP_living_spec_replacement.md`](doc-craft-specimens/APP_living_spec_replacement.md) *(record, orphan)* — a specimen from the doc-craft study: APP.md rewritten as a living spec, not adopted
+- [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
 
 ## docs/envelopes/
 
@@ -151,11 +145,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
-
-## docs/research/excel-chart-cleanup-2026-09-25/
-
-- [`README.md`](research/excel-chart-cleanup-2026-09-25/README.md) *(record, orphan)* — Excel chart semantics and PivotTable cleanup evidence from September 25, 2026
-- [`verification.json`](research/excel-chart-cleanup-2026-09-25/verification.json) *(record, orphan)* — browser verification results and workbook/source hashes for the Excel cleanup
 
 ## docs/views/
 

@@ -1,0 +1,134 @@
+{
+  "bundle": "C:\\Users\\mehrl\\Documents\\Codex\\2026-09-24\\tak\\outputs\\excel-validation",
+  "verifiedFiles": 0,
+  "errors": [],
+  "packageFacts": {
+    "demonstrationWorkbook": {
+      "dataRows": 24,
+      "budgetSum": 21450.0,
+      "actualSum": 21595.0,
+      "variance": 145.0,
+      "totalsCells": [
+        {
+          "address": "J30",
+          "present": true,
+          "type": null,
+          "value": "21450",
+          "formula": "SUBTOTAL(109,Financials[Budget])"
+        },
+        {
+          "address": "K30",
+          "present": true,
+          "type": null,
+          "value": "21595",
+          "formula": "SUBTOTAL(109,Financials[Actual])"
+        },
+        {
+          "address": "L30",
+          "present": true,
+          "type": null,
+          "value": "145",
+          "formula": "SUBTOTAL(109,Financials[Variance])"
+        }
+      ],
+      "pivotCaches": [
+        {
+          "part": "xl/pivotCache/pivotCacheDefinition1.xml",
+          "attributes": {
+            "{http://schemas.openxmlformats.org/markup-compatibility/2006}Ignorable": "xr",
+            "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId1",
+            "refreshedBy": "Marcus Ehrlander",
+            "refreshedDate": "46284.059546759258",
+            "createdVersion": "8",
+            "refreshedVersion": "8",
+            "minRefreshableVersion": "3",
+            "recordCount": "25",
+            "{http://schemas.microsoft.com/office/spreadsheetml/2014/revision}uid": "{C955F642-3C04-48D0-869F-B924660F37B9}"
+          },
+          "source": {
+            "ref": "B5:N30",
+            "sheet": "RawData"
+          }
+        }
+      ],
+      "reconciliationCells": [
+        {
+          "address": "E6",
+          "present": true,
+          "type": null,
+          "value": "0",
+          "formula": "ABS(SUMIFS(RawData!$K$6:$K$29, RawData!$G$6:$G$29, \"FY2028\") - SUM(FormattingAndLogic!$D$6:$D$10))"
+        },
+        {
+          "address": "F6",
+          "present": true,
+          "type": "str",
+          "value": "PASS: EXACT MATCH",
+          "formula": "IF(E6=0,\"PASS: EXACT MATCH\",\"FAIL\")"
+        },
+        {
+          "address": "E7",
+          "present": true,
+          "type": null,
+          "value": "0",
+          "formula": "ABS(SUMIFS(RawData!$J$6:$J$29, RawData!$G$6:$G$29, \"FY2028\") - SUM(FormattingAndLogic!$C$6:$C$10))"
+        },
+        {
+          "address": "F7",
+          "present": true,
+          "type": "str",
+          "value": "PASS: EXACT MATCH",
+          "formula": "IF(E7=0,\"PASS: EXACT MATCH\",\"FAIL\")"
+        },
+        {
+          "address": "E8",
+          "present": true,
+          "type": null,
+          "value": "0",
+          "formula": "ABS((SUM(FormattingAndLogic!$D$6:$D$10) - SUM(FormattingAndLogic!$C$6:$C$10)) - SUM(FormattingAndLogic!$E$6:$E$10))"
+        },
+        {
+          "address": "F8",
+          "present": true,
+          "type": "str",
+          "value": "PASS: EXACT MATCH",
+          "formula": "IF(E8=0,\"PASS: EXACT MATCH\",\"FAIL\")"
+        },
+        {
+          "address": "E9",
+          "present": true,
+          "type": null,
+          "value": "0",
+          "formula": "ABS((SUM(RawData!$K$6:$K$29)-SUM(RawData!$J$6:$J$29)) - SUM(RawData!$L$6:$L$29))"
+        },
+        {
+          "address": "F9",
+          "present": true,
+          "type": "str",
+          "value": "PASS: EXACT MATCH",
+          "formula": "IF(E9=0,\"PASS: EXACT MATCH\",\"FAIL\")"
+        }
+      ],
+      "calculationProperties": {
+        "calcId": "191029"
+      }
+    },
+    "chartWorkbook": {
+      "nativeChartParts": [
+        "xl/charts/chart1.xml",
+        "xl/charts/chart2.xml",
+        "xl/charts/chart3.xml"
+      ],
+      "lineSourceCell": {
+        "address": "B5",
+        "present": true,
+        "type": null,
+        "value": null,
+        "formula": null
+      },
+      "lineFebruaryNumericCache": "0",
+      "blankPolicyElementPresent": false,
+      "worksheetFormulaCount": 0
+    }
+  }
+}
