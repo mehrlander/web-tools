@@ -24,6 +24,7 @@
      theme colour. A tenant page: normal flow, sticky header, no fixed root. -->
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="../lib/vanilla-bundle.js"></script>
 <script src="../lib/kits/title-tip.js"></script>
 <script>
 function lifetimes() {
@@ -45,7 +46,7 @@ function lifetimes() {
   const pos = h => h === 'lasting' ? 100
     : Math.max(0, Math.log(h / 0.25) / Math.log(720 / 0.25) * 80);
 
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.esc(s);  // lib/vanilla-bundle.js, the one escape helper
 
   return {
     data: null,
