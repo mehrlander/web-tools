@@ -22,7 +22,7 @@ narrow: only wording moves, and a rewrite that says something different is wrong
 rather than terse. That narrowness is what makes the result checkable.
 
 The name and the compression discipline both come from the caveman skill at
-github.com/JuliusBrussee/caveman (MIT), whose payload is two separable things:
+[Julius Brussee's caveman](https://github.com/JuliusBrussee/caveman) (MIT), whose payload is two separable things:
 a discipline about which words carry nothing, and a broken-grammar register.
 
 **The discipline transfers. The register does not.** What comes out of this
@@ -122,6 +122,8 @@ Do not add a third. Where `clip` is not short enough, the content is too big for
 the field, which is a different problem.
 
 ## Worked examples
+
+[Visual walkthrough: input, decisions, output](https://mehrlander.github.io/web-tools/pages/guides/caveman.html). The sample artifacts are downloadable from each stage.
 
 **One span, `trim`.**
 

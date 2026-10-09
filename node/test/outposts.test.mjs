@@ -210,7 +210,7 @@ test('every outpost declares each part, and every locator into this repo resolve
 
 const UPSTREAM = path.join(repoRoot, 'python/upstream-skills.py');
 const upstreams = read('upstream-skills.csv');
-const STATUSES = ['watching', 'studied', 'held', 'vendored', 'adapted', 'declined'];
+const STATUSES = ['watching', 'studied', 'held', 'vendored', 'adapted', 'dependency', 'declined'];
 
 test('every upstream row has a known status, and every copy it names is where it says', () => {
   const ids = upstreams.map(r => r.id);

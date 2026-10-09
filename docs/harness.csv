@@ -44,7 +44,13 @@ node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs
 node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,74,argv,yes,no,no
 node/git-change.mjs,,node,292,argv,yes,no,yes
 node/gold-set.mjs,,node,200,npm:gold-set,yes,yes,no
+node/render/build-chrono-comparison.mjs,,node/render,192,none found,yes,no,no
+node/render/build-fixed-widget.mjs,,node/render,86,none found,yes,no,no
+node/render/build-mockup-widget.mjs,,node/render,186,none found,yes,no,no
 node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,797,imported,no,yes,yes
+node/render/crop-duo.mjs,,node/render,36,none found,no,no,no
+node/render/crop-fixed-shots.mjs,,node/render,50,none found,no,no,no
+node/render/crop-possibilities.mjs,,node/render,38,none found,no,no,no
 node/render/measure.mjs,,node/render,174,imported,no,no,yes
 node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,158,imported,no,yes,no
 node/render/page-measures.mjs,,node/render,113,npm:page-measures,yes,no,yes
@@ -233,7 +239,8 @@ node/render/scenarios/session-contents.mjs,"enters the session deck from the out
 node/render/scenarios/session-exchange-card.mjs,,node/render/scenarios,58,driver,no,no,no
 node/render/scenarios/session-set.mjs,"seed a token and wait for the set's own line, so the token-gated Sessions pane renders a named set for a shot",node/render/scenarios,27,driver,no,no,no
 node/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",node/render/scenarios,166,driver,no,no,no
-node/render/scenarios/session-topics.mjs,,node/render/scenarios,79,driver,no,no,no
+node/render/scenarios/session-topics.mjs,,node/render/scenarios,81,driver,no,no,no
+node/render/scenarios/shoot-cards.mjs,,node/render/scenarios,50,driver,no,no,no
 node/render/scenarios/shortcut-log-app-view.mjs,,node/render/scenarios,73,driver,no,no,no
 node/render/scenarios/showing-paste-rows.mjs,,node/render/scenarios,27,driver,no,no,no
 node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,no,no,yes

@@ -6,7 +6,23 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | The conventions loader, the tracker operator, the HTML house style, and the rest of the skill library. |
+| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | Skills created or adapted here. |
+| `third-party-documents` | docx, pdf, pptx, xlsx | Third-party: Anthropic's official files, fetched unchanged from the revision in the marketplace entry. |
+| `third-party-authoring` | skill-creator, doc-coauthoring | Third-party: Anthropic's official files, with only these two skills registered. |
+
+`portable` declares the two Anthropic packages as dependencies. They are
+selections from [Anthropic's official repository](https://github.com/anthropics/skills),
+maintained by Anthropic, with their own `/third-party-documents:<name>` and
+`/third-party-authoring:<name>` namespaces. Web Tools maintains the selection and
+pin, not their instructions. Companion scripts and licenses arrive with the
+source. [Claude Code dependency handling](https://code.claude.com/docs/en/plugins/dependencies)
+installs them with portable; existing installations need a plugin update and
+reload to resolve newly declared dependencies. The session refresher only
+updates the portable files and is not evidence that dependencies installed.
+
+Claude account copies and other hosts' built-in skills remain separate. Outside
+Claude Code, use the host's supplied skill or install/fetch the complete official
+folder before a dependent workflow. A source link does not register a skill.
 
 Every skill's description sits in every session's context; the measured cost is in [environment/extending.md](environment/extending.md#context-cost).
 

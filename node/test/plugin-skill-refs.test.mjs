@@ -1,5 +1,5 @@
 // A plugin skill that names another skill is pointing a session at it, so the
-// named skill has to travel in the same plugin. Added 2026-09-27, when the
+// named skill has to travel in the plugin or a declared dependency. Added 2026-09-27, when the
 // portable plugin took in the whole library and google-style-clarity was
 // removed: before that, a skill could name a library skill that a consumer
 // session only reached by a deliberate load, and a removed skill could stay
@@ -29,6 +29,10 @@ const PLATFORM = new Map([
   ['dataviz', 'bundled with Claude; html-style cites its stat-tile heuristic to overrule it'],
 ]);
 
+const dependencies = marketplace.plugins.filter(p =>
+  (portable.dependencies || []).includes(p.name));
+const supplied = new Set(dependencies.flatMap(p => p.skills.map(s => path.posix.basename(s))));
+
 const PATTERNS = [
   /\/portable:([a-z][\w-]*)/g,
   /`\/?([a-z][\w-]*)` skill\b/g,
@@ -51,7 +55,7 @@ test('every skill a plugin skill names is carried by the plugin', () => {
       const text = readFileSync(file, 'utf8');
       for (const re of PATTERNS) {
         for (const [, name] of text.matchAll(re)) {
-          if (!carried.has(name) && !PLATFORM.has(name)) {
+          if (!carried.has(name) && !supplied.has(name) && !PLATFORM.has(name)) {
             missing.push(`${path.relative(repoRoot, file)} names "${name}"`);
           }
         }
@@ -66,5 +70,31 @@ test('every skill a plugin skill names is carried by the plugin', () => {
 test('the platform allowlist names nothing the plugin now carries', () => {
   for (const name of PLATFORM.keys()) {
     assert.ok(!carried.has(name), `${name} is carried now; drop it from PLATFORM`);
+  }
+});
+
+test('external commands name a declared dependency and an exposed skill', () => {
+  const exposed = new Set(dependencies.flatMap(p => p.skills.map(s => `${p.name}:${path.posix.basename(s)}`)));
+  for (const skill of carried) {
+    for (const file of markdownUnder(path.join(source, skill))) {
+      const text = readFileSync(file, 'utf8');
+      for (const [, command] of text.matchAll(/\/(third-party-(?:documents|authoring):[a-z][\w-]*)/g)) {
+        assert.ok(exposed.has(command), `${file}: ${command} is not supplied by a declared dependency`);
+      }
+    }
+  }
+});
+
+test('third-party dependencies stay separate and use a pinned official source', () => {
+  const expected = ['doc-coauthoring', 'docx', 'pdf', 'pptx', 'skill-creator', 'xlsx'];
+  assert.deepEqual([...supplied].sort(), expected);
+  assert.equal(dependencies.length, 2);
+  for (const p of dependencies) {
+    assert.equal(p.source.source, 'git-subdir');
+    assert.equal(p.source.url, 'https://github.com/anthropics/skills.git');
+    assert.equal(p.source.path, 'skills');
+    assert.match(p.source.sha, /^[a-f0-9]{40}$/);
+    assert.equal(p.author.name, 'Anthropic');
+    for (const s of p.skills) assert.ok(!carried.has(path.posix.basename(s)), `${s} is still presented as personal`);
   }
 });

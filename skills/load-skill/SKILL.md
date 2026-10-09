@@ -76,6 +76,17 @@ Only fire this skill on explicit signals from the user. Examples:
 
 Do not fire on general topic overlap.
 
+## Third-party skills
+
+This library contains skills created or adapted here. Anthropic's document and
+authoring skills come from separately attributed dependencies in the
+[marketplace](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md).
+Use the installed or host-provided skill first. Without either, fetch the complete
+official skill folder, including its scripts and references; a link alone does
+not supply those resources. Retired personal skills are preserved in the
+[archive](https://github.com/mehrlander/web-tools/tree/main/archive/skills),
+which is outside the active library.
+
 ## Custom sources
 
 If the user names a source other than the default, use that as the base URL. Example: "load skill X from `https://raw.githubusercontent.com/other/repo/main/skills`".

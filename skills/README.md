@@ -1,5 +1,10 @@
 # skills
 
+Skills created or adapted here. Third-party skills used as supplied are separate
+dependencies in the [marketplace](../docs/MARKETPLACE.md), with their author and
+official source. Caveman belongs here and credits its source in its own file.
+Retired work stays in the [skill archive](../archive/skills/README.md).
+
 The source of the `portable` plugin: one folder per skill, plus the plugin's
 hooks in `hooks/`. The plugin registers every skill that
 [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) lists,
@@ -29,5 +34,5 @@ upload.
 fail until they agree. Every skill's description costs context in every session,
 so add one only when it earns that. **Removing a skill** takes the same four
 entries out; `node/test/plugin-skill-refs.test.mjs` then fails on any skill that
-still names it. Search `docs/` and the consumer repos for other mentions, and
+still names it without a declared dependency. Search `docs/` and the consumer repos for other mentions, and
 delete any claude.ai upload of it.
