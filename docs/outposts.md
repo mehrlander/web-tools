@@ -20,6 +20,12 @@ Every outpost is held the same way:
 - **Upkeep:** the cheapest step that brings the outpost back in line. It is
   usually a step only the owner can take, which is why the check names it.
 
+**Each outpost also states its transfer:** how material is meant to reach it,
+and what is ruled out. The upkeep step works within it. The work PowerShell
+outpost's transfer is by hand, a paste into the ISE and a save; no script places
+files there, and a saved copy need not match GitHub byte for byte, so its check
+reports how two texts differ rather than requiring that they match.
+
 ## What keeps an outpost current
 
 **Who supplies the observation decides whether the record keeps up.** Where the

@@ -293,6 +293,7 @@ outposts,reports,recorded,,value,column,yes,owner;outpost,label,"who supplies th
 outposts,cadence,recorded,,value,column,yes,,value,how often an observation arrives
 outposts,check,recorded,,value,column,yes,,locator,the code that compares the observation with the declaration
 outposts,record,recorded,,none,column,yes,,locator,where dated observations are committed; blank where nothing keeps them past the session
+outposts,transfer,recorded,,value,column,yes,,value,"how material is meant to reach the outpost, and what is ruled out; the upkeep step works within it"
 outposts,upkeep,recorded,,value,column,yes,,value,"the cheapest step that brings the outpost back in line, which is usually the owner's"
 outposts,doc,recorded,,value,column,yes,,locator,the document that owns this outpost's particulars
 account-skills,want,recorded,,value,column,yes,on;off,label,whether the skill should be on the account
