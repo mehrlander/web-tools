@@ -65,20 +65,6 @@
       "name": "GitHub",
       "icon": "ph-git-branch",
       "lifetime": "lasting",
-      "holds": [
-        {
-          "name": "main",
-          "gloss": "the default branch; a new session clones from it"
-        },
-        {
-          "name": "branches",
-          "gloss": "work pushed from any session; the only route between sessions"
-        },
-        {
-          "name": "pull requests",
-          "gloss": "branches proposed for merge, with their reviews and checks"
-        }
-      ],
       "span": [
         {
           "from": 0.25,
@@ -93,28 +79,6 @@
       "name": "claude.ai settings",
       "icon": "ph-sliders-horizontal",
       "lifetime": "until you edit them",
-      "holds": [
-        {
-          "name": "setup-script text",
-          "gloss": "the commands in the environment settings box, run when a snapshot is built"
-        },
-        {
-          "name": "network policy",
-          "gloss": "which hosts the environment may reach; changing it rebuilds the snapshot"
-        },
-        {
-          "name": "environment variables",
-          "gloss": "values set in the environment settings, present in every session"
-        },
-        {
-          "name": "preferences",
-          "gloss": "your claude.ai personal preferences, added to every session"
-        },
-        {
-          "name": "uploaded skills",
-          "gloss": "skills uploaded to the claude.ai account, copied into each machine at boot"
-        }
-      ],
       "span": [
         {
           "from": 0.25,
@@ -129,28 +93,6 @@
       "name": "Snapshot",
       "icon": "ph-camera",
       "lifetime": "about 7 days, or until the settings change",
-      "holds": [
-        {
-          "name": "user settings.json",
-          "gloss": "~/.claude/settings.json: user-scope settings, such as which plugins are on"
-        },
-        {
-          "name": "plugin, pinned",
-          "gloss": "the portable plugin as installed at the build, pinned to that commit"
-        },
-        {
-          "name": "marketplace clone",
-          "gloss": "~/.claude/plugins/marketplaces/web-tools: a checkout of web-tools main"
-        },
-        {
-          "name": "setup record",
-          "gloss": "~/.claude/environment-setup.ran: the setup script's text, commit and run time"
-        },
-        {
-          "name": "installed tools",
-          "gloss": "whatever the setup script installed, such as packages and command-line tools"
-        }
-      ],
       "span": [
         {
           "from": 0.25,
@@ -172,16 +114,6 @@
       "name": "Conversation",
       "icon": "ph-chats-circle",
       "lifetime": "the session's whole life, held by claude.ai",
-      "holds": [
-        {
-          "name": "messages",
-          "gloss": "what you and the session wrote, held by claude.ai"
-        },
-        {
-          "name": "tool results",
-          "gloss": "commands run and files read, as the conversation recorded them"
-        }
-      ],
       "span": [
         {
           "from": 0.25,
@@ -208,32 +140,6 @@
       "name": "Container disk",
       "icon": "ph-hard-drives",
       "lifetime": "until reclaimed after idling",
-      "holds": [
-        {
-          "name": "checkouts",
-          "gloss": "the repositories cloned for this session, under /home/user"
-        },
-        {
-          "name": "unpushed commits",
-          "gloss": "work committed in a checkout but not pushed"
-        },
-        {
-          "name": "/tmp and scratchpad",
-          "gloss": "temporary files, the session's scratchpad among them"
-        },
-        {
-          "name": "agent transcripts",
-          "gloss": "~/.claude/projects: the session's transcript and its subagents'"
-        },
-        {
-          "name": "plugin, refreshed",
-          "gloss": "the plugin cache after the refresher moves it to main's tip"
-        },
-        {
-          "name": "installed dependencies",
-          "gloss": "node_modules and the like, installed by session-start scripts"
-        }
-      ],
       "span": [
         {
           "from": 0.25,
@@ -266,20 +172,6 @@
       "name": "Running machine",
       "icon": "ph-cpu",
       "lifetime": "until it restarts",
-      "holds": [
-        {
-          "name": "processes",
-          "gloss": "everything running: the session's shell, servers, background jobs"
-        },
-        {
-          "name": "harness hook scripts",
-          "gloss": "stop-hook-git-check.sh and the other scripts the harness writes at boot"
-        },
-        {
-          "name": "account skills, synced",
-          "gloss": "~/.claude/skills: your uploaded skills, copied in at each boot"
-        }
-      ],
       "span": [
         {
           "from": 0.25,
@@ -295,6 +187,719 @@
           "source": "outlive"
         }
       ]
+    }
+  ],
+  "items": [
+    {
+      "id": "branches",
+      "name": "branches",
+      "layer": "github",
+      "kind": "code",
+      "origin": "source",
+      "by": "pushes from sessions",
+      "gloss": "main and every other branch; the only route between sessions",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "cloned into the checkouts"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "pushed work is safe here"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "new",
+          "label": "take pushes, serve fetches"
+        }
+      }
+    },
+    {
+      "id": "prs",
+      "name": "pull requests",
+      "layer": "github",
+      "kind": "record",
+      "origin": "source",
+      "by": "you and sessions",
+      "gloss": "branches proposed for merge, with their reviews and checks",
+      "effects": {
+        "start": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "new",
+          "label": "follow pushes to their branches"
+        }
+      }
+    },
+    {
+      "id": "setup-script",
+      "name": "setup-script text",
+      "layer": "settings",
+      "kind": "config",
+      "origin": "source",
+      "by": "you",
+      "gloss": "the commands in the environment settings box, run when a snapshot is built",
+      "effects": {
+        "start": {
+          "state": "untouched",
+          "label": "not read; it ran at the build"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "rebuild": {
+          "state": "new",
+          "label": "an edit to it triggers the rebuild"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "network",
+      "name": "network policy",
+      "layer": "settings",
+      "kind": "config",
+      "origin": "source",
+      "by": "you",
+      "gloss": "which hosts the environment may reach",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "applied to the session"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "rebuild": {
+          "state": "new",
+          "label": "an edit to it triggers the rebuild"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "env-vars",
+      "name": "environment variables",
+      "layer": "settings",
+      "kind": "config",
+      "origin": "source",
+      "by": "you",
+      "gloss": "values set in the environment settings, present in every session",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "set in the session"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "not a listed rebuild trigger"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "preferences",
+      "name": "preferences",
+      "layer": "settings",
+      "kind": "config",
+      "origin": "source",
+      "by": "you",
+      "gloss": "your claude.ai personal preferences, added to every session",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "added to the session's context"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "not in the snapshot"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "uploaded-skills",
+      "name": "uploaded skills",
+      "layer": "settings",
+      "kind": "config",
+      "origin": "source",
+      "by": "you",
+      "gloss": "skills uploaded to the claude.ai account",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "synced into the machine at boot"
+        },
+        "restart": {
+          "state": "used",
+          "label": "synced again at boot"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "not in the snapshot"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "base-image",
+      "name": "base image and tools",
+      "layer": "snapshot",
+      "kind": "software",
+      "origin": "copy",
+      "by": "the setup script",
+      "when": "at the build",
+      "gloss": "the tools every session starts with; this setup script adds only the plugin",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "copied into the container"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "used",
+          "label": "copied into the resumed container"
+        },
+        "rebuild": {
+          "state": "new",
+          "label": "rebuilt"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "from": "the platform's base image"
+    },
+    {
+      "id": "plugin-pinned",
+      "name": "plugin install",
+      "layer": "snapshot",
+      "kind": "software",
+      "origin": "copy",
+      "by": "the setup script",
+      "when": "at the build",
+      "path": "~/.claude/plugins",
+      "gloss": "the marketplace clone and plugin cache, pinned to that day's commit",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "copied in at the pin"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "used",
+          "label": "copied in at the pin on resume"
+        },
+        "rebuild": {
+          "state": "new",
+          "label": "pinned afresh to main"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "never written by a session"
+        }
+      },
+      "from": "web-tools main"
+    },
+    {
+      "id": "user-settings",
+      "name": "user settings.json",
+      "layer": "snapshot",
+      "kind": "config",
+      "origin": "copy",
+      "by": "the setup script",
+      "when": "at the build",
+      "path": "~/.claude/settings.json",
+      "gloss": "user-scope settings, such as which plugins are on",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "copied in"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "used",
+          "label": "copied in on resume"
+        },
+        "rebuild": {
+          "state": "new",
+          "label": "written again"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "never written by a session"
+        }
+      },
+      "from": "the setup script's plugin commands"
+    },
+    {
+      "id": "setup-record",
+      "name": "setup record",
+      "layer": "snapshot",
+      "kind": "record",
+      "origin": "copy",
+      "by": "the setup script",
+      "when": "at the build",
+      "path": "~/.claude/environment-setup.ran",
+      "gloss": "the setup script's text, commit and run time",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "copied in; the environment report reads it"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "used",
+          "label": "copied in on resume"
+        },
+        "rebuild": {
+          "state": "new",
+          "label": "written again, naming the new commit"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "from": "the setup script"
+    },
+    {
+      "id": "messages",
+      "name": "messages",
+      "layer": "conversation",
+      "kind": "record",
+      "origin": "output",
+      "out": null,
+      "gloss": "what you and the session wrote",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "begin, or come back on a resume"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "partial",
+          "label": "back on a resume, maybe partly"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "held": "claude.ai"
+    },
+    {
+      "id": "tool-results",
+      "name": "tool results",
+      "layer": "conversation",
+      "kind": "record",
+      "origin": "output",
+      "out": null,
+      "gloss": "commands run and files read, as the conversation recorded them",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "begin, or come back on a resume"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "partial",
+          "label": "back on a resume, maybe partly"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "held": "claude.ai"
+    },
+    {
+      "id": "checkouts",
+      "name": "checkouts",
+      "layer": "disk",
+      "kind": "code",
+      "origin": "copy",
+      "by": "the platform",
+      "when": "at session start",
+      "path": "/home/user/<repo>",
+      "gloss": "the repositories cloned for this session",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "cloned fresh from GitHub"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "new",
+          "label": "cloned again on resume"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "running sessions keep theirs"
+        },
+        "sync": {
+          "state": "used",
+          "label": "fetches update them"
+        }
+      },
+      "from": "GitHub branches"
+    },
+    {
+      "id": "unpushed",
+      "name": "unpushed work",
+      "layer": "disk",
+      "kind": "code",
+      "origin": "output",
+      "out": "a push, to GitHub",
+      "gloss": "commits and edits made in a checkout and not yet pushed",
+      "effects": {
+        "start": {
+          "state": "untouched",
+          "label": "none yet"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "lost unless pushed"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "used",
+          "label": "a push copies it to GitHub"
+        }
+      }
+    },
+    {
+      "id": "transcripts",
+      "name": "agent transcripts",
+      "layer": "disk",
+      "kind": "record",
+      "origin": "output",
+      "out": "the session recorder, to web-tools-private",
+      "path": "~/.claude/projects",
+      "gloss": "the session's transcript and its subagents'",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "begin"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "lost unless the recorder copied them"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "copied out by the recorder, not a push"
+        }
+      }
+    },
+    {
+      "id": "scratch",
+      "name": "/tmp and scratchpad",
+      "layer": "disk",
+      "kind": "scratch",
+      "origin": "output",
+      "out": null,
+      "gloss": "temporary files, the session's scratchpad among them",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "begin empty"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "lost; nothing copies it out"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "plugin-refreshed",
+      "name": "plugin install, refreshed",
+      "layer": "disk",
+      "kind": "software",
+      "origin": "copy",
+      "by": "the refresher",
+      "when": "at session start",
+      "path": "~/.claude/plugins",
+      "gloss": "the snapshot's plugin files, moved to main's tip",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "moved to main by the refresher"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "new",
+          "label": "back to the pin on resume, then refreshed"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "running sessions keep theirs"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "from": "the snapshot's pin and web-tools main"
+    },
+    {
+      "id": "deps",
+      "name": "installed dependencies",
+      "layer": "disk",
+      "kind": "software",
+      "origin": "copy",
+      "by": "session-start scripts",
+      "when": "at session start",
+      "path": "node_modules",
+      "gloss": "packages a checkout needs, installed for this session",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "installed by session-start scripts"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "new",
+          "label": "installed again on resume"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "from": "package manifests"
+    },
+    {
+      "id": "processes",
+      "name": "processes",
+      "layer": "boot",
+      "kind": "activity",
+      "origin": "output",
+      "out": null,
+      "gloss": "everything running: the session's shell, servers, background jobs",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "start"
+        },
+        "restart": {
+          "state": "lost",
+          "label": "end"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "end"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "hook-scripts",
+      "name": "harness hook scripts",
+      "layer": "boot",
+      "kind": "software",
+      "origin": "copy",
+      "by": "the harness",
+      "when": "at boot",
+      "path": "~/.claude/*.sh and *.py",
+      "gloss": "stop-hook-git-check.sh and the other scripts the harness writes",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "written at boot"
+        },
+        "restart": {
+          "state": "new",
+          "label": "written again at boot"
+        },
+        "reclaim": {
+          "state": "new",
+          "label": "written again on resume"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "from": "the harness"
+    },
+    {
+      "id": "account-skills",
+      "name": "account skills, synced",
+      "layer": "boot",
+      "kind": "config",
+      "origin": "copy",
+      "by": "the harness",
+      "when": "at boot",
+      "path": "~/.claude/skills",
+      "gloss": "your uploaded skills, copied into the machine",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "synced at boot"
+        },
+        "restart": {
+          "state": "new",
+          "label": "synced again at boot"
+        },
+        "reclaim": {
+          "state": "new",
+          "label": "synced again on resume"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "from": "uploaded skills"
     }
   ],
   "events": [
@@ -910,5 +1515,30 @@
       "act": "push it",
       "layer": "github"
     }
+  ],
+  "origins": {
+    "source": {
+      "icon": "ph-pen-nib",
+      "word": "source",
+      "gloss": "written by someone and kept until edited"
+    },
+    "copy": {
+      "icon": "ph-copy",
+      "word": "copy",
+      "gloss": "made from a source by a process; rebuilt when lost"
+    },
+    "output": {
+      "icon": "ph-terminal-window",
+      "word": "session output",
+      "gloss": "made by the session; exists nowhere else until copied out"
+    }
+  },
+  "kinds": [
+    "config",
+    "code",
+    "record",
+    "software",
+    "scratch",
+    "activity"
   ]
 }

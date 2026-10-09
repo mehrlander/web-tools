@@ -79,12 +79,28 @@ test('each event has exactly one effect per layer, each a known state', () => {
 
 test('lifetime spans and ticks are well formed', () => {
   for (const l of data.layers) {
-    for (const h of l.holds) assert.ok(h.name && h.gloss, `${l.id}: a held item needs a name and a gloss`);
     for (const s of l.span) {
       assert.ok(['solid', 'dashed', 'fade'].includes(s.style), `${l.id}: span style ${s.style}`);
       assert.ok(s.to === 'lasting' || s.to > s.from, `${l.id}: span ends before it starts`);
     }
     for (const t of l.ticks) checkCited(`${l.id} tick ${t.label}`, t);
+  }
+});
+
+test('each item names its layer, kind and origin, says where it comes from, and answers every event', () => {
+  const ids = data.items.map(it => it.id);
+  assert.equal(new Set(ids).size, ids.length, 'duplicate item id');
+  for (const L of data.layers) assert.ok(data.items.some(it => it.layer === L.id), `${L.id}: holds no items`);
+  for (const it of data.items) {
+    assert.ok(layerIds.includes(it.layer), `${it.id}: unknown layer ${it.layer}`);
+    assert.ok(data.kinds.includes(it.kind), `${it.id}: unknown kind ${it.kind}`);
+    assert.ok(data.origins[it.origin], `${it.id}: unknown origin ${it.origin}`);
+    assert.ok(it.name && it.gloss, `${it.id}: needs a name and a gloss`);
+    if (it.origin === 'source') assert.ok(it.by, `${it.id}: a source names who writes it`);
+    if (it.origin === 'copy') assert.ok(it.from && it.by && it.when, `${it.id}: a copy names its source, its maker and when`);
+    if (it.origin === 'output') assert.ok('out' in it || it.held, `${it.id}: session output says what copies it out (null for nothing) or who holds it`);
+    assert.deepEqual(Object.keys(it.effects).sort(), [...eventIds].sort(), `${it.id}: effects do not cover the events`);
+    for (const e of Object.values(it.effects)) assert.ok(STATES.includes(e.state) && e.label, `${it.id}: an effect needs a known state and a label`);
   }
 });
 
