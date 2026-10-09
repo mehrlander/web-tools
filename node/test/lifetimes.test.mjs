@@ -79,6 +79,7 @@ test('each event has exactly one effect per layer, each a known state', () => {
 
 test('lifetime spans and ticks are well formed', () => {
   for (const l of data.layers) {
+    for (const h of l.holds) assert.ok(h.name && h.gloss, `${l.id}: a held item needs a name and a gloss`);
     for (const s of l.span) {
       assert.ok(['solid', 'dashed', 'fade'].includes(s.style), `${l.id}: span style ${s.style}`);
       assert.ok(s.to === 'lasting' || s.to > s.from, `${l.id}: span ends before it starts`);

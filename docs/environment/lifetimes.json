@@ -66,9 +66,18 @@
       "icon": "ph-git-branch",
       "lifetime": "lasting",
       "holds": [
-        "main",
-        "branches",
-        "pull requests"
+        {
+          "name": "main",
+          "gloss": "the default branch; a new session clones from it"
+        },
+        {
+          "name": "branches",
+          "gloss": "work pushed from any session; the only route between sessions"
+        },
+        {
+          "name": "pull requests",
+          "gloss": "branches proposed for merge, with their reviews and checks"
+        }
       ],
       "span": [
         {
@@ -85,11 +94,26 @@
       "icon": "ph-sliders-horizontal",
       "lifetime": "until you edit them",
       "holds": [
-        "setup-script text",
-        "network policy",
-        "environment variables",
-        "preferences",
-        "uploaded skills"
+        {
+          "name": "setup-script text",
+          "gloss": "the commands in the environment settings box, run when a snapshot is built"
+        },
+        {
+          "name": "network policy",
+          "gloss": "which hosts the environment may reach; changing it rebuilds the snapshot"
+        },
+        {
+          "name": "environment variables",
+          "gloss": "values set in the environment settings, present in every session"
+        },
+        {
+          "name": "preferences",
+          "gloss": "your claude.ai personal preferences, added to every session"
+        },
+        {
+          "name": "uploaded skills",
+          "gloss": "skills uploaded to the claude.ai account, copied into each machine at boot"
+        }
       ],
       "span": [
         {
@@ -106,11 +130,26 @@
       "icon": "ph-camera",
       "lifetime": "about 7 days, or until the settings change",
       "holds": [
-        "user settings.json",
-        "plugin, pinned",
-        "marketplace clone",
-        "setup record",
-        "installed tools"
+        {
+          "name": "user settings.json",
+          "gloss": "~/.claude/settings.json: user-scope settings, such as which plugins are on"
+        },
+        {
+          "name": "plugin, pinned",
+          "gloss": "the portable plugin as installed at the build, pinned to that commit"
+        },
+        {
+          "name": "marketplace clone",
+          "gloss": "~/.claude/plugins/marketplaces/web-tools: a checkout of web-tools main"
+        },
+        {
+          "name": "setup record",
+          "gloss": "~/.claude/environment-setup.ran: the setup script's text, commit and run time"
+        },
+        {
+          "name": "installed tools",
+          "gloss": "whatever the setup script installed, such as packages and command-line tools"
+        }
       ],
       "span": [
         {
@@ -134,8 +173,14 @@
       "icon": "ph-chats-circle",
       "lifetime": "the session's whole life, held by claude.ai",
       "holds": [
-        "messages",
-        "tool results"
+        {
+          "name": "messages",
+          "gloss": "what you and the session wrote, held by claude.ai"
+        },
+        {
+          "name": "tool results",
+          "gloss": "commands run and files read, as the conversation recorded them"
+        }
       ],
       "span": [
         {
@@ -164,12 +209,30 @@
       "icon": "ph-hard-drives",
       "lifetime": "until reclaimed after idling",
       "holds": [
-        "checkouts",
-        "unpushed commits",
-        "/tmp and scratchpad",
-        "agent transcripts",
-        "plugin, refreshed",
-        "installed dependencies"
+        {
+          "name": "checkouts",
+          "gloss": "the repositories cloned for this session, under /home/user"
+        },
+        {
+          "name": "unpushed commits",
+          "gloss": "work committed in a checkout but not pushed"
+        },
+        {
+          "name": "/tmp and scratchpad",
+          "gloss": "temporary files, the session's scratchpad among them"
+        },
+        {
+          "name": "agent transcripts",
+          "gloss": "~/.claude/projects: the session's transcript and its subagents'"
+        },
+        {
+          "name": "plugin, refreshed",
+          "gloss": "the plugin cache after the refresher moves it to main's tip"
+        },
+        {
+          "name": "installed dependencies",
+          "gloss": "node_modules and the like, installed by session-start scripts"
+        }
       ],
       "span": [
         {
@@ -204,9 +267,18 @@
       "icon": "ph-cpu",
       "lifetime": "until it restarts",
       "holds": [
-        "processes",
-        "harness hook scripts",
-        "account skills, synced"
+        {
+          "name": "processes",
+          "gloss": "everything running: the session's shell, servers, background jobs"
+        },
+        {
+          "name": "harness hook scripts",
+          "gloss": "stop-hook-git-check.sh and the other scripts the harness writes at boot"
+        },
+        {
+          "name": "account skills, synced",
+          "gloss": "~/.claude/skills: your uploaded skills, copied in at each boot"
+        }
       ],
       "span": [
         {
