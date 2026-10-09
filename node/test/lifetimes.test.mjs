@@ -98,7 +98,14 @@ test('each item names its layer and how it arrives, and answers every event', ()
     if (['copy', 'script'].includes(it.arrives)) assert.ok(it.from, `${it.id}: a copy or script output names what it comes from`);
     for (const k of ['reverts', 'saved']) if (k in it) assert.ok(typeof it[k] === 'string' && it[k], `${it.id}: the ${k} mark carries its reason`);
     assert.deepEqual(Object.keys(it.effects).sort(), [...eventIds].sort(), `${it.id}: effects do not cover the events`);
-    for (const e of Object.values(it.effects)) assert.ok(STATES.includes(e.state) && e.label, `${it.id}: an effect needs a known state and a label`);
+    for (const [ev, e] of Object.entries(it.effects)) {
+      assert.ok(STATES.includes(e.state) && e.label, `${it.id}/${ev}: an effect needs a known state and a label`);
+      // A lost, partial or new effect is an imposition, and the tab shows an
+      // imposition as a badge; without one the item would sit among the
+      // unaffected while its layer said otherwise.
+      if (['lost', 'partial', 'new'].includes(e.state)) assert.ok(e.badge, `${it.id}/${ev}: an imposition needs a badge`);
+      if (e.badge) assert.ok(e.badge.split(' ').length <= 2, `${it.id}/${ev}: a badge is a word or two, not "${e.badge}"`);
+    }
   }
 });
 

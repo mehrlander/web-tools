@@ -215,7 +215,8 @@
         },
         "sync": {
           "state": "new",
-          "label": "take pushes, serve fetches"
+          "label": "take pushes, serve fetches",
+          "badge": "pushed to"
         }
       }
     },
@@ -244,7 +245,8 @@
         },
         "sync": {
           "state": "new",
-          "label": "follow pushes to their branches"
+          "label": "follow pushes to their branches",
+          "badge": "updated"
         }
       }
     },
@@ -269,7 +271,8 @@
         },
         "rebuild": {
           "state": "new",
-          "label": "an edit to it triggers the rebuild"
+          "label": "an edit to it triggers the rebuild",
+          "badge": "your edit"
         },
         "sync": {
           "state": "untouched",
@@ -298,7 +301,8 @@
         },
         "rebuild": {
           "state": "new",
-          "label": "an edit to it triggers the rebuild"
+          "label": "an edit to it triggers the rebuild",
+          "badge": "your edit"
         },
         "sync": {
           "state": "untouched",
@@ -416,7 +420,8 @@
         },
         "rebuild": {
           "state": "new",
-          "label": "rebuilt"
+          "label": "rebuilt",
+          "badge": "rebuilt"
         },
         "sync": {
           "state": "untouched",
@@ -448,7 +453,8 @@
         },
         "rebuild": {
           "state": "new",
-          "label": "pinned afresh to main"
+          "label": "pinned afresh to main",
+          "badge": "re-pinned"
         },
         "sync": {
           "state": "untouched",
@@ -480,7 +486,8 @@
         },
         "rebuild": {
           "state": "new",
-          "label": "written again"
+          "label": "written again",
+          "badge": "rewritten"
         },
         "sync": {
           "state": "untouched",
@@ -512,7 +519,8 @@
         },
         "rebuild": {
           "state": "new",
-          "label": "written again, naming the new commit"
+          "label": "written again, naming the new commit",
+          "badge": "rewritten"
         },
         "sync": {
           "state": "untouched",
@@ -530,7 +538,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "begin, or come back on a resume"
+          "label": "begin, or come back on a resume",
+          "badge": "begins"
         },
         "restart": {
           "state": "kept",
@@ -538,7 +547,8 @@
         },
         "reclaim": {
           "state": "partial",
-          "label": "back on a resume, maybe partly"
+          "label": "back on a resume, maybe partly",
+          "badge": "partly back"
         },
         "rebuild": {
           "state": "untouched",
@@ -560,7 +570,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "begin, or come back on a resume"
+          "label": "begin, or come back on a resume",
+          "badge": "begins"
         },
         "restart": {
           "state": "kept",
@@ -568,7 +579,8 @@
         },
         "reclaim": {
           "state": "partial",
-          "label": "back on a resume, maybe partly"
+          "label": "back on a resume, maybe partly",
+          "badge": "partly back"
         },
         "rebuild": {
           "state": "untouched",
@@ -591,7 +603,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "cloned fresh from GitHub"
+          "label": "cloned fresh from GitHub",
+          "badge": "cloned"
         },
         "restart": {
           "state": "kept",
@@ -599,15 +612,17 @@
         },
         "reclaim": {
           "state": "new",
-          "label": "cloned again on resume"
+          "label": "cloned again on resume",
+          "badge": "re-cloned"
         },
         "rebuild": {
           "state": "untouched",
           "label": "running sessions keep theirs"
         },
         "sync": {
-          "state": "used",
-          "label": "fetches update them"
+          "state": "new",
+          "label": "fetches update them",
+          "badge": "updated"
         }
       }
     },
@@ -629,15 +644,17 @@
         },
         "reclaim": {
           "state": "lost",
-          "label": "lost unless pushed"
+          "label": "lost unless pushed",
+          "badge": "lost"
         },
         "rebuild": {
           "state": "untouched",
           "label": "untouched"
         },
         "sync": {
-          "state": "used",
-          "label": "a push copies it to GitHub"
+          "state": "kept",
+          "label": "a push copies it to GitHub",
+          "badge": "saved"
         }
       }
     },
@@ -652,7 +669,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "begin"
+          "label": "begin",
+          "badge": "begins"
         },
         "restart": {
           "state": "kept",
@@ -660,7 +678,8 @@
         },
         "reclaim": {
           "state": "lost",
-          "label": "lost unless the recorder copied them"
+          "label": "lost unless the recorder copied them",
+          "badge": "lost"
         },
         "rebuild": {
           "state": "untouched",
@@ -681,7 +700,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "begin empty"
+          "label": "begin empty",
+          "badge": "begins"
         },
         "restart": {
           "state": "kept",
@@ -689,7 +709,8 @@
         },
         "reclaim": {
           "state": "lost",
-          "label": "lost; nothing copies it out"
+          "label": "lost; nothing copies it out",
+          "badge": "lost"
         },
         "rebuild": {
           "state": "untouched",
@@ -713,7 +734,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "moved to main by the refresher"
+          "label": "moved to main by the refresher",
+          "badge": "updated"
         },
         "restart": {
           "state": "kept",
@@ -721,7 +743,8 @@
         },
         "reclaim": {
           "state": "new",
-          "label": "back to the pin on resume, then refreshed"
+          "label": "back to the pin on resume, then refreshed",
+          "badge": "reset"
         },
         "rebuild": {
           "state": "untouched",
@@ -745,7 +768,8 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "installed by session-start scripts"
+          "label": "installed by session-start scripts",
+          "badge": "installed"
         },
         "restart": {
           "state": "kept",
@@ -753,7 +777,8 @@
         },
         "reclaim": {
           "state": "new",
-          "label": "installed again on resume"
+          "label": "installed again on resume",
+          "badge": "reinstalled"
         },
         "rebuild": {
           "state": "untouched",
@@ -774,15 +799,18 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "start"
+          "label": "start",
+          "badge": "start"
         },
         "restart": {
           "state": "lost",
-          "label": "end"
+          "label": "end",
+          "badge": "lost"
         },
         "reclaim": {
           "state": "lost",
-          "label": "end"
+          "label": "end",
+          "badge": "lost"
         },
         "rebuild": {
           "state": "untouched",
@@ -806,15 +834,18 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "written at boot"
+          "label": "written at boot",
+          "badge": "written"
         },
         "restart": {
           "state": "new",
-          "label": "written again at boot"
+          "label": "written again at boot",
+          "badge": "rewritten"
         },
         "reclaim": {
           "state": "new",
-          "label": "written again on resume"
+          "label": "written again on resume",
+          "badge": "rewritten"
         },
         "rebuild": {
           "state": "untouched",
@@ -838,15 +869,18 @@
       "effects": {
         "start": {
           "state": "new",
-          "label": "synced at boot"
+          "label": "synced at boot",
+          "badge": "synced"
         },
         "restart": {
           "state": "new",
-          "label": "synced again at boot"
+          "label": "synced again at boot",
+          "badge": "re-synced"
         },
         "reclaim": {
           "state": "new",
-          "label": "synced again on resume"
+          "label": "synced again on resume",
+          "badge": "re-synced"
         },
         "rebuild": {
           "state": "untouched",
