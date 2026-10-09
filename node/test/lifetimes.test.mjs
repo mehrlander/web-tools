@@ -8,7 +8,7 @@
 //
 //   every citation lands on a heading that exists, so a renamed section in
 //   container.md breaks this rather than leaving the tab pointing at nothing;
-//   the effect table is complete, one effect per event per layer and per copy,
+//   the effect table is complete, one effect per event per layer and per item,
 //   so a new layer or event cannot ship half-drawn;
 //   every state the data names is one the tab knows how to colour, since an
 //   unknown state renders as a band with no tone and no error.
@@ -87,31 +87,22 @@ test('lifetime spans and ticks are well formed', () => {
   }
 });
 
-test('each item names its layer, kind and origin, says where it comes from, and answers every event', () => {
+test('each item names its layer and how it arrives, and answers every event', () => {
   const ids = data.items.map(it => it.id);
   assert.equal(new Set(ids).size, ids.length, 'duplicate item id');
   for (const L of data.layers) assert.ok(data.items.some(it => it.layer === L.id), `${L.id}: holds no items`);
   for (const it of data.items) {
     assert.ok(layerIds.includes(it.layer), `${it.id}: unknown layer ${it.layer}`);
-    assert.ok(data.kinds.includes(it.kind), `${it.id}: unknown kind ${it.kind}`);
-    assert.ok(data.origins[it.origin], `${it.id}: unknown origin ${it.origin}`);
+    assert.ok(data.arrivals[it.arrives], `${it.id}: unknown arrival ${it.arrives}`);
     assert.ok(it.name && it.gloss, `${it.id}: needs a name and a gloss`);
-    assert.ok(it.by?.length && it.by.every(a => data.actors[a]), `${it.id}: made by must name known actors`);
-    if (it.origin === 'source') assert.ok(!('restore' in it), `${it.id}: a source is the original, so it names nothing to restore from`);
-    else assert.ok(Array.isArray(it.restore), `${it.id}: a copy or session output lists what restores it, empty for nothing`);
-    if (it.origin === 'copy') assert.ok(it.restore.length, `${it.id}: a copy names the source it is made from`);
+    if (['copy', 'script'].includes(it.arrives)) assert.ok(it.from, `${it.id}: a copy or script output names what it comes from`);
+    for (const k of ['reverts', 'saved']) if (k in it) assert.ok(typeof it[k] === 'string' && it[k], `${it.id}: the ${k} mark carries its reason`);
     assert.deepEqual(Object.keys(it.effects).sort(), [...eventIds].sort(), `${it.id}: effects do not cover the events`);
     for (const e of Object.values(it.effects)) assert.ok(STATES.includes(e.state) && e.label, `${it.id}: an effect needs a known state and a label`);
   }
 });
 
-test('each copy lives in a layer and answers every event', () => {
-  for (const c of data.copies) {
-    assert.ok(layerIds.includes(c.layer), `copy ${c.id}: unknown layer ${c.layer}`);
-    assert.deepEqual(Object.keys(c.effects).sort(), [...eventIds].sort(), `copy ${c.id}: effects do not cover the events`);
-    for (const e of Object.values(c.effects)) assert.ok(STATES.includes(e.state), `copy ${c.id}: unknown state ${e.state}`);
-    if (c.source) assert.ok(data.sources[c.source], `copy ${c.id}: unknown source ${c.source}`);
-  }
+test('levers name known layers', () => {
   for (const v of data.levers) assert.ok(layerIds.includes(v.layer), `lever "${v.goal}": unknown layer ${v.layer}`);
 });
 
