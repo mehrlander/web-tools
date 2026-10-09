@@ -16,7 +16,3 @@ gold-set:reader,inline,,skills/gold-set/SKILL.md,,## Stage 1: readers,,,,,"One p
 gold-set:skeptic,inline,,skills/gold-set/SKILL.md,,## Stage 2: skeptic,,,,,"One per reader batch, on the stronger model, reviewing every row where reader and program disagree, starting from the assumption that the reader is wrong."
 repo-review:lens,inline,,skills/repo-review/SKILL.md,,one agent per declared lens,,,,,"One per declared lens of a sweep, reading its slice of the repo deeply and returning exactly one candidate find in a fixed format."
 repo-review:layer,inline,,skills/repo-review/SKILL.md,,"**Every layer**, as parallel deep reads",,,,,"One per layer of the deep pass, seeded by the probes' output, checking documented state against actual state."
-pptx:visual-qa,inline,,skills/pptx/SKILL.md,,Visually inspect these slides for user-visible defects.,,,,,"Inspects rendered slide images for overlap, overflow, and other defects the author stopped seeing."
-skill-creator:grader,inline,,skills/skill-creator/agents/grader.md,,# Grader Agent,,,,,Evaluates a skill run's transcript and outputs against the expectations written for it.
-skill-creator:comparator,inline,,skills/skill-creator/agents/comparator.md,,# Blind Comparator Agent,,,,,Compares two outputs without knowing which skill version produced either.
-skill-creator:analyzer,inline,,skills/skill-creator/agents/analyzer.md,,# Post-hoc Analyzer Agent,,,,,Reads a blind comparison's result to explain why the winner won and propose improvements.

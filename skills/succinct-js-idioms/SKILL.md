@@ -22,8 +22,8 @@ With JavaScript, consider these patterns to produce more succinct code.
 | `.replace(/x/g, 'y')` | `str.replaceAll('x', 'y')` | No regex for literal replacements |
 | `new Error('msg')` losing original error | `new Error('msg', {cause: err})` | Preserves error chain, inspectable via `.cause` |
 | Manual close buttons on modals | `<form method="dialog">` inside `<dialog>` | Submit closes dialog, return value via `close` event |
-| Manual HTML escape functions | `new Option(untrusted).innerHTML` | Zero-dep browser-native HTML escaping |
-| `foo && foo.bar && foo.bar.baz` | `foo?.bar?.baz` | Optional chaining: shorter, same semantics |
+| Interpolating untrusted text into HTML | `textContent` or `x-text`; this repo's shared `esc` when an HTML string is required | Keep data out of markup; text serialization does not escape attribute quotes |
+| `foo && foo.bar && foo.bar.baz` | `foo?.bar?.baz` | Short-circuits on null/undefined; check intent if the old chain also stopped on other falsy values |
 | `val \|\| 'default'` (breaks on `0`, `''`) | `val ?? 'default'` | Nullish coalescing: only `null`/`undefined` |
 | Class methods needing `.bind(this)` in callbacks | Arrow function class fields: `handleClick = (e) => {}` | Lexical `this` by default, no bind boilerplate |
 

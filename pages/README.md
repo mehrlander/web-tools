@@ -118,6 +118,7 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
+| `caveman` | Caveman: input, decisions, output | [view](https://mehrlander.github.io/web-tools/pages/guides/caveman.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides/caveman.html) |
 | `code-layers` | Code layers: current state and migration plan | [view](https://mehrlander.github.io/web-tools/pages/guides/code-layers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides/code-layers.html) |
 | `page-measures` | Page measures: one run, two readers | [view](https://mehrlander.github.io/web-tools/pages/guides/page-measures.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides/page-measures.html) |
 

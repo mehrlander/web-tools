@@ -67,6 +67,12 @@ upstream commit and folder fingerprint, in
 author holds now; the check compares them; the upkeep is a re-pin, a refreshed
 copy, or a decline.
 
+Skills created or adapted here belong to the personal collection. Skills used
+as supplied belong to the third-party collection. Adaptations keep a source
+credit; they do not form a third collection. The Skills tab presents that
+division. A **dependency** is fetched from its author by a separately attributed
+entry in the [marketplace](MARKETPLACE.md), rather than copied into `skills/`.
+
 - A **held** copy sits under `outside/<author>/<skill>/` with its author's
   license beside it. The plugin ships only `skills/`, so a held copy reaches no
   session and costs no context. A **vendored** copy ships in `skills/` exactly
@@ -78,6 +84,5 @@ copy, or a decline.
 - Discussion of an upstream goes in notes addressed to its file, for example
   `obra/superpowers:skills/writing-skills/SKILL.md`, through the notes skill.
 - A pin names a commit only where our copy is that commit's folder exactly.
-  Four of the six Anthropic skills the plugin carries match no commit in
-  anthropics/skills, having been copied from the claude.ai account's copies, so
-  their rows carry a fingerprint and no commit.
+  Dependency rows record the official source revision tested for the marketplace
+  entry; the entry owns what the installer fetches.

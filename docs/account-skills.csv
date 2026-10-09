@@ -10,9 +10,9 @@ chrome-browser,on,,"Anthropic's example, on as found 2026-10-02"
 computer-use,on,,"Anthropic's example, on as found 2026-10-02"
 daisy-alpine,off,,retired; html-style in the plugin succeeds it
 deep-research,on,,"Anthropic's example, on as found 2026-10-02"
-doc-coauthoring,on,doc-coauthoring,
+doc-coauthoring,on,,Supplied by Anthropic; no Web Tools copy.
 docs,on,,"Anthropic's example, on as found 2026-10-02"
-docx,on,docx,
+docx,on,,Supplied by Anthropic; no Web Tools copy.
 google-workspace,on,,"Anthropic's example, on as found 2026-10-02"
 import-memory,on,,"Anthropic's example, on as found 2026-10-02"
 inspire-excellence,on,inspire-excellence,
@@ -22,17 +22,17 @@ mobile,on,mobile,
 morning,on,,"Anthropic's example, on as found 2026-10-02"
 office-scripts-shape-ui,on,office-scripts-shape-ui,
 outlining,on,outlining,
-pdf,on,pdf,
+pdf,on,,Supplied by Anthropic; no Web Tools copy.
 phosphor-icons,on,phosphor-icons,
 power-query,on,power-query,
 powershell-ise-theming,on,powershell-ise-theming,
-pptx,on,pptx,
+pptx,on,,Supplied by Anthropic; no Web Tools copy.
 reorient-me,on,reorient-me,
 report-distiller,on,report-distiller,
-safe-html-templating,on,safe-html-templating,
+safe-html-templating,off,,Archived in archive/skills/safe-html-templating; retained guidance is in html-style/references/mechanics.md.
 shape-text,on,shape-text,
 show-diff,on,show-diff,
-skill-creator,on,skill-creator,
+skill-creator,on,,Supplied by Anthropic; no Web Tools copy.
 skill-prefs,on,skill-prefs,
 source-anchored-writing,on,source-anchored-writing,
 source-anchored-xlsx,on,source-anchored-xlsx,
@@ -41,4 +41,4 @@ succinct-js-idioms,on,succinct-js-idioms,
 succinct-text,on,succinct-text,
 theme-factory,on,,"Anthropic's example, on as found 2026-10-02"
 windows-powershell,on,windows-powershell,
-xlsx,on,xlsx,
+xlsx,on,,Supplied by Anthropic; no Web Tools copy.

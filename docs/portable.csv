@@ -21,12 +21,9 @@ skill,/portable:notes,skills/notes/SKILL.md,notes,"leave, reply to and read note
 skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
-skill,/portable:consolidate-memory,skills/consolidate-memory/SKILL.md,consolidate-memory,,plugin
 skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
-skill,/portable:doc-coauthoring,skills/doc-coauthoring/SKILL.md,doc-coauthoring,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
 skill,/portable:document-visual-mapping,skills/document-visual-mapping/SKILL.md,document-visual-mapping,,plugin
-skill,/portable:docx,skills/docx/SKILL.md,docx,,plugin
 skill,/portable:excel-com,skills/excel-com/SKILL.md,excel-com,,plugin
 skill,/portable:inspire-excellence,skills/inspire-excellence/SKILL.md,inspire-excellence,,plugin
 skill,/portable:ios-clipboard,skills/ios-clipboard/SKILL.md,ios-clipboard,,plugin
@@ -34,26 +31,20 @@ skill,/portable:ios-sheet-drag,skills/ios-sheet-drag/SKILL.md,ios-sheet-drag,,pl
 skill,/portable:mobile,skills/mobile/SKILL.md,mobile,,plugin
 skill,/portable:office-scripts-shape-ui,skills/office-scripts-shape-ui/SKILL.md,office-scripts-shape-ui,,plugin
 skill,/portable:outlining,skills/outlining/SKILL.md,outlining,,plugin
-skill,/portable:pdf,skills/pdf/SKILL.md,pdf,,plugin
 skill,/portable:phosphor-icons,skills/phosphor-icons/SKILL.md,phosphor-icons,,plugin
 skill,/portable:power-query,skills/power-query/SKILL.md,power-query,,plugin
 skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,powershell-ise-theming,,plugin
-skill,/portable:pptx,skills/pptx/SKILL.md,pptx,,plugin
 skill,/portable:question-margin,skills/question-margin/SKILL.md,question-margin,,plugin
 skill,/portable:reduction-panel,skills/reduction-panel/SKILL.md,reduction-panel,,plugin
 skill,/portable:peeves,skills/peeves/SKILL.md,peeves,,plugin
 skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin
 skill,/portable:reorient-me,skills/reorient-me/SKILL.md,reorient-me,,plugin
 skill,/portable:report-distiller,skills/report-distiller/SKILL.md,report-distiller,,plugin
-skill,/portable:safe-html-templating,skills/safe-html-templating/SKILL.md,safe-html-templating,,plugin
-skill,/portable:schedule,skills/schedule/SKILL.md,schedule,,plugin
 skill,/portable:screenshot-review,skills/screenshot-review/SKILL.md,screenshot-review,,plugin
 skill,/portable:session-review,skills/session-review/SKILL.md,session-review,,plugin
-skill,/portable:setup-cowork,skills/setup-cowork/SKILL.md,setup-cowork,,plugin
 skill,/portable:shape-text,skills/shape-text/SKILL.md,shape-text,,plugin
 skill,/portable:shortcut-links,skills/shortcut-links/SKILL.md,shortcut-links,,plugin
 skill,/portable:show-diff,skills/show-diff/SKILL.md,show-diff,,plugin
-skill,/portable:skill-creator,skills/skill-creator/SKILL.md,skill-creator,,plugin
 skill,/portable:skill-prefs,skills/skill-prefs/SKILL.md,skill-prefs,,plugin
 skill,/portable:source-anchored-writing,skills/source-anchored-writing/SKILL.md,source-anchored-writing,,plugin
 skill,/portable:source-anchored-xlsx,skills/source-anchored-xlsx/SKILL.md,source-anchored-xlsx,,plugin
@@ -62,7 +53,6 @@ skill,/portable:succinct-js-idioms,skills/succinct-js-idioms/SKILL.md,succinct-j
 skill,/portable:succinct-text,skills/succinct-text/SKILL.md,succinct-text,,plugin
 skill,/portable:userscripts,skills/userscripts/SKILL.md,userscripts,,plugin
 skill,/portable:windows-powershell,skills/windows-powershell/SKILL.md,windows-powershell,,plugin
-skill,/portable:xlsx,skills/xlsx/SKILL.md,xlsx,,plugin
 doc,,docs/SURFACING.md,Surfacing,the canonical surfacing primitives; a byte-matched copy ships beside the plugin's default skill and is loaded with the writing rules,plugin
 doc,,docs/QUALIFIED-WRITING.md,Qualified writing,the canonical prose rules; a byte-matched copy ships beside the plugin's default skill and is loaded with the surfacing primitives,plugin
 doc,,docs/venues.md,Venues,"the venue map: where work can run besides the session reading it, and the attended-versus-unattended split that decides where a job belongs",live
