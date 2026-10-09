@@ -196,7 +196,10 @@
       "layer": "github",
       "kind": "code",
       "origin": "source",
-      "by": "pushes from sessions",
+      "by": [
+        "sessions",
+        "you"
+      ],
       "gloss": "main and every other branch; the only route between sessions",
       "effects": {
         "start": {
@@ -227,7 +230,10 @@
       "layer": "github",
       "kind": "record",
       "origin": "source",
-      "by": "you and sessions",
+      "by": [
+        "you",
+        "sessions"
+      ],
       "gloss": "branches proposed for merge, with their reviews and checks",
       "effects": {
         "start": {
@@ -258,7 +264,9 @@
       "layer": "settings",
       "kind": "config",
       "origin": "source",
-      "by": "you",
+      "by": [
+        "you"
+      ],
       "gloss": "the commands in the environment settings box, run when a snapshot is built",
       "effects": {
         "start": {
@@ -289,7 +297,9 @@
       "layer": "settings",
       "kind": "config",
       "origin": "source",
-      "by": "you",
+      "by": [
+        "you"
+      ],
       "gloss": "which hosts the environment may reach",
       "effects": {
         "start": {
@@ -320,7 +330,9 @@
       "layer": "settings",
       "kind": "config",
       "origin": "source",
-      "by": "you",
+      "by": [
+        "you"
+      ],
       "gloss": "values set in the environment settings, present in every session",
       "effects": {
         "start": {
@@ -351,7 +363,9 @@
       "layer": "settings",
       "kind": "config",
       "origin": "source",
-      "by": "you",
+      "by": [
+        "you"
+      ],
       "gloss": "your claude.ai personal preferences, added to every session",
       "effects": {
         "start": {
@@ -382,7 +396,9 @@
       "layer": "settings",
       "kind": "config",
       "origin": "source",
-      "by": "you",
+      "by": [
+        "you"
+      ],
       "gloss": "skills uploaded to the claude.ai account",
       "effects": {
         "start": {
@@ -413,8 +429,12 @@
       "layer": "snapshot",
       "kind": "software",
       "origin": "copy",
-      "by": "the setup script",
-      "when": "at the build",
+      "by": [
+        "setup-script"
+      ],
+      "restore": [
+        "the platform's base image"
+      ],
       "gloss": "the tools every session starts with; this setup script adds only the plugin",
       "effects": {
         "start": {
@@ -437,8 +457,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "from": "the platform's base image"
+      }
     },
     {
       "id": "plugin-pinned",
@@ -446,8 +465,12 @@
       "layer": "snapshot",
       "kind": "software",
       "origin": "copy",
-      "by": "the setup script",
-      "when": "at the build",
+      "by": [
+        "setup-script"
+      ],
+      "restore": [
+        "web-tools main"
+      ],
       "path": "~/.claude/plugins",
       "gloss": "the marketplace clone and plugin cache, pinned to that day's commit",
       "effects": {
@@ -471,8 +494,7 @@
           "state": "untouched",
           "label": "never written by a session"
         }
-      },
-      "from": "web-tools main"
+      }
     },
     {
       "id": "user-settings",
@@ -480,8 +502,12 @@
       "layer": "snapshot",
       "kind": "config",
       "origin": "copy",
-      "by": "the setup script",
-      "when": "at the build",
+      "by": [
+        "setup-script"
+      ],
+      "restore": [
+        "setup-script"
+      ],
       "path": "~/.claude/settings.json",
       "gloss": "user-scope settings, such as which plugins are on",
       "effects": {
@@ -505,8 +531,7 @@
           "state": "untouched",
           "label": "never written by a session"
         }
-      },
-      "from": "the setup script's plugin commands"
+      }
     },
     {
       "id": "setup-record",
@@ -514,8 +539,12 @@
       "layer": "snapshot",
       "kind": "record",
       "origin": "copy",
-      "by": "the setup script",
-      "when": "at the build",
+      "by": [
+        "setup-script"
+      ],
+      "restore": [
+        "setup-script"
+      ],
       "path": "~/.claude/environment-setup.ran",
       "gloss": "the setup script's text, commit and run time",
       "effects": {
@@ -539,8 +568,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "from": "the setup script"
+      }
     },
     {
       "id": "messages",
@@ -548,7 +576,12 @@
       "layer": "conversation",
       "kind": "record",
       "origin": "output",
-      "out": null,
+      "by": [
+        "session"
+      ],
+      "restore": [
+        "claude.ai"
+      ],
       "gloss": "what you and the session wrote",
       "effects": {
         "start": {
@@ -571,8 +604,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "held": "claude.ai"
+      }
     },
     {
       "id": "tool-results",
@@ -580,7 +612,12 @@
       "layer": "conversation",
       "kind": "record",
       "origin": "output",
-      "out": null,
+      "by": [
+        "session"
+      ],
+      "restore": [
+        "claude.ai"
+      ],
       "gloss": "commands run and files read, as the conversation recorded them",
       "effects": {
         "start": {
@@ -603,8 +640,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "held": "claude.ai"
+      }
     },
     {
       "id": "checkouts",
@@ -612,8 +648,12 @@
       "layer": "disk",
       "kind": "code",
       "origin": "copy",
-      "by": "the platform",
-      "when": "at session start",
+      "by": [
+        "platform"
+      ],
+      "restore": [
+        "branches"
+      ],
       "path": "/home/user/<repo>",
       "gloss": "the repositories cloned for this session",
       "effects": {
@@ -637,8 +677,7 @@
           "state": "used",
           "label": "fetches update them"
         }
-      },
-      "from": "GitHub branches"
+      }
     },
     {
       "id": "unpushed",
@@ -646,7 +685,12 @@
       "layer": "disk",
       "kind": "code",
       "origin": "output",
-      "out": "a push, to GitHub",
+      "by": [
+        "session"
+      ],
+      "restore": [
+        "GitHub, if pushed"
+      ],
       "gloss": "commits and edits made in a checkout and not yet pushed",
       "effects": {
         "start": {
@@ -677,7 +721,12 @@
       "layer": "disk",
       "kind": "record",
       "origin": "output",
-      "out": "the session recorder, to web-tools-private",
+      "by": [
+        "session"
+      ],
+      "restore": [
+        "web-tools-private, if recorded"
+      ],
       "path": "~/.claude/projects",
       "gloss": "the session's transcript and its subagents'",
       "effects": {
@@ -709,7 +758,10 @@
       "layer": "disk",
       "kind": "scratch",
       "origin": "output",
-      "out": null,
+      "by": [
+        "session"
+      ],
+      "restore": [],
       "gloss": "temporary files, the session's scratchpad among them",
       "effects": {
         "start": {
@@ -740,8 +792,13 @@
       "layer": "disk",
       "kind": "software",
       "origin": "copy",
-      "by": "the refresher",
-      "when": "at session start",
+      "by": [
+        "refresher"
+      ],
+      "restore": [
+        "plugin-pinned",
+        "web-tools main"
+      ],
       "path": "~/.claude/plugins",
       "gloss": "the snapshot's plugin files, moved to main's tip",
       "effects": {
@@ -765,8 +822,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "from": "the snapshot's pin and web-tools main"
+      }
     },
     {
       "id": "deps",
@@ -774,8 +830,12 @@
       "layer": "disk",
       "kind": "software",
       "origin": "copy",
-      "by": "session-start scripts",
-      "when": "at session start",
+      "by": [
+        "start-scripts"
+      ],
+      "restore": [
+        "checkouts"
+      ],
       "path": "node_modules",
       "gloss": "packages a checkout needs, installed for this session",
       "effects": {
@@ -799,8 +859,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "from": "package manifests"
+      }
     },
     {
       "id": "processes",
@@ -808,7 +867,10 @@
       "layer": "boot",
       "kind": "activity",
       "origin": "output",
-      "out": null,
+      "by": [
+        "session"
+      ],
+      "restore": [],
       "gloss": "everything running: the session's shell, servers, background jobs",
       "effects": {
         "start": {
@@ -839,8 +901,12 @@
       "layer": "boot",
       "kind": "software",
       "origin": "copy",
-      "by": "the harness",
-      "when": "at boot",
+      "by": [
+        "harness"
+      ],
+      "restore": [
+        "the harness"
+      ],
       "path": "~/.claude/*.sh and *.py",
       "gloss": "stop-hook-git-check.sh and the other scripts the harness writes",
       "effects": {
@@ -864,8 +930,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "from": "the harness"
+      }
     },
     {
       "id": "account-skills",
@@ -873,8 +938,12 @@
       "layer": "boot",
       "kind": "config",
       "origin": "copy",
-      "by": "the harness",
-      "when": "at boot",
+      "by": [
+        "harness"
+      ],
+      "restore": [
+        "uploaded-skills"
+      ],
       "path": "~/.claude/skills",
       "gloss": "your uploaded skills, copied into the machine",
       "effects": {
@@ -898,8 +967,7 @@
           "state": "untouched",
           "label": "untouched"
         }
-      },
-      "from": "uploaded skills"
+      }
     }
   ],
   "events": [
@@ -1392,8 +1460,8 @@
           "label": "kept, unpushed work too"
         },
         "reclaim": {
-          "state": "lost",
-          "label": "gone, unpushed work with it"
+          "state": "new",
+          "label": "cloned again on resume; unpushed edits lost"
         },
         "rebuild": {
           "state": "untouched",
@@ -1422,8 +1490,8 @@
           "label": "kept"
         },
         "reclaim": {
-          "state": "lost",
-          "label": "gone; the resume copies the snapshot's"
+          "state": "new",
+          "label": "copied from the snapshot on resume, then refreshed"
         },
         "rebuild": {
           "state": "untouched",
@@ -1453,8 +1521,8 @@
           "label": "kept"
         },
         "reclaim": {
-          "state": "lost",
-          "label": "gone; the resume starts from the pin"
+          "state": "new",
+          "label": "back to the pin on resume, then refreshed"
         },
         "rebuild": {
           "state": "untouched",
@@ -1484,8 +1552,8 @@
           "label": "synced again at boot"
         },
         "reclaim": {
-          "state": "lost",
-          "label": "gone; synced again on the resume"
+          "state": "new",
+          "label": "synced again on resume"
         },
         "rebuild": {
           "state": "untouched",
@@ -1531,6 +1599,40 @@
       "icon": "ph-terminal-window",
       "word": "session output",
       "gloss": "made by the session; exists nowhere else until copied out"
+    }
+  },
+  "actors": {
+    "you": {
+      "name": "you",
+      "gloss": "you, by editing a setting or pushing from your own machine"
+    },
+    "sessions": {
+      "name": "sessions",
+      "gloss": "any session, by pushing or opening a pull request"
+    },
+    "setup-script": {
+      "name": "setup script",
+      "gloss": ".claude/environment-setup.sh, run once per snapshot build"
+    },
+    "platform": {
+      "name": "platform",
+      "gloss": "Claude Code on the web, which clones the repositories at session start"
+    },
+    "refresher": {
+      "name": "refresher",
+      "gloss": "the plugin's refresh-plugin.sh, run at session start"
+    },
+    "start-scripts": {
+      "name": "start scripts",
+      "gloss": "each checkout's session-*.sh, run at session start"
+    },
+    "harness": {
+      "name": "harness",
+      "gloss": "the Claude Code harness, which writes its files at each boot"
+    },
+    "session": {
+      "name": "the session",
+      "gloss": "the running session: its commands, edits and conversation"
     }
   },
   "kinds": [

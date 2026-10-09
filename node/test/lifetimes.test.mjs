@@ -96,9 +96,10 @@ test('each item names its layer, kind and origin, says where it comes from, and 
     assert.ok(data.kinds.includes(it.kind), `${it.id}: unknown kind ${it.kind}`);
     assert.ok(data.origins[it.origin], `${it.id}: unknown origin ${it.origin}`);
     assert.ok(it.name && it.gloss, `${it.id}: needs a name and a gloss`);
-    if (it.origin === 'source') assert.ok(it.by, `${it.id}: a source names who writes it`);
-    if (it.origin === 'copy') assert.ok(it.from && it.by && it.when, `${it.id}: a copy names its source, its maker and when`);
-    if (it.origin === 'output') assert.ok('out' in it || it.held, `${it.id}: session output says what copies it out (null for nothing) or who holds it`);
+    assert.ok(it.by?.length && it.by.every(a => data.actors[a]), `${it.id}: made by must name known actors`);
+    if (it.origin === 'source') assert.ok(!('restore' in it), `${it.id}: a source is the original, so it names nothing to restore from`);
+    else assert.ok(Array.isArray(it.restore), `${it.id}: a copy or session output lists what restores it, empty for nothing`);
+    if (it.origin === 'copy') assert.ok(it.restore.length, `${it.id}: a copy names the source it is made from`);
     assert.deepEqual(Object.keys(it.effects).sort(), [...eventIds].sort(), `${it.id}: effects do not cover the events`);
     for (const e of Object.values(it.effects)) assert.ok(STATES.includes(e.state) && e.label, `${it.id}: an effect needs a known state and a label`);
   }
