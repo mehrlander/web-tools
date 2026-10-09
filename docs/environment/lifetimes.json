@@ -1,0 +1,842 @@
+{
+  "about": "Data for pages/lifetimes.html: the layers a Claude Code web session runs on, what each event does to each layer, a worked week in one environment, and the copies of one skill. The facts belong to docs/environment/container.md; every effect names the passage it rests on, and node/test/lifetimes.test.mjs holds each citation to a real heading.",
+  "evidence": {
+    "measured": {
+      "glyph": "●",
+      "label": "measured"
+    },
+    "documented": {
+      "glyph": "○",
+      "label": "stated by the platform docs"
+    },
+    "inferred": {
+      "glyph": "◇",
+      "label": "read from the record, not measured"
+    }
+  },
+  "sources": {
+    "environment": {
+      "title": "container.md › Environment",
+      "path": "docs/environment/container.md",
+      "anchor": "environment"
+    },
+    "persistent": {
+      "title": "container.md › Persistent state",
+      "path": "docs/environment/container.md",
+      "anchor": "persistent-state"
+    },
+    "carries": {
+      "title": "container.md › What ~/.claude carries",
+      "path": "docs/environment/container.md",
+      "anchor": "what-claude-carries"
+    },
+    "outlive": {
+      "title": "container.md › A session's own files outlive its VM",
+      "path": "docs/environment/container.md",
+      "anchor": "a-sessions-own-files-outlive-its-vm"
+    },
+    "setup": {
+      "title": "container.md › What the account's setup script must do",
+      "path": "docs/environment/container.md",
+      "anchor": "what-the-accounts-setup-script-must-do"
+    },
+    "concurrent": {
+      "title": "container.md › Concurrent sessions",
+      "path": "docs/environment/container.md",
+      "anchor": "concurrent-sessions"
+    },
+    "transcript": {
+      "title": "container.md › The session transcript",
+      "path": "docs/environment/container.md",
+      "anchor": "the-session-transcript"
+    },
+    "refresher": {
+      "title": "skills/hooks/refresh-plugin.sh",
+      "path": "skills/hooks/refresh-plugin.sh"
+    },
+    "account-skills": {
+      "title": "skills/hooks/account-skills.py",
+      "path": "skills/hooks/account-skills.py"
+    }
+  },
+  "layers": [
+    {
+      "id": "github",
+      "name": "GitHub",
+      "icon": "ph-git-branch",
+      "lifetime": "lasting",
+      "holds": [
+        "main",
+        "branches",
+        "pull requests"
+      ],
+      "span": [
+        {
+          "from": 0.25,
+          "to": "lasting",
+          "style": "solid"
+        }
+      ],
+      "ticks": []
+    },
+    {
+      "id": "settings",
+      "name": "claude.ai settings",
+      "icon": "ph-sliders-horizontal",
+      "lifetime": "until you edit them",
+      "holds": [
+        "setup-script text",
+        "network policy",
+        "environment variables",
+        "preferences",
+        "uploaded skills"
+      ],
+      "span": [
+        {
+          "from": 0.25,
+          "to": "lasting",
+          "style": "solid"
+        }
+      ],
+      "ticks": []
+    },
+    {
+      "id": "snapshot",
+      "name": "Snapshot",
+      "icon": "ph-camera",
+      "lifetime": "about 7 days, or until the settings change",
+      "holds": [
+        "user settings.json",
+        "plugin, pinned",
+        "marketplace clone",
+        "setup record",
+        "installed tools"
+      ],
+      "span": [
+        {
+          "from": 0.25,
+          "to": 168,
+          "style": "solid"
+        }
+      ],
+      "ticks": [
+        {
+          "at": 168,
+          "label": "~7 d",
+          "evidence": "documented",
+          "source": "persistent"
+        }
+      ]
+    },
+    {
+      "id": "conversation",
+      "name": "Conversation",
+      "icon": "ph-chats-circle",
+      "lifetime": "the session's whole life, held by claude.ai",
+      "holds": [
+        "messages",
+        "tool results"
+      ],
+      "span": [
+        {
+          "from": 0.25,
+          "to": 600,
+          "style": "solid"
+        },
+        {
+          "from": 600,
+          "to": "lasting",
+          "style": "dashed"
+        }
+      ],
+      "ticks": [
+        {
+          "at": 600,
+          "label": "back after 25 d, partly",
+          "evidence": "measured",
+          "source": "outlive"
+        }
+      ]
+    },
+    {
+      "id": "disk",
+      "name": "Container disk",
+      "icon": "ph-hard-drives",
+      "lifetime": "until reclaimed after idling",
+      "holds": [
+        "checkouts",
+        "unpushed commits",
+        "/tmp and scratchpad",
+        "agent transcripts",
+        "plugin, refreshed",
+        "installed dependencies"
+      ],
+      "span": [
+        {
+          "from": 0.25,
+          "to": 62,
+          "style": "solid"
+        },
+        {
+          "from": 62,
+          "to": 600,
+          "style": "fade"
+        }
+      ],
+      "ticks": [
+        {
+          "at": 62,
+          "label": "kept at 62 h idle",
+          "evidence": "measured",
+          "source": "outlive"
+        },
+        {
+          "at": 600,
+          "label": "gone at 25 d",
+          "evidence": "measured",
+          "source": "outlive"
+        }
+      ]
+    },
+    {
+      "id": "boot",
+      "name": "Running machine",
+      "icon": "ph-cpu",
+      "lifetime": "until it restarts",
+      "holds": [
+        "processes",
+        "harness hook scripts",
+        "account skills, synced"
+      ],
+      "span": [
+        {
+          "from": 0.25,
+          "to": 50,
+          "style": "dashed"
+        }
+      ],
+      "ticks": [
+        {
+          "at": 50,
+          "label": "restarted inside 50 h",
+          "evidence": "measured",
+          "source": "outlive"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "start",
+      "name": "A session starts",
+      "short": "Start",
+      "icon": "ph-play",
+      "trigger": "you: a new session, or a resume",
+      "effects": {
+        "github": {
+          "state": "used",
+          "label": "repos cloned from it",
+          "evidence": "documented",
+          "source": "environment"
+        },
+        "settings": {
+          "state": "used",
+          "label": "read",
+          "evidence": "documented",
+          "source": "persistent"
+        },
+        "snapshot": {
+          "state": "used",
+          "label": "copied; never written to",
+          "evidence": "measured",
+          "source": "carries"
+        },
+        "conversation": {
+          "state": "new",
+          "label": "begins, or comes back on a resume",
+          "evidence": "documented",
+          "source": "environment"
+        },
+        "disk": {
+          "state": "new",
+          "label": "made from the snapshot; plugin moved to main",
+          "evidence": "measured",
+          "source": "outlive"
+        },
+        "boot": {
+          "state": "new",
+          "label": "starts; start hooks run from the snapshot's plugin pin",
+          "evidence": "inferred",
+          "source": "refresher"
+        }
+      }
+    },
+    {
+      "id": "restart",
+      "name": "The machine restarts",
+      "short": "Restart",
+      "icon": "ph-power",
+      "trigger": "the harness, unannounced",
+      "effects": {
+        "github": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "settings": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "snapshot": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "conversation": {
+          "state": "kept",
+          "label": "kept",
+          "evidence": "measured",
+          "source": "outlive"
+        },
+        "disk": {
+          "state": "kept",
+          "label": "kept, all of it",
+          "evidence": "measured",
+          "source": "outlive"
+        },
+        "boot": {
+          "state": "lost",
+          "label": "processes end; boot files rewritten",
+          "evidence": "measured",
+          "source": "carries"
+        }
+      }
+    },
+    {
+      "id": "reclaim",
+      "name": "The container is reclaimed",
+      "short": "Reclaim",
+      "icon": "ph-recycle",
+      "trigger": "the harness, after 3 days to 3 weeks idle",
+      "effects": {
+        "github": {
+          "state": "untouched",
+          "label": "pushed work is safe here"
+        },
+        "settings": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "snapshot": {
+          "state": "used",
+          "label": "the current one seeds the resume",
+          "evidence": "documented",
+          "source": "environment"
+        },
+        "conversation": {
+          "state": "partial",
+          "label": "back on a resume, maybe partly",
+          "evidence": "measured",
+          "source": "outlive"
+        },
+        "disk": {
+          "state": "lost",
+          "label": "gone, unpushed work with it",
+          "evidence": "measured",
+          "source": "outlive"
+        },
+        "boot": {
+          "state": "lost",
+          "label": "gone",
+          "evidence": "measured",
+          "source": "outlive"
+        }
+      }
+    },
+    {
+      "id": "rebuild",
+      "name": "The snapshot is rebuilt",
+      "short": "Rebuild",
+      "icon": "ph-pencil-simple-line",
+      "trigger": "you edit the settings box, or about 7 days pass",
+      "effects": {
+        "github": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "settings": {
+          "state": "new",
+          "label": "your edit, if there was one",
+          "evidence": "documented",
+          "source": "persistent"
+        },
+        "snapshot": {
+          "state": "new",
+          "label": "replaced; only new containers use it",
+          "evidence": "documented",
+          "source": "persistent"
+        },
+        "conversation": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "disk": {
+          "state": "untouched",
+          "label": "running sessions keep theirs",
+          "evidence": "documented",
+          "source": "persistent"
+        },
+        "boot": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "sync",
+      "name": "Push and fetch",
+      "short": "Push · fetch",
+      "icon": "ph-arrows-down-up",
+      "trigger": "the session",
+      "effects": {
+        "github": {
+          "state": "new",
+          "label": "takes pushes, serves fetches",
+          "evidence": "measured",
+          "source": "concurrent"
+        },
+        "settings": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "snapshot": {
+          "state": "untouched",
+          "label": "never written by a session",
+          "evidence": "measured",
+          "source": "carries"
+        },
+        "conversation": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "disk": {
+          "state": "used",
+          "label": "sends commits, takes updates",
+          "evidence": "measured",
+          "source": "concurrent"
+        },
+        "boot": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    }
+  ],
+  "week": {
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun",
+      "Mon"
+    ],
+    "lanes": [
+      {
+        "id": "github",
+        "name": "GitHub"
+      },
+      {
+        "id": "settings",
+        "name": "Settings"
+      },
+      {
+        "id": "snapshot",
+        "name": "Snapshot"
+      },
+      {
+        "id": "a",
+        "name": "Session A"
+      },
+      {
+        "id": "b",
+        "name": "Session B"
+      },
+      {
+        "id": "c",
+        "name": "Session C"
+      }
+    ],
+    "bars": [
+      {
+        "lane": "github",
+        "from": 0,
+        "to": 8,
+        "kind": "github",
+        "label": "main and branches",
+        "ev": {
+          "sync": "new"
+        }
+      },
+      {
+        "lane": "snapshot",
+        "from": 0,
+        "to": 2,
+        "kind": "snapshot",
+        "label": "S1",
+        "ev": {
+          "start": "used"
+        }
+      },
+      {
+        "lane": "snapshot",
+        "from": 2,
+        "to": 8,
+        "kind": "snapshot",
+        "label": "S2",
+        "ev": {
+          "rebuild": "new",
+          "reclaim": "used",
+          "start": "used"
+        }
+      },
+      {
+        "lane": "a",
+        "from": 0.12,
+        "to": 3.25,
+        "kind": "disk",
+        "label": "A's disk",
+        "ev": {
+          "start": "new",
+          "restart": "kept",
+          "sync": "used"
+        }
+      },
+      {
+        "lane": "a",
+        "from": 3.25,
+        "to": 4.1,
+        "kind": "idle",
+        "label": "idle",
+        "ev": {
+          "reclaim": "lost"
+        }
+      },
+      {
+        "lane": "a",
+        "from": 7.1,
+        "to": 8,
+        "kind": "disk",
+        "label": "fresh disk",
+        "ev": {
+          "start": "new",
+          "reclaim": "new"
+        }
+      },
+      {
+        "lane": "b",
+        "from": 1.15,
+        "to": 3.6,
+        "kind": "disk",
+        "label": "still on S1",
+        "ev": {
+          "start": "new",
+          "rebuild": "kept"
+        }
+      },
+      {
+        "lane": "c",
+        "from": 2.2,
+        "to": 8,
+        "kind": "disk",
+        "label": "S2 from the start",
+        "ev": {
+          "start": "new",
+          "rebuild": "new",
+          "sync": "used"
+        }
+      }
+    ],
+    "marks": [
+      {
+        "lane": "settings",
+        "at": 2,
+        "kind": "edit",
+        "label": "you edit it",
+        "ev": {
+          "rebuild": "new"
+        }
+      },
+      {
+        "lane": "a",
+        "at": 2.75,
+        "kind": "restart",
+        "label": "restart: disk kept",
+        "ev": {
+          "restart": "lost"
+        }
+      },
+      {
+        "lane": "a",
+        "at": 4.1,
+        "kind": "reclaim",
+        "label": "reclaimed",
+        "ev": {
+          "reclaim": "lost"
+        }
+      }
+    ],
+    "links": [
+      {
+        "from": "snapshot",
+        "to": "a",
+        "at": 0.12,
+        "kind": "seed",
+        "ev": {
+          "start": "new"
+        }
+      },
+      {
+        "from": "snapshot",
+        "to": "b",
+        "at": 1.15,
+        "kind": "seed",
+        "ev": {
+          "start": "new"
+        }
+      },
+      {
+        "from": "snapshot",
+        "to": "c",
+        "at": 2.2,
+        "kind": "seed",
+        "ev": {
+          "start": "new",
+          "rebuild": "new"
+        }
+      },
+      {
+        "from": "snapshot",
+        "to": "a",
+        "at": 7.1,
+        "kind": "seed",
+        "ev": {
+          "start": "new",
+          "reclaim": "new"
+        }
+      },
+      {
+        "from": "settings",
+        "to": "snapshot",
+        "at": 2,
+        "kind": "seed",
+        "ev": {
+          "rebuild": "new"
+        }
+      },
+      {
+        "from": "a",
+        "to": "github",
+        "at": 1.6,
+        "kind": "push",
+        "label": "push",
+        "ev": {
+          "sync": "new"
+        }
+      },
+      {
+        "from": "github",
+        "to": "c",
+        "at": 5.6,
+        "kind": "fetch",
+        "label": "fetch",
+        "ev": {
+          "sync": "used"
+        }
+      },
+      {
+        "from": "c",
+        "to": "snapshot",
+        "at": 6.6,
+        "kind": "never",
+        "label": "never",
+        "ev": {
+          "sync": "lost",
+          "rebuild": "lost"
+        }
+      }
+    ]
+  },
+  "copies": [
+    {
+      "id": "upstream",
+      "name": "GitHub",
+      "icon": "ph-git-branch",
+      "layer": "github",
+      "version": "main and every branch",
+      "readBy": "everything below, by copy",
+      "effects": {
+        "start": {
+          "state": "used",
+          "label": "cloned"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "pushed work is safe here"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "new",
+          "label": "takes pushes, serves fetches"
+        }
+      }
+    },
+    {
+      "id": "checkout",
+      "name": "Your checkout",
+      "icon": "ph-folder-simple",
+      "layer": "disk",
+      "version": "the branch checked out",
+      "readBy": "session-*.sh scripts; a repo's own .claude/skills",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "cloned fresh"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept, unpushed work too"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "gone, unpushed work with it"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "sync": {
+          "state": "used",
+          "label": "pushes and fetches"
+        }
+      }
+    },
+    {
+      "id": "marketplace",
+      "name": "Marketplace clone",
+      "icon": "ph-storefront",
+      "layer": "disk",
+      "version": "main at the build, moved to main at start",
+      "readBy": "the plugin refresher",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "copied from the snapshot, then moved to main"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "gone; the resume copies the snapshot's"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched here; newer in the new snapshot"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "source": "refresher"
+    },
+    {
+      "id": "cache",
+      "name": "Plugin cache",
+      "icon": "ph-package",
+      "layer": "disk",
+      "version": "pinned at the build, moved to main at start",
+      "readBy": "/portable:<name> and plugin hooks",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "copied at the pin, then moved to main"
+        },
+        "restart": {
+          "state": "kept",
+          "label": "kept"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "gone; the resume starts from the pin"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "untouched here; the new snapshot pins newer"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "source": "refresher"
+    },
+    {
+      "id": "upload",
+      "name": "claude.ai upload",
+      "icon": "ph-cloud-arrow-up",
+      "layer": "boot",
+      "version": "your upload, synced every boot",
+      "readBy": "anthropic-skills:<name>",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "synced from your account"
+        },
+        "restart": {
+          "state": "new",
+          "label": "synced again at boot"
+        },
+        "reclaim": {
+          "state": "lost",
+          "label": "gone; synced again on the resume"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "not in the snapshot"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      },
+      "source": "carries"
+    }
+  ],
+  "levers": [
+    {
+      "goal": "Change what new sessions start with",
+      "act": "edit the settings box",
+      "layer": "settings"
+    },
+    {
+      "goal": "Change what a running session does",
+      "act": "it pulls: git fetch, or the refresher at start",
+      "layer": "disk"
+    },
+    {
+      "goal": "Keep work",
+      "act": "push it",
+      "layer": "github"
+    }
+  ]
+}
