@@ -73,7 +73,7 @@ function block(src, name) {
 export function readSources(repoRoot) {
   const src = readFileSync(path.join(repoRoot, STATE_VIEW), 'utf8');
   const rows = [];
-  for (const name of ['CACHES', 'OFFLINE', 'TITLES']) {
+  for (const name of ['CACHES', 'OFFLINE', 'TITLES', 'CLOCK']) {
     const text = block(src, name);
     for (const m of text.matchAll(/key: '([a-z]+)',(?:\s*file: '([^']+)',)?/g)) {
       const file = m[2] || '';

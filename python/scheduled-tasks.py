@@ -83,6 +83,9 @@ NOTES_JSONL = "notes/notes.jsonl"
 ENTRY = ".github/workflows/scheduled-tasks.yml"
 RUNS_KEPT = 30
 TICK = dt.timedelta(hours=1)     # the workflow's own period: hourly
+# A run's commits say so: its token commits as the owner, so the subject is the
+# Writes view's only signal (web-tools docs/views/writes.md).
+VIA = " via Actions" if os.environ.get("GITHUB_ACTIONS") == "true" else ""
 USER_AGENT = "mehrlander-web-tools scheduled-tasks (+https://github.com/mehrlander/web-tools)"
 ADDR = re.compile(r"^([\w.-]+/[\w.-]+)@([^:]+):(.+)$")
 TASK_ID = re.compile(r"^[a-z0-9-]+$")
@@ -548,7 +551,7 @@ def main(argv=None):
         if a.state_file:
             Path(a.state_file).write_text(text, encoding="utf-8")
         else:
-            files.write(STORE, STATE_JSON, text, state_sha, "scheduled-tasks: " + "; ".join(summary))
+            files.write(STORE, STATE_JSON, text, state_sha, "scheduled-tasks: " + "; ".join(summary) + VIA)
     if notes_out:
         lines = "".join(json.dumps(n, ensure_ascii=False) + "\n" for n in notes_out)
         if a.notes_file:
@@ -559,7 +562,7 @@ def main(argv=None):
                 cur, sha = files.read_with_sha(STORE, NOTES_JSONL)
                 try:
                     files.write(STORE, NOTES_JSONL, (cur or "") + lines, sha,
-                                f"scheduled-tasks: {len(notes_out)} finding(s)")
+                                f"scheduled-tasks: {len(notes_out)} finding(s)" + VIA)
                     break
                 except urllib.error.HTTPError as e:
                     if e.code not in (409, 422) or attempt == 2:
