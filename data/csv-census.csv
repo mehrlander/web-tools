@@ -10,7 +10,7 @@ data/doc-overlap/docs.csv,183,5,9479,"[""path"",""sha"",""prose_words"",""passag
 data/doc-overlap/gold-set/gold.csv,275,28,121310,"[""id"",""seed"",""stratum"",""stratum_size"",""stratum_seats"",""audit"",""cosine"",""literal"",""short"",""a_path"",""a_start"",""a_end"",""a_line"",""a_hash"",""b_path"",""b_start"",""b_end"",""b_line"",""b_hash"",""reader_relation"",""reader_confidence"",""rationale"",""sent"",""verdict"",""note"",""relation"",""reading"",""consolidate""]"
 data/doc-overlap/matches.csv,970,13,113591,"[""source"",""start"",""end"",""line"",""words"",""hash"",""target"",""target_start"",""target_end"",""target_line"",""target_words"",""target_hash"",""cosine""]"
 data/report-layout/three-way-compare.csv,35,6,1738,"[""group"",""subgroup"",""item"",""version"",""year"",""value""]"
-data/ui-units/coded.csv,65,14,63157,"[""unit"",""frame"",""body"",""reach"",""binding"",""phone"",""built_on"",""hand_evidence"",""form"",""style"",""notes"",""confidence"",""coder"",""at""]"
+data/ui-units/coded.csv,65,14,63227,"[""unit"",""frame"",""body"",""reach"",""binding"",""phone"",""built_on"",""hand_evidence"",""form"",""style"",""notes"",""confidence"",""coder"",""at""]"
 data/ui-units/codes.csv,58,9,8978,"[""axis"",""code"",""name"",""gloss"",""test"",""not_to_confuse"",""kits"",""parts"",""icon""]"
 data/ui-units/dimensions.csv,6,7,880,"[""dimension"",""name"",""holds"",""test"",""per_unit"",""read_from"",""color""]"
 data/ui-units/instances.csv,57,12,9820,"[""unit"",""coded"",""declared"",""kit"",""parts"",""missing"",""stray"",""contract"",""slots"",""slots_missing"",""slots_stray"",""read_at""]"
