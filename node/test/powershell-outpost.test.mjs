@@ -215,7 +215,7 @@ test('a row is validated field by field, and only an explicit kind claims a plac
   assert.throws(() => rowOf({ blobSha: '' }), /blob sha/);
   assert.throws(() => rowOf({ sha256: 'abc' }), /SHA-256/);
   assert.throws(() => rowOf({ match: 'exact' }), /blank for installed/);
-  assert.throws(() => rowOf({ kind: 'verified' }), /exact, line-endings or none/);
+  assert.throws(() => rowOf({ kind: 'verified' }), /exact, line-endings, whitespace or none/);
   assert.throws(() => rowOf({ method: '' }), /method/);
   assert.throws(() => rowOf({ path: 'C:\\Users\\x\\Forms.psm1' }), /repository-relative/);
   assert.equal(rowOf({ note: 'two\nlines, "quoted"' }).note, 'two lines, "quoted"', 'a note is one line');
@@ -252,24 +252,19 @@ function ghStub({ text = CSV_HEAD, sha = sha40('c'), failFirstPut = false, missi
   } };
 }
 
-test('a transfer script places the exact bytes under the manifest root and claims nothing', () => {
-  const bytes = new TextEncoder().encode("\ufeffWrite-Output 'ändrad'\r\n");
-  const base = { path: 'app/Modules/Forms/Forms.psm1', name: 'Forms.psm1', installs: 'Modules/Forms/Forms.psm1', root: 'Documents\\WindowsPowerShell', revision: 'a'.repeat(40), blobSha: 'b'.repeat(40), bytes };
-  const script = K.transferScript(base);
-  assert.match(script, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1'\r$/m);
-  assert.deepEqual(Buffer.from(/FromBase64String\('([^']+)'\)/.exec(script)[1], 'base64'), Buffer.from(bytes), 'the BOM and Unicode survive the round trip');
-  assert.match(script, /^if \(\$blob -eq 'b{40}'\)/m);
-  assert.doesNotMatch(script, /\?\?|&&|\|\|/, 'Windows PowerShell 5.1 only');
-  assert.doesNotMatch(script, /observations|installed/i, 'the script neither names nor writes the ledger');
-  const profile = K.transferScript({ ...base, path: "app/It's.ps1", name: "It's.ps1", installs: '' });
-  assert.match(profile, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\It''s\.ps1'\r$/m);
-  assert.match(profile, /filename; adjust \$dest/);
-  assert.match(K.transferScript({ ...base, root: 'C:\\Tools\\' }), /^\$dest = 'C:\\Tools\\Modules\\Forms\\Forms\.psm1'\r$/m);
-  assert.throws(() => K.transferScript({ ...base, installs: null }), /no outpost destination/);
-  assert.throws(() => K.transferScript({ ...base, blobSha: 'short' }), /Git blob sha/);
-  assert.throws(() => K.transferScript({ ...base, bytes: 'text' }), /source bytes/);
+test('a copy that differs only in whitespace a paste can change records as a match', () => {
+  const github = '\ufeffparam($W)\r\n$x = 1\r\n';
+  assert.ok(K.whitespaceOnly('param($W)  \n$x = 1\n\n', github), 'line endings, spaces at line ends, a BOM, blank lines at the ends');
+  assert.ok(!K.whitespaceOnly('param($W)\n$x  = 1\n', github), 'spacing inside a line is a difference');
+  assert.ok(!K.whitespaceOnly('  param($W)\n$x = 1\n', github), 'indentation is a difference');
+  assert.deepEqual(['exact', 'lineEndingsOnly', 'whitespaceOnly', ''].map(f => K.matchOf(f ? { [f]: true } : {})),
+    ['exact', 'line-endings', 'whitespace', 'none']);
+  const check = { path: 'app/Modules/Forms/Forms.psm1', revision: 'a'.repeat(40), blobSha: 'b'.repeat(40),
+    incomingSha256: 'c'.repeat(64), source: 'paste' };
+  assert.deepEqual([K.fromCheck({ ...check, whitespaceOnly: true })].map(r => [r.kind, r.match])[0], ['verified', 'whitespace']);
+  assert.deepEqual([K.fromCheck(check)].map(r => [r.kind, r.match])[0], ['differs', 'none']);
+  assert.throws(() => K.row({ ...check, kind: 'installed', sha256: 'c'.repeat(64), match: 'whitespace', method: 'reported' }), /blank for installed/);
 });
-
 test('append reads fresh, appends one line, and PUTs against the sha it read', async () => {
   const { gh, calls } = ghStub({ text: CSV_HEAD + 'x,y\n' });
   const r = rowOf({});

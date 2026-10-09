@@ -381,31 +381,16 @@ test('an older file fetch cannot replace the new selection\'s text or busy state
   assert.equal(await data.fetchText(), files[FORMS]);
 });
 
-test('the transfer script carries the exact GitHub bytes to the manifest destination and records nothing', async () => {
-  const written = publications.length;
+test('no action places a file on the work computer: the transfer is a paste into the ISE', async () => {
   data.select(FORMS); await settle();
-  await data.copyTransferScript();
-  const script = clip[clip.length - 1];
-  assert.match(script, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1'\r$/m);
-  const encoded = /FromBase64String\('([^']+)'\)/.exec(script)[1];
-  assert.equal(Buffer.from(encoded, 'base64').toString('utf8'), files[FORMS]);
-  assert.match(script, /WriteAllBytes\(\$dest, \$bytes\)/);
-  assert.ok(script.includes(gitBlob(files[FORMS])), 'the script names the Git blob the placed file should hash to');
-  assert.equal(data.lastTransfer[FORMS], 'script');
-  assert.equal(publications.length, written, 'a transfer script is not a placement');
-  assert.equal(window.PowerShellLanguage.inspect(script).diagnostics.length, 0, 'the script itself uses no PowerShell 7 syntax');
-  const demo = `${P}/app/Scripts/Demo.ps1`, copies = clip.length;
-  data.select(demo); await settle();
-  assert.ok(!data.actionsFor(demo).some(a => a.key === 'script'), 'repository-only material offers no install script');
-  await data.copyTransferScript();
-  assert.equal(clip.length, copies, 'repository-only material has no destination to script');
-  assert.match(data.err, /no outpost destination/);
-  data.err = ''; data.select(FORMS); await settle();
+  assert.equal(data.copyTransferScript, undefined);
+  for (const path of [FORMS, `${P}/app/Scripts/Demo.ps1`])
+    assert.ok(!data.actionsFor(path).some(a => /script/i.test(a.label)), path + ' offers no script');
 });
 
 test('selection changes cancel pending copy, download, and installed-row preparation', async () => {
   const profile = `${P}/app/Profile.ps1`;
-  for (const method of ['copyText', 'downloadText', 'copyTransferScript', 'askInstalled']) {
+  for (const method of ['copyText', 'downloadText', 'askInstalled']) {
     data.select(FORMS);
     const gate = deferred(), copies = clip.length, downloads = saves.length;
     readGate = p => p === FORMS ? gate.promise : undefined;
@@ -546,7 +531,6 @@ test('the Source header carries only Open in deck and Copy; a copy arrives throu
   const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
   assert.deepEqual(labels, ['Open in deck', 'Copy GitHub text']);
   assert.equal(el.querySelector('input[type=file]'), null, 'no file picker: a file is dropped on the zone or the column');
-  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'script' && a.label === 'Copy install script'), 'a file awaiting adoption offers the install script from its status menu');
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
   for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');
   assert.equal(el.querySelector('textarea'), null, 'no paste field: the page-wide paste and the clipboard icon take a copy');
@@ -751,7 +735,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   assert.equal(card().diffRows.filter(r => r.type === 'del').length, 0);
   const rows = card().menuRows().map(r => r.label);
   assert.ok(!rows.includes('Download'), 'no Download in the file menu');
-  for (const label of ['Find', 'Copy GitHub text', 'Copy install script', 'Discard draft…', 'Publish drafts…'])
+  for (const label of ['Find', 'Copy GitHub text', 'Discard draft…', 'Publish drafts…'])
     assert.ok(rows.includes(label), label + ' is in the file menu');
   button('Done editing').click(); await tick(2);
   assert.equal(editor.readOnlyOn, true);
@@ -788,7 +772,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   delete window.PowerShellEditor;
 });
 
-test('a Windows-1252 file opens decoded and read-only, and its transfer script carries the exact bytes', async () => {
+test('a Windows-1252 file opens decoded and read-only', async () => {
   const ANSI = `${P}/app/Modules/Ansi/Ansi.psm1`;
   // "Width)×$(" as Windows PowerShell 5.1 saves it with no BOM: 0xD7 is ×.
   const bytes = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]);
@@ -810,11 +794,6 @@ test('a Windows-1252 file opens decoded and read-only, and its transfer script c
   assert.equal(deck.el.querySelector('[title="Edit"]'), null, 'no Edit on a Windows-1252 file');
   card().setEditing(true);
   assert.equal(card().editing, false);
-  const copies = clip.length;
-  await card().copyScript();
-  assert.equal(clip.length, copies + 1);
-  const encoded = /FromBase64String\('([^']+)'\)/.exec(clip.at(-1))[1];
-  assert.equal(Buffer.from(encoded, 'base64').compare(bytes), 0, 'the script carries the blob bytes, not a UTF-8 re-encoding');
   deck.close(); await settle();
   delete files[ANSI]; advanceHead(); await data.reload(); await settle();
   delete window.PowerShellEditor;
@@ -852,6 +831,31 @@ test('a pasted copy is described by function before any diff, and can open as a 
   delete window.PowerShellEditor;
 });
 
+test('whitespace a paste can change is a match, and a dropped UTF-8 copy with no BOM is flagged', async () => {
+  const CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`, original = files[CTL];
+  files[CTL] = '\ufeffWrite-Host "\u00d7"\r\n$a = 1\r\n';
+  advanceHead(); await data.reload(); await settle();
+  data.select(CTL); await settle();
+  await data.takeCopy(null, 'Write-Host "\u00d7"   \n$a = 1\n\n', 'clip', 'paste'); await settle();
+  assert.equal(data.copyNote.same, true);
+  assert.match(data.copyNote.title, /except for spaces at line ends/);
+  const check = data.latestCheck(CTL);
+  assert.equal(check.whitespaceOnly, true);
+  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Record the match…'));
+  assert.equal(window.PowerShellOutpost.fromCheck(check).kind, 'verified');
+  assert.equal(window.PowerShellOutpost.fromCheck(check).match, 'whitespace');
+  const drop = bytes => ({ name: 'Bookmarks.ps1', arrayBuffer: async () => bytes.buffer });
+  const bomless = new Uint8Array(new TextEncoder().encode('Write-Host "\u00d7"\r\n$a = 1\r\n'));
+  await data.compareFile(drop(bomless), 'drop'); await settle();
+  assert.equal(data.copyNote.same, true, 'a missing BOM is not a difference');
+  assert.ok(data.copyNote.lines.some(l => /without a byte order mark.* 1 non-ASCII character /.test(l)), 'but it is flagged');
+  await data.compareFile(drop(new Uint8Array([0xef, 0xbb, 0xbf, ...bomless])), 'drop'); await settle();
+  assert.ok(!data.copyNote.lines.some(l => /byte order mark/.test(l)), 'a copy saved with its BOM is not flagged');
+  await data.compareFile(drop(new Uint8Array(new TextEncoder().encode('$a = 1\r\n'))), 'drop'); await settle();
+  assert.ok(!data.copyNote.lines.some(l => /byte order mark/.test(l)), 'an ASCII file needs no BOM');
+  files[CTL] = original; advanceHead(); await data.reload(); await settle();
+});
+
 test('the PowerShell outpost view reads a Windows-1252 file as Windows-1252 and says so', async () => {
   const ANSI = `${P}/app/Modules/Ansi/Ansi.psm1`;
   files[ANSI] = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]);
@@ -883,7 +887,7 @@ test('the PowerShell outpost view\'s source pane is the file component: Edit, a 
   assert.equal(editors.length, 1); assert.equal(editors[0].readOnlyOn, true, 'read-only until Edit');
   const bar = () => el.querySelector('[data-file-actions]');
   const labels = [...card().menuRows().map(r => r.label)];
-  for (const gone of ['Copy GitHub text', 'Copy install script']) assert.ok(!labels.includes(gone), gone + ' stays on the PowerShell outpost view, not in the pane menu');
+  assert.ok(!labels.includes('Copy GitHub text'), 'Copy GitHub text stays on the PowerShell outpost view, not in the pane menu');
   bar().querySelector('[title="Edit"]').click(); await tick(2);
   assert.equal(editors[0].readOnlyOn, false);
   assert.ok(bar().querySelector('[title="Undo"]') && bar().querySelector('[title="Done editing"]'));
@@ -962,7 +966,7 @@ test('with the derived tables, application pills narrow the files and each lists
   data.groupBy = 'area';
 });
 
-test('a file whose strict dependency is still pending is scripted and confirmed with it, in one commit', async () => {
+test('a file whose strict dependency is still pending is confirmed with it, in one commit', async () => {
   const written = publications.length;
   data.select(PROFILE); await settle();
   assert.deepEqual([...data.placeable(data.item).map(i => i.path)], [CTL, PROFILE], 'the new form first, then the profile that loads it');
@@ -970,17 +974,12 @@ test('a file whose strict dependency is still pending is scripted and confirmed 
   assert.ok(data.actionsFor(PROFILE).some(a => a.key === 'install' && a.label === 'Confirm all 2 installed…'));
   data.select(CTL); await settle();
   assert.equal(el.querySelector('[data-install-with]').style.display, 'none', 'what loads a file does not ride with it');
-  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Copy install script'), 'alone, it is scripted alone');
+  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Confirm installed…'), 'alone, it is confirmed alone');
   data.select(PROFILE); await settle();
-  await data.copyTransferScript();
-  const script = clip[clip.length - 1];
-  assert.deepEqual([...script.matchAll(/^# Web Tools transfer script for (\S+)/gm)].map(m => m[1]), [CTL, PROFILE]);
-  assert.equal(data.lastTransfer[CTL], 'script'); assert.equal(data.lastTransfer[PROFILE], 'script');
-  assert.equal(publications.length, written, 'a script records nothing');
   await data.askInstalled(); await settle();
   assert.deepEqual([...data.pending.rows.map(r => r.path)], [CTL, PROFILE]);
   assert.equal(data.pending.row.path, PROFILE, 'the selected file\'s row heads the confirm');
-  assert.ok(data.pending.rows.every(r => r.method === 'script'));
+  assert.ok(data.pending.rows.every(r => r.method === 'reported'), 'a placement by hand is reported');
   assert.equal(data.pending.rows[0].local_sha256, createHash('sha256').update(files[CTL], 'utf8').digest('hex'));
   assert.match(el.textContent, /I placed these on the work computer/);
   assert.match(el.textContent, /also removes these files from the pending adoption list/);

@@ -20,6 +20,11 @@ Every outpost is held the same way:
 - **Upkeep:** the cheapest step that brings the outpost back in line. It is
   usually a step only the owner can take, which is why the check names it.
 
+An **outpost protocol** is the terms on which material and readings cross an
+outpost: the `outpost_protocol` column says how material may go in and what is
+ruled out, and `observed`, `reports` and `cadence` say how readings come back.
+Upkeep stays within the outpost protocol.
+
 ## What keeps an outpost current
 
 **Who supplies the observation decides whether the record keeps up.** Where the
