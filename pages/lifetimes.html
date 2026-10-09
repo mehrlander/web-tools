@@ -79,12 +79,9 @@ function lifetimes() {
     get ev() { return this.data?.events.find(e => e.id === this.mode) || null; },
     get position() { return this.modes.findIndex(m => m.id === this.mode) + 1; },
 
-    pick(id) {
-      this.mode = id;
-      const u = new URL(location.href);
-      if (id === 'layers') u.searchParams.delete('event'); else u.searchParams.set('event', id);
-      try { history.replaceState(null, '', u); } catch (e) { /* a sandboxed frame may refuse */ }
-    },
+    // ?event= opens the page on an event; picking one does not rewrite the
+    // address, since a framed render (toss, the app) owns the tab's URL.
+    pick(id) { this.mode = id; },
     step(d) {
       const ids = this.modes.map(m => m.id);
       this.pick(ids[(ids.indexOf(this.mode) + d + ids.length) % ids.length]);
