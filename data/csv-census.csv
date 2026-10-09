@@ -34,7 +34,7 @@ docs/harness.csv,330,8,62475,"[""path"",""role"",""layer"",""lines"",""invocatio
 docs/hook-legs.csv,19,8,3109,"[""order"",""leg"",""gloss"",""watches"",""runs"",""stages"",""mode"",""in_repair""]"
 docs/kits.csv,108,8,14062,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,77,6,20753,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
-docs/map-tabs.csv,23,4,14687,"[""tab"",""gloss"",""refs"",""narrative""]"
+docs/map-tabs.csv,23,4,14690,"[""tab"",""gloss"",""refs"",""narrative""]"
 docs/outposts.csv,4,11,1913,"[""id"",""title"",""gloss"",""declared"",""observed"",""reports"",""cadence"",""check"",""record"",""upkeep"",""doc""]"
 docs/owners.csv,12,4,1893,"[""subject"",""kind"",""applies_to"",""authoritative""]"
 docs/policies.csv,278,12,77072,"[""policy_id"",""topic_id"",""level"",""statement"",""canonical_doc"",""quoted"",""since"",""intent_class"",""origin_session"",""user_prompt_quote"",""enforcement"",""status""]"
