@@ -842,8 +842,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'agents', 'peeves', 'context', 'surfacing']),
-    'Harness exposes Automation, Tests, Skills, Agents, Context, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'scheduled', 'tests', 'skills', 'agents', 'peeves', 'context', 'surfacing']),
+    'Harness exposes Automation, Scheduled, Tests, Skills, Agents, Peeves, Context, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
