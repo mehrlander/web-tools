@@ -1,13 +1,15 @@
 name: Scheduled tasks
 
-# Runs the estate's scheduled tasks that are due, by progressive action
-# (python/scheduled-tasks.py, whose header carries the design). The tasks are
-# rows in web-tools-private's data/design/scheduled-tasks.csv whose entry is
-# this file; each row's `every` is its cadence and its stages are rows in
-# scheduled-task-stages.csv. This workflow fires daily and the script's gate
-# decides, per task, whether anything is due, so a day with nothing due costs a
-# date comparison and writes nothing. Rows whose entry is another file
-# (activity-cache.yml, wsl-fetch.yml, a session hook) keep their own schedules.
+# The estate's one clock (python/scheduled-tasks.py, whose header carries the
+# design). Every task the estate runs on a clock is a row in web-tools-private's
+# data/design/scheduled-tasks.csv, and a row's `schedule`, a cron expression in
+# UTC, is the only place its clock is written: no other workflow here carries a
+# cron (node/test/scheduled-tasks.test.mjs holds that). This workflow fires
+# hourly and starts every hosted row whose schedule has fired since it last ran.
+# A row whose entry is this file runs here, by progressive action, its stages
+# rows in scheduled-task-stages.csv; a row whose entry is another workflow
+# (activity-cache.yml, wsl-fetch.yml) is started with workflow_dispatch. An hour
+# with nothing due costs a few reads and writes nothing.
 #
 # WHY IT LIVES IN THE PUBLIC REPO: activity-cache.yml's reason. Actions minutes
 # are free on a public repository and billed on a private one. The registry, the
@@ -16,10 +18,11 @@ name: Scheduled tasks
 # logs counts and never content.
 
 on:
-  # Daily, off the hour: scheduled runs queue behind everyone else's :00, and
+  # Hourly, off the hour: scheduled runs queue behind everyone else's :00, and
   # GitHub starts them late anyway (10 to 17 minutes measured on 2026-10-09).
+  # So a task runs within the hour its schedule names, never at the minute.
   schedule:
-    - cron: '41 13 * * *'
+    - cron: '7 * * * *'
 
   workflow_dispatch:
     inputs:
@@ -28,18 +31,22 @@ on:
         required: false
         default: ''
       force:
-        description: 'Run past the gate even when the task is not yet due (an off task stays off).'
+        description: 'Run or dispatch past the gate even when the task is not due (an off task stays off).'
         type: boolean
         required: false
         default: false
       dry_run:
-        description: 'Run every stage and write nothing.'
+        description: 'Run every stage, write nothing and dispatch nothing.'
         type: boolean
         required: false
         default: false
 
+# actions: write lets GITHUB_TOKEN read workflow runs and start the workflows
+# the registry schedules. A dispatch made with GITHUB_TOKEN does start a run,
+# the documented exception to "a GITHUB_TOKEN event starts no workflow".
 permissions:
   contents: read
+  actions: write
 
 # One run at a time: two runs would race to write the same state file.
 concurrency:
@@ -63,6 +70,7 @@ jobs:
           # them: two tokens, because one would carry write access everywhere.
           GH_TOKEN: ${{ secrets.ESTATE_CRAWL_TOKEN }}
           GH_WRITE_TOKEN: ${{ secrets.REGISTRY_WRITE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
           # Untrusted input reaches the script through the environment and is
           # validated there, never interpolated into this shell.
           INPUT_TASK: ${{ inputs.task }}
