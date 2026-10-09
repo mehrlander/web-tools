@@ -12,7 +12,8 @@
 //
 // Third-party libraries through jsDelivr's /npm/ and /combine/ routes are the
 // house stack and are not what this is about. Dated prose (docs, tracker,
-// archive, dump) may still name the old route; code may not.
+// archive, dump) may still name the old route. The frozen Excel source-cache
+// is also historical evidence, retained byte-for-byte for reproduction.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,15 +23,33 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const self = path.relative(repoRoot, fileURLToPath(import.meta.url));
+const self = path.relative(repoRoot, fileURLToPath(import.meta.url)).split(path.sep).join('/');
 
 const CODE = /\.(m?js|cjs|html|py|sh)$/;
 const EXEMPT = /^(archive|dump|tracker)\//;
+const FROZEN_EXCEL_SOURCES = 'research/excel-validation-2026-09-24/source/technical/source-cache/';
 const ROUTES = ['cdn.jsdelivr.net/gh/', 'data.jsdelivr.com', 'purge.jsdelivr.net'];
+
+const shouldScan = f => CODE.test(f) && !EXEMPT.test(f) &&
+  !f.startsWith(FROZEN_EXCEL_SOURCES) && f !== self;
+
+test('the frozen Excel source-cache exemption leaves active code and research probes covered', () => {
+  assert.equal(shouldScan(`${FROZEN_EXCEL_SOURCES}viewer.js`), false);
+  assert.equal(shouldScan(`${FROZEN_EXCEL_SOURCES}pr791-review/lib__kits__xlsx.js`), false);
+  for (const f of [
+    'lib/kits/xlsx.js',
+    'pages/data-view.html',
+    'node/render/cdn.mjs',
+    'docs/examples/preview.html',
+    'research/excel-validation-2026-09-24/source/technical/scripts/browser-probe.mjs',
+    'research/excel-validation-2026-09-24/source/technical/source-cache-new/viewer.js',
+    'docs/research/another-run/source/technical/source-cache/viewer.js',
+  ]) assert.equal(shouldScan(f), true, f);
+});
 
 test('no code reaches a repo through jsDelivr /gh/, its data API, or its purge', () => {
   const files = execFileSync('git', ['ls-files'], { cwd: repoRoot, encoding: 'utf8' })
-    .split('\n').filter(f => CODE.test(f) && !EXEMPT.test(f) && f !== self);
+    .split('\n').filter(shouldScan);
   const hits = [];
   for (const f of files) {
     let text;

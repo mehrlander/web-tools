@@ -1,0 +1,121 @@
+{
+  "dataKind": "synthetic controlled inputs",
+  "dimensions": {
+    "width": 700,
+    "height": 400
+  },
+  "font": {
+    "name": "Arial",
+    "size": 11
+  },
+  "charts": [
+    {
+      "sheet": "Column",
+      "type": "bar",
+      "title": "Column values",
+      "headers": [
+        "Category",
+        "Value"
+      ],
+      "rows": [
+        [
+          "Alpha",
+          8
+        ],
+        [
+          "Beta",
+          0
+        ],
+        [
+          "Gamma",
+          -4
+        ],
+        [
+          "Delta",
+          12
+        ]
+      ],
+      "yAxis": {
+        "min": -5,
+        "max": 15,
+        "majorUnit": 5
+      },
+      "blankPolicy": "gap"
+    },
+    {
+      "sheet": "Line",
+      "type": "line",
+      "title": "Line with blank February",
+      "headers": [
+        "Month",
+        "Value"
+      ],
+      "rows": [
+        [
+          "Jan",
+          2
+        ],
+        [
+          "Feb",
+          null
+        ],
+        [
+          "Mar",
+          7
+        ],
+        [
+          "Apr",
+          3
+        ],
+        [
+          "May",
+          9
+        ]
+      ],
+      "yAxis": {
+        "min": 0,
+        "max": 10,
+        "majorUnit": 2
+      },
+      "blankPolicy": "gap"
+    },
+    {
+      "sheet": "Scatter",
+      "type": "scatter",
+      "title": "Scatter coordinates",
+      "headers": [
+        "X",
+        "Y"
+      ],
+      "rows": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          10,
+          8
+        ]
+      ],
+      "xAxis": {
+        "min": 0,
+        "max": 10,
+        "majorUnit": 2
+      },
+      "yAxis": {
+        "min": 0,
+        "max": 10,
+        "majorUnit": 2
+      },
+      "blankPolicy": "gap"
+    }
+  ]
+}

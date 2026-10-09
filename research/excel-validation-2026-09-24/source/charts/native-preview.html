@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Native Excel chart captures</title>
+  <style>
+    :root { color-scheme: light; font-family: "Segoe UI", system-ui, sans-serif; color: #19362d; background: #f2f5f3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 48px 28px; }
+    .eyebrow { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .13em; font-weight: 700; color: #50665d; }
+    h1 { margin: 0 0 12px; font-size: clamp(28px, 4vw, 40px); font-weight: 650; letter-spacing: -.025em; }
+    .intro { margin: 0; max-width: 760px; color: #4b5f56; line-height: 1.6; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: end; margin: 32px 0 0; }
+    [role="tablist"] { display: flex; flex-wrap: wrap; gap: 6px; }
+    [role="tab"] { border: 1px solid #bdcec3; border-radius: 7px 7px 0 0; padding: 11px 22px; font: inherit; font-weight: 600; color: #2e4c3e; background: #e8eee9; cursor: pointer; }
+    [role="tab"][aria-selected="true"] { color: white; background: #176a48; border-color: #176a48; }
+    :focus-visible { outline: 3px solid #bd651c; outline-offset: 4px; }
+    .download { padding: 10px 0; color: #12593c; font-weight: 600; text-underline-offset: 4px; }
+    .panel { background: white; border: 1px solid #cdd9d0; border-radius: 0 8px 8px 8px; overflow: hidden; }
+    .panel[hidden] { display: none; }
+    figure { margin: 0; padding: 28px; }
+    .capture { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+    figcaption { border-top: 1px solid #e1e8e2; margin-top: 24px; padding-top: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: #52645b; font-size: 13px; }
+    .provenance { margin: 22px 0 0; font-size: 13px; color: #52645b; line-height: 1.6; }
+    .hash { display: block; font-family: Consolas, monospace; overflow-wrap: anywhere; font-size: 12px; margin-top: 5px; }
+    .note { margin: 20px 0 0; color: #607169; font-size: 13px; line-height: 1.6; }
+    @media (max-width: 600px) { main { padding: 28px 16px; } figure { padding: 12px; } .toolbar { gap: 8px; } [role="tab"] { padding: 10px 16px; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Local validation · Diagnostic preview</p>
+  <h1>Native Excel chart captures</h1>
+  <p class="intro">Explore three chart images exported by Microsoft Excel. This page checks how native captures reach the browser and provides the corresponding workbook.</p>
+  <div class="toolbar">
+    <div role="tablist" aria-label="Chart sheet">
+      <button id="tab-column" role="tab" aria-controls="panel-column" aria-selected="true" tabindex="0">Column</button>
+      <button id="tab-line" role="tab" aria-controls="panel-line" aria-selected="false" tabindex="-1">Line</button>
+      <button id="tab-scatter" role="tab" aria-controls="panel-scatter" aria-selected="false" tabindex="-1">Scatter</button>
+    </div>
+    <a id="download-workbook" class="download" href="chart-cases.xlsx" download="chart-cases.xlsx">Download workbook (.xlsx)</a>
+  </div>
+  <section id="panel-column" class="panel" role="tabpanel" aria-labelledby="tab-column" tabindex="0">
+    <figure><img class="capture" src="excel-column.png" alt="Native Excel capture of the Column chart"><figcaption><span>Native Excel capture · Column sheet</span><span>excel-column.png</span></figcaption></figure>
+  </section>
+  <section id="panel-line" class="panel" role="tabpanel" aria-labelledby="tab-line" tabindex="0" hidden>
+    <figure><img class="capture" src="excel-line.png" alt="Native Excel capture of the Line chart"><figcaption><span>Native Excel capture · Line sheet</span><span>excel-line.png</span></figcaption></figure>
+  </section>
+  <section id="panel-scatter" class="panel" role="tabpanel" aria-labelledby="tab-scatter" tabindex="0" hidden>
+    <figure><img class="capture" src="excel-scatter.png" alt="Native Excel capture of the Scatter chart"><figcaption><span>Native Excel capture · Scatter sheet</span><span>excel-scatter.png</span></figcaption></figure>
+  </section>
+  <p class="provenance">Workbook: <strong>chart-cases.xlsx</strong><br>SHA-256 of the workbook served by this page:<output id="workbook-hash" class="hash" aria-live="polite">Calculating…</output></p>
+  <p class="note">These are Excel’s own images. This diagnostic establishes native-image delivery; comparison with an independent browser renderer is a separate validation. Images fit the available width while preserving their aspect ratio.</p>
+</main>
+<script>
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function selectTab(tab, focus = false) {
+    for (const item of tabs) {
+      const selected = item === tab;
+      item.setAttribute('aria-selected', String(selected));
+      item.tabIndex = selected ? 0 : -1;
+      document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+    }
+    if (focus) tab.focus();
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = tabs.length - 1;
+      if (next !== undefined) { event.preventDefault(); selectTab(tabs[next], true); }
+    });
+  });
+  (async () => {
+    const output = document.getElementById('workbook-hash');
+    const download = document.getElementById('download-workbook');
+    const nativeWorkbookSha256 = '96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326';
+    download.removeAttribute('href');
+    download.setAttribute('aria-disabled', 'true');
+    try {
+      const response = await fetch('chart-cases.xlsx', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Workbook request failed (${response.status})`);
+      const digest = await crypto.subtle.digest('SHA-256', await response.arrayBuffer());
+      output.value = [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+      if (output.value !== nativeWorkbookSha256) throw new Error('The workbook has changed since Excel exported these images. Download is disabled until the preview is regenerated.');
+      download.href = 'chart-cases.xlsx';
+      download.removeAttribute('aria-disabled');
+      output.dataset.state = 'ready';
+    } catch (error) {
+      output.value = error.message.includes('changed since') ? error.message : 'Unable to verify the workbook. Serve this folder over local HTTP to enable download.';
+      output.dataset.state = 'error';
+    }
+  })();
+</script>
+</body>
+</html>

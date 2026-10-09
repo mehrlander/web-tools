@@ -1,0 +1,407 @@
+{
+  "originalTaskRoot": "C:\\Users\\mehrl\\Documents\\Codex\\2026-09-24\\tak",
+  "sourceRevision": "5109699ac5eea3ca510947859ff9e5cb3980676e",
+  "scope": "Source text present at documentation time; the index does not assert every script was executed unchanged. Third-party cache files are distinct from pinned application source.",
+  "files": [
+    {
+      "originalTaskRelativePath": "work/native-test/browser-probe.mjs",
+      "snapshotBundleRelativePath": "technical/scripts/browser-probe.mjs",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 7929,
+      "sha256": "2a12e1977454c81174c24570683f3ce72fe3308ad702b32bf94b34c43cd90c34"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/browser-roundtrip.mjs",
+      "snapshotBundleRelativePath": "technical/scripts/browser-roundtrip.mjs",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 6620,
+      "sha256": "98925d453f393d86fc84f34e9facc5122d1e90f9e53fdb4f9a3cd96b50f0f3a2"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/browser-chart-probe.mjs",
+      "snapshotBundleRelativePath": "technical/scripts/browser-chart-probe.mjs",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 5921,
+      "sha256": "0f0aa4613c783675cdafe8f119fadd8eb1d07d263a74992c50c7002ed169c1ba"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/inspect-package.py",
+      "snapshotBundleRelativePath": "technical/scripts/inspect-package.py",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 1740,
+      "sha256": "e073ca3e665178d68fe52186d444c75299475e8934952129e5734cfc3714125c"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/native-preview-test.mjs",
+      "snapshotBundleRelativePath": "technical/scripts/native-preview-test.mjs",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 11826,
+      "sha256": "b44a7528c8cf5aaf4a9e7145366dde55c0d36d81ba43756cd899a1e110a6a1f2"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/serve-native-preview.mjs",
+      "snapshotBundleRelativePath": "technical/scripts/serve-native-preview.mjs",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 1238,
+      "sha256": "92d501de107d93723ad00d11f5aa52222e07649aea2d3f23db6caa25fae83220"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/measure-column.py",
+      "snapshotBundleRelativePath": "technical/scripts/measure-column.py",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 3604,
+      "sha256": "7df177f7f0c21c9bf26ece70d20b3cf3fc065beb286aee94055c35aca54283d8"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/inspect-chart-pixels.py",
+      "snapshotBundleRelativePath": "technical/scripts/inspect-chart-pixels.py",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 778,
+      "sha256": "132b8286c267cea98abd7217db9fcf421e6450fb2240da39ab075143b8be8673"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/chart-fixture/builder.mjs",
+      "snapshotBundleRelativePath": "technical/scripts/chart-fixture/builder.mjs",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 6290,
+      "sha256": "5a17f1a613bd8e5f5aa500f124c80b31c84eb06ecf98adcb9e6e111dd1f13627"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/chart-fixture/verify-package.py",
+      "snapshotBundleRelativePath": "technical/scripts/chart-fixture/verify-package.py",
+      "role": "authored experiment script; replay constraints in REPRODUCTION.md",
+      "bytes": 7205,
+      "sha256": "8514c83735c2d9f9b924f54bf1ed3dd3628f4025d824d5c3df1f9a0de2d30573"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/alpine-bundle.js",
+      "snapshotBundleRelativePath": "technical/source-cache/alpine-bundle.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 20657,
+      "sha256": "e9bd7bb5597d1ca54592a7003c2c45825c3a739f90ba8e7b9b7d3ab0c0b8dc32"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/alpine.js",
+      "snapshotBundleRelativePath": "technical/source-cache/alpine.js",
+      "role": "cached third-party dependency bytes used by the browser probes",
+      "bytes": 55891,
+      "sha256": "232519394c6c8fdba6f362b1d9da16106db513cdbf899011f00daab4051df31c"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/assistant-mark.js",
+      "snapshotBundleRelativePath": "technical/source-cache/assistant-mark.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 6184,
+      "sha256": "6727de907011acbe5af607b293ee5b7c3120de4f434469140418bada51324257"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/claude-mark.js",
+      "snapshotBundleRelativePath": "technical/source-cache/claude-mark.js.snapshot",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 3183,
+      "sha256": "5830ae10d22d83a630769467ed68265973bfe9182f177bfc725815b5a2450f33"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/collapse.js",
+      "snapshotBundleRelativePath": "technical/source-cache/collapse.js",
+      "role": "cached third-party dependency bytes used by the browser probes",
+      "bytes": 1448,
+      "sha256": "c7661d4e2cf0465e3cd693190debb5f592ac72dcc4cfe650581273767558b27b"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/console.js",
+      "snapshotBundleRelativePath": "technical/source-cache/console.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 4634,
+      "sha256": "e61eed35e34aef42cfcde2f605cbcba5a0f6c83bd883529d0a1adf7686bd509a"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/data-payload.js",
+      "snapshotBundleRelativePath": "technical/source-cache/data-payload.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 8237,
+      "sha256": "72cd86a80324013951e61250c686943b9531a3b8bc627d0d3cf01cf22f708306"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/data-view.html",
+      "snapshotBundleRelativePath": "technical/source-cache/data-view.html",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 21120,
+      "sha256": "0f98d29dd0aca971c00dc24519bdca73f7010d0ebf48df0b9c34cfd6430c3e18"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/fab.js",
+      "snapshotBundleRelativePath": "technical/source-cache/fab.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 457315,
+      "sha256": "4119014065a127e70383e1f380acd7796e484d05a731e2fe4cee5ba575b6bcd3"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/gh-api.js",
+      "snapshotBundleRelativePath": "technical/source-cache/gh-api.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 20416,
+      "sha256": "2ce215590c2756f72f0b032cad05d5ede8017d56429bc0d92af25db241446946"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/gh-auth.js",
+      "snapshotBundleRelativePath": "technical/source-cache/gh-auth.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 7951,
+      "sha256": "83cbbd951ab9628326432fc9426bce2bd6ee33bf869cecb86ea708d88787f102"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/gh-boot.js",
+      "snapshotBundleRelativePath": "technical/source-cache/gh-boot.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 26888,
+      "sha256": "25f1fdf6c6292e7daf09b3c84f74ac1998ac5c76d2f5a8e2ba60b660355d7de8"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/gh-fetch.js",
+      "snapshotBundleRelativePath": "technical/source-cache/gh-fetch.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 31792,
+      "sha256": "d39b03a380a8be04f61de907849a89d9b888b9d504d64b57ee12fa8b96707108"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/note.js",
+      "snapshotBundleRelativePath": "technical/source-cache/note.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 17311,
+      "sha256": "cd5c421a123208bb4cade6bb2f58468fd71be44b71ae3fd925ba4efe7a2be06c"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/path-picker.js",
+      "snapshotBundleRelativePath": "technical/source-cache/path-picker.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 26065,
+      "sha256": "6ae6deb7bac23a5935aaed29302a8a21edcf5bf65ac4d1ea645671f75b559499"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/repo-address.js",
+      "snapshotBundleRelativePath": "technical/source-cache/repo-address.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 7889,
+      "sha256": "5f840b5f622571093ad96f27bd612d3b88d0ae93ef6905d8da890fbcd47d28d0"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/source-peek.js",
+      "snapshotBundleRelativePath": "technical/source-cache/source-peek.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 27670,
+      "sha256": "03c42afa33a6b6196ad2fc12ccae89820e3fbc17fddd774137d0964a618e33d7"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/styles.css",
+      "snapshotBundleRelativePath": "technical/source-cache/styles.css",
+      "role": "cached third-party dependency bytes used by the browser probes",
+      "bytes": 1278202,
+      "sha256": "9fc22add9cc7246611e588ed1689eb461353d551b8eb7e269f53c3dbd2941a6a"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/theme-runtime.js",
+      "snapshotBundleRelativePath": "technical/source-cache/theme-runtime.js",
+      "role": "cached third-party dependency bytes used by the browser probes",
+      "bytes": 282666,
+      "sha256": "5b2c0567e16f4eed5bc65e0f24a5f0a79a4758bfb0e5e8c8a2dc6ed4d8268b41"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/traffic.js",
+      "snapshotBundleRelativePath": "technical/source-cache/traffic.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 19254,
+      "sha256": "64bba4771ec78857955ef5b6b33f0790d45c21c7298d82cc682caf7be0c7eef9"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/url-params.js",
+      "snapshotBundleRelativePath": "technical/source-cache/url-params.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 7213,
+      "sha256": "0454e48c196cf14ed22393277ea421614cbfaad8d010565161b195a60c4aeb02"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/vanilla-bundle.js",
+      "snapshotBundleRelativePath": "technical/source-cache/vanilla-bundle.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 9817,
+      "sha256": "0d9fc244f97ddab42eb8cb9334b2db2b6060beef7747684b15062279a9b42bbf"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/viewer.js",
+      "snapshotBundleRelativePath": "technical/source-cache/viewer.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 241720,
+      "sha256": "ae5ddbfbdefc516a5fa3c1221b7bc0600e94f41baef22e8eb0ac4f46cb7f29cd"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/xlsx.js",
+      "snapshotBundleRelativePath": "technical/source-cache/xlsx.js",
+      "role": "cached pinned application source used by the browser probes",
+      "bytes": 122935,
+      "sha256": "3c2b07a46ee2b4a08fbb550050c891e6428d636e400c7b3a5205f4d8a66cbc1c"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/pr791-verify-table-styles.mjs",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-verify-table-styles.mjs",
+      "role": "repository visual-test reference; not reported as executed unchanged",
+      "bytes": 7680,
+      "sha256": "89c23267f8826c347c95796cd0a1c584e80de5420b4606f05dc1b6db8ab6fccd"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/package-inventory.json",
+      "snapshotBundleRelativePath": "technical/history/package-inventory.json",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 2674,
+      "sha256": "e94bca30f0fce84754f815e2b50c53b7f9077bd1e8b3faad0f9b490ba25d7d14"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/browser-failure.json",
+      "snapshotBundleRelativePath": "technical/history/browser-failure.json",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 5044,
+      "sha256": "e4e316d5ac0fa7d8292b2ade1bf4a7494d856ef84b473cbe1ec454a5ffcec20f"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/browser-evidence.json",
+      "snapshotBundleRelativePath": "technical/history/browser-evidence.json",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 12571,
+      "sha256": "6525ab2b864880cb8926bbf4405256a8586541495f7b2ccd6191ad114b140290"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/browser-initial-snapshot.txt",
+      "snapshotBundleRelativePath": "technical/history/browser-initial-snapshot.txt",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 3498,
+      "sha256": "1bb2d51265d94e1a375b6cba084590eb97551e718f8fa30b1de0ec6b1c65b483"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/chart-fixture/specification.json",
+      "snapshotBundleRelativePath": "technical/history/chart-fixture/specification.json",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 1794,
+      "sha256": "0d844c81e008c5c56aaa26d4dcec47e1d16fbc96941c2323f489ab6b32add511"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/chart-fixture/artifact-tool-attempt.xlsx",
+      "snapshotBundleRelativePath": "technical/history/chart-fixture/artifact-tool-attempt.xlsx",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 14009,
+      "sha256": "67778f7a2bfbf589be116f1c57f1c8aaf6e05358db8a674d2094651b68a25297"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/chart-fixture/artifact-tool-attempt.xlsx.inspect.ndjson",
+      "snapshotBundleRelativePath": "technical/history/chart-fixture/artifact-tool-attempt.xlsx.inspect.ndjson",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 11725,
+      "sha256": "a625c76de54dee27fe7ac5e7d41747641c142eb1cc45990d901298a092ef8194"
+    },
+    {
+      "originalTaskRelativePath": "work/native-test/chart-fixture/artifact-attempt-evidence.json",
+      "snapshotBundleRelativePath": "technical/history/chart-fixture/artifact-attempt-evidence.json",
+      "role": "historical diagnostic or limited writer attempt",
+      "bytes": 2243,
+      "sha256": "57a70eb50b29eed1c91fa5803b2e330d6fa19c24c01b0bda860960c358d370fe"
+    },
+    {
+      "originalTaskRelativePath": "work/skill-validation/capabilities.json",
+      "snapshotBundleRelativePath": "technical/history/capabilities.json",
+      "role": "read-only capability probe result; discovery is not successful native execution",
+      "bytes": 2130,
+      "sha256": "026afe081d14414f7140f04a3a47cfa210e66ca73ae2238c045a99940c7036da"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/pages__pivot-table.html.patch",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/pages__pivot-table.html.patch",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 33622,
+      "sha256": "2cd26443d820caf414d5a9028412adca90d08d381df3c996cf4299d9be05758a"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/package.json",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/package.json",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 6976,
+      "sha256": "1476992a9b659da189f68fd2db18cfc886a2b14cecb628eec18af0804b8e6636"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/lib__kits__xlsx.js.patch",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/lib__kits__xlsx.js.patch",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 9687,
+      "sha256": "ebf5c21db8bc4873990cdccf29e10d0fd596b811183ce07a13e98d3c99dab277"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/lib__kits__xlsx.js",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/lib__kits__xlsx.js",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 122936,
+      "sha256": "0099186a2113a9b8c36251512da3dc9d73d1a74ac3758293c21c823662829366"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/lib__alpineComponents__viewer.js.patch",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/lib__alpineComponents__viewer.js.patch",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 10175,
+      "sha256": "c7816552a7de333ed682e778be84a1ec5bba392ab7759486108514bd93fc24a1"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/lib__alpineComponents__viewer.js",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/lib__alpineComponents__viewer.js",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 240109,
+      "sha256": "40ad954c25743d655f09182ea927a45c4fe0688499251b85b9b411505a318b56"
+    },
+    {
+      "originalTaskRelativePath": "work/pr791/CLAUDE.md",
+      "snapshotBundleRelativePath": "technical/source-cache/pr791-review/CLAUDE.md",
+      "role": "initial PR review source/reference snapshot; not a new execution result",
+      "bytes": 10594,
+      "sha256": "c30a0dcee805f1d10c072ea6588e981267881d54cd7e69dc6db03414feb0d930"
+    },
+    {
+      "originalTaskRelativePath": "outputs/validate-excel/SKILL.md",
+      "snapshotBundleRelativePath": "technical/skill/SKILL.md",
+      "role": "validate-excel skill snapshot",
+      "bytes": 8245,
+      "sha256": "770ac65b0268815fe3fbe01c1beac6607dfb5b1f9b683d33b158867611a71347"
+    },
+    {
+      "originalTaskRelativePath": "outputs/validate-excel/agents/openai.yaml",
+      "snapshotBundleRelativePath": "technical/skill/agents/openai.yaml",
+      "role": "validate-excel skill snapshot",
+      "bytes": 259,
+      "sha256": "c862043609a47d21d564bd23e9c0b321c25cb0a8f08ecf6924da726f02d4d8e0"
+    },
+    {
+      "originalTaskRelativePath": "outputs/validate-excel/references/local-evidence.md",
+      "snapshotBundleRelativePath": "technical/skill/references/local-evidence.md",
+      "role": "validate-excel skill snapshot",
+      "bytes": 11220,
+      "sha256": "872b785f630d0ac081a8061990f706d4fb2b7c2893743244f8ba40aed8ad3155"
+    },
+    {
+      "originalTaskRelativePath": "outputs/validate-excel/references/validation-cases.md",
+      "snapshotBundleRelativePath": "technical/skill/references/validation-cases.md",
+      "role": "validate-excel skill snapshot",
+      "bytes": 6354,
+      "sha256": "d231210edeffc5625f71efbc53ca0cc4eaef80f0c56c583d447d37483710d931"
+    },
+    {
+      "originalTaskRelativePath": "outputs/validate-excel/references/windows-routes.md",
+      "snapshotBundleRelativePath": "technical/skill/references/windows-routes.md",
+      "role": "validate-excel skill snapshot",
+      "bytes": 6065,
+      "sha256": "8de1be5fdff981ccb856f1e78ff3f6a07b317f52929ab3368f53a135e32426b1"
+    },
+    {
+      "originalTaskRelativePath": "outputs/validate-excel/scripts/Probe-ExcelCapabilities.ps1",
+      "snapshotBundleRelativePath": "technical/skill/scripts/Probe-ExcelCapabilities.ps1",
+      "role": "validate-excel skill snapshot",
+      "bytes": 3759,
+      "sha256": "afa10bf93c818d287804053941eca94a155706e48251b4c1f20472e438afc2ef"
+    }
+  ],
+  "publicationNote": "The cached claude-mark.js source is named claude-mark.js.snapshot in the repository to distinguish historical source from a second active implementation. Its bytes are unchanged; originalTaskRelativePath gives its replay filename. The downloadable original archive retains the original names and metadata."
+}
