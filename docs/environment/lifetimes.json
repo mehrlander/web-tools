@@ -1,5 +1,5 @@
 {
-  "about": "Data for pages/lifetimes.html: the layers a Claude Code web session runs on, what each event does to each layer, a worked week in one environment, and the copies of one skill. The facts belong to docs/environment/container.md; every effect names the passage it rests on, and node/test/lifetimes.test.mjs holds each citation to a real heading.",
+  "about": "Data for the Map view's Lifetimes tab (lib/alpineComponents/map.js): the layers a Claude Code web session runs on, what each event does to each layer, a worked week in one environment, and the copies of one skill. The facts belong to docs/environment/container.md; every effect names the passage it rests on, and node/test/lifetimes.test.mjs holds each citation to a real heading.",
   "evidence": {
     "measured": {
       "glyph": "●",
@@ -186,13 +186,13 @@
       "ticks": [
         {
           "at": 62,
-          "label": "kept at 62 h idle",
+          "label": "kept, 62 h idle",
           "evidence": "measured",
           "source": "outlive"
         },
         {
           "at": 600,
-          "label": "gone at 25 d",
+          "label": "gone, 25 d idle",
           "evidence": "measured",
           "source": "outlive"
         }

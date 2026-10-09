@@ -133,7 +133,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`testing.md`](environment/testing.md) *(measured)* — how to test HTML and JS in the sandbox
 - [`antigravity-local.md`](environment/antigravity-local.md) *(measured, orphan)* — the Antigravity local host environment: daemon runtime, SQLite storage, and brain workspace
 - [`harness-comparison.md`](environment/harness-comparison.md) *(measured, orphan)* — structural comparison of the Claude Code cloud harness and Antigravity local harness
-- [`lifetimes.json`](environment/lifetimes.json) *(measured)* — the Lifetimes page's data: what each event does to each layer a web session runs on, every effect citing container.md
+- [`lifetimes.json`](environment/lifetimes.json) *(measured)* — the Map view's Lifetimes data: what each event does to each layer a web session runs on, every effect citing container.md
 
 ## docs/favicons/
 

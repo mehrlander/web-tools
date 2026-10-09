@@ -32,7 +32,6 @@ the link-dense text twin of the visual index above.
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
-| `lifetimes` | Lifetimes | [view](https://mehrlander.github.io/web-tools/pages/lifetimes.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/lifetimes.html) |
 | `links` | Links | [view](https://mehrlander.github.io/web-tools/pages/links.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/links.html) |
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |

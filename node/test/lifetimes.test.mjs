@@ -1,15 +1,16 @@
-// pages/lifetimes.html and its data, docs/environment/lifetimes.json.
+// The Map view's Lifetimes tab (lib/alpineComponents/map.js) and its data,
+// docs/environment/lifetimes.json.
 //
-// The page draws what docs/environment/container.md establishes: the layers a
+// The tab draws what docs/environment/container.md establishes: the layers a
 // web session runs on and what each event does to each of them. The facts are
 // owned there, not here, so the data cites a passage for every effect and this
-// check holds three things a reader of the page cannot see for themselves:
+// check holds three things a reader of the tab cannot see for themselves:
 //
 //   every citation lands on a heading that exists, so a renamed section in
-//   container.md breaks this rather than leaving the page pointing at nothing;
+//   container.md breaks this rather than leaving the tab pointing at nothing;
 //   the effect table is complete, one effect per event per layer and per copy,
 //   so a new layer or event cannot ship half-drawn;
-//   every state the data names is one the page knows how to colour, since an
+//   every state the data names is one the tab knows how to colour, since an
 //   unknown state renders as a band with no tone and no error.
 
 import test from 'node:test';
@@ -20,9 +21,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const DATA_PATH = 'docs/environment/lifetimes.json';
-const PAGE_PATH = 'pages/lifetimes.html';
+const VIEW_PATH = 'lib/alpineComponents/map.js';
 const data = JSON.parse(readFileSync(path.join(ROOT, DATA_PATH), 'utf8'));
-const page = readFileSync(path.join(ROOT, PAGE_PATH), 'utf8');
+const view = readFileSync(path.join(ROOT, VIEW_PATH), 'utf8');
 
 const STATES = ['kept', 'partial', 'lost', 'new', 'used', 'untouched'];
 const layerIds = data.layers.map(l => l.id);
@@ -47,10 +48,10 @@ const checkCited = (where, e) => {
   assert.ok(data.sources[e.source], `${where}: evidence without a known source (${e.source})`);
 };
 
-test('the page reads this data file and colours every state it names', () => {
-  assert.ok(page.includes(`'../${DATA_PATH}'`), `${PAGE_PATH} no longer fetches ${DATA_PATH}`);
+test('the tab reads this data file and colours every state it names', () => {
+  assert.ok(view.includes(`const LT_DATA = '${DATA_PATH}'`), `${VIEW_PATH} no longer reads ${DATA_PATH}`);
   for (const st of STATES) {
-    assert.match(page, new RegExp(`\\b${st}:\\s*\\{ icon:`), `${PAGE_PATH} has no STATE entry for ${st}`);
+    assert.match(view, new RegExp(`\\b${st}:\\s*\\{ icon:`), `${VIEW_PATH} has no LT_STATE entry for ${st}`);
   }
 });
 
