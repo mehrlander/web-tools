@@ -44,6 +44,7 @@ upstream-skills,status,studied,Studied,"read, and discussed in notes addressed t
 upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the plugin never ships"
 upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
 upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
+upstream-skills,status,dependency,Third-party dependency,"installed from its author through a separately attributed marketplace entry"
 upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"
 agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name"
 agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows"

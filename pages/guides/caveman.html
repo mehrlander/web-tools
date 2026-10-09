@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caveman: input, decisions, output</title>
+<style>
+:root{color-scheme:light;--ink:#203a32;--muted:#59695f;--line:#cbd4cb;--paper:#f5f5ef;--accent:#285d48}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:18px/1.6 system-ui,sans-serif;min-height:100dvh}
+header{padding:18px 4vw;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;background:var(--paper)}
+h1{font-size:24px;margin:0;font-weight:650;letter-spacing:-.03em}a{color:var(--accent);text-underline-offset:4px}.meta{font:13px/1.5 ui-monospace,monospace;color:var(--muted)}
+header .meta{flex:1}nav{display:flex;gap:4px;padding:12px 4vw;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:1;flex-wrap:wrap}
+button{font:inherit;color:inherit;border:0;padding:9px 17px;background:transparent;cursor:pointer;border-radius:3px}button[aria-current="step"]{background:var(--accent);color:white}button:hover{outline:1px solid var(--accent)}button:focus-visible,a:focus-visible{outline:3px solid #41866b;outline-offset:3px}
+main{padding:28px 4vw 48px}h2{font-size:20px;font-weight:600;margin:0}section[hidden]{display:none}.bar{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border-top:1px solid var(--line);padding:18px 16px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{font:13px/1.5 ui-monospace,monospace;color:var(--muted);padding-top:10px;padding-bottom:10px}th:first-child{width:18%}td:first-child{font:14px/1.8 ui-monospace,monospace}td{font-size:18px}mark{background:#dbe9da;color:inherit;padding:1px 3px}.status{display:block;font:12px/1.6 ui-monospace,monospace;margin-top:7px;color:var(--muted)}
+dl{margin:0;display:grid;grid-template-columns:24% 1fr}dt,dd{margin:0;padding:18px 16px;border-top:1px solid var(--line)}dt{font:14px/1.8 ui-monospace,monospace}footer{padding:16px 4vw;border-top:1px solid var(--line);display:flex;gap:20px;flex-wrap:wrap}
+@media(max-width:650px){header,nav,main,footer{padding-left:18px;padding-right:18px}header .meta{flex-basis:100%}button{padding:9px 12px}table,tbody,tr,td{display:block}thead{display:none}tr{border-top:1px solid var(--line);padding:14px 0}td{border:0;padding:4px 0}td[data-label]::before{content:attr(data-label);display:block;font:12px/1.6 ui-monospace,monospace;color:var(--muted)}td:first-child{font-size:14px;font-weight:650}dl{grid-template-columns:1fr}dd{border:0;padding-top:0}dt{padding-bottom:4px}h1{font-size:23px}}
+</style>
+</head>
+<body>
+<header><h1>Caveman</h1><span class="meta">Worked example · column descriptions · clip</span><a href="https://github.com/mehrlander/web-tools/blob/main/skills/caveman/SKILL.md">Skill</a></header>
+<nav aria-label="Artifacts"><button aria-current="step" data-step="0">1 · Input</button><button data-step="1">2 · Decisions</button><button data-step="2">3 · Output</button></nav>
+<main>
+<section id="input"><div class="bar"><h2>Original descriptions</h2><a download="caveman-input.csv" id="input-download">input.csv ↓</a></div><table><thead><tr><th>Key</th><th>Description</th></tr></thead><tbody id="input-rows"></tbody></table></section>
+<section id="decisions" hidden><div class="bar"><h2>Decisions before rewriting</h2><a download="caveman-decisions.json" id="decisions-download">decisions.json ↓</a></div><dl id="decision-rows"></dl></section>
+<section id="output" hidden><div class="bar"><h2>Original → rewrite</h2><span class="meta">4 rows · original order · keys preserved</span><a download="caveman-output.csv" id="output-download">output.csv ↓</a></div><table><thead><tr><th>Key</th><th>Original</th><th>Rewrite</th></tr></thead><tbody id="output-rows"></tbody></table></section>
+</main>
+<footer class="meta"><span>Sample artifacts from the skill’s worked example</span><a href="https://mehrlander.github.io/web-tools/pages/guides/page-measures.html">Screenshot review walkthrough ↗</a></footer>
+<script>
+// This is the skill's published example, not a claim that a model was run here.
+const rows = [
+  {key:'fund_600',original:'This column holds the fund number for the account.',rewrite:'Fund number for the account.',note:''},
+  {key:'ea_code',original:'The EA code that is associated with the transaction, if there is one.',rewrite:'EA code for the transaction, where one exists.',note:'Condition preserved'},
+  {key:'amount',original:'Dollar amount.',rewrite:'Dollar amount.',note:'Unchanged'},
+  {key:'posted_at',original:'This is the date on which the entry was posted to AFRS.',rewrite:'Date the entry posted to AFRS.',note:'AFRS preserved'}
+];
+const decisions = {
+  'Unit':'Column descriptions; keep every input row and key.',
+  'Construction':'Noun phrase.',
+  'Shared context':'Drop “this column holds”; the header already says these are column descriptions.',
+  'Word band':'Three to eight words.',
+  'Protected meaning':'Keep the condition on ea_code and the name AFRS.',
+  'Already concise':'Return amount unchanged.'
+};
+function cell(text,label){const td=document.createElement('td');td.textContent=text;if(label)td.dataset.label=label;return td;}
+for(const row of rows){
+  const input=document.createElement('tr');input.append(cell(row.key),cell(row.original));document.querySelector('#input-rows').append(input);
+  const output=document.createElement('tr');const rewrite=cell(row.rewrite,'Rewrite');
+  if(row.note){const note=document.createElement('span');note.className='status';note.textContent=row.note;rewrite.append(note);}
+  output.append(cell(row.key),cell(row.original,'Original'),rewrite);document.querySelector('#output-rows').append(output);
+}
+for(const [key,value] of Object.entries(decisions)){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=key;dd.textContent=value;document.querySelector('#decision-rows').append(dt,dd);}
+function csv(records,columns){const quote=v=>'"'+String(v).replaceAll('"','""')+'"';return [columns,...records.map(r=>columns.map(c=>r[c]))].map(r=>r.map(quote).join(',')).join('\r\n')+'\r\n';}
+const artifacts={input:[csv(rows.map(r=>({key:r.key,description:r.original})),['key','description']),'text/csv'],decisions:[JSON.stringify(decisions,null,2)+'\n','application/json'],output:[csv(rows,['key','original','rewrite','note']),'text/csv']};
+for(const [key,[text,type]] of Object.entries(artifacts))document.getElementById(key+'-download').href=URL.createObjectURL(new Blob([text],{type}));
+const sections=[...document.querySelectorAll('main>section')],buttons=[...document.querySelectorAll('[data-step]')];
+function select(index){sections.forEach((section,i)=>section.hidden=i!==index);buttons.forEach((button,i)=>i===index?button.setAttribute('aria-current','step'):button.removeAttribute('aria-current'));}
+buttons.forEach((button,i)=>button.addEventListener('click',()=>select(i)));
+</script>
+</body>
+</html>

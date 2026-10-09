@@ -66,3 +66,5 @@ For a family of surfaces (an app's tabs), shoot each and run one blind reader
 per shot, in parallel. Convergence is the signal: a defect independent readers
 hit unprompted outranks any single reader's list. Verify a finding against the
 pixels, and the source where it implicates code, before it travels.
+
+[Worked run: page measures and two readers](https://mehrlander.github.io/web-tools/pages/guides/page-measures.html).

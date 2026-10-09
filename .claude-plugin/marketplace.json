@@ -3,7 +3,7 @@
   "owner": {
     "name": "mehrlander"
   },
-  "description": "The portable set from mehrlander/web-tools as one installable plugin: the working-conventions loader and its surfacing contract, the tracker operator, the Web Tools app instrument, the HTML house style, and the rest of the skill library.",
+  "description": "Skills created or adapted here in portable, with separately attributed Anthropic dependencies fetched from their official source.",
   "plugins": [
     {
       "name": "portable",
@@ -37,12 +37,9 @@
         "./atomic-decomposition",
         "./bake-page",
         "./caveman",
-        "./consolidate-memory",
         "./html-style",
-        "./doc-coauthoring",
         "./doc-craft",
         "./document-visual-mapping",
-        "./docx",
         "./excel-com",
         "./inspire-excellence",
         "./ios-clipboard",
@@ -50,26 +47,20 @@
         "./mobile",
         "./office-scripts-shape-ui",
         "./outlining",
-        "./pdf",
         "./phosphor-icons",
         "./power-query",
         "./powershell-ise-theming",
-        "./pptx",
         "./question-margin",
         "./peeves",
         "./reduction-panel",
         "./review-panel",
         "./reorient-me",
         "./report-distiller",
-        "./safe-html-templating",
-        "./schedule",
         "./screenshot-review",
         "./session-review",
-        "./setup-cowork",
         "./shape-text",
         "./shortcut-links",
         "./show-diff",
-        "./skill-creator",
         "./skill-prefs",
         "./source-anchored-writing",
         "./source-anchored-xlsx",
@@ -77,8 +68,7 @@
         "./succinct-js-idioms",
         "./succinct-text",
         "./userscripts",
-        "./windows-powershell",
-        "./xlsx"
+        "./windows-powershell"
       ],
       "agents": [
         "./agents/house-style-critic.md",
@@ -106,6 +96,50 @@
         "tailwind",
         "alpine",
         "html-artifact"
+      ],
+      "dependencies": [
+        "third-party-documents",
+        "third-party-authoring"
+      ]
+    },
+    {
+      "name": "third-party-documents",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills",
+        "sha": "683bc88e56f3e09ba94f7055977f3d3aa499f202"
+      },
+      "strict": false,
+      "author": {
+        "name": "Anthropic"
+      },
+      "homepage": "https://github.com/anthropics/skills",
+      "description": "Third-party: Anthropic document skills, loaded unchanged from the official repository.",
+      "skills": [
+        "./docx",
+        "./pdf",
+        "./pptx",
+        "./xlsx"
+      ]
+    },
+    {
+      "name": "third-party-authoring",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/skills.git",
+        "path": "skills",
+        "sha": "683bc88e56f3e09ba94f7055977f3d3aa499f202"
+      },
+      "strict": false,
+      "author": {
+        "name": "Anthropic"
+      },
+      "homepage": "https://github.com/anthropics/skills",
+      "description": "Third-party: Anthropic skill creation and document coauthoring, loaded unchanged from the official repository.",
+      "skills": [
+        "./skill-creator",
+        "./doc-coauthoring"
       ]
     }
   ]
