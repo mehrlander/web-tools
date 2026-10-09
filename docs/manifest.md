@@ -178,17 +178,16 @@ the same overflow. The sidebar's Links block is the phone's route to the rail an
 the wide reading of it on desktop. A `snippet` item is skipped in both: a
 `javascript:` URL is something to copy, not somewhere to go.
 
-**Projects: the defining convention.** A workspace running a tracker (a
-`tracker/` directory holding `tasks/`, per [TRACKER.md](TRACKER.md)) is a
-project. A tracker at the repo root marks the repo itself and earns no row, so
-"repo or project" needs no separate registry of what counts. That convention is
-also why the task-board button needs no declaration: the same layout puts the
-generated rollup at `<workspace>/tracker/board.md`, so the row derives it.
+**Projects.** A project gathers related work that needs an ongoing home.
+Its declaration in `projects` makes it visible in the sidebar and Map. A tracker
+is optional: `tracker: false` declares a project with no board. When present,
+the conventional board is `<workspace>/tracker/board.md`; a custom `tracker`
+path names another board. A repo-root tracker belongs to the repo itself.
+The shared placement rule is in [CONSTELLATION.md](CONSTELLATION.md#projects-and-research).
 
 The field is declarative rather than discovered live (walking a tree for
-`tracker/` dirs is API-costly), which makes it generatable: home's
-`tools/generate-tracker-registry.py` syncs it from the trackers it finds, so the
-manifest cannot drift from the ground truth. All three lists hang their rows off
+`tracker/` dirs is API-costly). A generator may discover projects from
+trackers, but must retain explicitly declared projects without trackers. All three lists hang their rows off
 the same 1 px rule, placed on the centre of the glyph above them, which is what
 says "these belong to that" without spending an indent. The estate sidebar reads
 the field from the config cache it already holds, so those rows cost no extra
@@ -202,6 +201,22 @@ while the repo's own sidebar shows it as soon as you browse the branch.
 conventions and `sessions` by a plugin hook outside any page. The registry's
 `consumer` column carries that distinction for every field, which is what the
 prose kept losing by noting it in passing on two entries.
+
+## Research declarations
+
+`research` is an optional array of retained research accounts. Each entry has a
+repository-relative Markdown `path`, a short `label`, and `kind` set to `probe`
+or `exploration`. The label names the inquiry; the account holds the findings
+and links to its materials. A package's `README.md` represents its folder.
+An individual Markdown report represents itself. Do not declare research under
+`docs/`. Existing research elsewhere can be declared without renaming it.
+
+Map reads the selected hub revision and the other repositories' configuration
+cache. Projects are matched by the longest declared project path containing
+the account. A repository-level account needs no artificial project. Docs
+excludes declared research, plus folders named `research` or `probes`, from
+the cross-repository Markdown listing. The crawl remains an inventory of
+Markdown bytes; classification belongs to the view, not the file extension.
 
 ## One membership list
 
@@ -546,7 +561,7 @@ token.
   section under the repo-level fields. It reconciles two facts that are easy to
   let drift apart. A project is **declared** by an entry in that array, which is
   what the sidebar, the Repos card, and the project view all read. A project is
-  **detected** by the defining convention, a folder carrying `tracker/tasks/`,
+  **detected** by a folder carrying `tracker/tasks/`. Tracker discovery is optional,
   which is what **Scan** reads out of a recursive tree fetch (a button, not a
   load-time read: it is a whole-tree request and the form is useful without it).
   The section shows one list of both, so the two disagreements are visible where
@@ -580,6 +595,6 @@ token.
   Note, since it is prose about the repo; it renders monospaced when its value
   is a `.md` path, which is the one hint that the field takes both forms.
 - **Scope of the form**: every manifest field now has a control except a page's
-  `icon`, `thumb`, `project`, and `viewLabel`, and the `links` board path. Those
+  `icon`, `thumb`, `project`, and `viewLabel`, the `links` board path, and the `research` declarations. Those
   are preserved on save and edited in the JSON pane. An icon picker is still the
   open piece.

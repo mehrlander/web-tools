@@ -1,0 +1,368 @@
+{
+  "file": "chart-cases.xlsx",
+  "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+  "bytes": 13637,
+  "writer": {
+    "name": "XlsxWriter",
+    "version": "3.2.9",
+    "runtimeBundle": "26.904.11930"
+  },
+  "purpose": "Synthetic, controlled Excel/browser chart comparison. No business data or formulas.",
+  "expected": {
+    "dataKind": "synthetic controlled inputs",
+    "dimensions": {
+      "width": 700,
+      "height": 400
+    },
+    "font": {
+      "name": "Arial",
+      "size": 11
+    },
+    "charts": [
+      {
+        "sheet": "Column",
+        "type": "bar",
+        "title": "Column values",
+        "headers": [
+          "Category",
+          "Value"
+        ],
+        "rows": [
+          [
+            "Alpha",
+            8
+          ],
+          [
+            "Beta",
+            0
+          ],
+          [
+            "Gamma",
+            -4
+          ],
+          [
+            "Delta",
+            12
+          ]
+        ],
+        "yAxis": {
+          "min": -5,
+          "max": 15,
+          "majorUnit": 5
+        },
+        "blankPolicy": "gap"
+      },
+      {
+        "sheet": "Line",
+        "type": "line",
+        "title": "Line with blank February",
+        "headers": [
+          "Month",
+          "Value"
+        ],
+        "rows": [
+          [
+            "Jan",
+            2
+          ],
+          [
+            "Feb",
+            null
+          ],
+          [
+            "Mar",
+            7
+          ],
+          [
+            "Apr",
+            3
+          ],
+          [
+            "May",
+            9
+          ]
+        ],
+        "yAxis": {
+          "min": 0,
+          "max": 10,
+          "majorUnit": 2
+        },
+        "blankPolicy": "gap"
+      },
+      {
+        "sheet": "Scatter",
+        "type": "scatter",
+        "title": "Scatter coordinates",
+        "headers": [
+          "X",
+          "Y"
+        ],
+        "rows": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            10,
+            8
+          ]
+        ],
+        "xAxis": {
+          "min": 0,
+          "max": 10,
+          "majorUnit": 2
+        },
+        "yAxis": {
+          "min": 0,
+          "max": 10,
+          "majorUnit": 2
+        },
+        "blankPolicy": "gap"
+      }
+    ]
+  },
+  "packageVerification": {
+    "nativeChartCount": 3,
+    "embeddedImageCount": 0,
+    "vbaParts": [],
+    "externalLinkParts": [],
+    "worksheetFormulaCount": 0,
+    "lineB5HasNumericValue": false,
+    "charts": [
+      {
+        "part": "xl/charts/chart1.xml",
+        "type": "barChart",
+        "axes": [
+          {
+            "position": {
+              "val": "l"
+            },
+            "minimum": {
+              "val": "-5"
+            },
+            "maximum": {
+              "val": "15"
+            },
+            "majorUnit": {
+              "val": "5"
+            }
+          }
+        ],
+        "blankPolicy": null,
+        "series": [
+          {
+            "references": [
+              "Column!$A$4:$A$7",
+              "Column!$B$4:$B$7"
+            ],
+            "numericCaches": [
+              [
+                {
+                  "index": 0,
+                  "value": "8"
+                },
+                {
+                  "index": 1,
+                  "value": "0"
+                },
+                {
+                  "index": 2,
+                  "value": "-4"
+                },
+                {
+                  "index": 3,
+                  "value": "12"
+                }
+              ]
+            ],
+            "marker": null
+          }
+        ]
+      },
+      {
+        "part": "xl/charts/chart2.xml",
+        "type": "lineChart",
+        "axes": [
+          {
+            "position": {
+              "val": "l"
+            },
+            "minimum": {
+              "val": "0"
+            },
+            "maximum": {
+              "val": "10"
+            },
+            "majorUnit": {
+              "val": "2"
+            }
+          }
+        ],
+        "blankPolicy": null,
+        "series": [
+          {
+            "references": [
+              "Line!$A$4:$A$8",
+              "Line!$B$4:$B$8"
+            ],
+            "numericCaches": [
+              [
+                {
+                  "index": 0,
+                  "value": "2"
+                },
+                {
+                  "index": 1,
+                  "value": "0"
+                },
+                {
+                  "index": 2,
+                  "value": "7"
+                },
+                {
+                  "index": 3,
+                  "value": "3"
+                },
+                {
+                  "index": 4,
+                  "value": "9"
+                }
+              ]
+            ],
+            "marker": {
+              "val": "circle"
+            }
+          }
+        ]
+      },
+      {
+        "part": "xl/charts/chart3.xml",
+        "type": "scatterChart",
+        "axes": [
+          {
+            "position": {
+              "val": "b"
+            },
+            "minimum": {
+              "val": "0"
+            },
+            "maximum": {
+              "val": "10"
+            },
+            "majorUnit": {
+              "val": "2"
+            }
+          },
+          {
+            "position": {
+              "val": "l"
+            },
+            "minimum": {
+              "val": "0"
+            },
+            "maximum": {
+              "val": "10"
+            },
+            "majorUnit": {
+              "val": "2"
+            }
+          }
+        ],
+        "blankPolicy": null,
+        "series": [
+          {
+            "references": [
+              "Scatter!$A$4:$A$7",
+              "Scatter!$B$4:$B$7"
+            ],
+            "numericCaches": [
+              [
+                {
+                  "index": 0,
+                  "value": "0"
+                },
+                {
+                  "index": 1,
+                  "value": "1"
+                },
+                {
+                  "index": 2,
+                  "value": "4"
+                },
+                {
+                  "index": 3,
+                  "value": "10"
+                }
+              ],
+              [
+                {
+                  "index": 0,
+                  "value": "0"
+                },
+                {
+                  "index": 1,
+                  "value": "4"
+                },
+                {
+                  "index": 2,
+                  "value": "1"
+                },
+                {
+                  "index": 3,
+                  "value": "8"
+                }
+              ]
+            ],
+            "marker": {
+              "val": "circle"
+            }
+          }
+        ]
+      }
+    ],
+    "drawingDimensions": [
+      {
+        "part": "xl/drawings/drawing1.xml",
+        "fromRow": 1,
+        "fromColumn": 4,
+        "toRow": 21,
+        "toColumn": 14,
+        "widthPx": 700.0,
+        "heightPx": 400.0,
+        "dimensionMethod": "two-cell anchors, explicit 20px rows and Excel 7px maximum-digit column-width conversion at 96dpi"
+      },
+      {
+        "part": "xl/drawings/drawing2.xml",
+        "fromRow": 1,
+        "fromColumn": 4,
+        "toRow": 21,
+        "toColumn": 14,
+        "widthPx": 700.0,
+        "heightPx": 400.0,
+        "dimensionMethod": "two-cell anchors, explicit 20px rows and Excel 7px maximum-digit column-width conversion at 96dpi"
+      },
+      {
+        "part": "xl/drawings/drawing3.xml",
+        "fromRow": 1,
+        "fromColumn": 4,
+        "toRow": 21,
+        "toColumn": 14,
+        "widthPx": 700.0,
+        "heightPx": 400.0,
+        "dimensionMethod": "two-cell anchors, explicit 20px rows and Excel 7px maximum-digit column-width conversion at 96dpi"
+      }
+    ],
+    "blankPolicySerialization": "Line B5 has no numeric value or formula. XlsxWriter serializes its February chart-cache point as 0 and omits the default dispBlanksAs element. Native Excel was observed to show a gap at February; the source blank and native rendering must be distinguished from the cache value.",
+    "blankPolicyDocumentation": "https://xlsxwriter.readthedocs.io/chart.html#chart-show-blanks-as"
+  },
+  "authoringRouteNote": "Artifact Tool 2.8.59 was tried first; the supplied documentation/help did not expose explicit axis minimum/maximum or a line blank policy. The limited attempt is retained under work/native-test/chart-fixture/artifact-tool-attempt.xlsx. XlsxWriter was used for the final controlled fixture; no OOXML was patched.",
+  "validationStatus": "Package semantics checked. Native Excel rendering is being checked separately by the root task."
+}
