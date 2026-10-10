@@ -13,7 +13,16 @@
   "checking": {
     "files": "data/checks-reading/2026-09-05-reading.csv",
     "comparisons": "data/checks-reading/explanations.csv",
-    "as_of": "2026-09-05"
+    "as_of": "2026-09-05",
+    "execution": [
+      {
+        "workflow": ".github/workflows/test.yml",
+        "job": "test",
+        "step": "Run the suite",
+        "purpose": "Exercise the app and libraries, and check that committed generated files still match their sources. The same npm test command is available to every assistant and developer.",
+        "limits": "The suite does not launch a browser or native Excel. Browser checks have separate commands in the inventory below. A passing GitHub run does not establish Windows compatibility; read its skipped checks and the commit it tested."
+      }
+    ]
   },
   "pins": [
     "pages",

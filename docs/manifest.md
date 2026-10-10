@@ -242,6 +242,11 @@ in `order` on the membership, not in a second flag.
 
 ## Config cache (`state/configs.json`)
 
+Map Tests uses this cache to discover repositories' current execution
+declarations and dated check readings. The declaring repository owns both;
+their placement and the distinction between a workflow and its results are
+explained in [the Map's Tests account](views/map.md#tests-what-checks-protect-and-how-they-run).
+
 With a token, the app keeps a **derived** cache of the account's repo configs
 in the registry repo, built by `lib/kits/repo-config-cache.js`. `refreshConfigCache`
 enumerates the account's repos (`gh.repos()`) and folds each one's
