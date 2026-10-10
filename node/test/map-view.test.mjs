@@ -842,8 +842,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
-    'Harness exposes Automation, Tests, Skills, Agents, Context, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'scheduled', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
+    'Harness exposes Automation, Scheduled, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -1429,4 +1429,62 @@ test('a rejected or applied proposal leaves the row count and the paragraph', ()
     data.retireDeckProposal(e, el, true);
     assert.equal(data.docPending.get('docs/x.md').staged, 2, 'an Undo puts it back');
   } finally { data.docPending = null; }
+});
+
+// The Scheduled tab's editor opens a schedule in the pickers it fits, writes
+// the cron the pickers name, and saves by rewriting one row's two cells in the
+// registry file as read, guarded by its sha; a row that moved is refused. The
+// suite runs in UTC, so a local hour is a UTC hour here.
+test('a schedule edit rewrites one registry row, guarded by the sha it read', async () => {
+  const realGH = window.GH, realToken = window.TOKEN;
+  const file = 'id,keeps,watches,runner,entry,schedule,with,authority,budget,findings_to,status\n'
+    + 'statutes-rcw,"The copies, kept",w,hosted,mehrlander/web-tools@main:.github/workflows/scheduled-tasks.yml,0 14 * * 1,,observe,25,notes,dry\n'
+    + 'wsl-fetch,k,w,hosted,mehrlander/web-tools@main:.github/workflows/wsl-fetch.yml,0 9 1 * *,biennium=;full=true,ingest,,none,on\n';
+  const puts = [];
+  window.GH = class {
+    constructor(o) { this.o = o; }
+    async get() { return { text: file, sha: 'blob7' }; }
+    async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c1' } }; }
+  };
+  window.GH.FRESH = { cache: 'no-store' };
+  window.TOKEN = 'gh_test';
+  try {
+    const t = window.Csv.rows(file)[0];
+    data.schedEditOpen(t);
+    assert.deepEqual([data.schedEdit.freq, data.schedEdit.dow, data.schedEdit.hour, data.schedEdit.status], ['weekly', 1, 14, 'dry'],
+      'a weekly cron opens in the weekly pickers, at its own day and hour');
+    assert.equal(data.schedEditCron(), '0 14 * * 1', 'opening rewrites nothing');
+    Object.assign(data.schedEdit, { dow: 2, hour: 9, status: 'on' });
+    assert.equal(data.schedEditCron(), '0 9 * * 2');
+    assert.match(data.schedEditPreview().text, /^Weekly, Tuesdays at 09:00 UTC \(0 9 \* \* 2\); next .*, on\.$/);
+    await data.schedSave(t);
+    assert.equal(data.schedEdit, null, 'a saved edit closes');
+    assert.equal(puts.length, 1);
+    const body = puts[0].body;
+    assert.equal(puts[0].p, 'contents/data/design/scheduled-tasks.csv');
+    assert.equal(body.sha, 'blob7');
+    assert.equal(body.branch, 'main');
+    assert.equal(body.message, 'Schedule statutes-rcw: Weekly, Tuesdays at 09:00 UTC, on via Web Tools');
+    const lines = Buffer.from(body.content, 'base64').toString('utf8').split('\n');
+    const before = file.split('\n');
+    assert.equal(lines[1], before[1].replace('0 14 * * 1', '0 9 * * 2').replace(/dry$/, 'on'), 'two cells change, the quoted one stays quoted');
+    assert.deepEqual([lines[0], lines[2], lines[3]], [before[0], before[2], before[3]], 'every other line is untouched');
+    // The tab now holds what it wrote, and the file still holds what it read,
+    // so a second save from this tab is refused rather than overwriting.
+    data.schedEditOpen(t);
+    data.schedEdit.freq = 'hourly';
+    await data.schedSave(t);
+    assert.match(data.schedEdit.err, /the row changed since this tab read it/);
+    assert.equal(puts.length, 1);
+    // A cron the pickers cannot express opens as cron.
+    data.schedEditOpen({ ...t, schedule: '*/15 3-5 * * *' });
+    assert.equal(data.schedEdit.freq, 'cron');
+    assert.equal(data.schedEditCron(), '*/15 3-5 * * *');
+    data.schedEdit.cron = '7d';
+    assert.equal(data.schedEditPreview().warn, true);
+  } finally {
+    data.schedEdit = null;
+    window.GH = realGH;
+    if (realToken === undefined) delete window.TOKEN; else window.TOKEN = realToken;
+  }
 });

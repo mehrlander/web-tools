@@ -10,7 +10,7 @@ always in context. A name is enough to make a session ask.
 
 **Two fields in this estate are called `venue`, and they name different
 things.** Here and in the tracker's `venue:` tag, a venue is an agent channel
-(`cli`, `cowork`, `dispatch`, `runner`). An errand's `run.venue` is the machine a
+(`cli`, `cowork`, `dispatch`, `daemon`). An errand's `run.venue` is the machine a
 person runs code on (`personal-laptop`, `work-machine`, `browser`; see
 [run-methods.csv](run-methods.csv)). The two value lists do not overlap.
 
@@ -34,8 +34,8 @@ going unstated.
 | **Claude Code CLI, local** | yes | the machine and everything on it; peers via cross-session messaging | running it in a terminal |
 | **Cowork, desktop** | yes | local files, apps, connectors, plugins | working in the desktop app |
 | **Computer-use agents, home laptop** (Claude Dispatch, Gemini in Antigravity, Codex) | yes: laptop awake, app open | the laptop's apps and browser, by computer use | a `computer-use` errand: its prompt goes to whichever agent is at hand, and to the person when none can do it |
-| **GitHub Actions, hosted runner** | no | open egress, CPU only, no GPU, no local files | `workflow_dispatch`, `repository_dispatch`, `schedule`, `push` |
-| **GitHub Actions, self-hosted runner** | no | whatever that machine has, including a local model | the same four triggers; the job queues while the machine sleeps |
+| **GitHub Actions, hosted runner** | no | open egress, CPU only, no GPU, no local files | `workflow_dispatch`, `repository_dispatch`, `push`; on a schedule, a row in web-tools-private's `data/design/scheduled-tasks.csv` |
+| **Gemini home laptop daemon** | no, until a reboot | the laptop as the signed-in user, through a Gemini agent that runs commands | a `laptop-daemon` errand ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)) |
 | **Claude Code Remote environment** | no | a provisioned cloud container, or a self-hosted pool (`ccpool_` ids) | `create_session`, or a Routine |
 
 Two properties are easy to get wrong and worth stating outright:
@@ -47,13 +47,13 @@ Two properties are easy to get wrong and worth stating outright:
   a private branch and pushed a response, by polling, and only while the laptop
   and app were running (web-tools-private `probes/codex-commit-trigger/`). The
   same is still assumed, not yet checked, for Antigravity.
-- **A self-hosted runner is unattended even when the machine is asleep.** It
-  holds an outbound long-poll, so a queued job waits and runs on wake. Nothing
-  needs to be open, and no thread is consumed.
+- **The daemon is unattended until a reboot.** It polls the registry's `main`,
+  so an errand waits while the laptop sleeps and runs on wake; after a reboot it
+  stays down until the owner restarts it.
 
 Which is why the two compose rather than compete: **a computer-use agent does
-the setup that has to touch the machine, and the runner does the recurring work
-afterwards.**
+the setup that has to touch the machine, and the daemon does the unattended
+work afterwards.**
 
 ## The constraint that is not negotiable
 

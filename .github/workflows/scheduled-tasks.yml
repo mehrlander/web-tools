@@ -1,0 +1,88 @@
+name: Scheduled tasks
+
+# The estate's scheduled tasks (python/scheduled-tasks.py, whose header carries
+# the design). Every task the estate runs on a schedule is a row in
+# web-tools-private's data/design/scheduled-tasks.csv, and a row's `schedule`, a
+# cron expression in UTC, is the only place its timing is set: no other workflow here carries a
+# cron (node/test/scheduled-tasks.test.mjs holds that). This workflow fires
+# hourly and starts every hosted row whose schedule has fired since it last ran.
+# A row whose entry is this file runs here, by progressive action, its stages
+# rows in scheduled-task-stages.csv; a row whose entry is another workflow
+# (activity-cache.yml, wsl-fetch.yml) is started with workflow_dispatch. An hour
+# with nothing due costs a few reads and writes nothing.
+#
+# WHY IT LIVES IN THE PUBLIC REPO: activity-cache.yml's reason. Actions minutes
+# are free on a public repository and billed on a private one. The registry, the
+# state and the findings all live in web-tools-private and are reached through
+# the two tokens below. The cost is that this run's log is public, so the script
+# logs counts and never content.
+
+on:
+  # Hourly, off the hour: scheduled runs queue behind everyone else's :00, and
+  # GitHub starts them late anyway (10 to 17 minutes measured on 2026-10-09).
+  # So a task runs within the hour its schedule names, never at the minute.
+  schedule:
+    - cron: '7 * * * *'
+
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'One task id to run (blank runs every task that is due).'
+        required: false
+        default: ''
+      force:
+        description: 'Run or dispatch past the gate even when the task is not due (an off task stays off).'
+        type: boolean
+        required: false
+        default: false
+      dry_run:
+        description: 'Run every stage, write nothing and dispatch nothing.'
+        type: boolean
+        required: false
+        default: false
+
+# actions: write lets GITHUB_TOKEN read workflow runs and start the workflows
+# the registry schedules. A dispatch made with GITHUB_TOKEN does start a run,
+# the documented exception to "a GITHUB_TOKEN event starts no workflow".
+permissions:
+  contents: read
+  actions: write
+
+# One run at a time: two runs would race to write the same state file.
+concurrency:
+  group: scheduled-tasks
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: python
+          sparse-checkout-cone-mode: true
+
+      - name: Run what is due
+        env:
+          # The estate read token (registry, state, watched files) and the
+          # registry write token (state and notes), as activity-cache.yml holds
+          # them: two tokens, because one would carry write access everywhere.
+          GH_TOKEN: ${{ secrets.ESTATE_CRAWL_TOKEN }}
+          GH_WRITE_TOKEN: ${{ secrets.REGISTRY_WRITE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          # Untrusted input reaches the script through the environment and is
+          # validated there, never interpolated into this shell.
+          INPUT_TASK: ${{ inputs.task }}
+          INPUT_FORCE: ${{ inputs.force }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning title=Scheduled tasks::No ESTATE_CRAWL_TOKEN secret, so nothing ran."
+            exit 0
+          fi
+          ARGS=()
+          if [ -n "$INPUT_TASK" ]; then ARGS+=(--task "$INPUT_TASK"); fi
+          if [ "$INPUT_FORCE" = "true" ]; then ARGS+=(--force); fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi
+          python3 python/scheduled-tasks.py "${ARGS[@]}"
