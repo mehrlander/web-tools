@@ -84,9 +84,17 @@ test('what claims nothing is named as claiming nothing', () => {
     'session work pushed from a local CLI is indistinguishable, and is not guessed at');
 });
 
-test('the state split is the accent, and only three kinds carry it', () => {
+test('the state split is the accent, and only four kinds carry it', () => {
   const state = K.KINDS.filter(k => k.state).map(k => k.key);
-  assert.deepEqual(state, ['crawl', 'tap', 'device']);
+  assert.deepEqual(state, ['crawl', 'tap', 'device', 'workflow']);
+});
+
+test('a workflow run is told from the browser by its trailer, ahead of the crawl subject it shares', () => {
+  assert.equal(kind('Update activity cache (state/activity.json) via Actions', 'mehrlander'), 'workflow');
+  assert.equal(kind('Update session search index (state/sessions-index/2026-10.json) via Actions'), 'workflow');
+  assert.equal(kind('scheduled-tasks: statutes-rcw baseline via Actions'), 'workflow');
+  assert.equal(kind('Update activity cache (state/activity.json)'), 'crawl', 'the browser, and run writes from before the trailer');
+  assert.equal(K.BY_KEY.workflow.state, true, 'a run refreshing state is application state, not development');
 });
 
 test('a malformed row is classified rather than thrown on', () => {

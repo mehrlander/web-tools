@@ -67,7 +67,7 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 const GROUPS = [
   ['Projects', [['projects', 'Projects']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
-  ['Harness', [['harness', 'Automation'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
+  ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
   ['Reach', [['reach', 'Routes'], ['set', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],

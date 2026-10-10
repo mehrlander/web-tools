@@ -101,6 +101,9 @@ const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache
 
 const t0 = Date.now();
 const reg = new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
+// A run's writes say so, since its token commits as the owner and its subjects
+// are the app's own: the Writes view's subject contract (docs/views/writes.md).
+const VIA = process.env.GITHUB_ACTIONS === 'true' ? ' via Actions' : '';
 
 // Estate membership and each repo's own .web-tools.json, from the config cache
 // the sibling crawl maintains. Same rule the shell applies: `estate: true`, less
@@ -220,7 +223,7 @@ next.runs = CrawlRuns.push(prev?.runs, {
 
 // The same subject the app writes, deliberately: kits/write-kinds.js classifies
 // a commit by its subject line, and this IS the crawl, whatever ran it.
-await reg.save(A.CACHE_PATH, next, 'Update activity cache (state/activity.json)', { sha: base?.sha });
+await reg.save(A.CACHE_PATH, next, 'Update activity cache (state/activity.json)' + VIA, { sha: base?.sha });
 console.log(`Committed ${A.CACHE_PATH} (${changed.length} repo(s) changed, ${Date.now() - t0}ms).`);
 process.exit(failed.length ? 1 : 0);
 
@@ -252,7 +255,7 @@ async function crawlIndex({ kit, label, about }, repos, act) {
     at: nextIdx.generatedAt, ms: Date.now() - t1,
     checked: repos.length, changed: moved.length, calls, via: 'ci',
   }) ?? prevIdx?.runs;
-  await reg.save(kit.CACHE_PATH, kit.serialize(nextIdx), `Update ${label.toLowerCase()} (${kit.CACHE_PATH})`, { sha: read?.sha });
+  await reg.save(kit.CACHE_PATH, kit.serialize(nextIdx), `Update ${label.toLowerCase()} (${kit.CACHE_PATH})` + VIA, { sha: read?.sha });
   console.log(`Committed ${kit.CACHE_PATH} (${moved.join(', ')}).`);
 }
 
