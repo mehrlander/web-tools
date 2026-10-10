@@ -29,6 +29,22 @@ registries,membership,computed,,"the rule is executable (a folder, an extension,
 registries,membership,curated,,"which targets belong is a judgment, so there is nothing to recompute; the strongest gate available is a promise-to-implementation one"
 registries,span,hub,Hub,"every target is inside this repository, so the checkout is a complete enumeration"
 registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the CSV still lives here, which is what keeps it gateable"
+runs,kind,agent,Agent session,"An AI with a transcript, bounded by its start and its end."
+runs,kind,process,Process,Code that runs with no model deciding what it does.
+runs,venue,container,Cloud container,"The machine a Claude Code session on the web runs in, on a fresh clone."
+runs,venue,computer,Your computer,"Whatever machine you run Claude Code or Cowork on, the home laptop included."
+runs,venue,laptop,Home laptop,"The laptop the daemon runs on, as the signed-in user."
+runs,venue,github,GitHub's machines,"GitHub-hosted runners: open network, no local files."
+runs,venue,browser,Your browser,"The Web Tools app, writing with your token."
+runs,venue,phone,Your phone,"Shortcuts, writing through Log-Repo."
+runs,model,claude,Claude,Anthropic's model.
+runs,model,gemini,Gemini,Google's model.
+runs,starts,you,You,"A request: you start it, by hand or in conversation."
+runs,starts,event,An event,"Something happened: a push, a dispatch from another repository, a tab opening."
+runs,starts,time,Time,"A schedule: a Routine, a cron, a phone automation."
+runs,writes_to,local,A local copy,"A working tree on one machine; nothing reaches GitHub until it is pushed."
+runs,writes_to,branch,A working branch,A branch on GitHub; a pull-request merge carries it to main.
+runs,writes_to,main,main,"The default branch, written directly."
 tests,kind,behavior,,exercises the subject and asserts what it does; how it is reached is the method
 tests,kind,gate,,"holds a committed file to its source or to a rule, so a claim in the repo cannot quietly stop being true"
 skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit"

@@ -208,6 +208,17 @@ run-methods,venues,recorded,,value,list,no,,value,"the machines this method's sc
 run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted;job-log;self-filed,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
+runs,name,recorded,,value,column,yes,,value,the run as a reader names it
+runs,kind,recorded,,value,column,yes,agent;process,value,"agent: an AI with a transcript; process: code that runs with no model deciding"
+runs,venue,recorded,,value,column,yes,container;computer;laptop;github;browser;phone,value,where the run's code executes
+runs,model,recorded,,none,column,yes,claude;gemini,value,the model an agent run uses; blank for a process
+runs,starts,recorded,,counted,list,no,,value,"what starts it directly: a request from you, an event, or a schedule; blank where only another run starts it"
+runs,started_by_run,recorded,,none,list,no,,value,"other runs that start this one, by their run key"
+runs,polls,recorded,,none,column,yes,yes,value,"yes where the run finds its start by polling, so a schedule stands in for the event it waits for"
+runs,writes_to,recorded,,value,list,no,,value,"where its writes land: a local copy, a working branch, or main directly"
+runs,write_kind,recorded,,counted,column,yes,,value,the Writes view kind its commits read as (lib/kits/write-kinds.js); blank where not yet measured
+runs,defined_in,recorded,,value,column,yes,,locator,"the file that defines or documents it, a path here or owner/repo@ref:path"
+runs,gloss,recorded,,value,column,yes,,value,what it does
 context-sources,circle,recorded,,value,column,yes,account;environment;user;plugin;repo;session,label,"where the source is defined, outermost first: the claude.ai account, the cloud environment, user scope in the container, the portable plugin, a checked-out repo, or the session itself"
 context-sources,item,recorded,,value,column,yes,,value,the short name a reader knows the source by
 context-sources,repo,recorded,,none,column,yes,,locator,the owner/repo holding the source file; blank where the source is not a file in any repo
