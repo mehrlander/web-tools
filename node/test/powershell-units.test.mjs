@@ -84,3 +84,13 @@ test('line-ending-only changes are distinguishable without altering unchecked co
   assert.match(prepared.text, /^function A \{\r\n 1 \}/);
   assert.equal(review.units.find(u => u.name === 'B').formatOnly, false);
 });
+
+test('registrations inside a handler never rename its enclosing review unit', async () => {
+  const text = "$Wrapper.On('btnGo', 'Click', { $x | Add-Member -MemberType ScriptMethod -Name Inner -Value { 1 } })\n"
+    + "$script:Click = { $x | Add-Member -MemberType ScriptMethod -Name Inner -Value { 2 } }\n"
+    + 'class Compact{}\n';
+  const stage = await K.inventory(text, options);
+  assert.deepEqual(plain(stage.units.map(u => [u.kind, u.name])), [
+    ['Event', '$Wrapper.On(btnGo, Click)'], ['Scriptblock', '$script:Click'], ['Class', 'Compact'],
+  ]);
+});
