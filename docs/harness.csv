@@ -45,6 +45,7 @@ node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs
 node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,74,argv,yes,no,no
 node/git-change.mjs,,node,292,argv,yes,no,yes
 node/gold-set.mjs,,node,200,npm:gold-set,yes,yes,no
+node/powershell-units.mjs,Emit PowerShell statement inventories or before/after review units without executing the input,node,50,argv,yes,no,no
 node/render/build-chrono-comparison.mjs,,node/render,192,none found,yes,no,no
 node/render/build-fixed-widget.mjs,,node/render,86,none found,yes,no,no
 node/render/build-mockup-widget.mjs,,node/render,186,none found,yes,no,no
