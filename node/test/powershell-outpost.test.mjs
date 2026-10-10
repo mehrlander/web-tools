@@ -201,7 +201,7 @@ test('a form\'s controller and XAML read apart, and repository-only material say
     'a row on a file with no destination does not make it installed material');
   assert.deepEqual(K.summary([K.derive(ctl, rows), K.derive(xaml, rows), K.derive(script, [])]),
     { unknown: 1, reported: 1, verified: 0, changed: 0, differs: 0, 'differs-changed': 0, 'repo-only': 1,
-      'pending-new': 0, 'pending-changed': 0 });
+      'pending-new': 0, 'pending-changed': 0, partial: 0 });
 });
 
 test('a locally known area is carried as local, never as a repository folder', () => {
@@ -361,6 +361,38 @@ function atomicStub({ ledger = CSV_HEAD, manifest = JSON.stringify(adoptionManif
   return { gh, calls, files, blobs, published: () => published,
     append: (over = {}) => K.append({ gh, path: LEDGER, manifestPath: MANIFEST_PATH, row: rowOf({}), ...over }) };
 }
+
+const UNIT_LEDGER = P + '/data/unit-observations.json';
+const partialRecord = () => ({ date: '2026-10-10T00:00:00.000Z', path: FORMS, revision: sha40('a'), blob_sha: sha40('e'),
+  before_sha256: sha64('1'), result_sha256: sha64('2'), note: '', units: [{ name: 'Import-Form', kind: 'Function', action: 'Replace',
+    start: 0, end: 10, after_start: 0, after_end: 12, before_sha256: sha64('1'), after_sha256: sha64('2') }] });
+test('partial observations persist without closing adoption, and a newer full observation supersedes them', async () => {
+  const manifest = JSON.stringify({ ...adoptionManifest(), unit_observations: UNIT_LEDGER });
+  const s = atomicStub({ manifest });
+  s.files.set(UNIT_LEDGER, '{"schema":1,"observations":[]}'); s.files.set(FORMS, 'function Import-Form {}');
+  await s.append({ path: UNIT_LEDGER, unitRecord: partialRecord() });
+  assert.equal(s.files.get(MANIFEST_PATH), manifest);
+  assert.equal(s.files.get(LEDGER), CSV_HEAD);
+  const partials = K.unitObservations(s.files.get(UNIT_LEDGER));
+  assert.equal(partials.length, 1);
+  const item = K.inventory({ tree, manifest: K.manifest(manifest), projectPath: P }).find(i => i.path === FORMS);
+  assert.equal(K.derive(item, [], partials).state, 'partial');
+  assert.equal(K.derive(item, [], partials).conflict, false);
+  const full = rowOf({ date: '2026-10-11T00:00:00.000Z', blobSha: item.blobSha });
+  assert.equal(K.derive(item, [full], partials).state, 'reported');
+});
+test('partial recording validates ledger, source blob and branch movement without publishing', async () => {
+  for (const mode of ['source', 'moved', 'newer', 'invalid']) {
+    const s = atomicStub({ moved: mode === 'moved', manifest: JSON.stringify({ ...adoptionManifest(), unit_observations: UNIT_LEDGER }) });
+    const row = partialRecord();
+    s.files.set(FORMS, 'function Import-Form {}');
+    s.files.set(UNIT_LEDGER, JSON.stringify({ schema: 1, observations: mode === 'newer' ? [{ ...row, date: '2026-10-11T00:00:00.000Z' }] : [] }));
+    if (mode === 'source') row.blob_sha = sha40('f');
+    if (mode === 'invalid') row.units[0].end = -1;
+    await assert.rejects(s.append({ path: UNIT_LEDGER, unitRecord: row }));
+    assert.equal(s.published(), false, mode);
+  }
+});
 
 test('a delayed atomic confirmation leaves the newer ledger and pending adoption intact without writing Git objects', async () => {
   const newer = rowOf({ path: P + '/app/Profile.ps1', date: '2026-09-14T10:05:00Z' });

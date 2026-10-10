@@ -997,3 +997,50 @@ test('every ledger write in this run went through a confirm', () => {
   assert.equal(publications.length, 5);
   assert.deepEqual(problems, []);
 });
+
+test('selective review keeps unchecked local code and records only the explicitly confirmed units', async () => {
+  const { Parser, Language } = await import('web-tree-sitter');
+  await Parser.init(); const parser = new Parser();
+  parser.setLanguage(await Language.load(path.join(repoRoot, 'node_modules/tree-sitter-powershell/tree-sitter-powershell.wasm')));
+  new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/powershell-units.js'), 'utf8'))();
+  const units = window.PowerShellUnits;
+  window.PowerShellUnits = { ...units,
+    compare: (a, b, opts) => units.compare(a, b, { ...opts, parser }),
+    prepare: (r, ids, opts) => units.prepare(r, ids, { ...opts, parser }) };
+  try {
+    const ledger = `${P}/data/unit-observations.json`, mp = `${P}/data/outpost.json`;
+    const manifest = JSON.parse(files[mp]); manifest.unit_observations = ledger;
+    manifest.pending_adoption = [{ path: 'app/Modules/Forms/Forms.psm1', since: '2026-10-01', transfer: 'changed', limit: 'Not run' }];
+    files[mp] = JSON.stringify(manifest); files[ledger] = '{"schema":1,"observations":[]}';
+    files[`${P}/data/observations.csv`] = 'date,path,kind,revision,blob_sha,local_sha256,match,method,note\n';
+    files[FORMS] = 'function A { "repo" }\r\nfunction B { 2 }\r\n';
+    data.checks = []; advanceHead(); await data.reload(); data.select(FORMS); await settle();
+    const local = 'function A { "local" }\r\nfunction B { 1 }\r\n';
+    await data.takeCopy(data.target(), local, 'Forms.psm1', 'paste'); await settle();
+    assert.equal(data.unitReview.units.length, 2);
+    const written = publications.length;
+    const checkbox = q('[data-unit] input').find(e => e.getAttribute('aria-label') === 'Select B');
+    checkbox.click(); await settle();
+    await data.prepareUnits(); await settle();
+    assert.equal(data.unitPrepared.text, local.replace('B { 1 }', 'B { 2 }'));
+    await data.copyPreparedUnits(); data.downloadPreparedUnits();
+    assert.equal(clip.at(-1), data.unitPrepared.text); assert.equal(saves.at(-1).data, '\uFEFF' + data.unitPrepared.text);
+    await data.askUnitsInstalled(); await settle();
+    assert.deepEqual([...data.unitConfirmation.units.map(u => u.name)], ['B']);
+    assert.equal(publications.length, written);
+    assert.match(el.querySelector('[data-unit-confirm]').textContent, /I placed these selected changes/);
+    await data.confirmUnitsInstalled(); await settle();
+    assert.equal(publications.length, written + 1);
+    assert.deepEqual(publications.at(-1).paths, [ledger]);
+    assert.equal(JSON.parse(files[mp]).pending_adoption.length, 1);
+    assert.equal(data.stateOf(FORMS).state, 'partial');
+    assert.equal(data.hasSuppliedBaseline, false, 'the earlier copy cannot prepare another update after placement');
+    assert.deepEqual(problems, []);
+    const originalCompare = window.PowerShellUnits.compare;
+    let release;
+    window.PowerShellUnits.compare = () => new Promise(resolve => { release = resolve; });
+    const slow = data.loadUnits(); data.select(PROFILE); release({ units: [], warnings: [] }); await slow;
+    assert.equal(data.unitReview, null, 'an older parse cannot follow navigation');
+    window.PowerShellUnits.compare = originalCompare;
+  } finally { parser.delete(); window.PowerShellUnits = null; }
+});
