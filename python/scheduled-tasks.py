@@ -8,11 +8,11 @@
         --local mehrlander/web-tools-private=../web-tools-private --local mehrlander/home=../home
 
 THE REGISTRY is web-tools-private's data/design/scheduled-tasks.csv, one row per
-task the estate runs on a clock, and data/design/scheduled-task-stages.csv, each
+task the estate runs on a schedule, and data/design/scheduled-task-stages.csv, each
 task's stages in order (that repo's README, "Scheduled tasks").
 
-ONE CLOCK. A row's `schedule` is a five-field cron expression in UTC, and it is
-the only place any task's clock is written: no other workflow in this repo
+ONE SCHEDULE. A row's `schedule` is a five-field cron expression in UTC, and it
+is the only place a task's timing is set: no other workflow in this repo
 carries a cron (node/test/scheduled-tasks.test.mjs holds that). This script's
 workflow, .github/workflows/scheduled-tasks.yml, fires hourly and starts every
 hosted row that is due. A row whose entry is that workflow runs here, stage by
@@ -24,7 +24,7 @@ here, the last run is in the state file; for a dispatched workflow it is that
 workflow's newest run of any kind, read from the Actions API, so a run a push
 started counts and nothing is written to record it. A task with no last run (a
 `dry` task never records one) is due when its schedule fired within the last
-hour, the clock's own period. A run in which every target failed is retried a
+hour, this workflow's own period. A run in which every target failed is retried a
 day later rather than at the next firing.
 
 PROGRESSIVE ACTION. A task's stages run cheapest first, and each runs only when
@@ -55,7 +55,7 @@ Offline, for tests and dry runs from a checkout: --local REPO=DIR reads a repo's
 files from a directory, --pages DIR reads a page from DIR/rcw-<section>.html
 rather than fetching it, --state-file and --notes-file read and write local files
 in place of the store's, --actions-file reads workflows' last runs from a JSON map
-and records dispatches there instead of making them, and --now fixes the clock.
+and records dispatches there instead of making them, and --now fixes the current time.
 """
 import argparse
 import base64
@@ -175,7 +175,7 @@ def here(row):
     return entry_parts(row)[1] == ENTRY
 
 
-# ── The clock ──────────────────────────────────────────────────────────────────
+# ── Cron ───────────────────────────────────────────────────────────────────────
 # Five-field cron in UTC: minute, hour, day of month, month, day of week (0 or 7
 # is Sunday). A field is *, a number, a range a-b, any of those with /step, or a
 # comma list of them. As in cron itself, when both day fields are restricted a
@@ -440,7 +440,7 @@ def main(argv=None):
     ap.add_argument("--state-file", help="read and write state here instead of the store")
     ap.add_argument("--notes-file", help="append notes here instead of the store")
     ap.add_argument("--actions-file", help="workflows' last runs, and dispatches, in this JSON file")
-    ap.add_argument("--now", help="the clock, as an ISO timestamp")
+    ap.add_argument("--now", help="the current time, as an ISO timestamp")
     ap.add_argument("--pause", type=float, default=1.0, help="seconds between fetches")
     a = ap.parse_args(argv)
     if a.task and not TASK_ID.match(a.task):
@@ -461,11 +461,11 @@ def main(argv=None):
         ap.error(f"{a.task} is not a hosted task")
 
     # A row that cannot run is refused alone, so one bad row does not stop the
-    # clock for the rest; the run still ends red, which is what makes it seen.
+    # run for the rest; the run still ends red, which is what makes it seen.
     problems, ready = [], []
     for r in rows:
         try:
-            clock = Cron(r["schedule"])
+            cron = Cron(r["schedule"])
             inputs_of(r)
         except ValueError as e:
             problems.append(f"{r['id']}: {e}")
@@ -482,7 +482,7 @@ def main(argv=None):
         elif not entry_parts(r)[0]:
             problems.append(f"{r['id']}: entry {r['entry']!r} is not owner/repo@ref:path")
             continue
-        ready.append((r, clock))
+        ready.append((r, cron))
 
     if a.state_file:
         p = Path(a.state_file)
@@ -493,14 +493,14 @@ def main(argv=None):
     state = state or {"tasks": {}, "runs": []}
 
     wrote, notes_out, summary = False, [], []
-    for r, clock in ready:
+    for r, cron in ready:
         tid, status = r["id"], r["status"]
         dry = a.dry_run or status == "dry"
         # Stage 0, the gate: off, or not fired since the last run.
         if status == "off":
             log(f"{tid}: off")
             continue
-        fired, nxt = clock.prev(now), clock.next(now)
+        fired, nxt = cron.prev(now), cron.next(now)
         if not here(r):
             repo, path = entry_parts(r)
             try:

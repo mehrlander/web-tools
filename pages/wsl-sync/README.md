@@ -59,7 +59,7 @@ The [`WSL fetch` workflow](../../.github/workflows/wsl-fetch.yml) runs
 `fetch-data.mjs` on a GitHub runner (open egress, no CORS) and commits the
 result under `data/<biennium>/`. Trigger it from the
 [Actions tab](https://github.com/mehrlander/web-tools/actions/workflows/wsl-fetch.yml)
-(inputs: biennium, limit, full). The estate's one clock,
+(inputs: biennium, limit, full). The scheduled-tasks workflow,
 [`scheduled-tasks.yml`](../../.github/workflows/scheduled-tasks.yml), starts it
 monthly with `full=true` to keep the open biennium fresh; the schedule is the
 `wsl-fetch` row of web-tools-private's `data/design/scheduled-tasks.csv`.

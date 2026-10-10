@@ -1,9 +1,9 @@
 name: Scheduled tasks
 
-# The estate's one clock (python/scheduled-tasks.py, whose header carries the
-# design). Every task the estate runs on a clock is a row in web-tools-private's
-# data/design/scheduled-tasks.csv, and a row's `schedule`, a cron expression in
-# UTC, is the only place its clock is written: no other workflow here carries a
+# The estate's scheduled tasks (python/scheduled-tasks.py, whose header carries
+# the design). Every task the estate runs on a schedule is a row in
+# web-tools-private's data/design/scheduled-tasks.csv, and a row's `schedule`, a
+# cron expression in UTC, is the only place its timing is set: no other workflow here carries a
 # cron (node/test/scheduled-tasks.test.mjs holds that). This workflow fires
 # hourly and starts every hosted row whose schedule has fired since it last ran.
 # A row whose entry is this file runs here, by progressive action, its stages
