@@ -1,5 +1,5 @@
 // .claude/environment-setup.sh and skills/hooks/environment-report.sh: the
-// environment's setup script, fetched and run by a single curl line in
+// environment's setup script, saved and run by the first of two lines in
 // claude.ai's environment settings, and the startup hook that reports which
 // version of it built the container. The script's own contract (it records
 // itself to ~/.claude/environment-setup.ran) is held by reading it; running it
@@ -37,7 +37,7 @@ const writeCurrent = (home, text) => {
 test('the setup script installs the plugin and records itself where the hook reads it', () => {
   assert.match(body, /claude plugin install -s user portable@web-tools/);
   assert.match(body, /~\/\.claude\/environment-setup\.ran/);
-  assert.match(body, /\.claude\/environment-setup\.sh/, 'it fetches its own path, so the record is its own text');
+  assert.match(body, /cat "\$0"/, 'it copies the file that ran, so the record is its own text');
 });
 
 test('the hook is silent when no setup record exists', () => {

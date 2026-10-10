@@ -3,14 +3,13 @@
 # claude.ai's environment settings fetch and run it with this line, then check
 # that the plugin installed (docs/environment/container.md quotes both lines):
 #   curl -fsSL --retry 5 --retry-all-errors -o /tmp/s https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/environment-setup.sh && bash /tmp/s
-# It installs the portable plugin, then saves its own text, the commit it came
-# from, and when it ran to ~/.claude/environment-setup.ran, which the plugin's
-# environment-report hook reads at the start of every session.
+# It installs the portable plugin, then saves its own text, the commit main was
+# at, and when it ran to ~/.claude/environment-setup.ran, which the plugin's
+# environment-report hook reads at the start of every session. The text comes
+# from "$0", the downloaded file, so the record is the text that ran. Piped into
+# bash instead, the script has no file and the record would carry no text.
 claude plugin marketplace add mehrlander/web-tools || claude plugin marketplace update web-tools
 claude plugin install -s user portable@web-tools || true
-claude plugin update  -s user portable@web-tools || true
 sha=$(git ls-remote https://github.com/mehrlander/web-tools refs/heads/main | cut -f1)
 mkdir -p ~/.claude
-{ date -u +'# ran %Y-%m-%dT%H:%M:%SZ'; echo "# commit $sha"
-  curl -fsSL "https://raw.githubusercontent.com/mehrlander/web-tools/$sha/.claude/environment-setup.sh"
-} > ~/.claude/environment-setup.ran
+{ date -u +'# ran %Y-%m-%dT%H:%M:%SZ'; echo "# commit $sha"; cat "$0"; } > ~/.claude/environment-setup.ran
