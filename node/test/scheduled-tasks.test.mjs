@@ -1,8 +1,8 @@
-// python/scheduled-tasks.py: the estate's one clock.
+// python/scheduled-tasks.py: the estate's scheduled tasks.
 //
 // The script is python3/stdlib, so this drives it the way the workflow does,
 // against a registry, a watched file and pages written to a temp folder. It
-// holds three contracts. The clock: a task is due when its cron schedule has
+// holds three contracts. Due: a task is due when its cron schedule has
 // fired since it last ran, a task that never ran is due only in the hour its
 // schedule fires, and no other workflow here carries a cron. The dispatch: a
 // row whose entry is another workflow is started with its `with` inputs when
@@ -188,10 +188,10 @@ test('a dry dispatch is logged and not made; rows on other runners are left to t
   assert.doesNotMatch(out, /news-fetch/);
 });
 
-test('one clock: no workflow but the scheduled-tasks one carries a cron', () => {
+test('one schedule: no workflow but the scheduled-tasks one carries a cron', () => {
   const dir = path.join(repoRoot, '.github/workflows');
   const withCron = readdirSync(dir).filter(f => /\.ya?ml$/.test(f))
     .filter(f => /^\s*schedule:\s*$/m.test(readFileSync(path.join(dir, f), 'utf8')));
   assert.deepEqual(withCron, ['scheduled-tasks.yml'],
-    "a clock belongs in web-tools-private's data/design/scheduled-tasks.csv, where the Map shows it, not in a workflow");
+    "a schedule belongs in web-tools-private's data/design/scheduled-tasks.csv, where the Map shows it, not in a workflow");
 });

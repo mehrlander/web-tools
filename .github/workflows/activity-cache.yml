@@ -52,7 +52,7 @@ on:
 
   # The catch-all, and the reason a missing dispatcher is a latency problem
   # rather than a correctness one, is the hourly pass. It is not a cron here:
-  # the estate's one clock (scheduled-tasks.yml) starts this workflow through
+  # the scheduled-tasks workflow (scheduled-tasks.yml) starts this one through
   # workflow_dispatch when the activity-cache row of web-tools-private's
   # data/design/scheduled-tasks.csv is due, and a dispatch with no inputs is
   # the full pass (--all, then the sessions cache).
@@ -135,8 +135,8 @@ jobs:
           npm run activity-refresh -- "${ARGS[@]}"
 
       # The session records, folded by the same kit the app runs
-      # (lib/kits/sessions-crawl.js). On a dispatch only, the clock's hourly one
-      # or a manual one:
+      # (lib/kits/sessions-crawl.js). On a dispatch only, the scheduled-tasks
+      # workflow's hourly one or a manual one:
       # a push here moves no session record. `!cancelled()` rather than the
       # default, because the activity step exits 1 when any one repo failed,
       # and that says nothing about the records.

@@ -54,7 +54,7 @@ test('the runner calls the kit, and the hourly Action runs the runner', () => {
   assert.match(runnerSrc, /await C\.fold\(\{/);
   assert.match(runnerSrc, /via: 'ci'/);
   assert.match(workflowSrc, /npm run sessions-refresh/);
-  // The hourly pass is a dispatch from the estate's one clock (scheduled-tasks.yml).
+  // The hourly pass is a dispatch from the scheduled-tasks workflow (scheduled-tasks.yml).
   assert.match(workflowSrc, /github\.event_name == 'workflow_dispatch'/);
 });
 
