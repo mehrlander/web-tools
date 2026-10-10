@@ -29,7 +29,7 @@ docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis
 docs/context-sources.csv,29,17,6706,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss""]"
 docs/context-topics.csv,12,4,2579,"[""topic"",""label"",""verdict"",""gloss""]"
 docs/direct-to-main.csv,12,6,2600,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
-docs/docs.csv,121,7,30630,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
+docs/docs.csv,122,7,30851,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
 docs/harness.csv,333,8,63109,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
 docs/hook-legs.csv,19,8,3109,"[""order"",""leg"",""gloss"",""watches"",""runs"",""stages"",""mode"",""in_repair""]"
 docs/kits.csv,108,8,14062,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
