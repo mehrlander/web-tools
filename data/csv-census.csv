@@ -50,7 +50,7 @@ docs/routes-routes.csv,4,7,1595,"[""key"",""repo"",""ref"",""path"",""renders"",
 docs/run-methods.csv,7,5,2352,"[""method"",""venues"",""output_return"",""rules"",""gloss""]"
 docs/runs.csv,11,12,2958,"[""run"",""name"",""kind"",""venue"",""model"",""starts"",""started_by_run"",""polls"",""writes_to"",""write_kind"",""defined_in"",""gloss""]"
 docs/showing-mechanisms.csv,9,11,6305,"[""key"",""glyph"",""label"",""form"",""subject"",""version"",""viewer"",""reaches"",""misses"",""use"",""trap""]"
-docs/snags.csv,116,6,16058,"[""slug"",""title"",""count"",""last_seen"",""seen"",""targets""]"
+docs/snags.csv,117,6,16170,"[""slug"",""title"",""count"",""last_seen"",""seen"",""targets""]"
 docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""detect"",""icon"",""gloss""]"
 docs/surfacing.csv,11,7,4571,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
 docs/tests.csv,407,8,430577,"[""path"",""kind"",""protects"",""assertions"",""method"",""runner"",""boot_smoke"",""assertion_names""]"
