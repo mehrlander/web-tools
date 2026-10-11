@@ -6,8 +6,8 @@ from the sessions cache, newest first. `?view=activity` resolves here. A row
 opens the session form ([forms/session.md](../forms/session.md)); a branch chip
 opens that branch's form at `pages/branch.html`.
 
-**Address.** `&session=<short id>` (the open record), `&set=<ids>` (a scope of
-short ids, comma-separated; `sessionSetIds` owns the grammar), `&topic=<name>`
+**Address.** `&session=<short id>` (the open record), `&list=<ids>` (the sessions
+to show, comma-separated short ids; `sessionListIds` owns the grammar), `&topic=<name>`
 (the sessions carrying one topic or one area), `&lens=` (`list` default, `table`,
 `stars`, `repos`, `counts`, `topics` for the Areas lens), `&grain=` (`session` default,
 `branch`, `edge` for session-and-branch pairs). Defaults stay out of the URL.
