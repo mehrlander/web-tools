@@ -29,27 +29,27 @@ registries,membership,computed,,"the rule is executable (a folder, an extension,
 registries,membership,curated,,"which targets belong is a judgment, so there is nothing to recompute; the strongest gate available is a promise-to-implementation one"
 registries,span,hub,Hub,"every target is inside this repository, so the checkout is a complete enumeration"
 registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the CSV still lives here, which is what keeps it gateable"
-setters,kind,agent,Agent session,"An AI with a transcript, bounded by its start and its end."
-setters,kind,process,Process,Code that runs with no model deciding what it does.
-setters,kind,person,By hand,"A write you make yourself, with no agent or script between you and the repository."
-setters,venue,container,Cloud container,"The machine a Claude Code session on the web runs in, on a fresh clone."
-setters,venue,computer,Your computer,"Whatever machine you run Claude Code or Cowork on, the home laptop included."
-setters,venue,laptop,Home laptop,"The laptop the daemon runs on, as the signed-in user."
-setters,venue,github,GitHub's machines,"GitHub-hosted runners: open network, no local files."
-setters,venue,browser,Your browser,"The Web Tools app with your token, or GitHub's own website."
-setters,venue,phone,Your phone,"Shortcuts, writing through Log-Repo."
-setters,model,claude,Claude,Anthropic's model.
-setters,model,gemini,Gemini,Google's model.
-setters,starts,you,You,"A request: you start it, by hand or in conversation."
-setters,starts,event,An event,"Something happened: a push, a dispatch from another repository, a tab opening."
-setters,starts,time,Time,"A schedule: a Routine, a cron, a phone automation."
-setters,sets_on,local,A local copy,"A working tree on one machine; nothing reaches GitHub until it is pushed."
-setters,sets_on,branch,A working branch,A branch on GitHub; a pull-request merge carries it to main.
-setters,sets_on,main,main,"The default branch, set directly."
-setters,mode,replace,Replace,"Sets a file's whole content, creating it or replacing what was there."
-setters,mode,append,Append,"Adds a record and replaces nothing: a line at the end of a file, or a new file per record."
-setters,mode,propose,Propose,Sets on a branch for review; nothing reaches main until a merge.
-setters,mode,merge,Merge,Commits a reviewed branch to main.
+writers,kind,agent,Agent,"A model decided what the commit contains, in a session with a transcript."
+writers,kind,process,Process,"Code decided what the commit contains, with no model deciding."
+writers,kind,person,Person,You decided what the commit contains; the program only carries your edit.
+writers,machine,container,Cloud container,"The machine a Claude Code session on the web runs in, on a fresh clone."
+writers,machine,computer,Your computer,"Whatever machine you run Claude Code, Cowork or git on: the personal laptop or the work machine."
+writers,machine,personal-laptop,Home laptop,"The laptop the daemon runs on, as the signed-in user."
+writers,machine,actions-hosted,GitHub's machines,"GitHub-hosted runners: open network, no local files."
+writers,machine,browser,Your browser,"The Web Tools app with your token, or GitHub's own website."
+writers,machine,iphone,Your phone,"Shortcuts, writing through Log-Repo."
+writers,model,claude,Claude,Anthropic's model.
+writers,model,gemini,Gemini,Google's model.
+writers,starts,you,You,"A request: you start it, by hand or in conversation."
+writers,starts,event,An event,"Something happened: a push, a dispatch from another repository, a tab opening."
+writers,starts,time,Time,"A schedule: a Routine, a cron, a phone automation."
+writers,sets_on,local,A local copy,A working tree on one machine; nothing reaches GitHub until it is pushed.
+writers,sets_on,branch,A working branch,A branch on GitHub; a pull-request merge carries it to main.
+writers,sets_on,main,main,"The default branch, set directly."
+writers,mode,replace,Replace,"Sets a file's whole content, creating it or replacing what was there."
+writers,mode,append,Append,"Adds a record and replaces nothing: a line at the end of a file, or a new file per record."
+writers,mode,propose,Propose,Sets on a branch for review; nothing reaches main until a merge.
+writers,mode,merge,Merge,Commits a reviewed branch to main.
 tests,kind,behavior,,exercises the subject and asserts what it does; how it is reached is the method
 tests,kind,gate,,"holds a committed file to its source or to a rule, so a claim in the repo cannot quietly stop being true"
 skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit"
