@@ -243,7 +243,7 @@ context-links,gloss,recorded,,value,column,yes,,value,the condition and meaning 
 context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it
 context-topics,verdict,recorded,,value,column,yes,layered;redundant;conflicting;transitional,label,"whether the overlap is layered by design, redundant, conflicting, or transitional while a replacement lands"
 context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the topic, in a sentence or two"
-map-tabs,gloss,recorded,,value,column,yes,,value,"the description that opens the address's Sources and methods panel: what the rows at this address are, in one sentence, never what the reader can do with them"
+map-tabs,gloss,recorded,,value,column,yes,,value,"what the rows at this address are, in one sentence, never what the reader can do with them; listed with every other in the Overview, the Map's front door, and opening the address's own Sources and methods panel"
 map-tabs,refs,recorded,,counted,list,no,,locator,"the description's links: phrase=path pairs, each phrase a verbatim span of the gloss and each path the file or folder (ending in /) it opens"
 map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
 doc-overlap-docs,sha,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
