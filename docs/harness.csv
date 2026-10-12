@@ -32,7 +32,7 @@ node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the 
 node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,no,yes,yes
 node/build/sample-workbook.mjs,,node/build,437,npm:sample-workbook,yes,yes,yes
 node/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,node/build,267,npm:snags-index,yes,yes,yes
-node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,244,npm:tests-index,yes,no,yes
+node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,245,npm:tests-index,yes,no,yes
 node/build/tools-index.mjs,restamp the derived half of this registry,node/build,388,npm:tools-index,yes,yes,yes
 node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,262,npm:ui-instances,yes,yes,no
 node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,312,imported,no,yes,no
@@ -171,6 +171,7 @@ node/render/scenarios/files-view-tap-and-deck.mjs,,node/render/scenarios,61,driv
 node/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,node/render/scenarios,36,driver,no,yes,no
 node/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,node/render/scenarios,67,driver,no,no,no
 node/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,node/render/scenarios,53,driver,no,no,no
+node/render/scenarios/map-context.mjs,"Context grouping and list-detail flow: visible questions, source navigation, usage sorting and phone layout.",node/render/scenarios,145,driver,no,no,no
 node/render/scenarios/map-data-census.mjs,,node/render/scenarios,64,driver,no,no,yes
 node/render/scenarios/map-docs-cold.mjs,"the Map's Docs tab sorted coldest first, with the unresolved-reads strip: the ordering and the misspelled paths that make the readership column answerable",node/render/scenarios,93,driver,no,no,no
 node/render/scenarios/map-docs-reads.mjs,the Map's Docs tab with the readership column,node/render/scenarios,73,driver,no,no,no
@@ -239,7 +240,7 @@ node/render/scenarios/search-limit.mjs,"what the Contents lane says when the cod
 node/render/scenarios/section-structure.mjs,"the section rules a markdown aim draws, at two widths",node/render/scenarios,47,driver,no,no,no
 node/render/scenarios/session-contents.mjs,"enters the session deck from the outline the page opens on, then opens the deck's own contents list: the rows readable at 390px, the reader marked, and one pager gap per exchange",node/render/scenarios,65,driver,no,no,no
 node/render/scenarios/session-exchange-card.mjs,,node/render/scenarios,58,driver,no,no,no
-node/render/scenarios/session-set.mjs,"seed a token and wait for the set's own line, so the token-gated Sessions pane renders a named set for a shot",node/render/scenarios,27,driver,no,no,no
+node/render/scenarios/session-list.mjs,"seed a token and wait for the list's own line, so the token-gated Sessions pane renders a list of sessions for a shot",node/render/scenarios,27,driver,no,no,no
 node/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",node/render/scenarios,166,driver,no,no,no
 node/render/scenarios/session-topics.mjs,,node/render/scenarios,81,driver,no,no,no
 node/render/scenarios/shoot-cards.mjs,,node/render/scenarios,50,driver,no,no,no

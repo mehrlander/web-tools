@@ -11,7 +11,7 @@ docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true
 docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
 tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
 tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
-tests,assertions,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many assertions the file makes. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
+tests,assertions,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many top-level test() calls the file writes, a static lower bound; despite the column's name, not a count of assert calls. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
 tests,assertion_names,computed,node/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
 tests,method,computed,node/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
 tests,runner,computed,node/build/tests-index.mjs,value,column,yes,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
@@ -208,6 +208,18 @@ run-methods,venues,recorded,,value,list,no,,value,"the machines this method's sc
 run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted;job-log;self-filed,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
+writers,name,recorded,,value,column,yes,,value,"the program, as a reader names it; never a person, who goes in kind"
+writers,kind,recorded,,value,column,yes,agent;process;person,value,"who decided what a commit contains at the moment the commit was made: agent, a model writes the bytes, so a Claude Code session is an agent; process, code with no model deciding; person, you, through a program that only carries your edit. Not who authored the text, which the content registry's creation_mode records"
+writers,machine,recorded,,value,column,yes,container;computer;personal-laptop;actions-hosted;browser;iphone,value,"the machine the writer runs on, spelled as run-methods.csv spells an errand's run.venue; container and computer are writers' own, since no run method runs there"
+writers,model,recorded,,none,column,yes,claude;gemini,value,the model an agent writer uses; blank for a process or a person
+writers,starts,recorded,,counted,list,no,,value,"what starts it directly: a request from you, an event, or a schedule; blank where only another writer starts it"
+writers,started_by_writer,recorded,,none,list,no,,value,"other writers that start this one, by their writer key"
+writers,polls,recorded,,none,column,yes,yes,value,"yes where the writer finds its start by polling, so a schedule stands in for the event it waits for"
+writers,sets_on,recorded,,value,list,no,,value,"where what it sets lands: a local copy, a working branch, or main directly"
+writers,mode,recorded,,value,list,no,,value,"how it sets: replace a file, append a record, propose a branch, or merge one"
+writers,write_kind,recorded,,counted,list,no,,value,the Writes view kinds its commits read as (lib/kits/write-kinds.js); blank where not yet measured
+writers,defined_in,recorded,,value,column,yes,,locator,"the file that defines or documents it, a path here or owner/repo@ref:path"
+writers,gloss,recorded,,value,column,yes,,value,what it does
 context-sources,circle,recorded,,value,column,yes,account;environment;user;plugin;repo;session,label,"where the source is defined, outermost first: the claude.ai account, the cloud environment, user scope in the container, the portable plugin, a checked-out repo, or the session itself"
 context-sources,item,recorded,,value,column,yes,,value,the short name a reader knows the source by
 context-sources,repo,recorded,,none,column,yes,,locator,the owner/repo holding the source file; blank where the source is not a file in any repo
@@ -224,11 +236,15 @@ context-sources,status,recorded,,value,column,yes,current;retiring;planned,label
 context-sources,tally,recorded,,none,column,yes,,locator,"the key this source has in the session store tally: startup:<path> for an instruction file, skill:<name> for a skill"
 context-sources,topics,recorded,,none,column,yes,,label,"the overlap topics this source speaks to, semicolon separated, each a row in docs/context-topics.csv"
 context-sources,gloss,recorded,,value,column,yes,,value,one sentence on what the source does
+context-sources,assistant,recorded,,none,column,yes,,label,"the assistant whose delivery is inventoried; all is a wildcard matching every assistant, so the row stays under any assistant filter; omitted by older Claude-only registries"
+context-sources,role,recorded,,counted,column,yes,content;automation;configuration,label,"what the source is: readable material, executable machinery, or configuration; blank means not classified"
+context-sources,discretion,recorded,,counted,column,yes,injected;prodded;reactive;pulled;outside,label,"how delivery is initiated or whether the source only configures or executes outside context; blank means not classified"
+context-links,gloss,recorded,,value,column,yes,,value,the condition and meaning of a declared connection; its basis is the originating source file and it is not an execution receipt
 context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it
 context-topics,verdict,recorded,,value,column,yes,layered;redundant;conflicting;transitional,label,"whether the overlap is layered by design, redundant, conflicting, or transitional while a replacement lands"
 context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the topic, in a sentence or two"
-map-tabs,gloss,recorded,,value,column,yes,,value,"the lede: what the rows at this address are, in one sentence, never what the reader can do with them"
-map-tabs,refs,recorded,,counted,list,no,,locator,"the lede's links: phrase=path pairs, each phrase a verbatim span of the lede and each path the file or folder (ending in /) it opens"
+map-tabs,gloss,recorded,,value,column,yes,,value,"the description that opens the address's Sources and methods panel: what the rows at this address are, in one sentence, never what the reader can do with them"
+map-tabs,refs,recorded,,counted,list,no,,locator,"the description's links: phrase=path pairs, each phrase a verbatim span of the gloss and each path the file or folder (ending in /) it opens"
 map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
 doc-overlap-docs,sha,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
 doc-overlap-docs,prose_words,computed,python/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"
@@ -301,7 +317,7 @@ account-skills,twin,recorded,,none,column,yes,,locator,the folder under skills/ 
 account-skills,note,recorded,,none,column,yes,,value,"why the row is declared the way it is, where that is not obvious"
 upstream-skills,author,recorded,,value,column,yes,,value,who wrote the skill
 upstream-skills,upstream,recorded,,value,column,yes,,locator,"where the skill lives: owner/repo:path for a folder on GitHub, or a URL where it is not"
-upstream-skills,status,recorded,,value,column,yes,watching;studied;held;vendored;adapted;dependency;declined,label,"how far the estate has taken the skill, from noting it to shipping a copy"
+upstream-skills,status,recorded,,value,column,yes,watching;studied;held;vendored;adapted;referenced;declined,label,"how far web-tools has taken the skill, from noting it to shipping a copy"
 upstream-skills,pinned,recorded,,none,column,yes,,value,the upstream commit whose folder the fingerprint describes; blank where our copy matches no commit upstream
 upstream-skills,digest,recorded,,none,column,yes,,value,"the fingerprint of the pinned version: every file in the folder, by relative path and bytes"
 upstream-skills,rationale,recorded,,value,column,yes,,value,"why the skill is of interest, and what was taken from it"

@@ -100,11 +100,11 @@ test('a stage link stores its refs and leaves the folded-in locals behind', () =
 });
 
 test('an app route stores the view and the record, never a free string', () => {
-  const r = at(APP + '?view=sessions&session=2bf8fcae&lens=table&grain=turn&set=a,b');
+  const r = at(APP + '?view=sessions&session=2bf8fcae&lens=table&grain=turn&list=a,b');
   assert.equal(r.kind, 'route');
   assert.equal(r.view, 'sessions');
   assert.equal(r.session, '2bf8fcae');
-  // `lens`, `grain` and `set` are reading parameters. They are not in the app
+  // `lens`, `grain` and `list` are reading parameters. They are not in the app
   // template's fields, so they are not written, and the key below folds two
   // readings of one screen into one row.
   assert.equal(r.lens, undefined);
