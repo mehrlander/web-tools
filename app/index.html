@@ -2359,6 +2359,9 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 const MAP_TABS = ['projects', 'research', 'harness', 'dimensions', 'docs', 'reach'];
 const MAP_SUBVIEWS = ['exploration', 'scheduled', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'aims', 'growth', 'policy', 'claims', 'registries', 'distribution', 'outposts', 'data'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
+// The Context subview's own sub-address (lib/alpineComponents/map.js,
+// syncCtxAddress): grouping, sort, question and source, one value each.
+const mapCtxOf = get => Object.fromEntries(['ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource'].map(k => [k, get(k) || '']));
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2529,6 +2532,10 @@ function app(){ return {
   configSeen: false,      // mount the config-view component lazily, on first visit
   mapSeen: false,         // mount the map component lazily, on first visit
   mapTab: 'reach',        // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
+  // Context's sub-address, held here for the same reason. Seeded only from an
+  // address that opens Context, since the map row stamps it there alone and a
+  // value armed from any other address would surface on the next visit.
+  mapCtx: (() => { const p = new URLSearchParams(location.search); return mapCtxOf(k => p.get('tab') === 'context' && p.get(k)); })(),
   toolsSeen: false,       // mount the tools component lazily, on first visit
   searchSeen: false,      // mount the search view lazily, on first visit
   // What the Search view is showing, parked by goSearch (the finder's gate, the
@@ -6236,11 +6243,25 @@ function app(){ return {
       } },
     { key: 'routes',   open(){ this.goRoutes(); } },
     { key: 'map', alias: 'portable',
-      open(u){ this.goMap(u.tab); },
+      open(u){
+        // A restore onto Context re-reads its sub-address; onto any other tab
+        // the held one stays, as the component's own state does.
+        if (u.tab === 'context') this.mapCtx = mapCtxOf(k => u[k]);
+        this.goMap(u.tab);
+      },
       stamp(p){
         // Same `tab` key the project view stamps, and the same rule: the
         // default stays out of the URL so a plain ?view=map link keeps working.
         if (this.mapTab && this.mapTab !== 'reach') p.set('tab', this.mapTab);
+        // Context's four ride with Context alone. Written straight onto the
+        // address by map.js and cleared by nothing, they used to follow a
+        // picked question onto every later tab and view.
+        if (this.mapTab !== 'context') return;
+        const c = this.mapCtx;
+        if (c.ctxlens) p.set('ctxlens', c.ctxlens);
+        if (c.ctxsort) p.set('ctxsort', c.ctxsort);
+        if (c.ctxtopic) p.set('ctxtopic', c.ctxtopic);
+        if (c.ctxsource) p.set('ctxsource', c.ctxsource);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6390,6 +6411,7 @@ function app(){ return {
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -6445,6 +6467,7 @@ function app(){ return {
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
              session: p.get('session') || '', find: p.get('find') || '',
+             ...mapCtxOf(k => p.get(k)),
              pane: p.get('pane') || '', card: p.get('card'),
              item: p.get('item') || '', call: p.get('call') || '',
              window: this.parseWindowParam(p.get('window')) };
@@ -7054,6 +7077,14 @@ function app(){ return {
   goMapTab(tab){
     if (!MAP_ROUTES.includes(tab) || tab === this.mapTab) return;
     this.mapTab = tab; this.syncUrl();
+  },
+  // Context reports its sub-address here and the map row stamps it. A choice
+  // within one screen, so it replaces the entry rather than adding one per tap.
+  setMapCtx(spec){
+    this.mapCtx = mapCtxOf(k => spec?.[k]);
+    const restoring = this._restoring;
+    this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
   },
   goPortable(){ this.goMap(); },
   // The Tools view: the curated utility-page gallery (docs/tools.csv), public.

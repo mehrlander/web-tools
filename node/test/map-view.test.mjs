@@ -595,6 +595,7 @@ test('rendered deck documents hand repository links to deck navigation', async (
   const wired = [];
   window.marked = { parse: () => '<p>Rendered</p>' };
   window.mdDoc = {
+    // reading-column-ok: a stand-in for mdDoc's output, not page markup
     render(host){ host.innerHTML = '<div class="prose"><p>Rendered</p></div>'; },
     linkRepoFiles(host, options){ wired.push({ host, options }); return { authored: 0, inferred: 0 }; },
   };
@@ -643,6 +644,7 @@ test('a delayed rendered pass cannot overwrite a newer source pass', async () =>
   };
   window.marked = { parse: () => '<p data-old-render>old rendered pass</p>' };
   window.mdDoc = {
+    // reading-column-ok: a stand-in for mdDoc's output, not page markup
     render(box){ box.innerHTML = '<div class="prose"><p data-old-render>old rendered pass</p></div>'; },
     linkRepoFiles(){ return { authored: 0, inferred: 0 }; },
   };
@@ -998,7 +1000,8 @@ test('Context opens under Harness and derives question membership from the publi
 
 async function contextState(query = '') {
   window.history.replaceState({}, '', '?view=map&tab=context' + query);
-  window.__shell = { mapTab: 'context', goMapTab: () => {} };
+  // The shell owns the address; this one records what Context hands it.
+  window.__shell = { mapTab: 'context', mapCtx: {}, goMapTab: () => {}, setMapCtx(spec) { this.mapCtx = spec; } };
   const host = window.document.createElement('div');
   host.setAttribute('x-data', 'map()');
   window.document.body.appendChild(host);
@@ -1061,8 +1064,8 @@ test('Question grouping uses the shared source table and source grouping restore
     assert.equal(state.ctxLens, 'sources', 'legacy scope links reach the source table');
     state.setCtxLens('delivery');
     assert.equal(state.ctxSpectraActive.id, id, 'changing the view preserves identity');
-    const query = new URL(window.location.href).searchParams;
-    assert.equal(query.get('ctxtopic'), 'askuserquestion'); assert.equal(query.get('ctxsource'), id);
+    const address = window.__shell.mapCtx;
+    assert.equal(address.ctxtopic, 'askuserquestion'); assert.equal(address.ctxsource, id);
   } finally { close(); }
 });
 
@@ -1085,7 +1088,7 @@ test('Question paths separate a request from its material and never turn shared 
     host.querySelector('[data-context-path-source="plugin-writing"]').click();
     await tick(2);
     assert.equal(state.ctxSpectraActive.id, 'plugin-writing');
-    assert.equal(new URL(window.location.href).searchParams.get('ctxsource'), 'plugin-writing');
+    assert.equal(window.__shell.mapCtx.ctxsource, 'plugin-writing');
     state.openCtxDeliveryTopic('askuserquestion');
     assert.equal(state.ctxQuestionPaths.length, 0, 'a shared topic supplies no causal edges');
     assert.equal(state.ctxGroupedSources.length, state.ctxQuestion.rows.length);
@@ -1162,8 +1165,8 @@ test('Usage sorting keeps missing measurements distinct from zero and retains un
     state.setCtxSort('name');
     state.setCtxSort('usage');
     assert.equal(state.ctxSpectraActive.id, 'plugin-default');
-    assert.equal(new URL(window.location.href).searchParams.get('ctxsort'), 'usage');
-    assert.equal(new URL(window.location.href).searchParams.get('ctxlens'), 'sources');
+    assert.equal(window.__shell.mapCtx.ctxsort, 'usage');
+    assert.equal(window.__shell.mapCtx.ctxlens, 'sources');
   } finally { close(); }
 });
 
@@ -1180,7 +1183,7 @@ test('Source details close in place and never carry an unrelated selection into 
     await tick(2);
     assert.equal(host.querySelectorAll('[data-context-inspector]').length, 0);
     assert.equal(host.querySelectorAll('[data-context-source-row]').length, count);
-    assert.equal(new URL(window.location.href).searchParams.get('ctxsource'), null);
+    assert.equal(window.__shell.mapCtx.ctxsource, '');
     state.selectCtxSource('session-messages');
     state.ctxTopic = 'conventions-delivery';
     state.setCtxLens('delivery');
@@ -1275,6 +1278,11 @@ test('Context validates lens addresses, restores source/topic links and joins re
       assert.equal(state.ctxSpectraActive.id, 'plugin-writing');
       assert.equal(state.ctxQuestion.topic, 'writing-rules');
     }
+    // A pop anywhere else in the app is not a Context address.
+    window.history.replaceState({}, '', '?view=map&tab=tests');
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    assert.equal(state.ctxTopic, 'writing-rules', 'a pop onto another tab leaves Context as it was');
+    assert.equal(state.ctxSpectraSelected, 'plugin-writing');
   } finally { close(); }
 });
 
@@ -1348,6 +1356,45 @@ test('the shell reads the tab back off a deep link, on both boot paths', () => {
   assert.equal(shell.mapTab, 'tests', 'the former Tests tab remains a valid deep link');
   shell.goMap('context');
   assert.equal(shell.mapTab, 'context', 'Context has a direct Map address');
+});
+
+// Context's sub-address once rode onto every later screen: map.js wrote it with
+// replaceState, nothing listed it in VIEW_KEYS, and syncUrl builds each address
+// from location.search. The shell holds it now and stamps it on Context alone.
+test('Context\'s address rides with Context alone, and comes back with it', async () => {
+  const CTX = ['ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource'];
+  const { shell } = makeShell({ search: '?view=map&tab=context&ctxlens=sources&ctxtopic=house-style&ctxsource=wt-claude' });
+  await shell.routeFromUrl(shell.parseUrl());
+  const arrived = shell.deepLinkParams();
+  assert.equal(arrived.get('ctxlens'), 'sources');
+  assert.equal(arrived.get('ctxtopic'), 'house-style');
+  assert.equal(arrived.get('ctxsource'), 'wt-claude', 'a cold link keeps the address it arrived with');
+
+  shell.setMapCtx({ ctxtopic: 'writing-rules', ctxsource: '' });
+  assert.equal(shell.deepLinkParams().get('ctxtopic'), 'writing-rules');
+  assert.equal(shell.deepLinkParams().has('ctxsource'), false, 'an empty value leaves the address');
+
+  shell.goMapTab('tests');
+  const tests = shell.deepLinkParams(arrived);
+  for (const k of CTX) assert.equal(tests.has(k), false, k + ' rode onto the Tests tab');
+  shell.view = 'sessions';
+  for (const k of CTX) assert.equal(shell.deepLinkParams(arrived).has(k), false, k + ' rode onto another view');
+
+  shell.view = 'map';
+  shell.goMapTab('context');
+  assert.equal(shell.deepLinkParams().get('ctxtopic'), 'writing-rules', 'returning to Context restores its address');
+
+  // A restore onto another tab keeps the held address, as the component keeps
+  // its state; a restore onto Context re-reads it.
+  shell.routeFor('map').open.call(shell, { tab: 'tests' });
+  assert.equal(shell.mapCtx.ctxtopic, 'writing-rules');
+  shell.routeFor('map').open.call(shell, { tab: 'context', ctxtopic: 'house-style' });
+  assert.equal(shell.mapCtx.ctxtopic, 'house-style');
+});
+
+test('an address that does not open Context arms none of its keys', () => {
+  const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '' });
 });
 
 test('the shell and the component agree on the tab set', () => {
