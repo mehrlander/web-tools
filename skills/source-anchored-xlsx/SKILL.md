@@ -5,7 +5,7 @@ description: "Build Excel workbooks where every typed number sits next to an ima
 
 # Source-Anchored Workbooks
 
-Use the host-provided spreadsheet skill for workbook construction and recalculation. In Claude Code, portable declares Anthropic's `/third-party-documents:xlsx` as a dependency; use `scripts/recalc.py` from that installed skill folder, with its `office/` companions. Without plugins, fetch the [complete official skill folder](https://github.com/anthropics/skills/tree/main/skills/xlsx). Resolve that support before creating the workbook. A different host's spreadsheet skill may use another calculation engine; it must still recalculate formulas, verify their cached values, and report zero formula errors.
+Use the host-provided spreadsheet skill for workbook construction and recalculation. Where the claude.ai account supplies Anthropic's xlsx skill (claude.ai chat, and Claude Code cloud sessions as `anthropic-skills:xlsx`), use `scripts/recalc.py` from that skill's folder, with its `office/` companions. Where the host has no copy, fetch the [complete official skill folder](https://github.com/anthropics/skills/tree/683bc88e56f3e09ba94f7055977f3d3aa499f202/skills/xlsx). Resolve that support before creating the workbook. A different host's spreadsheet skill may use another calculation engine; it must still recalculate formulas, verify their cached values, and report zero formula errors.
 
 ## Numbers
 
