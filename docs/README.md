@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 39 by a page or component. The remaining 47 are
+15 by a skill, 39 by a page or component. The remaining 48 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -37,6 +37,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
+- [`idea-board.md`](idea-board.md) *(orphan)* — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
 - [`harness.csv`](harness.csv) — the harness registry: every node/ and python/ file, its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
