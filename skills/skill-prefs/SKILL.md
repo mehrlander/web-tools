@@ -5,7 +5,7 @@ description: "Standing preferences for how a skill should be written. Use whenev
 
 # Skill Prefs
 
-Read alongside skill-creator, not instead of it.
+Read alongside skill-creator, not instead of it. The claude.ai account supplies skill-creator; where the host has no copy, read the [official skill folder](https://github.com/anthropics/skills/tree/683bc88e56f3e09ba94f7055977f3d3aa499f202/skills/skill-creator).
 
 ## The premise
 
