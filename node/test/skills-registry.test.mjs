@@ -53,3 +53,30 @@ test('the skill that fetches the library names this repo and this folder', () =>
   assert.match(skill, /mehrlander\/web-tools\/main\/skills/,
     'the loader skill must name this repo and this folder; other repos fetch against it');
 });
+
+// archive/skills/archive.csv — the retired skills, held to their folder the same
+// way. The Map view's Skills tab renders it as the foot of Yours, so a folder
+// with no row would be a retired skill nobody can find, and a row with no folder
+// would link a SKILL.md that is not there.
+const archiveDir = path.join(repoRoot, 'archive', 'skills');
+const archived = parseCsv(readFileSync(path.join(archiveDir, 'archive.csv'), 'utf8'));
+
+test('every archived skill folder has exactly one archive row, and every row a folder', () => {
+  const rows = archived.map(s => s.name);
+  const folders = readdirSync(archiveDir, { withFileTypes: true })
+    .filter(e => e.isDirectory() && existsSync(path.join(archiveDir, e.name, 'SKILL.md')))
+    .map(e => e.name).sort();
+  assert.equal(new Set(rows).size, rows.length, 'a skill name appears in two archive rows');
+  assert.deepEqual([...rows].sort(), folders,
+    'archive/skills/archive.csv and archive/skills/ disagree; add the row with the folder');
+});
+
+test('a retired skill is out of the roster, dated, explained, and its successor exists', () => {
+  for (const s of archived) {
+    assert.ok(!onDisk.includes(s.name), `${s.name}: retired but still a folder under skills/`);
+    assert.match(s.retired, /^\d{4}-\d{2}-\d{2}$/, `${s.name}: retired is a date`);
+    assert.ok(s.reason && s.reason.length > 20, `${s.name}: the reason says why`);
+    if (s.successor) assert.ok(existsSync(path.join(repoRoot, s.successor)),
+      `${s.name}: successor ${s.successor} is not in the tree`);
+  }
+});

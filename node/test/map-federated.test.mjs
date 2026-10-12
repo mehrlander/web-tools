@@ -60,6 +60,8 @@ const harnessCsv = readFileSync(path.join(repoRoot, 'docs', 'harness.csv'), 'utf
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
 const propsDeclCsv = readFileSync(path.join(repoRoot, 'docs', 'properties.csv'), 'utf8');
 const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8');
+const archiveCsv = readFileSync(path.join(repoRoot, 'archive', 'skills', 'archive.csv'), 'utf8');
+const pagesCsv = readFileSync(path.join(repoRoot, 'pages', 'pages.csv'), 'utf8');
 
 const asked = [];
 window.TOKEN = 'test-token';
@@ -75,6 +77,8 @@ window.GH = class {
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
     if (p === 'docs/vocabularies.csv') return { text: propsVocabCsv };
+    if (p === 'archive/skills/archive.csv') return { text: archiveCsv };
+    if (p === 'pages/pages.csv') return { text: pagesCsv };
     throw new Error('unexpected fetch: ' + p);
   }
 };
@@ -165,43 +169,69 @@ test('one repo is one repo', () => {
     'the count is pluralized where it renders');
 });
 
-test('the three sets are one axis, and the search runs across all of them', async () => {
+test('the three sets are one axis, and Yours is one population read from two files', async () => {
   await data.loadSkillsReg();
   const counts = Object.fromEntries(data.skillSetCounts.map(c => [c.key, c.n]));
-  assert.ok(counts.plugin > 10, 'the plugin set reads the Portable manifest, already in hand');
-  assert.ok(counts.library > 20, 'the library reads skills/manifest.csv');
+  assert.deepEqual(Object.keys(counts), ['yours', 'estate', 'outside'],
+    'no All, and no second copy of the same skills under another name');
+  assert.equal(counts.yours, data.skillsReg.length,
+    'the plugin index joins the roster; it does not add a second row per skill');
+  assert.ok(data.yoursAll.every(r => r.plugin), 'every roster skill finds its plugin row');
+  assert.equal(data.skillCommand(data.yoursAll.find(r => r.name === 'tasks')), '/portable:tasks');
   assert.equal(counts.estate, 3, 'the estate is the aggregate above');
 
-  assert.equal(data.skillTally.shown, counts.plugin + counts.library + counts.estate,
-    'nothing selected means every set is in view');
+  assert.equal(data.skillSet, 'yours', 'the tab opens on Yours');
+  assert.equal(data.skillTally.shown, counts.yours);
   data.skillSet = 'estate';
   assert.equal(data.skillTally.shown, counts.estate, 'a selection narrows the tally with it');
-  assert.equal(data.showSkillSet('library'), false);
-  assert.equal(data.skillManifestPath, 'skills/manifest.csv');
-  data.skillSet = 'plugin';
-  assert.equal(data.skillManifestPath, 'docs/portable.csv',
-    'the registry chip follows the one set backed by a different file');
-  data.skillSet = '';
+  assert.equal(data.showSkillSet('yours'), false);
+  data.skillSet = 'yours';
 });
 
 test('a query re-weights every set, so a miss in one is visibly not a gap', () => {
   data.skillQ = 'tasks';
   const counts = Object.fromEntries(data.skillSetCounts.map(c => [c.key, c.n]));
-  assert.ok(counts.plugin >= 1, 'the plugin ships a tasks skill');
+  assert.ok(counts.yours >= 1, 'the plugin ships a tasks skill');
   assert.equal(counts.estate, 1, "home's forked copy answers too");
   data.skillQ = 'zzzz-no-such-skill';
-  assert.equal(data.skillTally.shown, 0, 'the empty state is one number, over the sets in view');
+  assert.equal(data.skillTally.shown, 0, 'the empty state is one number, over the set in view');
   data.skillQ = '';
 });
 
+test('a subject chip cuts the cards, not the set count, and leaves Retired out', async () => {
+  await data.loadSkillExtras();
+  const n = () => data.skillSetCounts.find(c => c.key === 'yours').n;
+  const before = n();
+  data.skillGroup = 'documents';
+  try {
+    assert.ok(data.yoursRows.length > 0 && data.yoursRows.length < before, 'the chip narrows the cards');
+    assert.ok(data.yoursRows.every(r => r.group === 'documents'));
+    assert.equal(n(), before, 'the set control counts the query, not the chip');
+    assert.equal(data.skillTally.shown, data.yoursRows.length, 'the headline counts what the chip left');
+    assert.deepEqual([...data.retiredRows], [], 'a retired skill has no subject to match');
+  } finally { data.skillGroup = ''; }
+  assert.ok(data.retiredRows.some(r => r.name === 'safe-html-templating' && r.successor),
+    'the archive renders at the foot of Yours, with where its guidance went');
+});
+
+test('a skill demo comes from the pages catalog and opens as an app view', async () => {
+  await data.loadSkillExtras();
+  assert.ok(data.skillDemo('caveman'), 'the catalog lists skills/caveman/demo.html');
+  assert.equal(data.skillDemo('tasks'), '', 'no demo, no badge');
+  const q = new URLSearchParams(data.skillDemoHref('caveman').slice(1));
+  assert.equal(q.get('view'), 'app');
+  assert.equal(q.get('appPath'), 'skills/caveman/demo.html');
+});
+
 test('each set states its own rule, and the tab carries no paragraph doing it instead', () => {
-  for (const key of ['plugin', 'library', 'estate']) {
+  for (const key of data.skillSetOrder) {
     assert.ok(data.skillSetGloss(key).length > 40, key + ': the set says what it costs');
   }
-  assert.notEqual(data.skillSetGloss(''), data.skillSetGloss('plugin'));
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8');
   assert.ok(!src.includes('Two sets, one search'),
     'the explanatory paragraph is replaced by the control it was describing');
+  assert.ok(!src.includes("peek('archive/skills/README.md')"),
+    'the archive is rows on the tab, not a link to a README');
 });
 
 // ── The manifests behind both ────────────────────────────────────────────────

@@ -196,17 +196,17 @@ test('plugin-internal scripts cross-reference their parent skill, not Automation
       const item = { kind: 'script', path, title: path.split('/').at(-1) };
       const owner = data.setOwner(item);
       assert.equal(owner.tab, 'skills', path);
-      assert.equal(owner.set, 'plugin', path);
+      assert.equal(owner.set, 'yours', path);
       assert.equal(owner.query, skill, path);
 
       await data.openSetOwner(item);
       assert.equal(openedTab, 'skills', path);
-      assert.equal(data.skillSet, 'plugin', path);
+      assert.equal(data.skillSet, 'yours', path);
       assert.equal(data.skillQ, skill, path);
     }
   } finally {
     data.setTab = realSetTab;
-    data.skillSet = '';
+    data.skillSet = 'yours';
     data.skillQ = '';
   }
 
@@ -1198,13 +1198,13 @@ test('Skills renders the library, and the plugin carries every row of it', async
 
 test('the Skills search matches the trigger text, not only the slug', async () => {
   await data.loadSkillsReg();
-  const all = data.skillRows.length;
+  const all = data.yoursRows.length;
   assert.equal(all, data.skillsReg.length, 'an empty query filters nothing');
 
   // A word that appears in a description and in no slug: the whole reason the
   // description is held in the manifest rather than fetched per skill.
   data.skillQ = 'spreadsheet';
-  const hits = data.skillRows;
+  const hits = data.yoursRows;
   data.skillQ = '';
   assert.ok(hits.length > 0 && hits.length < all, 'a body word narrows the list');
   assert.ok(hits.every(s => (s.name + ' ' + s.description).toLowerCase().includes('spreadsheet')));

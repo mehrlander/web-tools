@@ -51,6 +51,9 @@ owners,applies_to,recorded,,none,column,yes,,value,the population a family rule 
 owners,authoritative,recorded,,value,column,yes,,value,the one file that owns the statement; every other mention is a repetition
 skills,group,recorded,,value,column,yes,prose;documents;web;device;windows;session,label,"what the skill is FOR, the axis a reader browses on; authored, since nothing on disk carries a subject"
 skills,description,recorded,,value,column,yes,,value,"the skill's trigger description. A COPY: the authoritative file is the skill's own SKILL.md, per the family rule in docs/owners.csv"
+skill-archive,retired,recorded,,value,column,yes,,value,the date the skill left the roster
+skill-archive,reason,recorded,,value,column,yes,,value,"why it was retired, and where its guidance went"
+skill-archive,successor,recorded,,none,column,yes,,locator,the file that now carries its guidance; blank where nothing does
 pages,top,computed,node/build/pages-index.mjs,value,column,yes,,label,"the top-level segment under pages/ the page sits in, which drives the gallery's location chips; every page below drop/ scopes to one drop chip. A root page reads main"
 pages,group,computed,node/build/pages-index.mjs,counted,column,yes,,locator,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
 pages,label,computed,node/build/pages-index.mjs,value,column,yes,,value,the short name the catalog card and the picker show
