@@ -784,14 +784,14 @@ const { page, makeShell } = await import('./shell.mjs');
 
 test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   const taps = [];
-  window.__shell = { mapTab: 'set', goMapTab: (t) => taps.push(t) };
+  window.__shell = { mapTab: 'distribution', goMapTab: (t) => taps.push(t) };
   const el2 = window.document.createElement('div');
   el2.setAttribute('x-data', 'map()');
   window.document.body.appendChild(el2);
   Alpine.initTree(el2);
   await tick(2);
   const d2 = Alpine.$data(el2);
-  assert.equal(d2.mapTab, 'set', 'the shell says set, so the set renders');
+  assert.equal(d2.mapTab, 'distribution', 'the shell says distribution, so Distribution renders');
 
   d2.setTab('docs');
   await tick(2);
@@ -809,7 +809,7 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
 
 test('the Docs top-level tap opens Inventory, the route its key has always named', async () => {
   const taps = [];
-  window.__shell = { mapTab: 'set', goMapTab: t => taps.push(t) };
+  window.__shell = { mapTab: 'distribution', goMapTab: t => taps.push(t) };
   const el2b = window.document.createElement('div');
   el2b.setAttribute('x-data', 'map()');
   window.document.body.appendChild(el2b);
@@ -842,8 +842,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'scheduled', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
-    'Harness exposes Automation, Scheduled, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'scheduled', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
+    'Harness exposes Automation, Scheduled, Set, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.

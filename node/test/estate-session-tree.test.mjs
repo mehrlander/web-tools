@@ -394,13 +394,13 @@ test('a set or a failure scope empties it, since an orphan has no record', () =>
   assert.equal(data.sessionOrphans.length, 0, 'failed');
   // `set` needs a set to be ACTIVE, or activeSessionScope falls back to the
   // first scope and the block answers a time question instead. The ids are
-  // derived from the address (window.__shell.sessionSetSpec), so the fixture
+  // derived from the address (window.__shell.sessionListSpec), so the fixture
   // names one there rather than assigning a getter.
-  window.__shell.sessionSetSpec = 'r1';
-  data.sessionScope = 'set';
-  assert.equal(data.activeSessionScope, 'set', 'the fixture really is on the set scope');
+  window.__shell.sessionListSpec = 'r1';
+  data.sessionScope = 'list';
+  assert.equal(data.activeSessionScope, 'list', 'the fixture really is on the list scope');
   assert.equal(data.sessionOrphans.length, 0, 'set');
-  window.__shell.sessionSetSpec = '';
+  window.__shell.sessionListSpec = '';
 });
 
 test('the list is shut until it is opened', () => {

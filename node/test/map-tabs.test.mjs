@@ -67,10 +67,10 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 const GROUPS = [
   ['Projects', [['projects', 'Projects']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
-  ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
+  ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
-  ['Reach', [['reach', 'Routes'], ['set', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
+  ['Reach', [['reach', 'Routes'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
 ];
 
 test('every tab in the strip is one entry in the array that generates it', () => {
@@ -142,8 +142,8 @@ test('a narrative is bounded, so the manual does not regrow in a cell', () => {
 });
 
 test('reader labels clarify the stable route keys', () => {
-  const distribution = SUBVIEWS.find(t => t.k === 'set');
-  assert.ok(distribution, 'the long-lived ?tab=set route remains declared');
+  const distribution = SUBVIEWS.find(t => t.k === 'distribution');
+  assert.ok(distribution, 'Distribution is addressed by its own name');
   assert.equal(distribution.n, 'Distribution',
     'the reader sees the cross-repository purpose rather than the internal Portable name');
 
@@ -165,8 +165,8 @@ const sectionSource = (key) => {
 };
 
 test('Distribution is a searchable delivery crosswalk, not a second artifact inventory', () => {
-  const section = sectionSource('set');
-  assert.ok(section, 'the stable set route has a section');
+  const section = sectionSource('distribution');
+  assert.ok(section, 'the Distribution route has a section');
   assert.match(section, /<input\b[^>]*\bdata-find-box\b[^>]*\bx-model="setQ"/s,
     'Distribution participates in the app-wide finder convention');
   assert.match(section, /x-for="sec in setSections"/,
