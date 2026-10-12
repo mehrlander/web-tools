@@ -1,0 +1,524 @@
+{
+  "schema": "excel-research-evidence/1",
+  "createdAt": "2026-09-25T04:36:06.219508+00:00",
+  "scope": "File identity at documentation time. Excludes this manifest; not a signed provenance attestation.",
+  "files": [
+    {
+      "path": "browser-evidence.json",
+      "bytes": 5242,
+      "sha256": "c457ec3a57d8ffe0d31a7f1c119cd5d9e2de2dcf1a5103c48d06ff2da59712e7"
+    },
+    {
+      "path": "browser-pivot-summary-right.png",
+      "bytes": 55193,
+      "sha256": "d4a8e1a9ae4b10d08b984767edd830ff6a19a3b327a0774a3da582eb428a4b7a"
+    },
+    {
+      "path": "browser-pivot-summary.png",
+      "bytes": 65905,
+      "sha256": "4a8d49f575ed9009891de6153311e44f5c2d58d08c9adceacd30a65c32807ccc"
+    },
+    {
+      "path": "browser-raw-data.png",
+      "bytes": 107605,
+      "sha256": "5189b37a44afd90b687fe641e71b230bbffe2e24c1d5d37a713795c33cc76b5e"
+    },
+    {
+      "path": "charts/capture.png",
+      "bytes": 63703,
+      "sha256": "fb4f67bcfc5803fbb19e1772a908f0fb256bea0b460ecfadb43d4961bf40c687"
+    },
+    {
+      "path": "charts/chart-cases-downloaded.xlsx",
+      "bytes": 13637,
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326"
+    },
+    {
+      "path": "charts/chart-cases.xlsx",
+      "bytes": 13637,
+      "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326"
+    },
+    {
+      "path": "charts/chart-manifest.json",
+      "bytes": 9055,
+      "sha256": "cd30dd5a9e3560a2f9aa2c2991f50bc6a20295d3e74105c47265cd24c1a38aa1"
+    },
+    {
+      "path": "charts/column-measurements.json",
+      "bytes": 2578,
+      "sha256": "fe71779c9ac0d299d5c7961b88052ee0988b9bb0b98aa9c39a5fc117dbbc259e"
+    },
+    {
+      "path": "charts/excel-column-window.png",
+      "bytes": 157744,
+      "sha256": "81b1c4d1e10fa25f352f3ffcec35789c8c80bc3c08097b47627f5394cec92ad5"
+    },
+    {
+      "path": "charts/excel-column.png",
+      "bytes": 19320,
+      "sha256": "95efaee02f88d9bf30badfa3858c9d211059fd3c9909b2fb043d36a58054c587"
+    },
+    {
+      "path": "charts/excel-line-window.png",
+      "bytes": 155911,
+      "sha256": "f2a34d16287434641ed77749fe565e7fe4a6dd238ec07edb0dd37d3acce96ced"
+    },
+    {
+      "path": "charts/excel-line.png",
+      "bytes": 52347,
+      "sha256": "aefc5c1ae7e7323e58018ac15c04076ad9f3c5053c2e1803b8e98bacf9584f81"
+    },
+    {
+      "path": "charts/excel-scatter-window.png",
+      "bytes": 151295,
+      "sha256": "753985756daf7e727a73a2b18ef9e5d2da92974c868f5dcbd0ff94d16b0d2d96"
+    },
+    {
+      "path": "charts/excel-scatter.png",
+      "bytes": 14711,
+      "sha256": "fd2276e89febf149c4353af33ba13eaf9a8b666447371c817aa4a9b6d1bd600f"
+    },
+    {
+      "path": "charts/native-preview-evidence.json",
+      "bytes": 7329,
+      "sha256": "42b081b227c116c22ce245a76e6c192c34dccec3b494a711248db6a8d68f7aa0"
+    },
+    {
+      "path": "charts/native-preview.html",
+      "bytes": 6874,
+      "sha256": "bbee0001d9ec1babba3678d9b1ab4c44811816e4f15deafaec697ab8cc68b480"
+    },
+    {
+      "path": "charts/results.md",
+      "bytes": 4854,
+      "sha256": "4b3da1b7696ddbe89a9544926862eb6028672a417e3670b83578595853264cda"
+    },
+    {
+      "path": "demonstration-workbooks.xlsx",
+      "bytes": 28024,
+      "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14"
+    },
+    {
+      "path": "excel-formatting-and-logic.png",
+      "bytes": 190911,
+      "sha256": "26c713407ae26b8eefc09ebcf18d30994496571e89ab6afa91b527cba0ceea03"
+    },
+    {
+      "path": "excel-pivot-source-dialog.png",
+      "bytes": 13756,
+      "sha256": "f988b15482fa00a537550cd044b8b225a4969561e4bb3824a2909f13484fda2c"
+    },
+    {
+      "path": "excel-pivot-source.png",
+      "bytes": 328283,
+      "sha256": "9a65524acb38616951b60503bd162a063c0cfc4b0a149c14586a47fb760aa7a5"
+    },
+    {
+      "path": "excel-pivot-summary-100.png",
+      "bytes": 226442,
+      "sha256": "b972d9f8bec669ce9aa990d5303157be551f33ab5fdd253c1889ab1342861688"
+    },
+    {
+      "path": "excel-pivot-summary.png",
+      "bytes": 227231,
+      "sha256": "b25509082efc9ff7d66f62a814ad02f6aaedf69346185955a8c5b864398e6bd0"
+    },
+    {
+      "path": "excel-raw-data.png",
+      "bytes": 317249,
+      "sha256": "08596425a0f766cd8029d53fb38f156de4b84f2544fa5936b5342dfc692dd7bd"
+    },
+    {
+      "path": "excel-reconciliation.png",
+      "bytes": 184176,
+      "sha256": "2ee5a4433c3eab40f323b61b106d09b428c2dc27d67af33044c1975532a491fc"
+    },
+    {
+      "path": "excel-table-design.png",
+      "bytes": 328016,
+      "sha256": "9f6683a50a8cd1cf385c17acacca116cc933d3e7f768fd304c315a4483af0243"
+    },
+    {
+      "path": "results.md",
+      "bytes": 4056,
+      "sha256": "be8aad9ad971181043309673a95b119964b1292b5cc3bb5aa4f3250387c91fcd"
+    },
+    {
+      "path": "roundtrip-chart-browser-column.png",
+      "bytes": 23249,
+      "sha256": "8787d228b17a847a4fd8fcc40ee33369cb705554f7436a14db00e6c9ce536d0a"
+    },
+    {
+      "path": "roundtrip-chart-browser-evidence.json",
+      "bytes": 3597,
+      "sha256": "9d2c5ff033c2d43595d5b668a055699b4632778c472f8026eb89016f03d9db93"
+    },
+    {
+      "path": "roundtrip-chart-browser-line.png",
+      "bytes": 22797,
+      "sha256": "80ea2756c93669cfa454f68fc4b81441c8c603aa644230b29908fd1cee4ae66d"
+    },
+    {
+      "path": "roundtrip-chart-browser-results.md",
+      "bytes": 2072,
+      "sha256": "38328bdd0c24cdbd15b2c01b70f4a119c72318f5c3febeccb37450a9252cc464"
+    },
+    {
+      "path": "roundtrip-chart-browser-scatter.png",
+      "bytes": 21313,
+      "sha256": "1c942a267b9dc7f290c373823ac2758d40138b06b5980e8c64231d4f246b9f80"
+    },
+    {
+      "path": "roundtrip-evidence.json",
+      "bytes": 4344,
+      "sha256": "6d49879dd75650e47389cfb6a49c72a053cf6ff495884e6c87d2297f2972b6fd"
+    },
+    {
+      "path": "roundtrip-live-evidence.json",
+      "bytes": 3691,
+      "sha256": "1fb18b3b3898bd2757440009bcbd861439b61d5eedf9126cf4f88217af8b7256"
+    },
+    {
+      "path": "roundtrip-live-network-downloaded.xlsx",
+      "bytes": 28024,
+      "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14"
+    },
+    {
+      "path": "roundtrip-live-network-raw-menu.png",
+      "bytes": 112012,
+      "sha256": "d577e23a0f9772e9999db9b3207b0fbe8fb56f2cc3e8da178bd7a57d208dfc84"
+    },
+    {
+      "path": "roundtrip-local-same-url-downloaded.xlsx",
+      "bytes": 28024,
+      "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14"
+    },
+    {
+      "path": "roundtrip-local-same-url-raw-menu.png",
+      "bytes": 109907,
+      "sha256": "05a3c117e33aa64ffdcc7cb6508c03796e84dd2de1416e7effb1a2814a52da62"
+    },
+    {
+      "path": "roundtrip-results.md",
+      "bytes": 2424,
+      "sha256": "ffe10b24faa08da479305b512aa121a179c6ecc84c92b74b123c76189b3e1177"
+    },
+    {
+      "path": "technical/history/browser-evidence.json",
+      "bytes": 12571,
+      "sha256": "6525ab2b864880cb8926bbf4405256a8586541495f7b2ccd6191ad114b140290"
+    },
+    {
+      "path": "technical/history/browser-failure.json",
+      "bytes": 5044,
+      "sha256": "e4e316d5ac0fa7d8292b2ade1bf4a7494d856ef84b473cbe1ec454a5ffcec20f"
+    },
+    {
+      "path": "technical/history/browser-initial-snapshot.txt",
+      "bytes": 3498,
+      "sha256": "1bb2d51265d94e1a375b6cba084590eb97551e718f8fa30b1de0ec6b1c65b483"
+    },
+    {
+      "path": "technical/history/capabilities.json",
+      "bytes": 2130,
+      "sha256": "026afe081d14414f7140f04a3a47cfa210e66ca73ae2238c045a99940c7036da"
+    },
+    {
+      "path": "technical/history/chart-fixture/artifact-attempt-evidence.json",
+      "bytes": 2243,
+      "sha256": "57a70eb50b29eed1c91fa5803b2e330d6fa19c24c01b0bda860960c358d370fe"
+    },
+    {
+      "path": "technical/history/chart-fixture/artifact-tool-attempt.xlsx",
+      "bytes": 14009,
+      "sha256": "67778f7a2bfbf589be116f1c57f1c8aaf6e05358db8a674d2094651b68a25297"
+    },
+    {
+      "path": "technical/history/chart-fixture/artifact-tool-attempt.xlsx.inspect.ndjson",
+      "bytes": 11725,
+      "sha256": "a625c76de54dee27fe7ac5e7d41747641c142eb1cc45990d901298a092ef8194"
+    },
+    {
+      "path": "technical/history/chart-fixture/specification.json",
+      "bytes": 1794,
+      "sha256": "0d844c81e008c5c56aaa26d4dcec47e1d16fbc96941c2323f489ab6b32add511"
+    },
+    {
+      "path": "technical/history/package-inventory.json",
+      "bytes": 2674,
+      "sha256": "e94bca30f0fce84754f815e2b50c53b7f9077bd1e8b3faad0f9b490ba25d7d14"
+    },
+    {
+      "path": "technical/NATIVE-EXCEL-WORKFLOW.md",
+      "bytes": 10767,
+      "sha256": "1e26d48aaf020aa5096baff33b6a614a4f06866b7d1acd08172d97ea5a48722d"
+    },
+    {
+      "path": "technical/package-facts.json",
+      "bytes": 4152,
+      "sha256": "12202ed01430af6b483100f161c5b03ff1179261f974a27427cf71055cce3a39"
+    },
+    {
+      "path": "technical/README.md",
+      "bytes": 25802,
+      "sha256": "ff354f63cb9a627b106cfde7026eb894200d52ab360c489617b5b08d339648c6"
+    },
+    {
+      "path": "technical/REPRODUCTION.md",
+      "bytes": 16534,
+      "sha256": "b3aa72020d8e8ac74210cd835a39e18d6244483d1546e88dc525b5d1282fb23f"
+    },
+    {
+      "path": "technical/script-index.json",
+      "bytes": 20612,
+      "sha256": "ab0e349c51126368b0f616d98a1e2823bbc9368c05f0b5b215b7e2e80ce27057"
+    },
+    {
+      "path": "technical/scripts/browser-chart-probe.mjs",
+      "bytes": 5921,
+      "sha256": "0f0aa4613c783675cdafe8f119fadd8eb1d07d263a74992c50c7002ed169c1ba"
+    },
+    {
+      "path": "technical/scripts/browser-probe.mjs",
+      "bytes": 7929,
+      "sha256": "2a12e1977454c81174c24570683f3ce72fe3308ad702b32bf94b34c43cd90c34"
+    },
+    {
+      "path": "technical/scripts/browser-roundtrip.mjs",
+      "bytes": 6620,
+      "sha256": "98925d453f393d86fc84f34e9facc5122d1e90f9e53fdb4f9a3cd96b50f0f3a2"
+    },
+    {
+      "path": "technical/scripts/chart-fixture/builder.mjs",
+      "bytes": 6290,
+      "sha256": "5a17f1a613bd8e5f5aa500f124c80b31c84eb06ecf98adcb9e6e111dd1f13627"
+    },
+    {
+      "path": "technical/scripts/chart-fixture/verify-package.py",
+      "bytes": 7205,
+      "sha256": "8514c83735c2d9f9b924f54bf1ed3dd3628f4025d824d5c3df1f9a0de2d30573"
+    },
+    {
+      "path": "technical/scripts/inspect-chart-pixels.py",
+      "bytes": 778,
+      "sha256": "132b8286c267cea98abd7217db9fcf421e6450fb2240da39ab075143b8be8673"
+    },
+    {
+      "path": "technical/scripts/inspect-package.py",
+      "bytes": 1740,
+      "sha256": "e073ca3e665178d68fe52186d444c75299475e8934952129e5734cfc3714125c"
+    },
+    {
+      "path": "technical/scripts/measure-column.py",
+      "bytes": 3604,
+      "sha256": "7df177f7f0c21c9bf26ece70d20b3cf3fc065beb286aee94055c35aca54283d8"
+    },
+    {
+      "path": "technical/scripts/native-preview-test.mjs",
+      "bytes": 11826,
+      "sha256": "b44a7528c8cf5aaf4a9e7145366dde55c0d36d81ba43756cd899a1e110a6a1f2"
+    },
+    {
+      "path": "technical/scripts/serve-native-preview.mjs",
+      "bytes": 1238,
+      "sha256": "92d501de107d93723ad00d11f5aa52222e07649aea2d3f23db6caa25fae83220"
+    },
+    {
+      "path": "technical/skill/agents/openai.yaml",
+      "bytes": 259,
+      "sha256": "c862043609a47d21d564bd23e9c0b321c25cb0a8f08ecf6924da726f02d4d8e0"
+    },
+    {
+      "path": "technical/skill/references/local-evidence.md",
+      "bytes": 11220,
+      "sha256": "872b785f630d0ac081a8061990f706d4fb2b7c2893743244f8ba40aed8ad3155"
+    },
+    {
+      "path": "technical/skill/references/validation-cases.md",
+      "bytes": 6354,
+      "sha256": "d231210edeffc5625f71efbc53ca0cc4eaef80f0c56c583d447d37483710d931"
+    },
+    {
+      "path": "technical/skill/references/windows-routes.md",
+      "bytes": 6065,
+      "sha256": "8de1be5fdff981ccb856f1e78ff3f6a07b317f52929ab3368f53a135e32426b1"
+    },
+    {
+      "path": "technical/skill/scripts/Probe-ExcelCapabilities.ps1",
+      "bytes": 3759,
+      "sha256": "afa10bf93c818d287804053941eca94a155706e48251b4c1f20472e438afc2ef"
+    },
+    {
+      "path": "technical/skill/SKILL.md",
+      "bytes": 8245,
+      "sha256": "770ac65b0268815fe3fbe01c1beac6607dfb5b1f9b683d33b158867611a71347"
+    },
+    {
+      "path": "technical/source-cache/alpine-bundle.js",
+      "bytes": 20657,
+      "sha256": "e9bd7bb5597d1ca54592a7003c2c45825c3a739f90ba8e7b9b7d3ab0c0b8dc32"
+    },
+    {
+      "path": "technical/source-cache/alpine.js",
+      "bytes": 55891,
+      "sha256": "232519394c6c8fdba6f362b1d9da16106db513cdbf899011f00daab4051df31c"
+    },
+    {
+      "path": "technical/source-cache/assistant-mark.js",
+      "bytes": 6184,
+      "sha256": "6727de907011acbe5af607b293ee5b7c3120de4f434469140418bada51324257"
+    },
+    {
+      "path": "technical/source-cache/claude-mark.js.snapshot",
+      "bytes": 3183,
+      "sha256": "5830ae10d22d83a630769467ed68265973bfe9182f177bfc725815b5a2450f33"
+    },
+    {
+      "path": "technical/source-cache/collapse.js",
+      "bytes": 1448,
+      "sha256": "c7661d4e2cf0465e3cd693190debb5f592ac72dcc4cfe650581273767558b27b"
+    },
+    {
+      "path": "technical/source-cache/console.js",
+      "bytes": 4634,
+      "sha256": "e61eed35e34aef42cfcde2f605cbcba5a0f6c83bd883529d0a1adf7686bd509a"
+    },
+    {
+      "path": "technical/source-cache/data-payload.js",
+      "bytes": 8237,
+      "sha256": "72cd86a80324013951e61250c686943b9531a3b8bc627d0d3cf01cf22f708306"
+    },
+    {
+      "path": "technical/source-cache/data-view.html",
+      "bytes": 21120,
+      "sha256": "0f98d29dd0aca971c00dc24519bdca73f7010d0ebf48df0b9c34cfd6430c3e18"
+    },
+    {
+      "path": "technical/source-cache/fab.js",
+      "bytes": 457315,
+      "sha256": "4119014065a127e70383e1f380acd7796e484d05a731e2fe4cee5ba575b6bcd3"
+    },
+    {
+      "path": "technical/source-cache/gh-api.js",
+      "bytes": 20416,
+      "sha256": "2ce215590c2756f72f0b032cad05d5ede8017d56429bc0d92af25db241446946"
+    },
+    {
+      "path": "technical/source-cache/gh-auth.js",
+      "bytes": 7951,
+      "sha256": "83cbbd951ab9628326432fc9426bce2bd6ee33bf869cecb86ea708d88787f102"
+    },
+    {
+      "path": "technical/source-cache/gh-boot.js",
+      "bytes": 26888,
+      "sha256": "25f1fdf6c6292e7daf09b3c84f74ac1998ac5c76d2f5a8e2ba60b660355d7de8"
+    },
+    {
+      "path": "technical/source-cache/gh-fetch.js",
+      "bytes": 31792,
+      "sha256": "d39b03a380a8be04f61de907849a89d9b888b9d504d64b57ee12fa8b96707108"
+    },
+    {
+      "path": "technical/source-cache/note.js",
+      "bytes": 17311,
+      "sha256": "cd5c421a123208bb4cade6bb2f58468fd71be44b71ae3fd925ba4efe7a2be06c"
+    },
+    {
+      "path": "technical/source-cache/path-picker.js",
+      "bytes": 26065,
+      "sha256": "6ae6deb7bac23a5935aaed29302a8a21edcf5bf65ac4d1ea645671f75b559499"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/CLAUDE.md",
+      "bytes": 10594,
+      "sha256": "c30a0dcee805f1d10c072ea6588e981267881d54cd7e69dc6db03414feb0d930"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/lib__alpineComponents__viewer.js",
+      "bytes": 240109,
+      "sha256": "40ad954c25743d655f09182ea927a45c4fe0688499251b85b9b411505a318b56"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/lib__alpineComponents__viewer.js.patch",
+      "bytes": 10175,
+      "sha256": "c7816552a7de333ed682e778be84a1ec5bba392ab7759486108514bd93fc24a1"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/lib__kits__xlsx.js",
+      "bytes": 122936,
+      "sha256": "0099186a2113a9b8c36251512da3dc9d73d1a74ac3758293c21c823662829366"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/lib__kits__xlsx.js.patch",
+      "bytes": 9687,
+      "sha256": "ebf5c21db8bc4873990cdccf29e10d0fd596b811183ce07a13e98d3c99dab277"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/package.json",
+      "bytes": 6976,
+      "sha256": "1476992a9b659da189f68fd2db18cfc886a2b14cecb628eec18af0804b8e6636"
+    },
+    {
+      "path": "technical/source-cache/pr791-review/pages__pivot-table.html.patch",
+      "bytes": 33622,
+      "sha256": "2cd26443d820caf414d5a9028412adca90d08d381df3c996cf4299d9be05758a"
+    },
+    {
+      "path": "technical/source-cache/pr791-verify-table-styles.mjs",
+      "bytes": 7680,
+      "sha256": "89c23267f8826c347c95796cd0a1c584e80de5420b4606f05dc1b6db8ab6fccd"
+    },
+    {
+      "path": "technical/source-cache/repo-address.js",
+      "bytes": 7889,
+      "sha256": "5f840b5f622571093ad96f27bd612d3b88d0ae93ef6905d8da890fbcd47d28d0"
+    },
+    {
+      "path": "technical/source-cache/source-peek.js",
+      "bytes": 27670,
+      "sha256": "03c42afa33a6b6196ad2fc12ccae89820e3fbc17fddd774137d0964a618e33d7"
+    },
+    {
+      "path": "technical/source-cache/styles.css",
+      "bytes": 1278202,
+      "sha256": "9fc22add9cc7246611e588ed1689eb461353d551b8eb7e269f53c3dbd2941a6a"
+    },
+    {
+      "path": "technical/source-cache/theme-runtime.js",
+      "bytes": 282666,
+      "sha256": "5b2c0567e16f4eed5bc65e0f24a5f0a79a4758bfb0e5e8c8a2dc6ed4d8268b41"
+    },
+    {
+      "path": "technical/source-cache/traffic.js",
+      "bytes": 19254,
+      "sha256": "64bba4771ec78857955ef5b6b33f0790d45c21c7298d82cc682caf7be0c7eef9"
+    },
+    {
+      "path": "technical/source-cache/url-params.js",
+      "bytes": 7213,
+      "sha256": "0454e48c196cf14ed22393277ea421614cbfaad8d010565161b195a60c4aeb02"
+    },
+    {
+      "path": "technical/source-cache/vanilla-bundle.js",
+      "bytes": 9817,
+      "sha256": "0d9fc244f97ddab42eb8cb9334b2db2b6060beef7747684b15062279a9b42bbf"
+    },
+    {
+      "path": "technical/source-cache/viewer.js",
+      "bytes": 241720,
+      "sha256": "ae5ddbfbdefc516a5fa3c1221b7bc0600e94f41baef22e8eb0ac4f46cb7f29cd"
+    },
+    {
+      "path": "technical/source-cache/xlsx.js",
+      "bytes": 122935,
+      "sha256": "3c2b07a46ee2b4a08fbb550050c891e6428d636e400c7b3a5205f4d8a66cbc1c"
+    },
+    {
+      "path": "technical/verify-evidence.py",
+      "bytes": 5336,
+      "sha256": "4f26192da0f1d58650631f0c2ee0283b8cb4503fc9540da41690521d5472707d"
+    }
+  ],
+  "publicationNote": "The cached claude-mark.js source is named claude-mark.js.snapshot in the repository to distinguish historical source from a second active implementation. Its bytes are unchanged; originalTaskRelativePath gives its replay filename. The downloadable original archive retains the original names and metadata.",
+  "originalManifestSha256": "9ebecacdd733a4ceb912c993c22d4f81f0ab3d0a068dca5120c6d5020d0f6471"
+}

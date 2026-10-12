@@ -155,7 +155,10 @@ async function saveFold(p, doc, message, base) {
     written.push(p);
     return { content: { sha: '' } };
   }
-  const res = await reg.save(p, doc, message, { sha: base?.sha });
+  // A run's writes say so, since its token commits as the owner and its
+  // subjects are the app's own (docs/views/writes.md, the subject contract).
+  const via = process.env.GITHUB_ACTIONS === 'true' ? ' via Actions' : '';
+  const res = await reg.save(p, doc, message + via, { sha: base?.sha });
   written.push(p);
   return res;
 }

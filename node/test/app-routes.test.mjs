@@ -210,8 +210,9 @@ test('the two sub-tab encodings, counted', () => {
   // the project view's Overview became the README alone, and the landing page
   // and the PowerShell outpost view it used to show took tabs of their own,
   // App and Outpost. 27 to 28 on 2026-10-07: the Map's Reach tab gained
-  // Routes, the diagram it lands on.
-  assert.equal(params, 28, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // Routes, the diagram it lands on. 28 to 29 on 2026-10-09: Harness gained
+  // Lifetimes, the layers a web session runs on and what each event keeps.
+  assert.equal(params, 29, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

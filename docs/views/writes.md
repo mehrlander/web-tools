@@ -8,7 +8,7 @@ hundred.
 | | Kinds | Signal |
 | --- | --- | --- |
 | development history | session, merge, CI, authored | the author the platform sets, or a merge subject |
-| application state | crawl, tap, device | a subject this estate writes on purpose |
+| application state | crawl, tap, device, workflow | a subject this estate writes on purpose |
 
 `device` is a heuristic. `authored` is the residual.
 
@@ -22,6 +22,9 @@ its shape is a contract that `write-kinds.js` reads:
   to-do or pin, a `.web-tools.json` save, an estate join or set-aside, a
   proposal applied or retired, an errand closed, a stage deposit. Add it to
   any new person-initiated write.
+- **`via Actions`** marks a write a GitHub Actions run makes with the owner's
+  token, appended when `GITHUB_ACTIONS` is set. Add it to any new write a run
+  makes with that token.
 - **Crawl writes carry no trailer.** The cache refreshes (`state/configs.json`,
   `state/activity.json`, `state/sessions.json`, `state/calls.json`) run on a tab
   arrival as well as on Refresh, and their subjects name the derived file.

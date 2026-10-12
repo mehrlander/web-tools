@@ -1,0 +1,117 @@
+{
+  "revision": "5109699ac5eea3ca510947859ff9e5cb3980676e",
+  "browserVersion": "153.0.4234.48",
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "deviceScaleFactor": 1
+  },
+  "specimenSha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+  "specimenBytes": 28024,
+  "rawUrl": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+  "appTransport": "Original pinned data-view.html and app source unchanged; dependency reads served from previously retrieved exact-revision local cache.",
+  "attempts": [
+    {
+      "transport": "live-network",
+      "requests": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "method": "GET",
+          "resourceType": "document",
+          "navigation": true
+        },
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "method": "GET",
+          "resourceType": "document",
+          "navigation": true
+        }
+      ],
+      "responses": [],
+      "failures": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "error": "net::ERR_NETWORK_ACCESS_DENIED"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "error": "net::ERR_NETWORK_ACCESS_DENIED"
+        }
+      ],
+      "downloads": [],
+      "pages": [
+        {
+          "initialUrl": "about:blank"
+        },
+        {
+          "initialUrl": "chrome-error://chromewebdata/"
+        }
+      ],
+      "link": {
+        "href": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+        "target": "_blank"
+      },
+      "result": "network-failed"
+    },
+    {
+      "transport": "local-same-url",
+      "requests": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "method": "GET",
+          "resourceType": "document",
+          "navigation": true
+        }
+      ],
+      "responses": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "status": 200,
+          "headers": {
+            "content-length": "28024",
+            "content-type": "application/octet-stream"
+          }
+        }
+      ],
+      "failures": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "downloads": [
+        {
+          "url": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+          "suggestedFilename": "demonstration-workbooks.xlsx",
+          "file": "roundtrip-local-same-url-downloaded.xlsx",
+          "bytes": 28024,
+          "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+          "matchesSpecimen": true,
+          "failure": null
+        }
+      ],
+      "pages": [
+        {
+          "initialUrl": "about:blank"
+        },
+        {
+          "initialUrl": ""
+        },
+        {
+          "initialUrl": ""
+        }
+      ],
+      "link": {
+        "href": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+        "target": "_blank"
+      },
+      "fulfilledBody": {
+        "source": "Original previously downloaded GitHub fixture",
+        "bytes": 28024,
+        "sha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+        "contentType": "application/octet-stream"
+      },
+      "result": "downloaded"
+    }
+  ]
+}

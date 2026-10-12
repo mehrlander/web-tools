@@ -73,6 +73,41 @@ or `marked` turns opening metadata into the first paragraph. Existing `prose
 prose-sm` surfaces may stay; prefer the guide renderer for new work, and do not
 convert working pages for symmetry.
 
+## HTML strings and embedded data
+
+Keep the scaffold static and pass text through `textContent` or `x-text`.
+For an HTML string, use the shared `esc` from
+[vanilla-bundle.js](https://github.com/mehrlander/web-tools/blob/main/lib/vanilla-bundle.js)
+once at the interpolation boundary. Its `fill` treats plain strings as text
+and explicitly branded `html` as markup; `tpl` interpolates raw values and
+requires escaping. The
+[demo](https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html)
+shows those distinctions. Setting `href` or `src` avoids quote injection but
+does not validate a URL's scheme; validate untrusted destinations separately.
+
+**Inline JSON must survive the HTML parser.** `JSON.stringify` leaves a closing
+script tag intact, including inside a JSON string or a `type="application/json"`
+block. Serialize, then escape `<` before inserting the result:
+
+```js
+const json = JSON.stringify(payload)
+  .replace(/</g, '\u003c')
+  .replace(/ /g, '\u2028')
+  .replace(/ /g, '\u2029');
+```
+
+**Check each template-literal layer.** An outer literal evaluates `${...}`
+before generated Alpine or JavaScript sees it. Escape a literal `${` as `\${`
+and an inner backtick as `\``. A backtick inside an HTML comment still ends
+the enclosing JavaScript literal. Parse checks catch broken outer syntax;
+inspect the generated string for valid-but-wrong interpolation as well.
+
+**Document replacement is deliberate.** `document.open()`, `document.write(html)`,
+`document.close()` replaces the current document. Scripts written that way can
+execute; scripts inserted with `innerHTML` do not. To load a script into the
+existing page, append a newly created `script` element. Exercise values with
+quotes, `<`, and closing script text; ordinary data alone does not check escaping.
+
 ## Title-tips and panel-tips
 
 **This section is the one statement of the house popup rule.** Rule 11 of the

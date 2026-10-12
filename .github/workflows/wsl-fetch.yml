@@ -5,21 +5,23 @@ name: WSL fetch
 # runners have open egress, so this runs pages/wsl-sync/fetch-data.mjs and
 # commits the JSON snapshot under pages/wsl-sync/data/.
 #
-# Two triggers: manual dispatch (any biennium/limit), and a monthly cron
-# that does a --full refresh of the open biennium — per-bill data (rcws,
-# history, actions) grows on an open biennium, so incremental isn't enough.
-# Scheduled runs execute on the default branch, so the snapshot commit lands
-# on main; the guard below makes a no-change run commit nothing.
+# One trigger, workflow_dispatch, reached two ways: by hand (any biennium or
+# limit), and monthly by the scheduled-tasks workflow (scheduled-tasks.yml), which
+# starts it when the wsl-fetch row of web-tools-private's
+# data/design/scheduled-tasks.csv is due, with that row's `with` inputs:
+# full=true and a blank biennium, a --full refresh of fetch-data.mjs's default
+# biennium (2025-26, the open one, as of 2026-10).
+# Per-bill data (rcws, history, actions) grows on an open biennium, so
+# incremental isn't enough. That workflow dispatches against main, so the snapshot
+# commit lands on main; the guard below makes a no-change run commit nothing.
 
 on:
-  schedule:
-    - cron: '0 9 1 * *'   # 1st of the month, 09:00 UTC
   workflow_dispatch:
     inputs:
       biennium:
-        description: 'Which biennium to fetch (e.g. 2025-26, 2023-24). Output lands in data/<biennium>/.'
+        description: 'Which biennium to fetch (e.g. 2025-26, 2023-24); blank takes fetch-data.mjs's default. Output lands in data/<biennium>/.'
         required: false
-        default: '2025-26'
+        default: ''
       limit:
         description: 'Cap per-bill fetches (--limit). Blank = fetch all (default). Enter e.g. 5 to smoke-test.'
         required: false
@@ -55,12 +57,12 @@ jobs:
 
       - name: Fetch bill data
         run: |
-          # On a scheduled run `inputs` is empty: the biennium falls back to
-          # the script's default (the open biennium) and --full is forced.
+          # A blank biennium falls back to fetch-data.mjs's default; the
+          # scheduled-tasks workflow's monthly dispatch passes full=true.
           ARGS=()
           if [ -n "${{ inputs.biennium }}" ]; then ARGS+=(--biennium "${{ inputs.biennium }}"); fi
           if [ -n "${{ inputs.limit }}" ]; then ARGS+=(--limit "${{ inputs.limit }}"); fi
-          if [ "${{ inputs.full }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then ARGS+=(--full); fi
+          if [ "${{ inputs.full }}" = "true" ]; then ARGS+=(--full); fi
           echo "Running: npm run wsl-fetch -- ${ARGS[*]}"
           npm run wsl-fetch -- "${ARGS[@]}"
 

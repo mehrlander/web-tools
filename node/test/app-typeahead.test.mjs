@@ -201,7 +201,7 @@ const DECLARED = [
   // Distribution, Docs Inventory, Skills, Agents and Peeves are sibling
   // mapTab sections. x-show leaves only the selected section with client
   // rects, so the router still sees exactly one visible primary finder at a time.
-  ['lib/alpineComponents/map.js', "the Map's Distribution, Docs Inventory, Skills, Agents and Peeves searches", 5],
+  ['lib/alpineComponents/map.js', "the Map's Projects, Research, Distribution, Docs Inventory, Skills, Agents and Peeves searches", 7],
   ['lib/alpineComponents/config.js', "the Config view's key filter", 1],
   ['lib/alpineComponents/public-browse.js', 'the public browser file filter', 1],
 ];

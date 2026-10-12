@@ -155,7 +155,7 @@ test('--check exits non-zero on a finding and zero on a clean tree', () => {
 
 // The gate itself. Everything above pins the classifier; this is the claim that
 // matters to a reader of the app.
-test('no bound boolean attribute in lib, pages, app or popups can be undefined', () => {
-  const { code, out } = run(['--check', 'lib', 'pages', 'app', 'popups']);
+test('no bound boolean attribute in lib, pages, app, popups or a skill demo can be undefined', () => {
+  const { code, out } = run(['--check']);
   assert.equal(code, 0, 'bound-boolean-attrs found bindings that set the attribute:\n' + out);
 });

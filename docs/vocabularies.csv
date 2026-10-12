@@ -44,6 +44,7 @@ upstream-skills,status,studied,Studied,"read, and discussed in notes addressed t
 upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the plugin never ships"
 upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
 upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
+upstream-skills,status,dependency,Third-party dependency,"installed from its author through a separately attributed marketplace entry"
 upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"
 context-sources,discretion,injected,Injected,Included automatically by the platform.
 context-sources,role,content,Content,Instruction text or other material that can be read; its presence here does not prove it entered a session.

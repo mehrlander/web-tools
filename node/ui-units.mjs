@@ -25,7 +25,8 @@
 //   2  pages a promoted app frames                     VIEWS[key].embed
 //   3  gallery pages, and other pages nothing reaches  pages.csv, pages[]
 //   4  demonstrations and scratch                      pages.csv top: demos,
-//                                                      kit-demos, drop, scratch
+//                                                      kit-demos, skill-demos,
+//                                                      drop, scratch
 //
 // Named `app_ring` in the output because budget-drs's lineage/exposure.csv
 // already has a `ring`, for how far a DATA file is from being displayed.
@@ -65,7 +66,7 @@ const DATE = opt('--date', new Date().toISOString().slice(0, 10));
 const ESTATE = path.resolve(opt('--estate', path.join(HUB, '..')));
 const WRITE = args.includes('--write');
 
-const checkout = (repo) => path.join(ESTATE, repo);
+const checkout = (repo) => repo === 'web-tools' ? HUB : path.join(ESTATE, repo);
 const has = (repo, p = '') => existsSync(path.join(checkout(repo), p));
 const read = (repo, p) => readFileSync(path.join(checkout(repo), p), 'utf8');
 const csv = (repo, p) => parseCsv(read(repo, p));
@@ -145,7 +146,8 @@ for (const l of landed) {
 }
 
 // ── Promotions and frames, from every checked-out repo's manifest ────────────
-const repos = readdirSync(ESTATE).filter(d => has(d, '.web-tools.json') && has(d, '.git'));
+const repos = ['web-tools', ...readdirSync(ESTATE).filter(d => d !== 'web-tools' &&
+  path.resolve(ESTATE, d) !== HUB && has(d, '.web-tools.json') && has(d, '.git'))];
 // A page's identity is repo plus path; `owner/repo:path` in a manifest names a
 // page in another repo, which is how home promotes web-tools' Links and News.
 const pageId = (declaringRepo, p) => {
@@ -274,7 +276,7 @@ if (has('home', bdApp)) {
 }
 
 // ── Pages: promoted (1), framed (2, above), gallery or unlisted (3), demos (4) ─
-const DEMO_TOPS = new Set(['demos', 'kit-demos', 'drop', 'scratch']);
+const DEMO_TOPS = new Set(['demos', 'kit-demos', 'skill-demos', 'drop', 'scratch']);
 const seenPage = new Set(units.filter(u => u.kind === 'framed page').map(u => u.unit));
 const addPage = (repo, p, ring, basis, label) => {
   const k = `${repo}:${p}`;

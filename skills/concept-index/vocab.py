@@ -359,6 +359,11 @@ def main():
 
     if a.cmd == "index":
         root = Path(a.root).resolve()
+        # A hub is matched by path, so one that was renamed or deleted matches
+        # nothing and silently drops its terms from the canonical tier.
+        missing = [h for h in a.hub if not (root / h).is_file()]
+        if missing:
+            sys.exit(f"vocab.py: no such hub under {root}: {', '.join(missing)}")
         idx = build_index(root, tuple(a.hub), tuple(a.exclude))
         out = Path(a.output) if Path(a.output).is_absolute() else root / a.output
         out.parent.mkdir(parents=True, exist_ok=True)

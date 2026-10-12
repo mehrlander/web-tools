@@ -37,7 +37,7 @@ import tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY = os.path.join(ROOT, "docs", "upstream-skills.csv")
 LOCATOR = re.compile(r"^([\w.-]+)/([\w.-]+):(.+)$")
-PINNED = {"studied", "held", "vendored", "adapted"}   # statuses that carry a pin
+PINNED = {"studied", "held", "vendored", "adapted", "dependency"}   # statuses that carry a pin
 
 
 def folder(path):

@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 38 by a page or component. The remaining 53 are
+15 by a skill, 40 by a page or component. The remaining 47 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -76,7 +76,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 - [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
 - [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
-- [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
@@ -91,16 +90,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
 - [`policy-topics.csv`](policy-topics.csv) — the topics and areas the policy catalog is grouped by
 - [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
-- [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record and upkeep
+- [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record, outpost protocol and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
 - [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
 - [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
-
-## docs/doc-craft-specimens/
-
-- [`2026-09-08-naming-split.md`](doc-craft-specimens/2026-09-08-naming-split.md) *(record, orphan)* — a specimen from the doc-craft study: APP.md's naming-split history recast as a dated record
-- [`APP_living_spec_replacement.md`](doc-craft-specimens/APP_living_spec_replacement.md) *(record, orphan)* — a specimen from the doc-craft study: APP.md rewritten as a living spec, not adopted
 
 ## docs/envelopes/
 
@@ -134,6 +128,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`testing.md`](environment/testing.md) *(measured)* — how to test HTML and JS in the sandbox
 - [`antigravity-local.md`](environment/antigravity-local.md) *(measured, orphan)* — the Antigravity local host environment: daemon runtime, SQLite storage, and brain workspace
 - [`harness-comparison.md`](environment/harness-comparison.md) *(measured, orphan)* — structural comparison of the Claude Code cloud harness and Antigravity local harness
+- [`lifetimes.json`](environment/lifetimes.json) *(measured)* — the Map view's Lifetimes data: what each event does to each layer a web session runs on, every effect citing container.md
 
 ## docs/favicons/
 
@@ -153,16 +148,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
 
-## docs/research/excel-chart-cleanup-2026-09-25/
-
-- [`README.md`](research/excel-chart-cleanup-2026-09-25/README.md) *(record, orphan)* — Excel chart semantics and PivotTable cleanup evidence from September 25, 2026
-- [`verification.json`](research/excel-chart-cleanup-2026-09-25/verification.json) *(record, orphan)* — browser verification results and workbook/source hashes for the Excel cleanup
-
 ## docs/views/
 
 - [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
 - [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
-- [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer
+- [`map.md`](views/map.md) — the Map view: its tabs over the coordination layer
 - [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the PowerShell outpost view in its Outpost tab: what it lists, its one write, and the rules its file handling keeps
 - [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
 - [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention

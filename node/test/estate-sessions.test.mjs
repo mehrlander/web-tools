@@ -1705,3 +1705,111 @@ test('a deck that never opens does not leave the card undismissable', async () =
     assert.equal(data.rowCard, null, 'the guard is released when there is nothing to guard');
   } finally { window.sessionRender.open = real; }
 });
+
+test('topicBadge relays turn count as a clean string', () => {
+  assert.equal(data.topicBadge(null), '');
+  assert.equal(data.topicBadge({ turns: 0 }), '');
+  assert.equal(data.topicBadge({ turns: 1, spans: [[0, 0]] }), '1');
+  assert.equal(data.topicBadge({ turns: 4, spans: [[0, 0], [3, 5]] }), '4');
+});
+
+test('sessionTopicHopPaths traces return arcs from emoji edge into margin', () => {
+  const rowNoAgenda = { topics: ['A', 'B'] };
+  assert.equal(data.sessionTopicHopPaths(rowNoAgenda), '');
+
+  const agenda = [
+    { topic: 'A', turns: [0, 0] },
+    { topic: 'B', turns: [1, 2] },
+    { topic: 'A', turns: [3, 5] },
+    { topic: 'C', turns: [6, 6] },
+  ];
+  const S = window.RepoSessionsCache;
+  const row = { id: 'hop1', topicAgenda: S.topicStretches(agenda) };
+  const hops = data.sessionTopicHopPaths(row);
+  assert.ok(hops.includes('C'), 'upward return to earlier topic generates a curved arc');
+  assert.ok(hops.startsWith('M 0 '), 'arc starts at the outer edge of the emoji');
+});
+
+test('openSessionTopicCard opens in-place prose card and toggles off on re-tap', () => {
+  const S = window.RepoSessionsCache;
+  const agenda = [
+    { topic: 'First Work', turns: [0, 1], state: { glyph: '🟢', name: 'Ready', line: 'Ready' } },
+    { topic: 'Second Work', turns: [2, 2] },
+  ];
+  const row = S.summarize(rec({
+    short: 'topcard1', session_id: 'topcard1-0000-0000-0000-000000000000',
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'ask 1' },
+              { at: '2026-08-05T13:30:00Z', text: 'ask 2' },
+              { at: '2026-08-05T14:00:00Z', text: 'ask 3' }],
+    replies: [{ at: '2026-08-05T13:15:00Z', text: 'ans 1' },
+              { at: '2026-08-05T13:45:00Z', text: 'ans 2' },
+              { at: '2026-08-05T14:30:00Z', text: 'ans 3' }],
+  }), 'top1');
+  row.topicAgenda = S.topicStretches(agenda);
+
+  const ev = { currentTarget: {} };
+  data.openSessionAtTopic(row, 'First Work', ev);
+  assert.ok(data.rowCard, 'a card opens in place');
+  assert.equal(data.rowCard.cls, 'topic');
+  assert.equal(data.rowCard.topic, 'First Work');
+  assert.equal(data.rowCard.count, 2, 'two turns in First Work');
+  assert.equal(data.rowCard.topicGlyph, '🟢');
+  assert.ok(data.rowCard.turns.some(t => t.inTopic), 'turns inside the topic are flagged');
+
+  // Tapping the same topic again toggles it off
+  data.openSessionAtTopic(row, 'First Work', ev);
+  assert.equal(data.rowCard, null, 'tapping again toggles off the topic card');
+
+  // Calling without an event delegates to full session detail
+  const origDetail = data.openSessionDetail;
+  let calledDetail = null;
+  data.openSessionDetail = (r) => { calledDetail = r; };
+  try {
+    data.openSessionAtTopic(row, 'First Work');
+    assert.equal(data._openCard?.topic, 'First Work');
+    assert.equal(calledDetail, row);
+  } finally {
+    data.openSessionDetail = origDetail;
+  }
+});
+
+test('sessionTopicItems consolidates minor asides into Other and abuts zero-gap', () => {
+  const S = window.RepoSessionsCache;
+  const agenda = [
+    { topic: 'Topic 1', turns: [0, 4], minor: false },
+    { topic: 'Topic 2', turns: [5, 7], minor: false },
+    { topic: 'Aside 1', turns: [8, 8], minor: true },
+    { topic: 'Topic 3', turns: [9, 14], minor: false },
+    { topic: 'Topic 4', turns: [15, 16], minor: false },
+  ];
+  const row = { id: 'zero1', turn_count: 17, topicAgenda: S.topicStretches(agenda) };
+  const items = data.sessionTopicItems(row);
+  assert.equal(items.length, 5, 'five items including Other');
+  assert.equal(items[0].topic, 'Topic 1');
+  assert.equal(items[1].topic, 'Topic 2');
+  assert.equal(items[2].topic, 'Other');
+  assert.equal(items[2].minor, true);
+  assert.equal(items[2].turns, 1);
+  assert.deepEqual(plain(items[2].spans), [[8, 8]]);
+  assert.equal(items[3].topic, 'Topic 3');
+  assert.equal(items[4].topic, 'Topic 4');
+
+  // Verify label and tip
+  assert.equal(data.sessionTopicLabel(items[2]), 'Other · 1 turn aside');
+  assert.ok(data.sessionTopicTip(items[2]).includes('Other / asides'));
+
+  // Verify exact zero-gap abutting
+  const p1 = data.sessionTopicChronoPath(row, items[0]);
+  const p2 = data.sessionTopicChronoPath(row, items[1]);
+  const pOther = data.sessionTopicChronoPath(row, items[2]);
+  const p3 = data.sessionTopicChronoPath(row, items[3]);
+  const p4 = data.sessionTopicChronoPath(row, items[4]);
+
+  // Topic 1 ends at 5/17*100 = 29.41176%
+  // Topic 2 starts at 5/17*100 = 29.41176%
+  assert.ok(p1.includes('M 2 2 h 25.41176'), 'Topic 1 starts at 0 and spans width 29.41176');
+  assert.ok(p2.includes('M 31.41176'), 'Topic 2 starts at 29.41176 (x + r = 29.41176 + 2)');
+  assert.ok(pOther.includes('M 49.05882'), 'Other starts at 47.05882 (8/17*100)');
+  assert.ok(p3.includes('M 54.94117'), 'Topic 3 starts at 52.94117 (9/17*100)');
+  assert.ok(p4.includes('M 90.23529'), 'Topic 4 starts at 88.23529 (15/17*100)');
+});

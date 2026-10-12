@@ -1,11 +1,11 @@
 ---
 name: source-anchored-xlsx
-description: "Build Excel workbooks where every typed number sits next to an image of its source, laid out the same way, and formatted tables draw from those numbers by formula. Use when figures are transcribed, combined or reconciled from a PDF, report, slide deck or image into a spreadsheet that must be checkable: budget and pension tables, financial extracts, valuation results, 'pull these numbers into Excel and show where they came from', or 'combine these tables' when the figures need verifying. Composes with the xlsx skill, which handles openpyxl and recalculation."
+description: "Build Excel workbooks where every typed number sits next to an image of its source, laid out the same way, and formatted tables draw from those numbers by formula. Use when figures are transcribed, combined or reconciled from a PDF, report, slide deck or image into a spreadsheet that must be checkable: budget and pension tables, financial extracts, valuation results, 'pull these numbers into Excel and show where they came from', or 'combine these tables' when the figures need verifying. Composes with the host-provided spreadsheet skill for construction and recalculation."
 ---
 
 # Source-Anchored Workbooks
 
-Use the xlsx skill for openpyxl, `recalc.py` and the zero-formula-error check.
+Use the host-provided spreadsheet skill for workbook construction and recalculation. In Claude Code, portable declares Anthropic's `/third-party-documents:xlsx` as a dependency; use `scripts/recalc.py` from that installed skill folder, with its `office/` companions. Without plugins, fetch the [complete official skill folder](https://github.com/anthropics/skills/tree/main/skills/xlsx). Resolve that support before creating the workbook. A different host's spreadsheet skill may use another calculation engine; it must still recalculate formulas, verify their cached values, and report zero formula errors.
 
 ## Numbers
 
