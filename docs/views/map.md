@@ -2,9 +2,15 @@
 
 `?view=map[&tab=<key>]` (`lib/alpineComponents/map.js`) makes the coordination
 layer inspectable. Most tabs render a hub registry; federated tabs assemble
-each repository's declarations. Each address's lede and account, which names
-the files it reads, is a row of [map-tabs.csv](../map-tabs.csv); the test
-holding each registry is its `gate` in [registries.csv](../registries.csv).
+each repository's declarations. Each address's one-sentence description and
+its account of the files it reads are a row of [map-tabs.csv](../map-tabs.csv);
+the test holding each registry is its `gate` in [registries.csv](../registries.csv).
+
+Every address opens with the same toolbar: its controls and counts, then a
+database icon that opens Sources and methods, which holds the description, the
+files and builders, and notes on reading them. Below the `lg` breakpoint the two
+tab rows and the current group heading stay pinned while the pane scrolls; the
+controls and filter rows scroll away with the list.
 
 The shell validates `?tab=` against `MAP_TABS` and `MAP_SUBVIEWS` in
 `app/index.html` before `map()` mounts. `SUBVIEWS` in `map.js` groups the

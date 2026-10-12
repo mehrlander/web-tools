@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 41 by a page or component. The remaining 46 are
+15 by a skill, 42 by a page or component. The remaining 46 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -82,9 +82,10 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 - [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule
-- [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address ledes and the longer account of each tab
+- [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address descriptions and the longer account of each tab
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
+- [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 - [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
 - [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
 - [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
