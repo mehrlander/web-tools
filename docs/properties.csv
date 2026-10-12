@@ -208,6 +208,18 @@ run-methods,venues,recorded,,value,list,no,,value,"the machines this method's sc
 run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted;job-log;self-filed,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
+writers,name,recorded,,value,column,yes,,value,"the program, as a reader names it; never a person, who goes in kind"
+writers,kind,recorded,,value,column,yes,agent;process;person,value,"who decided what a commit contains at the moment the commit was made: agent, a model writes the bytes, so a Claude Code session is an agent; process, code with no model deciding; person, you, through a program that only carries your edit. Not who authored the text, which the content registry's creation_mode records"
+writers,machine,recorded,,value,column,yes,container;computer;personal-laptop;actions-hosted;browser;iphone,value,"the machine the writer runs on, spelled as run-methods.csv spells an errand's run.venue; container and computer are writers' own, since no run method runs there"
+writers,model,recorded,,none,column,yes,claude;gemini,value,the model an agent writer uses; blank for a process or a person
+writers,starts,recorded,,counted,list,no,,value,"what starts it directly: a request from you, an event, or a schedule; blank where only another writer starts it"
+writers,started_by_writer,recorded,,none,list,no,,value,"other writers that start this one, by their writer key"
+writers,polls,recorded,,none,column,yes,yes,value,"yes where the writer finds its start by polling, so a schedule stands in for the event it waits for"
+writers,sets_on,recorded,,value,list,no,,value,"where what it sets lands: a local copy, a working branch, or main directly"
+writers,mode,recorded,,value,list,no,,value,"how it sets: replace a file, append a record, propose a branch, or merge one"
+writers,write_kind,recorded,,counted,list,no,,value,the Writes view kinds its commits read as (lib/kits/write-kinds.js); blank where not yet measured
+writers,defined_in,recorded,,value,column,yes,,locator,"the file that defines or documents it, a path here or owner/repo@ref:path"
+writers,gloss,recorded,,value,column,yes,,value,what it does
 context-sources,circle,recorded,,value,column,yes,account;environment;user;plugin;repo;session,label,"where the source is defined, outermost first: the claude.ai account, the cloud environment, user scope in the container, the portable plugin, a checked-out repo, or the session itself"
 context-sources,item,recorded,,value,column,yes,,value,the short name a reader knows the source by
 context-sources,repo,recorded,,none,column,yes,,locator,the owner/repo holding the source file; blank where the source is not a file in any repo
