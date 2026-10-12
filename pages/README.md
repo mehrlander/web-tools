@@ -174,6 +174,7 @@ the link-dense text twin of the visual index above.
 | Page | Title | Links |
 |---|---|---|
 | `caveman` | Caveman: input, decisions, output | [view](https://mehrlander.github.io/web-tools/skills/caveman/demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/skills/caveman/demo.html) |
+| `concept-index` | Concept index: index, check, read | [view](https://mehrlander.github.io/web-tools/skills/concept-index/demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/skills/concept-index/demo.html) |
 | `screenshot-review` | Page measures: one run, two readers | [view](https://mehrlander.github.io/web-tools/skills/screenshot-review/demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/skills/screenshot-review/demo.html) |
 
 ## pages/stories/
