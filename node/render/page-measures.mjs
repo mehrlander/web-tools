@@ -38,7 +38,8 @@ const opt = name => { const i = args.indexOf(name); return i < 0 ? null : args.s
 const flag = name => { const i = args.indexOf(name); return i >= 0 && !!args.splice(i, 1); };
 const base = opt('--base'), summary = opt('--summary'), jobs = +(opt('--jobs') || 4), all = flag('--all');
 
-// The page set pages-shots shoots: pages/ and the kit demos, no index files.
+// The page set pages-shots shoots: pages/, the kit demos and the skill demos
+// (skills/<name>/demo.html), no index files.
 async function walk(dir) {
   const out = [];
   for (const e of await readdir(path.join(repoRoot, dir), { withFileTypes: true })) {
@@ -48,7 +49,10 @@ async function walk(dir) {
   }
   return out;
 }
-const universe = async () => [...await walk('pages'), ...await walk('lib/kits/demos')].sort();
+const skillDemos = async () => (await readdir(path.join(repoRoot, 'skills'), { withFileTypes: true }))
+  .filter(e => e.isDirectory() && existsSync(path.join(repoRoot, 'skills', e.name, 'demo.html')))
+  .map(e => `skills/${e.name}/demo.html`);
+const universe = async () => [...await walk('pages'), ...await walk('lib/kits/demos'), ...await skillDemos()].sort();
 
 async function choose() {
   if (all) return { pages: await universe(), why: 'every page (--all)' };
