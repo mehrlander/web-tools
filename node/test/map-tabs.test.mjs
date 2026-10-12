@@ -87,6 +87,20 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the source panel renders the selected description, including its references');
 });
 
+// Pill rows stay on one line and scroll sideways. A pinned filter row that
+// wraps grows the phone's held stack by a line per wrap, which is what the
+// Data tab's repository row did until 2026-10-12.
+test('no pinned filter row wraps', () => {
+  const consts = Object.fromEntries([...src.matchAll(/const (map\w+) = '([^']*)'/g)].map(m => [m[1], m[2]]));
+  assert.ok(consts.mapPillStrip, 'mapPillStrip not found as a plain string constant');
+  const tags = [...src.matchAll(/<[a-z]+\b[^>]*data-map-sticky="filters"[^>]*>/g)].map(m => m[0]);
+  assert.ok(tags.length >= 7, 'filter rows parsed short: ' + tags.length);
+  for (const tag of tags) {
+    const classes = tag.replace(/\$\{(\w+)\}|' \+ (\w+) \+ '/g, (_, a, b) => ' ' + (consts[a || b] || '') + ' ');
+    assert.doesNotMatch(classes, /(^|[\s:"'])flex-wrap\b/, 'a pinned filter row wraps: ' + tag.slice(0, 140));
+  }
+});
+
 test('docs/map-tabs.csv holds one row per Map address, and no other', () => {
   assert.ok(MAP_ROUTES.length >= 15, 'MAP_ROUTES parsed short: ' + MAP_ROUTES.length);
   const keys = ROWS.map(r => r.tab);
