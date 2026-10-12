@@ -75,6 +75,7 @@ it: either the expression can be undefined or it cannot.
 """
 
 import argparse
+import glob
 import os
 import re
 import sys
@@ -185,6 +186,13 @@ def scan_text(text, path):
     return out
 
 
+
+def default_roots(base):
+    # A skill's demo is a page that lives beside its SKILL.md, as
+    # skills/<name>/demo.html (see node/build/pages-index.mjs). The rest of
+    # skills/ is reference material, so only the demos join the default set.
+    return base + sorted(glob.glob('skills/*/demo.html'))
+
 def walk(roots):
     for root in roots:
         if os.path.isfile(root):
@@ -199,12 +207,12 @@ def walk(roots):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument('roots', nargs='*', default=DEFAULT_ROOTS,
-                    help='files or directories to scan (default: %s)' % ' '.join(DEFAULT_ROOTS))
+    ap.add_argument('roots', nargs='*', default=None,
+                    help='files or directories to scan (default: %s, plus skills/*/demo.html)' % ' '.join(DEFAULT_ROOTS))
     ap.add_argument('--check', action='store_true',
                     help='exit 1 when anything is found, for a gate')
     args = ap.parse_args(argv[1:])
-    roots = args.roots or DEFAULT_ROOTS
+    roots = args.roots or default_roots(DEFAULT_ROOTS)
 
     found = []
     for path in walk(roots):
