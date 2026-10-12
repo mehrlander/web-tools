@@ -3,7 +3,7 @@
   "owner": {
     "name": "mehrlander"
   },
-  "description": "Skills created or adapted here in portable, with separately attributed Anthropic dependencies fetched from their official source.",
+  "description": "The portable set from mehrlander/web-tools as one installable plugin: skills created or adapted here, with the hooks and agents that travel with them.",
   "plugins": [
     {
       "name": "portable",
@@ -97,50 +97,6 @@
         "tailwind",
         "alpine",
         "html-artifact"
-      ],
-      "dependencies": [
-        "third-party-documents",
-        "third-party-authoring"
-      ]
-    },
-    {
-      "name": "third-party-documents",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/skills.git",
-        "path": "skills",
-        "sha": "683bc88e56f3e09ba94f7055977f3d3aa499f202"
-      },
-      "strict": false,
-      "author": {
-        "name": "Anthropic"
-      },
-      "homepage": "https://github.com/anthropics/skills",
-      "description": "Third-party: Anthropic document skills, loaded unchanged from the official repository.",
-      "skills": [
-        "./docx",
-        "./pdf",
-        "./pptx",
-        "./xlsx"
-      ]
-    },
-    {
-      "name": "third-party-authoring",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/skills.git",
-        "path": "skills",
-        "sha": "683bc88e56f3e09ba94f7055977f3d3aa499f202"
-      },
-      "strict": false,
-      "author": {
-        "name": "Anthropic"
-      },
-      "homepage": "https://github.com/anthropics/skills",
-      "description": "Third-party: Anthropic skill creation and document coauthoring, loaded unchanged from the official repository.",
-      "skills": [
-        "./skill-creator",
-        "./doc-coauthoring"
       ]
     }
   ]

@@ -6,23 +6,18 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | Skills created or adapted here. |
-| `third-party-documents` | docx, pdf, pptx, xlsx | Third-party: Anthropic's official files, fetched unchanged from the revision in the marketplace entry. |
-| `third-party-authoring` | skill-creator, doc-coauthoring | Third-party: Anthropic's official files, with only these two skills registered. |
+| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | Skills created or adapted here, with the hooks and agents that travel with them. |
 
-`portable` declares the two Anthropic packages as dependencies. They are
-selections from [Anthropic's official repository](https://github.com/anthropics/skills),
-maintained by Anthropic, with their own `/third-party-documents:<name>` and
-`/third-party-authoring:<name>` namespaces. Web Tools maintains the selection and
-pin, not their instructions. Companion scripts and licenses arrive with the
-source. [Claude Code dependency handling](https://code.claude.com/docs/en/plugins/dependencies)
-installs them with portable; existing installations need a plugin update and
-reload to resolve newly declared dependencies. The session refresher only
-updates the portable files and is not evidence that dependencies installed.
-
-Claude account copies and other hosts' built-in skills remain separate. Outside
-Claude Code, use the host's supplied skill or install/fetch the complete official
-folder before a dependent workflow. A source link does not register a skill.
+The catalog publishes nothing written elsewhere and declares no dependencies. A
+plugin's `dependencies` field makes it refuse to load wherever a listed plugin is
+missing, and the session refresher moves portable forward without installing
+anything new, so a dependency added after an environment was built disables
+portable in every session restored from that build. A dependency on two plugins
+of Anthropic's skills, declared on 2026-10-09, did exactly that until it was
+removed.
+Anthropic's skills reach Claude Code cloud sessions through the claude.ai
+account instead, and a skill here that uses one links its official folder at a
+pinned commit ([upstreams](outposts.md#upstreams-the-reverse-direction)).
 
 Every skill's description sits in every session's context; the measured cost is in [environment/extending.md](environment/extending.md#context-cost).
 
