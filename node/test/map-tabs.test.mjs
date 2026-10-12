@@ -114,7 +114,7 @@ test('the lede comes from the CSV and links to its own row', () => {
   assert.doesNotMatch(tabsBlock + subviewsBlock, /\bg: '/,
     'a sentence is back in the array; it belongs in docs/map-tabs.csv');
   assert.match(src, /const TAB_LEDES = 'docs\/map-tabs\.csv'/);
-  assert.match(src, /get tabGloss\(\)\{ return this\.tabLedes\?\.\[this\.mapTab\]\?\.gloss/,
+  assert.match(src, /get ledeParts\(\)\{\s+const row = this\.tabLedes\?\.\[this\.mapTab\];/,
     'one row per address, so the lede is a lookup with no parent fallback');
   // A landing, not a filter: the sentence is read among the others, so every
   // row stays and this one is scrolled to and marked.

@@ -172,7 +172,7 @@ test('source provenance follows the selected collection and preserves an externa
     assert.equal(data.mapSources[0].addr, 'mehrlander/home@feature/census:data/inventory.csv');
     data.mapTab = 'views';
     assert.ok(!paths().includes('state/activity.json'), 'live GitHub reads are not attributed to an unused cache');
-    assert.match(data.mapSourceNote, /GitHub commit history/);
+    assert.equal(data.mapSourceNote, '', 'the narrative in the same panel already says where the dates come from');
   } finally { Object.assign(data, old); }
 });
 
@@ -1026,8 +1026,14 @@ test('The source table uses every registry source, including later additions and
     assert.equal(skill.title, r.item); assert.equal(skill.gloss, r.gloss);
     const legacy = state.ctxSpectraMechanisms.find(m => m.id === 'private-preferences');
     assert.equal(legacy.env, 'claude');
-    assert.equal(legacy.discretionId, 'unclassified', 'missing data is not guessed');
+    assert.equal(state.ctxDiscretionLabel(legacy.source.discretion), 'Not classified', 'missing data is not guessed');
     assert.equal(state.ctxRoleLabel(legacy.source.role), 'Role not classified');
+    // The labels are the vocabulary's, not a copy kept in the component.
+    await state.loadPropsReg();
+    const vocab = (property, value) => state.propsReg.vocab.find(x => x.registry === 'context-sources'
+      && x.property === property && x.value === value).label;
+    assert.equal(state.ctxDiscretionLabel('outside'), vocab('discretion', 'outside'));
+    assert.equal(state.ctxRoleLabel('automation'), vocab('role', 'automation'));
     assert.deepEqual([...state.ctxSourceTable.map(m => m.id)].sort(), [...state.ctxAll.map(r => r.id)].sort());
     assert.ok(state.ctxQuestions.find(t => t.topic === 'writing-rules').rows.some(r => r.id === legacy.id));
     state.selectCtxSource(legacy.id);
