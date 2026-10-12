@@ -214,7 +214,25 @@ test('the two sub-tab encodings, counted', () => {
   // Lifetimes, the layers a web session runs on and what each event keeps.
   // 29 to 30 on 2026-10-11: Distribution took `distribution`, and `set` passed
   // to the Harness tab listing what can set state in the estate.
-  assert.equal(params, 30, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 30 to 37 on 2026-10-12, with one address added: the Map gained Overview,
+  // its front door, and its row had again fallen behind the addresses
+  // docs/map-tabs.csv declares, naming 22 of 28. The test below now holds the
+  // row to the shell's list, so this figure moves only with an address.
+  assert.equal(params, 37, 'sub-tabs addressed as ?view=<parent>&tab=');
+});
+
+// The Map's row is a copy of the shell's address list, and it is a copy that
+// drifted twice: 16 of 19 by 2026-10-06, 22 of 28 by 2026-10-12. A copy kept
+// only by hand is kept by nobody, so it is held to the list it copies.
+test("the Map's row names every address the shell accepts, and lands on its front door", () => {
+  const keys = name => (shellSrc.match(new RegExp(`const ${name} = \\[([^\\]]+)\\]`))?.[1] || '')
+    .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+  const routes = [...keys('MAP_TABS'), ...keys('MAP_SUBVIEWS')];
+  assert.ok(routes.length >= 20, 'MAP_ROUTES parsed short: ' + routes.length);
+  const map = manifest.routes.find(r => r.key === 'map');
+  assert.deepEqual([...map.tabs].sort(), [...routes].sort());
+  const home = shellSrc.match(/const MAP_HOME = '(\w+)'/)?.[1];
+  assert.equal(map.lands, '?view=map&tab=' + home, 'the row lands where a bare ?view=map does');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

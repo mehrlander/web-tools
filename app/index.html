@@ -2356,9 +2356,13 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // ?tab= param before the component mounts. A tab shares its key with the
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
-const MAP_TABS = ['projects', 'research', 'harness', 'dimensions', 'docs', 'reach'];
+const MAP_TABS = ['overview', 'projects', 'research', 'harness', 'dimensions', 'docs', 'reach'];
 const MAP_SUBVIEWS = ['exploration', 'scheduled', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'aims', 'growth', 'policy', 'claims', 'registries', 'distribution', 'outposts', 'data'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
+// Where a bare ?view=map lands, and so the one address its URL never stamps:
+// the Overview, every address with its sentence. Reach held it until
+// 2026-10-12, when the sentences left the tops of the tabs for one front door.
+const MAP_HOME = 'overview';
 // The Context subview's own sub-address (lib/alpineComponents/map.js,
 // syncCtxAddress): grouping, sort, question and source, one value each.
 const mapCtxOf = get => Object.fromEntries(['ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource'].map(k => [k, get(k) || '']));
@@ -2531,7 +2535,7 @@ function app(){ return {
   estateSeen: false,      // mount the estate component lazily, on first visit
   configSeen: false,      // mount the config-view component lazily, on first visit
   mapSeen: false,         // mount the map component lazily, on first visit
-  mapTab: 'reach',        // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
+  mapTab: MAP_HOME,       // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
   // Context's sub-address, held here for the same reason. Seeded only from an
   // address that opens Context, since the map row stamps it there alone and a
   // value armed from any other address would surface on the next visit.
@@ -6252,7 +6256,7 @@ function app(){ return {
       stamp(p){
         // Same `tab` key the project view stamps, and the same rule: the
         // default stays out of the URL so a plain ?view=map link keeps working.
-        if (this.mapTab && this.mapTab !== 'reach') p.set('tab', this.mapTab);
+        if (this.mapTab && this.mapTab !== MAP_HOME) p.set('tab', this.mapTab);
         // Context's four ride with Context alone. Written straight onto the
         // address by map.js and cleared by nothing, they used to follow a
         // picked question onto every later tab and view.
@@ -7069,7 +7073,7 @@ function app(){ return {
   // authoritative, so an absent one means the default. Anything unrecognized
   // falls back rather than leaving every section hidden.
   goMap(tab){
-    if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : 'reach';
+    if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : MAP_HOME;
     this.mapSeen = true; this.view = 'map'; this.syncUrl();
   },
   // A tab tap from inside map(): stamp the URL so back and forward walk the

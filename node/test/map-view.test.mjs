@@ -58,6 +58,8 @@ const aimsInitiativesCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-initia
 const aimsReadingCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-reading.csv'), 'utf8');
 const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8');
 const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
+// The Overview and every Sources panel read the real sentences.
+const mapTabsCsv = readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 'utf8');
 const ownersCsv = readFileSync(path.join(repoRoot, 'docs', 'owners.csv'), 'utf8');
 const repsCsv = readFileSync(path.join(repoRoot, 'docs', 'repetitions.csv'), 'utf8');
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
@@ -101,6 +103,7 @@ window.GH = class {
     if (p === 'docs/aims-reading.csv') return { text: aimsReadingCsv };
     if (p === 'docs/surfacing.csv') return { text: surfCsv };
     if (p === 'docs/SURFACING.md') return { text: surfDoc };
+    if (p === 'docs/map-tabs.csv') return { text: mapTabsCsv };
     if (p === 'docs/owners.csv') return { text: ownersCsv };
     if (p === 'docs/repetitions.csv') return { text: repsCsv };
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
@@ -843,6 +846,47 @@ test('openConfig opens the repo dialog on the Config tab without throwing', () =
 // shell.mjs harness.
 const { page, makeShell } = await import('./shell.mjs');
 
+// The front door. A tab's own screen leads with its controls and keeps its
+// sentence in Sources and methods, so the reader arriving cold meets every
+// set here first: the rows are the strip's own arrays and the sentences the
+// CSV's own cells, so neither can be a second list that drifts.
+test('the Overview lists every other address under its tab with its sentence, and finds one by name or by file', async () => {
+  window.__shell = undefined;
+  const el3 = window.document.createElement('div');
+  el3.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(el3);
+  Alpine.initTree(el3);
+  await tick(3);
+  const d3 = Alpine.$data(el3);
+  assert.equal(d3.mapTab, 'overview', 'a bare Map lands on the Overview');
+  const want = Object.values(d3.SUBVIEWS).flat().map(v => v.k).filter(k => k !== 'overview');
+  const rows = d3.overviewGroups.flatMap(g => g.rows);
+  assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
+  assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.filter(t => t.k !== 'overview').map(t => t.n)]);
+  const ledes = Object.fromEntries(window.Csv.rows(mapTabsCsv).map(r => [r.tab, r.gloss]));
+  for (const r of rows) assert.equal(r.gloss, ledes[r.k], r.k + ': the sentence is its CSV row');
+  assert.ok(rows.every(r => !r.files.length), 'files are listed only to show why a query matched');
+  const section = [...el3.querySelectorAll('section')].find(e => e.getAttribute('x-show') === "mapTab==='overview'");
+  assert.equal(section.querySelectorAll('[data-at^="map-"]').length, want.length, 'one look-link anchor per row');
+
+  d3.overviewQ = 'tests.csv';
+  const byFile = d3.overviewGroups.flatMap(g => g.rows);
+  assert.deepEqual([...byFile.map(r => r.k)], ['tests'], 'a file finds the address that reads it');
+  assert.deepEqual([...byFile[0].files], ['docs/tests.csv']);
+  d3.overviewQ = 'harness';
+  const byTab = d3.overviewGroups.flatMap(g => g.rows).map(r => r.k);
+  for (const v of d3.SUBVIEWS.harness) assert.ok(byTab.includes(v.k), v.k + ': a tab name finds its addresses');
+  d3.overviewQ = 'no address says this';
+  assert.equal(d3.overviewHits, 0);
+
+  d3.overviewQ = '';
+  await tick(2);
+  section.querySelector('[data-at="map-kits"]').click();
+  await tick(2);
+  assert.equal(d3.mapTab, 'kits', 'a row opens its address');
+  el3.remove();
+});
+
 test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   const taps = [];
   window.__shell = { mapTab: 'distribution', goMapTab: (t) => taps.push(t) };
@@ -1319,7 +1363,7 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   history.replaceState = (a, b, url) => stamped.push(url);
 
   shell.goMap();
-  assert.equal(shell.mapTab, 'reach');
+  assert.equal(shell.mapTab, 'overview', 'a bare Map lands on its front door');
   assert.doesNotMatch(stamped.at(-1), /tab=/, 'the default stays out of the URL');
   assert.match(stamped.at(-1), /view=map/);
 
@@ -1331,10 +1375,10 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   shell.goMap();
   assert.equal(shell.mapTab, 'docs', 'returning to Map does not reset the tab');
   shell.goMap('');
-  assert.equal(shell.mapTab, 'reach', 'an absent param means the default');
+  assert.equal(shell.mapTab, 'overview', 'an absent param means the default');
 
   shell.goMap('bogus');
-  assert.equal(shell.mapTab, 'reach', 'an unknown tab falls back rather than hiding every section');
+  assert.equal(shell.mapTab, 'overview', 'an unknown tab falls back rather than hiding every section');
 
   // Leaving the view drops the key rather than stranding it on the next URL.
   shell.mapTab = 'docs';
