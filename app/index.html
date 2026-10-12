@@ -8933,10 +8933,12 @@ function gallery(){
 
     get chips(){
       const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
-      tops.sort((a, b) => (a === 'kit-demos') - (b === 'kit-demos') || a.localeCompare(b));
+      const outside = t => t === 'kit-demos' || t === 'skill-demos';
+      tops.sort((a, b) => outside(a) - outside(b) || a.localeCompare(b));
       const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
       const all = this.groups.reduce((n, g) => n + g.items.length, 0);
-      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/'] : ['pages/', t + '/'];
+      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/']
+        : t === 'skill-demos' ? ['skills/', '*/demo.html'] : ['pages/', t + '/'];
       return [
         { key: 'main', pre: '', seg: 'pages/', count: countTop('main') },
         { key: 'all',  pre: '', seg: 'All',    count: all },

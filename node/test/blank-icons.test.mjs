@@ -145,7 +145,7 @@ test('--check exits non-zero on a finding and zero on a clean tree', () => {
   });
 });
 
-test('lib, pages and app carry no icon name the installed font cannot render', () => {
+test('lib, pages, app and the skill demos carry no icon name the installed font cannot render', () => {
   const { code, out } = run(['--check']);
   assert.equal(code, 0, out);
   assert.match(out, /blank-icons: none/);

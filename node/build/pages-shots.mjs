@@ -24,12 +24,16 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..');
 const shotTool = path.join(here, '..', 'render', 'screenshot.mjs');
 
-// Source roots, matching pages-index.mjs: pages/ itself plus the kit demos that
-// live under lib/kits/demos/. `virt` is the thumbnail path prefix (so kit demos
-// land in pages/thumbs/kit-demos/); `src` resolves the file to actually shoot.
+// Source roots, matching pages-index.mjs: pages/ itself, the kit demos that
+// live under lib/kits/demos/, and the skill demos at skills/<name>/demo.html.
+// `virt` is the thumbnail path prefix (so kit demos land in
+// pages/thumbs/kit-demos/); `src` resolves the file to actually shoot. `pick`,
+// as in pages-index.mjs, maps a file to its catalog name or null to skip it.
 const SOURCES = [
   { dir: 'pages',           virt: '',          src: rel => path.join('pages', rel) },
   { dir: 'lib/kits/demos',  virt: 'kit-demos', src: rel => path.join('lib/kits/demos', rel) },
+  { dir: 'skills',          virt: 'skill-demos', src: rel => path.join('skills', rel),
+    pick: f => f.match(/^([^/]+)\/demo\.html$/)?.[1]?.concat('.html') ?? null },
 ];
 
 async function walk(baseDir, dir = baseDir) {
@@ -47,7 +51,10 @@ async function walk(baseDir, dir = baseDir) {
 let pages = [];
 for (const s of SOURCES) {
   const files = await walk(path.join(repoRoot, s.dir));
-  for (const f of files) pages.push({ rel: s.virt ? `${s.virt}/${f}` : f, src: s.src(f) });
+  for (const f of files.map(f => f.split(path.sep).join('/'))) {
+    const v = s.pick ? s.pick(f) : f;
+    if (v) pages.push({ rel: s.virt ? `${s.virt}/${v}` : v, src: s.src(f) });
+  }
 }
 pages.sort((a, b) => a.rel.localeCompare(b.rel));
 
