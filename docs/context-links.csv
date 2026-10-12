@@ -1,0 +1,7 @@
+from,to,kind,gloss
+env-setup,plugin-package,installs,Runs the user-scope portable@web-tools install and updates an existing installation.
+hook-dispatch,wt-session-hooks,runs,Runs eligible checkout .claude/hooks/session-*.sh scripts at startup or resume.
+hook-invoke-default,plugin-default,prompts,Asks the assistant to invoke /portable:default when the conventions did not arrive through imports.
+hook-pr-subscribe,plugin-course,delivers,Adds the course to matching MCP create_pull_request feedback when it has not already been delivered in that session.
+plugin-default,plugin-surfacing,asks to read,Reading the instructions requires a separate assistant action after skill invocation.
+plugin-default,plugin-writing,asks to read,Reading the instructions requires a separate assistant action after skill invocation.

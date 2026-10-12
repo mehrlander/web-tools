@@ -11,7 +11,7 @@ docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true
 docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
 tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
 tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
-tests,assertions,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many assertions the file makes. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
+tests,assertions,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many top-level test() calls the file writes, a static lower bound; despite the column's name, not a count of assert calls. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
 tests,assertion_names,computed,node/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
 tests,method,computed,node/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
 tests,runner,computed,node/build/tests-index.mjs,value,column,yes,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
@@ -239,11 +239,15 @@ context-sources,status,recorded,,value,column,yes,current;retiring;planned,label
 context-sources,tally,recorded,,none,column,yes,,locator,"the key this source has in the session store tally: startup:<path> for an instruction file, skill:<name> for a skill"
 context-sources,topics,recorded,,none,column,yes,,label,"the overlap topics this source speaks to, semicolon separated, each a row in docs/context-topics.csv"
 context-sources,gloss,recorded,,value,column,yes,,value,one sentence on what the source does
+context-sources,assistant,recorded,,none,column,yes,,label,"the assistant whose delivery is inventoried; all is a wildcard matching every assistant, so the row stays under any assistant filter; omitted by older Claude-only registries"
+context-sources,role,recorded,,counted,column,yes,content;automation;configuration,label,"what the source is: readable material, executable machinery, or configuration; blank means not classified"
+context-sources,discretion,recorded,,counted,column,yes,injected;prodded;reactive;pulled;outside,label,"how delivery is initiated or whether the source only configures or executes outside context; blank means not classified"
+context-links,gloss,recorded,,value,column,yes,,value,the condition and meaning of a declared connection; its basis is the originating source file and it is not an execution receipt
 context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it
 context-topics,verdict,recorded,,value,column,yes,layered;redundant;conflicting;transitional,label,"whether the overlap is layered by design, redundant, conflicting, or transitional while a replacement lands"
 context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the topic, in a sentence or two"
-map-tabs,gloss,recorded,,value,column,yes,,value,"the lede: what the rows at this address are, in one sentence, never what the reader can do with them"
-map-tabs,refs,recorded,,counted,list,no,,locator,"the lede's links: phrase=path pairs, each phrase a verbatim span of the lede and each path the file or folder (ending in /) it opens"
+map-tabs,gloss,recorded,,value,column,yes,,value,"what the rows at this address are, in one sentence, never what the reader can do with them; listed with every other in the Overview, the Map's front door, and opening the address's own Sources and methods panel"
+map-tabs,refs,recorded,,counted,list,no,,locator,"the description's links: phrase=path pairs, each phrase a verbatim span of the gloss and each path the file or folder (ending in /) it opens"
 map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
 doc-overlap-docs,sha,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
 doc-overlap-docs,prose_words,computed,python/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"

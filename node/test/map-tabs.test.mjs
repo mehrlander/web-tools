@@ -1,28 +1,25 @@
-// lib/alpineComponents/map.js — the Map view's tab strip, and the one sentence
-// each tab opens with.
+// lib/alpineComponents/map.js: the Map view's tab strip, and the one sentence
+// each address has for what its rows are.
 //
 // WHAT THIS HOLDS is a writing convention, which is an unusual thing to gate, so
 // the reason has to be exact. Before 2026-08-31 eleven of the twelve views opened
-// straight into cards with nothing saying what the cards were, and the twelfth
-// opened with three sentences whose last one was mechanics. The Owners tab had a
-// framing sentence and it was deleted on 2026-08-26 under the repo's own rule
-// against prose that describes state, on the argument that "the cards say what
-// the registry holds". That argument is wrong in a way worth catching: the cards
-// say what a ROW is and never what the SET is, and a reader arriving cold needs
-// the second one first.
+// straight into cards with nothing saying what the cards were. The cards say
+// what a ROW is and never what the SET is, and a reader arriving cold needs the
+// second one first. So every address has one sentence that says what its rows
+// ARE, and never what the reader can do with them, which is the line between a
+// description and a manual. The shape assertions below are the whole of it: one
+// sentence, bounded, no second person, no imperative pointing at a control.
 //
-// So the convention is narrow enough to be checkable. A lede says what the tab's
-// rows ARE. It never says what the reader can do with them, which is the line
-// between a lede and a manual, and it is the line prose on a page crosses when it
-// starts to rot. The shape assertions below are the whole of it: one sentence,
-// bounded, no second person, no imperative pointing at a control.
+// WHERE IT SHOWS changed on 2026-10-12, by the owner's decision on PR #889. It
+// used to head each tab; now the tab's controls and counts lead, and the
+// sentence opens with the tab's files and builders in Sources and methods. The
+// need it answers did not change, so it is still required of every address,
+// and the reader arriving cold now meets every set at once: the Overview, the
+// Map's front door, lists each address under its tab with this sentence.
 //
 // The sentences live in docs/map-tabs.csv, one row per address, since
-// 2026-09-28; the keys, labels and icons stay in the TABS and SUBVIEWS arrays the
-// strip is generated from. A tab still cannot be added without a sentence, but
-// the reason is now a gate rather than a shared literal: the CSV's row set must
-// equal the shell's MAP_ROUTES in both directions. That is the load-bearing part:
-// a convention nothing renders from is a convention that lasts one session.
+// 2026-09-28. A tab still cannot be added without one, because the CSV's row set
+// must equal the shell's MAP_ROUTES in both directions.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,7 +61,10 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // [address key, label]. Every key but `reach` predates the regroup, so a
 // published ?view=map&tab=<key> link still lands on the reading it named;
 // `reach` is the routes diagram the Reach tab lands on, added after it.
+// Overview leads the strip since 2026-10-12: the front door, where every
+// address shows its sentence under the tab that holds it.
 const GROUPS = [
+  ['Overview', [['overview', 'Overview']]],
   ['Projects', [['projects', 'Projects']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
@@ -84,7 +84,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   // 10 to 11: Data aggregates the declared CSV inventories.
   // 13 to 4 on 2026-10-07: every address regrouped under GROUPS above.
-  assert.equal(TABS.length, 6, 'six top-level tabs including projects and research');
+  // 6 to 7 on 2026-10-12: Overview, the front door, leads the strip.
+  assert.equal(TABS.length, 7, 'seven top-level tabs, Overview first');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
     'each tab carries exactly its subviews, in order, under their established keys');
@@ -105,7 +106,30 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /@click="setTab\(t\.k\)"/,
     'a top-level stop opens its own route, so Docs opens Inventory');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
-  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the lede is rendered from the selected tab, in runs');
+  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the source panel renders the selected description, including its references');
+});
+
+// Pill rows stay on one line and scroll sideways. A filter row that wraps
+// pushes the list down a line per wrap, which is what the Data tab's
+// repository row did until 2026-10-12.
+test('no filter row wraps', () => {
+  const consts = Object.fromEntries([...src.matchAll(/const (map\w+) = '([^']*)'/g)].map(m => [m[1], m[2]]));
+  assert.ok(consts.mapPillStrip, 'mapPillStrip not found as a plain string constant');
+  const tags = [...src.matchAll(/<[a-z]+\b[^>]*data-slot="frame:(?:filters|count-chips)"[^>]*>/g)].map(m => m[0]);
+  assert.ok(tags.length >= 8, 'filter rows parsed short: ' + tags.length);
+  for (const tag of tags) {
+    const classes = tag.replace(/\$\{(\w+)\}|' \+ (\w+) \+ '/g, (_, a, b) => ' ' + (consts[a || b] || '') + ' ');
+    assert.doesNotMatch(classes, /(^|[\s:"'])flex-wrap\b/, 'a filter row wraps: ' + tag.slice(0, 140));
+  }
+});
+
+// The house rule puts filters in a header dropdown, never in a chip row that
+// consumes the viewport. Until 2026-10-12 a phone held the controls and every
+// filter row too, about 310 of the Map pane's 583 pixels at 320 by 640, so the
+// held layers are now named and nothing else may join them by accident.
+test('a phone holds only the navigation and the current group heading', () => {
+  const layers = new Set([...src.matchAll(/data-map-sticky="([a-z]+)"/g)].map(m => m[1]));
+  assert.deepEqual([...layers].sort(), ['group', 'nav']);
 });
 
 test('docs/map-tabs.csv holds one row per Map address, and no other', () => {
@@ -121,7 +145,7 @@ test('the lede comes from the CSV and links to its own row', () => {
   assert.doesNotMatch(tabsBlock + subviewsBlock, /\bg: '/,
     'a sentence is back in the array; it belongs in docs/map-tabs.csv');
   assert.match(src, /const TAB_LEDES = 'docs\/map-tabs\.csv'/);
-  assert.match(src, /get tabGloss\(\)\{ return this\.tabLedes\?\.\[this\.mapTab\]\?\.gloss/,
+  assert.match(src, /get ledeParts\(\)\{\s+const row = this\.tabLedes\?\.\[this\.mapTab\];/,
     'one row per address, so the lede is a lookup with no parent fallback');
   // A landing, not a filter: the sentence is read among the others, so every
   // row stays and this one is scrolled to and marked.

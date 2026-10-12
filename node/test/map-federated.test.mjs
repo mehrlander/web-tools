@@ -128,12 +128,14 @@ test('the hub needs no ?src= and no token; every other corpus is addressed', () 
   assert.equal(data.growthSeen, true, 'selecting a corpus arms the frame');
 });
 
-test('the payload link follows the selection rather than always naming the hub', () => {
-  assert.equal(data.growthPayloadUrl,
-    'https://github.com/mehrlander/home/blob/main/data/doc-growth.json');
-  assert.equal(data.growthPayloadLabel, 'home:data/doc-growth.json');
-  data.selectGrowthRepo('mehrlander/web-tools');
-  assert.match(data.growthPayloadUrl, /mehrlander\/web-tools\/blob\/main\/data\/doc-growth/);
+test('the payload source follows the selection rather than always naming the hub', () => {
+  const tab = data.mapTab;
+  data.mapTab = 'growth';
+  try {
+    assert.equal(data.mapSources[0].addr, 'mehrlander/home@main:data/doc-growth.json');
+    data.selectGrowthRepo('mehrlander/web-tools');
+    assert.equal(data.mapSources[0].addr, 'mehrlander/web-tools@main:data/doc-growth/web-tools.json');
+  } finally { data.mapTab = tab; }
 });
 
 test('a selection naming a repo the cache no longer carries falls back to the hub', () => {
@@ -145,9 +147,10 @@ test('a selection naming a repo the cache no longer carries falls back to the hu
 
 // ── Skills ───────────────────────────────────────────────────────────────────
 
-test('Docs points at the Context tab, which renders in the app rather than an embedded page', () => {
-  const docs = el.querySelector('section[x-show="mapTab===\'docs\'"]');
-  assert.ok([...docs.querySelectorAll('button')].some(b => b.textContent.trim() === 'Session context'));
+test('Docs source panel points at Context in the app', () => {
+  const panel = el.querySelector('[data-map-sources-panel]');
+  const link = [...panel.querySelectorAll('button')].find(b => b.textContent.trim() === 'Session context ↗');
+  assert.equal(link?.getAttribute('@click'), "setTab('context')");
   assert.equal(el.querySelector('a[href*="session-context.html"]'), null, 'the retired page is no longer linked');
 });
 
