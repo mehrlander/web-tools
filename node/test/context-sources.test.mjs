@@ -54,6 +54,9 @@ test('delivery connections have distinct known endpoints and a readable source f
     assert.ok(sources.has(edge.from) && sources.has(edge.to), key + ': missing source');
     assert.notEqual(edge.from, edge.to, key + ': a connection must join different sources');
     assert.ok(edge.gloss && edge.kind, key + ': no meaning or condition');
+    // Registration is derived from hooks.json, and the view drops a registers
+    // edge from every question path, so a curated one would vanish silently.
+    assert.notEqual(edge.kind, 'registers', key + ': registers is derived from skills/hooks/hooks.json, not declared here');
     const from = sources.get(edge.from);
     assert.equal(from.repo, HUB, key + ': basis must be readable from the public repository');
     assert.ok(statSync(path.join(repoRoot, from.path)).isFile(), key + ': missing defining code');

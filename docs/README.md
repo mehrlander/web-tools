@@ -78,10 +78,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
+- [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 - [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule
-- [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address ledes and the longer account of each tab
+- [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address descriptions and the longer account of each tab
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
@@ -93,9 +94,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record, outpost protocol and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
-- [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
 - [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
-- [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
+- [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
 
 ## docs/envelopes/
 
