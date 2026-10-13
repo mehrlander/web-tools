@@ -56,21 +56,22 @@ const routeKeys = name => (shell.match(new RegExp(`const ${name} = \\[([^\\]]+)\
   .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
 const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 
-// The grouping the owner settled on 2026-10-07 (discussion around PR #887):
-// four tabs, in strip order, each with its subviews in strip order as
-// [address key, label]. Every key but `reach` predates the regroup, so a
-// published ?view=map&tab=<key> link still lands on the reading it named;
-// `reach` is the routes diagram the Reach tab lands on, added after it.
-// Overview leads the strip since 2026-10-12: the front door, where every
-// address shows its sentence under the tab that holds it.
+// The grouping the owner settled on 2026-10-07 (discussion around PR #887),
+// in strip order, each tab with its subviews in strip order as [address key,
+// label]. Every key but `reach` predates that regroup, so a published
+// ?view=map&tab=<key> link still lands on the reading it named; `reach` is the
+// routes diagram, added after it. Overview leads the strip since 2026-10-12.
+// Since 2026-10-13 the Map has two doors: Overview (what the hub is and holds:
+// Contents and Purpose) and Reach (what it covers: the routes diagram, which
+// Reach lands on and so shares its key with, then Projects, Distribution,
+// Outposts and Data).
 const GROUPS = [
-  ['Overview', [['overview', 'Overview']]],
-  ['Projects', [['projects', 'Projects']]],
+  ['Overview', [['overview', 'Contents'], ['aims', 'Purpose']]],
+  ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
-  ['Docs', [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
-  ['Reach', [['reach', 'Routes'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
+  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
 ];
 
 test('every tab in the strip is one entry in the array that generates it', () => {
@@ -85,7 +86,9 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 10 to 11: Data aggregates the declared CSV inventories.
   // 13 to 4 on 2026-10-07: every address regrouped under GROUPS above.
   // 6 to 7 on 2026-10-12: Overview, the front door, leads the strip.
-  assert.equal(TABS.length, 7, 'seven top-level tabs, Overview first');
+  // 7 to 6 on 2026-10-13: two doors. Purpose joined Overview, and Projects
+  // joined Routes, Distribution, Outposts and Data under Reach.
+  assert.equal(TABS.length, 6, 'six top-level tabs, Overview first and Reach second');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
     'each tab carries exactly its subviews, in order, under their established keys');

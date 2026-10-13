@@ -6,14 +6,18 @@ each repository's declarations. Each address's one-sentence description and
 its account of the files it reads are a row of [map-tabs.csv](../map-tabs.csv);
 the test holding each registry is its `gate` in [registries.csv](../registries.csv).
 
-A bare `?view=map` opens the **Overview**, the Map's front door: every other
-address under the tab that holds it, with its sentence, so a reader new to the
-Map meets each set before its rows. Its finder matches an address's name, its
-tab and its sentence, and also the files the address names, which answers
-"which tab shows this file". The rows come from the `TABS` and `SUBVIEWS`
-arrays and the sentences from the CSV, so the Overview holds no list of its
-own. Until 2026-10-12 the Map opened on Reach, and each tab headed its own
-screen with its sentence.
+The Map has two doors. A bare `?view=map` opens the **Overview**, which says
+what the hub is and holds. Its **Contents** lists every address under the tab
+that holds it, with its sentence, so a reader new to the Map meets each set
+before its rows; its **Purpose** is the estate's mission, goals and reading
+paths. The Contents finder matches an address's name, its tab and its
+sentence, and also the files the address names, which answers "which tab shows
+this file". The rows come from the `TABS` and `SUBVIEWS` arrays and the
+sentences from the CSV, so Contents holds no list of its own. The second door,
+**Reach**, holds what the hub covers beyond itself. It lands on Routes, the
+diagram of every repository and outpost the hub reaches, then offers Projects,
+Distribution, Outposts and Data. Until 2026-10-12 the Map itself opened on that
+diagram, and each tab headed its own screen with its sentence.
 
 Every address opens with the same toolbar: its controls and counts, then a
 database icon that opens Sources and methods, which holds the description, the

@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 42 by a page or component. The remaining 46 are
+15 by a skill, 42 by a page or component. The remaining 47 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -27,7 +27,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
-- [`aims-reading.csv`](aims-reading.csv) — the guided reading list Docs/Purpose offers a new reader
+- [`aims-reading.csv`](aims-reading.csv) — the guided reading list Overview/Purpose offers a new reader
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
@@ -96,6 +96,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
 - [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
+- [`idea-board.md`](idea-board.md) *(orphan)* — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
 
 ## docs/envelopes/
 
