@@ -27,7 +27,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
-- [`aims-reading.csv`](aims-reading.csv) — the guided reading list Docs/Purpose offers a new reader
+- [`aims-reading.csv`](aims-reading.csv) — the guided reading list Overview/Purpose offers a new reader
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
