@@ -62,11 +62,12 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // ?view=map&tab=<key> link still lands on the reading it named; `reach` is the
 // routes diagram, added after it. Overview leads the strip since 2026-10-12.
 // Since 2026-10-13 the Map has two doors: Overview (what the hub is and holds:
-// Contents and Purpose) and Reach (what it covers: Projects, which Reach lands
-// on and so shares its key with, then Routes, Distribution, Outposts and Data).
+// Contents and Purpose) and Reach (what it covers: the routes diagram, which
+// Reach lands on and so shares its key with, then Projects, Distribution,
+// Outposts and Data).
 const GROUPS = [
   ['Overview', [['overview', 'Contents'], ['aims', 'Purpose']]],
-  ['Reach', [['projects', 'Projects'], ['reach', 'Routes'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
+  ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
