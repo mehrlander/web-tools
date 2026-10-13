@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idea board</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  idea-board.html — one idea board from the design-sprint skill's phase 2 (a
+  Crazy 8s round), read from JSON. The address grammar, the board's fields and
+  the rules a sketch follows are in docs/idea-board.md; the sample at
+  demos/idea-board.json is what the page shows with no address.
+
+  The body is a linked swiper (data/ui-units codes.csv): the list on top, a
+  strip of cards below, and the full-screen deck the strip expands into, all
+  three moved by sync(). An SVG sketch renders as an image, so it cannot run
+  script and its marker ids cannot collide; an HTML sketch renders inline,
+  cleaned first. Picks and notes stay in this browser, keyed by the board's
+  address without its ref, and leave as text.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/swipe-deck.js');
+    await gh.load('kits/io.js');
+    await gh.load('kits/title-tip.js');
+  } finally { window.__depsDone(); }
+</script>
+<script>
+document.addEventListener('alpine:init', () => {
+  const img = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(/xmlns=/.test(s) ? s : String(s).replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"'));
+  // An HTML sketch is drawn inline, so it can use the page's Tailwind and
+  // Phosphor; it loses script, event attributes and javascript: links first.
+  const clean = html => {
+    const d = new DOMParser().parseFromString(html, 'text/html');
+    d.querySelectorAll('script,iframe,object,embed').forEach(e => e.remove());
+    d.querySelectorAll('*').forEach(e => [...e.attributes].forEach(a => (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) && e.removeAttribute(a.name)));
+    return d.body.innerHTML;
+  };
+  const tokenNow = () => {
+    if (window.TOKEN) return window.TOKEN;
+    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+  };
+  const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
+
+  Alpine.data('ideaBoard', () => ({
+    B: null, addr: '', err: '', cur: 0, brief: false, copied: false, picks: [], notes: {}, strip: null, deck: null,
+    get count() { return this.B.ideas.length + 1; },
+    // Rows carry a thumbnail only when every sketch is an SVG one.
+    get thumbs() { return this.B.ideas.every(d => d.src); },
+    get key() { return 'idea-board:' + (this.addr.replace(/@[^:]*/, '') || this.B.title); },
+
+    async init() {
+      await window.__depsReady;
+      try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
+      for (const d of this.B.ideas) {
+        const svg = /^\s*<svg/i.test(d.sketch);
+        d.src = svg ? img(d.sketch) : '';
+        d.html = svg ? '' : clean(d.sketch);
+      }
+      try {
+        const v = JSON.parse(localStorage.getItem(this.key) || 'null');
+        if (v) { this.picks = v.picks || []; this.notes = v.notes || {}; }
+      } catch (e) {}
+      this.$watch('picks', () => this.save()); this.$watch('notes', () => this.save());
+      this.$nextTick(() => {
+        this.strip = swipeDeck.core(this.count, (i, el) => this.render(i, el), {
+          innerClass: 'w-full', keys: this.$refs.detail, behavior: 'instant',
+        });
+        this.$refs.track.append(this.strip.track);
+        this.strip.onSlide(i => this.sync(i, 'strip'));
+      });
+    },
+    async read() {
+      const gz = param('gz'), spec = param('gh');
+      if (gz) {
+        const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+      }
+      if (spec) {
+        const [at, ...rest] = spec.split(':');
+        const [repo, ref] = at.split('@');
+        this.addr = spec;
+        try { return JSON.parse((await new GH({ token: tokenNow(), repo, ...(ref ? { ref } : {}) }).get(rest.join(':'))).text); }
+        catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+      }
+      const r = await fetch('demos/idea-board.json');
+      if (!r.ok) throw new Error('No board. Address one with #gh=owner/repo@ref:path or #gz=…');
+      return r.json();
+    },
+
+    save() { try { localStorage.setItem(this.key, JSON.stringify({ picks: this.picks, notes: this.notes })); } catch (e) {} },
+    idea(n) { return this.B.ideas.find(d => d.n === n); },
+    label(i) { return i < this.B.ideas.length ? this.B.ideas[i].title : 'Selection'; },
+    picked(n) { return this.picks.includes(n); },
+    toggle(n) { this.picks = this.picked(n) ? this.picks.filter(x => x !== n) : [...this.picks, n].sort((a, b) => a - b); },
+    // What the board's own selection made of idea n: 'base', the graft's text, or ''.
+    role(n) {
+      const S = this.B.selection;
+      if (S.pick.includes(n)) return 'base';
+      return (S.grafts.find(([g]) => g === n) || [])[1] || '';
+    },
+
+    // One move, from the list, the strip or the expanded deck, reaches the other two.
+    sync(i, from) {
+      this.cur = i;
+      if (from !== 'strip' && this.strip.active() !== i) this.strip.go(i, 'instant');
+      if (from !== 'deck' && this.deck && this.deck.deck.active() !== i) this.deck.deck.go(i, 'instant');
+      this.$nextTick(() => this.$refs.list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }));
+    },
+    expand() {
+      this.deck = swipeDeck.open({
+        count: this.count, start: this.cur, render: (k, el) => this.render(k, el),
+        title: this.B.title, subtitle: 'Idea board', icon: 'ph-squares-four',
+        index: k => ({ title: this.label(k), subtitle: k < this.B.ideas.length ? this.B.ideas[k].kind : '' }),
+        onSlide: k => this.sync(k, 'deck'),
+        onClose: () => { this.deck = null; },
+      });
+    },
+    sketch(d, cls) {
+      return d.src ? `<img src="${d.src}" alt="Sketch ${d.n}: ${esc(d.title)}" class="block mx-auto w-auto max-w-full max-h-[55dvh] bg-white ${cls}">` : `<div class="${cls}">${d.html}</div>`;
+    },
+    // Strip and deck each draw a slide, so a pick or a note repaints its twin.
+    paint(n) {
+      const on = this.picked(n);
+      document.querySelectorAll(`[data-pick="${n}"]`).forEach(b => {
+        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-star text-primary' : 'ph-star'}"></i>`;
+        b.setAttribute('aria-pressed', on);
+      });
+    },
+
+    // A note box bound to notes[k], for an idea's number or 'selection'.
+    note(el, k) {
+      const box = el.querySelector('[data-note]');
+      box.value = this.notes[k] || '';
+      box.dataset.note = k;
+      box.oninput = () => {
+        this.notes = { ...this.notes, [k]: box.value };
+        document.querySelectorAll(`[data-note="${k}"]`).forEach(b => b !== box && (b.value = box.value));
+      };
+    },
+
+    render(i, el) {
+      if (i === this.B.ideas.length) return this.renderSelection(el);
+      const d = this.B.ideas[i], role = this.role(d.n);
+      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+        ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
+        <div class="grid gap-4">
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span class="tabular-nums text-base-content/50">${d.n}</span>
+            <h2 class="text-xl font-semibold text-balance">${esc(d.title)}</h2>
+            <span class="text-sm text-base-content/60">${esc(d.kind)}</span>
+          </div>
+          <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
+            <dt class="text-sm text-base-content/60 pt-1">Reader meets</dt><dd class="text-pretty">${esc(d.encounter)}</dd>
+            <dt class="text-sm text-base-content/60 pt-1">Shows</dt><dd class="text-pretty">${esc(d.helps)}</dd>
+            ${role ? `<dt class="text-sm text-base-content/60 pt-1">Selection</dt><dd class="text-pretty">${role === 'base' ? 'Base' : 'Graft: ' + esc(role)}</dd>` : ''}
+          </dl>
+          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
+            <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
+            <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
+          </div>
+        </div>
+      </div>`;
+      el.querySelector('[data-pick]').onclick = () => { this.toggle(d.n); this.paint(d.n); };
+      this.paint(d.n);
+      this.note(el, d.n);
+    },
+
+    renderSelection(el) {
+      const S = this.B.selection;
+      const ref = (n, extra = '') => `<button data-go="${n}" class="link link-hover font-semibold text-left">${n} · ${esc(this.idea(n).title)}</button>${extra}`;
+      const thumb = n => `<button data-go="${n}" class="grid gap-1 text-left content-start">${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}<span class="text-xs text-base-content/60">${n} · ${esc(this.idea(n).title)}</span></button>`;
+      el.innerHTML = `<div class="grid gap-4">
+        <h2 class="text-xl font-semibold">Selection</h2>
+        <div class="grid grid-cols-3 gap-3">${[...S.pick, ...S.grafts.map(([n]) => n)].map(thumb).join('')}</div>
+        <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
+          <dt class="text-sm text-base-content/60 pt-1">Base</dt><dd class="grid gap-1">${S.pick.map(n => ref(n)).join('')}</dd>
+          <dt class="text-sm text-base-content/60 pt-1">Grafts</dt>
+          <dd class="grid gap-2">${S.grafts.map(([n, w]) => `<span class="text-pretty">${ref(n)}: ${esc(w)}</span>`).join('')}</dd>
+          <dt class="text-sm text-base-content/60 pt-1">Why</dt><dd class="text-pretty">${esc(S.rationale)}</dd>
+          <dt class="text-sm text-base-content/60 pt-1">Rests on</dt>
+          <dd class="grid gap-2">${S.assumptions.map(a => `<span class="text-pretty">${esc(a)}</span>`).join('')}</dd>
+        </dl>
+        <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note on the selection"></textarea>
+      </div>`;
+      el.querySelectorAll('[data-go]').forEach(b => {
+        b.onclick = () => {
+          const i = this.B.ideas.findIndex(d => d.n === +b.dataset.go);
+          this.sync(i, 'list');
+        };
+      });
+      this.note(el, 'selection');
+    },
+
+    text() {
+      const L = ['Idea board: ' + this.B.title, 'Board: ' + (this.addr || 'the sample (pages/demos/idea-board.json)')];
+      L.push('Picked: ' + (this.picks.length ? this.picks.map(n => n + ' ' + this.idea(n).title).join(', ') : 'none'));
+      for (const d of this.B.ideas) if ((this.notes[d.n] || '').trim()) L.push(d.n + ' ' + d.title + ': ' + this.notes[d.n].trim());
+      if ((this.notes.selection || '').trim()) L.push('Selection: ' + this.notes.selection.trim());
+      return L.join('\n');
+    },
+    async copy() { this.copied = await io.copy(this.text()); if (this.copied) setTimeout(() => this.copied = false, 1500); },
+  }));
+});
+</script>
+<style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="bg-base-100 text-base-content">
+<div x-data="ideaBoard()" x-cloak class="h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+
+  <header class="bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-3">
+    <i class="ph ph-squares-four text-xl"></i>
+    <div class="min-w-0">
+      <h1 class="font-semibold text-lg truncate" x-text="B ? B.title : 'Idea board'"></h1>
+      <div class="text-xs text-base-content/60 truncate" x-text="B?.subject"></div>
+    </div>
+    <template x-if="B">
+      <div class="ml-auto flex items-center gap-1">
+        <button class="btn btn-ghost btn-sm gap-1 tabular-nums" @click="copy()" aria-label="Copy picks" data-title-tip="Copy picks and notes">
+          <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i><span x-text="copied ? 'Copied' : picks.length + ' picked'"></span>
+        </button>
+        <button class="btn btn-ghost btn-sm btn-square" @click="brief = true" aria-label="Brief" data-title-tip="Brief"><i class="ph ph-info text-lg"></i></button>
+      </div>
+    </template>
+  </header>
+
+  <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
+
+  <!-- The list on top, kept in step with the strip below and with the deck the strip expands into -->
+  <template x-if="B">
+    <main data-pattern="linked-swiper" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+      <ol x-ref="list" role="listbox" aria-label="Concepts"
+          class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
+        <template x-for="(d, i) in B.ideas" :key="d.n">
+          <li role="option" :aria-selected="cur === i ? 'true' : 'false'" @click="sync(i, 'list')"
+              class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
+              :class="[cur === i && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
+            <template x-if="thumbs"><span class="h-12 grid place-items-center overflow-hidden"><img :src="d.src" alt="" class="max-h-12 w-auto bg-white"></span></template>
+            <span class="grid min-w-0">
+              <span class="font-semibold truncate"><span class="tabular-nums text-base-content/50 font-normal" x-text="d.n"></span> <span x-text="d.title"></span></span>
+              <span class="text-xs text-base-content/60 truncate" x-text="d.kind + (role(d.n) ? ' · ' + (role(d.n) === 'base' ? 'base' : 'graft') : '')"></span>
+            </span>
+            <i class="ph" :class="picked(d.n) ? 'ph-fill ph-star text-primary' : 'ph-star opacity-25'"></i>
+          </li>
+        </template>
+        <li role="option" :aria-selected="cur === B.ideas.length ? 'true' : 'false'" @click="sync(B.ideas.length, 'list')"
+            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
+            :class="[cur === B.ideas.length && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
+          <i class="ph ph-check-circle text-2xl justify-self-center"></i>
+          <span class="grid min-w-0">
+            <span class="font-semibold">Selection</span>
+            <span class="text-xs text-base-content/60 truncate" x-text="B.selection.pick.concat(B.selection.grafts.map(([n]) => n)).join(' + ')"></span>
+          </span>
+        </li>
+      </ol>
+
+      <section x-ref="detail" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+        <div class="flex items-center gap-2 px-4 py-1.5 border-b border-base-200">
+          <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
+          <span class="tabular-nums text-sm text-base-content/60" x-text="(cur + 1) + ' / ' + count"></span>
+          <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.min(count - 1, cur + 1), 'list')" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
+          <button class="btn btn-ghost btn-sm btn-square ml-auto" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
+        </div>
+        <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
+      </section>
+    </main>
+  </template>
+
+  <dialog class="modal" :open="brief" @keydown.escape.window="brief = false">
+    <div class="modal-box w-11/12 max-w-3xl grid gap-4" x-show="B">
+      <div class="flex items-center">
+        <h2 class="font-semibold text-lg">Brief</h2>
+        <button class="btn btn-sm btn-ghost btn-square ml-auto" @click="brief = false" aria-label="Close"><i class="ph ph-x"></i></button>
+      </div>
+      <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
+        <dt class="text-sm text-base-content/60 pt-1">Subject</dt><dd class="text-pretty" x-text="B?.subject"></dd>
+        <dt class="text-sm text-base-content/60 pt-1">Result</dt><dd class="text-pretty" x-text="B?.brief.result"></dd>
+        <dt class="text-sm text-base-content/60 pt-1">Must show</dt>
+        <dd class="grid gap-1"><template x-for="m in B?.brief.musts || []" :key="m"><span class="text-pretty" x-text="m"></span></template></dd>
+        <dt class="text-sm text-base-content/60 pt-1">Made</dt><dd x-text="B?.made"></dd>
+      </dl>
+    </div>
+    <div class="modal-backdrop" @click="brief = false"></div>
+  </dialog>
+</div>
+</body>
+</html>

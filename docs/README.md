@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 42 by a page or component. The remaining 46 are
+15 by a skill, 42 by a page or component. The remaining 47 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -37,6 +37,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
+- [`idea-board.md`](idea-board.md) *(orphan)* — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
 - [`harness.csv`](harness.csv) — the harness registry: every node/ and python/ file, its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
@@ -78,7 +79,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
 - [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
-- [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 - [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule
@@ -95,6 +95,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
 - [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
 - [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
+- [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 
 ## docs/envelopes/

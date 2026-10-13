@@ -40,7 +40,8 @@ ends at once and the check behaves as it did before.
                                   something needs attention
     account-skills.py --write P   write the observation CSV to P
     account-skills.py --zip DIR   an upload-ready zip of the plugin's copy, for
-                                  each upload that differs from it
+                                  each upload that differs from it and each
+                                  declared skill not yet uploaded
     account-skills.py --wait S    how long to wait for the sync to finish
                                   (default 15 with --hook, otherwise 0)
 
@@ -252,7 +253,10 @@ def write_zips(rows, plugin_root, out):
     os.makedirs(out, exist_ok=True)
     made = []
     for r in rows:
-        if r["state"] != "upload-differs":
+        # A declared skill not yet on the account needs its first upload, and
+        # its twin is the only copy to build one from.
+        first = r["state"] == "missing" and r["twin"] and os.path.isdir(os.path.join(plugin_root, r["twin"]))
+        if r["state"] != "upload-differs" and not first:
             continue
         src = os.path.join(plugin_root, r["twin"])
         dest = os.path.join(out, f"{r['name']}.zip")
