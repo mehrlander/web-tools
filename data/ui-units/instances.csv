@@ -50,7 +50,7 @@ web-tools:view/search,list-detail,list-detail,no kit draws this code,list 1; ite
 web-tools:view/sessions,list,list,no kit draws this code,list 1; item 6; meta 64; title 6; summary 6; actions 8; body 6,,,holds: 6 items shown,tabs;search;subtabs;count-chips;contents-rail,,,d70d400790a7
 web-tools:view/shell,host,host,,,,host is not a code with parts,no promise checked for this code,tabs,,,9a538b571eff
 web-tools:view/stage,tool,tool,,,,tool is not a code with parts,no promise checked for this code,panel-toggle;subtabs;rail-filter (hidden);search (hidden),,,9a538b571eff
-web-tools:view/stage/errands,list-detail,list-detail,no kit draws this code,list 1; item 3; title 4; detail 1; meta 5; summary 1; actions 2,,,holds: the pick changed the detail; the selection moved to it,panel-toggle,,,070014dc520a
+web-tools:view/stage/errands,list-detail,list-detail,no kit draws this code,list 1; item 3; meta 11; title 4; detail 1; summary 1; actions 2,,,holds: the pick changed the detail; the selection moved to it,panel-toggle,,,a64512813308
 web-tools:view/state,list,list,no kit draws this code,list 1; group 3; meta 21; item 8; title 8; actions 8; summary 1; body 2; links 2,,,holds: 8 items shown,tabs,,,9a538b571eff
 web-tools:view/tending,list,list,no kit draws this code,list 1; item 3; meta 6; title 3; body 4; links 3,,,holds: 3 items shown,tabs,,,9a538b571eff
 web-tools:view/tools,card-grid,card-grid,no kit draws this code,list 1; item 5; body 5; actions 5; title 5; links 5; summary 5,,,holds: 5 items shown,,,,9a538b571eff
