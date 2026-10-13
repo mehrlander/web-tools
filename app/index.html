@@ -1344,11 +1344,13 @@ html.dk-dragging main{transition:none !important}
 
     <!-- This browser: the token, the browser note, and what this origin keeps
          in this browser. Where a 401 or 403 lands instead of the gh-auth
-         takeover (routeAuthFail). Estate-level, token-free, lazy-mounted. -->
-    <div x-show="view==='here'" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 sm:px-6 py-6 sm:py-8 !max-w-none">
+         takeover (routeAuthFail). Estate-level, token-free, lazy-mounted. The
+         pane does not scroll: each tab scrolls inside itself, and Stored here
+         is two containers that split its height, as the Waiting view's are. -->
+    <div x-show="view==='here'" data-pane="here" class="h-full overflow-hidden">
+      <div class="h-full px-3 py-3 lg:p-6">
         <template x-if="hereSeen">
-          <div x-data="hereView()"></div>
+          <div x-data="hereView()" class="h-full"></div>
         </template>
       </div>
     </div>
