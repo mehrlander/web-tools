@@ -38,16 +38,16 @@ const registry = { tests: parseCsv(readFileSync(path.join(repoRoot, 'docs', 'tes
   // A blank means NOT ASSERTED, so it reads back as null rather than 0: a browser
   // check reports no assertion count because test() is not its unit, which is a
   // different claim from a suite that ran zero.
-  assertions: t.assertions === '' ? null : +t.assertions,
+  test_count: t.test_count === '' ? null : +t.test_count,
   // Three states, two spellings. A blank cell cannot tell null (not applicable:
   // test() is not this check's unit) from [] (a suite that declares none), and
   // both write blank. They are not independent: a check with no assertion count
   // has no assertions to smoke, so the dependency decides it. Same shape as
   // deriver-when-computed, and the reason no token is needed here.
-  boot_smoke: t.assertions === '' ? null
+  boot_smoke: t.test_count === '' ? null
     : t.boot_smoke === '' ? [] : splitList(t.boot_smoke).map(Number),
-  assertion_names: t.assertions === '' ? null
-    : t.assertion_names === '' ? [] : splitList(t.assertion_names),
+  test_names: t.test_count === '' ? null
+    : t.test_names === '' ? [] : splitList(t.test_names),
 })) };
 
 test('every test file has exactly one row, and every row exists', () => {
@@ -82,16 +82,16 @@ test('the declared derivation matches the files on disk', () => {
   for (const t of registry.tests) {
     const d = derived.get(t.path);
     if (!d) continue; // the completeness test owns this
-    assert.equal(t.assertions, d.assertions, `${t.path}: assertions; run: npm run tests-index`);
+    assert.equal(t.test_count, d.test_count, `${t.path}: test_count; run: npm run tests-index`);
     assert.equal(t.method, d.method, `${t.path}: method; run: npm run tests-index`);
     assert.equal(t.runner, d.runner, `${t.path}: runner; run: npm run tests-index`);
     assert.deepEqual(t.boot_smoke, d.boot_smoke, `${t.path}: boot_smoke; run: npm run tests-index`);
-    assert.deepEqual(t.assertion_names, d.assertion_names,
-      `${t.path}: assertion_names; run: npm run tests-index`);
+    assert.deepEqual(t.test_names, d.test_names,
+      `${t.path}: test_names; run: npm run tests-index`);
   }
 });
 
-// `assertions` and `assertion_names` are two independent reads of the same call
+// `test_count` and `test_names` are two independent reads of the same call
 // sites, kept independent so this can compare them. What it catches is a test()
 // whose name is not a string literal: the counter sees the call, the extractor
 // finds nothing to capture, and the list silently comes up short.
@@ -103,9 +103,9 @@ test('the declared derivation matches the files on disk', () => {
 // steps over `\\.` rather than being guarded from the outside.
 test('every counted assertion has a name', () => {
   for (const t of registry.tests) {
-    if (t.assertions === null) continue;
-    assert.equal(t.assertion_names.length, t.assertions,
-      `${t.path}: ${t.assertions} assertions but ${t.assertion_names.length} names; ` +
+    if (t.test_count === null) continue;
+    assert.equal(t.test_names.length, t.test_count,
+      `${t.path}: ${t.test_count} tests but ${t.test_names.length} names; ` +
       'the name extractor and the counter disagree');
   }
 });
@@ -116,21 +116,21 @@ test('every counted assertion has a name', () => {
 test('a non-suite check reports no assertion count rather than zero', () => {
   for (const t of registry.tests) {
     const suite = t.path.endsWith('.test.mjs');
-    if (suite) assert.equal(typeof t.assertions, 'number', t.path + ': suite files count');
-    else assert.equal(t.assertions, null,
+    if (suite) assert.equal(typeof t.test_count, 'number', t.path + ': suite files count');
+    else assert.equal(t.test_count, null,
       t.path + ': a browser check must report null, not 0, since test() is not its unit');
     // Same rule for the names: an empty array would read as "this file checks
     // nothing named", which is false. A browser check names its assertions in
     // its own harness, somewhere this extractor cannot see.
-    if (suite) assert.ok(Array.isArray(t.assertion_names), t.path + ': suite files list names');
-    else assert.equal(t.assertion_names, null,
+    if (suite) assert.ok(Array.isArray(t.test_names), t.path + ': suite files list names');
+    else assert.equal(t.test_names, null,
       t.path + ': a browser check must report null names, not an empty list');
     if (suite) assert.ok(Array.isArray(t.boot_smoke), t.path + ': suite files list smoke indices');
     else assert.equal(t.boot_smoke, null, t.path + ': a browser check reports null smoke');
   }
 });
 
-// boot_smoke indexes assertion_names, so an index outside it is a stale stamp
+// boot_smoke indexes test_names, so an index outside it is a stale stamp
 // pointing at an assertion that no longer exists. Cheap to check and the whole
 // reason indices are safe to store: they are only meaningful against the list
 // beside them, and nothing else would notice if they drifted apart.
@@ -138,8 +138,8 @@ test('every smoke index addresses a real assertion', () => {
   for (const t of registry.tests) {
     if (!t.boot_smoke) continue;
     for (const i of t.boot_smoke)
-      assert.ok(Number.isInteger(i) && i >= 0 && i < t.assertion_names.length,
-        `${t.path}: boot_smoke index ${i} is outside its ${t.assertion_names.length} names`);
+      assert.ok(Number.isInteger(i) && i >= 0 && i < t.test_names.length,
+        `${t.path}: boot_smoke index ${i} is outside its ${t.test_names.length} names`);
   }
 });
 
@@ -149,7 +149,7 @@ test('every smoke index addresses a real assertion', () => {
 // coverage was invisible in the view. Twelve rows had run past 300 characters
 // that way, the worst at 697, six clauses joined by "and" that between them
 // named 10 of the file's 22 assertions and silently dropped the other 12.
-// `assertion_names` carries that job now, derived and complete. Length is not
+// `test_names` carries that job now, derived and complete. Length is not
 // the defect, but it is the one signal of the defect a machine can read, and
 // the corpus it was set against topped out at 299.
 const PROTECTS_MAX = 320;
@@ -160,11 +160,11 @@ test('protects says what breaks, and does not become an inventory', () => {
     .map(t => `${t.path} (${t.protects.length})`);
   assert.deepEqual(long, [],
     `over ${PROTECTS_MAX} chars: say what BREAKS in one sentence and let ` +
-    'assertion_names carry the coverage: ' + long.join(', '));
+    'test_names carry the coverage: ' + long.join(', '));
 });
 
 // The floor, added 2026-08-10 with the ceiling above it, because deriving
-// assertion_names made the opposite failure visible for the first time. Fourteen
+// test_names made the opposite failure visible for the first time. Fourteen
 // rows described only the boot check ("The jots list mounts clean") on files
 // asserting eight or nine real behaviours, so the sentence claimed far LESS than
 // the file did. The ceiling cannot see that direction, and neither could anyone
@@ -178,13 +178,13 @@ const BOOT_ONLY = /mounts?\b|exposes (its|every) documented/i;
 
 test('protects says more than "it mounts" when the file does more', () => {
   const thin = registry.tests.filter(t => {
-    if (!t.protects || !t.assertion_names) return false;
-    const behavioural = t.assertion_names.length - (t.boot_smoke?.length || 0);
+    if (!t.protects || !t.test_names) return false;
+    const behavioural = t.test_names.length - (t.boot_smoke?.length || 0);
     return BOOT_ONLY.test(t.protects) && t.protects.length < 120 && behavioural >= 4;
-  }).map(t => `${t.path} (${t.assertion_names.length - (t.boot_smoke?.length || 0)} beyond the boot check)`);
+  }).map(t => `${t.path} (${t.test_names.length - (t.boot_smoke?.length || 0)} beyond the boot check)`);
   assert.deepEqual(thin, [],
     'these say only that the subject mounts, on files that assert much more; ' +
-    'read assertion_names and say what would BREAK: ' + thin.join(', '));
+    'read test_names and say what would BREAK: ' + thin.join(', '));
 });
 
 // Not a ban. The number is the point: it says how much of the suite nobody has
