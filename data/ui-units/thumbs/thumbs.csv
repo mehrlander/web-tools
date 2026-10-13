@@ -12,7 +12,7 @@ web-tools:map/outposts,web-tools-map-outposts.desk.jpg,web-tools-map-outposts.ph
 web-tools:map/patterns,web-tools-map-patterns.desk.jpg,web-tools-map-patterns.phone.jpg,2026-10-06,app/index.html?view=map&tab=patterns,slots @59,card-grid
 web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jpg,2026-10-06,app/index.html?view=map&tab=policy,slots @59,card-grid
 web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-06,app/index.html?view=map&tab=registries,slots @59,card-grid
-web-tools:map/set,web-tools-map-set.desk.jpg,web-tools-map-set.phone.jpg,2026-10-06,app/index.html?view=map&tab=set,slots @59,list
+web-tools:map/distribution,web-tools-map-distribution.desk.jpg,web-tools-map-distribution.phone.jpg,2026-10-06,app/index.html?view=map&tab=distribution,slots @59,list
 web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-06,app/index.html?view=map&tab=showing,slots @59,card-grid
 web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-06,app/index.html?view=map&tab=skills,slots @59,card-grid
 web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-06,app/index.html?view=map&tab=surfacing,slots @59,card-grid

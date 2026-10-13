@@ -26,6 +26,9 @@ mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as 
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,../skills/html-style/references/mechanics.md;../skills/html-style/SKILL.md
+approval-wording-scripted,a session told the owner what to type to approve,1,2026-10-12,2026-10-12,../skills/hooks/commit-consent.py
+showing-picks-the-framed-view,"the render link opened the app, where the change is hidden",1,2026-10-12,2026-10-12,../python/showing.py
+retired-address-kept-alive,an old address held a word a new tab needed,1,2026-10-11,2026-10-11,APP.md#addresses
 comment-stripper-reads-a-string-as-a-comment,a view's read vanished from the census,1,2026-10-06,2026-10-06,../node/build/docs-reach.mjs
 public-shot-reads-a-private-sibling,a public thumbnail showed the owner's open user calls,1,2026-10-06,2026-10-06,../data/ui-units/README.md
 ready-to-assess-hands-over-the-assessment,❇️ closed a reply that asked the reader to review,1,2026-10-06,2026-10-06,SURFACING.md#every-reply

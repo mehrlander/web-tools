@@ -40,6 +40,7 @@ since the font either carries the name or it does not.
 """
 
 import argparse
+import glob
 import difflib
 import os
 import re
@@ -113,6 +114,13 @@ def scan_text(text, path, names):
     return out
 
 
+
+def default_roots(base):
+    # A skill's demo is a page that lives beside its SKILL.md, as
+    # skills/<name>/demo.html (see node/build/pages-index.mjs). The rest of
+    # skills/ is reference material, so only the demos join the default set.
+    return base + sorted(glob.glob('skills/*/demo.html'))
+
 def walk(roots):
     for root in roots:
         if os.path.isfile(root):
@@ -127,14 +135,14 @@ def walk(roots):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument('roots', nargs='*', default=['lib', 'pages', 'app'],
-                    help='files or directories to scan (default: lib pages app)')
+    ap.add_argument('roots', nargs='*', default=None,
+                    help='files or directories to scan (default: lib pages app, plus skills/*/demo.html)')
     ap.add_argument('--check', action='store_true',
                     help='exit 1 when anything is found, for a gate')
     ap.add_argument('--repo-root', default=os.getcwd(),
                     help='where to find node_modules (default: cwd)')
     args = ap.parse_args(argv[1:])
-    roots = args.roots or ['lib', 'pages', 'app']
+    roots = args.roots or default_roots(['lib', 'pages', 'app'])
 
     names = load_names(args.repo_root)
     if names is None:

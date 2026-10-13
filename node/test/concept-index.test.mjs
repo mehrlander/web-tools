@@ -65,6 +65,13 @@ test('a term declared in a hub doc is canonical', () => {
   assert.equal(tier['guide region'], 'canonical')
 })
 
+test('a hub path that does not exist stops the index rather than emptying the tier', () => {
+  const root = fixture()
+  assert.throws(() => execFileSync('python3',
+    [VOCAB, 'index', root, '--output', join(root, 'idx.json'), '--hub', 'docs/GONE.md'],
+    { encoding: 'utf8', stdio: 'pipe' }), /no such hub.*docs\/GONE\.md/)
+})
+
 test('a phrase referenced but never declared lands in assumed', () => {
   const root = fixture()
   const idx = index(root)

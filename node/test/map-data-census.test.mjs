@@ -142,7 +142,7 @@ test('revisiting Data retries a failed inventory without resetting component sta
   assert.equal(data.dataCensus.find(s => s.repo === home).state, 'unavailable');
   assert.match(el.textContent, /Temporary network failure/);
   failed.delete(home);
-  data.setTab('set'); data.setTab('data');
+  data.setTab('distribution'); data.setTab('data');
   await settled();
   assert.equal(data.dataCensus.find(s => s.repo === home).state, 'declared');
 });
@@ -181,7 +181,7 @@ test('a config refresh wins over an earlier inventory request still in flight', 
 });
 
 test('a hidden Data tab invalidates on config refresh and reads again on arrival', async () => {
-  data.setTab('set');
+  data.setTab('distribution');
   const before = asked.length;
   delete manifests['mehrlander/new'];
   document.dispatchEvent(new window.CustomEvent('web-tools:configs-refreshed'));

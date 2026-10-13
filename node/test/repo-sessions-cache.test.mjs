@@ -64,6 +64,15 @@ function record(over = {}) {
   };
 }
 
+test('a row names every branch its session pushed, not one per checkout', () => {
+  const row = S.summarize(record({
+    repos: [{ name: 'web-tools', lines: 9, branch: 'main' }],
+    pushed: [{ name: 'web-tools', branch: 'claude/first', at: 'a' },
+             { name: 'home', branch: 'claude/second', at: 'b' }],
+  }), 'sha-pushed');
+  assert.deepEqual(row.branches, ['claude/first', 'claude/second']);
+});
+
 test('summarize keeps the scan fields and drops the bulk', () => {
   const row = S.summarize(record(), 'sha111');
   assert.equal(row.id, 'b8fae678');

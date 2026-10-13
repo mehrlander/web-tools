@@ -2,9 +2,24 @@
 
 `?view=map[&tab=<key>]` (`lib/alpineComponents/map.js`) makes the coordination
 layer inspectable. Most tabs render a hub registry; federated tabs assemble
-each repository's declarations. Each address's lede and account, which names
-the files it reads, is a row of [map-tabs.csv](../map-tabs.csv); the test
-holding each registry is its `gate` in [registries.csv](../registries.csv).
+each repository's declarations. Each address's one-sentence description and
+its account of the files it reads are a row of [map-tabs.csv](../map-tabs.csv);
+the test holding each registry is its `gate` in [registries.csv](../registries.csv).
+
+A bare `?view=map` opens the **Overview**, the Map's front door: every other
+address under the tab that holds it, with its sentence, so a reader new to the
+Map meets each set before its rows. Its finder matches an address's name, its
+tab and its sentence, and also the files the address names, which answers
+"which tab shows this file". The rows come from the `TABS` and `SUBVIEWS`
+arrays and the sentences from the CSV, so the Overview holds no list of its
+own. Until 2026-10-12 the Map opened on Reach, and each tab headed its own
+screen with its sentence.
+
+Every address opens with the same toolbar: its controls and counts, then a
+database icon that opens Sources and methods, which holds the description, the
+files and builders, and notes on reading them. Below the `lg` breakpoint the two
+tab rows and the current group heading stay pinned while the pane scrolls; the
+controls and filter rows scroll away with the list.
 
 The shell validates `?tab=` against `MAP_TABS` and `MAP_SUBVIEWS` in
 `app/index.html` before `map()` mounts. `SUBVIEWS` in `map.js` groups the
