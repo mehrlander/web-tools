@@ -172,6 +172,16 @@ test('--write records one row per skill with its state, and --zip packs the plug
   });
 });
 
+test('--zip also packs a declared skill that has never been uploaded, from its twin', () => {
+  withFixture((dir, put) => {
+    account(put);
+    put('plugin/fresh/SKILL.md', 'fresh, not yet uploaded\n');
+    run(dir, ['--zip', path.join(dir, 'zips')], decl([...BASE, ['fresh', 'on', 'fresh', ''], ['ghost', 'on', '', '']]));
+    assert.ok(existsSync(path.join(dir, 'zips', 'fresh.zip')), 'a first upload gets a zip');
+    assert.ok(!existsSync(path.join(dir, 'zips', 'ghost.zip')), 'a missing skill with no twin has nothing to pack');
+  });
+});
+
 test('the check is registered once at session start, in its own entry', () => {
   const entries = HOOKS.SessionStart.filter(e => e.hooks.some(h => h.command.includes('account-skills.py')));
   assert.equal(entries.length, 1);
