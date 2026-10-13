@@ -227,7 +227,8 @@ they name:
   Task-named-by-user: "<their words>" -> <task title>
 
 If you cannot quote words that name this task, do not commit it. Unstage the
-file and put it to the user instead.
+file and put it to the user instead. Ask plainly and quote whatever they answer;
+never tell them what words to use.
 
 When you share the task link in discussion, use the task marker
 (docs/TRACKER.md, under the board: `🎫 [title](tasks/<file>.md)`)."""
@@ -243,7 +244,8 @@ directly approved. Quote the user's specific words approving this update:
   Doc-change-approved: "<their words>" -> <path>
 
 If the words you would quote do not approve this file's language, restore the
-file and ask before changing it."""
+file and ask before changing it. Show the language, ask plainly, and quote
+whatever they answer; never tell them what words to use."""
 
 
 def main(argv):
