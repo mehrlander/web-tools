@@ -54,6 +54,17 @@ test('a lib change resolves to ?use=, which is the call the repo got wrong by ha
   assert.ok(d.carried.length >= 3);
 });
 
+test('a page that mounts the changed component by name is offered, not filed as carried', () => {
+  // pages/session.html takes sessionBrief from the pre-build and mounts it by
+  // name, unframed; the app mounts it framed and hides its branch list. Before
+  // 2026-10-12 the app was the only link and the page sat among the carried.
+  const d = run('lib/alpineComponents/session-brief.js,dist/web-tools.js');
+  const page = d.links.find(l => l.page === 'pages/session.html');
+  assert.ok(page, 'the page that mounts sessionBrief is a subject');
+  assert.equal(page.via, 'mounts');
+  assert.ok(!(d.carried || []).includes('pages/session.html'));
+});
+
 test('a shared reader is offered to each page and requires an explicit app view', () => {
   const d = run('lib/kits/session-render.js,dist/web-tools.js');
   const pages = d.links.map(l => l.page);
