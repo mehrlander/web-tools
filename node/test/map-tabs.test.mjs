@@ -13,7 +13,9 @@
 // WHERE IT SHOWS changed on 2026-10-12, by the owner's decision on PR #889. It
 // used to head each tab; now the tab's controls and counts lead, and the
 // sentence opens with the tab's files and builders in Sources and methods. The
-// need it answers did not change, so it is still required of every address.
+// need it answers did not change, so it is still required of every address,
+// and the reader arriving cold now meets every set at once: the Overview, the
+// Map's front door, lists each address under its tab with this sentence.
 //
 // The sentences live in docs/map-tabs.csv, one row per address, since
 // 2026-09-28. A tab still cannot be added without one, because the CSV's row set
@@ -59,7 +61,10 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // [address key, label]. Every key but `reach` predates the regroup, so a
 // published ?view=map&tab=<key> link still lands on the reading it named;
 // `reach` is the routes diagram the Reach tab lands on, added after it.
+// Overview leads the strip since 2026-10-12: the front door, where every
+// address shows its sentence under the tab that holds it.
 const GROUPS = [
+  ['Overview', [['overview', 'Overview']]],
   ['Projects', [['projects', 'Projects']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
@@ -79,7 +84,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   // 10 to 11: Data aggregates the declared CSV inventories.
   // 13 to 4 on 2026-10-07: every address regrouped under GROUPS above.
-  assert.equal(TABS.length, 6, 'six top-level tabs including projects and research');
+  // 6 to 7 on 2026-10-12: Overview, the front door, leads the strip.
+  assert.equal(TABS.length, 7, 'seven top-level tabs, Overview first');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
     'each tab carries exactly its subviews, in order, under their established keys');
