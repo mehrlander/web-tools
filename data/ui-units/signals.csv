@@ -13,7 +13,7 @@ web-tools:lib/alpineComponents/estate.js,web-tools,13872,2,0,0,6,0,1,0,4,0,0,0,7
 web-tools:lib/alpineComponents/fab.js,web-tools,7576,2,0,1,1,0,0,0,0,0,0,0,15,0,0,1,0,1,15,1,annotate;branch-brief;branch-status;brief;console;dictate;dom-shot;estate-search;export;file-deck;github-links;guide-render;io;md-doc;page-report;peek;probe;src-doc;stage-handoff;swipe-deck;text-collection;title-tip;traffic;url-params;visit-log,,,
 web-tools:lib/alpineComponents/file-browser.js,web-tools,304,1,0,1,2,0,0,0,0,0,0,0,0,0,0,2,0,0,6,1,swipe-deck,yes,,
 web-tools:lib/alpineComponents/file-review.js,web-tools,1768,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,2,1,5,cm6-merge;file-deck;guide-render;md-diff;md-doc;pdf;source-peek;src-doc,,,
-web-tools:lib/alpineComponents/here-view.js,web-tools,537,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,persistence,,,
+web-tools:lib/alpineComponents/here-view.js,web-tools,603,1,0,0,0,1,0,0,0,0,0,0,0,0,0,3,0,0,1,1,persistence;record-deck;swipe-deck,,,
 web-tools:lib/alpineComponents/idb-importer.js,web-tools,304,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,1,,,,
 web-tools:lib/alpineComponents/idb-tree.js,web-tools,125,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,,,,
 web-tools:lib/alpineComponents/map.js,web-tools,11327,2,0,1,6,0,0,0,42,1,0,2,126,3,0,1,0,6,0,17,assistant-mark;csv;doc-index;file-deck;land;md-diff;md-doc;panel-tip;record-deck;route-activity;route-join;source-peek;src-doc;swipe-deck;title-tip;user-calls,,,
