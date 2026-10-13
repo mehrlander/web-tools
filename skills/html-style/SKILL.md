@@ -131,6 +131,23 @@ Put supporting analysis one tap away. An info dialog can hold tables, methods,
 and limits; the header keeps one compact line such as
 `62/100 category · 35/100 systems · 0/100 schema`.
 
+## Handing a page over
+
+Pick by what the reader can open;
+[`docs/showing-mechanisms.csv`](https://github.com/mehrlander/web-tools/blob/main/docs/showing-mechanisms.csv)
+holds what each mechanism reaches and misses. In a web-tools checkout, run
+`npm run showing` instead.
+
+- **Uncommitted page** (row `toss-gz`):
+  `https://mehrlander.github.io/web-tools/pages/toss-render.html#gz=<payload>`,
+  the payload computed in code, never by hand:
+  `base64.urlsafe_b64encode(gzip.compress(html.encode())).decode().rstrip("=")`.
+- **Committed page** (row `toss-gh`): the same renderer with
+  `#gh=<owner>/<repo>@<ref>:<path>`. The reader needs a GitHub token saved in
+  the renderer.
+- **Visual change, or no link reaches the reader:** a headless screenshot, sent
+  as an image.
+
 ## What this does not cover
 
 **Themes are separate.** A named palette and font are worth settling, but they do
