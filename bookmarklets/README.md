@@ -34,11 +34,22 @@ the iPhone runs the launcher as a userscript. What remains for a bookmarklet is
 acting on a page from a browser that cannot run extensions, the work laptop
 first among them.
 
-**One general bookmarklet, behavior in the repo.** [`launcher.js`](launcher.js)
-is a one-line loader for `userscripts/lib/launcher.js`, the same body the iPhone
-userscript runs, so one program serves both triggers. Its menu is where nesting
-belongs: a bookmark-bar folder of bookmarklets is a menu the launcher should
-draw instead. The bar keeps a few flat buttons.
+**On a desktop, the general bookmarklet opens the app.**
+[`courier-stage.js`](courier-stage.js) opens the Web Tools app in a popup at its
+own address and stays in the page to answer it: it sends the page's title,
+address, selection and links by `postMessage`, and runs code the app sends back.
+Everything else is the app's: the sign-in, which view the popup shows, and where
+a capture goes. The popup runs under Web Tools' rules rather than the page's, so
+it opens on strict pages too, and a change to what it does is a change in the
+repo, never a new bookmark. Nesting belongs in the app's views: a bookmark-bar
+folder of bookmarklets is a menu the app should draw instead, and the bar keeps
+a few flat buttons.
+
+**On the iPhone, the launcher runs as a userscript.** [`launcher.js`](launcher.js)
+is the same program as a bookmarklet: a one-line loader for
+`userscripts/lib/launcher.js`, which the iPhone userscript also runs. It draws
+a fab and its drawer in the page itself, so it is the phone's route and the
+in-page alternative on a desktop.
 
 **Site-specific code lives by host.** Code that knows one site's URLs and DOM
 goes in [`../sites/<hostname>/`](../sites/README.md), as a bookmarklet, a console
@@ -47,15 +58,23 @@ per-origin errands carry the old data shelf's idea, scripts chosen by the domain
 they run on, with the scripts versioned in git rather than kept in one
 browser's IndexedDB.
 
-**A strict page refuses the loader.** Against `script-src 'self'` the launcher
-bookmarklet is refused, because it injects a `<script src>` the page's policy
-blocks ([`../userscripts/README.md`](../userscripts/README.md) has the
-measurement). Two routes remain on such a page: a self-contained bookmarklet
-written for that site, or a popup on the Web Tools origin fed by `postMessage`,
-which is the courier's pattern. Which of the sites in use are strict is not
-yet measured; the errand `test-2026-09-26-bookmarklet-routes` in
-`mehrlander/web-tools-private` asks a computer-use session on the home laptop
-to find out.
+**A strict page refuses a loaded script.** A page whose `script-src` names only
+its own hosts refuses the `<script src>` that `launcher.js` injects
+([`../userscripts/README.md`](../userscripts/README.md) has the first
+measurement). In headless Chrome on 2026-10-13, github.com and en.wikipedia.org
+refused it, while example.com, app.leg.wa.gov and lawfilesext.leg.wa.gov set no
+policy and accepted it. A blank popup opened from the page, the route
+[`popup-launcher.js`](popup-launcher.js) takes, inherits the page's policy, so on
+github.com the script it writes into that popup is refused as well. A popup at
+a Web Tools address, the courier's route, kept its link with the page on
+github.com, en.wikipedia.org and app.leg.wa.gov, messages passing both ways.
+
+A page that sends `Cross-Origin-Opener-Policy: same-origin` cuts that link: the
+popup opens but can neither read the page nor message it. The bot-check page
+wsldocs.sos.wa.gov served to headless Chrome sends that header; whether the real
+page does is not known. The errand `test-2026-09-26-bookmarklet-routes` in
+`mehrlander/web-tools-private` asks a computer-use session on the home laptop to
+try these routes on the sites in use.
 
 **Synchronization is deferred.** A loader bookmarklet has nothing to keep in
 sync while its URL stays fixed. Only self-contained bookmarklets can drift from
