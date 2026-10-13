@@ -8,15 +8,15 @@
 //
 // Derived here, never authored:
 //
-//   assertions  the legacy column name for test() declarations, not individual
-//               assert.* checks inside a test. The view labels these as tests.
+//   test_count  how many top-level test() declarations the file makes, not the
+//               assert.* checks inside them (named `assertions` until 2026-10-13).
 //               Static, and a LOWER BOUND rather than the runner's figure: a
 //               test() inside a loop is one call here and N tests at runtime.
 //               Four files parameterize theirs, so `npm test` reports more
 //               than this column sums to. The header used to claim the two
 //               could be checked against each other; nothing did, and they
 //               never matched.
-//   assertion_names
+//   test_names
 //               what each of those calls is named, in source order. The names
 //               are already read to count them and were being thrown away.
 //               They are the file's own account of what it checks, authored
@@ -42,7 +42,7 @@
 //               browser; that convention is invisible from the pass count and
 //               is exactly what this field makes visible.
 //   boot_smoke  WHICH of the file's assertions only check that a component
-//               mounts without warnings, as indices into assertion_names. Not a
+//               mounts without warnings, as indices into test_names. Not a
 //               criticism: a boot check catches real breakage cheaply. But it
 //               is the lowest-information assertion in the suite, and a file
 //               that is mostly boot smoke is claiming less than its count
@@ -56,7 +56,7 @@
 // `maintenance`: a row that cannot say what it protects is a test nobody has
 // examined, and the gate counts those rather than banning them.
 //
-// `protects` and `assertion_names` answer different questions, and the split is
+// `protects` and `test_names` answer different questions, and the split is
 // why deriving the names does not make the authored field redundant. The names
 // say WHAT the file asserts; `protects` says what BREAKS if it goes, which for
 // a gate is not recoverable from any test name. What the names do
@@ -72,7 +72,7 @@ import path from 'node:path';
 import { parseCsv, writeCsv, splitList } from './registries-load.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
-const TEST_COLS = ['path', 'kind', 'protects', 'assertions', 'method', 'runner', 'boot_smoke', 'assertion_names'];
+const TEST_COLS = ['path', 'kind', 'protects', 'test_count', 'method', 'runner', 'boot_smoke', 'test_names'];
 import { fileURLToPath } from 'node:url';
 
 // Two values, because `method` already answers the question the other five
@@ -112,7 +112,7 @@ const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs', 'runtime-command.cjs']
 const BOOT_SMOKE = /mounts?.*(warning|error)|no startup warning/i;
 
 /** Count top-level test() calls. */
-function assertions(src) {
+function testCount(src) {
   return (src.match(/^\s*test\(/gm) || []).length;
 }
 
@@ -145,7 +145,7 @@ function bootSmoke(names) {
 /**
  * Derive the machine-visible fields for every test file on disk.
  * @param {string} repoRoot
- * @returns {Map<string, {assertions:number, assertion_names:string[], method:string, runner:string, boot_smoke:number}>}
+ * @returns {Map<string, {test_count:number, test_names:string[], method:string, runner:string, boot_smoke:number}>}
  */
 export function deriveTests(repoRoot) {
   const dir = path.join(repoRoot, TEST_DIR);
@@ -169,8 +169,8 @@ export function deriveTests(repoRoot) {
     const suite = name.endsWith('.test.mjs');
     const names = suite ? assertionNames(src) : null;
     out.set(rel, {
-      assertions: suite ? assertions(src) : null,
-      assertion_names: names,
+      test_count: suite ? testCount(src) : null,
+      test_names: names,
       method: method(src),
       runner,
       boot_smoke: names ? bootSmoke(names) : null,
@@ -189,16 +189,16 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     // A blank means NOT ASSERTED, so it reads back as null rather than 0: a browser
   // check reports no assertion count because test() is not its unit, which is a
   // different claim from a suite that ran zero.
-  assertions: t.assertions === '' ? null : +t.assertions,
+  test_count: t.test_count === '' ? null : +t.test_count,
     // Three states, two spellings. A blank cell cannot tell null (not applicable:
     // test() is not this check's unit) from [] (a suite that declares none), and
     // both write blank. They are not independent: a check with no assertion count
     // has no assertions to smoke, so the dependency decides it. Same shape as
     // deriver-when-computed, and the reason no token is needed here.
-    boot_smoke: t.assertions === '' ? null
+    boot_smoke: t.test_count === '' ? null
       : t.boot_smoke === '' ? [] : splitList(t.boot_smoke).map(Number),
-    assertion_names: t.assertions === '' ? null
-      : t.assertion_names === '' ? [] : splitList(t.assertion_names),
+    test_names: t.test_count === '' ? null
+      : t.test_names === '' ? [] : splitList(t.test_names),
   })) };
   const derived = deriveTests(repoRoot);
 
@@ -219,23 +219,23 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
 
   for (const t of registry.tests) {
     const d = derived.get(t.path);
-    // assertion_names goes last: it is the longest field by far, and a row
+    // test_names goes last: it is the longest field by far, and a row
     // whose scannable fields sit above it stays readable in the diff.
     const ordered = { path: t.path, kind: t.kind, protects: t.protects,
-                      assertions: d.assertions, method: d.method,
+                      test_count: d.test_count, method: d.method,
                       runner: d.runner, boot_smoke: d.boot_smoke,
-                      assertion_names: d.assertion_names };
+                      test_names: d.test_names };
     for (const k of Object.keys(t)) delete t[k];
     Object.assign(t, ordered);
   }
   registry.tests.sort((a, b) => a.path.localeCompare(b.path));
   writeFileSync(file, writeCsv(registry.tests, TEST_COLS));
 
-  const total = registry.tests.reduce((s, t) => s + t.assertions, 0);
+  const total = registry.tests.reduce((s, t) => s + t.test_count, 0);
   const smoke = registry.tests.reduce((s, t) => s + (t.boot_smoke?.length || 0), 0);
   const byKind = {};
-  for (const t of registry.tests) byKind[t.kind] = (byKind[t.kind] || 0) + t.assertions;
-  console.log(`tests-index: ${registry.tests.length} files, ${total} assertions ` +
+  for (const t of registry.tests) byKind[t.kind] = (byKind[t.kind] || 0) + t.test_count;
+  console.log(`tests-index: ${registry.tests.length} files, ${total} tests ` +
               `(${smoke} boot smoke); ` + KINDS.map(k => `${byKind[k] || 0} ${k}`).join(', '));
   for (const p of added) console.log('  added   ' + p + '  (protects is blank; say what it is for)');
   for (const p of gone) console.log('  dropped ' + p);
