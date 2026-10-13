@@ -414,7 +414,10 @@
           <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
         </div>
         <div class="flex flex-col gap-2">
-          <template x-for="it in g.items" :key="it.id">
+          <!-- Keyed on id and fetch time: a page-watch record took its id
+               from the page until 2026-10-12, so older changes to one page
+               share an id, and a key must name the occurrence. -->
+          <template x-for="it in g.items" :key="it.id + '@' + it.fetched_at">
             <!-- A backfilled item is a reconstruction, not a witness: dashed,
                  amber-tinted, badged. A live item is a clean card. -->
             <article class="rounded-lg border bg-base-100 px-4 py-3 transition-shadow hover:shadow-sm" data-part="item"

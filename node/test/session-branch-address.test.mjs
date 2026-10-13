@@ -67,6 +67,13 @@ const RECORDS = {
     short: 'dddddddd', started: '2026-08-30T12:00:00Z',
     repos: [{ name: 'web-tools', branch: 'claude/read-aloud-x1' }],
   },
+  // Back on main by its last write, so `repos` names nothing; the branch it
+  // worked is only in `pushed` (record schema 15).
+  'sessions/2026/08/2026-08-15-ffffffff.json': {
+    short: 'ffffffff', started: '2026-08-15T12:00:00Z',
+    repos: [{ name: 'web-tools', branch: 'main' }],
+    pushed: [{ name: 'web-tools', branch: 'claude/pushed-only', at: '2026-08-15T12:30:00Z' }],
+  },
   'sessions/2026/07/2026-07-04-eeeeeeee.json': {
     short: 'eeeeeeee', started: '2026-07-04T12:00:00Z',
     repos: [{ name: 'web-tools', branch: 'claude/ancient' }],
@@ -149,6 +156,11 @@ test('a branch matched in any repo of the session counts', async () => {
   // checkout is on something else. A test on repos[0] would miss it.
   const d = await mount({ branch: 'claude/other-thing' });
   assert.equal(d.record.short, 'bbbbbbbb');
+});
+
+test('a branch the session pushed is found after its checkout went back to main', async () => {
+  const d = await mount({ branch: 'claude/pushed-only' });
+  assert.equal(d.record?.short, 'ffffffff');
 });
 
 test('an older branch is found, and reading it costs the days above it', async () => {

@@ -25,7 +25,8 @@
 //   2  pages a promoted app frames                     VIEWS[key].embed
 //   3  gallery pages, and other pages nothing reaches  pages.csv, pages[]
 //   4  demonstrations and scratch                      pages.csv top: demos,
-//                                                      kit-demos, drop, scratch
+//                                                      kit-demos, skill-demos,
+//                                                      drop, scratch
 //
 // Named `app_ring` in the output because budget-drs's lineage/exposure.csv
 // already has a `ring`, for how far a DATA file is from being displayed.
@@ -275,7 +276,7 @@ if (has('home', bdApp)) {
 }
 
 // ── Pages: promoted (1), framed (2, above), gallery or unlisted (3), demos (4) ─
-const DEMO_TOPS = new Set(['demos', 'kit-demos', 'drop', 'scratch']);
+const DEMO_TOPS = new Set(['demos', 'kit-demos', 'skill-demos', 'drop', 'scratch']);
 const seenPage = new Set(units.filter(u => u.kind === 'framed page').map(u => u.unit));
 const addPage = (repo, p, ring, basis, label) => {
   const k = `${repo}:${p}`;

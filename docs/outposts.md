@@ -65,18 +65,21 @@ fresh observation without anyone acting.
 ## Upstreams: the reverse direction
 
 An **upstream** is the mirror image of an outpost: a skill someone else wrote,
-which the estate watches, studies, holds a copy of, or ships. It is held by the
-same four parts run the other way. The declaration is the version pinned, by
+which web-tools watches, studies, holds a copy of, references, or ships. It is
+held by the same four parts run the other way. The declaration is the version pinned, by
 upstream commit and folder fingerprint, in
 [`upstream-skills.csv`](upstream-skills.csv); the observation is what the
 author holds now; the check compares them; the upkeep is a re-pin, a refreshed
 copy, or a decline.
 
-Skills created or adapted here belong to the personal collection. Skills used
-as supplied belong to the third-party collection. Adaptations keep a source
-credit; they do not form a third collection. The Skills tab presents that
-division. A **dependency** is fetched from its author by a separately attributed
-entry in the [marketplace](MARKETPLACE.md), rather than copied into `skills/`.
+Skills created or adapted here form one collection, and skills written elsewhere
+form the third-party collection. Adaptations keep a source credit; they do not
+form a third collection. The Skills tab presents that division. A third-party
+skill that a skill here uses is **referenced**: the host supplies it (the
+claude.ai account does, in claude.ai chat and in Claude Code cloud sessions),
+and the skill here links the official folder at the commit its row pins, which
+`node/test/plugin-skill-refs.test.mjs` holds. The plugin neither copies nor
+installs a referenced skill.
 
 - A **held** copy sits under `outside/<author>/<skill>/` with its author's
   license beside it. The plugin ships only `skills/`, so a held copy reaches no
@@ -89,5 +92,5 @@ entry in the [marketplace](MARKETPLACE.md), rather than copied into `skills/`.
 - Discussion of an upstream goes in notes addressed to its file, for example
   `obra/superpowers:skills/writing-skills/SKILL.md`, through the notes skill.
 - A pin names a commit only where our copy is that commit's folder exactly.
-  Dependency rows record the official source revision tested for the marketplace
-  entry; the entry owns what the installer fetches.
+  A referenced row has no copy; its pin is the commit its links point at, and
+  `npm run upstreams` reports when the author's folder has moved on from it.

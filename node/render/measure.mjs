@@ -116,10 +116,14 @@ async function probePixels([before, after]) {
 }
 
 // The committed thumbnail a page's shot is compared with, mirroring
-// node/build/pages-shots.mjs: pages/<p>.png, kit demos under kit-demos/.
+// node/build/pages-shots.mjs: pages/<p>.png, kit demos under kit-demos/,
+// skills/<name>/demo.html under skill-demos/<name>.png.
 export function thumbFor(repoRoot, pagePath) {
   const rel = pagePath.split(path.sep).join('/');
-  const key = rel.startsWith('pages/') ? rel.slice(6) : rel.startsWith('lib/kits/demos/') ? 'kit-demos/' + rel.slice(15) : null;
+  const skill = rel.match(/^skills\/([^/]+)\/demo\.html$/)?.[1];
+  const key = rel.startsWith('pages/') ? rel.slice(6)
+    : rel.startsWith('lib/kits/demos/') ? 'kit-demos/' + rel.slice(15)
+    : skill ? `skill-demos/${skill}.html` : null;
   const fp = key && path.join(repoRoot, 'pages', 'thumbs', key.replace(/\.html$/, '.png'));
   return fp && existsSync(fp) ? fp : null;
 }
