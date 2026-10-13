@@ -22,7 +22,7 @@ function estate(search = async () => result(['aaaa1111', 'cccc3333', 'dddd4444']
   window.Alpine = Alpine;
   window.TOKEN = 'fixture-token';
   window.gh = { load: async () => {} };
-  window.__shell = { REGISTRY_REPO: 'me/store', sessionTopicSpec: '', sessionSetSpec: '',
+  window.__shell = { REGISTRY_REPO: 'me/store', sessionTopicSpec: '', sessionListSpec: '',
     goSearch: seed => searches.push(seed), setSessionSearch: seed => stamps.push(seed) };
   window.EstateSearch = { sessions: search };
   window.SessionIndex = {};
@@ -56,7 +56,7 @@ test('Discussion unions indexed and row matches within the explicit time window'
   assert.deepEqual(ids(data.sessionDeckRows), ['bbbb2222', 'eeee5555']);
 });
 
-test('Discussion keeps repo, state, topic and ordered set filters strict in list, table and deck', async () => {
+test('Discussion keeps repo, state, topic and ordered list filters strict in list, table and deck', async () => {
   const { data, window } = estate();
   data.sessionRows_ = data.sessionRows_.map(r => ({ ...r,
     topics: r.id === 'aaaa1111' ? ['routing'] : [],
@@ -79,8 +79,8 @@ test('Discussion keeps repo, state, topic and ordered set filters strict in list
   window.__shell.sessionTopicSpec = 'routing';
   assert.deepEqual(ids(data.sessionDeckRows), ['aaaa1111']);
   window.__shell.sessionTopicSpec = '';
-  window.__shell.sessionSetSpec = 'eeee5555,aaaa1111,ffff6666';
-  data.sessionScope = 'set';
+  window.__shell.sessionListSpec = 'eeee5555,aaaa1111,ffff6666';
+  data.sessionScope = 'list';
   assert.deepEqual(ids(data.sessionDeckRows), ['eeee5555', 'aaaa1111']);
   assert.deepEqual(ids(data.grainRows), ['eeee5555', 'aaaa1111']);
   assert.deepEqual(data.sessionInspectionIds(), ['eeee5555', 'aaaa1111', 'ffff6666']);
@@ -195,7 +195,7 @@ test('Inspect snapshots scope before the query, including empty scopes and local
   assert.deepEqual(searches[0].sessionIds, ['aaaa1111', 'bbbb2222', 'eeee5555', 'ffff6666']);
   assert.deepEqual(ids(searches[0].sessionRows), ['aaaa1111', 'bbbb2222', 'eeee5555']);
   assert.deepEqual(searches[0].sessionExtraIds, ['bbbb2222', 'eeee5555']);
-  assert.deepEqual(searches[0].sessionScope, { scope: 'day', repo: '', state: '', topic: '', set: '' });
+  assert.deepEqual(searches[0].sessionScope, { scope: 'day', repo: '', state: '', topic: '', list: '' });
   data.sessionRepoFilter = 'absent';
   data.inspectSessionMatches();
   assert.deepEqual(searches[1].sessionIds, []);

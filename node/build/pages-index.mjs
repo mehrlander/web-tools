@@ -78,7 +78,9 @@ const BLOB = `https://github.com/${REPO}/blob/main`;
 // grouping, sorting, and thumbnail lookup; href/view/code map a file (path
 // relative to its source dir) back to its real location. The first source is
 // pages/ itself (no prefix); the second pulls in the kit demos that live
-// outside pages/, under lib/kits/demos/, surfaced under the kit-demos group.
+// outside pages/, under lib/kits/demos/, surfaced under the kit-demos group;
+// the third does the same for skill demos, surfaced under skill-demos. A
+// source's optional `pick` maps a file to its catalog name, or null to skip it.
 const SOURCES = [
   { dir: 'pages', virt: '',
     href: f => f,
@@ -88,11 +90,22 @@ const SOURCES = [
     href: f => `../lib/kits/demos/${f}`,
     view: f => `${SITE}/lib/kits/demos/${f}`,
     code: f => `${BLOB}/lib/kits/demos/${f}` },
+  // A skill's demo sits beside its SKILL.md as skills/<name>/demo.html, the
+  // way a kit's sits beside the kit. `pick` keeps only that file, since other
+  // HTML under a skill is its reference material, and renames it to the skill
+  // so the card reads `caveman`, not `demo`.
+  { dir: 'skills', virt: 'skill-demos',
+    pick: f => f.match(/^([^/]+)\/demo\.html$/)?.[1]?.concat('.html') ?? null,
+    href: f => `../skills/${f}`,
+    view: f => `${SITE}/skills/${f}`,
+    code: f => `${BLOB}/skills/${f}` },
 ];
 
 // Display label for a group key (the virtual dir of a meta entry's rel).
 const dirLabel = key =>
-  key === 'kit-demos' ? 'lib/kits/demos/' : `pages/${key ? `${key}/` : ''}`;
+  key === 'kit-demos' ? 'lib/kits/demos/'
+  : key === 'skill-demos' ? 'skills/*/demo.html'
+  : `pages/${key ? `${key}/` : ''}`;
 
 // Recursively collect every .html under baseDir, as paths relative to baseDir.
 async function walk(baseDir, dir = baseDir) {
@@ -126,11 +139,13 @@ for (const src of SOURCES) {
   for (const f of files) {
     if (src.virt && path.basename(f) === 'index.html') continue; // skip a source's own catalog
     if (!src.virt && SKIP.has(f)) continue;                      // redirect stub, not a page
+    const v = src.pick ? src.pick(f) : f;                        // the file's name in the catalog
+    if (!v) continue;
     const html = await readFile(path.join(base, f), 'utf8');
-    const rel = src.virt ? `${src.virt}/${f}` : f;
+    const rel = src.virt ? `${src.virt}/${v}` : v;
     meta.push({
       rel,
-      name: path.basename(f, '.html'),
+      name: path.basename(v, '.html'),
       title: titleOf(html),
       note: NOTES[rel] ?? '',
       href: src.href(f),
@@ -159,7 +174,8 @@ function buildMarkdown() {
     '',
     `⭐ **[Open the live index →](${PAGES_URL}/)** — a screenshot card per page, each with a live-preview and source toggle.`,
     '',
-    `Catalog of the pages under \`pages/\`, plus the kit demos from \`lib/kits/demos/\`.`,
+    `Catalog of the pages under \`pages/\`, plus the kit demos from \`lib/kits/demos/\``,
+    `and the skill demos at \`skills/<name>/demo.html\`.`,
     `Each row links the **rendered** page and its **code** on github.com; this README is`,
     `the link-dense text twin of the visual index above.`,
     '',
@@ -378,15 +394,17 @@ function index(){
       history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
     },
     // Location chip bar, full paths up front: pages/ (root) and All first, then
-    // pages/<top>/ per nested location, with the out-of-tree lib/kits/demos/
-    // last so the one non-pages source is visibly the outlier. The search box
-    // narrows by name on top of whichever location is selected.
+    // pages/<top>/ per nested location, with the out-of-tree sources
+    // (lib/kits/demos/, skills/*/demo.html) last so they read as outliers.
+    // The search box narrows by name on top of whichever location is selected.
     get chips(){
       const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
-      tops.sort((a, b) => (a === 'kit-demos') - (b === 'kit-demos') || a.localeCompare(b));
+      const outside = t => t === 'kit-demos' || t === 'skill-demos';
+      tops.sort((a, b) => outside(a) - outside(b) || a.localeCompare(b));
       const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
       const all = this.groups.reduce((n, g) => n + g.items.length, 0);
-      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/'] : ['pages/', t + '/'];
+      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/']
+        : t === 'skill-demos' ? ['skills/', '*/demo.html'] : ['pages/', t + '/'];
       return [
         { key: 'main', pre: '', seg: 'pages/', count: countTop('main') },
         { key: 'all',  pre: '', seg: 'All',    count: all },

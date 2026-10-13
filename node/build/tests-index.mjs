@@ -8,7 +8,8 @@
 //
 // Derived here, never authored:
 //
-//   assertions  the number of top-level test() calls written in the file.
+//   assertions  the legacy column name for test() declarations, not individual
+//               assert.* checks inside a test. The view labels these as tests.
 //               Static, and a LOWER BOUND rather than the runner's figure: a
 //               test() inside a loop is one call here and N tests at runtime.
 //               Four files parameterize theirs, so `npm test` reports more

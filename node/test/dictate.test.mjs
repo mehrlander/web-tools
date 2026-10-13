@@ -1812,6 +1812,21 @@ test('a move leaves unrelated lines alone even when they look like a list marker
   assert.equal(d.text, 'Score was\n10.\n\nStay here. Move me.\n');
 });
 
+// Found 2026-10-12 by the seeded walk in md-tracked-matrix.test.mjs, once a
+// line was added to skills/skill-prefs/SKILL.md: closing the hole collapsed
+// "\n  " to "\n", so the item after the carried words lost its nesting, and
+// no change card covered the two spaces, so reverting could not restore them.
+test('a move keeps the next line nested, whether it takes the end of a nested item or the whole item', () => {
+  const t = '- Outer.\n  - First. Last.\n  - Next.\n';
+  const a = doc(t);
+  a.move(t.indexOf(' Last.'), t.indexOf(' Last.') + 6, t.length - 1);
+  assert.equal(a.text, '- Outer.\n  - First.\n  - Next. Last.\n');
+  const u = '- Outer.\n  - Gone.\n  - Next.\n';
+  const b = doc(u);
+  b.move(u.indexOf('Gone.'), u.indexOf('Gone.') + 5, u.length - 1);
+  assert.equal(b.text, '- Outer.\n  - Next. Gone.\n');
+});
+
 test('a list item or heading carried away takes its marker line with it, and the file keeps its ending', () => {
   const a = doc('Para.\n\n- only');
   a.move(9, 13, 0);

@@ -123,7 +123,7 @@ the field, which is a different problem.
 
 ## Worked examples
 
-[Visual walkthrough: input, decisions, output](https://mehrlander.github.io/web-tools/pages/guides/caveman.html). The sample artifacts are downloadable from each stage.
+[Visual walkthrough: input, decisions, output](https://mehrlander.github.io/web-tools/skills/caveman/demo.html). The sample artifacts are downloadable from each stage.
 
 **One span, `trim`.**
 
