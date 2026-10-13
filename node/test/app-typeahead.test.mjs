@@ -198,10 +198,11 @@ const DECLARED = [
   ['app/index.html', 'the Pages filter and the project Docs path filter', 2],
   ['lib/alpineComponents/search-view.js', 'the Files view query', 1],
   ['lib/alpineComponents/estate.js', "the Activity query, one box above the pane pills", 1],
-  // Distribution, Docs Inventory, Skills, Agents and Peeves are sibling
-  // mapTab sections. x-show leaves only the selected section with client
+  // Overview, Distribution, Docs Inventory, Skills, Agents and Peeves are
+  // sibling mapTab sections. x-show leaves only the selected section with client
   // rects, so the router still sees exactly one visible primary finder at a time.
-  ['lib/alpineComponents/map.js', "the Map's Distribution, Docs Inventory, Skills, Agents and Peeves searches", 5],
+  // 7 to 8 on 2026-10-12: the Overview, the Map's front door, finds an address.
+  ['lib/alpineComponents/map.js', "the Map's Overview, Projects, Research, Distribution, Docs Inventory, Skills, Agents and Peeves searches", 8],
   ['lib/alpineComponents/config.js', "the Config view's key filter", 1],
   ['lib/alpineComponents/public-browse.js', 'the public browser file filter', 1],
 ];

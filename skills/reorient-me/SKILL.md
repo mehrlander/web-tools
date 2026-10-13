@@ -44,7 +44,7 @@ The shape to reproduce:
 
 ### Where the session has a working branch
 
-Add one line of state before the open door: the 🌿 caption line with its counts,
+Add one line of state before the open door: the caption line with its counts,
 the guide PR, and any tracker task touched. A re-entry summary that says where
 the thinking went and not where the work sits is half an answer.
 

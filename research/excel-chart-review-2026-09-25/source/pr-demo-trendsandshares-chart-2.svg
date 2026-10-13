@@ -1,0 +1,18 @@
+<svg class="xl-chart" viewBox="0 0 448 247" width="448" height="247" xmlns="http://www.w3.org/2000/svg" style="font-family: Aptos, Calibri, -apple-system, sans-serif; background: #ffffff; border: 1px solid #d9d9d9; box-sizing: border-box; display: block;">
+<text x="224" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#000000">Expenditure Share by Object</text>
+<path d="M 171.5 134.5 L 171.5 51.25 A 83.25 83.25 0 0 1 211.6059933689678 207.45253111365162 Z" fill="#1b6288" stroke="#ffffff" stroke-width="1"></path>
+<path d="M 171.5 134.5 L 211.6059933689678 207.45253111365162 A 83.25 83.25 0 0 1 92.32454501842847 160.22566478171439 Z" fill="#e46c24" stroke="#ffffff" stroke-width="1"></path>
+<path d="M 171.5 134.5 L 92.32454501842847 160.22566478171439 A 83.25 83.25 0 0 1 114.51145343143665 73.8133617671675 Z" fill="#24693d" stroke="#ffffff" stroke-width="1"></path>
+<path d="M 171.5 134.5 L 114.51145343143665 73.8133617671675 A 83.25 83.25 0 0 1 145.77433521828561 55.324545018428466 Z" fill="#0f82c2" stroke="#ffffff" stroke-width="1"></path>
+<path d="M 171.5 134.5 L 145.77433521828561 55.324545018428466 A 83.25 83.25 0 0 1 171.49999999999997 51.25 Z" fill="#942c7f" stroke="#ffffff" stroke-width="1"></path>
+<rect x="333" y="84.5" width="10" height="10" fill="#1b6288"></rect>
+<text x="349" y="93.5" font-size="11" fill="#333333">Salaries &amp; Wages</text>
+<rect x="333" y="104.5" width="10" height="10" fill="#e46c24"></rect>
+<text x="349" y="113.5" font-size="11" fill="#333333">Employee Benefits</text>
+<rect x="333" y="124.5" width="10" height="10" fill="#24693d"></rect>
+<text x="349" y="133.5" font-size="11" fill="#333333">Personal Contracts</text>
+<rect x="333" y="144.5" width="10" height="10" fill="#0f82c2"></rect>
+<text x="349" y="153.5" font-size="11" fill="#333333">Equipment</text>
+<rect x="333" y="164.5" width="10" height="10" fill="#942c7f"></rect>
+<text x="349" y="173.5" font-size="11" fill="#333333">Goods &amp; Services</text>
+</svg>

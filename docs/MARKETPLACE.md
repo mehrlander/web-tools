@@ -6,7 +6,18 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | The conventions loader, the tracker operator, the HTML house style, and the rest of the skill library. |
+| `portable` | every skill folder under `skills/` that the catalog lists; [`portable.csv`](portable.csv) has a row for each | Skills created or adapted here, with the hooks and agents that travel with them. |
+
+The catalog publishes nothing written elsewhere and declares no dependencies. A
+plugin's `dependencies` field makes it refuse to load wherever a listed plugin is
+missing, and the session refresher moves portable forward without installing
+anything new, so a dependency added after an environment was built disables
+portable in every session restored from that build. A dependency on two plugins
+of Anthropic's skills, declared on 2026-10-09, did exactly that until it was
+removed.
+Anthropic's skills reach Claude Code cloud sessions through the claude.ai
+account instead, and a skill here that uses one links its official folder at a
+pinned commit ([upstreams](outposts.md#upstreams-the-reverse-direction)).
 
 Every skill's description sits in every session's context; the measured cost is in [environment/extending.md](environment/extending.md#context-cost).
 

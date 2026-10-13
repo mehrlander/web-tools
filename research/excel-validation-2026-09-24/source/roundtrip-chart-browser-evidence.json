@@ -1,0 +1,157 @@
+{
+  "revision": "5109699ac5eea3ca510947859ff9e5cb3980676e",
+  "fixture": "chart-cases.xlsx",
+  "bytes": 13637,
+  "sha256": "96e0742507ef118fe00639331ba4c6acb98fe42198acb45f7c60d42dbb951326",
+  "browserVersion": "153.0.4234.48",
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "deviceScaleFactor": 1
+  },
+  "inputPath": "Original data-view.html #gz data-view/1 local envelope, exact fixture bytes in data URI; no fictional remote source.",
+  "transport": "Original pinned app source files supplied from local cache. No app code modified.",
+  "sheets": [
+    {
+      "name": "Column",
+      "capture": "roundtrip-chart-browser-column.png",
+      "text": "\tA\tB\n1\tColumn case\t\n2\t\t\n3\tCategory\tValue\n4\tAlpha\t8\n5\tBeta\t0\n6\tGamma\t-4\n7\tDelta\t12",
+      "canvas": 0,
+      "svg": 0,
+      "images": 0
+    },
+    {
+      "name": "Line",
+      "capture": "roundtrip-chart-browser-line.png",
+      "text": "\tA\tB\n1\tLine case\t\n2\t\t\n3\tMonth\tValue\n4\tJan\t2\n5\tFeb\t\n6\tMar\t7\n7\tApr\t3\n8\tMay\t9",
+      "canvas": 0,
+      "svg": 0,
+      "images": 0
+    },
+    {
+      "name": "Scatter",
+      "capture": "roundtrip-chart-browser-scatter.png",
+      "text": "\tA\tB\n1\tScatter case\t\n2\t\t\n3\tX\tY\n4\t0\t0\n5\t1\t4\n6\t4\t1\n7\t10\t8",
+      "canvas": 0,
+      "svg": 0,
+      "images": 0
+    }
+  ],
+  "errors": [],
+  "parser": {
+    "drawings": [],
+    "chartModelKeys": [],
+    "sheets": [
+      {
+        "name": "Column",
+        "images": 0,
+        "rows": 6
+      },
+      {
+        "name": "Line",
+        "images": 0,
+        "rows": 7
+      },
+      {
+        "name": "Scatter",
+        "images": 0,
+        "rows": 6
+      }
+    ]
+  },
+  "loaded": [
+    {
+      "path": "gh-api.js",
+      "status": "ok"
+    },
+    {
+      "path": "gh-boot.js",
+      "status": "ok"
+    },
+    {
+      "path": "vanilla-bundle.js",
+      "status": "ok"
+    },
+    {
+      "path": "gh-auth.js",
+      "status": "ok"
+    },
+    {
+      "path": "gh-fetch.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/repo-address.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/source-peek.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/traffic.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/claude-mark.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/assistant-mark.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/console.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/url-params.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/data-payload.js",
+      "status": "ok"
+    },
+    {
+      "path": "alpineComponents/viewer.js",
+      "status": "ok"
+    },
+    {
+      "path": "alpine-bundle.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/xlsx.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/note.js",
+      "status": "ok"
+    }
+  ],
+  "delivery": {
+    "local": true,
+    "fileUrls": [],
+    "availableModes": [
+      {
+        "id": "raw",
+        "label": "Raw"
+      },
+      {
+        "id": "sheet",
+        "label": "Sheet"
+      },
+      {
+        "id": "xlsx",
+        "label": "Grid"
+      },
+      {
+        "id": "xlsx-structure",
+        "label": "Structure"
+      }
+    ],
+    "visibleDownloadLinks": [],
+    "visibleSaveButtons": [],
+    "interpretation": "The local envelope has no original-file GitHub/Raw/CDN links and the Sheet view offers no XLSX download or rebuild action. Source inspection of viewer.js 2143-2147 shows the Structure/Extract Save action writes a .extract.json data envelope, not an XLSX workbook; it is not a workbook round trip."
+  }
+}

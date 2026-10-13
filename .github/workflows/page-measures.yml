@@ -27,6 +27,7 @@ on:
     paths:
       - 'pages/**/*.html'
       - 'lib/kits/demos/**/*.html'
+      - 'skills/*/demo.html'
       - 'node/render/**'
       - 'node/test/page-measures.mjs'
       - 'node/test/fixtures/page-measures.html'

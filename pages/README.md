@@ -5,7 +5,8 @@
 
 ⭐ **[Open the live index →](https://mehrlander.github.io/web-tools/pages/)** — a screenshot card per page, each with a live-preview and source toggle.
 
-Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`.
+Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`
+and the skill demos at `skills/<name>/demo.html`.
 Each row links the **rendered** page and its **code** on github.com; this README is
 the link-dense text twin of the visual index above.
 
@@ -119,7 +120,6 @@ the link-dense text twin of the visual index above.
 | Page | Title | Links |
 |---|---|---|
 | `code-layers` | Code layers: current state and migration plan | [view](https://mehrlander.github.io/web-tools/pages/guides/code-layers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides/code-layers.html) |
-| `page-measures` | Page measures: one run, two readers | [view](https://mehrlander.github.io/web-tools/pages/guides/page-measures.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides/page-measures.html) |
 
 ## lib/kits/demos/
 
@@ -168,6 +168,14 @@ the link-dense text twin of the visual index above.
 | `sidebar-drawer-mwe` | Sidebar Drawer MWE | [view](https://mehrlander.github.io/web-tools/pages/scratch/sidebar-drawer-mwe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/sidebar-drawer-mwe.html) |
 | `toss-top-probe` | Toss top probe | [view](https://mehrlander.github.io/web-tools/pages/scratch/toss-top-probe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/toss-top-probe.html) |
 | `web-tools-icon-preview` | Web Tools icon · iPhone size check | [view](https://mehrlander.github.io/web-tools/pages/scratch/web-tools-icon-preview.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/web-tools-icon-preview.html) |
+
+## skills/*/demo.html
+
+| Page | Title | Links |
+|---|---|---|
+| `caveman` | Caveman: input, decisions, output | [view](https://mehrlander.github.io/web-tools/skills/caveman/demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/skills/caveman/demo.html) |
+| `concept-index` | Concept index: index, check, read | [view](https://mehrlander.github.io/web-tools/skills/concept-index/demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/skills/concept-index/demo.html) |
+| `screenshot-review` | Page measures: one run, two readers | [view](https://mehrlander.github.io/web-tools/skills/screenshot-review/demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/skills/screenshot-review/demo.html) |
 
 ## pages/stories/
 

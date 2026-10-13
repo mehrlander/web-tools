@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate against Excel"
+  short_description: "Check workbook previews against native Excel"
+  default_prompt: "Use $validate-excel to test this workbook and its browser preview against Excel, and verify the downloadable artifact."

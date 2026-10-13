@@ -1,0 +1,2 @@
+name,retired,reason,successor
+safe-html-templating,2026-10-08,"HTML construction guidance moved into html-style, beside the shared vanilla bundle; no separate kit corresponded to this skill.",skills/html-style/references/mechanics.md

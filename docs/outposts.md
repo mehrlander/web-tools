@@ -20,6 +20,11 @@ Every outpost is held the same way:
 - **Upkeep:** the cheapest step that brings the outpost back in line. It is
   usually a step only the owner can take, which is why the check names it.
 
+An **outpost protocol** is the terms on which material and readings cross an
+outpost: the `outpost_protocol` column says how material may go in and what is
+ruled out, and `observed`, `reports` and `cadence` say how readings come back.
+Upkeep stays within the outpost protocol.
+
 ## What keeps an outpost current
 
 **Who supplies the observation decides whether the record keeps up.** Where the
@@ -60,12 +65,21 @@ fresh observation without anyone acting.
 ## Upstreams: the reverse direction
 
 An **upstream** is the mirror image of an outpost: a skill someone else wrote,
-which the estate watches, studies, holds a copy of, or ships. It is held by the
-same four parts run the other way. The declaration is the version pinned, by
+which web-tools watches, studies, holds a copy of, references, or ships. It is
+held by the same four parts run the other way. The declaration is the version pinned, by
 upstream commit and folder fingerprint, in
 [`upstream-skills.csv`](upstream-skills.csv); the observation is what the
 author holds now; the check compares them; the upkeep is a re-pin, a refreshed
 copy, or a decline.
+
+Skills created or adapted here form one collection, and skills written elsewhere
+form the third-party collection. Adaptations keep a source credit; they do not
+form a third collection. The Skills tab presents that division. A third-party
+skill that a skill here uses is **referenced**: the host supplies it (the
+claude.ai account does, in claude.ai chat and in Claude Code cloud sessions),
+and the skill here links the official folder at the commit its row pins, which
+`node/test/plugin-skill-refs.test.mjs` holds. The plugin neither copies nor
+installs a referenced skill.
 
 - A **held** copy sits under `outside/<author>/<skill>/` with its author's
   license beside it. The plugin ships only `skills/`, so a held copy reaches no
@@ -78,6 +92,5 @@ copy, or a decline.
 - Discussion of an upstream goes in notes addressed to its file, for example
   `obra/superpowers:skills/writing-skills/SKILL.md`, through the notes skill.
 - A pin names a commit only where our copy is that commit's folder exactly.
-  Four of the six Anthropic skills the plugin carries match no commit in
-  anthropics/skills, having been copied from the claude.ai account's copies, so
-  their rows carry a fingerprint and no commit.
+  A referenced row has no copy; its pin is the commit its links point at, and
+  `npm run upstreams` reports when the author's folder has moved on from it.

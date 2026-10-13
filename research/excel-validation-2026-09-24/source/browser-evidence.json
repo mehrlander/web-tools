@@ -1,0 +1,124 @@
+{
+  "revision": "5109699ac5eea3ca510947859ff9e5cb3980676e",
+  "browserVersion": "153.0.4234.48",
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "deviceScaleFactor": 1
+  },
+  "page": "Original pages/data-view.html at pinned revision; served at localhost with use=revision and src=the pinned workbook",
+  "inputSha256": "998d5483e1dee7db4c14c9f17142842f5eba451825b33afefa5fc11f4c82be14",
+  "inputBytes": 28024,
+  "download": {
+    "action": "Where this file also lives > Raw",
+    "href": "https://raw.githubusercontent.com/mehrlander/web-tools/5109699ac5eea3ca510947859ff9e5cb3980676e/docs/examples/demonstration-workbooks.xlsx",
+    "status": "inconclusive",
+    "suggestedFilename": null,
+    "sha256": null,
+    "matchesInput": null,
+    "transport": "Clicked the original Raw link but the source page emitted no download event in 5 seconds. Target opens separately. No downloaded workbook was obtained, so browser download identity is unverified."
+  },
+  "transport": {
+    "appAssets": "Exact pinned GitHub lib sources retrieved with curl; API/raw requests fulfilled from local copies without modifying source",
+    "workbook": "Exact pinned contents API request fulfilled with base64 of original downloaded bytes",
+    "vendorAssets": "Original CDN CSS/runtime cached locally; Alpine.js fetched from unpkg, collapse 3.15.12 from jsDelivr; JSZip 3.10.1 preloaded as original repository visual test does",
+    "limitations": "Phosphor icon CSS/font requests unavailable; navigation chrome icons missing, cell content unaffected"
+  },
+  "targets": [
+    {
+      "sheet": "RawData",
+      "table": "Financials",
+      "ref": "B5:N30"
+    },
+    {
+      "sheet": "PivotSummary",
+      "pivot": "FinancialPivot",
+      "ref": "B5:O19",
+      "source": "RawData!B5:N30"
+    }
+  ],
+  "captures": [
+    "browser-raw-data.png",
+    "browser-pivot-summary.png",
+    "browser-pivot-summary-right.png"
+  ],
+  "loaded": [
+    {
+      "path": "gh-api.js",
+      "status": "ok"
+    },
+    {
+      "path": "gh-boot.js",
+      "status": "ok"
+    },
+    {
+      "path": "vanilla-bundle.js",
+      "status": "ok"
+    },
+    {
+      "path": "gh-auth.js",
+      "status": "ok"
+    },
+    {
+      "path": "gh-fetch.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/repo-address.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/source-peek.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/traffic.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/claude-mark.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/assistant-mark.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/console.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/url-params.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/data-payload.js",
+      "status": "ok"
+    },
+    {
+      "path": "alpineComponents/viewer.js",
+      "status": "ok"
+    },
+    {
+      "path": "alpine-bundle.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/xlsx.js",
+      "status": "ok"
+    },
+    {
+      "path": "kits/note.js",
+      "status": "ok"
+    },
+    {
+      "path": "alpineComponents/fab.js",
+      "status": "ok"
+    },
+    {
+      "path": "alpineComponents/path-picker.js",
+      "status": "ok"
+    }
+  ],
+  "pivotText": "\tA\tB\tC\tD\tE\tF\tG\tH\tI\tJ\tK\tL\tM\tN\tO\n1\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n2\t\tMulti-Dimensional Program Allocation (Pivot Table)\t\t\t\t\t\t\t\t\t\t\t\t\t\n3\t\tProgrammatic aggregation, variance calculated field, and interactive cross-filters\t\t\t\t\t\t\t\t\t\t\t\t\t\n4\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n5\t\t\t\tFiscalYear▾\tValues▾\t\t\t\t\t\t\t\t\t\t\n6\t\t\t\tFY2028▾\t\t\tFY2029▾\t\t\t(blank)▾\t\t\tTotal Sum of Budget▾\tTotal Sum of Actual▾\tTotal Variance ($)▾\n7\t\tDivision▾\tProgram▾\tSum of Budget▾\tSum of Actual▾\tVariance ($)▾\tSum of Budget▾\tSum of Actual▾\tVariance ($)▾\tSum of Budget▾\tSum of Actual▾\tVariance ($)▾\t▾\t▾\t▾\n8\t\t−Actuarial & Finance\tJudicial Systems\t$2,450\t$2,440\t$-10\t$1,300\t$1,315\t$+15\t\t\t-\t$3,750\t$3,755\t$+5\n9\t\t\tPlan 2 Operations\t$1,050\t$1,035\t$-15\t$550\t$550\t-\t\t\t-\t$1,600\t$1,585\t$-15\n10\t\tActuarial & Finance Total\t\t$3,500\t$3,475\t$-25\t$1,850\t$1,865\t$+15\t\t\t-\t$5,350\t$5,340\t$-10\n11\t\t−Information Technology\tCORE PAM Modernization\t$6,850\t$6,990\t$+140\t$2,100\t$2,040\t$-60\t\t\t-\t$8,950\t$9,030\t$+80\n12\t\tInformation Technology Total\t\t$6,850\t$6,990\t$+140\t$2,100\t$2,040\t$-60\t\t\t-\t$8,950\t$9,030\t$+80\n13\t\t−Operations\tAgency Administration\t$1,730\t$1,760\t$+30\t$915\t$950\t$+35\t\t\t-\t$2,645\t$2,710\t$+65\n14\t\tOperations Total\t\t$1,730\t$1,760\t$+30\t$915\t$950\t$+35\t\t\t-\t$2,645\t$2,710\t$+65\n15\t\t−Retirement Services\tMember Portals\t$2,575\t$2,585\t$+10\t$1,930\t$1,930\t-\t\t\t-\t$4,505\t$4,515\t$+10\n16\t\tRetirement Services Total\t\t$2,575\t$2,585\t$+10\t$1,930\t$1,930\t-\t\t\t-\t$4,505\t$4,515\t$+10\n17\t\t−(blank)\t(blank)\t\t\t-\t\t\t-\t$21,450\t$21,595\t$+145\t$21,450\t$21,595\t$+145\n18\t\t(blank) Total\t\t\t\t-\t\t\t-\t$21,450\t$21,595\t$+145\t$21,450\t$21,595\t$+145\n19\t\tGrand Total\t\t$14,655\t$14,810\t$+155\t$6,795\t$6,785\t$-10\t$21,450\t$21,595\t$+145\t$42,900\t$43,190\t$+290"
+}

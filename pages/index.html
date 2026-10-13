@@ -743,14 +743,6 @@ function index(){
         "note": "",
         "thumb": "thumbs/guides/code-layers.png",
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/guides/code-layers.html"
-      },
-      {
-        "href": "guides/page-measures.html",
-        "label": "page-measures",
-        "title": "Page measures: one run, two readers",
-        "note": "",
-        "thumb": "thumbs/guides/page-measures.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/guides/page-measures.html"
       }
     ]
   },
@@ -1037,6 +1029,36 @@ function index(){
     ]
   },
   {
+    "label": "skills/*/demo.html",
+    "top": "skill-demos",
+    "items": [
+      {
+        "href": "../skills/caveman/demo.html",
+        "label": "caveman",
+        "title": "Caveman: input, decisions, output",
+        "note": "",
+        "thumb": "thumbs/skill-demos/caveman.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/skills/caveman/demo.html"
+      },
+      {
+        "href": "../skills/concept-index/demo.html",
+        "label": "concept-index",
+        "title": "Concept index: index, check, read",
+        "note": "",
+        "thumb": "thumbs/skill-demos/concept-index.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/skills/concept-index/demo.html"
+      },
+      {
+        "href": "../skills/screenshot-review/demo.html",
+        "label": "screenshot-review",
+        "title": "Page measures: one run, two readers",
+        "note": "",
+        "thumb": "thumbs/skill-demos/screenshot-review.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/skills/screenshot-review/demo.html"
+      }
+    ]
+  },
+  {
     "label": "pages/stories/",
     "top": "stories",
     "items": [
@@ -1106,15 +1128,17 @@ function index(){
       history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
     },
     // Location chip bar, full paths up front: pages/ (root) and All first, then
-    // pages/<top>/ per nested location, with the out-of-tree lib/kits/demos/
-    // last so the one non-pages source is visibly the outlier. The search box
-    // narrows by name on top of whichever location is selected.
+    // pages/<top>/ per nested location, with the out-of-tree sources
+    // (lib/kits/demos/, skills/*/demo.html) last so they read as outliers.
+    // The search box narrows by name on top of whichever location is selected.
     get chips(){
       const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
-      tops.sort((a, b) => (a === 'kit-demos') - (b === 'kit-demos') || a.localeCompare(b));
+      const outside = t => t === 'kit-demos' || t === 'skill-demos';
+      tops.sort((a, b) => outside(a) - outside(b) || a.localeCompare(b));
       const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
       const all = this.groups.reduce((n, g) => n + g.items.length, 0);
-      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/'] : ['pages/', t + '/'];
+      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/']
+        : t === 'skill-demos' ? ['skills/', '*/demo.html'] : ['pages/', t + '/'];
       return [
         { key: 'main', pre: '', seg: 'pages/', count: countTop('main') },
         { key: 'all',  pre: '', seg: 'All',    count: all },

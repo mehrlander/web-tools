@@ -1,5 +1,11 @@
 # skills
 
+Skills created or adapted here. A third-party skill one of these uses is not
+copied here: the host supplies it, and the skill links its official folder at a
+pinned commit ([upstreams](../docs/outposts.md#upstreams-the-reverse-direction)).
+Caveman belongs here and credits its source in its own file.
+Retired work stays in the [skill archive](../archive/skills/README.md).
+
 The source of the `portable` plugin: one folder per skill, plus the plugin's
 hooks in `hooks/`. The plugin registers every skill that
 [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) lists,

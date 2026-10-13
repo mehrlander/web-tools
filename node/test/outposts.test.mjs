@@ -192,7 +192,7 @@ test('every outpost declares each part, and every locator into this repo resolve
   const ids = outposts.map(r => r.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const r of outposts) {
-    for (const k of ['title', 'gloss', 'declared', 'observed', 'reports', 'cadence', 'check', 'upkeep', 'doc']) {
+    for (const k of ['title', 'gloss', 'declared', 'observed', 'reports', 'cadence', 'check', 'outpost_protocol', 'upkeep', 'doc']) {
       assert.ok(r[k], `${r.id}: ${k} is blank`);
     }
     assert.ok(['owner', 'outpost'].includes(r.reports), `${r.id}: reports is ${r.reports}`);
@@ -210,7 +210,7 @@ test('every outpost declares each part, and every locator into this repo resolve
 
 const UPSTREAM = path.join(repoRoot, 'python/upstream-skills.py');
 const upstreams = read('upstream-skills.csv');
-const STATUSES = ['watching', 'studied', 'held', 'vendored', 'adapted', 'declined'];
+const STATUSES = ['watching', 'studied', 'held', 'vendored', 'adapted', 'referenced', 'declined'];
 
 test('every upstream row has a known status, and every copy it names is where it says', () => {
   const ids = upstreams.map(r => r.id);
