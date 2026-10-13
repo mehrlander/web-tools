@@ -204,7 +204,7 @@ test('mounts and loads the public set with no startup warnings; adoption stays g
 // The Markdown copy is a second rendering of docs/aims.json, so it is built
 // from the manifest rather than scraped off the page. Asserted whole: a
 // per-line check would pass on a rendering that lost the goal numbering.
-test('Docs/Purpose renders its existing Aims data and ordered reading as Markdown', () => {
+test('Overview/Purpose renders its existing Aims data and ordered reading as Markdown', () => {
   data.aims = { mission: 'M.', goals: [
     { key: 'a', name: 'One', gloss: 'First.' },
     { key: 'b', name: 'Two', gloss: 'Second.' },
@@ -851,7 +851,7 @@ const { page, makeShell } = await import('./shell.mjs');
 // sentence in Sources and methods, so the reader arriving cold meets every
 // set here first: the rows are the strip's own arrays and the sentences the
 // CSV's own cells, so neither can be a second list that drifts.
-test('the Overview lists every other address under its tab with its sentence, and finds one by name or by file', async () => {
+test('the Overview\'s Contents lists every address but itself under its tab with its sentence, and finds one by name or by file', async () => {
   window.__shell = undefined;
   const el3 = window.document.createElement('div');
   el3.setAttribute('x-data', 'map()');
@@ -863,7 +863,7 @@ test('the Overview lists every other address under its tab with its sentence, an
   const want = Object.values(d3.SUBVIEWS).flat().map(v => v.k).filter(k => k !== 'overview');
   const rows = d3.overviewGroups.flatMap(g => g.rows);
   assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
-  assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.filter(t => t.k !== 'overview').map(t => t.n)]);
+  assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
   const ledes = Object.fromEntries(window.Csv.rows(mapTabsCsv).map(r => [r.tab, r.gloss]));
   for (const r of rows) assert.equal(r.gloss, ledes[r.k], r.k + ': the sentence is its CSV row');
   assert.ok(rows.every(r => !r.files.length), 'files are listed only to show why a query matched');
@@ -903,7 +903,7 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'aims', 'growth', 'policy', 'claims', 'registries']),
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'claims', 'registries']),
     'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
@@ -1337,7 +1337,7 @@ test('Context validates lens addresses, restores source/topic links and joins re
   } finally { close(); }
 });
 
-test('an Aims deep link opens Docs/Purpose and loads its existing sources', async () => {
+test('an Aims deep link opens Overview/Purpose and loads its existing sources', async () => {
   window.__shell = { mapTab: 'aims', goMapTab: () => {} };
   const el4 = window.document.createElement('div');
   el4.setAttribute('x-data', 'map()');
@@ -1346,7 +1346,7 @@ test('an Aims deep link opens Docs/Purpose and loads its existing sources', asyn
   await tick(3);
   const d4 = Alpine.$data(el4);
   assert.equal(d4.mapTab, 'aims', 'the route key remains valid');
-  assert.equal(d4.displayTab, 'docs', 'Docs stays selected while Purpose is open');
+  assert.equal(d4.displayTab, 'overview', 'Overview stays selected while Purpose is open');
   assert.equal(d4.subviews.find(s => s.k === 'aims')?.n, 'Purpose');
   assert.equal(d4.aims?.mission, JSON.parse(aimsJson).mission);
   assert.equal(d4.aims?.goals.length, window.Csv.rows(aimsGoalsCsv).length);
