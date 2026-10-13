@@ -160,8 +160,9 @@ test('source provenance follows the selected collection and preserves an externa
     assert.ok(!paths().includes('skills/manifest.csv'), 'estate is not the public skill manifest');
     data.skillSet = 'outside';
     assert.deepEqual(paths(), ['docs/upstream-skills.csv']);
-    data.skillSet = '';
-    for (const p of ['docs/portable.csv', 'skills/manifest.csv', 'state/configs.json', 'docs/upstream-skills.csv']) assert.ok(paths().includes(p), p);
+    data.skillSet = 'yours';
+    for (const p of ['skills/manifest.csv', 'docs/portable.csv', 'archive/skills/archive.csv', 'pages/pages.csv']) assert.ok(paths().includes(p), p);
+    assert.ok(!paths().includes('state/configs.json'), 'Yours reads no crawl');
     data.mapTab = 'agents'; data.agentSet = 'estate';
     assert.deepEqual(paths(), ['state/configs.json']);
     data.mapTab = 'docs'; data.docRepo = 'mehrlander/home';
@@ -203,7 +204,7 @@ test('mounts and loads the public set with no startup warnings; adoption stays g
 // The Markdown copy is a second rendering of docs/aims.json, so it is built
 // from the manifest rather than scraped off the page. Asserted whole: a
 // per-line check would pass on a rendering that lost the goal numbering.
-test('Docs/Purpose renders its existing Aims data and ordered reading as Markdown', () => {
+test('Overview/Purpose renders its existing Aims data and ordered reading as Markdown', () => {
   data.aims = { mission: 'M.', goals: [
     { key: 'a', name: 'One', gloss: 'First.' },
     { key: 'b', name: 'Two', gloss: 'Second.' },
@@ -258,17 +259,17 @@ test('plugin-internal scripts cross-reference their parent skill, not Automation
       const item = { kind: 'script', path, title: path.split('/').at(-1) };
       const owner = data.setOwner(item);
       assert.equal(owner.tab, 'skills', path);
-      assert.equal(owner.set, 'plugin', path);
+      assert.equal(owner.set, 'yours', path);
       assert.equal(owner.query, skill, path);
 
       await data.openSetOwner(item);
       assert.equal(openedTab, 'skills', path);
-      assert.equal(data.skillSet, 'plugin', path);
+      assert.equal(data.skillSet, 'yours', path);
       assert.equal(data.skillQ, skill, path);
     }
   } finally {
     data.setTab = realSetTab;
-    data.skillSet = '';
+    data.skillSet = 'all';
     data.skillQ = '';
   }
 
@@ -850,7 +851,7 @@ const { page, makeShell } = await import('./shell.mjs');
 // sentence in Sources and methods, so the reader arriving cold meets every
 // set here first: the rows are the strip's own arrays and the sentences the
 // CSV's own cells, so neither can be a second list that drifts.
-test('the Overview lists every other address under its tab with its sentence, and finds one by name or by file', async () => {
+test('the Overview\'s Contents lists every address but itself under its tab with its sentence, and finds one by name or by file', async () => {
   window.__shell = undefined;
   const el3 = window.document.createElement('div');
   el3.setAttribute('x-data', 'map()');
@@ -862,7 +863,7 @@ test('the Overview lists every other address under its tab with its sentence, an
   const want = Object.values(d3.SUBVIEWS).flat().map(v => v.k).filter(k => k !== 'overview');
   const rows = d3.overviewGroups.flatMap(g => g.rows);
   assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
-  assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.filter(t => t.k !== 'overview').map(t => t.n)]);
+  assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
   const ledes = Object.fromEntries(window.Csv.rows(mapTabsCsv).map(r => [r.tab, r.gloss]));
   for (const r of rows) assert.equal(r.gloss, ledes[r.k], r.k + ': the sentence is its CSV row');
   assert.ok(rows.every(r => !r.files.length), 'files are listed only to show why a query matched');
@@ -902,7 +903,7 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'aims', 'growth', 'policy', 'claims', 'registries']),
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'claims', 'registries']),
     'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
@@ -1336,7 +1337,7 @@ test('Context validates lens addresses, restores source/topic links and joins re
   } finally { close(); }
 });
 
-test('an Aims deep link opens Docs/Purpose and loads its existing sources', async () => {
+test('an Aims deep link opens Overview/Purpose and loads its existing sources', async () => {
   window.__shell = { mapTab: 'aims', goMapTab: () => {} };
   const el4 = window.document.createElement('div');
   el4.setAttribute('x-data', 'map()');
@@ -1345,7 +1346,7 @@ test('an Aims deep link opens Docs/Purpose and loads its existing sources', asyn
   await tick(3);
   const d4 = Alpine.$data(el4);
   assert.equal(d4.mapTab, 'aims', 'the route key remains valid');
-  assert.equal(d4.displayTab, 'docs', 'Docs stays selected while Purpose is open');
+  assert.equal(d4.displayTab, 'overview', 'Overview stays selected while Purpose is open');
   assert.equal(d4.subviews.find(s => s.k === 'aims')?.n, 'Purpose');
   assert.equal(d4.aims?.mission, JSON.parse(aimsJson).mission);
   assert.equal(d4.aims?.goals.length, window.Csv.rows(aimsGoalsCsv).length);
@@ -1625,16 +1626,17 @@ test('Skills renders the library, and the plugin carries every row of it', async
 
 test('the Skills search matches the trigger text, not only the slug', async () => {
   await data.loadSkillsReg();
-  const all = data.skillRows.length;
+  const yours = () => data.skillShown.filter(r => r.set === 'yours');
+  const all = yours().length;
   assert.equal(all, data.skillsReg.length, 'an empty query filters nothing');
 
   // A word that appears in a description and in no slug: the whole reason the
   // description is held in the manifest rather than fetched per skill.
   data.skillQ = 'spreadsheet';
-  const hits = data.skillRows;
+  const hits = yours();
   data.skillQ = '';
   assert.ok(hits.length > 0 && hits.length < all, 'a body word narrows the list');
-  assert.ok(hits.every(s => (s.name + ' ' + s.description).toLowerCase().includes('spreadsheet')));
+  assert.ok(hits.every(s => s.text.toLowerCase().includes('spreadsheet')));
 });
 
 test('every field the Registries markup reads exists on a registry row', async () => {

@@ -30,6 +30,7 @@ the link-dense text twin of the visual index above.
 | `doc-growth` | Doc Growth | [view](https://mehrlander.github.io/web-tools/pages/doc-growth.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/doc-growth.html) |
 | `entities` | Entities | [view](https://mehrlander.github.io/web-tools/pages/entities.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/entities.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
+| `idea-board` | Idea board | [view](https://mehrlander.github.io/web-tools/pages/idea-board.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/idea-board.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |

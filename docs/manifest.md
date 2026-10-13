@@ -218,6 +218,24 @@ excludes declared research, plus folders named `research` or `probes`, from
 the cross-repository Markdown listing. The crawl remains an inventory of
 Markdown bytes; classification belongs to the view, not the file extension.
 
+## Stores
+
+`stores` declares a repository's collections of entries other than its CSV
+registries, each with a shape and a provenance
+([registries.md](registries.md#registries-and-streams)). Each repository declares
+its own, so this public hub names no private layout. `writers` are keys in the
+[writers registry](writers.csv).
+
+```json
+"stores": [
+  { "path": "notes/notes.jsonl", "shape": "stream", "provenance": "authored",
+    "key": "id", "time": "at", "writers": ["session-web", "session-local", "app-tap"] }
+]
+```
+
+The single-path keys (`notes`, `sessions`, `captures`, `inbox`) stay: they tell a
+tool where to write, and a store at the same path says what the collection is.
+
 ## One membership list
 
 A repo is in the estate when its own `.web-tools.json` says `estate: true`. That

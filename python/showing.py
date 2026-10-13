@@ -285,6 +285,38 @@ def consumers():
     return out, prebuilt, tagged
 
 
+REGISTERS = re.compile(r"Alpine\.data\(\s*['\"]([\w$]+)['\"]")
+
+
+def mounted(lib_paths, pages):
+    """The pages that mount, by name, a component a changed lib file registers.
+
+    A page importing the pre-build carries every component and draws few, which
+    is why those are reported as carried. One that names the component where a
+    mount happens, `x-data="sessionBrief(…)"` in markup or set from its own
+    script, draws it. pages/session.html is the case that prompted this
+    (2026-10-12): it mounts sessionBrief from the pre-build, unframed, while the
+    app mounts it framed and hides part of it, and the app was the only link
+    offered (docs/SNAGS.md, showing-picks-the-framed-view)."""
+    names = set()
+    for p in lib_paths:
+        try:
+            names |= set(REGISTERS.findall((ROOT / p).read_text(errors="ignore")))
+        except OSError:
+            pass
+    if not names:
+        return set()
+    call = re.compile(r"\b(?:" + "|".join(map(re.escape, sorted(names))) + r")\(")
+    out = set()
+    for page in pages:
+        try:
+            if call.search((ROOT / page).read_text(errors="ignore")):
+                out.add(page)
+        except OSError:
+            pass
+    return out
+
+
 def routes_for(paths):
     """The app routes a changed file carries, from docs/app-routes.csv. The app
     is one page, so this does not change WHICH link to write; it says which view
@@ -530,6 +562,8 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
         for page in sorted(direct):
             if page != "app/index.html" or not keys:
                 subjects.append((page, None, "gh.load"))
+        for page in sorted(mounted(b["lib"], prebuilt) - direct - {s3[0] for s3 in subjects}):
+            subjects.append((page, None, "mounts"))
         carried = sorted(set(prebuilt) - direct - {s[0] for s in subjects})
         by_tag = sorted({pg for p in b["lib"] for pg in tagged.get(p, set())})
         if not subjects and by_tag:
