@@ -25,7 +25,9 @@ const project = 'projects/wps', repo = 'fixture/outpost', revision = 'a'.repeat(
 const blob = text => createHash('sha1').update('blob ' + Buffer.byteLength(text) + '\0').update(text).digest('hex');
 const files = {
   [project + '/data/outpost.json']: JSON.stringify({ root: 'Documents\\WindowsPowerShell', observations: project + '/data/observations.csv',
+    unit_observations: project + '/data/unit-observations.json',
     correspondence: [{ repo: 'app/Modules/', area: 'Modules', installs: 'Modules/' }] }),
+  [project + '/data/unit-observations.json']: '{"schema":1,"observations":[]}',
   [project + '/app/Modules/Fixture/A.psm1']: 'function Get-Message {\r\n    param([string]$Name)\r\n    "Hello, $Name"\r\n}\r\n',
   [project + '/app/Modules/Fixture/B.psm1']: 'function Get-Total {\n    param([int[]]$Values)\n    ($Values | Measure-Object -Sum).Sum\n}\n',
   [project + '/app/Modules/Fixture/Form.xaml']: '<Window xmlns="x">\n  <Grid/>\n</Window>\n',
@@ -43,7 +45,7 @@ const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entrie
 // repo.js registers Alpine.data('repo'), as the app does; that name shadows the
 // view's repo inside the pane's x-data expression, which is how the 2026-09-25
 // break reached the app while this check stayed green.
-const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
+const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/powershell-units.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>PowerShell outpost source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -103,12 +105,13 @@ const display = text => text.replace(/\r\n?|\n/g, '\n');
 
 // One page per scenario. withoutEsm aborts every esm.sh request, which is
 // how the kit fails to load in the field.
-const openPage = async ({ width, height, withoutEsm = false }) => {
+const openPage = async ({ width, height, withoutEsm = false, withoutParser = false }) => {
   const context = await browser.newContext({ viewport: { width, height } });
   await context.route('**/*', async route => {
     const url = route.request().url();
     if (url.startsWith(origin + '/')) return route.continue();
     if (withoutEsm && url.startsWith('https://esm.sh/')) return route.abort();
+    if (withoutParser && /\/(web-tree-sitter|tree-sitter-powershell)@/.test(url)) return route.abort();
     const resolved = resolveCdn(url, repoRoot);
     if (resolved.kind === 'fulfill') return route.fulfill({ status: 200, contentType: resolved.contentType, body: resolved.body });
     blocked.push(url); return route.abort();
@@ -290,6 +293,28 @@ try {
   });
   await phone.context.close();
 
+  for (const width of [1500, 390]) {
+    const selected = await openPage({ width, height: 1000 });
+    await check('selecting a function preserves local text and fits at ' + width + 'px', async () => {
+      await selected.select(C); await selected.settled();
+      const local = oldC + 'function Local-Only { "keep me" }\n';
+      await selected.page.evaluate(async text => { const v = Alpine.$data(document.querySelector('#mount')); await v.takeCopy(v.target(), text, 'C.psm1', 'paste'); }, local);
+      await selected.page.waitForFunction(() => { const v = Alpine.$data(document.querySelector('#mount')); return v.unitReview && !v.unitBusy; });
+      await selected.page.getByLabel('Select Get-Count', { exact: true }).check();
+      await selected.page.getByRole('button', { name: 'Preview selected update', exact: true }).click();
+      await selected.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).unitPrepared);
+      const text = await selected.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).unitPrepared.text);
+      assert.ok(text.includes('param([int]$Step = 2)'));
+      assert.ok(text.includes('function Local-Only { "keep me" }'));
+      const overflow = await selected.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      assert.ok(overflow <= 0, 'no horizontal page scroll, got ' + overflow);
+      await selected.page.locator('[data-unit-review]').scrollIntoViewIfNeeded();
+      if (process.env.SHOTS) await selected.page.screenshot({ path: path.join(process.env.SHOTS, 'selective-' + width + '.png'), fullPage: true });
+      assert.equal(await selected.writes(), 0);
+    });
+    await selected.context.close();
+  }
+
   const offline = await openPage({ width: 1500, height: 1000, withoutEsm: true });
   await check('without esm.sh the pane falls back to a <pre> of the text', async () => {
     await offline.select(B); await offline.settled();
@@ -301,6 +326,16 @@ try {
     assert.equal(await offline.writes(), 0);
   });
   await offline.context.close();
+
+  const noParser = await openPage({ width: 1000, height: 900, withoutParser: true });
+  await check('parser load failure leaves source review available and selection disabled', async () => {
+    await noParser.select(C); await noParser.settled();
+    await noParser.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).unitError.includes('could not load'));
+    assert.equal(await noParser.page.locator('[data-source-diff]').isVisible(), true);
+    assert.equal(await noParser.page.getByRole('button', { name: 'Preview selected update', exact: true }).isDisabled(), true);
+    assert.equal(await noParser.writes(), 0);
+  });
+  await noParser.context.close();
 
   await check('no browser errors and no unresolved CDN requests', async () => {
     assert.deepEqual(browserErrors, []);
