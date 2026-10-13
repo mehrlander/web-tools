@@ -183,7 +183,7 @@ The tracker's mechanics live only in `docs/TRACKER.md`: the task file schema, th
     <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>SourcePeek.install()                             // one delegated listener, once per page
 const a = SourcePeek.addr('me/repo', 'main', 'docs/x.md')   // 'me/repo@main:docs/x.md'
 SourcePeek.seed(a, text)                         // bytes in the cache, so no fetch
-SourcePeek.body('docs/x.md', text)               // { kind, text, note, truncated }
+SourcePeek.body('docs/x.md', text)               // { kind, text, fields, note, truncated }
 await SourcePeek.read(a)                         // { text } or { err }, fetched once</code></pre>
   </section>
 
