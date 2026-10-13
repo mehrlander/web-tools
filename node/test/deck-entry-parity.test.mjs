@@ -104,6 +104,16 @@ const DOORS = [
   { what: 'Map / Patterns', file: 'lib/alpineComponents/map.js',
     anchor: 'openPatternDeck(g.units, 0, g.name)', noun: 'unit',
     count: "plural(g.units.length, 'unit')", pending: false, tone: 'ghost' },
+  // The eleventh and twelfth, 2026-10-13: This browser's Stored here tab. One
+  // door over the localStorage list, counted in keys, and one over the store
+  // open in the detail, counted in records; ghost, since the list and its
+  // detail are the subject and the deck is one way of reading them.
+  { what: 'This browser / localStorage', file: 'lib/alpineComponents/here-view.js',
+    anchor: 'openLs(0)', noun: 'key', count: "plural(lsRows.length, 'key')",
+    pending: false, tone: 'ghost' },
+  { what: 'This browser / store', file: 'lib/alpineComponents/here-view.js',
+    anchor: 'openStore(selStore)', noun: 'record', count: "plural(selStore ? selStore.count : 0, 'record')",
+    pending: false, tone: 'ghost' },
 ];
 
 const src = (d) => readFileSync(path.join(repoRoot, d.file), 'utf8');

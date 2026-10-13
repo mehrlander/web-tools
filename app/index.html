@@ -2576,6 +2576,8 @@ function app(){ return {
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   hereSeen: false,        // mount the This browser view lazily, on first visit
   hereNext: '',           // the address This browser returns to (?next=), a query or fragment of this page
+  hereTab: 'token',       // This browser's tab: 'token' | 'stored' (&tab=)
+  hereItem: '',           // the stored item open in its detail (&item=): ls:<key> | idb:<database>/<store>
   authFail: null,         // the gh-auth failure record that sent the reader to This browser, if one did
   _booted: false,         // boot routing has finished; an earlier auth failure waits for it (see init)
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
@@ -6207,8 +6209,12 @@ function app(){ return {
     { key: 'public',   open(){ this.goPublicBrowse(); } },
     // `next` is where This browser sends the reader back to, so a reload of
     // the view keeps its way out.
-    { key: 'here', open(u){ this.goHere(u.next || ''); },
-      stamp(p){ if (this.hereNext) p.set('next', this.hereNext); } },
+    { key: 'here', open(u){ this.goHere(u.next || '', undefined, u.tab || 'token', u.item); },
+      stamp(p){
+        if (this.hereNext) p.set('next', this.hereNext);
+        if (this.hereTab !== 'token') p.set('tab', this.hereTab);
+        if (this.hereTab === 'stored' && this.hereItem) p.set('item', this.hereItem);
+      } },
     // Lists was addressed ?view=todo, and ?view=jots, until 2026-10-02. A row
     // carries one alias, so `todo` is the alias here and `jots` keeps a row of
     // its own; both open Lists and stamp ?view=lists.
@@ -8186,12 +8192,16 @@ function app(){ return {
   // the Save button's navigation on this origin and this path.
   // A plain arrival clears the failure record, so coming back later by the
   // account panel's link does not show an old failure as the reason.
-  goHere(next, fail = null){
+  // `tab` and `item` come from an address; an arrival with neither opens the
+  // token tab, which is where a failure is explained.
+  goHere(next, fail = null, tab = '', item = ''){
     const arriving = this.view !== 'here';
     const own = arriving ? location.search + location.hash : '';
     const pick = next !== undefined && next !== '' ? next : own;
     this.hereNext = /^[?#]/.test(pick || '') && !/[?&]view=here(&|#|$)/.test(pick) ? pick : '';
     if (arriving) this.authFail = fail;
+    if (arriving || tab) this.hereTab = tab === 'stored' ? 'stored' : 'token';
+    if (arriving || tab) this.hereItem = this.hereTab === 'stored' ? (item || '') : '';
     this.hereSeen = true;
     this.view = 'here';
     this.syncUrl();
