@@ -189,8 +189,11 @@ try {
     for (const gone of ['Download GitHub text', 'Copy transfer script', 'Compare a file with this file'])
       assert.equal(await desk.page.getByLabel(gone, { exact: true }).count(), 0, gone + ' is gone');
     assert.equal(await desk.page.locator('textarea').count(), 0);
+    // The paste zone is the Your copy tab's; a drop anywhere on the column still lands.
+    await desk.page.locator('[data-detail-tabs] [data-tab=copy]').click();
     await desk.page.locator('[data-copy-zone]').click();
     assert.equal(await desk.page.evaluate(() => window.__shell.pasted), 1);
+    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
     await desk.page.evaluate(async () => {
       const target = document.querySelector('[data-source] .cm-content'), dt = new DataTransfer();
       dt.setData('text/plain', 'function Get-Message {}\n');
@@ -205,7 +208,7 @@ try {
     // stored-check flow.
     await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).baseline?.label === 'Supplied copy');
     await desk.page.locator('[data-copy-summary]').waitFor({ state: 'visible' });
-    assert.match(await desk.page.locator('[data-copy-summary]').innerText(), /differs from GitHub[\s\S]*Changed: Get-Message/);
+    assert.match(await desk.page.locator('[data-copy-summary]').innerText(), /differs from GitHub[\s\S]*Get-Message\s+Differs from GitHub/);
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'copy-summary-desktop.png'), fullPage: true });
     await desk.page.locator('[data-copy-summary] button', { hasText: 'Show line changes' }).click();
     await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
@@ -216,11 +219,18 @@ try {
     await desk.page.waitForFunction(() => !document.querySelector('[data-source-file]').classList.contains('ring-2'));
     assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-file]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
   });
-  await check('a file changed since it was recorded opens on Changes, and Code is one tap away', async () => {
+  await check('a file changed since it was recorded opens on Changes, a card per change, and Code is one tap away', async () => {
     await desk.select(C); await desk.settled();
-    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).sourceView === 'changes');
-    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).shownTab === 'changes');
+    const card = desk.page.locator('[data-change-strip] [data-unit]').first();
+    await card.waitFor({ state: 'visible' });
+    assert.match(await card.innerText(), /Get-Count[\s\S]*Changed · Function · line 1 · \+1 −1/);
+    const lines = await card.locator('[data-unit-diff] [data-changed]').allInnerTexts();
+    assert.deepEqual(lines.map(t => t.replace(/\s+/g, ' ').trim()), ['− $Step = 1', '+ param([int]$Step = 2)']);
     assert.equal(await desk.page.locator('[data-source] .cm-editor').isVisible(), false);
+    // Code holds the whole-file line diff, opened on the update.
+    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
+    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
     const rows = await desk.page.locator('[data-source-diff] [role=row]').evaluateAll(rs => rs
       .map(r => r.querySelector('[aria-label]').getAttribute('aria-label') + ' ' + r.querySelector('pre').textContent)
       .filter(t => !t.startsWith('Unchanged')));
@@ -259,7 +269,7 @@ try {
   await desk.context.close();
 
   const phone = await openPage({ width: 390, height: 844 });
-  await check('on a phone the list menu opens on screen, and the detail keeps its status menu above the collapsed code', async () => {
+  await check('on a phone the list menu opens on screen, and the detail keeps its status menu above the tabs', async () => {
     await phone.page.locator('[data-row]').first().locator('[data-status]').click();
     const listMenu = phone.page.locator('[data-row] [data-status-menu]').first();
     await listMenu.waitFor({ state: 'visible' });
@@ -278,12 +288,10 @@ try {
     assert.equal(await menu.getByRole('button', { name: 'Confirm installed…' }).isVisible(), true);
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
     await phone.page.keyboard.press('Escape');
-    assert.equal(await phone.page.locator('[data-source] .cm-editor').isVisible(), false);
-    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows while the code is collapsed');
-    assert.equal(await phone.page.locator('[data-copy-zone]').isVisible(), true, 'the paste zone shows while the code is collapsed');
-    const toggle = phone.page.locator('[data-source-toggle]');
-    assert.equal(await toggle.isVisible(), true);
-    await toggle.click();
+    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the Code tab');
+    await phone.page.locator('[data-detail-tabs] [data-tab=copy]').click();
+    assert.equal(await phone.page.locator('[data-copy-zone]').isVisible(), true, 'the paste zone is one tab over');
+    await phone.page.locator('[data-detail-tabs] [data-tab=code]').click();
     await phone.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
     assert.equal((await phone.editor()).text, display(files[A]));
     const overflow = await phone.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -300,8 +308,11 @@ try {
       const local = oldC + 'function Local-Only { "keep me" }\n';
       await selected.page.evaluate(async text => { const v = Alpine.$data(document.querySelector('#mount')); await v.takeCopy(v.target(), text, 'C.psm1', 'paste'); }, local);
       await selected.page.waitForFunction(() => { const v = Alpine.$data(document.querySelector('#mount')); return v.unitReview && !v.unitBusy; });
+      assert.equal(await selected.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).shownTab), 'copy', 'a copy opens on what it holds');
+      assert.match(await selected.page.locator('[data-copy-summary]').innerText(), /is the earlier version: none of GitHub's 1 change is in it|has 0 of GitHub's 1 change/);
+      await selected.page.locator('[data-detail-tabs] [data-tab=changes]').click();
       await selected.page.getByLabel('Select Get-Count', { exact: true }).check();
-      await selected.page.getByRole('button', { name: 'Preview selected update', exact: true }).click();
+      await selected.page.getByRole('button', { name: 'Preview update', exact: true }).click();
       await selected.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).unitPrepared);
       const text = await selected.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).unitPrepared.text);
       assert.ok(text.includes('param([int]$Step = 2)'));
@@ -331,8 +342,11 @@ try {
   await check('parser load failure leaves source review available and selection disabled', async () => {
     await noParser.select(C); await noParser.settled();
     await noParser.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).unitError.includes('could not load'));
-    assert.equal(await noParser.page.locator('[data-source-diff]').isVisible(), true);
-    assert.equal(await noParser.page.getByRole('button', { name: 'Preview selected update', exact: true }).isDisabled(), true);
+    assert.equal(await noParser.page.locator('[data-source-diff]').isVisible(), true, 'the whole-file line diff still shows on Code');
+    await noParser.page.locator('[data-detail-tabs] [data-tab=changes]').click();
+    assert.match(await noParser.page.locator('[data-unit-review]').innerText(), /could not load/);
+    assert.equal(await noParser.page.getByRole('button', { name: 'Preview update', exact: true }).count(), 0, 'no cards, so nothing to choose or preview');
+    assert.equal(await noParser.page.locator('[data-unit-review] input[type=checkbox]:visible').count(), 0);
     assert.equal(await noParser.writes(), 0);
   });
   await noParser.context.close();
