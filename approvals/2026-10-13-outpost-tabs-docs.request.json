@@ -1,0 +1,57 @@
+{
+  "manifest": {
+    "name": "The Project view reference for the outpost's tabs and paste matching",
+    "created_at": "2026-10-13T17:18:31Z",
+    "schema": {
+      "name": "surface",
+      "version": 2
+    },
+    "profile": {
+      "name": "approval",
+      "version": 1
+    }
+  },
+  "context": {
+    "id": "2026-10-13-outpost-tabs-docs",
+    "kind": "documentation",
+    "reply_to": "mehrlander/web-tools:approvals",
+    "repo": "mehrlander/web-tools",
+    "base": "96f19ed2ce4ee7050abb337383106b61d5833292",
+    "branch": "claude/quirky-gauss-8ibke3",
+    "occasion": "new-capability",
+    "session": "https://claude.ai/code/session_01LQb4J9jLWBXjMayJo1SLEq",
+    "rationale": "The outpost view now opens a selected file in three tabs (Changes, Your copy, Code), matches pasted code that names no file to its file, and trusts a block the grammar cannot fully read only when a lexical scan confirms its edges. The code is committed on this branch. This is the one governing document that states the view, held by the consent gate until you decide: one paragraph naming the tabs and the matcher, one bullet for the edge rule, and two kits added to the code list. Approve, approve with edits, or return it."
+  },
+  "items": [
+    {
+      "id": "p1",
+      "title": "docs/views/project.md",
+      "type": "file",
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools"
+        },
+        "path": "docs/views/project.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -36,6 +36,17 @@ confirms the placement on the work computer. Comparing and copying never write\n a row. State icons come from `lib/kits/sync-status.js`,\n shared with the shortcut views.\n \n+A selected file's working area is three tabs. **Changes** shows one card per\n+changed block (`PowerShellUnits.compare`), stepped by swipe, arrow key or\n+counter and opened full screen in the house deck; with a supplied work copy\n+the cards become a selective update. **Your copy** reads a supplied copy block\n+by block against GitHub and the version the work computer last held\n+(`PowerShellUnits.versions`). **Code** is the file component, with its own Work\n+copy line diff. Above the list, **Paste code to find its file** matches pasted\n+PowerShell that names no file to the workspace's files\n+([`powershell-match.js`](../../lib/kits/powershell-match.js)), and the app sends\n+a page-wide paste there when no file is open.\n+\n The rest of what the code keeps:\n \n - Source reads verify each file's Git blob bytes, and a draft keeps the file's\n@@ -49,8 +60,13 @@ The rest of what the code keeps:\n   rule; change both.\n - The Problems list is lexical heuristics; an empty one proves nothing about\n   Windows PowerShell 5.1.\n+- A block the grammar cannot fully read is choosable only when\n+  `PowerShellUnits.edges` confirms both its edges sit at top level; the\n+  grammar's own boundary is not trusted there.\n \n Code: `lib/alpineComponents/powershell-outpost-view.js` (the view),\n+`lib/kits/powershell-units.js` (blocks, edges, versions),\n+`lib/kits/powershell-match.js` (which file a paste belongs to),\n `lib/alpineComponents/powershell-file.js` (one file, in the view and its swipe\n deck), `lib/kits/powershell-outpost.js` (states, ledger),\n `lib/kits/powershell-workspace.js` (reads, drafts, publishing). `npm test`\n"
+      },
+      "commentary": "The PowerShell outpost view section gains what a reader needs to find the new parts: the three tabs and which kit function each rests on, the paste matcher and the app's page-wide paste routing to it, and the rule that a block the grammar cannot read is choosable only when PowerShellUnits.edges confirms both edges. Nothing it said before is removed.",
+      "related": [
+        {
+          "item": "lib/alpineComponents/powershell-outpost-view.js",
+          "relation": "the view it states"
+        },
+        {
+          "item": "lib/kits/powershell-units.js",
+          "relation": "blocks, edges and versions"
+        },
+        {
+          "item": "lib/kits/powershell-match.js",
+          "relation": "the matcher"
+        }
+      ]
+    }
+  ]
+}
