@@ -269,7 +269,7 @@ test('plugin-internal scripts cross-reference their parent skill, not Automation
     }
   } finally {
     data.setTab = realSetTab;
-    data.skillSet = 'yours';
+    data.skillSet = 'all';
     data.skillQ = '';
   }
 
@@ -1626,16 +1626,17 @@ test('Skills renders the library, and the plugin carries every row of it', async
 
 test('the Skills search matches the trigger text, not only the slug', async () => {
   await data.loadSkillsReg();
-  const all = data.yoursRows.length;
+  const yours = () => data.skillShown.filter(r => r.set === 'yours');
+  const all = yours().length;
   assert.equal(all, data.skillsReg.length, 'an empty query filters nothing');
 
   // A word that appears in a description and in no slug: the whole reason the
   // description is held in the manifest rather than fetched per skill.
   data.skillQ = 'spreadsheet';
-  const hits = data.yoursRows;
+  const hits = yours();
   data.skillQ = '';
   assert.ok(hits.length > 0 && hits.length < all, 'a body word narrows the list');
-  assert.ok(hits.every(s => (s.name + ' ' + s.description).toLowerCase().includes('spreadsheet')));
+  assert.ok(hits.every(s => s.text.toLowerCase().includes('spreadsheet')));
 });
 
 test('every field the Registries markup reads exists on a registry row', async () => {
