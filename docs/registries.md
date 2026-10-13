@@ -1,8 +1,10 @@
 # Registries
 
-A **registry** is a committed CSV that records properties of a defined set of
-targets. A target is a file, a page, a test, a route, a field name, or anything
-else identified by a stable key.
+A **registry** records properties of a defined set of targets, one entry per
+target, found by a stable key and edited when the target changes. A target is a
+file, a page, a test, a route, a field name, or anything else a key identifies.
+This document governs the registries kept as committed CSVs; the other shape a
+collection takes is in [Registries and streams](#registries-and-streams).
 
 This document says when to create a registry, how registries divide authority,
 and what the suite checks. What each field means is not here. It is in
@@ -133,6 +135,32 @@ creating one, ask where the assertions already live:
 
 The question is whether the file would become the authoritative source for
 assertions that have none, not whether a CSV would be convenient to read.
+
+## Registries and streams
+
+Each collection of entries is one of two shapes, declared by the repository
+that holds it:
+
+| | An entry stands for | It changes by |
+| --- | --- | --- |
+| **Registry** | a thing, found by its key | being edited when the thing changes |
+| **Stream** | an event, at the time it happened | never; a later entry corrects it |
+
+A stream entry carries its **event time**: when the event happened, not when the
+entry was written. A date alone does not make a stream entry. A task's `opened`
+and `closed` mark a thing that is edited as it moves, so a task is a registry
+entry, and its progress log is a stream inside it.
+
+A **snapshot** is a stream entry whose content is a registry as it stood at one
+time, such as a dated reading of the checks. A registry's snapshots, like its
+git history, are the stream of its changes.
+
+**Provenance** is independent of shape: `authored`, `derived` (rebuilt if lost)
+or `captured` (gone if lost).
+
+A repository declares its other collections in its manifest's
+[`stores`](manifest.md#stores) block; the CSV registries here are not declared
+twice. What a stream must keep (ids, times, corrections) is the next document.
 
 ## Adding or changing a registry
 

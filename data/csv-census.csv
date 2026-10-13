@@ -35,7 +35,7 @@ docs/docs.csv,123,7,31149,"[""path"",""subject"",""status"",""reach"",""words"",
 docs/harness.csv,334,8,63310,"[""path"",""role"",""layer"",""lines"",""invocation"",""emits"",""named"",""tested""]"
 docs/hook-legs.csv,19,8,3128,"[""order"",""leg"",""gloss"",""watches"",""runs"",""stages"",""mode"",""in_repair""]"
 docs/kits.csv,108,8,14062,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
-docs/manifest-fields.csv,90,6,22100,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
+docs/manifest-fields.csv,97,6,22688,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
 docs/map-tabs.csv,29,4,18602,"[""tab"",""gloss"",""refs"",""narrative""]"
 docs/outposts.csv,4,12,2180,"[""id"",""title"",""gloss"",""declared"",""observed"",""reports"",""cadence"",""check"",""record"",""outpost_protocol"",""upkeep"",""doc""]"
 docs/owners.csv,12,4,1893,"[""subject"",""kind"",""applies_to"",""authoritative""]"

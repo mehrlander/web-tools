@@ -37,8 +37,8 @@ to see the vital choice and commit.
 
 ## Process
 
-`/tend` tends the four streams below. `/tend <stream>` tends one: any named
-work stream, such as `snags`, a project folder, or a pull request.
+`/tend` tends the four subjects below. `/tend <subject>` tends one: any named
+subject, such as `snags`, a project folder, or a pull request.
 
 Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`docs/views/tending.md`](../../docs/views/tending.md) states the
@@ -50,7 +50,7 @@ record.
    (`status: "open"`, a new `next`). An update replaces each field it carries,
    so send whole lists.
 2. **Select.** `findings.py candidates` lists what mechanical signals raise and
-   marks those a holding finding covers. Each stream below adds its own. A
+   marks those a holding finding covers. Each subject below adds its own. A
    signal is a reason to investigate, never a finding.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
@@ -62,7 +62,7 @@ record.
    its subjects; the Waiting view shows it.
    Witnesses include what lies outside the subjects, such as main's copy of a
    file the work was compared against.
-5. **Act** on each stream's *Act* tier. Record a step done on the finding it
+5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
 6. **Reply** with what the pass did and the user calls it filed.
