@@ -9,17 +9,16 @@ Documentation guides a living system. Its value is direction and insight for com
 
 Deep attention is vital to find the critical objective of any edit, and how best to achieve it.  Revisions must obsessively look for the minimal change in exactly the right place to highlight new direction and insight while keeping the whole recognizable, navigable, and maintainable.
 
-## Editing Mechanics
+For a basic test: ask if content directly impacts a future assistant's decisions. If more likely the assistant behavior would not change, no 
 
-- **Edit at the smallest useful unit**: Read the entire file and adjacent files before changing a part. Prefer editing an existing sentence, parameter entry, or bullet to adding a section.
-- **Integrate explanations**: Add a section only when the material introduces a distinct concern that needs sustained treatment or a stable link target.
-- **Match the document**: Keep the surrounding section’s level of detail and heading structure.
+## General Principles
 
-## Rules
-
-- **Earn each sentence**: Name the decision a sentence changes for the next assistant. If there is none, cut it.
+- **Consider the context**: Read the entire file and adjacent files before changing a part, to ensure that any change is aligned and exactly where it should be.
+- **Integrate explanations**:  Prefer editing an existing sentence, parameter entry, or bullet to adding a section.
+- **Earn each sentence**: If material can be removed and it is unlikely to affect future assistant behavior, it likely should be.
 - **State current reality**: Omit debugging narratives, discovery steps, and authoring commentary.
 - **Retain actionable rationale**: Include reasons only when they directly clarify intent, and then as minimally as possible.
 - **Format non-obvious restrictions**: State the trigger condition, failure symptom, and required mitigation.
 - **Be concrete**: Name exact files, commands, flags, components, and actors.
+- **Hedge**: Use careful, precise language. "Avoid" is often better than 
 - **Verify continuity**: Confirm that removals or edits do not break prerequisites, cross-references, or transitions.
