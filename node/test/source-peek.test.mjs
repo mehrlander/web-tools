@@ -124,15 +124,36 @@ test('the body pulls the three decisions together', () => {
   assert.equal(long.note, `first ${SP.LINES} of 80 lines`);
 });
 
-test('markdown frontmatter is fenced, not left to render as prose', () => {
+test('markdown frontmatter comes back as fields, not as prose or fenced YAML', () => {
   // Every skill and every tracker task in this estate opens with frontmatter,
   // and marked renders a bare `---` block as a paragraph, so the peek used to
   // open on "id: … status: …" run together as though it were the document.
+  // Fencing fixed that and clipped a skill's description one line per row, so
+  // the peek now shows the fields as a header that wraps.
   const md = '---\nid: x-123\nstatus: backlog\n---\n# Title\n\nProse.';
   const out = SP.body('tracker/tasks/x.md', md);
-  assert.equal(out.text.split('\n').slice(0, 4).join('\n'),
-               '```\nid: x-123\nstatus: backlog\n```');
-  assert.match(out.text, /# Title/);
+  assert.deepEqual(out.fields, [{ key: 'id', value: 'x-123' }, { key: 'status', value: 'backlog' }]);
+  assert.match(out.text, /^# Title/, 'the excerpt starts at the document');
+  assert.doesNotMatch(out.text, /```/);
+  assert.deepEqual(SP.body('docs/x.md', '# Title').fields, [], 'no frontmatter, no fields');
+  assert.deepEqual(SP.body('lib/x.js', 'const a = 1;').fields, [], 'and only markdown has any');
+});
+
+test('frontmatter with nothing to read shallowly stays fenced', () => {
+  // A list at the top level yields no fields, so the fence is the fallback.
+  const out = SP.body('docs/x.md', '---\n- a\n- b\n---\n# Title');
+  assert.deepEqual(out.fields, []);
+  assert.equal(out.text.split('\n').slice(0, 4).join('\n'), '```\n- a\n- b\n```');
+});
+
+test('metaHtml escapes its fields and clamps only when asked', () => {
+  const long = 'x'.repeat(300);
+  const fields = [{ key: 'name', value: '<b>tag</b>' }, { key: 'description', value: long }];
+  const plain = SP.metaHtml(fields);
+  assert.match(plain, /&lt;b&gt;tag&lt;\/b&gt;/, 'a value is text, never markup');
+  assert.doesNotMatch(plain, /line-clamp/, 'the peek shows a description whole');
+  assert.match(SP.metaHtml(fields, { clamp: 220 }), /line-clamp-4/, 'the file review clamps a long one');
+  assert.equal(SP.metaHtml([]), SP.metaHtml(), 'no fields is an empty list, not a throw');
 });
 
 test('only leading frontmatter is fenced', () => {

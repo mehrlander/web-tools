@@ -60,8 +60,14 @@ const harnessCsv = readFileSync(path.join(repoRoot, 'docs', 'harness.csv'), 'utf
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
 const propsDeclCsv = readFileSync(path.join(repoRoot, 'docs', 'properties.csv'), 'utf8');
 const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8');
+const archiveCsv = readFileSync(path.join(repoRoot, 'archive', 'skills', 'archive.csv'), 'utf8');
+const pagesCsv = readFileSync(path.join(repoRoot, 'pages', 'pages.csv'), 'utf8');
+const upstreamCsv = readFileSync(path.join(repoRoot, 'docs', 'upstream-skills.csv'), 'utf8');
 
 const asked = [];
+// The peek kit is not loaded in this harness; its address grammar is, as a
+// stand-in, so a card's peek can be asserted (kits/source-peek.js, addrOf).
+window.SourcePeek ??= { addr: (repo, ref, p) => repo + (ref ? '@' + ref : '') + ':' + p, seed() {} };
 window.TOKEN = 'test-token';
 window.__shell = { REGISTRY_REPO: 'mehrlander/web-tools-private', hasToken: () => true };
 window.GH = class {
@@ -75,6 +81,9 @@ window.GH = class {
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
     if (p === 'docs/vocabularies.csv') return { text: propsVocabCsv };
+    if (p === 'archive/skills/archive.csv') return { text: archiveCsv };
+    if (p === 'pages/pages.csv') return { text: pagesCsv };
+    if (p === 'docs/upstream-skills.csv') return { text: upstreamCsv };
     throw new Error('unexpected fetch: ' + p);
   }
 };
@@ -159,52 +168,107 @@ test('the estate skills half reads each repo\'s own declaration, and skips the h
   assert.equal(data.estateSkills[0].skills.find(s => s.name === 'tasks').origin, 'forked');
 });
 
-test('one repo is one repo', () => {
-  // The header read "11 across 1 repos" for as long as home was the only repo
-  // declaring a skills key, which is the whole life of the estate half so far.
-  assert.equal(data.estateSkillTotals.repos, 1);
-  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8');
-  assert.match(src, /estateSkillTotals\.repos === 1 \? ' repo' : ' repos'/,
-    'the count is pluralized where it renders');
+test('an estate skill is a card like any other: its repo a badge, its SKILL.md the peek', () => {
+  const est = data.skillRowsAll.filter(r => r.set === 'estate');
+  assert.deepEqual([...est.map(r => r.name)], ['blog', 'drain', 'tasks']);
+  const tasks = est.find(r => r.name === 'tasks');
+  assert.deepEqual([...tasks.badges.map(b => b.label)], ['home', 'forked']);
+  assert.match(tasks.peek, /^mehrlander\/home(@[^:]+)?:\.claude\/skills\/tasks\/SKILL\.md$/);
+  assert.equal(tasks.group, '', 'the estate declares no subject yet, so it sits under Unsorted');
 });
 
-test('the three sets are one axis, and the search runs across all of them', async () => {
-  await data.loadSkillsReg();
+test('the three sets are one population, and All counts each skill once', async () => {
+  await Promise.all([data.loadSkillsReg(), data.loadUpstreams(), data.loadSkillExtras()]);
   const counts = Object.fromEntries(data.skillSetCounts.map(c => [c.key, c.n]));
-  assert.ok(counts.plugin > 10, 'the plugin set reads the Portable manifest, already in hand');
-  assert.ok(counts.library > 20, 'the library reads skills/manifest.csv');
+  assert.deepEqual(Object.keys(counts), ['all', 'yours', 'estate', 'outside']);
+  assert.equal(counts.yours, data.skillsReg.length,
+    'the plugin index joins the roster; it does not add a second row per skill');
+  assert.ok(data.yoursAll.every(r => r.plugin), 'every roster skill finds its plugin row');
+  assert.equal(data.skillCommand(data.yoursAll.find(r => r.name === 'tasks')), '/portable:tasks');
   assert.equal(counts.estate, 3, 'the estate is the aggregate above');
+  const outside = window.Csv.rows(upstreamCsv).filter(r => !['adapted', 'vendored'].includes(r.status));
+  assert.equal(counts.outside, outside.length, 'a copy that ships in skills/ is one of Yours, not a third party');
+  assert.equal(counts.all, counts.yours + counts.estate + counts.outside, 'no skill is counted twice');
 
-  assert.equal(data.skillTally.shown, counts.plugin + counts.library + counts.estate,
-    'nothing selected means every set is in view');
+  assert.equal(data.skillSet, 'all', 'the tab opens on All');
+  assert.equal(data.skillTally.shown, counts.all);
   data.skillSet = 'estate';
   assert.equal(data.skillTally.shown, counts.estate, 'a selection narrows the tally with it');
-  assert.equal(data.showSkillSet('library'), false);
-  assert.equal(data.skillManifestPath, 'skills/manifest.csv');
-  data.skillSet = 'plugin';
-  assert.equal(data.skillManifestPath, 'docs/portable.csv',
-    'the registry chip follows the one set backed by a different file');
-  data.skillSet = '';
+  assert.equal(data.showSkillSet('yours'), false);
+  data.skillSet = 'all';
 });
 
 test('a query re-weights every set, so a miss in one is visibly not a gap', () => {
   data.skillQ = 'tasks';
   const counts = Object.fromEntries(data.skillSetCounts.map(c => [c.key, c.n]));
-  assert.ok(counts.plugin >= 1, 'the plugin ships a tasks skill');
+  assert.ok(counts.yours >= 1, 'the plugin ships a tasks skill');
   assert.equal(counts.estate, 1, "home's forked copy answers too");
+  assert.equal(counts.all, counts.yours + counts.estate + counts.outside);
   data.skillQ = 'zzzz-no-such-skill';
-  assert.equal(data.skillTally.shown, 0, 'the empty state is one number, over the sets in view');
+  assert.equal(data.skillTally.shown, 0, 'the empty state is one number, over the set in view');
   data.skillQ = '';
 });
 
+test('the subject axis reaches every set that declares one, and each axis counts under the other', async () => {
+  await data.loadSkillExtras();
+  data.skillGroup = 'documents';
+  try {
+    const shown = data.skillShown;
+    assert.ok(shown.length > 0 && shown.every(r => r.group === 'documents'));
+    assert.ok(shown.some(r => r.set === 'outside'), 'a third party with a subject answers the chip too');
+    const counts = Object.fromEntries(data.skillSetCounts.map(c => [c.key, c.n]));
+    assert.equal(counts.all, shown.length, 'the set strip counts under the subject chip');
+    assert.equal(counts.estate, 0, 'the estate has no subject yet, so documents finds none of it');
+    assert.equal(data.skillTally.shown, shown.length);
+    assert.deepEqual([...data.retiredRows], [], 'a retired skill has no subject to match');
+  } finally { data.skillGroup = ''; }
+
+  data.skillGroup = '_none';
+  try {
+    assert.ok(data.skillShown.length && data.skillShown.every(r => r.set === 'estate'), 'Unsorted is what has no subject');
+  } finally { data.skillGroup = ''; }
+
+  data.skillSet = 'outside';
+  try {
+    const g = Object.fromEntries(data.skillGroupCounts.map(c => [c.key, c.n]));
+    assert.equal(g.documents, 1, 'the subject strip counts under the set');
+    assert.equal(data.skillGroupAll, data.skillShown.length);
+    assert.equal(g._none, undefined, 'Unsorted shows only while something in view lacks a subject');
+    assert.deepEqual([...data.retiredRows], [], 'Retired belongs to Yours');
+  } finally { data.skillSet = 'all'; }
+  assert.ok(data.retiredRows.some(r => r.name === 'safe-html-templating' && r.successor),
+    'the archive renders at the foot, with where its guidance went');
+});
+
+test('a dashed card is one no session loads', () => {
+  const by = Object.fromEntries(data.skillRowsAll.map(r => [r.name, r]));
+  assert.equal(by['tasks'].loaded, true);
+  assert.equal(by['anthropics/xlsx'].loaded, true, 'the host supplies a referenced skill');
+  assert.equal(by['obra/writing-skills'].loaded, false, 'held: kept under outside/, never shipped');
+  assert.equal(by['anthropic-cowork/schedule'].loaded, false, 'declined');
+  assert.match(by['obra/writing-skills'].peek, /outside\/obra\/writing-skills\/SKILL\.md$/, 'a held copy peeks our copy');
+  assert.match(by['anthropics/xlsx'].peek, /^anthropics\/skills@[0-9a-f]+:skills\/xlsx\/SKILL\.md$/,
+    'a referenced skill peeks its upstream at the pin');
+});
+
+test('a skill demo comes from the pages catalog and opens as an app view', async () => {
+  await data.loadSkillExtras();
+  assert.ok(data.skillDemo('caveman'), 'the catalog lists skills/caveman/demo.html');
+  assert.equal(data.skillDemo('tasks'), '', 'no demo, no badge');
+  const q = new URLSearchParams(data.skillDemoHref('caveman').slice(1));
+  assert.equal(q.get('view'), 'app');
+  assert.equal(q.get('appPath'), 'skills/caveman/demo.html');
+});
+
 test('each set states its own rule, and the tab carries no paragraph doing it instead', () => {
-  for (const key of ['plugin', 'library', 'estate']) {
+  for (const key of data.skillSetOrder) {
     assert.ok(data.skillSetGloss(key).length > 40, key + ': the set says what it costs');
   }
-  assert.notEqual(data.skillSetGloss(''), data.skillSetGloss('plugin'));
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8');
   assert.ok(!src.includes('Two sets, one search'),
     'the explanatory paragraph is replaced by the control it was describing');
+  assert.ok(!src.includes("peek('archive/skills/README.md')"),
+    'the archive is rows on the tab, not a link to a README');
 });
 
 // ── The manifests behind both ────────────────────────────────────────────────
