@@ -7,9 +7,9 @@ description: Revise documentation so each edit serves its critical objective and
 
 Documentation guides a living system. Its value is direction and insight for completing tasks; its costs are attention and upkeep. Misfires can be costly and hard to discern.
 
-Deep attention is vital to find the critical objective of any edit, and how best to achieve it.  Revisions must obsessively look for the minimal change in exactly the right place to highlight new direction and insight while keeping the whole recognizable, navigable, and maintainable.
+Deep attention is vital to find the critical objective of any edit, and how best to achieve it while keeping the whole recognizable, navigable, and maintainable.
 
-For a basic test: ask if content directly impacts a future assistant's decisions. If more likely the assistant behavior would not change, no 
+Content should only be included where it changes behavior (the idea and the required setup). For a basic test: If we expect the assistant to succeed without it, leave it unsaid.
 
 ## General Principles
 
