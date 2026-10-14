@@ -65,7 +65,10 @@ document.addEventListener('alpine:init', () => {
   const params = () => new URLSearchParams(location.hash.slice(1));
   const param = k => params().get(k) || new URLSearchParams(location.search).get(k);
   const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;
-  const quote = s => `<span class="text-base-content/90">“${esc(s)}”</span>`;
+  // Inline code keeps its backticks in the data, where quotes are matched, and
+  // loses them on screen.
+  const plain = s => String(s ?? '').replace(/`/g, '');
+  const quote = s => `<span class="text-base-content/90">“${esc(plain(s))}”</span>`;
 
   // Everything a card shows that the file does not store. A mention marked
   // anaphor or ellipsis resolves to its entity's first named mention unless it
@@ -73,6 +76,9 @@ document.addEventListener('alpine:init', () => {
   // mention and is not carried in.
   function index(R) {
     const S = R.sentences, by = {}, firstNamed = {}, firstAny = {};
+    // Sentence numbers become keys and selectors, so a reading that carries a
+    // non-integer one is renumbered by position rather than trusted.
+    S.forEach((s, i) => { if (!Number.isInteger(s.n)) s.n = i + 1; });
     for (const s of S) {
       by[s.n] = s;
       s.mentions.forEach((m, i) => {
@@ -109,7 +115,8 @@ document.addEventListener('alpine:init', () => {
         const item = { ...l, from: s.n, keys: [h, t], ok: !!ok };
         inn[s.n].push(item); if (fwd[l.to]) fwd[l.to].push(item);
       });
-      s.atoms.forEach(a => add(s.n, `a${s.n}${a.id}`, a.quote, { kind: 'a' }));
+      s.atoms.forEach((a, k) => add(s.n, `a${s.n}-${k}`, a.quote, { kind: 'a' }));
+      for (const c of s.text.matchAll(/`[^`]+`/g)) rng[s.n].push({ key: '', a: c.index, b: c.index + c[0].length, kind: 'code' });
     }
     const fresh = {};
     for (const [e, n] of Object.entries(firstAny)) (fresh[n] ||= []).push(e);
@@ -223,10 +230,11 @@ document.addEventListener('alpine:init', () => {
         return ` <span data-k="${p.insert.key}" class="text-base-content/50 underline decoration-dotted underline-offset-4 decoration-base-content/40 data-[on]:bg-primary/30 data-[ev]:bg-base-300"
           data-title-tip-lead="${esc(e.label || p.insert.e)}" data-title-tip="${esc(e.gloss || '')}">[${esc(p.insert.text)}]</span>`;
       }
-      const keys = p.on.map(r => r.key).join(' ');
+      const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const m = p.on.find(r => r.kind === 'm' && r.m.form !== 'ellipsis');
       const cls = ['data-[on]:bg-primary/30 data-[ev]:bg-base-300'];
       if (p.on.some(r => conn.has(r.key))) cls.push('bg-primary/10', mode === 'dim' ? 'text-base-content' : '');
+      else if (p.on.some(r => r.kind === 'code')) cls.push('bg-base-200 rounded');
       let tip = '';
       if (m && mode !== 'dim') {
         cls.push('underline underline-offset-4', m.m.form === 'anaphor' ? 'decoration-dotted decoration-base-content/60' : 'decoration-base-content/30');
@@ -236,7 +244,8 @@ document.addEventListener('alpine:init', () => {
           tip = ` data-title-tip-lead="${esc(e.label || m.m.e)}" data-title-tip="${esc(m.m.note || e.gloss || '')}"`;
         }
       }
-      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}"${tip}>${esc(p.text)}</span>` : esc(p.text);
+      const text = esc(p.on.some(r => r.kind === 'code') ? plain(p.text) : p.text);
+      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}"${tip}>${text}</span>` : text;
     },
 
     // The passage: every sentence, the lit one boxed at full strength with its
@@ -249,15 +258,15 @@ document.addEventListener('alpine:init', () => {
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
         const body = pieces(s.text, X.rng[s.n].filter(r => r.kind !== 'a')).map(p => this.span(p, conn, on ? 'lit' : 'dim')).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-0.5 ${on ? 'bg-base-200' : 'text-base-content/60 hover:bg-base-200'}"><sup class="text-xs text-base-content/40 tabular-nums mr-1 select-none">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${esc(s.n)}" class="cursor-pointer box-decoration-clone rounded px-0.5 ${on ? 'bg-base-200' : 'text-base-content/60 hover:bg-base-200'}"><sup class="text-xs text-base-content/40 tabular-nums mr-1 select-none">${esc(s.n)}</sup>${body}</span>`;
       }).join(' ');
     },
 
     jump(n, arrow) {
-      return `<button data-go="${n}" class="link link-hover tabular-nums text-left">${arrow} ${n}</button>`;
+      return `<button data-go="${esc(n)}" class="link link-hover tabular-nums text-left">${arrow} ${esc(n)}</button>`;
     },
     row(hl, mode, left, body) {
-      return `<li tabindex="0" data-hl="${hl.join(' ')}" data-mode="${mode}"
+      return `<li tabindex="0" data-hl="${esc(hl.join(' '))}" data-mode="${mode}"
         class="grid sm:grid-cols-[6rem_minmax(0,1fr)] gap-x-3 px-2 -mx-2 py-2 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
         <div class="flex flex-wrap gap-x-2 sm:grid sm:content-start text-sm text-base-content/60 leading-7">${left.filter(Boolean).join('')}</div>
         <div class="grid gap-1 content-start leading-7 min-w-0">${body.filter(Boolean).join('')}</div></li>`;
@@ -288,7 +297,7 @@ document.addEventListener('alpine:init', () => {
       const fresh = (X.fresh[n] || []).map(k => {
         const e = E[k] || {}, ctx = (e.ctx || [])[0], doc = ctx && (this.R.context || []).find(c => c.id === ctx.doc);
         const where = ctx
-          ? `<span class="text-sm text-base-content/60">${doc && doc.repo ? `<a class="link link-hover" target="_blank" rel="noopener" href="${blob(doc.repo, doc.ref, doc.path)}">${esc(doc.path)} ↗</a>` : esc(ctx.doc)}</span>${quote(ctx.quote)}`
+          ? `<span class="text-sm text-base-content/60">${doc && doc.repo ? `<a class="link link-hover" target="_blank" rel="noopener" href="${esc(blob(doc.repo, doc.ref, doc.path))}">${esc(doc.path)} ↗</a>` : esc(ctx.doc)}</span>${quote(ctx.quote)}`
           : (BASIS[e.basis] ? `<span class="text-sm text-base-content/60">${BASIS[e.basis]}</span>` : '');
         return this.row(X.mentionKeys[k] || [], 'ev',
           [`<span class="font-semibold text-base-content">${esc(e.label || k)}</span>`],
@@ -300,9 +309,9 @@ document.addEventListener('alpine:init', () => {
         return `<span tabindex="0" data-hl="${(X.mentionKeys[k] || []).join(' ')}" data-mode="ev" class="underline decoration-dotted underline-offset-4 decoration-base-content/40 rounded outline-none focus-visible:bg-base-200" data-title-tip-lead="${esc(e.label || k)}" data-title-tip="${esc(e.gloss || '')}">${esc(e.label || k)}</span>`;
       }).join('<span class="text-base-content/40"> · </span>')}</p></section>` : '';
 
-      const claims = s.atoms.map(a => this.row([`a${n}${a.id}`], 'ev',
-        [`<span class="tabular-nums">${n}${esc(a.id)}</span>`, `<span>${(ROLE[a.role] || a.role).toLowerCase()}</span>`, a.implied ? '<span class="italic">implied</span>' : '', X.rng[n].some(r => r.key === `a${n}${a.id}`) ? '' : '<span class="text-error">unanchored</span>'],
-        [`<span class="text-pretty">${esc(a.claim)}</span>`, a.for ? `<span class="text-sm text-base-content/60">for ${n}${esc(a.for)}</span>` : '', this.note(a.note)]));
+      const claims = s.atoms.map((a, k) => this.row([`a${n}-${k}`], 'ev',
+        [`<span class="tabular-nums">${esc(n)}${esc(a.id)}</span>`, `<span>${esc((ROLE[a.role] || a.role || '').toLowerCase())}</span>`, a.implied ? '<span class="italic">implied</span>' : '', X.rng[n].some(r => r.key === `a${n}-${k}`) ? '' : '<span class="text-error">unanchored</span>'],
+        [`<span class="text-pretty">${esc(a.claim)}</span>`, a.for ? `<span class="text-sm text-base-content/60">for ${esc(n)}${esc(a.for)}</span>` : '', this.note(a.note)]));
 
       const outRows = X.fwd[n].map(it => this.row(it.keys, 'on',
         [this.jump(it.from, '→'), `<span>${KIND[it.kind] || esc(it.kind)}</span>`, it.implied ? '<span class="italic">implied</span>' : '', this.flag(it)],
