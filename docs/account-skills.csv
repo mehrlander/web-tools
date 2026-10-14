@@ -1,7 +1,7 @@
 name,want,twin,note
 algorithmic-art,on,,"Anthropic's example, on as found 2026-10-02"
 apple-shortcuts-actions,on,apple-shortcuts-actions,
-arriving-together,on,,the only copy is this upload; no repo holds it
+arriving-together,off,,"retired 2026-09-29; the essay is home chron/2026/03/2026-03-10-the-art-of-arriving-together.md"
 atomic-decomposition,on,atomic-decomposition,
 bake-page,on,bake-page,
 built-in-browser,on,,"Anthropic's example, on as found 2026-10-02"
@@ -24,7 +24,7 @@ morning,on,,"Anthropic's example, on as found 2026-10-02"
 office-scripts-shape-ui,on,office-scripts-shape-ui,
 outlining,on,outlining,
 pdf,on,,Supplied by Anthropic; no Web Tools copy.
-phosphor-icons,on,phosphor-icons,
+phosphor-icons,off,phosphor-icons,deleted from the account 2026-10-14; the plugin carries it
 power-query,on,power-query,
 powershell-ise-theming,on,powershell-ise-theming,
 pptx,on,,Supplied by Anthropic; no Web Tools copy.

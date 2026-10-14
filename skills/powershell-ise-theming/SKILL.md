@@ -1,17 +1,13 @@
 ---
 name: powershell-ise-theming
-description: How to share WPF theme resources (a Theme.xaml ResourceDictionary with keys like GhostButton, PillButton, MutedLabel) across PowerShell ISE add-on tools and forms without disturbing the ISE's own UI. Use this whenever the user wants their vertical ISE tools, add-ons, or UserControls to pick up their Forms theme, asks "why did my whole ISE turn a color" or "why did the Options dialog buttons change", says a DynamicResource or theme key won't resolve inside an ISE tool, wants to merge a theme app-wide, or is deciding between an application-level merge and a per-control merge. Trigger even when the user doesn't say "theme" or "skill". Phrasings like "style my ISE tools", "make my ISE add-on use my theme", "my UserControl ignores my brushes", or "something I merged leaked into the editor chrome" all belong here. Covers the DynamicResource lookup chain, the keyed-only rule, the keyless-style leak, StaticResource vs DynamicResource at dock time, and the per-control fallback.
+description: "How to share WPF theme resources (a Theme.xaml ResourceDictionary with keys like GhostButton, PillButton, MutedLabel) across PowerShell ISE add-on tools and forms without disturbing the ISE's own UI. Use this whenever the user wants their vertical ISE tools, add-ons, or UserControls to pick up their Forms theme, asks \"why did my whole ISE turn a color\" or \"why did the Options dialog buttons change\", says a DynamicResource or theme key won't resolve inside an ISE tool, wants to merge a theme app-wide, or is deciding between an application-level merge and a per-control merge. Trigger even when the user doesn't say \"theme\" or \"skill\". Phrasings like \"style my ISE tools\", \"make my ISE add-on use my theme\", \"my UserControl ignores my brushes\", or \"something I merged leaked into the editor chrome\" all belong here. Covers the DynamicResource lookup chain, the keyed-only rule, the keyless-style leak, StaticResource vs DynamicResource at dock time, and the per-control fallback."
 ---
 
 # Theming ISE Tools and Forms
 
-The ISE is customizable. Part of its appeal is that you can extend it with menu items and with more involved tools that embed a custom form into the host, docked into the vertical or horizontal add-on panes.
+The ISE can be extended with menu items and more involved tools that embed a custom form, docked into the vertical or horizontal add-on panes. However, a docked tool has to be compiled, which can mean bringing in C#, including WPF UserControls compiled via `Add-Type`.  Cross-use of resources between PowerShell driven forms and these C# compiled forms becomes an issue.
 
-Creating those tools dynamically raises challenges. It is not as simple as adding a function through `$profile`. A docked tool has to be compiled, which can mean bringing in C# and structuring things the way WPF wants rather than the way PowerShell usually goes. The tools in question are WPF UserControls compiled via `Add-Type`.
-
-A tension follows. You have already built capability for your forms and would like to reuse it in the tools. Theming is the example: can the Theme.xaml resources behind your forms (brushes and named styles such as `GhostButton`, `PillButton`, `MutedLabel`) drive the ISE tools, given the particular way those tools are constructed?
-
-There are ways. The basic one rests on a surprising fact: you can apply a theme to the ISE generally, not only to the controls you wrote. That reach is the opening and the catch at once. Caveat emptor: a theme can disturb part of the host that never expected your XAML, a menu or dialog for instance. With the right discipline it stays clean, and this skill defines that path.
+Theming is the example: can the Theme.xaml resources behind your forms (brushes and named styles such as `GhostButton`, `PillButton`, `MutedLabel`) drive the ISE tools, given the particular way those tools are constructed?  It turns out that one way is to apply a theme to the ISE on whole.
 
 ## The mechanism
 
@@ -54,11 +50,11 @@ Use `{DynamicResource KeyName}` for theme keys in tools. Not `{StaticResource}`.
 
 When a theme contains keyless styles that can't easily be keyed, don't force them app-wide. Merge the dictionary into the individual tool's own `Resources.MergedDictionaries` at dock time. The natural home is the function that adds the tool to `VerticalAddOnTools`, called on the UserControl once it exists.
 
-This contains the blast radius to that one control. Its implicit styles apply to its own subtree and stop there, so they never reach the ISE chrome. The cost is that you repeat the merge per tool instead of once globally. For a theme that's already keyed, prefer the app-wide path; reach for per-control when implicit styles are unavoidable.
+This way the implicit styles apply to its own subtree and stop there, so they never reach the ISE chrome. The cost is that you repeat the merge per tool instead of once globally. For a theme that's already keyed, prefer the app-wide path; reach for per-control when implicit styles are unavoidable.
 
 ## What you cannot reskin
 
-The ISE's own chrome (editor surface, menus, toolbar) will not fully reskin through resource merging. Its native widgets pin their own styles and don't subscribe to your keys. The only thing that reaches them is a keyless implicit style, which is exactly the thing to avoid. So the chrome is both unreachable by the safe path and damaged by the unsafe one.
+The ISE's own chrome (editor surface, menus, toolbar) will not fully reskin through resource merging. Its native widgets pin their own styles and don't subscribe to your keys. The only thing that reaches them is a keyless implicit style.
 
 The supported door for editor background and font is the `$psISE.Options` API. Reaching deeper into the ISE visual tree to restyle native widgets is fragile and tends to break on ISE updates. Treat `$psISE.Options` as the boundary of what's meant to be themed and your tools as the surfaces you actually control.
 
@@ -150,4 +146,4 @@ $null -ne [System.Windows.Application]::Current.Resources['GhostButton']
 
 ## Related, but a separate skill
 
-Serializing a live, themed form back to XAML via `[System.Windows.Markup.XamlWriter]::Save` drops the programmatically merged theme dictionary, leaving any `{DynamicResource}` references in the output dangling. That serialization round-trip has its own cluster of findings (what survives, what vanishes, what gets baked in) and its own triggers. It isn't covered here. Flag it if you want it captured separately.
+Serializing a live, themed form back to XAML via `[System.Windows.Markup.XamlWriter]::Save` drops the programmatically merged theme dictionary, leaving any `{DynamicResource}` references in the output dangling. That serialization round-trip has its own cluster of findings (what survives, what vanishes, what gets baked in) and its own triggers. It isn't covered here.
