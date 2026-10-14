@@ -16,9 +16,10 @@
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
-  does not store. The primary colour marks the current sentence and the spans
-  the active group points at; arrows behind the passage take a second colour,
-  so a connection reads apart from the spans it joins.
+  does not store. Two colours, one meaning each: the primary colour marks the
+  active group, its spans and the arrows behind the passage that join them; a
+  second colour marks the current sentence, in the passage, on its card and in
+  the dots.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -48,11 +49,18 @@ document.addEventListener('alpine:init', () => {
     { key: 'in', label: 'Carried in' }, { key: 'within', label: 'Within' }, { key: 'new', label: 'New here' },
     { key: 'play', label: 'In play' }, { key: 'atoms', label: 'Atoms' }, { key: 'out', label: 'Carried forward' },
   ];
-  // Arrow styles on trial, picked with #arrows=; one stays once the reader chooses.
+  // On trial, picked with #arrows= and #mark=; one of each stays once the reader
+  // chooses. Arrows take the spans' colour; the ribbon at the spans' own tints.
   const ARROWS = {
-    thread: { curve: true, stroke: 'var(--color-accent)', fill: 'var(--color-accent)', width: 1.5, head: 7, refX: 8 },
-    ribbon: { curve: true, stroke: 'color-mix(in oklab, var(--color-warning) 50%, transparent)', fill: 'var(--color-warning)', width: 7, head: 13, refX: 5 },
-    dash: { curve: false, stroke: 'var(--color-info)', fill: 'var(--color-info)', width: 1.5, dash: '4 4', head: 7, refX: 8 },
+    thread: { curve: true, width: 1.5, head: 7, refX: 8, tint: 'opacity-60 data-[on]:opacity-100' },
+    ribbon: { curve: true, width: 7, head: 13, refX: 5, tint: 'opacity-20 data-[on]:opacity-40' },
+    dash: { curve: false, width: 1.5, dash: '4 4', head: 7, refX: 8, tint: 'opacity-60 data-[on]:opacity-100' },
+  };
+  // The current sentence's colour: its outline in the passage, its card's bar, its dot.
+  const MARKS = {
+    teal: { ring: 'ring-[var(--color-accent)]', bar: 'border-accent', dot: 'bg-accent' },
+    amber: { ring: 'ring-[var(--color-warning)]', bar: 'border-warning', dot: 'bg-warning' },
+    grey: { ring: 'ring-[var(--color-base-content)]/40', bar: 'border-base-content/30', dot: 'bg-base-content' },
   };
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
@@ -161,6 +169,7 @@ document.addEventListener('alpine:init', () => {
     R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'in', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
+    get mark() { return MARKS[param('mark')] || MARKS.teal; },
 
     async init() {
       await window.__depsReady;
@@ -278,7 +287,7 @@ document.addEventListener('alpine:init', () => {
         const on = s.n === lit;
         const ranges = X.rng[s.n].filter(r => r.kind !== 'a' || (on && this.group === 'atoms'));
         const body = pieces(s.text, ranges).map(p => this.span(p, fill, on ? 'lit' : 'dim')).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)]/40 text-base-content' : 'text-base-content/50 hover:text-base-content/80'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-primary font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? `ring-1 ${this.mark.ring} text-base-content` : 'text-base-content/50 hover:text-base-content/80'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
@@ -288,7 +297,7 @@ document.addEventListener('alpine:init', () => {
     drawArrows() {
       const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
       if (!wrap || !text || !layer || !this.R) return;
-      const A = ARROWS[param('arrows')] || ARROWS.thread, W = wrap.getBoundingClientRect();
+      const A = ARROWS[param('arrows')] || ARROWS.ribbon, W = wrap.getBoundingClientRect();
       // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
       const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
         .reduce((by, r) => {
@@ -326,11 +335,11 @@ document.addEventListener('alpine:init', () => {
           : A.curve ? `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`
           : `M${sx},${y0} L${tx},${y1}`;
         return `<path data-k="${from} ${to}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
-          + ` class="opacity-60 data-[on]:opacity-100" style="stroke:${A.stroke};stroke-width:${A.width}px${A.dash ? `;stroke-dasharray:${A.dash}` : ''}"/>`;
+          + ` class="${A.tint}" style="stroke:var(--color-primary);stroke-width:${A.width}px${A.dash ? `;stroke-dasharray:${A.dash}` : ''}"/>`;
       }).join('');
       layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
         + `<defs><marker id="pr-head" viewBox="0 0 10 10" refX="${A.refX}" refY="5" markerUnits="userSpaceOnUse" markerWidth="${A.head}" markerHeight="${A.head}" orient="auto">`
-        + `<path d="M0,1 L9,5 L0,9 z" style="fill:${A.fill}"/></marker></defs>${paths}</svg>`;
+        + `<path d="M0,1 L9,5 L0,9 z" style="fill:var(--color-primary)"/></marker></defs>${paths}</svg>`;
     },
 
     num(n) {
@@ -437,7 +446,7 @@ document.addEventListener('alpine:init', () => {
         ? `<p class="leading-7">${its.map(it => `<span tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc(it.lead)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>`
         : `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
       el.innerHTML = `<article class="grid gap-3 text-lg">
-        <p class="leading-8 text-balance border-l-4 border-primary/40 pl-4">${this.sentenceHtml(n, active)}</p>
+        <p class="leading-8 text-balance border-l-4 ${this.mark.bar} pl-4">${this.sentenceHtml(n, active)}</p>
         ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid">${head(g)}${body(g, all[g.key])}</section>`).join('')}
       </article>`;
       this.wire(el);
@@ -528,7 +537,7 @@ document.addEventListener('alpine:init', () => {
           <div x-show="N <= 12" class="flex items-center">
             <template x-for="(t, i) in R.sentences" :key="t.n">
               <button class="p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
-                <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-primary' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
+                <span class="block size-2.5 rounded-full" :class="i === cur ? mark.dot : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
               </button>
             </template>
           </div>
