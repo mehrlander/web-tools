@@ -267,13 +267,13 @@ document.addEventListener('alpine:init', () => {
     },
 
     num(n) {
-      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-6 rounded-full border border-base-300 text-sm tabular-nums text-base-content/70 hover:bg-base-300">${esc(n)}</button>`;
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-5 rounded-full border border-base-300 text-xs tabular-nums text-base-content/70 hover:bg-base-300">${esc(n)}</button>`;
     },
     row(it) {
       return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
-        class="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 px-2 -mx-2 py-1.5 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
-        <div class="pt-0.5 text-sm text-base-content/60 leading-6">${it.left || ''}</div>
-        <div class="grid gap-0.5 leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
+        class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 px-2 -mx-2 py-0.5 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
+        <div class="pt-1 text-sm text-base-content/60 leading-5">${it.left || ''}</div>
+        <div class="grid leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
     },
     text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
     // One connection read as a statement: the later span, a verb, the earlier span.
@@ -284,17 +284,13 @@ document.addEventListener('alpine:init', () => {
         return it.kind === 'ellipsis' ? `${q(it.here)} leaves out “${fill()}”` : `${q(it.within || it.here)} ${VERB[it.kind] || it.kind} ${q(it.there)}`;
       }
       const verb = v => ` <span class="text-base-content/50">${v}</span> `;
-      if (it.kind === 'ellipsis') return `<span class="text-balance">${quote(it.here, it.within)}${verb('leaves out')}“${esc(fill())}”</span>`;
-      return `<span class="text-balance">${quote(it.here, it.within)}${verb(VERB[it.kind] || esc(it.kind))}${quote(it.there, it.thereIn)}</span>`;
+      if (it.kind === 'ellipsis') return `<span class="text-pretty">${quote(it.here, it.within)}${verb('leaves out')}“${esc(fill())}”</span>`;
+      return `<span class="text-pretty">${quote(it.here, it.within)}${verb(VERB[it.kind] || esc(it.kind))}${quote(it.there, it.thereIn)}</span>`;
     },
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
     playing(n) {
       const s = this.X.by[n];
       return [...new Set(s.mentions.map(m => m.e))].filter(k => k !== this.R.topic && !(this.X.fresh[n] || []).includes(k));
-    },
-    groupSize(g, n) {
-      const X = this.X, s = X.by[n];
-      return { in: X.inn[n], within: X.own[n], new: X.fresh[n] || [], play: this.playing(n), atoms: s.atoms, out: X.fwd[n] }[g].length;
     },
     setGroup(g) {
       this.group = g;
@@ -333,7 +329,7 @@ document.addEventListener('alpine:init', () => {
       };
     },
 
-    // The sentence with the chosen group's items highlighted, each carrying a
+    // The sentence with the active group's items highlighted, each carrying a
     // title-tip with its row's words; a piece inside several takes the shortest.
     sentenceHtml(n, sel) {
       const X = this.X, len = {}, by = {};
@@ -354,11 +350,16 @@ document.addEventListener('alpine:init', () => {
 
     render(i, el) {
       const n = this.R.sentences[i].n;
-      const all = this.items(n), sel = all[this.group] || [];
+      const all = this.items(n), active = all[this.group] || [];
       el._items = Object.fromEntries(Object.values(all).flat().map(it => [it.id, it]));
-      el.innerHTML = `<article class="grid gap-5 text-lg">
-        <p class="leading-8 text-balance border-l-4 border-primary/40 pl-4">${this.sentenceHtml(n, sel)}</p>
-        ${sel.length ? `<ul class="grid">${sel.map(it => this.row(it)).join('')}</ul>` : '<p class="text-base-content/50">None</p>'}
+      const head = g => `<button data-group="${g.key}" aria-pressed="${g.key === this.group}" class="justify-self-start text-sm font-semibold ${g.key === this.group
+        ? 'text-primary underline underline-offset-4 decoration-2' : 'text-base-content/60 hover:text-base-content'}">${g.label}</button>`;
+      const body = (g, its) => g.key === 'play'
+        ? `<p class="leading-7">${its.map(it => `<span tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc(it.lead)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>`
+        : `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
+      el.innerHTML = `<article class="grid gap-3 text-lg">
+        <p class="leading-8 text-balance border-l-4 border-primary/40 pl-4">${this.sentenceHtml(n, active)}</p>
+        ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid">${head(g)}${body(g, all[g.key])}</section>`).join('')}
       </article>`;
       this.wire(el);
     },
@@ -376,6 +377,7 @@ document.addEventListener('alpine:init', () => {
 
     wire(el) {
       el.querySelectorAll('[data-go]').forEach(b => { b.onclick = e => { e.stopPropagation(); this.go(+b.dataset.go); }; });
+      el.querySelectorAll('[data-group]').forEach(b => { b.onclick = () => this.setGroup(b.dataset.group); });
       el.querySelectorAll('[data-item]').forEach(r => {
         const ids = [r.dataset.item];
         r.addEventListener('pointerenter', () => HOVER.matches && this.point(ids, el, false));
@@ -432,8 +434,8 @@ document.addEventListener('alpine:init', () => {
         <p class="text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)"></p>
       </section>
 
-      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)] min-h-0 min-w-0">
-        <div class="flex items-center gap-1 px-2 sm:px-4 py-1.5">
+      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+        <div class="flex items-center gap-1 px-2 sm:px-4 py-1 border-b border-base-200">
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
           <span x-show="N > 12" class="tabular-nums text-sm text-base-content/60 px-1" x-text="(cur + 1) + ' / ' + N"></span>
           <div x-show="N <= 12" class="flex items-center">
@@ -447,13 +449,6 @@ document.addEventListener('alpine:init', () => {
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="roleLabel"></span>
           <button class="btn btn-ghost btn-sm btn-square ml-auto lg:hidden" @click="band = !band" :aria-pressed="band ? 'true' : 'false'"
                   aria-label="Passage height" data-title-tip="Passage height"><i class="ph text-lg" :class="band ? 'ph-arrows-in-line-vertical' : 'ph-arrows-out-line-vertical'"></i></button>
-        </div>
-        <div class="flex gap-1 px-2 sm:px-4 py-1 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" role="tablist" aria-label="Group">
-          <template x-for="g in GROUPS" :key="g.key">
-            <button class="btn btn-sm rounded-full font-normal shrink-0" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
-                    :class="group === g.key ? 'btn-soft btn-primary' : 'btn-ghost text-base-content/70'"
-                    :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)" x-text="g.label"></button>
-          </template>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
       </section>
