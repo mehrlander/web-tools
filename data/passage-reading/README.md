@@ -64,5 +64,5 @@ The page computes these from the stored fields, and a reading does not store the
 - **New here**: entities whose first mention is this sentence.
 - **In play**: entities mentioned here that appeared earlier.
 - **Carried in**: each anaphor or ellipsis whose antecedent is in an earlier sentence, followed by the sentence's `links`. An ellipsis of the topic is left out unless it has a `note`.
-- **Within the sentence**: each anaphor whose antecedent is in the same sentence.
+- **Within**: each anaphor whose antecedent is in the same sentence.
 - **Carried forward**: every later sentence whose carried-in list points here.

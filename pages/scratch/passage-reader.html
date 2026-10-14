@@ -44,6 +44,10 @@ document.addEventListener('alpine:init', () => {
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   const UNDER = 'underline underline-offset-4';
   const DOTTED = 'decoration-dotted decoration-[var(--color-base-content)]/60';
+  const GROUPS = [
+    { key: 'in', label: 'Carried in' }, { key: 'within', label: 'Within' }, { key: 'new', label: 'New here' },
+    { key: 'play', label: 'In play' }, { key: 'atoms', label: 'Atoms' }, { key: 'out', label: 'Carried forward' },
+  ];
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
@@ -148,7 +152,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, band: false, strip: null, hot: null,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, band: false, strip: null, hot: null, group: 'in', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -157,6 +161,7 @@ document.addEventListener('alpine:init', () => {
       try { this.R = await this.read(); this.X = index(this.R); }
       catch (e) { this.err = e.message; return; }
       this.cur = Math.max(0, this.R.sentences.findIndex(s => String(s.n) === param('s')));
+      try { const g = localStorage.getItem('passage-reader:group'); if (GROUPS.some(x => x.key === g)) this.group = g; } catch (e) {}
       addEventListener('popstate', () => { this.about = false; });
       addEventListener('resize', () => this.revealLit());
       this.$nextTick(() => {
@@ -264,83 +269,127 @@ document.addEventListener('alpine:init', () => {
     num(n) {
       return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-6 rounded-full border border-base-300 text-sm tabular-nums text-base-content/70 hover:bg-base-300">${esc(n)}</button>`;
     },
-    row(hl, mode, left, body) {
-      return `<li tabindex="0" data-hl="${esc(hl.join(' '))}" data-mode="${mode}"
+    row(it) {
+      return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
         class="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 px-2 -mx-2 py-1.5 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
-        <div class="pt-0.5 text-sm text-base-content/60 leading-6">${left || ''}</div>
-        <div class="grid gap-0.5 leading-7 min-w-0">${body.filter(Boolean).join('')}</div></li>`;
-    },
-    section(title, items) {
-      return items.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">${title}</h3><ul class="grid">${items.join('')}</ul></section>` : '';
+        <div class="pt-0.5 text-sm text-base-content/60 leading-6">${it.left || ''}</div>
+        <div class="grid gap-0.5 leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
     },
     text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
     // One connection read as a statement: the later span, a verb, the earlier span.
-    statement(it) {
+    statement(it, bare) {
+      const fill = () => it.fill || (this.R.entities[it.e] || {}).label || it.e;
+      if (bare) {
+        const q = s => `“${plain(s)}”`;
+        return it.kind === 'ellipsis' ? `${q(it.here)} leaves out “${fill()}”` : `${q(it.within || it.here)} ${VERB[it.kind] || it.kind} ${q(it.there)}`;
+      }
       const verb = v => ` <span class="text-base-content/50">${v}</span> `;
-      if (it.kind === 'ellipsis') return `<span class="text-balance">${quote(it.here, it.within)}${verb('leaves out')}“${esc(it.fill || (this.R.entities[it.e] || {}).label || it.e)}”</span>`;
+      if (it.kind === 'ellipsis') return `<span class="text-balance">${quote(it.here, it.within)}${verb('leaves out')}“${esc(fill())}”</span>`;
       return `<span class="text-balance">${quote(it.here, it.within)}${verb(VERB[it.kind] || esc(it.kind))}${quote(it.there, it.thereIn)}</span>`;
     },
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
+    playing(n) {
+      const s = this.X.by[n];
+      return [...new Set(s.mentions.map(m => m.e))].filter(k => k !== this.R.topic && !(this.X.fresh[n] || []).includes(k));
+    },
+    groupSize(g, n) {
+      const X = this.X, s = X.by[n];
+      return { in: X.inn[n], within: X.own[n], new: X.fresh[n] || [], play: this.playing(n), atoms: s.atoms, out: X.fwd[n] }[g].length;
+    },
+    setGroup(g) {
+      this.group = g;
+      try { localStorage.setItem('passage-reader:group', g); } catch (e) {}
+      this.light(null);
+      if (this.strip) for (const i of [this.cur - 1, this.cur, this.cur + 1]) if (i >= 0 && i < this.N) { this.strip.drop(i); this.strip.build(i); }
+    },
+
+    // Every group's items for sentence n. `spans` are the range keys an item
+    // marks in this sentence; `keys` are what it lights, here and in the passage.
+    items(n) {
+      const X = this.X, E = this.R.entities, s = X.by[n];
+      const notes = k => s.mentions.filter(m => m.e === k && m.note && !m.form).map(m => m.note);
+      const here = k => (X.keysOf[k] || []).filter(x => x.startsWith(`m${n}-`));
+      const entity = (g, k, j) => {
+        const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
+        return { id: `${g}:${j}`, mode: 'ev', keys: X.keysOf[k] || [], spans: here(k), lead: e.label || k, tip: (e.gloss || '') + basis,
+          body: [`<span class="text-pretty"><span class="font-semibold">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+      };
+      return {
+        in: X.inn[n].map((it, j) => ({ id: `in:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[0]], lead: this.statement(it, true), tip: it.gloss || it.note || '',
+          left: this.num(it.to), body: [this.statement(it), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
+        within: X.own[n].map((it, j) => ({ id: `within:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[0]], lead: this.statement(it, true), tip: it.note || '',
+          body: [this.statement(it), this.text(it.note), this.flag(it.ok)] })),
+        new: (X.fresh[n] || []).map((k, j) => entity('new', k, j)),
+        play: this.playing(n).map((k, j) => entity('play', k, j)),
+        atoms: s.atoms.map((a, k) => {
+          const tags = [a.role !== s.role ? a.role : '', a.for ? `for ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean);
+          const key = `a${n}-${k}`;
+          return { id: `atoms:${k}`, mode: 'ev', keys: [key], spans: [key], lead: '', tip: a.claim + (tags.length ? ` (${tags.join(', ')})` : ''), left: esc(a.id),
+            body: [`<span class="text-pretty${a.implied ? ' italic' : ''}">${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
+                   this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
+        }),
+        out: X.fwd[n].map((it, j) => ({ id: `out:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[1]], lead: this.statement(it, true), tip: '',
+          left: this.num(it.from), body: [this.statement(it), this.flag(it.ok)] })),
+      };
+    },
+
+    // The sentence with the chosen group's items highlighted, each carrying a
+    // title-tip with its row's words; a piece inside several takes the shortest.
+    sentenceHtml(n, sel) {
+      const X = this.X, len = {}, by = {};
+      for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
+      for (const it of sel) for (const k of it.spans) (by[k] ||= []).push(it);
+      return pieces(X.by[n].text, X.rng[n]).map(p => {
+        const its = [...new Set(p.on.flatMap(r => by[r.key] || []))];
+        if (!its.length) return this.span(p, null, 'card');
+        const size = it => Math.min(...it.spans.map(k => len[k] ?? Infinity));
+        its.sort((a, b) => size(a) - size(b));
+        const top = its[0], tip = top.tip || top.lead;
+        const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
+        const under = p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor') ? ` ${UNDER} ${DOTTED}` : '';
+        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 data-[on]:bg-primary/40 data-[ev]:bg-primary/40${under}"`
+          + `${top.tip && top.lead ? ` data-title-tip-lead="${esc(top.lead)}"` : ''} data-title-tip="${esc(tip)}" data-title-tip-bare>${esc(plain(p.text))}</span>`;
+      }).join('');
+    },
 
     render(i, el) {
-      const s = this.R.sentences[i], n = s.n, X = this.X, E = this.R.entities;
-      const sentence = pieces(s.text, X.rng[n]).map(p => this.span(p, new Set(), 'card')).join('');
-      const notes = k => s.mentions.filter(m => m.e === k && m.note && !m.form).map(m => this.text(m.note));
-
-      const carriedIn = X.inn[n].map(it => this.row(it.keys, 'on', this.num(it.to),
-        [this.statement(it), this.text(it.gloss), this.text(it.note), this.flag(it.ok)]));
-
-      const within = X.own[n].map(it => this.row(it.keys, 'on', '',
-        [this.statement(it), this.text(it.note), this.flag(it.ok)]));
-
-      const fresh = (X.fresh[n] || []).map(k => {
-        const e = E[k] || {};
-        const basis = e.basis === 'general' ? ' <span class="text-base-content/50">(general knowledge)</span>' : '';
-        return this.row(X.keysOf[k] || [], 'ev', '',
-          [`<span class="text-pretty"><span class="font-semibold">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis}</span>`, ...notes(k)]);
-      });
-
-      const playing = [...new Set(s.mentions.map(m => m.e))].filter(k => k !== this.R.topic && !(X.fresh[n] || []).includes(k));
-      const inPlay = playing.length ? `<p class="leading-7"><span class="text-sm font-semibold text-base-content/60 mr-2">In play</span>${playing.map(k =>
-        `<span tabindex="0" data-hl="${esc((X.keysOf[k] || []).join(' '))}" data-mode="ev" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc((E[k] || {}).label || k)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>${playing.flatMap(k => notes(k)).join('')}` : '';
-
-      const atoms = s.atoms.map((a, k) => {
-        const tags = [a.role !== s.role ? a.role : '', a.for ? `for ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean);
-        return this.row([`a${n}-${k}`], 'ev', esc(a.id),
-          [`<span class="text-pretty${a.implied ? ' italic' : ''}">${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
-           this.text(a.note), X.rng[n].some(r => r.key === `a${n}-${k}`) ? '' : this.flag(false)]);
-      });
-
-      const carriedOut = X.fwd[n].map(it => this.row(it.keys, 'on', this.num(it.from), [this.statement(it), this.flag(it.ok)]));
-
-      el.innerHTML = `<article class="grid gap-6 text-lg">
-        <p class="leading-8 text-balance border-l-4 border-primary/40 pl-4">${sentence}</p>
-        ${this.section('Carried in', carriedIn)}
-        ${this.section('Within the sentence', within)}
-        ${this.section('New here', fresh)}
-        ${inPlay}
-        ${this.section('Atoms', atoms)}
-        ${this.section('Carried forward', carriedOut)}
+      const n = this.R.sentences[i].n;
+      const all = this.items(n), sel = all[this.group] || [];
+      el._items = Object.fromEntries(Object.values(all).flat().map(it => [it.id, it]));
+      el.innerHTML = `<article class="grid gap-5 text-lg">
+        <p class="leading-8 text-balance border-l-4 border-primary/40 pl-4">${this.sentenceHtml(n, sel)}</p>
+        ${sel.length ? `<ul class="grid">${sel.map(it => this.row(it)).join('')}</ul>` : '<p class="text-base-content/50">None</p>'}
       </article>`;
       this.wire(el);
     },
 
+    // Light an item's keys and mark its row; from a span, every item it sits in.
+    point(ids, el, show) {
+      const its = ids.map(id => el._items[id]).filter(Boolean);
+      if (!its.length) return;
+      this.light([...new Set(its.flatMap(it => it.keys))], its[0].mode === 'ev' ? 'data-ev' : 'data-on');
+      for (const it of its) el.querySelector(`[data-item="${it.id}"]`)?.setAttribute('data-hot', '');
+      this.hot = ids.join(' ');
+      // A tap brings the partner span into the passage pane, which on a phone is a short band.
+      if (show) reveal(this.$refs.passage, [...this.$refs.passage.querySelectorAll('[data-on],[data-ev]')].find(x => !x.closest(`[data-s="${this.s.n}"]`)));
+    },
+
     wire(el) {
       el.querySelectorAll('[data-go]').forEach(b => { b.onclick = e => { e.stopPropagation(); this.go(+b.dataset.go); }; });
-      el.querySelectorAll('[data-hl]').forEach(r => {
-        const keys = r.dataset.hl.split(' ').filter(Boolean), attr = r.dataset.mode === 'ev' ? 'data-ev' : 'data-on';
-        const on = show => {
-          this.light(keys, attr); r.setAttribute('data-hot', ''); this.hot = r;
-          // A tap brings the partner span into the passage pane, which on a phone is a short band.
-          if (show) reveal(this.$refs.passage, [...this.$refs.passage.querySelectorAll('[data-on],[data-ev]')].find(x => !x.closest(`[data-s="${this.s.n}"]`)));
-        };
-        r.addEventListener('pointerenter', () => HOVER.matches && on(false));
+      el.querySelectorAll('[data-item]').forEach(r => {
+        const ids = [r.dataset.item];
+        r.addEventListener('pointerenter', () => HOVER.matches && this.point(ids, el, false));
         r.addEventListener('pointerleave', () => HOVER.matches && this.light(null));
         // Keyboard focus only: a tap also focuses the row, just before its own click.
-        r.addEventListener('focus', () => r.matches(':focus-visible') && on(false));
+        r.addEventListener('focus', () => r.matches(':focus-visible') && this.point(ids, el, false));
         r.addEventListener('blur', () => HOVER.matches && this.light(null));
-        r.addEventListener('click', () => HOVER.matches || this.hot !== r ? on(true) : this.light(null));
+        r.addEventListener('click', () => HOVER.matches || this.hot !== ids.join(' ') ? this.point(ids, el, true) : this.light(null));
       });
+      // The highlighted spans answer the same way, so a span and its row light together.
+      const spanOf = e => e.target.closest && e.target.closest('[data-items]');
+      el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) this.point(t.dataset.items.split(' '), el, false); });
+      el.addEventListener('pointerout', e => { const t = spanOf(e); if (t && HOVER.matches && !t.contains(e.relatedTarget)) this.light(null); });
+      el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) this.point(t.dataset.items.split(' '), el, true); });
     },
   }));
 });
@@ -383,8 +432,8 @@ document.addEventListener('alpine:init', () => {
         <p class="text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)"></p>
       </section>
 
-      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-        <div class="flex items-center gap-1 px-2 sm:px-4 py-1.5 border-b border-base-200">
+      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)] min-h-0 min-w-0">
+        <div class="flex items-center gap-1 px-2 sm:px-4 py-1.5">
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
           <span x-show="N > 12" class="tabular-nums text-sm text-base-content/60 px-1" x-text="(cur + 1) + ' / ' + N"></span>
           <div x-show="N <= 12" class="flex items-center">
@@ -398,6 +447,13 @@ document.addEventListener('alpine:init', () => {
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="roleLabel"></span>
           <button class="btn btn-ghost btn-sm btn-square ml-auto lg:hidden" @click="band = !band" :aria-pressed="band ? 'true' : 'false'"
                   aria-label="Passage height" data-title-tip="Passage height"><i class="ph text-lg" :class="band ? 'ph-arrows-in-line-vertical' : 'ph-arrows-out-line-vertical'"></i></button>
+        </div>
+        <div class="flex gap-1 px-2 sm:px-4 py-1 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" role="tablist" aria-label="Group">
+          <template x-for="g in GROUPS" :key="g.key">
+            <button class="btn btn-sm rounded-full font-normal shrink-0" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
+                    :class="group === g.key ? 'btn-soft btn-primary' : 'btn-ghost text-base-content/70'"
+                    :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)" x-text="g.label"></button>
+          </template>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
       </section>
