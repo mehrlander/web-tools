@@ -16,9 +16,9 @@
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
-  does not store. The primary colour marks the current sentence and the pair
-  a card row points at; grey marks an atom's evidence span and an entity's
-  mentions.
+  does not store. The primary colour marks the current sentence and the spans
+  the active group points at; arrows behind the passage take a second colour,
+  so a connection reads apart from the spans it joins.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -48,6 +48,12 @@ document.addEventListener('alpine:init', () => {
     { key: 'in', label: 'Carried in' }, { key: 'within', label: 'Within' }, { key: 'new', label: 'New here' },
     { key: 'play', label: 'In play' }, { key: 'atoms', label: 'Atoms' }, { key: 'out', label: 'Carried forward' },
   ];
+  // Arrow styles on trial, picked with #arrows=; one stays once the reader chooses.
+  const ARROWS = {
+    thread: { curve: true, stroke: 'var(--color-accent)', fill: 'var(--color-accent)', width: 1.5, head: 7, refX: 8 },
+    ribbon: { curve: true, stroke: 'color-mix(in oklab, var(--color-warning) 50%, transparent)', fill: 'var(--color-warning)', width: 7, head: 13, refX: 5 },
+    dash: { curve: false, stroke: 'var(--color-info)', fill: 'var(--color-info)', width: 1.5, dash: '4 4', head: 7, refX: 8 },
+  };
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
@@ -152,7 +158,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, band: false, strip: null, hot: null, group: 'in', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'in', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -168,7 +174,7 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => {
         this.strip = swipeDeck.core(this.N, (i, el) => this.render(i, el), {
           innerClass: 'w-full', keys: this.$refs.main, behavior: 'instant', start: this.cur,
-          slidePad: 'px-4 pt-5 pb-28 sm:px-8 sm:pt-8',
+          slidePad: 'px-4 pt-5 pb-28 sm:px-8 sm:pt-8', slideClass: 'overscroll-y-contain',
         });
         this.$refs.track.append(this.strip.track);
         this.strip.onSlide(i => i !== this.cur && this.sync(i, 'strip'));
@@ -276,34 +282,55 @@ document.addEventListener('alpine:init', () => {
       }).join(' ');
     },
 
-    // Arrows over the passage, one per connection in the active group. Each
-    // leaves its span into the gap between lines, runs to the nearer margin,
-    // and turns into the span it leans on, so it crosses no words on the way.
+    // Arrows behind the passage, one per connection in the active group, from
+    // the referring span straight through the lines between to the span it
+    // leans on. The text paints over them.
     drawArrows() {
       const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
       if (!wrap || !text || !layer || !this.R) return;
-      const W = wrap.getBoundingClientRect(), Wd = wrap.clientWidth;
-      const rects = k => [...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
-        .map(r => ({ l: r.left - W.left, r: r.right - W.left, t: r.top - W.top, b: r.bottom - W.top }));
-      const paths = this.focus(this.s.n).arrows.map(([from, to], i) => {
-        const a = rects(from), b = rects(to);
-        if (!a.length || !b.length) return '';
-        const s = a[0], up = b[0].t < s.t - 4, down = b[0].t > s.t + 4, t = up ? b[b.length - 1] : b[0];
-        const sx = s.l + Math.min((s.r - s.l) / 2, 24), tx = t.l + Math.min((t.r - t.l) / 2, 24);
-        let d;
-        if (!up && !down) d = `M${sx},${s.t} C${sx},${s.t - 18} ${tx},${t.t - 18} ${tx},${t.t}`;
-        else {
-          const s0 = up ? s.t : s.b, t0 = up ? t.b : t.t, y1 = s0 + (up ? -4 : 4), y2 = t0 + (up ? 4 : -4), dir = up ? -1 : 1;
-          const left = (sx + tx) / 2 < Wd / 2, sg = left ? -1 : 1, gx = left ? -(6 + (i % 3) * 4) : Wd + 6 + (i % 3) * 4, r = 6;
-          // Within about two lines a direct curve is shorter than a trip to the margin.
-          d = Math.abs(y2 - y1) < 60
-            ? `M${sx},${s0} C${sx},${y1 + dir * 10} ${tx},${y2 - dir * 10} ${tx},${t0}`
-            : `M${sx},${s0} Q${sx},${y1} ${sx + sg * 4},${y1} H${gx - sg * r} Q${gx},${y1} ${gx},${y1 + dir * r} V${y2 - dir * r} Q${gx},${y2} ${gx - sg * r},${y2} H${tx + sg * 4} Q${tx},${y2} ${tx},${t0}`;
+      const A = ARROWS[param('arrows')] || ARROWS.thread, W = wrap.getBoundingClientRect();
+      // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
+      const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
+        .reduce((by, r) => {
+          const t = Math.round(r.top - W.top), o = by[t], l = r.left - W.left, rt = r.right - W.left;
+          by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
+          return by;
+        }, {}));
+      // A span can wrap, so each arrow joins the nearest pair of its two spans'
+      // line boxes: out of the top of the later one and into the foot of the
+      // earlier, or on one line, over the top of both.
+      const legs = this.focus(this.s.n).arrows.map(([from, to]) => {
+        let best = null;
+        for (const s of rects(from)) for (const t of rects(to)) {
+          const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b : t.t;
+          const gap = Math.hypot((t.l + t.r - s.l - s.r) / 2, y1 - y0);
+          if (!best || gap < best.gap) best = { from, to, s, t, up, down, y0, y1, gap };
         }
-        return `<path data-k="${from} ${to}" d="${d}" fill="none" stroke-linecap="round" stroke-linejoin="round" class="opacity-40 data-[on]:opacity-100" style="stroke:var(--color-primary);stroke-width:1.5" marker-end="url(#pr-head)"/>`;
+        return best;
+      }).filter(Boolean);
+      // Heads that would land close together on one line spread apart, in the
+      // order their sources sit, since links often end on the same words.
+      const lines = {}, room = A.head + 7;
+      for (const g of legs) { g.tx = (g.t.l + g.t.r) / 2; (lines[Math.round(g.y1)] ||= []).push(g); }
+      for (const list of Object.values(lines)) {
+        list.sort((a, b) => a.tx - b.tx);
+        for (let i = 0, j; i < list.length; i = j) {
+          for (j = i + 1; j < list.length && list[j].tx - list[j - 1].tx < room; j++);
+          const run = list.slice(i, j).sort((a, b) => a.s.l - b.s.l), mid = run.reduce((m, g) => m + g.tx, 0) / run.length;
+          run.forEach((g, k) => { g.tx = mid + (k - (run.length - 1) / 2) * room; });
+        }
+      }
+      const paths = legs.map(({ from, to, s, up, down, y0, y1, tx }) => {
+        const sx = (s.l + s.r) / 2, k = Math.max(4, Math.abs(y1 - y0) * 0.45);
+        const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
+          : A.curve ? `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`
+          : `M${sx},${y0} L${tx},${y1}`;
+        return `<path data-k="${from} ${to}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
+          + ` class="opacity-60 data-[on]:opacity-100" style="stroke:${A.stroke};stroke-width:${A.width}px${A.dash ? `;stroke-dasharray:${A.dash}` : ''}"/>`;
       }).join('');
       layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
-        + `<defs><marker id="pr-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,1 L9,5 L0,9 z" style="fill:var(--color-primary)"/></marker></defs>${paths}</svg>`;
+        + `<defs><marker id="pr-head" viewBox="0 0 10 10" refX="${A.refX}" refY="5" markerUnits="userSpaceOnUse" markerWidth="${A.head}" markerHeight="${A.head}" orient="auto">`
+        + `<path d="M0,1 L9,5 L0,9 z" style="fill:${A.fill}"/></marker></defs>${paths}</svg>`;
     },
 
     num(n) {
@@ -481,17 +508,16 @@ document.addEventListener('alpine:init', () => {
 
   <template x-if="R">
     <main x-ref="main" data-pattern="linked-swiper"
-          class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[minmax(0,1fr)] min-h-0 min-w-0">
+          class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_minmax(0,2fr)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[minmax(0,1fr)] min-h-0 min-w-0">
       <section x-ref="passage" aria-label="Passage"
-               class="overflow-y-auto border-b lg:border-b-0 lg:border-r border-base-300 px-4 py-4 sm:px-6 grid gap-4 content-start lg:max-h-none"
-               :class="band ? 'max-h-[70dvh]' : 'max-h-[32dvh]'">
+               class="overflow-y-auto overscroll-contain border-b lg:border-b-0 lg:border-r border-base-300 px-4 py-4 sm:px-6 grid gap-4 content-start">
         <div x-show="R.gist" class="hidden lg:grid gap-1">
           <h2 class="text-sm font-semibold text-base-content/60">Gist</h2>
           <p class="text-lg leading-8 text-balance" x-text="R.gist"></p>
         </div>
         <div x-ref="pwrap" class="relative">
-          <p x-ref="ptext" class="text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)"></p>
           <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)"></p>
         </div>
       </section>
 
@@ -508,8 +534,6 @@ document.addEventListener('alpine:init', () => {
           </div>
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="roleLabel"></span>
-          <button class="btn btn-ghost btn-sm btn-square ml-auto lg:hidden" @click="band = !band" :aria-pressed="band ? 'true' : 'false'"
-                  aria-label="Passage height" data-title-tip="Passage height"><i class="ph text-lg" :class="band ? 'ph-arrows-in-line-vertical' : 'ph-arrows-out-line-vertical'"></i></button>
         </div>
         <div class="flex gap-1 px-2 sm:px-4 pb-1.5 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" role="tablist" aria-label="Group">
           <template x-for="g in GROUPS" :key="g.key">
