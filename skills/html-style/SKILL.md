@@ -81,7 +81,7 @@ to labels, counters, and timestamps.
 lede, caption, or any block read at a glance, and `text-pretty` on running copy,
 which fixes a stranded last word without evening out full lines.
 
-**9. Content starts at the top.** Never vertically centre a slide because it
+**9. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
 
 **10. One accent, and it means something.** Colour carries information, not
@@ -89,13 +89,13 @@ decoration. Assign it by semantic role, and in a comparison lock each side's
 treatment across every view. Where two concerns compete for the accent, let a
 control pick which one is marked rather than spending a second colour.
 
-**11. A tooltip worth having is worth building.** Prefer text on the page. A
-`title` never carries a fact: it reaches no touch screen and no screenshot. One
+**11. A tooltip worth having is worth building.** Prefer text on the page. Do
+not put a fact in a `title`: it reaches no touch screen and no screenshot. One
 line the page implies is a **title-tip**
 ([`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js));
 anything tapped, scrolled, or sourced is a **panel-tip**
 ([`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)).
-Never daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
+Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 [`references/mechanics.md`, "Title-tips and panel-tips"](references/mechanics.md#title-tips-and-panel-tips);
 `npm run stranded-titles` lists facts parked in a `title`, and
 `TitleTip.open('#id')` opens one for a shot.
@@ -106,7 +106,7 @@ sideways. Each scrolls inside itself; the page does not. A pick in the list
 moves the strip, and a swipe moves the list's selection and keeps it in view.
 The strip's header opens the deck takeover (rule 4) at the card in view, and
 closing it returns to the list at the card where it closed. In a wide pane the
-list sits beside the strip; on a phone it never hides behind the detail. The
+list sits beside the strip; on a phone it stays in view above the strip. The
 reference is the Waiting view
 ([`waiting.js`](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/waiting.js)),
 coded `linked-swiper`.
