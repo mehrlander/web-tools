@@ -25,9 +25,11 @@ the courier's popup at a Web Tools address keeps its link with the page
 ([`bookmarklets/README.md`](../../bookmarklets/README.md#where-bookmarklets-fit)).
 
 The documents the index links to are on `digitalarchives.wa.gov`, which a
-session fetches directly: its `ViewRecordMedia.aspx?RID=` links redirect to the
-PDF. The collected index is web-tools-private
-`courier/results/wsl-drs-cafr-index.md`.
+session fetches directly. The index uses two link shapes for them,
+`ViewRecordMedia.aspx?RID=<id>` and, for FY2011 and FY2012,
+`Record/ViewMedia/<id>` with no file extension; both redirect to the PDF, and
+`list-cafr.js` keeps both. The collected index, FY2002 to FY2020, is
+web-tools-private `courier/results/wsl-drs-cafr-index.md`.
 
 ## Contents
 
