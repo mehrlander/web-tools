@@ -11,17 +11,23 @@ client that does not run the interstitial's JavaScript gets a 403 page titled
 "Just a moment...": a Claude Code web session's `curl` and WebFetch, host-wide,
 the sandbox's headless Chromium (measured 2026-10-13), and a command-line fetch
 from the home laptop through the Gemini daemon (errand
-`daemon-2026-10-14-ask-a2701b`). The block follows the client, not the network,
-so the daemon is no route here either. A browser navigating normally passes it
-without noticing. Everything here therefore runs **on the page**, in your
-browser, and nothing here should be written as though a session could fetch this
-host.
+`daemon-2026-10-14-ask-a2701b`). The block follows the client, not the network.
+A browser navigating normally passes it without noticing, and so did one driven
+by an agent: the daemon reached the real page by running the laptop's Microsoft
+Edge, headed, with a temporary profile, over its remote-debugging connection
+(`daemon-2026-10-14-ask-b1808b`). Everything here therefore runs **on the page**
+in a real browser, yours or the laptop's, and nothing here should be written as
+though a session could fetch this host.
 
-The interstitial sends `Cross-Origin-Opener-Policy: same-origin`. Whether the
-real page behind it does is not known. If it does, the courier's popup at a Web
-Tools address opens but cannot read or message the page
-([`bookmarklets/README.md`](../../bookmarklets/README.md#where-bookmarklets-fit)),
-and `wsl-drs-cafr-index` needs another route.
+The interstitial sends `Cross-Origin-Opener-Policy: same-origin`; the real page
+behind it sends none (observed in that Edge run). So once the check has passed,
+the courier's popup at a Web Tools address keeps its link with the page
+([`bookmarklets/README.md`](../../bookmarklets/README.md#where-bookmarklets-fit)).
+
+The documents the index links to are on `digitalarchives.wa.gov`, which a
+session fetches directly: its `ViewRecordMedia.aspx?RID=` links redirect to the
+PDF. The collected index is web-tools-private
+`courier/results/wsl-drs-cafr-index.md`.
 
 ## Contents
 

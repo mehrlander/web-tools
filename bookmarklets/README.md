@@ -70,9 +70,10 @@ a Web Tools address, the courier's route, kept its link with the page on
 github.com, en.wikipedia.org and app.leg.wa.gov, messages passing both ways.
 
 A page that sends `Cross-Origin-Opener-Policy: same-origin` cuts that link: the
-popup opens but can neither read the page nor message it. The bot-check page
-wsldocs.sos.wa.gov served to headless Chrome sends that header; whether the real
-page does is not known. The errand `test-2026-09-26-bookmarklet-routes` in
+popup opens but can neither read the page nor message it. The Cloudflare check
+page wsldocs.sos.wa.gov serves to an unverified client sends that header; the
+real page behind it sends none (observed 2026-10-14), so there it is the check,
+not the site, that would cut the link. The errand `test-2026-09-26-bookmarklet-routes` in
 `mehrlander/web-tools-private` asks a computer-use session on the home laptop to
 try these routes on the sites in use.
 
