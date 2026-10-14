@@ -3,6 +3,7 @@
   "title": "skill-prefs: the Description guidance",
   "made": "2026-10-14",
   "source": {
+    "repo": "mehrlander/web-tools",
     "path": "skills/skill-prefs/SKILL.md",
     "note": "A newer draft of the guidance on writing a skill's description. The committed file carries an older, shorter Trigger bullet in its place."
   },
@@ -10,12 +11,14 @@
   "context": [
     {
       "id": "prefs",
+      "repo": "mehrlander/web-tools",
       "path": "skills/skill-prefs/SKILL.md",
       "ref": "64eb998c",
       "why": "The document the passage belongs to, as committed. Its Trigger bullet is the older version of sentence 5."
     },
     {
       "id": "ie",
+      "repo": "mehrlander/web-tools",
       "path": "skills/inspire-excellence/SKILL.md",
       "ref": "64eb998c",
       "why": "The skill sentence 5 cites as its cautionary case."
@@ -142,7 +145,7 @@
       "text": "Write for that one decision.",
       "role": "rule",
       "mentions": [
-        { "e": "description", "quote": "Write", "form": "ellipsis" },
+        { "e": "description", "quote": "Write", "form": "ellipsis", "fill": "the description" },
         { "e": "load-decision", "quote": "that one decision", "form": "anaphor" }
       ],
       "links": [],
@@ -156,7 +159,7 @@
       "text": "Lead with what the skill does, a verb and its object, then the situation that summons it, in the words a request would use: one or two phrases, not a list of synonyms.",
       "role": "rule",
       "mentions": [
-        { "e": "description", "quote": "Lead", "form": "ellipsis" },
+        { "e": "description", "quote": "Lead", "form": "ellipsis", "fill": "the description" },
         { "e": "situation", "quote": "the situation that summons it" }
       ],
       "links": [
@@ -174,7 +177,7 @@
       "text": "Name the situation, never the material the skill produces; inspire-excellence is the cautionary case, a trigger built from the vocabulary of its own prompts that fired on its own output.",
       "role": "rule",
       "mentions": [
-        { "e": "description", "quote": "Name", "form": "ellipsis" },
+        { "e": "description", "quote": "Name", "form": "ellipsis", "fill": "in the description" },
         { "e": "situation", "quote": "the situation", "form": "anaphor" },
         { "e": "material", "quote": "the material the skill produces" },
         { "e": "inspire-excellence", "quote": "inspire-excellence" },
@@ -195,7 +198,7 @@
       "text": "Add a boundary (\"not for X; use Y\") only where two skills collide.",
       "role": "rule",
       "mentions": [
-        { "e": "description", "quote": "Add", "form": "ellipsis" },
+        { "e": "description", "quote": "Add", "form": "ellipsis", "fill": "to the description" },
         { "e": "boundary", "quote": "a boundary" }
       ],
       "links": [
@@ -229,7 +232,7 @@
       "text": "Aim for 150 characters; past 250, the excess needs a reason.",
       "role": "rule",
       "mentions": [
-        { "e": "description", "quote": "Aim", "form": "ellipsis" }
+        { "e": "description", "quote": "Aim for 150 characters", "form": "ellipsis", "fill": "in the description" }
       ],
       "links": [
         { "to": 2, "kind": "rests-on", "here": "Aim for 150 characters", "there": "The listing has a budget", "implied": true, "gloss": "The length targets exist because the listing's space is limited." }

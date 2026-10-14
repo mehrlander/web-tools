@@ -6,10 +6,12 @@ Two pieces hang off this format and know nothing of each other: a skill that
 writes a reading, and a viewer that renders any reading. This folder holds the
 format and the committed sample readings.
 [`skill-prefs-description.json`](skill-prefs-description.json) is the first
-instance, and the place to judge the format from.
+instance, and [`pages/scratch/passage-reader.html`](../../pages/scratch/passage-reader.html)
+renders it, or any reading addressed with `#gh=owner/repo[@ref]:path` or carried
+in the link as `#gz=`.
 
-**Probe status, stated 2026-10-14.** This folder, and the viewer page and
-skill still to be built, are one probe. After the skill is tested on a passage
+**Probe status, stated 2026-10-14.** This folder, the viewer page, and the
+skill still to be written are one probe. After the skill is tested on a passage
 it has not seen, the probe either graduates (the format moves into the skill's
 folder and the viewer leaves `pages/scratch/`) or all three are deleted
 together.
@@ -21,9 +23,9 @@ together.
 | `format` | `passage-reading/1` |
 | `title` | A name for the reading |
 | `made` | The date the reading was written |
-| `source` | `path` and a `note` saying where the passage comes from |
+| `source` | `path` and a `note` saying where the passage comes from, and `repo` when it lives in one |
 | `gist` | One sentence on what the passage does, start to end |
-| `context` | The documents supplied as context: `id`, `path`, `ref` (a commit), `why` |
+| `context` | The documents supplied as context: `id`, `repo`, `path`, `ref` (a commit), `why` |
 | `entities` | Keyed by id: `label`, `gloss`, `basis`, and `ctx` when `basis` is `context` |
 | `lead` | A run-in heading before the first sentence, if the passage has one |
 | `sentences` | In order, numbered `n` from 1 |
@@ -44,9 +46,11 @@ cannot check from the page).
   entity, `anaphor` when they need an antecedent to be understood (a pronoun, a
   demonstrative, or a definite description such as *that one decision*), and
   `ellipsis` when the entity is not written at all and `quote` is the word that
-  governs the gap (the description is the unstated object of *Write*). An
-  anaphor or ellipsis resolves to the entity's first named mention; `ante: <n>`
-  overrides that, and `note` records a resolution a reader could get wrong.
+  governs the gap (the description is the unstated object of *Write*), with
+  `fill` holding the words that complete it, shown after the quote in brackets.
+  An anaphor or ellipsis resolves to the entity's first named mention;
+  `ante: <n>` overrides that, and `note` records a resolution a reader could
+  get wrong.
 - **`links`**: connections to an earlier sentence that no mention carries.
   `to` is the earlier sentence, `kind` is below, `here` and `there` are the
   spans at each end, `gloss` says the connection in plain words, and
