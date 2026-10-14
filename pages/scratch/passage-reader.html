@@ -77,7 +77,7 @@ document.addEventListener('alpine:init', () => {
 
   // Everything a card shows that the file does not store. An anaphor or
   // ellipsis resolves to its entity's first named mention, or to the first in
-  // sentence `ante`. References to the topic appear only in the sentence.
+  // sentence `ante`. An ellipsis of the topic shows only as its bracket.
   function index(R) {
     const S = R.sentences, topic = R.topic, by = {}, firstNamed = {}, firstAny = {};
     S.forEach((s, i) => { if (!Number.isInteger(s.n)) s.n = i + 1; });
@@ -104,7 +104,7 @@ document.addEventListener('alpine:init', () => {
         (keysOf[m.e] ||= []).push(key);
         if (!(where[m.e] ||= []).includes(n)) where[m.e].push(n);
         const ok = add(n, key, m.quote, { kind: 'm', m, first: firstAny[m.e].n === n && firstAny[m.e].i === i }, m.in);
-        if (!m.form || m.e === topic) return;
+        if (!m.form || (m.e === topic && m.form === 'ellipsis' && !m.note)) return;
         const f = m.ante ? { n: m.ante, i: (by[m.ante]?.mentions || []).findIndex(x => x.e === m.e && !x.form) } : firstNamed[m.e];
         if (!f || f.i < 0 || f.n > n) return;
         const item = { kind: m.form, from: n, to: f.n, e: m.e, here: m.quote, within: m.in, fill: m.fill,
@@ -317,7 +317,7 @@ document.addEventListener('alpine:init', () => {
            e.basis === 'general' ? '<span class="text-sm text-base-content/60">general knowledge</span>' : '', ...ctx, ...notes(k)]);
       });
 
-      const playing = [...new Set(s.mentions.map(m => m.e))].filter(k => !(X.fresh[n] || []).includes(k));
+      const playing = [...new Set(s.mentions.map(m => m.e))].filter(k => k !== this.R.topic && !(X.fresh[n] || []).includes(k));
       const inPlay = playing.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">In play</h3>
         <p class="leading-7">${playing.map(k => `<span tabindex="0" data-hl="${esc((X.keysOf[k] || []).join(' '))}" data-mode="ev" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc((E[k] || {}).label || k)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>
         ${playing.flatMap(k => notes(k)).join('')}</section>` : '';
@@ -394,7 +394,7 @@ document.addEventListener('alpine:init', () => {
       <section x-ref="passage" aria-label="Passage"
                class="overflow-y-auto border-b lg:border-b-0 lg:border-r border-base-300 px-4 py-4 sm:px-6 grid gap-4 content-start lg:max-h-none"
                :class="band ? 'max-h-[70dvh]' : 'max-h-[32dvh]'">
-        <div x-show="R.gist" class="grid gap-1">
+        <div x-show="R.gist" class="hidden lg:grid gap-1">
           <h2 class="text-sm font-semibold text-base-content/60">Gist</h2>
           <p class="text-lg leading-8 text-balance" x-text="R.gist"></p>
         </div>
@@ -403,15 +403,16 @@ document.addEventListener('alpine:init', () => {
 
       <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
         <div class="flex items-center gap-1 px-2 sm:px-4 py-1.5 border-b border-base-200">
-          <button class="btn btn-ghost btn-sm btn-square hidden sm:inline-flex" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
-          <div class="flex items-center">
+          <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
+          <span x-show="N > 12" class="tabular-nums text-sm text-base-content/60 px-1" x-text="(cur + 1) + ' / ' + N"></span>
+          <div x-show="N <= 12" class="flex items-center">
             <template x-for="(t, i) in R.sentences" :key="t.n">
               <button class="p-1" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
                 <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-base-content' : linked.has(t.n) ? 'bg-primary/60' : 'bg-base-300'"></span>
               </button>
             </template>
           </div>
-          <button class="btn btn-ghost btn-sm btn-square hidden sm:inline-flex" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
+          <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="roleLabel"></span>
           <button class="btn btn-ghost btn-sm btn-square ml-auto lg:hidden" @click="band = !band" :aria-pressed="band ? 'true' : 'false'"
                   aria-label="Passage height" data-title-tip="Passage height"><i class="ph text-lg" :class="band ? 'ph-arrows-in-line-vertical' : 'ph-arrows-out-line-vertical'"></i></button>
@@ -429,6 +430,7 @@ document.addEventListener('alpine:init', () => {
       </div>
       <dl class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-lg leading-7">
         <dt class="text-sm text-base-content/60 pt-1">Source</dt><dd class="text-pretty" x-text="R?.source?.note"></dd>
+        <dt class="text-sm text-base-content/60 pt-1 lg:hidden">Gist</dt><dd class="text-pretty lg:hidden" x-text="R?.gist"></dd>
         <template x-if="R?.topic"><dt class="text-sm text-base-content/60 pt-1">Topic</dt></template>
         <template x-if="R?.topic"><dd x-text="(R.entities[R.topic] || {}).label || R.topic"></dd></template>
         <dt class="text-sm text-base-content/60 pt-1">Context</dt>

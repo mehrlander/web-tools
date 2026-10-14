@@ -178,10 +178,10 @@
         { "e": "inspire-excellence", "quote": "inspire-excellence" },
         { "e": "trigger", "quote": "a trigger" },
         { "e": "inspire-excellence", "quote": "its", "in": "its own prompts", "form": "anaphor", "note": "'its' is inspire-excellence, not the trigger: the prompts are what the skill writes." },
-        { "e": "material", "quote": "own prompts" },
+        { "e": "material", "quote": "its own prompts" },
         { "e": "trigger", "quote": "that fired", "form": "anaphor", "note": "'that' attaches to the trigger, not to the prompts: the trigger is what fired." },
         { "e": "inspire-excellence", "quote": "its", "in": "its own output", "form": "anaphor" },
-        { "e": "material", "quote": "own output" }
+        { "e": "material", "quote": "its own output" }
       ],
       "links": [],
       "atoms": [
@@ -199,7 +199,7 @@
         { "e": "boundary", "quote": "a boundary" }
       ],
       "links": [
-        { "to": 3, "kind": "elaborates", "here": "only where two skills collide", "there": "Write for that one decision", "implied": true, "gloss": "A boundary helps the decision about what to load only when two skills could both match one request, so it is added only there." }
+        { "to": 3, "kind": "rests-on", "here": "only where two skills collide", "there": "Write for that one decision", "implied": true, "gloss": "Sentence 3's single purpose for the description is why a boundary is limited to skills that collide." }
       ],
       "atoms": [
         { "id": "a", "role": "rule", "claim": "A skill's description includes a boundary only where another skill could be chosen for the same request.", "quote": "only where two skills collide", "note": "'Collide' read as: both descriptions would match one request." },
@@ -250,12 +250,13 @@
       ],
       "links": [
         { "to": 4, "kind": "narrows", "here": "a one-line description of what it does", "there": "then the situation that summons it", "implied": true, "gloss": "Sentence 4 asks for what the skill does and then the situation; this sentence changes that for skills that are only summoned." },
-        { "to": 1, "kind": "narrows", "here": "only ever summoned", "there": "a session scans to decide what to load", "implied": true, "gloss": "A skill the model never loads on its own judgment is not chosen through the decision about what to load that sentence 1 describes.", "note": "Inferred from the flag's name and the context's 'summoned-only'. The passage does not say how the platform lists such a skill." }
+        { "to": 1, "kind": "narrows", "here": "only ever summoned", "there": "a session scans to decide what to load", "implied": true, "gloss": "Sentence 1 describes how a session chooses skills; this sentence names skills outside that choice." }
       ],
       "atoms": [
         { "id": "a", "role": "rule", "claim": "A skill that is only ever invoked by name sets disable-model-invocation: true in its frontmatter.", "quote": "takes `disable-model-invocation: true`" },
         { "id": "b", "role": "rule", "claim": "A summoned-only skill's description is one line saying what the skill does.", "quote": "a one-line description of what it does" },
-        { "id": "c", "role": "rule", "claim": "A summoned-only skill's description omits the situation that summons it.", "quote": "of what it does", "implied": true, "note": "Read against sentence 4, which asks for what the skill does and then the situation. This sentence keeps only the first." }
+        { "id": "c", "role": "rule", "claim": "A summoned-only skill's description omits the situation that summons it.", "quote": "of what it does", "implied": true, "note": "Read against sentence 4, which asks for what the skill does and then the situation. This sentence keeps only the first." },
+        { "id": "d", "role": "premise", "claim": "A summoned-only skill is not chosen through a session's decision about what to load.", "quote": "only ever summoned", "implied": true, "note": "Inferred from the flag's name and the context's 'summoned-only'. The passage does not say how the platform lists such a skill." }
       ]
     }
   ]

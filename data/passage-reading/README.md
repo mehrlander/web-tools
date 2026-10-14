@@ -13,7 +13,7 @@ This folder, the Passage reader page, and the skill still to be written are one 
 | `made` | The date the reading was written |
 | `source` | `path` and a `note` saying where the passage comes from, and `repo` when it lives in one |
 | `gist` | One sentence on what the passage does, start to end |
-| `topic` | The id of the entity the passage is about; references to it are shown in the sentence only, not as connections |
+| `topic` | The id of the entity the passage is about; an ellipsis of it shows only as its bracket in the sentence, not as a connection |
 | `context` | The documents supplied as context: `id`, `repo`, `path`, `ref` (a commit), `why` |
 | `entities` | Keyed by id: `label`, `gloss`, `basis`, and `ctx` when `basis` is `context` |
 | `lead` | A run-in heading before the first sentence, if the passage has one |
@@ -63,6 +63,6 @@ The page computes these from the stored fields, and a reading does not store the
 
 - **New here**: entities whose first mention is this sentence.
 - **In play**: entities mentioned here that appeared earlier.
-- **Carried in**: each anaphor or ellipsis whose antecedent is in an earlier sentence, followed by the sentence's `links`. References to the topic are left out.
+- **Carried in**: each anaphor or ellipsis whose antecedent is in an earlier sentence, followed by the sentence's `links`. An ellipsis of the topic is left out unless it has a `note`.
 - **Within the sentence**: each anaphor whose antecedent is in the same sentence.
 - **Carried forward**: every later sentence whose carried-in list points here.
