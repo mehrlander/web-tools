@@ -16,8 +16,9 @@
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
-  does not store. The primary colour marks spans connected to the lit sentence;
-  grey marks an atom's evidence span and an entity's mentions.
+  does not store. The primary colour marks the current sentence and the pair
+  a card row points at; grey marks an atom's evidence span and an entity's
+  mentions.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -42,8 +43,8 @@ document.addEventListener('alpine:init', () => {
   const ROLE = { definition: 'Definition', premise: 'Premise', claim: 'Claim', rule: 'Rule', evidence: 'Evidence', example: 'Example', exception: 'Exception' };
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   const UNDER = 'underline underline-offset-4';
-  const SOLID = 'decoration-[var(--color-base-content)]/30';
   const DOTTED = 'decoration-dotted decoration-[var(--color-base-content)]/60';
+  const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
@@ -54,8 +55,9 @@ document.addEventListener('alpine:init', () => {
   const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;
   // Inline code keeps its backticks in the data, where quotes are matched.
   const plain = s => String(s ?? '').replace(/`/g, '');
+  // A quote's first two words stay together, so a line never ends on its opening mark.
   const quote = (s, within) => {
-    if (!within) return `“${esc(plain(s))}”`;
+    if (!within) return `“${esc(plain(s)).replace(' ', '&nbsp;')}”`;
     const a = within.indexOf(s);
     return `“${esc(plain(within.slice(0, a)))}<b>${esc(plain(s))}</b>${esc(plain(within.slice(a + s.length)))}”`;
   };
@@ -126,13 +128,12 @@ document.addEventListener('alpine:init', () => {
   }
 
   // Text cut at every range boundary, so overlapping ranges need no nesting.
-  function pieces(text, ranges, inserts = {}) {
+  function pieces(text, ranges) {
     const pts = [...new Set([0, text.length, ...ranges.flatMap(r => [r.a, r.b])])].sort((x, y) => x - y);
     const out = [];
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1];
       out.push({ text: text.slice(a, b), on: ranges.filter(r => r.a <= a && r.b >= b) });
-      if (inserts[b]) out.push({ insert: inserts[b] });
     }
     return out;
   }
@@ -192,10 +193,10 @@ document.addEventListener('alpine:init', () => {
     link(o) { return o && o.repo ? blob(o.repo, o.ref, o.path) : null; },
     get entityList() { return Object.entries(this.R.entities).map(([k, e]) => ({ k, ...e, where: (this.X.where[k] || []).join(', ') })); },
 
-    // The sentence's role, and an evidence or example it holds besides.
+    // The sentence's number and role, and an evidence or example it holds besides.
     get roleLabel() {
       const s = this.s, extra = [...new Set(s.atoms.map(a => a.role))].filter(r => r !== s.role && (r === 'evidence' || r === 'example'));
-      return [ROLE[s.role] || s.role, ...extra].join(' + ');
+      return s.n + ' · ' + [ROLE[s.role] || s.role, ...extra].join(' + ');
     },
     // Sentences tied to the lit one by a link, either way.
     get linked() {
@@ -233,106 +234,87 @@ document.addEventListener('alpine:init', () => {
       return new Set([...X.inn[n], ...X.fwd[n], ...X.own[n]].flatMap(it => it.keys));
     },
 
-    // mode: 'card', 'lit' (the lit sentence in the passage) or 'dim' (any other sentence).
+    // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
+    // the passage) or 'dim' (any other). The sentence's own words, unchanged:
+    // formatting marks them, and nothing is added to them.
     span(p, conn, mode) {
-      if (p.insert) {
-        const tint = conn.has(p.insert.key) ? ' bg-primary/10' : '';
-        return ` <span data-k="${p.insert.key}" class="text-base-content/50 ${UNDER} ${DOTTED}${tint} data-[on]:bg-primary/30 data-[ev]:bg-base-300">[${esc(p.insert.text)}]</span>`;
-      }
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
-      const m = p.on.find(r => r.kind === 'm' && r.m.form !== 'ellipsis');
+      const code = p.on.some(r => r.kind === 'code');
       const cls = ['data-[on]:bg-primary/30 data-[ev]:bg-base-300'];
-      if (p.on.some(r => conn.has(r.key))) cls.push('bg-primary/10', mode === 'dim' ? 'text-base-content' : '');
-      else if (p.on.some(r => r.kind === 'code')) cls.push('bg-base-200 rounded');
-      if (m && mode !== 'dim') {
-        cls.push(UNDER, m.m.form === 'anaphor' ? DOTTED : SOLID);
-        if (mode === 'card' && m.first) cls.push('font-semibold');
-      }
-      const text = esc(p.on.some(r => r.kind === 'code') ? plain(p.text) : p.text);
-      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
+      if (mode === 'dim' && p.on.some(r => conn.has(r.key))) cls.push('text-base-content');
+      if (mode === 'card' && p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor')) cls.push(UNDER, DOTTED);
+      if (code) cls.push('bg-base-200 rounded');
+      const text = esc(code ? plain(p.text) : p.text);
+      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.join(' ')}">${text}</span>` : text;
     },
 
+    // The passage: the current sentence highlighted, the rest dimmed, and in
+    // them the spans tied to the current sentence at full strength.
     get passageHtml() {
       if (!this.R) return '';
       const lit = this.s.n, conn = this.connected(lit), X = this.X;
-      const lead = this.R.lead ? `<span class="font-semibold">${esc(this.R.lead)}</span> ` : '';
+      const lead = this.R.lead ? `<span class="font-semibold text-base-content/60">${esc(this.R.lead)}</span> ` : '';
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
         const body = pieces(s.text, X.rng[s.n].filter(r => r.kind !== 'a')).map(p => this.span(p, conn, on ? 'lit' : 'dim')).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-0.5 ${on ? 'bg-base-200' : 'text-base-content/60 hover:text-base-content'}"><sup class="text-xs text-base-content/40 tabular-nums mr-1 select-none">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'bg-primary/20 text-base-content' : 'text-base-content/50 hover:text-base-content/80'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-primary font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
-    jump(n, arrow) {
-      return `<button data-go="${esc(n)}" class="link link-hover tabular-nums text-left">${arrow}${esc(n)}</button>`;
+    num(n) {
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-6 rounded-full border border-base-300 text-sm tabular-nums text-base-content/70 hover:bg-base-300">${esc(n)}</button>`;
     },
     row(hl, mode, left, body) {
       return `<li tabindex="0" data-hl="${esc(hl.join(' '))}" data-mode="${mode}"
-        class="grid sm:grid-cols-[6rem_minmax(0,1fr)] gap-x-3 px-2 -mx-2 py-2 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
-        <div class="flex flex-wrap gap-x-2 sm:grid sm:content-start text-sm text-base-content/60 leading-7">${left.filter(Boolean).join('')}</div>
-        <div class="grid gap-1 content-start leading-7 min-w-0">${body.filter(Boolean).join('')}</div></li>`;
+        class="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 px-2 -mx-2 py-1.5 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
+        <div class="pt-0.5 text-sm text-base-content/60 leading-6">${left || ''}</div>
+        <div class="grid gap-0.5 leading-7 min-w-0">${body.filter(Boolean).join('')}</div></li>`;
     },
     section(title, items) {
       return items.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">${title}</h3><ul class="grid">${items.join('')}</ul></section>` : '';
     },
-    text(t, cls = '') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
-    tags(it) {
-      return [it.implied ? '<span class="italic">implied</span>' : '', it.ok === false ? '<span class="text-error">quote not found</span>' : ''];
+    text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
+    // One connection read as a statement: the later span, a verb, the earlier span.
+    statement(it) {
+      const verb = v => ` <span class="text-base-content/50">${v}</span> `;
+      if (it.kind === 'ellipsis') return `<span class="text-balance">${quote(it.here, it.within)}${verb('leaves out')}“${esc(it.fill || (this.R.entities[it.e] || {}).label || it.e)}”</span>`;
+      return `<span class="text-balance">${quote(it.here, it.within)}${verb(VERB[it.kind] || esc(it.kind))}${quote(it.there, it.thereIn)}</span>`;
     },
-    pair(it) {
-      const here = quote(it.here, it.within) + (it.kind === 'ellipsis' ? ` <span class="text-base-content/50">[${esc(it.fill || (this.R.entities[it.e] || {}).label || it.e)}]</span>` : '');
-      return `<span class="text-balance">${here} <i class="ph ph-arrow-right text-base-content/40"></i> ${quote(it.there, it.thereIn)}</span>`;
-    },
+    flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
 
     render(i, el) {
       const s = this.R.sentences[i], n = s.n, X = this.X, E = this.R.entities;
-      const conn = this.connected(n), inserts = {};
-      s.mentions.forEach((m, k) => {
-        const p = locate(s.text, m.quote, m.in);
-        if (m.form === 'ellipsis' && p) inserts[p.b] = { key: `m${n}-${k}`, text: m.fill || (E[m.e] || {}).label || m.e };
-      });
-      const sentence = pieces(s.text, X.rng[n], inserts).map(p => this.span(p, conn, 'card')).join('');
-      const later = k => (X.where[k] || []).filter(x => x > n);
-      const notes = k => s.mentions.filter(m => m.e === k && m.note && !m.form).map(m => this.text(m.note, 'text-base-content/70'));
+      const sentence = pieces(s.text, X.rng[n]).map(p => this.span(p, new Set(), 'card')).join('');
+      const notes = k => s.mentions.filter(m => m.e === k && m.note && !m.form).map(m => this.text(m.note));
 
-      const carriedIn = X.inn[n].map(it => this.row(it.keys, 'on',
-        [this.jump(it.to, '← '), `<span>${esc(it.kind)}</span>`, ...this.tags(it)],
-        [this.pair(it), this.text(it.gloss), this.text(it.note, 'text-base-content/70')]));
+      const carriedIn = X.inn[n].map(it => this.row(it.keys, 'on', this.num(it.to),
+        [this.statement(it), this.text(it.gloss), this.text(it.note), this.flag(it.ok)]));
 
-      const within = X.own[n].map(it => this.row(it.keys, 'on',
-        [`<span>${esc(it.kind)}</span>`, ...this.tags(it)],
-        [this.pair(it), this.text(it.note, 'text-base-content/70')]));
+      const within = X.own[n].map(it => this.row(it.keys, 'on', '',
+        [this.statement(it), this.text(it.note), this.flag(it.ok)]));
 
       const fresh = (X.fresh[n] || []).map(k => {
-        const e = E[k] || {}, docs = this.R.context || [];
-        const ctx = (e.ctx || []).map(c => {
-          const d = docs.find(x => x.id === c.doc);
-          const name = d ? (d.repo ? `<a class="link link-hover" target="_blank" rel="noopener" href="${esc(blob(d.repo, d.ref, d.path))}">${esc(d.path)} ↗</a>` : esc(d.path)) : esc(c.doc);
-          return `<span class="text-sm text-base-content/60">${name}</span><span class="text-balance text-base-content/80">${quote(c.quote)}</span>`;
-        });
-        const on = later(k);
-        return this.row(X.keysOf[k] || [], 'ev',
-          [on.length ? `<span>→ ${on.map((x, j) => `<span class="whitespace-nowrap">${this.jump(x, '')}${j < on.length - 1 ? ',' : ''}</span>`).join(' ')}</span>` : ''],
-          [`<span class="font-semibold">${esc(e.label || k)}</span>`, this.text(e.gloss),
-           e.basis === 'general' ? '<span class="text-sm text-base-content/60">general knowledge</span>' : '', ...ctx, ...notes(k)]);
+        const e = E[k] || {};
+        const basis = e.basis === 'general' ? ' <span class="text-base-content/50">(general knowledge)</span>' : '';
+        return this.row(X.keysOf[k] || [], 'ev', '',
+          [`<span class="text-pretty"><span class="font-semibold">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis}</span>`, ...notes(k)]);
       });
 
       const playing = [...new Set(s.mentions.map(m => m.e))].filter(k => k !== this.R.topic && !(X.fresh[n] || []).includes(k));
-      const inPlay = playing.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">In play</h3>
-        <p class="leading-7">${playing.map(k => `<span tabindex="0" data-hl="${esc((X.keysOf[k] || []).join(' '))}" data-mode="ev" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc((E[k] || {}).label || k)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>
-        ${playing.flatMap(k => notes(k)).join('')}</section>` : '';
+      const inPlay = playing.length ? `<p class="leading-7"><span class="text-sm font-semibold text-base-content/60 mr-2">In play</span>${playing.map(k =>
+        `<span tabindex="0" data-hl="${esc((X.keysOf[k] || []).join(' '))}" data-mode="ev" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc((E[k] || {}).label || k)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>${playing.flatMap(k => notes(k)).join('')}` : '';
 
-      const atoms = s.atoms.map((a, k) => this.row([`a${n}-${k}`], 'ev',
-        [`<span class="tabular-nums">${esc(n)}${esc(a.id)}</span>`, `<span>${esc(a.role || '')}</span>`, a.implied ? '<span class="italic">implied</span>' : '',
-         X.rng[n].some(r => r.key === `a${n}-${k}`) ? '' : '<span class="text-error">quote not found</span>'],
-        [this.text(a.claim, a.implied ? 'italic' : ''), a.for ? `<span class="text-sm text-base-content/60">for ${esc(n)}${esc(a.for)}</span>` : '', this.text(a.note, 'text-base-content/70')]));
+      const atoms = s.atoms.map((a, k) => {
+        const tags = [a.role !== s.role ? a.role : '', a.for ? `for ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean);
+        return this.row([`a${n}-${k}`], 'ev', esc(a.id),
+          [`<span class="text-pretty${a.implied ? ' italic' : ''}">${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
+           this.text(a.note), X.rng[n].some(r => r.key === `a${n}-${k}`) ? '' : this.flag(false)]);
+      });
 
-      const carriedOut = X.fwd[n].map(it => this.row(it.keys, 'on',
-        [this.jump(it.from, '→ '), `<span>${esc(it.kind)}</span>`, ...this.tags(it)],
-        [this.pair(it)]));
+      const carriedOut = X.fwd[n].map(it => this.row(it.keys, 'on', this.num(it.from), [this.statement(it), this.flag(it.ok)]));
 
       el.innerHTML = `<article class="grid gap-6 text-lg">
-        <p class="leading-8 text-balance border-l-4 border-base-300 pl-4">${sentence}</p>
+        <p class="leading-8 text-balance border-l-4 border-primary/40 pl-4">${sentence}</p>
         ${this.section('Carried in', carriedIn)}
         ${this.section('Within the sentence', within)}
         ${this.section('New here', fresh)}
@@ -407,8 +389,8 @@ document.addEventListener('alpine:init', () => {
           <span x-show="N > 12" class="tabular-nums text-sm text-base-content/60 px-1" x-text="(cur + 1) + ' / ' + N"></span>
           <div x-show="N <= 12" class="flex items-center">
             <template x-for="(t, i) in R.sentences" :key="t.n">
-              <button class="p-1" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
-                <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-base-content' : linked.has(t.n) ? 'bg-primary/60' : 'bg-base-300'"></span>
+              <button class="p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
+                <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-primary' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
               </button>
             </template>
           </div>
