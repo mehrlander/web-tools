@@ -126,6 +126,19 @@
   } else {
     await import('../dist/app.js');
   }
+  // A 401 or 403 opens the This browser view rather than gh-auth's takeover,
+  // registered here because this is the first moment ghAuth exists. Before the
+  // shell has mounted there is no view to open, so the takeover still answers
+  // (return false). Once it has, a failure during its boot route is parked for
+  // the shell to pick up when the route settles (init), and one after that
+  // routes at once.
+  window.ghAuth?.onFail?.(info => {
+    const shell = window.__shell;
+    if (!shell) return false;
+    if (shell._booted) shell.routeAuthFail(info);
+    else window.__authFailPending ||= info;
+    return true;
+  });
   // gh-store rides in the pre-build cached but unexecuted; this load runs it
   // from the inlined cache (no network) so GH.prototype.save exists as before.
   await gh.load('gh-store.js');
@@ -1326,6 +1339,19 @@ html.dk-dragging main{transition:none !important}
       <div class="mx-auto px-6 py-8 !max-w-none">
         <template x-if="publicSeen">
           <div x-data="publicBrowse()"></div>
+        </template>
+      </div>
+    </div>
+
+    <!-- This browser: the token, the browser note, and what this origin keeps
+         in this browser. Where a 401 or 403 lands instead of the gh-auth
+         takeover (routeAuthFail). Estate-level, token-free, lazy-mounted. The
+         pane does not scroll: each tab scrolls inside itself, and Stored here
+         is two containers that split its height, as the Waiting view's are. -->
+    <div x-show="view==='here'" class="h-full overflow-hidden">
+      <div class="h-full px-3 py-3 lg:p-6">
+        <template x-if="hereSeen">
+          <div x-data="hereView()" class="h-full"></div>
         </template>
       </div>
     </div>
@@ -2551,6 +2577,13 @@ function app(){ return {
   searchSeed: null,
   publicSeen: false,      // mount the public-browse component lazily, on first visit
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
+  hereSeen: false,        // mount the This browser view lazily, on first visit
+  hereNext: '',           // the address This browser returns to (?next=), a query or fragment of this page
+  hereTab: 'token',       // This browser's tab: 'token' | 'stored' | 'page' (&tab=)
+  hereItem: '',           // the stored item open in its detail (&item=): ls:<key> | idb:<database>/<store>
+  courierHost: '',        // the host of the page a courier bookmark opened this window from, once it has spoken (stage.js)
+  authFail: null,         // the gh-auth failure record that sent the reader to This browser, if one did
+  _booted: false,         // boot routing has finished; an earlier auth failure waits for it (see init)
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
   _bootRouting: false,    // repo/ref watchers must not publish a provisional landing
   _routed: Promise.resolve(),   // settled once init has routed the address (see init)
@@ -2855,6 +2888,16 @@ function app(){ return {
       const restoring = this._restoring;
       this._restoring = true;
       try { this.syncUrl(); } finally { this._restoring = restoring; }
+    }
+
+    // An auth failure that arrived while the boot route was still settling
+    // waited (the boot script's onFail handler parks it), because routing to
+    // This browser mid-boot would be overwritten by the route being settled.
+    this._booted = true;
+    if (window.__authFailPending) {
+      const fail = window.__authFailPending;
+      window.__authFailPending = null;
+      this.routeAuthFail(fail);
     }
 
     // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the mode this
@@ -6168,6 +6211,14 @@ function app(){ return {
     { key: 'stage', alias: 'surfaces', open(u){ this.goStage(u.tab); },
       stamp(p){ if (this.stageTab) p.set('tab', this.stageTab); } },
     { key: 'public',   open(){ this.goPublicBrowse(); } },
+    // `next` is where This browser sends the reader back to, so a reload of
+    // the view keeps its way out.
+    { key: 'here', open(u){ this.goHere(u.next || '', undefined, u.tab || 'token', u.item); },
+      stamp(p){
+        if (this.hereNext) p.set('next', this.hereNext);
+        if (this.hereTab !== 'token') p.set('tab', this.hereTab);
+        if (this.hereTab !== 'token' && this.hereItem) p.set('item', this.hereItem);
+      } },
     // Lists was addressed ?view=todo, and ?view=jots, until 2026-10-02. A row
     // carries one alias, so `todo` is the alias here and `jots` keeps a row of
     // its own; both open Lists and stamp ?view=lists.
@@ -6414,7 +6465,7 @@ function app(){ return {
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'call', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
-              'session', 'list', 'topic', 'lens', 'grain', 'find',
+              'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
               'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
@@ -6472,6 +6523,7 @@ function app(){ return {
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
              session: p.get('session') || '', find: p.get('find') || '',
+             next: p.get('next') || '',
              ...mapCtxOf(k => p.get(k)),
              pane: p.get('pane') || '', card: p.get('card'),
              item: p.get('item') || '', call: p.get('call') || '',
@@ -6912,7 +6964,7 @@ function app(){ return {
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
-  get estateCtx(){ return this.isEstate || this.view === 'map' || this.view === 'tools' || this.view === 'search' || this.view === 'state' || this.view === 'app' || this.view === 'public' || this.view === 'tending'; },
+  get estateCtx(){ return this.isEstate || this.view === 'map' || this.view === 'tools' || this.view === 'search' || this.view === 'state' || this.view === 'app' || this.view === 'public' || this.view === 'here' || this.view === 'tending'; },
   // Whether the pinned desktop sidebar has anything to show: always in a repo
   // (its views / pins / recents), and in the estate whenever it has repo-sourced
   // content — the Repos index or the app views (News). Both are token-gated, so
@@ -8137,6 +8189,36 @@ function app(){ return {
   // optional repo (from an estate card) seeds it via the reactive publicSeed the
   // component watches; the bare sidebar entry passes none and keeps the default.
   goPublicBrowse(repo){ if (repo) this.publicSeed = repo; this.publicSeen = true; this.view = 'public'; this.syncUrl(); },
+
+  // This browser. Arriving from another view remembers that view's address as
+  // the way back; an address that already names This browser carries its own.
+  // `next` is only ever a query or fragment of THIS page, which is what keeps
+  // the Save button's navigation on this origin and this path.
+  // A plain arrival clears the failure record, so coming back later by the
+  // account panel's link does not show an old failure as the reason.
+  // `tab` and `item` come from an address; an arrival with neither opens the
+  // token tab, which is where a failure is explained.
+  goHere(next, fail = null, tab = '', item = ''){
+    const arriving = this.view !== 'here';
+    const own = arriving ? location.search + location.hash : '';
+    const pick = next !== undefined && next !== '' ? next : own;
+    this.hereNext = /^[?#]/.test(pick || '') && !/[?&]view=here(&|#|$)/.test(pick) ? pick : '';
+    if (arriving) this.authFail = fail;
+    if (arriving || tab) this.hereTab = tab === 'stored' || tab === 'page' ? tab : 'token';
+    if (arriving || tab) this.hereItem = this.hereTab !== 'token' ? (item || '') : '';
+    this.hereSeen = true;
+    this.view = 'here';
+    this.syncUrl();
+  },
+
+  // gh-auth hands a 401 or 403 here instead of replacing the page (the onFail
+  // handler registered in the boot script). The first failure is the one that
+  // sent the reader: later ones from reads still in flight keep it, and one
+  // arriving while This browser is already open is not a new arrival.
+  routeAuthFail(info){
+    if (this.view === 'here') { this.authFail ||= info; return; }
+    this.goHere(undefined, info);
+  },
   // A specific, actionable open-repo failure instead of a bare "GitHub Error
   // 404". The two failures a signed-out visitor hits map to the two fixes:
   // sign in (private/404), or use the rate-safe public browser (403). Anything

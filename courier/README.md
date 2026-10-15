@@ -80,11 +80,28 @@ bookmark. Tapped on a page, it opens the Web Tools Stage as a popup at
 A page with no errand is one send from saved: the links file is aimed at
 `web-tools-private` `courier/captures/`.
 
+## The page's own storage
+
+Once the page has spoken, the popup can ask it one more kind of question: what
+it keeps in this browser. **This browser's Page tab** (`?view=here&tab=page`,
+linked from the courier card on the Stage) lists the page's localStorage keys
+and IndexedDB databases in the same list and cards as Stored here, and reads a
+value or a store's first 500 records when you open its card.
+
+The code that runs on the page for this is the app's own,
+[`lib/kits/page-storage.js`](../lib/kits/page-storage.js), never a message's,
+and it follows the errand-script rule below: it reads and returns. It sends
+`courier-run` with an `ask-` id and the request where the bookmark puts an
+errand (`ctx.errand`), so the bookmark needs no change. An answer goes to the
+view that asked and is never staged, so nothing it returns can be sent by
+arriving. A page whose Content Security Policy forbids `eval` refuses this
+script as it refuses an errand's.
+
 **No token goes near the visited page.** A bookmarklet's code runs inside the
 page's JavaScript context, where a hostile page could wrap `fetch` and read an
 Authorization header. Here the token stays in the Stage's window, a realm the
 page never executed code in, and the page receives only the one script its own
-origin is owed. So the errand list and the scripts can live in the private
+origin is owed, plus the storage reader above when you open the Page tab. So the errand list and the scripts can live in the private
 registry; nothing about an errand has to be public.
 
 **The window is opened by the bookmark, synchronously.** A popup is permitted

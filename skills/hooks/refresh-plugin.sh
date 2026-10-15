@@ -31,6 +31,11 @@ print(next((x.get("version", "") for x in e if x.get("scope") == "user"), ""))
 PY
 }
 
+# A plugin installed on the claude.ai account arrives by account sync, with no
+# web-tools marketplace in this CLI and no user-scope pin to move: nothing here
+# can update it, and the account's marketplace sync is what keeps it current.
+[ -n "$(pin portable@web-tools)" ] || exit 0
+
 : > "$LOG"
 claude plugin marketplace update web-tools >> "$LOG" 2>&1
 

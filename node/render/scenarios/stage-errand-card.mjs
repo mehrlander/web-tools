@@ -35,7 +35,11 @@ export default async (page) => {
       if (repo === 'mehrlander/web-tools-private' && file === 'errands/requests')
         return json(route, Object.keys(REQUESTS).map(name => ({ name, type: 'file', path: 'errands/requests/' + name })));
       if (repo === 'mehrlander/web-tools-private' && file.startsWith('errands/requests/')) {
-        const text = JSON.stringify(REQUESTS[file.split('/').pop()]);
+        const req = REQUESTS[file.split('/').pop()];
+        // A file the listing never named, asked for anyway, is a 404, not a crash
+        // of the route handler (which killed one shot in three on 2026-10-13).
+        if (!req) { console.error('stage-errand-card: no fixture for ' + file); return json(route, { message: 'Not Found' }, 404); }
+        const text = JSON.stringify(req);
         return json(route, { type: 'file', encoding: 'base64', content: Buffer.from(text).toString('base64'), sha: 'x', size: text.length });
       }
       if (repo === 'mehrlander/web-tools' && (file === 'node/render/fixtures/errand-list.ps1' || file === 'bookmarklets/courier-stage.js')) {
