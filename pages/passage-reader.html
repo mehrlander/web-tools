@@ -37,6 +37,9 @@
   Entities (In play, New here) and Connections (Carried in, Within, Carried
   forward), each part told apart by its colour. The accent colour (teal) marks
   the current sentence itself, in the passage, on its card and in the dots.
+  An ellipsis, words a sentence leaves for the reader to supply, shows as a
+  question-mark badge after the word its gap follows; the badge opens to the
+  words left out, and the sentence's own words stay as written.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -114,7 +117,8 @@ document.addEventListener('alpine:init', () => {
 
   // Everything a card shows that the file does not store. An anaphor or
   // ellipsis resolves to its entity's first named mention, or to the first in
-  // sentence `ante`. An ellipsis of the topic shows only as its bracket.
+  // sentence `ante`. An ellipsis of the topic is not a connection; it shows
+  // only as its badge.
   function index(R) {
     const S = R.sentences, topic = R.topic, by = {}, firstNamed = {}, firstAny = {};
     S.forEach((s, i) => { if (!Number.isInteger(s.n)) s.n = i + 1; });
@@ -141,7 +145,7 @@ document.addEventListener('alpine:init', () => {
         const key = `m${n}-${i}`;
         (keysOf[m.e] ||= []).push(key);
         if (!(where[m.e] ||= []).includes(n)) where[m.e].push(n);
-        const ok = add(n, key, m.quote, { kind: 'm', m, first: firstAny[m.e].n === n && firstAny[m.e].i === i }, m.in);
+        const ok = add(n, key, m.quote, { kind: 'm', m, first: firstAny[m.e].n === n && firstAny[m.e].i === i, gap: m.form === 'ellipsis' }, m.in);
         if (!m.form || (m.e === topic && m.form === 'ellipsis' && !m.note)) return;
         const f = m.ante ? { n: m.ante, i: (by[m.ante]?.mentions || []).findIndex(x => x.e === m.e && !x.form) } : firstNamed[m.e];
         if (!f || f.i < 0 || f.n > n) return;
@@ -171,7 +175,7 @@ document.addEventListener('alpine:init', () => {
     const out = [];
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1];
-      out.push({ text: text.slice(a, b), on: ranges.filter(r => r.a <= a && r.b >= b) });
+      out.push({ text: text.slice(a, b), a, b, on: ranges.filter(r => r.a <= a && r.b >= b) });
     }
     return out;
   }
@@ -271,7 +275,7 @@ document.addEventListener('alpine:init', () => {
       this.deck.deck.onSlide(i => { this.deck.setTitle(this.kindOf(i)); if (i !== this.cur) this.sync(i, 'deck'); });
     },
     revealLit() { reveal(this.$refs.passage, this.$refs.passage?.querySelector(`[data-s="${this.s.n}"]`)); },
-    pick(e) { const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
+    pick(e) { if (e.target.closest('[data-gap]')) return; const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
 
     // The dialog holds a history entry, so the phone's back button closes it.
     openAbout() { this.about = true; try { history.pushState({ reader: 'about' }, ''); } catch (e) {} },
@@ -299,6 +303,7 @@ document.addEventListener('alpine:init', () => {
     // relative to the current one and picks its colour, `fill` its strong
     // spans, `web` (grey) every other connection's spans.
     span(p, mode, m) {
+      p = { ...p, on: p.on.filter(r => !r.gap) };
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const has = set => set && p.on.some(r => set.has(r.key));
@@ -308,6 +313,18 @@ document.addEventListener('alpine:init', () => {
       if (code) cls.push('bg-base-200 rounded');
       const text = esc(code ? plain(p.text) : p.text);
       return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
+    },
+
+    // An ellipsis is marked where its words are missing: a question-mark
+    // badge after the word the gap follows, carrying the mention's key, so it
+    // lights as a mention would, and opening to the words left out. The
+    // sentence's own words stay as written.
+    gapsAfter(p, tone) {
+      return p.on.filter(r => r.gap && r.b === p.b).map(r => {
+        const m = r.m, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e;
+        return `<span data-k="${r.key}" data-gap tabindex="0" data-title-tip-lead="Leaves out" data-title-tip="${esc(fill + (m.note ? '. ' + m.note : ''))}" data-title-tip-bare`
+          + ` class="inline-grid place-items-center size-[1.125rem] ml-0.5 align-[0.1em] rounded-full text-xs font-bold leading-none select-none text-base-content/70 ${tone(r.key)}">?</span>`;
+      }).join('');
     },
 
     // What the passage shows for sentence n under the active list. Each list
@@ -342,7 +359,8 @@ document.addEventListener('alpine:init', () => {
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
         const ranges = X.rng[s.n].filter(r => r.kind !== 'a'), m = { fill, web, pos: this.side(s.n, lit) };
-        const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m)).join('');
+        const T = TONE[m.pos], gapTone = k => `${T.lit} ${on || fill.has(k) ? T.fill + ' text-base-content' : 'bg-base-300'}`;
+        const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
         return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
@@ -491,12 +509,14 @@ document.addEventListener('alpine:init', () => {
       const X = this.X, len = {}, by = {};
       for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
       for (const it of sel) for (const k of it.spans) (by[k] ||= []).push(it);
+      const gapTone = () => `${TONE.here.lit} ${TONE.here.fill} text-base-content`;
       return pieces(X.by[n].text, X.rng[n]).map(p => {
-        const its = [...new Set(p.on.flatMap(r => by[r.key] || []))];
-        if (!its.length) return this.span(p, 'card');
-        const keys = p.on.map(r => r.key).filter(Boolean).join(' '), gloss = its.find(it => it.gloss)?.gloss;
+        const on = p.on.filter(r => !r.gap), gaps = this.gapsAfter(p, gapTone);
+        const its = [...new Set(on.flatMap(r => by[r.key] || []))];
+        if (!its.length) return this.span(p, 'card') + gaps;
+        const keys = on.map(r => r.key).filter(Boolean).join(' '), gloss = its.find(it => it.gloss)?.gloss;
         return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 ${TONE.here.lit} ${ATOM}"`
-          + `${gloss ? ` data-title-tip="${esc(gloss)}" data-title-tip-bare` : ''}>${esc(plain(p.text))}</span>`;
+          + `${gloss ? ` data-title-tip="${esc(gloss)}" data-title-tip-bare` : ''}>${esc(plain(p.text))}</span>` + gaps;
       }).join('');
     },
 
