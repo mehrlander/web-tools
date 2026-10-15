@@ -491,31 +491,32 @@ test('empty repository files are cached and can be transferred without inventing
 
 // jsdom has no CodeMirror, so the pane takes the <pre> fallback; the editor
 // path is held by powershell-outpost-source-browser.mjs.
-test('the source pane shows the selected file read-only, swaps on reselect, and collapses on a phone', async () => {
+test('the Code tab shows the selected file read-only, keeps one editor across tabs, and swaps on reselect', async () => {
   assert.equal(window.PowerShellEditor, undefined, 'this harness carries no editor kit');
   const profile = `${P}/app/Profile.ps1`, writes = requests.filter(r => r.method !== 'GET').length;
   data.select(FORMS);
   await settle();
   const pane = () => el.querySelector('[data-source]');
   const plain = () => el.querySelector('[data-source-plain]');
+  const hidden = node => /(^|\s)hidden(\s|$)/.test(node.className);
   assert.equal(data.sourceState, 'plain');
   assert.equal(plain().textContent, files[FORMS]);
-  assert.doesNotMatch(plain().className, /(^|\s)hidden(\s|$)/);
-  assert.match(el.querySelector('[data-source-editor]').className, /(^|\s)hidden(\s|$)/);
-  // Collapsed below @3xl until the toggle; the container variant shows it on desktop.
-  const body = el.querySelector('[data-source-body]'), toggle = el.querySelector('[data-source-toggle]');
-  assert.match(body.className, /(^|\s)hidden(\s|$)/); assert.match(body.className, /@3xl:block/);
-  assert.match(toggle.textContent, /Show code/); assert.match(toggle.className, /@3xl:hidden/);
-  toggle.click(); await settle();
-  assert.equal(data.sourceOpen, true);
-  assert.doesNotMatch(body.className, /(^|\s)hidden(\s|$)/);
-  assert.match(toggle.textContent, /Hide code/);
-  // The pane follows the state and the actions in the detail column.
+  assert.ok(!hidden(plain()));
+  assert.ok(hidden(el.querySelector('[data-source-editor]')));
+  assert.equal(data.shownTab, 'code', 'nothing to compare from, so the file opens on its code');
+  assert.deepEqual([...el.querySelectorAll('[data-detail-tabs] [role=tab]')].map(b => b.dataset.tab), ['copy', 'code']);
+  // Another tab hides the pane by class, so the one editor view survives.
+  data.setDetailTab('copy'); await settle();
+  assert.ok(hidden(pane())); assert.ok(!hidden(el.querySelector('[data-copy]')));
+  data.setDetailTab('code'); await settle();
+  assert.ok(!hidden(pane())); assert.ok(hidden(el.querySelector('[data-copy]')));
+  // Where the file goes heads the column, above every tab.
+  assert.match(el.querySelector('[data-destination]').textContent, /^Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1$/);
   const status = [...el.querySelectorAll('[data-status]')].find(b => !b.closest('[data-row]'));
   assert.ok(status.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING, 'the header\'s status menu precedes the pane');
   data.select(profile);
   await settle();
-  assert.equal(data.sourceOpen, false, 'a new selection starts collapsed');
+  assert.equal(data.tabPicked, false, 'a new selection starts with no tab chosen');
   assert.equal(plain().textContent, files[profile]);
   data.select('');
   await settle();
@@ -598,9 +599,10 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   await data.compareDrop(dropped('<Window>\n</Window>\n')); await settle(); await settle();
   assert.equal(data.sourceView, 'code', 'a supplied copy is described first, not opened as a diff');
   assert.equal(data.copyNote.title, 'This copy differs from GitHub.');
-  assert.deepEqual(JSON.parse(JSON.stringify(data.copyNote.lines)), ['No named control or resource key changed; the difference is in layout or values.']);
+  assert.deepEqual(JSON.parse(JSON.stringify(data.copyNote.notes)), ['No named control or resource key changed; the difference is in layout or values.']);
+  assert.equal(data.shownTab, 'copy', 'a copy opens on what it holds');
   [...el.querySelectorAll('[data-copy-summary] button')].find(b => b.textContent === 'Show line changes').click(); await settle();
-  assert.equal(data.sourceView, 'changes');
+  assert.equal(data.sourceView, 'changes'); assert.equal(data.shownTab, 'code');
   assert.equal(data.baseline.label, 'Supplied copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
   // The menu's Show changes returns to it from Code.
@@ -645,11 +647,11 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   const rowOf = path => q('[data-row]').find(r => r.textContent.includes(path.split('/').pop()));
   const writes = publications.length;
   data.select(''); await settle();
-  // Assumed in sync is an outline check; a ledger confirmation is filled.
-  assert.equal(data.statusOf(profile).cls, 'ph ph-check-circle text-success');
+  // Nothing observed is a dashed circle in no colour; a ledger confirmation is a filled check.
+  assert.equal(data.statusOf(profile).cls, 'ph ph-circle-dashed text-base-content/50');
   assert.equal(data.statusOf(FORMS).cls.split(' ')[0], 'ph-fill');
   const icon = rowOf(profile).querySelector('[data-status]');
-  assert.equal(icon.getAttribute('title'), 'Assumed synced');
+  assert.equal(icon.getAttribute('title'), 'Not observed');
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
@@ -671,7 +673,7 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   data.pending = null;
   // A paste that differs, newer than any ledger row, shows as Differs with Record the difference….
   await data.compareDrop(dropped('something else\n')); await settle();
-  assert.equal(data.statusOf(profile).short, 'Assumed synced', 'only a recorded difference turns the icon red');
+  assert.equal(data.statusOf(profile).short, 'Not observed', 'only a recorded difference turns the icon red');
   assert.ok(data.actionsFor(profile).some(a => a.key === 'record-check' && a.label === 'Record the difference…'));
   assert.ok(data.actionsFor(profile).some(a => a.key === 'changes'));
   await data.runAction(profile, 'record-check'); await settle();
@@ -808,10 +810,12 @@ test('a pasted copy is described by function before any diff, and can open as a 
   await settle();
   const note = data.copyNote;
   assert.equal(note.title, 'This copy differs from GitHub.');
-  assert.deepEqual([...note.lines], ['Changed: Get-Mark (adds $Count)', 'Added: New-One', 'Removed: Old-One',
-    'New 5.1 problem at line 3: The ternary operator (? :) requires PowerShell 7 or later; Windows PowerShell 5.1 needs if and else.']);
+  // In the adopter's direction: what taking GitHub's version would do to this copy.
+  assert.deepEqual([...note.rows.map(r => r.name + ': ' + r.label)], ['Get-Mark: Differs from GitHub', 'Old-One: Not in this copy', 'New-One: Only in this copy']);
+  assert.deepEqual([...note.notes], ['New 5.1 problem at line 3: The ternary operator (? :) requires PowerShell 7 or later; Windows PowerShell 5.1 needs if and else.']);
   assert.equal(data.sourceView, 'code', 'no jump to the line diff');
-  assert.ok(el.querySelector('[data-copy-summary]').textContent.includes('Added: New-One'));
+  assert.equal(data.shownTab, 'copy');
+  assert.match(el.querySelector('[data-copy-summary]').textContent, /New-One\s*Only in this copy/);
   window.PowerShellEditor = { create: async (host, cfg) => ({ host, cfg, open() {}, readOnly() {}, go() {}, command() {}, focus() {}, refresh() {}, destroy() {} }) };
   await data.copyAsDraft(); await settle();
   const draft = [...draftStore.values()].find(d => d.path === CTL);
@@ -848,11 +852,11 @@ test('whitespace a paste can change is a match, and a dropped UTF-8 copy with no
   const bomless = new Uint8Array(new TextEncoder().encode('Write-Host "\u00d7"\r\n$a = 1\r\n'));
   await data.compareFile(drop(bomless), 'drop'); await settle();
   assert.equal(data.copyNote.same, true, 'a missing BOM is not a difference');
-  assert.ok(data.copyNote.lines.some(l => /without a byte order mark.* 1 non-ASCII character /.test(l)), 'but it is flagged');
+  assert.ok(data.copyNote.notes.some(l => /without a byte order mark.* 1 non-ASCII character /.test(l)), 'but it is flagged');
   await data.compareFile(drop(new Uint8Array([0xef, 0xbb, 0xbf, ...bomless])), 'drop'); await settle();
-  assert.ok(!data.copyNote.lines.some(l => /byte order mark/.test(l)), 'a copy saved with its BOM is not flagged');
+  assert.ok(!data.copyNote.notes.some(l => /byte order mark/.test(l)), 'a copy saved with its BOM is not flagged');
   await data.compareFile(drop(new Uint8Array(new TextEncoder().encode('$a = 1\r\n'))), 'drop'); await settle();
-  assert.ok(!data.copyNote.lines.some(l => /byte order mark/.test(l)), 'an ASCII file needs no BOM');
+  assert.ok(!data.copyNote.notes.some(l => /byte order mark/.test(l)), 'an ASCII file needs no BOM');
   files[CTL] = original; advanceHead(); await data.reload(); await settle();
 });
 
@@ -1043,4 +1047,71 @@ test('selective review keeps unchecked local code and records only the explicitl
     assert.equal(data.unitReview, null, 'an older parse cannot follow navigation');
     window.PowerShellUnits.compare = originalCompare;
   } finally { parser.delete(); window.PowerShellUnits = null; }
+});
+
+test('a pending update opens on Changes, a card per block; a pasted copy reads against the earlier version and GitHub; paste-and-match finds the file', async () => {
+  const { Parser, Language } = await import('web-tree-sitter');
+  await Parser.init(); const parser = new Parser();
+  parser.setLanguage(await Language.load(path.join(repoRoot, 'node_modules/tree-sitter-powershell/tree-sitter-powershell.wasm')));
+  for (const rel of ['lib/kits/powershell-units.js', 'lib/kits/powershell-match.js']) new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
+  const units = window.PowerShellUnits, withParser = o => ({ ...o, parser });
+  window.PowerShellUnits = { ...units, inventory: (t, o) => units.inventory(t, withParser(o)), compare: (a, b, o) => units.compare(a, b, withParser(o)),
+    prepare: (r, ids, o) => units.prepare(r, ids, withParser(o)), versions: (x, o) => units.versions(x, withParser(o)) };
+  const mp = `${P}/data/outpost.json`, ledger = `${P}/data/unit-observations.json`, saved = { manifest: files[mp], forms: files[FORMS], ledger: files[ledger] };
+  try {
+    const earlier = 'function A { 1 }\nfunction B { 1 }\nfunction C { 1 }\n', revision = 'c'.repeat(40);
+    snapshots.set(revision, { ...files, [FORMS]: earlier });
+    const manifest = JSON.parse(files[mp]);
+    manifest.pending_adoption = [{ path: 'app/Modules/Forms/Forms.psm1', since: '2026-10-05', transfer: 'changed', limit: 'Not run' }];
+    files[mp] = JSON.stringify(manifest); files[ledger] = '{"schema":1,"observations":[]}';
+    const D = 'function D { param($Name); Write-Output ("D for " + $Name) }';
+    files[FORMS] = 'function A { 2 }\nfunction B { 1 }\nfunction C { 1 }\n' + D + '\n';
+    history = { path: FORMS, until: '2026-10-05T00:00:00Z', revision };
+    data.checks = []; advanceHead(); await data.reload(); data.select(FORMS); await settle(); await settle();
+    for (let i = 0; i < 20 && !data.unitReview; i++) await tick(2);
+    const writes = requests.filter(r => r.method !== 'GET').length;
+    // No copy yet: the file opens on its changes, read-only, one card each, diffs open.
+    assert.equal(data.shownTab, 'changes');
+    assert.deepEqual([...data.visibleUnits.map(u => u.action + ' ' + u.name)], ['Replace A', 'Add D']);
+    assert.equal(q('[data-change-strip] [data-unit]').length, 2);
+    assert.equal(q('details').length, 0, 'no expanders: every diff is open');
+    assert.ok(q('[data-unit] input').every(i => i.disabled), 'choosing waits for the work copy');
+    assert.notEqual(el.querySelector('[data-unit-needs-copy]').style.display, 'none');
+    assert.match(el.querySelector('[data-unit-base]').textContent, /^Before the pending change \(ccccccc, before 2026-10-05\) → GitHub /);
+    // The earlier version with one local edit, pasted: read block by block.
+    await data.takeCopy(data.target(), 'function A { 1 }\nfunction B { 1 }\nfunction C { 9 }\n', 'clip', 'paste'); await settle();
+    for (let i = 0; i < 20 && data.unitBusy; i++) await tick(2);
+    assert.equal(data.shownTab, 'copy');
+    assert.equal(data.copyNote.title, 'This copy has 0 of GitHub\'s 2 changes, and 1 block of its own.');
+    assert.deepEqual([...data.copyNote.rows.map(r => r.name + ': ' + r.label)],
+      ['A: Earlier version; GitHub changed it', 'D: GitHub adds it', 'C: Edited in this copy', 'B: Same as GitHub']);
+    assert.match(data.copyNote.against, /^Earlier: Before the pending change \(ccccccc/);
+    // The copy is now the base: every card is choosable, and the strip steps.
+    data.setDetailTab('changes'); await settle();
+    assert.deepEqual([...data.visibleUnits.map(u => u.name)], ['A', 'C', 'D']);
+    assert.ok(q('[data-unit] input').every(i => !i.disabled));
+    q('[data-unit] input').find(i => i.getAttribute('aria-label') === 'Select A').click(); await settle();
+    assert.equal(data.selectionLine, '1 of 3 chosen');
+    data.goChange(5); assert.equal(data.changeAt, 2, 'the strip stops at its last card');
+    await data.prepareUnits(); await settle();
+    assert.equal(data.unitPrepared.text, 'function A { 2 }\nfunction B { 1 }\nfunction C { 9 }\n', 'the local edit to C survives, and D waits');
+    // A fragment says which version its blocks are and becomes neither the base nor a record.
+    const check = data.latestCheck(FORMS).id;
+    await data.takeCopy(data.target(), 'function A { 1 }\n', 'clip', 'paste'); await settle();
+    assert.equal(data.copyNote.fragment, true);
+    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 blocks in Forms.psm1. Only those are compared.');
+    assert.equal(data.latestCheck(FORMS).id, check, 'the earlier full copy is still the base');
+    assert.ok(!q('[data-copy-summary] button').some(b => /Record the/.test(b.textContent) && b.style.display !== 'none'));
+    // Paste-and-match: pasted code goes to the file it most resembles.
+    await data.matchCopy(D + '\n\n$rows = Import-Csv $env:TEMP\\x.csv | Where-Object { $_.Amount -gt 1000 } | Sort-Object Amount\n', { name: 'ISE tab' });
+    assert.equal(data.match.files[0].path, FORMS);
+    assert.deepEqual([...data.matchNew.map(u => u.name)], ['$rows']);
+    assert.equal(data.matchProgress.done, data.matchProgress.total);
+    await data.compareMatch(data.match.files[0]); await settle();
+    assert.equal(data.selected, FORMS); assert.equal(data.copyNote.fragment, true);
+    assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'none of this writes');
+  } finally {
+    parser.delete(); window.PowerShellUnits = null; window.PowerShellMatch = undefined; history = null;
+    Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [ledger]: saved.ledger }); advanceHead(); await data.reload();
+  }
 });

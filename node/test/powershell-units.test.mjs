@@ -94,3 +94,43 @@ test('registrations inside a handler never rename its enclosing review unit', as
     ['Event', '$Wrapper.On(btnGo, Click)'], ['Scriptblock', '$script:Click'], ['Class', 'Compact'],
   ]);
 });
+
+test('a statement the grammar cannot fully read is selectable when both its edges are top-level', async () => {
+  // Comma-separated command arguments and `2 * 1KB` break the grammar; both are everyday 5.1.
+  const before = 'function Open-X {\n  Add-Type -AssemblyName A, B\n  $max = 2 * 1KB\n}\nfunction Keep { 1 }\n';
+  const after = before.replace('$max = 2 * 1KB', '$max = 4 * 1KB');
+  const review = await K.compare(before, after, { ...options, tolerant: true });
+  const change = review.units.find(u => u.name === 'Open-X');
+  assert.equal(change.rough, true, 'the grammar could not read it');
+  assert.equal(change.blocked, false, 'but its edges are clear');
+  assert.equal((await K.prepare(review, [change.id], { ...options, tolerant: true })).text, after);
+});
+
+test('edges sit outside strings, comments, here-strings and brackets, never mid-word or after a continuation', () => {
+  // ¦ marks the offset under test; it is removed before scanning.
+  const cases = [
+    ['$a = "{"¦\n', 1], ['$a = "¦{"\n', 0], ["$a = '}'¦\n", 1], ['# { comment¦\n$b\n', 1],
+    ['<# { #>¦\n', 1], ["@'\n{\n'@¦\n", 1], ["@'\n{¦\n'@\n", 0], ['"$(if ($x) { "}" })"¦\n', 1],
+    ['"$(if ($x) {¦ "}" })"\n', 0], ['function A {¦\n}\n', 0], ['function A { }¦\n', 1],
+    ['function Show-¦Tree { }\n', 0], ['Get-X |¦\n  Sort\n', 0], ['Get-X |\n¦  Sort\n', 0], ['$a = 1;¦$b = 2\n', 1],
+  ];
+  for (const [marked, expected] of cases) {
+    const k = marked.indexOf('\u00a6'), text = marked.replace('\u00a6', '');
+    assert.equal(K.edges(text)[k], expected, JSON.stringify(marked));
+  }
+  assert.equal(K.edges('function A {\n')['function A {\n'.length], 0, 'an unclosed brace leaves no edge at the end');
+});
+
+test('versions reads a pasted copy block by block against GitHub and the earlier version', async () => {
+  const earlier = 'function A { 1 }\nfunction B { 1 }\nfunction C { 1 }\nfunction Gone { 1 }\nImport-Module X\n';
+  const github = 'function A { 2 }\nfunction B { 2 }\nfunction C { 1 }\nfunction New { 1 }\nImport-Module X\n';
+  const copy = 'function A { 2 }\r\nfunction B { 1 }  \r\nfunction C { 9 }\r\nfunction Gone { 1 }\r\nfunction Mine { 1 }\r\nImport-Module X\r\n';
+  const v = await K.versions({ copy, github, earlier }, options);
+  const by = Object.fromEntries(v.rows.map(r => [r.name, r.status]));
+  assert.deepEqual(by, { A: 'updated', B: 'behind', C: 'local', New: 'new', Gone: 'removed', Mine: 'extra' });
+  assert.equal(v.outside, 'same');
+  assert.equal(v.fragment, false);
+  const plainRead = await K.versions({ copy: 'function A { 9 }\n', github }, options);
+  assert.deepEqual(plain(plainRead.rows.map(r => [r.name, r.status])), [['A', 'differs'], ['B', 'missing'], ['C', 'missing'], ['New', 'missing']]);
+  assert.equal(plainRead.fragment, true, 'one block of four is a fragment, not the file');
+});

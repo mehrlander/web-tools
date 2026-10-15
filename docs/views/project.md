@@ -26,9 +26,10 @@ An [outpost](../outposts.md) is a place outside Git that holds estate material.
 This view serves one of them, the work computer's PowerShell suite, mirrored in
 mehrlander/home's `projects/wps`. It shows each file's destination there and
 what was last observed of it. It also compares a pasted copy with GitHub and
-holds edits as browser drafts. It places nothing, per the PowerShell outpost
-protocol in [`outposts.csv`](../outposts.csv). `powershell-outpost.js` derives
-each file's state from the observations ledger.
+the version the work computer last held, finds the file a pasted snippet most
+resembles, and holds edits as browser drafts. It places nothing, per the
+PowerShell outpost protocol in [`outposts.csv`](../outposts.csv).
+`powershell-outpost.js` derives each file's state from the observations ledger.
 
 **The ledger is the view's only write.** It is appended, never rewritten, one
 row per confirmed file, committed on the browsed branch only after the reader
@@ -49,10 +50,14 @@ The rest of what the code keeps:
   rule; change both.
 - The Problems list is lexical heuristics; an empty one proves nothing about
   Windows PowerShell 5.1.
+- A block the parser cannot fully read is offered for a selective update only
+  when `PowerShellUnits.edges` confirms both its edges sit at top level.
 
 Code: `lib/alpineComponents/powershell-outpost-view.js` (the view),
 `lib/alpineComponents/powershell-file.js` (one file, in the view and its swipe
 deck), `lib/kits/powershell-outpost.js` (states, ledger),
-`lib/kits/powershell-workspace.js` (reads, drafts, publishing). `npm test`
+`lib/kits/powershell-workspace.js` (reads, drafts, publishing),
+`lib/kits/powershell-units.js` (blocks, edges, versions),
+`lib/kits/powershell-match.js` (paste matching). `npm test`
 opens no browser, so a change to the file pane or editor also needs
 `npm run test:powershell-outpost-source` and `npm run test:powershell-file`.
