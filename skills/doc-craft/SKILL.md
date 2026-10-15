@@ -20,5 +20,6 @@ Content should only be included where it changes behavior (the idea and the requ
 - **Retain actionable rationale**: Include reasons only when they directly clarify intent, and then as minimally as possible.
 - **Format non-obvious restrictions**: State the trigger condition, failure symptom, and required mitigation.
 - **Be concrete**: Name exact files, commands, flags, components, and actors.
+- **Professional register**: Avoid informal tone with any hint of soapboxing.
 - **Hedge**: Use careful, precise language. Prefer "avoid" or "do not" over "never".
 - **Verify continuity**: Confirm that removals or edits do not break prerequisites, cross-references, or transitions.
