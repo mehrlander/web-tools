@@ -16,18 +16,19 @@
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
-  does not store. Each colour has one meaning. A span or a list row takes the
-  colour of where it sits relative to the current sentence: purple in it,
-  amber before it, blue after it. The pills switch the passage between two
-  views. Connections: every connection's two spans tinted light grey and
-  joined by a faint grey line behind the text, and a connection touching the
-  current sentence, either way, with its spans in those colours and its line
-  purple. Entities: every entity mention tinted light grey, and every mention
-  of the current sentence's entities in those colours. The card lists Connections (Carried in, Within,
-  Carried forward) and Entities (In play, New here), each part told apart by
-  that colour, after the sentence's atoms; a rule sets the sentence apart. The accent colour (teal)
-  marks the current sentence itself, in the passage, on its card and in the
-  dots.
+  does not store. A span or a list row takes the colour of where it sits
+  relative to the current sentence: purple in it, amber before it, blue after
+  it. The one other use of amber is an atom's quote, lit on the card while its
+  row is hovered. The pills switch the passage between two views. Entities:
+  every entity mention tinted light grey, and every mention of the current
+  sentence's entities in the position colours. Connections: every
+  connection's two spans tinted light grey and joined by a faint grey line
+  behind the text, and a connection touching the current sentence, either
+  way, with its spans in the position colours and its line purple. The card
+  shows the sentence alone under its bar and a rule, then its atoms, then
+  Entities (In play, New here) and Connections (Carried in, Within, Carried
+  forward), each part told apart by its colour. The accent colour (teal) marks
+  the current sentence itself, in the passage, on its card and in the dots.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -53,11 +54,13 @@ document.addEventListener('alpine:init', () => {
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   // Two lists, each of parts that never overlap, told apart by colour; the
   // colour says where a span or row sits relative to the current sentence.
-  const GROUPS = [{ key: 'links', label: 'Connections' }, { key: 'entities', label: 'Entities' }];
+  const GROUPS = [{ key: 'entities', label: 'Entities' }, { key: 'links', label: 'Connections' }];
   const LEGEND = {
     links: [['before', 'Carried in'], ['here', 'Within'], ['after', 'Carried forward']],
     entities: [['before', 'In play'], ['here', 'New here']],
   };
+  // An atom's quote lights in its own colour, on the card only.
+  const ATOM = 'data-[atom]:bg-warning/50';
   const TONE = {
     before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30' },
     here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary/20' },
@@ -170,7 +173,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'links', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'entities', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -249,7 +252,7 @@ document.addEventListener('alpine:init', () => {
     closeAbout() { if (history.state && history.state.reader === 'about') history.back(); else this.about = false; },
 
     light(keys, attr = 'data-on') {
-      document.querySelectorAll('[data-on],[data-ev],[data-hot]').forEach(el => { el.removeAttribute('data-on'); el.removeAttribute('data-ev'); el.removeAttribute('data-hot'); });
+      document.querySelectorAll('[data-on],[data-ev],[data-atom],[data-hot]').forEach(el => ['data-on', 'data-ev', 'data-atom', 'data-hot'].forEach(a => el.removeAttribute(a)));
       this.hot = null;
       if (keys) for (const k of keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute(attr, ''));
     },
@@ -263,7 +266,7 @@ document.addEventListener('alpine:init', () => {
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const has = set => set && p.on.some(r => set.has(r.key));
-      const T = TONE[m?.pos || 'here'], cls = [T.lit];
+      const T = TONE[m?.pos || 'here'], cls = [T.lit, mode === 'card' ? ATOM : ''];
       if (has(m?.fill)) cls.push(T.fill, mode === 'dim' ? 'text-base-content' : '');
       else if (has(m?.web)) cls.push('bg-base-200');
       if (code) cls.push('bg-base-200 rounded');
@@ -385,15 +388,12 @@ document.addEventListener('alpine:init', () => {
     },
     // One connection read as a statement: the later span, a relation, the
     // earlier span, each chip toned by where it sits relative to sentence n.
-    statement(it, bare, n) {
+    statement(it, n) {
       const tone = k => this.side(this.X.at[k], n);
       const fill = () => it.fill || (this.R.entities[it.e] || {}).label || it.e;
-      if (bare) {
-        const q = s => `“${plain(s)}”`;
-        return it.kind === 'ellipsis' ? `${q(it.here)} leaves out “${fill()}”` : `${q(it.within || it.here)} ${VERB[it.kind] || it.kind} ${q(it.there)}`;
-      }
-      const verb = v => `<span class="text-sm text-base-content/50">${v}</span>`;
-      const line = parts => `<span class="flex flex-wrap items-center gap-x-2 gap-y-1">${parts.join('')}</span>`;
+      // The relation as a small arrow-shaped tag between the two chips.
+      const verb = v => `<span class="inline-flex items-center pl-3 pr-4 py-0.5 text-sm leading-5 bg-base-300 text-base-content/70 [clip-path:polygon(0_0,calc(100%_-_8px)_0,100%_50%,calc(100%_-_8px)_100%,0_100%,6px_50%)]">${v}</span>`;
+      const line = parts => `<span class="flex flex-wrap items-center gap-x-1 gap-y-1">${parts.join('')}</span>`;
       if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0], null, tone(it.keys[0])), verb('leaves out'), `<span>${esc(fill())}</span>`]);
       return line([this.chip(it.here, it.keys[0], it.within, tone(it.keys[0])), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn, tone(it.keys[1]))]);
     },
@@ -427,26 +427,27 @@ document.addEventListener('alpine:init', () => {
       const first = k => Math.min(...(X.where[k] || [n]));
       return {
         links: ends.sort((a, b) => a[1] - b[1]).map(([it, m, mine], j) => ({ id: `links:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[mine]],
-          tone: this.side(m, n), lead: this.statement(it, true), tip: it.gloss || it.note || '', left: this.num(m, this.side(m, n)),
-          body: [this.statement(it, false, n), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
+          tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+          body: [this.statement(it, n), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
         entities: this.named(n).map(k => [k, first(k)]).sort((a, b) => a[1] - b[1]).map(([k, m], j) => {
           const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
-          return { id: `entities:${j}`, mode: 'ev', keys: X.keysOf[k] || [], spans: here(k), tone: this.side(m, n), lead: e.label || k, tip: (e.gloss || '') + basis,
-            left: this.num(m, this.side(m, n)),
-            body: [`<span class="text-pretty"><span class="font-semibold">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+          const keys = X.keysOf[k] || [];
+          // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
+          return { id: `entities:${j}`, mode: 'ev', keys, spans: here(k), tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+            body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
         }),
         atoms: s.atoms.map((a, k) => {
           const tags = [a.role !== s.role ? a.role : '', a.for ? `for ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean);
           const key = `a${n}-${k}`;
-          return { id: `atoms:${k}`, mode: 'ev', keys: [key], spans: [key], lead: '', tip: a.claim + (tags.length ? ` (${tags.join(', ')})` : ''), left: esc(a.id),
+          return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id),
             body: [`<span class="text-pretty${a.implied ? ' italic' : ''}">${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
       };
     },
 
-    // The sentence with the active group's items highlighted, each carrying a
-    // title-tip with its row's words; a piece inside several takes the shortest.
+    // The sentence with the active list's items highlighted; hovering one
+    // lights its row below rather than opening a tooltip.
     sentenceHtml(n, sel) {
       const X = this.X, len = {}, by = {};
       for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
@@ -454,12 +455,8 @@ document.addEventListener('alpine:init', () => {
       return pieces(X.by[n].text, X.rng[n]).map(p => {
         const its = [...new Set(p.on.flatMap(r => by[r.key] || []))];
         if (!its.length) return this.span(p, 'card');
-        const size = it => Math.min(...it.spans.map(k => len[k] ?? Infinity));
-        its.sort((a, b) => size(a) - size(b));
-        const top = its[0], tip = top.tip || top.lead;
         const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
-        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 data-[on]:bg-primary/40 data-[ev]:bg-primary/40"`
-          + `${top.tip && top.lead ? ` data-title-tip-lead="${esc(top.lead)}"` : ''} data-title-tip="${esc(tip)}" data-title-tip-bare>${esc(plain(p.text))}</span>`;
+        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 ${TONE.here.lit} ${ATOM}">${esc(plain(p.text))}</span>`;
       }).join('');
     },
 
@@ -489,7 +486,7 @@ document.addEventListener('alpine:init', () => {
     point(ids, el, show) {
       const its = ids.map(id => el._items[id]).filter(Boolean);
       if (!its.length) return;
-      this.light([...new Set(its.flatMap(it => it.keys))], its[0].mode === 'ev' ? 'data-ev' : 'data-on');
+      this.light([...new Set(its.flatMap(it => it.keys))], { ev: 'data-ev', atom: 'data-atom' }[its[0].mode] || 'data-on');
       for (const it of its) el.querySelector(`[data-item="${it.id}"]`)?.setAttribute('data-hot', '');
       this.hot = ids.join(' ');
       // A tap brings the partner span into the passage pane, which on a phone is a short band.
