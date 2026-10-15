@@ -8062,10 +8062,23 @@ function app(){ return {
     const sm = text.match(/^(?:https?:\/\/claude\.ai\/code\/)?(session_[A-Za-z0-9]+)(?:[?#].*)?$/i);
     if (sm) return await this.openSessionByAgent(sm[1]);
 
+    // A SESSION'S SHORT ID, in the two forms this estate hands one over: the
+    // bracketed id that ends a rundown's copy line (`## 👉 … [8fbc1397]`, or
+    // `[8fbc1397]()`, the form a phone colors green), and the session page's
+    // own link (`…/pages/session.html#id=8fbc1397`). Only this estate writes
+    // either shape, so a miss is reported rather than staged.
+    const tagged = this.sessionShortFromPaste(text);
+    if (tagged) return await this.openSessionByShort(tagged, { report: true });
+
     // A BRANCH ADDRESS, as repo@branch, a GitHub tree URL, or an assistant branch name:
     // opens the branch detail takeover deck.
     const br = this.parseBranchPaste(text);
     if (br) return this.openBranchSpec(br.repo, br.name);
+
+    // A BARE SHORT ID opens only when the sessions cache holds it. Eight hex
+    // characters is also an abbreviated commit SHA, which is content, so a
+    // miss here declines to the Stage instead of reporting.
+    if (/^[0-9a-f]{8}$/i.test(text)) return await this.openSessionByShort(text.toLowerCase(), { report: false });
 
     return false;
   },
@@ -8074,9 +8087,42 @@ function app(){ return {
   // in-memory estate sessions or fetches state/sessions.json from the private
   // store, stamps the URL, switches to Sessions, and opens the takeover deck.
   async openSessionByAgent(sessId){
+    const row = await this.findSessionRow(r => r.agent && r.agent.includes(sessId));
+    if (row && row.id) return this.openSessionRow(row);
+
+    const toast = Alpine.store('toast');
+    toast?.('warning', 'Session ' + sessId + ' not found in sessions cache. A record is published when the session stops and crawls run periodically.', 'alert-warning', 6000);
+    return true;
+  },
+
+  // The same, keyed by a record's short id. `report` says whose a miss is: a
+  // bracketed id or a session page link is this estate's own shape, so the miss
+  // is explained; a bare id may be a commit SHA, so the miss declines to the
+  // Stage. A session with no record is the ordinary miss: it publishes one when
+  // it stops, and only with the sessions store checked out.
+  async openSessionByShort(id, { report = false } = {}){
+    const row = await this.findSessionRow(r => r.id === id);
+    if (row) return this.openSessionRow(row);
+    if (!report) return false;
+    Alpine.store('toast')?.('warning', 'Session ' + id + ' has no record in the sessions cache. A session publishes one when it stops, and only with the sessions store checked out.', 'alert-warning', 6000);
+    return true;
+  },
+
+  // The short id a rundown's copy line or a session page link carries, or null.
+  sessionShortFromPaste(text){
+    const s = String(text || '').trim();
+    const link = s.match(/\/pages\/session\.html#(?:[^#]*&)?id=([0-9a-f]{8})(?:&|$)/i);
+    if (link) return link[1].toLowerCase();
+    const tag = s.match(/\[([0-9a-f]{8})\](?:\(\))?$/i);
+    return tag ? tag[1].toLowerCase() : null;
+  },
+
+  // One sessions-cache row: the estate view's rows when they are loaded, else
+  // state/sessions.json from the private store, which then seeds the view too.
+  async findSessionRow(match){
     const es = document.querySelector('[x-data^="estate"]');
     const esData = es ? window.Alpine?.$data(es) : null;
-    let row = esData?.allSessionRows?.find(r => r.agent && r.agent.includes(sessId));
+    let row = esData?.allSessionRows?.find(match);
 
     if (!row && this.hasToken() && window.GH) {
       try {
@@ -8085,24 +8131,22 @@ function app(){ return {
         const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
         const cache = JSON.parse((await reg.get(path)).text);
         if (esData && typeof esData.takeSessions === 'function') esData.takeSessions(cache);
-        row = (cache.rows || []).find(r => r.agent && r.agent.includes(sessId));
+        row = (cache.rows || []).find(match);
       } catch (e) {
-        console.warn('resolving session by agent:', e?.message || e);
+        console.warn('resolving session:', e?.message || e);
       }
     }
+    return row || null;
+  },
 
-    if (row && row.id) {
-      const p = new URLSearchParams(location.search);
-      p.set('view', 'sessions');
-      p.set('session', row.id);
-      history.replaceState(null, '', location.pathname + '?' + p.toString());
-      this.goSessions();
-      document.dispatchEvent(new CustomEvent('web-tools:open-session-detail', { detail: { id: row.id } }));
-      return true;
-    }
-
-    const toast = Alpine.store('toast');
-    toast?.('warning', 'Session ' + sessId + ' not found in sessions cache. A record is published when the session stops and crawls run periodically.', 'alert-warning', 6000);
+  // Stamp the session into the address, switch to Sessions, open its deck.
+  openSessionRow(row){
+    const p = new URLSearchParams(location.search);
+    p.set('view', 'sessions');
+    p.set('session', row.id);
+    history.replaceState(null, '', location.pathname + '?' + p.toString());
+    this.goSessions();
+    document.dispatchEvent(new CustomEvent('web-tools:open-session-detail', { detail: { id: row.id } }));
     return true;
   },
 
