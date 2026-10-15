@@ -2963,7 +2963,7 @@ function app(){ return {
     window.addEventListener('toss-subject-mark', () => this.onSubjectMark());
     this.wireRevisit();
     // The view on screen, stamped on every call the traffic ledger records
-    // (gh-boot.js), which is all the This tab pane can say of a call no job
+    // (gh-boot.js), which is all the Weight pane can say of a call no job
     // claims.
     window.__trafficWhere = () => this.view;
   },
@@ -6342,7 +6342,7 @@ function app(){ return {
       stamp(p){ if (this.waitingCall) p.set('call', this.waitingCall); } },
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
-    { key: 'jobs', open(){ this.goJobs(); } },
+    { key: 'weight', open(){ this.goWeight(); } },
     // The Search view's address carries the ran search (sq + friends, stamped
     // from searchSeed, which the view updates on each run) AND the file open in
     // it (sfile, an owner/repo[@ref]:path address), so the screen can be shared
@@ -6960,7 +6960,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state', 'jobs'].includes(this.view); },
+  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state', 'weight'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -7029,7 +7029,7 @@ function app(){ return {
       // ?view=branches resolves to Branches, and the pill row leads with
       // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state', 'jobs', 'tending'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state', 'weight', 'tending'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       // Waiting: the owner's queue, user calls and proposed edits. Standing
       // with a token, since proposed edits are rarely none and counting them
@@ -7354,13 +7354,13 @@ function app(){ return {
   // State view's arrival waits on a check the timer had already started.
   _checks: {},
   // Work the page starts on its own, run as a job (gh-boot.js, the job ledger)
-  // so the This tab pane can name it. `cause` is why it ran: boot, arrival,
+  // so the Weight pane can name it. `cause` is why it ran: boot, arrival,
   // return, timer or tap. A page whose boot predates the ledger runs it bare.
   asJob(name, cause, fn){
     return window.__job ? window.__job(name, { cause }, fn) : fn();
   },
   // Each check is a job (gh-boot.js, the job ledger), named for the row State
-  // gives the cache and stamped with why it ran, so the This tab pane can say
+  // gives the cache and stamped with why it ran, so the Weight pane can say
   // which calls a check made and what started it.
   CHECK_LABEL: { configs: 'repo configs', activity: 'branches', sessions: 'sessions' },
   checkCache(key, opts){
@@ -7460,9 +7460,10 @@ function app(){ return {
   // Branches pane already keeps, and its own deeper read is a control on
   // the pane rather than an arrival cost.
   goWrites(){ this.estateSeen = true; this.view = 'writes'; this.syncUrl(); },
-  // This tab: the work this page has done, from the job and traffic ledgers in
-  // memory. It warms nothing and reads no cache, so arriving costs no call.
-  goJobs(){ this.estateSeen = true; this.view = 'jobs'; this.syncUrl(); },
+  // Weight: what this page carries and the work it has done since it loaded,
+  // from the job and traffic ledgers in memory. It warms nothing and reads no
+  // cache, so arriving costs no call.
+  goWeight(){ this.estateSeen = true; this.view = 'weight'; this.syncUrl(); },
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
   // `repo` is a filter a Repos card or a branch row hands in, deliberately not
   // stamped: it narrows a reading, and a shared link should open the whole set.

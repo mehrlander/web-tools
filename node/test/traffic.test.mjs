@@ -513,3 +513,20 @@ test('jobRows lists jobs from their own counts and files the rest by view', () =
   assert.equal(tt.claimed, 2);
   assert.equal(tt.running, 1);
 });
+
+test('pageFiles weighs the page\'s own files and leaves fetched calls to the ledger', () => {
+  const nav = { name: 'https://x/app/', transferSize: 2000, encodedBodySize: 1800, decodedBodySize: 9000, duration: 50, startTime: 0, initiatorType: 'navigation' };
+  const entries = [
+    netRow('https://cdn.jsdelivr.net/npm/x.js', 1000, 5000),
+    cachedRow('https://x/dist/app.js', 6000),
+    opaqueRow('https://fonts.example/font.woff2'),
+    { ...netRow('https://api.github.com/repos/o/r/commits', 500, 900), initiatorType: 'fetch' },
+    { ...netRow('https://api.github.com/repos/o/r/branches', 500, 900), initiatorType: 'xmlhttprequest' },
+  ];
+  const f = T.pageFiles(entries, nav);
+  assert.equal(f.count, 4, 'the document and its three files; the two calls belong to the ledger');
+  assert.equal(f.decoded, 9000 + 5000 + 6000, 'unpacked size of every file that disclosed one');
+  assert.equal(f.wire, 2000 + 1000, 'a cached file cost no transfer');
+  assert.equal(f.cached, 1);
+  assert.equal(f.undisclosed, 1, 'a file with no disclosed size is counted apart, not as zero');
+});
