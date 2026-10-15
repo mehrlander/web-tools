@@ -1,9 +1,9 @@
 name,want,twin,note
 algorithmic-art,on,,"Anthropic's example, on as found 2026-10-02"
-apple-shortcuts-actions,on,apple-shortcuts-actions,
-arriving-together,on,,the only copy is this upload; no repo holds it
-atomic-decomposition,on,atomic-decomposition,
-bake-page,on,bake-page,
+apple-shortcuts-actions,off,apple-shortcuts-actions,deleted from the account 2026-10-14; the plugin carries it
+arriving-together,off,,retired 2026-09-29; the essay is home chron/2026/03/2026-03-10-the-art-of-arriving-together.md
+atomic-decomposition,off,atomic-decomposition,deleted from the account 2026-10-14; the plugin carries it
+bake-page,off,bake-page,deleted from the account 2026-10-14; the plugin carries it
 built-in-browser,on,,"Anthropic's example, on as found 2026-10-02"
 canvas-design,on,,"Anthropic's example, on as found 2026-10-02"
 chrome-browser,on,,"Anthropic's example, on as found 2026-10-02"
@@ -14,32 +14,32 @@ doc-coauthoring,on,,Supplied by Anthropic; no Web Tools copy.
 docs,on,,"Anthropic's example, on as found 2026-10-02"
 docx,on,,Supplied by Anthropic; no Web Tools copy.
 google-workspace,on,,"Anthropic's example, on as found 2026-10-02"
-html-style,on,html-style,uploaded for chat; succeeds daisy-alpine
+html-style,off,html-style,never uploaded; the plugin carries it
 import-memory,on,,"Anthropic's example, on as found 2026-10-02"
-inspire-excellence,on,inspire-excellence,
-ios-clipboard,on,ios-clipboard,
+inspire-excellence,off,inspire-excellence,deleted from the account 2026-10-14; the plugin carries it
+ios-clipboard,off,ios-clipboard,deleted from the account 2026-10-14; the plugin carries it
 learn,on,,"Anthropic's example, on as found 2026-10-02"
-mobile,on,mobile,
+mobile,off,mobile,deleted from the account 2026-10-14; the plugin carries it
 morning,on,,"Anthropic's example, on as found 2026-10-02"
-office-scripts-shape-ui,on,office-scripts-shape-ui,
-outlining,on,outlining,
+office-scripts-shape-ui,off,office-scripts-shape-ui,deleted from the account 2026-10-14; the plugin carries it
+outlining,off,outlining,deleted from the account 2026-10-14; the plugin carries it
 pdf,on,,Supplied by Anthropic; no Web Tools copy.
-phosphor-icons,on,phosphor-icons,
-power-query,on,power-query,
-powershell-ise-theming,on,powershell-ise-theming,
+phosphor-icons,off,phosphor-icons,deleted from the account 2026-10-14; the plugin carries it
+power-query,off,power-query,deleted from the account 2026-10-14; the plugin carries it
+powershell-ise-theming,off,powershell-ise-theming,deleted from the account 2026-10-14; the plugin carries it
 pptx,on,,Supplied by Anthropic; no Web Tools copy.
-reorient-me,on,reorient-me,
-report-distiller,on,report-distiller,
+reorient-me,off,reorient-me,deleted from the account 2026-10-14; the plugin carries it
+report-distiller,off,report-distiller,deleted from the account 2026-10-14; the plugin carries it
 safe-html-templating,off,,Archived in archive/skills/safe-html-templating; retained guidance is in html-style/references/mechanics.md.
-shape-text,on,shape-text,
-show-diff,on,show-diff,
+shape-text,off,shape-text,deleted from the account 2026-10-14; the plugin carries it
+show-diff,off,show-diff,deleted from the account 2026-10-14; the plugin carries it
 skill-creator,on,,Supplied by Anthropic; no Web Tools copy.
-skill-prefs,on,skill-prefs,
-source-anchored-writing,on,source-anchored-writing,
-source-anchored-xlsx,on,source-anchored-xlsx,
-source-anchoring,on,source-anchoring,
-succinct-js-idioms,on,succinct-js-idioms,
-succinct-text,on,succinct-text,
+skill-prefs,off,skill-prefs,deleted from the account 2026-10-14; the plugin carries it
+source-anchored-writing,off,source-anchored-writing,deleted from the account 2026-10-14; the plugin carries it
+source-anchored-xlsx,off,source-anchored-xlsx,deleted from the account 2026-10-14; the plugin carries it
+source-anchoring,off,source-anchoring,deleted from the account 2026-10-14; the plugin carries it
+succinct-js-idioms,off,succinct-js-idioms,deleted from the account 2026-10-14; the plugin carries it
+succinct-text,off,succinct-text,deleted from the account 2026-10-14; the plugin carries it
 theme-factory,on,,"Anthropic's example, on as found 2026-10-02"
-windows-powershell,on,windows-powershell,
+windows-powershell,off,windows-powershell,deleted from the account 2026-10-14; the plugin carries it
 xlsx,on,,Supplied by Anthropic; no Web Tools copy.
