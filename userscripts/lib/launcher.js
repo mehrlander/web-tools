@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '05ce848';
-const BUILT = '2026-10-07T03:27:42Z';
+const BUILD = '108dcec';
+const BUILT = '2026-10-13T22:37:40Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -85,7 +85,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const realFab = () => document.querySelector('[aria-label="Web-tools panel"], [x-data*="fab"][data-fab-root], [x-data*="fab"].fab-root');
   const hasWebToolsScript = () => !!document.querySelector(
     'script[src*="alpineComponents/fab.js"], ' +
-    'script[src*="mehrlander.github.io/web-tools"], ' +
+    // Not this file's own tag: the bookmarklet route injects it from Pages, and
+    // counting it made the launcher stand down on every site (2026-10-13).
+    'script[src*="mehrlander.github.io/web-tools"]:not([src*="/userscripts/"]), ' +
     'script[src*="/web-tools/app/"], ' +
     'script[src*="lib/gh-api.js"], ' +
     'link[href*="mehrlander.github.io/web-tools"]'
