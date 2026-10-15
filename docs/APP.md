@@ -28,6 +28,8 @@ Keep the redirect at `pages/show-repo/show-repo.html`; saved links depend on it.
 
 Stage links (`#stage=`) and private-repo access require the browser's stored `ghToken`. The Claude app's browser may lack that token. State the requirement with every stage link. A stage holding only pasted text mints as `#gz=`, which carries the text in the link and needs no token ([stage.md](stage.md)). For repo files and a reader without a token, download the stage's concatenated bundle and send the file.
 
+When GitHub rejects the token, the app opens **This browser** (`?view=here`), which shows the saved token's record and takes a new one. Tokens are stored per browser: the one saved in Safari is not the one an iOS home-screen app reads.
+
 ## Addresses
 
 - `?repo=owner/repo[&ref=…]` opens a repo on its Overview. `?ref=` is repo-scoped and stamps beside `repo`.

@@ -34,9 +34,7 @@ const carried = new Set(portable.skills.map(s => path.posix.basename(s)));
 
 // Skills a plugin skill may name because the platform supplies them, not this
 // plugin. Each entry says where it comes from.
-const PLATFORM = new Map([
-  ['dataviz', 'bundled with Claude; html-style cites its stat-tile heuristic to overrule it'],
-]);
+const PLATFORM = new Map([]);
 
 const upstreams = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'upstream-skills.csv'), 'utf8'));
 const referenced = upstreams.filter(r => r.status === 'referenced').map(r => {
