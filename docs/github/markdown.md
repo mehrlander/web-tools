@@ -7,7 +7,7 @@ just static markdown that the renderer turns into pictures, charts, and callouts
 This doc is scoped to **GitHub's static renderer**. For the *chat client's*
 renderer (a provider's app on a narrow phone, where nested bullets balloon and
 markdown tables carry a file tree), see the companion
-[`markdown-in-chat.md`](../markdown-in-chat.md). Same markup, different
+[`claude-markdown`](../../skills/claude-markdown/SKILL.md) skill. Same markup, different
 renderer, different good moves.
 
 The running example throughout is an **imaginary chat dialog plotted on a timeline**:
