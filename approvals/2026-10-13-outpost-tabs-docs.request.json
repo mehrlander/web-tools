@@ -1,7 +1,7 @@
 {
   "manifest": {
     "name": "The Project view reference for the outpost's tabs and paste matching",
-    "created_at": "2026-10-13T17:18:31Z",
+    "created_at": "2026-10-15T07:19:28Z",
     "schema": {
       "name": "surface",
       "version": 2
@@ -16,11 +16,11 @@
     "kind": "documentation",
     "reply_to": "mehrlander/web-tools:approvals",
     "repo": "mehrlander/web-tools",
-    "base": "96f19ed2ce4ee7050abb337383106b61d5833292",
+    "base": "7f035129a02e062dacbe4745a1d766969a5e40e3",
     "branch": "claude/quirky-gauss-8ibke3",
     "occasion": "new-capability",
     "session": "https://claude.ai/code/session_01LQb4J9jLWBXjMayJo1SLEq",
-    "rationale": "The outpost view now opens a selected file in three tabs (Changes, Your copy, Code), matches pasted code that names no file to its file, and trusts a block the grammar cannot fully read only when a lexical scan confirms its edges. The code is committed on this branch. This is the one governing document that states the view, held by the consent gate until you decide: one paragraph naming the tabs and the matcher, one bullet for the edge rule, and two kits added to the code list. Approve, approve with edits, or return it."
+    "rationale": "The outpost view now compares a pasted copy with the version the work computer last held as well as GitHub, matches pasted code that names no file, and trusts a block the parser cannot fully read only when its edges are confirmed. This revision, compacted on 2026-10-15 at the owner's request, says only what changes an assistant's work: one clause in the existing sentence on what the view compares, one bullet for the edge rule, and two kits in the code list. The tabs paragraph of the first draft is cut, since the view's code and comments carry it. Approve, approve with edits, or return it."
   },
   "items": [
     {
@@ -35,9 +35,9 @@
       },
       "change": {
         "status": "modified",
-        "patch": "@@ -36,6 +36,17 @@ confirms the placement on the work computer. Comparing and copying never write\n a row. State icons come from `lib/kits/sync-status.js`,\n shared with the shortcut views.\n \n+A selected file's working area is three tabs. **Changes** shows one card per\n+changed block (`PowerShellUnits.compare`), stepped by swipe, arrow key or\n+counter and opened full screen in the house deck; with a supplied work copy\n+the cards become a selective update. **Your copy** reads a supplied copy block\n+by block against GitHub and the version the work computer last held\n+(`PowerShellUnits.versions`). **Code** is the file component, with its own Work\n+copy line diff. Above the list, **Paste code to find its file** matches pasted\n+PowerShell that names no file to the workspace's files\n+([`powershell-match.js`](../../lib/kits/powershell-match.js)), and the app sends\n+a page-wide paste there when no file is open.\n+\n The rest of what the code keeps:\n \n - Source reads verify each file's Git blob bytes, and a draft keeps the file's\n@@ -49,8 +60,13 @@ The rest of what the code keeps:\n   rule; change both.\n - The Problems list is lexical heuristics; an empty one proves nothing about\n   Windows PowerShell 5.1.\n+- A block the grammar cannot fully read is choosable only when\n+  `PowerShellUnits.edges` confirms both its edges sit at top level; the\n+  grammar's own boundary is not trusted there.\n \n Code: `lib/alpineComponents/powershell-outpost-view.js` (the view),\n+`lib/kits/powershell-units.js` (blocks, edges, versions),\n+`lib/kits/powershell-match.js` (which file a paste belongs to),\n `lib/alpineComponents/powershell-file.js` (one file, in the view and its swipe\n deck), `lib/kits/powershell-outpost.js` (states, ledger),\n `lib/kits/powershell-workspace.js` (reads, drafts, publishing). `npm test`\n"
+        "patch": "@@ -26,9 +26,10 @@ An [outpost](../outposts.md) is a place outside Git that holds estate material.\n This view serves one of them, the work computer's PowerShell suite, mirrored in\n mehrlander/home's `projects/wps`. It shows each file's destination there and\n what was last observed of it. It also compares a pasted copy with GitHub and\n-holds edits as browser drafts. It places nothing, per the PowerShell outpost\n-protocol in [`outposts.csv`](../outposts.csv). `powershell-outpost.js` derives\n-each file's state from the observations ledger.\n+the version the work computer last held, matches pasted code that names no file\n+to its file, and holds edits as browser drafts. It places nothing, per the\n+PowerShell outpost protocol in [`outposts.csv`](../outposts.csv).\n+`powershell-outpost.js` derives each file's state from the observations ledger.\n \n **The ledger is the view's only write.** It is appended, never rewritten, one\n row per confirmed file, committed on the browsed branch only after the reader\n@@ -49,10 +50,14 @@ The rest of what the code keeps:\n   rule; change both.\n - The Problems list is lexical heuristics; an empty one proves nothing about\n   Windows PowerShell 5.1.\n+- A block the parser cannot fully read is offered for a selective update only\n+  when `PowerShellUnits.edges` confirms both its edges sit at top level.\n \n Code: `lib/alpineComponents/powershell-outpost-view.js` (the view),\n `lib/alpineComponents/powershell-file.js` (one file, in the view and its swipe\n deck), `lib/kits/powershell-outpost.js` (states, ledger),\n-`lib/kits/powershell-workspace.js` (reads, drafts, publishing). `npm test`\n+`lib/kits/powershell-workspace.js` (reads, drafts, publishing),\n+`lib/kits/powershell-units.js` (blocks, edges, versions),\n+`lib/kits/powershell-match.js` (paste matching). `npm test`\n opens no browser, so a change to the file pane or editor also needs\n `npm run test:powershell-outpost-source` and `npm run test:powershell-file`.\n"
       },
-      "commentary": "The PowerShell outpost view section gains what a reader needs to find the new parts: the three tabs and which kit function each rests on, the paste matcher and the app's page-wide paste routing to it, and the rule that a block the grammar cannot read is choosable only when PowerShellUnits.edges confirms both edges. Nothing it said before is removed.",
+      "commentary": "Adds what the view now compares and matches, the rule that keeps a selective update from cutting a block the parser misread, and where the two kits behind them live. Nothing it said before is removed; the first paragraph's last two sentences are rewrapped.",
       "related": [
         {
           "item": "lib/alpineComponents/powershell-outpost-view.js",
