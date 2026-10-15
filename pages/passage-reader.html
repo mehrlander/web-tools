@@ -38,8 +38,9 @@
   forward), each part told apart by its colour. The accent colour (teal) marks
   the current sentence itself, in the passage, on its card and in the dots.
   An ellipsis, words a sentence leaves for the reader to supply, shows as a
-  question-mark badge after the word its gap follows; the badge opens to the
-  words left out, and the sentence's own words stay as written.
+  raised question mark after the word its gap follows; hovering or tapping it
+  draws an arrow to the words it stands for, and the sentence's own words stay
+  as written.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -149,9 +150,10 @@ document.addEventListener('alpine:init', () => {
         const key = `m${n}-${i}`;
         (keysOf[m.e] ||= []).push(key);
         if (!(where[m.e] ||= []).includes(n)) where[m.e].push(n);
-        const ok = add(n, key, m.quote, { kind: 'm', m, first: firstAny[m.e].n === n && firstAny[m.e].i === i, gap: m.form === 'ellipsis' }, m.in);
+        const f = !m.form ? null : m.ante ? { n: m.ante, i: (by[m.ante]?.mentions || []).findIndex(x => x.e === m.e && !x.form) } : firstNamed[m.e];
+        const ante = f && f.i >= 0 && f.n <= n ? { key: `m${f.n}-${f.i}`, n: f.n, quote: by[f.n].mentions[f.i].quote } : null;
+        const ok = add(n, key, m.quote, { kind: 'm', m, first: firstAny[m.e].n === n && firstAny[m.e].i === i, gap: m.form === 'ellipsis', ante }, m.in);
         if (!m.form || (m.e === topic && m.form === 'ellipsis' && !m.note)) return;
-        const f = m.ante ? { n: m.ante, i: (by[m.ante]?.mentions || []).findIndex(x => x.e === m.e && !x.form) } : firstNamed[m.e];
         if (!f || f.i < 0 || f.n > n) return;
         const item = { kind: m.form, from: n, to: f.n, e: m.e, here: m.quote, within: m.in, fill: m.fill,
           there: by[f.n].mentions[f.i].quote, thereIn: by[f.n].mentions[f.i].in, keys: [key, `m${f.n}-${f.i}`], note: m.note, ok };
@@ -279,7 +281,17 @@ document.addEventListener('alpine:init', () => {
       this.deck.deck.onSlide(i => { this.deck.setTitle(this.kindOf(i)); if (i !== this.cur) this.sync(i, 'deck'); });
     },
     revealLit() { reveal(this.$refs.passage, this.$refs.passage?.querySelector(`[data-s="${this.s.n}"]`)); },
-    pick(e) { if (e.target.closest('[data-gap]')) return; const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
+    pick(e) { const g = e.target.closest('[data-gap]'); if (g) return HOVER.matches || this.gapTrace(g); const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
+    // A gap's own arrow, to the mention it stands for, drawn in either view.
+    gapTrace(g) {
+      if (!g || !g.dataset.ante) return;
+      this.light(null);
+      this.traced = [`${g.dataset.k} ${g.dataset.ante}`];
+      document.querySelectorAll(`[data-k~="${g.dataset.ante}"]`).forEach(el => el.setAttribute('data-on', ''));
+      this.drawArrows();
+    },
+    gapOver(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches) this.gapTrace(g); },
+    gapOut(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches && !g.contains(e.relatedTarget)) this.light(null); },
 
     // The dialog holds a history entry, so the phone's back button closes it.
     openAbout() { this.about = true; try { history.pushState({ reader: 'about' }, ''); } catch (e) {} },
@@ -321,12 +333,15 @@ document.addEventListener('alpine:init', () => {
 
     // An ellipsis is marked where its words are missing: a raised question
     // mark after the word the gap follows, carrying the mention's key, so it
-    // lights when a mention there would, and opening to the words left out.
-    // The sentence's own words stay as written.
+    // lights when a mention there would. Its tip names it, and hovering or
+    // tapping it draws an arrow to the words it stands for; only a gap whose
+    // entity the passage never names spells those words out in the tip. The
+    // sentence's own words stay as written.
     gapsAfter(p, lit) {
       return p.on.filter(r => r.gap && r.b === p.b).map(r => {
-        const m = r.m, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e;
-        return `<span data-k="${r.key}" data-gap tabindex="0" data-title-tip-lead="Leaves out" data-title-tip="${esc(fill + (m.note ? '. ' + m.note : ''))}" data-title-tip-bare`
+        const m = r.m, a = r.ante, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e;
+        const tip = (a ? 'Ellipsis' : `Ellipsis: ${fill}`) + (m.note ? `. ${m.note}` : '');
+        return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}" tabindex="0" data-title-tip="${esc(tip)}" data-title-tip-bare`
           + ` class="select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?</span>`;
       }).join('');
     },
@@ -581,6 +596,9 @@ document.addEventListener('alpine:init', () => {
       el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) hold(t, false); });
       el.addEventListener('pointerout', e => { const t = spanOf(e); if (t && HOVER.matches && !t.contains(e.relatedTarget)) this.light(null); });
       el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
+      el.addEventListener('pointerover', e => this.gapOver(e));
+      el.addEventListener('pointerout', e => this.gapOut(e));
+      el.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && !HOVER.matches) this.gapTrace(g); });
     },
   }));
 });
@@ -621,7 +639,7 @@ document.addEventListener('alpine:init', () => {
         </div>
         <div x-ref="pwrap" class="relative">
           <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)"></p>
+          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event)" @pointerout="gapOut($event)"></p>
         </div>
       </section>
 
