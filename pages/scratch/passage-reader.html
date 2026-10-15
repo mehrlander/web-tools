@@ -16,10 +16,10 @@
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
-  does not store. Two colours, one meaning each: the primary colour marks the
-  active group, its spans and the arrows behind the passage that join them; a
-  second colour marks the current sentence, in the passage, on its card and in
-  the dots.
+  does not store. Two colours, one meaning each. The primary colour marks
+  connections: every one in the passage as a faint arrow behind the text, and
+  the active group's as filled spans and darker arrows. The accent colour marks
+  the current sentence, in the passage, on its card and in the dots.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -49,19 +49,6 @@ document.addEventListener('alpine:init', () => {
     { key: 'in', label: 'Carried in' }, { key: 'within', label: 'Within' }, { key: 'new', label: 'New here' },
     { key: 'play', label: 'In play' }, { key: 'atoms', label: 'Atoms' }, { key: 'out', label: 'Carried forward' },
   ];
-  // On trial, picked with #arrows= and #mark=; one of each stays once the reader
-  // chooses. Arrows take the spans' colour; the ribbon at the spans' own tints.
-  const ARROWS = {
-    thread: { curve: true, width: 1.5, head: 7, refX: 8, tint: 'opacity-60 data-[on]:opacity-100' },
-    ribbon: { curve: true, width: 7, head: 13, refX: 5, tint: 'opacity-20 data-[on]:opacity-40' },
-    dash: { curve: false, width: 1.5, dash: '4 4', head: 7, refX: 8, tint: 'opacity-60 data-[on]:opacity-100' },
-  };
-  // The current sentence's colour: its outline in the passage, its card's bar, its dot.
-  const MARKS = {
-    teal: { ring: 'ring-[var(--color-accent)]', bar: 'border-accent', dot: 'bg-accent' },
-    amber: { ring: 'ring-[var(--color-warning)]', bar: 'border-warning', dot: 'bg-warning' },
-    grey: { ring: 'ring-[var(--color-base-content)]/40', bar: 'border-base-content/30', dot: 'bg-base-content' },
-  };
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
@@ -169,7 +156,6 @@ document.addEventListener('alpine:init', () => {
     R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'in', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
-    get mark() { return MARKS[param('mark')] || MARKS.teal; },
 
     async init() {
       await window.__depsReady;
@@ -287,17 +273,18 @@ document.addEventListener('alpine:init', () => {
         const on = s.n === lit;
         const ranges = X.rng[s.n].filter(r => r.kind !== 'a' || (on && this.group === 'atoms'));
         const body = pieces(s.text, ranges).map(p => this.span(p, fill, on ? 'lit' : 'dim')).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? `ring-1 ${this.mark.ring} text-base-content` : 'text-base-content/50 hover:text-base-content/80'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/50 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
-    // Arrows behind the passage, one per connection in the active group, from
-    // the referring span straight through the lines between to the span it
-    // leans on. The text paints over them.
+    // Arrows behind the passage, one for every connection in it, from the
+    // referring span straight through the lines between to the span it leans
+    // on; the text paints over them. The ones the active group lists for the
+    // current sentence are darker, and a hovered row's darker still.
     drawArrows() {
       const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
       if (!wrap || !text || !layer || !this.R) return;
-      const A = ARROWS[param('arrows')] || ARROWS.ribbon, W = wrap.getBoundingClientRect();
+      const W = wrap.getBoundingClientRect(), X = this.X, HEAD = 9;
       // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
       const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
         .reduce((by, r) => {
@@ -305,21 +292,25 @@ document.addEventListener('alpine:init', () => {
           by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
           return by;
         }, {}));
+      const picked = new Set(this.focus(this.s.n).arrows.map(k => k.join(' ')));
+      const pairs = [...new Set(this.R.sentences.flatMap(s => [...X.inn[s.n], ...X.own[s.n]])
+        .filter(it => it.keys.length === 2).map(it => it.keys.join(' ')))];
       // A span can wrap, so each arrow joins the nearest pair of its two spans'
       // line boxes: out of the top of the later one and into the foot of the
       // earlier, or on one line, over the top of both.
-      const legs = this.focus(this.s.n).arrows.map(([from, to]) => {
+      const legs = pairs.map(pair => {
+        const [from, to] = pair.split(' ');
         let best = null;
         for (const s of rects(from)) for (const t of rects(to)) {
           const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b : t.t;
           const gap = Math.hypot((t.l + t.r - s.l - s.r) / 2, y1 - y0);
-          if (!best || gap < best.gap) best = { from, to, s, t, up, down, y0, y1, gap };
+          if (!best || gap < best.gap) best = { pair, on: picked.has(pair), s, t, up, down, y0, y1, gap };
         }
         return best;
       }).filter(Boolean);
       // Heads that would land close together on one line spread apart, in the
       // order their sources sit, since links often end on the same words.
-      const lines = {}, room = A.head + 7;
+      const lines = {}, room = HEAD + 6;
       for (const g of legs) { g.tx = (g.t.l + g.t.r) / 2; (lines[Math.round(g.y1)] ||= []).push(g); }
       for (const list of Object.values(lines)) {
         list.sort((a, b) => a.tx - b.tx);
@@ -329,16 +320,16 @@ document.addEventListener('alpine:init', () => {
           run.forEach((g, k) => { g.tx = mid + (k - (run.length - 1) / 2) * room; });
         }
       }
-      const paths = legs.map(({ from, to, s, up, down, y0, y1, tx }) => {
+      // The darker ones last, so they paint over the rest.
+      const paths = legs.sort((a, b) => a.on - b.on).map(({ pair, on, s, up, down, y0, y1, tx }) => {
         const sx = (s.l + s.r) / 2, k = Math.max(4, Math.abs(y1 - y0) * 0.45);
         const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
-          : A.curve ? `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`
-          : `M${sx},${y0} L${tx},${y1}`;
-        return `<path data-k="${from} ${to}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
-          + ` class="${A.tint}" style="stroke:var(--color-primary);stroke-width:${A.width}px${A.dash ? `;stroke-dasharray:${A.dash}` : ''}"/>`;
+          : `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`;
+        return `<path data-k="${pair}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
+          + ` class="${on ? 'opacity-40' : 'opacity-20'} data-[on]:opacity-70" style="stroke:var(--color-primary);stroke-width:4px"/>`;
       }).join('');
       layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
-        + `<defs><marker id="pr-head" viewBox="0 0 10 10" refX="${A.refX}" refY="5" markerUnits="userSpaceOnUse" markerWidth="${A.head}" markerHeight="${A.head}" orient="auto">`
+        + `<defs><marker id="pr-head" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="${HEAD}" markerHeight="${HEAD}" orient="auto">`
         + `<path d="M0,1 L9,5 L0,9 z" style="fill:var(--color-primary)"/></marker></defs>${paths}</svg>`;
     },
 
@@ -446,7 +437,7 @@ document.addEventListener('alpine:init', () => {
         ? `<p class="leading-7">${its.map(it => `<span tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc(it.lead)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>`
         : `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
       el.innerHTML = `<article class="grid gap-3 text-lg">
-        <p class="leading-8 text-balance border-l-4 ${this.mark.bar} pl-4">${this.sentenceHtml(n, active)}</p>
+        <p class="leading-8 text-balance border-l-4 border-accent pl-4">${this.sentenceHtml(n, active)}</p>
         ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid">${head(g)}${body(g, all[g.key])}</section>`).join('')}
       </article>`;
       this.wire(el);
@@ -537,7 +528,7 @@ document.addEventListener('alpine:init', () => {
           <div x-show="N <= 12" class="flex items-center">
             <template x-for="(t, i) in R.sentences" :key="t.n">
               <button class="p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
-                <span class="block size-2.5 rounded-full" :class="i === cur ? mark.dot : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
+                <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-accent' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
               </button>
             </template>
           </div>
@@ -547,7 +538,7 @@ document.addEventListener('alpine:init', () => {
         <div class="flex gap-1 px-2 sm:px-4 pb-1.5 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" role="tablist" aria-label="Group">
           <template x-for="g in GROUPS" :key="g.key">
             <button class="btn btn-xs rounded-full font-normal shrink-0" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
-                    :class="group === g.key ? 'btn-soft btn-primary' : 'btn-ghost text-base-content/70'"
+                    :class="group === g.key ? 'btn-soft btn-primary' : groupSize(g.key, s.n) ? 'btn-ghost text-base-content/70' : 'btn-ghost text-base-content/30'"
                     :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)" x-text="g.label"></button>
           </template>
         </div>
