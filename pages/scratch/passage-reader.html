@@ -19,11 +19,11 @@
   does not store. Each colour has one meaning. In the passage every
   connection's two spans are tinted light grey and joined by a faint grey line
   behind the text. A connection touching the current sentence, either way, is
-  stronger: its span in that sentence takes the primary colour and its span at
-  the other end a second colour, on trial through #far=, and its line is drawn
-  as #lines= says. The active group's spans are filled on the card, and for
-  New here, In play and Atoms in the passage too. The accent colour marks the
-  current sentence, in the passage, on its card and in the dots.
+  stronger: its span in that sentence takes the primary colour, its span at
+  the other end amber, and its line the primary colour. The active group's
+  spans are filled on the card, and for New here, In play and Atoms in the
+  passage too. The accent colour marks the current sentence, in the passage,
+  on its card and in the dots.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -53,15 +53,6 @@ document.addEventListener('alpine:init', () => {
     { key: 'in', label: 'Carried in' }, { key: 'within', label: 'Within' }, { key: 'new', label: 'New here' },
     { key: 'play', label: 'In play' }, { key: 'atoms', label: 'Atoms' }, { key: 'out', label: 'Carried forward' },
   ];
-  // On trial, picked with #far= and #lines=; one of each stays once the reader
-  // chooses. `far` colours the spans at the other end of the current
-  // sentence's connections; `lines` says how those connections' lines are drawn.
-  const FAR = {
-    amber: { color: 'var(--color-warning)', fill: 'bg-warning/30 data-[on]:bg-warning/60' },
-    pink: { color: 'var(--color-secondary)', fill: 'bg-secondary/20 data-[on]:bg-secondary/40' },
-    blue: { color: 'var(--color-info)', fill: 'bg-info/20 data-[on]:bg-info/40' },
-  };
-  const LINES = ['primary', 'fade', 'far', 'grey'];
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
@@ -254,15 +245,16 @@ document.addEventListener('alpine:init', () => {
     // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
     // the passage) or 'dim' (any other). The sentence's own words, unchanged:
     // formatting marks them, and nothing is added to them.
-    // `m`, in the passage only: `fill` is purple, `far` the other ends of the
-    // current sentence's connections, `web` every other connection's spans.
+    // `m`, in the passage only: `fill` is purple, `far` (amber) the other ends
+    // of the current sentence's connections, `web` (grey) every other
+    // connection's spans.
     span(p, mode, m) {
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const has = set => set && p.on.some(r => set.has(r.key));
       const cls = [];
       if (has(m?.fill)) cls.push('bg-primary/20 data-[on]:bg-primary/40 data-[ev]:bg-primary/40', mode === 'dim' ? 'text-base-content' : '');
-      else if (has(m?.far)) cls.push(this.far.fill, 'text-base-content');
+      else if (has(m?.far)) cls.push('bg-warning/30 data-[on]:bg-warning/60 text-base-content');
       else if (has(m?.web)) cls.push('bg-base-200 data-[on]:bg-primary/40 data-[ev]:bg-primary/40');
       else cls.push('data-[on]:bg-primary/40 data-[ev]:bg-primary/40');
       if (mode === 'card' && p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor')) cls.push(UNDER, DOTTED);
@@ -275,7 +267,7 @@ document.addEventListener('alpine:init', () => {
     // connection touching it, in either direction, as arrows (`near`) and as
     // spans, split into those in n (`fill`) and those at the other end
     // (`far`); and the spans of the active group when that is not a group of
-    // connections. `mine` is every span key in n.
+    // connections.
     focus(n) {
       const X = this.X, g = this.group, fill = new Set(), far = new Set(), near = new Set();
       const mine = new Set(X.rng[n].map(r => r.key));
@@ -285,9 +277,8 @@ document.addEventListener('alpine:init', () => {
       }
       if (g === 'atoms') X.by[n].atoms.forEach((a, k) => fill.add(`a${n}-${k}`));
       else if (g === 'new' || g === 'play') for (const e of g === 'new' ? X.fresh[n] || [] : this.playing(n)) for (const k of X.keysOf[e] || []) fill.add(k);
-      return { fill, far, near, mine };
+      return { fill, far, near };
     },
-    get far() { return FAR[param('far')] || FAR.amber; },
 
     // The passage: the current sentence outlined, the rest dimmed, every
     // connection's spans tinted, and focus()'s spans filled wherever they sit.
@@ -318,8 +309,7 @@ document.addEventListener('alpine:init', () => {
           by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
           return by;
         }, {}));
-      const { near: picked, mine } = this.focus(this.s.n), far = this.far.color;
-      const mode = LINES.includes(param('lines')) ? param('lines') : 'primary';
+      const picked = this.focus(this.s.n).near;
       const pairs = [...new Set(X.links.filter(it => it.keys.length === 2).map(it => it.keys.join(' ')))];
       // A span can wrap, so each arrow joins the nearest pair of its two spans'
       // line boxes: out of the top of the later one and into the foot of the
@@ -330,7 +320,7 @@ document.addEventListener('alpine:init', () => {
         for (const s of rects(from)) for (const t of rects(to)) {
           const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b : t.t;
           const gap = Math.hypot((t.l + t.r - s.l - s.r) / 2, y1 - y0);
-          if (!best || gap < best.gap) best = { pair, from, to, on: picked.has(pair), s, t, up, down, y0, y1, gap };
+          if (!best || gap < best.gap) best = { pair, on: picked.has(pair), s, t, up, down, y0, y1, gap };
         }
         return best;
       }).filter(Boolean);
@@ -346,33 +336,19 @@ document.addEventListener('alpine:init', () => {
           run.forEach((g, k) => { g.tx = mid + (k - (run.length - 1) / 2) * room; });
         }
       }
-      // Each end's colour: purple in the current sentence, the far colour
-      // outside it; grey for a connection that does not touch it.
-      const P = 'var(--color-primary)', G = 'var(--color-base-content)';
-      const end = k => mine.has(k) ? P : far;
-      const ink = (g, k) => !g.on ? G : mode === 'grey' ? G : mode === 'primary' ? P : mode === 'far' ? (mine.has(g.from) && mine.has(g.to) ? P : far) : end(k);
-      const heads = {}, grads = [];
-      const head = c => (heads[c] ||= `pr-h${Object.keys(heads).length}`);
-      // The darker ones last, so they paint over the rest.
-      const paths = legs.sort((a, b) => a.on - b.on).map((g, i) => {
-        const { pair, on, s, up, down, y0, y1, tx } = g, sx = (s.l + s.r) / 2, k = Math.max(4, Math.abs(y1 - y0) * 0.45);
+      // Purple for a connection touching the current sentence, faint grey for the rest.
+      const paths = legs.sort((a, b) => a.on - b.on).map(({ pair, on, s, up, down, y0, y1, tx }) => {
+        const sx = (s.l + s.r) / 2, k = Math.max(4, Math.abs(y1 - y0) * 0.45);
         const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
           : `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`;
-        const c0 = ink(g, g.from), c1 = ink(g, g.to);
-        let stroke = c1;
-        if (c0 !== c1) {
-          grads.push(`<linearGradient id="pr-g${i}" gradientUnits="userSpaceOnUse" x1="${sx}" y1="${y0}" x2="${tx}" y2="${y1}">`
-            + `<stop offset="0.2" style="stop-color:${c0}"/><stop offset="0.8" style="stop-color:${c1}"/></linearGradient>`);
-          stroke = `url(#pr-g${i})`;
-        }
-        const tint = !on ? 'opacity-20' : mode === 'grey' ? 'opacity-50' : 'opacity-70';
-        return `<path data-k="${pair}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#${head(c1)})"`
-          + ` class="${tint} data-[on]:opacity-100" style="stroke:${stroke};stroke-width:${on ? 2 : 1.5}px"/>`;
+        return `<path data-k="${pair}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-${on ? 'near' : 'far'})"`
+          + ` class="${on ? 'opacity-70' : 'opacity-10'} data-[on]:opacity-100"`
+          + ` style="stroke:var(--color-${on ? 'primary' : 'base-content'});stroke-width:${on ? 2 : 1.5}px"/>`;
       }).join('');
-      const markers = Object.entries(heads).map(([c, id]) => `<marker id="${id}" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="${HEAD}" markerHeight="${HEAD}" orient="auto">`
-        + `<path d="M0,1 L9,5 L0,9 z" style="fill:${c}"/></marker>`).join('');
+      const marker = (id, c) => `<marker id="pr-${id}" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="${HEAD}" markerHeight="${HEAD}" orient="auto">`
+        + `<path d="M0,1 L9,5 L0,9 z" style="fill:var(--color-${c})"/></marker>`;
       layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
-        + `<defs>${markers}${grads.join('')}</defs>${paths}</svg>`;
+        + `<defs>${marker('near', 'primary')}${marker('far', 'base-content')}</defs>${paths}</svg>`;
     },
 
     num(n) {
@@ -385,15 +361,17 @@ document.addEventListener('alpine:init', () => {
         <div class="grid leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
     },
     text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
-    // A quoted span as a chip, lit with its span; `within` bolds the word
-    // inside a longer anchor.
-    chip(text, key, within) {
+    // A quoted span as a chip, lit with its span, in amber when the span is at
+    // the far end from the current sentence; `within` bolds the word inside a
+    // longer anchor.
+    chip(text, key, within, far) {
       const t = plain(text), w = within && plain(within), at = w ? w.indexOf(t) : -1;
       const inner = at >= 0 ? `${esc(w.slice(0, at))}<b>${esc(t)}</b>${esc(w.slice(at + t.length))}` : esc(t);
-      return `<span data-chip="${key}" data-k="${key}" class="rounded-md bg-base-200 px-1.5 py-0.5 box-decoration-clone data-[on]:bg-primary/40">${inner}</span>`;
+      return `<span data-chip="${key}" data-k="${key}" class="rounded-md bg-base-200 px-1.5 py-0.5 box-decoration-clone ${far ? 'data-[on]:bg-warning/60' : 'data-[on]:bg-primary/40'}">${inner}</span>`;
     },
-    // One connection read as a statement: the later span, a relation, the earlier span.
-    statement(it, bare) {
+    // One connection read as a statement: the later span, a relation, the
+    // earlier span. `far` is which of the two (0 or 1) sits outside the card's sentence.
+    statement(it, bare, far = -1) {
       const fill = () => it.fill || (this.R.entities[it.e] || {}).label || it.e;
       if (bare) {
         const q = s => `“${plain(s)}”`;
@@ -401,8 +379,8 @@ document.addEventListener('alpine:init', () => {
       }
       const verb = v => `<span class="text-sm text-base-content/50">${v}</span>`;
       const line = parts => `<span class="flex flex-wrap items-center gap-x-2 gap-y-1">${parts.join('')}</span>`;
-      if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0]), verb('leaves out'), `<span>${esc(fill())}</span>`]);
-      return line([this.chip(it.here, it.keys[0], it.within), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn)]);
+      if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0], null, far === 0), verb('leaves out'), `<span>${esc(fill())}</span>`]);
+      return line([this.chip(it.here, it.keys[0], it.within, far === 0), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn, far === 1)]);
     },
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
     playing(n) {
@@ -434,7 +412,7 @@ document.addEventListener('alpine:init', () => {
       };
       return {
         in: X.inn[n].map((it, j) => ({ id: `in:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[0]], lead: this.statement(it, true), tip: it.gloss || it.note || '',
-          left: this.num(it.to), body: [this.statement(it), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
+          left: this.num(it.to), body: [this.statement(it, false, 1), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
         within: X.own[n].map((it, j) => ({ id: `within:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[0]], lead: this.statement(it, true), tip: it.note || '',
           body: [this.statement(it), this.text(it.note), this.flag(it.ok)] })),
         new: (X.fresh[n] || []).map((k, j) => entity('new', k, j)),
@@ -447,7 +425,7 @@ document.addEventListener('alpine:init', () => {
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
         out: X.fwd[n].map((it, j) => ({ id: `out:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[1]], lead: this.statement(it, true), tip: '',
-          left: this.num(it.from), body: [this.statement(it), this.flag(it.ok)] })),
+          left: this.num(it.from), body: [this.statement(it, false, 0), this.flag(it.ok)] })),
       };
     },
 
