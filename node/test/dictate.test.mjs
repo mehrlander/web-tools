@@ -1795,6 +1795,17 @@ test('move lands a paragraph between two others and closes the hole it left', ()
   assert.equal(d.text, 'A.\n\nC.\n\nB.');
 });
 
+// Found by md-tracked-matrix's seeded walk on doc-craft's SKILL.md, whose line
+// "no " ended in a space: the rebuilt gap dropped it, no card marked the loss,
+// and reverting every card no longer gave back the file.
+test('move onto a break that is already there keeps the break whole, trailing space and indent included', () => {
+  const t = 'Alpha two \n\n  - item\n\nBravo one. Bravo two.\n';
+  const d = doc(t);
+  assert.equal(d.move(t.indexOf('Bravo two.'), t.indexOf('Bravo two.') + 10, t.indexOf('\n\n'), true), true);
+  assert.equal(d.text, 'Alpha two \n\nBravo two.\n\n  - item\n\nBravo one.\n');
+  assert.deepEqual(d.range, { start: 12, end: 22 }, 'the moved words stay selected');
+});
+
 test('the paragraph key at a caret mid-text splits cleanly, one undo step', () => {
   const d = doc('First half. Second half.', 12);
   d.punct('¶');

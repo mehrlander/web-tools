@@ -12,7 +12,7 @@ apostrophe comes back as `%27`. That is cosmetic, not broken.
 | File | What it does | Loads |
 | --- | --- | --- |
 | [`courier-stage.js`](courier-stage.js) | The courier. Opens the Stage as a popup and sends it the page's links and selection by `postMessage`; if the Stage finds an open `courier-bookmark` errand for the page's origin, it sends the errand's script back and this runs it. | nothing; the Stage reads the errand |
-| [`launcher.js`](launcher.js) | Puts the Web Tools fab and drawer on a page that has none of its own. | `userscripts/lib/launcher.js` from GitHub Pages |
+| [`launcher.js`](launcher.js) | Puts the off-site FAB, a Web Tools button and drawer, on a page that has none of its own. | `userscripts/lib/launcher.js` from GitHub Pages |
 | [`popup-launcher.js`](popup-launcher.js) | Opens one blank popup that inherits the host's origin, then runs the launcher menu inside it, with `window.opener` still live. | `popups/launch.js` over `api.github.com` |
 | [`page-toggle.js`](page-toggle.js) | Swaps between a rendered `github.io` page and its `github.com` blob, in either direction. | nothing |
 | [`toss-render.js`](toss-render.js) | From a `github.com` blob page, takes the file's text and mints its 🥏 toss link. | nothing |
@@ -30,7 +30,7 @@ inventory instead.
 
 Bookmarklets were once the repo's general-purpose tool. The Web Tools app now
 carries general utility work, sessions fetch most public pages themselves, and
-the iPhone runs the launcher as a userscript. What remains for a bookmarklet is
+the iPhone runs the off-site FAB as a userscript. What remains for a bookmarklet is
 acting on a page from a browser that cannot run extensions, the work laptop
 first among them.
 
@@ -45,7 +45,7 @@ repo, never a new bookmark. Nesting belongs in the app's views: a bookmark-bar
 folder of bookmarklets is a menu the app should draw instead, and the bar keeps
 a few flat buttons.
 
-**On the iPhone, the launcher runs as a userscript.** [`launcher.js`](launcher.js)
+**On the iPhone, the off-site FAB runs as a userscript.** [`launcher.js`](launcher.js)
 is the same program as a bookmarklet: a one-line loader for
 `userscripts/lib/launcher.js`, which the iPhone userscript also runs. It draws
 a fab and its drawer in the page itself, so it is the phone's route and the

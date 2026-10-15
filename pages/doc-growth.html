@@ -217,7 +217,7 @@ function growth() {
         return `${n} of ${tot} files on screen (edited in ${this.minEdits}+ commits). Up means actively worked; right means long.`;
       if (this.yMode === 'age')
         return `${n} of ${tot} files on screen. Up means untouched for longer, so the top right is a monument and the bottom right is contested.`;
-      return `${n} of ${tot} files on screen. Above the line gained words that week, below it gave some back.`;
+      return `${n} of ${tot} files on screen. Above the line gained lines that week, below it gave some back.`;
     },
     get tipMeta() {
       const f = this.hovered; if (!f) return '';
@@ -331,7 +331,7 @@ function growth() {
       c.globalAlpha = 0.45;
       c.fillText('words →', W - P.r, H - P.b + 18);
       c.save(); c.translate(11, P.t + 2); c.rotate(-Math.PI / 2); c.textAlign = 'right';
-      c.fillText(net ? 'words gained ↑' : age ? 'days untouched ↑' : 'edits / month ↑', 0, 0);
+      c.fillText(net ? 'lines gained ↑' : age ? 'days untouched ↑' : 'edits / month ↑', 0, 0);
       c.restore();
       c.globalAlpha = 1;
 

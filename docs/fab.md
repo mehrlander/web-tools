@@ -1,6 +1,6 @@
 # The FAB
 
-The FAB is the draggable floating button every page and app view carries, and the drawer it opens ([`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js)). This document is its account.
+The FAB is the draggable floating button every page and app view carries, and the drawer it opens ([`lib/alpineComponents/fab.js`](../lib/alpineComponents/fab.js)). This document is its account. The off-site FAB, a separate program that draws the same button on pages Web Tools does not serve, has its own in [`userscripts/README.md`](../userscripts/README.md).
 
 ## The launcher
 
