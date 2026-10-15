@@ -21,6 +21,7 @@ skill,/portable:notes,skills/notes/SKILL.md,notes,"leave, reply to and read note
 skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
+skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,how the Claude app displays Markdown in a chat reply,plugin
 skill,/portable:design-sprint,skills/design-sprint/SKILL.md,design-sprint,,plugin
 skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
@@ -62,7 +63,6 @@ doc,,docs/CONSTELLATION.md,Constellation architecture,"the portable kernel of th
 doc,,docs/APP.md,Web Tools app,"the Web Tools app: mission, goals, boundary, addresses, and what every view shares",on-demand
 doc,,docs/artifacts.md,Artifacts,the bake-and-publish pipeline and the 📦 marker's place in the link-choice matrix,on-demand
 doc,,docs/headless-vendoring.md,Headless vendoring,build with CDN stacks and test them headless where the sandbox blocks their CDNs,on-demand
-doc,,docs/markdown-in-chat.md,Markdown in chat,working visually with markdown in a chat client; tables over nested bullets,on-demand
 doc,,docs/github/markdown.md,GitHub markdown,"what GitHub's renderer does with Mermaid, math, alerts, sparklines",on-demand
 doc,,docs/github/mcp-server-routing.md,MCP server routing,unexpected approval prompts with two GitHub MCP servers are often routing artifacts,on-demand
 dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code web sandbox: network, persistence, testing recipes",on-demand

@@ -29,7 +29,7 @@ questions. When the ask is about change, follow
 [`SURFACING.md`](../../docs/SURFACING.md); about structure, use this.
 
 Substitute the current repo into all URL templates. The rendering rules
-below are the applied form of [`docs/markdown-in-chat.md`](../../docs/markdown-in-chat.md);
+below are the applied form of [`claude-markdown`](../claude-markdown/SKILL.md);
 read that for *why* tables beat bullets and which characters survive a
 table cell.
 
@@ -161,8 +161,8 @@ drops the navigation that is the point of rendering in chat.
 
 ## Rendering rules (why this shape)
 
-These are load-bearing, established empirically (full account in
-[`docs/markdown-in-chat.md`](../../docs/markdown-in-chat.md)):
+These are load-bearing, established empirically (see
+[`claude-markdown`](../claude-markdown/SKILL.md)):
 
 - **Never nested bullets.** Chat renders each list item with paragraph
   margin, and nesting compounds it, so a deep bullet tree is mostly

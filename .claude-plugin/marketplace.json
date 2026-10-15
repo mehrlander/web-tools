@@ -37,6 +37,7 @@
         "./atomic-decomposition",
         "./bake-page",
         "./caveman",
+        "./claude-markdown",
         "./html-style",
         "./design-sprint",
         "./doc-craft",

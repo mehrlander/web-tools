@@ -319,6 +319,16 @@ test('--query joins the view on a framed link rather than being dropped', () => 
     'the query joins with & because the framed page reads one query span');
 });
 
+// A --query naming the view is the reader's choice of view, so it replaces the
+// one the script inferred. Appended, the link read ?view=submittal&view=benefits
+// and the app routed on the first (home's Benefits view, 2026-10-15).
+test('a view named in --query replaces the inferred one rather than doubling it', () => {
+  const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--query', 'view=benefits&tab=abs']);
+  assert.equal(d.mechanism, 'toss-app');
+  assert.match(d.links[0].url, /\?view=benefits&tab=abs$/, 'one view, the one asked for');
+});
+
 // A cross-repo selection rides on the renderer's own query, before the `#`;
 // inside --query it reaches the framed page instead and the renderer reads the
 // other repo at main (docs/SNAGS.md refs-in-page-query-ignored-by-toss).

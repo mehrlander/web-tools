@@ -66,22 +66,20 @@ docs/APP.md,research/doc-craft-specimens/APP_living_spec_replacement.md,6,,the w
 skills/agents/house-style-critic.md,skills/screenshot-review/SKILL.md,5,,a style verdict on a broken render grades the failure as a design choice,10,207
 lib/kits/README.md,popups/data-shelf.md,5,,page in cfg types the canonical set of valid type names lives;ui metadata for each type label badge exec lives on the,10,207
 docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios data view item mjs node render scenarios data view item mjs,10,207
-docs/code-layers.md,lib/ops/README.md,5,,node test code layers test mjs node test code layers test mjs;an op is one file that is one value a single,10,207
+docs/artifacts.md,docs/showing.md,5,,the claude app's in app browser keeps its own storage so the ghtoken a,10,207
 README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,207
 research/excel-validation-2026-09-24/source/technical/README.md,research/excel-validation-2026-09-24/source/technical/REPRODUCTION.md,4,,original task root c users mehrl documents codex 2026 09 24 tak the,10,207
 docs/house-policies.md,skills/default/SURFACING.md,4,,showing md https github com mehrlander web tools blob main docs showing md,10,207
-docs/house-policies.md,lib/kits/README.md,4,,takes the host it is given and returns a handle a kit that,10,207
 docs/favicons/README.md,docs/text-content.md,4,,were picked against real icons on a light and a dark tab strip,10,207
-docs/code-layers.md,lib/kits/README.md,4,,node test code layers test mjs holds the boundary in all three directions,10,207
 docs/SURFACING.md,docs/house-policies.md,4,,showing md https github com mehrlander web tools blob main docs showing md,10,207
 docs/SNAGS.md,docs/house-policies.md,4,,https github com mehrlander web tools blob main skills html style skill md,10,207
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,207
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,207
+docs/showing.md,skills/web-tools-app/SKILL.md,3,,the claude app's in app browser keeps its own storage so the,10,207
 docs/house-policies.md,research/excel-validation-2026-09-24/source/technical/source-cache/pr791-review/CLAUDE.md,3,,the suite enforces it or another document owns it and link instead,10,207
 docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,207
 docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a call and to the text it carries,10,207
 docs/column-primitives.md,docs/text-content.md,3,,https github com mehrlander home blob main projects budget drs data design,10,207
-docs/code-layers.md,docs/house-policies.md,3,,a script outside lib is placed by three questions asked in order,10,207
 docs/artifacts.md,skills/web-tools-app/SKILL.md,3,,the claude app's in app browser keeps its own storage so the,10,207
 docs/SNAGS.md,skills/phosphor-icons/SKILL.md,3,,measure the element's width before suspecting the state that controls it;reads as a logic bug and gets debugged as one,10,207
 docs/SNAGS.md,docs/views/branches.md,3,,lib kits repo activity cache js lib kits repo activity cache js,10,207
