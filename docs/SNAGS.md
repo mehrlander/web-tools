@@ -2342,8 +2342,7 @@ it. `transform.html` had rendered unstyled and iconless in every headless shot,
 its committed thumbnail included, while the live page was fine. The thrown
 error had been in every shot log for that page; what got it read was a
 prototype of the page-measures pass reporting 24 blank icons on it.
-→ [doc-growth.md](doc-growth.md); the combine rule is pinned by
-[../node/test/cdn-combine-default.test.mjs](../node/test/cdn-combine-default.test.mjs).
+→ the combine rule is pinned by [../node/test/cdn-combine-default.test.mjs](../node/test/cdn-combine-default.test.mjs).
 The plain `/npm/` route follows the same rule, and unpkg reads `unpkg` then
 `main`; both are pinned by
 [../node/test/cdn-npm-default.test.mjs](../node/test/cdn-npm-default.test.mjs).
