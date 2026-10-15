@@ -3,8 +3,5 @@
     "deny": [
       "AskUserQuestion"
     ]
-  },
-  "enabledPlugins": {
-    "portable@web-tools": false
   }
 }
