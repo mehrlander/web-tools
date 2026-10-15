@@ -30,6 +30,8 @@
     read    the document as markdown, every unit tinted.
 
   Payload: audit/1, from ?src=<spec>, #gz=<base64url>, or the embedded default.
+  ?view=review (or #view=review) opens on Review: one category's units as a
+  list over a strip of cards.
   Built by python/annotate/audit-payload.py (--inject refreshes the block below).
 -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
@@ -446,7 +448,7 @@ window.__audit = {
   await gh.load('kits/standoff.js');       // the annotation's rules, shared with ops.py
   await gh.load('kits/dictate.js');        // Dictate.pins: the settled edge-pin treatment
   await gh.load('kits/page-report.js');
-  await gh.load('kits/panel-tip.js');           // the chips' panel-tips
+  await gh.load('kits/title-tip.js');           // the chips' title-tips
   // THE OPT-IN, and it is the page's, not the reader's. Reporting is on from
   // here: a failure that needs a tap before it is recorded is a failure nobody
   // records, and the person holding the phone is the last one who should have
@@ -511,6 +513,15 @@ window.__audit = {
     for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   };
+  // The inverse, for a payload carried in this page's own #gz=: no commit, and
+  // the fragment never reaches a server.
+  const gunzipJson = async (b64) => {
+    const bin = Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+  };
+  // Review's own key in the chip row: every unit with a note. Not a label any
+  // vocabulary could declare.
+  const NOTED = '\u0000noted';
 
   // WHAT THE PAGE THROWS, WHERE THE READER CAN SEE IT. Until now an uncaught
   // error left the document rendered and the controls dead, with nothing on
@@ -709,14 +720,16 @@ window.__audit = {
 
   window.auditPage = () => ({
     a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
-    lit: null, chip: null, chipPinned: false, chipPos: { x: 0, y: 0, h: 0 },
-    sections: [], ref: '',
+    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null, _rAim: -1,
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
       let payload = window.__audit;
-      const spec = p.get('src') || new URLSearchParams(location.hash.slice(1)).get('src');
-      if (spec) payload = await this.fetchPayload(spec);
+      const hp = new URLSearchParams(location.hash.slice(1));
+      const gz = hp.get('gz') || p.get('gz'), spec = p.get('src') || hp.get('src');
+      if (gz) payload = await this.join(await gunzipJson(gz));
+      else if (spec) payload = await this.fetchPayload(spec);
       this.a = payload;
+      if ((hp.get('view') || p.get('view')) === 'review') this.view = 'review';
       // INTO THIS BROWSER'S COORDINATES, ONCE. segment.py writes offsets in code
       // points and every slice below is UTF-16, so an emoji anywhere earlier in
       // the document shifts a span silently. Everything from here to save() is
@@ -747,7 +760,13 @@ window.__audit = {
       this.$nextTick(() => {
         const h = this.$refs.hdr;
         if (h) new ResizeObserver(() => { this.hdrH = h.offsetHeight; }).observe(h);
+        // Review's strip: the arrows step it while the pointer or focus is on
+        // it, and a strip that changed width is put back on its card.
+        swipeDeck.keys(this.$refs.rhost, d => this.rGo(this.rAt + d), () => this.rRows.length);
+        new ResizeObserver(() => { if (this.view === 'review') this.rJump(); }).observe(this.$refs.rstrip);
+        if (this.view === 'review') this.rEnter();
       });
+      this.$watch('view', v => { if (v === 'review') this.rEnter(); });
       addEventListener('resize', () => this.placePanel());
       addEventListener('scroll', () => this.placePanel(), true);
       // Pinching and the on-screen keyboard move the visual viewport without
@@ -762,9 +781,9 @@ window.__audit = {
     // against the sha256 it records: a document edited since the annotation
     // was made is reported, since every span would then point at the wrong
     // text. A pre-joined audit/1 payload (the builder's `payload` output)
-    // still loads as it is.
-    async fetchPayload(spec) {
-      const got = JSON.parse((await gh.get(spec)).text);
+    // still loads as it is, from ?src= or #gz=.
+    async fetchPayload(spec) { return this.join(JSON.parse((await gh.get(spec)).text)); },
+    async join(got) {
       if (got.kind !== 'standoff/1') return got;
       const text = (await gh.get(got.target.path)).text;
       const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))]
@@ -1257,9 +1276,8 @@ window.__audit = {
         this.saving = false;
       }
     },
-    // A label set aside (the chip panel's Dim) fades hard; another label lit
-    // from the legend fades the rest less, so the document stays readable
-    // around the lit units.
+    // A label set aside fades hard; a label lit from its chip fades the rest
+    // less, so the document stays readable around the lit units.
     dim(u) { const k = this.keyOf(u); return this.off[k] ? .12 : this.lit && this.lit !== k ? .35 : 1 },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
     // A PIECE'S BACKGROUND: its label's tint, the selection, or the lit label.
@@ -1281,68 +1299,141 @@ window.__audit = {
       }
     },
     light(k) { if (this.lit === k) return; this.lit = k; this.heat(); },
+    // Hovering a chip lights its units, where a pointer can hover and the
+    // document is on screen.
+    chipOver(k) { if (this.view !== 'review' && matchMedia('(hover: hover) and (pointer: fine)').matches) this.light(k); },
+    // ONE TAP, ONE THING, ON A TOUCHSCREEN. title-tip.js opens a chip's tip on
+    // tap where nothing can hover, so a tap there used to open the tip and
+    // dim the label at once. There the first tap shows the tip and the next
+    // tap on the same chip, which closes it, dims. A pointer that hovers gets
+    // the tip on hover, so every click dims. In Review a chip carries no tip,
+    // and a tap picks the category the list holds.
+    noteFor: null,
+    chipTap(k) {
+      if (this.view === 'review') return this.rPickCat(k);
+      if (matchMedia('(hover: none)').matches && this.noteFor !== k) { this.noteFor = k; return; }
+      this.noteFor = null;
+      this.toggle(k);
+    },
 
-    // ── A LEGEND CHIP'S PANEL-TIP ────────────────────────────────────────────
-    // The label's reading and every unit carrying it, each row a way to go
-    // there. The house popup rule decides the mechanics (html-style
-    // mechanics.md, "Title-tips and panel-tips"): hover opens it where a
-    // pointer can hover, a click pins it, and on touch every tap pins it.
-    // Dimming a label, which a chip's click used to do, is the panel's Dim.
-    chipEnter(k, ev) {
-      if (!matchMedia('(hover: hover) and (pointer: fine)').matches || this.chipPinned) return;
-      this.light(k);
-      clearTimeout(this._chipT);
-      const el = ev.currentTarget;
-      this._chipT = setTimeout(() => this.chipOpen(k, el, false), 140);
+    // ── REVIEW: one category's units as a list over a strip of cards ─────────
+    // html-style rule 12, built the Waiting view's way (lib/alpineComponents/
+    // waiting.js): the strip is Alpine markup on CSS scroll snap, since its
+    // footer carries controls, a swipe moves the list's selection, and a pick
+    // in the list moves the strip. The chips pick the category; Noted, every
+    // unit with a note, is the default where any unit has one.
+    get noted() { return this.units.filter(u => u.note); },
+    get rKey() { return this.rCat ?? (this.noted.length ? NOTED : this.axis[0]); },
+    get rTitle() { return this.rKey === NOTED ? 'Noted' : this.rKey; },
+    get rRows() {
+      const k = this.rKey;
+      return (k === NOTED ? this.noted : this.units.filter(u => this.keyOf(u) === k))
+        .slice().sort((a, b) => a.start - b.start);
     },
-    // A panel-tip that opened owns the light from here; its close clears it.
-    chipLeave() { clearTimeout(this._chipT); if (!this.chip) this.light(null); },
-    // Toggles on what is shown, not on a flag: a click on the chip whose
-    // panel-tip is pinned closes it, and any other click pins.
-    chipClick(k, ev) {
-      clearTimeout(this._chipT);
-      const t = this.$refs.chipTip;
-      if (t && getComputedStyle(t).display !== 'none' && this.chip === k && this.chipPinned) return this.chipClose();
-      this.chipOpen(k, ev.currentTarget, true);
+    get rAt() { const i = this.rRows.findIndex(u => u.uid === this.rPick); return i < 0 ? 0 : i; },
+    get rCur() { return this.rRows[this.rAt] || null; },
+    rEnter() { this.sel = null; this.light(null); this.$nextTick(() => { this.rJump(); this.rReveal(); }); },
+    // A new category starts at its first card. The strip goes back to its
+    // start BEFORE the rows change: a shorter strip otherwise clamps the old
+    // scroll position, and that scroll reads as a swipe to the last card.
+    rPickCat(k) {
+      this._rAim = 0; clearTimeout(this._rAimT);
+      this.$refs.rstrip?.scrollTo({ left: 0, behavior: 'instant' });
+      this.rCat = k; this.rPick = null;
+      this.$nextTick(() => { this._rAim = -1; this.rJump(); this.rReveal(); });
     },
-    chipOpen(k, el, pinned) {
-      this.chip = k; this.chipPinned = pinned; this.light(k);
-      this.placeChip(el);
-      this._chipWire?.detach();
-      this.$nextTick(() => {
-        this.placeChip(el);
-        // Pinned drops the pointer guard, so the panel-tip stays while the
-        // reader looks over the document it lights.
-        this._chipWire = PanelTip.wire(this.$refs.chipTip, {
-          onClose: () => this.chipClose(), except: ['[data-chip]'],
-          stale: pinned ? 'geometry' : true, label: 'chip-tip' });
+    rPanels() {
+      const el = this.$refs.rstrip;
+      return el ? [...el.querySelectorAll(':scope > [data-slide]')] : [];
+    },
+    // The card nearest the strip's left edge, measured rather than divided
+    // out of scrollLeft.
+    rNearest() {
+      const el = this.$refs.rstrip;
+      if (!el) return -1;
+      const x0 = el.getBoundingClientRect().left;
+      let best = -1, near = Infinity;
+      this.rPanels().forEach((k, i) => {
+        const d = Math.abs(k.getBoundingClientRect().left - x0);
+        if (d < near) { near = d; best = i; }
+      });
+      return best;
+    },
+    // A swipe: the selection follows the card in view, once per frame. A go
+    // in flight passes the cards between, and reading those back would walk
+    // the selection through each of them.
+    rScroll() {
+      if (this._rRaf) return;
+      this._rRaf = requestAnimationFrame(() => {
+        this._rRaf = 0;
+        if (!this.$refs.rstrip?.clientWidth) return;
+        const best = this.rNearest();
+        if (best < 0) return;
+        if (this._rAim >= 0) {
+          if (best !== this._rAim) return;
+          this._rAim = -1; clearTimeout(this._rAimT);
+        }
+        const rows = this.rRows;
+        if (best !== this.rAt && rows[best]) { this.rPick = rows[best].uid; this.rReveal(); }
       });
     },
-    chipClose() {
-      clearTimeout(this._chipT);
-      this._chipWire?.detach(); this._chipWire = null;
-      if (!this.chip) return;
-      this.chip = null; this.chipPinned = false; this.light(null);
+    // Move to row i: the selection at once, the strip after it. `instant` for
+    // a pick in the list, where animating past twenty cards is noise.
+    rGo(i, instant = false) {
+      const rows = this.rRows;
+      if (!rows.length) return;
+      i = Math.max(0, Math.min(rows.length - 1, i));
+      this.rPick = rows[i].uid;
+      this.rReveal();
+      this.rScrollTo(i, instant);
     },
-    // Under the chip, kept inside the viewport, and as tall as the room below.
-    placeChip(el) {
-      const t = this.$refs.chipTip;
-      if (!t || !el) return;
-      const r = el.getBoundingClientRect(), M = 8;
-      const VW = document.documentElement.clientWidth, VH = window.innerHeight;
-      const w = t.offsetWidth || 352, y = Math.round(r.bottom + 4);
-      this.chipPos = { x: Math.round(Math.max(M, Math.min(r.left, VW - w - M))), y, h: Math.max(160, VH - y - M) };
+    rJump() { this.rScrollTo(this.rAt, true); },
+    rScrollTo(i, instant) {
+      const el = this.$refs.rstrip, k = this.rPanels()[i];
+      if (!el || !k || !el.clientWidth) return;
+      const x = k.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
+      if (Math.abs(el.scrollLeft - x) < 2) return;
+      this._rAim = i; clearTimeout(this._rAimT);
+      this._rAimT = setTimeout(() => { this._rAim = -1; this.rScroll(); }, 900);
+      el.scrollTo({ left: x, behavior: instant ? 'instant' : 'smooth' });
+      if (Math.abs(el.scrollLeft - x) < 2) { this._rAim = -1; clearTimeout(this._rAimT); }
     },
-    get chipUnits() {
-      return this.chip ? this.units.filter(u => this.keyOf(u) === this.chip).sort((a, b) => a.start - b.start) : [];
+    // The selected row kept in view inside the list, never by scrolling the page.
+    rReveal() {
+      this.$nextTick(() => {
+        const list = this.$refs.rlist, row = list?.querySelectorAll('[data-row]')[this.rAt];
+        if (!row) return;
+        const lr = list.getBoundingClientRect(), rr = row.getBoundingClientRect();
+        if (rr.top < lr.top) list.scrollTop -= lr.top - rr.top;
+        else if (rr.bottom > lr.bottom) list.scrollTop += rr.bottom - lr.bottom;
+      });
     },
-    get chipFigure() {
-      const us = this.chipUnits;
-      const w = Math.round(100 * us.reduce((n, u) => n + u.words, 0) / (this.words || 1));
-      return this.chip ? `${us.length} unit${us.length === 1 ? '' : 's'} · ${w}% of words` : '';
+    // An edit from the strip's footer: the unit panel's push(), then back on
+    // the card. A relabel can take the unit out of the category in view; the
+    // selection then stays at the same place in the list.
+    rEdit(op) {
+      const i = this.rAt;
+      if (!this.push(op)) return;
+      this.sel = null;
+      const rows = this.rRows;
+      if (!rows.some(u => u.uid === this.rPick)) this.rPick = rows[Math.min(i, rows.length - 1)]?.uid ?? null;
+      this.$nextTick(() => { this.rJump(); this.rReveal(); });
     },
-    // A unit as one line of plain text for a list: list markers, emphasis
-    // and link targets taken out.
+    // The strip's takeover: the same cards over the whole window, opened at
+    // the card in view; closing returns to the strip where the deck stopped.
+    rDeck() {
+      const rows = this.rRows;
+      if (!rows.length) return;
+      const open = this._viewer ? (o) => swipeDeck.drill(this._viewer, o) : (o) => swipeDeck.open(o);
+      open({
+        count: rows.length, start: this.rAt, title: this.rTitle, subtitle: this.a.title, icon: 'ph-cards',
+        innerClass: 'w-full', render: (i, slide) => slide.append(this.rCard(rows[i])),
+        onSlide: (i) => { if (rows[i]) this.rPick = rows[i].uid; },
+        onClose: () => this.$nextTick(() => { this.rJump(); this.rReveal(); }),
+      });
+    },
+    // A unit as one line of plain text: list markers, emphasis and link
+    // targets taken out.
     gist(u) {
       return this.a.text.slice(u.start, u.end)
         .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -1350,25 +1441,35 @@ window.__audit = {
         .replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
     },
     lineOf(u) { return 'L' + ((this.a.text.slice(0, u.start).match(/\n/g) || []).length + 1); },
-    // Select a unit from elsewhere on the page and bring it into view, with
-    // its panel beside it: the chip panel's rows and the unit panel's stepper.
-    goTo(u) {
-      this.chipClose();
-      this.sel = { ...u, ref: this.srcRef(u) };
-      this.selPt = null; this.menu = null; this.armed = null;
-      this.paint();
-      this.$nextTick(() => {
-        this.$refs.doc?.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`)?.scrollIntoView({ block: 'center' });
-        this.placePanel();
-      });
-    },
-    // The units sharing the selected unit's label, in document order.
-    get peers() {
-      return this.sel ? this.units.filter(u => this.keyOf(u) === this.sel.label).sort((a, b) => a.start - b.start) : [];
-    },
-    step(d) {
-      const ps = this.peers, i = ps.findIndex(p => p.uid === this.sel?.uid);
-      if (ps.length) this.goTo(ps[(i + d + ps.length) % ps.length]);
+    // ONE CARD, for the strip and the takeover alike: the unit between its
+    // neighbours, tinted with its label, then its note.
+    rCard(u) {
+      const us = [...this.units].sort((a, b) => a.start - b.start), i = us.findIndex(x => x.uid === u.uid);
+      const near = (x) => x && x.kind === 'sent' ? this.gist(x) : '';
+      const span = (text, cls, style) => {
+        const s = document.createElement('span');
+        s.textContent = text; if (cls) s.className = cls; if (style) s.style.cssText = style;
+        return s;
+      };
+      const card = document.createElement('div');
+      const head = document.createElement('div');
+      head.className = 'mb-3 font-mono text-xs opacity-60';
+      head.textContent = [this.lineOf(u), this.srcRef(u).replace(/ · lines .*$/, '')].filter(Boolean).join(' · ');
+      const body = document.createElement('p');
+      body.className = 'text-xl leading-8 text-pretty';
+      const before = near(us[i - 1]), after = near(us[i + 1]);
+      if (before) body.append(span(before + ' ', 'opacity-40'));
+      body.append(span(this.gist(u), (u.verdict || 'KEEP') === 'DROP' ? 'line-through' : '',
+                       `background:${tint(this.keyOf(u), .28)}`));
+      if (after) body.append(span(' ' + after, 'opacity-40'));
+      card.append(head, body);
+      if (u.note) {
+        const note = document.createElement('p');
+        note.className = 'mt-5 text-base leading-7 whitespace-pre-line text-pretty';
+        note.textContent = u.note;
+        card.append(note);
+      }
+      return card;
     },
     // WHERE IN THE DOCUMENT, and only that. This opened with the target's path,
     // which is the same for every unit on the page and is already in the
@@ -2112,21 +2213,23 @@ window.__audit = {
         <!-- The view controls. In the deck viewer they ride in its header. -->
         <div x-ref="ctrls" class="flex items-center gap-1 ml-auto">
         <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="what is on screen">
-          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view !== 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'read' || view === 'source' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = docView; paint()">Doc</button>
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = 'standoff'">Spans</button>
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'review' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                  @click="view = 'review'">Review</button>
         </div>
         <!-- Rendered, on or off, for whichever object is on screen: the
              formatted document or the spans table when on, the markdown or
              standoff.json when off. -->
         <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
-                :aria-pressed="form === 'rendered'"
+                :aria-pressed="form === 'rendered'" x-show="view !== 'review'"
                 :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
                 aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
           <i class="ph-bold ph-eye text-lg"></i></button>
-        <button class="btn btn-sm btn-ghost btn-square" @click="deck()"
+        <button class="btn btn-sm btn-ghost btn-square" @click="deck()" x-show="view !== 'review'"
                 title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
         <!-- On a phone the pair shrinks to undo and the count, so the deck's
              header keeps its title: redo stays in the unit panel and on the
@@ -2144,20 +2247,30 @@ window.__audit = {
 
       <!-- The legend is the explanation. Each chip carries the treatment it
            names, so a label chip is tinted as its units are. Hovering one
-           lights its units and opens its panel-tip, the list of them; the
-           panel's Dim sets the label aside in place rather than hiding it. -->
+           lights its units. Tapping one dims its units in place rather than
+           hiding them, which keeps the document readable while one category is
+           set aside. In Review the chips are the category the list holds, one
+           at a time, with Noted, every unit with a note, first. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
       <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
            x-show="view !== 'standoff'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
+        <button class="btn btn-xs gap-1.5 border-0 shrink-0 bg-base-200" x-show="view === 'review' && noted.length" x-cloak
+                :class="{ 'ring-1 ring-[var(--color-base-content)]': rKey === NOTED }" :aria-pressed="rKey === NOTED"
+                @click="rPickCat(NOTED)">
+          <i class="ph ph-note-pencil"></i><span>Noted</span>
+          <span class="opacity-60 font-mono" x-text="noted.length"></span>
+        </button>
         <template x-for="k in axis" :key="k">
-          <button class="btn btn-xs gap-1.5 border-0 shrink-0" data-chip
-                  :style="`background:rgba(${HUE[k]},${off[k]?0.05:chip===k?0.4:0.22});
-                           box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
-                  :class="off[k] && 'opacity-40'" :aria-expanded="chip === k"
-                  @pointerenter="chipEnter(k, $event)" @pointerleave="chipLeave()"
-                  @click="chipClick(k, $event)">
+          <button class="btn btn-xs gap-1.5 border-0 shrink-0"
+                  :style="`background:rgba(${HUE[k]},${view !== 'review' && off[k] ? 0.05 : lit === k || (view === 'review' && rKey === k) ? 0.4 : 0.22});
+                           box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${view !== 'review' && off[k] ? 0.2 : 0.9})`"
+                  :class="{ 'opacity-40': view !== 'review' && off[k], 'ring-1 ring-[var(--color-base-content)]': view === 'review' && rKey === k }"
+                  :aria-pressed="view === 'review' ? rKey === k : null"
+                  :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
+                  @pointerenter="chipOver(k)" @pointerleave="light(null)"
+                  @click="chipTap(k)">
             <span x-text="k"></span>
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
@@ -2168,7 +2281,7 @@ window.__audit = {
           <!-- How a unit is drawn, Doc only: its label's tint over the whole
                span, or an underline. Icon toggles carry their state in the
                icon's colour alone: no outline, no fill. -->
-          <div class="flex items-center" aria-label="unit marks">
+          <div class="flex items-center" aria-label="unit marks" x-show="view !== 'review'">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
               <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
@@ -2184,7 +2297,7 @@ window.__audit = {
          and it scrolls inside itself: the whole document, top to bottom. -->
     <div x-ref="main" :class="inDeck && 'h-full overflow-y-auto'">
     <div class="relative">
-    <div x-ref="doc" class="px-4 py-4" x-show="view!=='standoff'"></div>
+    <div x-ref="doc" class="px-4 py-4" x-show="view === 'read' || view === 'source'"></div>
       <!-- The pin layer. It overlays the doc box exactly, takes no taps of its
            own, and hands each pin back its own: the painter writes the box's
            whole style attribute, so the exception is a rule here rather than
@@ -2193,6 +2306,66 @@ window.__audit = {
       <div x-ref="pins" class="absolute inset-0 pointer-events-none"
            :data-audit-drag="pinDrag ? '' : null"
            @pointerdown="pinDown($event)"></div>
+    </div>
+
+    <!-- REVIEW: the chips' category as a list over a strip of cards (html-style
+         rule 12). It fills the viewport under the header as Spans does; at lg
+         the list sits beside the strip. The footer carries the card's actions,
+         on the surface whatever the card's scroll. -->
+    <div class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]"
+         x-show="view === 'review'" x-cloak
+         :style="inDeck ? 'height:100%' : `height:calc(100dvh - ${hdrH}px)`">
+      <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1 border-b border-base-300 lg:border-b-0 lg:border-r">
+        <template x-for="(u, i) in rRows" :key="u.uid">
+          <button type="button" data-row
+                  class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-200"
+                  :class="i === rAt ? 'bg-base-200' : 'hover:bg-base-200/60'" :aria-current="i === rAt"
+                  @click="rGo(i, true)">
+            <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
+            <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
+            <span class="min-w-0 truncate" :class="u.verdict === 'DROP' && 'line-through opacity-60'" x-text="gist(u)"></span>
+          </button>
+        </template>
+      </div>
+      <section x-ref="rhost" class="min-h-0 flex flex-col">
+        <div class="shrink-0 flex items-center gap-2 px-4 py-1 border-b border-base-300 text-xs">
+          <span class="font-mono" x-text="rRows.length ? `${rAt + 1} / ${rRows.length}` : '0'"></span>
+          <span class="opacity-60" x-text="rTitle"></span>
+          <button type="button" class="ml-auto btn btn-ghost btn-sm btn-square" :disabled="!rRows.length" @click="rDeck()"
+                  title="Swipe through these, full screen" aria-label="Swipe through these, full screen">
+            <i class="ph ph-arrows-out-simple text-lg"></i></button>
+        </div>
+        <!-- data-no-swipe: a sideways drag here is the strip's, never the deck's. -->
+        <div x-ref="rstrip" data-no-swipe @scroll.passive="rScroll()"
+             class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                    [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <template x-for="u in rRows" :key="u.uid">
+            <div data-slide class="w-full shrink-0 snap-center min-h-0 overflow-y-auto px-4 py-4 lg:px-6"
+                 x-effect="$el.replaceChildren(rCard(u))"></div>
+          </template>
+        </div>
+        <div class="shrink-0 flex flex-wrap items-center gap-3 border-t border-base-300 bg-base-200/60 px-4 py-2 text-xs" x-show="rCur" x-cloak>
+          <!-- The label as a pill over the platform's own select, as in the
+               unit panel. -->
+          <label class="relative inline-flex items-center rounded-full px-2 py-0.5 font-mono cursor-pointer"
+                 :style="`background:rgba(${HUE[rCur?.label]},.28)`">
+            <span x-text="rCur?.label || 'unlabeled'"></span>
+            <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="relabel"
+                    x-effect="$el.value = rCur?.label || ''"
+                    @change="rEdit({ op: 'relabel', uid: rCur.uid, label: $event.target.value })">
+              <template x-for="v in (so.vocabulary || []).map(v => v.label)" :key="v"><option :value="v" x-text="v"></option></template>
+            </select>
+          </label>
+          <button type="button" class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
+                  :class="rCur?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
+                  :aria-pressed="rCur?.verdict === 'DROP'"
+                  @click="rEdit({ op: 'verdict', uid: rCur.uid, verdict: rCur.verdict === 'DROP' ? 'KEEP' : 'DROP' })">
+            <i class="text-base" :class="rCur?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
+            <span x-text="rCur?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
+          <span class="ml-auto font-mono opacity-50" x-text="rCur?.uid"></span>
+        </div>
+      </section>
     </div>
 
     <!-- The annotation as the thing it is: rows over spans, and the committed
@@ -2242,47 +2415,12 @@ window.__audit = {
     </div>
     </div>
 
-    <!-- A LEGEND CHIP'S PANEL-TIP, opened from the chip (chipEnter, chipClick).
-         The head is the chip's note; the list is every unit carrying the label,
-         in document order, and a row selects its unit and brings it into view. -->
-    <div class="fixed z-[95] flex flex-col bg-base-100 border border-base-300 rounded-xl shadow-lg text-xs
-                w-[min(22rem,calc(100vw-1rem))]"
-         x-ref="chipTip" x-show="chip" x-cloak data-panel
-         :style="`left:${chipPos.x}px; top:${chipPos.y}px; max-height:${chipPos.h}px`">
-      <div class="relative px-3 pt-2 pb-1.5 pr-9">
-        <span x-html="chip ? PanelTip.closeHTML(chipPinned) : ''"></span>
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span class="rounded-full px-2 py-0.5 font-mono" :style="`background:rgba(${HUE[chip]},.28)`"
-                x-text="chip"></span>
-          <span class="opacity-60" x-text="chipFigure"></span>
-          <!-- Colour alone carries the state, as with the unit panel's Remove. -->
-          <button class="ml-auto inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                  :class="off[chip] ? 'text-primary' : 'text-base-content/50'" :aria-pressed="!!off[chip]"
-                  @click="toggle(chip)">
-            <i class="text-base" :class="off[chip] ? 'ph-fill ph-eye-slash' : 'ph ph-eye-slash'"></i>
-            <span x-text="off[chip] ? 'Dimmed' : 'Dim'"></span></button>
-        </div>
-        <p class="mt-1 opacity-70 text-pretty" x-show="chip && gloss(chip)" x-text="chip && gloss(chip)"></p>
-      </div>
-      <div class="min-h-0 overflow-y-auto overscroll-contain border-t border-base-200 py-1">
-        <template x-for="u in chipUnits" :key="u.uid">
-          <button class="flex w-full items-baseline gap-2 px-3 py-1 text-left text-sm cursor-pointer
-                         hover:bg-base-200 focus:outline-none focus-visible:bg-base-200"
-                  @click="goTo(u)">
-            <span class="w-9 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
-            <span class="min-w-0 truncate" x-text="gist(u)"></span>
-          </button>
-        </template>
-      </div>
-    </div>
-
     <!-- Above the shared FAB (z-80), which is fixed to this same corner and was
          covering the split candidates. dictate.html's sheet takes the corner the
          same way: while a page's own bottom UI is up, it owns the bottom. -->
     <div class="fixed z-[90] bg-base-100 border border-base-300 rounded-xl shadow-lg px-3 py-2 text-xs
                 max-w-[min(20rem,calc(100vw-7rem))] max-h-[70vh] overflow-y-auto"
-         data-panel x-ref="panel" x-show="sel" x-cloak>
+         data-panel x-ref="panel" x-show="sel && view !== 'review'" x-cloak>
       <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
         <b class="font-mono" x-text="sel?.uid"></b>
 
@@ -2318,17 +2456,6 @@ window.__audit = {
                 @click="push({op:'verdict', uid:sel.uid, verdict: sel?.verdict === 'DROP' ? 'KEEP' : 'DROP'})">
           <i class="text-base" :class="sel?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
           <span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
-        <!-- Through the units sharing this one's label, in document order: the
-             chip panel's list, one step at a time. -->
-        <span class="ml-auto inline-flex items-center font-mono" x-show="peers.length > 1" x-cloak>
-          <button class="inline-grid place-items-center h-6 w-6 cursor-pointer rounded-field hover:bg-base-200"
-                  aria-label="Previous unit with this label" title="Previous unit with this label"
-                  @click="step(-1)"><i class="ph ph-caret-left"></i></button>
-          <span x-text="`${peers.findIndex(p => p.uid === sel?.uid) + 1}/${peers.length}`"></span>
-          <button class="inline-grid place-items-center h-6 w-6 cursor-pointer rounded-field hover:bg-base-200"
-                  aria-label="Next unit with this label" title="Next unit with this label"
-                  @click="step(1)"><i class="ph ph-caret-right"></i></button>
-        </span>
 
       </div>
 
