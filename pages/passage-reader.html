@@ -196,7 +196,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, hot: null, traced: [], group: 'entities', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, wide: false, hot: null, traced: [], group: 'entities', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -268,6 +268,12 @@ document.addEventListener('alpine:init', () => {
     },
     step(d) { this.sync(Math.max(0, Math.min(this.N - 1, this.cur + d)), 'list'); },
     go(n) { const i = this.R.sentences.findIndex(s => s.n === n); if (i >= 0) this.sync(i, 'list'); },
+    // On a phone, the passage takes the screen and the strip folds to its
+    // counter row, which stays as the way back and still moves the sentence.
+    toggleWide() {
+      this.wide = !this.wide;
+      this.$nextTick(() => { if (!this.wide && this.strip) this.strip.go(this.cur, 'instant'); this.revealLit(); this.drawArrows(); });
+    },
     // The strip's takeover, opened at the card in view: the same card over the
     // whole window, and closing returns to the strip where the deck stopped.
     openDeck() {
@@ -553,7 +559,7 @@ document.addEventListener('alpine:init', () => {
       const list = its => `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
       const atoms = all.atoms.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</section>` : '';
       el.innerHTML = `<article class="grid gap-4 text-lg">
-        <p class="leading-8 text-balance border-l-4 border-accent pl-4">${this.sentenceHtml(n, active)}</p>
+        <p class="leading-8 text-pretty border-l-4 border-accent pl-4">${this.sentenceHtml(n, active)}</p>
         <hr class="border-base-300">
         ${atoms}
         ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid gap-1">${head(g)}${list(all[g.key])}</section>`).join('')}
@@ -630,7 +636,8 @@ document.addEventListener('alpine:init', () => {
 
   <template x-if="R">
     <main x-ref="main" data-pattern="linked-swiper"
-          class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_minmax(0,2fr)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[minmax(0,1fr)] min-h-0 min-w-0">
+          class="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[minmax(0,1fr)] min-h-0 min-w-0"
+          :class="wide ? 'grid-rows-[minmax(0,1fr)_auto]' : 'grid-rows-[minmax(0,1fr)_minmax(0,2fr)]'">
       <section x-ref="passage" aria-label="Passage"
                class="overflow-y-auto overscroll-contain border-b lg:border-b-0 lg:border-r border-base-300 px-4 py-4 sm:px-6 grid gap-4 content-start">
         <div x-show="R.gist" class="hidden lg:grid gap-1">
@@ -661,15 +668,18 @@ document.addEventListener('alpine:init', () => {
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="kindLabel"></span>
           <button type="button" class="ml-auto" :class="swipeDeck.entry.cls('ghost', 'tight')" @click="openDeck()"
                   :aria-label="swipeDeck.entry.title(N, 'sentence')" :data-title-tip="swipeDeck.entry.title(N, 'sentence')" data-title-tip-bare><i class="ph text-lg" :class="swipeDeck.entry.icon"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm btn-square lg:hidden" @click="toggleWide()"
+                  :aria-label="wide ? 'Show the cards' : 'Give the passage the screen'" :data-title-tip="wide ? 'Show the cards' : 'Give the passage the screen'" data-title-tip-bare>
+            <i class="ph text-lg" :class="wide ? 'ph-caret-double-up' : 'ph-caret-double-down'"></i></button>
         </div>
-        <div class="flex gap-1 px-2 sm:px-4 pb-1.5 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" role="tablist" aria-label="Group">
+        <div class="flex gap-1 px-2 sm:px-4 pb-1.5 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" :class="wide && 'max-lg:hidden'" role="tablist" aria-label="Group">
           <template x-for="g in GROUPS" :key="g.key">
             <button class="btn btn-xs rounded-full font-normal shrink-0" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
                     :class="group === g.key ? 'btn-soft btn-primary' : groupSize(g.key, s.n) ? 'btn-ghost text-base-content/70' : 'btn-ghost text-base-content/30'"
                     :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)" x-text="g.label"></button>
           </template>
         </div>
-        <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
+        <div x-ref="track" class="min-h-0 min-w-0 h-full" :class="wide && 'max-lg:hidden'"></div>
       </section>
     </main>
   </template>
