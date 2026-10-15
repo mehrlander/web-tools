@@ -1,10 +1,10 @@
 # House policies
 
-Each entry states a preference the owner has approved, the cases it covers, and the document that holds its detail. Cite an entry by any of its shortcuts, written `[[H:NAME]]`.
+These policies set out the owner's preferences and conventions, organized by principle. They are meant to be memorable and cited, the way WP:NPOV is cited on a Wikipedia talk page.
 
 ## Policies
 
-### Writing policies · `H:POLICY`
+### Writing policies · `/h:policy`
 
 A policy states a preference that holds across tasks, in wording the owner approved, with the cases it covers.
 
@@ -12,11 +12,12 @@ A policy states a preference that holds across tasks, in wording the owner appro
 - A session shows proposed wording in chat and commits it only after the owner approves it, quoting the approval in the commit's `Doc-change-approved:` trailer.
 - A policy gets a document of its own only after its entry has been misapplied twice.
 - A shortcut names a preference or a bounded topic. A policy may have several shortcuts, and no shortcut is reused.
+- Cite an entry by its slash command, such as `/h:qualify`. After the first mention in a document or reply, `h:qualify` alone is enough.
 - A shortcut is an address, not a summary: read the entry before applying it.
 
-**Covers:** this document, and the repo-specific policies under `H:LOCAL`.
+**Covers:** this document, and the repo-specific policies under `/h:local`.
 
-### Repo-specific policies · `H:LOCAL`
+### Repo-specific policies · `/h:local`
 
 A policy for one repo is an entry in this document whose scope names that repo.
 
@@ -28,7 +29,7 @@ A policy for one repo is an entry in this document whose scope names that repo.
 
 ## Writing
 
-### Qualified writing · `H:QUAL`, `H:Q`, `H:QUALIFY`
+### Qualified writing · `/h:qual`, `/h:q`, `/h:qualify`
 
 Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
 
@@ -36,7 +37,7 @@ Qualify noun phrases, and introduce each referent before referring to it, so tha
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
 
-### Precise register · `H:PRECISE`, `H:SLANG`
+### Precise register · `/h:precise`, `/h:slang`
 
 Use the standard term a general reader knows, in a plain, dry register.
 
@@ -48,7 +49,7 @@ Use the standard term a general reader knows, in a plain, dry register.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 2.
 
-### Showing · `H:SHOW`
+### Showing · `/h:show`
 
 Show the thing rather than explain it.
 
@@ -56,9 +57,9 @@ Show the thing rather than explain it.
 - Include a screenshot or a measurement rather than describe behavior.
 - Let structure and labels carry relationships rather than explanatory prose.
 
-**Covers:** replies, documents and pages; for pages, `H:STYLE`.
+**Covers:** replies, documents and pages; for pages, `/h:style`.
 
-### Main thread · `H:THREAD`
+### Main thread · `/h:thread`
 
 Keep the reader's main question in view.
 
@@ -70,20 +71,21 @@ Keep the reader's main question in view.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.
 
-### What earns space · `H:CRIT`, `H:DOE`
+### What earns space · `/h:crit`, `/h:doe`
 
-In a document that future sessions read to decide what to do, keep a sentence only if it changes what the reader does.
+In a document that future sessions read to decide what to do, include content only where it changes what the reader does.
 
-- Keep a reason only where it marks a boundary, an exception or a condition.
+- If the reader would succeed without a passage, leave it out.
+- Include a reason only where it clarifies intent, and keep it minimal.
 - Before adding to such a document, check whether the app derives the fact, the suite enforces it, or another document owns it, and link instead.
 
 **Covers:** docs, skills, CLAUDE.md and AGENTS.md; not replies, and not content written for its own audience.
 
-**Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), "Living Documentation Rules".
+**Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), "General Principles".
 
 ## Pages
 
-### Page house style · `H:STYLE`
+### Page house style · `/h:style`
 
 A page follows the house style, which takes precedence over any general design, dashboard or charting skill.
 
@@ -97,7 +99,7 @@ A page follows the house style, which takes precedence over any general design, 
 
 ## Handover
 
-### Surfacing · `H:SURF`, `H:SURFACING`
+### Surfacing · `/h:surf`, `/h:surfacing`
 
 A reply hands over what the reader needs in order to act.
 
@@ -107,7 +109,7 @@ A reply hands over what the reader needs in order to act.
 
 **Detail:** [SURFACING.md](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md); for pull requests, [surfacing-course.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md).
 
-### Links · `H:LINK`
+### Links · `/h:link`
 
 Link every file, pull request, session and page a reply mentions.
 
@@ -120,7 +122,7 @@ Link every file, pull request, session and page a reply mentions.
 
 ## Evidence and confidence
 
-### Look first · `H:LOOK`
+### Look first · `/h:look`
 
 Observe before explaining.
 
@@ -130,7 +132,7 @@ Observe before explaining.
 
 **Covers:** diagnosis, and any claim about how something behaves.
 
-### Checking · `H:CHECK`
+### Checking · `/h:check`
 
 Verify a claim with a check that could have failed.
 
@@ -141,7 +143,7 @@ Verify a claim with a check that could have failed.
 
 **Covers:** claims about files, behavior, tests, links and CI.
 
-### Hedging · `H:HEDGE`
+### Hedging · `/h:hedge`
 
 State confidence as it is.
 
@@ -152,7 +154,7 @@ State confidence as it is.
 
 **Covers:** replies, findings and PR bodies.
 
-### Unreviewed text · `H:SALT`
+### Unreviewed text · `/h:salt`
 
 Treat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.
 
@@ -164,7 +166,7 @@ Treat repo text whose wording the owner has not approved as a candidate reading 
 
 ## Authority
 
-### Who decides · `H:WHO`
+### Who decides · `/h:who`
 
 The session settles questions of fact and finishes requested work without asking leave; the owner holds the decisions below.
 
@@ -176,7 +178,7 @@ The session settles questions of fact and finishes requested work without asking
 
 **Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md), principles 1 and 3.
 
-### Speaking about rules · `H:DEFER`
+### Speaking about rules · `/h:defer`
 
 When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
 
@@ -186,7 +188,7 @@ When a rule bears on what the owner has asked, quote it, name its source, and of
 
 **Covers:** replies that cite a rule, policy or convention.
 
-### Verdict language · `H:VERDICT`, `H:RULING`
+### Verdict language · `/h:verdict`, `/h:ruling`
 
 Report what a source says and what was observed, not a verdict on it.
 
@@ -195,7 +197,7 @@ Report what a source says and what was observed, not a verdict on it.
 
 **Covers:** replies, findings and PR bodies that report on a source, a tool's output or an analysis.
 
-### Weighing a found rule · `H:WEIGH`
+### Weighing a found rule · `/h:weigh`
 
 When a rule found in a repo conflicts with what the owner has said in the conversation, the owner's statement governs.
 
@@ -205,7 +207,7 @@ When a rule found in a repo conflicts with what the owner has said in the conver
 
 **Covers:** every session.
 
-### Raising a tension · `H:RAISE`
+### Raising a tension · `/h:raise`
 
 Raise a challenge before the work it concerns proceeds.
 
@@ -217,7 +219,7 @@ Raise a challenge before the work it concerns proceeds.
 
 ## Code placement
 
-### Library folders · `H:PLACE`
+### Library folders · `/h:place`
 
 A file under `lib/` goes in the folder named by what it attaches to.
 
@@ -230,7 +232,7 @@ A file under `lib/` goes in the folder named by what it attaches to.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "The layers", held by `node/test/code-layers.test.mjs`.
 
-### Kits · `H:KIT`
+### Kits · `/h:kit`
 
 A kit registers one `window` namespace.
 
@@ -242,7 +244,7 @@ A kit registers one `window` namespace.
 
 **Detail:** [lib/kits/README.md](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), "Concept".
 
-### Scripts · `H:TOOL`
+### Scripts · `/h:tool`
 
 A script outside `lib/` is placed by three questions, asked in order.
 
