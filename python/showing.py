@@ -693,6 +693,19 @@ def short_entry(e):
     return f"{repo}@{short(ref)}{sep}{path}"
 
 
+# A --query names what the reader asked for, so a key it carries REPLACES the
+# script's own pair of that name instead of riding beside it. Appended, the
+# two `view=` pairs reached the page as `?view=submittal&view=benefits`, and
+# the app routes on the first: the link opened the script's guess over the
+# view that was asked for (home's Benefits view, 2026-10-15). Values pass
+# through as typed, since `tab=a/b` must reach the page unencoded.
+def join_query(own, query=""):
+    extra = [p for p in query.lstrip("?&").split("&") if p]
+    named = {p.split("=", 1)[0] for p in extra}
+    pairs = [f"{k}={v}" for k, v in own if v and k not in named] + extra
+    return "?" + "&".join(pairs) if pairs else ""
+
+
 # A page that routes on its own hash opens on its EMPTY FORM without an
 # address, and the link still resolves and renders, which is this script's own
 # failure shape one level down. The `at` below is that address: on a toss it
@@ -720,9 +733,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     if mech == "use":
         # One query on this mechanism already, so an extra rides as another
         # pair rather than as a second '?'.
-        q = f"?use={sha}" + (f"&view={view}" if view else "")
-        if query:
-            q += "&" + query.lstrip("?&")
+        q = join_query([("use", sha), ("view", view)], query)
         return base + pretty + q + frag
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
@@ -755,13 +766,11 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         # The renderer is web-tools' own, on main, so no ?use= pins it; the
         # ref belongs to the framed repo and rides in the #gh= address, where
         # the app's embeds inherit it (home CLAUDE.md, "Render path").
-        q = f"?view={view}" if view else ""
         # A --query JOINS the view rather than opening a second '?' span, the
         # same way it joins ?use= above: the framed page reads one query, so
         # `?view=sessions?lens=table` reaches it as a view named
         # `sessions?lens=table` and routes nowhere.
-        if query:
-            q += ("&" if q else "?") + query.lstrip("?&")
+        q = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
                 f"#gh={slug}@{sha}:{page}{q}{frag}")
     if mech == "overlay":
@@ -769,9 +778,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         # the page is addressed at the branch only when the page itself changed.
         sel = "&".join("refs=" + e for e in (entries or []))
         at_ref = f"@{page_ref}" if page_ref else ""
-        vq = f"?view={view}" if view else ""
-        if query:
-            vq += ("&" if vq else "?") + query.lstrip("?&")
+        vq = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html" + (f"?{sel}" if sel else "")
                 + f"#gh={slug}{at_ref}:{page}{vq}{frag}")
     if mech == "toss-nested":

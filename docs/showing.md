@@ -1,88 +1,113 @@
-# Showing: getting a thing in front of a viewer
+# Showing: how content reaches a viewer
 
-The estate answers one question in a dozen ways: **something exists somewhere, and someone needs to look at it.** [SURFACING.md](SURFACING.md) is the etiquette that decides what to hand over; the Web Tools app ([APP.md](APP.md)) is what you hand it from. The one-line split, since "surfacing" and "showing" are near-synonyms in ordinary English and this only holds if it is stated: **surfacing decides what to hand over; showing is what makes it openable.**
+Showing follows surfacing ([SURFACING.md](SURFACING.md)): surfacing decides what
+to hand over; showing is what makes it openable.
 
-> **The reference is the app, not this file.** Every mechanism, the address to write for each, what it reaches and misses, its trap, and the rule for picking one are rows in [`docs/showing-mechanisms.csv`](showing-mechanisms.csv); the three axes they are indexed by and the picker rules are the `showing` block of [`docs/routes.json`](routes.json), except the subject axis, which is a registry of its own, [`docs/subjects.csv`](subjects.csv), since two tables key into it. All of it renders in the app's **Map view, Showing tab**.
+**The reference is the app, not this file.** Each way of showing (a hosted URL, a
+`?use=` pin, a 🥏 toss, and others) is a row in
+[`showing-mechanisms.csv`](showing-mechanisms.csv), with the address to write,
+what it reaches and misses, its trap, and when to use it. The `showing` block of
+[`routes.json`](routes.json) holds the picker rules and two of the three axes that
+classify the rows, version and viewer; the third, subject, is
+[`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders all
+three files.
 
-What stays here is what no row can hold: why the boundaries are where they are, and the relations between rows.
+## `?use=` versus a 🥏 toss
 
-## The two mechanisms are inverses
-
-This is the part worth understanding rather than looking up, because it explains why the table has the shape it does. A row can say what one mechanism reaches; only prose can say that two of them reach complementary halves.
-
-|  | Top-level document | Reaches | Misses |
+|  | What runs | Reaches | Misses |
 | --- | --- | --- | --- |
-| **`?use=`** | main's page file, real | anything **lib** does, top-level chrome included | the page's own inline shell |
-| **🥏 nesting** | the branch's shell, but framed | shell internals: routing, mounting, rendering, address parsing | anything the shell does to the **top-level context** |
+| **`?use=`** | main's page file, as the top-level document | anything lib does, including what it does to the tab | the page file's own inline code |
+| **🥏 toss** | the branch's page file, inside a frame | the page's inline code and its lib | what the page does to the top-level document, unless `?top` is set |
 
-So a change that is *both* in a page's own inline shell *and* aimed at the top-level document is reachable by neither, and the escape is not a better link but **moving the code**: in a lib module, `?use=` reaches it, since that is the only mechanism swapping code without swapping which document is on top.
+A change in a page's inline code that acts on the top-level document therefore
+needs `?top` on the toss, which makes the page the top-level document, or a move
+into a lib module, where `?use=` reaches it. [`loader.md`](loader.md) documents
+how both work.
 
-The `?use=` half of that table is a consequence of the loader, not a fact about showing. [`loader.md`](loader.md) owns it: what the parameter swaps, why a branch name is cache-safe, the Pages-versus-raw split, and the `window.__ghBlobBoot` global. Read it there rather than here.
+## Nesting
 
-## What nesting reaches, and what it cannot
+A 🥏 link is served by main's `toss-render.html`, so the deployed shell parses the
+address. To preview a branch change to the shell itself, nest it: address the
+branch's `toss-render.html` as the page, and pass the page to show as a trailing
+fragment. Main's shell runs the branch's shell in a frame, which renders the page
+two frames deep. A `?query` reaches the inner shell through the params shim, and
+a trailing `#frag` arrives as a real `location.hash`.
 
-A 🥏 link is served by **main's** `toss-render.html`, so the deployed shell parses the address. Branch work on that page previews by nesting: address the branch's own renderer as the subject and hand it the page you want as a trailing fragment. Main renders the branch's shell, which renders the page two frames deep.
+The inner shell never becomes the top-level document, so its changes to
+`document.title`, the favicon, `history.replaceState` or top-level navigation run
+without visible effect. This was found with a favicon change in PR #315. At depth
+2 the icon is dimmed twice, and the tab's icon and label describe different
+levels; both are correct.
 
-Both halves of an address reach the inner shell for real: a `?query` arrives through the params shim, and a trailing `#frag` rides the frame's `blob:` URL as a genuine `location.hash`. So routing, frame mounting, rendering, and **address-bar parsing** are all previewable.
-
-**What nesting cannot reach is the top-level chrome.** A nested shell really runs, but never as the top-level document, and the tab belongs to whatever document is on top. So a shell change acting on that context executes correctly and shows nothing. The favicon is the case that found this (PR #315): the branch's shell reads its subject's icon and sets it on its own framed document, invisibly, while main's outer shell keeps the frisbee. The rest of the class is `document.title`, `history.replaceState`, and top-level navigation.
-
-At depth 2 the icon arrives dimmed twice and the tab's icon and label describe different levels, both correct and left alone.
-
-## The drawer at depth 2
-
-The FAB around a nested preview shows **both sides, attributed**: `detect()` collects page-contributed actions from the subject as well as the shell, and the shell's rows carry a stacked-windows glyph. That is a preview with a footnote rather than a clean one, so say which rows you mean.
-
-Invoking across the window boundary is handled rather than avoided, and [`node/test/subject-actions.mjs`](../node/test/subject-actions.mjs) is the statement of how.
-
-**A framed toss carries main's lib, including the FAB**: a branch change to `fab.js` shows through `?top`, where the page mounts its own, or a `?use=` pin.
+In a nested preview, the FAB (the floating action button every lib page carries)
+lists actions from both the framed page and the shell, and the shell's rows carry
+a stacked-windows icon.
+[`node/test/subject-actions.mjs`](../node/test/subject-actions.mjs) tests how an
+action is invoked across the frame boundary.
 
 ## Picking versions inside a toss
 
-The `#gh=` address picks the **displayed file**. Repeatable `refs=owner/repo@ref`, or `@ref:path` for one file, on the renderer picks the version of each repository its code reads; `?lib=<ref>` is the web-tools entry. Unselected, a web-tools page runs its own ref and any other page main. Writes and the reads kept on main on purpose never move. `?top` makes the page the tab's own document. [loader.md](loader.md#the-selection) has the rules.
+`#gh=` picks the displayed file. `refs=owner/repo@ref` on the shell's query sets
+the version of each repository the page's code reads; it can repeat, and
+`@ref:path` narrows it to one file. `?lib=<ref>` does the same for web-tools.
+Writes, and the reads pinned to main by design, ignore these selections. `?top`
+makes the page the top-level document.
+[loader.md](loader.md#the-selection) states the full rules.
 
-## Three reasons a change resists preview
+## Changes that resist preview
 
-They are felt as one thing, a sense that some code is too central to swap, and
-they are three constraints with three different routes.
+- **The bootstrap.** `lib/gh-api.js` fetches files at a ref, so it cannot be
+  fetched that way itself; each page loads it by explicit URL in a hand-written
+  boot preamble. A toss reaches a change to a page's preamble, since it serves the
+  branch's page file whole. Nothing reaches a change to the shell's preamble,
+  because the shell always runs from main.
+- **The document boundary.** A framed toss is two documents, the shell and the
+  framed page, and each creates its own `gh` loader, whose ref every later load
+  uses. The framed page's `gh` uses the Web Tools ref the shell resolved; the
+  shell's uses main. So whatever the shell contributes to the view (today the FAB
+  and the Alpine bundle) comes from main, whatever the address names. A branch
+  change there shows through `?top`, where the page mounts its own FAB, or through
+  a `?use=` pin on a deployed page.
+- **Never pin both documents.** `?use=` on the shell alongside an `@ref` in the
+  fragment pins two documents in one view, and on an iPhone that kills Safari's web
+  process on the first tap of the FAB, whatever refs are named. The cause is
+  unknown; the record is `shell-pin-kills-the-tab` in [SNAGS.md](SNAGS.md).
+- **The shell itself.** `pages/toss-render.html` cannot render itself at the top
+  level, so a branch change to it previews by nesting (above).
 
-**The bootstrap.** `lib/gh-api.js` is what fetches a file at a ref, so it cannot
-be fetched at a ref by that mechanism: the loader cannot load the loader. Every
-page carries a hand-written boot preamble that fetches it by explicit URL, which
-is why the preamble is duplicated rather than shared. The toss reaches a change
-to it, since the toss serves the branch's page file whole; nothing reaches one to
-the **shell's** preamble, which is `toss-render.html` on main.
+## The FAB's ref check
 
-**The document boundary.** A framed toss is two documents, and each creates its own `gh`
-whose ref every later load resolves against. The framed page's is pinned to the
-Web Tools ref the renderer resolved (the section above); the shell's is pinned
-to main. So anything the shell contributes
-to the view, loaded at boot or on a tap, comes from main regardless of the
-address. Today that is the FAB and the Alpine bundle. This is not about the code
-being central: it is ordinary `lib/` code sitting in the other document, and the
-route to it is the `?use=` pin on a deployed page instead of a toss.
+Every page that boots lib honors `?use=`, and every one carries the FAB. A page
+that pins the ref in its own boot block and ignores the parameter loads
+default-branch code under a preview banner. The FAB compares `window.gh.ref` with
+the address and says when `?use=` was ignored. Inside a toss it checks the framed
+page against the ref the shell resolved, and marks any layer that booted a
+different one.
 
-**Never pin both documents.** `?use=` on the shell alongside an `@ref` in the
-fragment pins two documents in one view, and on an iPhone that kills Safari's web
-process on the first tap of the FAB, whatever refs are named. Measured, not
-explained: SNAGS.md, `shell-pin-kills-the-tab`.
-
-**The renderer's self-reference.** `pages/toss-render.html` cannot render itself
-at the top level, so a branch change to it previews by nesting, the `toss-nested`
-row, whose reach the section above states.
-
-## The invariant, and the shape of its absence
-
-Every page that boots lib honors `?use=`, and every one carries the FAB. The failure mode when that is only nearly true is silent rather than loud: a page that pins the ref in its own boot block and ignores the parameter loads default-branch code under a preview banner. So the FAB cross-checks `window.gh.ref` against the address and says plainly when `?use=` was ignored, which is the only thing standing between a stale preview and a confident reader. Inside a toss it checks the framed page against the ref the renderer resolved, and marks any layer that booted another.
-
-That is the general shape of every failure recorded on this page: not a link that errors, but a link that renders something plausible and wrong. A mechanism table can tell you which link to write. It cannot tell you that the one you wrote is quietly showing you last week, which is why the honesty rule ("only a page renders this way; for a kit or doc, ⭐ links the `[new]` blob") and the headless screenshot both survive the existence of the table.
+The failures recorded in this file share one shape: the link renders something
+plausible but wrong, and reports no error. The mechanism table cannot catch that,
+so two checks remain in use: CLAUDE.md's honesty rule ("only a page renders this
+way; for a kit or doc, ⭐ links the `[new]` blob") and a headless screenshot.
 
 ## Viewer context
 
-The table's `viewer` axis carries this; the one criterion no row holds is that the Claude app's in-app browser keeps its own storage, so treat `ghToken` as possibly absent there. When it is, bake the page and publish a 📦 artifact, or fall back to 🥏 `#gz=`. Matrix and pipeline: [docs/artifacts.md](artifacts.md).
+The Claude app's in-app browser keeps its own storage, so the `ghToken` a toss
+needs may be absent there. In that case, bake the page and publish a 📦 artifact,
+or fall back to a 🥏 `#gz=` link, which carries the page inside the link. Options
+and pipeline: [artifacts.md](artifacts.md).
 
-## The subject, typed, and the kind under it
+## Subjects and kinds
 
-[`subjects.csv`](subjects.csv) types what is on screen: the estate, a repo, a project, a branch, a session, a page, a file, data, a fileset. It was the frame's five subject strings until 2026-09-22; the parenthetical each carried (renders itself, needs a renderer) is its `needs` column, and the FAB's layer strip reads `detect` to caption a layer by type rather than by its place in the stack. Two things are not types: a view is the app's closed vocabulary over the estate or a repo (`group` in `app-routes.csv`) and rides as the label under the subject; promotion (`appView`) is an attribute of a page.
+[`subjects.csv`](subjects.csv) lists the types of subject a viewer can have on
+screen: the estate, a repo, a project, a branch, a session, a page, a file, data,
+or a fileset. Its `needs` column says whether a subject renders itself or needs a
+renderer, and the FAB's layer strip reads its `detect` column to label each layer
+by type. A view (`group` in `app-routes.csv`) is not a subject type; it appears as
+the label under the subject. Promotion (`appView`) is an attribute of a page, not
+a type.
 
-One level down, [`routes-kinds.csv`](routes-kinds.csv) says which file, which renderer, and what a note can be pinned to inside it once open, because showing does not end when the pixels land. A kind is neither a page type nor a route: markdown has none and `data` carries five kinds. The tables join by key and stay separate, the arrangement [`registries.md`](registries.md) calls inheriting, and `routes-manifest.test.mjs` holds every join.
+[`routes-kinds.csv`](routes-kinds.csv) lists, for each kind of file, the renderer
+that opens it and what a note can be pinned to once it is open. A kind is neither
+a subject type nor a route: markdown has no route, and several kinds share the
+`data` route. The kinds table joins the subject, mechanism and route tables by
+key, and `routes-manifest.test.mjs` checks every join.
