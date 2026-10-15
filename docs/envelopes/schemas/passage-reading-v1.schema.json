@@ -87,11 +87,14 @@
                 "e": { "type": "string", "description": "An entity id." },
                 "quote": { "type": "string" },
                 "form": { "enum": ["anaphor", "ellipsis"] },
+                "slot": { "type": "string", "description": "For an ellipsis: the empty slot of the quoted word, such as 'object of Write'." },
                 "fill": { "type": "string" },
                 "in": { "type": "string" },
                 "ante": { "type": "integer", "minimum": 1 },
                 "note": { "type": "string" }
-              }
+              },
+              "if": { "properties": { "form": { "const": "ellipsis" } }, "required": ["form"] },
+              "then": { "required": ["slot", "fill"] }
             }
           },
           "links": {
@@ -124,6 +127,7 @@
                 "quote": { "type": "string" },
                 "for": { "type": "string", "pattern": "^[a-z]$" },
                 "as": { "$ref": "#/$defs/relation" },
+                "on": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Entity ids: what the claim is about, named in the sentence or not." },
                 "implied": { "type": "boolean" },
                 "note": { "type": "string" }
               },

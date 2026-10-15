@@ -113,7 +113,8 @@ for s in S:
             if m["in"].count(m["quote"]) != 1: err(f"s{n}: quote {m['quote']!r} is not once inside {m['in']!r}")
         else:
             unique(m["quote"], t, f"s{n} mention {m['e']}")
-        if m.get("form") == "ellipsis" and not m.get("fill"): err(f"s{n}: ellipsis of {m['e']} has no fill")
+        if m.get("form") == "ellipsis" and not (m.get("fill") and m.get("slot")):
+            err(f"s{n}: ellipsis of {m['e']} needs a slot (object of Write) and a fill")
         if m.get("form") and m["e"] in ents and m["e"] not in first_named and ents[m["e"]].get("basis") != "context":
             err(f"s{n}: {m['e']} has an {m['form']} mention but no named antecedent")
         if "ante" in m and not (1 <= m["ante"] <= n): err(f"s{n}: ante {m['ante']} is not this or an earlier sentence")
@@ -133,6 +134,8 @@ for s in S:
         if ("for" in a) != ("as" in a): err(f"{aid}: 'for' and 'as' go together")
         if "for" in a and (a["for"] not in ids or a["for"] == a.get("id") or a["as"] not in KINDS):
             err(f"{aid}: bad 'for'/'as'")
+        for e in a.get("on", []):
+            if e not in ents: err(f"{aid}: on names no entity {e!r}")
 
 for k in ents:
     if k not in first_any: err(f"entity {k} is never mentioned")
@@ -180,7 +183,11 @@ out.append(f"\n_Gist:_ {r['gist']}\n")
 for s in S:
     n = s["n"]
     new = [ents[e]["label"] for e, (fn, _) in first_any.items() if fn == n and e in ents]
-    seen = [e for e in dict.fromkeys(m["e"] for m in s.get("mentions", [])) if first_any[e][0] != n]
+    # In play, as the page derives it: entities the sentence names (the topic
+    # aside) and entities its atoms are about (the topic included).
+    named_here = [m["e"] for m in s.get("mentions", []) if m["e"] != topic]
+    about = [e for a in s.get("atoms", []) for e in a.get("on", [])]
+    seen = [e for e in dict.fromkeys(named_here + about) if e in ents and first_any.get(e, (n,))[0] != n]
     atoms = s.get("atoms", [])
     out.append(f"### {n} · {atoms[0].get('type') if atoms else '?'}\n\n> {s['text']}\n")
     out.append("- **New here:** " + (", ".join(new) or "none"))
@@ -201,7 +208,8 @@ for s in S:
     for a in atoms:
         flag = " _(implied)_" if a.get("implied") else ""
         rel = f" {a['as']} {n}{a['for']}" if a.get("for") else ""
-        out.append(f"  - {n}{a.get('id')} {a.get('type')}{rel}{flag}: {a.get('claim')}")
+        on = f" [on {', '.join(ents[e]['label'] for e in a.get('on', []) if e in ents)}]" if a.get("on") else ""
+        out.append(f"  - {n}{a.get('id')} {a.get('type')}{rel}{flag}: {a.get('claim')}{on}")
     out.append("")
 print("\n".join(out))
 
