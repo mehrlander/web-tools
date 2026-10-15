@@ -32,7 +32,12 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 const doc = window.document;
+// gh-auth rides along for the same reason: the credential card asks it whether
+// a string is shaped like a token, and every page carrying the fab boots it
+// first (gh-boot.js). It patches GH.prototype, so a minimal GH stands in.
+window.GH = class { get headers() { return {}; } async req() { return {}; } };
 const Alpine = await startAlpine(window, [
+  'lib/gh-auth.js',
   // The declaration pair rides along because the launcher menu asks what the
   // page declared, and a stub would let the fab agree with a shape the kits do
   // not actually write. src-doc first: md-doc declares through it. Loading them
