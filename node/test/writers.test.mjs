@@ -56,8 +56,8 @@ test('a Writes view kind is one write-kinds.js knows, and a local definition exi
   }
 });
 
-// docs/venues.md names two senses of "venue": an agent channel, and an errand's
-// run.venue, the machine a person runs code on. This column is a machine too,
+// An errand's run.venue names the machine a person runs code on (docs/venues.md
+// notes the fields that share the word). This column is a machine too,
 // so it is named `machine` and spells a machine the way run-methods.csv does.
 // Two values are writers' own, because no run method runs there: the cloud
 // container a web session uses, and "your computer", which is coarser than
