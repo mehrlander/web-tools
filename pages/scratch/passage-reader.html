@@ -17,9 +17,11 @@
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
   does not store. Two colours, one meaning each. The primary colour marks
-  connections: every one in the passage as a faint arrow behind the text, and
-  the active group's as filled spans and darker arrows. The accent colour marks
-  the current sentence, in the passage, on its card and in the dots.
+  connections: every connection's two spans are tinted and joined by a faint
+  arrow behind the text, and those touching the current sentence, either way,
+  are stronger. The active group's spans are filled on the card, and for New
+  here, In play and Atoms in the passage too. The accent colour marks the
+  current sentence, in the passage, on its card and in the dots.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -129,7 +131,9 @@ document.addEventListener('alpine:init', () => {
     }
     const fresh = {};
     for (const [e, f] of Object.entries(firstAny)) (fresh[f.n] ||= []).push(e);
-    return { by, rng, inn, fwd, own, fresh, keysOf, where, problems };
+    // Every connection in the passage once, each held by the later sentence.
+    const links = S.flatMap(s => [...inn[s.n], ...own[s.n]]);
+    return { by, rng, inn, fwd, own, links, fresh, keysOf, where, problems };
   }
 
   // Text cut at every range boundary, so overlapping ranges need no nesting.
@@ -239,52 +243,56 @@ document.addEventListener('alpine:init', () => {
     // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
     // the passage) or 'dim' (any other). The sentence's own words, unchanged:
     // formatting marks them, and nothing is added to them.
-    span(p, fill, mode) {
+    // `web`, in the passage only, tints every connection's spans lightly.
+    span(p, fill, mode, web) {
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const cls = ['data-[on]:bg-primary/40 data-[ev]:bg-primary/40'];
       if (fill && p.on.some(r => fill.has(r.key))) cls.push('bg-primary/20', mode === 'dim' ? 'text-base-content' : '');
+      else if (web && p.on.some(r => web.has(r.key))) cls.push('bg-primary/10');
       if (mode === 'card' && p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor')) cls.push(UNDER, DOTTED);
       if (code) cls.push('bg-base-200 rounded');
       const text = esc(code ? plain(p.text) : p.text);
       return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
     },
 
-    // What the active group marks in the passage for sentence n: spans to
-    // fill, and arrows from a later or referring span to the one it leans on.
+    // What the passage marks at full strength for sentence n: every
+    // connection touching it, in either direction, as spans to fill and arrows
+    // (`near`), and the spans of the active group when that is not a group of
+    // connections.
     focus(n) {
-      const X = this.X, g = this.group, fill = new Set(), arrows = [];
-      const tie = list => list.forEach(it => { it.keys.forEach(k => fill.add(k)); if (it.keys.length === 2) arrows.push(it.keys); });
-      if (g === 'in') tie(X.inn[n]);
-      else if (g === 'out') tie(X.fwd[n]);
-      else if (g === 'within') tie(X.own[n]);
-      else if (g === 'atoms') X.by[n].atoms.forEach((a, k) => fill.add(`a${n}-${k}`));
-      else for (const e of g === 'new' ? X.fresh[n] || [] : this.playing(n)) for (const k of X.keysOf[e] || []) fill.add(k);
-      return { fill, arrows };
+      const X = this.X, g = this.group, fill = new Set(), near = new Set();
+      for (const it of [...X.inn[n], ...X.fwd[n], ...X.own[n]]) {
+        it.keys.forEach(k => fill.add(k));
+        if (it.keys.length === 2) near.add(it.keys.join(' '));
+      }
+      if (g === 'atoms') X.by[n].atoms.forEach((a, k) => fill.add(`a${n}-${k}`));
+      else if (g === 'new' || g === 'play') for (const e of g === 'new' ? X.fresh[n] || [] : this.playing(n)) for (const k of X.keysOf[e] || []) fill.add(k);
+      return { fill, near };
     },
 
-    // The passage: the current sentence outlined, the rest dimmed, and the
-    // active group's spans filled wherever they sit.
+    // The passage: the current sentence outlined, the rest dimmed, every
+    // connection's spans tinted, and focus()'s spans filled wherever they sit.
     get passageHtml() {
       if (!this.R) return '';
-      const lit = this.s.n, X = this.X, { fill } = this.focus(lit);
+      const lit = this.s.n, X = this.X, { fill } = this.focus(lit), web = new Set(X.links.flatMap(it => it.keys));
       const lead = this.R.lead ? `<span class="font-semibold text-base-content/60">${esc(this.R.lead)}</span> ` : '';
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
         const ranges = X.rng[s.n].filter(r => r.kind !== 'a' || (on && this.group === 'atoms'));
-        const body = pieces(s.text, ranges).map(p => this.span(p, fill, on ? 'lit' : 'dim')).join('');
+        const body = pieces(s.text, ranges).map(p => this.span(p, fill, on ? 'lit' : 'dim', web)).join('');
         return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/50 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
     // Arrows behind the passage, one for every connection in it, from the
     // referring span straight through the lines between to the span it leans
-    // on; the text paints over them. The ones the active group lists for the
-    // current sentence are darker, and a hovered row's darker still.
+    // on; the text paints over them. Those touching the current sentence are
+    // darker, and a hovered row's darker still.
     drawArrows() {
       const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
       if (!wrap || !text || !layer || !this.R) return;
-      const W = wrap.getBoundingClientRect(), X = this.X, HEAD = 9;
+      const W = wrap.getBoundingClientRect(), X = this.X, HEAD = 7;
       // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
       const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
         .reduce((by, r) => {
@@ -292,9 +300,8 @@ document.addEventListener('alpine:init', () => {
           by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
           return by;
         }, {}));
-      const picked = new Set(this.focus(this.s.n).arrows.map(k => k.join(' ')));
-      const pairs = [...new Set(this.R.sentences.flatMap(s => [...X.inn[s.n], ...X.own[s.n]])
-        .filter(it => it.keys.length === 2).map(it => it.keys.join(' ')))];
+      const picked = this.focus(this.s.n).near;
+      const pairs = [...new Set(X.links.filter(it => it.keys.length === 2).map(it => it.keys.join(' ')))];
       // A span can wrap, so each arrow joins the nearest pair of its two spans'
       // line boxes: out of the top of the later one and into the foot of the
       // earlier, or on one line, over the top of both.
@@ -326,7 +333,7 @@ document.addEventListener('alpine:init', () => {
         const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
           : `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`;
         return `<path data-k="${pair}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
-          + ` class="${on ? 'opacity-40' : 'opacity-20'} data-[on]:opacity-70" style="stroke:var(--color-primary);stroke-width:4px"/>`;
+          + ` class="${on ? 'opacity-60' : 'opacity-30'} data-[on]:opacity-90" style="stroke:var(--color-primary);stroke-width:2px"/>`;
       }).join('');
       layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
         + `<defs><marker id="pr-head" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="${HEAD}" markerHeight="${HEAD}" orient="auto">`
