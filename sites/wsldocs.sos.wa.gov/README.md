@@ -6,12 +6,30 @@ site drops them: DRS keeps its last five financial reports and its
 [Chapter 15 page](https://www.drs.wa.gov/employer/ch15/) sends the rest here, and
 the parallel OFM index on this host spans 2000 to 2017.
 
-**The host's one governing fact: it is behind a Cloudflare interstitial.** A
-Claude Code web session gets a 403 from `curl` and a 403 from WebFetch alike,
-host-wide, and the sandbox's headless Chromium cannot reach external hosts
-through the agent proxy at all. A browser navigating normally passes it without
-noticing. Everything here therefore runs **on the page**, in your browser, and
-nothing here should be written as though a session could fetch this host.
+**The host's one governing fact: it is behind a Cloudflare interstitial.** Any
+client that does not run the interstitial's JavaScript gets a 403 page titled
+"Just a moment...": a Claude Code web session's `curl` and WebFetch, host-wide,
+the sandbox's headless Chromium (measured 2026-10-13), and a command-line fetch
+from the home laptop through the Gemini daemon (errand
+`daemon-2026-10-14-ask-a2701b`). The block follows the client, not the network.
+A browser navigating normally passes it without noticing, and so did one driven
+by an agent: the daemon reached the real page by running the laptop's Microsoft
+Edge, headed, with a temporary profile, over its remote-debugging connection
+(`daemon-2026-10-14-ask-b1808b`). Everything here therefore runs **on the page**
+in a real browser, yours or the laptop's, and nothing here should be written as
+though a session could fetch this host.
+
+The interstitial sends `Cross-Origin-Opener-Policy: same-origin`; the real page
+behind it sends none (observed in that Edge run). So once the check has passed,
+the courier's popup at a Web Tools address keeps its link with the page
+([`bookmarklets/README.md`](../../bookmarklets/README.md#where-bookmarklets-fit)).
+
+The documents the index links to are on `digitalarchives.wa.gov`, which a
+session fetches directly. The index uses two link shapes for them,
+`ViewRecordMedia.aspx?RID=<id>` and, for FY2011 and FY2012,
+`Record/ViewMedia/<id>` with no file extension; both redirect to the PDF, and
+`list-cafr.js` keeps both. The collected index, FY2002 to FY2020, is
+web-tools-private `courier/results/wsl-drs-cafr-index.md`.
 
 ## Contents
 

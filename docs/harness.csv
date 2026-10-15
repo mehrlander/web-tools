@@ -169,6 +169,9 @@ node/render/scenarios/fab-traffic.mjs,the fab's Traffic tab with a real BOOT ban
 node/render/scenarios/fab-width-bar.mjs,"the FAB Render tab's width bar, shot on toss-render where the lever is live",node/render/scenarios,30,driver,no,no,no
 node/render/scenarios/fence-label-clear.mjs,,node/render/scenarios,64,driver,no,no,no
 node/render/scenarios/files-view-tap-and-deck.mjs,,node/render/scenarios,61,driver,no,no,yes
+node/render/scenarios/here-expired-token.mjs,,node/render/scenarios,50,driver,no,no,no
+node/render/scenarios/here-page.mjs,,node/render/scenarios,76,driver,no,no,no
+node/render/scenarios/here-stored.mjs,,node/render/scenarios,19,driver,no,no,no
 node/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,node/render/scenarios,36,driver,no,yes,no
 node/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,node/render/scenarios,67,driver,no,no,no
 node/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,node/render/scenarios,53,driver,no,no,no
@@ -256,7 +259,7 @@ node/render/scenarios/stage-compare-pick.mjs,"the reader's compare picker: the f
 node/render/scenarios/stage-dictate.mjs,"the stage's dictation intake: the mic beside Paste, committed text with a live interim, and the mark pad",node/render/scenarios,33,driver,no,no,no
 node/render/scenarios/stage-diff-longrefs.mjs,the Diff tab's A/B selects clipping long repo@ref:path labels,node/render/scenarios,18,driver,no,no,no
 node/render/scenarios/stage-diff-review.mjs,"the Stage's Diff lens run on two local items, with the review-prompts panel",node/render/scenarios,29,driver,no,yes,no
-node/render/scenarios/stage-errand-card.mjs,"the Stage opened on one errand by its own link: the linked card on top, a read previewed and graded green with its one button, and a hand errand graded red until something is staged",node/render/scenarios,56,driver,no,no,no
+node/render/scenarios/stage-errand-card.mjs,"the Stage opened on one errand by its own link: the linked card on top, a read previewed and graded green with its one button, and a hand errand graded red until something is staged",node/render/scenarios,60,driver,no,no,no
 node/render/scenarios/stage-flavor-bar.mjs,"the flavors bar after a web-page paste and one conversion: every flavor named, the staged ones ticked, and the markdown that was made sitting beside them as a pill",node/render/scenarios,76,driver,no,no,no
 node/render/scenarios/stage-image-preview.mjs,,node/render/scenarios,32,driver,no,no,no
 node/render/scenarios/stage-keyboard-mode.mjs,"the stage's dictation card with the keyboard open, which is where the recording misreading was reported",node/render/scenarios,53,driver,no,no,no
@@ -310,7 +313,7 @@ python/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the re
 python/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",python,97,argv,no,no,no
 python/pip-steps.py,,python,209,argv,no,no,no
 python/scheduled-tasks.py,"the scheduled-tasks workflow's script: reads the scheduled-tasks registry, runs the statute check by progressive action, and dispatches the other scheduled workflows",python,578,imported,yes,no,yes
-python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,984,npm:showing,no,yes,yes
+python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,1018,npm:showing,no,yes,yes
 python/stranded-titles.py,,python,326,npm:stranded-titles,no,yes,yes
 python/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",python,269,argv,no,yes,yes
 python/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,python,111,npm:sunset,no,no,yes
@@ -320,7 +323,7 @@ python/upstream-skills.py,"compares each outside skill's pinned version with wha
 python/userscript-stub.py,,python,217,argv,no,yes,yes
 skills/hooks/account-skills.py,"compares the claude.ai account's synced skills with docs/account-skills.csv and the plugin's own copies, printing one line at session start only when something needs attention; by hand it lists every skill's state, writes the observation, and builds upload zips",skills/hooks,338,hook:SessionStart,yes,yes,yes
 skills/hooks/ask-question-guard.sh,refuses AskUserQuestion in every session the plugin reaches and says to ask in prose; the project-settings deny in home and web-tools stays as a backstop,skills/hooks,38,hook:PreToolUse,no,yes,yes
-skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,298,imported,no,yes,yes
+skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,300,imported,no,yes,yes
 skills/hooks/environment-report.sh,"Prints at session start which commit of the setup script built the environment, and says to rebuild when it has moved on main.",skills/hooks,27,hook:SessionStart,no,yes,yes
 skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,skills/hooks,150,hook:SessionStart,no,yes,yes
 skills/hooks/invoke-sessions.sh,tells a session to invoke /portable:sessions when no session-record store is checked out beside the project root,skills/hooks,99,hook:SessionStart,no,yes,yes
@@ -328,7 +331,7 @@ skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox
 skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,skills/hooks,88,hook:PostToolUse,no,yes,no
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,no,yes,yes
-skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,50,hook:SessionStart,no,yes,yes
+skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,55,hook:SessionStart,no,yes,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,89,hook:Stop,no,yes,yes

@@ -37,6 +37,8 @@ Generate eight one-line alternatives before evaluating. Each names what readers 
 
 Select against the intended result; combine compatible elements where useful. Keep two competing concepts only when a specific open question warrants testing both. State the assumptions the selection rests on as questions.
 
+Write the idea board as JSON in the shape of [`pages/demos/idea-board.json`](https://github.com/mehrlander/web-tools/blob/main/pages/demos/idea-board.json), with a sketch for each alternative, and commit it beside the work it serves. Hand it over as `https://mehrlander.github.io/web-tools/pages/idea-board.html#gh=<owner>/<repo>@<sha>:<path>`, with the selection in one line. Addresses, fields and sketch rules are in [`docs/idea-board.md`](https://github.com/mehrlander/web-tools/blob/main/docs/idea-board.md). The reader's picks and notes return as pasted text.
+
 Phases 2 and 3 run in one reply, so the idea board explains the choice rather than gating it. Pause after phase 2 instead when a wrong pick would be costly to rebuild, or when the user asks.
 
 ## 3. Refine and build
