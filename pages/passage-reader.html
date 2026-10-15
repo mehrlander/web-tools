@@ -26,8 +26,9 @@
   cards as a takeover at the card in view. index() derives every card section the file
   does not store. A span or a list row takes the colour of where it sits
   relative to the current sentence: purple in it, amber before it, blue after
-  it. The one other use of amber is an atom's quote, lit on the card while its
-  row is hovered. The pills switch the passage between two views. Entities:
+  it. An atom's quote, while its row is hovered or tapped, is underlined in
+  amber, in the passage and on the card; a line rather than a fill, so the
+  entity fills inside the quote do not hide it. The pills switch the passage between two views. Entities:
   every entity mention tinted light grey, and every mention of the current
   sentence's entities in the position colours. Connections: every
   connection's two spans tinted light grey and joined by a faint grey line
@@ -81,8 +82,9 @@ document.addEventListener('alpine:init', () => {
     links: [['before', 'Carried in'], ['here', 'Within'], ['after', 'Carried forward']],
     entities: [['before', 'In play'], ['here', 'New here']],
   };
-  // An atom's quote lights in its own colour, on the card only.
-  const ATOM = 'data-[atom]:bg-warning/50';
+  // An atom's quote is underlined, in the passage and on the card, so it
+  // reads apart from the entity fills it crosses.
+  const ATOM = 'data-[atom]:underline data-[atom]:decoration-[var(--color-warning)] data-[atom]:decoration-[3px] data-[atom]:underline-offset-[5px]';
   const TONE = {
     before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30' },
     here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary/20' },
@@ -335,7 +337,7 @@ document.addEventListener('alpine:init', () => {
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const has = set => set && p.on.some(r => set.has(r.key));
-      const T = TONE[m?.pos || 'here'], cls = [T.lit, mode === 'card' ? ATOM : ''];
+      const T = TONE[m?.pos || 'here'], cls = [T.lit, ATOM];
       if (has(m?.fill)) cls.push(T.fill, mode === 'dim' ? 'text-base-content' : '');
       else if (has(m?.web)) cls.push('bg-base-200');
       if (code) cls.push('bg-base-200 rounded');
@@ -412,7 +414,7 @@ document.addEventListener('alpine:init', () => {
       const lead = this.R.lead ? `<span class="font-semibold text-base-content/60">${esc(this.R.lead)}</span> ` : '';
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
-        const ranges = X.rng[s.n].filter(r => r.kind !== 'a'), m = { fill, web, pos: this.side(s.n, lit) };
+        const ranges = X.rng[s.n], m = { fill, web, pos: this.side(s.n, lit) };
         const gapTone = k => on || fill.has(k);
         const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
         return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
@@ -608,8 +610,10 @@ document.addEventListener('alpine:init', () => {
       for (const k of new Set(its.flatMap(it => it.heat || []))) document.querySelectorAll(`[data-k~="${k}"]`).forEach(x => x.setAttribute('data-on', ''));
       for (const it of its) el.querySelector(`[data-item="${it.id}"]`)?.setAttribute('data-hot', '');
       this.hot = ids.join(' ');
-      // A tap brings the partner span into the passage pane, which on a phone is a short band.
-      if (show) reveal(this.$refs.passage, [...this.$refs.passage.querySelectorAll('[data-on],[data-ev]')].find(x => !x.closest(`[data-s="${this.s.n}"]`)));
+      // A tap brings the partner span into the passage pane, which on a phone
+      // is a short band; for an atom, its own quote rather than the entities it warms.
+      const P = this.$refs.passage;
+      if (show) reveal(P, its[0].mode === 'atom' ? P.querySelector('[data-atom]') : [...P.querySelectorAll('[data-on],[data-ev]')].find(x => !x.closest(`[data-s="${this.s.n}"]`)));
     },
 
     wire(el) {
