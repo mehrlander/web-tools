@@ -173,7 +173,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'entities', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, traced: [], group: 'entities', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -254,7 +254,17 @@ document.addEventListener('alpine:init', () => {
     light(keys, attr = 'data-on') {
       document.querySelectorAll('[data-on],[data-ev],[data-atom],[data-hot]').forEach(el => ['data-on', 'data-ev', 'data-atom', 'data-hot'].forEach(a => el.removeAttribute(a)));
       this.hot = null;
+      if (this.traced.length) { this.traced = []; this.drawArrows(); }
       if (keys) for (const k of keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute(attr, ''));
+    },
+    // A span on the card traces its own connections, in either list: every
+    // connection with an end in it is drawn in the passage and both its ends
+    // light, even under Entities, which otherwise draws none.
+    trace(keys) {
+      const ks = new Set(keys), hit = this.X.links.filter(it => it.keys.length === 2 && it.keys.some(k => ks.has(k)));
+      for (const it of hit) for (const k of it.keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute('data-on', ''));
+      this.traced = hit.map(it => it.keys.join(' '));
+      this.drawArrows();
     },
     // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
     // the passage) or 'dim' (any other). The sentence's own words, unchanged:
@@ -327,7 +337,8 @@ document.addEventListener('alpine:init', () => {
           by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
           return by;
         }, {}));
-      const { near: picked, pairs } = this.focus(this.s.n);
+      const F = this.focus(this.s.n), picked = F.near, traced = new Set(this.traced);
+      const pairs = [...new Set([...F.pairs, ...traced])];
       // A span can wrap, so each arrow joins the nearest pair of its two spans'
       // line boxes: out of the top of the later one and into the foot of the
       // earlier, or on one line, over the top of both.
@@ -337,7 +348,7 @@ document.addEventListener('alpine:init', () => {
         for (const s of rects(from)) for (const t of rects(to)) {
           const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b : t.t;
           const gap = Math.hypot((t.l + t.r - s.l - s.r) / 2, y1 - y0);
-          if (!best || gap < best.gap) best = { pair, on: picked.has(pair), s, t, up, down, y0, y1, gap };
+          if (!best || gap < best.gap) best = { pair, on: picked.has(pair) || traced.has(pair), lit: traced.has(pair), s, t, up, down, y0, y1, gap };
         }
         return best;
       }).filter(Boolean);
@@ -354,11 +365,11 @@ document.addEventListener('alpine:init', () => {
         }
       }
       // Purple for a connection touching the current sentence, faint grey for the rest.
-      const paths = legs.sort((a, b) => a.on - b.on).map(({ pair, on, s, up, down, y0, y1, tx }) => {
+      const paths = legs.sort((a, b) => a.on - b.on).map(({ pair, on, lit, s, up, down, y0, y1, tx }) => {
         const sx = (s.l + s.r) / 2, k = Math.max(4, Math.abs(y1 - y0) * 0.45);
         const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
           : `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`;
-        return `<path data-k="${pair}" d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-${on ? 'near' : 'far'})"`
+        return `<path data-k="${pair}"${lit ? ' data-on' : ''} d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-${on ? 'near' : 'far'})"`
           + ` class="${on ? 'opacity-70' : 'opacity-10'} data-[on]:opacity-100"`
           + ` style="stroke:var(--color-${on ? 'primary' : 'base-content'});stroke-width:${on ? 2 : 1.5}px"/>`;
       }).join('');
@@ -433,7 +444,7 @@ document.addEventListener('alpine:init', () => {
           const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
           const keys = X.keysOf[k] || [];
           // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
-          return { id: `entities:${j}`, mode: 'ev', keys, spans: here(k), tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+          return { id: `entities:${j}`, mode: 'ev', keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
             body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
         }),
         atoms: s.atoms.map((a, k) => {
@@ -447,7 +458,8 @@ document.addEventListener('alpine:init', () => {
     },
 
     // The sentence with the active list's items highlighted; hovering one
-    // lights its row below rather than opening a tooltip.
+    // lights its row below, and an entity's mention also shows its
+    // definition, alone, as a tooltip.
     sentenceHtml(n, sel) {
       const X = this.X, len = {}, by = {};
       for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
@@ -455,8 +467,9 @@ document.addEventListener('alpine:init', () => {
       return pieces(X.by[n].text, X.rng[n]).map(p => {
         const its = [...new Set(p.on.flatMap(r => by[r.key] || []))];
         if (!its.length) return this.span(p, 'card');
-        const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
-        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 ${TONE.here.lit} ${ATOM}">${esc(plain(p.text))}</span>`;
+        const keys = p.on.map(r => r.key).filter(Boolean).join(' '), gloss = its.find(it => it.gloss)?.gloss;
+        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 ${TONE.here.lit} ${ATOM}"`
+          + `${gloss ? ` data-title-tip="${esc(gloss)}" data-title-tip-bare` : ''}>${esc(plain(p.text))}</span>`;
       }).join('');
     },
 
@@ -513,9 +526,10 @@ document.addEventListener('alpine:init', () => {
       });
       // The highlighted spans answer the same way, so a span and its row light together.
       const spanOf = e => e.target.closest && e.target.closest('[data-items]');
-      el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) this.point(t.dataset.items.split(' '), el, false); });
+      const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show); this.trace(t.dataset.k.split(' ')); };
+      el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) hold(t, false); });
       el.addEventListener('pointerout', e => { const t = spanOf(e); if (t && HOVER.matches && !t.contains(e.relatedTarget)) this.light(null); });
-      el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) this.point(t.dataset.items.split(' '), el, true); });
+      el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
     },
   }));
 });
