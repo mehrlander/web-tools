@@ -586,3 +586,27 @@ test('a 404 is counted as not found, apart from calls that failed', () => {
   assert.ok(T.isNotFound(rows[0]) && !T.isFailed(rows[0]));
   assert.ok(T.isFailed(rows[4]) && !T.isNotFound(rows[4]));
 });
+
+test('the page load is one row: its files and the calls made before a view was on screen', () => {
+  const files = { count: 3, cached: 1, ms: 900, rows: [
+    { name: 'https://x/app/', group: 'document', start: 0, ms: 50, wire: 2000, state: 'network' },
+    { name: 'https://x/dist/app.js', group: 'code', start: 100, ms: 300, wire: 0, state: 'cached' },
+    { name: 'https://fonts.example/f.woff2', group: 'font', start: 200, ms: 80, wire: null, state: 'undisclosed' },
+  ] };
+  const entries = [
+    { url: 'https://api.github.com/user', t: 1300, job: null, where: '', wire: 500, status: 200 },
+    { url: 'https://api.github.com/x', t: 2000, job: null, where: 'sessions', wire: 900 },
+    { url: 'https://api.github.com/y', t: 2100, job: 4, where: '', wire: 700 },
+  ];
+  const calls = T.fileCalls(files, 1000);
+  assert.deepEqual(calls.map(c => c.t), [1000, 1100, 1200], 'a file is placed at the page start plus its own offset');
+  assert.equal(calls[1].cached, true);
+  assert.equal(calls[2].wire, null, 'an undisclosed size stays unknown, never zero');
+  const row = T.loadRow(files, entries, 1000);
+  assert.equal(row.key, 'load');
+  assert.equal(row.files, 3);
+  assert.equal(row.calls, 4, 'three files and the one call made before a view, not a view\'s or a job\'s');
+  assert.equal(row.wire, 2500, 'a cached file transferred nothing');
+  assert.equal(row.unknown, 1);
+  assert.equal(row.last, 1300);
+});
