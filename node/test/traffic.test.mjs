@@ -570,3 +570,19 @@ test('a job counts the bytes its hidden calls brought', async () => {
   assert.equal(win.__jobs[0].wire, 64);
   assert.equal(win.__jobs[0].hiddenWire, 0, 'the stub page has no document, so nothing went out hidden');
 });
+
+test('a 404 is counted as not found, apart from calls that failed', () => {
+  const rows = [
+    { t: 1, status: 404 },
+    { t: 2, status: 200 },
+    { t: 3, status: 500 },
+    { t: 4, status: 403 },
+    { t: 5, status: 0, error: 'Load failed' },
+  ];
+  const tt = T.tabTotals({ calls: 5, errors: 4 }, rows, []);
+  assert.equal(tt.notFound, 1, 'a file the app looked for and the repo does not keep');
+  assert.equal(tt.failed, 3, 'an error status other than 404, or no answer at all');
+  assert.equal(tt.errors, 4, 'the running total still counts all four');
+  assert.ok(T.isNotFound(rows[0]) && !T.isFailed(rows[0]));
+  assert.ok(T.isFailed(rows[4]) && !T.isNotFound(rows[4]));
+});
