@@ -446,7 +446,7 @@ window.__audit = {
   await gh.load('kits/standoff.js');       // the annotation's rules, shared with ops.py
   await gh.load('kits/dictate.js');        // Dictate.pins: the settled edge-pin treatment
   await gh.load('kits/page-report.js');
-  await gh.load('kits/title-tip.js');           // the chips' title-tips
+  await gh.load('kits/panel-tip.js');           // the chips' panel-tips
   // THE OPT-IN, and it is the page's, not the reader's. Reporting is on from
   // here: a failure that needs a tap before it is recorded is a failure nobody
   // records, and the person holding the phone is the last one who should have
@@ -709,6 +709,7 @@ window.__audit = {
 
   window.auditPage = () => ({
     a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
+    lit: null, chip: null, chipPinned: false, chipPos: { x: 0, y: 0, h: 0 },
     sections: [], ref: '',
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
@@ -1256,18 +1257,118 @@ window.__audit = {
         this.saving = false;
       }
     },
-    dim(u) { return this.off[this.keyOf(u)] ? .12 : 1 },
+    // A label set aside (the chip panel's Dim) fades hard; another label lit
+    // from the legend fades the rest less, so the document stays readable
+    // around the lit units.
+    dim(u) { const k = this.keyOf(u); return this.off[k] ? .12 : this.lit && this.lit !== k ? .35 : 1 },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
-    // ONE TAP, ONE THING, ON A TOUCHSCREEN. title-tip.js opens a chip's tip on
-    // tap where nothing can hover, so a tap there used to open the tip and
-    // dim the label at once. There the first tap shows the tip and the next
-    // tap on the same chip, which closes it, dims. A pointer that hovers gets
-    // the tip on hover, so every click dims.
-    noteFor: null,
-    chipTap(k) {
-      if (matchMedia('(hover: none)').matches && this.noteFor !== k) { this.noteFor = k; return; }
-      this.noteFor = null;
-      this.toggle(k);
+    // A PIECE'S BACKGROUND: its label's tint, the selection, or the lit label.
+    // piece() and heat() share it, so lighting a label restyles the pieces in
+    // place rather than rendering the document again on every hover.
+    shade(u, m = MARKS[this.mark] || MARKS.fill) {
+      const k = this.keyOf(u), a = this.dim(u);
+      if (u.uid === this.sel?.uid) return tint(k, m.sel * a);
+      if (this.lit === k) return tint(k, Math.max(m.over, .22));
+      return m.bg ? tint(k, m.bg * a) : '';
+    },
+    heat() {
+      const by = new Map(this.units.map(u => [u.uid, u]));
+      for (const el of this.$refs.doc?.querySelectorAll('[data-uid]') || []) {
+        const u = by.get(el.dataset.uid);
+        if (!u) continue;
+        el.style.opacity = this.dim(u);
+        el.style.background = this.shade(u);
+      }
+    },
+    light(k) { if (this.lit === k) return; this.lit = k; this.heat(); },
+
+    // ── A LEGEND CHIP'S PANEL-TIP ────────────────────────────────────────────
+    // The label's reading and every unit carrying it, each row a way to go
+    // there. The house popup rule decides the mechanics (html-style
+    // mechanics.md, "Title-tips and panel-tips"): hover opens it where a
+    // pointer can hover, a click pins it, and on touch every tap pins it.
+    // Dimming a label, which a chip's click used to do, is the panel's Dim.
+    chipEnter(k, ev) {
+      if (!matchMedia('(hover: hover) and (pointer: fine)').matches || this.chipPinned) return;
+      this.light(k);
+      clearTimeout(this._chipT);
+      const el = ev.currentTarget;
+      this._chipT = setTimeout(() => this.chipOpen(k, el, false), 140);
+    },
+    // A panel-tip that opened owns the light from here; its close clears it.
+    chipLeave() { clearTimeout(this._chipT); if (!this.chip) this.light(null); },
+    // Toggles on what is shown, not on a flag: a click on the chip whose
+    // panel-tip is pinned closes it, and any other click pins.
+    chipClick(k, ev) {
+      clearTimeout(this._chipT);
+      const t = this.$refs.chipTip;
+      if (t && getComputedStyle(t).display !== 'none' && this.chip === k && this.chipPinned) return this.chipClose();
+      this.chipOpen(k, ev.currentTarget, true);
+    },
+    chipOpen(k, el, pinned) {
+      this.chip = k; this.chipPinned = pinned; this.light(k);
+      this.placeChip(el);
+      this._chipWire?.detach();
+      this.$nextTick(() => {
+        this.placeChip(el);
+        // Pinned drops the pointer guard, so the panel-tip stays while the
+        // reader looks over the document it lights.
+        this._chipWire = PanelTip.wire(this.$refs.chipTip, {
+          onClose: () => this.chipClose(), except: ['[data-chip]'],
+          stale: pinned ? 'geometry' : true, label: 'chip-tip' });
+      });
+    },
+    chipClose() {
+      clearTimeout(this._chipT);
+      this._chipWire?.detach(); this._chipWire = null;
+      if (!this.chip) return;
+      this.chip = null; this.chipPinned = false; this.light(null);
+    },
+    // Under the chip, kept inside the viewport, and as tall as the room below.
+    placeChip(el) {
+      const t = this.$refs.chipTip;
+      if (!t || !el) return;
+      const r = el.getBoundingClientRect(), M = 8;
+      const VW = document.documentElement.clientWidth, VH = window.innerHeight;
+      const w = t.offsetWidth || 352, y = Math.round(r.bottom + 4);
+      this.chipPos = { x: Math.round(Math.max(M, Math.min(r.left, VW - w - M))), y, h: Math.max(160, VH - y - M) };
+    },
+    get chipUnits() {
+      return this.chip ? this.units.filter(u => this.keyOf(u) === this.chip).sort((a, b) => a.start - b.start) : [];
+    },
+    get chipFigure() {
+      const us = this.chipUnits;
+      const w = Math.round(100 * us.reduce((n, u) => n + u.words, 0) / (this.words || 1));
+      return this.chip ? `${us.length} unit${us.length === 1 ? '' : 's'} · ${w}% of words` : '';
+    },
+    // A unit as one line of plain text for a list: list markers, emphasis
+    // and link targets taken out.
+    gist(u) {
+      return this.a.text.slice(u.start, u.end)
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/^\s*(?:[-*+]|\d+\.|#+)\s+/, '')
+        .replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
+    },
+    lineOf(u) { return 'L' + ((this.a.text.slice(0, u.start).match(/\n/g) || []).length + 1); },
+    // Select a unit from elsewhere on the page and bring it into view, with
+    // its panel beside it: the chip panel's rows and the unit panel's stepper.
+    goTo(u) {
+      this.chipClose();
+      this.sel = { ...u, ref: this.srcRef(u) };
+      this.selPt = null; this.menu = null; this.armed = null;
+      this.paint();
+      this.$nextTick(() => {
+        this.$refs.doc?.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`)?.scrollIntoView({ block: 'center' });
+        this.placePanel();
+      });
+    },
+    // The units sharing the selected unit's label, in document order.
+    get peers() {
+      return this.sel ? this.units.filter(u => this.keyOf(u) === this.sel.label).sort((a, b) => a.start - b.start) : [];
+    },
+    step(d) {
+      const ps = this.peers, i = ps.findIndex(p => p.uid === this.sel?.uid);
+      if (ps.length) this.goTo(ps[(i + d + ps.length) % ps.length]);
     },
     // WHERE IN THE DOCUMENT, and only that. This opened with the target's path,
     // which is the same for every unit on the page and is already in the
@@ -1409,7 +1510,7 @@ window.__audit = {
       if (atomic) el.dataset.atomic = '1';
       el.className = 'cursor-pointer';
       el.textContent = text;
-      el.style.background = sel ? tint(k, m.sel * a) : (m.bg ? tint(k, m.bg * a) : '');
+      el.style.background = this.shade(u, m);
       el.style.opacity = a;
       el.style.transition = 'background-color .12s ease';
       el.style.boxShadow = [
@@ -1431,8 +1532,8 @@ window.__audit = {
         el.style.textDecorationColor = tint(deco[0] === 'line-through' ? 'DROP' : k, .95);
       }
       const over = (bg) => { for (const p of this.$refs.doc.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`)) p.style.background = bg; };
-      el.onpointerenter = () => { if (this.sel?.uid !== u.uid) over(tint(k, m.over * a)); };
-      el.onpointerleave = () => { if (this.sel?.uid !== u.uid) over(m.bg ? tint(k, m.bg * a) : ''); };
+      el.onpointerenter = () => { if (this.sel?.uid !== u.uid) over(tint(k, m.over * this.dim(u))); };
+      el.onpointerleave = () => { if (this.sel?.uid !== u.uid) over(this.shade(u, m)); };
       el.onclick = (ev) => { this.selPt = { x: ev.clientX, y: ev.clientY }; this.hit(u); };
       return el;
     },
@@ -2042,21 +2143,21 @@ window.__audit = {
       </div>
 
       <!-- The legend is the explanation. Each chip carries the treatment it
-           names, so a label chip is tinted as its units are. Tapping one dims
-           its units in place rather than hiding them, which keeps the document
-           readable while one category is set aside. -->
+           names, so a label chip is tinted as its units are. Hovering one
+           lights its units and opens its panel-tip, the list of them; the
+           panel's Dim sets the label aside in place rather than hiding it. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
       <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
            x-show="view !== 'standoff'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
         <template x-for="k in axis" :key="k">
-          <button class="btn btn-xs gap-1.5 border-0 shrink-0"
-                  :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
+          <button class="btn btn-xs gap-1.5 border-0 shrink-0" data-chip
+                  :style="`background:rgba(${HUE[k]},${off[k]?0.05:chip===k?0.4:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
-                  :class="off[k] && 'opacity-40'"
-                  :data-title-tip="noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
-                  @click="chipTap(k)">
+                  :class="off[k] && 'opacity-40'" :aria-expanded="chip === k"
+                  @pointerenter="chipEnter(k, $event)" @pointerleave="chipLeave()"
+                  @click="chipClick(k, $event)">
             <span x-text="k"></span>
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
@@ -2141,6 +2242,41 @@ window.__audit = {
     </div>
     </div>
 
+    <!-- A LEGEND CHIP'S PANEL-TIP, opened from the chip (chipEnter, chipClick).
+         The head is the chip's note; the list is every unit carrying the label,
+         in document order, and a row selects its unit and brings it into view. -->
+    <div class="fixed z-[95] flex flex-col bg-base-100 border border-base-300 rounded-xl shadow-lg text-xs
+                w-[min(22rem,calc(100vw-1rem))]"
+         x-ref="chipTip" x-show="chip" x-cloak data-panel
+         :style="`left:${chipPos.x}px; top:${chipPos.y}px; max-height:${chipPos.h}px`">
+      <div class="relative px-3 pt-2 pb-1.5 pr-9">
+        <span x-html="chip ? PanelTip.closeHTML(chipPinned) : ''"></span>
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="rounded-full px-2 py-0.5 font-mono" :style="`background:rgba(${HUE[chip]},.28)`"
+                x-text="chip && noteTitle(chip)"></span>
+          <span class="opacity-60" x-text="chipFigure"></span>
+          <!-- Colour alone carries the state, as with the unit panel's Remove. -->
+          <button class="ml-auto inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  :class="off[chip] ? 'text-primary' : 'text-base-content/50'" :aria-pressed="!!off[chip]"
+                  @click="toggle(chip)">
+            <i class="text-base" :class="off[chip] ? 'ph-fill ph-eye-slash' : 'ph ph-eye-slash'"></i>
+            <span x-text="off[chip] ? 'Dimmed' : 'Dim'"></span></button>
+        </div>
+        <p class="mt-1 opacity-70 text-pretty" x-show="chip && gloss(chip)" x-text="chip && gloss(chip)"></p>
+      </div>
+      <div class="min-h-0 overflow-y-auto overscroll-contain border-t border-base-200 py-1">
+        <template x-for="u in chipUnits" :key="u.uid">
+          <button class="flex w-full items-baseline gap-2 px-3 py-1 text-left text-sm cursor-pointer
+                         hover:bg-base-200 focus:outline-none focus-visible:bg-base-200"
+                  @click="goTo(u)">
+            <span class="w-9 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
+            <span class="min-w-0 truncate" x-text="gist(u)"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+
     <!-- Above the shared FAB (z-80), which is fixed to this same corner and was
          covering the split candidates. dictate.html's sheet takes the corner the
          same way: while a page's own bottom UI is up, it owns the bottom. -->
@@ -2182,6 +2318,17 @@ window.__audit = {
                 @click="push({op:'verdict', uid:sel.uid, verdict: sel?.verdict === 'DROP' ? 'KEEP' : 'DROP'})">
           <i class="text-base" :class="sel?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
           <span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
+        <!-- Through the units sharing this one's label, in document order: the
+             chip panel's list, one step at a time. -->
+        <span class="ml-auto inline-flex items-center font-mono" x-show="peers.length > 1" x-cloak>
+          <button class="inline-grid place-items-center h-6 w-6 cursor-pointer rounded-field hover:bg-base-200"
+                  aria-label="Previous unit with this label" title="Previous unit with this label"
+                  @click="step(-1)"><i class="ph ph-caret-left"></i></button>
+          <span x-text="`${peers.findIndex(p => p.uid === sel?.uid) + 1}/${peers.length}`"></span>
+          <button class="inline-grid place-items-center h-6 w-6 cursor-pointer rounded-field hover:bg-base-200"
+                  aria-label="Next unit with this label" title="Next unit with this label"
+                  @click="step(1)"><i class="ph ph-caret-right"></i></button>
+        </span>
 
       </div>
 
