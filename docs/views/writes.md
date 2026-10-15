@@ -8,15 +8,15 @@ hundred.
 | | Kinds | Signal |
 | --- | --- | --- |
 | development history | session, merge, CI, authored | the author the platform sets, or a merge subject |
-| application state | crawl, tap, device, workflow | a subject this estate writes on purpose |
+| application state | crawl, tap, device, workflow, daemon | a subject this estate writes on purpose |
 
 `device` is a heuristic. `authored` is the residual.
 
 ## The app's commit-subject contract
 
-The app, the phone (`Log-Repo` in `mehrlander/shortcut-tools`) and PR merges all
-commit as the account owner, so **the subject line is the only signal**, and
-its shape is a contract that `write-kinds.js` reads:
+The app, the phone (`Log-Repo` in `mehrlander/shortcut-tools`), the Gemini
+daemon and PR merges all commit as the account owner, so **the subject line is
+the only signal**, and its shape is a contract that `write-kinds.js` reads:
 
 - **`via Web Tools`** marks a write a person made by tapping in the app: a jot,
   to-do or pin, a `.web-tools.json` save, an estate join or set-aside, a
@@ -25,6 +25,11 @@ its shape is a contract that `write-kinds.js` reads:
 - **`via Actions`** marks a write a GitHub Actions run makes with the owner's
   token, appended when `GITHUB_ACTIONS` is set. Add it to any new write a run
   makes with that token.
+- **`via Gemini daemon`** marks a write the Gemini daemon makes on the home
+  laptop: topic summaries, errand claims, results and follow-ups, and its
+  sessions-cache refresh (web-tools-private `sessions/tools/poll_followup.py`
+  and `errand_runner.py`). Its commits from before the trailer read as
+  authored, or as crawl.
 - **Crawl writes carry no trailer.** The cache refreshes (`state/configs.json`,
   `state/activity.json`, `state/sessions.json`, `state/calls.json`) run on a tab
   arrival as well as on Refresh, and their subjects name the derived file.

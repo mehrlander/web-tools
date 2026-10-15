@@ -1,86 +1,29 @@
-# Venues: where work can happen
+# Venues: where work can run
 
-A session can only see the venue it is running in. That is the whole reason this
-file exists. A Claude Code web session inventories what it can reach from inside
-its sandbox, concludes that the alternatives are itself and GitHub's runners,
-and never asks what else can reach the same machine. The failure is not that a
-doc went unread; it is that no question was raised. So the venues are named
-here, and named again in one line of [CONVENTIONS.md](CONVENTIONS.md), which is
-always in context. A name is enough to make a session ask.
+Agent work in this estate can run in the places listed below.
 
-**Two fields in this estate are called `venue`, and they name different
-things.** Here and in the tracker's `venue:` tag, a venue is an agent channel
-(`cli`, `cowork`, `dispatch`, `daemon`). An errand's `run.venue` is the machine a
-person runs code on (`personal-laptop`, `work-machine`, `browser`; see
-[run-methods.csv](run-methods.csv)). The two value lists do not overlap.
-
-This file answers where work can *run*. Its sibling [inbound.md](inbound.md)
-answers how work *reaches* a session, which is a different question with a
-different failure: an unreachable venue is idle, while an inbound channel with
-no venue behind it is a message nobody reads.
-
-**The axis that matters is attended versus unattended.** An attended venue needs
-a person, or at least a machine that is awake with an app open; it is where
-judgment and one-off work belong. An unattended venue runs without anyone
-present, queues when it cannot run, and leaves a log; it is where recurring and
-batch work belongs. Most confusion about where to put a job is this distinction
-going unstated.
-
-## The venues
-
-| Venue | Attended | Reaches | Hand work to it by |
+| Venue | What can act there | Reaches | Started by |
 | --- | --- | --- | --- |
-| **Claude Code on the web** | yes | an ephemeral clone, an allowlisted network, a headless Chromium, no local files | starting a session, or a Routine that spawns one |
-| **Claude Code CLI, local** | yes | the machine and everything on it; peers via cross-session messaging | running it in a terminal |
-| **Cowork, desktop** | yes | local files, apps, connectors, plugins | working in the desktop app |
-| **Computer-use agents, home laptop** (Claude Dispatch, Gemini in Antigravity, Codex) | yes: laptop awake, app open | the laptop's apps and browser, by computer use | a `computer-use` errand: its prompt goes to whichever agent is at hand, and to the person when none can do it |
-| **GitHub Actions, hosted runner** | no | open egress, CPU only, no GPU, no local files | `workflow_dispatch`, `repository_dispatch`, `push`; on a schedule, a row in web-tools-private's `data/design/scheduled-tasks.csv` |
-| **Gemini home laptop daemon** | no, until a reboot | the laptop as the signed-in user, through a Gemini agent that runs commands | a `laptop-daemon` errand ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)) |
-| **Claude Code Remote environment** | no | a provisioned cloud container, or a self-hosted pool (`ccpool_` ids) | `create_session`, or a Routine |
+| **Anthropic's cloud** | Claude Code on the web (attended; unattended when a Routine starts it); Cowork on web and mobile (scheduled tasks unattended) | an ephemeral clone, connectors, an allowlisted network, headless Chromium; none of your files | a session, a Routine, or `create_session` |
+| **OpenAI's cloud** | Codex cloud tasks (unattended; unused here) | a clone of a connected repo; none of your files | a task in Codex |
+| **Home laptop** | attended: Claude Code, Cowork, Remote Control, Dispatch, Gemini in Antigravity, the Codex app; unattended: the Gemini daemon | the laptop as you: files, apps, browser | a session there; a `computer-use` errand; a `laptop-daemon` errand |
+| **Work machine** | you, and any agent installed there (attended) | work files, under work's rules | an `ise-f5` errand, run by hand |
+| **GitHub's runners** | GitHub Actions (unattended) | open egress, CPU only, no local files | `workflow_dispatch`, `repository_dispatch` or `push`; on a schedule, through web-tools-private's `data/design/scheduled-tasks.csv` |
 
-Two properties are easy to get wrong and worth stating outright:
+This account has no self-hosted Claude Code Remote pool (`ccpool_`), as of
+2026-10-13.
 
-- **A computer-use agent is attended even when it is scheduled.** Dispatch's
-  recurring tasks still require the desktop to be awake with the app open; it
-  is a relay to your machine, not a scheduler on it. Codex was checked on
-  2026-10-01: a scheduled check in its desktop app found a request committed to
-  a private branch and pushed a response, by polling, and only while the laptop
-  and app were running (web-tools-private `probes/codex-commit-trigger/`). The
-  same is still assumed, not yet checked, for Antigravity.
-- **The daemon is unattended until a reboot.** It polls the registry's `main`,
-  so an errand waits while the laptop sleeps and runs on wake; after a reboot it
-  stays down until the owner restarts it.
+- Dispatch's scheduled tasks need the desktop awake with the app open, as does a
+  scheduled check in the Codex app (checked 2026-10-01, web-tools-private
+  `probes/codex-commit-trigger/`). Antigravity is assumed to behave the same.
+- The Gemini daemon polls web-tools-private's `main`: errands wait while the
+  laptop sleeps, and after a reboot the daemon stays down until restarted.
+- Remote Control (on a session started there) and Dispatch reach the laptop
+  from the phone.
 
-Which is why the two compose rather than compete: **a computer-use agent does
-the setup that has to touch the machine, and the daemon does the unattended
-work afterwards.**
+An errand's `run.venue` and [writers.csv](writers.csv)'s `machine` name these
+places more finely; the tracker's `venue:` tag names programs instead.
 
-## The constraint that is not negotiable
-
-**Never register a self-hosted runner on a public repository.** A pull request
-from a fork would execute arbitrary code on that machine. In this estate that
-means `web-tools` is out, since it serves the github.io pages, and
-`web-tools-private` is the place.
-
-## Handing work to a machine: errands, not tags
-
-One-off work for a machine is an errand, filed in the registry's
-`errands/requests/`, which the Stage lists and a result closes (see
-[manifest.md](manifest.md#errands-errandsrequests--errandsresults)). An errand
-serving a tracker task names it in `for`; the task does not name the errand.
-The tracker's `venue:` tag ([TRACKER.md](TRACKER.md)) remains a description of
-where a task's work happens, and no longer a queue: nothing ever read it, and one
-task carried it.
-
-## Keeping this true
-
-Every row is a claim about a product that moves. Re-probe rather than rewrite
-from memory: the attended column in particular is the one that changes when a
-feature grows a scheduler. Dated observations belong in
-[environment/capabilities.md](environment/capabilities.md), which describes one
-venue in depth; this file stays a map.
-
-Last checked 2026-08-09, against Anthropic's Dispatch documentation and GitHub's
-self-hosted runner security guidance. The Claude Code Remote self-hosted pool row
-is the one that is **unverified**: nobody has enumerated whether this account has
-such an environment.
+Checked 2026-10-13 against this account's environments, the pull requests behind
+the `codex/` branches, and press reports of Anthropic's Cowork and Dispatch
+announcements.

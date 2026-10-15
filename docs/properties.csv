@@ -214,7 +214,7 @@ run-methods,gloss,recorded,,value,column,yes,,value,what a person does to run it
 writers,name,recorded,,value,column,yes,,value,"the program, as a reader names it; never a person, who goes in kind"
 writers,kind,recorded,,value,column,yes,agent;process;person,value,"who decided what a commit contains at the moment the commit was made: agent, a model writes the bytes, so a Claude Code session is an agent; process, code with no model deciding; person, you, through a program that only carries your edit. Not who authored the text, which the content registry's creation_mode records"
 writers,machine,recorded,,value,column,yes,container;computer;personal-laptop;actions-hosted;browser;iphone,value,"the machine the writer runs on, spelled as run-methods.csv spells an errand's run.venue; container and computer are writers' own, since no run method runs there"
-writers,model,recorded,,none,column,yes,claude;gemini,value,the model an agent writer uses; blank for a process or a person
+writers,model,recorded,,none,column,yes,claude;gemini;gpt,value,the model an agent writer uses; blank for a process or a person
 writers,starts,recorded,,counted,list,no,,value,"what starts it directly: a request from you, an event, or a schedule; blank where only another writer starts it"
 writers,started_by_writer,recorded,,none,list,no,,value,"other writers that start this one, by their writer key"
 writers,polls,recorded,,none,column,yes,yes,value,"yes where the writer finds its start by polling, so a schedule stands in for the event it waits for"

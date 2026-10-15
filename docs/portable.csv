@@ -56,7 +56,7 @@ skill,/portable:userscripts,skills/userscripts/SKILL.md,userscripts,,plugin
 skill,/portable:windows-powershell,skills/windows-powershell/SKILL.md,windows-powershell,,plugin
 doc,,docs/SURFACING.md,Surfacing,the canonical surfacing primitives; a byte-matched copy ships beside the plugin's default skill and is loaded with the writing rules,plugin
 doc,,docs/QUALIFIED-WRITING.md,Qualified writing,the canonical prose rules; a byte-matched copy ships beside the plugin's default skill and is loaded with the surfacing primitives,plugin
-doc,,docs/venues.md,Venues,"the venue map: where work can run besides the session reading it, and the attended-versus-unattended split that decides where a job belongs",live
+doc,,docs/venues.md,Venues,"the venue map: the places agent work can run, what each reaches, and which programs there run attended",live
 doc,,docs/TRACKER.md,Project tracker,opt-in cross-session tracker: one file per task plus a generated board,adopt
 doc,,docs/CONSTELLATION.md,Constellation architecture,"the portable kernel of the what-goes-where doctrine: commit discipline, visibility forces repo boundaries, conventions pull from a public hub, the repo owns its own scope, documentation has four places. The theory behind the app's Map view",reference
 doc,,docs/APP.md,Web Tools app,"the Web Tools app: mission, goals, boundary, addresses, and what every view shares",on-demand
