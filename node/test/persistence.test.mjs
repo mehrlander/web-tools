@@ -127,6 +127,15 @@ test('idb introspection: databases / stores / storesDetail / count / readAll', a
   assert.deepEqual(await persistence.idb.readAll('probe', 'nope'), []);
 });
 
+test('idb.readEntries keeps out-of-line keys beside their values', async () => {
+  await persistence.save('entries.box.k1', { n: 1 });
+  await persistence.save('entries.box.k2', 'two');
+  const got = await persistence.idb.readEntries('entries', 'box');
+  assert.deepEqual(got.sort((a, b) => String(a.key).localeCompare(String(b.key))),
+    [{ key: 'k1', value: { n: 1 } }, { key: 'k2', value: 'two' }]);
+  assert.deepEqual(await persistence.idb.readEntries('entries', 'nope'), []);
+});
+
 test('idb.admin: clearStore, replaceAll, deleteStore, deleteDb', async () => {
   // A keyPath store, as a legacy Dexie-style table would have.
   await new Promise((resolve, reject) => {
