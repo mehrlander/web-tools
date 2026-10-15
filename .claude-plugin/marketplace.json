@@ -48,6 +48,7 @@
         "./mobile",
         "./office-scripts-shape-ui",
         "./outlining",
+        "./passage-reading",
         "./phosphor-icons",
         "./power-query",
         "./powershell-ise-theming",

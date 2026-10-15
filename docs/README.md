@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-14 by a skill, 42 by a page or component. The remaining 48 are
+15 by a skill, 42 by a page or component. The remaining 49 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -103,6 +103,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`README.md`](envelopes/README.md) *(orphan)* — the content-envelope family: members, shared grammar, and the sibling decision
 - [`chat-results.md`](envelopes/chat-results.md) — the chat-results envelope contract
 - [`data-view.md`](envelopes/data-view.md) *(orphan)* — the data-view envelope contract
+- [`passage-reading.md`](envelopes/passage-reading.md) — the passage-reading envelope contract: one passage read sentence by sentence
 - [`shorter.md`](envelopes/shorter.md) — the shorter envelope contract: a document and a shortening to adjudicate
 - [`surface.md`](envelopes/surface.md) *(orphan)* — the surface format contract
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
@@ -110,6 +111,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/envelopes/schemas/
 
+- [`passage-reading-v1.schema.json`](envelopes/schemas/passage-reading-v1.schema.json) *(orphan)* — the passage-reading v1 JSON Schema
 - [`surface-v2.schema.json`](envelopes/schemas/surface-v2.schema.json) *(orphan)* — the surface v2 JSON Schema
 - [`workbook-extract-v1.schema.json`](envelopes/schemas/workbook-extract-v1.schema.json) *(orphan)* — the workbook-extract v1 JSON Schema
 - [`workbook-extract-v2.schema.json`](envelopes/schemas/workbook-extract-v2.schema.json) *(orphan)* — the workbook-extract v2 JSON Schema for independent sheet and object choices

@@ -35,6 +35,7 @@ the link-dense text twin of the visual index above.
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `links` | Links | [view](https://mehrlander.github.io/web-tools/pages/links.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/links.html) |
+| `passage-reader` | Passage reader | [view](https://mehrlander.github.io/web-tools/pages/passage-reader.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/passage-reader.html) |
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |
 | `pip-steps` | Floating steps | [view](https://mehrlander.github.io/web-tools/pages/pip-steps.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html) |
@@ -164,7 +165,6 @@ the link-dense text twin of the visual index above.
 | `demo-spacex` | SpaceX Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/scratch/demo-spacex.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/demo-spacex.html) |
 | `fab-sidebar-test` | FAB sidebar test | [view](https://mehrlander.github.io/web-tools/pages/scratch/fab-sidebar-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/fab-sidebar-test.html) |
 | `haptics-probe` | Haptics probe | [view](https://mehrlander.github.io/web-tools/pages/scratch/haptics-probe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/haptics-probe.html) |
-| `passage-reader` | Passage reader | [view](https://mehrlander.github.io/web-tools/pages/scratch/passage-reader.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/passage-reader.html) |
 | `review-proto` | Review · styling prototype | [view](https://mehrlander.github.io/web-tools/pages/scratch/review-proto.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/review-proto.html) |
 | `shell-pin-probe` | Shell pin probe | [view](https://mehrlander.github.io/web-tools/pages/scratch/shell-pin-probe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/shell-pin-probe.html) |
 | `sidebar-drawer-mwe` | Sidebar Drawer MWE | [view](https://mehrlander.github.io/web-tools/pages/scratch/sidebar-drawer-mwe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/sidebar-drawer-mwe.html) |

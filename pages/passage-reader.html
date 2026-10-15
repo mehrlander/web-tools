@@ -10,9 +10,16 @@
 
 <!--
   passage-reader.html: one passage-reading/1 file, read a sentence at a time.
-  The format, the address grammar and the probe's exit condition are in
-  data/passage-reading/README.md; with no address the page reads the sample
-  there.
+  The renderer of a member of the envelope family; the format is
+  docs/envelopes/passage-reading.md, and the passage-reading skill writes it.
+
+  Input by URL, first match wins, each key read fragment first and query as
+  fallback (lib/kits/url-params.js):
+    #gz=<base64url>   a gzipped reading carried in the link
+    ?src=<spec>       owner/repo[@ref]:path, via the contents API; the
+                      #passage-reading= toss route hands its address over this way
+    (neither)         the skill's worked example
+  The page keeps the current sentence in the fragment as s=<n>.
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it, and the strip's deck button opens the same
@@ -41,16 +48,18 @@
     const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
     try { await import(url); } finally { URL.revokeObjectURL(url); }
   } else {
-    await import('../../dist/web-tools.js');
+    await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/url-params.js');
+    await gh.load('kits/repo-address.js');
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/title-tip.js');
   } finally { window.__depsDone(); }
 </script>
 <script>
 document.addEventListener('alpine:init', () => {
-  const SAMPLE = { repo: 'mehrlander/web-tools', path: 'data/passage-reading/skill-prefs-description.json' };
+  const SAMPLE = { repo: 'mehrlander/web-tools', path: 'skills/passage-reading/references/skill-prefs-description.json' };
   // An atom's type: what kind of statement it is, shown as an icon on every atom.
   const TYPE = {
     definition: { label: 'Definition', icon: 'ph-book-open-text' }, assertion: { label: 'Assertion', icon: 'ph-info' },
@@ -77,8 +86,7 @@ document.addEventListener('alpine:init', () => {
     if (window.TOKEN) return window.TOKEN;
     try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
   };
-  const params = () => new URLSearchParams(location.hash.slice(1));
-  const param = k => params().get(k) || new URLSearchParams(location.search).get(k);
+  const param = k => UrlParams.get(k);
   const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;
   // Inline code keeps its backticks in the data, where quotes are matched.
   const plain = s => String(s ?? '').replace(/`/g, '');
@@ -203,22 +211,22 @@ document.addEventListener('alpine:init', () => {
     },
 
     async read() {
-      const gz = param('gz'), spec = param('gh');
+      const gz = param('gz'), spec = param('src');
       if (gz) {
         this.src = {};
         const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
         return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
       }
       if (spec) {
-        const [at, ...rest] = spec.split(':');
-        const [repo, ref] = at.split('@');
-        this.src = { repo, ref, path: rest.join(':') };
-        try { return JSON.parse((await new GH({ token: tokenNow(), repo, ...(ref ? { ref } : {}) }).get(this.src.path)).text); }
+        const a = RepoAddress.parse(spec);
+        if (!a) throw new Error(`Not an owner/repo[@ref]:path address: ${spec}`);
+        this.src = a;
+        try { return JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
         catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
       }
       this.src = { ...SAMPLE };
-      const r = await fetch('../../' + SAMPLE.path);
-      if (!r.ok) throw new Error('No reading. Address one with #gh=owner/repo@ref:path or #gz=…');
+      const r = await fetch('../' + SAMPLE.path);
+      if (!r.ok) throw new Error('No reading. Address one with ?src=owner/repo@ref:path or #gz=…');
       return r.json();
     },
     get fileUrl() { return this.src && this.src.path ? blob(this.src.repo, this.src.ref, this.src.path) : ''; },
@@ -244,8 +252,7 @@ document.addEventListener('alpine:init', () => {
       if (from !== 'strip' && this.strip && this.strip.active() !== i) this.strip.go(i, 'instant');
       if (from !== 'deck' && this.deck && this.deck.deck.active() !== i) this.deck.deck.go(i, 'instant');
       try {
-        const p = params(); p.set('s', this.s.n);
-        history.replaceState(history.state, '', '#' + p.toString());
+        history.replaceState(history.state, '', UrlParams.withKey(location.hash || '#', 's', this.s.n));
       } catch (e) {}
       this.$nextTick(() => { this.revealLit(); this.drawArrows(); });
     },
@@ -660,7 +667,7 @@ document.addEventListener('alpine:init', () => {
           <dd class="grid gap-1"><template x-for="m in X.problems" :key="m.n + m.q + m.why"><span x-text="m.n + ': “' + m.q + '” ' + m.why"></span></template></dd>
         </template>
         <dt class="text-sm text-base-content/60 pt-1">Format</dt>
-        <dd><a class="link link-hover" target="_blank" rel="noopener" href="https://github.com/mehrlander/web-tools/blob/main/data/passage-reading/README.md">passage-reading/1 ↗</a></dd>
+        <dd><a class="link link-hover" target="_blank" rel="noopener" href="https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/passage-reading.md">passage-reading/1 ↗</a></dd>
       </dl>
     </div>
     <div class="modal-backdrop" @click="closeAbout()"></div>
