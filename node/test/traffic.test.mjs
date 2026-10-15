@@ -399,3 +399,117 @@ test('gh-boot loads traffic.js in the chain, so the readout is never waiting on 
   const chain = boot.indexOf('for (const step of BOOT)');
   assert.ok(wrap !== -1 && chain !== -1 && wrap < chain, 'collection is installed before the chain runs');
 });
+
+// ── Jobs: the why behind the calls ────────────────────────────────────────
+// The job ledger (gh-boot.js) credits a call to the job whose named frame is
+// in the call's async stack. The claim worth executing is the hard one: two
+// jobs in flight at once, interleaving their calls, each keep their own, and a
+// call made beside them by no job is credited to none.
+
+test('two jobs in flight at once each claim their own calls, and a bare call goes to neither', async () => {
+  const { win } = await bootWithStub({
+    fetchImpl: async () => { await new Promise(r => setTimeout(r, 2)); return { status: 200, headers: { get: h => (h === 'content-length' ? '100' : null) } }; },
+  });
+  const req = async (p) => { await null; return win.fetch('https://api.github.com/repos/o/r/' + p); };
+  const crawl = async (tag) => {
+    await new Promise(r => setTimeout(r, 1));
+    await req(tag + '-a');
+    await Promise.all([req(tag + '-b'), req(tag + '-c')]);
+    return { committed: true, doc: { big: 'x'.repeat(1000) } };
+  };
+  const [ra] = await Promise.all([
+    win.__job('Check branches', { cause: 'timer' }, () => crawl('one')),
+    win.__job('Check sessions', { cause: 'arrival' }, () => crawl('two')),
+    req('bare'),
+  ]);
+  assert.equal(ra.committed, true, 'the job hands back what its work returned');
+
+  const byPath = Object.fromEntries(win.__traffic.map(e => [e.url.split('/').pop(), e]));
+  const [one, two] = win.__jobs;
+  for (const p of ['one-a', 'one-b', 'one-c']) assert.equal(byPath[p].job, one.id, p + ' belongs to the first job');
+  for (const p of ['two-a', 'two-b', 'two-c']) assert.equal(byPath[p].job, two.id, p + ' belongs to the second job');
+  assert.equal(byPath.bare.job, null, 'a call no job made is credited to none');
+  assert.equal(byPath['one-a'].jobBy, 'stack');
+
+  assert.equal(one.calls, 3);
+  assert.equal(one.wire, 300, 'a job keeps its own byte count, apart from the capped rows');
+  assert.equal(one.cause, 'timer');
+  assert.equal(one.state, 'done');
+  assert.deepEqual(one.result, { committed: true }, 'only the primitives stay: the document is not held');
+});
+
+test('a job that throws, or reports an error, ends failed and still rejects or resolves as it did', async () => {
+  const { win } = await bootWithStub();
+  await assert.rejects(() => win.__job('Refresh branches', { cause: 'tap' }, async () => { throw new Error('offline'); }), /offline/);
+  const r = await win.__job('Check repo configs', { cause: 'boot' }, async () => ({ error: '409 conflict' }));
+  assert.equal(r.error, '409 conflict');
+  assert.equal(win.__jobs[0].state, 'failed');
+  assert.equal(win.__jobs[0].error, 'offline');
+  assert.equal(win.__jobs[1].state, 'failed');
+  assert.equal(T.jobOutcome(win.__jobs[1]), 'failed: 409 conflict');
+});
+
+test('an armed timer is listed under its owner until it fires or is cleared', async () => {
+  const { win } = await bootWithStub();
+  win.__jobArm('fresh', 'Freshness check: branches', 5000);
+  win.__jobArm('ping', 'Poll Gemini pings', 3000);
+  assert.deepEqual(Object.keys(win.__jobArmed).sort(), ['fresh', 'ping']);
+  win.__jobArm('fresh', 'Freshness check: sessions', 9000);
+  assert.equal(win.__jobArmed.fresh.name, 'Freshness check: sessions', 'one row per owner: a re-arm replaces');
+  win.__jobDisarm('ping');
+  win.__jobDisarm('never-armed');
+  assert.deepEqual(Object.keys(win.__jobArmed), ['fresh']);
+});
+
+test('jobOutcome reads the crawls\' own conventions', () => {
+  assert.equal(T.jobOutcome({ state: 'running' }), 'running');
+  assert.equal(T.jobOutcome({ state: 'failed', error: 'boom' }), 'failed: boom');
+  assert.equal(T.jobOutcome({ state: 'done', result: { skipped: true } }), 'skipped');
+  assert.equal(T.jobOutcome({ state: 'done', result: { skipped: true, reason: 'no estate members' } }), 'skipped: no estate members');
+  assert.equal(T.jobOutcome({ state: 'done', result: { committed: true } }), 'committed');
+  assert.equal(T.jobOutcome({ state: 'done', result: { committed: false } }), 'no change');
+  assert.equal(T.jobOutcome({ state: 'done', result: null }), 'done');
+});
+
+test('jobRows lists jobs from their own counts and files the rest by view', () => {
+  const jobs = [
+    { id: 1, name: 'Check branches', cause: 'timer', t: 1000, end: 4000, state: 'done', result: { committed: false },
+      calls: 50, wire: 9000, unknown: 0, errors: 0, writes: 0, hiddenCalls: 50 },
+    { id: 2, name: 'Poll Gemini pings', cause: 'timer', t: 5000, end: 0, state: 'running', calls: 1, wire: 0, unknown: 1 },
+  ];
+  // Only two of job 1's fifty calls are still in the capped ledger; its row
+  // must still say fifty.
+  const entries = [
+    { url: 'u1', t: 1100, job: 1, wire: 100, hidden: true },
+    { url: 'u2', t: 1200, job: 1, wire: 100, hidden: true },
+    { url: 'u3', t: 1300, job: null, where: 'sessions', wire: 10, status: 200 },
+    { url: 'u4', t: 2300, job: null, where: 'sessions', wire: null, status: 404 },
+    { url: 'u5', t: 900, job: null, where: '', wire: 5, method: 'PUT' },
+  ];
+  const { jobs: rows, free } = T.jobRows(jobs, entries, 6000);
+  assert.deepEqual(rows.map(r => r.id), [2, 1], 'newest first');
+  assert.equal(rows[1].calls, 50, 'a job row counts what the job counted, not what the ledger still holds');
+  assert.equal(rows[1].hiddenCalls, 50);
+  assert.equal(rows[1].outcome, 'no change');
+  assert.equal(rows[0].running, true);
+  assert.equal(rows[0].ms, 1000, 'a running job is timed to now');
+
+  assert.deepEqual(free.map(g => g.where), ['sessions', ''], 'by view, the latest activity first');
+  assert.equal(free[0].calls, 2);
+  assert.equal(free[0].errors, 1);
+  assert.equal(free[0].unknown, 1);
+  assert.equal(free[0].t, 1300);
+  assert.equal(free[0].last, 2300);
+  assert.equal(free[1].writes, 1);
+
+  assert.deepEqual(T.rowCalls(entries, rows[1]).map(e => e.url), ['u2', 'u1']);
+  assert.deepEqual(T.rowCalls(entries, free[0]).map(e => e.url), ['u4', 'u3']);
+  assert.deepEqual(T.rowCalls(entries, null), []);
+
+  const tt = T.tabTotals({ calls: 120, wire: 50000, trimmed: 3 }, entries, jobs);
+  assert.equal(tt.calls, 120, 'the header counts every call, not the rows held');
+  assert.equal(tt.held, 5);
+  assert.equal(tt.hidden, 2);
+  assert.equal(tt.claimed, 2);
+  assert.equal(tt.running, 1);
+});

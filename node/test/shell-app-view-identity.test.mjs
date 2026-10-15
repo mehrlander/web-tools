@@ -151,7 +151,9 @@ test('boot re-reads the sidebar when the crawl commits, and only then', () => {
   const boot = page.match(/Promise\.resolve\(sidebar\)\s*\n?\s*\.then\([\s\S]{0,400}?\.catch\(\(\) => \{\}\);/);
   assert.ok(boot, 'the boot crawl chain was not found; it must survive a reshuffle');
   const chain = boot[0];
-  assert.match(chain, /\.then\(\(\) => this\.refreshConfigCache\(\)\)/,
+  // As a job since 2026-10-15 (gh-boot.js, the job ledger), so the This tab
+  // pane can name the calls it makes; the crawl inside is unchanged.
+  assert.match(chain, /\.then\(\(\) => this\.asJob\('[^']+', 'boot', \(\) => this\.refreshConfigCache\(\)\)\)/,
     'the crawl still runs at boot');
   assert.match(chain, /r\?\.committed \? this\.loadEstateSidebar\(\)/,
     'a committed crawl re-reads the sidebar, so the nav cannot outlive its own fix');

@@ -2801,14 +2801,14 @@ function app(){ return {
         // committed, so the re-read costs one cache GET on the loads that
         // changed something and nothing on the rest.
         Promise.resolve(sidebar)
-          .then(() => this.refreshConfigCache())
+          .then(() => this.asJob('Check repo configs', 'boot', () => this.refreshConfigCache()))
           .then(r => r?.committed ? this.loadEstateSidebar() : null)
           .catch(() => {});
         // Only what the pane on screen reads (ensureFresh), once the address
         // has been routed: a deep link to ?view=sessions lands before auth
         // resolves, so its own arrival kick ran against no token and
         // declined, and this is what goes back for it.
-        this._routed.then(() => this.ensureFresh());
+        this._routed.then(() => this.ensureFresh('boot'));
         if (this._inboxToken !== window.TOKEN) {
           this._inboxToken = window.TOKEN;
           this.loadProposalCount();
@@ -2962,6 +2962,10 @@ function app(){ return {
     // than on the frame so it is registered before any app view can load.
     window.addEventListener('toss-subject-mark', () => this.onSubjectMark());
     this.wireRevisit();
+    // The view on screen, stamped on every call the traffic ledger records
+    // (gh-boot.js), which is all the This tab pane can say of a call no job
+    // claims.
+    window.__trafficWhere = () => this.view;
   },
 
   async loadRecent(){
@@ -3353,7 +3357,7 @@ function app(){ return {
     this.configRefreshing = true;
     this.openCrawl('configs', 'Reading configs', 'repos');
     try {
-      this.noteCheck('configs', await this.refreshConfigCache(true));
+      this.noteCheck('configs', await this.asJob('Refresh repo configs', 'tap', () => this.refreshConfigCache(true)));
       await this.loadEstateSidebar();
       document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
     } finally { this.configRefreshing = false; this.closeCrawl('configs'); }
@@ -3609,7 +3613,7 @@ function app(){ return {
     this.activityRefreshing = true;
     this.openCrawl('activity', 'Refreshing activity', 'repos');
     try {
-      const r = await this.refreshActivityCache(true, { deep: true });
+      const r = await this.asJob('Refresh branches', 'tap', () => this.refreshActivityCache(true, { deep: true }));
       this.noteCheck('activity', r);
       this.announceActivity(r);
       this.reportActivityRefresh(r);
@@ -4194,7 +4198,7 @@ function app(){ return {
     // is not known until the listing is in hand.
     this.openCrawl('sessions', 'Listing records', 'records');
     try {
-      const r = await this.refreshSessionsCache(true);
+      const r = await this.asJob('Refresh sessions', 'tap', () => this.refreshSessionsCache(true));
       this.noteCheck('sessions', r);
       this.announceSessions(r);
       const toast = Alpine.store('toast');
@@ -4238,14 +4242,14 @@ function app(){ return {
     try {
       this.sessionsRefreshing = true;
       this.openCrawl('sessions', 'Listing records', 'records');
-      try { s = await this.refreshSessionsCache(true); }
+      try { s = await this.asJob('Refresh sessions', 'tap', () => this.refreshSessionsCache(true)); }
       finally { this.sessionsRefreshing = false; this.closeCrawl('sessions'); }
       this.noteCheck('sessions', s);
       this.announceSessions(s);
 
       this.activityRefreshing = true;
       this.openCrawl('activity', 'Refreshing activity', 'repos');
-      try { a = await this.refreshActivityCache(true, { deep: true }); }
+      try { a = await this.asJob('Refresh branches', 'tap', () => this.refreshActivityCache(true, { deep: true })); }
       finally { this.activityRefreshing = false; this.closeCrawl('activity'); }
       this.noteCheck('activity', a);
       this.announceActivity(a);
@@ -6338,6 +6342,7 @@ function app(){ return {
       stamp(p){ if (this.waitingCall) p.set('call', this.waitingCall); } },
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
+    { key: 'jobs', open(){ this.goJobs(); } },
     // The Search view's address carries the ran search (sq + friends, stamped
     // from searchSeed, which the view updates on each run) AND the file open in
     // it (sfile, an owner/repo[@ref]:path address), so the screen can be shared
@@ -6955,7 +6960,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state'].includes(this.view); },
+  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state', 'jobs'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -7024,7 +7029,7 @@ function app(){ return {
       // ?view=branches resolves to Branches, and the pill row leads with
       // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state', 'tending'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state', 'jobs', 'tending'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       // Waiting: the owner's queue, user calls and proposed edits. Standing
       // with a token, since proposed edits are rarely none and counting them
@@ -7315,13 +7320,13 @@ function app(){ return {
   // is due, then arm the timer for the next one. Safe to call on any event,
   // since a reading inside the window costs nothing. A hidden tab does no work
   // and arms nothing; its return is a visibilitychange, which calls this.
-  ensureFresh(){
+  ensureFresh(cause = 'arrival'){
     if (!this.hasToken() || document.hidden) return;
     const due = this.freshKeys().filter(k => this.freshDue(k) <= Date.now() && !this.crawlChecking[k]);
     // The settled pass makes the State view re-read its commit dates (a call
     // per file), and that view stays mounted once seen, so it is announced
     // only while State is the view on screen.
-    if (due.length) Promise.all(due.map(k => this.checkCache(k))).then(() => {
+    if (due.length) Promise.all(due.map(k => this.checkCache(k, { cause }))).then(() => {
       if (this.view === 'state')
         document.dispatchEvent(new CustomEvent('web-tools:cache-checked', { detail: { settled: true } }));
     });
@@ -7329,11 +7334,14 @@ function app(){ return {
   },
   scheduleFresh(){
     clearTimeout(this._freshTimer);
+    window.__jobDisarm?.('fresh');
     const keys = this.freshKeys();
     if (!keys.length || !this.hasToken()) return;
     const next = Math.min(...keys.map(k => this.freshDue(k)));
-    this._freshTimer = setTimeout(() => this.ensureFresh(), Math.max(1000, next - Date.now()));
+    const at = Date.now() + Math.max(1000, next - Date.now());
+    this._freshTimer = setTimeout(() => { window.__jobDisarm?.('fresh'); this.ensureFresh('timer'); }, at - Date.now());
     this._freshTimer?.unref?.();
+    window.__jobArm?.('fresh', 'Freshness check: ' + keys.map(k => this.CHECK_LABEL[k] || k).join(', '), at);
   },
 
   // One check of one cache: the unforced crawl, then whatever puts the newest
@@ -7345,10 +7353,21 @@ function app(){ return {
   // A second call while one runs joins it, as the crawls themselves do, so the
   // State view's arrival waits on a check the timer had already started.
   _checks: {},
+  // Work the page starts on its own, run as a job (gh-boot.js, the job ledger)
+  // so the This tab pane can name it. `cause` is why it ran: boot, arrival,
+  // return, timer or tap. A page whose boot predates the ledger runs it bare.
+  asJob(name, cause, fn){
+    return window.__job ? window.__job(name, { cause }, fn) : fn();
+  },
+  // Each check is a job (gh-boot.js, the job ledger), named for the row State
+  // gives the cache and stamped with why it ran, so the This tab pane can say
+  // which calls a check made and what started it.
+  CHECK_LABEL: { configs: 'repo configs', activity: 'branches', sessions: 'sessions' },
   checkCache(key, opts){
     if (!this.hasToken()) return Promise.resolve(null);
     if (this._checks[key]) return this._checks[key];
-    const run = this._checkCache(key, opts);
+    const run = this.asJob('Check ' + (this.CHECK_LABEL[key] || key), opts?.cause || 'arrival',
+                           () => this._checkCache(key, opts));
     this._checks = { ...this._checks, [key]: run };
     return run.finally(() => { this._checks = { ...this._checks, [key]: null }; });
   },
@@ -7415,8 +7434,8 @@ function app(){ return {
   // bfcache restore (`pageshow` with `persisted`) brings the page back with no
   // boot at all, so it consults the rule as well.
   wireRevisit(){
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.ensureFresh(); });
-    window.addEventListener('pageshow', (e) => { if (e.persisted) this.ensureFresh(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.ensureFresh('return'); });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) this.ensureFresh('return'); });
     const tick = setInterval(() => { this.clock = Date.now(); }, 60 * 1000);
     tick?.unref?.();
   },
@@ -7441,6 +7460,9 @@ function app(){ return {
   // Branches pane already keeps, and its own deeper read is a control on
   // the pane rather than an arrival cost.
   goWrites(){ this.estateSeen = true; this.view = 'writes'; this.syncUrl(); },
+  // This tab: the work this page has done, from the job and traffic ledgers in
+  // memory. It warms nothing and reads no cache, so arriving costs no call.
+  goJobs(){ this.estateSeen = true; this.view = 'jobs'; this.syncUrl(); },
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
   // `repo` is a filter a Repos card or a branch row hands in, deliberately not
   // stamped: it narrows a reading, and a shared link should open the whole set.
