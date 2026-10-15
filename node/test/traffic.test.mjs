@@ -530,3 +530,43 @@ test('pageFiles weighs the page\'s own files and leaves fetched calls to the led
   assert.equal(f.cached, 1);
   assert.equal(f.undisclosed, 1, 'a file with no disclosed size is counted apart, not as zero');
 });
+
+test('timeline slices the page\'s life and finds the stretches it spent hidden', () => {
+  const entries = [
+    { t: 1000, job: 1, hidden: false, wire: 10 },
+    { t: 1500, job: null, hidden: false, wire: 20 },
+    { t: 6500, job: 2, hidden: true, wire: 30 },
+    { t: 6600, job: 2, hidden: true, wire: null },
+    { t: -50, job: null },             // before the start: not drawn
+  ];
+  const visibility = [{ t: 0, hidden: false }, { t: 6000, hidden: true }, { t: 7000, hidden: false }, { t: 9000, hidden: true }];
+  const tl = T.timeline(entries, visibility, 0, 10000, 10);
+  assert.equal(tl.slices.length, 10);
+  assert.equal(tl.slices[1].calls, 2, 'the two calls at 1.0s and 1.5s share the second slice');
+  assert.equal(tl.slices[1].jobCalls, 1);
+  assert.equal(tl.slices[6].calls, 2);
+  assert.equal(tl.slices[6].hidden, 2);
+  assert.equal(tl.slices[6].wire, 30, 'an undisclosed size adds nothing rather than a guess');
+  assert.equal(tl.max, 2);
+  assert.equal(tl.from, 1000, 'the record begins at the earliest call drawn');
+  assert.deepEqual(tl.hidden.map(h => [h.t0, h.t1]), [[6000, 7000], [9000, 10000]],
+    'a stretch closes when the tab returns, and one still open runs to the end');
+  assert.equal(tl.hidden[0].left, 0.6);
+  assert.equal(tl.hidden[0].width, 0.1);
+});
+
+test('a row counts the bytes that went out hidden, for the dark part of its bar', () => {
+  const { free } = T.jobRows([], [
+    { url: 'a', t: 1, job: null, where: 'sessions', wire: 100, hidden: true },
+    { url: 'b', t: 2, job: null, where: 'sessions', wire: 50, hidden: false },
+  ], 3);
+  assert.equal(free[0].wire, 150);
+  assert.equal(free[0].hiddenWire, 100);
+});
+
+test('a job counts the bytes its hidden calls brought', async () => {
+  const { win } = await bootWithStub({ fetchImpl: async () => ({ status: 200, headers: { get: h => (h === 'content-length' ? '64' : null) } }) });
+  await win.__job('Poll', { cause: 'timer' }, async () => { await win.fetch('https://api.github.com/x'); });
+  assert.equal(win.__jobs[0].wire, 64);
+  assert.equal(win.__jobs[0].hiddenWire, 0, 'the stub page has no document, so nothing went out hidden');
+});
