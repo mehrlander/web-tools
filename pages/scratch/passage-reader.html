@@ -16,14 +16,16 @@
 
   A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
   of sentence cards moves with it. index() derives every card section the file
-  does not store. Each colour has one meaning. In the passage every
-  connection's two spans are tinted light grey and joined by a faint grey line
-  behind the text. A connection touching the current sentence, either way, is
-  stronger: its span in that sentence takes the primary colour, its span at
-  the other end amber, and its line the primary colour. The active group's
-  spans are filled on the card, and for New here, In play and Atoms in the
-  passage too. The accent colour marks the current sentence, in the passage,
-  on its card and in the dots.
+  does not store. Each colour has one meaning. A span or a list row takes the
+  colour of where it sits relative to the current sentence: purple in it,
+  amber before it, blue after it. In the passage every connection's two spans
+  are tinted light grey and joined by a faint grey line behind the text; a
+  connection touching the current sentence, either way, has its spans in those
+  colours and its line purple. The card lists Connections (Carried in, Within,
+  Carried forward) and Entities (In play, New here), each part told apart by
+  that colour, with the sentence's atoms beneath it. The accent colour (teal)
+  marks the current sentence itself, in the passage, on its card and in the
+  dots.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -49,10 +51,18 @@ document.addEventListener('alpine:init', () => {
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   const UNDER = 'underline underline-offset-4';
   const DOTTED = 'decoration-dotted decoration-[var(--color-base-content)]/60';
-  const GROUPS = [
-    { key: 'in', label: 'Carried in' }, { key: 'within', label: 'Within' }, { key: 'new', label: 'New here' },
-    { key: 'play', label: 'In play' }, { key: 'atoms', label: 'Atoms' }, { key: 'out', label: 'Carried forward' },
-  ];
+  // Two lists, each of parts that never overlap, told apart by colour; the
+  // colour says where a span or row sits relative to the current sentence.
+  const GROUPS = [{ key: 'links', label: 'Connections' }, { key: 'entities', label: 'Entities' }];
+  const LEGEND = {
+    links: [['before', 'Carried in'], ['here', 'Within'], ['after', 'Carried forward']],
+    entities: [['before', 'In play'], ['here', 'New here']],
+  };
+  const TONE = {
+    before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30' },
+    here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary/20' },
+    after: { fill: 'bg-info/30', lit: 'data-[on]:bg-info/60 data-[ev]:bg-info/60', dot: 'bg-info', badge: 'bg-info/30' },
+  };
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
@@ -99,13 +109,14 @@ document.addEventListener('alpine:init', () => {
         if (!m.form && !(m.e in firstNamed)) firstNamed[m.e] = { n: s.n, i };
       });
     }
-    const rng = {}, inn = {}, fwd = {}, own = {}, keysOf = {}, where = {}, problems = [];
+    const rng = {}, inn = {}, fwd = {}, own = {}, keysOf = {}, where = {}, at = {}, problems = [];
     for (const s of S) { rng[s.n] = []; inn[s.n] = []; fwd[s.n] = []; own[s.n] = []; }
     const add = (n, key, q, extra, within) => {
       const p = by[n] && locate(by[n].text, q, within);
       if (!p) { problems.push({ n, q, why: 'not found' }); return false; }
       if (p.repeats) problems.push({ n, q, why: 'occurs more than once' });
       rng[n].push({ key, a: p.a, b: p.b, ...extra });
+      at[key] = n;
       return true;
     };
     for (const s of S) {
@@ -135,7 +146,7 @@ document.addEventListener('alpine:init', () => {
     for (const [e, f] of Object.entries(firstAny)) (fresh[f.n] ||= []).push(e);
     // Every connection in the passage once, each held by the later sentence.
     const links = S.flatMap(s => [...inn[s.n], ...own[s.n]]);
-    return { by, rng, inn, fwd, own, links, fresh, keysOf, where, problems };
+    return { by, rng, inn, fwd, own, links, fresh, keysOf, where, at, problems };
   }
 
   // Text cut at every range boundary, so overlapping ranges need no nesting.
@@ -159,7 +170,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'in', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, hot: null, group: 'links', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -245,18 +256,16 @@ document.addEventListener('alpine:init', () => {
     // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
     // the passage) or 'dim' (any other). The sentence's own words, unchanged:
     // formatting marks them, and nothing is added to them.
-    // `m`, in the passage only: `fill` is purple, `far` (amber) the other ends
-    // of the current sentence's connections, `web` (grey) every other
-    // connection's spans.
+    // `m`, in the passage only: `pos` is where the piece's sentence sits
+    // relative to the current one and picks its colour, `fill` its strong
+    // spans, `web` (grey) every other connection's spans.
     span(p, mode, m) {
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const has = set => set && p.on.some(r => set.has(r.key));
-      const cls = [];
-      if (has(m?.fill)) cls.push('bg-primary/20 data-[on]:bg-primary/40 data-[ev]:bg-primary/40', mode === 'dim' ? 'text-base-content' : '');
-      else if (has(m?.far)) cls.push('bg-warning/30 data-[on]:bg-warning/60 text-base-content');
-      else if (has(m?.web)) cls.push('bg-base-200 data-[on]:bg-primary/40 data-[ev]:bg-primary/40');
-      else cls.push('data-[on]:bg-primary/40 data-[ev]:bg-primary/40');
+      const T = TONE[m?.pos || 'here'], cls = [T.lit];
+      if (has(m?.fill)) cls.push(T.fill, mode === 'dim' ? 'text-base-content' : '');
+      else if (has(m?.web)) cls.push('bg-base-200');
       if (mode === 'card' && p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor')) cls.push(UNDER, DOTTED);
       if (code) cls.push('bg-base-200 rounded');
       const text = esc(code ? plain(p.text) : p.text);
@@ -264,31 +273,30 @@ document.addEventListener('alpine:init', () => {
     },
 
     // What the passage marks at full strength for sentence n: every
-    // connection touching it, in either direction, as arrows (`near`) and as
-    // spans, split into those in n (`fill`) and those at the other end
-    // (`far`); and the spans of the active group when that is not a group of
-    // connections.
+    // connection touching it, in either direction, as spans (`fill`) and
+    // arrows (`near`), and with Entities active, every mention of the things
+    // it names.
     focus(n) {
-      const X = this.X, g = this.group, fill = new Set(), far = new Set(), near = new Set();
-      const mine = new Set(X.rng[n].map(r => r.key));
+      const X = this.X, fill = new Set(), near = new Set();
       for (const it of [...X.inn[n], ...X.fwd[n], ...X.own[n]]) {
-        for (const k of it.keys) (mine.has(k) ? fill : far).add(k);
+        it.keys.forEach(k => fill.add(k));
         if (it.keys.length === 2) near.add(it.keys.join(' '));
       }
-      if (g === 'atoms') X.by[n].atoms.forEach((a, k) => fill.add(`a${n}-${k}`));
-      else if (g === 'new' || g === 'play') for (const e of g === 'new' ? X.fresh[n] || [] : this.playing(n)) for (const k of X.keysOf[e] || []) fill.add(k);
-      return { fill, far, near };
+      if (this.group === 'entities') for (const e of this.named(n)) (X.keysOf[e] || []).forEach(k => fill.add(k));
+      return { fill, near };
     },
+    side(m, n) { return m < n ? 'before' : m > n ? 'after' : 'here'; },
 
     // The passage: the current sentence outlined, the rest dimmed, every
-    // connection's spans tinted, and focus()'s spans filled wherever they sit.
+    // connection's spans tinted grey, and focus()'s spans filled in the colour
+    // of where they sit.
     get passageHtml() {
       if (!this.R) return '';
-      const lit = this.s.n, X = this.X, { fill, far } = this.focus(lit), m = { fill, far, web: new Set(X.links.flatMap(it => it.keys)) };
+      const lit = this.s.n, X = this.X, { fill } = this.focus(lit), web = new Set(X.links.flatMap(it => it.keys));
       const lead = this.R.lead ? `<span class="font-semibold text-base-content/60">${esc(this.R.lead)}</span> ` : '';
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
-        const ranges = X.rng[s.n].filter(r => r.kind !== 'a' || (on && this.group === 'atoms'));
+        const ranges = X.rng[s.n].filter(r => r.kind !== 'a'), m = { fill, web, pos: this.side(s.n, lit) };
         const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m)).join('');
         return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/50 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/40'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
@@ -351,8 +359,9 @@ document.addEventListener('alpine:init', () => {
         + `<defs>${marker('near', 'primary')}${marker('far', 'base-content')}</defs>${paths}</svg>`;
     },
 
-    num(n) {
-      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-5 rounded-full border border-base-300 text-xs tabular-nums text-base-content/70 hover:bg-base-300">${esc(n)}</button>`;
+    // A sentence number in the colour of where that sentence sits.
+    num(n, tone = 'here') {
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30">${esc(n)}</button>`;
     },
     row(it) {
       return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
@@ -361,17 +370,17 @@ document.addEventListener('alpine:init', () => {
         <div class="grid leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
     },
     text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
-    // A quoted span as a chip, lit with its span, in amber when the span is at
-    // the far end from the current sentence; `within` bolds the word inside a
-    // longer anchor.
-    chip(text, key, within, far) {
+    // A quoted span as a chip, lit with its span in the colour of where that
+    // span sits; `within` bolds the word inside a longer anchor.
+    chip(text, key, within, tone) {
       const t = plain(text), w = within && plain(within), at = w ? w.indexOf(t) : -1;
       const inner = at >= 0 ? `${esc(w.slice(0, at))}<b>${esc(t)}</b>${esc(w.slice(at + t.length))}` : esc(t);
-      return `<span data-chip="${key}" data-k="${key}" class="rounded-md bg-base-200 px-1.5 py-0.5 box-decoration-clone ${far ? 'data-[on]:bg-warning/60' : 'data-[on]:bg-primary/40'}">${inner}</span>`;
+      return `<span data-chip="${key}" data-k="${key}" class="rounded-md bg-base-200 px-1.5 py-0.5 box-decoration-clone ${TONE[tone || 'here'].lit}">${inner}</span>`;
     },
     // One connection read as a statement: the later span, a relation, the
-    // earlier span. `far` is which of the two (0 or 1) sits outside the card's sentence.
-    statement(it, bare, far = -1) {
+    // earlier span, each chip toned by where it sits relative to sentence n.
+    statement(it, bare, n) {
+      const tone = k => this.side(this.X.at[k], n);
       const fill = () => it.fill || (this.R.entities[it.e] || {}).label || it.e;
       if (bare) {
         const q = s => `“${plain(s)}”`;
@@ -379,17 +388,18 @@ document.addEventListener('alpine:init', () => {
       }
       const verb = v => `<span class="text-sm text-base-content/50">${v}</span>`;
       const line = parts => `<span class="flex flex-wrap items-center gap-x-2 gap-y-1">${parts.join('')}</span>`;
-      if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0], null, far === 0), verb('leaves out'), `<span>${esc(fill())}</span>`]);
-      return line([this.chip(it.here, it.keys[0], it.within, far === 0), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn, far === 1)]);
+      if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0], null, tone(it.keys[0])), verb('leaves out'), `<span>${esc(fill())}</span>`]);
+      return line([this.chip(it.here, it.keys[0], it.within, tone(it.keys[0])), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn, tone(it.keys[1]))]);
     },
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
     playing(n) {
       const s = this.X.by[n];
       return [...new Set(s.mentions.map(m => m.e))].filter(k => k !== this.R.topic && !(this.X.fresh[n] || []).includes(k));
     },
+    named(n) { return [...this.playing(n), ...(this.X.fresh[n] || [])]; },
     groupSize(g, n) {
-      const X = this.X, s = X.by[n];
-      return { in: X.inn[n], within: X.own[n], new: X.fresh[n] || [], play: this.playing(n), atoms: s.atoms, out: X.fwd[n] }[g].length;
+      const X = this.X;
+      return g === 'links' ? X.inn[n].length + X.own[n].length + X.fwd[n].length : this.named(n).length;
     },
     setGroup(g) {
       this.group = g;
@@ -399,24 +409,26 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => this.drawArrows());
     },
 
-    // Every group's items for sentence n. `spans` are the range keys an item
-    // marks in this sentence; `keys` are what it lights, here and in the passage.
+    // Every list's items for sentence n, in passage order of the sentence
+    // each points to, and toned by where that sentence sits. `spans` are the
+    // range keys an item marks in this sentence; `keys` are what it lights,
+    // here and in the passage.
     items(n) {
       const X = this.X, E = this.R.entities, s = X.by[n];
       const notes = k => s.mentions.filter(m => m.e === k && m.note && !m.form).map(m => m.note);
       const here = k => (X.keysOf[k] || []).filter(x => x.startsWith(`m${n}-`));
-      const entity = (g, k, j) => {
-        const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
-        return { id: `${g}:${j}`, mode: 'ev', keys: X.keysOf[k] || [], spans: here(k), lead: e.label || k, tip: (e.gloss || '') + basis,
-          body: [`<span class="text-pretty"><span class="font-semibold">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
-      };
+      const ends = [...X.inn[n].map(it => [it, it.to, 0]), ...X.own[n].map(it => [it, n, 0]), ...X.fwd[n].map(it => [it, it.from, 1])];
+      const first = k => Math.min(...(X.where[k] || [n]));
       return {
-        in: X.inn[n].map((it, j) => ({ id: `in:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[0]], lead: this.statement(it, true), tip: it.gloss || it.note || '',
-          left: this.num(it.to), body: [this.statement(it, false, 1), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
-        within: X.own[n].map((it, j) => ({ id: `within:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[0]], lead: this.statement(it, true), tip: it.note || '',
-          body: [this.statement(it), this.text(it.note), this.flag(it.ok)] })),
-        new: (X.fresh[n] || []).map((k, j) => entity('new', k, j)),
-        play: this.playing(n).map((k, j) => entity('play', k, j)),
+        links: ends.sort((a, b) => a[1] - b[1]).map(([it, m, mine], j) => ({ id: `links:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[mine]],
+          tone: this.side(m, n), lead: this.statement(it, true), tip: it.gloss || it.note || '', left: this.num(m, this.side(m, n)),
+          body: [this.statement(it, false, n), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
+        entities: this.named(n).map(k => [k, first(k)]).sort((a, b) => a[1] - b[1]).map(([k, m], j) => {
+          const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
+          return { id: `entities:${j}`, mode: 'ev', keys: X.keysOf[k] || [], spans: here(k), tone: this.side(m, n), lead: e.label || k, tip: (e.gloss || '') + basis,
+            left: this.num(m, this.side(m, n)),
+            body: [`<span class="text-pretty"><span class="font-semibold">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+        }),
         atoms: s.atoms.map((a, k) => {
           const tags = [a.role !== s.role ? a.role : '', a.for ? `for ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean);
           const key = `a${n}-${k}`;
@@ -424,8 +436,6 @@ document.addEventListener('alpine:init', () => {
             body: [`<span class="text-pretty${a.implied ? ' italic' : ''}">${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
-        out: X.fwd[n].map((it, j) => ({ id: `out:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[1]], lead: this.statement(it, true), tip: '',
-          left: this.num(it.from), body: [this.statement(it, false, 0), this.flag(it.ok)] })),
       };
     },
 
@@ -448,17 +458,21 @@ document.addEventListener('alpine:init', () => {
       }).join('');
     },
 
+    // The card: the sentence with its atoms beneath it in one block, then each
+    // list under a heading whose key names the parts present.
     render(i, el) {
       const n = this.R.sentences[i].n;
       const all = this.items(n), active = all[this.group] || [];
       el._items = Object.fromEntries(Object.values(all).flat().map(it => [it.id, it]));
-      const head = g => `<h3 class="text-sm font-semibold ${g.key === this.group ? 'text-primary' : 'text-base-content/60'}">${g.label}</h3>`;
-      const body = (g, its) => g.key === 'play'
-        ? `<p class="leading-7">${its.map(it => `<span tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}" class="${UNDER} ${DOTTED} rounded outline-none focus-visible:bg-base-200 data-[hot]:bg-base-200">${esc(it.lead)}</span>`).join('<span class="text-base-content/40"> · </span>')}</p>`
-        : `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
+      const key = g => LEGEND[g.key].filter(([t]) => all[g.key].some(it => it.tone === t))
+        .map(([t, label]) => `<span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full ${TONE[t].dot}"></span>${label}</span>`).join('');
+      const head = g => `<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1"><h3 class="text-sm font-semibold ${g.key === this.group ? 'text-primary' : 'text-base-content/60'}">${g.label}</h3>`
+        + `<span class="flex flex-wrap gap-x-3 text-sm text-base-content/60">${key(g)}</span></div>`;
+      const list = its => `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
+      const atoms = all.atoms.length ? `<div class="grid mt-2 pt-2 border-t border-base-200"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</div>` : '';
       el.innerHTML = `<article class="grid gap-3 text-lg">
-        <p class="leading-8 text-balance border-l-4 border-accent pl-4">${this.sentenceHtml(n, active)}</p>
-        ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid">${head(g)}${body(g, all[g.key])}</section>`).join('')}
+        <div class="border-l-4 border-accent pl-4"><p class="leading-8 text-balance">${this.sentenceHtml(n, active)}</p>${atoms}</div>
+        ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid gap-1">${head(g)}${list(all[g.key])}</section>`).join('')}
       </article>`;
       this.wire(el);
     },
