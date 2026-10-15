@@ -69,6 +69,10 @@ document.addEventListener('alpine:init', () => {
     judgment: { label: 'Judgment', icon: 'ph-scales' }, rule: { label: 'Rule', icon: 'ph-signpost' },
   };
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
+  // An ellipsis badge: a raised question mark in the accent's text colour, the
+  // page's mark for something to open, full when the gap is lit and faded when
+  // it waits.
+  const GAP = { base: 'align-[0.45em] ml-px text-sm font-bold leading-none', idle: 'text-primary/50', lit: 'text-primary', on: 'data-[on]:text-primary' };
   // Two lists, each of parts that never overlap, told apart by colour; the
   // colour says where a span or row sits relative to the current sentence.
   const GROUPS = [{ key: 'entities', label: 'Entities' }, { key: 'links', label: 'Connections' }];
@@ -315,15 +319,15 @@ document.addEventListener('alpine:init', () => {
       return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
     },
 
-    // An ellipsis is marked where its words are missing: a question-mark
-    // badge after the word the gap follows, carrying the mention's key, so it
-    // lights as a mention would, and opening to the words left out. The
-    // sentence's own words stay as written.
-    gapsAfter(p, tone) {
+    // An ellipsis is marked where its words are missing: a raised question
+    // mark after the word the gap follows, carrying the mention's key, so it
+    // lights when a mention there would, and opening to the words left out.
+    // The sentence's own words stay as written.
+    gapsAfter(p, lit) {
       return p.on.filter(r => r.gap && r.b === p.b).map(r => {
         const m = r.m, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e;
         return `<span data-k="${r.key}" data-gap tabindex="0" data-title-tip-lead="Leaves out" data-title-tip="${esc(fill + (m.note ? '. ' + m.note : ''))}" data-title-tip-bare`
-          + ` class="inline-grid place-items-center size-[1.125rem] ml-0.5 align-[0.1em] rounded-full text-xs font-bold leading-none select-none text-base-content/70 ${tone(r.key)}">?</span>`;
+          + ` class="select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?</span>`;
       }).join('');
     },
 
@@ -359,7 +363,7 @@ document.addEventListener('alpine:init', () => {
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
         const ranges = X.rng[s.n].filter(r => r.kind !== 'a'), m = { fill, web, pos: this.side(s.n, lit) };
-        const T = TONE[m.pos], gapTone = k => `${T.lit} ${on || fill.has(k) ? T.fill + ' text-base-content' : 'bg-base-300'}`;
+        const gapTone = k => on || fill.has(k);
         const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
         return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
@@ -509,7 +513,7 @@ document.addEventListener('alpine:init', () => {
       const X = this.X, len = {}, by = {};
       for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
       for (const it of sel) for (const k of it.spans) (by[k] ||= []).push(it);
-      const gapTone = () => `${TONE.here.lit} ${TONE.here.fill} text-base-content`;
+      const gapTone = () => true;
       return pieces(X.by[n].text, X.rng[n]).map(p => {
         const on = p.on.filter(r => !r.gap), gaps = this.gapsAfter(p, gapTone);
         const its = [...new Set(on.flatMap(r => by[r.key] || []))];
