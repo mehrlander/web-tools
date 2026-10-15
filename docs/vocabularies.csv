@@ -34,12 +34,13 @@ writers,kind,process,Process,"Code decided what the commit contains, with no mod
 writers,kind,person,Person,You decided what the commit contains; the program only carries your edit.
 writers,machine,container,Cloud container,"The machine a Claude Code session on the web runs in, on a fresh clone."
 writers,machine,computer,Your computer,"Whatever machine you run Claude Code, Cowork or git on: the personal laptop or the work machine."
-writers,machine,personal-laptop,Home laptop,"The laptop the daemon runs on, as the signed-in user."
+writers,machine,personal-laptop,Home laptop,"The home laptop, as the signed-in user: the Gemini daemon, Antigravity and the Codex app run here."
 writers,machine,actions-hosted,GitHub's machines,"GitHub-hosted runners: open network, no local files."
 writers,machine,browser,Your browser,"The Web Tools app with your token, or GitHub's own website."
 writers,machine,iphone,Your phone,"Shortcuts, writing through Log-Repo."
 writers,model,claude,Claude,Anthropic's model.
 writers,model,gemini,Gemini,Google's model.
+writers,model,gpt,GPT,"OpenAI's model, as Codex runs it."
 writers,starts,you,You,"A request: you start it, by hand or in conversation."
 writers,starts,event,An event,"Something happened: a push, a dispatch from another repository, a tab opening."
 writers,starts,time,Time,"A schedule: a Routine, a cron, a phone automation."
