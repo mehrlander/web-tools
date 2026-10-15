@@ -1,0 +1,11 @@
+label	side	gloss	color
+OK	pass	no wording problem a careful editor would act on	203,213,225
+VAGUE	wording	refers in general where an exact file, command, column, count, or actor is available (doc-craft: Be concrete)	245,158,11
+REFERENT	wording	a pronoun, "this", or a definite phrase without one clear referent, or a term used before it is introduced (Qualified writing rule 1)	239,68,68
+BARE	wording	a noun phrase or quantifier that does not say which one, whose, or how many (Qualified writing rule 4)	249,115,22
+TERM	wording	shorthand, a coinage, slang, or a figurative name that a general reader would not know (Qualified writing rule 2)	168,85,247
+REGISTER	wording	informal, awkward, wordy, or ungrammatical phrasing that a plain, dry register would write differently	236,72,153
+ABSOLUTE	wording	never, always, every, or a claim stated more strongly than it can be checked (doc-craft: Hedge)	202,138,4
+NARRATIVE	content	history, discovery steps, or authoring commentary in place of current behavior (doc-craft: State current reality)	59,130,246
+SURPLUS	content	removable without changing what a reader does, or repeats another unit (doc-craft: Earn each sentence)	100,116,139
+RESTRICTION	content	a non-obvious restriction missing its trigger, failure symptom, or mitigation (doc-craft: Format non-obvious restrictions)	20,184,166
