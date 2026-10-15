@@ -49,8 +49,6 @@ document.addEventListener('alpine:init', () => {
   const SAMPLE = { repo: 'mehrlander/web-tools', path: 'data/passage-reading/skill-prefs-description.json' };
   const ROLE = { definition: 'Definition', premise: 'Premise', claim: 'Claim', rule: 'Rule', evidence: 'Evidence', example: 'Example', exception: 'Exception' };
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
-  const UNDER = 'underline underline-offset-4';
-  const DOTTED = 'decoration-dotted decoration-[var(--color-base-content)]/60';
   // Two lists, each of parts that never overlap, told apart by colour; the
   // colour says where a span or row sits relative to the current sentence.
   const GROUPS = [{ key: 'links', label: 'Connections' }, { key: 'entities', label: 'Entities' }];
@@ -186,7 +184,7 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => {
         this.strip = swipeDeck.core(this.N, (i, el) => this.render(i, el), {
           innerClass: 'w-full', keys: this.$refs.main, behavior: 'instant', start: this.cur,
-          slidePad: 'px-4 pt-5 pb-28 sm:px-8 sm:pt-8', slideClass: 'overscroll-y-contain',
+          slidePad: 'px-4 pt-5 pb-28 sm:px-8 sm:pt-8',
         });
         this.$refs.track.append(this.strip.track);
         this.strip.onSlide(i => i !== this.cur && this.sync(i, 'strip'));
@@ -266,7 +264,6 @@ document.addEventListener('alpine:init', () => {
       const T = TONE[m?.pos || 'here'], cls = [T.lit];
       if (has(m?.fill)) cls.push(T.fill, mode === 'dim' ? 'text-base-content' : '');
       else if (has(m?.web)) cls.push('bg-base-200');
-      if (mode === 'card' && p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor')) cls.push(UNDER, DOTTED);
       if (code) cls.push('bg-base-200 rounded');
       const text = esc(code ? plain(p.text) : p.text);
       return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
@@ -452,8 +449,7 @@ document.addEventListener('alpine:init', () => {
         its.sort((a, b) => size(a) - size(b));
         const top = its[0], tip = top.tip || top.lead;
         const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
-        const under = p.on.some(r => r.kind === 'm' && r.m.form === 'anaphor') ? ` ${UNDER} ${DOTTED}` : '';
-        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 data-[on]:bg-primary/40 data-[ev]:bg-primary/40${under}"`
+        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="bg-primary/20 data-[on]:bg-primary/40 data-[ev]:bg-primary/40"`
           + `${top.tip && top.lead ? ` data-title-tip-lead="${esc(top.lead)}"` : ''} data-title-tip="${esc(tip)}" data-title-tip-bare>${esc(plain(p.text))}</span>`;
       }).join('');
     },
@@ -531,9 +527,9 @@ document.addEventListener('alpine:init', () => {
     <template x-if="R">
       <div class="ml-auto flex items-center gap-1">
         <template x-if="fileUrl">
-          <a class="btn btn-ghost btn-sm btn-square" :href="fileUrl" target="_blank" rel="noopener" aria-label="GitHub" data-title-tip="Reading on GitHub"><i class="ph ph-github-logo text-lg"></i></a>
+          <a class="btn btn-ghost btn-sm btn-square" :href="fileUrl" target="_blank" rel="noopener" aria-label="GitHub" data-title-tip="Reading on GitHub" data-title-tip-bare><i class="ph ph-github-logo text-lg"></i></a>
         </template>
-        <button class="btn btn-ghost btn-sm btn-square" @click="openAbout()" aria-label="About" data-title-tip="About"><i class="ph ph-info text-lg"></i></button>
+        <button class="btn btn-ghost btn-sm btn-square" @click="openAbout()" aria-label="About" data-title-tip="About" data-title-tip-bare><i class="ph ph-info text-lg"></i></button>
       </div>
     </template>
   </header>
