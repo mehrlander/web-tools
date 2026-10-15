@@ -67,12 +67,14 @@ skills/agents/house-style-critic.md,skills/screenshot-review/SKILL.md,5,,a style
 lib/kits/README.md,popups/data-shelf.md,5,,page in cfg types the canonical set of valid type names lives;ui metadata for each type label badge exec lives on the,10,206
 docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios data view item mjs node render scenarios data view item mjs,10,206
 docs/code-layers.md,lib/ops/README.md,5,,node test code layers test mjs node test code layers test mjs;an op is one file that is one value a single,10,206
+docs/artifacts.md,docs/showing.md,5,,the claude app's in app browser keeps its own storage so the ghtoken a,10,206
 README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,206
 research/excel-validation-2026-09-24/source/technical/README.md,research/excel-validation-2026-09-24/source/technical/REPRODUCTION.md,4,,original task root c users mehrl documents codex 2026 09 24 tak the,10,206
 docs/favicons/README.md,docs/text-content.md,4,,were picked against real icons on a light and a dark tab strip,10,206
 docs/code-layers.md,lib/kits/README.md,4,,node test code layers test mjs holds the boundary in all three directions,10,206
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,206
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,206
+docs/showing.md,skills/web-tools-app/SKILL.md,3,,the claude app's in app browser keeps its own storage so the,10,206
 docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,206
 docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a call and to the text it carries,10,206
 docs/column-primitives.md,docs/text-content.md,3,,https github com mehrlander home blob main projects budget drs data design,10,206
