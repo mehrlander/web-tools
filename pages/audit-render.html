@@ -31,7 +31,7 @@
 
   Payload: audit/1, from ?src=<spec>, #gz=<base64url>, or the embedded default.
   ?view=review (or #view=review) opens on Review: one category's units as a
-  list over a strip of cards.
+  list over the whole document, the current unit highlighted.
   Built by python/annotate/audit-payload.py (--inject refreshes the block below).
 -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
@@ -720,7 +720,7 @@ window.__audit = {
 
   window.auditPage = () => ({
     a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
-    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null, _rAim: -1,
+    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null,
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
       let payload = window.__audit;
@@ -760,13 +760,12 @@ window.__audit = {
       this.$nextTick(() => {
         const h = this.$refs.hdr;
         if (h) new ResizeObserver(() => { this.hdrH = h.offsetHeight; }).observe(h);
-        // Review's strip: the arrows step it while the pointer or focus is on
-        // it, and a strip that changed width is put back on its card.
-        swipeDeck.keys(this.$refs.rhost, d => this.rGo(this.rAt + d), () => this.rRows.length);
-        new ResizeObserver(() => { if (this.view === 'review') this.rJump(); }).observe(this.$refs.rstrip);
+        // In Review, Left and Right step through the list while the pointer or
+        // focus is in it, under swipe-deck's rule for a strip's keys.
+        swipeDeck.keys(this.$refs.rbox, d => this.rGo(this.rAt + d), () => this.rRows.length);
         if (this.view === 'review') this.rEnter();
       });
-      this.$watch('view', v => { if (v === 'review') this.rEnter(); });
+      this.$watch('view', v => { if (v === 'review') this.rEnter(); else this.light(null); });
       addEventListener('resize', () => this.placePanel());
       addEventListener('scroll', () => this.placePanel(), true);
       // Pinching and the on-screen keyboard move the visual viewport without
@@ -1278,30 +1277,36 @@ window.__audit = {
     },
     // A label set aside fades hard; a label lit from its chip fades the rest
     // less, so the document stays readable around the lit units.
-    dim(u) { const k = this.keyOf(u); return this.off[k] ? .12 : this.lit && this.lit !== k ? .35 : 1 },
+    dim(u) { const k = this.keyOf(u); return this.off[k] ? .12 : this.lit && !this.isLit(u) ? .35 : 1 },
+    // Lit by the chip in Doc, or by Review's category, Noted included.
+    isLit(u) { return this.lit === NOTED ? !!u.note : this.lit === this.keyOf(u); },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
     // A PIECE'S BACKGROUND: its label's tint, the selection, or the lit label.
     // piece() and heat() share it, so lighting a label restyles the pieces in
     // place rather than rendering the document again on every hover.
     shade(u, m = MARKS[this.mark] || MARKS.fill) {
       const k = this.keyOf(u), a = this.dim(u);
-      if (u.uid === this.sel?.uid) return tint(k, m.sel * a);
-      if (this.lit === k) return tint(k, Math.max(m.over, .22));
+      if (this.isCur(u)) return tint(k, m.sel * a);
+      if (this.lit && this.isLit(u)) return tint(k, Math.max(m.over, .22));
       return m.bg ? tint(k, m.bg * a) : '';
     },
     heat() {
       const by = new Map(this.units.map(u => [u.uid, u]));
-      for (const el of this.$refs.doc?.querySelectorAll('[data-uid]') || []) {
-        const u = by.get(el.dataset.uid);
-        if (!u) continue;
-        el.style.opacity = this.dim(u);
-        el.style.background = this.shade(u);
+      for (const host of [this.$refs.doc, this.$refs.rdoc]) {
+        for (const el of host?.querySelectorAll('[data-uid]') || []) {
+          const u = by.get(el.dataset.uid);
+          if (!u) continue;
+          el.style.opacity = this.dim(u);
+          el.style.background = this.shade(u);
+          this.decorate(el, u);
+        }
       }
     },
     light(k) { if (this.lit === k) return; this.lit = k; this.heat(); },
     // Hovering a chip lights its units, where a pointer can hover and the
     // document is on screen.
     chipOver(k) { if (this.view !== 'review' && matchMedia('(hover: hover) and (pointer: fine)').matches) this.light(k); },
+    chipOut() { if (this.view !== 'review') this.light(null); },
     // ONE TAP, ONE THING, ON A TOUCHSCREEN. title-tip.js opens a chip's tip on
     // tap where nothing can hover, so a tap there used to open the tip and
     // dim the label at once. There the first tap shows the tip and the next
@@ -1316,12 +1321,12 @@ window.__audit = {
       this.toggle(k);
     },
 
-    // ── REVIEW: one category's units as a list over a strip of cards ─────────
-    // html-style rule 12, built the Waiting view's way (lib/alpineComponents/
-    // waiting.js): the strip is Alpine markup on CSS scroll snap, since its
-    // footer carries controls, a swipe moves the list's selection, and a pick
-    // in the list moves the strip. The chips pick the category; Noted, every
-    // unit with a note, is the default where any unit has one.
+    // ── REVIEW: one category's units as a list over the whole document ───────
+    // The list holds the category the chips pick: Noted (every unit with a
+    // note, the default where any unit has one) or a label. Below it the whole
+    // document, painted as in Doc, with the current unit highlighted and
+    // scrolled into view; a label category is lit and the rest faded. Stacked
+    // at every width, since the page sits in a deck, whose frame is vertical.
     get noted() { return this.units.filter(u => u.note); },
     get rKey() { return this.rCat ?? (this.noted.length ? NOTED : this.axis[0]); },
     get rTitle() { return this.rKey === NOTED ? 'Noted' : this.rKey; },
@@ -1332,105 +1337,54 @@ window.__audit = {
     },
     get rAt() { const i = this.rRows.findIndex(u => u.uid === this.rPick); return i < 0 ? 0 : i; },
     get rCur() { return this.rRows[this.rAt] || null; },
-    rEnter() { this.sel = null; this.light(null); this.$nextTick(() => { this.rJump(); this.rReveal(); }); },
-    // A new category starts at its first card. The strip goes back to its
-    // start BEFORE the rows change: a shorter strip otherwise clamps the old
-    // scroll position, and that scroll reads as a swipe to the last card.
-    rPickCat(k) {
-      this._rAim = 0; clearTimeout(this._rAimT);
-      this.$refs.rstrip?.scrollTo({ left: 0, behavior: 'instant' });
-      this.rCat = k; this.rPick = null;
-      this.$nextTick(() => { this._rAim = -1; this.rJump(); this.rReveal(); });
+    // The unit a view treats as current: the selection in Doc, the list's row
+    // in Review.
+    isCur(u) { return u.uid === (this.view === 'review' ? this.rCur?.uid : this.sel?.uid); },
+    rLight() { this.lit = this.rKey; },
+    rEnter() {
+      this.sel = null; this.rLight();
+      this.$nextTick(() => { this.paint(this.$refs.rdoc); this.rShow(); });
     },
-    rPanels() {
-      const el = this.$refs.rstrip;
-      return el ? [...el.querySelectorAll(':scope > [data-slide]')] : [];
-    },
-    // The card nearest the strip's left edge, measured rather than divided
-    // out of scrollLeft.
-    rNearest() {
-      const el = this.$refs.rstrip;
-      if (!el) return -1;
-      const x0 = el.getBoundingClientRect().left;
-      let best = -1, near = Infinity;
-      this.rPanels().forEach((k, i) => {
-        const d = Math.abs(k.getBoundingClientRect().left - x0);
-        if (d < near) { near = d; best = i; }
-      });
-      return best;
-    },
-    // A swipe: the selection follows the card in view, once per frame. A go
-    // in flight passes the cards between, and reading those back would walk
-    // the selection through each of them.
-    rScroll() {
-      if (this._rRaf) return;
-      this._rRaf = requestAnimationFrame(() => {
-        this._rRaf = 0;
-        if (!this.$refs.rstrip?.clientWidth) return;
-        const best = this.rNearest();
-        if (best < 0) return;
-        if (this._rAim >= 0) {
-          if (best !== this._rAim) return;
-          this._rAim = -1; clearTimeout(this._rAimT);
-        }
-        const rows = this.rRows;
-        if (best !== this.rAt && rows[best]) { this.rPick = rows[best].uid; this.rReveal(); }
-      });
-    },
-    // Move to row i: the selection at once, the strip after it. `instant` for
-    // a pick in the list, where animating past twenty cards is noise.
-    rGo(i, instant = false) {
+    rPickCat(k) { this.rCat = k; this.rPick = null; this.rLight(); this.heat(); this.rShow(); },
+    // Move to row i: the highlight restyled in place, then both panes brought
+    // to it.
+    rGo(i) {
       const rows = this.rRows;
       if (!rows.length) return;
-      i = Math.max(0, Math.min(rows.length - 1, i));
-      this.rPick = rows[i].uid;
-      this.rReveal();
-      this.rScrollTo(i, instant);
+      this.rPick = rows[(i + rows.length) % rows.length].uid;
+      this.heat();
+      this.rShow();
     },
-    rJump() { this.rScrollTo(this.rAt, true); },
-    rScrollTo(i, instant) {
-      const el = this.$refs.rstrip, k = this.rPanels()[i];
-      if (!el || !k || !el.clientWidth) return;
-      const x = k.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
-      if (Math.abs(el.scrollLeft - x) < 2) return;
-      this._rAim = i; clearTimeout(this._rAimT);
-      this._rAimT = setTimeout(() => { this._rAim = -1; this.rScroll(); }, 900);
-      el.scrollTo({ left: x, behavior: instant ? 'instant' : 'smooth' });
-      if (Math.abs(el.scrollLeft - x) < 2) { this._rAim = -1; clearTimeout(this._rAimT); }
-    },
-    // The selected row kept in view inside the list, never by scrolling the page.
-    rReveal() {
+    // A tap on a unit in the document picks it, where the list holds it.
+    rTap(u) { const i = this.rRows.findIndex(x => x.uid === u.uid); if (i >= 0) this.rGo(i); },
+    // The current row kept in view inside the list, and the current unit a
+    // third of the way down the document pane; neither scrolls the page.
+    rShow() {
       this.$nextTick(() => {
-        const list = this.$refs.rlist, row = list?.querySelectorAll('[data-row]')[this.rAt];
-        if (!row) return;
-        const lr = list.getBoundingClientRect(), rr = row.getBoundingClientRect();
-        if (rr.top < lr.top) list.scrollTop -= lr.top - rr.top;
-        else if (rr.bottom > lr.bottom) list.scrollTop += rr.bottom - lr.bottom;
+        const into = (box, el, at) => {
+          if (!box || !el) return;
+          const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+          if (at == null) {
+            if (r.top < b.top) box.scrollTop -= b.top - r.top;
+            else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom;
+          } else box.scrollTop += r.top - b.top - Math.max(8, (b.height - Math.min(r.height, b.height)) * at);
+        };
+        into(this.$refs.rlist, this.$refs.rlist?.querySelectorAll('[data-row]')[this.rAt]);
+        const u = this.rCur;
+        into(this.$refs.rdoc, u && this.$refs.rdoc?.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`), 1 / 3);
       });
     },
-    // An edit from the strip's footer: the unit panel's push(), then back on
-    // the card. A relabel can take the unit out of the category in view; the
-    // selection then stays at the same place in the list.
+    // An edit from the Review bar: the unit panel's push(), then the document
+    // painted again. A relabel can take the unit out of the category in view;
+    // the selection then stays at the same place in the list.
     rEdit(op) {
       const i = this.rAt;
       if (!this.push(op)) return;
       this.sel = null;
       const rows = this.rRows;
       if (!rows.some(u => u.uid === this.rPick)) this.rPick = rows[Math.min(i, rows.length - 1)]?.uid ?? null;
-      this.$nextTick(() => { this.rJump(); this.rReveal(); });
-    },
-    // The strip's takeover: the same cards over the whole window, opened at
-    // the card in view; closing returns to the strip where the deck stopped.
-    rDeck() {
-      const rows = this.rRows;
-      if (!rows.length) return;
-      const open = this._viewer ? (o) => swipeDeck.drill(this._viewer, o) : (o) => swipeDeck.open(o);
-      open({
-        count: rows.length, start: this.rAt, title: this.rTitle, subtitle: this.a.title, icon: 'ph-cards',
-        innerClass: 'w-full', render: (i, slide) => slide.append(this.rCard(rows[i])),
-        onSlide: (i) => { if (rows[i]) this.rPick = rows[i].uid; },
-        onClose: () => this.$nextTick(() => { this.rJump(); this.rReveal(); }),
-      });
+      this.paint(this.$refs.rdoc);
+      this.rShow();
     },
     // A unit as one line of plain text: list markers, emphasis and link
     // targets taken out.
@@ -1441,36 +1395,6 @@ window.__audit = {
         .replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
     },
     lineOf(u) { return 'L' + ((this.a.text.slice(0, u.start).match(/\n/g) || []).length + 1); },
-    // ONE CARD, for the strip and the takeover alike: the unit between its
-    // neighbours, tinted with its label, then its note.
-    rCard(u) {
-      const us = [...this.units].sort((a, b) => a.start - b.start), i = us.findIndex(x => x.uid === u.uid);
-      const near = (x) => x && x.kind === 'sent' ? this.gist(x) : '';
-      const span = (text, cls, style) => {
-        const s = document.createElement('span');
-        s.textContent = text; if (cls) s.className = cls; if (style) s.style.cssText = style;
-        return s;
-      };
-      const card = document.createElement('div');
-      const head = document.createElement('div');
-      head.className = 'mb-3 font-mono text-xs opacity-60';
-      head.textContent = [this.lineOf(u), this.srcRef(u).replace(/ · lines .*$/, '')].filter(Boolean).join(' · ');
-      const body = document.createElement('p');
-      body.className = 'text-xl leading-8 text-pretty';
-      const before = near(us[i - 1]), after = near(us[i + 1]);
-      if (before) body.append(span(before + ' ', 'opacity-40'));
-      body.append(span(this.gist(u), (u.verdict || 'KEEP') === 'DROP' ? 'line-through' : '',
-                       `background:${tint(this.keyOf(u), .28)}`));
-      if (after) body.append(span(' ' + after, 'opacity-40'));
-      card.append(head, body);
-      if (u.note) {
-        const note = document.createElement('p');
-        note.className = 'mt-5 text-base leading-7 whitespace-pre-line text-pretty';
-        note.textContent = u.note;
-        card.append(note);
-      }
-      return card;
-    },
     // WHERE IN THE DOCUMENT, and only that. This opened with the target's path,
     // which is the same for every unit on the page and is already in the
     // header, so the first 21 characters of the panel's TALLEST line never
@@ -1505,6 +1429,7 @@ window.__audit = {
       const from = range ? range.start : 0;
       const src = range ? this.a.text.slice(range.start, range.end) : this.a.text;
       host_.innerHTML = '';
+      host_.dataset.paintHost = '';
       // The type classes go on an inner element, never on the host: paint() does
       // not own its container's layout, and assigning className to the host wiped
       // the padding the page and the deck slide had each given it.
@@ -1599,7 +1524,7 @@ window.__audit = {
     // markup happened to create.
     piece(u, text, m, first, last, at, atomic) {
       const el = document.createElement('span');
-      const a = this.dim(u), k = this.keyOf(u), sel = u.uid === this.sel?.uid;
+      const a = this.dim(u), k = this.keyOf(u);
       el.dataset.uid = u.uid;
       // A PIECE IS ALSO A MAPPED RUN. mapText wraps each text node and the
       // pieces are cut out of it, so the piece is what actually holds text now
@@ -1619,24 +1544,36 @@ window.__audit = {
         m.tick && last && `inset -1px 0 0 0 ${tint(k, m.tick * a)}`,
         m.under && `inset 0 -2px 0 0 ${tint(k, m.under * a)}`,
       ].filter(Boolean).join(', ');
-      // TEXT DECORATION IS THE FREE CHANNEL, which is why the remove marker can
-      // ride beside the label rather than displacing it: the tint, the ticks and
-      // the opacity are all spent on the label, and this is not.
-      const deco = [(u.verdict || 'KEEP') === 'DROP' && 'line-through',
-                    sel && 'underline'].filter(Boolean);
-      if (deco.length) {
-        el.style.textDecoration = deco.join(' ');
-        el.style.textDecorationThickness = '2px';
-        el.style.textUnderlineOffset = '3px';
-        // One property, one colour. Red wins where both apply: the selection is
-        // where you already are, the verdict is the finding.
-        el.style.textDecorationColor = tint(deco[0] === 'line-through' ? 'DROP' : k, .95);
-      }
-      const over = (bg) => { for (const p of this.$refs.doc.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`)) p.style.background = bg; };
-      el.onpointerenter = () => { if (this.sel?.uid !== u.uid) over(tint(k, m.over * this.dim(u))); };
-      el.onpointerleave = () => { if (this.sel?.uid !== u.uid) over(this.shade(u, m)); };
-      el.onclick = (ev) => { this.selPt = { x: ev.clientX, y: ev.clientY }; this.hit(u); };
+      this.decorate(el, u);
+      // Hover tints the unit in whichever painted host it sits in, Doc's or
+      // Review's.
+      const over = (bg) => {
+        const root = el.closest('[data-paint-host]') || this.$refs.doc;
+        for (const p of root.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`)) p.style.background = bg;
+      };
+      el.onpointerenter = () => { if (!this.isCur(u)) over(tint(k, m.over * this.dim(u))); };
+      el.onpointerleave = () => { if (!this.isCur(u)) over(this.shade(u, m)); };
+      el.onclick = (ev) => {
+        if (this.view === 'review') return this.rTap(u);
+        this.selPt = { x: ev.clientX, y: ev.clientY }; this.hit(u);
+      };
       return el;
+    },
+    // TEXT DECORATION IS THE FREE CHANNEL, which is why the remove marker can
+    // ride beside the label rather than displacing it: the tint, the ticks and
+    // the opacity are all spent on the label, and this is not.
+    decorate(el, u) {
+      const deco = [(u.verdict || 'KEEP') === 'DROP' && 'line-through',
+                    this.isCur(u) && 'underline'].filter(Boolean);
+      el.style.textDecoration = deco.join(' ');
+      if (!deco.length) return;
+      el.style.textDecorationThickness = '2px';
+      el.style.textUnderlineOffset = '3px';
+      // One property, one colour. Red wins where both apply: the selection is
+      // where you already are, the verdict is the finding. Review's current
+      // unit takes the primary colour, whatever its label's tint.
+      el.style.textDecorationColor = deco[0] === 'line-through' ? tint('DROP', .95)
+        : this.view === 'review' ? 'var(--color-primary)' : tint(this.keyOf(u), .95);
     },
 
     // ── EDGES ────────────────────────────────────────────────────────────────
@@ -2269,7 +2206,7 @@ window.__audit = {
                   :class="{ 'opacity-40': view !== 'review' && off[k], 'ring-1 ring-[var(--color-base-content)]': view === 'review' && rKey === k }"
                   :aria-pressed="view === 'review' ? rKey === k : null"
                   :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
-                  @pointerenter="chipOver(k)" @pointerleave="light(null)"
+                  @pointerenter="chipOver(k)" @pointerleave="chipOut()"
                   @click="chipTap(k)">
             <span x-text="k"></span>
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
@@ -2308,64 +2245,58 @@ window.__audit = {
            @pointerdown="pinDown($event)"></div>
     </div>
 
-    <!-- REVIEW: the chips' category as a list over a strip of cards (html-style
-         rule 12). It fills the viewport under the header as Spans does; at lg
-         the list sits beside the strip. The footer carries the card's actions,
-         on the surface whatever the card's scroll. -->
-    <div class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]"
+    <!-- REVIEW: the chips' category as a list over the whole document. The
+         list is a third of the height and the current row opens to its note;
+         the bar under it steps through the list and edits the current unit;
+         the document below is painted as in Doc, with the current unit
+         highlighted. Stacked at every width, and it fills the viewport under
+         the header as Spans does. -->
+    <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,2fr)]"
          x-show="view === 'review'" x-cloak
          :style="inDeck ? 'height:100%' : `height:calc(100dvh - ${hdrH}px)`">
-      <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1 border-b border-base-300 lg:border-b-0 lg:border-r">
+      <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1">
         <template x-for="(u, i) in rRows" :key="u.uid">
-          <button type="button" data-row
-                  class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-200"
-                  :class="i === rAt ? 'bg-base-200' : 'hover:bg-base-200/60'" :aria-current="i === rAt"
-                  @click="rGo(i, true)">
-            <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
-            <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
-            <span class="min-w-0 truncate" :class="u.verdict === 'DROP' && 'line-through opacity-60'" x-text="gist(u)"></span>
-          </button>
+          <div data-row :class="i === rAt && 'bg-base-200'">
+            <button type="button" class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-200"
+                    :class="i !== rAt && 'hover:bg-base-200/60'" :aria-current="i === rAt" @click="rGo(i)">
+              <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
+              <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
+              <span class="min-w-0" :class="[i !== rAt && 'truncate', u.verdict === 'DROP' && 'line-through opacity-60']" x-text="gist(u)"></span>
+            </button>
+            <p class="pb-2 pl-16 pr-4 text-sm leading-6 whitespace-pre-line text-pretty opacity-80"
+               x-show="i === rAt && u.note" x-text="u.note"></p>
+          </div>
         </template>
       </div>
-      <section x-ref="rhost" class="min-h-0 flex flex-col">
-        <div class="shrink-0 flex items-center gap-2 px-4 py-1 border-b border-base-300 text-xs">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-base-300 bg-base-200/60 px-2 py-1 text-xs">
+        <div class="flex items-center">
+          <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt - 1)"
+                  title="Previous" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
           <span class="font-mono" x-text="rRows.length ? `${rAt + 1} / ${rRows.length}` : '0'"></span>
-          <span class="opacity-60" x-text="rTitle"></span>
-          <button type="button" class="ml-auto btn btn-ghost btn-sm btn-square" :disabled="!rRows.length" @click="rDeck()"
-                  title="Swipe through these, full screen" aria-label="Swipe through these, full screen">
-            <i class="ph ph-arrows-out-simple text-lg"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt + 1)"
+                  title="Next" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
         </div>
-        <!-- data-no-swipe: a sideways drag here is the strip's, never the deck's. -->
-        <div x-ref="rstrip" data-no-swipe @scroll.passive="rScroll()"
-             class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
-                    [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <template x-for="u in rRows" :key="u.uid">
-            <div data-slide class="w-full shrink-0 snap-center min-h-0 overflow-y-auto px-4 py-4 lg:px-6"
-                 x-effect="$el.replaceChildren(rCard(u))"></div>
-          </template>
-        </div>
-        <div class="shrink-0 flex flex-wrap items-center gap-3 border-t border-base-300 bg-base-200/60 px-4 py-2 text-xs" x-show="rCur" x-cloak>
-          <!-- The label as a pill over the platform's own select, as in the
-               unit panel. -->
-          <label class="relative inline-flex items-center rounded-full px-2 py-0.5 font-mono cursor-pointer"
-                 :style="`background:rgba(${HUE[rCur?.label]},.28)`">
-            <span x-text="rCur?.label || 'unlabeled'"></span>
-            <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="relabel"
-                    x-effect="$el.value = rCur?.label || ''"
-                    @change="rEdit({ op: 'relabel', uid: rCur.uid, label: $event.target.value })">
-              <template x-for="v in (so.vocabulary || []).map(v => v.label)" :key="v"><option :value="v" x-text="v"></option></template>
-            </select>
-          </label>
-          <button type="button" class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
-                  :class="rCur?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
-                  :aria-pressed="rCur?.verdict === 'DROP'"
-                  @click="rEdit({ op: 'verdict', uid: rCur.uid, verdict: rCur.verdict === 'DROP' ? 'KEEP' : 'DROP' })">
-            <i class="text-base" :class="rCur?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
-            <span x-text="rCur?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
-          <span class="ml-auto font-mono opacity-50" x-text="rCur?.uid"></span>
-        </div>
-      </section>
+        <!-- The label as a pill over the platform's own select, as in the unit
+             panel; the verdict as the unit panel's Remove. -->
+        <label class="relative inline-flex items-center rounded-full px-2 py-0.5 font-mono cursor-pointer" x-show="rCur"
+               :style="`background:rgba(${HUE[rCur?.label]},.28)`">
+          <span x-text="rCur?.label || 'unlabeled'"></span>
+          <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="relabel"
+                  x-effect="$el.value = rCur?.label || ''"
+                  @change="rEdit({ op: 'relabel', uid: rCur.uid, label: $event.target.value })">
+            <template x-for="v in (so.vocabulary || []).map(v => v.label)" :key="v"><option :value="v" x-text="v"></option></template>
+          </select>
+        </label>
+        <button type="button" class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
+                x-show="rCur" :class="rCur?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
+                :aria-pressed="rCur?.verdict === 'DROP'"
+                @click="rEdit({ op: 'verdict', uid: rCur.uid, verdict: rCur.verdict === 'DROP' ? 'KEEP' : 'DROP' })">
+          <i class="text-base" :class="rCur?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
+          <span x-text="rCur?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
+        <span class="ml-auto pr-2 font-mono opacity-50" x-text="rCur ? lineOf(rCur) : ''"></span>
+      </div>
+      <div x-ref="rdoc" class="min-h-0 overflow-y-auto overscroll-contain px-4 py-4"></div>
     </div>
 
     <!-- The annotation as the thing it is: rows over spans, and the committed
