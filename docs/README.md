@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 42 by a page or component. The remaining 47 are
+15 by a skill, 42 by a page or component. The remaining 46 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -46,7 +46,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, timing rules, and the load-build duality
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
 - [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, proposals, editing from the shell)
-- [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
@@ -145,7 +144,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`README.md`](github/README.md) *(orphan)* — the github folder's front door: renderer, git treatment, MCP routing, surfacing
 - [`github-surfacing.md`](github/github-surfacing.md) — GitHub-native surfaces for exposing work: branches, compares, drafts, permalinks
-- [`markdown.md`](github/markdown.md) *(orphan)* — what GitHub's static renderer turns markdown into
+- [`markdown.md`](github/markdown.md) — what GitHub's static renderer turns markdown into
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed

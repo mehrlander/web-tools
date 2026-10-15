@@ -130,5 +130,5 @@ The command does not support `--card` for menus.
 Include short input after the shortcut name. Put longer input below the
 header, preserving its line breaks. Omit the colon when there is no input.
 
-For the rendering evidence behind these formats, see
-[markdown-in-chat.md](https://github.com/mehrlander/web-tools/blob/main/docs/markdown-in-chat.md).
+For how the Claude app renders these formats, see
+[claude-markdown](https://github.com/mehrlander/web-tools/blob/main/skills/claude-markdown/SKILL.md).
