@@ -2229,7 +2229,7 @@ problem rather than a formatting one. Backticks are the second way in, because
 a long opaque URL reads as code. For a 📋 or 📲 handover, where one tap is the
 whole deliverable, `[label](url)` is the only acceptable form.
 *(seen: 2026-08-19)*
-→ [markdown-in-chat.md](markdown-in-chat.md#a-custom-url-scheme-needs-an-explicit-markdown-link); the primitives in [SURFACING.md](SURFACING.md) now say it at the point of use
+→ the primitives in [SURFACING.md](SURFACING.md) say it at the point of use
 
 ### corpus-artifact-stale-on-a-tree-that-exists-only-in-ci: green locally, red on the PR
 
