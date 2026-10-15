@@ -18,10 +18,12 @@
   of sentence cards moves with it. index() derives every card section the file
   does not store. Each colour has one meaning. A span or a list row takes the
   colour of where it sits relative to the current sentence: purple in it,
-  amber before it, blue after it. In the passage every connection's two spans
-  are tinted light grey and joined by a faint grey line behind the text; a
-  connection touching the current sentence, either way, has its spans in those
-  colours and its line purple. The card lists Connections (Carried in, Within,
+  amber before it, blue after it. The pills switch the passage between two
+  views. Connections: every connection's two spans tinted light grey and
+  joined by a faint grey line behind the text, and a connection touching the
+  current sentence, either way, with its spans in those colours and its line
+  purple. Entities: every entity mention tinted light grey, and every mention
+  of the current sentence's entities in those colours. The card lists Connections (Carried in, Within,
   Carried forward) and Entities (In play, New here), each part told apart by
   that colour, with the sentence's atoms beneath it. The accent colour (teal)
   marks the current sentence itself, in the passage, on its card and in the
@@ -269,18 +271,25 @@ document.addEventListener('alpine:init', () => {
       return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
     },
 
-    // What the passage marks at full strength for sentence n: every
-    // connection touching it, in either direction, as spans (`fill`) and
-    // arrows (`near`), and with Entities active, every mention of the things
-    // it names.
+    // What the passage shows for sentence n under the active list. Each list
+    // is a view of its own kind: `web` is the whole passage's structure of
+    // that kind, drawn faintly, and `fill` the part of it that belongs to n,
+    // drawn in the position colours. Connections: every connection, and those
+    // touching n either way, with their arrows (`near`). Entities: every
+    // mention of an entity, and every mention of the entities n names.
     focus(n) {
       const X = this.X, fill = new Set(), near = new Set();
+      if (this.group === 'entities') {
+        for (const e of this.named(n)) (X.keysOf[e] || []).forEach(k => fill.add(k));
+        const web = new Set(Object.entries(X.keysOf).filter(([e]) => e !== this.R.topic).flatMap(([, ks]) => ks));
+        return { fill, near, web, pairs: [] };
+      }
       for (const it of [...X.inn[n], ...X.fwd[n], ...X.own[n]]) {
         it.keys.forEach(k => fill.add(k));
         if (it.keys.length === 2) near.add(it.keys.join(' '));
       }
-      if (this.group === 'entities') for (const e of this.named(n)) (X.keysOf[e] || []).forEach(k => fill.add(k));
-      return { fill, near };
+      const pairs = [...new Set(X.links.filter(it => it.keys.length === 2).map(it => it.keys.join(' ')))];
+      return { fill, near, web: new Set(X.links.flatMap(it => it.keys)), pairs };
     },
     side(m, n) { return m < n ? 'before' : m > n ? 'after' : 'here'; },
 
@@ -289,7 +298,7 @@ document.addEventListener('alpine:init', () => {
     // of where they sit.
     get passageHtml() {
       if (!this.R) return '';
-      const lit = this.s.n, X = this.X, { fill } = this.focus(lit), web = new Set(X.links.flatMap(it => it.keys));
+      const lit = this.s.n, X = this.X, { fill, web } = this.focus(lit);
       const lead = this.R.lead ? `<span class="font-semibold text-base-content/60">${esc(this.R.lead)}</span> ` : '';
       return lead + this.R.sentences.map(s => {
         const on = s.n === lit;
@@ -299,14 +308,15 @@ document.addEventListener('alpine:init', () => {
       }).join(' ');
     },
 
-    // Arrows behind the passage, one for every connection in it, from the
-    // referring span straight through the lines between to the span it leans
-    // on; the text paints over them. Those touching the current sentence are
-    // darker, and a hovered row's darker still.
+    // Arrows behind the passage, with Connections active, one for every
+    // connection in it, from the referring span straight through the lines
+    // between to the span it leans on; the text paints over them. Those
+    // touching the current sentence are darker, and a hovered row's darker
+    // still. Entities draws none.
     drawArrows() {
       const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
       if (!wrap || !text || !layer || !this.R) return;
-      const W = wrap.getBoundingClientRect(), X = this.X, HEAD = 7;
+      const W = wrap.getBoundingClientRect(), HEAD = 7;
       // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
       const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
         .reduce((by, r) => {
@@ -314,8 +324,7 @@ document.addEventListener('alpine:init', () => {
           by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
           return by;
         }, {}));
-      const picked = this.focus(this.s.n).near;
-      const pairs = [...new Set(X.links.filter(it => it.keys.length === 2).map(it => it.keys.join(' ')))];
+      const { near: picked, pairs } = this.focus(this.s.n);
       // A span can wrap, so each arrow joins the nearest pair of its two spans'
       // line boxes: out of the top of the later one and into the foot of the
       // earlier, or on one line, over the top of both.
