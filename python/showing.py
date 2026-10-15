@@ -693,6 +693,19 @@ def short_entry(e):
     return f"{repo}@{short(ref)}{sep}{path}"
 
 
+# A --query names what the reader asked for, so a key it carries REPLACES the
+# script's own pair of that name instead of riding beside it. Appended, the
+# two `view=` pairs reached the page as `?view=submittal&view=benefits`, and
+# the app routes on the first: the link opened the script's guess over the
+# view that was asked for (home's Benefits view, 2026-10-15). Values pass
+# through as typed, since `tab=a/b` must reach the page unencoded.
+def join_query(own, query=""):
+    extra = [p for p in query.lstrip("?&").split("&") if p]
+    named = {p.split("=", 1)[0] for p in extra}
+    pairs = [f"{k}={v}" for k, v in own if v and k not in named] + extra
+    return "?" + "&".join(pairs) if pairs else ""
+
+
 # A page that routes on its own hash opens on its EMPTY FORM without an
 # address, and the link still resolves and renders, which is this script's own
 # failure shape one level down. The `at` below is that address: on a toss it
@@ -710,19 +723,6 @@ def short_entry(e):
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
-# A --query names what the reader asked for, so a key it carries REPLACES the
-# script's own pair of that name instead of riding beside it. Appended, the
-# two `view=` pairs reached the page as `?view=submittal&view=benefits`, and
-# the app routes on the first: the link opened the script's guess over the
-# view that was asked for (home's Benefits view, 2026-10-15). Values pass
-# through as typed, since `tab=a/b` must reach the page unencoded.
-def join_query(own, query=""):
-    extra = [p for p in query.lstrip("?&").split("&") if p]
-    named = {p.split("=", 1)[0] for p in extra}
-    pairs = [f"{k}={v}" for k, v in own if v and k not in named] + extra
-    return "?" + "&".join(pairs) if pairs else ""
-
-
 def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref=""):
     sha, page_ref = short(sha), short(page_ref)
     entries = [short_entry(e) for e in (entries or [])]
