@@ -89,11 +89,12 @@ test('focus opens the call\'s own block and reduces every other to its line', ()
   assert.ok(ring.classList.contains('line'), 'the ring sits on the line a reader sees, not around the opened detail');
 });
 
-test('annotate marks each entity once, longest term first, and leaves glue alone', () => {
+test('annotate marks each entity once, longest term first, draws nothing, and leaves glue alone', () => {
   const el = folds();
   D.annotate(el, [{ id: 'follow-up', terms: ['topic follow-up'] }, { id: 'topic', terms: ['topic'] }, { id: 'key', terms: ['the key'] }]);
   const marks = [...el.querySelectorAll('[data-entity]')].map((n) => [n.dataset.entity, n.textContent]);
   assert.deepEqual(marks, [['follow-up', 'topic follow-up'], ['topic', 'topic'], ['key', 'the key']]);
   assert.equal(el.querySelector('[data-glue] [data-entity]'), null, 'the template\'s own connectives are not marked');
+  assert.equal(el.querySelector('[data-entity][class]'), null, 'a mark draws nothing: no underline, no question-mark cursor');
   assert.equal(el.querySelector('[data-field="def.text"]').textContent, 'How big is a topic?', 'the words read the same');
 });
