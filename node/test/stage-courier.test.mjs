@@ -159,6 +159,31 @@ test('a closed errand is not run', async () => {
   assert.equal(sent.length, before);
 });
 
+test('once a page speaks, the app can ask it its own reads; the answer goes to the asker, never the stage', async () => {
+  window.__shell = { courierHost: '' };
+  deliver({ type: 'courier-page', url: 'https://plain.example/q', title: 'Q', links: [] }, opener, 'https://plain.example');
+  await settle();
+  const link = window.__courier;
+  assert.equal(link.host, 'plain.example', 'the link is to the sender origin');
+  assert.equal(window.__shell.courierHost, 'plain.example', 'and the shell says a page is on the line');
+  const before = names().length;
+  const answer = link.ask('return "read"', { read: 'inventory' });
+  const out = sent.at(-1);
+  assert.equal(out.msg.type, 'courier-run');
+  assert.match(out.msg.id, /^ask-/);
+  assert.equal(out.msg.code, 'return "read"', 'the code is the asker\'s, never a message\'s');
+  assert.deepEqual({ ...out.msg.errand }, { read: 'inventory' }, 'the request rides where the bookmark hands it to the script');
+  assert.equal(out.origin, 'https://plain.example', 'and goes only to that origin');
+  deliver({ type: 'courier-ran', id: out.msg.id, text: '{"ok":1}' }, opener, 'https://plain.example');
+  assert.equal(await answer, '{"ok":1}');
+  await settle();
+  assert.equal(names().length, before, 'an answer is never staged');
+  const refused = link.ask('return 1');
+  deliver({ type: 'courier-ran', id: sent.at(-1).msg.id, error: 'EvalError: unsafe-eval' }, opener, 'https://plain.example');
+  await assert.rejects(refused, /unsafe-eval/);
+  delete window.__shell;
+});
+
 test('mounts with no warnings or errors', () => {
   assert.deepEqual(problems, []);
 });

@@ -221,7 +221,9 @@ test('the two sub-tab encodings, counted', () => {
   // 37 to 39 on 2026-10-13: This browser took two tabs, Token (the saved
   // token, and where a failed read lands) and Stored here (what the origin
   // keeps in localStorage and IndexedDB, as a list and its detail).
-  assert.equal(params, 39, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 39 to 40 on 2026-10-15: This browser took Page, what the page a courier
+  // bookmark opened the window from keeps in its own storage.
+  assert.equal(params, 40, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

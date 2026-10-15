@@ -2579,8 +2579,9 @@ function app(){ return {
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   hereSeen: false,        // mount the This browser view lazily, on first visit
   hereNext: '',           // the address This browser returns to (?next=), a query or fragment of this page
-  hereTab: 'token',       // This browser's tab: 'token' | 'stored' (&tab=)
+  hereTab: 'token',       // This browser's tab: 'token' | 'stored' | 'page' (&tab=)
   hereItem: '',           // the stored item open in its detail (&item=): ls:<key> | idb:<database>/<store>
+  courierHost: '',        // the host of the page a courier bookmark opened this window from, once it has spoken (stage.js)
   authFail: null,         // the gh-auth failure record that sent the reader to This browser, if one did
   _booted: false,         // boot routing has finished; an earlier auth failure waits for it (see init)
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
@@ -6216,7 +6217,7 @@ function app(){ return {
       stamp(p){
         if (this.hereNext) p.set('next', this.hereNext);
         if (this.hereTab !== 'token') p.set('tab', this.hereTab);
-        if (this.hereTab === 'stored' && this.hereItem) p.set('item', this.hereItem);
+        if (this.hereTab !== 'token' && this.hereItem) p.set('item', this.hereItem);
       } },
     // Lists was addressed ?view=todo, and ?view=jots, until 2026-10-02. A row
     // carries one alias, so `todo` is the alias here and `jots` keeps a row of
@@ -8203,8 +8204,8 @@ function app(){ return {
     const pick = next !== undefined && next !== '' ? next : own;
     this.hereNext = /^[?#]/.test(pick || '') && !/[?&]view=here(&|#|$)/.test(pick) ? pick : '';
     if (arriving) this.authFail = fail;
-    if (arriving || tab) this.hereTab = tab === 'stored' ? 'stored' : 'token';
-    if (arriving || tab) this.hereItem = this.hereTab === 'stored' ? (item || '') : '';
+    if (arriving || tab) this.hereTab = tab === 'stored' || tab === 'page' ? tab : 'token';
+    if (arriving || tab) this.hereItem = this.hereTab !== 'token' ? (item || '') : '';
     this.hereSeen = true;
     this.view = 'here';
     this.syncUrl();
