@@ -210,6 +210,8 @@
   await gh.load('kits/powershell-workspace.js');
   await gh.load('kits/powershell-language.js');
   await gh.load('kits/powershell-units.js');
+  // Which repository file a pasted piece of PowerShell belongs to (window.PowerShellMatch).
+  await gh.load('kits/powershell-match.js');
   await gh.load('kits/powershell-editor.js');
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
@@ -2579,8 +2581,9 @@ function app(){ return {
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   hereSeen: false,        // mount the This browser view lazily, on first visit
   hereNext: '',           // the address This browser returns to (?next=), a query or fragment of this page
-  hereTab: 'token',       // This browser's tab: 'token' | 'stored' (&tab=)
+  hereTab: 'token',       // This browser's tab: 'token' | 'stored' | 'page' (&tab=)
   hereItem: '',           // the stored item open in its detail (&item=): ls:<key> | idb:<database>/<store>
+  courierHost: '',        // the host of the page a courier bookmark opened this window from, once it has spoken (stage.js)
   authFail: null,         // the gh-auth failure record that sent the reader to This browser, if one did
   _booted: false,         // boot routing has finished; an earlier auth failure waits for it (see init)
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
@@ -6216,7 +6219,7 @@ function app(){ return {
       stamp(p){
         if (this.hereNext) p.set('next', this.hereNext);
         if (this.hereTab !== 'token') p.set('tab', this.hereTab);
-        if (this.hereTab === 'stored' && this.hereItem) p.set('item', this.hereItem);
+        if (this.hereTab !== 'token' && this.hereItem) p.set('item', this.hereItem);
       } },
     // Lists was addressed ?view=todo, and ?view=jots, until 2026-10-02. A row
     // carries one alias, so `todo` is the alias here and `jots` keeps a row of
@@ -7530,6 +7533,13 @@ function app(){ return {
     try { path = K.declaration(text); }
     catch (e) { Alpine.store('toast')('warning', e.message, 'alert-error', 5000); return true; }
     const selected = intake.selected;
+    // On the Outpost tab with no file open, pasted PowerShell goes to the
+    // matcher, which finds the file it most resembles, rather than to the Stage.
+    if (!path && !selected && this.view === 'project' && this.projectPane === 'outpost' && window.PowerShellMatch?.looksLike?.(text)) {
+      const host = document.querySelector('[x-data^="powershellOutpostView"]');
+      const view = host && Alpine.$data?.(host);
+      if (view?.matchCopy) { await view.matchCopy(text, { name, source }); return true; }
+    }
     if (!path && !selected) return false;
     const declared = path ? { repo: intake.repo, ref: intake.ref, path } : null;
     if (declared && !K.applies(declared)) return false;
@@ -8203,8 +8213,8 @@ function app(){ return {
     const pick = next !== undefined && next !== '' ? next : own;
     this.hereNext = /^[?#]/.test(pick || '') && !/[?&]view=here(&|#|$)/.test(pick) ? pick : '';
     if (arriving) this.authFail = fail;
-    if (arriving || tab) this.hereTab = tab === 'stored' ? 'stored' : 'token';
-    if (arriving || tab) this.hereItem = this.hereTab === 'stored' ? (item || '') : '';
+    if (arriving || tab) this.hereTab = tab === 'stored' || tab === 'page' ? tab : 'token';
+    if (arriving || tab) this.hereItem = this.hereTab !== 'token' ? (item || '') : '';
     this.hereSeen = true;
     this.view = 'here';
     this.syncUrl();

@@ -1,7 +1,7 @@
 const rows = [];
 for (const a of document.querySelectorAll('a[href]')) {
   const href = a.href;
-  if (!/\.(pdf|aspx|doc|docx)(\?|#|$)/i.test(href)) continue;
+  if (!/\.(pdf|aspx|doc|docx)(\?|#|$)/i.test(href) && !/digitalarchives\.wa\.gov\/Record\/ViewMedia\//i.test(href)) continue;
   if (/cafr_home\.aspx/i.test(href)) continue;
   const label = (a.textContent || '').trim().replace(/\s+/g, ' ');
   const year = (label.match(/\b(19|20)\d{2}\b/) || href.match(/\b(19|20)\d{2}\b/) || [''])[0];

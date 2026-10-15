@@ -33,7 +33,7 @@ node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another 
 node/build/sample-workbook.mjs,,node/build,437,npm:sample-workbook,yes,yes,yes
 node/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,node/build,267,npm:snags-index,yes,yes,yes
 node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,245,npm:tests-index,yes,no,yes
-node/build/tools-index.mjs,restamp the derived half of this registry,node/build,388,npm:tools-index,yes,yes,yes
+node/build/tools-index.mjs,restamp the derived half of this registry,node/build,388,npm:tools-index,yes,no,yes
 node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,262,npm:ui-instances,yes,yes,no
 node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,312,imported,no,yes,no
 node/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at desktop and phone width and write the JPEG thumbnails and thumbs.csv the Map's UI > Patterns gallery reads, public units here and home's in web-tools-private",node/build,253,npm:ui-shots,yes,yes,no
@@ -170,6 +170,7 @@ node/render/scenarios/fab-width-bar.mjs,"the FAB Render tab's width bar, shot on
 node/render/scenarios/fence-label-clear.mjs,,node/render/scenarios,64,driver,no,no,no
 node/render/scenarios/files-view-tap-and-deck.mjs,,node/render/scenarios,61,driver,no,no,yes
 node/render/scenarios/here-expired-token.mjs,,node/render/scenarios,50,driver,no,no,no
+node/render/scenarios/here-page.mjs,,node/render/scenarios,76,driver,no,no,no
 node/render/scenarios/here-stored.mjs,,node/render/scenarios,19,driver,no,no,no
 node/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,node/render/scenarios,36,driver,no,yes,no
 node/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,node/render/scenarios,67,driver,no,no,no
@@ -250,7 +251,7 @@ node/render/scenarios/shoot-cards.mjs,,node/render/scenarios,50,driver,no,no,no
 node/render/scenarios/shortcut-log-app-view.mjs,,node/render/scenarios,73,driver,no,no,no
 node/render/scenarios/showing-paste-rows.mjs,,node/render/scenarios,27,driver,no,no,no
 node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,no,no,yes
-node/render/scenarios/sidebar-projects.mjs,drive the app's sidebar into the nested-projects state,node/render/scenarios,66,driver,no,yes,no
+node/render/scenarios/sidebar-projects.mjs,drive the app's sidebar into the nested-projects state,node/render/scenarios,66,driver,no,no,no
 node/render/scenarios/sidebar-repo-menus.mjs,the sidebar Repos index with one row's two menus open,node/render/scenarios,61,driver,no,no,no
 node/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",node/render/scenarios,67,driver,no,yes,no
 node/render/scenarios/stage-aimed-deposit.mjs,"the stage opened at a branch destination, the shape a branch-page deposit hands it",node/render/scenarios,20,driver,no,no,no
@@ -258,7 +259,7 @@ node/render/scenarios/stage-compare-pick.mjs,"the reader's compare picker: the f
 node/render/scenarios/stage-dictate.mjs,"the stage's dictation intake: the mic beside Paste, committed text with a live interim, and the mark pad",node/render/scenarios,33,driver,no,no,no
 node/render/scenarios/stage-diff-longrefs.mjs,the Diff tab's A/B selects clipping long repo@ref:path labels,node/render/scenarios,18,driver,no,no,no
 node/render/scenarios/stage-diff-review.mjs,"the Stage's Diff lens run on two local items, with the review-prompts panel",node/render/scenarios,29,driver,no,yes,no
-node/render/scenarios/stage-errand-card.mjs,"the Stage opened on one errand by its own link: the linked card on top, a read previewed and graded green with its one button, and a hand errand graded red until something is staged",node/render/scenarios,56,driver,no,no,no
+node/render/scenarios/stage-errand-card.mjs,"the Stage opened on one errand by its own link: the linked card on top, a read previewed and graded green with its one button, and a hand errand graded red until something is staged",node/render/scenarios,60,driver,no,no,no
 node/render/scenarios/stage-flavor-bar.mjs,"the flavors bar after a web-page paste and one conversion: every flavor named, the staged ones ticked, and the markdown that was made sitting beside them as a pill",node/render/scenarios,76,driver,no,no,no
 node/render/scenarios/stage-image-preview.mjs,,node/render/scenarios,32,driver,no,no,no
 node/render/scenarios/stage-keyboard-mode.mjs,"the stage's dictation card with the keyboard open, which is where the recording misreading was reported",node/render/scenarios,53,driver,no,no,no
@@ -300,7 +301,7 @@ python/dead-family.py,"report a daisyUI theme colour used in a utility family da
 python/dead-links.py,"report markdown links that no longer resolve, in three classes (internal, cross-repo, github), and portable skill names an instruction file cites that skills/manifest.csv lacks",python,410,imported,no,yes,yes
 python/dead-opacity.py,"report a daisyUI theme colour carrying an opacity step that generates no CSS rule. The ramp daisyUI ships is 10..90 by tens, so every other step, both ends, and the bracket form fall back: a background to transparent and TEXT to full strength, which is the wrong direction and errors nowhere. Stock palette colours take any step and are never reported, which is the half a looser scan gets wrong. --check gates it",python,220,npm:opacity-scan,no,yes,yes
 python/declared-paths.py,check every page a .web-tools.json declares still exists; runs in consumer repos' verify suites,python,137,argv,no,yes,no
-python/doc-growth.py,"weekly size-and-churn series for a repo's markdown, as one JSON payload: every file's length in words at each sample plus the commit churn around it, for pages/doc-growth.html. Samples trees rather than diffing, and reads blob contents through one cat-file batch fed from a thread",python,176,npm:doc-growth,yes,yes,no
+python/doc-growth.py,"weekly size-and-churn series for a repo's markdown, as one JSON payload: every file's length in words at each sample plus the commit churn around it, for pages/doc-growth.html. Samples trees rather than diffing, and reads blob contents through one cat-file batch fed from a thread",python,175,npm:doc-growth,yes,yes,no
 python/doc-overlap-gold.py,"build, blind, check and score the gold set for the Related lens: a seeded stratified sample of passage pairs labelled by reader and skeptic agents, scored per cosine cutoff into data/doc-overlap/gold-set/",python,368,argv,yes,yes,yes
 python/doc-overlap.py,"embed every scanned Markdown passage and record each one's best match in every other file above cosine 0.75, as source offsets in data/doc-overlap/ for the Themes tab's Related lens (by hand: needs Python 3.12 and a model download)",python,207,npm:doc-overlap,yes,yes,yes
 python/doc-placement.py,"per-repo counts of the four documentation slots CONSTELLATION.md names, plus the residual listed by directory with what else sits there; takes repo paths, so one run reads an estate",python,104,npm:doc-placement,no,yes,no
@@ -312,7 +313,7 @@ python/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the re
 python/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",python,97,argv,no,no,no
 python/pip-steps.py,,python,209,argv,no,no,no
 python/scheduled-tasks.py,"the scheduled-tasks workflow's script: reads the scheduled-tasks registry, runs the statute check by progressive action, and dispatches the other scheduled workflows",python,578,imported,yes,no,yes
-python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,1018,npm:showing,no,yes,yes
+python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,1025,npm:showing,no,yes,yes
 python/stranded-titles.py,,python,326,npm:stranded-titles,no,yes,yes
 python/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",python,269,argv,no,yes,yes
 python/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,python,111,npm:sunset,no,no,yes
@@ -330,7 +331,7 @@ skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox
 skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,skills/hooks,88,hook:PostToolUse,no,yes,no
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,no,yes,yes
-skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,50,hook:SessionStart,no,yes,yes
+skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,55,hook:SessionStart,no,yes,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,89,hook:Stop,no,yes,yes

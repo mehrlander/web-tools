@@ -7,7 +7,7 @@ daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../python/text-carriers.py;../node/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/html-style/SKILL.md
-combine-serves-cjs,"a jsDelivr /combine/ spec served the CommonJS build, and the local mirror hid it",2,2026-10-06,2026-08-26;2026-10-06,doc-growth.md
+combine-serves-cjs,"a jsDelivr /combine/ spec served the CommonJS build, and the local mirror hid it",2,2026-10-06,2026-08-26;2026-10-06,../node/test/cdn-combine-default.test.mjs
 app-frame-outruns-the-inliner,the shell draws and every view is empty,2,2026-09-29,2026-09-17;2026-09-29,../python/showing.py
 shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,2,2026-09-28,2026-09-08;2026-09-28,
 api-access-read-as-impossible,"read ""needs API access"" as ""cannot be done here,"" for three weeks and 147 PRs",2,2026-09-16,2026-08-05;2026-09-16,../node/README.md
@@ -26,6 +26,7 @@ mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as 
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,../skills/html-style/references/mechanics.md;../skills/html-style/SKILL.md
+failed-pin-cannot-refresh-itself,"the plugin failed to load, so the hook that updates it never ran",1,2026-10-14,2026-10-14,../skills/hooks/refresh-plugin.sh
 approval-wording-scripted,a session told the owner what to type to approve,1,2026-10-12,2026-10-12,../skills/hooks/commit-consent.py
 showing-picks-the-framed-view,"the render link opened the app, where the change is hidden",1,2026-10-12,2026-10-12,../python/showing.py
 retired-address-kept-alive,an old address held a word a new tab needed,1,2026-10-11,2026-10-11,APP.md#addresses
@@ -73,7 +74,7 @@ id-in-a-component-body,"two mounts, one id, and the second one renders into the 
 test-supplies-the-missing-dependency,a green check over a feature nobody could reach,1,2026-08-23,2026-08-23,../node/test/deck-dock-reflow.mjs
 showing-answers-commits-only,the render-link script called a staged branch empty,1,2026-08-22,2026-08-22,showing.md
 viewport-rule-blind-to-a-docked-pane,the pane narrowed and every breakpoint kept believing it had a desktop,1,2026-08-22,2026-08-22,../skills/html-style/references/mechanics.md
-custom-scheme-needs-a-markdown-link,the one thing meant to be tapped rendered as text,1,2026-08-19,2026-08-19,markdown-in-chat.md#a-custom-url-scheme-needs-an-explicit-markdown-link;SURFACING.md
+custom-scheme-needs-a-markdown-link,the one thing meant to be tapped rendered as text,1,2026-08-19,2026-08-19,SURFACING.md
 nul-byte-truncates-grep,"one NUL in a source file bounds every `grep -rn` over it, silently",1,2026-08-19,2026-08-19,../lib/alpineComponents/estate.js
 pages-shots-vacuous-ok,a thumbnail refresh shot nothing and exited 0,1,2026-08-19,2026-08-19,../node/build/pages-shots.mjs
 private-blob-404s-signed-out,a live file reads as a broken link from a phone,1,2026-08-19,2026-08-19,SURFACING.md

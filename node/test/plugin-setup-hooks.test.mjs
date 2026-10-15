@@ -93,3 +93,32 @@ test('the refresher exits quietly where there is no claude CLI', () => {
   });
   assert.equal(out.trim(), '');
 });
+
+// A plugin installed on the claude.ai account syncs in with no web-tools
+// marketplace and no user-scope pin, as a chat sandbox showed on 2026-10-14;
+// the refresher then has nothing to move and must not report a failure.
+test('the refresher is silent where the plugin came from the account, not a local install', () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'refresh-plugin-'));
+  try {
+    const bin = path.join(tmp, 'bin');
+    const home = path.join(tmp, 'home');
+    mkdirSync(bin);
+    mkdirSync(path.join(home, '.claude', 'plugins'), { recursive: true });
+    const calls = path.join(tmp, 'calls');
+    writeFileSync(path.join(bin, 'claude'), `#!/bin/bash
+echo "$*" >> ${JSON.stringify(calls)}
+exit 1
+`);
+    chmodSync(path.join(bin, 'claude'), 0o755);
+    const out = execFileSync('bash', [REFRESH], {
+      input: '', encoding: 'utf8',
+      env: { ...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}` },
+    });
+    assert.equal(out.trim(), '', 'no FAILED line for a plugin this CLI does not manage');
+    let log = '';
+    try { log = readFileSync(calls, 'utf8'); } catch {}
+    assert.doesNotMatch(log, /plugin update/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

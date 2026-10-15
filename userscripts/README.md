@@ -18,7 +18,7 @@ auto-updating loader. When installed once with GM storage permissions (`@grant G
 `@grant GM.setValue`, `@grant GM.xmlHttpRequest`), the stub caches and dynamically evaluates
 the latest `launcher.js` body from GitHub. Updates are fetched silently in the background
 (with a 5-minute cooldown) or immediately when tapping the refresh `[ ⟳ ]` button inside the
-launcher drawer.
+off-site FAB's drawer.
 
 In addition, `@version {build}` and `@require ...?v={build}` bust the Userscripts Safari
 extension's internal `@require` cache if manual re-installation is ever triggered.
@@ -69,20 +69,22 @@ the stub calls it, so one body serves both routes.
 **Which route reaches a page.** Measured against `script-src 'self'`: the
 bookmarklet is refused, because it is a script tag the page injects; the
 userscript mounts, because the extension evaluates the body itself. That is the
-reason the launcher exists as a userscript and the reason its styles are a
+reason the off-site FAB exists as a userscript and the reason its styles are a
 constructed stylesheet rather than a `<style>` element, which `style-src` would
 refuse the same way.
 
-- [`launcher.user.js`](launcher.user.js): the app's own launcher, carried onto
-  pages that have none, from [`lib/launcher.js`](lib/launcher.js). Same square,
+- [`launcher.user.js`](launcher.user.js): **the off-site FAB**, the app's own
+  button and drawer carried onto pages that have none, from
+  [`lib/launcher.js`](lib/launcher.js). Renaming that file stops updates to every
+  installed stub, which fetches it by path. Same square,
   same mark, same drag, and a menu in the fab's row shape: capture the page to
   the repo, open the app, hide it.
 
   **It yields.** On a page that already has a fab it must not mount, or every
-  web-tools page grows a second launcher beside the real one. Five tells stand
+  web-tools page grows a second button beside the real one. Five tells stand
   it down: a mounted `[aria-label="Web-tools panel"]`, `window.gh`,
   `window.__fabHosted`, `data-no-fab`, and an observer that removes it if the
-  real launcher boots after `document-end`.
+  real FAB boots after `document-end`.
 
   **The drawer is not the fab's**, and cannot be: Render reads the GitHub API
   through a token held on the web-tools origin, which a foreign origin does not
