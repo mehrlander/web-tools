@@ -239,7 +239,7 @@ test('the Outpost tab takes a copy in place, and Files keeps the Stage compariso
   assert.equal(h.received.length, 1);
 });
 
-test('on the Outpost tab with no file open, code that names no file is matched to its file; prose still goes to the Stage', async () => {
+test('on the Outpost tab with no file open, pasted PowerShell is matched to the file it most resembles; prose still goes to the Stage', async () => {
   new window.Function(readFileSync(new URL('../../lib/kits/powershell-match.js', import.meta.url), 'utf8'))();
   try {
     const h = fixture({ active: '' });

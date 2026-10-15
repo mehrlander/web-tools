@@ -7533,8 +7533,8 @@ function app(){ return {
     try { path = K.declaration(text); }
     catch (e) { Alpine.store('toast')('warning', e.message, 'alert-error', 5000); return true; }
     const selected = intake.selected;
-    // On the Outpost tab with no file open, code that names no file is
-    // matched to the file it most resembles rather than staged.
+    // On the Outpost tab with no file open, pasted PowerShell goes to the
+    // matcher, which finds the file it most resembles, rather than to the Stage.
     if (!path && !selected && this.view === 'project' && this.projectPane === 'outpost' && window.PowerShellMatch?.looksLike?.(text)) {
       const host = document.querySelector('[x-data^="powershellOutpostView"]');
       const view = host && Alpine.$data?.(host);

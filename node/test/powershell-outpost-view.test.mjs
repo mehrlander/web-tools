@@ -1099,10 +1099,10 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     const check = data.latestCheck(FORMS).id;
     await data.takeCopy(data.target(), 'function A { 1 }\n', 'clip', 'paste'); await settle();
     assert.equal(data.copyNote.fragment, true);
-    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 blocks in Forms.psm1, and says nothing about the rest.');
+    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 blocks in Forms.psm1. Only those are compared.');
     assert.equal(data.latestCheck(FORMS).id, check, 'the earlier full copy is still the base');
     assert.ok(!q('[data-copy-summary] button').some(b => /Record the/.test(b.textContent) && b.style.display !== 'none'));
-    // Paste-and-match: code that names no file goes to the file it resembles.
+    // Paste-and-match: pasted code goes to the file it most resembles.
     await data.matchCopy(D + '\n\n$rows = Import-Csv $env:TEMP\\x.csv | Where-Object { $_.Amount -gt 1000 } | Sort-Object Amount\n', { name: 'ISE tab' });
     assert.equal(data.match.files[0].path, FORMS);
     assert.deepEqual([...data.matchNew.map(u => u.name)], ['$rows']);
