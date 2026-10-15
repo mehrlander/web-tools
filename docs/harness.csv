@@ -170,6 +170,7 @@ node/render/scenarios/fab-width-bar.mjs,"the FAB Render tab's width bar, shot on
 node/render/scenarios/fence-label-clear.mjs,,node/render/scenarios,64,driver,no,no,no
 node/render/scenarios/files-view-tap-and-deck.mjs,,node/render/scenarios,61,driver,no,no,yes
 node/render/scenarios/here-expired-token.mjs,,node/render/scenarios,50,driver,no,no,no
+node/render/scenarios/here-page.mjs,,node/render/scenarios,76,driver,no,no,no
 node/render/scenarios/here-stored.mjs,,node/render/scenarios,19,driver,no,no,no
 node/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,node/render/scenarios,36,driver,no,yes,no
 node/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,node/render/scenarios,67,driver,no,no,no
