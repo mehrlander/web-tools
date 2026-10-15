@@ -23,29 +23,28 @@ An entity is a thing the passage names that a later sentence depends on, or a te
 
 ## A sentence
 
-`n`, `text` (exact, inline code in backticks), `role`, and three lists:
+`n`, `text` (exact, inline code in backticks), and three lists:
 
 - **`mentions`**: each place the sentence refers to an entity. `e` is the entity id and `quote` is the span. `form` is omitted when the words name the entity. It is `anaphor` when the words need an antecedent to be understood: a pronoun, a demonstrative, or a definite description such as *that one decision*. It is `ellipsis` when the entity is not written at all; `quote` is then the span the gap follows, usually the word that governs it (the description is the unstated object of *Write*), and `fill` holds the words that complete it. Where `quote` occurs more than once in the sentence, `in` gives a longer span that contains it once (each *its* in *its own prompts* and *its own output*). An anaphor or ellipsis resolves to the entity's first named mention; `ante: <n>` overrides that, and `note` records a resolution a reader could get wrong.
 - **`links`**: connections to an earlier sentence that no mention makes. `to` is the earlier sentence, `kind` is below, `here` and `there` are the spans at each end, `gloss` states how the two sentences connect, and `implied: true` marks a connection that no connective states. A claim that follows from the connection without being written goes in an implied atom, not in the gloss.
-- **`atoms`**: the separate claims the sentence makes, after [atomic-decomposition](../../skills/atomic-decomposition/SKILL.md): `id` (a letter), `role`, `claim` (stated plainly, its references resolved, standing alone), `quote`, and optionally `for` (the atom an evidence or example atom serves), `implied`, `note`.
+- **`atoms`**: the separate claims the sentence makes, after [atomic-decomposition](../../skills/atomic-decomposition/SKILL.md): `id` (a letter), `type`, `claim` (stated plainly, its references resolved, standing alone), `quote`, and optionally `for` and `as` (the atom of the same sentence this one serves, and how, from the link vocabulary below: an example `supports` the rule it illustrates), `implied`, `note`.
 
 ## Vocabularies
 
-`role`, for sentences and atoms alike:
+`type`, one for every atom, saying what kind of statement it is:
 
-| Role | The sentence or claim |
+| Type | The atom |
 | --- | --- |
 | `definition` | says what a term means or what a thing is |
-| `premise` | states a fact the passage builds on |
-| `claim` | asserts something the passage argues for |
+| `assertion` | says that something is so: a fact, a cause, or an assumption the text relies on |
+| `judgment` | evaluates something: good or bad, a model or a warning |
 | `rule` | directs the reader to do or avoid something |
-| `evidence` | offers a case or observation in support of another statement |
-| `example` | illustrates another statement with an instance or a form |
-| `exception` | carves a case out of another statement |
 
-Link `kind`, read as "this sentence *kind* sentence `to`", loosely after the relations of Rhetorical Structure Theory:
+What a statement does for another statement (rests on it, supports it, narrows it) is a relation, not a type: `for` and `as` between the atoms of one sentence, `links` between sentences.
 
-| Kind | This sentence |
+Link `kind`, read as "this sentence *kind* sentence `to`", loosely after the relations of Rhetorical Structure Theory; an atom's `as` takes the same values and reads the same way, with `for` in place of `to`:
+
+| Kind | This sentence or atom |
 | --- | --- |
 | `elaborates` | spells out what or how for the earlier one |
 | `rests-on` | takes its reason from the earlier one |
@@ -61,6 +60,7 @@ Every `quote`, `here` and `there` is an exact substring of its sentence's `text`
 
 The page computes these from the stored fields, and a reading does not store them:
 
+- **A sentence's kind**: the type of its first atom.
 - **New here**: entities whose first mention is this sentence.
 - **In play**: entities mentioned here that appeared earlier.
 - **Carried in**: each anaphor or ellipsis whose antecedent is in an earlier sentence, followed by the sentence's `links`. An ellipsis of the topic is left out unless it has a `note`.

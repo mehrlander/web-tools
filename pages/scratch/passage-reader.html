@@ -50,7 +50,11 @@
 <script>
 document.addEventListener('alpine:init', () => {
   const SAMPLE = { repo: 'mehrlander/web-tools', path: 'data/passage-reading/skill-prefs-description.json' };
-  const ROLE = { definition: 'Definition', premise: 'Premise', claim: 'Claim', rule: 'Rule', evidence: 'Evidence', example: 'Example', exception: 'Exception' };
+  // An atom's type: what kind of statement it is, shown as an icon on every atom.
+  const TYPE = {
+    definition: { label: 'Definition', icon: 'ph-book-open-text' }, assertion: { label: 'Assertion', icon: 'ph-info' },
+    judgment: { label: 'Judgment', icon: 'ph-scales' }, rule: { label: 'Rule', icon: 'ph-signpost' },
+  };
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   // Two lists, each of parts that never overlap, told apart by colour; the
   // colour says where a span or row sits relative to the current sentence.
@@ -220,10 +224,10 @@ document.addEventListener('alpine:init', () => {
     link(o) { return o && o.repo ? blob(o.repo, o.ref, o.path) : null; },
     get entityList() { return Object.entries(this.R.entities).map(([k, e]) => ({ k, ...e, where: (this.X.where[k] || []).join(', ') })); },
 
-    // The sentence's number and role, and an evidence or example it holds besides.
-    get roleLabel() {
-      const s = this.s, extra = [...new Set(s.atoms.map(a => a.role))].filter(r => r !== s.role && (r === 'evidence' || r === 'example'));
-      return s.n + ' · ' + [ROLE[s.role] || s.role, ...extra].join(' + ');
+    // The sentence's number and kind, the type of its first atom.
+    get kindLabel() {
+      const t = TYPE[this.s.atoms[0]?.type];
+      return this.s.n + (t ? ' · ' + t.label : '');
     },
     // Sentences tied to the lit one by a link, either way.
     get linked() {
@@ -448,10 +452,11 @@ document.addEventListener('alpine:init', () => {
             body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
         }),
         atoms: s.atoms.map((a, k) => {
-          const tags = [a.role !== s.role ? a.role : '', a.for ? `for ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean);
+          const tags = [a.for ? `${VERB[a.as] || a.as} ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean), t = TYPE[a.type] || { label: a.type, icon: 'ph-circle' };
           const key = `a${n}-${k}`;
           return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id),
-            body: [`<span class="text-pretty${a.implied ? ' italic' : ''}">${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
+            body: [`<span class="text-pretty${a.implied ? ' italic' : ''}"><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}" data-title-tip-bare></i>`
+              + `${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
       };
@@ -586,7 +591,7 @@ document.addEventListener('alpine:init', () => {
             </template>
           </div>
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
-          <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="roleLabel"></span>
+          <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="kindLabel"></span>
         </div>
         <div class="flex gap-1 px-2 sm:px-4 pb-1.5 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" role="tablist" aria-label="Group">
           <template x-for="g in GROUPS" :key="g.key">

@@ -105,7 +105,6 @@
     {
       "n": 1,
       "text": "The description is the skill's entry in a listing a session scans to decide what to load.",
-      "role": "definition",
       "mentions": [
         { "e": "description", "quote": "The description" },
         { "e": "listing", "quote": "a listing" },
@@ -114,14 +113,13 @@
       ],
       "links": [],
       "atoms": [
-        { "id": "a", "role": "definition", "claim": "A skill's description is its entry in the skill listing.", "quote": "the skill's entry in a listing" },
-        { "id": "b", "role": "premise", "claim": "A session scans the skill listing to decide which skills to load.", "quote": "a session scans to decide what to load" }
+        { "id": "a", "type": "definition", "claim": "A skill's description is its entry in the skill listing.", "quote": "the skill's entry in a listing" },
+        { "id": "b", "type": "assertion", "claim": "A session scans the skill listing to decide which skills to load.", "quote": "a session scans to decide what to load" }
       ]
     },
     {
       "n": 2,
       "text": "The listing has a budget: past it, descriptions drop and names remain, least-used skills first.",
-      "role": "premise",
       "mentions": [
         { "e": "listing", "quote": "The listing", "form": "anaphor" },
         { "e": "budget", "quote": "a budget" },
@@ -130,29 +128,27 @@
       ],
       "links": [],
       "atoms": [
-        { "id": "a", "role": "premise", "claim": "The skill listing has a size budget.", "quote": "The listing has a budget" },
-        { "id": "b", "role": "premise", "claim": "Once the listing exceeds its budget, skills lose their descriptions from it and keep only their names.", "quote": "descriptions drop and names remain" },
-        { "id": "c", "role": "premise", "claim": "The least-used skills lose their descriptions first.", "quote": "least-used skills first" }
+        { "id": "a", "type": "assertion", "claim": "The skill listing has a size budget.", "quote": "The listing has a budget" },
+        { "id": "b", "type": "assertion", "claim": "Once the listing exceeds its budget, skills lose their descriptions from it and keep only their names.", "quote": "descriptions drop and names remain" },
+        { "id": "c", "type": "assertion", "claim": "The least-used skills lose their descriptions first.", "quote": "least-used skills first" }
       ]
     },
     {
       "n": 3,
       "text": "Write for that one decision.",
-      "role": "rule",
       "mentions": [
         { "e": "description", "quote": "Write", "form": "ellipsis", "fill": "the description" },
         { "e": "load-decision", "quote": "that one decision", "form": "anaphor" }
       ],
       "links": [],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "Write a skill's description to serve a session's decision about which skills to load.", "quote": "Write for that one decision" },
-        { "id": "b", "role": "rule", "claim": "A skill's description should serve no purpose other than the decision about what to load.", "quote": "one decision", "implied": true, "note": "The word 'one' makes the purpose exclusive. Sentence 7 relies on that exclusivity." }
+        { "id": "a", "type": "rule", "claim": "Write a skill's description to serve a session's decision about which skills to load.", "quote": "Write for that one decision" },
+        { "id": "b", "type": "rule", "claim": "A skill's description should serve no purpose other than the decision about what to load.", "quote": "one decision", "implied": true, "note": "The word 'one' makes the purpose exclusive. Sentence 7 relies on that exclusivity." }
       ]
     },
     {
       "n": 4,
       "text": "Lead with what the skill does, a verb and its object, then the situation that summons it, in the words a request would use: one or two phrases, not a list of synonyms.",
-      "role": "rule",
       "mentions": [
         { "e": "description", "quote": "Lead", "form": "ellipsis", "fill": "the description" },
         { "e": "situation", "quote": "the situation that summons it" }
@@ -161,16 +157,15 @@
         { "to": 3, "kind": "elaborates", "here": "Lead with what the skill does", "there": "Write for that one decision", "implied": true, "gloss": "Says what writing for the decision about what to load means in practice: what goes first in the description, and what follows." }
       ],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "Open a skill's description with what the skill does, as a verb and its object.", "quote": "Lead with what the skill does, a verb and its object" },
-        { "id": "b", "role": "rule", "claim": "After what the skill does, the description states the situation in which the skill should be used.", "quote": "then the situation that summons it" },
-        { "id": "c", "role": "rule", "claim": "The description states that situation in the words a user's request would use.", "quote": "in the words a request would use" },
-        { "id": "d", "role": "rule", "claim": "The description gives that situation in one or two phrases, not a list of synonyms.", "quote": "one or two phrases, not a list of synonyms" }
+        { "id": "a", "type": "rule", "claim": "Open a skill's description with what the skill does, as a verb and its object.", "quote": "Lead with what the skill does, a verb and its object" },
+        { "id": "b", "type": "rule", "claim": "After what the skill does, the description states the situation in which the skill should be used.", "quote": "then the situation that summons it" },
+        { "id": "c", "type": "rule", "claim": "The description states that situation in the words a user's request would use.", "quote": "in the words a request would use" },
+        { "id": "d", "type": "rule", "claim": "The description gives that situation in one or two phrases, not a list of synonyms.", "quote": "one or two phrases, not a list of synonyms" }
       ]
     },
     {
       "n": 5,
       "text": "Name the situation, never the material the skill produces; inspire-excellence is the cautionary case, a trigger built from the vocabulary of its own prompts that fired on its own output.",
-      "role": "rule",
       "mentions": [
         { "e": "description", "quote": "Name", "form": "ellipsis", "fill": "in the description" },
         { "e": "situation", "quote": "the situation", "form": "anaphor" },
@@ -185,15 +180,15 @@
       ],
       "links": [],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "A skill's description names the situation that calls for the skill, not the material the skill produces.", "quote": "Name the situation, never the material the skill produces" },
-        { "id": "b", "role": "evidence", "for": "a", "claim": "The inspire-excellence skill's trigger was built from the vocabulary of the prompts the skill writes, and it fired on the skill's own output.", "quote": "a trigger built from the vocabulary of its own prompts that fired on its own output" },
-        { "id": "c", "role": "evidence", "for": "a", "claim": "The inspire-excellence trigger fired on the skill's own output because it was built from that output's vocabulary.", "quote": "built from the vocabulary of its own prompts", "implied": true, "note": "The passage sets the two facts side by side and leaves the cause to the reader." }
+        { "id": "a", "type": "rule", "claim": "A skill's description names the situation that calls for the skill, not the material the skill produces.", "quote": "Name the situation, never the material the skill produces" },
+        { "id": "b", "type": "assertion", "for": "a", "as": "supports", "claim": "The inspire-excellence skill's trigger was built from the vocabulary of the prompts the skill writes, and it fired on the skill's own output.", "quote": "a trigger built from the vocabulary of its own prompts that fired on its own output" },
+        { "id": "c", "type": "assertion", "for": "a", "as": "supports", "claim": "The inspire-excellence trigger fired on the skill's own output because it was built from that output's vocabulary.", "quote": "built from the vocabulary of its own prompts", "implied": true, "note": "The passage sets the two facts side by side and leaves the cause to the reader." },
+        { "id": "d", "type": "judgment", "for": "a", "as": "supports", "claim": "The inspire-excellence skill's trigger is an example to avoid.", "quote": "inspire-excellence is the cautionary case" }
       ]
     },
     {
       "n": 6,
       "text": "Add a boundary (\"not for X; use Y\") only where two skills collide.",
-      "role": "rule",
       "mentions": [
         { "e": "description", "quote": "Add", "form": "ellipsis", "fill": "to the description" },
         { "e": "boundary", "quote": "a boundary" }
@@ -202,14 +197,13 @@
         { "to": 3, "kind": "rests-on", "here": "only where two skills collide", "there": "Write for that one decision", "implied": true, "gloss": "Sentence 3's single purpose for the description is why a boundary is limited to skills that collide." }
       ],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "A skill's description includes a boundary only where another skill could be chosen for the same request.", "quote": "only where two skills collide", "note": "'Collide' read as: both descriptions would match one request." },
-        { "id": "b", "role": "example", "for": "a", "claim": "A boundary takes the form 'not for X; use Y'.", "quote": "(\"not for X; use Y\")" }
+        { "id": "a", "type": "rule", "claim": "A skill's description includes a boundary only where another skill could be chosen for the same request.", "quote": "only where two skills collide", "note": "'Collide' read as: both descriptions would match one request." },
+        { "id": "b", "type": "assertion", "for": "a", "as": "supports", "claim": "A boundary takes the form 'not for X; use Y'.", "quote": "(\"not for X; use Y\")" }
       ]
     },
     {
       "n": 7,
       "text": "Everything a loaded session reads belongs in the body: mechanism, rationale, file paths, history, which skill owns what.",
-      "role": "rule",
       "mentions": [
         { "e": "session", "quote": "a loaded session" },
         { "e": "body", "quote": "the body" }
@@ -219,15 +213,14 @@
         { "to": 3, "kind": "rests-on", "here": "belongs in the body", "there": "that one decision", "implied": true, "gloss": "Sentence 3 gives the description one purpose; this sentence sends everything else to the body." }
       ],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "Whatever a session reads after loading a skill belongs in the skill's body.", "quote": "Everything a loaded session reads belongs in the body" },
-        { "id": "b", "role": "example", "for": "a", "claim": "Mechanism, rationale, file paths, history, and which skill owns which topic are things a session reads after loading a skill.", "quote": "mechanism, rationale, file paths, history, which skill owns what" },
-        { "id": "c", "role": "rule", "claim": "A skill's description leaves out mechanism, rationale, file paths, history, and which skill owns what.", "quote": "belongs in the body", "implied": true, "note": "The passage says where these go and leaves the reader to infer where they do not." }
+        { "id": "a", "type": "rule", "claim": "Whatever a session reads after loading a skill belongs in the skill's body.", "quote": "Everything a loaded session reads belongs in the body" },
+        { "id": "b", "type": "assertion", "for": "a", "as": "supports", "claim": "Mechanism, rationale, file paths, history, and which skill owns which topic are things a session reads after loading a skill.", "quote": "mechanism, rationale, file paths, history, which skill owns what" },
+        { "id": "c", "type": "rule", "claim": "A skill's description leaves out mechanism, rationale, file paths, history, and which skill owns what.", "quote": "belongs in the body", "implied": true, "note": "The passage says where these go and leaves the reader to infer where they do not." }
       ]
     },
     {
       "n": 8,
       "text": "Aim for 150 characters; past 250, the excess needs a reason.",
-      "role": "rule",
       "mentions": [
         { "e": "description", "quote": "Aim for 150 characters", "form": "ellipsis", "fill": "in the description" }
       ],
@@ -235,14 +228,13 @@
         { "to": 2, "kind": "rests-on", "here": "Aim for 150 characters", "there": "The listing has a budget", "implied": true, "gloss": "The length targets exist because the listing's space is limited." }
       ],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "Aim for a skill description of about 150 characters.", "quote": "Aim for 150 characters" },
-        { "id": "b", "role": "rule", "claim": "A skill description longer than 250 characters needs a reason for the extra length.", "quote": "past 250, the excess needs a reason" }
+        { "id": "a", "type": "rule", "claim": "Aim for a skill description of about 150 characters.", "quote": "Aim for 150 characters" },
+        { "id": "b", "type": "rule", "claim": "A skill description longer than 250 characters needs a reason for the extra length.", "quote": "past 250, the excess needs a reason" }
       ]
     },
     {
       "n": 9,
       "text": "A skill that is only ever summoned takes `disable-model-invocation: true` and a one-line description of what it does.",
-      "role": "exception",
       "mentions": [
         { "e": "summoned-only", "quote": "A skill that is only ever summoned", "note": "'Summoned' here is the web-tools skill library's term for a skill invoked by name only. Sentence 4's 'the situation that summons it' appears to use the verb more loosely, for whatever brings a skill in." },
         { "e": "disable-model-invocation", "quote": "disable-model-invocation: true" },
@@ -253,10 +245,10 @@
         { "to": 1, "kind": "narrows", "here": "only ever summoned", "there": "a session scans to decide what to load", "implied": true, "gloss": "Sentence 1 describes how a session chooses skills; this sentence names skills outside that choice." }
       ],
       "atoms": [
-        { "id": "a", "role": "rule", "claim": "A skill that is only ever invoked by name sets disable-model-invocation: true in its frontmatter.", "quote": "takes `disable-model-invocation: true`" },
-        { "id": "b", "role": "rule", "claim": "A summoned-only skill's description is one line saying what the skill does.", "quote": "a one-line description of what it does" },
-        { "id": "c", "role": "rule", "claim": "A summoned-only skill's description omits the situation that summons it.", "quote": "of what it does", "implied": true, "note": "Read against sentence 4, which asks for what the skill does and then the situation. This sentence keeps only the first." },
-        { "id": "d", "role": "premise", "claim": "A summoned-only skill is not chosen through a session's decision about what to load.", "quote": "only ever summoned", "implied": true, "note": "Inferred from the flag's name and the context's 'summoned-only'. The passage does not say how the platform lists such a skill." }
+        { "id": "a", "type": "rule", "claim": "A skill that is only ever invoked by name sets disable-model-invocation: true in its frontmatter.", "quote": "takes `disable-model-invocation: true`" },
+        { "id": "b", "type": "rule", "claim": "A summoned-only skill's description is one line saying what the skill does.", "quote": "a one-line description of what it does" },
+        { "id": "c", "type": "rule", "claim": "A summoned-only skill's description omits the situation that summons it.", "quote": "of what it does", "implied": true, "note": "Read against sentence 4, which asks for what the skill does and then the situation. This sentence keeps only the first." },
+        { "id": "d", "type": "assertion", "claim": "A summoned-only skill is not chosen through a session's decision about what to load.", "quote": "only ever summoned", "implied": true, "note": "Inferred from the flag's name and the context's 'summoned-only'. The passage does not say how the platform lists such a skill." }
       ]
     }
   ]
