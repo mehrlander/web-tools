@@ -196,7 +196,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, wide: false, hot: null, traced: [], group: 'entities', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, wide: false, gapOpen: null, hot: null, traced: [], group: 'entities', GROUPS,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -207,6 +207,7 @@ document.addEventListener('alpine:init', () => {
       this.cur = Math.max(0, this.R.sentences.findIndex(s => String(s.n) === param('s')));
       try { const g = localStorage.getItem('passage-reader:group'); if (GROUPS.some(x => x.key === g)) this.group = g; } catch (e) {}
       addEventListener('popstate', () => { this.about = false; });
+      addEventListener('keydown', e => { if (e.key === 'Escape' && this.gapOpen) { this.gapOpen = null; document.querySelectorAll('[data-gap][data-open]').forEach(x => x.removeAttribute('data-open')); this.light(null); } });
       addEventListener('resize', () => { this.revealLit(); this.drawArrows(); });
       document.fonts?.ready.then(() => this.drawArrows());
       this.$nextTick(() => {
@@ -287,7 +288,7 @@ document.addEventListener('alpine:init', () => {
       this.deck.deck.onSlide(i => { this.deck.setTitle(this.kindOf(i)); if (i !== this.cur) this.sync(i, 'deck'); });
     },
     revealLit() { reveal(this.$refs.passage, this.$refs.passage?.querySelector(`[data-s="${this.s.n}"]`)); },
-    pick(e) { const g = e.target.closest('[data-gap]'); if (g) return HOVER.matches || this.gapTrace(g); const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
+    pick(e) { const g = e.target.closest('[data-gap]'); if (g) return this.gapToggle(g); const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
     // A gap's own arrow, to the mention it stands for, drawn in either view.
     gapTrace(g) {
       if (!g || !g.dataset.ante) return;
@@ -296,8 +297,13 @@ document.addEventListener('alpine:init', () => {
       document.querySelectorAll(`[data-k~="${g.dataset.ante}"]`).forEach(el => el.setAttribute('data-on', ''));
       this.drawArrows();
     },
-    gapOver(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches) this.gapTrace(g); },
-    gapOut(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches && !g.contains(e.relatedTarget)) this.light(null); },
+    gapOver(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches) { this.fitGap(g); this.gapTrace(g); } },
+    gapOut(e) {
+      const g = e.target.closest && e.target.closest('[data-gap]');
+      if (!g || !HOVER.matches || g.contains(e.relatedTarget)) return;
+      const open = this.gapOpen && this.$refs.ptext?.querySelector(`[data-gap][data-k="${this.gapOpen}"]`);
+      open ? this.gapTrace(open) : this.light(null);
+    },
 
     // The dialog holds a history entry, so the phone's back button closes it.
     openAbout() { this.about = true; try { history.pushState({ reader: 'about' }, ''); } catch (e) {} },
@@ -343,12 +349,35 @@ document.addEventListener('alpine:init', () => {
     // of Write), and hovering or tapping it draws an arrow to the words that
     // fill it; only a gap whose entity the passage never names spells those
     // words out in the tip. The sentence's own words stay as written.
+    // A tap or click pins the mark's label; it stays through scrolling, since
+    // it moves with its word, until the mark is tapped again, another is
+    // opened, or Escape.
+    gapToggle(g) {
+      const k = g.dataset.k;
+      this.gapOpen = this.gapOpen === k ? null : k;
+      document.querySelectorAll('[data-gap]').forEach(x => x.toggleAttribute('data-open', x.dataset.k === this.gapOpen));
+      if (!this.gapOpen) return this.light(null);
+      this.$nextTick(() => { this.fitOpen(); this.gapTrace(this.$refs.ptext?.querySelector(`[data-gap][data-k="${k}"]`) || g); });
+    },
+    // A label that would run past the edge of the box it scrolls in shifts
+    // back inside it.
+    fitGap(g) {
+      const lab = g.lastElementChild; lab.style.translate = '';
+      const lb = lab.getBoundingClientRect(); if (!lb.width) return;
+      let box = g.parentElement, st;
+      while (box && (st = getComputedStyle(box)).overflowX === 'visible' && st.overflowY === 'visible') box = box.parentElement;
+      const bb = (box || document.documentElement).getBoundingClientRect();
+      const dx = Math.max(bb.left + 8 - lb.left, Math.min(0, bb.right - 8 - lb.right));
+      if (dx) lab.style.translate = `${Math.round(dx)}px`;
+    },
+    fitOpen() { document.querySelectorAll('[data-gap][data-open]').forEach(g => this.fitGap(g)); },
     gapsAfter(p, lit) {
       return p.on.filter(r => r.gap && r.b === p.b).map(r => {
         const m = r.m, a = r.ante, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e;
         const name = m.slot || 'Ellipsis', tip = (a ? name : `${name}: ${fill}`) + (m.note ? `. ${m.note}` : '');
-        return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}" tabindex="0" data-title-tip="${esc(tip)}" data-title-tip-bare`
-          + ` class="select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?</span>`;
+        return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}"${this.gapOpen === r.key ? ' data-open' : ''} tabindex="0" role="button" aria-label="${esc(tip)}"`
+          + ` class="group relative select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?`
+          + `<span class="absolute bottom-full left-0 mb-1 hidden group-hover:block group-data-[open]:block w-max max-w-64 rounded border border-base-300 bg-base-100 px-1.5 py-0.5 text-xs font-normal leading-tight text-base-content shadow-sm pointer-events-none">${esc(tip)}</span></span>`;
       }).join('');
     },
 
@@ -398,6 +427,7 @@ document.addEventListener('alpine:init', () => {
     drawArrows() {
       const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
       if (!wrap || !text || !layer || !this.R) return;
+      this.fitOpen(); // first, since the layer takes the passage's width, labels included
       const W = wrap.getBoundingClientRect(), HEAD = 7;
       // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
       const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
@@ -608,7 +638,7 @@ document.addEventListener('alpine:init', () => {
       el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
       el.addEventListener('pointerover', e => this.gapOver(e));
       el.addEventListener('pointerout', e => this.gapOut(e));
-      el.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && !HOVER.matches) this.gapTrace(g); });
+      el.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-gap]'); if (g) { e.stopPropagation(); this.gapToggle(g); } });
     },
   }));
 });
