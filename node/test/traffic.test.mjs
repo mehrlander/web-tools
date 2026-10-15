@@ -555,6 +555,42 @@ test('timeline slices the page\'s life and finds the stretches it spent hidden',
   assert.equal(tl.hidden[0].width, 0.1);
 });
 
+test('the memory series stays bounded, keeps its start, and keeps its peaks', () => {
+  const series = [];
+  for (let i = 0; i < 25; i++) T.addSample(series, { t: i * 1000, heap: i === 3 ? 900 : 100 + i, elements: 10 + i }, 10);
+  assert.ok(series.length <= 10, 'never past the cap, at ' + series.length);
+  assert.equal(series[0].t, 0, 'the first reading still opens the series');
+  assert.equal(series[series.length - 1].t, 24000, 'and the newest closes it');
+  assert.ok(series.some(s => s.heap === 900), 'a spike survives the merges');
+  assert.ok(series.every((s, i) => i === 0 || s.t > series[i - 1].t), 'readings stay in time order');
+  const bare = T.addSample([{ t: 0, heap: null, elements: 5 }, { t: 1, heap: null, elements: 7 }, { t: 2, heap: null, elements: 6 }], { t: 3, heap: null, elements: 4 }, 3);
+  assert.equal(bare[0].heap, null, 'a browser with no heap figure merges to none, not to zero');
+  assert.equal(bare[0].elements, 7);
+});
+
+test('a memory lane holds each slice at its largest reading and carries a level through a quiet slice', () => {
+  const series = [
+    { t: -500, heap: 50, elements: 400 },  // before the start: the level the first slice holds
+    { t: 2100, heap: 80, elements: 500 },
+    { t: 2900, heap: 120, elements: 450 },
+    { t: 7000, heap: 60, elements: 900 },
+    { t: 10000, heap: 70, elements: 950 }, // at the end: the last slice's
+  ];
+  const lane = T.memoryLane(series, 0, 10000, 10);
+  assert.equal(lane.slices.length, 10);
+  assert.deepEqual(lane.slices.map(s => s.heap), [50, 50, 120, 120, 120, 120, 120, 60, 60, 70]);
+  assert.equal(lane.slices[2].elements, 500, 'heap and elements each take their own largest');
+  assert.equal(lane.maxHeap, 120);
+  assert.equal(lane.maxElements, 950);
+  assert.equal(lane.now.t, 10000, 'the figure is the newest reading');
+  const late = T.memoryLane([{ t: 5000, heap: 10, elements: 1 }], 0, 10000, 10);
+  assert.equal(late.slices[4].heap, null, 'a slice before the first reading holds nothing');
+  assert.equal(late.slices[9].heap, 10);
+  const none = T.memoryLane([], 0, 10000, 4);
+  assert.equal(none.maxHeap, null);
+  assert.equal(none.now, null);
+});
+
 test('a row counts the bytes that went out hidden, for the dark part of its bar', () => {
   const { free } = T.jobRows([], [
     { url: 'a', t: 1, job: null, where: 'sessions', wire: 100, hidden: true },

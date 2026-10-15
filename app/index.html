@@ -2966,6 +2966,11 @@ function app(){ return {
     // (gh-boot.js), which is all the Weight pane can say of a call no job
     // claims.
     window.__trafficWhere = () => this.view;
+    // The page's memory from boot on, for the Weight pane's lanes: the JS heap
+    // and the element count, read every 5 seconds (traffic.js, sampleMemory).
+    // A hidden tab's timers are the browser's to slow, so a long hidden
+    // stretch is read less often, not skipped.
+    if (window.Traffic) { Traffic.sampleMemory(); setInterval(() => Traffic.sampleMemory(), 5000); }
   },
 
   async loadRecent(){
