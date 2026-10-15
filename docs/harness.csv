@@ -3,7 +3,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
 .githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,no,yes,yes
-.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,395,git:pre-commit,no,yes,yes
+.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,407,git:pre-commit,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through node/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists; the hourly pass also folds the session records into state/sessions.json and the phone's state/session-menu.json through node/sessions-crawl.mjs",.github/workflows,155,ci:push+repository_dispatch+workflow_dispatch,no,no,yes
 .github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,90,ci:workflow_dispatch+pull_request,no,yes,yes
@@ -27,6 +27,7 @@ node/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge
 node/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",node/build,173,npm:kits-index,yes,no,yes
 node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,469,npm:pages-index,yes,yes,yes
 node/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",node/build,92,npm:pages-shots,no,yes,yes
+node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,101,npm:policy-skills,yes,yes,yes
 node/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",node/build,103,imported,no,yes,yes
 node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",node/build,90,npm:registries-reach,yes,yes,yes
 node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,no,yes,yes
@@ -328,7 +329,7 @@ skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox
 skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,skills/hooks,88,hook:PostToolUse,no,yes,no
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,no,yes,yes
-skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,50,hook:SessionStart,no,yes,yes
+skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,64,hook:SessionStart,no,yes,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,89,hook:Stop,no,yes,yes

@@ -3,7 +3,7 @@
   "owner": {
     "name": "mehrlander"
   },
-  "description": "The portable set from mehrlander/web-tools as one installable plugin: skills created or adapted here, with the hooks and agents that travel with them.",
+  "description": "The portable set from mehrlander/web-tools as two installable plugins: portable, skills created or adapted here, with the hooks and agents that travel with them; and h, the house policies as slash commands.",
   "plugins": [
     {
       "name": "portable",
@@ -98,6 +98,16 @@
         "alpine",
         "html-artifact"
       ]
+    },
+    {
+      "name": "h",
+      "source": "./plugins/h",
+      "strict": false,
+      "description": "The house policies as slash commands: /h:<shortcut> shows the entry of that name. Every skill is user-only and generated from docs/house-policies.md by node/build/policy-skills.mjs.",
+      "author": {
+        "name": "mehrlander"
+      },
+      "homepage": "https://github.com/mehrlander/web-tools/blob/main/docs/house-policies.md"
     }
   ]
 }
