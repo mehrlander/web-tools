@@ -7,7 +7,7 @@ daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../python/text-carriers.py;../node/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/html-style/SKILL.md
-combine-serves-cjs,"a jsDelivr /combine/ spec served the CommonJS build, and the local mirror hid it",2,2026-10-06,2026-08-26;2026-10-06,doc-growth.md
+combine-serves-cjs,"a jsDelivr /combine/ spec served the CommonJS build, and the local mirror hid it",2,2026-10-06,2026-08-26;2026-10-06,../node/test/cdn-combine-default.test.mjs
 app-frame-outruns-the-inliner,the shell draws and every view is empty,2,2026-09-29,2026-09-17;2026-09-29,../python/showing.py
 shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,2,2026-09-28,2026-09-08;2026-09-28,
 api-access-read-as-impossible,"read ""needs API access"" as ""cannot be done here,"" for three weeks and 147 PRs",2,2026-09-16,2026-08-05;2026-09-16,../node/README.md

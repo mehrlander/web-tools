@@ -1,31 +1,26 @@
 # Doc growth
 
-[⭐ Doc Growth](https://mehrlander.github.io/web-tools/pages/doc-growth.html)
+[⭐ Doc Growth](https://mehrlander.github.io/web-tools/pages/doc-growth.html) is
+an animated bubble chart of a repository's markdown over time, in the style of
+Gapminder. [`python/doc-growth.py`](../python/doc-growth.py) writes a JSON data
+file holding each markdown file's word counts and edits at every sample, and
+[`pages/doc-growth.html`](../pages/doc-growth.html) draws it.
 
-A Gapminder-style animated bubble chart of a repository's markdown over time.
 Every file is a bubble: **x** is its length in words on a log scale, bubble area
-is lifetime edit count, and the play control sweeps the whole history week by
-week. **y** answers one of three questions:
+is lifetime edit count, and the play control sweeps the history one sample at a
+time. The page opens paused on the last sample and draws only files with at
+least 5 edits until the min edits slider (1 to 30) is lowered. **y** is one of
+three measures per sample:
 
-| Mode | y is | Reads |
-| --- | --- | --- |
-| Effort | edits per month | up is actively worked |
-| Net change | words gained that week | the zero line, and how little crosses below it |
-| Settled | days since last touched | up is a monument, down is contested |
+| Mode | y is |
+| --- | --- |
+| Effort | edits in the trailing four samples |
+| Net change | lines added minus lines deleted, from `git log --numstat` |
+| Settled | days since the last sample with an edit, in multiples of `--days` |
 
-Settled is the thinnest of the three at the newest frame, since an active repo
-has touched most of its files inside one sample and they pile on the zero line.
-That is the honest reading, not a defect, and the mode earns its place two ways:
-the few bubbles that float clear are the large documents nobody is maintaining,
-which neither other mode surfaces, and under playback a file climbs as it goes
-quiet and drops the moment it is edited. It is derived from the churn array
-rather than carried in the payload, since it is the same fact counted backwards. [`python/doc-growth.py`](../python/doc-growth.py) produces the
-payload; [`pages/doc-growth.html`](../pages/doc-growth.html) reads it.
-
-It exists because documentation length is easy to worry about and hard to see.
-The first run against this repo answered the worry: of the 60 markdown files
-edited in five or more commits, the great majority end larger than they started,
-and the app's reference doc alone grew more than fivefold across 181 commits.
+`w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
+Tables and indented code count in both, so a wide gap between the two means
+mostly fenced code. The page toggles between them.
 
 ## Pointing it at a repository
 
@@ -33,153 +28,48 @@ and the app's reference doc alone grew more than fivefold across 181 commits.
 python3 python/doc-growth.py <clone> -o data/doc-growth/<name>.json --name owner/repo
 ```
 
-`--days` changes the sampling interval, `--ext` the file type, and `--min-edits`
-drops files below an edit count. That last one matters on a repo carrying
-generated markdown: `mehrlander/home` has 4,314 markdown files but 2,907 of them
-were committed once and never revised, so `--min-edits 2` cuts the payload to
-about a third and removes nothing anyone would look at.
+`npm run doc-growth --` runs the same command. `--name` is the label the page
+shows; without it the label is the clone path. `--branch` defaults to `main`,
+which must exist as a local branch of the clone. `--min-edits N` drops files
+touched in fewer than N commits (default 1); on a repo carrying generated
+markdown, `--min-edits 2` cuts most of the data file. `--days`, `--ext` and
+`--containers` are listed by `--help`. The page's axis labels ("edits / month")
+assume the default 7-day sample.
 
-The page takes its data three ways, cheapest first: `#gz=<payload>` inline,
-`?url=<address>`, or `?src=owner/repo[@ref]:path` read through the viewer's
-stored `ghToken`, which is the only route that reaches a private repo.
+**Empty frames are trimmed.** The extractor drops leading and trailing samples
+that hold none of the kept files, so the player never opens on an empty plot,
+which looks like a player that has not finished loading.
 
-**Empty frames are trimmed, and that is load-bearing.** The extractor drops
-leading and trailing samples holding none of the kept files. web-tools spent its
-first eleven months as a scratch repo whose whole tree was one `TestNew.txt`, so
-48 of its 67 weekly frames held no markdown at all. A player that opens on one of
-those shows an empty plot, which is indistinguishable from a player that never
-finished loading, and that is exactly how it was first reported. The page also
-opens paused on the last frame rather than autoplaying from the first, for the
-same reason: the opening view should be the fullest one, not the sparsest.
+**A shallow clone truncates the history.** Claude Code web checks out shallow,
+so the chart starts at the shallow boundary however old the repo is. Run
+`git fetch --unshallow` first, and do not clone with `--filter=blob:none`, since
+`git log --numstat` would then fetch every blob over the network.
 
-**A shallow clone will quietly lie.** Claude Code web checks out shallow, so the
-history looks like a week no matter how old the repo is. `git fetch --unshallow`
-first, and without `--filter=blob:none`: the partial-clone filter turns every
-diff into a lazy blob fetch over the network, which takes this from seconds to
-longer than anyone will wait.
+**Renames are not followed.** The log runs with `--no-renames`, so a moved file
+starts over under its new path with one edit, and its old path ends.
 
-## Two word counts, and why
+## Opening a data file
 
-`w` counts every token; `r` skips fenced code blocks and YAML frontmatter. They
-diverge exactly where the authored and mechanical halves of a corpus divide, so
-a file whose two numbers are far apart is mostly table and snippet rather than
-prose. The page toggles between them.
+The page reads `#gz=<data>` (the data file gzipped and base64url-encoded), else
+`?url=<address>`, else `?src=owner/repo[@ref]:path`, which uses the viewer's
+stored `ghToken` and is the only route that reaches a private repo. With none of
+these it reads web-tools' own `data/doc-growth/web-tools.json`.
 
-## Why it is not on the commit hook
+## Where it appears
 
-Every commit shifts the last frame, so a hook that regenerated the payload would
-make every commit touch it, and the artifact could never be byte-deterministic in
-the way [`node/README.md`](../node/README.md#the-refresh-model) requires. It is
-refreshed on demand instead, and `generated` in the payload says when. This is
-also why it is neither a registry ([registries.md](registries.md): a registry
-carries assertions, and this carries measurements) nor a projection of one.
+A repo whose `.web-tools.json` sets `growth` to its data file's path
+([field reference](manifest-fields.csv)) is listed in Map → Docs → Growth, which
+frames this page with `?src=` pointed at the selected repo. The web-tools data
+file needs no token; every other repo's needs the viewer's token. In Map → Docs →
+Inventory, the web-tools data file adds a sparkline and a net word change to each
+document row; the rows render without them when the file is missing.
 
-## The bug worth remembering
+## Refreshing
 
-The extractor reads blob contents through one `git cat-file --batch`. Writing the
-whole request list before reading any output deadlocks as soon as the batch
-outgrows a pipe buffer: git blocks writing content nobody is draining, so the
-write never returns. A repo small enough to fit both sides in 64K runs clean and
-hides it, which is exactly what happened here, and the failure looks like a hang
-rather than an error. The request list is fed from a thread.
-
-## In the app
-
-A repo joins the chart by declaring where its payload sits:
-
-```json
-{ "growth": "data/doc-growth.json" }
-```
-
-The path is per repo, since the hub keeps its own under `data/doc-growth/` and
-home keeps a single file at the root of `data/`. The estate crawl collects every
-declaration into the Map view's **Growth** tab, where the repo is a control and
-this page is framed with `?src=` pointed at whichever corpus is selected. The
-hub's own payload is the page's built-in default, so it needs no `?src=` and no
-token; every other corpus is read through the viewer's stored token, which is
-why the selector is absent for a signed-out reader while the chart is not.
-
-**It was two app views until 2026-08-28, and that is the reason it is one tab
-now.** web-tools and home each promoted this page with `appView: true` and a
-different `pages[].query`, which is a correct pair of entries: the query joins a
-view's identity key, so two repos pointing one page at two payloads are two
-views and not one. The sidebar renders a promoted page as its label and its
-icon, so both arrived in the nav as the words "Doc Growth" with nothing to
-choose between them. Nothing was broken; the model had no slot for one
-instrument over several subjects. A page a repo owns is a destination and
-belongs in the nav. A page pointed at a repo is a lens, and its subject belongs
-on a control.
-
-The move also closed the trap that made the two promotions awkward in the first
-place. **A slug is an estate-wide address** (`?app=<slug>` resolves against the
-collected app views) declared per repo, and nothing enforced uniqueness: both
-promotions were first written as `doc-growth`, and the collision resolved to
-whichever sorted first rather than erroring. It was caught by hand and worked
-around by renaming one side to `home-growth`. `manifest-registry.test.mjs` now
-reads every manifest on disk and rejects a shared slug, which is the whole fix
-at this size, since a collision is a fact about that corpus.
-
-## In the Map view
-
-Map → Docs → Inventory reads `docs/docs.csv`, whose `words` field is a
-snapshot. It now reads the growth payload alongside it and renders that
-same measure as a trend: a sparkline and a net delta per row, a delta per
-folder in the rail, and the movement behind the registry's word total.
-
-The sparkline is normalized to each file's own range rather than the
-registry's, so it reports shape (grew, held, was cut) and never size. Size is
-already the number beside it, and one mark cannot carry both without lying
-about one of them.
-
-**The delta is text, so it wears an ink token.** The first cut coloured the
-numbers in warning and success tones at 70 to 80 percent opacity, which on a
-phone in daylight washed out completely: every figure was on the page and none
-of it was readable, which is worse than absent because it looks deliberate. The
-dataviz rule covers this exactly (values and labels stay in primary, secondary
-or muted ink; a coloured mark beside them carries identity), and the sign
-already says which direction the number went. Colour lives on the sparkline,
-which is a mark.
-
-The chart itself is in Map too, as its own **Growth** tab, which frames the page
-rather than porting it. That tab is lazily mounted (`x-if`, not `x-show`), so
-opening the Map on any other tab never fetches a payload nobody asked to see,
-and it routes through the toss renderer when a `?use=` ref is set, since Pages
-serves the page file from main regardless.
-
-The two are not redundant, and the split is the point: **Docs answers "is this
-document growing", one row at a time, and Growth answers "what is the whole
-corpus doing", every file at once and moving.** A sparkline cannot show a file
-overtaking another, and a bubble cloud cannot tell you which row of a registry
-to go read.
-
-I argued against the tab first, on the grounds that the chart was already an app
-view and a second entry would be a second door to one thing. That was wrong in a
-specific way worth keeping: an app view and a Map tab are not two doors to one
-room, because Map is where this estate goes to ask questions *about itself*, and
-a corpus-wide view of its own documentation belongs there whatever else exists.
-
-The payload is optional here. It is refreshed on demand rather than by a hook,
-so a missing or stale one costs the sparklines and nothing else; the tab is the
-registry, and the trend is a column on it.
-
-## Verifying it against the real CDN
-
-`npm run shot` mirrors CDN requests from `node_modules` through
-`node/render/cdn.mjs`, and that mirror rewrites a bare `npm/alpinejs` spec to
-the browser build. jsDelivr's `/combine/` route does not: it resolves through
-package.json `main`, which is CommonJS for both Alpine and fflate. So this page
-loaded perfectly in every headless shot while being inert in an actual browser,
-and the combine URL names explicit file paths now for exactly that reason.
-
-A page whose dependencies come from a CDN is only verified when the bytes came
-from the CDN. Fetch the combine URL with `curl`, serve those bytes to a real
-browser, and assert a global exists. See the `combine-serves-cjs` entry in
-[SNAGS.md](SNAGS.md).
-
-## Colors
-
-A bubble chart is scored on the dataviz all-pairs pairlist, where only three
-categorical slots clear the separation floors. So three folder groups carry hue
-at a time and the rest fold into a recessive gray; the legend swaps which three.
-The light-mode aqua slot sits under 3:1 contrast, which obliges relief, and the
-table view and the always-on tooltip are it.
+The data file is refreshed on demand, not by the commit hook. Every commit shifts
+the last frame, so a hook that regenerated the file would make every commit
+touch it. The file's `generated` field is also the day the script ran, so the
+same history gives different bytes on different days. Nothing flags a stale
+file: compare `generated` with today. To refresh the web-tools data file, run
+the command above from the root of an unshallowed clone, with `.` as the clone,
+`data/doc-growth/web-tools.json` as the output, and `--name mehrlander/web-tools`.
