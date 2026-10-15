@@ -25,7 +25,7 @@
   purple. Entities: every entity mention tinted light grey, and every mention
   of the current sentence's entities in those colours. The card lists Connections (Carried in, Within,
   Carried forward) and Entities (In play, New here), each part told apart by
-  that colour, with the sentence's atoms beneath it. The accent colour (teal)
+  that colour, after the sentence's atoms; a rule sets the sentence apart. The accent colour (teal)
   marks the current sentence itself, in the passage, on its card and in the
   dots.
 -->
@@ -463,8 +463,9 @@ document.addEventListener('alpine:init', () => {
       }).join('');
     },
 
-    // The card: the sentence with its atoms beneath it in one block, then each
-    // list under a heading whose key names the parts present.
+    // The card: the sentence alone under its bar, a rule, then its atoms and
+    // each list, each under a heading; a list's heading carries a key naming
+    // the parts present.
     render(i, el) {
       const n = this.R.sentences[i].n;
       const all = this.items(n), active = all[this.group] || [];
@@ -474,9 +475,11 @@ document.addEventListener('alpine:init', () => {
       const head = g => `<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1"><h3 class="text-sm font-semibold ${g.key === this.group ? 'text-primary' : 'text-base-content/60'}">${g.label}</h3>`
         + `<span class="flex flex-wrap gap-x-3 text-sm text-base-content/60">${key(g)}</span></div>`;
       const list = its => `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
-      const atoms = all.atoms.length ? `<div class="grid mt-2 pt-2 border-t border-base-200"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</div>` : '';
-      el.innerHTML = `<article class="grid gap-3 text-lg">
-        <div class="border-l-4 border-accent pl-4"><p class="leading-8 text-balance">${this.sentenceHtml(n, active)}</p>${atoms}</div>
+      const atoms = all.atoms.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</section>` : '';
+      el.innerHTML = `<article class="grid gap-4 text-lg">
+        <p class="leading-8 text-balance border-l-4 border-accent pl-4">${this.sentenceHtml(n, active)}</p>
+        <hr class="border-base-300">
+        ${atoms}
         ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid gap-1">${head(g)}${list(all[g.key])}</section>`).join('')}
       </article>`;
       this.wire(el);
