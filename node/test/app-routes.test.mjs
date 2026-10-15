@@ -471,7 +471,7 @@ test('a Map hit names the tab most of its files belong to, and the link lands th
 // the state this replaced.
 test('the app and the script agree on the lib-only address', () => {
   const py = readFileSync(path.join(repoRoot, 'python/showing.py'), 'utf8');
-  const m = py.match(/q = f"\?use=\{sha\}" \+ \(f"&view=\{view\}" if view else ""\)/);
+  const m = py.match(/q = join_query\(\[\("use", sha\), \("view", view\)\], query\)/);
   assert.ok(m, 'showing.py still writes ?use=<sha>&view=<key>; update the kit if it moved');
   const stage = manifest.routes.find(r => r.key === 'stage');
   assert.ok(R.viewUrl(stage, 'deadbeef').endsWith('/app/?use=deadbeef&view=stage'));

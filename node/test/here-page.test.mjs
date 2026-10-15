@@ -77,6 +77,23 @@ test('with no page on the line the tab says how to get one, and lists nothing', 
   window.__courier = link;
 });
 
+// Measured on github.com on 2026-10-15: its policy refuses the reader, and the
+// list beneath the reason still said "localStorage none", a claim about storage
+// nobody had read.
+test('a page whose policy refuses the reader says so, and the list claims nothing', async () => {
+  const link = window.__courier;
+  window.__courier = { host: 'shop.example', ask: async () => { throw new window.Error(
+    'EvalError: Refused to evaluate a string as JavaScript because \'unsafe-eval\' is not an allowed source of script'
+    + ' in the following Content Security Policy directive: "script-src assets.example"'); } };
+  await data.loadPage();
+  await settle();
+  assert.match(data.pageErr, /^shop\.example's Content Security Policy refuses code sent to the page/);
+  assert.match(data.pageErr, /The browser said: EvalError/, 'the directive the browser named is kept');
+  assert.equal(data.items.length, 0);
+  assert.equal(window.document.querySelector('[x-ref="list"]').style.display, 'none', 'no section says "none"');
+  window.__courier = link;
+});
+
 test('mounts with no warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
