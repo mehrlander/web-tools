@@ -39,7 +39,7 @@ web-tools:lib/alpineComponents/transform-workbench.js,web-tools,2331,0,0,0,0,0,0
 web-tools:lib/alpineComponents/user-call-form.js,web-tools,857,1,0,0,1,0,0,0,0,0,0,0,0,2,0,0,0,0,1,4,branch-brief;branch-status;chat-render;cm6-merge;content-registry;csv;guide-render;notes;panel-tip;review-target;route-activity;swipe-deck,yes,,
 web-tools:lib/alpineComponents/viewer.js,web-tools,4475,0,0,0,0,0,0,0,0,1,0,0,8,0,2,93,0,4,2,21,code-doc;docx;io;land;md-diff;md-doc;md-history;md-variants;pdf;peek;record-deck;repo-address;src-doc;swipe-deck;tabular-explorer;title-tip;xlsx;xlsx-chart;xlsx-extract,,,
 web-tools:lib/alpineComponents/waiting.js,web-tools,1482,0,1,0,0,0,0,0,0,0,0,0,37,0,0,0,0,2,0,2,errands;findings;md-diff;notes;swipe-deck;title-tip;user-calls,,,
-web-tools:lib/alpineComponents/weight-view.js,web-tools,380,0,0,0,0,0,0,0,0,0,0,0,18,0,0,0,0,0,0,1,traffic,,,
+web-tools:lib/alpineComponents/weight-view.js,web-tools,400,0,0,0,0,0,0,0,0,0,0,0,25,0,0,0,0,0,0,1,traffic,,,
 web-tools:lib/alpineComponents/xlsx-picker.js,web-tools,205,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,xlsx;xlsx-write,,,
 web-tools:lib/kits/branch-brief.js,web-tools,466,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,branch-brief,,,
 web-tools:lib/kits/branch-status.js,web-tools,612,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,branch-status;guide-render;repo-activity-cache,,,
