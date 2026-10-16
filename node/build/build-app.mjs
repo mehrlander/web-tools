@@ -102,12 +102,13 @@ while (queue.length) {
 }
 
 // LAZY: reached by a literal, so the walk finds them, but loaded only by an
-// explicit act (start the annotator, dictate, open a PDF or a spreadsheet) and
-// heavy: 470 KB between them on 2026-09-02. Left out of the artifact, so the
+// explicit act (start the annotator, dictate, open a PDF or a spreadsheet,
+// edit a staged image) and heavy: 470 KB between them on 2026-09-02, before
+// the image editor joined. Left out of the artifact, so the
 // first such act costs one contents-API read at the running ref instead of
 // every app load paying their parse. The loader's cache miss is the ordinary
 // path, not a special case.
-const LAZY = new Set(['kits/annotate.js', 'kits/pdf.js', 'kits/dictate.js', 'kits/xlsx.js']);
+const LAZY = new Set(['kits/annotate.js', 'kits/pdf.js', 'kits/dictate.js', 'kits/xlsx.js', 'kits/redact.js']);
 for (const p of LAZY) reached.delete(p);
 
 const files = [...reached].sort();

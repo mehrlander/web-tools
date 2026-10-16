@@ -4042,3 +4042,63 @@ test('decodeLocals takes standard base64 with padding, as a shortcut emits it', 
   const back = await window.StageLink.decodeLocals(lk.gz);
   assert.equal(JSON.stringify(back), JSON.stringify(items));
 });
+
+// ── The image editor's door (kits/redact.js) ────────────────────────────────
+// The kit is canvas work and has no jsdom realm worth testing in, so it is
+// stubbed: what is held here is the Stage's half, the door on the header and
+// the swap that follows. The swap is the point. A redaction that left the
+// uncovered original staged beside the result would be one tap from a deposit.
+
+const png = (id, name) => ({ local: true, id, name, path: name, size: 4, isText: false,
+  type: 'image/png', bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) });
+const withRedact = async (result, fn) => {
+  const had = window.Redact;
+  window.Redact = { open: async (blob, opts) => { withRedact.seen = { blob, opts }; return result; } };
+  try { await fn(); } finally { if (had === undefined) delete window.Redact; else window.Redact = had; }
+};
+
+test('a staged bitmap offers the image editor on the reader header, and text does not', async () => {
+  reset();
+  store.stage = [png(901, 'shot.png'), local(902, 'a.md', 'one\n')];
+  await shown();
+  await data.view(data.items[0]);
+  await shown();
+  const door = (n) => data._rActions(n).find(a => a.icon === 'ph-paint-brush');
+  assert.ok(door(0), 'the png gets the editor');
+  assert.match(door(0).title, /^Edit shot\.png/);
+  assert.equal(door(1), undefined, 'markdown does not');
+  data.reader = null;
+});
+
+test('the edited image replaces the original, under a name that says so', async () => {
+  reset();
+  store.stage = [png(911, 'shot.png')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'the account page';
+  data.commitNote();
+  const edited = { arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
+  await withRedact(edited, () => data.editImage(store.stage[0]));
+  assert.equal(withRedact.seen.opts.name, 'shot.png', 'the editor is told what it is editing');
+  const imgs = store.stage.filter(it => !it.noteFor);
+  assert.deepEqual(plain_(imgs.map(it => it.name)), ['shot-redacted.png'], 'the original is gone, not kept beside it');
+  assert.deepEqual([...imgs[0].bytes], [1, 2, 3]);
+  assert.equal(imgs[0].isText, false);
+  await shown();
+  assert.equal(data.reader?.name, 'shot-redacted.png', 'the reader moves to the result');
+  const note = store.stage.find(it => it.noteFor);
+  assert.equal(note.noteFor, 'local:' + imgs[0].id, 'the note follows its subject');
+  assert.equal(note.name, 'shot-redacted.png.note.md');
+  assert.match(note.text, /the account page/);
+  data.reader = null;
+});
+
+test('a second pass keeps one -redacted suffix, and a cancel changes nothing', async () => {
+  reset();
+  store.stage = [png(921, 'shot-redacted.png')];
+  await withRedact({ arrayBuffer: async () => new Uint8Array([7]).buffer }, () => data.editImage(store.stage[0]));
+  assert.deepEqual(plain_(store.stage.map(it => it.name)), ['shot-redacted.png']);
+  const before = store.stage[0];
+  await withRedact(null, () => data.editImage(before));
+  assert.equal(store.stage.length, 1);
+  assert.equal(store.stage[0], before, 'Cancel leaves the staged item as it was');
+});
