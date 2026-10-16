@@ -345,7 +345,10 @@ document.addEventListener('alpine:init', () => {
       else if (has(m?.ends)) cls.push('bg-base-200');
       if (code) cls.push('bg-base-200 rounded');
       const text = esc(code ? plain(p.text) : p.text);
-      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}">${text}</span>` : text;
+      // In the passage a mention's tip is for a hovering pointer and takes no
+      // tab stop: the card's sentence gives the keyboard the same tips.
+      const tip = mode === 'card' ? this.tipFor(this.mentionIn(p)) : HOVER.matches && this.mentionIn(p) ? this.tipFor(this.mentionIn(p)) + ' tabindex="-1"' : '';
+      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}"${tip}>${text}</span>` : text;
     },
 
     // An ellipsis is marked where its words are missing: a raised question
@@ -497,12 +500,54 @@ document.addEventListener('alpine:init', () => {
       const tone = k => this.side(this.X.at[k], n);
       const fill = () => it.fill || (this.R.entities[it.e] || {}).label || it.e;
       // The relation as a small arrow-shaped tag between the two chips.
-      const verb = v => `<span class="inline-flex items-center pl-3 pr-4 py-0.5 text-sm leading-5 bg-base-300 text-base-content/70 [clip-path:polygon(0_0,calc(100%_-_8px)_0,100%_50%,calc(100%_-_8px)_100%,0_100%,6px_50%)]">${v}</span>`;
+      const verb = v => `<span class="inline-flex items-center pl-3 pr-4 py-0.5 text-sm leading-5 bg-base-content/15 text-base-content/80 [clip-path:polygon(0_0,calc(100%_-_8px)_0,100%_50%,calc(100%_-_8px)_100%,0_100%,6px_50%)]">${v}</span>`;
       const line = parts => `<span class="flex flex-wrap items-center gap-x-1 gap-y-1">${parts.join('')}</span>`;
       if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0], null, tone(it.keys[0])), verb('leaves out'), `<span>${esc(fill())}</span>`]);
       return line([this.chip(it.here, it.keys[0], it.within, tone(it.keys[0])), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn, tone(it.keys[1]))]);
     },
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
+    // A mention's tip: the entity's label as its lead, its gloss, then where
+    // this mention stands in the entity's thread through the passage.
+    tipFor(r) {
+      if (!r) return '';
+      const X = this.X, m = r.m, n = X.at[r.key], where = X.where[m.e] || [n];
+      const others = where.filter(x => x !== n), first = Math.min(...where);
+      const and = l => l.length < 2 ? `${l[0]}` : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`;
+      const place = m.form === 'anaphor'
+        ? (r.ante ? `Refers back to “${plain(r.ante.quote)}”${r.ante.n === n ? ' earlier in this sentence' : ` in ${r.ante.n}`}.` : 'The passage never names what this points to.')
+        : r.first ? (others.length ? `Introduced here; again in ${and(others)}.` : 'Mentioned only here.')
+        : first === n ? 'Named again; introduced earlier in this sentence.' : `Named again; introduced in ${first}.`;
+      return this.entityTip(m.e, [place, m.note]);
+    },
+    // An entity's tip: its label as the lead, its gloss, and any further lines.
+    entityTip(k, more = []) {
+      const e = this.R.entities[k] || {};
+      const lines = [e.gloss, ...more, k === this.R.topic ? 'What the whole passage is about.' : ''].filter(Boolean);
+      return ` data-title-tip-lead="${esc(e.label || k)}" data-title-tip="${esc(lines.join('\n'))}" data-title-tip-bare`;
+    },
+    // The innermost mention a piece of text sits in.
+    mentionIn(p) { return p.on.filter(r => r.kind === 'm' && !r.gap).sort((x, y) => (x.b - x.a) - (y.b - y.a))[0]; },
+    // An atom's claim with the words naming the entities it is about marked,
+    // found by the entity's label or the quote of a mention that names it or
+    // describes it (two words or more, so a definite description such as
+    // "the situation" counts and a pronoun does not), whole words, longest
+    // first. A claim that names one some other way leaves it unmarked; `on`
+    // still lists it, and hovering the atom still marks its row.
+    claimHtml(a, eid) {
+      const E = this.R.entities, text = a.claim, hits = [];
+      const names = k => [E[k]?.label, ...this.R.sentences.flatMap(s => s.mentions.filter(m => m.e === k && (!m.form || m.form === 'anaphor' && /\s/.test(m.quote.trim()))).map(m => m.quote))]
+        .filter(Boolean).map(plain).sort((x, y) => y.length - x.length);
+      for (const k of a.on || []) for (const q of names(k)) {
+        const mt = new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').exec(text);
+        if (mt && !hits.some(h => mt.index < h.b && mt.index + q.length > h.a)) { hits.push({ a: mt.index, b: mt.index + q.length, k }); break; }
+      }
+      let out = '', at = 0;
+      for (const h of hits.sort((x, y) => x.a - y.a)) {
+        out += esc(text.slice(at, h.a)) + `<span data-k="e:${h.k}" data-items="${eid[h.k] || ''}" class="rounded box-decoration-clone bg-primary/20 ${TONE.here.lit}"${this.entityTip(h.k)}>${esc(text.slice(h.a, h.b))}</span>`;
+        at = h.b;
+      }
+      return out + esc(text.slice(at));
+    },
     // Entities in play: those the sentence names, the topic aside, and those
     // its atoms are about, the topic included, so a sentence lists what it is
     // about whether or not it names it.
@@ -529,23 +574,26 @@ document.addEventListener('alpine:init', () => {
       const here = k => (X.keysOf[k] || []).filter(x => x.startsWith(`m${n}-`));
       const ends = [...X.inn[n].map(it => [it, it.to, 0]), ...X.own[n].map(it => [it, n, 0]), ...X.fwd[n].map(it => [it, it.from, 1])];
       const first = k => Math.min(...(X.where[k] || [n]));
+      const entities = this.named(n).map(k => [k, first(k)]).sort((a, b) => a[1] - b[1]).map(([k, m], j) => {
+        const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
+        // `e:<id>` lights the words naming the entity in the atoms' claims.
+        const keys = [...(X.keysOf[k] || []), `e:${k}`];
+        // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
+        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+          body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+      });
+      const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
       return {
         links: ends.sort((a, b) => a[1] - b[1]).map(([it, m, mine], j) => ({ id: `links:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[mine]],
           tone: this.side(m, n), left: this.num(m, this.side(m, n)),
           body: [this.statement(it, n), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
-        entities: this.named(n).map(k => [k, first(k)]).sort((a, b) => a[1] - b[1]).map(([k, m], j) => {
-          const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
-          const keys = X.keysOf[k] || [];
-          // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
-          return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
-            body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
-        }),
+        entities,
         atoms: s.atoms.map((a, k) => {
           const tags = [a.for ? `${VERB[a.as] || a.as} ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean), t = TYPE[a.type] || { label: a.type, icon: 'ph-circle' };
           const key = `a${n}-${k}`;
           return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id), about: a.on || [],
             body: [`<span class="text-pretty${a.implied ? ' italic' : ''}"><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}" data-title-tip-bare></i>`
-              + `${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
+              + `${this.claimHtml(a, eid)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
       };
@@ -553,8 +601,7 @@ document.addEventListener('alpine:init', () => {
 
     // The sentence with the marks the passage uses: its entities' mentions
     // filled, its connections' ends tinted grey. Hovering one lights its row
-    // below, and an entity's mention also shows its definition, alone, as a
-    // tooltip.
+    // below, and a mention shows its tip.
     sentenceHtml(n, sel) {
       const X = this.X, len = {}, by = {};
       for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
@@ -564,10 +611,10 @@ document.addEventListener('alpine:init', () => {
         const on = p.on.filter(r => !r.gap), gaps = this.gapsAfter(p, gapTone);
         const its = [...new Set(on.flatMap(r => by[r.key] || []))];
         if (!its.length) return this.span(p, 'card') + gaps;
-        const keys = on.map(r => r.key).filter(Boolean).join(' '), gloss = its.find(it => it.gloss)?.gloss;
+        const keys = on.map(r => r.key).filter(Boolean).join(' ');
         const tint = its.some(it => it.mode === 'ev') ? 'bg-primary/20' : 'bg-base-200';
         return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="${tint} ${TONE.here.lit} ${ATOM}"`
-          + `${gloss ? ` data-title-tip="${esc(gloss)}" data-title-tip-bare` : ''}>${esc(plain(p.text))}</span>` + gaps;
+          + `${this.tipFor(this.mentionIn(p))}>${esc(plain(p.text))}</span>` + gaps;
       }).join('');
     },
 
@@ -618,7 +665,9 @@ document.addEventListener('alpine:init', () => {
       el.querySelectorAll('[data-go]').forEach(b => { b.onclick = e => { e.stopPropagation(); this.go(+b.dataset.go); }; });
       el.querySelectorAll('[data-item]').forEach(r => {
         const ids = [r.dataset.item];
-        r.addEventListener('pointerenter', () => HOVER.matches && this.point(ids, el, false));
+        // Entering a row straight onto an entity's words inside it fires the
+        // words' pointerover first; the row then leaves the hover to them.
+        r.addEventListener('pointerenter', () => HOVER.matches && !r.querySelector('[data-items]:hover') && this.point(ids, el, false));
         r.addEventListener('pointerleave', () => HOVER.matches && this.light(null));
         // Keyboard focus only: a tap also focuses the row, just before its own click.
         r.addEventListener('focus', () => r.matches(':focus-visible') && this.point(ids, el, false));
@@ -636,7 +685,12 @@ document.addEventListener('alpine:init', () => {
       const spanOf = e => e.target.closest && e.target.closest('[data-items]');
       const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show, true); this.trace(t.dataset.k.split(' ')); };
       el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) hold(t, false); });
-      el.addEventListener('pointerout', e => { const t = spanOf(e); if (t && HOVER.matches && !t.contains(e.relatedTarget)) this.light(null); });
+      el.addEventListener('pointerout', e => {
+        const t = spanOf(e); if (!t || !HOVER.matches || t.contains(e.relatedTarget)) return;
+        // Leaving an entity's words inside an atom hands the hover back to the atom.
+        const row = e.relatedTarget?.closest?.('[data-item]');
+        row && el.contains(row) ? this.point([row.dataset.item], el, false) : this.light(null);
+      });
       el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
       el.addEventListener('pointerover', e => this.gapOver(e));
       el.addEventListener('pointerout', e => this.gapOut(e));
