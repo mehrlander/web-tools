@@ -345,6 +345,36 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.filter, '', 'All clears it');
 });
 
+// The area pills: one per area in the manifest's order, on a labelled row,
+// each row counting what the other rows let through.
+test('area pills narrow the list to one area, and each row is labelled', async () => {
+  const pills = () => [...el.querySelectorAll('[data-area-filter] button')];
+  const pill = name => pills().find(b => b.textContent.includes(name));
+  const rows = () => q('[data-powershell-outpost] section button.text-left').map(b => b.textContent.trim());
+  const localAreas = () => [...el.querySelectorAll('[data-powershell-outpost] section')].find(s => s.textContent.includes('Local areas'));
+  assert.deepEqual([...el.querySelectorAll('[data-filter-label]')].map(s => s.textContent), ['Area', 'State'], 'no table, no App row');
+  assert.deepEqual(pills().map(b => [...b.querySelectorAll('span')].map(x => x.textContent).join(' ')),
+    ['Profile 1', 'Modules 1', 'Forms 2', 'Scripts 1'], 'one pill per area, in the manifest\'s order, with its count');
+  const all = rows().length;
+  pill('Forms').click(); await settle();
+  assert.equal(data.area, 'Forms');
+  assert.equal(pill('Forms').getAttribute('aria-pressed'), 'true');
+  assert.deepEqual(rows().sort(), ['Bookmarks.ps1', 'Bookmarks.xaml'], 'only that area\'s files');
+  assert.equal(localAreas().style.display, 'none', 'the local areas are not an area pill\'s files');
+  assert.equal(data.stateTotal, 2, 'the state pills count what the area pill lets through');
+  pill('Forms').click(); await settle();
+  assert.equal(data.area, '', 'a second tap clears it');
+  assert.equal(rows().length, all);
+  const short = data.statusOf(FORMS).short;
+  [...el.querySelectorAll('[data-state-filter] button')].find(b => b.textContent.includes(short)).click(); await settle();
+  const count = name => Number(pill(name).querySelectorAll('span')[1].textContent);
+  for (const g of data.groups)
+    assert.equal(count(g.area), g.units.flatMap(u => u.files).filter(it => data.statusOf(it.path).short === short).length,
+      `the ${g.area} pill counts what the state pill lets through`);
+  el.querySelector('[data-state-filter] button').click(); await settle();
+  assert.equal(data.filter, '');
+});
+
 test('a form\'s controller and XAML are recorded apart', async () => {
   const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`, ctl = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`;
   data.select(xaml); await settle();
