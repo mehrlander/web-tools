@@ -480,13 +480,15 @@ document.addEventListener('alpine:init', () => {
         + `<defs>${marker}</defs>${paths}</svg>`;
     },
 
-    // A sentence number in the colour of where that sentence sits.
-    num(n, tone = 'here') {
-      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}" class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30">${esc(n)}</button>`;
+    // A sentence number in the colour of where that sentence sits, which
+    // goes there; its tip says which sentence it is: where an entity is
+    // introduced, or the other end of a connection.
+    num(n, tone = 'here', tip = '') {
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}"${tip ? ` data-title-tip="${esc(tip)}" data-title-tip-bare` : ''} class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30">${esc(n)}</button>`;
     },
     row(it) {
       return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
-        class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 px-2 -mx-2 py-0.5 rounded-box outline-none hover:bg-base-200 focus-visible:bg-base-200 data-[hot]:bg-base-200">
+        class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 px-2 -mx-2 py-0.5 rounded-box outline-none hover:bg-base-300 focus-visible:bg-base-300 data-[hot]:bg-base-300">
         <div class="pt-1 text-sm text-base-content/60 leading-5">${it.left || ''}</div>
         <div class="grid leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
     },
@@ -583,13 +585,13 @@ document.addEventListener('alpine:init', () => {
         // `e:<id>` lights the words naming the entity in the atoms' claims.
         const keys = [...(X.keysOf[k] || []), `e:${k}`];
         // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
-        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n), m === n ? 'Introduced here' : `Introduced in sentence ${m}`),
           body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
       });
       const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
       return {
         links: ends.sort((a, b) => a[1] - b[1]).map(([it, m, mine], j) => ({ id: `links:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[mine]],
-          tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+          tone: this.side(m, n), left: this.num(m, this.side(m, n), mine ? `Sentence ${m} connects back to this one` : m === n ? 'Within this sentence' : `Connects back to sentence ${m}`),
           body: [this.statement(it, n), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
         entities,
         atoms: s.atoms.map((a, k) => {
