@@ -683,3 +683,17 @@ test('the traffic log files a finding once, leaves out its own writes, and needs
   U.disable();
   assert.equal((await U.check()).why, 'not running');
 });
+
+test('clock lines widen their step as the page ages, aligned to the reader\'s clock', () => {
+  const h = 3600e3, m = 60e3;
+  const fresh = T.timeTicks(0, 4 * m, { max: 6 });
+  assert.equal(fresh.step, 1 * m, 'four minutes old: a line a minute');
+  assert.deepEqual(fresh.ticks.map(k => k.t), [0, m, 2 * m, 3 * m, 4 * m]);
+  const old = T.timeTicks(10 * m, 5 * h + 10 * m, { max: 6 });
+  assert.equal(old.step, h, 'five hours old: a line an hour');
+  assert.equal(old.ticks[0].t, h, 'lines fall on the hour, not on the load time');
+  assert.ok(old.ticks.every(k => k.left >= 0 && k.left <= 1));
+  const west = T.timeTicks(0, 5 * h, { max: 6, offset: 30 });
+  assert.equal(west.ticks[0].t % h, 30 * m, 'a half-hour zone puts the hour lines on its own clock');
+  assert.ok(T.timeTicks(0, 3 * h, { max: 6 }).step > fresh.step, 'the step only grows with the span');
+});
