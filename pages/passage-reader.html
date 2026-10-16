@@ -30,8 +30,8 @@
   amber, in the passage and on the card; a line rather than a fill, so the
   entity fills inside the quote do not hide it. Two icon buttons in the card
   bar switch the passage between two views. Entities: every entity mention
-  tinted light grey, and every mention of the current sentence's entities in
-  the position colours. Connections: every
+  tinted light grey, and every mention of the current sentence's entities,
+  the topic aside, in the position colours. Connections: every
   connection's two spans tinted light grey and joined by a faint grey line
   behind the text, and a connection touching the current sentence, either
   way, with its spans in the position colours and its line purple. The card
@@ -392,11 +392,12 @@ document.addEventListener('alpine:init', () => {
     // that kind, drawn faintly, and `fill` the part of it that belongs to n,
     // drawn in the position colours. Connections: every connection, and those
     // touching n either way, with their arrows (`near`). Entities: every
-    // mention of an entity, and every mention of the entities n names.
+    // mention of an entity, and every mention of the entities n names, the
+    // topic aside: the passage mentions it throughout, and its row shows where.
     focus(n) {
       const X = this.X, fill = new Set(), near = new Set();
       if (this.group === 'entities') {
-        for (const e of this.named(n)) (X.keysOf[e] || []).forEach(k => fill.add(k));
+        for (const e of this.named(n)) if (e !== this.R.topic) (X.keysOf[e] || []).forEach(k => fill.add(k));
         const web = new Set(Object.entries(X.keysOf).filter(([e]) => e !== this.R.topic).flatMap(([, ks]) => ks));
         return { fill, near, web, pairs: [] };
       }
@@ -515,7 +516,7 @@ document.addEventListener('alpine:init', () => {
     },
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
     // Entities in play: those the sentence names, the topic aside, and those
-    // its atoms are about, the topic included, so a sentence warms what it is
+    // its atoms are about, the topic included, so a sentence lists what it is
     // about whether or not it names it.
     playing(n) {
       const s = this.X.by[n], named = s.mentions.map(m => m.e).filter(k => k !== this.R.topic);
@@ -552,13 +553,13 @@ document.addEventListener('alpine:init', () => {
           const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
           const keys = X.keysOf[k] || [];
           // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
-          return { id: `entities:${j}`, mode: 'ev', keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
+          return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
             body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
         }),
         atoms: s.atoms.map((a, k) => {
           const tags = [a.for ? `${VERB[a.as] || a.as} ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean), t = TYPE[a.type] || { label: a.type, icon: 'ph-circle' };
           const key = `a${n}-${k}`;
-          return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id), heat: (a.on || []).flatMap(e => X.keysOf[e] || []),
+          return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id), about: a.on || [],
             body: [`<span class="text-pretty${a.implied ? ' italic' : ''}"><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}" data-title-tip-bare></i>`
               + `${esc(a.claim)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
@@ -611,11 +612,17 @@ document.addEventListener('alpine:init', () => {
       const its = ids.map(id => el._items[id]).filter(Boolean);
       if (!its.length) return;
       this.light([...new Set(its.flatMap(it => it.keys))], { ev: 'data-ev', atom: 'data-atom' }[its[0].mode] || 'data-on');
-      for (const k of new Set(its.flatMap(it => it.heat || []))) document.querySelectorAll(`[data-k~="${k}"]`).forEach(x => x.setAttribute('data-on', ''));
+      // An atom marks the rows of the entities it is about, on the card only;
+      // hovering one of those rows lights its mentions across the passage.
+      const about = new Set(its.flatMap(it => it.about || []));
+      for (const it of Object.values(el._items)) if (about.has(it.e)) {
+        const r = el.querySelector(`[data-item="${it.id}"]`);
+        r?.setAttribute('data-hot', ''); r?.querySelector('[data-k]')?.setAttribute('data-on', '');
+      }
       for (const it of its) el.querySelector(`[data-item="${it.id}"]`)?.setAttribute('data-hot', '');
       this.hot = ids.join(' ');
       // A tap brings the partner span into the passage pane, which on a phone
-      // is a short band; for an atom, its own quote rather than the entities it warms.
+      // is a short band; for an atom, its own quote.
       const P = this.$refs.passage;
       if (show) reveal(P, its[0].mode === 'atom' ? P.querySelector('[data-atom]') : [...P.querySelectorAll('[data-on],[data-ev]')].find(x => !x.closest(`[data-s="${this.s.n}"]`)));
     },
