@@ -1278,7 +1278,7 @@ window.__audit = {
     // A label set aside fades hard; a label lit from its chip fades the rest
     // less, so the document stays readable around the lit units.
     dim(u) { const k = this.keyOf(u); return this.off[k] ? .12 : this.lit && !this.isLit(u) ? .35 : 1 },
-    // Lit by the chip in Doc, or by Review's category, Noted included.
+    // Lit by the chip in Doc, or by Review's category, Notes included.
     isLit(u) { return this.lit === NOTED ? !!u.note : this.lit === this.keyOf(u); },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
     // A PIECE'S BACKGROUND: its label's tint, the selection, or the lit label.
@@ -1320,7 +1320,7 @@ window.__audit = {
     },
 
     // ── REVIEW: one category's units as a list over a strip of the document ──
-    // The list holds the category the chips pick: Noted (every unit with a
+    // The list holds the category the chips pick: Notes (every unit with a
     // note, the default where any unit has one) or a label. Below it a strip,
     // one slide per unit: the whole document painted as in Doc, that unit
     // current and its note set under it, scrolled into view. A swipe moves
@@ -1329,7 +1329,13 @@ window.__audit = {
     // frame is vertical.
     get noted() { return this.units.filter(u => u.note); },
     get rKey() { return this.rCat ?? (this.noted.length ? NOTED : this.axis[0]); },
-    get rTitle() { return this.rKey === NOTED ? 'Noted' : this.rKey; },
+    // What the list holds, said on the page: a tap on a chip picks the
+    // category, so a chip cannot also open a tip that explains it.
+    get rGloss() {
+      return this.rKey === NOTED
+        ? `every unit with a note, whatever its label: ${this.noted.length} of ${this.units.length}`
+        : this.gloss(this.rKey);
+    },
     get rRows() {
       const k = this.rKey;
       return (k === NOTED ? this.noted : this.units.filter(u => this.keyOf(u) === k))
@@ -2227,7 +2233,7 @@ window.__audit = {
            lights its units. Tapping one dims its units in place rather than
            hiding them, which keeps the document readable while one category is
            set aside. In Review the chips are the category the list holds, one
-           at a time, with Noted, every unit with a note, first. -->
+           at a time, with Notes, every unit with a note, first. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
       <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
@@ -2236,7 +2242,7 @@ window.__audit = {
         <button class="btn btn-xs gap-1.5 border-0 shrink-0 bg-base-200" x-show="view === 'review' && noted.length" x-cloak
                 :class="{ 'ring-1 ring-[var(--color-base-content)]': rKey === NOTED }" :aria-pressed="rKey === NOTED"
                 @click="rPickCat(NOTED)">
-          <i class="ph ph-note-pencil"></i><span>Noted</span>
+          <i class="ph ph-note-pencil"></i><span>Notes</span>
           <span class="opacity-60 font-mono" x-text="noted.length"></span>
         </button>
         <template x-for="k in axis" :key="k">
@@ -2286,16 +2292,24 @@ window.__audit = {
     </div>
 
     <!-- REVIEW: the chips' category as a list over a strip of the document.
-         The list is a third of the height, one line per unit; the bar under
-         it steps through the list and edits the current unit; the strip below
-         holds one slide per unit, the whole document with that unit current
-         and its note under it. Stacked at every width, and it fills the
-         viewport under the header as Spans does. -->
-    <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,2fr)]"
+         A caption says what the category is; the list under it is one line
+         per unit and as tall as its rows, up to a third of the height; the bar
+         under it steps through the list and edits the current unit; the strip
+         below holds one slide per unit, the whole document with that unit
+         current and its note under it. Stacked at every width, and it fills
+         the viewport under the header as Spans does. -->
+    <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_fit-content(33%)_auto_minmax(0,1fr)]"
          x-show="view === 'review'" x-cloak
          :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
+      <p class="px-4 pt-2 pb-1.5 text-xs leading-5 text-pretty border-b border-base-300">
+        <span class="mr-1.5 rounded px-1 font-mono font-medium" :class="rKey === NOTED && 'bg-base-200'"
+              :style="rKey === NOTED ? '' : `background:rgba(${HUE[rKey]},.28)`" x-text="rKey === NOTED ? 'Notes' : rKey"></span>
+        <span class="opacity-75" x-text="rGloss"></span>
+      </p>
       <!-- A row under the pointer tints its unit in the document. The current
-           row carries the primary bar, the colour of the document's underline. -->
+           row carries the primary bar, the colour of the document's underline.
+           A row names its label only under Notes, the one category that mixes
+           labels. -->
       <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1">
         <template x-for="(u, i) in rRows" :key="u.uid">
           <button type="button" data-row
@@ -2304,7 +2318,8 @@ window.__audit = {
                   :aria-current="i === rAt"
                   @click="rGo(i, true)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
             <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
-            <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
+            <span class="shrink-0 rounded px-1 font-mono text-xs" x-show="rKey === NOTED"
+                  :style="{ background: `rgba(${HUE[u.label]},.28)` }" x-text="u.label"></span>
             <span class="min-w-0 truncate" :class="u.verdict === 'DROP' && 'line-through opacity-60'" x-text="gist(u)"></span>
           </button>
         </template>
@@ -2317,8 +2332,8 @@ window.__audit = {
           <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt + 1)"
                   title="Next" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
         </div>
-        <!-- The label as a pill over the platform's own select, as in the unit
-             panel; the verdict as the unit panel's Remove. -->
+        <!-- The label as a pill over the platform's own select, and the
+             verdict as Keep or Drop, both as in the unit panel. -->
         <label class="relative inline-flex items-center rounded-full px-2 py-0.5 font-mono cursor-pointer" x-show="rCur"
                :style="`background:rgba(${HUE[rCur?.label]},.28)`">
           <span x-text="rCur?.label || 'unlabeled'"></span>
@@ -2328,14 +2343,16 @@ window.__audit = {
             <template x-for="v in (so.vocabulary || []).map(v => v.label)" :key="v"><option :value="v" x-text="v"></option></template>
           </select>
         </label>
-        <button type="button" class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
-                       focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
-                x-show="rCur" :class="rCur?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
-                :aria-pressed="rCur?.verdict === 'DROP'"
-                @click="rEdit({ op: 'verdict', uid: rCur.uid, verdict: rCur.verdict === 'DROP' ? 'KEEP' : 'DROP' })">
-          <i class="text-base" :class="rCur?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
-          <span x-text="rCur?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
-        <span class="ml-auto pr-2 font-mono opacity-50" x-text="rCur ? lineOf(rCur) : ''"></span>
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" role="group" aria-label="verdict"
+             x-show="rCur && so.verdicts">
+          <template x-for="v in ['KEEP', 'DROP']" :key="v">
+            <button type="button" class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
+                    :class="(rCur?.verdict || 'KEEP') !== v ? 'btn-ghost bg-base-100' : v === 'DROP' ? 'btn-error' : 'btn-neutral'"
+                    :aria-pressed="(rCur?.verdict || 'KEEP') === v"
+                    @click="(rCur.verdict || 'KEEP') !== v && rEdit({ op: 'verdict', uid: rCur.uid, verdict: v })"
+                    x-text="v === 'KEEP' ? 'Keep' : 'Drop'"></button>
+          </template>
+        </div>
       </div>
       <!-- rBuild() mounts the strip here. data-no-swipe: a sideways drag here
            is the strip's, never the deck's. -->
@@ -2421,18 +2438,20 @@ window.__audit = {
             </select>
           </label>
         </template>
-        <!-- Whether the unit stays. The one edit the tools carry out; anything
-             else, a rewording included, goes in the note below. -->
-        <!-- Colour alone carries the state, as with the page's other toggles:
-             red when the unit is removed, muted when it stays. -->
-        <button class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
-                       focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
-                x-show="so.verdicts" x-cloak
-                :class="sel?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
-                :aria-pressed="sel?.verdict === 'DROP'"
-                @click="push({op:'verdict', uid:sel.uid, verdict: sel?.verdict === 'DROP' ? 'KEEP' : 'DROP'})">
-          <i class="text-base" :class="sel?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
-          <span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
+        <!-- Whether the unit stays: Keep, or Drop from the document. The one
+             edit the tools carry out; anything else, a rewording included, goes
+             in the note below. Both values are named, so the control reads as
+             a decision about this unit rather than as a delete. -->
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" role="group" aria-label="verdict"
+             x-show="so.verdicts" x-cloak>
+          <template x-for="v in ['KEEP', 'DROP']" :key="v">
+            <button type="button" class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
+                    :class="(sel?.verdict || 'KEEP') !== v ? 'btn-ghost bg-base-100' : v === 'DROP' ? 'btn-error' : 'btn-neutral'"
+                    :aria-pressed="(sel?.verdict || 'KEEP') === v"
+                    @click="(sel.verdict || 'KEEP') !== v && push({op:'verdict', uid:sel.uid, verdict: v})"
+                    x-text="v === 'KEEP' ? 'Keep' : 'Drop'"></button>
+          </template>
+        </div>
 
       </div>
 
