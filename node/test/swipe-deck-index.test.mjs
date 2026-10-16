@@ -61,7 +61,7 @@ test('a labeler makes the mark a button, and it lists every slide with the reade
   await tick();
   const mark = markOf(h);
   assert.equal(mark.tagName, 'BUTTON');
-  assert.equal(mark.title, 'Contents');
+  assert.equal(mark.getAttribute('data-title-tip'), 'Contents');
 
   mark.dispatchEvent(new window.MouseEvent('click'));
   await tick();
@@ -74,7 +74,7 @@ test('a labeler makes the mark a button, and it lists every slide with the reade
 
   // The glyph names what tapping does, never the state it is in, which is the
   // rule the pane toggle beside it already follows.
-  assert.equal(mark.title, 'Back to the slide');
+  assert.equal(mark.getAttribute('data-title-tip'), 'Back to the slide');
   assert.match(mark.querySelector('i').className, /ph-caret-up/,
     'a caret, not a second ✕ beside the header\'s own');
   h.drop();
@@ -110,7 +110,7 @@ test('Back leaves the list, not the deck', async () => {
   await tick();
   assert.equal(sheetOf(h), null, 'Back closed the list');
   assert.equal(overlays(), 1, 'and left the reader in the deck, which is the whole point');
-  assert.equal(markOf(h).title, 'Contents', 'the mark says what it offers again');
+  assert.equal(markOf(h).getAttribute('data-title-tip'), 'Contents', 'the mark says what it offers again');
 
   pop();
   await tick();
