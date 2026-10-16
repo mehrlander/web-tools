@@ -320,12 +320,12 @@ document.addEventListener('alpine:init', () => {
       if (this.traced.length) { this.traced = []; this.drawArrows(); }
       if (keys) for (const k of keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute(attr, ''));
     },
-    // A span on the card traces its own connections, in either list: every
-    // connection with an end in it is drawn in the passage and both its ends
-    // light, even with the arrows off.
+    // A span on the card traces its own connections: every connection with an
+    // end in it is drawn bold in the passage, even with the arrows off. The
+    // arrow alone marks it: a connection's end can run past the span (a link's
+    // end is often a clause), and a fill there would read as the entity's.
     trace(keys) {
       const ks = new Set(keys), hit = this.X.links.filter(it => it.keys.length === 2 && it.keys.some(k => ks.has(k)));
-      for (const it of hit) for (const k of it.keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute('data-on', ''));
       this.traced = hit.map(it => it.keys.join(' '));
       this.drawArrows();
     },
@@ -593,11 +593,12 @@ document.addEventListener('alpine:init', () => {
       this.wire(el);
     },
 
-    // Light an item's keys and mark its row; from a span, every item it sits in.
-    point(ids, el, show) {
-      const its = ids.map(id => el._items[id]).filter(Boolean);
+    // Light an item's keys and mark its row; from a span, every item it sits
+    // in, though only its entities light, since trace() draws its connections.
+    point(ids, el, show, fromSpan) {
+      const its = ids.map(id => el._items[id]).filter(Boolean), lit = fromSpan ? its.filter(it => it.mode !== 'on') : its;
       if (!its.length) return;
-      this.light([...new Set(its.flatMap(it => it.keys))], { ev: 'data-ev', atom: 'data-atom' }[its[0].mode] || 'data-on');
+      this.light([...new Set(lit.flatMap(it => it.keys))], { ev: 'data-ev', atom: 'data-atom' }[lit[0]?.mode] || 'data-on');
       // An atom marks the rows of the entities it is about, on the card only;
       // hovering one of those rows lights its mentions across the passage.
       const about = new Set(its.flatMap(it => it.about || []));
@@ -633,7 +634,7 @@ document.addEventListener('alpine:init', () => {
       });
       // The highlighted spans answer the same way, so a span and its row light together.
       const spanOf = e => e.target.closest && e.target.closest('[data-items]');
-      const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show); this.trace(t.dataset.k.split(' ')); };
+      const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show, true); this.trace(t.dataset.k.split(' ')); };
       el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) hold(t, false); });
       el.addEventListener('pointerout', e => { const t = spanOf(e); if (t && HOVER.matches && !t.contains(e.relatedTarget)) this.light(null); });
       el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
