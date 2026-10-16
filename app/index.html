@@ -1822,12 +1822,10 @@ html.dk-dragging main{transition:none !important}
                       :class="projectTab==='board' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-list-checks text-base hidden sm:inline"></i>Board</button>
               <button role="tab" @click="goProjectTab('pages')" :disabled="!projectPages.length" :aria-selected="projectTab==='pages'"
-                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors" data-at="project-tab-pages"
+                      class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectTab==='pages' ? 'bg-base-100 text-primary shadow-sm' : projectPages.length ? 'text-base-content/60 hover:text-base-content' : 'text-base-content/25 cursor-default'">
                 <i class="ph ph-squares-four text-base hidden sm:inline"></i>Pages
-                <!-- The count shows at 0 too: an empty workspace's disabled tab
-                     says why on its face, where a title said it to no phone. -->
-                <span class="font-mono text-xs" :class="projectPages.length && 'opacity-60'" x-text="projectPages.length"></span></button>
+                <span x-show="projectPages.length" class="font-mono text-xs opacity-60" x-text="projectPages.length"></span></button>
               <button role="tab" @click="goProjectTab(projectTab==='docs' ? 'docs' : 'files')" :aria-selected="projectTab==='files' || projectTab==='docs'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectTab==='files' || projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">

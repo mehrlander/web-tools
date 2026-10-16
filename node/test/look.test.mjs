@@ -512,3 +512,30 @@ test('a missing target with no tap before it is still a wrong name', async () =>
   assert.match(said(w), /^Not on this page: nowhere$/);
   assert.equal(card(w).querySelector('[aria-label^="Go to step"]'), null);
 });
+
+// A LOOK LINK IS A POINTER, NOT A LANDING (owner, 2026-10-16). The tint alone
+// was easy to miss, so a look step also wears the ring, pings once it lands,
+// pings again when the dock's arrow brings it back, and the dock itself wears
+// the marker's yellow rather than the page's grey.
+test('a look step rings, pings on landing and on the way back, and the dock wears the yellow', async () => {
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p>');
+  const pings = [];
+  w.Element.prototype.animate = function (frames) {
+    if (this.getAttribute('data-look') === 'halo' && frames.length >= 3) pings.push(Date.now());
+    return { cancel() {}, playState: 'finished' };
+  };
+  w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
+  await wait(520);
+  const halo = w.document.querySelector('[data-look="halo"]');
+  assert.match(halo.style.border, /2px solid/, 'the ring, as a do step wears');
+  assert.equal(pings.length, 1, 'one ping once it lands');
+  const dock = w.document.querySelector('[data-look="dock"]');
+  assert.match(dock.style.border, /2px solid/, 'the dock in the marker\'s yellow');
+  assert.doesNotMatch(dock.style.cssText, /NaN/, 'and its style survived being assembled');
+  const a = w.document.querySelector('[data-at="a"]');
+  a.getBoundingClientRect = () => ({ top: 3000, bottom: 3020, left: 0, right: 100, width: 100, height: 20 });
+  await wait(60);
+  card(w).querySelector('[data-mark]').click();
+  await wait(520);
+  assert.equal(pings.length, 2, 'and again when the arrow brings it back');
+});
