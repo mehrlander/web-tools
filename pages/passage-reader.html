@@ -386,14 +386,14 @@ document.addEventListener('alpine:init', () => {
     },
     fitOpen() { document.querySelectorAll('[data-gap][data-open]').forEach(g => this.fitGap(g)); },
     // The label restores the missing words in brackets, the editor's mark for
-    // words supplied, with the entity's own words in its purple; the slot
-    // they fill sits beneath, then any note.
+    // words supplied, with the entity's own words in its purple, then any
+    // note. The slot they fill is read out, not shown.
     gapsAfter(p, lit) {
       return p.on.filter(r => r.gap && r.b === p.b).map(r => {
         const m = r.m, a = r.ante, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e, name = m.slot || 'Ellipsis';
         const tip = `[${fill}], ${name}` + (m.note ? `. ${m.note}` : '');
         const words = this.markNames(fill, [m.e], (k, t) => `<span class="rounded box-decoration-clone bg-primary/20 px-0.5">${t}</span>`);
-        const label = `<span class="block text-sm leading-6">[${words}]</span><span class="block text-base-content/60">${esc(name)}</span>`
+        const label = `<span class="block text-sm leading-6">[${words}]</span>`
           + (m.note ? `<span class="block text-base-content/60">${esc(m.note)}</span>` : '');
         return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}"${this.gapOpen === r.key ? ' data-open' : ''} tabindex="0" role="button" aria-label="${esc(tip)}"`
           + ` class="group relative select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?`
