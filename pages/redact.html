@@ -22,7 +22,11 @@
   TAP boxes a word; tapping the next word on the same line grows that box
   when the two would carry the same label, so "Jane" then "Doe" is one box
   while "Doe" beside an already boxed email stays its own. DRAW boxes
-  anything OCR missed. CROP trims. Flagged words are outlined in the warning
+  anything OCR missed; in Draw, a box's middle drags it and its edges and
+  corners resize it, so a short box is fixed rather than redrawn. Moving or
+  resizing a word box detaches it from its words. CROP shows a frame over
+  the whole image with the same grips: drag an edge or corner in, drag the
+  middle to move it, Uncrop to reset. Flagged words are outlined in the warning
   colour; the outline toggle adds every other word OCR read.
 
   STYLE sets a box's fill (white unless changed), its border (none, solid,
@@ -191,7 +195,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
   boxes: [], sel: null, seq: 0, lastLabel: '[removed]', base: 1,
   // `stroke`, not `line`: a word box already carries `line`, its OCR line index.
   style: { fill: '#ffffff', border: 'solid', stroke: '#111827', bw: 1 },
-  crop: null, start: null, drag: null,
+  crop: null, start: null, drag: null, dragging: false, op: null, hover: '',
   ocr: { busy: false, progress: 0, status: '' },
   out: { url: '', checks: [], w: 0, h: 0, size: 0, reread: '' },
   note: { text: '', bad: false },
@@ -363,26 +367,96 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
     const r = this.$refs.cv.getBoundingClientRect();
     return { x: (e.clientX - r.left) * this.W / r.width, y: (e.clientY - r.top) * this.H / r.height, cx: e.clientX, cy: e.clientY };
   },
+  // Which part of a rectangle a point is on: an edge or corner (resize), the
+  // middle (move), or nothing. An edge counts along its whole length, not
+  // just at its handle, since a fingertip is wide. `tol` is in image pixels.
+  grip(r, p, tol) {
+    if (p.x < r.x - tol || p.x > r.x + r.w + tol || p.y < r.y - tol || p.y > r.y + r.h + tol) return null;
+    const dl = Math.abs(p.x - r.x), dr = Math.abs(p.x - r.x - r.w);
+    const dt = Math.abs(p.y - r.y), db = Math.abs(p.y - r.y - r.h);
+    const e = { l: dl <= tol && dl < dr, r: dr <= tol && dr <= dl, t: dt <= tol && dt < db, b: db <= tol && db <= dt };
+    if (e.l || e.r || e.t || e.b) return { kind: 'resize', e };
+    return p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h ? { kind: 'move' } : null;
+  },
+  // What a press at `p` would take hold of. Crop always has a frame (the
+  // whole image until it is moved), so there is nothing to draw from scratch.
+  // In Draw, the selected box is tried first, then the others top-down; a
+  // press on none of them draws a new box.
+  grab(p) {
+    const tol = 22 * this.W / (this.$refs.cv.getBoundingClientRect().width || this.W);
+    const at = (r) => this.grip(r, p, Math.min(tol, Math.min(r.w, r.h) / 3));
+    if (this.mode === 'crop') {
+      const r = this.crop || { x: 0, y: 0, w: this.W, h: this.H }, g = at(r);
+      return g && { ...g, target: 'crop', from: { x: r.x, y: r.y, w: r.w, h: r.h } };
+    }
+    if (this.mode !== 'draw') return null;
+    for (const b of [this.selBox, ...[...this.boxes].reverse()].filter(Boolean)) {
+      const g = at(b);
+      if (g) return { ...g, target: b.id, from: { x: b.x, y: b.y, w: b.w, h: b.h } };
+    }
+    return null;
+  },
+  cursorOf(op) {
+    if (!op) return this.mode === 'draw' ? 'cursor-crosshair' : 'cursor-default';
+    if (op.kind === 'move') return 'cursor-move';
+    const { l, r, t, b } = op.e;
+    if ((l && t) || (r && b)) return 'cursor-nwse-resize';
+    if ((r && t) || (l && b)) return 'cursor-nesw-resize';
+    return l || r ? 'cursor-ew-resize' : 'cursor-ns-resize';
+  },
+  // Move or resize from where the press began, so the rectangle follows the
+  // finger exactly and never drifts. Clamped to the image, never smaller
+  // than 8 image pixels a side.
+  apply(op, dx, dy) {
+    dx = Math.round(dx); dy = Math.round(dy);
+    const f = op.from, W = this.W, H = this.H, min = 8;
+    let x0 = f.x, y0 = f.y, x1 = f.x + f.w, y1 = f.y + f.h;
+    if (op.kind === 'move') {
+      dx = Math.max(-x0, Math.min(W - x1, dx)); dy = Math.max(-y0, Math.min(H - y1, dy));
+      x0 += dx; x1 += dx; y0 += dy; y1 += dy;
+    } else {
+      if (op.e.l) x0 = Math.max(0, Math.min(x1 - min, x0 + dx));
+      if (op.e.r) x1 = Math.min(W, Math.max(x0 + min, x1 + dx));
+      if (op.e.t) y0 = Math.max(0, Math.min(y1 - min, y0 + dy));
+      if (op.e.b) y1 = Math.min(H, Math.max(y0 + min, y1 + dy));
+    }
+    const r = snap(x0, y0, x1, y1, W, H);
+    if (op.target === 'crop') { this.crop = r.w === W && r.h === H ? null : r; return; }
+    const b = this.boxes.find(b => b.id === op.target);
+    // A word box that is moved or resized stops following its words: from
+    // here it is a drawn box, and a later word tap will not refit it.
+    if (b) Object.assign(b, r, { line: -1 });
+  },
   down(e) {
     if (!IMG) return;
-    this.start = this.pt(e);
-    if (this.mode !== 'tap') e.target.setPointerCapture(e.pointerId);
+    const p = this.pt(e);
+    Object.assign(this, { start: p, drag: null, dragging: false, op: null });
+    if (this.mode === 'tap') return;
+    e.target.setPointerCapture(e.pointerId);
+    this.op = this.grab(p);
+    if (this.op && this.op.target !== 'crop') this.sel = this.op.target;
   },
+  // Travel is measured in screen pixels from the press and scaled once, so
+  // a drag stays true even if something above the image changes height.
   move(e) {
-    if (!this.start || this.mode === 'tap') return;
-    const p = this.pt(e), s = this.start;
-    if (!this.drag && Math.hypot(p.cx - s.cx, p.cy - s.cy) < 6) return;
-    this.drag = snap(s.x, s.y, p.x, p.y, this.W, this.H);
+    if (this.mode === 'tap') return;
+    const s = this.start;
+    if (!s) { this.hover = this.cursorOf(this.grab(this.pt(e))); return; }
+    if (!this.dragging && Math.hypot(e.clientX - s.cx, e.clientY - s.cy) < 6) return;
+    this.dragging = true;
+    const sc = this.W / this.$refs.cv.getBoundingClientRect().width;
+    const dx = (e.clientX - s.cx) * sc, dy = (e.clientY - s.cy) * sc;
+    if (this.op) return this.apply(this.op, dx, dy);
+    if (this.mode === 'draw') this.drag = snap(s.x, s.y, s.x + dx, s.y + dy, this.W, this.H);
   },
   up(e) {
-    const s = this.start, d = this.drag;
-    this.start = null; this.drag = null;
+    const s = this.start, d = this.drag, op = this.op, dragged = this.dragging;
+    Object.assign(this, { start: null, drag: null, dragging: false, op: null });
     if (!s) return;
-    if (!d) return this.tap(s);
-    if (d.w < 4 || d.h < 4) return;
-    if (this.mode === 'crop') this.crop = d;
-    else this.addBox({ ...d, label: this.lastLabel });
+    if (!dragged) return this.mode === 'crop' ? undefined : this.tap(s);
+    if (!op && this.mode === 'draw' && d && d.w >= 4 && d.h >= 4) this.addBox({ ...d, label: this.lastLabel });
   },
+  cancel() { Object.assign(this, { start: null, drag: null, dragging: false, op: null }); },
   tap(p) {
     const inside = r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
     const b = [...this.boxes].reverse().find(inside);
@@ -393,7 +467,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
   },
   onKey(e) {
     if (e.target.closest?.('input, textarea')) return;
-    if (e.key === 'Escape') { this.sel = null; this.drag = null; this.start = null; }
+    if (e.key === 'Escape') { this.sel = null; this.cancel(); }
     if ((e.key === 'Delete' || e.key === 'Backspace') && this.sel) { e.preventDefault(); this.removeBox(this.sel); }
   },
 
@@ -401,7 +475,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
   render() {
     const cv = this.$refs.cv;
     void this.imgKey;
-    const boxes = this.boxes.map(b => ({ ...b })), sel = this.sel, drag = this.drag, crop = this.crop;
+    const boxes = this.boxes.map(b => ({ ...b })), sel = this.sel, drag = this.drag, crop = this.crop, mode = this.mode;
     const words = this.words.filter(w => (this.showWords || w.kind) && !this.boxOfWord(w));
     if (!IMG || !cv || cv.width !== this.W) return;
     const g = cv.getContext('2d');
@@ -422,16 +496,37 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
       g.strokeStyle = '#000'; g.lineWidth = 1.5 * k; g.strokeRect(r.x, r.y, r.w, r.h);
       g.restore();
     };
+    // Square grips at the corners, and at the edge midpoints when the box is
+    // big enough that they would not sit on its label. They only mark the
+    // spot: an edge takes a drag along its whole length (see grip()).
+    const grips = (r) => {
+      const z = Math.min(12 * k, Math.min(r.w, r.h) * 0.6);
+      const mids = Math.min(r.w, r.h) >= 5 * z ? [[.5, 0], [0, .5], [1, .5], [.5, 1]] : [];
+      g.save(); g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 1.5 * k;
+      for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1], ...mids]) {
+        const x = Math.min(this.W - z, Math.max(0, r.x + u * r.w - z / 2));
+        const y = Math.min(this.H - z, Math.max(0, r.y + v * r.h - z / 2));
+        g.fillRect(x, y, z, z); g.strokeRect(x, y, z, z);
+      }
+      g.restore();
+    };
     const s = boxes.find(b => b.id === sel);
-    if (s) dashed({ x: s.x - 3 * k, y: s.y - 3 * k, w: s.w + 6 * k, h: s.h + 6 * k });
+    if (s) {
+      dashed({ x: s.x - 3 * k, y: s.y - 3 * k, w: s.w + 6 * k, h: s.h + 6 * k });
+      if (mode === 'draw') grips(s);
+    }
     if (crop) {
       g.save();
       g.fillStyle = 'rgba(0,0,0,.5)';
       g.beginPath(); g.rect(0, 0, this.W, this.H); g.rect(crop.x, crop.y, crop.w, crop.h); g.fill('evenodd');
       g.restore();
-      dashed(crop);
     }
-    if (drag) dashed(drag, this.mode === 'draw' ? 'rgba(0,0,0,.6)' : null);
+    if (crop || mode === 'crop') {
+      const f = crop || { x: k, y: k, w: this.W - 2 * k, h: this.H - 2 * k };
+      dashed(f);
+      if (mode === 'crop') grips(f);
+    }
+    if (drag) dashed(drag, 'rgba(0,0,0,.6)');
   },
 
   // ── Result ─────────────────────────────────────────────────────────────
@@ -536,14 +631,14 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
         <button class="btn btn-sm w-full" @click="styleAll()" :disabled="!boxes.length">Apply to all boxes</button>
       </div>
     </details>
-    <button class="btn btn-sm btn-ghost" x-show="!!crop" @click="crop = null"><i class="ph ph-x"></i>Uncrop</button>
+    <button class="btn btn-sm btn-ghost" x-show="mode === 'crop' || !!crop" :disabled="!crop" @click="crop = null"><i class="ph ph-x"></i>Uncrop</button>
   </div>
 
-  <div class="flex items-center gap-2 px-4 pb-2" x-show="view === 'edit' && !!selBox">
+  <div class="flex items-center gap-2 px-4 pb-2" x-show="view === 'edit'">
     <span class="text-xs font-mono text-base-content/60 shrink-0">label</span>
-    <input class="input input-sm w-full" list="labels" placeholder="none" x-model="selLabel"
+    <input class="input input-sm w-full" list="labels" :placeholder="selBox ? 'none' : 'no box selected'" x-model="selLabel" :disabled="!selBox"
            @keydown.enter="$event.target.blur()">
-    <button class="btn btn-sm btn-ghost" @click="removeBox(sel)" title="Remove box" aria-label="Remove box">
+    <button class="btn btn-sm btn-ghost" @click="removeBox(sel)" :disabled="!selBox" title="Remove box" aria-label="Remove box">
       <i class="ph ph-trash"></i></button>
   </div>
 
@@ -562,9 +657,9 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 <main x-show="view === 'edit'" class="grid gap-4 p-4 items-start lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
   <div class="min-w-0 flex justify-center">
     <canvas x-ref="cv" class="block max-w-full max-h-[70dvh] lg:max-h-[calc(100dvh-9rem)] w-auto h-auto border border-base-300 bg-base-100"
-            :class="mode === 'tap' ? 'cursor-pointer' : 'cursor-crosshair touch-none select-none'"
+            :class="mode === 'tap' ? 'cursor-pointer' : (hover || 'cursor-crosshair') + ' touch-none select-none'"
             @pointerdown="down($event)" @pointermove="move($event)" @pointerup="up($event)"
-            @pointercancel="start = null; drag = null"></canvas>
+            @pointercancel="cancel()"></canvas>
   </div>
 
   <section class="card bg-base-100 border border-base-300 min-w-0 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-auto">
