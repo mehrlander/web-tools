@@ -21,6 +21,7 @@ TYPES = {"definition", "assertion", "judgment", "rule"}
 KINDS = {"elaborates", "rests-on", "narrows", "contrasts", "supports"}
 FORMS = {None, "anaphor", "ellipsis"}
 BASES = {"passage", "context", "general"}
+ENTITY_KINDS = {"thing", "actor", "event", "measure", "condition", "concept"}
 
 args = sys.argv[1:]
 if not args or args[0].startswith("-"):
@@ -80,6 +81,7 @@ ents = r["entities"]
 if r.get("topic") and r["topic"] not in ents: err(f"topic {r['topic']} is not an entity")
 for k, e in ents.items():
     if e.get("basis") not in BASES: err(f"entity {k}: basis {e.get('basis')!r}")
+    if "kind" in e and e["kind"] not in ENTITY_KINDS: err(f"entity {k}: kind {e['kind']!r} is not one of {', '.join(sorted(ENTITY_KINDS))}")
     if (e.get("basis") == "context") != bool(e.get("ctx")): err(f"entity {k}: ctx must be present exactly when basis is context")
     for q in e.get("ctx", []):
         if q["doc"] not in {c["id"] for c in r.get("context", [])}:

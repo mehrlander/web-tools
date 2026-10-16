@@ -71,6 +71,13 @@ document.addEventListener('alpine:init', () => {
     definition: { label: 'Definition', icon: 'ph-book-open-text' }, assertion: { label: 'Assertion', icon: 'ph-info' },
     judgment: { label: 'Judgment', icon: 'ph-scales' }, rule: { label: 'Rule', icon: 'ph-signpost' },
   };
+  // An entity's kind, when the reading gives one: a glance cue before its label.
+  const KIND = {
+    thing: { label: 'Thing', icon: 'ph-cube' }, actor: { label: 'Actor', icon: 'ph-person-simple-walk' },
+    event: { label: 'Event', icon: 'ph-lightning' }, measure: { label: 'Measure', icon: 'ph-ruler' },
+    condition: { label: 'Condition', icon: 'ph-cloud-sun' }, concept: { label: 'Concept', icon: 'ph-lightbulb' },
+  };
+  const kindIcon = k => KIND[k] ? `<i class="ph ${KIND[k].icon} mr-1.5 align-[-0.125em] text-base-content/50" aria-label="${KIND[k].label}" data-title-tip="${KIND[k].label}" data-title-tip-bare></i>` : '';
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   // An ellipsis badge: a raised question mark in the accent's text colour, the
   // page's mark for something to open, full when the gap is lit and faded when
@@ -202,7 +209,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('passageReader', () => ({
-    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, wide: false, gapOpen: null, hot: null, traced: [], group: 'entities', GROUPS,
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, wide: false, gapOpen: null, hot: null, traced: [], group: 'entities', GROUPS, KIND,
     get N() { return this.R.sentences.length; },
     get s() { return this.R.sentences[this.cur]; },
 
@@ -537,7 +544,8 @@ document.addEventListener('alpine:init', () => {
     entityTip(k, more = []) {
       const e = this.R.entities[k] || {};
       const lines = [e.gloss, ...more, k === this.R.topic ? 'What the whole passage is about.' : ''].filter(Boolean);
-      return ` data-title-tip-lead="${esc(e.label || k)}" data-title-tip="${esc(lines.join('\n'))}" data-title-tip-bare`;
+      const lead = (e.label || k) + (KIND[e.kind] ? ` · ${KIND[e.kind].label.toLowerCase()}` : '');
+      return ` data-title-tip-lead="${esc(lead)}" data-title-tip="${esc(lines.join('\n'))}" data-title-tip-bare`;
     },
     // The innermost mention a piece of text sits in.
     mentionIn(p) { return p.on.filter(r => r.kind === 'm' && !r.gap).sort((x, y) => (x.b - x.a) - (y.b - y.a))[0]; },
@@ -598,7 +606,7 @@ document.addEventListener('alpine:init', () => {
         const keys = [...(X.keysOf[k] || []), `e:${k}`];
         // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
         return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n)),
-          body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
       });
       const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
       return {
@@ -815,7 +823,7 @@ document.addEventListener('alpine:init', () => {
         <dd class="grid gap-2">
           <template x-for="e in R ? entityList : []" :key="e.k">
             <span class="grid">
-              <span><span class="font-semibold" x-text="e.label"></span> <span class="text-sm tabular-nums text-base-content/60" x-text="e.where"></span></span>
+              <span><i class="ph mr-1.5 align-[-0.125em] text-base-content/50" :class="KIND[e.kind]?.icon" x-show="KIND[e.kind]" :aria-label="KIND[e.kind]?.label"></i><span class="font-semibold" x-text="e.label"></span> <span class="text-sm tabular-nums text-base-content/60" x-text="e.where"></span></span>
               <span class="text-pretty text-base-content/70" x-text="e.gloss"></span>
             </span>
           </template>

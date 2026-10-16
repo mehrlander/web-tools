@@ -28,42 +28,50 @@
   "entities": {
     "description": {
       "label": "description",
+      "kind": "thing",
       "gloss": "The description value in a SKILL.md file's YAML frontmatter.",
       "basis": "context",
       "ctx": [{ "doc": "prefs", "quote": "description: \"Standing preferences for how a skill should be written." }]
     },
     "listing": {
       "label": "listing",
+      "kind": "thing",
       "gloss": "The list of available skills, by name and description, that a session sees before loading any of them.",
       "basis": "passage"
     },
     "session": {
       "label": "session",
+      "kind": "actor",
       "gloss": "One running conversation with the model.",
       "basis": "general"
     },
     "load-decision": {
       "label": "the decision about what to load",
+      "kind": "event",
       "gloss": "The session's choice of which skills to load for the request in front of it.",
       "basis": "passage"
     },
     "budget": {
       "label": "budget",
+      "kind": "measure",
       "gloss": "A limit on how much text the listing can hold. The passage gives neither its size nor its unit.",
       "basis": "passage"
     },
     "situation": {
       "label": "the summoning situation",
+      "kind": "condition",
       "gloss": "The kind of request or circumstance in which the skill should be used.",
       "basis": "passage"
     },
     "material": {
       "label": "material",
+      "kind": "thing",
       "gloss": "What the skill produces when it runs. For inspire-excellence, the prompts it writes.",
       "basis": "passage"
     },
     "inspire-excellence": {
       "label": "inspire-excellence",
+      "kind": "thing",
       "gloss": "A skill in the web-tools skill library that helps write high-ambition prompts. Its description says it triggers on any ask to write a prompt with conviction behind it.",
       "basis": "context",
       "ctx": [
@@ -73,28 +81,33 @@
     },
     "trigger": {
       "label": "trigger",
+      "kind": "thing",
       "gloss": "The part of a description that says when to use the skill, which sentence 4 calls the situation that summons it. The committed version of this guidance is headed Trigger and states sentence 5's rule in nearly the same words.",
       "basis": "context",
       "ctx": [{ "doc": "prefs", "quote": "The trigger should name the situation that summons the skill, never the material it produces." }]
     },
     "boundary": {
       "label": "boundary",
+      "kind": "thing",
       "gloss": "A clause in a description saying what the skill is not for and which skill to use instead.",
       "basis": "passage"
     },
     "body": {
       "label": "body",
+      "kind": "thing",
       "gloss": "The SKILL.md text below the frontmatter, which a session reads only after loading the skill.",
       "basis": "passage"
     },
     "summoned-only": {
       "label": "summoned-only skill",
+      "kind": "concept",
       "gloss": "A skill that runs only when a user calls it by name, never loaded on the model's own judgment.",
       "basis": "context",
       "ctx": [{ "doc": "prefs", "quote": "disable-model-invocation for summoned-only" }]
     },
     "disable-model-invocation": {
       "label": "disable-model-invocation",
+      "kind": "thing",
       "gloss": "A frontmatter flag that declares a skill summoned-only.",
       "basis": "context",
       "ctx": [{ "doc": "prefs", "quote": "In Claude Code a skill can declare its mode in frontmatter" }]

@@ -45,6 +45,7 @@
         "required": ["label", "gloss", "basis"],
         "properties": {
           "label": { "type": "string" },
+          "kind": { "enum": ["thing", "actor", "event", "measure", "condition", "concept"], "description": "What sort of entity it is: a particular thing you could point to, physical or recorded; a person, group or system that acts; something that happens or is done; an amount, limit or count; a circumstance something can be in; or an idea, rule or kind of thing." },
           "gloss": { "type": "string" },
           "basis": { "enum": ["passage", "context", "general"] },
           "ctx": {
