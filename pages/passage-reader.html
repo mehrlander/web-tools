@@ -28,9 +28,10 @@
   relative to the current sentence: purple in it, amber before it, blue after
   it. An atom's quote, while its row is hovered or tapped, is underlined in
   amber, in the passage and on the card; a line rather than a fill, so the
-  entity fills inside the quote do not hide it. The pills switch the passage between two views. Entities:
-  every entity mention tinted light grey, and every mention of the current
-  sentence's entities in the position colours. Connections: every
+  entity fills inside the quote do not hide it. Two icon buttons in the card
+  bar switch the passage between two views. Entities: every entity mention
+  tinted light grey, and every mention of the current sentence's entities in
+  the position colours. Connections: every
   connection's two spans tinted light grey and joined by a faint grey line
   behind the text, and a connection touching the current sentence, either
   way, with its spans in the position colours and its line purple. The card
@@ -77,16 +78,17 @@ document.addEventListener('alpine:init', () => {
   const GAP = { base: 'align-[0.45em] ml-px text-sm font-bold leading-none', idle: 'text-primary/50', lit: 'text-primary', on: 'data-[on]:text-primary' };
   // Two lists, each of parts that never overlap, told apart by colour; the
   // colour says where a span or row sits relative to the current sentence.
-  const GROUPS = [{ key: 'entities', label: 'Entities' }, { key: 'links', label: 'Connections' }];
+  const GROUPS = [{ key: 'entities', label: 'Entities', icon: 'ph-tag' }, { key: 'links', label: 'Connections', icon: 'ph-flow-arrow' }];
   const LEGEND = {
     links: [['before', 'Carried in'], ['here', 'Within'], ['after', 'Carried forward']],
     entities: [['before', 'In play'], ['here', 'New here']],
   };
   // An atom's quote is underlined, in the passage and on the card, so it
-  // reads apart from the entity fills it crosses. Important, because the
-  // title-tip kit's unlayered text-decoration:none on a bare tip (an entity's
-  // span on the card) outranks any utility.
-  const ATOM = 'data-[atom]:underline! data-[atom]:decoration-[var(--color-warning)]! data-[atom]:decoration-[3px]! data-[atom]:underline-offset-[5px]!';
+  // reads apart from the entity fills it crosses. A shadow rather than
+  // text-decoration: a browser that skips the spaces at an element's edges
+  // would break the line between pieces, and the title-tip kit's unlayered
+  // text-decoration:none on a bare tip would remove it.
+  const ATOM = 'data-[atom]:shadow-[0_3px_0_var(--color-warning)]';
   const TONE = {
     before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30' },
     here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary/20' },
@@ -690,8 +692,8 @@ document.addEventListener('alpine:init', () => {
         </div>
       </section>
 
-      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)] min-h-0 min-w-0">
-        <div class="flex items-center gap-1 px-2 sm:px-4 py-1">
+      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+        <div class="flex items-center gap-1 px-2 sm:px-4 py-1 border-b border-base-200">
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
           <div class="items-center gap-2 px-1" :class="N <= 12 ? 'hidden' : N <= 25 ? 'flex sm:hidden' : 'flex'">
             <progress class="progress progress-accent w-20 sm:w-32" :value="cur + 1" :max="N"></progress>
@@ -699,25 +701,26 @@ document.addEventListener('alpine:init', () => {
           </div>
           <div class="items-center" :class="N <= 12 ? 'flex' : N <= 25 ? 'hidden sm:flex' : 'hidden'">
             <template x-for="(t, i) in R.sentences" :key="t.n">
-              <button class="p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
+              <button class="p-[2px] sm:p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
                 <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-accent' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
               </button>
             </template>
           </div>
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="kindLabel"></span>
-          <button type="button" class="ml-auto" :class="swipeDeck.entry.cls('ghost', 'tight')" @click="openDeck()"
+          <div class="join ml-auto shrink-0" role="tablist" aria-label="Group">
+            <template x-for="g in GROUPS" :key="g.key">
+              <button type="button" class="join-item btn btn-sm btn-square" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
+                      :aria-label="g.label" :data-title-tip="g.label" data-title-tip-bare
+                      :class="group === g.key ? 'btn-soft btn-primary' : 'btn-ghost'"
+                      :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)"><i class="ph text-lg" :class="g.icon"></i></button>
+            </template>
+          </div>
+          <button type="button" :class="swipeDeck.entry.cls('ghost', 'tight')" @click="openDeck()"
                   :aria-label="swipeDeck.entry.title(N, 'sentence')" :data-title-tip="swipeDeck.entry.title(N, 'sentence')" data-title-tip-bare><i class="ph text-lg" :class="swipeDeck.entry.icon"></i></button>
           <button type="button" class="btn btn-ghost btn-sm btn-square lg:hidden" @click="toggleWide()"
                   :aria-label="wide ? 'Show the cards' : 'Give the passage the screen'" :data-title-tip="wide ? 'Show the cards' : 'Give the passage the screen'" data-title-tip-bare>
             <i class="ph text-lg" :class="wide ? 'ph-caret-double-up' : 'ph-caret-double-down'"></i></button>
-        </div>
-        <div class="flex gap-1 px-2 sm:px-4 pb-1.5 border-b border-base-200 overflow-x-auto sm:flex-wrap [scrollbar-width:none]" :class="wide && 'max-lg:hidden'" role="tablist" aria-label="Group">
-          <template x-for="g in GROUPS" :key="g.key">
-            <button class="btn btn-xs rounded-full font-normal shrink-0" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
-                    :class="group === g.key ? 'btn-soft btn-primary' : groupSize(g.key, s.n) ? 'btn-ghost text-base-content/70' : 'btn-ghost text-base-content/30'"
-                    :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)" x-text="g.label"></button>
-          </template>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full" :class="wide && 'max-lg:hidden'"></div>
       </section>
