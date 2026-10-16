@@ -89,9 +89,9 @@ document.addEventListener('alpine:init', () => {
   // text-decoration:none on a bare tip would remove it.
   const ATOM = 'data-[atom]:shadow-[0_3px_0_var(--color-warning)]';
   const TONE = {
-    before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30' },
-    here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary/20' },
-    after: { fill: 'bg-info/30', lit: 'data-[on]:bg-info/60 data-[ev]:bg-info/60', dot: 'bg-info', badge: 'bg-info/30' },
+    before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
+    here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary text-primary-content font-semibold ring-2 ring-[var(--color-primary)]/30 ring-offset-1 ring-offset-base-100 hover:ring-[var(--color-primary)]/60' },
+    after: { fill: 'bg-info/30', lit: 'data-[on]:bg-info/60 data-[ev]:bg-info/60', dot: 'bg-info', badge: 'bg-info/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
   };
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
@@ -481,10 +481,11 @@ document.addEventListener('alpine:init', () => {
     },
 
     // A sentence number in the colour of where that sentence sits, which
-    // goes there; its tip says which sentence it is: where an entity is
-    // introduced, or the other end of a connection.
+    // goes there; its tip says which sentence it is: where an entity comes
+    // from, or the other end of a connection. The current sentence's own
+    // number is solid, with a halo: you are here.
     num(n, tone = 'here', tip = '') {
-      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}"${tip ? ` data-title-tip="${esc(tip)}" data-title-tip-bare` : ''} class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30">${esc(n)}</button>`;
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}"${tip ? ` data-title-tip="${esc(tip)}" data-title-tip-bare` : ''} class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums">${esc(n)}</button>`;
     },
     row(it) {
       return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
@@ -585,7 +586,7 @@ document.addEventListener('alpine:init', () => {
         // `e:<id>` lights the words naming the entity in the atoms' claims.
         const keys = [...(X.keysOf[k] || []), `e:${k}`];
         // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
-        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n), m === n ? 'Introduced here' : `Introduced in sentence ${m}`),
+        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n), m === n ? 'From here' : `From sentence ${m}`),
           body: [`<span class="text-pretty"><span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
       });
       const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
