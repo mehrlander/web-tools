@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Redact</title>
 <!--
-  redact.html — black out parts of an image, label the boxes, prove the
+  redact.html — cover parts of an image with boxes, label them, prove the
   covered pixels are gone, copy the result.
 
   A mockup of the Stage's image editor: there, it would open on a staged
@@ -24,6 +24,12 @@
   while "Doe" beside an already boxed email stays its own. DRAW boxes
   anything OCR missed. CROP trims. Flagged words are outlined in the warning
   colour; the outline toggle adds every other word OCR read.
+
+  STYLE sets a box's fill (white unless changed), its border (none, solid,
+  dashed or dotted, with a colour and a width scaled to the image) and, by
+  contrast, the label's ink. A change lands on the selected box and becomes
+  the style for the next one, as Paint's current colour does. The colour
+  input only yields opaque colours, so every fill is a full cover.
 
   DONE renders a fresh PNG at full resolution and checks it: each box in the
   exported bytes must equal the same box painted alone on a blank canvas,
@@ -46,19 +52,38 @@ const FONT = 'ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, 
 // not one, and drawImage / ClipboardItem refuse it.
 let IMG = null, SRC = null, OUT = null, WORKER = null, LOG = () => {};
 
-// One box, painted. The export and the check both call this, which is what
-// makes "equal to a fresh paint" a meaningful test.
-function paint(g, b) {
+// Black or white, whichever reads on a fill. The colour input only yields
+// opaque #rrggbb, which is what keeps every fill a full cover.
+const ink = (hex) => {
+  const n = parseInt(String(hex).slice(1), 16), [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140 ? '#000000' : '#ffffff';
+};
+
+// One box, painted: opaque fill, then the border, then the label, all clipped
+// to the box, so nothing it draws reaches past its own rectangle. The export
+// and the check both call this, which is what makes "equal to a fresh paint"
+// a meaningful test. `base` is the image's border unit (see load()).
+function paint(g, b, base) {
   g.save();
-  g.fillStyle = '#000';
+  g.beginPath(); g.rect(b.x, b.y, b.w, b.h); g.clip();
+  g.fillStyle = b.fill;
   g.fillRect(b.x, b.y, b.w, b.h);
+  let lw = 0;
+  if (b.border !== 'none') {
+    lw = Math.max(1, Math.min(b.bw * base, Math.floor(Math.min(b.w, b.h) / 4)));
+    g.lineWidth = lw; g.strokeStyle = b.stroke;
+    g.setLineDash(b.border === 'dashed' ? [lw * 4, lw * 3] : b.border === 'dotted' ? [0, lw * 2] : []);
+    g.lineCap = b.border === 'dotted' ? 'round' : 'butt';
+    g.strokeRect(b.x + lw / 2, b.y + lw / 2, b.w - lw, b.h - lw);
+    g.setLineDash([]);
+  }
   if (b.label) {
-    g.beginPath(); g.rect(b.x, b.y, b.w, b.h); g.clip();
-    let px = Math.max(8, Math.floor(b.h * 0.62));
+    const room = b.w - 2 * lw - 6;
+    let px = Math.max(8, Math.floor((b.h - 2 * lw) * 0.62));
     const set = () => { g.font = `600 ${px}px ${FONT}`; };
     set();
-    while (px > 8 && g.measureText(b.label).width > b.w - 6) { px--; set(); }
-    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    while (px > 8 && g.measureText(b.label).width > room) { px--; set(); }
+    g.fillStyle = ink(b.fill); g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2);
   }
   g.restore();
@@ -71,12 +96,12 @@ const snap = (x0, y0, x1, y1, W, H) => {
   return { x, y, w: X - x, h: Y - y };
 };
 
-async function exportVerified(boxes, crop, W, H) {
+async function exportVerified(boxes, crop, W, H, base) {
   const c = crop || { x: 0, y: 0, w: W, h: H };
   const out = canvas(c.w, c.h), g = out.getContext('2d');
   g.drawImage(IMG, -c.x, -c.y);
   g.translate(-c.x, -c.y);
-  boxes.forEach(b => paint(g, b));
+  boxes.forEach(b => paint(g, b, base));
   const blob = await new Promise((ok, no) => out.toBlob(b => b ? ok(b) : no(new Error('PNG encode failed')), 'image/png'));
 
   // Decode the bytes a Copy would carry, not the canvas that made them.
@@ -84,7 +109,7 @@ async function exportVerified(boxes, crop, W, H) {
   dg.drawImage(await createImageBitmap(blob), 0, 0);
   const ref = canvas(c.w, c.h), rg = ref.getContext('2d', { willReadFrequently: true });
   rg.translate(-c.x, -c.y);
-  boxes.forEach(b => paint(rg, b));
+  boxes.forEach(b => paint(rg, b, base));
 
   const checks = boxes.map((b, i) => {
     const r = snap(b.x - c.x, b.y - c.y, b.x - c.x + b.w, b.y - c.y + b.h, c.w, c.h);
@@ -163,7 +188,9 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
   view: 'edit', tab: 'text', mode: 'tap',
   name: '', isSample: false, W: 0, H: 0, imgKey: 0,
   lines: [], showWords: false,
-  boxes: [], sel: null, seq: 0, lastLabel: '[removed]',
+  boxes: [], sel: null, seq: 0, lastLabel: '[removed]', base: 1,
+  // `stroke`, not `line`: a word box already carries `line`, its OCR line index.
+  style: { fill: '#ffffff', border: 'solid', stroke: '#111827', bw: 1 },
   crop: null, start: null, drag: null,
   ocr: { busy: false, progress: 0, status: '' },
   out: { url: '', checks: [], w: 0, h: 0, size: 0, reread: '' },
@@ -185,6 +212,9 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 
   get words() { return this.lines.flatMap(l => l.words); },
   get selBox() { return this.boxes.find(b => b.id === this.sel) || null; },
+  // What the Style menu edits: the selected box, else the style new boxes take.
+  get cur() { return this.selBox || this.style; },
+  get curName() { return this.selBox ? 'Box ' + (this.boxes.indexOf(this.selBox) + 1) : 'New boxes'; },
   get selLabel() { return this.selBox?.label ?? ''; },
   set selLabel(v) { if (this.selBox) { this.selBox.label = v; this.lastLabel = v; } },
   get flagged() { return this.words.filter(w => w.kind); },
@@ -209,6 +239,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
       IMG = bmp; SRC = blob;
       Object.assign(this.$refs.cv, { width: bmp.width, height: bmp.height });
       Object.assign(this, { name, isSample: sample, W: bmp.width, H: bmp.height, lines: [], boxes: [],
+                            base: Math.max(1, Math.round(Math.min(bmp.width, bmp.height) / 400)),
                             sel: null, crop: null, drag: null, view: 'edit', tab: 'text' });
       this.imgKey++;
     } catch (e) { this.toast('Not an image this browser can read', true); }
@@ -261,11 +292,21 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
     return b;
   },
   addBox(b) {
-    b = { id: ++this.seq, line: -1, from: 0, to: 0, src: '', ...b };
+    b = { id: ++this.seq, line: -1, from: 0, to: 0, src: '', ...this.style, ...b };
     if (b.line >= 0) this.fit(b);
     this.boxes.push(b);
     this.sel = b.id;
   },
+  // A change lands on the selected box AND becomes the style for the next
+  // one, the way Paint's current colour does.
+  setStyle(k, v) {
+    if (this.selBox) this.selBox[k] = v;
+    this.style[k] = v;
+  },
+  styleAll() { for (const b of this.boxes) Object.assign(b, { ...this.style }); },
+  ink,
+  swatch: (c) => ({ background: c.fill, borderColor: c.border === 'none' ? 'transparent' : c.stroke,
+                    borderStyle: c.border === 'none' ? 'solid' : c.border }),
   removeBox(id) {
     this.boxes = this.boxes.filter(b => b.id !== id);
     if (this.sel === id) this.sel = null;
@@ -306,9 +347,15 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
     }
     this.sel = null;
   },
+  // A boxed word wears its box's own fill and border, so the list reads as
+  // the image does; the rest keep a transparent border to hold their size.
   wordClass(w) {
-    if (this.boxOfWord(w)) return 'bg-neutral text-neutral-content';
-    return w.kind ? 'bg-warning/30' : 'hover:bg-base-200';
+    if (this.boxOfWord(w)) return '';
+    return w.kind ? 'bg-warning/30 border-transparent' : 'hover:bg-base-200 border-transparent';
+  },
+  wordStyle(w) {
+    const b = this.boxOfWord(w);
+    return b ? { ...this.swatch(b), color: this.ink(b.fill) } : {};
   },
 
   // ── Pointer ────────────────────────────────────────────────────────────
@@ -366,7 +413,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
       g.strokeStyle = w.kind ? this.colors.warn : 'rgba(0,0,0,.18)';
       g.strokeRect(x0 - p, y0 - p, x1 - x0 + 2 * p, y1 - y0 + 2 * p);
     }
-    boxes.forEach(b => paint(g, b));
+    boxes.forEach(b => paint(g, b, this.base));
     const dashed = (r, fill) => {
       g.save();
       if (fill) { g.fillStyle = fill; g.fillRect(r.x, r.y, r.w, r.h); }
@@ -390,7 +437,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
   // ── Result ─────────────────────────────────────────────────────────────
   async done() {
     try {
-      const r = await exportVerified(this.boxes.map(b => ({ ...b })), this.crop, this.W, this.H);
+      const r = await exportVerified(this.boxes.map(b => ({ ...b })), this.crop, this.W, this.H, this.base);
       OUT = r.blob;
       if (this.out.url) URL.revokeObjectURL(this.out.url);
       this.out = { url: URL.createObjectURL(r.blob), checks: r.checks, w: r.w, h: r.h, size: r.blob.size, reread: '' };
@@ -426,7 +473,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 </script>
 <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
 </head>
-<body class="bg-base-200 min-h-dvh text-base-content" x-data="redact"
+<body class="bg-base-200 min-h-dvh text-base-content [--radius-box:0rem] [--radius-field:0rem] [--radius-selector:0rem]" x-data="redact"
       @paste.window="onPaste($event)" @dragover.window.prevent @drop.window.prevent="onDrop($event)"
       @keydown.window="onKey($event)">
 
@@ -447,12 +494,48 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 
   <div class="flex flex-wrap items-center gap-2 px-4 pb-2" x-show="view === 'edit'">
     <div class="join">
-      <button class="btn btn-sm join-item" :class="mode === 'tap' && 'btn-active'" @click="mode = 'tap'"><i class="ph ph-hand-pointing"></i>Tap</button>
-      <button class="btn btn-sm join-item" :class="mode === 'draw' && 'btn-active'" @click="mode = 'draw'"><i class="ph ph-rectangle"></i>Draw</button>
-      <button class="btn btn-sm join-item" :class="mode === 'crop' && 'btn-active'" @click="mode = 'crop'"><i class="ph ph-crop"></i>Crop</button>
+      <button class="btn btn-sm join-item" :class="mode === 'tap' && 'btn-active'" @click="mode = 'tap'" aria-label="Tap"><i class="ph ph-hand-pointing"></i><span class="hidden sm:inline">Tap</span></button>
+      <button class="btn btn-sm join-item" :class="mode === 'draw' && 'btn-active'" @click="mode = 'draw'" aria-label="Draw"><i class="ph ph-rectangle"></i><span class="hidden sm:inline">Draw</span></button>
+      <button class="btn btn-sm join-item" :class="mode === 'crop' && 'btn-active'" @click="mode = 'crop'" aria-label="Crop"><i class="ph ph-crop"></i><span class="hidden sm:inline">Crop</span></button>
     </div>
     <button class="btn btn-sm" @click="findText()" :disabled="!!ocr.busy">
       <i class="ph ph-text-aa"></i><span x-text="lines.length ? 'Find again' : 'Find text'"></span></button>
+    <details class="dropdown dropdown-end" @click.outside="$el.removeAttribute('open')">
+      <summary class="btn btn-sm"><span class="w-4 h-4 border-2 shrink-0" :style="swatch(cur)"></span>Style</summary>
+      <div class="dropdown-content z-30 mt-1 w-72 bg-base-100 border border-base-300 shadow p-3 space-y-3">
+        <div class="text-xs font-mono text-base-content/60" x-text="curName"></div>
+        <div class="space-y-1">
+          <div class="text-xs text-base-content/60">Fill</div>
+          <div class="flex items-center gap-1">
+            <button class="w-8 h-8 border-2 bg-[#ffffff]" :class="cur.fill === '#ffffff' ? 'border-base-content' : 'border-base-300'" @click="setStyle('fill', '#ffffff')" aria-label="White"></button>
+            <button class="w-8 h-8 border-2 bg-[#000000]" :class="cur.fill === '#000000' ? 'border-base-content' : 'border-base-300'" @click="setStyle('fill', '#000000')" aria-label="Black"></button>
+            <button class="w-8 h-8 border-2 bg-[#9ca3af]" :class="cur.fill === '#9ca3af' ? 'border-base-content' : 'border-base-300'" @click="setStyle('fill', '#9ca3af')" aria-label="Gray"></button>
+            <button class="w-8 h-8 border-2 bg-[#fde047]" :class="cur.fill === '#fde047' ? 'border-base-content' : 'border-base-300'" @click="setStyle('fill', '#fde047')" aria-label="Yellow"></button>
+            <input type="color" class="w-8 h-8 p-0 border-2 border-base-300 bg-base-100 cursor-pointer ml-auto" :value="cur.fill"
+                   @input="setStyle('fill', $event.target.value)" aria-label="Fill colour">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <div class="text-xs text-base-content/60">Border</div>
+          <div class="join w-full">
+            <button class="btn btn-xs join-item flex-1" :class="cur.border === 'none' && 'btn-active'" @click="setStyle('border', 'none')">None</button>
+            <button class="btn btn-xs join-item flex-1" :class="cur.border === 'solid' && 'btn-active'" @click="setStyle('border', 'solid')">Solid</button>
+            <button class="btn btn-xs join-item flex-1" :class="cur.border === 'dashed' && 'btn-active'" @click="setStyle('border', 'dashed')">Dashed</button>
+            <button class="btn btn-xs join-item flex-1" :class="cur.border === 'dotted' && 'btn-active'" @click="setStyle('border', 'dotted')">Dotted</button>
+          </div>
+          <div class="flex items-center gap-1" x-show="cur.border !== 'none'">
+            <input type="color" class="w-8 h-6 p-0 border-2 border-base-300 bg-base-100 cursor-pointer" :value="cur.stroke"
+                   @input="setStyle('stroke', $event.target.value)" aria-label="Border colour">
+            <div class="join flex-1">
+              <button class="btn btn-xs join-item flex-1" :class="cur.bw === 1 && 'btn-active'" @click="setStyle('bw', 1)">Thin</button>
+              <button class="btn btn-xs join-item flex-1" :class="cur.bw === 2 && 'btn-active'" @click="setStyle('bw', 2)">Medium</button>
+              <button class="btn btn-xs join-item flex-1" :class="cur.bw === 4 && 'btn-active'" @click="setStyle('bw', 4)">Thick</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-sm w-full" @click="styleAll()" :disabled="!boxes.length">Apply to all boxes</button>
+      </div>
+    </details>
     <button class="btn btn-sm btn-ghost" x-show="!!crop" @click="crop = null"><i class="ph ph-x"></i>Uncrop</button>
   </div>
 
@@ -478,13 +561,13 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 
 <main x-show="view === 'edit'" class="grid gap-4 p-4 items-start lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
   <div class="min-w-0 flex justify-center">
-    <canvas x-ref="cv" class="block max-w-full max-h-[70dvh] lg:max-h-[calc(100dvh-9rem)] w-auto h-auto rounded-box shadow-sm bg-base-100"
+    <canvas x-ref="cv" class="block max-w-full max-h-[70dvh] lg:max-h-[calc(100dvh-9rem)] w-auto h-auto border border-base-300 bg-base-100"
             :class="mode === 'tap' ? 'cursor-pointer' : 'cursor-crosshair touch-none select-none'"
             @pointerdown="down($event)" @pointermove="move($event)" @pointerup="up($event)"
             @pointercancel="start = null; drag = null"></canvas>
   </div>
 
-  <section class="card bg-base-100 shadow-sm min-w-0 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-auto">
+  <section class="card bg-base-100 border border-base-300 min-w-0 lg:sticky lg:top-32 lg:max-h-[calc(100dvh-9rem)] lg:overflow-auto">
     <div class="tabs tabs-border px-2">
       <button class="tab gap-2" :class="tab === 'text' && 'tab-active'" @click="tab = 'text'">Text
         <span class="badge badge-sm" x-show="lines.length" x-text="words.length"></span></button>
@@ -507,7 +590,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
           <div class="flex items-start gap-1">
             <div class="flex flex-wrap gap-1 min-w-0 flex-1">
               <template x-for="w in ln.words" :key="w.id">
-                <button class="px-1 rounded text-base leading-7" :class="wordClass(w)" @click="toggleWord(w)" x-text="w.text"></button>
+                <button class="px-1 border-2 text-base leading-7" :class="wordClass(w)" :style="wordStyle(w)" @click="toggleWord(w)" x-text="w.text"></button>
               </template>
             </div>
             <button class="btn btn-ghost btn-xs mt-1" @click="boxLine(ln)" title="Box the line" aria-label="Box the line">
@@ -519,8 +602,9 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 
     <div class="p-4" x-show="tab === 'boxes'">
       <template x-for="(b, i) in boxes" :key="b.id">
-        <div class="flex items-center gap-2 py-2 px-1 rounded" :class="{ 'border-t border-base-200': i, 'bg-base-200': sel === b.id }">
-          <button class="w-7 h-7 rounded bg-neutral text-neutral-content text-xs font-mono shrink-0" @click="sel = b.id" x-text="i + 1"></button>
+        <div class="flex items-center gap-2 py-2 px-1" :class="{ 'border-t border-base-200': i, 'bg-base-200': sel === b.id }">
+          <button class="w-7 h-7 border-2 text-xs font-mono shrink-0" @click="sel = b.id" x-text="i + 1"
+                  :style="{ ...swatch(b), color: ink(b.fill) }"></button>
           <div class="min-w-0 flex-1 space-y-1">
             <div class="text-xs font-mono text-base-content/60 truncate" x-text="b.src || 'drawn'"></div>
             <input class="input input-sm w-full" list="labels" placeholder="no label" x-model="b.label"
@@ -536,9 +620,9 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
 
 <main x-show="view === 'result'" class="grid gap-4 p-4 items-start lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
   <div class="min-w-0 flex justify-center">
-    <img :src="out.url || null" alt="Redacted result" class="block max-w-full max-h-[70dvh] lg:max-h-[calc(100dvh-9rem)] w-auto h-auto rounded-box shadow-sm">
+    <img :src="out.url || null" alt="Redacted result" class="block max-w-full max-h-[70dvh] lg:max-h-[calc(100dvh-9rem)] w-auto h-auto border border-base-300">
   </div>
-  <section class="card bg-base-100 shadow-sm min-w-0 p-4 space-y-4">
+  <section class="card bg-base-100 border border-base-300 min-w-0 p-4 space-y-4">
     <div role="alert" class="alert" :class="verified ? 'alert-success' : 'alert-error'">
       <i class="ph text-xl" :class="verified ? 'ph-shield-check' : 'ph-warning'"></i>
       <span x-text="verdict"></span>
@@ -559,7 +643,7 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
     </table>
     <div class="space-y-2">
       <button class="btn btn-sm" @click="reread()" :disabled="!!ocr.busy"><i class="ph ph-text-aa"></i>Read the result</button>
-      <div class="text-sm whitespace-pre-wrap bg-base-200 rounded-box p-3" x-show="!!out.reread" x-text="out.reread"></div>
+      <div class="text-sm whitespace-pre-wrap bg-base-200 p-3" x-show="!!out.reread" x-text="out.reread"></div>
     </div>
   </section>
 </main>
