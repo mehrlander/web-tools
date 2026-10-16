@@ -232,21 +232,27 @@ test('intro= alone is one card with the message, no target, and nothing to warn 
   assert.ok(card(w).querySelector('[data-stop]'), 'and it closes');
 });
 
-test('intro= goes first, and the place the link names comes next', async () => {
-  const w = realm('<p data-at="x">Hello</p>',
-    'intro=' + encodeURIComponent('What changed') + '&show=x&say=' + encodeURIComponent('Here it is'));
+test('intro= rides on the first card when that card points at something', async () => {
+  // The first card shows a place rather than spending a card on words alone
+  // (the owner's call, 2026-10-16); the intro is its lead line.
+  const w = realm('<p data-at="x">Hello</p><p data-at="y">There</p>',
+    'intro=' + encodeURIComponent('What changed') + '&steps=' +
+    encodeURIComponent(JSON.stringify([{ at: 'x', say: 'Here it is' }, { at: 'y', say: 'And here' }])));
   await loaded(w);
   await wait(30);
-  assert.equal(said(w), 'What changed');
-  assert.match(card(w).textContent, /1 of 2/);
-  assert.ok(card(w).querySelector('[aria-label="Next"]'), 'a note moves on with the filled arrow');
+  assert.equal(card(w).querySelector('[data-intro]').textContent, 'What changed');
+  assert.equal(said(w), 'Here it is');
+  assert.match(card(w).textContent, /1 of 2/, 'no card of its own');
+  assert.equal(halo(w).style.display, 'block', 'and the first card lands');
   card(w).querySelector('[aria-label="Next"]').click();
   await wait(30);
-  assert.equal(said(w), 'Here it is');
-  assert.equal(halo(w).style.display, 'block', 'the second step lands');
-  card(w).querySelector('[data-go="-1"]').click();
+  assert.equal(card(w).querySelector('[data-intro]'), null, 'the lead belongs to the first card only');
+  // A lone landing carries it too, above the message.
+  const one = realm('<p data-at="x">Hello</p>', 'intro=Hi&show=x&say=There');
+  await loaded(one);
   await wait(30);
-  assert.equal(said(w), 'What changed', 'Back reaches the note, which has no target to be missing');
+  assert.equal(card(one).querySelector('[data-intro]').textContent, 'Hi');
+  assert.equal(said(one), 'There');
 });
 
 test('a broken walk still shows its intro, then says what broke', async () => {
@@ -265,6 +271,90 @@ test('a step with a message and no anchor survives cleaning as a note', async ()
   await wait(30);
   assert.equal(said(w), 'context first');
   assert.match(card(w).textContent, /1 of 2/, 'a step with neither anchor nor message is dropped');
+});
+
+// THE HAND SAYS WHAT TO DO, AND THE CARD SAYS HOW TO COME BACK (2026-10-16).
+const act = (w) => w.document.querySelector('[data-look="pointer"] [data-act]')?.textContent;
+
+test('the hand carries a label: the step\'s own, else one for the pointer', async () => {
+  const w = realm('<button data-at="go">Go</button><button data-at="b">B</button>');
+  w.Look.start([{ at: 'go', tap: 'Tap to open the tab', say: 'Open it' }]);
+  await wait(30);
+  assert.equal(act(w), 'Tap to open the tab');
+  w.Look.start([{ at: 'b', tap: true, say: 'Press B' }]);
+  await wait(30);
+  assert.match(act(w), /^(Tap|Click) here$/);
+});
+
+test('a tap that opens another page says to use Back, and one that opens a tab says so', async () => {
+  const w = realm('<a data-at="away" href="/elsewhere.html">Elsewhere</a>' +
+                  '<a data-at="tab" href="/x.html" target="_blank">New tab</a>' +
+                  '<a data-at="here" href="?view=other">Same page</a>');
+  const leave = () => card(w).querySelector('[data-leave]');
+  w.Look.start([{ at: 'away', tap: true, say: 'Go there' }]);
+  await wait(30);
+  assert.equal(leave().dataset.leave, 'page');
+  assert.match(leave().textContent, /Use Back to return to the walk/);
+  assert.match(act(w), /to open$/);
+  w.Look.start([{ at: 'tab', tap: true, say: 'Open it' }]);
+  await wait(30);
+  assert.equal(leave().dataset.leave, 'tab');
+  w.Look.start([{ at: 'here', tap: true, say: 'Route in place' }]);
+  await wait(30);
+  assert.equal(leave(), null, 'a link that only changes the query stays, as an app routes it in place');
+});
+
+test('the braces show the walk as JSON, in the shape a link carries, and stay open across steps', async () => {
+  const w = realm('<p data-at="a">a</p><button data-at="b">b</button>',
+    'intro=Hi&steps=' + encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', tap: 'Press', say: 'two' }])));
+  await loaded(w);
+  await wait(30);
+  const view = () => card(w).querySelector('[data-spec-part]');
+  assert.equal(view().style.display, 'none', 'hidden until asked');
+  card(w).querySelector('[data-json]').click();
+  assert.equal(view().style.display, '');
+  assert.deepEqual(JSON.parse(card(w).querySelector('[data-spec]').textContent),
+    [{ intro: 'Hi', at: 'a', say: 'one' }, { at: 'b', say: 'two', tap: 'Press' }]);
+  assert.match(view().textContent, /From the link: steps=, intro=/);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
+  assert.equal(view().style.display, '', 'still open on the next step');
+});
+
+test('a walk from the link resumes at the step reached, and ending it forgets', async () => {
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p><p data-at="c">c</p>',
+    'steps=' + encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }, { at: 'c', say: 'three' }])));
+  await loaded(w);
+  await wait(30);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
+  assert.equal(said(w), 'two');
+  // What a fresh load of the same link does, short of a second realm.
+  w.Look.fromLocation();
+  await wait(30);
+  assert.equal(said(w), 'two', 'resumed, not restarted');
+  card(w).querySelector('[data-stop]').click();
+  w.Look.fromLocation();
+  await wait(30);
+  assert.equal(said(w), 'one', 'closed, so the next load starts over');
+});
+
+test('a missing target after a tap that was done names the target, not the tap', async () => {
+  const w = realm('<button data-at="go">Go</button>');
+  w.Look.start([{ at: 'go', tap: true, say: 'Press' }, { at: 'gone', say: 'unused' }], { wait: 60 });
+  await wait(30);
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(30);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(150);
+  assert.match(said(w), /^Not on this page: gone$/);
+});
+
+test('the mark is a fixed highlighter yellow, not the theme\'s warning colour', () => {
+  // daisyUI's light theme makes --color-warning an amber, which tinted to 30%
+  // read as peach on the app (2026-10-16).
+  assert.match(KIT, /const WARN = '#[0-9a-f]{6}';/);
+  assert.match(KIT, /color-mix\(in oklab, #[0-9a-f]{6} \$\{pct\}%, transparent\)/);
 });
 
 test('Escape takes the marker down', async () => {
