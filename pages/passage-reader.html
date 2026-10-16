@@ -385,13 +385,19 @@ document.addEventListener('alpine:init', () => {
       if (dx) lab.style.translate = `${Math.round(dx)}px`;
     },
     fitOpen() { document.querySelectorAll('[data-gap][data-open]').forEach(g => this.fitGap(g)); },
+    // The label restores the missing words in brackets, the editor's mark for
+    // words supplied, with the entity's own words in its purple; the slot
+    // they fill sits beneath, then any note.
     gapsAfter(p, lit) {
       return p.on.filter(r => r.gap && r.b === p.b).map(r => {
-        const m = r.m, a = r.ante, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e;
-        const name = m.slot || 'Ellipsis', tip = (a ? name : `${name}: ${fill}`) + (m.note ? `. ${m.note}` : '');
+        const m = r.m, a = r.ante, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e, name = m.slot || 'Ellipsis';
+        const tip = `[${fill}], ${name}` + (m.note ? `. ${m.note}` : '');
+        const words = this.markNames(fill, [m.e], (k, t) => `<span class="rounded box-decoration-clone bg-primary/20 px-0.5">${t}</span>`);
+        const label = `<span class="block text-sm leading-6">[${words}]</span><span class="block text-base-content/60">${esc(name)}</span>`
+          + (m.note ? `<span class="block text-base-content/60">${esc(m.note)}</span>` : '');
         return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}"${this.gapOpen === r.key ? ' data-open' : ''} tabindex="0" role="button" aria-label="${esc(tip)}"`
           + ` class="group relative select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?`
-          + `<span class="absolute bottom-full left-0 mb-1 hidden group-hover:block group-data-[open]:block w-max max-w-64 rounded border border-base-300 bg-base-100 px-1.5 py-0.5 text-xs font-normal leading-tight text-base-content shadow-sm pointer-events-none">${esc(tip)}</span></span>`;
+          + `<span class="absolute bottom-full left-0 mb-1 hidden group-hover:block group-data-[open]:block w-max max-w-64 rounded border border-base-300 bg-base-100 px-1.5 py-1 text-xs font-normal leading-tight text-base-content shadow-sm pointer-events-none">${label}</span></span>`;
       }).join('');
     },
 
@@ -543,16 +549,20 @@ document.addEventListener('alpine:init', () => {
     // first. A claim that names one some other way leaves it unmarked; `on`
     // still lists it, and hovering the atom still marks its row.
     claimHtml(a, eid) {
-      const E = this.R.entities, text = a.claim, hits = [];
+      return this.markNames(a.claim, a.on || [], (k, t) => `<span data-k="e:${k}" data-items="${eid[k] || ''}" class="rounded box-decoration-clone bg-primary/20 ${TONE.here.lit}"${this.entityTip(k)}>${t}</span>`);
+    },
+    // Text with the words naming entities `ks` wrapped by `wrap(k, words)`, the rest escaped.
+    markNames(text, ks, wrap) {
+      const E = this.R.entities, hits = [];
       const names = k => [E[k]?.label, ...this.R.sentences.flatMap(s => s.mentions.filter(m => m.e === k && (!m.form || m.form === 'anaphor' && /\s/.test(m.quote.trim()))).map(m => m.quote))]
         .filter(Boolean).map(plain).sort((x, y) => y.length - x.length);
-      for (const k of a.on || []) for (const q of names(k)) {
+      for (const k of ks) for (const q of names(k)) {
         const mt = new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').exec(text);
         if (mt && !hits.some(h => mt.index < h.b && mt.index + q.length > h.a)) { hits.push({ a: mt.index, b: mt.index + q.length, k }); break; }
       }
       let out = '', at = 0;
       for (const h of hits.sort((x, y) => x.a - y.a)) {
-        out += esc(text.slice(at, h.a)) + `<span data-k="e:${h.k}" data-items="${eid[h.k] || ''}" class="rounded box-decoration-clone bg-primary/20 ${TONE.here.lit}"${this.entityTip(h.k)}>${esc(text.slice(h.a, h.b))}</span>`;
+        out += esc(text.slice(at, h.a)) + wrap(h.k, esc(text.slice(h.a, h.b)));
         at = h.b;
       }
       return out + esc(text.slice(at));
