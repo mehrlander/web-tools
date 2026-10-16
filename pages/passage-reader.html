@@ -37,8 +37,9 @@
   way, with its spans in the position colours and its line purple. The card
   shows the sentence alone under its bar and a rule, then its atoms, then
   Entities (In play, New here) and Connections (Carried in, Within, Carried
-  forward), each part told apart by its colour. The accent colour (teal) marks
-  the current sentence itself, in the passage, on its card and in the dots.
+  forward), each part told apart by its colour. Purple also marks the current
+  sentence itself: its outline in the passage, the bar beside it on its card,
+  its dot, and its number in the card bar, solid like its "from here" badge.
   An ellipsis, words a sentence leaves for the reader to supply, shows as a
   raised question mark after the word its gap follows; hovering or tapping it
   draws an arrow to the words it stands for, and the sentence's own words stay
@@ -79,7 +80,7 @@ document.addEventListener('alpine:init', () => {
   };
   const kindIcon = k => KIND[k] ? `<i class="ph ${KIND[k].icon} mr-1.5 align-[-0.125em] text-base-content/50" aria-label="${KIND[k].label}" data-title-tip="${KIND[k].label}" data-title-tip-bare></i>` : '';
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
-  // An ellipsis badge: a raised question mark in the accent's text colour, the
+  // An ellipsis badge: a raised question mark in the primary text colour, the
   // page's mark for something to open, full when the gap is lit and faded when
   // it waits.
   const GAP = { base: 'align-[0.45em] ml-px text-sm font-bold leading-none', idle: 'text-primary/50', lit: 'text-primary', on: 'data-[on]:text-primary' };
@@ -262,6 +263,7 @@ document.addEventListener('alpine:init', () => {
       return s.n + (t ? ' · ' + t.label : '');
     },
     get kindLabel() { return this.kindOf(this.cur); },
+    get kindName() { return TYPE[this.s.atoms?.[0]?.type]?.label || ''; },
     // Sentences tied to the lit one by a link, either way.
     get linked() {
       const n = this.s.n;
@@ -438,7 +440,7 @@ document.addEventListener('alpine:init', () => {
         const ranges = X.rng[s.n], m = { fill, web, pos: this.side(s.n, lit) };
         const gapTone = k => on || fill.has(k);
         const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-accent)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
@@ -664,7 +666,7 @@ document.addEventListener('alpine:init', () => {
       const list = its => `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
       const atoms = all.atoms.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</section>` : '';
       el.innerHTML = `<article class="grid gap-4 text-lg">
-        <p class="leading-8 text-pretty border-l-4 border-accent pl-4">${this.sentenceHtml(n, active)}</p>
+        <p class="leading-8 text-pretty border-l-4 border-primary pl-4">${this.sentenceHtml(n, active)}</p>
         <hr class="border-base-300">
         ${atoms}
         ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid gap-1">${head(g)}${list(all[g.key])}</section>`).join('')}
@@ -774,18 +776,20 @@ document.addEventListener('alpine:init', () => {
         <div class="flex items-center gap-1 px-2 sm:px-4 py-1 border-b border-base-200">
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
           <div class="items-center gap-2 px-1" :class="N <= 12 ? 'hidden' : N <= 25 ? 'flex sm:hidden' : 'flex'">
-            <progress class="progress progress-accent w-20 sm:w-32" :value="cur + 1" :max="N"></progress>
+            <progress class="progress progress-primary w-20 sm:w-32" :value="cur + 1" :max="N"></progress>
             <span class="tabular-nums text-sm text-base-content/60" x-text="(cur + 1) + ' / ' + N"></span>
           </div>
           <div class="items-center" :class="N <= 12 ? 'flex' : N <= 25 ? 'hidden sm:flex' : 'hidden'">
             <template x-for="(t, i) in R.sentences" :key="t.n">
               <button class="p-[2px] sm:p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
-                <span class="block size-2.5 rounded-full" :class="i === cur ? 'bg-accent' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
+                <span class="block size-2 sm:size-2.5 rounded-full" :class="i === cur ? 'bg-primary' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
               </button>
             </template>
           </div>
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
-          <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="kindLabel"></span>
+          <span class="flex items-center gap-1 sm:gap-1.5 min-w-0 text-sm font-semibold text-base-content/70 ml-1 sm:ml-0" :aria-label="kindLabel">
+            <span class="inline-flex shrink-0 items-center justify-center size-5 rounded-full text-xs tabular-nums bg-primary text-primary-content ring-2 ring-[var(--color-primary)]/30 ring-offset-1 ring-offset-base-100" x-text="s.n"></span>
+            <span class="truncate" x-text="kindName"></span></span>
           <div class="join ml-auto shrink-0" role="tablist" aria-label="Group">
             <template x-for="g in GROUPS" :key="g.key">
               <button type="button" class="join-item btn btn-sm btn-square" role="tab" :aria-selected="!about && group === g.key ? 'true' : 'false'"
