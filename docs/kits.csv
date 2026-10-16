@@ -96,8 +96,8 @@ lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) an
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",340,no,yes,18,yes
-lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,140,no,no,4,yes
-lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",675,yes,no,4,yes
+lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,175,no,no,4,yes
+lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",633,yes,no,4,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,162,no,no,2,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,7,yes
 lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,153,no,no,3,yes
