@@ -42,7 +42,7 @@ lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",2
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",774,no,yes,4,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1488,no,yes,17,yes
-lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1029,no,no,15,yes
+lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1031,no,no,15,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",278,no,no,2,yes
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1254,no,no,5,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
