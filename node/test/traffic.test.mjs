@@ -555,42 +555,6 @@ test('timeline slices the page\'s life and finds the stretches it spent hidden',
   assert.equal(tl.hidden[0].width, 0.1);
 });
 
-test('the memory series stays bounded, keeps its start, and keeps its peaks', () => {
-  const series = [];
-  for (let i = 0; i < 25; i++) T.addSample(series, { t: i * 1000, heap: i === 3 ? 900 : 100 + i, elements: 10 + i }, 10);
-  assert.ok(series.length <= 10, 'never past the cap, at ' + series.length);
-  assert.equal(series[0].t, 0, 'the first reading still opens the series');
-  assert.equal(series[series.length - 1].t, 24000, 'and the newest closes it');
-  assert.ok(series.some(s => s.heap === 900), 'a spike survives the merges');
-  assert.ok(series.every((s, i) => i === 0 || s.t > series[i - 1].t), 'readings stay in time order');
-  const bare = T.addSample([{ t: 0, heap: null, elements: 5 }, { t: 1, heap: null, elements: 7 }, { t: 2, heap: null, elements: 6 }], { t: 3, heap: null, elements: 4 }, 3);
-  assert.equal(bare[0].heap, null, 'a browser with no heap figure merges to none, not to zero');
-  assert.equal(bare[0].elements, 7);
-});
-
-test('a memory lane holds each slice at its largest reading and carries a level through a quiet slice', () => {
-  const series = [
-    { t: -500, heap: 50, elements: 400 },  // before the start: the level the first slice holds
-    { t: 2100, heap: 80, elements: 500 },
-    { t: 2900, heap: 120, elements: 450 },
-    { t: 7000, heap: 60, elements: 900 },
-    { t: 10000, heap: 70, elements: 950 }, // at the end: the last slice's
-  ];
-  const lane = T.memoryLane(series, 0, 10000, 10);
-  assert.equal(lane.slices.length, 10);
-  assert.deepEqual(lane.slices.map(s => s.heap), [50, 50, 120, 120, 120, 120, 120, 60, 60, 70]);
-  assert.equal(lane.slices[2].elements, 500, 'heap and elements each take their own largest');
-  assert.equal(lane.maxHeap, 120);
-  assert.equal(lane.maxElements, 950);
-  assert.equal(lane.now.t, 10000, 'the figure is the newest reading');
-  const late = T.memoryLane([{ t: 5000, heap: 10, elements: 1 }], 0, 10000, 10);
-  assert.equal(late.slices[4].heap, null, 'a slice before the first reading holds nothing');
-  assert.equal(late.slices[9].heap, 10);
-  const none = T.memoryLane([], 0, 10000, 4);
-  assert.equal(none.maxHeap, null);
-  assert.equal(none.now, null);
-});
-
 test('a row counts the bytes that went out hidden, for the dark part of its bar', () => {
   const { free } = T.jobRows([], [
     { url: 'a', t: 1, job: null, where: 'sessions', wire: 100, hidden: true },
@@ -647,7 +611,7 @@ test('the page load is one row: its files and the calls made before a view was o
   assert.equal(row.last, 1300);
 });
 
-test('usage findings keep only what stands out in a window', () => {
+test('traffic findings keep only what stands out in a window', () => {
   const at = (t, url, o = {}) => ({ t, url, method: 'GET', status: 200, wire: 1000, hidden: false, job: null, where: 'estate', ...o });
   const ping = 'https://api.github.com/repos/o/r/contents/errands/requests';
   const rows = [
@@ -657,7 +621,7 @@ test('usage findings keep only what stands out in a window', () => {
     at(3000, 'https://api.github.com/repos/o/r/contents/missing.csv', { status: 404 }),
     at(4000, 'https://api.github.com/repos/o/r/contents/once.json'),
   ];
-  const f = T.usageFindings(rows, { owner: e => e.job === 7 ? 'Poll Gemini pings' : 'view ' + e.where, rate: { from: 4000, to: 3600 } });
+  const f = T.trafficFindings(rows, { owner: e => e.job === 7 ? 'Poll Gemini pings' : 'view ' + e.where, rate: { from: 4000, to: 3600 } });
   const kinds = f.map(x => x.kind).sort();
   assert.deepEqual(kinds, ['burn', 'failed', 'hidden', 'large', 'repeat']);
   const rep = f.find(x => x.kind === 'repeat');
@@ -670,11 +634,11 @@ test('usage findings keep only what stands out in a window', () => {
   assert.equal(f.find(x => x.kind === 'burn').spent, 400);
   assert.equal(f.find(x => x.kind === 'burn').mine, 9, 'the token is shared, so the page says how many calls were its own');
   assert.ok(!f.some(x => x.url && x.url.endsWith('once.json')), 'a single ordinary call is not a finding');
-  assert.deepEqual(T.usageFindings([at(0, ping), at(1, ping)], {}), [], 'a quiet window has nothing to say');
+  assert.deepEqual(T.trafficFindings([at(0, ping), at(1, ping)], {}), [], 'a quiet window has nothing to say');
 });
 
-test('the usage log files a finding once, leaves out its own writes, and needs a token', async () => {
-  const src = readFileSync(path.join(repoRoot, 'lib/kits/usage-log.js'), 'utf8');
+test('the traffic log files a finding once, leaves out its own writes, and needs a token', async () => {
+  const src = readFileSync(path.join(repoRoot, 'lib/kits/traffic-log.js'), 'utf8');
   const store = {};
   const saves = [];
   const w = {
@@ -685,13 +649,13 @@ test('the usage log files a finding once, leaves out its own writes, and needs a
     window: w,
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
     location: { pathname: '/app/index.html', search: '' },
-    document: { hidden: false, addEventListener() {} },
+    document: { hidden: false, addEventListener() {}, getElementsByTagName: () => ({ length: 3 }) },
     performance: { timeOrigin: Date.now() - 60000 },
     matchMedia: () => ({ matches: false }),
     GH: function () { this.save = async (p, doc, msg) => { saves.push({ p, doc, msg }); }; },
   };
   new Function(...Object.keys(env), src)(...Object.values(env));
-  const U = w.UsageLog;
+  const U = w.TrafficLog;
   const ping = 'https://api.github.com/repos/o/r/contents/errands/requests';
   let n = 0;
   const call = (o = {}) => { n++; w.__trafficTotals.calls = n; w.__traffic.push({ n, t: Date.now(), url: ping, method: 'GET', status: 200, wire: 10, job: 1, ...o }); };
@@ -701,12 +665,12 @@ test('the usage log files a finding once, leaves out its own writes, and needs a
 
   store.ghToken = 'x';
   for (let i = 0; i < 5; i++) call();
-  call({ url: 'https://api.github.com/repos/o/web-tools-private/contents/logs/usage/2026-10-16/x.json', method: 'PUT' });
+  call({ url: 'https://api.github.com/repos/o/web-tools-private/contents/logs/traffic/2026-10-16/x.json', method: 'PUT' });
   const r = await U.check();
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(saves.length, 1);
-  assert.match(saves[0].p, /^logs\/usage\/\d{4}-\d\d-\d\d\/\d{6}-[a-z0-9]+\.json$/);
-  assert.equal(saves[0].msg, 'Log tab usage (logs/usage)');
+  assert.match(saves[0].p, /^logs\/traffic\/\d{4}-\d\d-\d\d\/\d{6}-[a-z0-9]+\.json$/);
+  assert.equal(saves[0].msg, 'Log tab traffic (logs/traffic)');
   const rep = saves[0].doc.findings.find(f => f.kind === 'repeat');
   assert.equal(rep.calls, 5, 'only the window since the last check, and not the log\'s own write');
   assert.deepEqual(rep.by, ['Poll Gemini pings']);

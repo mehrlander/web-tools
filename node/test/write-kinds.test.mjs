@@ -30,8 +30,8 @@ test('the four cache refreshes are the crawl, by the subject the app writes', ()
   }
 });
 
-test('the usage log reads as the app writing its own state, beside the crawl', () => {
-  assert.equal(kind('Log tab usage (logs/usage)'), 'crawl');
+test('the traffic log reads as the app writing its own state, beside the crawl', () => {
+  assert.equal(kind('Log tab traffic (logs/traffic)'), 'crawl');
 });
 
 test('the trailer means a person tapped, under either name the app has had', () => {
