@@ -76,6 +76,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -784,14 +785,98 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
                 f"#gh={slug}@{sha}:pages/<the page to render>.html")
+    if mech == "toss-data":
+        # The renderer's data route, on web-tools main whatever repo holds the
+        # file: data-view.html reads the file at the ref in the address and
+        # picks a mode by its content. A trailing #frag reaches the viewer page,
+        # so a look link rides here as it does on a page.
+        return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
+                f"#data={slug}@{sha}:{quote(page, safe='/@:._-~')}{frag}")
     return ""
+
+
+# DOCUMENTS AND DATA. The toss shows a Markdown file as a preview and a CSV or
+# JSON file as a table, through its data route (#data=), so a branch that
+# changed only a doc still has a 🥏 link. Until 2026-10-16 this script printed
+# "No render link: nothing that renders changed" for one, and sessions handed
+# over GitHub blob links instead: most of home's work is Markdown, so most of
+# its links lost the frisbee. Which extensions count is the FAB guide's own
+# routing list (DATA_EXT in lib/kits/guide-render.js), read rather than copied
+# so a guide link and a printed link cannot route one file two ways; the
+# literal is the fallback for a copy of this script fetched alone.
+DATA_EXT_FALLBACK = ("md", "markdown", "csv", "tsv", "json", "txt", "log", "yml", "yaml")
+DOC_CAP = 6
+# Tracker boards are generated wherever a tracker lives (docs/TRACKER.md), so
+# a board is never the document a branch is about.
+BOARD_FILES = ("board.md", "board.csv", "board-tags.csv")
+
+
+def doc_exts():
+    try:
+        src = (Path(__file__).resolve().parents[1] / "lib/kits/guide-render.js").read_text(errors="ignore")
+        m = re.search(r"const DATA_EXT = \[([^\]]*)\]", src)
+        if m:
+            return tuple(re.findall(r"'([^']+)'", m.group(1)))
+    except OSError:
+        pass
+    return DATA_EXT_FALLBACK
+
+
+def framed_hit(p, fr):
+    """Whether pick_framed already links this path through the app."""
+    return any(p.startswith(x) for pre in fr["views"].values() for x in pre) or \
+        bool(fr["dir"] and p.startswith(fr["dir"]))
+
+
+def documents(paths, covered=()):
+    exts, derived = doc_exts(), derived_paths()
+    out = []
+    for p in paths:
+        name = p.rsplit("/", 1)[-1]
+        if ("." not in name or name.rsplit(".", 1)[-1].lower() not in exts or name in BOARD_FILES
+                or is_derived(p, derived) or p in covered or p.startswith("archive/")):
+            continue
+        out.append(p)
+    return out
+
+
+def with_documents(d, paths, at="", query=""):
+    """Add the changed documents to a decision. Alone, they ARE the decision;
+    beside a page or lib change, they are listed after its links."""
+    if d["mechanism"] in ("unknown", "none-yet"):
+        return d
+    fr = frame()
+    docs = documents(paths, {p for p in paths if framed_hit(p, fr)} if fr else ())
+    if not docs:
+        return d
+    shown, rest = docs[:DOC_CAP], docs[DOC_CAP:]
+    warn = d.get("warnings", [])
+    if rest:
+        warn.append(f"{len(rest)} more changed document(s) are not linked ("
+                    + ", ".join(rest[:4]) + ("…" if len(rest) > 4 else "")
+                    + "): pass --files <path> to link one.")
+    if d["mechanism"] == "none-needed":
+        return decision("toss-data", [(p, None) for p in shown], d["sha"], d["repo"], hosted_ok(),
+                        ["only documents or data changed, and the toss shows them through its data route "
+                         "(#data=): Markdown as a preview, CSV and JSON as a table."],
+                        warn, {"branch": d["branch"], "pushed": d["pushed"]}, at, query)
+    d["documents"] = [{"page": p, "url": address("toss-data", p, d["sha"], d["repo"])} for p in shown]
+    d["why"].append("Each changed document listed after the page links opens through the data route (#data=).")
+    if any(len(l["url"]) >= MCP_URL_CAP for l in d["documents"]):
+        warn.append(f"a document link runs {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
+                    "MCP-written PR body or comment.")
+    d["warnings"] = warn
+    return d
 
 
 # Does this page read its own location.hash? A mechanical stand-in for "does it
 # need an address", and an advisory one: a page reading the hash for an optional
 # deep link trips it too. Being told to check costs a glance; a link onto an
-# empty form costs a round trip.
+# empty form costs a round trip. Only a page routes at all: a document opens in
+# the data viewer, and a Markdown file that MENTIONS location.hash is prose.
 def routes_on_hash(page):
+    if not page.endswith((".html", ".htm")):
+        return False
     f = ROOT / page
     try:
         return "location.hash" in f.read_text(errors="ignore")
@@ -799,7 +884,8 @@ def routes_on_hash(page):
         return False
 
 
-GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏"}
+GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏",
+         "toss-data": "🥏"}
 
 
 # LOOK LINKS (lib/kits/look.js): a page that loads the kit, or boots the
@@ -922,6 +1008,8 @@ def lines(d):
             via = f"  ({l['via']})" if l.get("via") and l["via"] != "declared route" else ""
             label = l["page"] + (f" ?view={l['view']}" if d["mechanism"] == "toss-app" and l.get("view") else "")
             out.append(f"{g} [{label}]({l['url']}){via}")
+        for l in d.get("documents", []):
+            out.append(f"🥏 [{l['page']}]({l['url']})")
         out.append("why: " + " ".join(d["why"]))
         if d.get("carried"):
             out.append(f"({len(d['carried'])} more pages import the pre-build, so they LOAD the change "
@@ -1007,10 +1095,13 @@ def main():
                  overlay=None if a.overlay is None else a.overlay == "yes",
                  lag=[x for x in a.main_changed.split(",") if x], removed=[x for x in a.removed.split(",") if x],
                  behind=a.behind)
+        d = with_documents(d, paths, a.at, a.query)
     else:
         try:
-            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at, query=a.query,
+            paths = changed(a.base, a.ref)
+            d = pick(paths, a.base, a.ref, diff=diff, at=a.at, query=a.query,
                      overlay=None if a.overlay is None else a.overlay == "yes")
+            d = with_documents(d, paths, a.at, a.query)
         except GitFailed as e:
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
