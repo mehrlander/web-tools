@@ -234,7 +234,7 @@ test('a title-tip inside a link stays quiet on touch too', () => {
   a.remove();
 });
 
-test('a disabled control has no tap of its own, so its title-tip takes it', () => {
+test('a disabled control ignores the tap, so its title-tip takes it', () => {
   const l = window.document.createElement('label');
   l.setAttribute('data-title-tip', 'Needs the pause record');
   l.innerHTML = '<input type="checkbox" disabled><span>Breaks</span>';
@@ -244,7 +244,7 @@ test('a disabled control has no tap of its own, so its title-tip takes it', () =
   TitleTip.close(); l.remove();
 });
 
-test('a control draws no underline and its inner title-tips take no tab stop', () => {
+test('a control keeps its look, and stays the only tab stop for what it holds', () => {
   assert.match(TitleTip.CSS, /:is\([^)]*button[^)]*\)\[data-title-tip\],:is\([^)]*button[^)]*\) \[data-title-tip\]\{text-decoration:none\}/);
   const b = window.document.createElement('button');
   b.innerHTML = '<span data-title-tip="inner label">x</span>';
