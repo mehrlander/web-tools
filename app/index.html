@@ -146,6 +146,10 @@
   // the commit the crawl was making anyway. Loaded before the three caches
   // because each writes one.
   await gh.load('kits/crawl-runs.js');
+  // What the app's network use did that is worth reading, filed to
+  // web-tools-private's logs/usage/ (started in init, beside the memory
+  // readings).
+  await gh.load('kits/usage-log.js');
   // The answer to the API's read-after-write lag: what this page last committed,
   // reconciled against what a read hands back. Loaded before the crawls because
   // each one folds a read into a write.
@@ -2971,6 +2975,7 @@ function app(){ return {
     // A hidden tab's timers are the browser's to slow, so a long hidden
     // stretch is read less often, not skipped.
     if (window.Traffic) { Traffic.sampleMemory(); setInterval(() => Traffic.sampleMemory(), 5000); }
+    window.UsageLog?.start();
   },
 
   async loadRecent(){

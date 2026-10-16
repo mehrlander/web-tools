@@ -646,3 +646,76 @@ test('the page load is one row: its files and the calls made before a view was o
   assert.equal(row.unknown, 1);
   assert.equal(row.last, 1300);
 });
+
+test('usage findings keep only what stands out in a window', () => {
+  const at = (t, url, o = {}) => ({ t, url, method: 'GET', status: 200, wire: 1000, hidden: false, job: null, where: 'estate', ...o });
+  const ping = 'https://api.github.com/repos/o/r/contents/errands/requests';
+  const rows = [
+    ...[0, 15000, 30000, 45000, 60000].map(t => at(t, ping, { job: 7, hidden: t >= 30000 })),
+    at(1000, 'https://api.github.com/repos/o/r/contents/big.json', { wire: 300 * 1024 }),
+    at(2000, 'https://api.github.com/repos/o/r/boom', { status: 502, msg: 'Server Error' }),
+    at(3000, 'https://api.github.com/repos/o/r/contents/missing.csv', { status: 404 }),
+    at(4000, 'https://api.github.com/repos/o/r/contents/once.json'),
+  ];
+  const f = T.usageFindings(rows, { owner: e => e.job === 7 ? 'Poll Gemini pings' : 'view ' + e.where, rate: { from: 4000, to: 3600 } });
+  const kinds = f.map(x => x.kind).sort();
+  assert.deepEqual(kinds, ['burn', 'failed', 'hidden', 'large', 'repeat']);
+  const rep = f.find(x => x.kind === 'repeat');
+  assert.equal(rep.calls, 5);
+  assert.equal(rep.hidden, 3);
+  assert.equal(rep.gapMs, 15000, 'the shortest gap between repeats is the poll interval');
+  assert.deepEqual(rep.by, ['Poll Gemini pings']);
+  assert.equal(f.find(x => x.kind === 'hidden').by, 'Poll Gemini pings');
+  assert.equal(f.find(x => x.kind === 'failed').status, 502, 'a 404 is not a failure');
+  assert.equal(f.find(x => x.kind === 'burn').spent, 400);
+  assert.equal(f.find(x => x.kind === 'burn').mine, 9, 'the token is shared, so the page says how many calls were its own');
+  assert.ok(!f.some(x => x.url && x.url.endsWith('once.json')), 'a single ordinary call is not a finding');
+  assert.deepEqual(T.usageFindings([at(0, ping), at(1, ping)], {}), [], 'a quiet window has nothing to say');
+});
+
+test('the usage log files a finding once, leaves out its own writes, and needs a token', async () => {
+  const src = readFileSync(path.join(repoRoot, 'lib/kits/usage-log.js'), 'utf8');
+  const store = {};
+  const saves = [];
+  const w = {
+    Traffic: T, __traffic: [], __trafficTotals: { calls: 0 }, __jobs: [{ id: 1, name: 'Poll Gemini pings' }],
+    __trafficRate: 4000, __trafficRateReset: 1,
+  };
+  const env = {
+    window: w,
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    location: { pathname: '/app/index.html', search: '' },
+    document: { hidden: false, addEventListener() {} },
+    performance: { timeOrigin: Date.now() - 60000 },
+    matchMedia: () => ({ matches: false }),
+    GH: function () { this.save = async (p, doc, msg) => { saves.push({ p, doc, msg }); }; },
+  };
+  new Function(...Object.keys(env), src)(...Object.values(env));
+  const U = w.UsageLog;
+  const ping = 'https://api.github.com/repos/o/r/contents/errands/requests';
+  let n = 0;
+  const call = (o = {}) => { n++; w.__trafficTotals.calls = n; w.__traffic.push({ n, t: Date.now(), url: ping, method: 'GET', status: 200, wire: 10, job: 1, ...o }); };
+
+  for (let i = 0; i < 5; i++) call();
+  assert.equal((await U.check()).why, 'no token', 'without a token nothing is written');
+
+  store.ghToken = 'x';
+  for (let i = 0; i < 5; i++) call();
+  call({ url: 'https://api.github.com/repos/o/web-tools-private/contents/logs/usage/2026-10-16/x.json', method: 'PUT' });
+  const r = await U.check();
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(saves.length, 1);
+  assert.match(saves[0].p, /^logs\/usage\/\d{4}-\d\d-\d\d\/\d{6}-[a-z0-9]+\.json$/);
+  assert.equal(saves[0].msg, 'Log tab usage (logs/usage)');
+  const rep = saves[0].doc.findings.find(f => f.kind === 'repeat');
+  assert.equal(rep.calls, 5, 'only the window since the last check, and not the log\'s own write');
+  assert.deepEqual(rep.by, ['Poll Gemini pings']);
+  assert.ok(!JSON.stringify(saves[0].doc).includes('"x"'), 'the token never reaches the file');
+
+  for (let i = 0; i < 5; i++) call();
+  assert.equal((await U.check()).why, 'nothing new', 'the same poll inside the hour is not filed again');
+  assert.equal(saves.length, 1);
+
+  U.disable();
+  assert.equal((await U.check()).why, 'not running');
+});
