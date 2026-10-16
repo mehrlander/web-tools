@@ -212,7 +212,6 @@ document.addEventListener('alpine:init', () => {
       catch (e) { this.err = e.message; return; }
       this.cur = Math.max(0, this.R.sentences.findIndex(s => String(s.n) === param('s')));
       try { const g = localStorage.getItem('passage-reader:group'); if (GROUPS.some(x => x.key === g)) this.group = g; } catch (e) {}
-      addEventListener('popstate', () => { this.about = false; });
       addEventListener('keydown', e => { if (e.key === 'Escape' && this.gapOpen) { this.gapOpen = null; document.querySelectorAll('[data-gap][data-open]').forEach(x => x.removeAttribute('data-open')); this.light(null); } });
       addEventListener('resize', () => { this.revealLit(); this.drawArrows(); });
       document.fonts?.ready.then(() => this.drawArrows());
@@ -311,9 +310,14 @@ document.addEventListener('alpine:init', () => {
       open ? this.gapTrace(open) : this.light(null);
     },
 
-    // The dialog holds a history entry, so the phone's back button closes it.
-    openAbout() { this.about = true; try { history.pushState({ reader: 'about' }, ''); } catch (e) {} },
-    closeAbout() { if (history.state && history.state.reader === 'about') history.back(); else this.about = false; },
+    // About is a third tab beside the lists: it takes the card pane's place,
+    // and leaving it puts the strip back at the current card.
+    toggleAbout(on = !this.about) {
+      if (on === this.about) return;
+      this.about = on;
+      this.light(null);
+      this.$nextTick(() => { if (!on && this.strip) this.strip.go(this.cur, 'instant'); this.revealLit(); this.drawArrows(); });
+    },
 
     light(keys, attr = 'data-on') {
       document.querySelectorAll('[data-on],[data-ev],[data-atom],[data-hot]').forEach(el => ['data-on', 'data-ev', 'data-atom', 'data-hot'].forEach(a => el.removeAttribute(a)));
@@ -575,6 +579,7 @@ document.addEventListener('alpine:init', () => {
       return g === 'links' ? X.inn[n].length + X.own[n].length + X.fwd[n].length : this.named(n).length;
     },
     setGroup(g) {
+      this.toggleAbout(false);
       this.group = g;
       try { localStorage.setItem('passage-reader:group', g); } catch (e) {}
       this.light(null);
@@ -732,7 +737,6 @@ document.addEventListener('alpine:init', () => {
         <template x-if="fileUrl">
           <a class="btn btn-ghost btn-sm btn-square" :href="fileUrl" target="_blank" rel="noopener" aria-label="GitHub" data-title-tip="Reading on GitHub" data-title-tip-bare><i class="ph ph-github-logo text-lg"></i></a>
         </template>
-        <button class="btn btn-ghost btn-sm btn-square" @click="openAbout()" aria-label="About" data-title-tip="About" data-title-tip-bare><i class="ph ph-info text-lg"></i></button>
       </div>
     </template>
   </header>
@@ -773,11 +777,13 @@ document.addEventListener('alpine:init', () => {
           <span class="text-sm font-semibold text-base-content/70 truncate ml-2 sm:ml-0" x-text="kindLabel"></span>
           <div class="join ml-auto shrink-0" role="tablist" aria-label="Group">
             <template x-for="g in GROUPS" :key="g.key">
-              <button type="button" class="join-item btn btn-sm btn-square" role="tab" :aria-selected="group === g.key ? 'true' : 'false'"
+              <button type="button" class="join-item btn btn-sm btn-square" role="tab" :aria-selected="!about && group === g.key ? 'true' : 'false'"
                       :aria-label="g.label" :data-title-tip="g.label" data-title-tip-bare
-                      :class="group === g.key ? 'btn-soft btn-primary' : 'btn-ghost'"
+                      :class="!about && group === g.key ? 'btn-soft btn-primary' : 'btn-ghost'"
                       :disabled="group !== g.key && !groupSize(g.key, s.n)" @click="setGroup(g.key)"><i class="ph text-lg" :class="g.icon"></i></button>
             </template>
+            <button type="button" class="join-item btn btn-sm btn-square" role="tab" :aria-selected="about ? 'true' : 'false'" aria-label="About" data-title-tip="About" data-title-tip-bare
+                    :class="about ? 'btn-soft btn-primary' : 'btn-ghost'" @click="toggleAbout()"><i class="ph ph-info text-lg"></i></button>
           </div>
           <button type="button" :class="swipeDeck.entry.cls('ghost', 'tight')" @click="openDeck()"
                   :aria-label="swipeDeck.entry.title(N, 'sentence')" :data-title-tip="swipeDeck.entry.title(N, 'sentence')" data-title-tip-bare><i class="ph text-lg" :class="swipeDeck.entry.icon"></i></button>
@@ -785,51 +791,44 @@ document.addEventListener('alpine:init', () => {
                   :aria-label="wide ? 'Show the cards' : 'Give the passage the screen'" :data-title-tip="wide ? 'Show the cards' : 'Give the passage the screen'" data-title-tip-bare>
             <i class="ph text-lg" :class="wide ? 'ph-caret-double-up' : 'ph-caret-double-down'"></i></button>
         </div>
-        <div x-ref="track" class="min-h-0 min-w-0 h-full" :class="wide && 'max-lg:hidden'"></div>
+        <div x-ref="track" class="min-h-0 min-w-0 h-full" x-show="!about" :class="wide && 'max-lg:hidden'"></div>
+        <div x-show="about" class="min-h-0 overflow-y-auto px-4 pt-5 pb-28 sm:px-8 sm:pt-8" :class="wide && 'max-lg:hidden'" aria-label="About">
+          <dl class="grid grid-cols-1 sm:grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-3 text-lg leading-7 [&>dt:not(:first-child)]:max-sm:pt-4">
+            <dt class="text-sm text-base-content/60 pt-1">Source</dt><dd class="text-pretty" x-text="R?.source?.note"></dd>
+            <dt class="text-sm text-base-content/60 pt-1 lg:hidden">Gist</dt><dd class="text-pretty lg:hidden" x-text="R?.gist"></dd>
+            <template x-if="R?.topic"><dt class="text-sm text-base-content/60 pt-1">Topic</dt></template>
+            <template x-if="R?.topic"><dd x-text="(R.entities[R.topic] || {}).label || R.topic"></dd></template>
+            <dt class="text-sm text-base-content/60 pt-1">Context</dt>
+            <dd class="grid gap-2">
+              <template x-for="c in R?.context || []" :key="c.id">
+                <span class="grid">
+                  <a class="link link-hover" target="_blank" rel="noopener" :href="link(c)" x-text="c.path + (c.repo ? ' ↗' : '')"></a>
+                  <span class="text-pretty text-base-content/70" x-text="c.why"></span>
+                </span>
+              </template>
+              <span x-show="!(R?.context || []).length" class="text-base-content/60">None supplied</span>
+            </dd>
+            <dt class="text-sm text-base-content/60 pt-1">Entities</dt>
+            <dd class="grid gap-2">
+              <template x-for="e in R ? entityList : []" :key="e.k">
+                <span class="grid">
+                  <span><span class="font-semibold" x-text="e.label"></span> <span class="text-sm tabular-nums text-base-content/60" x-text="e.where"></span></span>
+                  <span class="text-pretty text-base-content/70" x-text="e.gloss"></span>
+                </span>
+              </template>
+            </dd>
+            <template x-if="X && X.problems.length"><dt class="text-sm text-error pt-1">Anchoring</dt></template>
+            <template x-if="X && X.problems.length">
+              <dd class="grid gap-1"><template x-for="m in X.problems" :key="m.n + m.q + m.why"><span x-text="m.n + ': “' + m.q + '” ' + m.why"></span></template></dd>
+            </template>
+            <dt class="text-sm text-base-content/60 pt-1">Format</dt>
+            <dd><a class="link link-hover" target="_blank" rel="noopener" href="https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/passage-reading.md">passage-reading/1 ↗</a></dd>
+          </dl>
+        </div>
       </section>
     </main>
   </template>
 
-  <dialog class="modal" :open="about" @keydown.escape.window="about && closeAbout()">
-    <div class="modal-box w-11/12 max-w-3xl grid gap-5" x-show="R">
-      <div class="flex items-center">
-        <h2 class="font-semibold text-lg">About</h2>
-        <button class="btn btn-sm btn-ghost btn-square ml-auto" @click="closeAbout()" aria-label="Close"><i class="ph ph-x"></i></button>
-      </div>
-      <dl class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-lg leading-7">
-        <dt class="text-sm text-base-content/60 pt-1">Source</dt><dd class="text-pretty" x-text="R?.source?.note"></dd>
-        <dt class="text-sm text-base-content/60 pt-1 lg:hidden">Gist</dt><dd class="text-pretty lg:hidden" x-text="R?.gist"></dd>
-        <template x-if="R?.topic"><dt class="text-sm text-base-content/60 pt-1">Topic</dt></template>
-        <template x-if="R?.topic"><dd x-text="(R.entities[R.topic] || {}).label || R.topic"></dd></template>
-        <dt class="text-sm text-base-content/60 pt-1">Context</dt>
-        <dd class="grid gap-2">
-          <template x-for="c in R?.context || []" :key="c.id">
-            <span class="grid">
-              <a class="link link-hover" target="_blank" rel="noopener" :href="link(c)" x-text="c.path + (c.repo ? ' ↗' : '')"></a>
-              <span class="text-pretty text-base-content/70" x-text="c.why"></span>
-            </span>
-          </template>
-          <span x-show="!(R?.context || []).length" class="text-base-content/60">None supplied</span>
-        </dd>
-        <dt class="text-sm text-base-content/60 pt-1">Entities</dt>
-        <dd class="grid gap-2">
-          <template x-for="e in R ? entityList : []" :key="e.k">
-            <span class="grid">
-              <span><span class="font-semibold" x-text="e.label"></span> <span class="text-sm tabular-nums text-base-content/60" x-text="e.where"></span></span>
-              <span class="text-pretty text-base-content/70" x-text="e.gloss"></span>
-            </span>
-          </template>
-        </dd>
-        <template x-if="X && X.problems.length"><dt class="text-sm text-error pt-1">Anchoring</dt></template>
-        <template x-if="X && X.problems.length">
-          <dd class="grid gap-1"><template x-for="m in X.problems" :key="m.n + m.q + m.why"><span x-text="m.n + ': “' + m.q + '” ' + m.why"></span></template></dd>
-        </template>
-        <dt class="text-sm text-base-content/60 pt-1">Format</dt>
-        <dd><a class="link link-hover" target="_blank" rel="noopener" href="https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/passage-reading.md">passage-reading/1 ↗</a></dd>
-      </dl>
-    </div>
-    <div class="modal-backdrop" @click="closeAbout()"></div>
-  </dialog>
 </div>
 </body>
 </html>
