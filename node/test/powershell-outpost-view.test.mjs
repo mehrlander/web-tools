@@ -1145,3 +1145,46 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [ledger]: saved.ledger }); advanceHead(); await data.reload();
   }
 });
+
+// A module or form opened whole by its name: the module as its functions by
+// how far their callers reach, the form as its window's controls with the
+// events its controller wires, and both as files that open where they live.
+test('a module or form opens whole from its name, and every name in it opens where it lives', async () => {
+  const mp = `${P}/data/outpost.json`, CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`, XAML = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`, PROFILE = `${P}/app/Profile.ps1`;
+  const saved = { manifest: files[mp], forms: files[FORMS], ctl: files[CTL], xaml: files[XAML], profile: files[PROFILE] };
+  const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
+  try {
+    files[mp] = JSON.stringify({ ...JSON.parse(saved.manifest), loads: `${P}/data/loads.csv` });
+    files[`${P}/data/loads.csv`] = 'path,loads,how,evidence\napp/Profile.ps1,app/Modules/Forms/Forms.psm1,import,line 1\napp/Profile.ps1,app/Forms/Bookmarks/Bookmarks.ps1,form,line 2\n';
+    files[FORMS] = 'function Import-Form { Get-Helper }\nfunction Get-Helper { 1 }\nfunction Show-Nothing { }\n';
+    files[PROFILE] = 'Import-Module Forms\nImport-Form Bookmarks\n';
+    files[XAML] = '<Window><Grid><TextBox Name="txtFilter"/><TextBlock Name="txtStatus"/><Border Name="Spare"/></Grid></Window>\n';
+    files[CTL] = "$Wrapper.On('txtFilter', 'TextChanged', {})\n$Wrapper.txtStatus.Text = 'ready'\n";
+    advanceHead(); await data.reload(); await settle();
+    const heads = () => q('[data-resource-head]');
+    assert.deepEqual(heads().map(b => b.textContent.trim()), ['Forms', 'Bookmarks'], 'a module and a form, and no heading for a script folder');
+    heads()[0].click(); await settle();
+    await poll(() => data.resource === 'Modules/Forms' && !data.resBusy && data.resReach, 'the module did not read');
+    assert.equal(window.__shell.powershellOutpostItem, `${P}/app/Modules/Forms/`, 'the address names the folder');
+    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · 1 to install)?$/);
+    assert.deepEqual([...data.resReachGroups.map(g => g.key + ':' + g.list.map(f => f.name).join())], ['outside:Import-Form', 'inside:Get-Helper', 'none:Show-Nothing']);
+    assert.match(el.querySelector('[data-function] [data-caller]').textContent, /Profile\.ps1/, 'its caller, named');
+    assert.match(el.querySelector('[data-resource-neighbours]').textContent, /Loaded by\s+Profile\.ps1\s*import/);
+    data.openAt(FORMS, 2); await settle();
+    assert.equal(data.selected, FORMS); assert.equal(data.resource, '', 'a file replaces the resource');
+    assert.equal(data.shownTab, 'code');
+    el.querySelector('[data-resource-link] button').click(); await settle();
+    assert.equal(data.resource, 'Modules/Forms', 'the file names its resource and returns to it');
+    heads()[1].click(); await settle();
+    await poll(() => data.resource === 'Forms/Bookmarks' && !data.resBusy && data.resForms.length, 'the form did not read');
+    const rows = q('[data-control]').map(r => r.textContent.replace(/\s+/g, ' ').trim());
+    assert.deepEqual(rows, ['txtFilter TextBox TextChanged', 'txtStatus TextBlock in code', 'Spare Border'], 'wired, touched in code, and never named');
+    assert.ok(q('[data-control] button').find(b => b.textContent === 'Spare').className.includes('text-base-content/40'), 'a control the controller never names is dimmed');
+    assert.match(el.querySelector('[data-resource-files]').textContent, /Bookmarks\.xaml\s*\+\s*Bookmarks\.ps1/);
+    data.selectResource(''); await settle();
+    assert.equal(data.resource, ''); assert.equal(window.__shell.powershellOutpostItem, '');
+  } finally {
+    Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [CTL]: saved.ctl, [XAML]: saved.xaml, [PROFILE]: saved.profile });
+    delete files[`${P}/data/loads.csv`]; advanceHead(); await data.reload();
+  }
+});
