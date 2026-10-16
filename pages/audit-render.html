@@ -720,7 +720,7 @@ window.__audit = {
 
   window.auditPage = () => ({
     a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
-    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null,
+    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null, rMode: 'list',
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
       let payload = window.__audit;
@@ -1355,6 +1355,16 @@ window.__audit = {
       this.heat();
       this.rShow();
     },
+    // A row under the pointer tints its unit in the document, with an outline
+    // in the text colour so a pale label still shows; leaving puts the unit's
+    // own shade back.
+    rOver(u, on) {
+      const m = MARKS[this.mark] || MARKS.fill;
+      for (const p of this.$refs.rdoc?.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`) || []) {
+        p.style.background = on && !this.isCur(u) ? tint(this.keyOf(u), .45) : this.shade(u, m);
+        p.style.outline = on ? '1px solid color-mix(in srgb, var(--color-base-content) 45%, transparent)' : '';
+      }
+    },
     // A tap on a unit in the document picks it, where the list holds it.
     rTap(u) { const i = this.rRows.findIndex(x => x.uid === u.uid); if (i >= 0) this.rGo(i); },
     // The current row kept in view inside the list, and the current unit a
@@ -1369,7 +1379,8 @@ window.__audit = {
             else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom;
           } else box.scrollTop += r.top - b.top - Math.max(8, (b.height - Math.min(r.height, b.height)) * at);
         };
-        into(this.$refs.rlist, this.$refs.rlist?.querySelectorAll('[data-row]')[this.rAt]);
+        const top = this.rMode === 'table' ? this.$refs.rtable : this.$refs.rlist;
+        into(top, top?.querySelectorAll('[data-row]')[this.rAt]);
         const u = this.rCur;
         into(this.$refs.rdoc, u && this.$refs.rdoc?.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`), 1 / 3);
       });
@@ -2245,28 +2256,58 @@ window.__audit = {
            @pointerdown="pinDown($event)"></div>
     </div>
 
-    <!-- REVIEW: the chips' category as a list over the whole document. The
-         list is a third of the height and the current row opens to its note;
+    <!-- REVIEW: the chips' category over the whole document. The category, as
+         a list or a table, is a third of the height and the current row opens
+         to its note;
          the bar under it steps through the list and edits the current unit;
          the document below is painted as in Doc, with the current unit
          highlighted. Stacked at every width, and it fills the viewport under
          the header as Spans does. -->
     <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,2fr)]"
          x-show="view === 'review'" x-cloak
-         :style="inDeck ? 'height:100%' : `height:calc(100dvh - ${hdrH}px)`">
-      <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1">
+         :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
+      <!-- The category's units, as a list or as a table of the same rows with
+           the annotation's fields. Either picks the current unit; a row under
+           the pointer tints its unit in the document. The current row carries
+           the primary bar, the colour of the document's underline. -->
+      <div class="min-h-0 flex flex-col">
+      <div x-ref="rlist" class="flex-1 min-h-0 overflow-y-auto overscroll-contain py-1" x-show="rMode === 'list'">
         <template x-for="(u, i) in rRows" :key="u.uid">
-          <div data-row :class="i === rAt && 'bg-base-200'">
-            <button type="button" class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-200"
-                    :class="i !== rAt && 'hover:bg-base-200/60'" :aria-current="i === rAt" @click="rGo(i)">
+          <div data-row :class="i === rAt && 'bg-base-300 shadow-[inset_3px_0_0_0_var(--color-primary)]'">
+            <button type="button" class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-300"
+                    :class="i !== rAt && 'hover:bg-base-300/70'" :aria-current="i === rAt"
+                    @click="rGo(i)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
               <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
               <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
-              <span class="min-w-0" :class="[i !== rAt && 'truncate', u.verdict === 'DROP' && 'line-through opacity-60']" x-text="gist(u)"></span>
+              <span class="min-w-0" :class="{ truncate: i !== rAt, 'line-through opacity-60': u.verdict === 'DROP' }" x-text="gist(u)"></span>
             </button>
             <p class="pb-2 pl-16 pr-4 text-sm leading-6 whitespace-pre-line text-pretty opacity-80"
                x-show="i === rAt && u.note" x-text="u.note"></p>
           </div>
         </template>
+      </div>
+      <div x-ref="rtable" class="flex-1 min-h-0 overflow-auto overscroll-contain" x-show="rMode === 'table'" x-cloak>
+        <table class="table table-xs table-pin-rows">
+          <thead><tr><th class="text-right">line</th><th>label</th><th>text</th><th>note</th>
+                     <th class="text-right">w</th><th>verdict</th></tr></thead>
+          <tbody>
+            <template x-for="(u, i) in rRows" :key="u.uid">
+              <tr data-row class="cursor-pointer align-top"
+                  :class="i === rAt ? 'bg-base-300 shadow-[inset_3px_0_0_0_var(--color-primary)]' : 'hover:bg-base-300/70'"
+                  :aria-current="i === rAt"
+                  @click="rGo(i)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
+                <td class="font-mono text-right opacity-60" x-text="lineOf(u)"></td>
+                <td><span class="rounded px-1 whitespace-nowrap" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span></td>
+                <td :class="i === rAt ? 'min-w-64' : 'max-w-64 truncate'" x-text="gist(u)"></td>
+                <td class="italic opacity-80" :class="i === rAt ? 'min-w-80 whitespace-pre-line' : 'max-w-48 truncate'" x-text="u.note || ''"></td>
+                <td class="font-mono text-right opacity-60" x-text="u.words"></td>
+                <td><span class="rounded px-1 whitespace-nowrap" x-show="u.verdict === 'DROP'"
+                          :style="`background:rgba(${HUE.DROP},.25)`">DROP</span></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
       </div>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-base-300 bg-base-200/60 px-2 py-1 text-xs">
         <div class="flex items-center">
@@ -2294,7 +2335,13 @@ window.__audit = {
                 @click="rEdit({ op: 'verdict', uid: rCur.uid, verdict: rCur.verdict === 'DROP' ? 'KEEP' : 'DROP' })">
           <i class="text-base" :class="rCur?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
           <span x-text="rCur?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
-        <span class="ml-auto pr-2 font-mono opacity-50" x-text="rCur ? lineOf(rCur) : ''"></span>
+        <div class="ml-auto join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="the category as">
+          <template x-for="mo in ['list', 'table']" :key="mo">
+            <button type="button" class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
+                    :class="rMode === mo ? 'btn-neutral' : 'btn-ghost bg-base-100'" :aria-pressed="rMode === mo"
+                    @click="rMode = mo; rShow()" x-text="mo"></button>
+          </template>
+        </div>
       </div>
       <div x-ref="rdoc" class="min-h-0 overflow-y-auto overscroll-contain px-4 py-4"></div>
     </div>
@@ -2303,9 +2350,12 @@ window.__audit = {
          bytes underneath. The page never re-derives this; the builder copies
          standoff.json in verbatim, so what is on screen is what is in the file. -->
     <!-- Fills the viewport under the header, and the table or the JSON scrolls
-         inside it, so the column headings stay in view. -->
+         inside it, so the column headings stay in view. The height is bound
+         as an object, here and in Review: a string :style rewrites the whole
+         style attribute whenever inDeck or hdrH changes, which drops x-show's
+         display:none and left this table under every other view. -->
     <div class="px-4 pt-3 pb-2 flex flex-col" x-show="view==='standoff'" x-cloak
-         :style="inDeck ? 'height:100%' : `height:calc(100dvh - ${hdrH}px)`">
+         :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
       <div class="shrink-0 flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mb-2">
         <span x-text="so.kind"></span>
         <a class="link link-primary" :href="so.target.url" x-text="so.target.path"></a>
