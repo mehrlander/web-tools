@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/envelopes/schemas/passage-reading-v1.schema.json",
+  "title": "Passage reading (v1)",
+  "description": "A model's sentence-by-sentence reading of one passage. The shape only: that every quote is an exact, unique substring of its sentence, and every context quote of its document at its ref, is checked by skills/passage-reading/scripts/check.py. Contract: docs/envelopes/passage-reading.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "title", "made", "source", "gist", "entities", "sentences"],
+  "properties": {
+    "format": { "const": "passage-reading/1" },
+    "title": { "type": "string" },
+    "made": { "type": "string", "format": "date" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
+        "path": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "gist": { "type": "string" },
+    "topic": { "type": "string", "description": "An entity id: the thing the passage is about." },
+    "context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "ref"],
+        "properties": {
+          "id": { "type": "string" },
+          "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
+          "path": { "type": "string" },
+          "ref": { "type": "string", "description": "A commit, so a context quote can be checked against the text the model read." },
+          "why": { "type": "string" }
+        }
+      }
+    },
+    "entities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "gloss", "basis"],
+        "properties": {
+          "label": { "type": "string" },
+          "gloss": { "type": "string" },
+          "basis": { "enum": ["passage", "context", "general"] },
+          "ctx": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["doc", "quote"],
+              "properties": {
+                "doc": { "type": "string", "description": "A context id." },
+                "quote": { "type": "string" }
+              }
+            }
+          }
+        },
+        "if": { "properties": { "basis": { "const": "context" } } },
+        "then": { "required": ["ctx"] },
+        "else": { "not": { "required": ["ctx"] } }
+      }
+    },
+    "lead": { "type": "string" },
+    "sentences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "text", "mentions", "links", "atoms"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1 },
+          "text": { "type": "string" },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["e", "quote"],
+              "properties": {
+                "e": { "type": "string", "description": "An entity id." },
+                "quote": { "type": "string" },
+                "form": { "enum": ["anaphor", "ellipsis"] },
+                "slot": { "type": "string", "description": "For an ellipsis: the empty slot of the quoted word, such as 'object of Write'." },
+                "fill": { "type": "string" },
+                "in": { "type": "string" },
+                "ante": { "type": "integer", "minimum": 1 },
+                "note": { "type": "string" }
+              },
+              "if": { "properties": { "form": { "const": "ellipsis" } }, "required": ["form"] },
+              "then": { "required": ["slot", "fill"] }
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["to", "kind", "here", "there", "gloss"],
+              "properties": {
+                "to": { "type": "integer", "minimum": 1 },
+                "kind": { "$ref": "#/$defs/relation" },
+                "here": { "type": "string" },
+                "there": { "type": "string" },
+                "gloss": { "type": "string" },
+                "implied": { "type": "boolean" }
+              }
+            }
+          },
+          "atoms": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "type", "claim", "quote"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z]$" },
+                "type": { "enum": ["definition", "assertion", "judgment", "rule"] },
+                "claim": { "type": "string" },
+                "quote": { "type": "string" },
+                "for": { "type": "string", "pattern": "^[a-z]$" },
+                "as": { "$ref": "#/$defs/relation" },
+                "on": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Entity ids: what the claim is about, named in the sentence or not." },
+                "implied": { "type": "boolean" },
+                "note": { "type": "string" }
+              },
+              "dependentRequired": { "for": ["as"], "as": ["for"] }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "relation": { "enum": ["elaborates", "rests-on", "narrows", "contrasts", "supports"] }
+  }
+}

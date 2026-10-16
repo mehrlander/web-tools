@@ -33,6 +33,7 @@ skill,/portable:ios-sheet-drag,skills/ios-sheet-drag/SKILL.md,ios-sheet-drag,,pl
 skill,/portable:mobile,skills/mobile/SKILL.md,mobile,,plugin
 skill,/portable:office-scripts-shape-ui,skills/office-scripts-shape-ui/SKILL.md,office-scripts-shape-ui,,plugin
 skill,/portable:outlining,skills/outlining/SKILL.md,outlining,,plugin
+skill,/portable:passage-reading,skills/passage-reading/SKILL.md,passage-reading,,plugin
 skill,/portable:phosphor-icons,skills/phosphor-icons/SKILL.md,phosphor-icons,,plugin
 skill,/portable:power-query,skills/power-query/SKILL.md,power-query,,plugin
 skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,powershell-ise-theming,,plugin
