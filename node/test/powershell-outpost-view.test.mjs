@@ -212,9 +212,8 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
   // The explanation is linked, not copied onto the pane, and nothing on it
   // parks a fact in a title where a phone and a screenshot cannot reach it.
-  const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
-  assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
-    'a title is the label of an icon-only control, never a sentence of explanation');
+  // Since 2026-10-16 there is no title at all: a control's label is a title-tip.
+  assert.equal(el.querySelectorAll('[title]').length, 0, 'no title anywhere on the pane');
   assert.doesNotMatch(el.textContent, /the outpost map|5 files/, 'no map link and no counts line in the header');
   assert.equal(publications.length, 0);
   assert.ok(reads.every(r => r.ref === REV), 'manifest and ledger are read at the captured revision');
@@ -651,7 +650,7 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   assert.equal(data.statusOf(profile).cls, 'ph ph-circle-dashed text-base-content/50');
   assert.equal(data.statusOf(FORMS).cls.split(' ')[0], 'ph-fill');
   const icon = rowOf(profile).querySelector('[data-status]');
-  assert.equal(icon.getAttribute('title'), 'Not observed');
+  assert.equal(icon.getAttribute('data-title-tip'), 'Not observed');
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
@@ -710,7 +709,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   await poll(() => deck.title === 'Forms.psm1', 'the header names the chosen file');
   assert.equal(editor.readOnlyOn, true, 'a slide opens read-only');
   assert.equal(card().text, original);
-  const button = title => deck.el.querySelector(`[title="${title}"]`);
+  const button = title => deck.el.querySelector(`[data-title-tip="${title}"]`);
   await poll(() => button('Edit'), 'the header offers Edit');
   button('Edit').click(); await tick(2);
   assert.equal(editor.readOnlyOn, false, 'Edit unlocks the editor');
@@ -793,7 +792,7 @@ test('a Windows-1252 file opens decoded and read-only', async () => {
   assert.equal(card().ansi, true);
   assert.match(card().notice, /Windows-1252.*read-only/);
   await poll(() => deck.title === 'Ansi.psm1', 'the header names the file');
-  assert.equal(deck.el.querySelector('[title="Edit"]'), null, 'no Edit on a Windows-1252 file');
+  assert.equal(deck.el.querySelector('[data-title-tip="Edit"]'), null, 'no Edit on a Windows-1252 file');
   card().setEditing(true);
   assert.equal(card().editing, false);
   deck.close(); await settle();
@@ -892,14 +891,14 @@ test('the PowerShell outpost view\'s source pane is the file component: Edit, a 
   const bar = () => el.querySelector('[data-file-actions]');
   const labels = [...card().menuRows().map(r => r.label)];
   assert.ok(!labels.includes('Copy GitHub text'), 'Copy GitHub text stays on the PowerShell outpost view, not in the pane menu');
-  bar().querySelector('[title="Edit"]').click(); await tick(2);
+  bar().querySelector('[data-title-tip="Edit"]').click(); await tick(2);
   assert.equal(editors[0].readOnlyOn, false);
-  assert.ok(bar().querySelector('[title="Undo"]') && bar().querySelector('[title="Done editing"]'));
+  assert.ok(bar().querySelector('[data-title-tip="Undo"]') && bar().querySelector('[data-title-tip="Done editing"]'));
   editors[0].cfg.onChange(original + '# edited\n');
   await poll(() => data.drafts[FORMS], 'the inline edit did not reach the PowerShell outpost view draft list');
   assert.equal(data.draftList.length, 1);
   assert.ok(card().panes.some(p => p.key === 'draft'), 'a Draft tab appears');
-  bar().querySelector('[title="Done editing"]').click(); await tick(2);
+  bar().querySelector('[data-title-tip="Done editing"]').click(); await tick(2);
   data.select(profile); await settle();
   await poll(() => card().item?.path === profile && !card().loading, 'the pane did not follow the selection');
   assert.equal(editors.length, 1, 'one editor view across selections');

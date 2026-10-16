@@ -479,7 +479,7 @@ html.dk-dragging main{transition:none !important}
              user calls, Proposals' pending edits); it carried a `badge` that
              nothing drew until 2026-10-04. -->
         <template x-for="v in estateNav" :key="v.view">
-          <button @click="v.go()" :title="v.label" :data-nav="v.view"
+          <button @click="v.go()" :data-title-tip="v.label" :data-nav="v.view"
                   class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
                   :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
             <span x-text="v.label"></span>
@@ -488,7 +488,7 @@ html.dk-dragging main{transition:none !important}
         </template>
         <div x-show="appNav.length" class="shrink-0 mx-1.5 h-5 w-px bg-base-300"></div>
         <template x-for="v in appNav" :key="v.key">
-          <button @click="v.go()" :title="v.title"
+          <button @click="v.go()" :data-title-tip="v.title"
                   class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
                   :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
             <i class="ph text-base leading-none" :class="v.icon"></i><span x-text="v.label"></span>
@@ -525,7 +525,7 @@ html.dk-dragging main{transition:none !important}
         <template x-for="it in rail" :key="it.key">
           <a :href="it.url || null" :target="it.url ? '_blank' : null" :rel="it.url ? 'noopener' : null"
              @click="it.repo && (openPinned(it.repo), $event.preventDefault())"
-             :title="it.title + (it.note ? ' — ' + it.note : '')"
+             :data-title-tip="it.title + (it.note ? ' — ' + it.note : '')"
              class="shrink-0 p-1.5 rounded-lg text-base-content/40 hover:text-primary hover:bg-base-200 transition-colors">
             <i class="ph text-lg leading-none" :class="it.icon"></i>
           </a>
@@ -601,7 +601,7 @@ html.dk-dragging main{transition:none !important}
               class="shrink-0 p-1 rounded-lg transition-colors"
               :class="[sidebarOpen ? 'text-primary bg-primary/10' : 'hover:bg-base-200',
                        !showSidebar && 'lg:hidden']"
-              :title="sidebarOpen ? 'Hide the sidebar' : 'Show the sidebar'"
+              :data-title-tip="sidebarOpen ? 'Hide the sidebar' : 'Show the sidebar'"
               :aria-expanded="sidebarOpen ? 'true' : 'false'">
         <i class="ph ph-list text-lg leading-none"></i>
       </button>
@@ -679,7 +679,7 @@ html.dk-dragging main{transition:none !important}
       <!-- Every width, now that every width can close it. It was lg:hidden
            when only a phone could, and a panel that closes with no visible way
            to close it is the defect that hid. -->
-      <button @click="sidebarOpen=false" class="btn btn-square btn-ghost shrink-0" title="Hide the sidebar"><i class="ph ph-x text-lg"></i></button>
+      <button @click="sidebarOpen=false" class="btn btn-square btn-ghost shrink-0" data-title-tip="Hide the sidebar"><i class="ph ph-x text-lg"></i></button>
 
       <!-- THE MARK'S MENU: the fixed destinations, then where you have been.
            Anchored under the bar in the same panel idiom as the repo
@@ -854,7 +854,7 @@ html.dk-dragging main{transition:none !important}
         <div class="flex items-center gap-1.5 px-2 pb-0.5">
           <span class="text-base font-mono uppercase tracking-widest text-base-content/40">Repos</span>
           <div class="grow"></div>
-          <button @click="goRepos()" title="Open the Repos dashboard"
+          <button @click="goRepos()" data-title-tip="Open the Repos dashboard"
                   class="text-base-content/30 hover:text-primary transition-colors">
             <i class="ph ph-squares-four text-base leading-none"></i></button>
         </div>
@@ -889,20 +889,20 @@ html.dk-dragging main{transition:none !important}
               <div class="flex flex-col">
                 <div class="flex items-center rounded-lg transition-colors hover:bg-base-200"
                      :class="$store.browser.repo===r.repo && 'bg-primary/10'">
-                  <button @click="openPinned(r.repo)" :title="r.repo"
+                  <button @click="openPinned(r.repo)" :data-title-tip="r.repo"
                           class="flex items-center gap-2 min-w-0 flex-1 min-h-9 pl-2 text-left transition-colors"
                           :class="$store.browser.repo===r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
                     <i class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
                   </button>
                   <button @click.stop="rowMenu(r.repo, $event, 'github')"
                           @mouseenter="rowMenuHover(r.repo, $event, 'github')" @mouseleave="hoverLeaveMenu()"
-                          :title="'GitHub links for ' + r.short"
+                          :data-title-tip="'GitHub links for ' + r.short"
                           class="wt-row-btn shrink-0 h-9 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors"
                           :class="repoMenuAt && menuRepo===r.repo && menuKind==='github' && 'text-primary'">
                     <i class="ph ph-github-logo text-base leading-none"></i></button>
                   <button @click.stop="rowMenu(r.repo, $event)"
                           @mouseenter="rowMenuHover(r.repo, $event)" @mouseleave="hoverLeaveMenu()"
-                          :title="(r.priv === null ? '' : (r.priv ? 'Private. ' : 'Public. ')) + 'Actions for ' + r.short"
+                          :data-title-tip="(r.priv === null ? '' : (r.priv ? 'Private. ' : 'Public. ')) + 'Actions for ' + r.short"
                           class="wt-row-btn shrink-0 h-9 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors"
                           :class="repoMenuAt && menuRepo===r.repo && menuKind==='actions' && 'text-primary'">
                     <i class="ph text-base leading-none"
@@ -995,7 +995,7 @@ html.dk-dragging main{transition:none !important}
                 <div class="flex flex-col gap-0.5 ml-4 pl-2 border-l border-base-300" x-show="repoProjects(r.repo).length">
                 <template x-for="p in repoProjects(r.repo)" :key="r.repo + ':' + p.path">
                   <div class="flex items-center rounded-lg transition-colors hover:bg-base-200">
-                    <button @click="openProject(r.repo, p)" :title="r.repo + ': ' + p.path"
+                    <button @click="openProject(r.repo, p)" :data-title-tip="r.repo + ': ' + p.path"
                             class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors text-base-content/80">
                       <span class="flex size-4 shrink-0 items-center justify-center">
                         <img x-show="projectIconSrc(r.repo, p)" :src="projectIconSrc(r.repo, p)" alt="" class="block size-3.5">
@@ -1004,11 +1004,11 @@ html.dk-dragging main{transition:none !important}
                     </button>
                     <a :href="projectGithubUrl(r.repo, p)" :data-peek="projectReadmePeek(r.repo, p)"
                        target="_blank" rel="noopener" @click.stop
-                       :title="p.path + ' on GitHub'"
+                       :data-title-tip="p.path + ' on GitHub'"
                        class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
                       <i class="ph ph-github-logo text-base leading-none"></i></a>
                     <button x-show="p.board" @click.stop="openProjectBoard(r.repo, p)"
-                            :title="'Task board: ' + p.board"
+                            :data-title-tip="'Task board: ' + p.board"
                             class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
                       <i class="ph ph-list-checks text-base leading-none"></i></button>
                   </div>
@@ -1033,7 +1033,7 @@ html.dk-dragging main{transition:none !important}
              shows it, muted, after the label: the same promise the crumb trail
              makes for a repo browsed off its default branch. -->
         <template x-for="v in sidebarAppViews" :key="v.key">
-          <button @click="goAppView(v)" :title="appViewTitle(v)"
+          <button @click="goAppView(v)" :data-title-tip="appViewTitle(v)"
                   class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-base hover:bg-base-200 transition-colors"
                   :class="view==='app' && appView && appView.key===v.key ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
             <i class="ph text-base" :class="v.icon"></i><span x-text="v.label"></span>
@@ -1060,11 +1060,11 @@ html.dk-dragging main{transition:none !important}
         <div class="flex items-center gap-1.5 px-2 pb-0.5">
           <span class="text-base font-mono uppercase tracking-widest text-base-content/40">Links</span>
           <div class="grow"></div>
-          <button x-show="railView" @click="goAppView(railView)" title="Open the links board"
+          <button x-show="railView" @click="goAppView(railView)" data-title-tip="Open the links board"
                   class="text-base-content/30 hover:text-primary transition-colors">
             <i class="ph ph-bookmark-simple text-base leading-none"></i></button>
           <button x-show="railView" @click="goAppView({ ...railView, query: 'edit=1' })"
-                  title="Edit the board: which items ride the rail, their order, labels, and doors"
+                  data-title-tip="Edit the board: which items ride the rail, their order, labels, and doors"
                   class="text-base-content/30 hover:text-primary transition-colors">
             <i class="ph ph-pencil-simple text-base leading-none"></i></button>
         </div>
@@ -1076,7 +1076,7 @@ html.dk-dragging main{transition:none !important}
           <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-1.5 rounded-lg hover:bg-base-200 transition-colors">
             <a :href="it.url || null" :target="it.url ? '_blank' : null" :rel="it.url ? 'noopener' : null"
                @click="it.repo && (openPinned(it.repo), $event.preventDefault())"
-               :title="it.note || it.title"
+               :data-title-tip="it.note || it.title"
                class="flex items-center gap-2 min-w-0 text-base text-base-content/80 hover:text-primary transition-colors">
               <i class="ph text-base shrink-0" :class="it.icon"></i><span class="truncate" x-text="it.title"></span>
             </a>
@@ -1182,7 +1182,7 @@ html.dk-dragging main{transition:none !important}
         <template x-for="p in repoProjects($store.browser.repo)" :key="p.path">
           <div class="flex items-center rounded-lg transition-colors hover:bg-base-200"
                :class="view==='project' && projectPath===p.path && 'bg-primary/10'">
-            <button @click="goProject(p.path)" :title="p.path"
+            <button @click="goProject(p.path)" :data-title-tip="p.path"
                     class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors"
                     :class="view==='project' && projectPath===p.path ? 'text-primary font-semibold' : 'text-base-content/80'">
               <span class="flex size-4 shrink-0 items-center justify-center">
@@ -1192,11 +1192,11 @@ html.dk-dragging main{transition:none !important}
             </button>
             <a :href="projectGithubUrl($store.browser.repo, p)" :data-peek="projectReadmePeek($store.browser.repo, p)"
                target="_blank" rel="noopener" @click.stop
-               :title="p.path + ' on GitHub'"
+               :data-title-tip="p.path + ' on GitHub'"
                class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
               <i class="ph ph-github-logo text-base leading-none"></i></a>
             <button x-show="p.board" @click.stop="openProjectBoard($store.browser.repo, p)"
-                    :title="'Task board: ' + p.board"
+                    :data-title-tip="'Task board: ' + p.board"
                     class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
               <i class="ph ph-list-checks text-base leading-none"></i></button>
           </div>
@@ -1216,13 +1216,13 @@ html.dk-dragging main{transition:none !important}
         <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-warning-circle"></i><span>Needs attention</span>
           <div class="grow"></div>
-          <button @click="goConfig()" title="Edit checks in the repo config"
+          <button @click="goConfig()" data-title-tip="Edit checks in the repo config"
                   class="text-base-content/30 hover:text-primary transition-colors">
             <i class="ph ph-gear-six"></i>
           </button>
         </div>
         <template x-for="r in checkResults" :key="r.label + r.path">
-          <button @click="r.path && openPin(r.path)" :title="r.detail"
+          <button @click="r.path && openPin(r.path)" :data-title-tip="r.detail"
                   class="flex items-center min-w-0 gap-1.5 px-2 py-1.5 text-base text-left
                          hover:bg-base-200 rounded transition-colors">
             <i class="ph shrink-0" :class="[checkIcon(r), checkTone(r)]"></i>
@@ -1238,7 +1238,7 @@ html.dk-dragging main{transition:none !important}
         <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-push-pin"></i><span>Pinned</span>
           <div class="grow"></div>
-          <button @click="goConfig()" title="Edit pins in the repo config"
+          <button @click="goConfig()" data-title-tip="Edit pins in the repo config"
                   class="text-base-content/30 hover:text-primary transition-colors">
             <i class="ph ph-gear-six text-base leading-none"></i></button>
         </div>
@@ -1247,7 +1247,7 @@ html.dk-dragging main{transition:none !important}
                   class="flex items-center gap-2 px-2 py-1 rounded-lg text-base hover:bg-base-200 transition-colors text-left"
                   :class="openFilePath===p ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
             <i class="ph text-base shrink-0" :class="pinIsFile(p) ? 'ph-file text-info' : 'ph-folder text-warning'"></i>
-            <span class="truncate font-mono text-base" :title="p" x-text="p"></span>
+            <span class="truncate font-mono text-base" :data-title-tip="p" x-text="p"></span>
           </button>
         </template>
       </div>
@@ -1270,11 +1270,11 @@ html.dk-dragging main{transition:none !important}
                :class="openFilePath===f.path ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
             <button @click="openFile(f.path)"
                     class="flex items-center justify-between gap-2 px-2 py-1 min-w-0 flex-1 text-base text-left">
-              <span class="truncate font-mono text-base" :title="f.path" x-text="f.path.split('/').pop()"></span>
+              <span class="truncate font-mono text-base" :data-title-tip="f.path" x-text="f.path.split('/').pop()"></span>
               <span class="text-base text-base-content/40 shrink-0" x-text="f.age"></span>
             </button>
             <a :href="fileGhUrl(f.path)" :data-peek="filePeek(f.path)" target="_blank" rel="noopener"
-               :title="f.path + ' on GitHub'"
+               :data-title-tip="f.path + ' on GitHub'"
                class="px-1.5 py-1 opacity-0 group-hover:opacity-100 focus:opacity-100 text-base-content/30 hover:text-primary transition-opacity shrink-0">
               <i class="ph ph-github-logo text-base leading-none"></i></a>
           </div>
@@ -1439,11 +1439,11 @@ html.dk-dragging main{transition:none !important}
 
                       <div class="join absolute top-1.5 right-1.5 shadow" data-part="actions">
                         <button class="btn join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
-                                @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
+                                @click="show(p,'shot')" data-title-tip="Screenshot"><i class="ph ph-image"></i></button>
                         <button class="btn join-item" :class="p.view==='live' && 'btn-primary btn-active'"
-                                @click="show(p,'live')" title="Live preview"><i class="ph ph-play"></i></button>
+                                @click="show(p,'live')" data-title-tip="Live preview"><i class="ph ph-play"></i></button>
                         <button class="btn join-item" :class="p.view==='html' && 'btn-primary btn-active'"
-                                @click="show(p,'html')" title="HTML source"><i class="ph ph-code"></i></button>
+                                @click="show(p,'html')" data-title-tip="HTML source"><i class="ph ph-code"></i></button>
                       </div>
                     </div>
 
@@ -1454,11 +1454,11 @@ html.dk-dragging main{transition:none !important}
                         <a :href="p.href" class="font-semibold text-base hover:text-primary transition-colors truncate"
                            x-text="p.label" data-part="title"></a>
                         <div class="flex items-center gap-1.5 shrink-0" data-part="links">
-                          <button @click="inspect(p)" title="Open the source in the file browser"
+                          <button @click="inspect(p)" data-title-tip="Open the source in the file browser"
                                   class="text-base-content/30 hover:text-primary transition-colors cursor-pointer">
                             <i class="ph ph-sidebar-simple"></i></button>
                           <a :href="p.code" target="_blank"
-                             class="text-base-content/30 hover:text-base-content/60" title="Source on GitHub">
+                             class="text-base-content/30 hover:text-base-content/60" data-title-tip="Source on GitHub">
                             <i class="ph ph-github-logo"></i></a>
                         </div>
                       </div>
@@ -1502,14 +1502,14 @@ html.dk-dragging main{transition:none !important}
             <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'repos', { align: 'left' })"
                     class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors bg-primary/10 text-primary hover:bg-primary/20"
                     :aria-expanded="!!repoMenuAt && menuKind === 'repos'" aria-haspopup="menu"
-                    :title="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch>
+                    :data-title-tip="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch>
               <i class="ph-duotone text-xl" :class="repoGlyph($store.browser.repo)"></i>
               <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i>
             </button>
             <h1 class="text-xl font-bold tracking-tight font-mono truncate" x-text="$store.browser.repo"></h1>
             <template x-if="repoLanding">
               <button @click="openRepoApp('')" :aria-pressed="landingPane==='app'" data-repo-app
-                      :title="'Open ' + ($store.browser.repo.split('/')[1] || $store.browser.repo) + '\'s app'"
+                      :data-title-tip="'Open ' + ($store.browser.repo.split('/')[1] || $store.browser.repo) + '\'s app'"
                       :aria-label="'Open ' + ($store.browser.repo.split('/')[1] || $store.browser.repo) + '\'s app'"
                       class="shrink-0 rounded p-0.5 transition-colors"
                       :class="landingPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
@@ -1518,7 +1518,7 @@ html.dk-dragging main{transition:none !important}
             </template>
             <a :href="githubUrlFor($store.browser.repo)" target="_blank" rel="noopener"
                class="text-base-content/40 hover:text-base-content shrink-0 transition-colors"
-               :title="$store.browser.repo + ' on GitHub'">
+               :data-title-tip="$store.browser.repo + ' on GitHub'">
               <i class="ph ph-github-logo text-base"></i>
             </a>
           </div>
@@ -1712,11 +1712,11 @@ html.dk-dragging main{transition:none !important}
                                      x-text="p.source"></pre>
                                 <div class="join absolute top-1.5 right-1.5 shadow" data-part="actions">
                                   <button class="btn join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
-                                          @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
+                                          @click="show(p,'shot')" data-title-tip="Screenshot"><i class="ph ph-image"></i></button>
                                   <button class="btn join-item" :class="p.view==='live' && 'btn-primary btn-active'"
-                                          @click="show(p,'live')" title="Live preview"><i class="ph ph-play"></i></button>
+                                          @click="show(p,'live')" data-title-tip="Live preview"><i class="ph ph-play"></i></button>
                                   <button class="btn join-item" :class="p.view==='html' && 'btn-primary btn-active'"
-                                          @click="show(p,'html')" title="HTML source"><i class="ph ph-code"></i></button>
+                                          @click="show(p,'html')" data-title-tip="HTML source"><i class="ph ph-code"></i></button>
                                 </div>
                               </div>
                               <div class="card-body p-3 gap-1 bg-base-200/60">
@@ -1724,11 +1724,11 @@ html.dk-dragging main{transition:none !important}
                                   <a :href="p.href" class="font-semibold text-base hover:text-primary transition-colors truncate"
                                      x-text="p.label" data-part="title"></a>
                                   <div class="flex items-center gap-1.5 shrink-0" data-part="links">
-                                    <button @click="inspect(p)" title="Open the source in the file browser"
+                                    <button @click="inspect(p)" data-title-tip="Open the source in the file browser"
                                             class="text-base-content/30 hover:text-primary transition-colors cursor-pointer">
                                       <i class="ph ph-sidebar-simple"></i></button>
                                     <a :href="p.code" target="_blank"
-                                       class="text-base-content/30 hover:text-base-content/60" title="Source on GitHub">
+                                       class="text-base-content/30 hover:text-base-content/60" data-title-tip="Source on GitHub">
                                       <i class="ph ph-github-logo"></i></a>
                                   </div>
                                 </div>
@@ -1783,20 +1783,20 @@ html.dk-dragging main{transition:none !important}
                       class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors"
                       :class="projectIconSrc($store.browser.repo, project) ? 'bg-base-200 hover:bg-base-300' : 'bg-primary/10 text-primary hover:bg-primary/20'"
                       :aria-expanded="!!repoMenuAt && menuKind === 'projects'" aria-haspopup="menu"
-                      :title="'Projects in ' + $store.browser.repo" :aria-label="'Projects in ' + $store.browser.repo" data-project-switch>
+                      :data-title-tip="'Projects in ' + $store.browser.repo" :aria-label="'Projects in ' + $store.browser.repo" data-project-switch>
                 <img x-show="projectIconSrc($store.browser.repo, project)" :src="projectIconSrc($store.browser.repo, project)" alt="" class="block size-5">
                 <i x-show="!projectIconSrc($store.browser.repo, project)" class="ph-duotone text-xl" :class="projectGlyph(project)"></i>
                 <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i></button>
               <h1 class="text-xl font-bold tracking-tight truncate" x-text="project.label"></h1>
               <template x-if="project.landing">
                 <button @click="openProjectApp('')" :aria-pressed="projectPane==='app'" data-project-app
-                        :title="'Open ' + project.label + '\'s app'" :aria-label="'Open ' + project.label + '\'s app'"
+                        :data-title-tip="'Open ' + project.label + '\'s app'" :aria-label="'Open ' + project.label + '\'s app'"
                         class="shrink-0 rounded p-0.5 transition-colors"
                         :class="projectPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
                   <i class="ph ph-app-window text-base text-primary"></i></button>
               </template>
               <button @click="goLanding()" class="min-w-0 truncate font-mono text-xs text-base-content/40 hover:text-primary transition-colors"
-                      :title="$store.browser.repo" x-text="$store.browser.repo"></button>
+                      :data-title-tip="$store.browser.repo" x-text="$store.browser.repo"></button>
             </div>
 
             <!-- The tab row, full width under the masthead, every tab named.
@@ -1822,7 +1822,6 @@ html.dk-dragging main{transition:none !important}
                       :class="projectTab==='board' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-list-checks text-base hidden sm:inline"></i>Board</button>
               <button role="tab" @click="goProjectTab('pages')" :disabled="!projectPages.length" :aria-selected="projectTab==='pages'"
-                      :title="projectPages.length ? '' : 'No pages in this workspace yet'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectTab==='pages' ? 'bg-base-100 text-primary shadow-sm' : projectPages.length ? 'text-base-content/60 hover:text-base-content' : 'text-base-content/25 cursor-default'">
                 <i class="ph ph-squares-four text-base hidden sm:inline"></i>Pages
@@ -2028,7 +2027,7 @@ html.dk-dragging main{transition:none !important}
                              class="font-semibold text-base hover:text-primary transition-colors truncate"
                              x-text="pg.label" data-part="title"></a>
                           <a :href="pg.code" target="_blank" rel="noopener"
-                             class="text-base-content/30 hover:text-base-content/60 shrink-0" title="Source on GitHub" data-part="links">
+                             class="text-base-content/30 hover:text-base-content/60 shrink-0" data-title-tip="Source on GitHub" data-part="links">
                             <i class="ph ph-github-logo"></i></a>
                         </div>
                         <p class="text-base text-base-content/50" x-text="pg.note" data-part="summary"></p>
@@ -2090,7 +2089,7 @@ html.dk-dragging main{transition:none !important}
                           <i class="ph ph-arrow-left text-base"></i></button>
                         <span class="min-w-0 truncate font-mono text-sm text-base-content/50" x-text="projectDocSel"></span>
                         <button @click="openFile(projectPath + '/' + projectDocSel)" class="ml-auto shrink-0 btn btn-ghost btn-sm btn-square"
-                                title="Open in the viewer" aria-label="Open in the viewer"><i class="ph ph-arrow-square-out text-base"></i></button>
+                                data-title-tip="Open in the viewer" aria-label="Open in the viewer"><i class="ph ph-arrow-square-out text-base"></i></button>
                       </div>
                       <div x-show="projectDocSel && projectDocLoading" class="flex justify-center py-16">
                         <span class="loading loading-dots loading-md opacity-30"></span>
