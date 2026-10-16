@@ -122,8 +122,8 @@ rests on, it is also a panel-tip, and it names its source with a ↗. Size and
 importance do not enter into it. The standard terms are a tooltip (ARIA
 `role="tooltip"`) and a popover.
 
-A `title` attribute is neither: it labels an icon-only control and carries no
-fact, since it never reaches a phone or a screenshot. daisyUI's `tooltip`,
+A `title` attribute is neither, and is not used, since it never reaches a phone
+or a screenshot. daisyUI's `tooltip`,
 `data-tip` and `cursor-help` are not used; this overrides `references/daisyui.md`.
 
 | | Title-tip | Panel-tip | Panel-tip, pinned |
