@@ -527,7 +527,7 @@ test('a look step rings, pings on landing and on the way back, and the dock wear
   w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
   await wait(520);
   const halo = w.document.querySelector('[data-look="halo"]');
-  assert.match(halo.style.border, /2px solid/, 'the ring, as a do step wears');
+  assert.match(halo.style.border, /3px solid/, 'the ring, thicker than a do step\'s');
   assert.equal(pings.length, 1, 'one ping once it lands');
   const dock = w.document.querySelector('[data-look="dock"]');
   assert.match(dock.style.border, /2px solid/, 'the dock in the marker\'s yellow');
