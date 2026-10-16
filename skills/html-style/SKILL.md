@@ -5,10 +5,16 @@ description: The binding house style for HTML pages built here, covering what a 
 
 # HTML house style
 
+## "Let the content guide"
+
+We want to dial in on the few properties that reveal a pattern of interest in
+the material, and keep the rest a tap away. The less shown, the more clearly the
+pattern appears.
+
 ## "A page is for comparing"
 
-Ask Tufte's question first, "Compared to what?", then give the compared things
-one place:
+Most often the pattern is a comparison. Ask Tufte's question, "Compared to
+what?", then give the compared things one place:
 
 - **Side by side, when they fit:** columns, small multiples, a table whose rows
   share columns.
