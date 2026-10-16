@@ -24,9 +24,10 @@
   while "Doe" beside an already boxed email stays its own. DRAW boxes
   anything OCR missed; in Draw, a box's middle drags it and its edges and
   corners resize it, so a short box is fixed rather than redrawn. Moving or
-  resizing a word box detaches it from its words. CROP shows a frame over
-  the whole image with the same grips: drag an edge or corner in, drag the
-  middle to move it, Uncrop to reset. Flagged words are outlined in the warning
+  resizing a word box detaches it from its words. CROP is placed by a drag;
+  then its edges and corners resize it and its middle moves it, a tap
+  outside clears it, and a drag outside starts a new one. Grips are black
+  squares at the four corners. Flagged words are outlined in the warning
   colour; the outline toggle adds every other word OCR read.
 
   STYLE sets a box's fill (white unless changed), its border (none, solid,
@@ -378,16 +379,15 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
     if (e.l || e.r || e.t || e.b) return { kind: 'resize', e };
     return p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h ? { kind: 'move' } : null;
   },
-  // What a press at `p` would take hold of. Crop always has a frame (the
-  // whole image until it is moved), so there is nothing to draw from scratch.
-  // In Draw, the selected box is tried first, then the others top-down; a
-  // press on none of them draws a new box.
+  // What a press at `p` would take hold of: the crop frame in Crop, and in
+  // Draw the selected box first, then the others top-down. A press on none
+  // of them draws: a new crop (replacing any) or a new box.
   grab(p) {
     const tol = 22 * this.W / (this.$refs.cv.getBoundingClientRect().width || this.W);
     const at = (r) => this.grip(r, p, Math.min(tol, Math.min(r.w, r.h) / 3));
     if (this.mode === 'crop') {
-      const r = this.crop || { x: 0, y: 0, w: this.W, h: this.H }, g = at(r);
-      return g && { ...g, target: 'crop', from: { x: r.x, y: r.y, w: r.w, h: r.h } };
+      const r = this.crop, g = r && at(r);
+      return g ? { ...g, target: 'crop', from: { x: r.x, y: r.y, w: r.w, h: r.h } } : null;
     }
     if (this.mode !== 'draw') return null;
     for (const b of [this.selBox, ...[...this.boxes].reverse()].filter(Boolean)) {
@@ -447,14 +447,21 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
     const sc = this.W / this.$refs.cv.getBoundingClientRect().width;
     const dx = (e.clientX - s.cx) * sc, dy = (e.clientY - s.cy) * sc;
     if (this.op) return this.apply(this.op, dx, dy);
-    if (this.mode === 'draw') this.drag = snap(s.x, s.y, s.x + dx, s.y + dy, this.W, this.H);
+    this.drag = snap(s.x, s.y, s.x + dx, s.y + dy, this.W, this.H);
   },
   up(e) {
     const s = this.start, d = this.drag, op = this.op, dragged = this.dragging;
     Object.assign(this, { start: null, drag: null, dragging: false, op: null });
     if (!s) return;
-    if (!dragged) return this.mode === 'crop' ? undefined : this.tap(s);
-    if (!op && this.mode === 'draw' && d && d.w >= 4 && d.h >= 4) this.addBox({ ...d, label: this.lastLabel });
+    // A tap outside the crop clears it, to try again; a tap inside keeps it.
+    if (!dragged) {
+      if (this.mode !== 'crop') return this.tap(s);
+      if (!op) this.crop = null;
+      return;
+    }
+    if (op || !d || d.w < 4 || d.h < 4) return;
+    if (this.mode === 'crop') this.crop = d;
+    else this.addBox({ ...d, label: this.lastLabel });
   },
   cancel() { Object.assign(this, { start: null, drag: null, dragging: false, op: null }); },
   tap(p) {
@@ -496,14 +503,13 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
       g.strokeStyle = '#000'; g.lineWidth = 1.5 * k; g.strokeRect(r.x, r.y, r.w, r.h);
       g.restore();
     };
-    // Square grips at the corners, and at the edge midpoints when the box is
-    // big enough that they would not sit on its label. They only mark the
-    // spot: an edge takes a drag along its whole length (see grip()).
+    // Black square grips at the four corners, edged in white so they show on
+    // a dark image. They only mark the spot: an edge takes a drag along its
+    // whole length (see grip()).
     const grips = (r) => {
       const z = Math.min(12 * k, Math.min(r.w, r.h) * 0.6);
-      const mids = Math.min(r.w, r.h) >= 5 * z ? [[.5, 0], [0, .5], [1, .5], [.5, 1]] : [];
-      g.save(); g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 1.5 * k;
-      for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1], ...mids]) {
+      g.save(); g.fillStyle = '#000'; g.strokeStyle = '#fff'; g.lineWidth = 1.5 * k;
+      for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
         const x = Math.min(this.W - z, Math.max(0, r.x + u * r.w - z / 2));
         const y = Math.min(this.H - z, Math.max(0, r.y + v * r.h - z / 2));
         g.fillRect(x, y, z, z); g.strokeRect(x, y, z, z);
@@ -515,18 +521,17 @@ document.addEventListener('alpine:init', () => Alpine.data('redact', () => ({
       dashed({ x: s.x - 3 * k, y: s.y - 3 * k, w: s.w + 6 * k, h: s.h + 6 * k });
       if (mode === 'draw') grips(s);
     }
-    if (crop) {
+    // A crop being drawn previews as the crop itself, dimmed outside.
+    const cr = mode === 'crop' && drag ? drag : crop;
+    if (cr) {
       g.save();
       g.fillStyle = 'rgba(0,0,0,.5)';
-      g.beginPath(); g.rect(0, 0, this.W, this.H); g.rect(crop.x, crop.y, crop.w, crop.h); g.fill('evenodd');
+      g.beginPath(); g.rect(0, 0, this.W, this.H); g.rect(cr.x, cr.y, cr.w, cr.h); g.fill('evenodd');
       g.restore();
+      dashed(cr);
+      if (mode === 'crop' && !drag) grips(cr);
     }
-    if (crop || mode === 'crop') {
-      const f = crop || { x: k, y: k, w: this.W - 2 * k, h: this.H - 2 * k };
-      dashed(f);
-      if (mode === 'crop') grips(f);
-    }
-    if (drag) dashed(drag, 'rgba(0,0,0,.6)');
+    if (drag && mode === 'draw') dashed(drag, 'rgba(0,0,0,.6)');
   },
 
   // ── Result ─────────────────────────────────────────────────────────────
