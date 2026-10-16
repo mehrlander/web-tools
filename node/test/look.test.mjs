@@ -232,27 +232,24 @@ test('intro= alone is one card with the message, no target, and nothing to warn 
   assert.ok(card(w).querySelector('[data-stop]'), 'and it closes');
 });
 
-test('intro= rides on the first card when that card points at something', async () => {
-  // The first card shows a place rather than spending a card on words alone
-  // (the owner's call, 2026-10-16); the intro is its lead line.
+test('one message per card: an intro is the first card\'s message only when that card has none', async () => {
+  // The owner's calls, 2026-10-16: the first card shows a place, and a card
+  // says one thing, so a bold lead over a second line is gone.
   const w = realm('<p data-at="x">Hello</p><p data-at="y">There</p>',
-    'intro=' + encodeURIComponent('What changed') + '&steps=' +
-    encodeURIComponent(JSON.stringify([{ at: 'x', say: 'Here it is' }, { at: 'y', say: 'And here' }])));
+    'intro=' + encodeURIComponent('Look at the greeting') + '&steps=' +
+    encodeURIComponent(JSON.stringify([{ at: 'x' }, { at: 'y', say: 'And here' }])));
   await loaded(w);
   await wait(30);
-  assert.equal(card(w).querySelector('[data-intro]').textContent, 'What changed');
-  assert.equal(said(w), 'Here it is');
+  assert.equal(said(w), 'Look at the greeting', 'the first step had no message, so the intro is it');
   assert.match(card(w).textContent, /1 of 2/, 'no card of its own');
   assert.equal(halo(w).style.display, 'block', 'and the first card lands');
-  card(w).querySelector('[aria-label="Next"]').click();
+  assert.equal(card(w).querySelectorAll('p').length, 1, 'one message on the card');
+  // A first step with a message of its own keeps it, and the intro goes ahead.
+  const two = realm('<p data-at="x">Hello</p>', 'intro=Hi&show=x&say=There');
+  await loaded(two);
   await wait(30);
-  assert.equal(card(w).querySelector('[data-intro]'), null, 'the lead belongs to the first card only');
-  // A lone landing carries it too, above the message.
-  const one = realm('<p data-at="x">Hello</p>', 'intro=Hi&show=x&say=There');
-  await loaded(one);
-  await wait(30);
-  assert.equal(card(one).querySelector('[data-intro]').textContent, 'Hi');
-  assert.equal(said(one), 'There');
+  assert.equal(said(two), 'Hi');
+  assert.match(card(two).textContent, /1 of 2/);
 });
 
 test('a broken walk still shows its intro, then says what broke', async () => {
@@ -286,39 +283,36 @@ test('the hand carries a label: the step\'s own, else one for the pointer', asyn
   assert.match(act(w), /^(Tap|Click) here$/);
 });
 
-test('a tap that opens another page says to use Back, and one that opens a tab says so', async () => {
+test('a tap that opens another page says in the hand\'s label that Back returns here', async () => {
   const w = realm('<a data-at="away" href="/elsewhere.html">Elsewhere</a>' +
                   '<a data-at="tab" href="/x.html" target="_blank">New tab</a>' +
                   '<a data-at="here" href="?view=other">Same page</a>');
-  const leave = () => card(w).querySelector('[data-leave]');
   w.Look.start([{ at: 'away', tap: true, say: 'Go there' }]);
   await wait(30);
-  assert.equal(leave().dataset.leave, 'page');
-  assert.match(leave().textContent, /Use Back to return to the walk/);
-  assert.match(act(w), /to open$/);
+  assert.match(act(w), /Back returns here$/);
+  assert.equal(card(w).querySelectorAll('p').length, 1, 'and not as a second line on the card');
   w.Look.start([{ at: 'tab', tap: true, say: 'Open it' }]);
   await wait(30);
-  assert.equal(leave().dataset.leave, 'tab');
+  assert.equal(act(w), 'Opens a new tab');
   w.Look.start([{ at: 'here', tap: true, say: 'Route in place' }]);
   await wait(30);
-  assert.equal(leave(), null, 'a link that only changes the query stays, as an app routes it in place');
+  assert.match(act(w), /^(Tap|Click) here$/, 'a link that only changes the query stays, as an app routes it in place');
 });
 
-test('the braces show the walk as JSON, in the shape a link carries, and stay open across steps', async () => {
+test('the braces toggle the walk\'s JSON as a tooltip, not a section of the card', async () => {
   const w = realm('<p data-at="a">a</p><button data-at="b">b</button>',
     'intro=Hi&steps=' + encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', tap: 'Press', say: 'two' }])));
   await loaded(w);
   await wait(30);
-  const view = () => card(w).querySelector('[data-spec-part]');
-  assert.equal(view().style.display, 'none', 'hidden until asked');
+  const tipEl = () => card(w).querySelector('[data-look="spec"]');
+  assert.equal(tipEl(), null, 'nothing until asked');
   card(w).querySelector('[data-json]').click();
-  assert.equal(view().style.display, '');
-  assert.deepEqual(JSON.parse(card(w).querySelector('[data-spec]').textContent),
-    [{ intro: 'Hi', at: 'a', say: 'one' }, { at: 'b', say: 'two', tap: 'Press' }]);
-  assert.match(view().textContent, /From the link: steps=, intro=/);
-  card(w).querySelector('[aria-label="Next"]').click();
-  await wait(30);
-  assert.equal(view().style.display, '', 'still open on the next step');
+  assert.equal(tipEl().getAttribute('role'), 'tooltip');
+  assert.match(tipEl().style.position, /absolute/, 'floating over the page, so the card keeps its size');
+  assert.deepEqual(JSON.parse(tipEl().querySelector('[data-spec]').textContent),
+    [{ say: 'Hi' }, { at: 'a', say: 'one' }, { at: 'b', say: 'two', tap: 'Press' }]);
+  card(w).querySelector('[data-json]').click();
+  assert.equal(tipEl(), null, 'the braces close it again');
 });
 
 test('a walk from the link resumes at the step reached, and ending it forgets', async () => {
