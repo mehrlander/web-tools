@@ -199,3 +199,63 @@ test('a title-tip closes on a scroll, a resize and a window blur', () => {
   window.dispatchEvent(new window.Event('blur'));
   gone('a blur ends the hover with no pointerout behind it');
 });
+
+// ON A CONTROL, A HOVER LABEL. The swap of every `title` in the app for a
+// title-tip put one on some 230 icon buttons, and on touch a tap both fired the
+// button and opened the label (measured 2026-10-15). So on a control the tap
+// belongs to the control, as it did when the label was a title.
+const tap = (el, pointerType) => {
+  const ev = new window.Event('pointerdown', { bubbles: true, cancelable: true });
+  Object.defineProperty(ev, 'pointerType', { value: pointerType });
+  el.dispatchEvent(ev);
+  return ev;
+};
+const isShown = () => window.document.getElementById('wt-title-tip').hasAttribute('data-open');
+
+test('a touch tap on a button belongs to the button, not its title-tip', () => {
+  const b = window.document.createElement('button');
+  b.setAttribute('data-title-tip', 'Close');
+  b.innerHTML = '<i class="ph ph-x"></i>';
+  window.document.body.append(b);
+  tap(b.firstChild, 'touch');
+  assert.equal(isShown(), false, 'no title-tip on a touch tap');
+  tap(b, 'mouse');
+  assert.equal(isShown(), true, 'a mouse press still toggles it, as hover would show it');
+  TitleTip.close(); b.remove();
+});
+
+test('a title-tip inside a link stays quiet on touch too', () => {
+  const a = window.document.createElement('a');
+  a.href = '#x';
+  a.innerHTML = '<span data-title-tip="the full path">path</span>';
+  window.document.body.append(a);
+  tap(a.firstChild, 'touch');
+  assert.equal(isShown(), false);
+  a.remove();
+});
+
+test('a disabled control has no tap of its own, so its title-tip takes it', () => {
+  const l = window.document.createElement('label');
+  l.setAttribute('data-title-tip', 'Needs the pause record');
+  l.innerHTML = '<input type="checkbox" disabled><span>Breaks</span>';
+  window.document.body.append(l);
+  tap(l.lastChild, 'touch');
+  assert.equal(isShown(), true, 'the reason a control is off reaches a phone');
+  TitleTip.close(); l.remove();
+});
+
+test('a control draws no underline and its inner title-tips take no tab stop', () => {
+  assert.match(TitleTip.CSS, /:is\([^)]*button[^)]*\)\[data-title-tip\],:is\([^)]*button[^)]*\) \[data-title-tip\]\{text-decoration:none\}/);
+  const b = window.document.createElement('button');
+  b.innerHTML = '<span data-title-tip="inner label">x</span>';
+  window.document.body.append(b);
+  TitleTip.refresh();
+  assert.equal(b.firstChild.hasAttribute('tabindex'), false, 'the button is the tab stop');
+  b.remove();
+});
+
+test('a second copy of the kit defers to the first', () => {
+  const first = window.TitleTip;
+  new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/title-tip.js'), 'utf8'))();
+  assert.equal(window.TitleTip, first);
+});
