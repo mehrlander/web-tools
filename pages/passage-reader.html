@@ -321,9 +321,11 @@ document.addEventListener('alpine:init', () => {
       if (this.traced.length) { this.traced = []; this.drawArrows(); }
       if (keys) for (const k of keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute(attr, ''));
     },
-    // A span on the card traces its own connections, in either list: every
+    // A span on the card traces its own connections, under Connections: every
     // connection with an end in it is drawn in the passage and both its ends
-    // light, even under Entities, which otherwise draws none.
+    // light. Under Entities it does not, since a connection's end can run past
+    // the mention (a link's end is often a clause), and would light in the
+    // same colour as the entity.
     trace(keys) {
       const ks = new Set(keys), hit = this.X.links.filter(it => it.keys.length === 2 && it.keys.some(k => ks.has(k)));
       for (const it of hit) for (const k of it.keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute('data-on', ''));
@@ -647,7 +649,7 @@ document.addEventListener('alpine:init', () => {
       });
       // The highlighted spans answer the same way, so a span and its row light together.
       const spanOf = e => e.target.closest && e.target.closest('[data-items]');
-      const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show); this.trace(t.dataset.k.split(' ')); };
+      const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show); if (this.group === 'links') this.trace(t.dataset.k.split(' ')); };
       el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) hold(t, false); });
       el.addEventListener('pointerout', e => { const t = spanOf(e); if (t && HOVER.matches && !t.contains(e.relatedTarget)) this.light(null); });
       el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
