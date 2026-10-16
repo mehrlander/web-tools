@@ -65,7 +65,7 @@ test('check names a walk step and an opener that resolve to nothing, and fails',
   const r = py('check', bad);
   assert.equal(r.status, 1);
   assert.match(r.stdout, /walk 'w' step 2: 'renamed' is not an anchor/);
-  assert.match(r.stdout, /walk 'w' step 3 has no anchor/);
+  assert.match(r.stdout, /walk 'w' step 3 has neither an anchor nor a message/);
   assert.match(r.stdout, /data-at-open='gone' names no anchor/);
 });
 
@@ -87,6 +87,21 @@ test('make prints the plainest fragment and exits 1 on an anchor the page lacks'
   assert.match(r.stderr, /matches only a bound prefix/, 'a prefix match passes, and says how weakly');
   r = py('make', FIXTURE, '--walk', 'absent');
   assert.equal(r.status, 1);
+});
+
+test('make puts an intro first, alone or ahead of a place, and checks only the anchors', () => {
+  let r = py('make', FIXTURE, '--intro', 'What changed, briefly');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), 'intro=What%20changed%2C%20briefly');
+  r = py('make', FIXTURE, '--intro', 'First', '--show', 'tab-a', '--say', 'Then here');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), 'intro=First&show=tab-a&say=Then%20here');
+  r = py('make', FIXTURE, '--steps', JSON.stringify([{ say: 'a note' }, { at: 'tab-a' }]));
+  assert.equal(r.status, 0, 'a note step names no anchor, so it cannot miss one');
+  r = py('make', FIXTURE, '--steps', JSON.stringify([{ tap: true }]));
+  assert.equal(r.status, 2, 'a step with neither anchor nor message is refused');
+  r = py('make', FIXTURE);
+  assert.equal(r.status, 2, 'make with nothing to say is an error');
 });
 
 test('steps encoded here decode to the same steps in the kit', () => {

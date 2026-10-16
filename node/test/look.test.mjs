@@ -215,6 +215,58 @@ test('Next, Back and Done move through a walk, and Done takes everything down', 
   assert.equal(w.document.querySelector('[data-look]'), null, 'no marker left behind');
 });
 
+// AN INTRO IS A MESSAGE WITH NOTHING TO POINT AT. A link handed over after a
+// change says what changed before it shows where, so the first card has no
+// target: no tint, no warning colour, no "not on this page", and the page is
+// left where it loaded.
+const halo = (w) => w.document.querySelector('[data-look="halo"]');
+
+test('intro= alone is one card with the message, no target, and nothing to warn about', async () => {
+  const w = realm('<p data-at="x">Hello</p>', 'intro=' + encodeURIComponent('I added the totals row.'));
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'I added the totals row.');
+  assert.equal(card(w).style.display, '', 'the dock is on screen');
+  assert.equal(halo(w).style.display, 'none', 'nothing is tinted');
+  assert.doesNotMatch(card(w).style.background, /color-mix/, 'the plain dock, not the miss colour');
+  assert.ok(card(w).querySelector('[data-stop]'), 'and it closes');
+});
+
+test('intro= goes first, and the place the link names comes next', async () => {
+  const w = realm('<p data-at="x">Hello</p>',
+    'intro=' + encodeURIComponent('What changed') + '&show=x&say=' + encodeURIComponent('Here it is'));
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'What changed');
+  assert.match(card(w).textContent, /1 of 2/);
+  assert.ok(card(w).querySelector('[aria-label="Next"]'), 'a note moves on with the filled arrow');
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
+  assert.equal(said(w), 'Here it is');
+  assert.equal(halo(w).style.display, 'block', 'the second step lands');
+  card(w).querySelector('[data-go="-1"]').click();
+  await wait(30);
+  assert.equal(said(w), 'What changed', 'Back reaches the note, which has no target to be missing');
+});
+
+test('a broken walk still shows its intro, then says what broke', async () => {
+  const w = realm('<p data-at="x">Hello</p>', 'intro=' + encodeURIComponent('Read me first') + '&walk=absent');
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'Read me first');
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
+  assert.match(said(w), /declares no walk named “absent”/);
+});
+
+test('a step with a message and no anchor survives cleaning as a note', async () => {
+  const w = realm('<p data-at="a">a</p>');
+  w.Look.start([{ say: 'context first' }, { at: 'a', say: 'then here' }, { tap: true }]);
+  await wait(30);
+  assert.equal(said(w), 'context first');
+  assert.match(card(w).textContent, /1 of 2/, 'a step with neither anchor nor message is dropped');
+});
+
 test('Escape takes the marker down', async () => {
   const w = realm('<p data-at="a">a</p>');
   w.Look.start([{ at: 'a', say: 'x' }]);
@@ -256,6 +308,8 @@ test('every fragment form reads to the same cleaned steps', () => {
   assert.doesNotMatch(encode(steps), /[+/=]/, 'and needs no escaping in one');
   assert.deepEqual(fromHash('#steps=' + encodeURIComponent(JSON.stringify(steps))), steps, 'plain JSON is read too');
   assert.equal(fromHash('#tab=x&gh=o/r'), null, 'a fragment with no look key is not an ask');
+  assert.equal(fromHash('#data=o/r@abc:a.md#intro=hi&show=x'), null,
+    "a toss shell's fragment carries the page's keys after a nested '#', and they are not the shell's");
 });
 
 test('a fragment that cannot be followed becomes a miss the reader sees', () => {
@@ -263,7 +317,11 @@ test('a fragment that cannot be followed becomes a miss the reader sees', () => 
   const { fromHash } = w.Look;
   assert.match(fromHash('#walk=absent')[0].miss, /no walk named .absent./);
   assert.match(fromHash('#steps=!!!')[0].miss, /could not be read/);
-  assert.match(fromHash('#steps=' + encodeURIComponent('[{"say":"no anchor"}]'))[0].miss, /no steps/);
+  assert.match(fromHash('#steps=' + encodeURIComponent('[{"tap":true}]'))[0].miss, /no steps/,
+    'a step with neither an anchor nor a message is nothing to show');
+  // Before 2026-10-16 a message with no anchor was dropped too; it is a note now.
+  assert.equal(JSON.stringify(fromHash('#steps=' + encodeURIComponent('[{"say":"no anchor"}]'))),
+    JSON.stringify([{ at: '', say: 'no anchor', tap: false }]));
 });
 
 test('a link is untrusted, so steps are capped and coerced', () => {

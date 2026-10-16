@@ -895,7 +895,10 @@ GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "�
 # reading lives in python/look-link.py, imported rather than repeated; where
 # that file is absent (this script fetched alone into another repo) the hint
 # is simply not given.
-LOOK_KEYS = ("show", "tap", "walk", "steps")
+LOOK_KEYS = ("show", "tap", "walk", "steps", "intro")
+# The keys that name a place on the page, which are the ones an anchor check
+# reads; an intro is a message with no target.
+ANCHORED = ("show", "tap", "walk", "steps")
 _look = []
 
 
@@ -921,7 +924,7 @@ def look_hints(subjects, at, warn):
         return []
     from urllib.parse import parse_qsl
     asked = dict(parse_qsl(at or "", keep_blank_values=True))
-    keys = [k for k in LOOK_KEYS if k in asked]
+    keys = [k for k in ANCHORED if k in asked]
     hints = []
     for p, _ in subjects:
         try:
@@ -1067,6 +1070,10 @@ def main():
                     help="the addressed page's own ?query, for a page that routes on one rather "
                          "than on a hash (e.g. --query 'view=sessions'). Without it a link to such "
                          "a page opens whichever view it defaults to.")
+    ap.add_argument("--intro", default="", metavar="TEXT",
+                    help="a message the reader meets on arrival, before any look marker: what "
+                         "changed and what to look at. Rides on the link as intro=, which "
+                         "lib/kits/look.js draws as a card with no target")
     ap.add_argument("--refs", action="append", default=[], metavar="OWNER/REPO@REF[:PATH]",
                     help="a cross-repo selection for the renderer's own query (repeatable), e.g. "
                          "--refs mehrlander/home@<branch>; --query carries only the page's own parameters")
@@ -1080,6 +1087,10 @@ def main():
                                    ".web-tools.json `showing` block")
     a = ap.parse_args()
     global ROOT
+    if a.intro:
+        # First in the fragment, ahead of a page's own address keys, so a reader
+        # of the raw link meets it where the page will.
+        a.at = "intro=" + quote(a.intro.strip(), safe="") + ("&" + a.at.lstrip("#") if a.at else "")
     if a.root:
         ROOT = Path(a.root).resolve()
     else:
