@@ -129,7 +129,7 @@ or a screenshot. daisyUI's `tooltip`,
 | | Title-tip | Panel-tip | Panel-tip, pinned |
 | --- | --- | --- | --- |
 | Holds | one line the page already implies; nothing tappable | anything, with a ↗ to where it came from; may scroll | the same |
-| Opens | hover, focus, tap | hover with grace, focus, tap | a deliberate click; on touch, every tap |
+| Opens | hover, focus, tap, except on a control | hover with grace, focus, tap | a deliberate click; on touch, every tap |
 | Closes | leave, its own tap, tap anywhere, Escape, a scroll, a resize, a blur | the pointer elsewhere, a scroll, a resize, a blur, ✕, tap outside, Escape | ✕, Escape, a scroll, an action inside |
 | Own close target | its body: on touch, tapping it closes it and swallows the tap | ✕, shown where the reader cannot hover | ✕, always |
 
