@@ -259,3 +259,20 @@ test('a second copy of the kit defers to the first', () => {
   new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/title-tip.js'), 'utf8'))();
   assert.equal(window.TitleTip, first);
 });
+
+// INTO A FRAME. The notes card and peek draw into a framed page's own
+// document, where this copy's listeners never hear a hover. into() runs the
+// kit again in that window, and a second call leaves the first copy alone.
+test('into() installs a copy of the kit in a frame, once', () => {
+  const f = window.document.createElement('iframe');
+  window.document.body.append(f);
+  const w = f.contentWindow;
+  assert.equal(typeof TitleTip.into, 'function');
+  TitleTip.into(w);
+  assert.ok(w.TitleTip, 'the frame has its own copy');
+  assert.notEqual(w.TitleTip, TitleTip, 'and it is the frame\'s, not this one');
+  const first = w.TitleTip;
+  TitleTip.into(w);
+  assert.equal(w.TitleTip, first, 'a second call keeps the first copy');
+  f.remove();
+});
