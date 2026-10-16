@@ -540,7 +540,7 @@ test('timeline slices the page\'s life and finds the stretches it spent hidden',
     { t: -50, job: null },             // before the start: not drawn
   ];
   const visibility = [{ t: 0, hidden: false }, { t: 6000, hidden: true }, { t: 7000, hidden: false }, { t: 9000, hidden: true }];
-  const tl = T.timeline(entries, visibility, 0, 10000, 10);
+  const tl = T.timeline(entries, visibility, 0, 10000, 1000);
   assert.equal(tl.slices.length, 10);
   assert.equal(tl.slices[1].calls, 2, 'the two calls at 1.0s and 1.5s share the second slice');
   assert.equal(tl.slices[1].jobCalls, 1);
@@ -684,16 +684,47 @@ test('the traffic log files a finding once, leaves out its own writes, and needs
   assert.equal((await U.check()).why, 'not running');
 });
 
-test('clock lines widen their step as the page ages, aligned to the reader\'s clock', () => {
-  const h = 3600e3, m = 60e3;
-  const fresh = T.timeTicks(0, 4 * m, { max: 6 });
-  assert.equal(fresh.step, 1 * m, 'four minutes old: a line a minute');
-  assert.deepEqual(fresh.ticks.map(k => k.t), [0, m, 2 * m, 3 * m, 4 * m]);
-  const old = T.timeTicks(10 * m, 5 * h + 10 * m, { max: 6 });
-  assert.equal(old.step, h, 'five hours old: a line an hour');
-  assert.equal(old.ticks[0].t, h, 'lines fall on the hour, not on the load time');
-  assert.ok(old.ticks.every(k => k.left >= 0 && k.left <= 1));
-  const west = T.timeTicks(0, 5 * h, { max: 6, offset: 30 });
-  assert.equal(west.ticks[0].t % h, 30 * m, 'a half-hour zone puts the hour lines on its own clock');
-  assert.ok(T.timeTicks(0, 3 * h, { max: 6 }).step > fresh.step, 'the step only grows with the span');
+test('bins fall on the clock, so a bar keeps its edges as the page ages', () => {
+  const e = [{ t: 12500, job: null }, { t: 13900, job: null }, { t: 21000, job: 1 }];
+  const a = T.timeline(e, [], 11300, 22000, 5000);
+  const b = T.timeline(e, [], 11300, 24000, 5000);
+  assert.deepEqual(a.slices.map(s => s.t0), [11300, 15000, 20000], 'the first bin starts at load, the rest on the clock');
+  assert.deepEqual(b.slices.map(s => s.t0), [11300, 15000, 20000], 'two seconds later the same edges');
+  assert.equal(a.slices[0].calls, 2);
+  assert.equal(a.slices[2].t1, 22000, 'the newest bin ends at now and grows');
+  assert.equal(b.slices[2].t1, 24000);
+  assert.ok(Math.abs(a.slices.reduce((n, s) => n + s.width, 0) - 1) < 1e-9, 'the bins fill the lane edge to edge');
+  assert.ok(b.slices[1].width < a.slices[1].width, 'a full bin narrows as the span grows: the squeeze');
+  const west = T.timeline([], [], 0, 3 * 3600e3, 3600e3, 30);
+  assert.equal(west.slices[1].t0 % 3600e3, 30 * 60e3, 'hour bins start on the hour of the reader\'s clock');
 });
+
+test('the bin step widens with the page\'s age, never past the bin limit', () => {
+  assert.equal(T.binStep(30e3, 60), 1e3);
+  assert.equal(T.binStep(10 * 60e3, 60), 10e3);
+  assert.equal(T.binStep(3 * 3600e3, 60), 5 * 60e3);
+  for (const span of [5e3, 90e3, 40 * 60e3, 7 * 3600e3]) assert.ok(span / T.binStep(span, 60) <= 60);
+});
+
+test('gridlines fade by their spacing, fine levels out and coarse levels into the labels', () => {
+  const m = 60e3;
+  // A page 20 seconds old across 1000 pixels: 50 pixels a second.
+  const young = T.timeGrid(0, 20e3, 1000);
+  assert.equal(young[1].t - young[0].t, 1e3, 'a line a second');
+  assert.equal(young.find(k => k.t === 1e3).alpha, 1, 'seconds are 50 pixels apart: fully shown');
+  assert.equal(young.find(k => k.t === 1e3).label, 0, 'but too close for labels');
+  assert.equal(young.find(k => k.t === 5e3).label, 1, 'five seconds, 250 pixels apart, carry the labels');
+  // An hour old across 1000 pixels: seconds would be 0.28 pixels apart.
+  const old = T.timeGrid(0, 60 * m, 1000);
+  assert.ok(!old.some(k => k.t % 15e3 === 0 && k.t % m !== 0), 'seconds and quarter minutes are gone');
+  assert.ok(old.find(k => k.t === m).alpha > 0 && old.find(k => k.t === m).alpha < 1, 'minutes are washing out');
+  assert.equal(old.find(k => k.t === 15 * m).label, 1, 'quarter hours carry the labels');
+  assert.ok(old.every(k => k.t % m === 0));
+  // Lines fade part way; labels switch at 100 pixels apart.
+  const mid = T.timeGrid(0, 50e3, 1000); // seconds 20 pixels apart, five seconds 100
+  const one = mid.find(k => k.t === 1e3), five = mid.find(k => k.t === 5e3);
+  assert.ok(one.alpha > 0 && one.alpha < 1, 'second lines washing out');
+  assert.equal(five.label, 1, 'five-second labels at 100 pixels');
+  assert.equal(T.timeGrid(0, 52e3, 1000).find(k => k.t === 5e3).label, 0, 'and gone just under it');
+});
+
