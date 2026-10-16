@@ -206,7 +206,7 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   assert.equal(data.err, '');
   assert.equal(data.items.length, 5, 'docs/ is not outpost material');
   assert.deepEqual([...data.groups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts']);
-  assert.equal(q('[data-powershell-outpost] section button.text-left').length, 5, 'one row per file');
+  assert.equal(q('[data-powershell-outpost] section a.text-left').length, 5, 'one row per file');
   const text = el.textContent;
   assert.match(text, /Local areas/); assert.match(text, /Leg/); assert.match(text, /local only/); assert.match(text, /unresolved/);
   assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
@@ -340,7 +340,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   pill.click(); await settle();
   assert.equal(data.filter, 'Differs');
   assert.equal(pill.getAttribute('aria-pressed'), 'true');
-  assert.equal(q('[data-powershell-outpost] section button.text-left').length, 1);
+  assert.equal(q('[data-powershell-outpost] section a.text-left').length, 1);
   el.querySelector('[data-state-filter] button').click(); await settle();
   assert.equal(data.filter, '', 'All clears it');
 });
@@ -350,7 +350,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
 test('area pills narrow the list to one area, and each row is labelled', async () => {
   const pills = () => [...el.querySelectorAll('[data-area-filter] button')];
   const pill = name => pills().find(b => b.textContent.includes(name));
-  const rows = () => q('[data-powershell-outpost] section button.text-left').map(b => b.textContent.trim());
+  const rows = () => q('[data-powershell-outpost] section a.text-left').map(b => b.textContent.trim());
   const localAreas = () => [...el.querySelectorAll('[data-powershell-outpost] section')].find(s => s.textContent.includes('Local areas'));
   assert.deepEqual([...el.querySelectorAll('[data-filter-label]')].map(s => s.textContent), ['Area', 'State'], 'no table, no App row');
   assert.deepEqual(pills().map(b => [...b.querySelectorAll('span')].map(x => x.textContent).join(' ')),
@@ -966,7 +966,7 @@ test('with the derived tables, application pills narrow the files and each lists
   advanceHead(); await data.reload(); await settle();
   const pills = () => [...el.querySelectorAll('[data-app-filter] button')];
   const pill = name => pills().find(b => b.textContent.includes(name));
-  const rows = () => q('[data-powershell-outpost] section button.text-left').map(b => b.textContent.trim());
+  const rows = () => q('[data-powershell-outpost] section a.text-left').map(b => b.textContent.trim());
   assert.deepEqual(pills().map(b => [...b.querySelectorAll('span')].map(x => x.textContent).join(' ')), ['Chrome 3', 'Excel 1'], 'one pill per application, with its count');
   const all = rows().length;
   pill('Chrome').click(); await settle();
@@ -994,7 +994,7 @@ test('with the derived tables, application pills narrow the files and each lists
   assert.match(deps().textContent, /Loads\s+Bookmarks\.ps1\s*form\s+Forms\.psm1\s*import\s+Paths\.psm1\s*not in repository\s*import/);
   data.select(FORMS); await settle();
   assert.match(deps().textContent, /Loaded by\s+Profile\.ps1\s*import/);
-  assert.equal(deps().querySelectorAll('button').length, 1, 'a file in the tree is a link to it');
+  assert.equal(deps().querySelectorAll('a').length, 1, 'a file in the tree is a link to it');
   data.select(`${P}/app/Scripts/Demo.ps1`); await settle();
   assert.equal(deps().style.display, 'none', 'nothing loads it and it loads nothing');
   data.groupBy = 'area';
@@ -1143,5 +1143,75 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
   } finally {
     parser.delete(); window.PowerShellUnits = null; window.PowerShellMatch = undefined; history = null;
     Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [ledger]: saved.ledger }); advanceHead(); await data.reload();
+  }
+});
+
+// A module or form opened whole by its name: the module as its functions by
+// how far their callers reach, the form as its window's controls with the
+// events its controller wires, and both as files that open where they live.
+test('a module or form opens whole from its name, and every name in it opens where it lives', async () => {
+  const mp = `${P}/data/outpost.json`, CTL = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`, XAML = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`, PROFILE = `${P}/app/Profile.ps1`;
+  const saved = { manifest: files[mp], forms: files[FORMS], ctl: files[CTL], xaml: files[XAML], profile: files[PROFILE] };
+  const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
+  try {
+    files[mp] = JSON.stringify({ ...JSON.parse(saved.manifest), loads: `${P}/data/loads.csv` });
+    files[`${P}/data/loads.csv`] = 'path,loads,how,evidence\napp/Profile.ps1,app/Modules/Forms/Forms.psm1,import,line 1\napp/Profile.ps1,app/Forms/Bookmarks/Bookmarks.ps1,form,line 2\n';
+    files[FORMS] = 'function Import-Form { Get-Helper }\nfunction Get-Helper { 1 }\nfunction Show-Nothing { }\n';
+    files[PROFILE] = 'Import-Module Forms\nImport-Form Bookmarks\n';
+    files[XAML] = '<Window><Grid><TextBox Name="txtFilter"/><TextBlock Name="txtStatus"/><Border Name="Spare"/></Grid></Window>\n';
+    files[CTL] = "$Wrapper.On('txtFilter', 'TextChanged', {})\n$Wrapper.txtStatus.Text = 'ready'\n";
+    advanceHead(); await data.reload(); await settle();
+    const heads = () => q('[data-resource-head]');
+    assert.deepEqual(heads().map(b => b.textContent.trim()), ['Forms', 'Bookmarks'], 'a module and a form, and no heading for a script folder');
+    heads()[0].click(); await settle();
+    await poll(() => data.resource === 'Modules/Forms' && !data.resBusy && data.resReach, 'the module did not read');
+    assert.equal(window.__shell.powershellOutpostItem, `${P}/app/Modules/Forms/`, 'the address names the folder');
+    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · 1 to install)?$/);
+    assert.deepEqual([...data.resReachGroups.map(g => g.key + ':' + g.list.map(f => f.name).join())], ['outside:Import-Form', 'inside:Get-Helper', 'none:Show-Nothing']);
+    assert.match(el.querySelector('[data-function] [data-caller]').textContent, /Profile\.ps1/, 'its caller, named');
+    assert.match(el.querySelector('[data-resource-neighbours]').textContent, /Loaded by\s+Profile\.ps1\s*import/);
+    // Every name is a link to the address that selects it, with the fact a click would find.
+    const itemOf = a => new URL(a.getAttribute('href'), 'http://x/').searchParams.get('item');
+    assert.equal(itemOf(heads()[0]), `${P}/app/Modules/Forms/`, 'a resource heading links to its folder');
+    const fnLink = el.querySelector('[data-function] a');
+    assert.equal(itemOf(fnLink), FORMS);
+    assert.equal(fnLink.getAttribute('data-title-tip-lead'), 'Forms.psm1, line 1');
+    assert.equal(fnLink.getAttribute('data-title-tip'), 'no parameters');
+    const caller = el.querySelector('[data-caller]');
+    assert.equal(caller.getAttribute('data-title-tip-lead'), 'Profile.ps1, line 2');
+    assert.equal(caller.getAttribute('data-title-tip'), 'Import-Form Bookmarks', 'the call itself');
+    assert.match(el.querySelector('[data-neighbour] a').getAttribute('data-title-tip'), /^Profile\.ps1 imports Forms\.psm1, line 1/);
+    let went = false;
+    data.go({ defaultPrevented: false, button: 0, ctrlKey: true, preventDefault() {} }, () => { went = true; });
+    assert.equal(went, false, 'a modified click is the browser\'s');
+    // Back and Forward: the view follows the item the address names.
+    const pop = async search => { window.history.pushState(null, '', search); window.dispatchEvent(new window.PopStateEvent('popstate')); await settle(); };
+    await pop('?item=' + encodeURIComponent(FORMS));
+    assert.equal(data.selected, FORMS);
+    await pop('?item=' + encodeURIComponent(`${P}/app/Modules/Forms/`));
+    assert.equal(data.resource, 'Modules/Forms'); assert.equal(data.selected, '');
+    await pop('?x=1');
+    assert.equal(data.resource, ''); assert.equal(data.selected, '', 'a bare address is the bare list');
+    data.select(FORMS); await settle();
+    window.dispatchEvent(new window.PopStateEvent('popstate')); await settle();
+    assert.equal(data.selected, FORMS, 'a popstate at an unchanged address, as a deck closing makes, is not a move');
+    heads()[0].click(); await settle();
+    await poll(() => data.resource === 'Modules/Forms' && !data.resBusy && data.resReach, 'the module did not read again');
+    data.openAt(FORMS, 2); await settle();
+    assert.equal(data.selected, FORMS); assert.equal(data.resource, '', 'a file replaces the resource');
+    assert.equal(data.shownTab, 'code');
+    el.querySelector('[data-resource-link] a').click(); await settle();
+    assert.equal(data.resource, 'Modules/Forms', 'the file names its resource and returns to it');
+    heads()[1].click(); await settle();
+    await poll(() => data.resource === 'Forms/Bookmarks' && !data.resBusy && data.resForms.length, 'the form did not read');
+    const rows = q('[data-control]').map(r => r.textContent.replace(/\s+/g, ' ').trim());
+    assert.deepEqual(rows, ['txtFilter TextBox TextChanged', 'txtStatus TextBlock in code', 'Spare Border'], 'wired, touched in code, and never named');
+    assert.ok(q('[data-control] a').find(b => b.textContent === 'Spare').className.includes('text-base-content/40'), 'a control the controller never names is dimmed');
+    assert.match(el.querySelector('[data-resource-files]').textContent, /Bookmarks\.xaml\s*\+\s*Bookmarks\.ps1/);
+    data.selectResource(''); await settle();
+    assert.equal(data.resource, ''); assert.equal(window.__shell.powershellOutpostItem, '');
+  } finally {
+    Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [CTL]: saved.ctl, [XAML]: saved.xaml, [PROFILE]: saved.profile });
+    delete files[`${P}/data/loads.csv`]; advanceHead(); await data.reload();
   }
 });
