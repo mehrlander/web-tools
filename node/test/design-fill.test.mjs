@@ -74,12 +74,14 @@ const FOLD_WORDS = { decide: { text: 'Switch the topic follow-up?', more: 'one c
                      def: { text: 'How big is a topic?', answer: 'the key starts one when the thing built changes' } };
 const folds = () => { const el = window.document.createElement('div'); el.innerHTML = FOLDS; D.fill(el, FOLD_WORDS); return el; };
 
-test('focus opens the call\'s own block and reduces every other to its line', () => {
+test('focus fixes the call\'s own block open and reduces every other to its line', () => {
   const el = folds();
   D.focus(el, 'def');
-  const open = el.querySelectorAll('details');
-  assert.equal(open.length, 1, 'only the call\'s own block is still a disclosure');
-  assert.ok(open[0].hasAttribute('open') && open[0].classList.contains('k-def'));
+  assert.equal(el.querySelectorAll('details').length, 0, 'no block is left to collapse');
+  const own = el.querySelector('.k-def');
+  assert.equal(own.dataset.fold, 'open');
+  assert.ok(own.querySelector('[data-field="def.answer"]'), 'the call\'s own block keeps its detail');
+  assert.equal(own.querySelector('[class*="caret"]'), null, 'and nothing says it closes');
   const other = el.querySelector('.k-decide');
   assert.equal(other.tagName, 'DIV', 'the other block is a plain line');
   assert.ok(other.querySelector('[data-field="decide.text"]'), 'its line keeps its words');
