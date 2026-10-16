@@ -31,7 +31,7 @@
 
   Payload: audit/1, from ?src=<spec>, #gz=<base64url>, or the embedded default.
   ?view=review (or #view=review) opens on Review: one category's units as a
-  list over the whole document, the current unit highlighted.
+  list over a strip of the whole document, one slide per unit.
   Built by python/annotate/audit-payload.py (--inject refreshes the block below).
 -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
@@ -720,7 +720,7 @@ window.__audit = {
 
   window.auditPage = () => ({
     a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
-    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null, rMode: 'list',
+    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null,
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
       let payload = window.__audit;
@@ -1292,14 +1292,12 @@ window.__audit = {
     },
     heat() {
       const by = new Map(this.units.map(u => [u.uid, u]));
-      for (const host of [this.$refs.doc, this.$refs.rdoc]) {
-        for (const el of host?.querySelectorAll('[data-uid]') || []) {
-          const u = by.get(el.dataset.uid);
-          if (!u) continue;
-          el.style.opacity = this.dim(u);
-          el.style.background = this.shade(u);
-          this.decorate(el, u);
-        }
+      for (const el of this.$refs.doc?.querySelectorAll('[data-uid]') || []) {
+        const u = by.get(el.dataset.uid);
+        if (!u) continue;
+        el.style.opacity = this.dim(u);
+        el.style.background = this.shade(u);
+        this.decorate(el, u);
       }
     },
     light(k) { if (this.lit === k) return; this.lit = k; this.heat(); },
@@ -1321,12 +1319,14 @@ window.__audit = {
       this.toggle(k);
     },
 
-    // ── REVIEW: one category's units as a list over the whole document ───────
+    // ── REVIEW: one category's units as a list over a strip of the document ──
     // The list holds the category the chips pick: Noted (every unit with a
-    // note, the default where any unit has one) or a label. Below it the whole
-    // document, painted as in Doc, with the current unit highlighted and
-    // scrolled into view; a label category is lit and the rest faded. Stacked
-    // at every width, since the page sits in a deck, whose frame is vertical.
+    // note, the default where any unit has one) or a label. Below it a strip,
+    // one slide per unit: the whole document painted as in Doc, that unit
+    // current and its note set under it, scrolled into view. A swipe moves
+    // the list's selection and a pick in the list moves the strip (html-style
+    // rule 12). Stacked at every width, since the page sits in a deck, whose
+    // frame is vertical.
     get noted() { return this.units.filter(u => u.note); },
     get rKey() { return this.rCat ?? (this.noted.length ? NOTED : this.axis[0]); },
     get rTitle() { return this.rKey === NOTED ? 'Noted' : this.rKey; },
@@ -1338,22 +1338,59 @@ window.__audit = {
     get rAt() { const i = this.rRows.findIndex(u => u.uid === this.rPick); return i < 0 ? 0 : i; },
     get rCur() { return this.rRows[this.rAt] || null; },
     // The unit a view treats as current: the selection in Doc, the list's row
-    // in Review.
-    isCur(u) { return u.uid === (this.view === 'review' ? this.rCur?.uid : this.sel?.uid); },
+    // in Review, and while a slide is painted, that slide's own unit.
+    isCur(u) { return u.uid === (this._paintCur ?? (this.view === 'review' ? this.rCur?.uid : this.sel?.uid)); },
     rLight() { this.lit = this.rKey; },
-    rEnter() {
-      this.sel = null; this.rLight();
-      this.$nextTick(() => { this.paint(this.$refs.rdoc); this.rShow(); });
+    rEnter() { this.sel = null; this.rLight(); this.$nextTick(() => { this.rBuild(); this.rShow(); }); },
+    rPickCat(k) { this.rCat = k; this.rPick = null; this.rLight(); this.$nextTick(() => { this.rBuild(); this.rShow(); }); },
+    // The strip, built again whenever its rows change: a category, an edit.
+    rBuild() {
+      const host = this.$refs.rdoc, rows = this.rRows;
+      if (!host) return;
+      host.replaceChildren();
+      this._rStrip = null;
+      if (!rows.length) return;
+      const at = this.rAt;
+      const strip = swipeDeck.core(rows.length, (i, el) => this.rSlide(rows[i], el), {
+        innerClass: 'w-full min-w-0', behavior: 'instant', start: at, slidePad: 'px-4 py-4',
+      });
+      host.append(strip.track);
+      strip.onSlide(i => { if (rows[i] && rows[i].uid !== this.rPick) { this.rPick = rows[i].uid; this.rShow(); } });
+      this._rStrip = strip;
+      requestAnimationFrame(() => strip.go(at, 'instant'));
     },
-    rPickCat(k) { this.rCat = k; this.rPick = null; this.rLight(); this.heat(); this.rShow(); },
-    // Move to row i: the highlight restyled in place, then both panes brought
-    // to it.
-    rGo(i) {
+    // ONE SLIDE: the whole document with this unit current, its note set under
+    // the block that holds it, and the slide scrolled so the unit sits a third
+    // of the way down.
+    rSlide(u, el) {
+      this._paintCur = u.uid;
+      try { this.paint(el); } finally { this._paintCur = null; }
+      const first = el.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`);
+      if (u.note && first) {
+        const note = document.createElement('div');
+        note.className = 'my-2 rounded-box border-l-4 border-[var(--color-primary)] bg-base-200 px-3 py-2 text-sm leading-6 whitespace-pre-line text-pretty';
+        note.textContent = u.note;
+        const block = first.closest('li,p,h1,h2,h3,h4,h5,h6,blockquote,td');
+        if (block && /^(LI|TD)$/.test(block.tagName)) block.append(note);
+        else (block || first).insertAdjacentElement('afterend', note);
+      }
+      requestAnimationFrame(() => {
+        const box = el.closest('.sd-slide');
+        if (!box || !first) return;
+        const b = box.getBoundingClientRect(), r = first.getBoundingClientRect();
+        box.scrollTop += r.top - b.top - Math.max(8, (b.height - Math.min(r.height, b.height)) / 3);
+      });
+    },
+    // Move to row i, the strip following: instantly for a jump, smoothly for
+    // a step to a neighbour.
+    rGo(i, jump = false) {
       const rows = this.rRows;
       if (!rows.length) return;
-      this.rPick = rows[(i + rows.length) % rows.length].uid;
-      this.heat();
+      i = (i + rows.length) % rows.length;
+      const far = jump || Math.abs(i - this.rAt) > 1;
+      this.rPick = rows[i].uid;
       this.rShow();
+      this._rStrip?.go(i, far ? 'instant' : 'smooth');
     },
     // A row under the pointer tints its unit in the document, with an outline
     // in the text colour so a pale label still shows; leaving puts the unit's
@@ -1367,26 +1404,18 @@ window.__audit = {
     },
     // A tap on a unit in the document picks it, where the list holds it.
     rTap(u) { const i = this.rRows.findIndex(x => x.uid === u.uid); if (i >= 0) this.rGo(i); },
-    // The current row kept in view inside the list, and the current unit a
-    // third of the way down the document pane; neither scrolls the page.
+    // The current row kept in view inside the list, never by scrolling the page.
     rShow() {
       this.$nextTick(() => {
-        const into = (box, el, at) => {
-          if (!box || !el) return;
-          const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
-          if (at == null) {
-            if (r.top < b.top) box.scrollTop -= b.top - r.top;
-            else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom;
-          } else box.scrollTop += r.top - b.top - Math.max(8, (b.height - Math.min(r.height, b.height)) * at);
-        };
-        const top = this.rMode === 'table' ? this.$refs.rtable : this.$refs.rlist;
-        into(top, top?.querySelectorAll('[data-row]')[this.rAt]);
-        const u = this.rCur;
-        into(this.$refs.rdoc, u && this.$refs.rdoc?.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`), 1 / 3);
+        const list = this.$refs.rlist, row = list?.querySelectorAll('[data-row]')[this.rAt];
+        if (!row) return;
+        const b = list.getBoundingClientRect(), r = row.getBoundingClientRect();
+        if (r.top < b.top) list.scrollTop -= b.top - r.top;
+        else if (r.bottom > b.bottom) list.scrollTop += r.bottom - b.bottom;
       });
     },
-    // An edit from the Review bar: the unit panel's push(), then the document
-    // painted again. A relabel can take the unit out of the category in view;
+    // An edit from the Review bar: the unit panel's push(), then the strip
+    // built again. A relabel can take the unit out of the category in view;
     // the selection then stays at the same place in the list.
     rEdit(op) {
       const i = this.rAt;
@@ -1394,7 +1423,7 @@ window.__audit = {
       this.sel = null;
       const rows = this.rRows;
       if (!rows.some(u => u.uid === this.rPick)) this.rPick = rows[Math.min(i, rows.length - 1)]?.uid ?? null;
-      this.paint(this.$refs.rdoc);
+      this.rBuild();
       this.rShow();
     },
     // A unit as one line of plain text: list markers, emphasis and link
@@ -2256,58 +2285,29 @@ window.__audit = {
            @pointerdown="pinDown($event)"></div>
     </div>
 
-    <!-- REVIEW: the chips' category over the whole document. The category, as
-         a list or a table, is a third of the height and the current row opens
-         to its note;
-         the bar under it steps through the list and edits the current unit;
-         the document below is painted as in Doc, with the current unit
-         highlighted. Stacked at every width, and it fills the viewport under
-         the header as Spans does. -->
+    <!-- REVIEW: the chips' category as a list over a strip of the document.
+         The list is a third of the height, one line per unit; the bar under
+         it steps through the list and edits the current unit; the strip below
+         holds one slide per unit, the whole document with that unit current
+         and its note under it. Stacked at every width, and it fills the
+         viewport under the header as Spans does. -->
     <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto_minmax(0,2fr)]"
          x-show="view === 'review'" x-cloak
          :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
-      <!-- The category's units, as a list or as a table of the same rows with
-           the annotation's fields. Either picks the current unit; a row under
-           the pointer tints its unit in the document. The current row carries
-           the primary bar, the colour of the document's underline. -->
-      <div class="min-h-0 flex flex-col">
-      <div x-ref="rlist" class="flex-1 min-h-0 overflow-y-auto overscroll-contain py-1" x-show="rMode === 'list'">
+      <!-- A row under the pointer tints its unit in the document. The current
+           row carries the primary bar, the colour of the document's underline. -->
+      <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1">
         <template x-for="(u, i) in rRows" :key="u.uid">
-          <div data-row :class="i === rAt && 'bg-base-300 shadow-[inset_3px_0_0_0_var(--color-primary)]'">
-            <button type="button" class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-300"
-                    :class="i !== rAt && 'hover:bg-base-300/70'" :aria-current="i === rAt"
-                    @click="rGo(i)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
-              <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
-              <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
-              <span class="min-w-0" :class="{ truncate: i !== rAt, 'line-through opacity-60': u.verdict === 'DROP' }" x-text="gist(u)"></span>
-            </button>
-            <p class="pb-2 pl-16 pr-4 text-sm leading-6 whitespace-pre-line text-pretty opacity-80"
-               x-show="i === rAt && u.note" x-text="u.note"></p>
-          </div>
-        </template>
-      </div>
-      <div x-ref="rtable" class="flex-1 min-h-0 overflow-auto overscroll-contain" x-show="rMode === 'table'" x-cloak>
-        <table class="table table-xs table-pin-rows">
-          <thead><tr><th class="text-right">line</th><th>label</th><th>text</th><th>note</th>
-                     <th class="text-right">w</th><th>verdict</th></tr></thead>
-          <tbody>
-            <template x-for="(u, i) in rRows" :key="u.uid">
-              <tr data-row class="cursor-pointer align-top"
+          <button type="button" data-row
+                  class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-300"
                   :class="i === rAt ? 'bg-base-300 shadow-[inset_3px_0_0_0_var(--color-primary)]' : 'hover:bg-base-300/70'"
                   :aria-current="i === rAt"
-                  @click="rGo(i)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
-                <td class="font-mono text-right opacity-60" x-text="lineOf(u)"></td>
-                <td><span class="rounded px-1 whitespace-nowrap" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span></td>
-                <td :class="i === rAt ? 'min-w-64' : 'max-w-64 truncate'" x-text="gist(u)"></td>
-                <td class="italic opacity-80" :class="i === rAt ? 'min-w-80 whitespace-pre-line' : 'max-w-48 truncate'" x-text="u.note || ''"></td>
-                <td class="font-mono text-right opacity-60" x-text="u.words"></td>
-                <td><span class="rounded px-1 whitespace-nowrap" x-show="u.verdict === 'DROP'"
-                          :style="`background:rgba(${HUE.DROP},.25)`">DROP</span></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
+                  @click="rGo(i, true)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
+            <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
+            <span class="shrink-0 rounded px-1 font-mono text-xs" :style="`background:rgba(${HUE[u.label]},.28)`" x-text="u.label"></span>
+            <span class="min-w-0 truncate" :class="u.verdict === 'DROP' && 'line-through opacity-60'" x-text="gist(u)"></span>
+          </button>
+        </template>
       </div>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-base-300 bg-base-200/60 px-2 py-1 text-xs">
         <div class="flex items-center">
@@ -2335,15 +2335,11 @@ window.__audit = {
                 @click="rEdit({ op: 'verdict', uid: rCur.uid, verdict: rCur.verdict === 'DROP' ? 'KEEP' : 'DROP' })">
           <i class="text-base" :class="rCur?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
           <span x-text="rCur?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
-        <div class="ml-auto join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="the category as">
-          <template x-for="mo in ['list', 'table']" :key="mo">
-            <button type="button" class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
-                    :class="rMode === mo ? 'btn-neutral' : 'btn-ghost bg-base-100'" :aria-pressed="rMode === mo"
-                    @click="rMode = mo; rShow()" x-text="mo"></button>
-          </template>
-        </div>
+        <span class="ml-auto pr-2 font-mono opacity-50" x-text="rCur ? lineOf(rCur) : ''"></span>
       </div>
-      <div x-ref="rdoc" class="min-h-0 overflow-y-auto overscroll-contain px-4 py-4"></div>
+      <!-- rBuild() mounts the strip here. data-no-swipe: a sideways drag here
+           is the strip's, never the deck's. -->
+      <div x-ref="rdoc" data-no-swipe class="min-h-0 overflow-hidden"></div>
     </div>
 
     <!-- The annotation as the thing it is: rows over spans, and the committed
