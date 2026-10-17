@@ -5,15 +5,16 @@ description: The binding house style for HTML pages built here, covering what a 
 
 # HTML house style
 
-## "Let the content guide"
+## "Project what matters"
 
-We want to dial in on the few properties that reveal a pattern of interest in
-the material, and keep the rest a tap away. The less shown, the more clearly the
-pattern appears.
+A good page projects just the right properties onto the viewport to build
+insight. Getting there is usually iterative: present the pieces, pare it down,
+layer it, and manage each disclosure tightly, until it builds a dense web of
+connected information.
 
 ## "A page is for comparing"
 
-Most often the pattern is a comparison. Ask Tufte's question, "Compared to
+Most often, insight comes from a comparison. Ask Tufte's question, "Compared to
 what?", then give the compared things one place:
 
 - **Side by side, when they fit:** columns, small multiples, a table whose rows
