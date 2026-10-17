@@ -8,9 +8,9 @@ description: The binding house style for HTML pages built here, covering what a 
 ## "Project what matters"
 
 A good page projects just the right properties onto the viewport to build
-insight. Getting there is usually iterative: present the pieces, pare it down,
-layer it, and manage each disclosure tightly, until it builds a dense web of
-connected information.
+insight. Getting there is usually iterative: present the pieces, pare the
+representation down, layer it, and manage each disclosure tightly, until it
+builds a dense web of connected information.
 
 ## "A page is for comparing"
 
