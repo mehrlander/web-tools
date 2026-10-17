@@ -174,6 +174,13 @@ test('a decision is answered from the footer: the recommended option first, a no
   assert.equal(a.path, 'user-calls/s1-close-two.answers.jsonl');
 });
 
+test('a decision filed as Take or Adjust offers Take here, and leaves an adjustment to its form', () => {
+  const c = { id: 's1-take', kind: 'decision', open: true, question: 'Close it?', recommend: 'Close it' };
+  assert.deepEqual([...data.answersOf(c)], ['Take']);
+  assert.equal(data.answerClass(c, 'Take'), 'btn-primary', 'taking is the recommendation, drawn as one');
+  assert.deepEqual([...data.answersOf({ ...c, recommend: '' })], [], 'with nothing recommended there is nothing to take');
+});
+
 test('what moved since filing is counted in the header, and the refresh reads everything again past the cache', async () => {
   const merge = CALLS[0];
   await until(() => data.since['s1-merge-7']?.at && !data.since['s1-merge-7'].busy);
