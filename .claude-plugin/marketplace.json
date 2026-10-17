@@ -70,6 +70,7 @@
         "./succinct-js-idioms",
         "./succinct-text",
         "./userscripts",
+        "./wayback",
         "./windows-powershell"
       ],
       "agents": [
