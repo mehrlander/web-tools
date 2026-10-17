@@ -149,6 +149,9 @@
   // What the app's calls did that is worth reading, filed to
   // web-tools-private's logs/traffic/ (started in init).
   await gh.load('kits/traffic-log.js');
+  // What kind of browser this is, and the reader's name for it: the Here view,
+  // the Traffic pane and the traffic log name a browser the same way.
+  await gh.load('kits/browser-kind.js');
   // The answer to the API's read-after-write lag: what this page last committed,
   // reconciled against what a read hands back. Loaded before the crawls because
   // each one folds a read into a write.
