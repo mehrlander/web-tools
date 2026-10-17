@@ -1,6 +1,6 @@
 ---
 name: show
-description: "Showing: Show the thing rather than explain it."
+description: "Showing: Show rather than explain."
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # Showing · `/h:show`
 
-Show the thing rather than explain it.
+Show rather than explain.
 
 - Quote a source rather than characterize it.
 - Include a screenshot or a measurement rather than describe behavior.

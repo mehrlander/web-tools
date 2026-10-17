@@ -1,6 +1,6 @@
 ---
 name: tool
-description: "Scripts: A script outside `lib/` is placed by three questions, asked in order."
+description: "Scripts: A script outside `lib/` goes with its caller."
 disable-model-invocation: true
 ---
 
@@ -8,12 +8,12 @@ disable-model-invocation: true
 
 # Scripts · `/h:tool`
 
-A script outside `lib/` is placed by three questions, asked in order.
+A script outside `lib/` goes with its caller.
 
-- First: is it a maintained tool, or a script kept with a probe's findings?
-- Second: which family does it belong to?
-- Third: what does it need to run? Standard-library Python goes in `python/`, and Node using this repo's packages goes in `node/`.
+- A pipeline step goes with its pipeline, a skill's script in that skill's folder, and a script a platform runs with that platform's files (`.githooks/`, `.github/workflows/`, `.claude/`).
+- A script kept only to explain a probe stays with the probe's findings.
+- Anything else goes in `python/` or `node/` by language.
 
 **Covers:** web-tools.
 
-**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Placing a script".
+**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".

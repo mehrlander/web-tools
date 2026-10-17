@@ -11,7 +11,7 @@ disable-model-invocation: true
 Link every file, pull request, session and page a reply mentions.
 
 - Each link lands on the item it names.
-- For a change a person can see, the link renders the change, and the session opens it to confirm before handing it over.
+- For a change a person can see, the link renders the change, and the session opens the link to confirm before handing it over.
 
 **Covers:** replies, documents and PR bodies.
 

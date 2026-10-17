@@ -12,7 +12,7 @@ Keep the reader's main question in view.
 
 - Lead with the answer to the main question.
 - Build on what has been established, or name the earlier point being resumed.
-- Leave out side issues, possibilities and immaterial discrepancies unless they change the answer.
+- Leave out side issues, possibilities and discrepancies unless they change the answer.
 
 **Covers:** replies and documents.
 

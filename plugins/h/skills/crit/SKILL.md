@@ -12,8 +12,8 @@ In a document that future sessions read to decide what to do, include content on
 
 - If the reader would succeed without a passage, leave it out.
 - Include a reason only where it clarifies intent, and keep it minimal.
-- Before adding to such a document, check whether the app derives the fact, the suite enforces it, or another document owns it, and link instead.
+- Before adding to such a document, check whether code derives the fact, a test enforces it, or another document owns it, and link instead.
 
-**Covers:** docs, skills, CLAUDE.md and AGENTS.md; not replies, and not content written for its own audience.
+**Covers:** docs, skills, CLAUDE.md and AGENTS.md; not replies, and not writing for another audience, such as an essay.
 
-**Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), "General Principles".
+**Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.

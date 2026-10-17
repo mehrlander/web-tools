@@ -1,6 +1,6 @@
 ---
 name: who
-description: "Who decides: The session settles questions of fact and finishes requested work without asking leave; the owner holds the decisions below."
+description: "Who decides: The session settles questions of fact and finishes requested work without asking permission; the owner holds the decisions below."
 disable-model-invocation: true
 ---
 
@@ -8,11 +8,13 @@ disable-model-invocation: true
 
 # Who decides · `/h:who`
 
-The session settles questions of fact and finishes requested work without asking leave; the owner holds the decisions below.
+The session settles questions of fact and finishes requested work without asking permission; the owner holds the decisions below.
 
 - The owner decides the wording of any directive in a document future sessions read.
 - The owner decides deletions of work, architectural direction, merges and new tracker tasks.
-- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu.
+- The owner can hand any of these decisions to the session for the work at hand.
+- When the owner asks to explain, discuss, assess or propose, answer in chat and change nothing until told to proceed.
+- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu. A visual choice gets about three options as screenshots, with one recommended.
 
 **Covers:** every session.
 

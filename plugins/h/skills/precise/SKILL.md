@@ -11,6 +11,7 @@ disable-model-invocation: true
 Use the standard term a general reader knows, in a plain, dry register.
 
 - Avoid slang, coined labels and figurative names.
+- Give one thing one name: its file name, label and title match.
 - Write "always" or "never" only where it can be checked, not for emphasis.
 - Name the exact file, column, count or command rather than referring to it in general.
 

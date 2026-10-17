@@ -10,10 +10,9 @@ disable-model-invocation: true
 
 A kit registers one `window` namespace.
 
-- A kit does not decide where it is mounted, own reactive state or assume a framework.
-- A kit takes the host it is given and returns a handle.
-- A kit that needs reactivity gets a component wrapper.
+- A kit loads through `gh.load`, so it has no top-level `import` or `export`.
+- A kit that needs Alpine reactivity gets a component wrapper rather than becoming a component.
 
 **Covers:** web-tools.
 
-**Detail:** [lib/kits/README.md](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), "Concept".
+**Detail:** [lib/kits/README.md](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), "Shape rules"; [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Cases the table does not settle".

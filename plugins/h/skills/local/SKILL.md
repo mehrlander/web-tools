@@ -1,6 +1,6 @@
 ---
 name: local
-description: "Repo-specific policies: A policy for one repo is an entry in this document whose scope names that repo."
+description: "Repo-specific policies: A policy for one public repo is an entry in this document whose scope names that repo."
 disable-model-invocation: true
 ---
 
@@ -8,10 +8,8 @@ disable-model-invocation: true
 
 # Repo-specific policies · `/h:local`
 
-A policy for one repo is an entry in this document whose scope names that repo.
+A policy for one public repo is an entry in this document whose scope names that repo.
 
-- A private repo keeps its policies in its own CLAUDE.md, in the same entry shape, because this document is public.
-- A repo-specific policy has its own shortcut.
-- Where a repo-specific policy departs from an entry here, it names that entry's shortcut, and within its repo it governs.
+- A private repo keeps its policies in its own CLAUDE.md, because this document is public.
 
 **Covers:** every repo whose sessions load this document.

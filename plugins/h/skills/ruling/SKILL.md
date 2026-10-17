@@ -1,6 +1,6 @@
 ---
 name: ruling
-description: "Verdict language: Report what a source says and what was observed, not a verdict on it."
+description: "Verdict language: Report what a source says and what was observed, not a verdict on either."
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # Verdict language · `/h:verdict`, `/h:ruling`
 
-Report what a source says and what was observed, not a verdict on it.
+Report what a source says and what was observed, not a verdict on either.
 
 - Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
 - The output of an analysis, a review panel or a script is input to a decision, not the decision.

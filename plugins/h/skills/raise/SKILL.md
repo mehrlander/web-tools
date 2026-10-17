@@ -1,6 +1,6 @@
 ---
 name: raise
-description: "Raising a tension: Raise a challenge before the work it concerns proceeds."
+description: "Raising a tension: Raise a tension when it bears on the decision at hand."
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # Raising a tension · `/h:raise`
 
-Raise a challenge before the work it concerns proceeds.
+Raise a tension when it bears on the decision at hand.
 
 - Name the tension, quote both sides, recommend, and follow the owner's call.
 - Once the owner has decided or corrected something, concede and fix it; do not reargue it with new measurements or precedent.
