@@ -7,9 +7,9 @@ description: Revise documentation so each edit serves its critical objective and
 
 Documentation guides a living system. Its value is direction and insight for completing tasks; its costs are attention and upkeep. Misfires can be costly and hard to discern.
 
-Restraint and caution are vital for any edit. Advice for entering a newsgroup or an open source project apply. Read the whole doc, and related docs. Identify the critical objective of any edit, and the minimal route to achieve it while keeping the whole recognizable, navigable, and maintainable.  
+Restraint is vital for any edit. Advice for entering a newsgroup or an open source project applies. Read the whole doc, and related docs. Identify the critical objective of any edit, and the minimal route to achieve it while keeping the whole recognizable, navigable, and maintainable.  
 
-Content should only be included where it changes behavior (the idea and the required setup). For a basic test: If we expect the assistant to succeed without it, leave it unsaid.
+Content should only be included where behavior depends on it. For a basic test: If we expect the assistant to succeed without it, leave it unsaid.
 
 ## General Principles
 
