@@ -40,7 +40,7 @@ window.gh = {
   },
 };
 
-const Alpine = await startAlpine(window, ['lib/alpineComponents/here-view.js']);
+const Alpine = await startAlpine(window, ['lib/kits/browser-kind.js', 'lib/alpineComponents/here-view.js']);
 const data = Alpine.$data(window.document.getElementById('h'));
 const settle = async () => { for (let i = 0; i < 20; i++) await tick(); };
 // Objects made in the window realm carry its prototypes, which strict equality
