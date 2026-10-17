@@ -365,16 +365,18 @@ const readWalk = (href) => {
     steps: JSON.parse(Buffer.from(h.get('steps').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()) };
 };
 
-test('Next is a link when the next stop is on another page, carrying the walk, the stop and the pin', async () => {
+test('Next toward a stop on another page goes there, carrying the walk, the stop and the pin', async () => {
   // The arrows cross pages the way they cross stops (the owner, 2026-10-17).
   const w = realm('<p data-at="a">a</p>', 'steps=' + twoPages, 'https://localhost/test/?use=abc123');
   await loaded(w);
   await wait(30);
   assert.equal(said(w), 'here');
   assert.equal(halo(w).style.display, 'block', 'test/ is this page, so the first stop lands');
-  const next = card(w).querySelector('[aria-label="Next"]');
-  assert.equal(next.tagName, 'A', 'a link, one tap, no Go card in between');
-  const { u, stop, steps } = readWalk(next.href);
+  let went = '';
+  w.Look.leave = (href) => { went = href; };
+  card(w).querySelector('[aria-label="Next"]').click();
+  assert.ok(went, 'one tap, no Go card in between');
+  const { u, stop, steps } = readWalk(went);
   assert.equal(u.pathname, '/pages/other.html');
   assert.equal(u.searchParams.get('use'), 'abc123', 'the pin rides along, so the next page runs the same code');
   assert.equal(stop, '2');
@@ -382,16 +384,38 @@ test('Next is a link when the next stop is on another page, carrying the walk, t
     'all of the walk, so Back works there too');
 });
 
-test('on the far page, Back is a link to the stop before it', async () => {
+test('on the far page, Back goes to the stop before it', async () => {
   const w = realm('<p data-at="b">b</p>', 'steps=' + twoPages + '&stop=2', 'https://localhost/pages/other.html');
   await loaded(w);
   await wait(30);
   assert.equal(said(w), 'over there');
-  const back = card(w).querySelector('[aria-label="Back"]');
-  assert.equal(back.tagName, 'A');
-  const { u, stop } = readWalk(back.href);
+  let went = '';
+  w.Look.leave = (href) => { went = href; };
+  card(w).querySelector('[aria-label="Back"]').click();
+  const { u, stop } = readWalk(went);
   assert.equal(u.pathname, '/test/');
   assert.equal(stop, '1');
+});
+
+test('Next after a tap that routes in place moves in place, decided at the press', async () => {
+  // The dock redraws as the tap lands, before the app has routed; an arrow
+  // fixed then sent the reader away to reload the app (2026-10-17).
+  const walk = encodeURIComponent(JSON.stringify([
+    { at: 'go', tap: true, say: 'Open the tab' }, { at: 'test/?tab=b!b', say: 'In the tab' }]));
+  const w = realm('<button data-at="go">Tab</button><p data-at="b">b</p>', 'steps=' + walk);
+  w.document.querySelector('[data-at="go"]').addEventListener('click', () => {
+    w.history.replaceState(null, '', '/test/?tab=b' + w.location.hash);     // the app routing in place
+  });
+  await loaded(w);
+  await wait(30);
+  let went = '';
+  w.Look.leave = (href) => { went = href; };
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(30);
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(30);
+  assert.equal(went, '', 'not sent away');
+  assert.equal(said(w), 'In the tab');
 });
 
 test('a link that opens at a stop on another page offers Go, and leaves the address at the stop seen here', async () => {
