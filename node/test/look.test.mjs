@@ -397,25 +397,85 @@ test('on the far page, Back goes to the stop before it', async () => {
   assert.equal(stop, '1');
 });
 
-test('Next after a tap that routes in place moves in place, decided at the press', async () => {
-  // The dock redraws as the tap lands, before the app has routed; an arrow
-  // fixed then sent the reader away to reload the app (2026-10-17).
-  const walk = encodeURIComponent(JSON.stringify([
-    { at: 'go', tap: true, say: 'Open the tab' }, { at: 'test/?tab=b!b', say: 'In the tab' }]));
-  const w = realm('<button data-at="go">Tab</button><p data-at="b">b</p>', 'steps=' + walk);
+// TAP AS DIRECTED AND THE PANEL JUST UPDATES (the owner, 2026-10-17): a tap
+// that takes the page somewhere moves the walk on by itself, and Back undoes
+// the move, whether the dock's or the browser's.
+const routed = encodeURIComponent(JSON.stringify([
+  { at: 'go', tap: true, say: 'Open the tab' }, { at: 'b', say: 'In the tab' }]));
+function routingRealm(how) {
+  const w = realm('<button data-at="go">Tab</button><p data-at="b">b</p>', 'steps=' + routed);
   w.document.querySelector('[data-at="go"]').addEventListener('click', () => {
-    w.history.replaceState(null, '', '/test/?tab=b' + w.location.hash);     // the app routing in place
+    w.history[how](null, '', '/test/?tab=b' + w.location.hash);     // the app routing in place
   });
+  return w;
+}
+
+test('a tap that routes in place moves the walk on by itself, staying in this page', async () => {
+  const w = routingRealm('pushState');
   await loaded(w);
   await wait(30);
   let went = '';
   w.Look.leave = (href) => { went = href; };
   w.document.querySelector('[data-at="go"]').click();
+  await wait(80);
+  assert.equal(said(w), 'In the tab', 'no Next to press');
+  assert.equal(went, '', 'and not sent away');
+  assert.match(w.location.search, /tab=b/);
+});
+
+test('Back over a tap that pushed a route goes back in history, and the walk follows', async () => {
+  const w = routingRealm('pushState');
+  await loaded(w);
   await wait(30);
-  card(w).querySelector('[aria-label="Next"]').click();
-  await wait(30);
-  assert.equal(went, '', 'not sent away');
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(80);
   assert.equal(said(w), 'In the tab');
+  card(w).querySelector('[aria-label="Back"]').click();
+  await wait(120);
+  assert.equal(w.location.search, '', 'the route the tap left from');
+  assert.equal(said(w), 'Open the tab', 'and the tap\'s stop, ready to tap again');
+});
+
+test('the browser\'s Back after a routing tap takes the walk back too', async () => {
+  const w = routingRealm('pushState');
+  await loaded(w);
+  await wait(30);
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(80);
+  w.history.back();
+  await wait(120);
+  assert.equal(said(w), 'Open the tab');
+});
+
+test('Back over a tap that replaced the route loads the address the tap left from', async () => {
+  const w = routingRealm('replaceState');
+  await loaded(w);
+  await wait(30);
+  w.document.querySelector('[data-at="go"]').click();
+  await wait(80);
+  assert.equal(said(w), 'In the tab');
+  let went = '';
+  w.Look.leave = (href) => { went = href; };
+  card(w).querySelector('[aria-label="Back"]').click();
+  const u = new URL(went);
+  assert.equal(u.pathname + u.search, '/test/', 'no history entry to undo, so the old address itself');
+  assert.equal(new URLSearchParams(u.hash.slice(1)).get('stop'), '1', 'at the tap\'s stop');
+});
+
+test('a tapped link carries an unaddressed next stop, and stamps the stops before it with this page', async () => {
+  const walk = encodeURIComponent(JSON.stringify([{ at: 'go', tap: true, say: 'Open it' }, { at: 'x', say: 'Arrived' }]));
+  const w = realm('<a data-at="go" href="/pages/other.html">Other</a>', 'steps=' + walk);
+  await loaded(w);
+  await wait(30);
+  const a = w.document.querySelector('[data-at="go"]');
+  let seen = '';
+  a.addEventListener('click', (e) => { seen = a.getAttribute('href'); e.preventDefault(); });
+  a.click();
+  const { u, stop, steps } = readWalk(seen);
+  assert.equal(u.pathname, '/pages/other.html');
+  assert.equal(stop, '2', 'the next page opens at the next stop');
+  assert.deepEqual(steps, [{ at: 'test/!go', say: 'Open it', tap: true }, { at: 'x', say: 'Arrived' }],
+    'the tap\'s stop now names this page, so Back there comes back here; the next stop is taken to be there');
 });
 
 test('a link that opens at a stop on another page offers Go, and leaves the address at the stop seen here', async () => {
