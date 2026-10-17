@@ -22,3 +22,8 @@ Content should only be included where it changes behavior (the idea and the requ
 - **Be concrete**: Name exact files, commands, flags, components, and actors.
 - **Hedge**: Use careful, precise language. Prefer "avoid" or "do not" over "never".
 - **Verify continuity**: Confirm that removals or edits do not break prerequisites, cross-references, or transitions.
+
+## Review
+
+- **Show new text as a diff**: Before committing a change to a document, show each added or rewritten sentence in chat as a fenced `diff` block, with enough unchanged lines to locate each change. Check new text against **Consider the context** and **Earn each sentence** before showing it.
+- **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diff, one line each.
