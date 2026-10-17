@@ -1,6 +1,6 @@
 ---
 name: doc-craft
-description: Revise documentation so each edit serves its critical objective and keeps the whole system recognizable, navigable, and maintainable; living docs state current behavior and rules, records stay as written, generated docs are edited at source.
+description: Revise documentation so each edit serves its critical objective and keeps the whole system recognizable, navigable, and maintainable.
 ---
 
 # Doc Craft
