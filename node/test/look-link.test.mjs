@@ -104,6 +104,16 @@ test('make puts an intro first, alone or ahead of a place, and checks only the a
   assert.equal(r.status, 2, 'make with nothing to say is an error');
 });
 
+test('a stop that names this page is checked; one on another page is noted, not failed', () => {
+  // The fixture lives outside the site, so name it the way make was given it.
+  let r = py('make', FIXTURE, '--steps', JSON.stringify([{ at: 'pages/other.html!anything' }, { at: 'tab-a' }]));
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /'pages\/other\.html!anything' is on another page, so it is unchecked here/);
+  r = py('make', 'lib/kits/demos/look.html', '--steps', JSON.stringify([{ at: 'lib/kits/demos/look.html!btn-nope' }]));
+  assert.equal(r.status, 1, 'an address naming this page is checked against it');
+  assert.match(r.stderr, /'btn-nope' is not an anchor on this page/);
+});
+
 test('steps encoded here decode to the same steps in the kit', () => {
   // The session encodes, the page decodes. Unicode and the characters base64
   // spells with + and / are the cases a mismatch would show first.

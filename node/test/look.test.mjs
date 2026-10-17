@@ -30,10 +30,10 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const open = [];
 afterEach(() => { for (const w of open.splice(0)) { try { w.Look?.stop(); } catch {} w.close(); } });
 
-function realm(body, hash = '') {
+function realm(body, hash = '', at = 'https://localhost/test/') {
   const { window } = makeWindow({
     html: `<!doctype html><html><head></head><body>${body}</body></html>`,
-    url: 'https://localhost/test/' + (hash ? '#' + hash : ''),
+    url: at + (hash ? '#' + hash : ''),
   });
   window.Element.prototype.getClientRects = function () { return this.closest('[hidden]') ? [] : [{}]; };
   window.Element.prototype.animate = function () { return { cancel() {} }; };
@@ -315,22 +315,91 @@ test('the braces toggle the walk\'s JSON as a tooltip, not a section of the card
   assert.equal(tipEl(), null, 'the braces close it again');
 });
 
-test('a walk from the link resumes at the step reached, and ending it forgets', async () => {
-  const w = realm('<p data-at="a">a</p><p data-at="b">b</p><p data-at="c">c</p>',
-    'steps=' + encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }, { at: 'c', say: 'three' }])));
+// THE WALK TRAVELS IN THE ADDRESS (2026-10-17): stops may name their page,
+// the position rides as stop=<n>, and nothing is stored, so nothing expires.
+const steps3 = encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }, { at: 'c', say: 'three' }]));
+
+test('the stop reached rides in the address, reopens there, and ending the walk takes it out', async () => {
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p><p data-at="c">c</p>', 'gh=o/r&steps=' + steps3);
   await loaded(w);
   await wait(30);
   card(w).querySelector('[aria-label="Next"]').click();
   await wait(30);
   assert.equal(said(w), 'two');
-  // What a fresh load of the same link does, short of a second realm.
+  assert.match(w.location.hash, /&stop=2$/);
+  assert.match(w.location.hash, /^#gh=o\/r&/, "the page's own keys are left as written, not re-encoded");
+  // What a reload or Back does: read the same address again.
   w.Look.fromLocation();
   await wait(30);
-  assert.equal(said(w), 'two', 'resumed, not restarted');
+  assert.equal(said(w), 'two', 'reopened at the stop, from the address alone');
   card(w).querySelector('[data-stop]').click();
+  assert.doesNotMatch(w.location.hash, /stop=/, 'ended, so the next load starts over');
   w.Look.fromLocation();
   await wait(30);
-  assert.equal(said(w), 'one', 'closed, so the next load starts over');
+  assert.equal(said(w), 'one');
+});
+
+test('a link that names a stop opens there', async () => {
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p><p data-at="c">c</p>', 'steps=' + steps3 + '&stop=3');
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'three');
+});
+
+test('an address splits at the first ! only when a page comes before it', () => {
+  const w = realm('');
+  const read = (at) => JSON.parse(JSON.stringify(w.Look.fromHash('#steps=' + encodeURIComponent(JSON.stringify([{ at }])))))[0];
+  assert.deepEqual(read('pages/branch.html!files'), { at: 'files', say: '', tap: false, page: 'pages/branch.html' });
+  assert.deepEqual(read('app/?view=map&tab=showing!text:Toss, data route'),
+    { at: 'text:Toss, data route', say: '', tap: false, page: 'app/?view=map&tab=showing' });
+  assert.equal(read('text:Wow! that').page, undefined, 'a text: anchor keeps its !');
+  assert.equal(read('css:a[title="x!"]').page, undefined, 'and so does a css: anchor');
+  assert.equal(read('plain!name').page, undefined, 'a bare word is not a page');
+});
+
+test('a stop on this page by address lands; one on another page offers Go, carrying the walk and the pin', async () => {
+  const walk = encodeURIComponent(JSON.stringify([{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }]));
+  const w = realm('<p data-at="a">a</p>', 'steps=' + walk, 'https://localhost/test/?use=abc123');
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'here');
+  assert.equal(halo(w).style.display, 'block', 'test/ is this page, so the first stop lands');
+  card(w).querySelector('[aria-label="Next"]').click();
+  await wait(250);
+  assert.equal(said(w), 'over there', 'one line, the stop\'s own');
+  const go = card(w).querySelector('[data-go-page]');
+  assert.ok(go, 'Go, where Next would be');
+  const u = new URL(go.href);
+  assert.equal(u.pathname, '/pages/other.html');
+  assert.equal(u.searchParams.get('use'), 'abc123', 'the pin rides along, so the next page runs the same code');
+  const h = new URLSearchParams(u.hash.slice(1));
+  assert.equal(h.get('stop'), '2');
+  assert.deepEqual(JSON.parse(Buffer.from(h.get('steps').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()),
+    [{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }], 'all of the walk, so Back works there too');
+});
+
+test('a tapped link to the next stop\'s page carries the walk; any other link is left alone', async () => {
+  const walk = (next) => encodeURIComponent(JSON.stringify([{ at: 'go', tap: true, say: 'Open it' }, { at: next, say: 'Arrived' }]));
+  const w = realm('<a data-at="go" href="/pages/other.html">Other</a>', 'steps=' + walk('pages/other.html!x'));
+  await loaded(w);
+  await wait(30);
+  assert.equal(act(w), 'Click to open', 'the walk goes along, so there is no Back to mention');
+  const a = w.document.querySelector('[data-at="go"]');
+  let seen = '';
+  a.addEventListener('click', (e) => { seen = a.getAttribute('href'); e.preventDefault(); });
+  a.click();
+  assert.match(seen, /^https:\/\/localhost\/pages\/other\.html#steps=[\w-]+&stop=2$/, 'carried at the moment of the tap');
+  await wait(10);
+  assert.equal(a.getAttribute('href'), '/pages/other.html', 'and put back after');
+  const v = realm('<a data-at="go" href="/pages/else.html">Else</a>', 'steps=' + walk('pages/other.html!x'));
+  await loaded(v);
+  await wait(30);
+  assert.match(act(v), /Back returns here$/, 'a link elsewhere does not carry, so the label says how to come back');
+  const b = v.document.querySelector('[data-at="go"]');
+  let kept = '';
+  b.addEventListener('click', (e) => { kept = b.getAttribute('href'); e.preventDefault(); });
+  b.click();
+  assert.equal(kept, '/pages/else.html');
 });
 
 test('a missing target after a tap that was done names the target, not the tap', async () => {
