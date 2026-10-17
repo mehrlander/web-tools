@@ -4,7 +4,8 @@
 // only, then an inquiry. What is under test: the words reach their fields, a
 // repeat makes one copy per item, a condition drops an empty part, a field asks
 // for a second length, and marking a block rings the element that holds it,
-// dims nothing, and rings nothing where the block runs through the whole design.
+// dims nothing, and rings nothing where the block runs through the whole design;
+// lineOf finds that same line without marking it.
 // A second fixture, of disclosures, holds focus (the call's own block opens, the
 // others become their line) and annotate (each entity's first mention marked).
 
@@ -55,6 +56,14 @@ test('marking a block rings the element that holds it and dims nothing', () => {
   assert.equal(ring?.className.includes('decide'), true, 'the decision block is ringed, not the goal around it');
   assert.equal(ring.getAttribute('aria-current'), 'step');
   assert.equal(el.querySelectorAll('[class*="opacity-"]').length, 0, 'the rest of the chain is read, not faded');
+});
+
+test('lineOf finds the line mark would ring, and marks nothing', () => {
+  const el = box(); D.fill(el, WORDS);
+  const line = D.lineOf(el, 'know');
+  assert.equal(line?.className, 'know');
+  assert.equal(line.hasAttribute('aria-current'), false);
+  assert.equal(D.lineOf(el, 'none'), null);
 });
 
 test('a block spread through the whole design is not ringed', () => {
