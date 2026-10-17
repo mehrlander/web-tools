@@ -663,23 +663,68 @@ test('the traffic log files a finding once, leaves out its own writes, and needs
 });
 
 
-test('the last day keeps calls by clock hour, adds every tab\'s, and drops what is two days old', () => {
-  const H = 3600e3;
+test('the stores keep calls in bins, add every tab\'s, sum them into a range\'s bars, and keep what the ranges draw', () => {
+  const MIN = 60e3, H = 60 * MIN, D = 24 * H;
   const at = (t, o = {}) => ({ t, method: 'GET', url: 'u', status: 200, wire: 100, hidden: false, job: null, where: 'estate', ...o });
-  const store = {};
-  // Two tabs add their own calls to one store.
-  T.addHours(store, [at(10 * H + 60e3), at(10 * H + 120e3, { hidden: true, job: 1 })], { owner: e => e.job ? 'Poll Gemini pings' : 'view ' + e.where });
-  T.addHours(store, [at(11 * H + 5e3, { status: 502 }), at(11 * H + 6e3, { wire: null })], {});
-  const day = T.lastDay(store, 11 * H + 30 * 60e3, 0, 24);
-  assert.equal(day.length, 24);
-  assert.equal(day[23].t0, 11 * H, 'the current hour closes the day');
-  assert.deepEqual([day[22].calls, day[22].hidden, day[22].wire], [2, 1, 200]);
-  assert.deepEqual(day[22].by, { 'view estate': 1, 'Poll Gemini pings': 1 });
-  assert.deepEqual([day[23].calls, day[23].errors, day[23].wire], [2, 1, 100], 'a failure counted, an unsized call adds no bytes');
-  assert.equal(day[0].calls, 0, 'an hour with nothing is there, empty');
-  // A reader eight hours behind UTC files the same call under their own hour.
-  const west = T.addHours({}, [at(10 * H)], { offset: 480 });
-  assert.deepEqual(Object.keys(west), [new Date(2 * H).toISOString().slice(0, 13)]);
-  T.pruneHours(store, 60 * H, 0, 48);
-  assert.deepEqual(Object.keys(store), [], 'two days on, the store is empty again');
+  const owner = e => e.job ? 'Poll Gemini pings' : 'view ' + e.where;
+  const q = {}, h = {};
+  // Two tabs add their own calls to the same two stores.
+  for (const rows of [[at(10 * H + MIN), at(10 * H + 2 * MIN, { hidden: true, job: 1 })],
+                      [at(10 * H + 20 * MIN, { status: 502 }), at(11 * H + 6 * MIN, { wire: null })]]) {
+    T.addBins(q, rows, { step: 15, owner });
+    T.addBins(h, rows, { step: 60, owner });
+  }
+  assert.deepEqual(Object.keys(q).sort(), ['1970-01-01T10:00', '1970-01-01T10:15', '1970-01-01T11:00']);
+  assert.deepEqual(Object.keys(h).sort(), ['1970-01-01T10', '1970-01-01T11']);
+  assert.equal(T.recordStart(h), 10 * H, 'the record begins at its oldest bin');
+
+  const [day, week, month] = ['day', 'week', 'month'].map(k => T.RANGES.find(r => r.key === k));
+  const bars = T.lastBins(q, 11 * H + 10 * MIN, day);
+  assert.equal(bars.length, 96);
+  assert.deepEqual([bars[95].t0, bars[95].t1], [11 * H, 11 * H + 15 * MIN], 'the current quarter closes the day');
+  assert.deepEqual([bars[91].calls, bars[91].hidden, bars[91].wire], [2, 1, 200]);
+  assert.deepEqual(bars[91].by, { 'view estate': 1, 'Poll Gemini pings': 1 });
+  assert.deepEqual([bars[92].calls, bars[92].errors], [1, 1], 'a failure counted');
+  assert.deepEqual([bars[95].calls, bars[95].wire], [1, 0], 'an unsized call adds no bytes');
+  assert.equal(bars[0].calls, 0, 'a bar with nothing is there, empty');
+  // A week's bar is two hours, on the even hour, and sums the hours inside it.
+  const wk = T.lastBins(h, 11 * H + 10 * MIN, week);
+  assert.equal(wk.length, 84);
+  assert.equal(wk[83].t0, 10 * H);
+  assert.deepEqual([wk[83].calls, wk[83].errors, wk[83].wire], [4, 1, 300]);
+  assert.deepEqual(wk[83].by, { 'view estate': 3, 'Poll Gemini pings': 1 });
+  assert.equal(T.lastBins(h, 11 * H, month)[119].t0, 6 * H, 'a month\'s bar is six hours');
+
+  // A reader eight hours behind UTC files a call under their own hour, and one
+  // five and a half ahead under their own quarter, which reads back to the call.
+  assert.deepEqual(Object.keys(T.addBins({}, [at(10 * H)], { offset: 480 })), ['1970-01-01T02']);
+  const east = Object.keys(T.addBins({}, [at(10 * H)], { step: 15, offset: -330 }));
+  assert.deepEqual(east, ['1970-01-01T15:30']);
+  assert.equal(T.binStart(east[0], -330), 10 * H);
+
+  // Each store keeps the longest range it serves, and a bar.
+  assert.equal(T.keepFor('quarters'), 97 * 15 * MIN);
+  assert.equal(T.keepFor('hours'), 121 * 6 * H);
+  T.pruneBins(q, 10 * H + 2 * D, { step: 15, keep: T.keepFor('quarters') });
+  assert.deepEqual(Object.keys(q), [], 'two days on, the quarters are gone');
+  T.pruneBins(h, 10 * H + 2 * D, { step: 60, keep: T.keepFor('hours') });
+  assert.equal(Object.keys(h).length, 2, 'and the hours stay for the month');
+  T.pruneBins(h, 10 * H + 32 * D, { step: 60, keep: T.keepFor('hours') });
+  assert.deepEqual(Object.keys(h), []);
+});
+
+test('a lane\'s scale is a round number, and its axis is marked where the reader keeps time', () => {
+  assert.deepEqual([0, 7, 12, 40, 100, 101].map(T.niceMax), [0, 10, 20, 50, 100, 200]);
+  const [day, week, month] = ['day', 'week', 'month'].map(k => T.RANGES.find(r => r.key === k));
+  const now = Date.UTC(2026, 9, 17, 11, 10), off = new Date(now).getTimezoneOffset();
+  const local = m => new Date(m.t);
+  const d = T.axisMarks(T.lastBins({}, now, day, off), day, 3);
+  assert.equal(d.length, 8, 'a day named every three hours');
+  assert.ok(d.every(m => local(m).getHours() % 3 === 0 && local(m).getMinutes() === 0));
+  const w = T.axisMarks(T.lastBins({}, now, week, off), week);
+  assert.equal(w.length, 7, 'a week named at each midnight');
+  assert.ok(w.every(m => m.line && local(m).getHours() === 0));
+  const mo = T.axisMarks(T.lastBins({}, now, month, off), month);
+  assert.ok(mo.length >= 4 && mo.length <= 5 && mo.every(m => local(m).getDay() === 1 && local(m).getHours() === 0),
+    'a month named on its Mondays');
 });
