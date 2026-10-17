@@ -357,25 +357,52 @@ test('an address splits at the first ! only when a page comes before it', () => 
   assert.equal(read('plain!name').page, undefined, 'a bare word is not a page');
 });
 
-test('a stop on this page by address lands; one on another page offers Go, carrying the walk and the pin', async () => {
-  const walk = encodeURIComponent(JSON.stringify([{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }]));
-  const w = realm('<p data-at="a">a</p>', 'steps=' + walk, 'https://localhost/test/?use=abc123');
+const twoPages = encodeURIComponent(JSON.stringify([{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }]));
+const readWalk = (href) => {
+  const u = new URL(href);
+  const h = new URLSearchParams(u.hash.slice(1));
+  return { u, stop: h.get('stop'),
+    steps: JSON.parse(Buffer.from(h.get('steps').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()) };
+};
+
+test('Next is a link when the next stop is on another page, carrying the walk, the stop and the pin', async () => {
+  // The arrows cross pages the way they cross stops (the owner, 2026-10-17).
+  const w = realm('<p data-at="a">a</p>', 'steps=' + twoPages, 'https://localhost/test/?use=abc123');
   await loaded(w);
   await wait(30);
   assert.equal(said(w), 'here');
   assert.equal(halo(w).style.display, 'block', 'test/ is this page, so the first stop lands');
-  card(w).querySelector('[aria-label="Next"]').click();
-  await wait(250);
+  const next = card(w).querySelector('[aria-label="Next"]');
+  assert.equal(next.tagName, 'A', 'a link, one tap, no Go card in between');
+  const { u, stop, steps } = readWalk(next.href);
+  assert.equal(u.pathname, '/pages/other.html');
+  assert.equal(u.searchParams.get('use'), 'abc123', 'the pin rides along, so the next page runs the same code');
+  assert.equal(stop, '2');
+  assert.deepEqual(steps, [{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }],
+    'all of the walk, so Back works there too');
+});
+
+test('on the far page, Back is a link to the stop before it', async () => {
+  const w = realm('<p data-at="b">b</p>', 'steps=' + twoPages + '&stop=2', 'https://localhost/pages/other.html');
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'over there');
+  const back = card(w).querySelector('[aria-label="Back"]');
+  assert.equal(back.tagName, 'A');
+  const { u, stop } = readWalk(back.href);
+  assert.equal(u.pathname, '/test/');
+  assert.equal(stop, '1');
+});
+
+test('a link that opens at a stop on another page offers Go, and leaves the address at the stop seen here', async () => {
+  const w = realm('<p data-at="a">a</p>', 'steps=' + twoPages + '&stop=2');
+  await loaded(w);
+  await wait(30);
   assert.equal(said(w), 'over there', 'one line, the stop\'s own');
   const go = card(w).querySelector('[data-go-page]');
   assert.ok(go, 'Go, where Next would be');
-  const u = new URL(go.href);
-  assert.equal(u.pathname, '/pages/other.html');
-  assert.equal(u.searchParams.get('use'), 'abc123', 'the pin rides along, so the next page runs the same code');
-  const h = new URLSearchParams(u.hash.slice(1));
-  assert.equal(h.get('stop'), '2');
-  assert.deepEqual(JSON.parse(Buffer.from(h.get('steps').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()),
-    [{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }], 'all of the walk, so Back works there too');
+  assert.equal(readWalk(go.href).u.pathname, '/pages/other.html');
+  assert.match(w.location.hash, /stop=2$/, 'the stop the link named, unchanged: nothing on this page was seen yet');
 });
 
 test('a tapped link to the next stop\'s page carries the walk; any other link is left alone', async () => {
