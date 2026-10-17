@@ -620,6 +620,7 @@ test('the traffic log files a finding once, leaves out its own writes, and needs
   const w = {
     Traffic: T, __traffic: [], __trafficTotals: { calls: 0 }, __jobs: [{ id: 1, name: 'Poll Gemini pings' }],
     __trafficRate: 4000, __trafficRateReset: 1,
+    BrowserKind: { kind: () => 'Mac Chrome', note: () => 'Desk Chrome' },
   };
   const env = {
     window: w,
@@ -651,6 +652,7 @@ test('the traffic log files a finding once, leaves out its own writes, and needs
   assert.equal(rep.calls, 5, 'only the window since the last check, and not the log\'s own write');
   assert.deepEqual(rep.by, ['Poll Gemini pings']);
   assert.ok(!JSON.stringify(saves[0].doc).includes('"x"'), 'the token never reaches the file');
+  assert.deepEqual([saves[0].doc.browser, saves[0].doc.browserNote], ['Mac Chrome', 'Desk Chrome'], 'the file names the browser that filed it, both ways');
 
   for (let i = 0; i < 5; i++) call();
   assert.equal((await U.check()).why, 'nothing new', 'the same poll inside the hour is not filed again');
