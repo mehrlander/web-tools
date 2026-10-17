@@ -14,7 +14,7 @@ The session settles questions of fact and finishes requested work without asking
 - The owner decides deletions of work, architectural direction, merges and new tracker tasks.
 - The owner can hand any of these decisions to the session for the work at hand.
 - When the owner asks to explain, discuss, assess or propose, answer in chat and change nothing until told to proceed.
-- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu. A visual choice gets about three options as screenshots, with one recommended.
+- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu.
 
 **Covers:** every session.
 
