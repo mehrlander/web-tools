@@ -1,0 +1,1549 @@
+{
+ "kind": "audit/1",
+ "title": "house-policies.md",
+ "standoff": {
+  "kind": "standoff/1",
+  "question": "does this sentence's wording meet doc-craft and Qualified writing?",
+  "self": {
+   "path": "/tmp/claude-0/-home-user/c56bc81f-52a3-53a1-9d0e-08e60943189c/scratchpad/audit-run/standoff.json",
+   "repo": "mehrlander/web-tools"
+  },
+  "target": {
+   "path": "docs/house-policies.md",
+   "repo": "mehrlander/web-tools",
+   "ref": "claude/house-policies",
+   "url": "https://github.com/mehrlander/web-tools/blob/claude/house-policies/docs/house-policies.md",
+   "bytes": 11722,
+   "sha256": "c8e3bb6e258b6199bfd94d296fe465d029778b098226885feae193b8293df1c7"
+  },
+  "vocabulary": [
+   {
+    "label": "OK",
+    "side": "pass",
+    "gloss": "no wording problem a careful editor would act on",
+    "color": "203,213,225"
+   },
+   {
+    "label": "VAGUE",
+    "side": "wording",
+    "gloss": "refers in general where an exact file, command, column, count, or actor is available (doc-craft: Be concrete)",
+    "color": "245,158,11"
+   },
+   {
+    "label": "REFERENT",
+    "side": "wording",
+    "gloss": "a pronoun, \"this\", or a definite phrase without one clear referent, or a term used before it is introduced (Qualified writing rule 1)",
+    "color": "239,68,68"
+   },
+   {
+    "label": "BARE",
+    "side": "wording",
+    "gloss": "a noun phrase or quantifier that does not say which one, whose, or how many (Qualified writing rule 4)",
+    "color": "249,115,22"
+   },
+   {
+    "label": "TERM",
+    "side": "wording",
+    "gloss": "shorthand, a coinage, slang, or a figurative name that a general reader would not know (Qualified writing rule 2)",
+    "color": "168,85,247"
+   },
+   {
+    "label": "REGISTER",
+    "side": "wording",
+    "gloss": "informal, awkward, wordy, or ungrammatical phrasing that a plain, dry register would write differently",
+    "color": "236,72,153"
+   },
+   {
+    "label": "ABSOLUTE",
+    "side": "wording",
+    "gloss": "never, always, every, or a claim stated more strongly than it can be checked (doc-craft: Hedge)",
+    "color": "202,138,4"
+   },
+   {
+    "label": "NARRATIVE",
+    "side": "content",
+    "gloss": "history, discovery steps, or authoring commentary in place of current behavior (doc-craft: State current reality)",
+    "color": "59,130,246"
+   },
+   {
+    "label": "SURPLUS",
+    "side": "content",
+    "gloss": "removable without changing what a reader does, or repeats another unit (doc-craft: Earn each sentence)",
+    "color": "100,116,139"
+   },
+   {
+    "label": "RESTRICTION",
+    "side": "content",
+    "gloss": "a non-obvious restriction missing its trigger, failure symptom, or mitigation (doc-craft: Format non-obvious restrictions)",
+    "color": "20,184,166"
+   }
+  ],
+  "verdicts": [
+   {
+    "verdict": "KEEP",
+    "gloss": "stays; a note on it asks for any rewording"
+   },
+   {
+    "verdict": "DROP",
+    "gloss": "removed from the document"
+   }
+  ],
+  "units": [
+   {
+    "uid": "housep-001",
+    "start": 0,
+    "end": 16,
+    "kind": "h1",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-002",
+    "start": 18,
+    "end": 105,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (REFERENT, low): the owner's preferences: the first mention of \"the owner\" never says who the owner is, and the term recurs throughout. Say \"the preferences and conventions of the owner of these repositories\"."
+   },
+   {
+    "uid": "housep-003",
+    "start": 106,
+    "end": 198,
+    "kind": "sent",
+    "words": 18,
+    "label": "TERM",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (TERM, low): Quote: \"the way WP:NPOV is cited on a Wikipedia talk page\". The unexplained Wikipedia shorthand \"WP:NPOV\" is not known to a general reader, and the comparison adds nothing a session acts on. Replace with: \"Each policy has a short name so that it can be cited.\" (or cut the sentence). Also SURPLUS.\nReader 2 (SURPLUS, low): memorable and cited, the way WP:NPOV is cited on a Wikipedia talk page: authoring commentary that changes no behavior, repeats the citation rule in housep-012, and \"WP:NPOV\" is an outside shorthand (also TERM). Cut."
+   },
+   {
+    "uid": "housep-004",
+    "start": 200,
+    "end": 211,
+    "kind": "h2",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-005",
+    "start": 213,
+    "end": 247,
+    "kind": "h3",
+    "words": 5,
+    "label": "BARE",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (BARE, low): Heading \"Writing policies\" can mean policies about prose, which is the later \"## Writing\" section, but this entry states how a policy is written. Replace with \"Writing a policy\" or \"Policy format\".\nReader 2 (BARE, low): Writing policies: does not say which policies; it reads as policies about writing, which is the \"## Writing\" section below, whereas the entry covers how a policy is authored and approved. Rename, for example \"How policies are written\"."
+   },
+   {
+    "uid": "housep-006",
+    "start": 249,
+    "end": 359,
+    "kind": "sent",
+    "words": 19,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-007",
+    "start": 361,
+    "end": 494,
+    "kind": "sent",
+    "words": 23,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-008",
+    "start": 495,
+    "end": 655,
+    "kind": "sent",
+    "words": 25,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-009",
+    "start": 656,
+    "end": 741,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-010",
+    "start": 742,
+    "end": 793,
+    "kind": "sent",
+    "words": 10,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-011",
+    "start": 794,
+    "end": 857,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-012",
+    "start": 858,
+    "end": 917,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (TERM, low): The previous bullet and the next bullet call the item a \"shortcut\", this bullet calls it a \"slash command\"; the text never says they are the same thing (also REFERENT). Replace with: \"Cite an entry by its shortcut, such as `/h:qualify`.\""
+   },
+   {
+    "uid": "housep-013",
+    "start": 918,
+    "end": 994,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-014",
+    "start": 995,
+    "end": 1072,
+    "kind": "sent",
+    "words": 15,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (TERM, low): A shortcut is an address, not a summary: \"address\" is a figurative name, which the Precise register entry says to avoid. Say \"A shortcut only points to an entry and does not summarize it; read the entry before applying it.\""
+   },
+   {
+    "uid": "housep-015",
+    "start": 1074,
+    "end": 1149,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-016",
+    "start": 1151,
+    "end": 1190,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-017",
+    "start": 1192,
+    "end": 1271,
+    "kind": "sent",
+    "words": 16,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (ABSOLUTE, low): A policy for one repo is an entry in this document: stated for every repo, but housep-018 excepts private repos. Say \"A policy for one public repo is an entry in this document whose scope names that repo.\""
+   },
+   {
+    "uid": "housep-018",
+    "start": 1273,
+    "end": 1363,
+    "kind": "sent",
+    "words": 16,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-019",
+    "start": 1365,
+    "end": 1422,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-020",
+    "start": 1424,
+    "end": 1434,
+    "kind": "h2",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-021",
+    "start": 1436,
+    "end": 1491,
+    "kind": "h3",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-022",
+    "start": 1493,
+    "end": 1649,
+    "kind": "sent",
+    "words": 25,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-023",
+    "start": 1651,
+    "end": 1741,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-024",
+    "start": 1743,
+    "end": 1873,
+    "kind": "sent",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-025",
+    "start": 1875,
+    "end": 1922,
+    "kind": "h3",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-026",
+    "start": 1924,
+    "end": 1995,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-027",
+    "start": 1997,
+    "end": 2081,
+    "kind": "sent",
+    "words": 15,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-028",
+    "start": 2082,
+    "end": 2146,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-029",
+    "start": 2147,
+    "end": 2189,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-030",
+    "start": 2190,
+    "end": 2289,
+    "kind": "sent",
+    "words": 18,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-031",
+    "start": 2290,
+    "end": 2377,
+    "kind": "sent",
+    "words": 16,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-032",
+    "start": 2379,
+    "end": 2469,
+    "kind": "sent",
+    "words": 15,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-033",
+    "start": 2471,
+    "end": 2617,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-034",
+    "start": 2619,
+    "end": 2642,
+    "kind": "h3",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-035",
+    "start": 2644,
+    "end": 2682,
+    "kind": "sent",
+    "words": 7,
+    "label": "BARE",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (BARE, high): Quote: \"Show the thing rather than explain it.\" \"the thing\" and \"it\" do not say what is shown. Replace with: \"Show the source, behavior or result itself rather than explaining it.\"\nReader 2 (BARE, low): Show the thing: \"the thing\" does not say what is shown. Say \"Show the source, the screenshot or the measurement rather than explain it.\""
+   },
+   {
+    "uid": "housep-036",
+    "start": 2684,
+    "end": 2729,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-037",
+    "start": 2730,
+    "end": 2800,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-038",
+    "start": 2801,
+    "end": 2878,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-039",
+    "start": 2880,
+    "end": 2944,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-040",
+    "start": 2946,
+    "end": 2975,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-041",
+    "start": 2977,
+    "end": 3017,
+    "kind": "sent",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-042",
+    "start": 3019,
+    "end": 3063,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-043",
+    "start": 3064,
+    "end": 3142,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-044",
+    "start": 3143,
+    "end": 3241,
+    "kind": "sent",
+    "words": 14,
+    "label": "REGISTER",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (REGISTER, low): Quote: \"immaterial discrepancies unless they change the answer\". A discrepancy that changes the answer is not immaterial, so the clause contradicts itself, and \"possibilities\" is bare. Replace with: \"Leave out side issues, speculation and discrepancies that do not change the answer.\"\nReader 2 (BARE, low): possibilities: does not say possibilities of what. Say \"unconfirmed possibilities\" or \"speculation\"."
+   },
+   {
+    "uid": "housep-045",
+    "start": 3243,
+    "end": 3277,
+    "kind": "sent",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-046",
+    "start": 3279,
+    "end": 3399,
+    "kind": "sent",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-047",
+    "start": 3401,
+    "end": 3443,
+    "kind": "h3",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-048",
+    "start": 3445,
+    "end": 3566,
+    "kind": "sent",
+    "words": 22,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-049",
+    "start": 3568,
+    "end": 3630,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-050",
+    "start": 3631,
+    "end": 3702,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-051",
+    "start": 3703,
+    "end": 3848,
+    "kind": "sent",
+    "words": 26,
+    "label": "REFERENT",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (REFERENT, high): Quote: \"the app derives the fact, the suite enforces it\". \"the app\" and \"the suite\" are web-tools vocabulary never introduced, in an entry that covers docs in any repo. Replace with: \"check whether the application code derives the fact, the test suite enforces it, or another document owns it, and link to that source instead.\"\nReader 2 (REFERENT, high): the app and \"the suite\": definite phrases with no referent in a document read in any repo (they come from web-tools CLAUDE.md). Say \"check whether the project's code already derives the fact, its test suite enforces it, or another document owns it, and link to that instead.\""
+   },
+   {
+    "uid": "housep-052",
+    "start": 3850,
+    "end": 3959,
+    "kind": "sent",
+    "words": 16,
+    "label": "BARE",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (BARE, high): Quote: \"content written for its own audience\". It does not say whose audience or what content is excluded. Replace with: \"not replies, and not documents written to be read by people rather than to direct sessions.\"\nReader 2 (BARE, low): content written for its own audience: does not say which audience or what content. Say \"not replies, and not documents written for readers other than future sessions.\""
+   },
+   {
+    "uid": "housep-053",
+    "start": 3961,
+    "end": 4212,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-054",
+    "start": 4214,
+    "end": 4222,
+    "kind": "h2",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-055",
+    "start": 4224,
+    "end": 4257,
+    "kind": "h3",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-056",
+    "start": 4259,
+    "end": 4367,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-057",
+    "start": 4369,
+    "end": 4457,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (VAGUE, low): Quote: \"at reading size\" and \"a reading column\". Neither phrase gives a size or width a session can apply. Replace with: \"Content spans the full page width in normal-size text; do not confine text to a narrow column.\" or cite the figure in html-style."
+   },
+   {
+    "uid": "housep-058",
+    "start": 4458,
+    "end": 4531,
+    "kind": "sent",
+    "words": 11,
+    "label": "SURPLUS",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (SURPLUS, low): Repeats housep-038 (\"Let structure and labels carry relationships rather than explanatory prose\"), and the Showing entry already covers pages and points here for pages. Cut, or keep only one of the two.\nReader 2 (SURPLUS, low): Repeats housep-038 almost word for word (\"Structure and labels carry relationships in place of explanatory prose\"). Keep only if the /h:style entry must stand alone; otherwise cut and rely on /h:show."
+   },
+   {
+    "uid": "housep-059",
+    "start": 4532,
+    "end": 4563,
+    "kind": "sent",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-060",
+    "start": 4565,
+    "end": 4606,
+    "kind": "sent",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-061",
+    "start": 4608,
+    "end": 4711,
+    "kind": "sent",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-062",
+    "start": 4713,
+    "end": 4724,
+    "kind": "h2",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-063",
+    "start": 4726,
+    "end": 4767,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-064",
+    "start": 4769,
+    "end": 4826,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-065",
+    "start": 4828,
+    "end": 4926,
+    "kind": "sent",
+    "words": 20,
+    "label": "VAGUE",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (VAGUE, high): Quote: \"ends in a fixed order, with one closing state\". It does not say what the fixed order contains or what a closing state is; the reader must open SURFACING.md to act. Replace with: \"A reply ends with the elements listed in SURFACING.md, in the order given there, finishing with one closing state that matches the actual state of the work.\" (also TERM)\nReader 2 (VAGUE, high): ends in a fixed order, with one closing state: names neither the items in the order nor what a \"closing state\" is (also TERM). Say \"A reply ends with the items and the one closing state in the order SURFACING.md gives, and the closing state matches the actual state of the work.\""
+   },
+   {
+    "uid": "housep-066",
+    "start": 4928,
+    "end": 4957,
+    "kind": "sent",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-067",
+    "start": 4959,
+    "end": 5173,
+    "kind": "sent",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-068",
+    "start": 5175,
+    "end": 5196,
+    "kind": "h3",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-069",
+    "start": 5198,
+    "end": 5263,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-070",
+    "start": 5265,
+    "end": 5304,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-071",
+    "start": 5305,
+    "end": 5426,
+    "kind": "sent",
+    "words": 24,
+    "label": "REFERENT",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (REFERENT, low): Quote: \"opens it to confirm before handing it over\". Both \"it\" could be the change or the link. Replace with: \"the link renders that change, and the session opens the link to confirm this before handing the link over.\"\nReader 2 (REFERENT, high): the session opens it to confirm before handing it over: both \"it\" could be the change or the link. Say \"the link renders that change, and the session opens the link to confirm it renders before handing the link over.\""
+   },
+   {
+    "uid": "housep-072",
+    "start": 5428,
+    "end": 5462,
+    "kind": "sent",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-073",
+    "start": 5463,
+    "end": 5578,
+    "kind": "sent",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-074",
+    "start": 5580,
+    "end": 5816,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-075",
+    "start": 5818,
+    "end": 5844,
+    "kind": "h2",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-076",
+    "start": 5846,
+    "end": 5872,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-077",
+    "start": 5874,
+    "end": 5900,
+    "kind": "sent",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-078",
+    "start": 5902,
+    "end": 5982,
+    "kind": "sent",
+    "words": 15,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-079",
+    "start": 5983,
+    "end": 6039,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-080",
+    "start": 6040,
+    "end": 6104,
+    "kind": "sent",
+    "words": 10,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-081",
+    "start": 6106,
+    "end": 6171,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-082",
+    "start": 6173,
+    "end": 6198,
+    "kind": "h3",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-083",
+    "start": 6200,
+    "end": 6251,
+    "kind": "sent",
+    "words": 10,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-084",
+    "start": 6253,
+    "end": 6305,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-085",
+    "start": 6306,
+    "end": 6393,
+    "kind": "sent",
+    "words": 14,
+    "label": "TERM",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (TERM, low): reads through the component under suspicion and \"clear that component\" are figurative and abstract; write \"A check that depends on the part being tested cannot show that part works.\"\nReader 2 (TERM, low): A probe that reads through the component under suspicion cannot clear that component: \"probe\", \"reads through\" and \"clear\" are figurative shorthand. Plain: \"A test that runs through the component being doubted cannot show that the component works.\""
+   },
+   {
+    "uid": "housep-086",
+    "start": 6394,
+    "end": 6452,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-087",
+    "start": 6453,
+    "end": 6524,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-088",
+    "start": 6526,
+    "end": 6588,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-089",
+    "start": 6590,
+    "end": 6614,
+    "kind": "h3",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-090",
+    "start": 6616,
+    "end": 6642,
+    "kind": "sent",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-091",
+    "start": 6644,
+    "end": 6718,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-092",
+    "start": 6719,
+    "end": 6762,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-093",
+    "start": 6763,
+    "end": 6871,
+    "kind": "sent",
+    "words": 18,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (BARE, low): an interpretation does not say of what; write \"an interpretation of the request\"."
+   },
+   {
+    "uid": "housep-094",
+    "start": 6872,
+    "end": 6919,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-095",
+    "start": 6921,
+    "end": 6965,
+    "kind": "sent",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-096",
+    "start": 6967,
+    "end": 6998,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (TERM, low): Heading \"Unreviewed text\" names the thing differently from the body (\"wording the owner has not approved\"); text can be reviewed and still unapproved. Use \"Unapproved text\"."
+   },
+   {
+    "uid": "housep-097",
+    "start": 7000,
+    "end": 7135,
+    "kind": "sent",
+    "words": 23,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-098",
+    "start": 7137,
+    "end": 7197,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-099",
+    "start": 7198,
+    "end": 7258,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-100",
+    "start": 7259,
+    "end": 7359,
+    "kind": "sent",
+    "words": 17,
+    "label": "REGISTER",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (REGISTER, low): Approved wording is this document equates wording with a document; write \"Approved wording is the text of this document and any wording whose commit quotes the owner's approval.\"\nReader 2 (REGISTER, low): Approved wording is this document equates wording with a whole document. Plain: \"Approved wording is the text of this document and any wording whose commit quotes the owner's approval.\""
+   },
+   {
+    "uid": "housep-101",
+    "start": 7361,
+    "end": 7447,
+    "kind": "sent",
+    "words": 15,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-102",
+    "start": 7449,
+    "end": 7461,
+    "kind": "h2",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-103",
+    "start": 7463,
+    "end": 7489,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-104",
+    "start": 7491,
+    "end": 7615,
+    "kind": "sent",
+    "words": 19,
+    "label": "REGISTER",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (REGISTER, high): without asking leave is archaic; write \"without asking permission\".\nReader 2 (REGISTER, low): without asking leave is archaic. Plain: \"without asking permission\"."
+   },
+   {
+    "uid": "housep-105",
+    "start": 7617,
+    "end": 7701,
+    "kind": "sent",
+    "words": 15,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-106",
+    "start": 7702,
+    "end": 7795,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (BARE, low): deletions of work and \"merges\" do not say what is deleted or merged; name the objects, for example files and branches, and pull requests."
+   },
+   {
+    "uid": "housep-107",
+    "start": 7796,
+    "end": 7876,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-108",
+    "start": 7877,
+    "end": 7995,
+    "kind": "sent",
+    "words": 21,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-109",
+    "start": 7996,
+    "end": 8092,
+    "kind": "sent",
+    "words": 18,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-110",
+    "start": 8093,
+    "end": 8171,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-111",
+    "start": 8173,
+    "end": 8199,
+    "kind": "sent",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-112",
+    "start": 8201,
+    "end": 8312,
+    "kind": "sent",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-113",
+    "start": 8314,
+    "end": 8351,
+    "kind": "h3",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-114",
+    "start": 8353,
+    "end": 8468,
+    "kind": "sent",
+    "words": 23,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-115",
+    "start": 8470,
+    "end": 8531,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-116",
+    "start": 8532,
+    "end": 8627,
+    "kind": "sent",
+    "words": 19,
+    "label": "SURPLUS",
+    "verdict": "DROP",
+    "note": "Both readers.\nReader 1 (SURPLUS, low): Repeats housep-114, which already says to quote the rule and give a reading labeled as a reading when a rule bears on what the owner asked; cut.\nReader 2 (SURPLUS, low): Repeats the general statement above (quote the rule, offer a reading labeled as a reading); the owner asking what a rule requires is already a case of a rule bearing on what the owner asked. Cut."
+   },
+   {
+    "uid": "housep-117",
+    "start": 8628,
+    "end": 8688,
+    "kind": "sent",
+    "words": 12,
+    "label": "TERM",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (TERM, low): The posture is a staffer briefing a director on a statute is a figurative stand-in for a stance (second label SURPLUS, it restates housep-115); write \"Report what the rule says and leave its meaning to the owner.\" or cut.\nReader 2 (TERM, high): The posture is a staffer briefing a director on a statute is a figurative analogy; \"posture\" is figurative and \"a director\" does not say of what. Plain: \"Report what the rule says and leave the decision to the owner.\" Also SURPLUS with the second bullet; cut is acceptable."
+   },
+   {
+    "uid": "housep-118",
+    "start": 8690,
+    "end": 8749,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-119",
+    "start": 8751,
+    "end": 8799,
+    "kind": "h3",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-120",
+    "start": 8801,
+    "end": 8870,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (REFERENT, low): not a verdict on it: \"it\" could be the source or the observation. Plain: \"not a verdict on either\"."
+   },
+   {
+    "uid": "housep-121",
+    "start": 8872,
+    "end": 8994,
+    "kind": "sent",
+    "words": 19,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-122",
+    "start": 8995,
+    "end": 9092,
+    "kind": "sent",
+    "words": 20,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-123",
+    "start": 9094,
+    "end": 9194,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-124",
+    "start": 9196,
+    "end": 9234,
+    "kind": "h3",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-125",
+    "start": 9236,
+    "end": 9354,
+    "kind": "sent",
+    "words": 21,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-126",
+    "start": 9356,
+    "end": 9435,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-127",
+    "start": 9436,
+    "end": 9511,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-128",
+    "start": 9512,
+    "end": 9573,
+    "kind": "sent",
+    "words": 12,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (BARE, low): is not a statement does not say whose; write \"is not a statement by the owner\"."
+   },
+   {
+    "uid": "housep-129",
+    "start": 9575,
+    "end": 9601,
+    "kind": "sent",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-130",
+    "start": 9603,
+    "end": 9637,
+    "kind": "h3",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-131",
+    "start": 9639,
+    "end": 9695,
+    "kind": "sent",
+    "words": 11,
+    "label": "BARE",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (BARE, low): a challenge does not say to what, and the heading and next bullet call it a \"tension\" (one thing, two names); write \"Raise a tension with the owner's instruction when it bears on the decision at hand.\"\nReader 2 (BARE, high): Raise a challenge: does not say a challenge to what, and the bullets then call it \"the tension\". Plain: \"Raise a conflict between the owner's instruction and a rule or an observation when it bears on the decision at hand.\" Second label: REFERENT."
+   },
+   {
+    "uid": "housep-132",
+    "start": 9697,
+    "end": 9774,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-133",
+    "start": 9775,
+    "end": 9845,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-134",
+    "start": 9846,
+    "end": 9972,
+    "kind": "sent",
+    "words": 22,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (REFERENT, low): concede and fix it has no single referent after \"something\" (\"reargue it\" likewise); write \"accept the decision or correction and act on it; do not reargue the point with new measurements or precedent.\""
+   },
+   {
+    "uid": "housep-135",
+    "start": 9973,
+    "end": 10013,
+    "kind": "sent",
+    "words": 8,
+    "label": "BARE",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (BARE, low): nuance as a correction does not say whose correction or what nuance means; write \"Do not present a minor qualification as a correction of the owner.\"\nReader 2 (BARE, high): Do not present nuance as a correction: which nuance, and a correction of what or by whom, is not stated, so the rule can be read two ways. Plain: \"Do not present a qualification of your own as a correction of the owner's statement.\" (reading inferred)"
+   },
+   {
+    "uid": "housep-136",
+    "start": 10015,
+    "end": 10035,
+    "kind": "sent",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-137",
+    "start": 10037,
+    "end": 10054,
+    "kind": "h2",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-138",
+    "start": 10056,
+    "end": 10088,
+    "kind": "h3",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-139",
+    "start": 10090,
+    "end": 10158,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (TERM, low): the folder named by what it attaches to: \"attaches to\" is a coined criterion, and the folders (kits, ops) are not named after what a file attaches to. Plain: \"goes in the folder that matches what the file registers or extends:\"."
+   },
+   {
+    "uid": "housep-140",
+    "start": 10160,
+    "end": 10238,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (TERM, low): a boot bundle is repo shorthand not defined here; name the file kind or the exact files."
+   },
+   {
+    "uid": "housep-141",
+    "start": 10239,
+    "end": 10304,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-142",
+    "start": 10305,
+    "end": 10380,
+    "kind": "sent",
+    "words": 10,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-143",
+    "start": 10381,
+    "end": 10489,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-144",
+    "start": 10491,
+    "end": 10513,
+    "kind": "sent",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-145",
+    "start": 10515,
+    "end": 10706,
+    "kind": "sent",
+    "words": 14,
+    "label": "TERM",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (TERM, low): held by is figurative for enforced; write \"checked by `node/test/code-layers.test.mjs`\".\nReader 2 (REGISTER, low): held by is figurative for a check. Plain: \"enforced by\" or \"checked by\"."
+   },
+   {
+    "uid": "housep-146",
+    "start": 10708,
+    "end": 10727,
+    "kind": "h3",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-147",
+    "start": 10729,
+    "end": 10768,
+    "kind": "sent",
+    "words": 6,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-148",
+    "start": 10770,
+    "end": 10847,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-149",
+    "start": 10848,
+    "end": 10943,
+    "kind": "sent",
+    "words": 16,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-150",
+    "start": 10945,
+    "end": 10967,
+    "kind": "sent",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-151",
+    "start": 10969,
+    "end": 11211,
+    "kind": "sent",
+    "words": 11,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-152",
+    "start": 11213,
+    "end": 11236,
+    "kind": "h3",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-153",
+    "start": 11238,
+    "end": 11283,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-154",
+    "start": 11285,
+    "end": 11424,
+    "kind": "sent",
+    "words": 25,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (VAGUE, low): a script a platform runs with that platform's files names no platform and the three-part list is elliptical; name the platforms (for example a CI workflow or a hook) and split into separate clauses."
+   },
+   {
+    "uid": "housep-155",
+    "start": 11425,
+    "end": 11497,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (TERM, low): a probe and \"the probe's findings\" are repo shorthand for an investigation; name it, for example \"the investigation's write-up\"."
+   },
+   {
+    "uid": "housep-156",
+    "start": 11498,
+    "end": 11555,
+    "kind": "sent",
+    "words": 10,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-157",
+    "start": 11557,
+    "end": 11579,
+    "kind": "sent",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "housep-158",
+    "start": 11581,
+    "end": 11699,
+    "kind": "sent",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   }
+  ]
+ },
+ "text": "# House policies\n\nThese policies set out the owner's preferences and conventions, organized by principle. They are meant to be memorable and cited, the way WP:NPOV is cited on a Wikipedia talk page.\n\n## Policies\n\n### Writing policies · `/h:policy`\n\nA policy states a preference that holds across tasks, in wording the owner approved, with the cases it covers.\n\n- An entry gives the preference and its scope, and links to the document that holds procedure and detail; neither restates the other.\n- A session shows proposed wording in chat and commits it only after the owner approves it, quoting the approval in the commit's `Doc-change-approved:` trailer.\n- A policy gets a document of its own only after its entry has been misapplied twice.\n- A shortcut names a preference or a bounded topic. A policy may have several shortcuts, and no shortcut is reused.\n- Cite an entry by its slash command, such as `/h:qualify`. After the first mention in a document or reply, `h:qualify` alone is enough.\n- A shortcut is an address, not a summary: read the entry before applying it.\n\n**Covers:** this document, and the repo-specific policies under `/h:local`.\n\n### Repo-specific policies · `/h:local`\n\nA policy for one repo is an entry in this document whose scope names that repo.\n\n- A private repo keeps its policies in its own CLAUDE.md, because this document is public.\n\n**Covers:** every repo whose sessions load this document.\n\n## Writing\n\n### Qualified writing · `/h:qual`, `/h:q`, `/h:qualify`\n\nQualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.\n\n**Covers:** all prose a session writes: replies, documents, commit messages and PR bodies.\n\n**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.\n\n### Precise register · `/h:precise`, `/h:slang`\n\nUse the standard term a general reader knows, in a plain, dry register.\n\n- Avoid slang and figurative names; a coined name is defined where it first appears.\n- Give one thing one name: its file name, label and title match.\n- Prefer \"avoid\" or \"do not\" over \"never\".\n- Do not join ideas with dashes (em dash, en dash or double hyphen); write short sentences instead.\n- Name the exact file, column, count or command rather than referring to it in general.\n\n**Covers:** all prose a session writes, and the names it gives files, labels and concepts.\n\n**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph and rule 2.\n\n### Showing · `/h:show`\n\nShow the thing rather than explain it.\n\n- Quote a source rather than characterize it.\n- Include a screenshot or a measurement rather than describe behavior.\n- Let structure and labels carry relationships rather than explanatory prose.\n\n**Covers:** replies, documents and pages; for pages, `/h:style`.\n\n### Main thread · `/h:thread`\n\nKeep the reader's main question in view.\n\n- Lead with the answer to the main question.\n- Build on what has been established, or name the earlier point being resumed.\n- Leave out side issues, possibilities and immaterial discrepancies unless they change the answer.\n\n**Covers:** replies and documents.\n\n**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.\n\n### What earns space · `/h:crit`, `/h:doe`\n\nIn a document that future sessions read to decide what to do, include content only where it changes what the reader does.\n\n- If the reader would succeed without a passage, leave it out.\n- Include a reason only where it clarifies intent, and keep it minimal.\n- Before adding to such a document, check whether the app derives the fact, the suite enforces it, or another document owns it, and link instead.\n\n**Covers:** docs, skills, CLAUDE.md and AGENTS.md; not replies, and not content written for its own audience.\n\n**Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and \"General Principles\"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.\n\n## Pages\n\n### Page house style · `/h:style`\n\nA page follows the house style, which takes precedence over any general design, dashboard or charting skill.\n\n- Content uses the full width at reading size; text is not narrowed to a reading column.\n- Structure and labels carry relationships in place of explanatory prose.\n- A page carries no stat cards.\n\n**Covers:** every HTML page and artifact.\n\n**Detail:** [html-style](https://github.com/mehrlander/web-tools/blob/main/skills/html-style/SKILL.md).\n\n## Handover\n\n### Surfacing · `/h:surf`, `/h:surfacing`\n\nA reply hands over what the reader needs in order to act.\n\n- A reply ends in a fixed order, with one closing state that matches the actual state of the work.\n\n**Covers:** every chat reply.\n\n**Detail:** [SURFACING.md](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md); for pull requests, [surfacing-course.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md).\n\n### Links · `/h:link`\n\nLink every file, pull request, session and page a reply mentions.\n\n- Each link lands on the item it names.\n- For a change a person can see, the link renders the change, and the session opens it to confirm before handing it over.\n\n**Covers:** replies and documents. PR bodies follow [surfacing-course.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md).\n\n**Detail:** [SURFACING.md](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md), \"Reference is a link\"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.\n\n## Evidence and confidence\n\n### Look first · `/h:look`\n\nObserve before explaining.\n\n- Reproduce the failure, read the log or run a control before proposing a cause.\n- Propose a fix only for a cause that has been observed.\n- When reasoning stalls, add an observation, not more reasoning.\n\n**Covers:** diagnosis, and any claim about how something behaves.\n\n### Checking · `/h:check`\n\nVerify a claim with a check that could have failed.\n\n- Ask whether the observation itself could be wrong.\n- A probe that reads through the component under suspicion cannot clear that component.\n- A check that cannot see a failure says nothing about it.\n- Pair a positive result with a negative control where one is possible.\n\n**Covers:** claims about files, behavior, tests, links and CI.\n\n### Hedging · `/h:hedge`\n\nState confidence as it is.\n\n- Say which claims were demonstrated and which were inferred from reading.\n- Do not call an assessment completed work.\n- Hold a plan as provisional: before acting on an interpretation, look for evidence that would challenge it.\n- Name the assumption the plan depends on most.\n\n**Covers:** replies, findings and PR bodies.\n\n### Unreviewed text · `/h:salt`\n\nTreat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.\n\n- When citing such text, say who or what wrote it, if known.\n- Do not extend such text past the cases it was written for.\n- Approved wording is this document, and any wording whose commit quotes the owner's approval of it.\n\n**Covers:** rules, CSV rows, skill text and code comments a session reads in any repo.\n\n## Authority\n\n### Who decides · `/h:who`\n\nThe session settles questions of fact and finishes requested work without asking leave; the owner holds the decisions below.\n\n- The owner decides the wording of any directive in a document future sessions read.\n- The owner decides deletions of work, architectural direction, merges and new tracker tasks.\n- The owner can hand any of these decisions to the session for the work at hand.\n- When the owner asks to explain, discuss, assess or propose, answer in chat and change nothing until told to proceed.\n- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu. A visual choice gets about three options as screenshots, with one recommended.\n\n**Covers:** every session.\n\n**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md), principles 1 and 3.\n\n### Speaking about rules · `/h:defer`\n\nWhen a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.\n\n- The owner decides what a rule means and whether it applies.\n- When the owner asks what a rule requires, answer with the quote and a reading labeled as one.\n- The posture is a staffer briefing a director on a statute.\n\n**Covers:** replies that cite a rule, policy or convention.\n\n### Verdict language · `/h:verdict`, `/h:ruling`\n\nReport what a source says and what was observed, not a verdict on it.\n\n- Words such as \"forbids\", \"requires\", \"violates\", \"proves\" and \"confirms\" claim more than a quote or a measurement shows.\n- The output of an analysis, a review panel or a script is input to a decision, not the decision.\n\n**Covers:** replies, findings and PR bodies that report on a source, a tool's output or an analysis.\n\n### Weighing a found rule · `/h:weigh`\n\nWhen a rule found in a repo conflicts with what the owner has said in the conversation, the owner's statement governs.\n\n- The owner's statement governs whether or not the rule's wording was approved.\n- Name the conflict so the owner can decide whether the rule should change.\n- An inference about what the owner wants is not a statement.\n\n**Covers:** every session.\n\n### Raising a tension · `/h:raise`\n\nRaise a challenge when it bears on the decision at hand.\n\n- Name the tension, quote both sides, recommend, and follow the owner's call.\n- When the owner has chosen to proceed, note the tension and carry on.\n- Once the owner has decided or corrected something, concede and fix it; do not reargue it with new measurements or precedent.\n- Do not present nuance as a correction.\n\n**Covers:** replies.\n\n## Code placement\n\n### Library folders · `/h:place`\n\nA file under `lib/` goes in the folder named by what it attaches to.\n\n- A file that extends `GH.prototype`, or a boot bundle, goes in `lib/` itself.\n- A file that registers a `window` namespace goes in `lib/kits/`.\n- A file that registers with `Alpine.data` goes in `lib/alpineComponents/`.\n- A file that is a single function expression, reaching neither `window` nor `document`, goes in `lib/ops/`.\n\n**Covers:** web-tools.\n\n**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and \"Cases the table does not settle\", held by `node/test/code-layers.test.mjs`.\n\n### Kits · `/h:kit`\n\nA kit registers one `window` namespace.\n\n- A kit loads through `gh.load`, so it has no top-level `import` or `export`.\n- A kit that needs Alpine reactivity gets a component wrapper rather than becoming a component.\n\n**Covers:** web-tools.\n\n**Detail:** [lib/kits/README.md](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), \"Shape rules\"; [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), \"Cases the table does not settle\".\n\n### Scripts · `/h:tool`\n\nA script outside `lib/` goes with its caller.\n\n- A pipeline step goes with its pipeline, a skill's script in that skill's folder, and a script a platform runs with that platform's files.\n- A script kept only to explain a probe stays with the probe's findings.\n- Anything else goes in `python/` or `node/` by language.\n\n**Covers:** web-tools.\n\n**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), \"Outside `lib/`\".\n"
+}
