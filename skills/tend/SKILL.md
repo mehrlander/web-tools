@@ -146,13 +146,18 @@ The `×N` count in `docs/SNAGS.md` orders the reading and triggers nothing.
 ## Prod
 
 `/tend prod` asks each session with open work to tend its own work. List the
-account's sessions and send this message to each one that is idle, was active
-in the past week, and has an open pull request or a blocked or review-ready
-status:
+account's sessions and send this message to each one that is idle, last showed
+activity between 30 minutes and a week ago, and has an open pull request or a
+blocked or review-ready status. The owner can name sessions to skip, or a
+different window. `<sha>` is a commit that carries this section, since a
+session's checkout or plugin copy may predate it:
 
 > The user in session <id> ran /tend prod. Tend this session's own work as
 > the Prod section of the tend skill defines it (mehrlander/web-tools,
-> skills/tend/SKILL.md). Please proceed using your judgment.
+> skills/tend/SKILL.md at commit <sha>). Please proceed using your judgment.
+
+Then reply with the sessions messaged and the sessions skipped, each with its
+title and open work, and for a skipped one the reason.
 
 A session that receives it works through whichever of these apply, under the
 principles above:
