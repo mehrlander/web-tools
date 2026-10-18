@@ -81,6 +81,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/session-index.js',
   'lib/kits/file-index.js',
   'lib/kits/estate-search.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/quick-find.js',
 ]);
 
@@ -265,6 +266,16 @@ test('jotThis appends to a fresh read of lists/jots.json with the estate\'s comm
   assert.equal(SAVES[0].value.items[0].text, 'earlier');
   assert.equal(SAVES[0].value.items[1].text, 'quick idea');
   assert.match(SAVES[0].message, /^Jot "quick idea" via Web Tools$/);
+});
+
+test('jotThis saves nothing when the pile cannot be read, rather than a pile of one', async () => {
+  SAVES = [];
+  FILES['lists/jots.json'] = { items: [{ id: 'j1', text: 'earlier', created_at: '2026-01-01T00:00:00Z' }] };
+  const real = FakeGH.prototype.get;
+  FakeGH.prototype.get = async () => { throw Object.assign(new Error('Load failed'), { status: 0 }); };
+  try { await data.jotThis('lost in transit'); }
+  finally { FakeGH.prototype.get = real; }
+  assert.equal(SAVES.length, 0);
 });
 
 test('the content and session gates appear on plain queries of three characters or more', () => {

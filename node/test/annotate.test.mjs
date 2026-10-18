@@ -26,6 +26,7 @@ const { window } = makeWindow({
 });
 const doc = window.document;
 
+loadKit('lists.js', { window });
 loadKit('annotate.js', { window });
 const A = window.Annotate;
 
