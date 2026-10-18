@@ -139,6 +139,10 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   assert.match(text, /class="head-menu"/, 'launcher must consolidate header actions into a single explicit dropdown menu');
   assert.match(text, /ICON\.dotsThree/, 'launcher must use Phosphor dotsThree SVG icon for the header menu trigger');
   assert.doesNotMatch(text, /class="head-intro"/, 'launcher must not render the old duplicate head-intro button row');
+  assert.doesNotMatch(text, /class="head-menu-item btn-paste"/, 'launcher must not duplicate Paste in head-menu');
+  assert.doesNotMatch(text, /class="head-menu-item btn-tts"/, 'launcher must not duplicate Read aloud in head-menu');
+  assert.match(text, /data-slide-id="sandbox"/, 'launcher must provide a dedicated Sandbox slide for pasted units');
+  assert.match(text, /const getSandboxRecords =/, 'launcher must export Sandbox units as structured JSON records');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {
