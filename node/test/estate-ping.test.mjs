@@ -2,7 +2,8 @@
 // view. Sending files a laptop-daemon `ask` errand in the registry; the pane
 // then follows each ask through the folder listings (sent, thinking once
 // claimed, answered once a result lands) and shows Gemini's reply. Driven over
-// a fake GH and a stubbed shell; no network, no pixels.
+// a fake GH and a stubbed shell; no network, no pixels. The fake registry has
+// two branches, so a read or write aimed at the wrong one finds nothing.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,6 +13,9 @@ const REGISTRY = 'me/registry';
 let FILES = {};
 let SAVES = [];
 let COMMITS = [];
+// Errands and the topics rollup are on the registry's `background` branch
+// (kits/errands.js BRANCH); everything else is on main.
+const branchOf = (p) => (p.startsWith('errands/') || p === 'state/session-topics.json') ? 'background' : 'main';
 
 class FakeGH {
   static FRESH = { cache: 'no-store' };
@@ -25,13 +29,14 @@ class FakeGH {
   }
   async repos() { return []; }
   async ls(dir) {
-    const rows = Object.keys(FILES).filter(p => p.startsWith(dir + '/') && !p.slice(dir.length + 1).includes('/'))
+    const rows = Object.keys(FILES).filter(p => p.startsWith(dir + '/') && !p.slice(dir.length + 1).includes('/')
+                                           && branchOf(p) === this.ref)
       .map(p => ({ name: p.slice(dir.length + 1), type: 'file' }));
     if (!rows.length) throw Object.assign(new Error('404'), { status: 404 });
     return rows;
   }
   async get(name) {
-    if (this.repo === REGISTRY && FILES[name]) return { text: JSON.stringify(FILES[name]) };
+    if (this.repo === REGISTRY && FILES[name] && branchOf(name) === this.ref) return { text: JSON.stringify(FILES[name]) };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(path) {
@@ -41,8 +46,8 @@ class FakeGH {
     return {};
   }
   async save(path, value, message) {
-    SAVES.push({ path, value, message });
-    FILES[path] = JSON.parse(JSON.stringify(value));
+    SAVES.push({ path, value, message, ref: this.ref });
+    if (branchOf(path) === this.ref) FILES[path] = JSON.parse(JSON.stringify(value));
     return {};
   }
 }
@@ -70,7 +75,7 @@ const settle = () => { clearTimeout(data.pingTimer); data.pingTimer = null; };
 async function seed(files = {}) {
   FILES = { ...files };
   data.pingItems = [];
-  await data.loadPings(reg());
+  await data.loadPings();
   settle();
   SAVES = [];
 }
@@ -90,8 +95,10 @@ test('sending files one ask errand and lists the question as sent', async () => 
   await seed();
   const id = await send('Which rivers feed the Columbia? A short list.');
   assert.equal(SAVES.length, 1, 'one write');
-  const { path, value, message } = SAVES[0];
+  const { path, value, message, ref } = SAVES[0];
   assert.equal(path, 'errands/requests/' + id + '.json');
+  assert.equal(ref, 'background', 'filed on the errand branch, not main');
+  assert.equal(value.dest, REGISTRY + '@background:errands/results');
   assert.match(id, /^daemon-\d{4}-\d{2}-\d{2}-ask-[a-z0-9]+$/);
   assert.equal(value.run.method, 'laptop-daemon');
   assert.equal(value.run.op, 'ask');
@@ -105,13 +112,13 @@ test('a question moves to thinking when claimed, then shows the reply', async ()
   await seed();
   const id = await send('rivers?');
   FILES['errands/claims/' + id + '.json'] = { id, by: 'laptop' };
-  await data.loadPings(reg(), { quiet: true }); settle();
+  await data.loadPings({ quiet: true }); settle();
   assert.equal(data.pingItems[0].stage, 'thinking');
 
   delete FILES['errands/claims/' + id + '.json'];
   FILES['errands/results/' + id + '.json'] = { id, ok: true, closedAt: '2026-10-02T17:03:00Z',
     message: 'The Snake.', data: { op: 'ask', model: 'flash', reply: 'The Snake.\nThe Willamette.' } };
-  await data.loadPings(reg(), { quiet: true });
+  await data.loadPings({ quiet: true });
   assert.equal(data.pingItems[0].stage, 'answered');
   assert.equal(data.pingItems[0].reply, 'The Snake.\nThe Willamette.');
   assert.equal(data.pingTimer, null, 'nothing left to watch, so polling stops');
@@ -121,7 +128,7 @@ test('a question just sent survives a listing that has not caught up with it', a
   await seed();
   const id = await send('rivers?');
   delete FILES['errands/requests/' + id + '.json'];      // the listing lags the write
-  await data.loadPings(reg(), { quiet: true }); settle();
+  await data.loadPings({ quiet: true }); settle();
   assert.equal(data.pingItems[0]?.id, id);
   assert.equal(data.pingItems[0].stage, 'sent');
 });
@@ -171,10 +178,11 @@ test('Check files a status errand, and the answer turns the marker active', asyn
   clearTimeout(data.daemonTimer); data.daemonTimer = null;
   assert.equal(SAVES.length, 1);
   assert.equal(SAVES[0].value.run.op, 'status');
+  assert.equal(SAVES[0].ref, 'background');
   assert.equal(data.daemonHealth.level, 'checking');
   const id = data.daemon.check.id;
   FILES['errands/results/' + id + '.json'] = { id, ok: true, closedAt: minsAgo(0), data: { op: 'status', host: 'laptop' } };
-  await data.readCheck(reg());
+  await data.readCheck();
   assert.equal(data.daemonHealth.level, 'up');
   assert.equal(data.daemonText, 'Daemon active just now');
 });

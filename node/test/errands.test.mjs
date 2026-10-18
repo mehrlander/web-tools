@@ -107,7 +107,7 @@ test('askRequest files a laptop-daemon ask the daemon and the Stage accept', () 
   assert.deepEqual(r.run.args, { prompt: 'What rivers   feed the Columbia?' }, 'the prompt goes as typed');
   assert.equal(r.title, 'Ask Gemini: What rivers feed the Columbia?');
   assert.equal(r.createdAt, '2026-10-02T17:00:00Z');
-  assert.equal(r.dest, 'me/reg@main:errands/results');
+  assert.equal(r.dest, 'me/reg@background:errands/results', 'results land on the errand branch');
   assert.equal(E.validate(E.normalize(r)).ok, true);
 });
 
