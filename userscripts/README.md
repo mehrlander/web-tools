@@ -18,7 +18,7 @@ auto-updating loader. When installed once with GM storage permissions (`@grant G
 `@grant GM.setValue`, `@grant GM.xmlHttpRequest`), the stub caches and dynamically evaluates
 the latest `launcher.js` body from GitHub. Updates are fetched silently in the background
 (with a 5-minute cooldown) or immediately when tapping the refresh `[ ⟳ ]` button inside the
-launcher drawer.
+off-site FAB's drawer.
 
 In addition, `@version {build}` and `@require ...?v={build}` bust the Userscripts Safari
 extension's internal `@require` cache if manual re-installation is ever triggered.
@@ -69,20 +69,22 @@ the stub calls it, so one body serves both routes.
 **Which route reaches a page.** Measured against `script-src 'self'`: the
 bookmarklet is refused, because it is a script tag the page injects; the
 userscript mounts, because the extension evaluates the body itself. That is the
-reason the launcher exists as a userscript and the reason its styles are a
+reason the off-site FAB exists as a userscript and the reason its styles are a
 constructed stylesheet rather than a `<style>` element, which `style-src` would
 refuse the same way.
 
-- [`launcher.user.js`](launcher.user.js): the app's own launcher, carried onto
-  pages that have none, from [`lib/launcher.js`](lib/launcher.js). Same square,
+- [`launcher.user.js`](launcher.user.js): **the off-site FAB**, the app's own
+  button and drawer carried onto pages that have none, from
+  [`lib/launcher.js`](lib/launcher.js). Renaming that file stops updates to every
+  installed stub, which fetches it by path. Same square,
   same mark, same drag, and a menu in the fab's row shape: capture the page to
   the repo, open the app, hide it.
 
   **It yields.** On a page that already has a fab it must not mount, or every
-  web-tools page grows a second launcher beside the real one. Five tells stand
+  web-tools page grows a second button beside the real one. Five tells stand
   it down: a mounted `[aria-label="Web-tools panel"]`, `window.gh`,
   `window.__fabHosted`, `data-no-fab`, and an observer that removes it if the
-  real launcher boots after `document-end`.
+  real FAB boots after `document-end`.
 
   **The drawer is not the fab's**, and cannot be: Render reads the GitHub API
   through a token held on the web-tools origin, which a foreign origin does not
@@ -91,13 +93,15 @@ refuse the same way.
   content, presented through a **vanilla swipe deck** with a collapsible header metadata disclosure.
 
   - **Header Metadata Disclosure (`[ ℹ Page Info ▾ ]`):** Title, address, meta description, and the user's current selection sit in an expandable header dropdown, freeing the entire drawer body for content.
+  - **Paste & Hold (`[ Paste ]`):** Holds clipboard or page-copied content inside the drawer like a local Stage item (`Held Paste`), rendering Markdown, extracting links, and routing `[ Copy ]`, `[ Stage ]`, and `[ Store ]` through the held content. Supports iOS Safari clipboard access via `navigator.clipboard.readText()` with offscreen `<textarea inputmode="none">` `execCommand('paste')` fallback, automatic interception of host-page `copy` events (1-tap `Hold in Drawer` / `Read Aloud` banner), `+ Paste` accumulation, and an inline paste composer.
+  - **Read Aloud (`[ Read ]` / speaker icon):** Built-in `speechSynthesis` reader ported from `lib/kits/read-aloud.js` with iOS-safe cancel-and-remember pause/resume, active block highlighting, tap-paragraph-to-seek in the Markdown preview, and a customizer drawer for speed (`0.85×`–`2×`), voice selection, code block handling (`Skip` / `Announce` / `Read`), tables, blockquotes, and path shortening.
   - **Fullscreen Deck (`[ ⤢ ]`):** Toggle the drawer into full-bleed view directly from the header or the hold menu for reading on small screens or deep reading on desktop.
 
   | Slide | Holds | Actions |
   | --- | --- | --- |
-  | **Markdown** | Composed brief with metadata, selection, and readable prose | `[ Copy ]`, `[ Stage ]` |
-  | **Text** | Extracted page prose or live feed accumulation | `[ Include in MD ]`, `[ Collect ]` |
-  | **Links** | Deduplicated off-page link checklist | `[ All ]`, `[ None ]`, checkbox toggle |
+  | **Markdown** | Composed brief with metadata, selection, and readable prose (or Held Paste) | `[ Copy ]`, `[ Stage ]`, `[ Read ]` |
+  | **Text** | Extracted page prose, live feed accumulation, or Held Paste text | `[ + Merge ]`, `[ Paste ]` |
+  | **Links** | Deduplicated off-page link checklist (or links extracted from Held Paste) | `[ All ]`, `[ None ]`, checkbox toggle |
   | **HTML** | Clean outerHTML snapshot of the full page DOM | `[ Copy ]`, `[ Stage ]` |
   | **JSON** | Structured envelope of page metadata, links, and prose | `[ Copy ]`, `[ Stage ]` |
   | **Jina** | Live markdown from Jina AI Reader (`r.jina.ai`) | `Open in Jina ↗`, `[ Copy ]`, `[ Stage ]` |

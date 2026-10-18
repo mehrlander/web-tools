@@ -32,7 +32,7 @@ test.afterEach(async () => {
 });
 
 function fixture({ active = A, busy = false } = {}) {
-  const received = [], staged = [], comparisons = [], toasts = [], handlers = {};
+  const received = [], staged = [], comparisons = [], toasts = [], handlers = {}, matched = [];
   const store = { repo: REPO, ref: REF, defaultRef: 'main', stage: [] };
   Alpine.store('browser', store);
   Alpine.store('toast', (icon, message, cls) => toasts.push({ icon, message, cls }));
@@ -47,7 +47,8 @@ function fixture({ active = A, busy = false } = {}) {
       if (target && (target.repo !== REPO || ![A, B, X].includes(target.path))) return false;
       received.push({ target, text: sourceText, meta: { name, source } });
       return true;
-    } }));
+    },
+    async matchCopy(sourceText, meta) { matched.push({ text: sourceText, meta }); return true; } }));
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'powershellOutpostView()');
   Alpine.mutateDom(() => { window.document.body.appendChild(el); Alpine.initTree(el); });
@@ -68,7 +69,7 @@ function fixture({ active = A, busy = false } = {}) {
   window.addEventListener = (type, handler) => { (handlers[type] ||= []).push(handler); };
   try { shell.wireAppPaste(); shell.wireAppDrop(); } finally { window.addEventListener = originalAdd; }
   const fire = async (type, event) => { for (const handler of handlers[type] || []) await handler(event); };
-  return { shell, workspace, store, received, staged, comparisons, toasts, el, fire };
+  return { shell, workspace, store, received, staged, comparisons, toasts, el, fire, matched };
 }
 
 function clipboard(source = text, { files = [], items = [], type = 'text/plain' } = {}) {
@@ -236,4 +237,19 @@ test('the Outpost tab takes a copy in place, and Files keeps the Stage compariso
   assert.equal(h.comparisons[0].target.path, B);
   assert.equal(h.shell.view, 'stage');
   assert.equal(h.received.length, 1);
+});
+
+test('on the Outpost tab with no file open, pasted PowerShell is matched to the file it most resembles; prose still goes to the Stage', async () => {
+  new window.Function(readFileSync(new URL('../../lib/kits/powershell-match.js', import.meta.url), 'utf8'))();
+  try {
+    const h = fixture({ active: '' });
+    const code = 'function Get-Thing {\r\n  $x = Get-Item $env:TEMP\r\n}\r\n';
+    await h.fire('paste', event(clipboard(code)));
+    assert.equal(h.matched.length, 1);
+    assert.equal(h.matched[0].text, code);
+    assert.deepEqual([h.received.length, h.staged.length, h.comparisons.length], [0, 0, 0]);
+    await h.fire('paste', event(clipboard('Lunch at noon, then the budget review.\n')));
+    assert.equal(h.matched.length, 1, 'prose is not matched');
+    assert.equal(h.staged.length, 1);
+  } finally { delete window.PowerShellMatch; }
 });

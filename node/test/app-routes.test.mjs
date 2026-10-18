@@ -188,7 +188,11 @@ test('the two sub-tab encodings, counted', () => {
   //
   // 6 to 7 on 2026-10-06: Tending left the header for the Activity stop, whose
   // rows open it, and kept its own ?view= key.
-  assert.equal(flattened, 7, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 7 to 8 on 2026-10-15: Activity gained Traffic (?view=traffic), State's
+  // sibling in the set-apart pill group, which reads what the open page has
+  // fetched and why, rather than anything the estate keeps.
+  assert.equal(flattened, 8, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
@@ -221,7 +225,9 @@ test('the two sub-tab encodings, counted', () => {
   // 37 to 39 on 2026-10-13: This browser took two tabs, Token (the saved
   // token, and where a failed read lands) and Stored here (what the origin
   // keeps in localStorage and IndexedDB, as a list and its detail).
-  assert.equal(params, 39, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 39 to 40 on 2026-10-15: This browser took Page, what the page a courier
+  // bookmark opened the window from keeps in its own storage.
+  assert.equal(params, 40, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
@@ -469,7 +475,7 @@ test('a Map hit names the tab most of its files belong to, and the link lands th
 // the state this replaced.
 test('the app and the script agree on the lib-only address', () => {
   const py = readFileSync(path.join(repoRoot, 'python/showing.py'), 'utf8');
-  const m = py.match(/q = f"\?use=\{sha\}" \+ \(f"&view=\{view\}" if view else ""\)/);
+  const m = py.match(/q = join_query\(\[\("use", sha\), \("view", view\)\], query\)/);
   assert.ok(m, 'showing.py still writes ?use=<sha>&view=<key>; update the kit if it moved');
   const stage = manifest.routes.find(r => r.key === 'stage');
   assert.ok(R.viewUrl(stage, 'deadbeef').endsWith('/app/?use=deadbeef&view=stage'));

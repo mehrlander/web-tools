@@ -109,15 +109,48 @@ test('the renderer previews by nesting rather than by rendering itself', () => {
   assert.equal((d.links[0].url.match(/#gh=/g) || []).length, 2);
 });
 
-test('a shell change acting on the top-level document reaches no link at all', () => {
+test('a shell change acting on the tab is tossed with ?top, since a frame never is the tab', () => {
   // The favicon case (PR #315): a framed shell sets it on its own document,
   // correctly and invisibly, because the tab belongs to whatever is on top.
+  // Until 2026-10-17 this case printed "no link reaches this", while the
+  // toss-gh row of showing-mechanisms.csv said ?top makes the page the tab.
   const d = withDiff('pages/branch.html', '+++ b/pages/branch.html\n+ document.title = subject;\n');
-  assert.equal(d.mechanism, 'none');
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.top, true);
+  assert.match(d.links[0].url, /toss-render\.html\?top#gh=mehrlander\/web-tools@0{12}:pages\/branch\.html$/);
   assert.match(d.why.join(' '), /document\.title/);
+  assert.ok(d.warnings.some(w => /iPhone is unmeasured/.test(w)), 'where ?top is unmeasured is said with the link');
+  const back = withDiff('pages/branch.html', "+++ b/pages/branch.html\n+ history.pushState(null, '', next);\n");
+  assert.equal(back.top, true, 'history is the tab too');
   // The control: the same file, a change that touches nothing top-level.
   const ok = withDiff('pages/branch.html', '+++ b/pages/branch.html\n+ const x = 1;\n');
   assert.equal(ok.mechanism, 'toss-gh');
+  assert.equal(ok.top, undefined);
+  assert.doesNotMatch(ok.links[0].url, /\?top/);
+});
+
+test('--top opens any toss as the tab, and says so where it has nothing to add', () => {
+  // Back in a framed preview of the app left the preview (PR #966): the page's
+  // pushState throws in the frame and the renderer swallows it. That change
+  // touched no history call, so the reader asks for the tab directly.
+  const d = run('pages/session.html', ['--top']);
+  assert.equal(d.top, true);
+  assert.match(d.links[0].url, /toss-render\.html\?top#gh=/);
+  const refs = run('pages/session.html', ['--top', '--refs', 'mehrlander/home@claude/x']);
+  assert.match(refs.links[0].url, /toss-render\.html\?top&refs=mehrlander\/home@claude\/x#gh=/,
+    'a selection rides after the flag');
+  const lag = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2', '--top']);
+  assert.equal(lag.mechanism, 'overlay');
+  assert.match(lag.links[0].url, new RegExp(`toss-render\\.html\\?top&refs=mehrlander/web-tools@${B12}&`));
+  const app = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html', ['--top']);
+  assert.match(app.links[0].url, /toss-render\.html\?top#gh=mehrlander\/home@/);
+  const use = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--top']);
+  assert.equal(use.mechanism, 'use');
+  assert.equal(use.top, undefined);
+  assert.ok(use.warnings.some(w => /already opens the page as the tab/.test(w)));
+  const nested = run('pages/toss-render.html', ['--top']);
+  assert.ok(nested.warnings.some(w => /nested renderer is never the tab/.test(w)));
+  assert.doesNotMatch(nested.links[0].url, /\?top/);
 });
 
 test('docs and tools get an honest no-link rather than a link that shows nothing', () => {
@@ -317,6 +350,16 @@ test('--query joins the view on a framed link rather than being dropped', () => 
   assert.equal(d.mechanism, 'toss-app');
   assert.match(d.links[0].url, /\?view=submittal&tab=abs&track=submittal$/,
     'the query joins with & because the framed page reads one query span');
+});
+
+// A --query naming the view is the reader's choice of view, so it replaces the
+// one the script inferred. Appended, the link read ?view=submittal&view=benefits
+// and the app routed on the first (home's Benefits view, 2026-10-15).
+test('a view named in --query replaces the inferred one rather than doubling it', () => {
+  const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--query', 'view=benefits&tab=abs']);
+  assert.equal(d.mechanism, 'toss-app');
+  assert.match(d.links[0].url, /\?view=benefits&tab=abs$/, 'one view, the one asked for');
 });
 
 // A cross-repo selection rides on the renderer's own query, before the `#`;

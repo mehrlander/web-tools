@@ -25,6 +25,7 @@
     "docs-readme": "node node/build/docs-readme.mjs",
     "docs-reach": "node node/build/docs-reach.mjs",
     "vendor-docs": "node node/build/vendor-docs.mjs",
+    "policy-skills": "node node/build/policy-skills.mjs",
     "registries-reach": "node node/build/registries-reach.mjs",
     "gold-set": "node node/gold-set.mjs",
     "claims-scan": "python3 python/duplicated-claims.py",

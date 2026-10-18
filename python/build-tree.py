@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render a repository file tree as a linked markdown table for chat.
 
-Emits the tree in one of three shapes (see docs/markdown-in-chat.md for why
+Emits the tree in one of three shapes (see skills/claude-markdown/SKILL.md for why
 these and not nested bullets):
 
   codespan  (default) box-drawing prefix (|-- etc.) inside an inline code

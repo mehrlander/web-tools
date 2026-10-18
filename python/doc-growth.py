@@ -5,12 +5,11 @@ Samples the default branch every N days, records every matching file's size in
 words at each sample, and folds in per-file commit churn from `git log
 --numstat`. Output feeds pages/doc-growth.html.
 
-    python3 python/doc-growth.py . -o data/doc-growth/web-tools.json
+    python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools
 
-Words come in two flavours because they answer different questions: `w` counts
-every token, `p` skips fenced code and YAML frontmatter. A generated reference
-file is mostly code and tables, so the two diverge exactly where the authored /
-mechanical line falls.
+Words come in two counts: `w` counts every token, `r` skips fenced code and YAML
+frontmatter. Tables and indented code count in both, so the two diverge where a
+file is mostly fenced code.
 """
 import argparse, json, re, subprocess, sys, threading, time
 from collections import defaultdict
