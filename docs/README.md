@@ -11,7 +11,7 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 18 are named by CLAUDE.md,
+3 arrive in every session's context, 18 are named by CLAUDE.md,
 15 by a skill, 42 by a page or component. The remaining 47 are
 marked *(orphan)* below: nothing points at them except this index.
 
@@ -21,6 +21,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
+- [`CAUTIONS.md`](CAUTIONS.md) — cautions: moves whose harm the owner is unlikely to notice afterward, and what to establish before each
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`SNAGS.md`](SNAGS.md) — the friction log: one line per snag, symptom then corrected move
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses

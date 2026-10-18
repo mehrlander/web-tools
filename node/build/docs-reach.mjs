@@ -114,7 +114,7 @@ export const CHANNELS = ['injected', 'project', 'skill', 'app', 'orphan'];
 // retired, so the list named one document that does not exist and missed one
 // that does. Both of these are what the default skill delivers and what the
 // invoke-default directive prods a session to load; neither is @-imported any more.
-export const INJECTED = ['docs/SURFACING.md', 'docs/QUALIFIED-WRITING.md'];
+export const INJECTED = ['docs/SURFACING.md', 'docs/QUALIFIED-WRITING.md', 'docs/CAUTIONS.md'];
 
 // Documents that are already in a session's context, and so are sources of the
 // `project` channel rather than merely targets of it. The root agent
