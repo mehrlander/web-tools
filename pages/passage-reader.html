@@ -377,13 +377,15 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => { this.fitOpen(); this.gapTrace(this.$refs.ptext?.querySelector(`[data-gap][data-k="${k}"]`) || g); });
     },
     // A label that would run past the edge of the box it scrolls in shifts
-    // back inside it.
+    // back inside it, and drops below its mark when the mark sits on the
+    // box's top line.
     fitGap(g) {
-      const lab = g.lastElementChild; lab.style.translate = '';
-      const lb = lab.getBoundingClientRect(); if (!lb.width) return;
+      const lab = g.lastElementChild; lab.style.translate = ''; lab.removeAttribute('data-below');
+      let lb = lab.getBoundingClientRect(); if (!lb.width) return;
       let box = g.parentElement, st;
       while (box && (st = getComputedStyle(box)).overflowX === 'visible' && st.overflowY === 'visible') box = box.parentElement;
       const bb = (box || document.documentElement).getBoundingClientRect();
+      if (lb.top < bb.top + 4) { lab.setAttribute('data-below', ''); lb = lab.getBoundingClientRect(); }
       const dx = Math.max(bb.left + 8 - lb.left, Math.min(0, bb.right - 8 - lb.right));
       if (dx) lab.style.translate = `${Math.round(dx)}px`;
     },
@@ -400,7 +402,7 @@ document.addEventListener('alpine:init', () => {
           + (m.note ? `<span class="block text-base-content/60">${esc(m.note)}</span>` : '');
         return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}"${this.gapOpen === r.key ? ' data-open' : ''} tabindex="0" role="button" aria-label="${esc(tip)}"`
           + ` class="group relative select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?`
-          + `<span class="absolute bottom-full left-0 mb-1 hidden group-hover:block group-data-[open]:block w-max max-w-64 rounded border border-base-300 bg-base-100 px-1.5 py-1 text-xs font-normal leading-tight text-base-content shadow-sm pointer-events-none">${label}</span></span>`;
+          + `<span class="absolute bottom-full left-0 mb-1 data-[below]:bottom-auto data-[below]:top-full data-[below]:mb-0 data-[below]:mt-1 hidden group-hover:block group-data-[open]:block w-max max-w-64 rounded border border-base-300 bg-base-100 px-1.5 py-1 text-xs font-normal leading-tight text-base-content shadow-sm pointer-events-none">${label}</span></span>`;
       }).join('');
     },
 
