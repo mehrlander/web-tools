@@ -114,6 +114,10 @@ test('the baseline ratchet: over fails, new fails, under passes and --write only
     writeFileSync(base, 'path,declarations\nprobe.html,1\n');
     run(['--baseline', base, '--write'], dir);
     assert.equal(readFileSync(base, 'utf8'), 'path,declarations\nprobe.html,1\n', '--write never raises');
+    writeFileSync(base, 'path,declarations\nelsewhere.html,7\nprobe.html,9\n');
+    run(['probe.html', '--baseline', base, '--write'], dir);
+    assert.equal(readFileSync(base, 'utf8'), 'path,declarations\nelsewhere.html,7\nprobe.html,2\n',
+      'a narrowed walk lowers only the rows it walked');
   });
 });
 

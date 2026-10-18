@@ -525,15 +525,25 @@ def main():
         print(f'{rel}:{ln}: {msg}')
 
     if args.baseline and (args.check or args.write or args.rebase):
-        base = read_baseline(args.baseline)
+        full = read_baseline(args.baseline)
+        # A narrowed walk (paths, --under) speaks only for the files it walked;
+        # every other row is carried through untouched rather than read as zero.
+        if args.paths:
+            inside = lambda p: p in set(args.paths)
+        elif args.under:
+            inside = lambda p: any(p == u.rstrip('/') or p.startswith(u.rstrip('/') + '/') for u in args.under)
+        else:
+            inside = lambda p: True
+        base = {p: n for p, n in full.items() if inside(p)}
+        keep = {p: n for p, n in full.items() if not inside(p)}
         over, new, under = compare(files, base)
         if args.rebase:
-            write_baseline(args.baseline, {f['path']: f['total'] for f in files})
+            write_baseline(args.baseline, {**keep, **{f['path']: f['total'] for f in files}})
             print(f'css-blocks: baseline rebased to the measurement ({len(over)} raised, {len(new)} added, {len(under)} lowered)')
             return 0
         if args.write:
             now = {f['path']: f['total'] for f in files}
-            write_baseline(args.baseline, {p: min(n, now.get(p, 0)) for p, n in base.items()})
+            write_baseline(args.baseline, {**keep, **{p: min(n, now.get(p, 0)) for p, n in base.items()}})
             print(f'css-blocks: {len(under)} baseline row(s) lowered; nothing raised'
                   + (f'; {len(over) + len(new)} file(s) still over, which --write cannot clear' if over or new else ''))
             return 0
