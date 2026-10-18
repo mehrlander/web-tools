@@ -19,7 +19,10 @@
 # silently, which is the behavior to preserve: a logger that cannot find its
 # store is not an error worth reporting into someone's session.
 #
-# Never fails into the session. Every path exits 0.
+# Never fails into the session. Every path exits 0. What the store's runner
+# prints to stdout is passed through as this hook's output, which is how a
+# store reports a failed record or publish into the session (a hook JSON line
+# with a systemMessage); its stderr is still discarded.
 set -uo pipefail
 
 # Drain stdin first, unconditionally. The payload carries the transcript path,
@@ -28,9 +31,20 @@ PAYLOAD=$(cat)
 
 # Invoke through `bash` rather than executing directly: a plugin is delivered by
 # copy into the cache, and the executable bit is not something to depend on.
+# The runner's stdout goes to a file rather than straight through, because the
+# runner publishes in the background, and a background job holding this hook's
+# stdout open would keep the hook from returning until the push finished.
 delegate() {
   [ -f "$1/tools/on-stop.sh" ] || return 1
-  printf '%s' "$PAYLOAD" | bash "$1/tools/on-stop.sh" >/dev/null 2>&1
+  local out
+  out=$(mktemp 2>/dev/null) || out=
+  if [ -n "$out" ]; then
+    printf '%s' "$PAYLOAD" | bash "$1/tools/on-stop.sh" >"$out" 2>/dev/null
+    cat "$out" 2>/dev/null
+    rm -f "$out"
+  else
+    printf '%s' "$PAYLOAD" | bash "$1/tools/on-stop.sh" >/dev/null 2>&1
+  fi
   return 0
 }
 
