@@ -20,6 +20,10 @@ places, all in tracked .html, .js, .mjs and .css files:
 A selector, an at-rule head or a comment is not a declaration. Custom properties
 are (`--deck-left: 18rem` is configuration written in CSS).
 
+Hex colours are reported per file, never gated: those in declarations, and
+apart from them those in a utility's arbitrary value (`bg-[#fff3ad]`), which a
+conversion can move a colour into without bringing it under the theme.
+
 EXEMPT CSS carries its reason in the stylesheet, beside the rules it covers, in
 one of two comments:
 
@@ -92,6 +96,9 @@ STYLE = re.compile(r'<style\b[^>]*>(.*?)</style\s*>', re.S | re.I)
 DECL = re.compile(r'^\s*(-{0,2}[A-Za-z][\w-]*)\s*:(.+)$', re.S)
 HEX = re.compile(r'#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b')
 CLASS_SEL = re.compile(r'\.(-?[A-Za-z_][\w-]*)')
+# A hex colour inside a utility's arbitrary value (bg-[#fff3ad], outline-[#c77d00]):
+# no longer CSS, still outside the theme, so convention 3 still wants to see it.
+CLASS_HEX = re.compile(r'[\w:-]-\[[^\]\s]*?(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4}))(?![0-9a-fA-F])[^\]\s]*\]')
 
 
 # ---------------------------------------------------------------- the walk
@@ -291,7 +298,7 @@ def measure(root, rel):
         text = open(os.path.join(root, rel), encoding='utf-8', errors='ignore').read()
     except OSError:
         return None
-    f = {'path': rel, 'block': 0, 'inline': 0, 'exempt': 0, 'hex': Counter(),
+    f = {'path': rel, 'block': 0, 'inline': 0, 'exempt': 0, 'hex': Counter(), 'classhex': Counter(),
          'classes': set(), 'blocks': [], 'problems': []}
     for name, line, css in blocks(text, rel):
         d, x, h, c, probs = parse(css)
@@ -307,6 +314,7 @@ def measure(root, rel):
         for line, k, h in inline_styles(text):
             f['inline'] += k
             f['hex'].update(h)
+        f['classhex'].update(h.lower() for h in CLASS_HEX.findall(text))
     f['total'] = f['block'] + f['inline']
     return f
 
@@ -315,7 +323,7 @@ def measure_all(root, paths=None, under=()):
     out = []
     for rel in (paths if paths is not None else tracked(root, under)):
         f = measure(root, rel)
-        if f and (f['total'] or f['exempt'] or f['problems']):
+        if f and (f['total'] or f['exempt'] or f['problems'] or f['classhex']):
             out.append(f)
     return out
 
@@ -560,18 +568,21 @@ def main():
         return 0 if ok else 1
 
     for f in sorted(files, key=lambda f: -f['total']):
-        line = f'{f["total"]:6d}  block {f["block"]:5d}  inline {f["inline"]:4d}  exempt {f["exempt"]:4d}  hex {len(f["hex"]):3d}  {f["path"]}'
+        line = (f'{f["total"]:6d}  block {f["block"]:5d}  inline {f["inline"]:4d}  exempt {f["exempt"]:4d}  '
+                f'hex {len(f["hex"]):3d}  class-hex {len(f["classhex"]):3d}  {f["path"]}')
         print(line)
         if args.blocks:
             for name, ln, d, x in f['blocks']:
                 print(f'          {f["path"]}:{ln}  {name}  {d} declarations' + (f', {x} exempt' if x else ''))
-    hexes = Counter()
+    hexes, chex = Counter(), Counter()
     for f in files:
         hexes.update(f['hex'])
+        chex.update(f['classhex'])
     print(f'\ncss-blocks: {sum(f["total"] for f in files)} unexempt declarations '
           f'(block {sum(f["block"] for f in files)}, inline {sum(f["inline"] for f in files)}) '
           f'in {sum(1 for f in files if f["total"])} files; {sum(f["exempt"] for f in files)} exempt; '
-          f'{len(hexes)} distinct hex colours, led by ' + ', '.join(f'{h} ({k})' for h, k in hexes.most_common(3)))
+          f'{len(hexes)} distinct hex colours, led by ' + ', '.join(f'{h} ({k})' for h, k in hexes.most_common(3))
+          + f'; {len(chex)} distinct in arbitrary-value classes, in {sum(1 for f in files if f["classhex"])} files')
     return 1 if (args.check and problems) else 0
 
 

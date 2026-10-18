@@ -97,6 +97,14 @@ test('hex colours in declarations are counted; a selector that spells hex is not
   });
 });
 
+test('a hex colour moved into an arbitrary-value class is still reported, apart from CSS', () => {
+  withFile('<i class="bg-[#fff3ad] [&.on]:outline-[#c77d00] text-base-content/60"></i><a href="#top">x</a>', (f) => {
+    const { out } = run([f]);
+    assert.match(out, /0 unexempt declarations/);
+    assert.match(out, /0 distinct hex colours.*; 2 distinct in arbitrary-value classes, in 1 files/);
+  });
+});
+
 // The ratchet, driven against a scratch git repo so the walk is the real one.
 test('the baseline ratchet: over fails, new fails, under passes and --write only lowers', () => {
   withFile('<style>.a{color:red;margin:0}</style>', (f, dir) => {
