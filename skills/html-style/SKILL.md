@@ -114,8 +114,8 @@ moves the strip, and a swipe moves the list's selection and keeps it in view.
 The strip's header opens the deck takeover (rule 4) at the card in view, and
 closing it returns to the list at the card where it closed. In a wide pane the
 list sits beside the strip; on a phone it stays in view above the strip. The
-reference is the Waiting view
-([`waiting.js`](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/waiting.js)),
+reference is the linked-swiper kit
+([`linked-swiper.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js)),
 coded `linked-swiper`.
 
 ## Handing a page over

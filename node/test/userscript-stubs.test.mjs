@@ -125,11 +125,25 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   const text = fs.readFileSync(path.join(ROOT, 'userscripts', 'lib', 'launcher.js'), 'utf8');
   assert.doesNotMatch(text, /courier\/errands\.json/, 'errands are private now; the Stage popup runs them');
   assert.match(text, /deck-track/, 'launcher must have a swipe deck track');
-  assert.match(text, /meta-toggle/, 'launcher must have a page metadata disclosure');
+  assert.match(text, /data-slide-id="meta"/, 'launcher must have a dedicated Details tab for page metadata and frames');
   assert.match(text, /data-take-html/, 'launcher must support copying HTML');
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
   assert.match(text, /data-slide-id="sel"/, 'launcher must support selective selection slide visibility');
   assert.match(text, /const getSlides =/, 'launcher must dynamically calculate active slides');
+  assert.match(text, /const pickContentRoot =/, 'launcher must score all semantic/shadow content candidates');
+  assert.match(text, /const extractTextFromTree =/, 'launcher must walk open shadow roots when reading text');
+  assert.match(text, /wt-ios-paste-probe/, 'launcher must include iOS offscreen textarea paste probe');
+  assert.match(text, /const holdPastedText =/, 'launcher must support holding pasted content in drawer');
+  assert.match(text, /const speechText =/, 'launcher must reduce markdown for speech synthesis');
+  assert.match(text, /data-tts-block/, 'launcher markdown preview must stamp blocks for TTS highlighting and seeking');
+  assert.match(text, /class="head-menu"/, 'launcher must consolidate header actions into a single explicit dropdown menu');
+  assert.match(text, /ICON\.dotsThree/, 'launcher must use Phosphor dotsThree SVG icon for the header menu trigger');
+  assert.doesNotMatch(text, /class="head-intro"/, 'launcher must not render the old duplicate head-intro button row');
+  assert.doesNotMatch(text, /class="head-menu-item btn-paste"/, 'launcher must not duplicate Paste in head-menu');
+  assert.doesNotMatch(text, /class="head-menu-item btn-tts"/, 'launcher must not duplicate Read aloud in head-menu');
+  assert.doesNotMatch(text, /meta-toggle/, 'launcher must not place Page details & frames inside head-menu');
+  assert.match(text, /data-slide-id="sandbox"/, 'launcher must provide a dedicated Sandbox slide for pasted units');
+  assert.match(text, /const getSandboxRecords =/, 'launcher must export Sandbox units as structured JSON records');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {
@@ -145,4 +159,5 @@ test('stubs include @version, versioned @require, and auto-update storage loader
     assert.match(src, new RegExp(`wt_${lib}_code`), `${stub}: missing storage cache key`);
   }
 });
+
 

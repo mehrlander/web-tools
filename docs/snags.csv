@@ -26,6 +26,8 @@ mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as 
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,../skills/html-style/references/mechanics.md;../skills/html-style/SKILL.md
+autocrlf-rewrites-fetched-originals,pages committed from the laptop were not the bytes fetched,1,2026-10-18,2026-10-18,venues.md
+unasked-laptop-reads-as-unknowable,a cause called unconfirmable that one errand could confirm,1,2026-10-18,2026-10-18,venues.md
 failed-pin-cannot-refresh-itself,"the plugin failed to load, so the hook that updates it never ran",1,2026-10-14,2026-10-14,../skills/hooks/refresh-plugin.sh
 approval-wording-scripted,a session told the owner what to type to approve,1,2026-10-12,2026-10-12,../skills/hooks/commit-consent.py
 showing-picks-the-framed-view,"the render link opened the app, where the change is hidden",1,2026-10-12,2026-10-12,../python/showing.py
@@ -43,7 +45,7 @@ spawned-session-not-recorded,the recorder ran every idle and found nothing,1,202
 subtree-touch-guard-kills-the-anchor,"a tap that produces nothing, not even an error",1,2026-09-20,2026-09-20,../lib/alpineComponents/fab.js;../node/test/fab-menu.test.mjs
 variant-plus-opacity-generates-nothing,"the rule was not faint, it was absent",1,2026-09-15,2026-09-15,
 cross-repo-data-invisible-to-the-render,a headless shot shows chrome over an empty table,1,2026-09-14,2026-09-14,
-nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../skills/hooks/invoke-default.sh
+nudge-names-an-unresolvable-skill,the invoke-default hook named a skill the session did not have,1,2026-09-13,2026-09-13,../skills/hooks/invoke-default.sh
 cross-realm-read-renders-once,the control worked and its label lied,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
 entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,1,2026-09-10,2026-09-10,../skills/html-style/references/mechanics.md
 keyboard-only-verb-is-no-verb-on-a-phone,an instrument you could arm and not use,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
@@ -106,6 +108,7 @@ an-unlayered-rule-beats-every-layer,`max-w-none` reads as the undo and is not on
 boot-throw-hides-behind-x-cloak,"a bad `?use=` ref rendered as a broken page, not a bad link",0,,,
 both-caps-sat-in-the-guard-exemptions,a clean scan over a screen with two corridors,0,,,
 browser-check-outside-the-suite-rots,two stale checks found in one merge,0,,,
+by-hand-names-no-actor,"""run by hand"" sounded settled and said nothing checkable",0,,,QUALIFIED-WRITING.md
 cross-repo-lib-consumer-invisible,in-repo greps cannot see an external runtime consumer of a lib file,0,,,
 gate-inherits-the-fixture,"green here, red on the runner, and the diff was ordering",0,,,
 hook-not-run-in-foreign-checkout,the check is red and the diff is right,0,,,

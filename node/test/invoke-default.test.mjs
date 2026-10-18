@@ -63,8 +63,8 @@ test('a checkout that @-imports BOTH halves silences it', () => {
 // The 2026-09-12 change, and the reason it is not cosmetic: this fixture was
 // the silencing case until then, so a repo carrying half the contract was never
 // asked for the other half. web-tools itself now imports neither and takes
-// delivery through the plugin, so it lands in the prodded column by the same
-// rule rather than by an exception.
+// delivery through the plugin, so the hook fires for it by the same rule rather
+// than by an exception.
 test('half the contract is not the contract', () => {
   const root = build('half', {
     r: { 'CLAUDE.md': '@docs/SURFACING.md\n', 'docs/SURFACING.md': SURFACING },
