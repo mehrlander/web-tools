@@ -34,7 +34,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
-- [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
+- [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
 - [`harness.csv`](harness.csv) — the harness registry: every script under node/, python/ and the platform folders (.githooks/, .github/workflows/, .claude/, skills/hooks/), its role, and how it is invoked
@@ -46,7 +46,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, timing rules, and the load-build duality
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
 - [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, proposals, editing from the shell)
-- [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
@@ -97,6 +96,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 - [`idea-board.md`](idea-board.md) — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
+- [`house-policies.md`](house-policies.md) *(orphan)* — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
 
 ## docs/envelopes/
 
@@ -145,7 +145,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`README.md`](github/README.md) *(orphan)* — the github folder's front door: renderer, git treatment, MCP routing, surfacing
 - [`github-surfacing.md`](github/github-surfacing.md) — GitHub-native surfaces for exposing work: branches, compares, drafts, permalinks
-- [`markdown.md`](github/markdown.md) *(orphan)* — what GitHub's static renderer turns markdown into
+- [`markdown.md`](github/markdown.md) — what GitHub's static renderer turns markdown into
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed

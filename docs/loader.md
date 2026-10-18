@@ -1,4 +1,4 @@
-# The loader — contract and extension notes
+# The loader contract
 
 Most pages here load their own code at runtime instead of shipping a bundle:
 a page imports `gh-api.js`, then calls `gh.load(...)` for each component and
@@ -538,9 +538,8 @@ the mechanism:
 - **`gh.load`-style vs. native ESM also decides build-portability.** A
   `gh.load`-loaded file rides into the build automatically; a file pulled in
   with native `import()` is opaque to the build the same way a third-party CDN
-  lib is — it stays on the network. So the ESM-vs-`gh.load` choice in the
-  options below is *also* a choice about whether the file can ship inside an
-  offline build.
+  lib is — it stays on the network. So choosing between ESM and `gh.load` is
+  also choosing whether the file can ship inside an offline build.
 
 The operational side — the four verbs `load → build → bake → export`, the
 commands, and the byte-identical `verify-build` guarantee — lives in
@@ -593,119 +592,6 @@ Two things differ from a page in this repo:
 
 Worked examples in `mehrlander/home`: `projects/budget-drs/app/view/app.html` (the chain),
 `projects/surfacer/app/surfacer.html` (the pre-build).
-
-## Options for adding new capability
-
-Roughly in order of "how much do we disturb the current pattern".
-
-### Option A — drop files alongside `alpine-bundle.js` and load them the same way
-
-Best for: more Alpine components (like compression UIs), additional
-magics/stores, anything that extends `Alpine.data`/`Alpine.store`.
-
-Rules:
-- Use the `document.addEventListener('alpine:init', () => { Alpine.data(…) })`
-  idiom.
-- No ES imports. If the code needs a library, either (a) add a plain
-  `<script src=…>` to the CDN combine in the page, or (b) `await import(...)`
-  dynamically inside the component's methods.
-- Load it before `alpine-bundle.js` in the page's module script.
-
-Cost: adds one line per page; fine for a handful of additions.
-
-### Option B — extend `gh-api.js` (or its augmentations)
-
-Best for: things every loader-based page wants (retry/backoff for rate
-limits, a batch loader, a tiny pub-sub, a token-picker UI helper, a
-`persist(key, data)` helper that saves to the user's home repo the way
-`app/index.html` currently does).
-
-Rules:
-- `gh-api.js` is the ESM root (default export `class GH`); `gh-fetch.js`
-  and `gh-store.js` are augmentations loaded via `gh.load(...)` that patch
-  `GH.prototype`. Adding methods to either is cheap.
-- Put read-only / cached helpers in `gh-fetch.js`; put mutation helpers in
-  `gh-store.js`; only put true plumbing (request, cache, parseUrl, load)
-  in `gh-api.js`.
-- Keep all three import-only / side-effect-free at module level. The page
-  decides when to instantiate and which augmentations to load.
-- Anything that reaches into Alpine (stores, magics) does *not* belong
-  here — that's alpine-bundle's job.
-
-Cost: every loader-based page gets it free. Risk: it becomes a kitchen sink.
-Good rule of thumb: only add a method if at least two pages would use it.
-
-### Option C — add a third loader file
-
-Best for: a concern that is not "GitHub access" and not "Alpine init" —
-e.g., a component loader convention, a compression kit, a persistent
-storage helper.
-
-Rules:
-- Decide up front whether it's ESM (loaded via native `import()`) or
-  `gh.load`-compatible (plain script). Don't try to be both.
-- ESM is better for anything with internal imports or multiple exports.
-  Consumers pay one extra `await import(…)` in the module script.
-- Plain-script form is only better if the file registers side effects
-  against a global Alpine (which is what `alpineComponents/*.js` already
-  does).
-- Name it clearly: `foo-kit.js` for ESM with exports, `foo-register.js`
-  for side-effect-only scripts meant for `gh.load`, or similar.
-
-Current precedent: `gh-api.js` is native ESM. `gh-fetch.js` and
-`gh-store.js` are plain-script augmentations loaded via `gh.load` that
-mutate `GH.prototype`. `alpineComponents/*.js` are plain-script
-side-effect files loaded via `gh.load`. Pick the style deliberately;
-ESM and `gh.load`-style files can't be interchanged freely because of
-the `new Function()` constraint.
-
-### Option D — step outside the pattern for one-off pages
-
-Best for: pages that don't need repo browsing at all (e.g., the simple
-`pages/stories/bookmarklets-story.html` or `transform.html`).
-
-Rules:
-- Just use CDN Alpine + inline components, like the existing simple pages.
-- Keep any "kit" files as plain ESM modules under a dedicated folder and
-  `import` them directly in a `<script type="module">` block. No `gh.load`,
-  no alpine-bundle.
-
-Cost: more duplication across pages. Benefit: maximum independence and
-zero bootstrap machinery.
-
-## Concrete framing for "pulling in Alp-style capability"
-
-Mapping the options to what Alp offered:
-
-- **Compression helpers (`brotli.js`, `gzip.js`, `acorn.js`, `text.js`)** —
-  these are ESM with internal imports. They are **Option C, ESM flavor**:
-  drop them under `compression/` and `import` them directly from pages.
-  They can't go through `gh.load`. They also don't need to, because they
-  don't touch Alpine.
-
-- **Tabulator helpers (`kits/tb.js` — `downloadJson`, `downloadZip`)** —
-  same thing, ESM helpers. Either **Option C** or inline into
-  `alpineComponents/viewer.js` since that's where Tabulator
-  is used today.
-
-- **Dexie key-value wrapper (`kits/dexie.js`)** — ESM, fits **Option C**.
-  Useful enough to live in its own `storage.js` or similar and be imported
-  by any page that wants persistence beyond localStorage.
-
-- **Alpine-data components (Alp's `alp-tb`, `alp-jse`, `inspector`)** —
-  these would be **Option A**-shaped if rewritten as
-  `Alpine.data('jse', () => …)` registrations. But they currently depend
-  on Alp's path/save/load/ping runtime — either we port that runtime (big)
-  or rewrite each component against our own store. Probably skip unless
-  we commit to a storage model.
-
-- **Path/save/load/ping model (`core.js`)** — if we ever want it, it's a
-  new loader file. **Option C, plain-script flavor, or ESM** — and
-  the choice matters: if we want individual components (like an updated
-  `alpineComponents/foo.js`) to call `save()`/`load()`, the runtime needs
-  to be attached to globals before alpine-bundle loads. ESM with dynamic
-  import + `window.assign` is fine; plain-script loaded ahead of
-  alpine-bundle is fine too.
 
 ## Quick checklist for "can I load this file through gh.load?"
 

@@ -1,7 +1,8 @@
 ---
 id: stranded-titles-panel-or-drop-o6hqom
 title: Decide the remaining stranded title attributes, panel or leave
-status: backlog
+status: in-progress
+session: claude/eager-ride-1lzonz
 opened: 2026-08-19
 size: S
 priority: low
@@ -45,7 +46,8 @@ land together.
 - `lib/alpineComponents/map.js`: start here after Map cleanup; largest untouched carrier at filing
 - `lib/alpineComponents/estate.js`: worked precedent for building a panel from a stranded title
 - `lib/alpineComponents/state-view.js`, `lib/alpineComponents/fab.js`: other concentrated carriers in the filing table
-- `skills/html-style/SKILL.md`: house-style rule 7 (panel behaviors a built title owes), carried in by PR #543
+- `skills/html-style/SKILL.md`: house-style rule 11 (numbered 7 when PR #543 carried it in); the popup rule itself is in `references/mechanics.md`, "Title-tips and panel-tips"
+- PR #965: moved the clear-cut stranded titles to title-tips and added the `--facts` and `--script` readings to the scanner
 - task `align-map-view-cleanup-40afu8`: soft sequence: finish Map alignment before working map.js titles
 - PR #610: cut stranded titles ~128 to ~25 (notes+cards); restamp counts before acting
 - PR #447: original survey and worst-case fixes on branch/session rows
@@ -87,3 +89,4 @@ not the total.
   `npm run stranded-titles` before deciding anything. Size M to S. Queue after
   `align-map-view-cleanup-40afu8` and start with `map.js`, the largest untouched
   carrier. Added `## Related`.
+- 2026-10-15: Claimed on `claude/eager-ride-1lzonz` (PR #965). Thirteen title-only facts on non-controls became title-tips, `cursor-help` is gone from live code, and the scanner reports 24 stranded across lib, app and pages (14 in the app's own files). The larger class is now facts parked in the `title` of a button or link, which the scanner used to call reachable and fine: `npm run stranded-titles -- --facts` lists 59 in the app, and `--script` counts 48 titles set from script. Most of the 59 explain how a control works, so house-style rule 2 (no explanatory prose) argues for trimming them to labels rather than moving them onto the page; that call, and a sentence for mechanics.md saying a title-tip does not go on a control whose tap acts, are with the owner on PR #965.

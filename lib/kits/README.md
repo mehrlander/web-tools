@@ -1,35 +1,13 @@
 # kits/
 
 Themed logic libraries loaded via `gh.load`. Each kit is a plain script
-(no `import`/`export`) that populates a single namespace on `window`.
+(no `import`/`export`) that populates a single namespace on `window`. Which code
+belongs here is stated in [`docs/code-layers.md`](../../docs/code-layers.md),
+and `node/test/code-layers.test.mjs` fails a misplaced file.
 
-## Concept
+## Shape rules
 
-The repo's code layers, and which folder a new file belongs in, are stated once
-in [`docs/code-layers.md`](../../docs/code-layers.md). What follows is the kit
-shelf's own admission rule.
-
-A **kit** is a logic library that registers a namespace on `window`, with no
-Alpine coupling. (The daisyUI/Tailwind string helpers that used to live here as
-`fills.js` now hang off `window.html` in `vanilla-bundle.js`.)
-
-This shelf holds every logic module; `lib/` root keeps only the loader, the
-files extending its prototype, and the boot bundles. A kit is not defined by
-portability or by use across apps: the rule sorts on attachment alone, and the
-reasoning is in [`docs/code-layers.md`](../../docs/code-layers.md).
-
-`node/test/code-layers.test.mjs` holds the boundary in all three directions,
-so a misfiled arrival fails the suite.
-
-The line is **no Alpine and no DOM opinions of its own**, not "no DOM": `cm6.js`
-mounts a live editor into a host element you hand it, `io.js` drives file inputs
-and the clipboard, `pdf.js` renders pages and projects geometry into screen
-space. What a kit must not do is decide where it lives, own reactive state, or
-assume a framework. It takes the host it is given and returns a handle. A kit
-that wants Alpine reactivity gets a component wrapper: `cm-editor.js` over
-`cm6.js` is the reference pair.
-
-The shape rules (so the file works through `gh.load`):
+A kit must work through `gh.load`:
 
 1. No static `import` / `export` statements at the top level. (`gh.load`
    runs the body inside `new Function`, where either keyword throws

@@ -1,15 +1,15 @@
 ---
 name: doc-craft
-description: Revise documentation so each edit serves its critical objective and keeps the whole system recognizable, navigable, and maintainable; living docs state current behavior and rules, records stay as written, generated docs are edited at source.
+description: Revise documentation so each edit serves its critical objective and keeps the whole system recognizable, navigable, and maintainable.
 ---
 
 # Doc Craft
 
 Documentation guides a living system. Its value is direction and insight for completing tasks; its costs are attention and upkeep. Misfires can be costly and hard to discern.
 
-Deep attention is vital to find the critical objective of any edit, and how best to achieve it while keeping the whole recognizable, navigable, and maintainable.
+Restraint is vital for any edit. Advice for entering a newsgroup or an open source project applies. Read the whole doc, and related docs. Identify the critical objective of any edit, and the minimal route to achieve it while keeping the whole recognizable, navigable, and maintainable.  
 
-Content should only be included where it changes behavior (the idea and the required setup). For a basic test: If we expect the assistant to succeed without it, leave it unsaid.
+Content should only be included where behavior depends on it. For a basic test: If we expect the assistant to succeed without it, leave it unsaid.
 
 ## General Principles
 
@@ -23,3 +23,8 @@ Content should only be included where it changes behavior (the idea and the requ
 - **Professional register**: Avoid informal tone with any hint of soapboxing.
 - **Hedge**: Use careful, precise language. Prefer "avoid" or "do not" over "never".
 - **Verify continuity**: Confirm that removals or edits do not break prerequisites, cross-references, or transitions.
+
+## Review
+
+- **Show new text as a diff**: Before committing a change to a document, show each added or rewritten sentence in chat as a fenced `diff` block, with enough unchanged lines to locate each change. Check new text against **Consider the context** and **Earn each sentence** before showing it.
+- **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diff, one line each.

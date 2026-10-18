@@ -287,3 +287,46 @@ test('a second XAML version is summarized by named controls and resource keys', 
   assert.equal(r.kind, 'xaml');
   assert.deepEqual([r.controls.added, r.controls.removed, r.resources.added, r.resources.removed].map(x => x.join()), ['Search', '', '', 'Accent']);
 });
+
+// The resource view's readings: named-control depth in a window, the command
+// names a file calls, and a controller wired against its XAML.
+test('XAML controls carry their depth among named controls', () => {
+  const xaml = ['<Window x:Name="Win"><Grid>', '  <Border Name="Panel"><StackPanel>', '    <Button Name="Go"/>', '    <TextBlock Name="Status" />',
+    '  </StackPanel></Border>', '  <Grid.RowDefinitions><RowDefinition/></Grid.RowDefinitions>', '  <ListView Name="Items"/>', '</Grid></Window>'].join('\n');
+  assert.deepEqual(inspect(xaml, 'A.xaml').controls.map(c => [c.name, c.depth]),
+    [['Win', 0], ['Panel', 1], ['Go', 2], ['Status', 2], ['Items', 1]], 'unnamed wrappers and property elements add no depth');
+});
+
+test('calls lists hyphenated command names outside strings, comments and declarations', () => {
+  const { calls } = window.PowerShellLanguage;
+  const source = ['function Get-Thing { Write-Nice "Get-Fake in a string" }', '# Remove-Comment', '$x = Get-Thing | Out-Grid',
+    '$path.Get-Member; C:\\Tools\\Run-Me.ps1', 'Import-Module ExcelService'].join('\n');
+  assert.deepEqual(calls(source).map(c => c.name + ':' + c.line), ['Write-Nice:1', 'Get-Thing:3', 'Out-Grid:3', 'Import-Module:5']);
+});
+
+test('formWiring pairs handlers with controls by name, apart from what the XAML lacks', () => {
+  const { formWiring } = window.PowerShellLanguage;
+  const xaml = '<Window><Grid><ListView Name="WorkbookList"/><TextBlock Name="StatusText"/><Border Name="DragIcon"/><TextBlock Name="Hint"/></Grid></Window>';
+  const script = [
+    "$Wrapper | Add-Member -MemberType ScriptMethod -Name RefreshWorkbooks -Value {",
+    "  $this.StatusText.Text = 'Refreshing'",
+    "}",
+    "$Wrapper.On('WorkbookList', 'SelectionChanged', { param($s, $e, $w) })",
+    '$Wrapper.On("workbooklist", "Drop", {})',
+    "$Wrapper.On('Window', 'Loaded', {})",
+    "$Wrapper.On('TypingTimer', 'Tick', {})",
+    '$DragIcon.add_MouseDown({})',
+    "# $Wrapper.On('Hint', 'Click', {})",
+  ].join('\n');
+  const w = formWiring(script, xaml);
+  const row = name => w.controls.find(c => c.name === name);
+  assert.deepEqual(row('WorkbookList').handlers.map(h => h.event + '/' + h.via), ['SelectionChanged/on', 'Drop/on'], 'case does not separate a handler from its control');
+  assert.equal(row('StatusText').handlers.length, 0);
+  assert.equal(row('StatusText').touched, true, 'set from a script method');
+  assert.deepEqual(row('DragIcon').handlers.map(h => h.event + '/' + h.via), ['MouseDown/variable'], 'a variable named like the control is matched by name');
+  assert.equal(row('Hint').touched, false, 'a commented-out handler is not one');
+  assert.deepEqual(w.window.map(h => h.event), ['Loaded'], 'the wrapper\'s Window is the window itself');
+  assert.deepEqual(w.elsewhere.map(x => x.name), ['TypingTimer'], 'handlers on names the XAML lacks');
+  assert.deepEqual(formWiring('$node.add_Expanded({})', xaml).elsewhere.map(x => x.name), ['$node'], 'an unmatched variable keeps its $');
+  assert.deepEqual(w.methods.map(m => m.name + ':' + m.line), ['RefreshWorkbooks:1']);
+});
