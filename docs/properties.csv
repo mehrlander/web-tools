@@ -345,3 +345,4 @@ peeves,look_for,recorded,,value,column,yes,,value,"what tripping the peeve looks
 peeves,owner,recorded,,counted,column,yes,,value,"the document or check that already states the rule, when one does; that owner's wording governs and the row only points at it"
 peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
 peeves,sessions,recorded,,value,column,yes,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
+css-baseline,declarations,computed,python/css-blocks.py,value,column,yes,,value,the most unexempt hand-written declarations the file may carry; --write lowers it to the measurement and never raises it

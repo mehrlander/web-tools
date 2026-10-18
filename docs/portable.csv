@@ -84,6 +84,7 @@ script,,python/doc-placement.py,doc-placement.py,,on-demand
 script,,python/csv-census.py,csv-census.py,,on-demand
 script,,python/declared-paths.py,declared-paths.py,,on-demand
 script,,python/dead-links.py,dead-links.py,,on-demand
+script,,python/css-blocks.py,css-blocks.py,,on-demand
 script,,python/embedded-prose.py,embedded-prose.py,,on-demand
 script,,python/stranded-titles.py,stranded-titles.py,,on-demand
 script,,python/dead-opacity.py,dead-opacity.py,,on-demand
