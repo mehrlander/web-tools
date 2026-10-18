@@ -27,6 +27,7 @@ mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,../skills/html-style/references/mechanics.md;../skills/html-style/SKILL.md
 autocrlf-rewrites-fetched-originals,pages committed from the laptop were not the bytes fetched,1,2026-10-18,2026-10-18,venues.md
+laptop-python-older-than-ci,code the laptop daemon loads passed every test and would not import there,1,2026-10-18,2026-10-18,venues.md
 unasked-laptop-reads-as-unknowable,a cause called unconfirmable that one errand could confirm,1,2026-10-18,2026-10-18,venues.md
 failed-pin-cannot-refresh-itself,"the plugin failed to load, so the hook that updates it never ran",1,2026-10-14,2026-10-14,../skills/hooks/refresh-plugin.sh
 approval-wording-scripted,a session told the owner what to type to approve,1,2026-10-12,2026-10-12,../skills/hooks/commit-consent.py
