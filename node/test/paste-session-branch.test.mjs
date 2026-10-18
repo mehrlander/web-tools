@@ -167,3 +167,67 @@ test('pasteRoute declines file-carrying clipboards and multi-line content to the
   const proseCd = fakeClipboard('just some normal text about sessions and branches');
   assert.equal(await shell.pasteRoute(proseCd), false);
 });
+
+// A rundown hands a session over as a copy line ending in its record's short
+// id, or as the session page's link. Both open the detail deck by row id.
+function cacheGH(rows) {
+  return class FakeGH {
+    async get(p) {
+      if (p === 'state/sessions.json') return { text: JSON.stringify({ rows }) };
+      throw new Error('404');
+    }
+  };
+}
+
+test('sessionShortFromPaste reads a rundown copy line and a session page link', () => {
+  const { shell } = makeShell({ win: { RepoAddress: { fromPaste: () => null } } });
+  assert.equal(shell.sessionShortFromPaste('## 👉 Approve one rule for skill descriptions [8fbc1397]'), '8fbc1397');
+  assert.equal(shell.sessionShortFromPaste('## 👉 Approve one rule [8FBC1397]()'), '8fbc1397');
+  assert.equal(shell.sessionShortFromPaste('https://mehrlander.github.io/web-tools/pages/session.html#id=56f0064f'), '56f0064f');
+  assert.equal(shell.sessionShortFromPaste('https://mehrlander.github.io/web-tools/pages/session.html#branch=x&id=56f0064f'), '56f0064f');
+  assert.equal(shell.sessionShortFromPaste('a note that ends [draft]'), null);
+  assert.equal(shell.sessionShortFromPaste('[8fbc139]'), null);
+  assert.equal(shell.sessionShortFromPaste('[8fbc1397] then more text'), null);
+  assert.equal(shell.sessionShortFromPaste('8fbc1397'), null, 'a bare id is the router\'s separate, quieter case');
+});
+
+test('pasteRoute opens session detail for a rundown copy line', async () => {
+  const stamped = [];
+  const { shell, win, events, history } = makeShell({
+    browserStore: { repo: 'mehrlander/web-tools' },
+    win: { RepoAddress: { fromPaste: () => null } },
+  });
+  history.replaceState = (a, b, url) => stamped.push(url);
+  win.TOKEN = 'test-token';
+  win.GH = cacheGH([{ id: '8fbc1397', agent: 'https://claude.ai/code/session_011bWZz3KcA5K2WJVX6x8x8T' }]);
+
+  const handled = await shell.pasteRoute(fakeClipboard('## 👉 Approve one rule for skill descriptions [8fbc1397]\n'));
+
+  assert.equal(handled, true);
+  assert.equal(shell.view, 'sessions');
+  assert.ok(stamped.some(u => /session=8fbc1397/.test(u)), 'should stamp the session in the address bar');
+  const ev = events.find(e => e.type === 'web-tools:open-session-detail');
+  assert.equal(ev?.detail?.id, '8fbc1397');
+});
+
+test('pasteRoute explains a rundown id with no record, and lets a bare unknown id stage', async () => {
+  const { shell, win, toasts, events } = makeShell({
+    browserStore: { repo: 'mehrlander/web-tools' },
+    win: { RepoAddress: { fromPaste: () => null } },
+  });
+  win.TOKEN = 'test-token';
+  win.GH = cacheGH([{ id: '56f0064f', agent: 'https://claude.ai/code/session_01SuqUMNCJYb941WoroGX2Q6' }]);
+
+  // The bracketed form is the estate's own, so a miss is reported, not staged.
+  assert.equal(await shell.pasteRoute(fakeClipboard('## 👉 Merge #955 [a42d85d1]')), true);
+  assert.equal(toasts.length, 1);
+  assert.match(toasts[0].msg, /a42d85d1 has no record/);
+
+  // A bare eight-hex string may be a commit SHA: unknown, it declines to the Stage.
+  assert.equal(await shell.pasteRoute(fakeClipboard('9f4d4f00')), false);
+  assert.equal(toasts.length, 1, 'a bare miss raises no toast');
+
+  // Known, it opens.
+  assert.equal(await shell.pasteRoute(fakeClipboard('56f0064f')), true);
+  assert.equal(events.filter(e => e.type === 'web-tools:open-session-detail').at(-1)?.detail?.id, '56f0064f');
+});

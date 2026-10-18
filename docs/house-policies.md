@@ -40,6 +40,8 @@ Qualify noun phrases, and introduce each referent before referring to it, so tha
 Use the standard term a general reader knows, in a plain, dry register.
 
 - Avoid slang, coined labels and figurative names.
+- Avoid informal tone with any hint of soapboxing.
+- Before denying something with *no* on a verb's object, as in "draws no underline" (no-negation), ask whether the reader expected it; if not, say what happens instead or cut the sentence.
 - Give one thing one name: its file name, label and title match.
 - Write "always" or "never" only where it can be checked, not for emphasis.
 - Name the exact file, column, count or command rather than referring to it in general.
