@@ -58,6 +58,10 @@
           "then": "toss-gh"
         },
         {
+          "when": "the page file itself changed and the diff touches the tab (its title, icon, history or navigation), which a frame never is: the toss carries ?top",
+          "then": "toss-gh"
+        },
+        {
           "when": "only lib/ or dist/ changed",
           "then": "use"
         },

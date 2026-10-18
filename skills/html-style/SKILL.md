@@ -5,10 +5,17 @@ description: The binding house style for HTML pages built here, covering what a 
 
 # HTML house style
 
+## "Project what matters"
+
+A good page projects just the right properties onto the viewport to build
+insight. Getting there is usually iterative: present the pieces, pare the
+representation down, layer it, and manage each disclosure tightly, until it
+builds a dense web of connected information.
+
 ## "A page is for comparing"
 
-Ask Tufte's question first, "Compared to what?", then give the compared things
-one place:
+Most often, insight comes from a comparison. Ask Tufte's question, "Compared to
+what?", then give the compared things one place:
 
 - **Side by side, when they fit:** columns, small multiples, a table whose rows
   share columns.

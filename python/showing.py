@@ -87,10 +87,18 @@ ROOT = Path(__file__).resolve().parents[1]
 WIDE = 3
 
 # The shell APIs a framed page can call correctly and invisibly, because the tab
-# belongs to whatever document is on top and a nested shell is never that. This
-# is the `none` row's test, and it is the case that cost two rounds to find the
-# first time (the favicon, PR #315). Matched against the DIFF, so an untouched
-# call already in the file does not condemn a change elsewhere in it.
+# belongs to whatever document is on top and a frame is never that. It is the
+# case that cost two rounds to find the first time (the favicon, PR #315).
+# Matched against the DIFF, so an untouched call already in the file does not
+# condemn a change elsewhere in it.
+#
+# A hit puts the toss in ?top, where the page IS the tab (as_tab below). Until
+# 2026-10-17 a hit printed "no link reaches this", while the toss-gh row of
+# docs/showing-mechanisms.csv already said ?top makes the page's title, icon,
+# history and reload the tab's: the script and the registry disagreed, and the
+# script is the one a session consults. Found when Back in a framed preview of
+# the app left the preview instead of walking its views (PR #966), and the
+# script had no way to print the link that keeps them.
 TOP_LEVEL = [
     (r"document\.title", "document.title"),
     (r"history\.(replace|push)State", "history.replaceState/pushState"),
@@ -514,11 +522,11 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
     if b["shell"]:
         hits = top_level_hits(diff if diff is not None else
                               (diff_text(base, ref, b["shell"]) if use_git else ""))
-        if hits:
-            why.append("a page shell changed AND the diff touches " + ", ".join(hits)
-                       + ": a framed page runs correctly and shows nothing, because the tab belongs to the top-level document.")
-            return decision("none", [(p, None) for p in b["shell"]], sha, slug, hosted, why, warn, facts, at, query)
         why.append("a page's own file changed, which ?use= never swaps: Pages serves the page file from the default branch.")
+        if hits:
+            why.append("The diff touches " + ", ".join(hits) + ", which a framed page does to its own frame, out of "
+                       "sight, so the toss carries ?top and the page is the tab itself.")
+        d = None
         subjects = [(p, None) for p in b["shell"]]
         entries = overlay_entries(slug, sha, paths, skip=set(b["shell"]))
         plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
@@ -532,11 +540,12 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                 warn.append(overlay_refusal(plan))
             else:
                 why.append(overlay_why(plan, len(entries) + len(b["shell"])) + " The page is the branch's; everything else it reads is main's unless the branch changed it.")
-                return decision("overlay", subjects, sha, slug, hosted, why, warn, facts, at, query,
-                                entries=[f"{slug}@{plan['base_sha']}"] + entries, page_ref=sha)
+                d = decision("overlay", subjects, sha, slug, hosted, why, warn, facts, at, query,
+                             entries=[f"{slug}@{plan['base_sha']}"] + entries, page_ref=sha)
         elif plan["known"] and plan["behind"]:
             warn.append(f"the branch is {plan['behind']} commit(s) behind main, so this shows it as it stands, without main's later changes.")
-        return decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at, query)
+        d = d or decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at, query)
+        return as_tab(d, asked=False) if hits else d
 
     # Lib, which is the case that gets called wrong.
     if b["lib"] or b["dist"]:
@@ -978,13 +987,23 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         "on a ?query instead takes --query 'view=sessions'.")
     links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
     look = look_hints(subjects, at, warn)
-    over = [l for l in links if len(l["url"]) >= MCP_URL_CAP]
+    return warn_cap({"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
+                     "repo": slug, "links": links, "why": why, "warnings": warn, "look": look})
+
+
+# Counted again after every pass that lengthens a link (?top, --refs), so the
+# count names the links as printed rather than as first built.
+CAP_WARNING = f" link(s) run {MCP_URL_CAP}+ characters"
+
+def warn_cap(d):
+    warn = d.setdefault("warnings", [])
+    warn[:] = [w for w in warn if CAP_WARNING not in w]
+    over = [l for l in d.get("links", []) if len(l["url"]) >= MCP_URL_CAP]
     if over:
-        warn.append(f"{len(over)} link(s) run {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
+        warn.append(f"{len(over)}{CAP_WARNING}: fine in chat, literal text in an "
                     "MCP-written PR body or comment. There, drop the link to the chat caption "
                     "(SURFACING.md's shortening ladder) rather than trimming the address by hand.")
-    return {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
-            "repo": slug, "links": links, "why": why, "warnings": warn, "look": look}
+    return d
 
 
 def lines(d):
@@ -1001,10 +1020,6 @@ def lines(d):
                    "a \"nothing changed\" answer. Fix the read below and re-run.")
     elif d["mechanism"] == "none-needed":
         out.append("No render link: " + " ".join(d["why"]))
-    elif d["mechanism"] == "none":
-        out.append("No link reaches this. " + " ".join(d["why"]))
-        out.append("Send an inspected headless screenshot and say so plainly.")
-        out.append("The escape is not a better link but moving the code into lib/, where ?use= reaches it.")
     else:
         g = GLYPH[d["mechanism"]]
         for l in d["links"]:
@@ -1055,6 +1070,42 @@ def host_refs(d, refs, query):
     return d
 
 
+# ?TOP: THE PAGE AS THE TAB ITSELF. toss-render writes the page over its own
+# document instead of into a frame, so the page's title, icon, history and
+# reload are the tab's (pages/toss-render.html, "TOP MODE"). In a frame, a
+# page's pushState throws a SecurityError that the renderer's history-safe shim
+# swallows, so Back skips every view the reader opened and leaves the preview;
+# with ?top it walks them, measured headless on 2026-10-17. The flag
+# leads the renderer's query, the form docs/showing-mechanisms.csv gives it.
+#
+# Set two ways: by the diff, when a page shell touches the tab (TOP_LEVEL
+# above), and by --top, for a reader who wants the tab's behaviour from a
+# change that does not touch it, such as Back across the app's views.
+def as_tab(d, asked=True):
+    warn = d.setdefault("warnings", [])
+    mech = d.get("mechanism")
+    if asked and mech == "use":
+        warn.append("--top has nothing to add: ?use= already opens the page as the tab's own document.")
+        return d
+    if asked and mech == "toss-nested":
+        warn.append("--top cannot apply: a nested renderer is never the tab, and toss-render cannot "
+                    "render itself at the top (docs/showing.md).")
+        return d
+    if mech not in ("toss-gh", "overlay", "toss-app"):
+        return d
+    for l in d["links"]:
+        head, sep, frag = l["url"].partition("#")
+        l["url"] = (head.replace("toss-render.html?", "toss-render.html?top&", 1) if "?" in head
+                    else head + "?top") + sep + frag
+    d["top"] = True
+    if asked:
+        d.setdefault("why", []).append("--top asked for the tab: the toss carries ?top, so the page's title, "
+                                       "icon, history and reload are the tab's, and Back walks its views.")
+    warn.append("?top on an iPhone is unmeasured (docs/showing-mechanisms.csv, toss-gh): if it misbehaves "
+                "there, drop ?top, and the framed link shows the page but not what it does to the tab.")
+    return d
+
+
 def main():
     ap = argparse.ArgumentParser(description="Which render link shows this branch's changes.")
     ap.add_argument("--base", default="origin/main")
@@ -1077,6 +1128,10 @@ def main():
     ap.add_argument("--refs", action="append", default=[], metavar="OWNER/REPO@REF[:PATH]",
                     help="a cross-repo selection for the renderer's own query (repeatable), e.g. "
                          "--refs mehrlander/home@<branch>; --query carries only the page's own parameters")
+    ap.add_argument("--top", action="store_true",
+                    help="open the toss as the tab itself (toss-render's ?top), so the page's title, icon, "
+                         "history and reload are the tab's and Back walks its views. Set without asking "
+                         "when a page shell's diff touches one of those.")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--overlay", choices=["yes", "no"], help="(for tests) treat main's renderer as reading refs= path entries, or not, instead of asking git")
     ap.add_argument("--main-changed", default="", help="(for tests, with --files) the files main changed since the branch point")
@@ -1117,7 +1172,9 @@ def main():
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
                          [], [diff_remedy(e, a.base, a.ref)], facts)
-    d = host_refs(d, a.refs, a.query)
+    if a.top and not d.get("top"):
+        d = as_tab(d)
+    d = warn_cap(host_refs(d, a.refs, a.query))
     print(json.dumps(d, indent=2) if a.json else "\n".join(lines(d)))
     return 0
 
