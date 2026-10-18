@@ -12,13 +12,14 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { makeWindow, repoRoot } from './bootstrap.mjs';
 
-const kit = name => readFileSync(path.join(repoRoot, 'lib/kits', name), 'utf8');
+const kit = name => readFileSync(path.join(repoRoot, 'lib', name), 'utf8');
 const tick = (n = 1) => new Promise(r => setTimeout(r, n * 20));
 
 function page({ swipe = true } = {}) {
   const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
-  if (swipe) new window.Function(kit('swipe-deck.js'))();
-  new window.Function(kit('linked-swiper.js'))();
+  new window.Function(kit('vanilla-bundle.js'))();
+  if (swipe) new window.Function(kit('kits/swipe-deck.js'))();
+  new window.Function(kit('kits/linked-swiper.js'))();
   Object.defineProperty(window.Element.prototype, 'clientWidth', { value: 400, configurable: true });
   window.Element.prototype.scrollTo = function ({ left }) {
     Object.defineProperty(this, 'scrollLeft', { value: left, configurable: true, writable: true });
