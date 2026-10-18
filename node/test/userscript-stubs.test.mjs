@@ -136,6 +136,9 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   assert.match(text, /const holdPastedText =/, 'launcher must support holding pasted content in drawer');
   assert.match(text, /const speechText =/, 'launcher must reduce markdown for speech synthesis');
   assert.match(text, /data-tts-block/, 'launcher markdown preview must stamp blocks for TTS highlighting and seeking');
+  assert.match(text, /class="head-menu"/, 'launcher must consolidate header actions into a single explicit dropdown menu');
+  assert.match(text, /ICON\.dotsThree/, 'launcher must use Phosphor dotsThree SVG icon for the header menu trigger');
+  assert.doesNotMatch(text, /class="head-intro"/, 'launcher must not render the old duplicate head-intro button row');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {
