@@ -43,7 +43,7 @@ spawned-session-not-recorded,the recorder ran every idle and found nothing,1,202
 subtree-touch-guard-kills-the-anchor,"a tap that produces nothing, not even an error",1,2026-09-20,2026-09-20,../lib/alpineComponents/fab.js;../node/test/fab-menu.test.mjs
 variant-plus-opacity-generates-nothing,"the rule was not faint, it was absent",1,2026-09-15,2026-09-15,
 cross-repo-data-invisible-to-the-render,a headless shot shows chrome over an empty table,1,2026-09-14,2026-09-14,
-nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../skills/hooks/invoke-default.sh
+nudge-names-an-unresolvable-skill,the invoke-default hook named a skill the session did not have,1,2026-09-13,2026-09-13,../skills/hooks/invoke-default.sh
 cross-realm-read-renders-once,the control worked and its label lied,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
 entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,1,2026-09-10,2026-09-10,../skills/html-style/references/mechanics.md
 keyboard-only-verb-is-no-verb-on-a-phone,an instrument you could arm and not use,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js

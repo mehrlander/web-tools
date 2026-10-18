@@ -75,13 +75,13 @@ for base in (root, os.path.dirname(root)):
 #
 # BOTH ARE REQUIRED, since 2026-09-12. The contract is two documents and this
 # tested one of them, so a repo importing the surfacing half alone read as fully
-# delivered and was never prodded for the prose half. Half a contract silently
+# delivered and never received the instruction for the prose half. Half a contract silently
 # counted as all of it is the same shape as the injection channel delivering 5%
 # and reporting nothing, one document down instead of one channel down.
 #
 # It also means this no longer special-cases the hub. web-tools dropped both
 # imports on 2026-09-12 and takes delivery through the plugin like every
-# consumer, so it is prodded here on the same rule as anywhere else rather than
+# consumer, so the hook adds its instruction there on the same rule as anywhere else rather than
 # by an exception written into the detector.
 MARKERS = ("## Surfacing primitives", "# Qualified writing")
 IMPORT = re.compile(r"^@(\S+)", re.M)
