@@ -1251,13 +1251,13 @@ test('Source details close in place and never carry an unrelated selection into 
 test('Context connections navigate source identity and keep registration separate from delivery receipts', async () => {
   const { state, host, close } = await contextState('&ctxsource=plugin-default');
   try {
-    const prod = state.ctxActiveConnections.find(e => e.kind === 'prompts');
-    assert.equal(prod.from.id, 'hook-invoke-default');
-    assert.equal(prod.to.id, 'plugin-default');
-    assert.equal(prod.basis, 'skills/hooks/invoke-default.sh');
+    const prompts = state.ctxActiveConnections.find(e => e.kind === 'prompts');
+    assert.equal(prompts.from.id, 'hook-invoke-default');
+    assert.equal(prompts.to.id, 'plugin-default');
+    assert.equal(prompts.basis, 'skills/hooks/invoke-default.sh');
     await tick(2);
     [...host.querySelectorAll('[data-context-connections] button')].find(b => b.textContent === 'Conventions directive').click();
-    assert.equal(state.ctxSpectraActive.id, prod.from.id);
+    assert.equal(state.ctxSpectraActive.id, prompts.from.id);
     const registration = state.ctxActiveConnections.find(e => e.kind === 'registers');
     assert.equal(registration.from.id, 'plugin-package');
     assert.equal(registration.basis, 'skills/hooks/hooks.json');
