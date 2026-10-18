@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>linked-swiper — a list over a strip of cards</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // The chain boot, so the FAB arrives and the kits are fetched at the previewed ref.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/swipe-deck.js');
+  await gh.load('kits/dock-split.js');
+  await gh.load('kits/linked-swiper.js');
+
+  const BODIES = [
+    { id: 'mercury', group: 'Inner', name: 'Mercury', au: 0.39, day: '58.6 d', year: '88 d', moons: 0,
+      note: 'The smallest planet, with almost no atmosphere to hold heat, so its night side falls below -170 °C.' },
+    { id: 'venus', group: 'Inner', name: 'Venus', au: 0.72, day: '243 d', year: '225 d', moons: 0,
+      note: 'Turns backwards and slower than it orbits, so a day outlasts its year.' },
+    { id: 'earth', group: 'Inner', name: 'Earth', au: 1.0, day: '1 d', year: '365 d', moons: 1,
+      note: 'The only body known to keep liquid water on its surface.' },
+    { id: 'mars', group: 'Inner', name: 'Mars', au: 1.52, day: '1.03 d', year: '687 d', moons: 2,
+      note: 'Olympus Mons stands about 22 km above the plain around it.' },
+    { id: 'jupiter', group: 'Outer', name: 'Jupiter', au: 5.2, day: '9.9 h', year: '11.9 y', moons: 95,
+      note: 'More massive than every other planet combined, twice over.' },
+    { id: 'saturn', group: 'Outer', name: 'Saturn', au: 9.5, day: '10.7 h', year: '29.4 y', moons: 146,
+      note: 'Less dense than water, with rings mostly of ice a few tens of metres thick.' },
+    { id: 'uranus', group: 'Outer', name: 'Uranus', au: 19.2, day: '17.2 h', year: '84 y', moons: 28,
+      note: 'Tipped on its side, so each pole has a 42-year summer.' },
+    { id: 'neptune', group: 'Outer', name: 'Neptune', au: 30.1, day: '16.1 h', year: '165 y', moons: 16,
+      note: 'Found by calculation before anyone saw it, from the pull it had on Uranus.' },
+  ];
+  const byId = id => BODIES.find(b => b.id === id);
+  let sel = new URLSearchParams(location.hash.slice(1)).get('item') || 'earth';
+
+  const list = document.getElementById('list');
+  let group = '';
+  list.innerHTML = BODIES.map(b => {
+    const label = b.group !== group ? `<div class="sticky top-0 z-10 bg-base-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-base-content/60">${group = b.group}</div>` : '';
+    return label + `<div role="option" tabindex="0" data-item="${b.id}" aria-selected="${b.id === sel}"
+      class="flex cursor-pointer items-baseline gap-2 border-b border-base-200 px-2.5 py-1.5 text-sm hover:bg-base-200 aria-selected:bg-primary/10">
+      <span class="min-w-0 flex-1 truncate">${b.name}</span>
+      <span class="flex-none font-mono text-xs tabular-nums text-base-content/60">${b.au} AU</span></div>`;
+  }).join('');
+
+  const fact = (k, v) => `<div class="flex justify-between gap-3 border-b border-base-200 py-1"><span class="text-base-content/60">${k}</span><span class="tabular-nums">${v}</span></div>`;
+  let deck = null;
+  const swiper = linkedSwiper.attach({
+    root: document.getElementById('root'), list, card: document.getElementById('card'), key: 'item',
+    ids: () => BODIES.map(b => b.id), sel: () => sel, noun: 'planet', seam: 'linked-swiper-demo',
+    name: id => ({ code: byId(id).group, title: byId(id).name }),
+    body: id => {
+      const b = byId(id);
+      return `<p class="mb-3 text-sm">${b.note}</p><div class="text-sm">${fact('Distance', b.au + ' AU')}${fact('Day', b.day)}${fact('Year', b.year)}${fact('Moons', b.moons)}</div>`;
+    },
+    onPick: (id, via) => {
+      sel = id;
+      history.replaceState(null, '', '#item=' + id);
+      if (deck && via !== 'deck') deck.deck.go(BODIES.findIndex(b => b.id === id), 'instant');
+    },
+    deck: () => {
+      deck = swipeDeck.open({
+        count: BODIES.length, start: BODIES.findIndex(b => b.id === sel), title: 'Planets', icon: 'ph-planet',
+        render: (i, el) => { el.innerHTML = `<h2 class="mb-2 text-lg font-bold">${BODIES[i].name}</h2><p class="text-sm">${BODIES[i].note}</p>`; },
+        onSlide: i => swiper.pick(BODIES[i].id),
+        onClose: () => { deck = null; },
+      });
+    },
+  });
+</script>
+</head>
+<body class="flex h-dvh flex-col bg-base-200 p-3">
+  <div id="root">
+    <div id="list" role="listbox" aria-label="Planets"></div>
+    <div id="card"></div>
+  </div>
+</body>
+</html>
