@@ -181,7 +181,7 @@ test('a decision filed as Take or Adjust offers Take here, and leaves an adjustm
   assert.deepEqual([...data.answersOf({ ...c, recommend: '' })], [], 'with nothing recommended there is nothing to take');
 });
 
-test('what moved since filing is counted in the header, and the refresh reads everything again past the cache', async () => {
+test('what moved since filing is counted in the header, which has no refresh of its own', async () => {
   const merge = CALLS[0];
   await until(() => data.since['s1-merge-7']?.at && !data.since['s1-merge-7'].busy);
   assert.equal(data.movedCount(merge), 3, 'a commit and a comment after the call, and one named file changed');
@@ -190,14 +190,40 @@ test('what moved since filing is counted in the header, and the refresh reads ev
   assert.match(data.sinceLine(CALLS[1]), /: 1 of its 3 PRs was closed or merged\. 1 of its 3 PRs is still open\./,
     'a PR merged before the call is not news');
   assert.equal(data.prsLine(CALLS[1]), '1/3 open');
-  assert.match(data.checkedTip(merge), /^PR state, CI, conflicts, and new commits, comments or reviews since filing; which of its 2 files changed since filing\. Checked /,
-    'the refresh says what it checks for this call');
-  assert.match(data.checkedTip(CALLS[1]), /^Which of its 3 PRs are open\./);
-  assert.doesNotMatch(data.checkedTip(merge) + data.checkedTip(CALLS[1]), /again/);
+  assert.equal(el.querySelector('[data-waiting-refresh]'), null, 'a reload is the refresh');
+  assert.ok(![...head().querySelectorAll('button')].some((b) => /refresh|check github/i.test(b.getAttribute('aria-label') || '')));
+  assert.equal(head().querySelector('[data-waiting-gemini]'), null, 'asking Gemini is an action, so it is the footer\'s');
+});
+
+test('an unknown mergeability is read once more, past the cache, while GitHub works it out', async () => {
+  const c = { id: 's1-unknown', kind: 'decision', pr: 'acme/widget#8', open: true };
+  READS['pulls/8'] = { state: 'open', draft: false, mergeable_state: 'unknown', head: { sha: 'def', ref: 'x', repo: { full_name: 'acme/widget' } } };
+  READS['commits/def/check-runs'] = { check_runs: [] };
+  data.RECHECK_MS = 10;
   asked.length = 0;
-  await data.refreshCall(merge);
-  assert.ok(asked.some(([, p]) => p === 'pulls/7') && asked.some(([, p]) => p.endsWith('/check-runs')), 'the PR and its checks are read again');
-  assert.ok(asked.every(([, , cache]) => cache === 'no-store'), 'a refresh is not served from the cache');
+  await data.readFacts(c);
+  assert.equal(data.facts[c.id].mergeable, 'unknown');
+  READS['pulls/8'] = { ...READS['pulls/8'], mergeable_state: 'dirty' };
+  await until(() => data.facts[c.id].mergeable === 'dirty');
+  assert.equal(data.facts[c.id].mergeable, 'dirty');
+  assert.ok(asked.some(([, p, cache]) => p === 'pulls/8' && cache === 'no-store'), 'the second read is not served from the cache');
+  assert.equal(asked.filter(([, p]) => p === 'pulls/8').length, 2, 'once more, not a loop');
+  assert.equal(data.ciIcon(c), '', 'a PR with no checks at all draws no CI mark');
+  assert.equal(data.mergeTip(c), 'Conflicts with main.', 'a decision\'s PR is a material: no promise about what Merge does');
+});
+
+test('the call in view rides in the address, so a reload lands back on it', async () => {
+  const [merge, decision] = CALLS, was = [merge.open, decision.open, data.picked.calls];
+  merge.open = true; decision.open = true;
+  window.__shell.view = 'waiting';
+  const call = () => new URL(window.location.href).searchParams.get('call');
+  data.picked.calls = 's1-merge-7'; await until(() => call() === 's1-merge-7');
+  assert.equal(call(), 's1-merge-7');
+  data.picked.calls = 's1-close-two'; await until(() => call() === 's1-close-two');
+  assert.equal(call(), 's1-close-two', 'it follows the selection');
+  assert.equal(window.__shell.waitingCall, 's1-close-two', 'the shell stamps it on its own navigations too');
+  [merge.open, decision.open, data.picked.calls] = was;
+  delete window.__shell.view;
 });
 
 test('the expander opens the deck takeover on the row in view, the status at the head of each card and the answers at its foot', async () => {
@@ -339,7 +365,7 @@ test('a task link opens the task file at its ref, drawn as a task and named by i
   assert.equal(at.label, 'Trim');
 });
 
-test('an address naming a call opens Waiting on it, and the shell then forgets it', async () => {
+test('an address naming a call opens Waiting on it, and the address then follows the selection', async () => {
   const [merge, decision] = CALLS;
   merge.open = true; decision.open = true;
   data.setTab('edit');
@@ -347,7 +373,8 @@ test('an address naming a call opens Waiting on it, and the shell then forgets i
   window.document.dispatchEvent(new window.CustomEvent('web-tools:waiting-call', { detail: { id: 's1-close-two' } }));
   assert.equal(data.tab, 'calls', 'the Calls tab');
   assert.equal(data.picked.calls, 's1-close-two', 'on that call');
-  assert.equal(window.__shell.waitingCall, '', 'taken once, so a later pick leaves no stale address');
+  await until(() => window.__shell.waitingCall === 's1-close-two');
+  assert.equal(window.__shell.waitingCall, 's1-close-two', 'kept as the call in view, never a stale one');
   data.focusCall('no-such-call');
   assert.equal(data.picked.calls, 's1-close-two', 'an unknown id moves nothing');
 });
@@ -381,12 +408,20 @@ test('a call carries its notes and findings, a vote reaches the row, and a note 
   assert.equal(data.noteRows(decision).at(-1).n.text, 'Hold #2 a day.');
 });
 
-test('Ask Gemini files a call check with what GitHub shows, and its verdict comes back as Gemini\'s note', async () => {
+test('the Gemini mark opens a form in the footer and files nothing; Ask files the check with the question', async () => {
   const merge = CALLS[0];
   merge.open = true; merge.answers = [];
   data.facts[merge.id] = { ...data.facts[merge.id], state: 'open', ci: 'passing' };
   data.POLL_MS = 10;
-  await data.askGemini(merge);
+  data.picked.calls = merge.id; await tick(40);
+  await until(() => foot().querySelector('[data-waiting-gemini]'));
+  foot().querySelector('[data-waiting-gemini]').click();
+  await until(() => foot().querySelector('[data-waiting-ask] textarea'));
+  assert.ok(foot().querySelector('[data-waiting-ask] textarea'), 'the form opens in the footer, like the note');
+  assert.equal(saved.length, 0, 'opening the form files nothing');
+  data.questions[merge.id] = '  Is the preset still needed?  ';
+  foot().querySelector('[data-waiting-ask-send]').click();
+  await until(() => saved.length === 1);
   assert.equal(saved.length, 1, 'one request filed');
   const req = saved[0];
   assert.equal(req.repo, 'me/store');
@@ -394,14 +429,19 @@ test('Ask Gemini files a call check with what GitHub shows, and its verdict come
   assert.equal(req.data.run.op, 'call-check');
   assert.equal(req.data.run.method, 'laptop-daemon');
   assert.equal(req.data.run.args.call, 's1-merge-7');
+  assert.equal(req.data.run.args.question, 'Is the preset still needed?', 'the question rides, trimmed');
+  assert.match(req.data.title, /^Gemini question: /);
+  assert.match(req.message, /^Ask Gemini about user call s1-merge-7/);
   const ev = req.data.run.args.evidence;
   assert.match(ev, /Its PR, acme\/widget#7/, 'the PR as read now');
   assert.match(ev, /CI passing/);
   assert.match(ev, /Commits since filing:\n- /, 'what moved since filing, one line each');
   assert.match(ev, /\n- acme\/widget:docs\/why\.md: changed since filing \(1 commit\)/);
   assert.match(ev, /\n- acme\/widget:app\.html: unchanged since filing/);
+  await until(() => data.checks[merge.id]?.stage === 'sent');
   assert.equal(data.checks[merge.id].stage, 'sent');
   assert.equal(data.geminiBusy(merge), true, 'one check at a time');
+  assert.equal(data.questions[merge.id], '', 'the box clears once the question is filed');
 
   NOTES.push({ id: 'ngc1', at: new Date().toISOString(), author: 'gemini', about: 'me/store:user-calls/s1-merge-7.json',
                text: 'Merged already, so nothing is left to vote on.' });
@@ -411,6 +451,11 @@ test('Ask Gemini files a call check with what GitHub shows, and its verdict come
   assert.equal(data.noteRows(merge).at(-1).n.text, 'Merged already, so nothing is left to vote on.', 'the verdict reaches the card');
   assert.doesNotMatch(data.callLine(merge), /Gemini votes/, 'a moot call gets a note and no vote');
   assert.match(data.geminiTip(merge), /^Checked .*Gemini: moot\. Merged already\. Ask again/);
+
+  await data.askGemini(merge, '   ');
+  assert.equal(saved.length, 2);
+  assert.equal('question' in saved[1].data.run.args, false, 'an empty box asks the plain check, with no question field');
+  assert.match(saved[1].data.title, /^Gemini check: /);
 });
 
 test('a withdrawn vote leaves the row: an author\'s latest vote is the one that counts', async () => {
