@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-15 by a skill, 42 by a page or component. The remaining 46 are
+15 by a skill, 42 by a page or component. The remaining 47 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -96,6 +96,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 - [`idea-board.md`](idea-board.md) — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
+- [`house-policies.md`](house-policies.md) *(orphan)* — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
 
 ## docs/envelopes/
 

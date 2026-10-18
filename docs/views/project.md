@@ -55,8 +55,9 @@ The rest of what the code keeps:
 
 Code: `lib/alpineComponents/powershell-outpost-view.js` (the view),
 `lib/alpineComponents/powershell-file.js` (one file, in the view and its swipe
-deck), `lib/kits/powershell-outpost.js` (states, ledger),
+deck), `lib/kits/powershell-outpost.js` (states, ledger, resources),
 `lib/kits/powershell-workspace.js` (reads, drafts, publishing),
+`lib/kits/powershell-language.js` (outline, problems, calls, form wiring),
 `lib/kits/powershell-units.js` (blocks, edges, versions),
 `lib/kits/powershell-match.js` (paste matching). `npm test`
 opens no browser, so a change to the file pane or editor also needs
