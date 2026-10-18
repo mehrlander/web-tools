@@ -399,3 +399,332 @@ test('gh-boot loads traffic.js in the chain, so the readout is never waiting on 
   const chain = boot.indexOf('for (const step of BOOT)');
   assert.ok(wrap !== -1 && chain !== -1 && wrap < chain, 'collection is installed before the chain runs');
 });
+
+// ── Jobs: the why behind the calls ────────────────────────────────────────
+// The job ledger (gh-boot.js) credits a call to the job whose named frame is
+// in the call's async stack. The claim worth executing is the hard one: two
+// jobs in flight at once, interleaving their calls, each keep their own, and a
+// call made beside them by no job is credited to none.
+
+test('two jobs in flight at once each claim their own calls, and a bare call goes to neither', async () => {
+  const { win } = await bootWithStub({
+    fetchImpl: async () => { await new Promise(r => setTimeout(r, 2)); return { status: 200, headers: { get: h => (h === 'content-length' ? '100' : null) } }; },
+  });
+  const req = async (p) => { await null; return win.fetch('https://api.github.com/repos/o/r/' + p); };
+  const crawl = async (tag) => {
+    await new Promise(r => setTimeout(r, 1));
+    await req(tag + '-a');
+    await Promise.all([req(tag + '-b'), req(tag + '-c')]);
+    return { committed: true, doc: { big: 'x'.repeat(1000) } };
+  };
+  const [ra] = await Promise.all([
+    win.__job('Check branches', { cause: 'timer' }, () => crawl('one')),
+    win.__job('Check sessions', { cause: 'arrival' }, () => crawl('two')),
+    req('bare'),
+  ]);
+  assert.equal(ra.committed, true, 'the job hands back what its work returned');
+
+  const byPath = Object.fromEntries(win.__traffic.map(e => [e.url.split('/').pop(), e]));
+  const [one, two] = win.__jobs;
+  for (const p of ['one-a', 'one-b', 'one-c']) assert.equal(byPath[p].job, one.id, p + ' belongs to the first job');
+  for (const p of ['two-a', 'two-b', 'two-c']) assert.equal(byPath[p].job, two.id, p + ' belongs to the second job');
+  assert.equal(byPath.bare.job, null, 'a call no job made is credited to none');
+  assert.equal(byPath['one-a'].jobBy, 'stack');
+
+  assert.equal(one.calls, 3);
+  assert.equal(one.wire, 300, 'a job keeps its own byte count, apart from the capped rows');
+  assert.equal(one.cause, 'timer');
+  assert.equal(one.state, 'done');
+  assert.deepEqual(one.result, { committed: true }, 'only the primitives stay: the document is not held');
+});
+
+test('a job that throws, or reports an error, ends failed and still rejects or resolves as it did', async () => {
+  const { win } = await bootWithStub();
+  await assert.rejects(() => win.__job('Refresh branches', { cause: 'tap' }, async () => { throw new Error('offline'); }), /offline/);
+  const r = await win.__job('Check repo configs', { cause: 'boot' }, async () => ({ error: '409 conflict' }));
+  assert.equal(r.error, '409 conflict');
+  assert.equal(win.__jobs[0].state, 'failed');
+  assert.equal(win.__jobs[0].error, 'offline');
+  assert.equal(win.__jobs[1].state, 'failed');
+  assert.equal(T.jobOutcome(win.__jobs[1]), 'failed: 409 conflict');
+});
+
+test('an armed timer is listed under its owner until it fires or is cleared', async () => {
+  const { win } = await bootWithStub();
+  win.__jobArm('fresh', 'Freshness check: branches', 5000);
+  win.__jobArm('ping', 'Poll Gemini pings', 3000);
+  assert.deepEqual(Object.keys(win.__jobArmed).sort(), ['fresh', 'ping']);
+  win.__jobArm('fresh', 'Freshness check: sessions', 9000);
+  assert.equal(win.__jobArmed.fresh.name, 'Freshness check: sessions', 'one row per owner: a re-arm replaces');
+  win.__jobDisarm('ping');
+  win.__jobDisarm('never-armed');
+  assert.deepEqual(Object.keys(win.__jobArmed), ['fresh']);
+});
+
+test('jobOutcome reads the crawls\' own conventions', () => {
+  assert.equal(T.jobOutcome({ state: 'running' }), 'running');
+  assert.equal(T.jobOutcome({ state: 'failed', error: 'boom' }), 'failed: boom');
+  assert.equal(T.jobOutcome({ state: 'done', result: { skipped: true } }), 'skipped');
+  assert.equal(T.jobOutcome({ state: 'done', result: { skipped: true, reason: 'no estate members' } }), 'skipped: no estate members');
+  assert.equal(T.jobOutcome({ state: 'done', result: { committed: true } }), 'committed');
+  assert.equal(T.jobOutcome({ state: 'done', result: { committed: false } }), 'no change');
+  assert.equal(T.jobOutcome({ state: 'done', result: null }), 'done');
+});
+
+test('jobRows lists jobs from their own counts and files the rest by view', () => {
+  const jobs = [
+    { id: 1, name: 'Check branches', cause: 'timer', t: 1000, end: 4000, state: 'done', result: { committed: false },
+      calls: 50, wire: 9000, unknown: 0, errors: 0, writes: 0, hiddenCalls: 50 },
+    { id: 2, name: 'Poll Gemini pings', cause: 'timer', t: 5000, end: 0, state: 'running', calls: 1, wire: 0, unknown: 1 },
+  ];
+  // Only two of job 1's fifty calls are still in the capped ledger; its row
+  // must still say fifty.
+  const entries = [
+    { url: 'u1', t: 1100, job: 1, wire: 100, hidden: true },
+    { url: 'u2', t: 1200, job: 1, wire: 100, hidden: true },
+    { url: 'u3', t: 1300, job: null, where: 'sessions', wire: 10, status: 200 },
+    { url: 'u4', t: 2300, job: null, where: 'sessions', wire: null, status: 404 },
+    { url: 'u5', t: 900, job: null, where: '', wire: 5, method: 'PUT' },
+  ];
+  const { jobs: rows, free } = T.jobRows(jobs, entries, 6000);
+  assert.deepEqual(rows.map(r => r.id), [2, 1], 'newest first');
+  assert.equal(rows[1].calls, 50, 'a job row counts what the job counted, not what the ledger still holds');
+  assert.equal(rows[1].hiddenCalls, 50);
+  assert.equal(rows[1].outcome, 'no change');
+  assert.equal(rows[0].running, true);
+  assert.equal(rows[0].ms, 1000, 'a running job is timed to now');
+
+  assert.deepEqual(free.map(g => g.where), ['sessions', ''], 'by view, the latest activity first');
+  assert.equal(free[0].calls, 2);
+  assert.equal(free[0].errors, 1);
+  assert.equal(free[0].unknown, 1);
+  assert.equal(free[0].t, 1300);
+  assert.equal(free[0].last, 2300);
+  assert.equal(free[1].writes, 1);
+
+  assert.deepEqual(T.rowCalls(entries, rows[1]).map(e => e.url), ['u2', 'u1']);
+  assert.deepEqual(T.rowCalls(entries, free[0]).map(e => e.url), ['u4', 'u3']);
+  assert.deepEqual(T.rowCalls(entries, null), []);
+
+  const tt = T.tabTotals({ calls: 120, wire: 50000, trimmed: 3 }, entries, jobs);
+  assert.equal(tt.calls, 120, 'the header counts every call, not the rows held');
+  assert.equal(tt.held, 5);
+  assert.equal(tt.hidden, 2);
+  assert.equal(tt.claimed, 2);
+  assert.equal(tt.running, 1);
+});
+
+test('pageFiles weighs the page\'s own files and leaves fetched calls to the ledger', () => {
+  const nav = { name: 'https://x/app/', transferSize: 2000, encodedBodySize: 1800, decodedBodySize: 9000, duration: 50, startTime: 0, initiatorType: 'navigation' };
+  const entries = [
+    netRow('https://cdn.jsdelivr.net/npm/x.js', 1000, 5000),
+    cachedRow('https://x/dist/app.js', 6000),
+    opaqueRow('https://fonts.example/font.woff2'),
+    { ...netRow('https://api.github.com/repos/o/r/commits', 500, 900), initiatorType: 'fetch' },
+    { ...netRow('https://api.github.com/repos/o/r/branches', 500, 900), initiatorType: 'xmlhttprequest' },
+  ];
+  const f = T.pageFiles(entries, nav);
+  assert.equal(f.count, 4, 'the document and its three files; the two calls belong to the ledger');
+  assert.equal(f.decoded, 9000 + 5000 + 6000, 'unpacked size of every file that disclosed one');
+  assert.equal(f.wire, 2000 + 1000, 'a cached file cost no transfer');
+  assert.equal(f.cached, 1);
+  assert.equal(f.undisclosed, 1, 'a file with no disclosed size is counted apart, not as zero');
+});
+
+test('a row counts the bytes that went out hidden, for the dark part of its bar', () => {
+  const { free } = T.jobRows([], [
+    { url: 'a', t: 1, job: null, where: 'sessions', wire: 100, hidden: true },
+    { url: 'b', t: 2, job: null, where: 'sessions', wire: 50, hidden: false },
+  ], 3);
+  assert.equal(free[0].wire, 150);
+  assert.equal(free[0].hiddenWire, 100);
+});
+
+test('a job counts the bytes its hidden calls brought', async () => {
+  const { win } = await bootWithStub({ fetchImpl: async () => ({ status: 200, headers: { get: h => (h === 'content-length' ? '64' : null) } }) });
+  await win.__job('Poll', { cause: 'timer' }, async () => { await win.fetch('https://api.github.com/x'); });
+  assert.equal(win.__jobs[0].wire, 64);
+  assert.equal(win.__jobs[0].hiddenWire, 0, 'the stub page has no document, so nothing went out hidden');
+});
+
+test('a 404 is counted as not found, apart from calls that failed', () => {
+  const rows = [
+    { t: 1, status: 404 },
+    { t: 2, status: 200 },
+    { t: 3, status: 500 },
+    { t: 4, status: 403 },
+    { t: 5, status: 0, error: 'Load failed' },
+  ];
+  const tt = T.tabTotals({ calls: 5, errors: 4 }, rows, []);
+  assert.equal(tt.notFound, 1, 'a file the app looked for and the repo does not keep');
+  assert.equal(tt.failed, 3, 'an error status other than 404, or no answer at all');
+  assert.equal(tt.errors, 4, 'the running total still counts all four');
+  assert.ok(T.isNotFound(rows[0]) && !T.isFailed(rows[0]));
+  assert.ok(T.isFailed(rows[4]) && !T.isNotFound(rows[4]));
+});
+
+test('the page load is one row: its files and the calls made before a view was on screen', () => {
+  const files = { count: 3, cached: 1, ms: 900, rows: [
+    { name: 'https://x/app/', group: 'document', start: 0, ms: 50, wire: 2000, state: 'network' },
+    { name: 'https://x/dist/app.js', group: 'code', start: 100, ms: 300, wire: 0, state: 'cached' },
+    { name: 'https://fonts.example/f.woff2', group: 'font', start: 200, ms: 80, wire: null, state: 'undisclosed' },
+  ] };
+  const entries = [
+    { url: 'https://api.github.com/user', t: 1300, job: null, where: '', wire: 500, status: 200 },
+    { url: 'https://api.github.com/x', t: 2000, job: null, where: 'sessions', wire: 900 },
+    { url: 'https://api.github.com/y', t: 2100, job: 4, where: '', wire: 700 },
+  ];
+  const calls = T.fileCalls(files, 1000);
+  assert.deepEqual(calls.map(c => c.t), [1000, 1100, 1200], 'a file is placed at the page start plus its own offset');
+  assert.equal(calls[1].cached, true);
+  assert.equal(calls[2].wire, null, 'an undisclosed size stays unknown, never zero');
+  const row = T.loadRow(files, entries, 1000);
+  assert.equal(row.key, 'load');
+  assert.equal(row.files, 3);
+  assert.equal(row.calls, 4, 'three files and the one call made before a view, not a view\'s or a job\'s');
+  assert.equal(row.wire, 2500, 'a cached file transferred nothing');
+  assert.equal(row.unknown, 1);
+  assert.equal(row.last, 1300);
+});
+
+test('traffic findings keep only what stands out in a window', () => {
+  const at = (t, url, o = {}) => ({ t, url, method: 'GET', status: 200, wire: 1000, hidden: false, job: null, where: 'estate', ...o });
+  const ping = 'https://api.github.com/repos/o/r/contents/errands/requests';
+  const rows = [
+    ...[0, 15000, 30000, 45000, 60000].map(t => at(t, ping, { job: 7, hidden: t >= 30000 })),
+    at(1000, 'https://api.github.com/repos/o/r/contents/big.json', { wire: 300 * 1024 }),
+    at(2000, 'https://api.github.com/repos/o/r/boom', { status: 502, msg: 'Server Error' }),
+    at(3000, 'https://api.github.com/repos/o/r/contents/missing.csv', { status: 404 }),
+    at(4000, 'https://api.github.com/repos/o/r/contents/once.json'),
+  ];
+  const f = T.trafficFindings(rows, { owner: e => e.job === 7 ? 'Poll Gemini pings' : 'view ' + e.where, rate: { from: 4000, to: 3600 } });
+  const kinds = f.map(x => x.kind).sort();
+  assert.deepEqual(kinds, ['burn', 'failed', 'hidden', 'large', 'repeat']);
+  const rep = f.find(x => x.kind === 'repeat');
+  assert.equal(rep.calls, 5);
+  assert.equal(rep.hidden, 3);
+  assert.equal(rep.gapMs, 15000, 'the shortest gap between repeats is the poll interval');
+  assert.deepEqual(rep.by, ['Poll Gemini pings']);
+  assert.equal(f.find(x => x.kind === 'hidden').by, 'Poll Gemini pings');
+  assert.equal(f.find(x => x.kind === 'failed').status, 502, 'a 404 is not a failure');
+  assert.equal(f.find(x => x.kind === 'burn').spent, 400);
+  assert.equal(f.find(x => x.kind === 'burn').mine, 9, 'the token is shared, so the page says how many calls were its own');
+  assert.ok(!f.some(x => x.url && x.url.endsWith('once.json')), 'a single ordinary call is not a finding');
+  assert.deepEqual(T.trafficFindings([at(0, ping), at(1, ping)], {}), [], 'a quiet window has nothing to say');
+});
+
+test('the traffic log files a finding once, leaves out its own writes, and needs a token', async () => {
+  const src = readFileSync(path.join(repoRoot, 'lib/kits/traffic-log.js'), 'utf8');
+  const store = {};
+  const saves = [];
+  const w = {
+    Traffic: T, __traffic: [], __trafficTotals: { calls: 0 }, __jobs: [{ id: 1, name: 'Poll Gemini pings' }],
+    __trafficRate: 4000, __trafficRateReset: 1,
+    BrowserKind: { kind: () => 'Mac Chrome', note: () => 'Desk Chrome' },
+  };
+  const env = {
+    window: w,
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    location: { pathname: '/app/index.html', search: '' },
+    document: { hidden: false, addEventListener() {}, getElementsByTagName: () => ({ length: 3 }) },
+    performance: { timeOrigin: Date.now() - 60000 },
+    matchMedia: () => ({ matches: false }),
+    GH: function () { this.save = async (p, doc, msg) => { saves.push({ p, doc, msg }); }; },
+  };
+  new Function(...Object.keys(env), src)(...Object.values(env));
+  const U = w.TrafficLog;
+  const ping = 'https://api.github.com/repos/o/r/contents/errands/requests';
+  let n = 0;
+  const call = (o = {}) => { n++; w.__trafficTotals.calls = n; w.__traffic.push({ n, t: Date.now(), url: ping, method: 'GET', status: 200, wire: 10, job: 1, ...o }); };
+
+  for (let i = 0; i < 5; i++) call();
+  assert.equal((await U.check()).why, 'no token', 'without a token nothing is written');
+
+  store.ghToken = 'x';
+  for (let i = 0; i < 5; i++) call();
+  call({ url: 'https://api.github.com/repos/o/web-tools-private/contents/logs/traffic/2026-10-16/x.json', method: 'PUT' });
+  const r = await U.check();
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(saves.length, 1);
+  assert.match(saves[0].p, /^logs\/traffic\/\d{4}-\d\d-\d\d\/\d{6}-[a-z0-9]+\.json$/);
+  assert.equal(saves[0].msg, 'Log tab traffic (logs/traffic)');
+  const rep = saves[0].doc.findings.find(f => f.kind === 'repeat');
+  assert.equal(rep.calls, 5, 'only the window since the last check, and not the log\'s own write');
+  assert.deepEqual(rep.by, ['Poll Gemini pings']);
+  assert.ok(!JSON.stringify(saves[0].doc).includes('"x"'), 'the token never reaches the file');
+  assert.deepEqual([saves[0].doc.browser, saves[0].doc.browserNote], ['Mac Chrome', 'Desk Chrome'], 'the file names the browser that filed it, both ways');
+
+  for (let i = 0; i < 5; i++) call();
+  assert.equal((await U.check()).why, 'nothing new', 'the same poll inside the hour is not filed again');
+  assert.equal(saves.length, 1);
+
+  U.disable();
+  assert.equal((await U.check()).why, 'not running');
+});
+
+
+test('the stores keep calls in bins, add every tab\'s, sum them into a range\'s bars, and keep what the ranges draw', () => {
+  const MIN = 60e3, H = 60 * MIN, D = 24 * H;
+  const at = (t, o = {}) => ({ t, method: 'GET', url: 'u', status: 200, wire: 100, hidden: false, job: null, where: 'estate', ...o });
+  const owner = e => e.job ? 'Poll Gemini pings' : 'view ' + e.where;
+  const q = {}, h = {};
+  // Two tabs add their own calls to the same two stores.
+  for (const rows of [[at(10 * H + MIN), at(10 * H + 2 * MIN, { hidden: true, job: 1 })],
+                      [at(10 * H + 20 * MIN, { status: 502 }), at(11 * H + 6 * MIN, { wire: null })]]) {
+    T.addBins(q, rows, { step: 15, owner });
+    T.addBins(h, rows, { step: 60, owner });
+  }
+  assert.deepEqual(Object.keys(q).sort(), ['1970-01-01T10:00', '1970-01-01T10:15', '1970-01-01T11:00']);
+  assert.deepEqual(Object.keys(h).sort(), ['1970-01-01T10', '1970-01-01T11']);
+  assert.equal(T.recordStart(h), 10 * H, 'the record begins at its oldest bin');
+
+  const [day, week, month] = ['day', 'week', 'month'].map(k => T.RANGES.find(r => r.key === k));
+  const bars = T.lastBins(q, 11 * H + 10 * MIN, day);
+  assert.equal(bars.length, 96);
+  assert.deepEqual([bars[95].t0, bars[95].t1], [11 * H, 11 * H + 15 * MIN], 'the current quarter closes the day');
+  assert.deepEqual([bars[91].calls, bars[91].hidden, bars[91].wire], [2, 1, 200]);
+  assert.deepEqual(bars[91].by, { 'view estate': 1, 'Poll Gemini pings': 1 });
+  assert.deepEqual([bars[92].calls, bars[92].errors], [1, 1], 'a failure counted');
+  assert.deepEqual([bars[95].calls, bars[95].wire], [1, 0], 'an unsized call adds no bytes');
+  assert.equal(bars[0].calls, 0, 'a bar with nothing is there, empty');
+  // A week's bar is two hours, on the even hour, and sums the hours inside it.
+  const wk = T.lastBins(h, 11 * H + 10 * MIN, week);
+  assert.equal(wk.length, 84);
+  assert.equal(wk[83].t0, 10 * H);
+  assert.deepEqual([wk[83].calls, wk[83].errors, wk[83].wire], [4, 1, 300]);
+  assert.deepEqual(wk[83].by, { 'view estate': 3, 'Poll Gemini pings': 1 });
+  assert.equal(T.lastBins(h, 11 * H, month)[119].t0, 6 * H, 'a month\'s bar is six hours');
+
+  // A reader eight hours behind UTC files a call under their own hour, and one
+  // five and a half ahead under their own quarter, which reads back to the call.
+  assert.deepEqual(Object.keys(T.addBins({}, [at(10 * H)], { offset: 480 })), ['1970-01-01T02']);
+  const east = Object.keys(T.addBins({}, [at(10 * H)], { step: 15, offset: -330 }));
+  assert.deepEqual(east, ['1970-01-01T15:30']);
+  assert.equal(T.binStart(east[0], -330), 10 * H);
+
+  // Each store keeps the longest range it serves, and a bar.
+  assert.equal(T.keepFor('quarters'), 97 * 15 * MIN);
+  assert.equal(T.keepFor('hours'), 121 * 6 * H);
+  T.pruneBins(q, 10 * H + 2 * D, { step: 15, keep: T.keepFor('quarters') });
+  assert.deepEqual(Object.keys(q), [], 'two days on, the quarters are gone');
+  T.pruneBins(h, 10 * H + 2 * D, { step: 60, keep: T.keepFor('hours') });
+  assert.equal(Object.keys(h).length, 2, 'and the hours stay for the month');
+  T.pruneBins(h, 10 * H + 32 * D, { step: 60, keep: T.keepFor('hours') });
+  assert.deepEqual(Object.keys(h), []);
+});
+
+test('a lane\'s scale is a round number, and its axis is marked where the reader keeps time', () => {
+  assert.deepEqual([0, 7, 12, 40, 100, 101].map(T.niceMax), [0, 10, 20, 50, 100, 200]);
+  const [day, week, month] = ['day', 'week', 'month'].map(k => T.RANGES.find(r => r.key === k));
+  const now = Date.UTC(2026, 9, 17, 11, 10), off = new Date(now).getTimezoneOffset();
+  const local = m => new Date(m.t);
+  const d = T.axisMarks(T.lastBins({}, now, day, off), day, 3);
+  assert.equal(d.length, 8, 'a day named every three hours');
+  assert.ok(d.every(m => local(m).getHours() % 3 === 0 && local(m).getMinutes() === 0));
+  const w = T.axisMarks(T.lastBins({}, now, week, off), week);
+  assert.equal(w.length, 7, 'a week named at each midnight');
+  assert.ok(w.every(m => m.line && local(m).getHours() === 0));
+  const mo = T.axisMarks(T.lastBins({}, now, month, off), month);
+  assert.ok(mo.length >= 4 && mo.length <= 5 && mo.every(m => local(m).getDay() === 1 && local(m).getHours() === 0),
+    'a month named on its Mondays');
+});
