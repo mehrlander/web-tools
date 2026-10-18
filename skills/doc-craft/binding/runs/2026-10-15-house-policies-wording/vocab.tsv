@@ -1,6 +1,4 @@
 label	side	gloss	color
-OK	pass	no flaw a careful editor would act on	203,213,225
-UNCLEAR	meaning	a reader cannot tell which thing, whose, how many, or what a term means (Qualified writing rules 1, 2 and 4)	249,115,22
-DOUBTFUL	meaning	claims more than it can back, or may be wrong (doc-craft: Hedge)	202,138,4
-AWKWARD	wording	the meaning is clear, but the phrasing is informal, wordy, archaic or ungrammatical	168,85,247
-EXTRANEOUS	content	a reader would act the same without it: repetition, history or authoring commentary (doc-craft: Earn each sentence)	59,130,246
+OK	pass	needs no change	203,213,225
+WEAK	wording	the wording needs work: a reader could misread it, stumble over it, or do without it	245,158,11
+WRONG	content	the content is false, or claims more than the document can back	225,29,72

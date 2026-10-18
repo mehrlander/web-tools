@@ -20,32 +20,20 @@
    {
     "label": "OK",
     "side": "pass",
-    "gloss": "no flaw a careful editor would act on",
+    "gloss": "needs no change",
     "color": "203,213,225"
    },
    {
-    "label": "UNCLEAR",
-    "side": "meaning",
-    "gloss": "a reader cannot tell which thing, whose, how many, or what a term means (Qualified writing rules 1, 2 and 4)",
-    "color": "249,115,22"
-   },
-   {
-    "label": "DOUBTFUL",
-    "side": "meaning",
-    "gloss": "claims more than it can back, or may be wrong (doc-craft: Hedge)",
-    "color": "202,138,4"
-   },
-   {
-    "label": "AWKWARD",
+    "label": "WEAK",
     "side": "wording",
-    "gloss": "the meaning is clear, but the phrasing is informal, wordy, archaic or ungrammatical",
-    "color": "168,85,247"
+    "gloss": "the wording needs work: a reader could misread it, stumble over it, or do without it",
+    "color": "245,158,11"
    },
    {
-    "label": "EXTRANEOUS",
+    "label": "WRONG",
     "side": "content",
-    "gloss": "a reader would act the same without it: repetition, history or authoring commentary (doc-craft: Earn each sentence)",
-    "color": "59,130,246"
+    "gloss": "the content is false, or claims more than the document can back",
+    "color": "225,29,72"
    }
   ],
   "verdicts": [
@@ -84,7 +72,7 @@
     "end": 198,
     "kind": "sent",
     "words": 18,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (TERM, low): Quote: \"the way WP:NPOV is cited on a Wikipedia talk page\". The unexplained Wikipedia shorthand \"WP:NPOV\" is not known to a general reader, and the comparison adds nothing a session acts on. Replace with: \"Each policy has a short name so that it can be cited.\" (or cut the sentence). Also SURPLUS.\nReader 2 (SURPLUS, low): memorable and cited, the way WP:NPOV is cited on a Wikipedia talk page: authoring commentary that changes no behavior, repeats the citation rule in housep-012, and \"WP:NPOV\" is an outside shorthand (also TERM). Cut."
    },
@@ -103,7 +91,7 @@
     "end": 247,
     "kind": "h3",
     "words": 5,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (BARE, low): Heading \"Writing policies\" can mean policies about prose, which is the later \"## Writing\" section, but this entry states how a policy is written. Replace with \"Writing a policy\" or \"Policy format\".\nReader 2 (BARE, low): Writing policies: does not say which policies; it reads as policies about writing, which is the \"## Writing\" section below, whereas the entry covers how a policy is authored and approved. Rename, for example \"How policies are written\"."
    },
@@ -377,7 +365,7 @@
     "end": 2682,
     "kind": "sent",
     "words": 7,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (BARE, high): Quote: \"Show the thing rather than explain it.\" \"the thing\" and \"it\" do not say what is shown. Replace with: \"Show the source, behavior or result itself rather than explaining it.\"\nReader 2 (BARE, low): Show the thing: \"the thing\" does not say what is shown. Say \"Show the source, the screenshot or the measurement rather than explain it.\""
    },
@@ -459,7 +447,7 @@
     "end": 3241,
     "kind": "sent",
     "words": 14,
-    "label": "AWKWARD",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (REGISTER, low): Quote: \"immaterial discrepancies unless they change the answer\". A discrepancy that changes the answer is not immaterial, so the clause contradicts itself, and \"possibilities\" is bare. Replace with: \"Leave out side issues, speculation and discrepancies that do not change the answer.\"\nReader 2 (BARE, low): possibilities: does not say possibilities of what. Say \"unconfirmed possibilities\" or \"speculation\"."
    },
@@ -523,7 +511,7 @@
     "end": 3848,
     "kind": "sent",
     "words": 26,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (REFERENT, high): Quote: \"the app derives the fact, the suite enforces it\". \"the app\" and \"the suite\" are web-tools vocabulary never introduced, in an entry that covers docs in any repo. Replace with: \"check whether the application code derives the fact, the test suite enforces it, or another document owns it, and link to that source instead.\"\nReader 2 (REFERENT, high): the app and \"the suite\": definite phrases with no referent in a document read in any repo (they come from web-tools CLAUDE.md). Say \"check whether the project's code already derives the fact, its test suite enforces it, or another document owns it, and link to that instead.\""
    },
@@ -533,7 +521,7 @@
     "end": 3959,
     "kind": "sent",
     "words": 16,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (BARE, high): Quote: \"content written for its own audience\". It does not say whose audience or what content is excluded. Replace with: \"not replies, and not documents written to be read by people rather than to direct sessions.\"\nReader 2 (BARE, low): content written for its own audience: does not say which audience or what content. Say \"not replies, and not documents written for readers other than future sessions.\""
    },
@@ -589,7 +577,7 @@
     "end": 4531,
     "kind": "sent",
     "words": 11,
-    "label": "EXTRANEOUS",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (SURPLUS, low): Repeats housep-038 (\"Let structure and labels carry relationships rather than explanatory prose\"), and the Showing entry already covers pages and points here for pages. Cut, or keep only one of the two.\nReader 2 (SURPLUS, low): Repeats housep-038 almost word for word (\"Structure and labels carry relationships in place of explanatory prose\"). Keep only if the /h:style entry must stand alone; otherwise cut and rely on /h:show."
    },
@@ -653,7 +641,7 @@
     "end": 4926,
     "kind": "sent",
     "words": 20,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (VAGUE, high): Quote: \"ends in a fixed order, with one closing state\". It does not say what the fixed order contains or what a closing state is; the reader must open SURFACING.md to act. Replace with: \"A reply ends with the elements listed in SURFACING.md, in the order given there, finishing with one closing state that matches the actual state of the work.\" (also TERM)\nReader 2 (VAGUE, high): ends in a fixed order, with one closing state: names neither the items in the order nor what a \"closing state\" is (also TERM). Say \"A reply ends with the items and the one closing state in the order SURFACING.md gives, and the closing state matches the actual state of the work.\""
    },
@@ -708,7 +696,7 @@
     "end": 5426,
     "kind": "sent",
     "words": 24,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (REFERENT, low): Quote: \"opens it to confirm before handing it over\". Both \"it\" could be the change or the link. Replace with: \"the link renders that change, and the session opens the link to confirm this before handing the link over.\"\nReader 2 (REFERENT, high): the session opens it to confirm before handing it over: both \"it\" could be the change or the link. Say \"the link renders that change, and the session opens the link to confirm it renders before handing the link over.\""
    },
@@ -835,7 +823,7 @@
     "end": 6393,
     "kind": "sent",
     "words": 14,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (TERM, low): reads through the component under suspicion and \"clear that component\" are figurative and abstract; write \"A check that depends on the part being tested cannot show that part works.\"\nReader 2 (TERM, low): A probe that reads through the component under suspicion cannot clear that component: \"probe\", \"reads through\" and \"clear\" are figurative shorthand. Plain: \"A test that runs through the component being doubted cannot show that the component works.\""
    },
@@ -973,7 +961,7 @@
     "end": 7359,
     "kind": "sent",
     "words": 17,
-    "label": "AWKWARD",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (REGISTER, low): Approved wording is this document equates wording with a document; write \"Approved wording is the text of this document and any wording whose commit quotes the owner's approval.\"\nReader 2 (REGISTER, low): Approved wording is this document equates wording with a whole document. Plain: \"Approved wording is the text of this document and any wording whose commit quotes the owner's approval.\""
    },
@@ -1010,7 +998,7 @@
     "end": 7615,
     "kind": "sent",
     "words": 19,
-    "label": "AWKWARD",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (REGISTER, high): without asking leave is archaic; write \"without asking permission\".\nReader 2 (REGISTER, low): without asking leave is archaic. Plain: \"without asking permission\"."
    },
@@ -1120,7 +1108,7 @@
     "end": 8627,
     "kind": "sent",
     "words": 19,
-    "label": "EXTRANEOUS",
+    "label": "WEAK",
     "verdict": "DROP",
     "note": "Both readers.\nReader 1 (SURPLUS, low): Repeats housep-114, which already says to quote the rule and give a reading labeled as a reading when a rule bears on what the owner asked; cut.\nReader 2 (SURPLUS, low): Repeats the general statement above (quote the rule, offer a reading labeled as a reading); the owner asking what a rule requires is already a case of a rule bearing on what the owner asked. Cut."
    },
@@ -1130,7 +1118,7 @@
     "end": 8688,
     "kind": "sent",
     "words": 12,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (TERM, low): The posture is a staffer briefing a director on a statute is a figurative stand-in for a stance (second label SURPLUS, it restates housep-115); write \"Report what the rule says and leave its meaning to the owner.\" or cut.\nReader 2 (TERM, high): The posture is a staffer briefing a director on a statute is a figurative analogy; \"posture\" is figurative and \"a director\" does not say of what. Plain: \"Report what the rule says and leave the decision to the owner.\" Also SURPLUS with the second bullet; cut is acceptable."
    },
@@ -1259,7 +1247,7 @@
     "end": 9695,
     "kind": "sent",
     "words": 11,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (BARE, low): a challenge does not say to what, and the heading and next bullet call it a \"tension\" (one thing, two names); write \"Raise a tension with the owner's instruction when it bears on the decision at hand.\"\nReader 2 (BARE, high): Raise a challenge: does not say a challenge to what, and the bullets then call it \"the tension\". Plain: \"Raise a conflict between the owner's instruction and a rule or an observation when it bears on the decision at hand.\" Second label: REFERENT."
    },
@@ -1297,7 +1285,7 @@
     "end": 10013,
     "kind": "sent",
     "words": 8,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (BARE, low): nuance as a correction does not say whose correction or what nuance means; write \"Do not present a minor qualification as a correction of the owner.\"\nReader 2 (BARE, high): Do not present nuance as a correction: which nuance, and a correction of what or by whom, is not stated, so the rule can be read two ways. Plain: \"Do not present a qualification of your own as a correction of the owner's statement.\" (reading inferred)"
    },
@@ -1390,7 +1378,7 @@
     "end": 10706,
     "kind": "sent",
     "words": 14,
-    "label": "UNCLEAR",
+    "label": "WEAK",
     "verdict": "KEEP",
     "note": "Both readers.\nReader 1 (TERM, low): held by is figurative for enforced; write \"checked by `node/test/code-layers.test.mjs`\".\nReader 2 (REGISTER, low): held by is figurative for a check. Plain: \"enforced by\" or \"checked by\"."
    },
