@@ -631,3 +631,53 @@ test('rows for a set land together and close every entry in one commit', async (
   assert.equal(s.calls.filter(c => c.method === 'PATCH').length, 1, 'one ref update');
   assert.match(s.calls.find(c => c.path === 'git/commits').body.message, /installed 2 files/);
 });
+
+// Resources: a module or form folder seen whole. The fixture is a module
+// whose entry dot-sources one companion and not another, a form pair that
+// imports it, a second module defining a shadowing duplicate, and a script.
+test('resources group module and form folders and read their neighbours, composition, reach and limits', () => {
+  const T = [
+    'app/Profile.ps1', 'app/Modules/Svc/Svc.psm1', 'app/Modules/Svc/Core.ps1', 'app/Modules/Svc/Stray.ps1', 'app/Modules/Svc/Data.json',
+    'app/Modules/Log/Log.psm1', 'app/Forms/Panel/Panel.ps1', 'app/Forms/Panel/Panel.xaml', 'app/Forms/Bare/Bare.xaml', 'app/Scripts/Run.ps1',
+  ].map((rel, i) => blob(rel, sha40(String(i % 10))));
+  const man = K.manifest(JSON.stringify({ ...JSON.parse(MANIFEST), pending_adoption: [
+    { path: 'app/Forms/Panel/Panel.ps1', since: '2026-10-01', transfer: 'changed', limit: 'Never loaded' },
+    { path: 'app/Forms/Panel/Panel.xaml', since: '2026-10-01', transfer: 'changed', limit: 'Never loaded' },
+    { path: 'app/Modules/Svc/Core.ps1', since: '2026-10-01', transfer: 'new', limit: 'Untested' }] }));
+  const its = K.inventory({ tree: T, manifest: man, projectPath: P });
+  const R = K.resources(its);
+  assert.deepEqual([...R.keys()].sort(), ['Forms/Bare', 'Forms/Panel', 'Modules/Log', 'Modules/Svc'], 'no resource for the profile or a script');
+  const svc = R.get('Modules/Svc');
+  assert.equal(svc.path, P + '/app/Modules/Svc/');
+  assert.equal(svc.installs, 'Modules/Svc/');
+  const edges = [
+    ['app/Modules/Svc/Svc.psm1', 'app/Modules/Svc/Core.ps1', 'dot-source'], ['app/Forms/Panel/Panel.ps1', 'app/Modules/Svc/Svc.psm1', 'import'],
+    ['app/Profile.ps1', 'app/Modules/Svc/Svc.psm1', 'import'], ['app/Modules/Svc/Core.ps1', 'app/Modules/Log/Log.psm1', 'call'],
+  ].map(([from, to, how]) => ({ from: P + '/' + from, to: P + '/' + to, how, evidence: '' }));
+  const n = K.neighbours(svc, its, edges);
+  assert.deepEqual(n.loadedBy.map(x => [x.label, x.resource, x.how.join()]), [['Panel', true, 'import'], ['Profile.ps1', false, 'import']], 'resources first, then files');
+  assert.deepEqual(n.loads.map(x => x.label), ['Log']);
+  const c = K.composition(svc, edges);
+  assert.equal(c.entry.name, 'Svc.psm1');
+  assert.deepEqual(c.loaded.map(l => l.item.name), ['Core.ps1']);
+  assert.deepEqual(c.unloaded.map(i => i.name), ['Stray.ps1'], 'a code file nothing loads');
+  assert.deepEqual(c.other.map(i => i.name), ['Data.json'], 'no claim about a file the table cannot read');
+  assert.equal(K.composition(svc, []).known, false, 'no table, no claim');
+  const forms = K.composition(R.get('Forms/Panel'), edges);
+  assert.deepEqual(forms.pairs.map(p => [p.name, !!p.controller]), [['Panel', true]]);
+  assert.deepEqual(K.composition(R.get('Forms/Bare'), edges).pairs.map(p => [p.name, !!p.controller]), [['Bare', false]], 'a XAML with no controller');
+  const fx = (functions, calls) => ({ functions: functions.map(([name, line, endLine]) => ({ name, line, endLine })), calls: calls.map(([name, line]) => ({ name, line })) });
+  const facts = new Map([
+    [P + '/app/Modules/Svc/Core.ps1', fx([['Get-Item2', 1, 5], ['Get-Helper', 6, 9], ['Write-Note', 10, 12], ['Get-Idle', 13, 14]], [['Get-Helper', 3], ['Get-Helper', 7], ['Write-Note', 4]])],
+    [P + '/app/Modules/Log/Log.psm1', fx([['Write-Note', 1, 3]], [['Write-Note', 8]])],
+    [P + '/app/Forms/Panel/Panel.ps1', fx([], [['Get-Item2', 2], ['Write-Note', 5]])],
+    [P + '/app/Scripts/Run.ps1', fx([], [['Get-Item2', 1]])],
+  ]);
+  const f = K.reach(svc, its, facts), row = name => f.find(x => x.name === name);
+  assert.deepEqual(f.map(x => x.name + ':' + x.reach), ['Get-Item2:outside', 'Write-Note:outside', 'Get-Helper:inside', 'Get-Idle:none'], 'by reach, then by how many call');
+  assert.deepEqual(row('Get-Item2').outside.map(o => o.label), ['Panel', 'Run.ps1']);
+  assert.deepEqual(row('Get-Helper').inside, ['Get-Item2'], 'a function calling itself is not its own caller');
+  assert.deepEqual(row('Write-Note').outside.map(o => o.label), ['Panel'], 'Log calls its own Write-Note, not this one');
+  assert.deepEqual(row('Write-Note').also, [P + '/app/Modules/Log/Log.psm1']);
+  assert.deepEqual(K.pendingOf(R.get('Forms/Panel')).map(p => [p.limit, p.files.map(i => i.name)]), [['Never loaded', ['Panel.ps1', 'Panel.xaml']]], 'a shared limit is said once');
+});

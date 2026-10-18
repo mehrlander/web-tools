@@ -130,6 +130,12 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
   assert.match(text, /data-slide-id="sel"/, 'launcher must support selective selection slide visibility');
   assert.match(text, /const getSlides =/, 'launcher must dynamically calculate active slides');
+  assert.match(text, /const pickContentRoot =/, 'launcher must score all semantic/shadow content candidates');
+  assert.match(text, /const extractTextFromTree =/, 'launcher must walk open shadow roots when reading text');
+  assert.match(text, /wt-ios-paste-probe/, 'launcher must include iOS offscreen textarea paste probe');
+  assert.match(text, /const holdPastedText =/, 'launcher must support holding pasted content in drawer');
+  assert.match(text, /const speechText =/, 'launcher must reduce markdown for speech synthesis');
+  assert.match(text, /data-tts-block/, 'launcher markdown preview must stamp blocks for TTS highlighting and seeking');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {
@@ -145,4 +151,5 @@ test('stubs include @version, versioned @require, and auto-update storage loader
     assert.match(src, new RegExp(`wt_${lib}_code`), `${stub}: missing storage cache key`);
   }
 });
+
 
