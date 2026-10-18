@@ -65,8 +65,9 @@ SHARED_MIN = 3      # shared windows before a pair is reported
 # own docs by construction (restatement there is the record, not the rot).
 # outside/ holds pinned copies of skills other people wrote
 # (docs/upstream-skills.csv), so its prose is not the estate's to deduplicate.
+# plugins/h/ is generated from docs/house-policies.md, one copy per shortcut.
 EXCLUDE_PREFIXES = (
-    ".claude/", "tracker/tasks/", "archive/", "outside/",
+    ".claude/", "tracker/tasks/", "archive/", "outside/", "plugins/h/",
 )
 # Generated projections inherit their sources' text by construction.
 EXCLUDE_PATHS = {

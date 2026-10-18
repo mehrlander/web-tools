@@ -1,6 +1,6 @@
 # Qualified writing
 
-Use these rules for every piece of prose a session writes: documents, commit
+For every piece of prose a session writes: documents, commit
 messages, pull request bodies, tracker tasks, and chat replies alike. The
 canonical source is `mehrlander/web-tools` at `docs/QUALIFIED-WRITING.md`.
 The portable plugin's `default` skill loads the byte-matched copy shipped beside
