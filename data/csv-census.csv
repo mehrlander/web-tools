@@ -54,7 +54,7 @@ docs/showing-mechanisms.csv,9,11,6520,"[""key"",""glyph"",""label"",""form"",""s
 docs/snags.csv,120,6,16553,"[""slug"",""title"",""count"",""last_seen"",""seen"",""targets""]"
 docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""detect"",""icon"",""gloss""]"
 docs/surfacing.csv,11,7,4647,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
-docs/tests.csv,412,8,441125,"[""path"",""kind"",""protects"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
+docs/tests.csv,412,8,440863,"[""path"",""kind"",""protects"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
 docs/text-fields.csv,13,5,4093,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
 docs/themes.csv,84,7,42016,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
 docs/tools.csv,5,2,190,"[""path"",""icon""]"

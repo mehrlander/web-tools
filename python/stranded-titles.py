@@ -53,22 +53,10 @@ Only `stranded` is worth reading. Expect false positives: a decorative mark
 whose title is genuinely a nicety reports the same as a caveat nobody can
 reach, and the difference is judgment the tool cannot supply.
 
-A fourth reading, kept out of the three verdicts so the tally line stays what
-it was. `reachable` was taken to mean "fine", and the house rule never said
-that: a title labels an icon-only control and carries no fact. A reachable
-title can still be the only place a fact lives, and a phone reader taps the
-control without ever seeing it. Counted 2026-10-15 across the app: about 85 of
-the 429 reachable titles carried a cost, a condition, a definition or a reason
-the control was disabled, by one hand reading. So a reachable title is also marked a FACT ON A
-CONTROL when it reads as one rather than as the control's name:
-
-  a sentence   its text (a static value, or the string literals of a bound
-               one) has sentence punctuation, or runs to 12 words or more
-  a helper     a bound value read from a name that says it explains:
-               refreshWhy(r), kindHelp(k), t.gloss, s.note, a.desc
-
-The summary line counts them; --facts lists them. A label that happens to be a
-sentence reports the same as a caveat, so this is a worklist, not a gate.
+Since 2026-10-16 the house style uses no title at all (html-style
+mechanics.md, "Title-tips and panel-tips"), so every title is a finding and
+--all lists them. The verdicts still order the work: a stranded title loses a
+fact when it goes, a reachable one only a label.
 
 Titles set from script (`el.title = …`, `setAttribute('title', …)`) never
 pass through the tag walk, so they are counted on their own line and listed
@@ -77,12 +65,10 @@ with --script; their reach is unknown to this file.
 Usage:
   python3 python/stranded-titles.py [PATH...]      # default: lib/ app/ pages/
   python3 python/stranded-titles.py --all          # every verdict, not just stranded
-  python3 python/stranded-titles.py --facts        # facts on a control instead
   python3 python/stranded-titles.py --script       # titles set from script instead
   npm run stranded-titles
 """
 
-import html
 import re
 import sys
 from collections import Counter
@@ -105,28 +91,7 @@ TAG = re.compile(r'</?\s*([a-zA-Z][\w:-]*)')
 TITLE = re.compile(r'''(:?title)=(["'])(.*?)\2''', re.S)
 XTEXT = re.compile(r'''x-text=(["'])(.*?)\1''', re.S)
 
-# What makes a reachable title a fact on a control (see the docstring).
-LITERALS = re.compile(r'''(['`])((?:\\.|(?!\1).)*)\1''', re.S)
-SENTENCE = re.compile(r'[.;!?](\s|$)')
-EXPLAINER = re.compile(r'(?:^|[a-z_])(?:why|tip|gloss|hint|note|help|desc)$', re.I)
-IDENT = re.compile(r'[A-Za-z_$][\w$]*')
 SCRIPT_SET = re.compile(r'''(?<![\w$])(?!document\b)[\w$]+\.title\s*=(?!=)|setAttribute\(\s*['"]title['"]''')
-
-
-def reads_as_fact(value, bound):
-    """True when a title's value is a sentence or comes from an explaining helper.
-
-    A bound value is judged literal by literal: the two arms of a ternary are
-    alternatives, and adding their words together made `'Read files one at a
-    time'` beside `'Read ' + n + ' one at a time'` look like a paragraph."""
-    if bound:
-        code = LITERALS.sub(' ', value)
-        if any(EXPLAINER.search(w) and w[0].islower() for w in IDENT.findall(code)):
-            return True
-        texts = [html.unescape(m.group(2)) for m in LITERALS.finditer(value)]
-    else:
-        texts = [html.unescape(value)]
-    return any(SENTENCE.search(s.strip()) or len(s.split()) >= 12 for s in texts)
 
 
 # A `/` starts a REGEX literal rather than a division when the previous
@@ -321,9 +286,7 @@ def scan(path):
             else:
                 verdict = 'stranded'
             out.append({'file': path, 'line': src.count('\n', 0, off) + 1,
-                        'tag': name, 'value': value, 'verdict': verdict,
-                        'fact': verdict == 'reachable'
-                                and reads_as_fact(value, tm.group(1) == ':title')})
+                        'tag': name, 'value': value, 'verdict': verdict})
         if name not in VOID and not attrs.rstrip().endswith('/'):
             stack.append((name, attrs))
     return out
@@ -351,14 +314,12 @@ def files_under(roots):
 
 def main(argv):
     show_all = '--all' in argv
-    show_facts = '--facts' in argv
     show_script = '--script' in argv
     roots = [a for a in argv[1:] if not a.startswith('-')] or list(DEFAULT_ROOTS)
     rows, scripted, counts = [], [], Counter()
     for f in files_under(roots):
         for r in scan(f):
             counts[r['verdict']] += 1
-            counts['fact'] += r['fact']
             rows.append(r)
         scripted += script_titles(f)
     if not rows and not scripted:
@@ -367,8 +328,6 @@ def main(argv):
 
     if show_script:
         wanted = scripted
-    elif show_facts:
-        wanted = [r for r in rows if r['fact']]
     else:
         wanted = [r for r in rows if show_all or r['verdict'] == 'stranded']
     by_file = {}
@@ -377,15 +336,15 @@ def main(argv):
     for f, rs in sorted(by_file.items(), key=lambda kv: -len(kv[1])):
         print(f'\n{f}  ({len(rs)})')
         for r in rs:
-            mark = f"[{r['verdict']}{' fact' if r.get('fact') else ''}] " if show_all else ''
+            mark = f"[{r['verdict']}] " if show_all else ''
             print(f"  {r['line']:>6}  <{r['tag']}>  {mark}{r['value'][:96]}")
 
     total = len(rows)
     print(f"\nstranded-titles: {total} titles; "
           f"{counts['reachable']} reachable by tap, {counts['echo']} echo visible text, "
           f"{counts['stranded']} stranded")
-    print(f"{counts['fact']} of the reachable read as a fact on a control (--facts); "
-          f"{len(scripted)} more set from script, reach unknown (--script)")
+    print(f"{len(scripted)} more set from script, reach unknown (--script). "
+          "The house style uses no title at all; --all lists every one.")
     if counts['stranded']:
         print('A stranded title is the only place its fact lives. '
               'house style: a tooltip worth having is worth building.')

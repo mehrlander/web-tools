@@ -193,55 +193,8 @@ test('line numbers still point into the unmasked file', () => {
   }
 });
 
-// THE FOURTH READING. `reachable` was being read as "fine", and the house rule
-// never said so: a title labels an icon-only control and carries no fact. The
-// tally line above is pinned by every test in this file, so the new reading is
-// a second summary line and a --facts listing, never a change to the first.
-function facts(html, ext = 'html') {
-  const dir = mkdtempSync(join(tmpdir(), 'stranded-titles-'));
-  try {
-    const file = join(dir, `probe.${ext}`);
-    writeFileSync(file, html);
-    const out = execFileSync('python3', [SCRIPT, '--facts', file], { encoding: 'utf8' });
-    const n = out.match(/(\d+) of the reachable read as a fact on a control/);
-    assert.ok(n, `no facts line in:\n${out}`);
-    const values = [...out.matchAll(/^\s+\d+\s+<[\w:-]+>\s+(.*)$/gm)].map(m => m[1].trim());
-    return { count: +n[1], values };
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-test('a sentence on a button is a fact on a control', () => {
-  const r = facts('<button @click="go()" title="Costs one read per repo. Runs the gated pass first.">Refresh</button>');
-  assert.equal(r.count, 1);
-});
-
-test('a short label on an icon-only button is not', () => {
-  const r = facts('<button @click="go()" title="Open the source in the file browser"><i class="ph"></i></button>');
-  assert.equal(r.count, 0);
-});
-
-test('a bound title read from an explaining helper is a fact', () => {
-  const r = facts('<button @click="run(r)" :title="refreshWhy(r)">Refresh</button>'
-    + '<button @click="pick(t)" :title="t.gloss" x-text="t.title"></button>');
-  assert.equal(r.count, 2);
-});
-
-// The arms of a ternary are alternatives, not one text. Joined, these two
-// short labels ran to 12 words and read as a paragraph.
-test('the arms of a ternary are judged one at a time', () => {
-  const r = facts('<button @click="d()" :title="p ? \'Read files one at a time\' : \'Read \' + n + \' files one at a time\'"><i></i></button>');
-  assert.equal(r.count, 0);
-});
-
-// `&amp;` carries a semicolon, which read as the end of a sentence.
-test('an HTML entity is not sentence punctuation', () => {
-  const r = facts('<a href="#d" title="Config format &amp; fields"><i></i></a>');
-  assert.equal(r.count, 0);
-});
-
-test('the default report does not list facts, so the stranded list stays clean', () => {
+// The default listing is the stranded titles only; --all lists the rest.
+test('the default report lists only stranded titles', () => {
   const r = scan('<button @click="go()" title="A fact. Another one.">x</button><div><span title="lone">*</span></div>');
   assert.deepEqual(r.values, ['lone']);
 });
