@@ -1,7 +1,7 @@
 ﻿process,target_repo,path_pattern,writer,sync_discipline,gloss
 tracker-state,all,"*/tracker/tasks/*.md, */tracker/board.*, trackers.md",session-web;session-local,immediate push on commit,"cross-session memory and backlog status, written through the tasks skill"
 session-records,web-tools-private,"sessions/YYYY/MM/*.json",session-record,throttled push during session,"preserving ephemeral container transcripts, written by the on-stop hook with git plumbing"
-personal-lists,web-tools-private,"lists/*.json",app-tap,immediate push on user gesture,real-time personal capture
+personal-lists,web-tools-private,"lists/*.json",app-tap;session-web;session-local,immediate push on user gesture or on commit,real-time personal capture
 crawl-caches,web-tools-private,"state/configs.json, state/activity.json, state/files.json, state/docs.json, state/calls.json",app-crawl;activity-cache,throttled push on material change,caching cross-repo API scans
 session-caches,web-tools-private,"state/sessions.json, state/session-menu.json, state/sessions-index/*.json",app-crawl;activity-cache,throttled push on material change,indexing session records for search and menus
 scheduled-tasks,web-tools-private,"state/scheduled-tasks.json",scheduled-tasks,one write per run when a task was due and its status is on,"each scheduled task's last run, next due date and per-target fingerprints, which the gate and the probe compare against; written by python/scheduled-tasks.py"
