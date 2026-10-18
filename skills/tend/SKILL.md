@@ -4,7 +4,8 @@ description: >-
   Cultivate a workspace toward recognized objectives: investigate branches,
   pull requests, trackers and snags, store each conclusion as a finding, and
   bring the owner a prepared user call only where the next step needs their
-  word. Run when the owner invokes /tend.
+  word. Run when the owner invokes /tend, or when a session receives a
+  /tend prod request.
 disable-model-invocation: true
 ---
 
@@ -39,6 +40,8 @@ to see the vital choice and commit.
 
 `/tend` tends the four subjects below. `/tend <subject>` tends one: any named
 subject, such as `snags`, a project folder, or a pull request.
+`/tend prod` instead asks each session with open work to tend its own work
+(Prod, below).
 
 Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`docs/views/tending.md`](../../docs/views/tending.md) states the
@@ -139,3 +142,41 @@ The `×N` count in `docs/SNAGS.md` orders the reading and triggers nothing.
 - **Find:** a snag that still bites (no task cites its slug, its entry records
   no fix in place), and entries the index flags as overlapping.
 - **Propose:** a task for a snag that still bites.
+
+## Prod
+
+`/tend prod` asks each session with open work to tend its own work. List the
+account's sessions and send this message to each one that is idle, last showed
+activity between 30 minutes and a week ago, and has an open pull request or a
+blocked or review-ready status. The owner can name sessions to skip, or a
+different window. `<sha>` is a commit that carries this section, since a
+session's checkout or plugin copy may predate it:
+
+> The user in session <id> ran /tend prod. Tend this session's own work as
+> the Prod section of the tend skill defines it (mehrlander/web-tools,
+> skills/tend/SKILL.md at commit <sha>). Please proceed using your judgment.
+
+Then reply with the sessions messaged and the sessions skipped, each with its
+title and open work, and for a skipped one the reason.
+
+A session that receives it works through whichever of these apply, under the
+principles above:
+
+- **Land what is already approved,** up to a pull request ready to merge:
+  merge main into the branch, fix conflicts and failing checks, sync the
+  body.
+- **Ripen the open decision:** one question, a recommendation, the evidence.
+  Where cheap and reversible, build the recommended option on the branch so
+  the owner's answer is accept or reject. Ripen only decisions already open.
+- **Stand in for a hand check** the session asked the owner to make: a
+  headless screenshot, a measurement at phone width, a test.
+- **Mark where to pick up** when the work continues until the owner is
+  satisfied, such as a page refined over many turns: what was built, how it
+  stands against the latest request, and the next steps in order.
+- **Write the resume point** in a long session, while the detail is still in
+  context: in the pull request body if there is one, complete enough for a
+  fresh session to continue from.
+
+End the session's own reply with a recap for a reader coming back cold: what
+the session is for, what it did, where things stand, what waits on the owner,
+and where to pick up.
