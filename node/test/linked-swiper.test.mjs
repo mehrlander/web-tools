@@ -171,3 +171,27 @@ test('destroy stops the kit answering the list', async () => {
   s.list.querySelector('[data-row="b"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   assert.deepEqual(s.picks, []);
 });
+
+test('show() moves to a row and marks it without telling the host', async () => {
+  const w = page({ swipe: false });
+  const s = mountList(w, ['a', 'b', 'c']);
+  s.handle.show('c');
+  assert.deepEqual(s.picks, []);
+  assert.deepEqual(selected(s.list), ['c']);
+  assert.equal(s.card.querySelector('[data-ls="body"]').textContent, 'body c');
+});
+
+test('a click the host claimed first, with preventDefault, does not pick the row', async () => {
+  const w = page({ swipe: false });
+  const s = mountList(w, ['a', 'b']);
+  s.list.addEventListener('click', e => e.preventDefault(), true);
+  s.list.querySelector('[data-row="b"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.deepEqual(s.picks, []);
+});
+
+test('a host\'s own columns replace the default when there is no seam', async () => {
+  const w = page({ swipe: false });
+  const s = mountList(w, ['a'], { extra: { wide: 'grid-cols-[minmax(0,290px)_minmax(0,1fr)]' } });
+  assert.ok(s.root.classList.contains('grid-cols-[minmax(0,290px)_minmax(0,1fr)]'));
+  assert.ok(!s.root.classList.contains('grid-cols-[minmax(0,340px)_minmax(0,1fr)]'));
+});
