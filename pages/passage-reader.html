@@ -74,9 +74,10 @@ document.addEventListener('alpine:init', () => {
   };
   // An entity's kind, when the reading gives one: a glance cue before its label.
   const KIND = {
-    thing: { label: 'Thing', icon: 'ph-cube' }, actor: { label: 'Actor', icon: 'ph-person-simple-walk' },
-    event: { label: 'Event', icon: 'ph-lightning' }, measure: { label: 'Measure', icon: 'ph-ruler' },
-    condition: { label: 'Condition', icon: 'ph-cloud-sun' }, concept: { label: 'Concept', icon: 'ph-lightbulb' },
+    thing: { label: 'Thing', icon: 'ph-cube' }, record: { label: 'Record', icon: 'ph-file-text' },
+    actor: { label: 'Actor', icon: 'ph-person-simple-walk' }, event: { label: 'Event', icon: 'ph-lightning' },
+    measure: { label: 'Measure', icon: 'ph-ruler' }, condition: { label: 'Condition', icon: 'ph-cloud-sun' },
+    concept: { label: 'Concept', icon: 'ph-lightbulb' },
   };
   const kindIcon = k => KIND[k] ? `<i class="ph ${KIND[k].icon} mr-1.5 align-[-0.125em] text-base-content/50" aria-label="${KIND[k].label}" data-title-tip="${KIND[k].label}" data-title-tip-bare></i>` : '';
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');

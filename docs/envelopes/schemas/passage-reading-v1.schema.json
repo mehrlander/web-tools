@@ -45,7 +45,7 @@
         "required": ["label", "gloss", "basis"],
         "properties": {
           "label": { "type": "string" },
-          "kind": { "enum": ["thing", "actor", "event", "measure", "condition", "concept"], "description": "What sort of entity it is: a particular thing you could point to, physical or recorded; a person, group or system that acts; something that happens or is done; an amount, limit or count; a circumstance something can be in; or an idea, rule or kind of thing." },
+          "kind": { "enum": ["thing", "record", "actor", "event", "measure", "condition", "concept"], "description": "What sort of entity it is, or of thing it names: a physical object or a running system that does not decide; a document, file, field, message or listing; a person, group or system that decides; something that happens or is done; an amount, count or limit, including a limit stated as a rule; a circumstance something can be in; otherwise an idea, principle or rule. An entity named for a role takes the kind of what fills the role." },
           "gloss": { "type": "string" },
           "basis": { "enum": ["passage", "context", "general"] },
           "ctx": {

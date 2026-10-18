@@ -21,7 +21,7 @@ TYPES = {"definition", "assertion", "judgment", "rule"}
 KINDS = {"elaborates", "rests-on", "narrows", "contrasts", "supports"}
 FORMS = {None, "anaphor", "ellipsis"}
 BASES = {"passage", "context", "general"}
-ENTITY_KINDS = {"thing", "actor", "event", "measure", "condition", "concept"}
+ENTITY_KINDS = {"thing", "record", "actor", "event", "measure", "condition", "concept"}
 
 args = sys.argv[1:]
 if not args or args[0].startswith("-"):
