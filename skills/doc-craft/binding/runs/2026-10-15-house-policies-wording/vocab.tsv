@@ -1,4 +1,4 @@
 label	side	gloss	color
-OK	pass	needs no change	203,213,225
-WEAK	wording	the wording needs work: a reader could misread it, stumble over it, or do without it	245,158,11
-WRONG	content	the content is false, or claims more than the document can back	225,29,72
+OK	pass	neither weak nor wrong	203,213,225
+WEAK	wording	unclear, hard to read, or unneeded	245,158,11
+WRONG	content	false, or stronger than the document supports	225,29,72

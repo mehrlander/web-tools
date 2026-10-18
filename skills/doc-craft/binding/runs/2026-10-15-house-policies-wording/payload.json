@@ -20,19 +20,19 @@
    {
     "label": "OK",
     "side": "pass",
-    "gloss": "needs no change",
+    "gloss": "neither weak nor wrong",
     "color": "203,213,225"
    },
    {
     "label": "WEAK",
     "side": "wording",
-    "gloss": "the wording needs work: a reader could misread it, stumble over it, or do without it",
+    "gloss": "unclear, hard to read, or unneeded",
     "color": "245,158,11"
    },
    {
     "label": "WRONG",
     "side": "content",
-    "gloss": "the content is false, or claims more than the document can back",
+    "gloss": "false, or stronger than the document supports",
     "color": "225,29,72"
    }
   ],
