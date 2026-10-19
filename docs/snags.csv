@@ -30,6 +30,7 @@ autocrlf-rewrites-fetched-originals,pages committed from the laptop were not the
 laptop-python-older-than-ci,code the laptop daemon loads passed every test and would not import there,1,2026-10-18,2026-10-18,venues.md
 one-word-filename-needs-explaining,a file called `mechanics.md` had to be explained before an edit to it could be reviewed,1,2026-10-18,2026-10-18,house-policies.md
 unasked-laptop-reads-as-unknowable,a cause called unconfirmable that one errand could confirm,1,2026-10-18,2026-10-18,venues.md
+cursor-help-on-a-hover-term,"the question-mark cursor, on terms a call explains",1,2026-10-15,2026-10-15,../skills/html-style/references/mechanics.md#title-tips-and-panel-tips
 failed-pin-cannot-refresh-itself,"the plugin failed to load, so the hook that updates it never ran",1,2026-10-14,2026-10-14,../skills/hooks/refresh-plugin.sh
 approval-wording-scripted,a session told the owner what to type to approve,1,2026-10-12,2026-10-12,../skills/hooks/commit-consent.py
 showing-picks-the-framed-view,"the render link opened the app, where the change is hidden",1,2026-10-12,2026-10-12,../python/showing.py
