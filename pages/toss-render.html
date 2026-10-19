@@ -129,8 +129,8 @@
   </form>
 
   <p id="empty-msg" class="text-error text-xs max-w-md font-mono"></p>
-  <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
-     href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
+  <a id="empty-token" class="link link-primary text-xs hidden"
+     href="../app/?view=here">Set or check the GitHub token in This browser</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
     URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, <code>?lib=ref</code> to run another Web Tools version, <code>?refs=owner/repo@ref</code> (repeatable, or <code>@ref:path</code> for one file) to read a repository at another version.
   </p>
@@ -274,6 +274,11 @@
     return location.origin + location.pathname + location.search + frag;
   };
 
+  function tokenHref() {
+    const next = 'pages/toss-render.html' + (location.search || '') + (location.hash || '');
+    return '../app/?view=here&next=' + encodeURIComponent(next);
+  }
+
   function showInput(error, tokenHint) {
     tossLinkFn = null;
     // Back to the panel (or an error): nothing rendered, so no subject.
@@ -285,9 +290,14 @@
     // unable to scroll: the frame it was hiding overflow for is not there.
     document.body.style.overflow = '';
     msg.textContent = error || '';
-    // Only token-shaped failures surface the token link; a decode or parse
-    // failure must not send the viewer off to mint a new token for nothing.
-    document.getElementById('empty-token').classList.toggle('hidden', !tokenHint);
+    // Only token-shaped failures surface the token link, which sends the viewer
+    // to This browser (?view=here) with ?next= carrying this toss address so
+    // the Back button returns here once the token is updated.
+    const tokLink = document.getElementById('empty-token');
+    if (tokLink) {
+      tokLink.href = tokenHref();
+      tokLink.classList.toggle('hidden', !tokenHint);
+    }
   }
   // Kept name for the existing error call sites; an error just re-shows the panel.
   const showEmpty = showInput;
@@ -1145,12 +1155,16 @@ document.addEventListener('click',function(e){
   // returns an empty "content" field, so the contents fetches below ask for raw
   // and sniff the response; directories and errors come back as JSON regardless.
   const RAW_MEDIA = 'application/vnd.github.raw+json';
-  function ghHeaders(accept) {
-    const headers = { Accept: accept || 'application/vnd.github.v3+json' };
+  function savedToken() {
     try {
       const t = localStorage.getItem('ghToken');
-      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
-    } catch (e) {}
+      return (t && !t.includes('🎟')) ? t.trim() : '';
+    } catch (e) { return ''; }
+  }
+  function ghHeaders(accept) {
+    const headers = { Accept: accept || 'application/vnd.github.v3+json' };
+    const t = savedToken();
+    if (t) headers.Authorization = 'Bearer ' + t;
     return headers;
   }
 
@@ -1307,6 +1321,88 @@ document.addEventListener('click',function(e){
     return end === -1 ? text + tags : text.slice(0, end) + tags + text.slice(end);
   }
 
+  // Distinguish the four reasons an address fetch fails instead of guessing
+  // "not found, or the stored token lacks access" on every 404:
+  //   1. No token is saved in localStorage.ghToken.
+  //   2. A token is saved, and GitHub rejects it (401 on the read or on /user).
+  //   3. A classic token is saved and accepted by /user, but x-oauth-scopes
+  //      lacks `repo`, so GitHub hides private repositories as 404.
+  //   4. The saved token has `repo` scope and /user accepts it, which means a
+  //      404 is a missing repository, ref, or file path rather than a token
+  //      problem (so the token link stays hidden).
+  async function explainAddressFailure(res) {
+    const tok = savedToken();
+    const tail = tok ? '…' + tok.slice(-4) : '';
+    const rem = res.headers && typeof res.headers.get === 'function'
+      ? res.headers.get('x-ratelimit-remaining') : null;
+    if (res.status === 401) {
+      return {
+        why: tok ? 'saved token ' + tail + ' was rejected by GitHub (expired or revoked)'
+                 : 'authentication required (no GitHub token saved in this browser)',
+        tokenHint: true,
+      };
+    }
+    if (res.status === 403) {
+      if (rem === '0') {
+        return {
+          why: tok ? 'hourly rate limit reached for saved token ' + tail
+                   : 'anonymous hourly rate limit reached (no GitHub token saved in this browser)',
+          tokenHint: true,
+        };
+      }
+      return {
+        why: tok ? 'forbidden with saved token ' + tail
+                 : 'forbidden (no GitHub token saved in this browser)',
+        tokenHint: true,
+      };
+    }
+    if (res.status === 404) {
+      if (!tok) {
+        return {
+          why: 'not found (no GitHub token is saved in this browser; a private repository needs one)',
+          tokenHint: true,
+        };
+      }
+      try {
+        const u = await fetch('https://api.github.com/user', { headers: ghHeaders(), cache: 'no-store' });
+        if (u.status === 0 || u.status === 401) {
+          return {
+            why: 'saved token ' + tail + ' was rejected by GitHub (expired or revoked)',
+            tokenHint: true,
+          };
+        }
+        if (u.ok) {
+          const scopesRaw = u.headers && typeof u.headers.get === 'function'
+            ? u.headers.get('x-oauth-scopes') : null;
+          if (scopesRaw !== null && !/^github_pat_/.test(tok)) {
+            const scopes = scopesRaw.split(',').map(s => s.trim()).filter(Boolean);
+            if (!scopes.includes('repo')) {
+              return {
+                why: 'saved token ' + tail + ' has no repo scope, so GitHub hides private repositories',
+                tokenHint: true,
+              };
+            }
+            return {
+              why: 'not found on GitHub (saved token ' + tail + ' has repo access; check the repository, ref, or path)',
+              tokenHint: false,
+            };
+          }
+          if (/^github_pat_/.test(tok)) {
+            return {
+              why: 'not found on GitHub (check the repository, ref, or path, or whether fine-grained token ' + tail + ' grants Contents access to this repository)',
+              tokenHint: true,
+            };
+          }
+        }
+      } catch (e) {}
+      return {
+        why: 'not found on GitHub (check the path, or whether saved token ' + tail + ' has access to this repository)',
+        tokenHint: true,
+      };
+    }
+    return { why: 'GitHub error ' + res.status, tokenHint: false };
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path>[?<query>][#<frag>] — ':' can't appear in a
     // git ref name. Neither suffix reaches the API: both are handed to the
@@ -1347,13 +1443,8 @@ document.addEventListener('click',function(e){
     }
     const at = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path;
     if (!res.ok) {
-      // Token-shaped failures say so and surface the token link; anything
-      // else is labeled as GitHub's answer, not the viewer's credentials.
-      const why = res.status === 404 ? 'not found, or the stored token lacks access (a private repo needs one)'
-                : res.status === 401 ? 'the stored token was rejected (expired or revoked)'
-                : res.status === 403 ? 'rate-limited or forbidden (is a token saved?)'
-                : 'GitHub error ' + res.status;
-      return showEmpty(at + ' — ' + why + '.', [401, 403, 404].includes(res.status));
+      const { why, tokenHint } = await explainAddressFailure(res);
+      return showEmpty(at + ' — ' + why + '.', tokenHint);
     }
     let text;
     try {
