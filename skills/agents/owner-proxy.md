@@ -1,5 +1,5 @@
 ---
-name: owner-reader
+name: owner-proxy
 description: Gives the owner's likely view of a message, a document or a decision, drawn from what the owner has said and recorded. Summon before handing the owner substantive work, or to get the owner's perspective on content or a decision before asking the owner. Does not edit.
 tools: Read, Grep, Glob
 model: sonnet

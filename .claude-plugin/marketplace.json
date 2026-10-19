@@ -76,7 +76,7 @@
       "agents": [
         "./agents/house-style-critic.md",
         "./agents/peeves-critic.md",
-        "./agents/owner-reader.md",
+        "./agents/owner-proxy.md",
         "./agents/conservator.md",
         "./agents/radical-editor.md",
         "./agents/source-historian.md",
