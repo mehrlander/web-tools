@@ -3,26 +3,33 @@
 Showing follows surfacing ([SURFACING.md](SURFACING.md)): surfacing decides what
 to hand over; showing is what makes it openable.
 
-**The reference is the app, not this file.** Each way of showing (a hosted URL, a
-`?use=` pin, a 🥏 toss, and others) is a row in
+**The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
+deployed page's own URL, content carried in the link, and others) is a row in
 [`showing-mechanisms.csv`](showing-mechanisms.csv), with the address to write,
 what it reaches and misses, its trap, and when to use it. The `showing` block of
 [`routes.json`](routes.json) holds the picker rules and two of the three axes that
 classify the rows, version and viewer; the third, subject, is
 [`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders all
-three files.
+three files, and `npm run showing` ([`python/showing.py`](../python/showing.py))
+executes the picker.
 
-## `?use=` versus a 🥏 toss
+## The toss, framed or as the tab
+
+A 🥏 toss is the preview link for anything the deployed page does not already
+show: a page's own file, its library, a document or data. Tossed at a ref, a page
+boots its library at that ref, because the renderer hands the framed page its
+ref. A `?use=` link, a deployed page pinned to a ref, still works where one was
+handed over, and nothing mints a new one
+([showing-consolidation.md](showing-consolidation.md)).
 
 |  | What runs | Reaches | Misses |
 | --- | --- | --- | --- |
-| **`?use=`** | main's page file, as the top-level document | anything lib does, including what it does to the tab | the page file's own inline code |
-| **🥏 toss** | the branch's page file, inside a frame | the page's inline code and its lib | what the page does to the top-level document, unless `?top` is set |
+| **🥏 toss** | the page file at the ref, inside a frame | the page's inline code and its library | what the page does to the top-level document, and the FAB, which is the renderer's at main |
+| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | nothing the frame reaches; `?w=` and a `#gz=` payload keep the frame, and its iPhone behaviour is unmeasured |
 
-A change in a page's inline code that acts on the top-level document therefore
-needs `?top` on the toss, which makes the page the top-level document, or a move
-into a lib module, where `?use=` reaches it. [`loader.md`](loader.md) documents
-how both work.
+`npm run showing` adds `?top` when a page's diff touches the tab or the FAB's own
+code changed, and `--top` asks for it otherwise. [`loader.md`](loader.md)
+documents how a toss hands a page its versions.
 
 ## Nesting
 
@@ -66,8 +73,7 @@ makes the page the top-level document.
   uses. The framed page's `gh` uses the Web Tools ref the shell resolved; the
   shell's uses main. So whatever the shell contributes to the view (today the FAB
   and the Alpine bundle) comes from main, whatever the address names. A branch
-  change there shows through `?top`, where the page mounts its own FAB, or through
-  a `?use=` pin on a deployed page.
+  change there shows through `?top`, where the page mounts its own FAB.
 - **Never pin both documents.** `?use=` on the shell alongside an `@ref` in the
   fragment pins two documents in one view, and on an iPhone that kills Safari's web
   process on the first tap of the FAB, whatever refs are named. The cause is
@@ -77,7 +83,8 @@ makes the page the top-level document.
 
 ## The FAB's ref check
 
-Every page that boots lib honors `?use=`, and every one carries the FAB. A page
+Every page that boots lib honors `?use=`, which is also how a toss hands a framed
+page its ref, and every one carries the FAB. A page
 that pins the ref in its own boot block and ignores the parameter loads
 default-branch code under a preview banner. The FAB compares `window.gh.ref` with
 the address and says when `?use=` was ignored. Inside a toss it checks the framed
@@ -91,10 +98,14 @@ change, say so") and a headless screenshot.
 
 ## Viewer context
 
-The Claude app's in-app browser keeps its own storage, so the `ghToken` a toss
-needs may be absent there. In that case, bake the page and publish a 📦 artifact,
-or fall back to a 🥏 `#gz=` link, which carries the page inside the link. Options
-and pipeline: [artifacts.md](artifacts.md).
+A toss reads GitHub with the token saved in the viewer's browser, and each browser
+keeps its own, so a private repo needs one there. The Claude app's in-app browser
+is a separate browser, so the token may be absent in it. When a toss fails for want
+of a token, it links to the app's This browser view (`?view=here`), which saves one
+and returns to the toss. Without a token, carry the content in the link: a 🥏
+`#gz=` toss carries a page, and the app's `#gz=` carries text files
+([stage.md](stage.md#content-the-gz-param)). Or bake the page and publish a 📦
+artifact ([artifacts.md](artifacts.md)).
 
 ## Subjects and kinds
 

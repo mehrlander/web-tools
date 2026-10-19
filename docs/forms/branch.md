@@ -41,13 +41,14 @@ and cleared on close. A link naming a branch the list no longer holds still
 opens, as a list of one.
 
 **The Look row** links each app view the branch changes at the branch's own tip
-(`app/?use=<sha>&view=<key>`), plus a render link per changed page. Which views
+(a toss of the app, `toss-render.html#gh=mehrlander/web-tools@<sha>:app/index.html?view=<key>`),
+plus a render link per changed page. Which views
 count is `routeActivity.routesTouched`'s rule, not this page's: a file fewer
 than three routes declare puts the branch on that route, and wider files only
 count as shared. Routes are read from `docs/app-routes.csv` at the branch ref,
-so a branch in another repo gets no row. `?use=` serves `dist/web-tools.js`, not
-`lib/`, so a branch that changed a component without rebuilding shows the old
-code, and the row says **bundle not rebuilt**. `npm run showing` gives the same
+so a branch in another repo gets no row. The app loads its pre-build
+(`dist/app.js`) at the tip, not `lib/`, so a branch that changed a component
+without rebuilding shows the old code, and the row says **bundle not rebuilt**. `npm run showing` gives the same
 address, and a test holds the two together.
 
 **The guide** is the PR body, rendered through `kits/guide-render.js` and read
