@@ -1,253 +1,70 @@
 # The stage: the Web Tools app's working surface
 
-The stage is where a cross-repo fileset is assembled, read, compared, saved,
-and sent. This is its reference; the `#stage=` link is also a surfacing
-primitive in [SURFACING.md](SURFACING.md) ("Stage a fileset").
-The app that renders it is documented in [APP.md](APP.md); the token
-requirement there (a `#stage=` link is token-gated) applies to every handoff.
+The stage (`?view=stage`) is where a cross-repo fileset is assembled, read,
+compared and sent. It is `store.stage`: a list of `{repo, ref, path}` refs, plus
+local items from pastes, drops and dictation. Each item carries its own origin,
+so one stage spans repos. The view, its intake (`StageIntake`) and its link
+codec (`StageLink`) are in
+[`lib/alpineComponents/stage.js`](../lib/alpineComponents/stage.js). The tests
+are `node/test/stage*.mjs` and the `node/render/scenarios/stage-*.mjs`
+scenarios. The app around the stage is documented in [APP.md](APP.md),
+including the token requirement that every `#stage=` handoff states.
 
-The stage is `store.stage`, a list of `{repo, ref, path}` refs (plus local items
-from drops). One stage sits above any repo, since every item carries its own
-origin.
+The stage does not save. `?view=surfaces` is a retired alias that lands on the
+bench. A curated set is a `.surface` file, read by
+[`lib/kits/surface.js`](../lib/kits/surface.js) under the contract in
+[envelopes/surface.md](envelopes/surface.md).
 
-**The stage does not save.** From 2026-08-03 to 2026-08-27 the view carried a
-second sub-view, **Saved**, which listed the registry's `.surface` files, and
-the bench could promote its working set into one. Both went. What remains is
-the bench alone, at `?view=stage`; `?view=surfaces` is a retired alias that
-lands on it, so old links resolve.
+## Intake
 
-Why it went is not that a stage and a surface are unrelated. It is that the
-association ran one way and stunted the other end: two `.surface` files exist
-and neither was ever saved from a bench, while the surface format sat behind a
-workbench pill where nobody browsing would look for curated content. The
-envelope is unharmed and keeps its reader
-([`lib/kits/surface.js`](../lib/kits/surface.js)) and its contract
-([envelopes/surface.md](envelopes/surface.md)), where `stage/1` is one profile
-of three and `branch-review/1` is the one with a live reader.
+A paste reads every format on the clipboard; one spreadsheet copy holds
+tab-separated text, an HTML table and an image. The paste stages a file if the
+clipboard holds one, else the plain text, and every flavor appears on a
+**flavor bar** above the staged list, the taken one ticked. A tap stages or
+unstages each flavor. A form field keeps its native paste, and the bar lists
+every flavor unticked. Hovering a pill opens the house hover card
+([`kits/source-peek.js`](../lib/kits/source-peek.js)) on the flavor's text.
 
-The bench is the working set. With nothing staged it is the drop target and the
-adder, so a set can be built from a cold start.
+Each pill carries a menu of what can be done with its flavor. The menu offers
+**Copy**, **Markdown** on markup, **Base64**, and **Decoded** where the text
+decodes (`base64Info`, which also reads `data:` URIs). A conversion lands on the
+bar as a new dashed pill, labelled by the conversion, without opening the
+reader. The new pill carries its own menu, so conversions chain. A conversion's markdown opens raw, where every
+other `.md` in the app renders, because it is a payload to copy;
+`StageIntake.opensRaw` sets that rule for the reader and the hover card alike.
 
-What the envelope will not carry is as deliberate as what it will: a proposed
-`destination` is a claim about the set and rides along, while a transfer in
-flight, the bundle, and the Diff lens's per-side ref override are the tool's
-business. The line is whether a field is still true a year later with no tool
-running. `stage.targets` stays in the repo manifest for the same reason: where
-a repo *accepts* files is a fact about that repo.
+The stage opens the transform workbench
+([`lib/alpineComponents/transform-workbench.js`](../lib/alpineComponents/transform-workbench.js))
+on items `StageIntake.transformKindOf` recognizes: a **bundle** (the
+workbench's own `{fn, data}` output), **rows** (a `.csv`, a `.tsv` or a JSON
+array of records), or a **transform** (a `rows => rows` function). The bench row
+and the reader's header offer a chip that opens the workbench as a swipe-deck
+takeover with the item's text loaded. It mounts fresh on each open; the
+workbench keeps its tab sources but no data. A bundle is the one kind that skips
+the offer and opens the tool directly, since its content is base64 gzip that
+only the workbench reads.
 
-**A paste carries several formats, and the stage reads all of them.** One copy
-out of a spreadsheet puts three things on the clipboard at once: the cells as
-tab-separated text, the same cells as an HTML table, and a picture of the range.
-The handler used to read one and return, so which one you got depended on where
-the caret was (the page took the image, a form field took the text) and the rest
-was gone. Neither behavior was the platform's: `clipboardData.types` had always
-listed all three.
+**iOS Safari fires no `paste` event unless an editable is focused**, so a
+window listener receives nothing on an iPhone. The app header (at every width)
+and the bench each carry a Paste button. Both run `StageIntake.takeClipboard`,
+which reads through [`kits/io.js`](../lib/kits/io.js); the header's button then
+opens the Stage. Reading the clipboard needs the tap's own user activation:
+awaiting anything before the read spends it, and the read then fails as though
+the clipboard were unavailable. The [`ios-clipboard`](../skills/ios-clipboard/SKILL.md)
+skill holds the measured recipe.
 
-Now the flavor that was always taken is still taken, and **every** flavor appears
-on a **flavor bar** above the staged list, the taken one ticked, one tap each
-way. A bar rather than a dialog, since the common case is "take the obvious one
-and carry on," and the bar is also the only place that says what a copy actually
-put on your clipboard. Until 2026-08-28 it listed only the LEFTOVERS, which made
-it an add list: bringing the html in was one tap and choosing it INSTEAD of the
-text was a tap plus hunting the text down in the list below, and choosing
-between two readings of one copy is the commoner want. A tick that toggles says
-both in one control, and the chip's state is read off the stage rather than held
-on the chip, so removing the row below un-ticks it. A form field keeps its native
-paste untouched, ticks nothing, and still names what it could not hold.
+## The bench
 
-**Hovering a pill shows what is inside it**, through the house hover card
-([`kits/source-peek.js`](../lib/kits/source-peek.js)) rather than anything this
-view draws. What separated `html 4.1 KB` from `txt 192 B` was a title attribute
-reading "Stage 2026-08-28-paste.html", which is the pill's own label again, so
-the flavor with the addresses in it was unopenable until you had committed to
-staging it.
+The bench has one responsive split, between **Out** and the staged set. Below a
+42rem container it is one column; above it, the two sit side by side with the
+drag splitter from [`kits/dock-split.js`](../lib/kits/dock-split.js). The
+breakpoint is on the Stage container rather than the window, because a docked
+reader narrows the container alone. With nothing staged, the bench shows the
+drop target and Add. A repo manifest's `stage.files` seeds an empty stage, and
+its `stage.targets` fills the send field's suggestions
+([manifest-fields.csv](manifest-fields.csv)).
 
-The card was a split pill with an eye and a panel for an afternoon, then a
-daisyUI tooltip for another: two tap targets inside one badge, and then a dark
-box in a light app that reinvented placement, dwell, the keyboard path and the
-touch rule, each one worse. **The kit had already decided all of them.**
-
-Using it widened its convention rather than copying it: a peek's subject was
-"an exact file on GitHub" and is now **a named text**, of which a repo file is
-one case. Nothing in the kit had to change. `data-peek` carries the pasted
-file's own name, `seed()` puts the bytes in its cache, and a key that is not an
-address never reaches the fetch, since the cache hit comes first; the card's
-head falls back to showing the key as the path, which is the file name wanted
-here. The extension decides the rendition, so an `.html` flavor
-shows as source and a `.md` one renders, unless the seeder overrules it (below).
-An **image** carries no peek, since this card reads text; its menu is the whole
-of what it offers.
-
-**Each pill carries a menu of what can be done with its flavor.** The pill is
-the subject and the menu is the verbs: **Copy**, **Markdown** on markup,
-**Base64**, and **Decoded** where the text decodes. Each label names the
-**version you get**, not the trip to it. The tap still stages and unstages,
-which is what is wanted most and the one thing that should not cost a menu.
-
-**A conversion lands as a pill, and does not open the reader.** Opening it was
-the first shape and it was wrong twice over: it takes the screen away from the
-bar you are working in, and it answers a question ("what does this look like")
-that was not the one asked ("give me this version"). So the bar stops meaning
-"what the clipboard held" and starts meaning **what this paste has produced**,
-which is also what makes a conversion composable: the markdown that just landed
-carries its own Copy and its own Base64, so a second step is a tap rather than a
-trip through the staged list. A derived pill is labelled by the **tag** that made
-it rather than by its extension, since `md` says nothing next to a paste that
-sniffed `.md` and a decode can land on any extension at all. It is also
-**dashed**, and stays dashed once it is staged: the border says where the thing
-came from, which does not change, while the tick says whether it is on the
-stage, which does.
-
-Conversions had a pill of their own for a day, which put a derivation beside the
-formats it is made from and could hold only the one anybody had asked for; the
-row would have grown by a pill per verb. The shape before that was a links
-extractor, as a csv and then as a markdown list, and it is gone entirely:
-converting the markup carries every link as `[text](url)` already, in its own
-context. What is lost is that reduction, a bare list with the prose stripped
-out.
-
-**Copy is the reason the menu exists at all.** The stage is where a paste lands,
-so the cheapest way to change what is on the clipboard is to take a flavor back
-out of it: copy the html of a copy that only gave you text, or copy the markdown
-of a page. It goes through `window.io.copy`, which owns the focus wait, the
-insecure-context fallback and the legacy DOM path, rather than
-`navigator.clipboard` directly.
-
-**Base64 runs both ways, and `base64Info` is one function rather than a test and
-a converter**, so the two cannot disagree about what valid means: an item the
-menu offers has already been decoded. Three gates, each paying down a false
-positive. The **alphabet** (url-safe accepted) and a **length** that is a
-multiple of four, which is what the padding is for and what rules out most
-prose; a floor of 16 characters, below which a word like `deadbeef` qualifies on
-arithmetic alone; and a decode that lands on something **nameable**, meaning
-text, or bytes whose first four say what file they are (png, jpg, gif, pdf, zip,
-webp). Unknown binary is refused rather than staged as `.bin`, since "here are
-some bytes" is not an answer anybody asked the menu for.
-
-A `data:<mime>;base64,` URI is read too, and **its own media type beats the
-sniff**, since it is what the encoder said the bytes were. That is the whole
-reason the prefix is worth recognizing rather than the arithmetic, which the
-payload passes on its own. Text still wins where the bytes are text, so a
-base64'd `image/svg+xml` lands as markup rather than as an opaque file.
-Encoding is `b64OfText` (the escape/encodeURIComponent sandwich, since `btoa` is
-a byte encoder and throws on the first smart quote) or `b64OfBytes` (chunked, for
-a pasted screenshot, which is the case base64 exists for and the only verb a byte
-flavor can answer).
-
-**The conversion is Turndown's, and the host loads it**, the same contract the
-transform workbench states: `StageIntake.mdOf` owns the options and the GFM
-plugin (which is what turns a pasted web-page TABLE into a table rather than a
-run of cells) and throws rather than fetching, since a lazy fetch inside a tap
-spends the gesture and then reports the loss as something else. Two files,
-fetched the first time somebody chooses the item and never on a paste
-where nobody does. Cached against the **source text**, not the name: two pastes
-on one day carry the same sniffed name, so a name-keyed cache hands the second
-one the first one's markdown.
-
-**And the markdown opens raw**, where every other `.md` in the app renders.
-`READ_MODE`'s rule is right for a document, whose question is what it SAYS; a
-conversion is a **payload**, and its question is what it IS, since the reason to
-make one is to copy the text somewhere else. Rendering it puts a mode switch
-between the reader and the thing they asked for, and strips the `[text](url)`
-that was the point. The override is `StageIntake.opensRaw`, keyed on the name
-`derivedName` mints, which is a closed loop: the intake is the only producer of
-that suffix and the stage's own reader the only consumer.
-
-**The card has to agree with the reader**, or a hover previews a different thing
-than the tap opens, so `seedPeeks` passes `'source'` for exactly the names
-`opensRaw` claims. That is the second widening the kit absorbed without changing:
-`seed(addr, text, kind)` lets a seeder that MADE the bytes state a rendition the
-name cannot say, and omitting it leaves the extension deciding as it always
-has.
-
-Every derivation is named for its flavor (`-markdown.md`, `-base64.txt`,
-`-decoded.<sniffed>`), and the decode is named by what its bytes turned out to be
-rather than by the `.txt` they arrived as, which is what split `extForText` out
-of `nameForText`. Scoped to the paste's flavors, since the bar is about the
-paste; a staged file that arrived some other way keeps its markdown route through
-the reader's header, which **focuses instead of adding a pill**, since its
-subject is a staged file rather than a flavor of the paste on the bar.
-
-**The stage is also the transform workbench's door.** The workbench
-(`lib/alpineComponents/transform-workbench.js`) has shipped inside the app
-since the pre-build began globbing `lib/alpineComponents`, booting on every load
-with nothing ever mounting it: reachable only as a Tools gallery card opening the
-standalone page in another tab. `StageIntake.transformKindOf(item)` names what
-the tool could do with a staged item, and the bench offers it as a chip.
-
-Three kinds, and they are not equally certain. A **bundle** is the tool's own
-`{fn, data}` output, recognized by the same `fn`/`fn_<tab>` key the workbench
-tests itself for, so it is exact. **rows** is the data it eats: a `.csv`, a
-`.tsv`, or a JSON array of records. A **transform** is a `rows => rows` function,
-the loosest of the three and the most interesting, since pasting one is how work
-RESUMES in the tool rather than starts. Recognition rides the name the intake
-already chose rather than sniffing again, which is why the naming fix above is
-what makes it trustworthy: before it, a pasted CSV was called `.txt` and nothing
-could tell it from prose.
-
-The chip is a sibling of the flavors bar, not part of it: that bar offers other
-readings of one paste, this offers another TOOL for what was already read.
-Tapping it opens the workbench as a **swipe-deck takeover**, the same kit the
-reader moved onto the same day, so the header, Escape, the phone Back button,
-history-backed dismissal and correct nesting all come for free and opening the
-workbench from an open reader drills rather than stacking two scrims. A deck of
-one, since a workbench is not a set to walk. The item's text goes over through
-`processText`, the tool's own sniff chain, so a bundle rehydrates whole and a
-CSV parses, with one reader of those shapes rather than two.
-
-It mounts **fresh on each open**, which is right rather than a compromise: the
-tool persists its tab sources in localStorage and deliberately never persists
-data, and every open here arrives carrying an item to load. That is also what
-keeps the one-instance rule true, since the tool addresses its viewer and table
-by document id rather than through its root.
-
-**The host has to bring the libraries:** PapaParse, which the parse path calls
-unguarded, and Tabulator, whose absence is worse than an error, because the
-table's render hook reads `typeof Tabulator === "undefined"` and returns,
-drawing the whole chrome around an empty pane in silence. That is what the first
-mount here actually did, which is why the scenario asserts the drawn rows rather
-than the parsed ones.
-
-The offer also rides the **reader's header**, not only the bench, and that is
-where it matters most: a single arrival routes to the Stage and opens on itself,
-so the reader is looking at the file rather than at the row. It is recomputed
-per slide, since the compare is a property of the SET and holds across positions
-while the transform is a property of the ITEM and does not.
-
-**A bundle is the one kind that skips the offer and opens the tool directly.**
-Every other arrival opens on its content, which is the right first look at
-something you just pasted. A bundle's content is base64 gzip, so a tree of it
-shows a handful of unreadable strings and the only thing that can read it is the
-tool that wrote it. It is also the kind recognition is exact about, which is what
-makes skipping the offer defensible here and nowhere else.
-
-**The one platform limit worth stating plainly: iOS Safari fires no `paste`
-event unless an editable is focused.** A window listener therefore has no intake
-at all on an iPhone, so the gesture there is a TAP: the app header carries a
-Paste button at every width, beside the sidebar toggle and outside the nav,
-which scrolls on a phone. It routes exactly as the window listener does, staging
-and then opening on the Stage, and the bench keeps its own Paste button for the
-same act in place. All three run one implementation,
-`StageIntake.takeClipboard`, which reads through `kits/io.js`.
-
-Two things that path has to get right, and both were wrong until 2026-08-19.
-**Reading the clipboard needs the tap's own user activation,** so nothing may be
-awaited before the read; the button used to lazy-load the io kit inside its own
-handler, which spends the gesture and then reports the loss as a clipboard
-failure. The kit is preloaded at boot instead. And **the textarea fallback must
-read its value rather than ask `execCommand('paste')` whether it worked**: on
-iOS that returns false and pastes anyway, because the real read happens behind
-the edit-menu pill the platform puts up, so gating on the return value made
-every iOS paste resolve null and surface as "Paste unavailable in this context",
-a sentence about the browser rather than about what happened. The recipe is the
-`ios-clipboard` skill's, measured on a device.
-
-Stage-view actions:
-
-- **Add**: three panes behind the app's segmented pill, over one corpus (the
-  estate's root repos) and one outcome (a staged ref). They share those but are
-  not one question, so each pane owns its own state and shows only its own kind
-  of row:
+- **Add** has three panes behind a segmented pill, each holding its own state:
 
   | Pane | Answers | Rows |
   | --- | --- | --- |
@@ -255,272 +72,82 @@ Stage-view actions:
   | **Recent** | what changed lately | the cross-repo sweep, narrowed by single-select repo badges |
   | **Search** | what is it called | filename-contains across every root repo |
 
-  These were briefly folded into a single query box (2026-08-04, same day).
-  That put recent files in the same list as the repos you navigate, and a list
-  that is half places-to-go and half things-that-happened reads as neither. The
-  panes are back; what survives from the one-box build is the part that was
-  about cost rather than layout.
+  Browse and Search share one recursive tree read per repo. A file row stages
+  on one tap and unstages on a second. Local files come in through the
+  paperclip in the header.
+- **Rename** applies to local items. The pencil turns the name into an input;
+  Enter or a blur commits, Escape cancels. A slash makes a subpath under the
+  destination. An extension guessed from the content (the item's `sniffed`
+  flag) draws with a dotted underline until a rename, since the extension picks
+  the reader's mode and the deposited file's type. Ref items do not rename,
+  because a ref's path is its identity at its source.
+- **Out** is the deposit surface: the concatenated bundle, each file under a
+  `// === owner/repo[@ref]:path ===` header, with refresh, copy and download;
+  and the send to a repo, a tap-through folder selector and a two-tap Send. The
+  base...head branch compare is in the Branches view.
+- **Persistent link** copies a `#stage=` URL that reopens the stage elsewhere.
+  Pasted text rides in `&gz=`; a local binary is left out and has to be sent to
+  a repo.
 
-  **Browse and Search share one tree cache.** Entering a repo reads its
-  recursive tree, and tapping Search reads only what is still missing, so
-  browsing pays for searching in advance instead of the two fetching the same
-  thing twice. One recursive read per repo also answers every folder level, so
-  descending never costs another call. The pill tap is the gate on that cost,
-  which is what a tap is for and a keystroke is not.
+## The reader
 
-  Each file row is one tap to stage and a second to unstage; the muted line
-  reads `repo · folder`. Search's input is 16px below `sm` so iOS does not zoom
-  on focus, and a leading `@` is eaten rather than matched, since the sigil
-  `mention` needs mid-prose is redundant in a field that is already a file
-  search. Browse has no text input at all, which is the tap-through picker's
-  own rule and its reason. Local files are the one source that is not a repo
-  file, so they stay a header action (the paperclip) belonging to no pane;
-- **rename** a **local** item: the pencil on its row turns the name into an
-  input with the stem preselected, Enter or a blur commits, Escape drops it. A
-  local name is authored nowhere (a drop takes the file's own, a paste and a
-  dictation get one sniffed from the first few characters), and it is read in
-  four places: the row, the bundle header, the `name` a local item rides on a
-  `#gz=` link, and the deposited path. The **extension** is the whole of what
-  the reader uses to pick a mode and what the destination blob renders as, so
-  a wrong sniff used to mean deleting the item and pasting it again. **A guessed
-  extension is drawn as a guess:** where the name came from the sniff rather
-  than from a file, a clipboard MIME type, or a link payload, the item carries
-  `sniffed` and its extension draws with a dotted underline. Dotted and not
-  dimmed, since dimming the one part worth a second look is backwards. That
-  marker is the whole of what was missing: the pencil has always been the
-  correction, and nothing said a correction was wanted. A rename clears it,
-  because the name is authored from then on. A slash is
-  allowed and means a subpath under the destination (`docs/notes.md` lands at
-  `<dir>/docs/notes.md`); `..` and empty segments are dropped. Two locals with
-  one name is warned about, not refused, since the deposit writes one over the
-  other and nothing else on screen would say so. **Ref items do not rename:**
-  a ref's `path` is its identity at its source, which the row states, the
-  jump-over resolves, and `copyTo` reads back, so editing it would either lie
-  about the origin or silently mean "land it elsewhere", which is a destination
-  override and a different feature;
-- **view** a staged file inline (a reading panel in the stage itself, with a
-  GitHub jump-over to the file's true home; it never routes through a repo's
-  Files view). **The reader is a position in the stage, not one file:** it
-  carries an index, so the staged set is walkable by swipe on a phone or by the
-  header arrows and the arrow keys anywhere. Same gesture and constants as the
-  estate's branch takeover, so a horizontal drag reads alike in both and a
-  vertical one still scrolls the file. Every position opens: a binary local
-  file renders as an image (its bytes ride to the viewer as a data URI, since
-  the image mode's usual fetch needs a repo and a pasted file has none) and a
-  failed fetch renders a note in place of the viewer rather than refusing, so
-  `2 / 3` always means the second of three and a step never skips.
+Tapping a staged item opens the reader, an overlay that walks the staged set by
+swipe, header arrows or arrow keys, with a GitHub jump-over to a ref's source.
+Every position opens, so no step skips: a local binary renders as an image, and
+a failed fetch renders a note.
 
-  **The header's last button is Copy, and it copies the file, not the
-  screen.** The reader shows every file through a display pass that halves
-  each run of four spaces, so Copy writes the text the slide was given,
-  through `window.io.copy`, rather than the viewer's content.
-
-  **The modal is a fixed height at every width**, `h-full` on a phone and
-  `85vh` above it. It was `h-auto` under a `max-h` cap until 2026-08-15, and
-  the two complaints that produced were one bug: the dialog resized as you
-  stepped through the staged set, and long files would not scroll. An
-  auto-height box gives its children no definite height to divide, so the
-  viewer's `fill` body never became a scroll container and the box's own
-  `overflow-hidden` clipped whatever passed the cap with no scrollbar
-  anywhere. Pinning the height fixes both, and
+- Copy, in the header, writes the item's text as staged rather than the
+  viewer's display, which halves each run of four spaces.
+- The overlay is a fixed height, `h-full` on a phone and `85vh` above. An auto
+  height leaves the viewer no definite height, so long files stop scrolling;
   [`node/test/stage-reader-height.mjs`](../node/test/stage-reader-height.mjs)
-  (`npm run test:reader-height`) holds it: neither claim is visible in a
-  screenshot or reachable from jsdom, which has no layout, so the check
-  measures the box on a 2-line file and a 4,000-line file and then scrolls the
-  long one.
+  (`npm run test:reader-height`) holds the fixed height.
+- The reader announces the file on screen on the subject channel
+  ([`kits/subject-channel.js`](../lib/kits/subject-channel.js)), so the FAB
+  drawer names that file, roots its path picker at the file's repo and ref, and
+  aims its GitHub menu there. A local item announces `local`. No `base` is
+  announced, since the drawer's compare bar would not change the reader's
+  comparison. Choosing another ref in the drawer's ref bar stages that version
+  and reads it, leaving the walked set in place.
 
-  **The comparison is a LEVEL over the reader, not a mode on it.** It was a mode
-  until 2026-08-19: the same overlay, its slides rebuilt as diffs, one header
-  button to flip back. That put the wrong meaning on the one control every
-  reader reaches for. A header's ✕ dismisses the overlay, so from inside a
-  comparison it read as "leave the comparison" and did "leave the file as well,"
-  while the way back was a second, quieter button beside it.
+## The comparison
 
-  So it **drills** (`swipeDeck.drill`), and the kit's own conventions do the
-  rest: the dismiss becomes a back chevron, the crumb carries where you came
-  from, and the module-level deck stack makes Escape and the phone Back button
-  pop one level rather than the lot. There is no partner button for coming back,
-  which is the point of a level. It is the shape the estate already uses one
-  floor up, where a branch takeover drills into
-  [`kits/file-deck.js`](../lib/kits/file-deck.js), and inside this component,
-  where the transform workbench drills off this same reader.
+With two or more items staged, the reader's header carries a Compare button,
+titled with the pair (`Compare a.md ↔ b.md`). The comparison opens as a level
+over the reader, through
+`swipeDeck.drill`: its dismiss is a back chevron, and Escape and the phone Back
+button return to the reader. The comparison walks the same set, and backing
+out lands at the position the walk reached.
 
-  One deliberate deviation from the kit's default, which returns you to the
-  parent exactly where you left it: **the comparison walks the same set the
-  reader does**, so comparison *n* is the file at *n* seen against its pair, and
-  backing out lands where the walk got to rather than where it started.
-  Returning to the entry point would silently discard the walk. The branch
-  drill has no such problem, since a branch and its files are different things.
+Side A is the file on screen at every position. Side B defaults to the
+neighbour and can be picked from the other staged items, each listed with its
+origin (`owner/repo@ref`, or `local`). The pick is held by item key, so a paste
+or a removal does not re-aim it. The pick lapses when the reader closes or the
+picked item leaves the stage. A stage of one has nothing to compare.
 
-  The position already **proposes** a pair (the file you are on, and the one next
-  to it), so a comparison is available whenever two or more are staged, nothing
-  has to be chosen to get one, and with exactly two it is simply "the two." What
-  the position proposes the reader can override (the pair, below). The
-  comparison carries Copy, the review prompts (link-carried bespoke asks first,
-  then the fixed set), **Open in Diff** for the Diff page's folding and its
-  apply step, and **three readings of the one alignment**:
+The comparison offers three views of one alignment:
 
-  | View | Is | Default |
-  | --- | --- | --- |
-  | **Unified** | one column of tagged lines, full context | under 768px |
-  | **Split** | two columns, a changed line and its replacement on one row, with the moved words marked inside it | 768px and up |
-  | **Patch** | a real unified diff: `@@` hunks at three lines of context, the two file lines, copyable | never |
+| View | Is | Default |
+| --- | --- | --- |
+| **Unified** | one column of tagged lines, full context | under 768px |
+| **Split** | two columns, a changed line and its replacement on one row, with the moved words marked inside it | 768px and up |
+| **Patch** | a real unified diff: `@@` hunks at three lines of context, the two file lines, copyable | never |
 
-  The ops are diffed **once** and each view renders from them, which makes
-  switching free and is the only thing that makes the three agree. The
-  width-dependent default is `pages/diff-tool.html`'s rule and its reason: two
-  columns of code do not fit on a phone, and a reader who opens a comparison
-  there should not have to fix that first. It is read once at mount, so a
-  rotation does not move it mid-read, and the choice then survives closing the
-  comparison, unlike the pick, because it is a preference about how you read
-  rather than a choice about what you are reading.
-
-  **Copy hands over what is on screen:** the real patch in Patch view, the
-  tagged block in the other two. One verb, one button, and the title says which.
-
-  Two pieces of that moved into
-  [`kits/text-diff.js`](../lib/kits/text-diff.js) rather than being written
-  here, because the page and the stage would otherwise hold a copy each.
-  `patch()` is the hunk assembly, whose failure mode is silent: an off-by-one in
-  a hunk header still renders as a tidy patch and fails only when something
-  tries to apply it. `wordParts()` is the word diff as tokens rather than
-  markup, since the page styles its marks from a stylesheet and the stage has
-  none to use (the house rule is no vanilla CSS); `words()` is now that function
-  rendered the page's way, so one dynamic-programming walk serves both.
-
-  A `&mode=diff` link opens the reader with
-  the comparison already drilled over it, rather than selecting a control on the
-  page. The reader's one way in names what a tap does rather than how it is
-  wired: `Compare a.md ↔ b.md`;
-
-  **A slide's compare is the slide's own**, which took a fix on 2026-08-19. The
-  comparison deck mounts the active slide and its two neighbours, each a diff of
-  a different pair, and all three used to write one set of component fields. The
-  last builder won, so on any stage of three or more the reader saw `a ↔ b`
-  while the copy header and the **Open in Diff** address named `b ↔ c`, the
-  neighbour drew no rows at all (its compare returned early on the busy flag),
-  and the slide past it drew the first pair's rows under its own heading. Two
-  staged items hid all three, since `min(i, n-2)` makes both slides pair 0,1,
-  which is why the coverage passed. Each slide now resolves its own pair and
-  holds the result; what the reader is ON is published to the fields every
-  control outside the slide reads, on render and again on every step, so
-  stepping re-aims the copy and the handoff and not only the rows;
-
-  **The pair is where you are, against what you picked.** Side A is the file on
-  screen at every position. It used to be `min(i, n-2)`, which kept the pair
-  valid at the end of the list by sliding it backwards, so on the last slide A
-  was the file BEFORE the one being read and the diff ran in a direction nobody
-  asked for. Fixing A to the position costs the last slide its old direction,
-  which is the trade.
-
-  Side B is a **pick**, and the neighbour when there is none. The positional rule
-  was a defensible minimum rather than a principle: it can only express ADJACENT
-  pairs, so on a stage of five, "compare the first with the last" had no way to be
-  said at all. Position proposes and the picker disposes, which keeps the
-  zero-configuration case (two staged, open it, that is the pair) and adds the
-  reach the rule could not. The diff bar states A, then offers B as a control,
-  because that is the shape of the question: you are reading this one, against
-  what? The two halves therefore do not look alike. Choosing opens a list of every
-  other staged item, each with **where it came from** (`me/repo@ref`, or `local`),
-  since two staged items can share a filename across repos or refs and the name
-  alone is then the one thing that cannot tell them apart. The list opens in flow
-  under the bar rather than floating: a slide is an `overflow-auto` box, so an
-  absolutely-positioned panel is clipped by the very scroll container it sits in,
-  and on a phone a deck slide is the whole screen, where a menu anchored near the
-  top edge is the harder thing to hit.
-
-  The pick is held by item **key**, never by index, because the stage moves under
-  a reader: a drop, a paste or a remove renumbers everything, and an index would
-  quietly re-aim the comparison at a file nobody chose. A key whose item has left
-  stops resolving and the default takes over, and the key is forgotten so the
-  picker shows no choice that no longer exists. It ends with the **reading**, not
-  with the overlay: `drop()` is the deck kit's general teardown and so fires
-  `onClose` exactly as the reader's own ✕ does, which means a deck rebuilt around
-  a changed set looks identical to an exit from the outside. `_pReplacing` is what
-  separates them, and without it staging anything while reading silently
-  un-picked what the reader had chosen to compare against;
-
-  **A compare-with-the-clipboard shipped and was withdrawn the same day.** It
-  staged the clipboard in the next position and turned the diff on, which worked,
-  but it fused an intake with a selection: the stage has three paste buttons
-  already, and what was missing was the SELECTION rather than a fourth way to
-  paste. Pasting and then picking the result says the same thing with each tap
-  meaning one thing. What it left behind is the position parameter on the
-  intake's fold, also withdrawn, and the observation that a stage of ONE has
-  nothing to compare against, which remains true and is answered by staging a
-  second item rather than by a bespoke gesture;
-
-  **The reader says which file is on screen, and the sidebar follows it.** The
-  FAB drawer floats over the reader still aimed at whatever it was aimed at
-  before, which for the Stage view is the app shell: a reader six files into a
-  set they assembled had a Render tab naming the app page and rooting its path
-  picker there. So the reader announces on the subject channel
-  ([`kits/subject-channel.js`](../lib/kits/subject-channel.js), the one
-  toss-render stamps and [`kits/file-deck.js`](../lib/kits/file-deck.js) already
-  speaks on), once per position and through the comparison walk too, since side
-  A of a comparison is the position. The drawer then names the staged file, roots
-  its path picker at that repo and ref, aims its github menu at that blob and
-  reads that ref's guide, and the reader's header grows the same door into the
-  sidebar the file deck has. A **local** item announces `local` plus its label
-  rather than staying silent, which folds the ref bar and the path picker away;
-  silence would leave the drawer describing the shell, so stepping off a repo
-  file onto a pasted one would watch the sidebar keep naming the file just left.
-
-  **No `base` rides along, and that is the one field the file deck announces and
-  this does not.** `base` is what raises the drawer's compare bar, whose pick
-  travels back on `__compareRef` for the *cards* to read. This reader owns its
-  comparison and reads no such global, so a base would hang a second compare
-  control in the drawer that changes nothing on screen. The comparison stays
-  where the position lives.
-
-  **And the ref bar re-addresses rather than navigating away.** Its rows say
-  "render this file at that ref," which everywhere else means leaving for the
-  renderer; over a hand-assembled set that drops the set. The file deck answers
-  by re-rendering the slide where it stands. The stage answers in its own verb:
-  the version **joins the set and is read**, with what you were reading one swipe
-  away and a comparison of the two one tap away. Nothing is removed, and `grab`
-  dedupes, so asking twice seeks rather than duplicating. The fab asks any routed
-  subject that has installed the handle, rather than the one route name it used
-  to test for: what establishes that a surface can re-address is the handle, not
-  what its route is called;
-
-**The bench has one responsive split, between Out and the staged set.** Below a
-42rem container it is one column, Out first and Staged/Add after it. Above that
-width the two sit side by side with the house drag splitter
-([`kits/dock-split.js`](../lib/kits/dock-split.js)) on their boundary. The
-breakpoint belongs to the Stage container rather than the window because a
-docked reader narrows the former without changing the latter. Both panes keep
-an 18rem floor; the initial staged-set width follows the old fluid 22/26/30rem
-rail, and a moved allocation is remembered in `localStorage`. The splitter is
-also keyboard-operable, and a container resize re-clamps the remembered value
-instead of letting either side disappear.
-
-- **Out**: the deposit surface, and the only lens on this side now. It covers
-  everything leaving the stage: the concatenated bundle (each file under a
-  `// === owner/repo[@ref]:path ===` header; icon actions to refresh, copy,
-  download, with the size beside it) and the send-to-repo (destination is the
-  tap-through selector in folder mode; two-tap Send). There is no Out/Diff pill:
-  the two were never two views of one thing. Out is where the set **leaves**;
-  Diff was a way to **read** two of its files, and reading belongs in the
-  reader (above), which already walks the staged set and can therefore pair
-  two of it with no second set of controls. (The base...head branch compare is
-  not here either: it lives under the Branches view, with the review it serves.);
-- **Save**: the pin on the Staged header, opening the dialog above.
-  This replaced a write of `stage.files` into a named repo's `.web-tools.json`,
-  which overwrote the previous save, put a cross-repo set in one repo's config,
-  and dropped local files in silence. A manifest's `stage.files` is still
-  *read* as a seed (below); nothing writes it from here;
-- **Persistent link**: mint the `#stage=` URL that reopens this exact stage
-  anywhere (ref items only; local files cannot ride a link).
+The default is read from the width once, at mount, as on
+`pages/diff-tool.html`; a chosen view persists after the comparison closes.
+The comparison carries Copy (the patch in Patch view, the tagged block
+otherwise), the review prompts (a link's `&prompts=` asks first, then the fixed
+six), and **Open in Diff**, which hands the pair to the Diff page for its
+folding and its apply step. The diff is a patience diff over lines with a
+word-level diff inside each changed pair, capped at 600 tokens a side, from
+[`kits/text-diff.js`](../lib/kits/text-diff.js), which the Diff page shares.
 
 ## Standoff notes: a comment that is content
 
-**A comment about a staged file is a file.** The speech bubble on any row, ref
-or local, opens one editor panel; committing it puts a new local item on the
-stage named `<subject>.note.md`, and from there nothing about it is special.
-The deposit writes it, the bundle carries it, the reader opens it, a `#gz=`
-link takes it along. Nothing was added to the transport, because a comment
-that is content needs no transport of its own.
+The speech bubble on a staged row opens a note editor above the staged set.
+Committing a note stages a local item named `<subject>.note.md`, where
+`<subject>` is the subject's deposit-relative path, so the pair lands side by
+side. The note deposits, bundles and links like any other file:
 
 ```
 ---
@@ -532,52 +159,14 @@ source: me/data@trunk:pulls/rates.json
 The OFM rate pull. The last two columns are unlabelled.
 ```
 
-**Standoff rather than inline, because inline is not one mechanism.** Markdown
-takes front matter, a CSV takes a leading `#`, and JSON takes no comment at
-all, which is the case that asked for this. The other inline shape, wrapping
-the content in an outer object with a slot for the comment, answers only the
-JSON case and changes what the file IS: a CSV inside it is a quoted string with
-escaped newlines, an image has to be base64'd, and anything downstream
-expecting the original gets the wrapper instead.
-
-**And not the commit message**, which was the first answer here and the wrong
-one. A commit message is a fact git records ABOUT a write, so the comment would
-exist everywhere except in the tree the reader is looking at, and the deposit's
-generated subject is what a folder listing shows in any case.
-
-Three details carry the convention. The name keeps the subject's **whole
-deposit-relative path**, so the pair lands adjacent whatever the destination
-does with folders, and stripping the suffix is all the pairing anyone needs.
-`about:` names the subject by **basename**, because that is where the note
-sits once deposited and a full path would not resolve from the folder the note
-is actually in. `source:` appears only on a note about a **ref**, and carries
-the one fact the deposit otherwise destroys: a copied file lands under its own
-name with no record of the repo and ref it came from.
-
-Two bindings keep the pair from coming apart, both held by tests. A **rename**
-of the subject renames its note and rewrites the `about:` line, since the pair
-is recognized at the destination by name and by nothing else. And **removing a
-subject removes its note**, because an orphan note deposited alone is a file
-whose whole content points at something not there. Removing the note is the
-other direction and takes nothing with it.
-
-The editor is a **panel above the staged set**, not a field inside a row, and
-that is the one place it differs from the rename beside it: a filename is one
-line and belongs where the name is, while a note is prose and wants the width.
-Enter inserts a newline; the commit is the button or Cmd/Ctrl-Enter. An emptied
-note removes the file rather than depositing an empty one.
-
-**What the receiving repo does with it is the receiver's business**, which is
-the point of the note being content. In `mehrlander/home` the `/drain` skill
-reads a note before asking what a dump file is, never routes one on its own
-merits, and treats a note whose subject has gone as an orphan to fold in and
-delete.
-
-One limit worth stating: a note **survives a `#gz=` link as a file but not as a
-binding**. `encodeLocals` carries `{name, text}`, so both halves reopen and both
-still deposit correctly, but `noteFor` is not in the payload and local ids are
-re-minted on decode, so the reopened note is an ordinary staged file and a later
-rename of its subject will not carry it. The name still says what it is about.
+`about:` names the subject by basename, which resolves from the folder the note
+lands in. `source:` appears on a note about a ref and records the repo and ref
+that the deposit would otherwise lose. A separate file works for every format,
+including JSON, which takes no comment. Renaming the subject renames its note
+and rewrites `about:`; removing the subject removes its note. An emptied note
+removes the file. A `#gz=` link carries both files but not the binding, so a
+reopened note is an ordinary staged file. In `mehrlander/home`, the `/drain`
+skill reads a note before classifying its subject.
 
 ## The `#stage=` link grammar
 
@@ -603,7 +192,7 @@ from a branch of this repo plus one from another repo →
 
 ### The link is four parts
 
-A stage link is one object, and only its first part is token-gated.
+Of a stage link's four parts, only the refs are token-gated.
 
 | Part | Params | What rides |
 | --- | --- | --- |
@@ -612,108 +201,79 @@ A stage link is one object, and only its first part is token-gated.
 | **Commentary** | `&prompts=` | a list of `{label, ask}` review asks |
 | **Intent** | `&mode=`, `&cmp=`, `&view=`, `&dest=` | what to open on, which pair, which reading, where a send is aimed |
 
-`StageLink.mint(items, base, { prompts, mode, cmp, view, dest })` serializes all
-of it, and `StageLink.mintWithLocals(items, base, opts)` is the same call with
-the pasted text folded into `&gz=` (async, because gzip is). A bare prompts
-array is still accepted in the options slot, for the legacy call.
-`StageLink.parseLink(hash)` returns `{ items, gz, prompts, mode, cmp, view, dest }`;
-the bare `StageLink.parse(hash)` still returns just the items, for callers such
-as the shell seed that want refs alone.
+`StageLink.mint` and `StageLink.mintWithLocals` (async, which folds pasted text
+into `&gz=`) write the link; `StageLink.parseLink` and `StageLink.read` read it.
 
 ### Content: the `&gz=` param
 
-A **ref** item is a pointer and its file stays behind the token. A **local**
-item is text pasted or dropped into the stage, which the sender already holds,
-so `&gz=` carries it in the link: `[{name, text}]` as JSON, gzipped through
-`CompressionStream`, base64url'd. `GZ_MAX` (24 KB of payload) is the budget, and
-`encodeLocals` throws over it with both numbers rather than minting a link that
-will not open. A local **binary** still cannot ride, since its bytes are not
-text, and the refusal names the item.
-
-A stage carrying nothing but pasted text leads on that key instead, so the link
-is `#gz=` rather than an empty `#stage=`:
+A local text item rides in the link as `[{name, text}]` JSON, gzipped and
+base64url'd. The payload budget is `GZ_MAX` (24 KB), and `encodeLocals` throws
+over it with both sizes. A local binary cannot ride. A stage holding only pasted
+text leads with `#gz=` rather than an empty `#stage=`:
 
 ```
 …/app/#gz=<base64url(gzip(JSON))>&mode=diff&prompts=<base64url(JSON)>
 ```
 
-**That form is the token-less review handoff**, and it is the one thing a ref
-link cannot do: a before and an after that exist only as text, compared by a
-reader with no token, no account, and no access to the repo the edit came from.
-A short before/after pair mints to about 350 characters.
-[`node/test/stage-gz-review.mjs`](../node/test/stage-gz-review.mjs) holds it
-end to end with `api.github.com` blocked outright, which is the only form of
-that claim worth making: the shell reads its own repo on boot to orient itself,
-so counting requests would never reach zero and would say nothing about whether
-the link needed the network.
+That form is the token-less review handoff: a before and an after that exist
+only as text, compared by a reader with no token and no access to the source
+repo. [`node/test/stage-gz-review.mjs`](../node/test/stage-gz-review.mjs)
+(`npm run test:gz-review`) holds it with `api.github.com` blocked.
 
-Minting in the app is browser-side. From a session, mint from local files:
+From a session, mint from local files:
 
 ```bash
 npm run -s stage-link -- Do-Thing.ps1                # opens on the file (&mode=read)
 npm run -s stage-link -- before.md after.md --diff   # opens on the comparison
 ```
 
-[`node/stage-link.mjs`](../node/stage-link.mjs) prints the link alone on stdout
-and the sizes on stderr, naming each item by its file. It carries text, not
-bytes: it drops a leading byte-order mark, which would otherwise land before a
-pasted script's first token, refuses a file that is not UTF-8, and refuses one
-over `GZ_MAX`, printing both sizes. `&prompts=` takes base64url the same way,
-without the gzip.
+[`node/stage-link.mjs`](../node/stage-link.mjs) prints the link on stdout and
+the sizes on stderr. It carries UTF-8 text: it drops a leading byte-order mark
+and refuses a file that is not UTF-8 or that exceeds `GZ_MAX`.
 
 ### Short text: the `#take=` param
 
-`#take=<percent-encoded text>` carries one piece of text with no gzip, and
-`name=` optionally names it. `take` is always the last param and runs to the end
-of the fragment, so a `name` goes before it. It exists because an iPhone
-shortcut can URL-encode but not gzip. The text goes through the same fold as a
-paste, and a reload of the same link does not stage it twice.
+`#take=<percent-encoded text>` carries one piece of text with no gzip, for an
+iPhone shortcut, which can URL-encode but not gzip. `name=` optionally names
+the text. `take` is always the last param and runs to the end of the fragment,
+so a `name` goes before it. The text goes through the same fold as a paste, and
+a reload of the same link does not stage it twice.
 
 ### Commentary: the `&prompts=` param
 
-`prompts=` is a base64url'd JSON list of `{label, ask}` review asks, authored
-text rather than a pointer, so it rides the link whether the content does or
-not:
+`prompts=` is a base64url'd JSON list of `{label, ask}` review asks. The asks
+are authored text rather than pointers, so they ride the link whether the
+content does or not:
 
 ```
 …/app/#stage=owner/repo@ref:before.md;owner/repo@head:before.md&prompts=<base64url(JSON)>
 ```
 
-The Diff lens shows those bespoke asks first (a sparkle marks them), above its
-six fixed general prompts, each one-click-copying both compared texts plus the
-diff plus that ask, for pasting into a separate chat as an independent second
-opinion. Write two to four asks about what is at stake in this particular edit
-(a number, a term, a claim that changed); the fixed six already cover the
-general reads. A soft cap of 24 entries keeps a runaway list from bloating the
-URL.
+The comparison lists these asks first, marked with a sparkle, above its six
+fixed prompts. Each prompt copies both texts, the diff and the ask, for an
+independent second opinion in a separate chat. Write two to four asks about
+what is at stake in the particular edit (a number, a term, a claim that
+changed); the fixed six cover the general reads. A soft cap of 24 entries keeps
+the URL in bounds.
 
 ### Intent: `&mode=`, `&cmp=`, `&view=`, `&dest=`
 
-`&mode=diff` opens the **reader** on its diff and runs the compare on open, with
-no click, so a review link lands the reviewer straight on the comparison.
-`&mode=read` opens the reader on the first staged file, so a script carried in
-`&gz=` opens ready to copy. Without either, a stage opens with the reader
-closed, on the Out surface, which is a bundle handoff rather than a review.
-`&cmp=` names which staged item is the
-other half of the pair, and `&view=` picks the reading (`unified`, `split`, or
-`patch`); both are ignored rather than trusted when they do not resolve, since a
-link outlives the set it was minted from. `&dest=` prefills the send field with
-`owner/repo[@ref][:dir]`, so a link can open the stage already aimed; nothing
-sends without the user's own taps.
-
-The comparison is a patience diff over lines with a word-level diff inside each
-changed pair ([`lib/kits/text-diff.js`](../lib/kits/text-diff.js), capped at 600
-tokens a side), so a one-word edit highlights as one word rather than as two
-whole lines.
+`&mode=diff` opens the reader with its comparison drilled over it, so a review
+link lands on the comparison. `&mode=read` opens the reader on the first staged
+file, so a script carried in `&gz=` opens ready to copy. Without either, the
+stage opens on the bench. `&cmp=` names the item for side B, and `&view=` picks
+`unified`, `split` or `patch`; the stage ignores either one when it does not
+resolve, since a link outlives the set it was minted from. `&dest=` prefills
+the send field with `owner/repo[@ref][:dir]`; nothing sends without the user's
+own taps.
 
 ### Where the object is read from
 
-`StageLink.read(location)` reads it from the **hash first, then the `?query`**
-(same keys: `stage`, `gz`, `prompts`, `mode`, `cmp`, `view`, `dest`). The
-fragment stays the default and the private form; the query fallback is what lets
-a stage ride a context that eats the `#`: a `toss-render` srcdoc (whose params
-shim answers `?query` lookups, so `…app/index.html?stage=…&mode=diff` renders a
-staged diff inside the toss), an email or chat that strips the fragment, a deep
-link. When minting a query-form link into a toss `#gh=` address, encode the
-inner `&` separators as `%26` so the toss's own hash parser keeps them inside
-the `gh=` value.
+`StageLink.read(location)` reads the **hash first, then the `?query`**, with
+the same keys (`stage`, `gz`, `prompts`, `mode`, `cmp`, `view`, `dest`). The
+fragment is the default and the private form. The query form serves a context
+that drops the `#`: a `toss-render` srcdoc, whose params shim answers `?query`
+lookups, an email or chat that strips the fragment, or a deep link. When
+minting a query-form link into a toss `#gh=` address, encode the inner `&`
+separators as `%26` so the toss's hash parser keeps them inside the `gh=`
+value.
