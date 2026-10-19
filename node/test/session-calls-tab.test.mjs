@@ -4,7 +4,9 @@
 // independent placement"). A framed slide in the app's Sessions pane read no
 // calls at all before this; the tab is how it shows them.
 //
-// Driven over a fake GH holding one session with two calls, one answered.
+// Driven over a fake GH holding one session with two calls, one answered. The
+// tab comes first, and an open call is answered on its card (owner, 2026-10-19:
+// "give the ability to approve on these").
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -58,7 +60,18 @@ window.sessionRender = { describe: (r) => ({ title: r.short, subtitle: '' }), tu
 window.sessionExport = { index: () => ({ el: window.document.createElement('div') }) };
 window.chatRender = { block: () => window.document.createElement('pre') };
 const decks = [];
-window.swipeDeck = { top: () => null, open: (o) => { decks.push({ count: o.count, start: o.start, title: o.title }); return { close(){} }; } };
+// The deck renders its first slide, so the form it mounts says what it was asked.
+const forms = [];
+window.swipeDeck = { top: () => null, open: (o) => {
+  decks.push({ count: o.count, start: o.start, title: o.title });
+  o.render(o.start, window.document.createElement('div'));
+  return { close(){} };
+} };
+// The call page's helpers, as the card's answer buttons reach them: a post is
+// recorded, not sent.
+const posts = [];
+window.UserCallForm = { prOf: (ref) => (ref ? { slug: 'me/widget', n: 7 } : null),
+                        postAnswer: async (a) => { posts.push(a); } };
 // A slide of the app's Sessions pane, framed, opened on the Calls tab as a
 // Waiting card's session link asks; and one whose session filed nothing.
 window.__slide = { id: 'c0ffee01', repo: STORE, framed: true, record, pane: 'calls' };
@@ -67,6 +80,7 @@ window.__none = { id: 'feed0002', repo: STORE, framed: true, record: { ...record
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
+Alpine.data('userCallForm', (o) => ({ init() { forms.push({ id: o.call.id, pick: o.pick }); } }));
 for (const k of ['lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
@@ -84,6 +98,11 @@ test('mounting is quiet', () => assert.deepEqual(problems, []));
 test('a framed slide reads its session\'s calls, and only its own', () => {
   assert.deepEqual(Array.from(data('slide').calls, (c) => c.id), ['c0ffee01-size', 'c0ffee01-two']);
   assert.ok(listed.includes(STORE), 'the store\'s user-calls/ is listed');
+});
+
+test('the Calls tab comes first, ahead of the outline', () => {
+  const tabs = [...el('slide').querySelectorAll('[role=tab]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
+  assert.deepEqual(tabs.slice(0, 2), ['Calls', 'Outline']);
 });
 
 test('the Calls tab shows with a count, tinted while a call waits', async () => {
@@ -107,8 +126,48 @@ test('the pane holds one card per call: question, brief, recommendation, state',
 
 test('a card opens the deck of call forms at that call', () => {
   decks.length = 0;
+  decks.length = 0; forms.length = 0;
   el('slide').querySelectorAll('[data-session-call]')[1].click();
   assert.deepEqual(decks, [{ count: 2, start: 1, title: 'Calls' }]);
+  assert.deepEqual(forms, [{ id: 'c0ffee01-two', pick: '' }]);
+});
+
+test('an open call is answered on its card in two taps, the second on Confirm', async () => {
+  const card = el('slide').querySelectorAll('[data-session-call]')[0];
+  const take = card.querySelector('[data-session-call-answer][data-option="Take"]');
+  assert.ok(take, 'Take, for a call filed as Take or Adjust');
+  assert.ok(card.querySelector('[data-session-call-adjust]'), 'and Adjust beside it');
+  const answered = el('slide').querySelectorAll('[data-session-call]')[1];
+  assert.equal(answered.querySelectorAll('[data-session-call-answer]').length, 0, 'an answered call offers no answer');
+  assert.equal(answered.querySelector('[data-session-call-adjust]').style.display, 'none');
+  decks.length = 0; posts.length = 0;
+  take.click();
+  await tick(2);
+  assert.match(take.textContent, /Confirm/);
+  assert.equal(posts.length, 0, 'the first tap sends nothing');
+  assert.equal(decks.length, 0, 'and opens no deck');
+  take.click();
+  await until(() => /Answered: Take/.test(card.textContent));
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].repo, STORE);
+  assert.equal(posts[0].path, 'user-calls/c0ffee01-size.answers.jsonl');
+  assert.equal(posts[0].entry.answer, 'Take');
+  assert.equal(posts[0].comment, '', 'no PR, no comment');
+  assert.match(card.textContent, /Answered: Take/);
+  assert.equal(data('slide').openCallCount, 0);
+  assert.equal(decks.length, 0);
+});
+
+test('Adjust opens the call\'s form on its Adjust answer', async () => {
+  const s = data('slide');
+  const saved = s.callAnswers;
+  s.callAnswers = { ...saved, 'c0ffee01-size': [] };
+  await tick(2);
+  decks.length = 0; forms.length = 0;
+  el('slide').querySelectorAll('[data-session-call]')[0].querySelector('[data-session-call-adjust]').click();
+  assert.deepEqual(decks, [{ count: 2, start: 0, title: 'Calls' }]);
+  assert.deepEqual(forms, [{ id: 'c0ffee01-size', pick: 'Adjust' }]);
+  s.callAnswers = saved;
 });
 
 test('an address asking for Calls on a session with none lands on the outline', () => {
