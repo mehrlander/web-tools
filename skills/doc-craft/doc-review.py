@@ -5,10 +5,12 @@ The session writes the judgment, a briefing in JSON; this script supplies the
 mechanics: each hunk of the proposed edits as a fenced diff under its label,
 a caption per document with its 🥏 link, and the corrections one line each.
 
-The proposed edits are the working tree against --base (HEAD by default), so a
-proposal is reviewed before it is committed. Every hunk must appear in the
-briefing, as an edit or a correction: a change left out of the review would
-reach the commit unseen, so the script refuses rather than skipping it.
+The edits are the working tree against --base, by default the commit where the
+branch left origin's main, so the review shows what the merge would bring; the
+opening links the commit, or the compare when there are several. Every hunk
+must appear in the briefing, as an edit or a correction: a change left out of
+the review would reach the merge unseen, so the script refuses rather than
+skipping it.
 
 Usage:
   doc-review.py --list [--base REF] [PATH...]         the hunk ids to key a briefing on
@@ -64,16 +66,44 @@ def hunks(base, paths, context):
     return out
 
 
+def default_base():
+    """Where the branch left origin's main, or HEAD when there is no such ref."""
+    for ref in ("origin/HEAD", "origin/main", "origin/master"):
+        r = subprocess.run(["git", "merge-base", "HEAD", ref], capture_output=True, text=True)
+        if r.returncode == 0:
+            return r.stdout.strip()
+    return "HEAD"
+
+
+def repo_slug(repo):
+    if repo:
+        return repo
+    url = git("remote", "get-url", "origin").strip()
+    m = re.search(r"([^/:]+)/([^/]+?)(?:\.git)?/?$", url)
+    return f"{m.group(1)}/{m.group(2)}" if m else "owner/repo"
+
+
+def pushed():
+    return bool(git("branch", "-r", "--contains", "HEAD").strip())
+
+
 def toss_link(path, repo):
     """The 🥏 data-route link for the document as it stands: at HEAD once a remote
     holds HEAD, else at main, so the link opens on any phone."""
-    if not repo:
-        url = git("remote", "get-url", "origin").strip()
-        m = re.search(r"([^/:]+)/([^/]+?)(?:\.git)?/?$", url)
-        repo = f"{m.group(1)}/{m.group(2)}" if m else "owner/repo"
-    pushed = git("branch", "-r", "--contains", "HEAD").strip()
-    ref = git("rev-parse", "--short=12", "HEAD").strip() if pushed else "main"
+    ref = git("rev-parse", "--short=12", "HEAD").strip() if pushed() else "main"
     return f"{TOSS}#data={repo}@{ref}:{path}"
+
+
+def commit_link(base, repo):
+    """The commit the review shows, or the compare across several; none while the
+    edits are uncommitted or HEAD is on no remote."""
+    commits = git("rev-list", "--no-merges", f"{base}..HEAD").split()
+    if not commits or not pushed():
+        return None
+    if len(commits) == 1:
+        return f"Commit [{commits[0][:7]}](https://github.com/{repo}/commit/{commits[0]})"
+    b, h = git("rev-parse", "--short=7", base).strip(), git("rev-parse", "--short=7", "HEAD").strip()
+    return f"Commits [{b}…{h}](https://github.com/{repo}/compare/{b}...{h})"
 
 
 def correction_line(h):
@@ -89,7 +119,7 @@ def correction_line(h):
     return '"{}" becomes "{}"'.format(" ".join(old[a0 - pre:a1 + post]), " ".join(new[b0 - pre:b1 + post]))
 
 
-def render(brief, found, repo):
+def render(brief, found, repo, base):
     docs, errors, warnings = brief.get("documents", {}), [], []
     edits, corrections = brief.get("edits", []), brief.get("corrections", [])
     used = [e.get("hunk") for e in edits] + corrections
@@ -113,6 +143,9 @@ def render(brief, found, repo):
         return None, errors, warnings
 
     out = [f"📝 **Doc review: {brief['topic']}**", "", brief["opening"]]
+    link = commit_link(base, repo)
+    if link:
+        out += ["", link]
     order = []
     for e in edits:
         p = found[e["hunk"]]["path"]
@@ -143,14 +176,15 @@ def main(argv=None):
     ap.add_argument("briefing", nargs="?", help="the briefing JSON, or - for stdin")
     ap.add_argument("paths", nargs="*", help="limit to these paths")
     ap.add_argument("--list", action="store_true", help="print the hunk ids and stop")
-    ap.add_argument("--base", default="HEAD", help="compare the working tree with this ref")
+    ap.add_argument("--base", help="compare the working tree with this ref (default: where the branch left main)")
     ap.add_argument("--context", type=int, default=1, help="unchanged lines around each hunk")
     ap.add_argument("--repo", help="owner/repo for the 🥏 link, if origin does not say")
     a = ap.parse_args(argv)
     paths = a.paths if a.list or a.briefing else []
     if a.list and a.briefing:
         paths = [a.briefing, *a.paths]
-    found = hunks(a.base, paths, a.context)
+    base = a.base or default_base()
+    found = hunks(base, paths, a.context)
     if a.list or not a.briefing:
         for h, v in found.items():
             minus = sum(l[0] == "-" for l in v["lines"])
@@ -158,10 +192,10 @@ def main(argv=None):
             first = next((l[1:].strip() for l in v["lines"] if l[0] in "+-"), "")
             print(f"{h}\t-{minus} +{plus}\t{first[:70]}")
         if not found:
-            print(f"doc-review: no changes against {a.base}", file=sys.stderr)
+            print(f"doc-review: no changes against {base}", file=sys.stderr)
         return 0
     text = sys.stdin.read() if a.briefing == "-" else open(a.briefing, encoding="utf-8").read()
-    out, errors, warnings = render(json.loads(text), found, a.repo)
+    out, errors, warnings = render(json.loads(text), found, repo_slug(a.repo), base)
     for w in warnings:
         print(f"doc-review: {w}", file=sys.stderr)
     if errors:

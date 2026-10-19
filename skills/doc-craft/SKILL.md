@@ -26,12 +26,14 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 ## Review
 
-Check changes against the principles above, make any needed revisions, then present them in chat as a doc review:
+Check changes against the principles above, make any needed revisions, commit them on a branch, then present them in chat as a doc review:
 
-- **Open with the work**: A `📝 Doc review: <topic>` heading and one or two sentences on the work behind the edits.
+- **Open with the work**: A `📝 Doc review: <topic>` heading, one or two sentences on the work behind the edits, and a link to the commit.
 - **Caption each document**: Its plain name, 🥏 render link, and one line on what it covers.
 - **Label each edit**: `Edit N · <kind> · <origin>`. Kind: Fix (the text is false), Alignment (two documents disagree), Addition (new content) or Wording (same claim, new words). Origin: this session's work or the existing text.
 - **Locate it, then show it**: Name the place by its content and say what changes, then show a fenced `diff` block with enough unchanged lines to locate it.
 - **Add the fields that apply**: *Describes:* the code the passage describes. *Reviewed:* other documents read for the edit. *Alternative placements:* for an addition, other places it could go.
 - **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diffs, one line each.
-- **Print it with the script**: `python3 "${CLAUDE_PLUGIN_ROOT}/doc-craft/doc-review.py" briefing.json` renders the review from a JSON briefing and the uncommitted edits; `--list` names the hunks a briefing keys on.
+- **Print it with the script**: `python3 "${CLAUDE_PLUGIN_ROOT}/doc-craft/doc-review.py" briefing.json` renders the review from a JSON briefing and the branch's edits; `--list` names the hunks a briefing keys on.
+
+Revise on request, and merge only after the owner approves the wording.

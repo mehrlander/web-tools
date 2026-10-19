@@ -62,6 +62,20 @@ test('a briefing renders as the doc review: heading, caption with its 🥏, labe
   assert.ok(out.includes('- The guide: "desktop and none on the" becomes "desktop and on the"'), out);
 });
 
+test('edits committed on a pushed branch review against main and link the commit', () => {
+  const work = fixture();
+  const git = (...a) => execFileSync('git', ['-C', work, ...a], { encoding: 'utf8', env }).trim();
+  git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  git('checkout', '-qb', 'work'); git('commit', '-qam', 'proposal');
+  git('update-ref', 'refs/remotes/origin/work', 'HEAD');
+  const sha = git('rev-parse', 'HEAD');
+  const r = run(work, ['-'], JSON.stringify(BRIEF));
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.includes(`Two edits to the guide.\n\nCommit [${sha.slice(0, 7)}](https://github.com/acme/notes/commit/${sha})\n`), r.stdout);
+  assert.ok(r.stdout.includes(`#data=acme/notes@${sha.slice(0, 12)}:docs/guide.md`));
+  assert.ok(r.stdout.includes('+The browser draws a title only on hover.'));
+});
+
 test('a hunk the briefing omits is refused, since the review would hide it', () => {
   const brief = { ...BRIEF, corrections: [] };
   const r = run(fixture(), ['-'], JSON.stringify(brief));
