@@ -309,9 +309,8 @@ tool, not markdown: a `![](local-path)` image link renders as inert text or a
 broken thumbnail, so write the file to disk and hand its path to the tool. The
 UI draws each delivered file as a clickable element, a **file card** (also
 **file chip**): image types preview inline; HTML, ZIP, and MP3 (and similar
-non-previewable types) render as a chip that downloads on click. When a file
-card is the right carrier, and why a rendered link usually serves better, is
-the *A file card* bullet in [SURFACING.md](../SURFACING.md); the
+non-previewable types) render as a chip that downloads on click.
+[SURFACING.md](../SURFACING.md)'s *A file card* bullet says when to send one; the
 screenshot-specific case (show a rendered PNG) is in
 [headless-vendoring.md](../headless-vendoring.md#showing-the-result-in-chat).
 

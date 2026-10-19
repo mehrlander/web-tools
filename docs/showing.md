@@ -16,16 +16,15 @@ executes the picker.
 ## The toss, framed or as the tab
 
 A 🥏 toss is the preview link for anything the deployed page does not already
-show: a page's own file, its library, a document or data. Tossed at a ref, a page
-boots its library at that ref, because the renderer hands the framed page its
-ref. A `?use=` link, a deployed page pinned to a ref, still works where one was
-handed over, and nothing mints a new one
+show, a library change included, since a page tossed at a ref boots its library
+at that ref. A `?use=` link, a deployed page pinned to a ref, still works where
+one was handed over, and nothing mints a new one
 ([showing-consolidation.md](showing-consolidation.md)).
 
 |  | What runs | Reaches | Misses |
 | --- | --- | --- | --- |
 | **🥏 toss** | the page file at the ref, inside a frame | the page's inline code and its library | what the page does to the top-level document, and the FAB, which is the renderer's at main |
-| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | nothing the frame reaches; `?w=` and a `#gz=` payload keep the frame, and its iPhone behaviour is unmeasured |
+| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame; unmeasured on an iPhone |
 
 `npm run showing` adds `?top` when a page's diff touches the tab or the FAB's own
 code changed, and `--top` asks for it otherwise. [`loader.md`](loader.md)
@@ -83,8 +82,7 @@ makes the page the top-level document.
 
 ## The FAB's ref check
 
-Every page that boots lib honors `?use=`, which is also how a toss hands a framed
-page its ref, and every one carries the FAB. A page
+Every page that boots lib honors `?use=`, and every one carries the FAB. A page
 that pins the ref in its own boot block and ignores the parameter loads
 default-branch code under a preview banner. The FAB compares `window.gh.ref` with
 the address and says when `?use=` was ignored. Inside a toss it checks the framed
@@ -98,11 +96,9 @@ change, say so") and a headless screenshot.
 
 ## Viewer context
 
-A toss reads GitHub with the token saved in the viewer's browser, and each browser
-keeps its own, so a private repo needs one there. The Claude app's in-app browser
-is a separate browser, so the token may be absent in it. When a toss fails for want
-of a token, it links to the app's This browser view (`?view=here`), which saves one
-and returns to the toss. Without a token, carry the content in the link: a 🥏
+A toss reads a private repo with the GitHub token saved in the viewer's browser,
+and the Claude app's in-app browser may not have one. Without a token, carry the
+content in the link: a 🥏
 `#gz=` toss carries a page, and the app's `#gz=` carries text files
 ([stage.md](stage.md#content-the-gz-param)). Or bake the page and publish a 📦
 artifact ([artifacts.md](artifacts.md)).
