@@ -25,8 +25,8 @@ A chip on a staged row, and in the reader's header, opens the transform workbenc
 ([`transform-workbench.js`](../lib/alpineComponents/transform-workbench.js)) on an
 item that `StageIntake.transformKindOf` recognizes: a workbench bundle, rows (a
 `.csv`, a `.tsv` or a JSON array of records) or a `rows => rows` transform. The
-workbench mounts fresh on each open. A bundle is the one kind that skips the
-offer and opens the tool directly.
+workbench mounts fresh on each open. A workbench bundle opens in the workbench as
+it arrives, where any other new item opens in the reader.
 
 **iOS Safari fires no `paste` event unless an editable is focused**, so the app
 header and the bench each carry a Paste button, which reads through
@@ -90,7 +90,7 @@ re-aim it.
 | **Patch** | a real unified diff: `@@` hunks at three lines of context, copyable | never |
 
 The comparison also carries Copy, the review prompts and **Open in Diff**, which
-hands the pair to the Diff page. Both use
+hands the pair to the Diff page. The comparison and the Diff page share
 [`kits/text-diff.js`](../lib/kits/text-diff.js).
 
 ## Standoff notes: a comment that is content
