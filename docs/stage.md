@@ -310,6 +310,11 @@ Stage-view actions:
   failed fetch renders a note in place of the viewer rather than refusing, so
   `2 / 3` always means the second of three and a step never skips.
 
+  **The header's last button is Copy, and it copies the file, not the
+  screen.** The reader shows every file through a display pass that halves
+  each run of four spaces, so Copy writes the text the slide was given,
+  through `window.io.copy`, rather than the viewer's content.
+
   **The modal is a fixed height at every width**, `h-full` on a phone and
   `85vh` above it. It was `h-auto` under a `max-h` cap until 2026-08-15, and
   the two complaints that produced were one bug: the dialog resized as you
@@ -642,20 +647,19 @@ that claim worth making: the shell reads its own repo on boot to orient itself,
 so counting requests would never reach zero and would say nothing about whether
 the link needed the network.
 
-Minting is browser-side, since gzip is. From a session with no shell loaded,
-build the payload directly:
+Minting in the app is browser-side. From a session, mint from local files:
 
 ```bash
-python3 - <<'PY'
-import json, gzip, base64
-items = [{"name": "before.md", "text": open("before.md").read()},
-         {"name": "after.md",  "text": open("after.md").read()}]
-raw = gzip.compress(json.dumps(items, separators=(",", ":")).encode())
-print("#gz=" + base64.urlsafe_b64encode(raw).decode().rstrip("="))
-PY
+npm run -s stage-link -- Do-Thing.ps1                # opens on the file (&mode=read)
+npm run -s stage-link -- before.md after.md --diff   # opens on the comparison
 ```
 
-The same base64url step without the gzip is what `&prompts=` takes.
+[`node/stage-link.mjs`](../node/stage-link.mjs) prints the link alone on stdout
+and the sizes on stderr, naming each item by its file. It carries text, not
+bytes: it drops a leading byte-order mark, which would otherwise land before a
+pasted script's first token, refuses a file that is not UTF-8, and refuses one
+over `GZ_MAX`, printing both sizes. `&prompts=` takes base64url the same way,
+without the gzip.
 
 ### Short text: the `#take=` param
 
@@ -687,8 +691,10 @@ URL.
 
 `&mode=diff` opens the **reader** on its diff and runs the compare on open, with
 no click, so a review link lands the reviewer straight on the comparison.
-Without it a stage opens with the reader closed, on the Out surface, which is a
-bundle handoff rather than a review. `&cmp=` names which staged item is the
+`&mode=read` opens the reader on the first staged file, so a script carried in
+`&gz=` opens ready to copy. Without either, a stage opens with the reader
+closed, on the Out surface, which is a bundle handoff rather than a review.
+`&cmp=` names which staged item is the
 other half of the pair, and `&view=` picks the reading (`unified`, `split`, or
 `patch`); both are ignored rather than trusted when they do not resolve, since a
 link outlives the set it was minted from. `&dest=` prefills the send field with
