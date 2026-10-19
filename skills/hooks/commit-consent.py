@@ -14,7 +14,12 @@ is the property that keeps it from becoming the thing everyone dismisses.
 THE TWO TRIGGERS, and both are narrow on purpose.
 
   a new file under tracker/tasks/    -> Task-named-by-user, or Approved
-  a MODIFIED documentation file      -> Doc-change-approved, or Approved
+  a MODIFIED documentation file, on main -> Doc-change-approved, or Approved
+
+On any other branch a modified document passes with a reminder: its wording
+reaches the owner as a commit, and their approval comes before the merge
+rather than before the commit. A detached HEAD counts as main, since it can be
+pushed straight there.
 
 Modified, not added: a new document retracts nothing and overrides nothing, so
 there is no prior claim for a general go-ahead to have been stretched over. The
@@ -153,6 +158,16 @@ def is_copy(root, rel):
     return any(blob and git(root, "show", f"HEAD:{t}") == blob for t in twins)
 
 
+# The branches a document commit must already carry approval on.
+PROTECTED = ("main", "master")
+
+
+def on_branch(root):
+    """True on a named branch other than main, where the merge is the gate."""
+    name = git(root, "symbolic-ref", "--short", "-q", "HEAD").strip()
+    return bool(name) and name not in PROTECTED
+
+
 def is_doc(rel, globs):
     if rel.startswith(FREE) or "/dump/" in rel or rel.startswith("tracker/tasks/"):
         return False
@@ -235,17 +250,20 @@ When you share the task link in discussion, use the task marker
 
 DOC_PROMPT = """Commit rejected: {what}.
 
-This commit requires the trailer  Doc-change-approved  (or Approved), one per
-documentation file it changes.
-
-A documentation file changes only on new or revised language the user has
-directly approved. Quote the user's specific words approving this update:
+On main, a documentation change needs the trailer  Doc-change-approved  (or
+Approved), one per documentation file it changes. Commit it on a branch
+instead, show the user the diff as the Review section of the doc-craft skill
+describes, and merge after they approve it. To commit it here, quote their
+approval:
 
   Doc-change-approved: "<their words>" -> <path>
 
-If the words you would quote do not approve this file's language, restore the
-file and ask before changing it. Show the language, ask plainly, and quote
-whatever they answer; never tell them what words to use."""
+Ask plainly and quote whatever they answer; never tell them what words to use."""
+
+DOC_REMINDER = """Note: {what}.
+
+Show the user this commit's diff, as the Review section of the doc-craft skill
+describes, and merge only after they approve the wording."""
 
 
 def main(argv):
@@ -287,6 +305,9 @@ def main(argv):
 
     if docs and not approved and not trailers(msg, "Doc-change-approved"):
         what = "documentation changed: " + ", ".join(docs[:3])
+        if on_branch(root):
+            print(DOC_REMINDER.format(what=what), file=sys.stderr)
+            return 0
         print(DOC_PROMPT.format(what=what), file=sys.stderr)
         for p in problems:
             print(f"\n  The Approved trailer did not settle it: {p}", file=sys.stderr)

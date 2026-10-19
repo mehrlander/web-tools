@@ -25,5 +25,5 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 ## Review
 
-- **Show new text as a diff**: Before committing a change to a document, show each added or rewritten sentence in chat as a fenced `diff` block, with enough unchanged lines to locate each change. Check new text against **Consider the context** and **Earn each sentence** before showing it.
+- **Show new text as a diff**: After committing a change to a document on a branch, show each added or rewritten sentence in chat as a fenced `diff` block, with enough unchanged lines to locate each change, and link the commit. Merge only after the owner approves the wording. Check new text against **Consider the context** and **Earn each sentence** before showing it.
 - **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diff, one line each.
