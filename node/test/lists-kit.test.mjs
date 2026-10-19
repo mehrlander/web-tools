@@ -117,6 +117,25 @@ test('create names the file from the title, refuses a taken path, and refuses a 
   await assert.rejects(L.create(reg, { title: '!!!' }), /letter or a digit/);
 });
 
+test('move writes the new file before deleting the old, and refuses a taken or built-in path', async () => {
+  const reg = registry({
+    'lists/aphorisms.json': json({ title: 'Aphorisms', icon: 'quotes', items: [{ id: 'l1', text: 'x' }] }),
+    'lists/words.json': json({ title: 'Words', items: [] }),
+  });
+  const order = [];
+  const save = reg.save, del = reg.del;
+  reg.save = async (...a) => { order.push('save ' + a[0]); return save(...a); };
+  reg.del = async (...a) => { order.push('del ' + a[0]); return del(...a); };
+  const res = await L.move(reg, 'lists/aphorisms.json', 'lists/sayings.json',
+    (items, header) => ({ items, header: { ...header, title: 'Sayings' } }), 'msg');
+  assert.deepEqual(order, ['save lists/sayings.json', 'del lists/aphorisms.json']);
+  assert.equal(res.path, 'lists/sayings.json');
+  assert.deepEqual(JSON.parse(reg.S.files['lists/sayings.json']), { title: 'Sayings', icon: 'quotes', items: [{ id: 'l1', text: 'x' }] });
+  await assert.rejects(L.move(reg, 'lists/sayings.json', 'lists/words.json', i => i, 'msg'), /already stored/);
+  await assert.rejects(L.move(reg, 'lists/sayings.json', 'lists/todo.json', i => i, 'msg'), /built-in/);
+  assert.ok('lists/sayings.json' in reg.S.files, 'a refused move leaves the list where it was');
+});
+
 test('remove deletes an empty list and refuses one with items', async () => {
   const reg = registry({
     'lists/empty.json': json({ title: 'Empty', items: [] }),

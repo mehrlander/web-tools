@@ -197,19 +197,39 @@ test('check-off is off until the list turns it on, then done items sink below op
   assert.ok(!('capabilities' in saved('lists/aphorisms.json')), 'turning the last one off removes the key');
 });
 
-test('settings rename the list and change its icon without moving its file', async () => {
+test('a rename moves the file to the new title\u2019s name, and a taken name is refused', async () => {
   seed();
   await data.loadCreatedLists(reg());
   data.toggleCreatedSettings();
   data.createdSetTitle = 'Sayings';
   data.createdSetIcon = 'chat-centered-text';
   await data.saveCreatedSettings();
-  const file = saved('lists/aphorisms.json');
+  assert.ok(!('lists/aphorisms.json' in FILES), 'the old file is gone');
+  const file = saved('lists/sayings.json');
   assert.equal(file.title, 'Sayings');
   assert.equal(file.icon, 'chat-centered-text');
-  assert.equal(data.createdList.title, 'Sayings');
+  assert.equal(file.kept, 'by hand', 'the header rides along');
+  assert.deepEqual(plain(file.items.map(i => i.id)), ['l2']);
+  assert.equal(data.createdList.path, 'lists/sayings.json');
+  assert.equal(data.createdPick, 'lists/sayings.json');
   assert.match(SAVES.at(-1).message, /^Rename the list "Aphorisms" to "Sayings"/);
   assert.deepEqual(plain(data.createdLists.map(l => l.title)), ['Sayings', 'Useful words and phrases']);
+
+  // A case change keeps the same file name, so it is an edit in place.
+  const before = DELS.length;
+  data.toggleCreatedSettings();
+  data.createdSetTitle = 'SAYINGS';
+  await data.saveCreatedSettings();
+  assert.equal(DELS.length, before);
+  assert.equal(saved('lists/sayings.json').title, 'SAYINGS');
+
+  // A title whose file name another list holds writes nothing.
+  const saves = SAVES.length;
+  data.toggleCreatedSettings();
+  data.createdSetTitle = 'Useful words';   // lists/useful-words.json in this fixture
+  await data.saveCreatedSettings();
+  assert.equal(SAVES.length, saves);
+  assert.equal(saved('lists/sayings.json').title, 'SAYINGS');
 });
 
 test('creating a list writes a titled empty file and puts it on screen; a taken title is refused', async () => {
