@@ -6,7 +6,8 @@
 //
 // Driven over a fake GH holding one session with two calls, one answered. The
 // tab comes first, and an open call is answered on its card (owner, 2026-10-19:
-// "give the ability to approve on these").
+// "give the ability to approve on these"), in a box whose send takes the
+// recommendation when left empty and sends the words as the adjustment.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -23,7 +24,7 @@ const record = {
 const CALLS = {
   'user-calls/c0ffee01-size.json': { id: 'c0ffee01-size', session: 'c0ffee01', kind: 'decision', name: 'Topic Size',
     question: 'Split topics?', brief: 'Eleven turns disagree.', recommend: 'Keep them whole', why: 'it is the key as built',
-    size: 'S', confidence: 'firm', created: '2026-10-15T11:00:00Z' },
+    size: 'S', confidence: 'firm', pr: 'me/widget#7', created: '2026-10-15T11:00:00Z' },
   'user-calls/c0ffee01-two.json': { id: 'c0ffee01-two', session: 'c0ffee01', kind: 'decision', question: 'Two steps?',
     recommend: 'Yes, switch', confidence: 'lean', why: 'closer on average', created: '2026-10-15T11:30:00Z' },
 };
@@ -80,7 +81,7 @@ window.__none = { id: 'feed0002', repo: STORE, framed: true, record: { ...record
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
-Alpine.data('userCallForm', (o) => ({ init() { forms.push({ id: o.call.id, pick: o.pick }); } }));
+Alpine.data('userCallForm', (o) => ({ init() { forms.push(o.call.id); } }));
 for (const k of ['lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
@@ -116,12 +117,20 @@ test('the Calls tab shows with a count, tinted while a call waits', async () => 
   assert.equal(el('none').querySelector('[data-session-calls-tab]').style.display, 'none', 'no calls, no tab');
 });
 
+test('size and cautions ride the name\'s line, each with its tip', () => {
+  const [one, two] = el('slide').querySelectorAll('[data-session-call-head]');
+  const size = one.querySelector('[data-chip=size]');
+  assert.match(size.textContent, /S/);
+  assert.match(size.dataset.titleTip, /one session with room to spare: the work the recommended answer sets off/);
+  assert.match(two.querySelector('[data-chip=lean]').dataset.titleTip, /Another option has a real case: closer on average/);
+});
+
 test('the pane holds one card per call: question, brief, recommendation, state', async () => {
   const cards = [...el('slide').querySelectorAll('[data-session-call]')];
   assert.equal(cards.length, 2);
   await until(() => /Answered: Take/.test(cards[1].textContent));
   assert.match(cards[0].textContent, /Topic Size[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
-  assert.match(cards[1].textContent, /Decision[\s\S]*Answered: Take[\s\S]*Two steps\?[\s\S]*Lean/);
+  assert.match(cards[1].textContent, /Decision[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
 });
 
 test('a card opens the deck of call forms at that call', () => {
@@ -129,45 +138,55 @@ test('a card opens the deck of call forms at that call', () => {
   decks.length = 0; forms.length = 0;
   el('slide').querySelectorAll('[data-session-call]')[1].click();
   assert.deepEqual(decks, [{ count: 2, start: 1, title: 'Calls' }]);
-  assert.deepEqual(forms, [{ id: 'c0ffee01-two', pick: '' }]);
+  assert.deepEqual(forms, ['c0ffee01-two']);
 });
 
-test('an open call is answered on its card in two taps, the second on Confirm', async () => {
-  const card = el('slide').querySelectorAll('[data-session-call]')[0];
-  const take = card.querySelector('[data-session-call-answer][data-option="Take"]');
-  assert.ok(take, 'Take, for a call filed as Take or Adjust');
-  assert.ok(card.querySelector('[data-session-call-adjust]'), 'and Adjust beside it');
+const card = () => el('slide').querySelectorAll('[data-session-call]')[0];
+const send = () => card().querySelector('[data-session-call-send]');
+// The send's Confirm label is shown, not written, so its visibility is the test.
+const armed = () => [...send().querySelectorAll('span')].some((x) => x.textContent === 'Confirm' && x.style.display !== 'none');
+const reopen = async () => { data('slide').callAnswers = { ...data('slide').callAnswers, 'c0ffee01-size': [] }; await tick(2); };
+
+test('a call filed as Take or Adjust is answered in a box, its send empty taking the recommendation', async () => {
+  const box = card().querySelector('[data-session-call-note]');
+  assert.equal(box.placeholder, 'Go ahead as recommended');
+  assert.equal(card().querySelectorAll('[data-session-call-answer]').length, 0, 'no Take or Adjust buttons beside it');
   const answered = el('slide').querySelectorAll('[data-session-call]')[1];
-  assert.equal(answered.querySelectorAll('[data-session-call-answer]').length, 0, 'an answered call offers no answer');
-  assert.equal(answered.querySelector('[data-session-call-adjust]').style.display, 'none');
+  assert.equal(answered.querySelector('[data-session-call-reply]').style.display, 'none', 'an answered call has no box');
   decks.length = 0; posts.length = 0;
-  take.click();
-  await tick(2);
-  assert.match(take.textContent, /Confirm/);
+  send().click();
+  await until(armed);
+  assert.ok(armed(), 'the first tap arms the send, on Confirm');
   assert.equal(posts.length, 0, 'the first tap sends nothing');
   assert.equal(decks.length, 0, 'and opens no deck');
-  take.click();
-  await until(() => /Answered: Take/.test(card.textContent));
+  send().click();
+  await until(() => /Answered: Take/.test(card().textContent));
   assert.equal(posts.length, 1);
   assert.equal(posts[0].repo, STORE);
   assert.equal(posts[0].path, 'user-calls/c0ffee01-size.answers.jsonl');
-  assert.equal(posts[0].entry.answer, 'Take');
-  assert.equal(posts[0].comment, '', 'no PR, no comment');
-  assert.match(card.textContent, /Answered: Take/);
+  assert.deepEqual([posts[0].entry.answer, posts[0].entry.note, posts[0].entry.then], ['Take', '', undefined]);
+  assert.match(posts[0].comment, /Answer: \*\*Take\*\*, the recommendation: Keep them whole\n\n_c0ffee01-size, sent from the session's Calls tab\._/);
   assert.equal(data('slide').openCallCount, 0);
   assert.equal(decks.length, 0);
 });
 
-test('Adjust opens the call\'s form on its Adjust answer', async () => {
-  const s = data('slide');
-  const saved = s.callAnswers;
-  s.callAnswers = { ...saved, 'c0ffee01-size': [] };
-  await tick(2);
-  decks.length = 0; forms.length = 0;
-  el('slide').querySelectorAll('[data-session-call]')[0].querySelector('[data-session-call-adjust]').click();
-  assert.deepEqual(decks, [{ count: 2, start: 0, title: 'Calls' }]);
-  assert.deepEqual(forms, [{ id: 'c0ffee01-size', pick: 'Adjust' }]);
-  s.callAnswers = saved;
+test('words in the box send it as the adjustment, and changing them disarms the send', async () => {
+  await reopen();
+  const box = card().querySelector('[data-session-call-note]');
+  posts.length = 0;
+  send().click();
+  await until(armed);
+  assert.ok(armed(), 'the first tap arms the send, on Confirm');
+  box.value = 'Split the three clearest';
+  box.dispatchEvent(new window.Event('input'));
+  await until(() => !armed());
+  assert.ok(!armed(), 'what the send means changed, so it asks again');
+  send().click(); await tick(2); send().click();
+  await until(() => /Answered: Adjust/.test(card().textContent));
+  assert.equal(posts.length, 1);
+  assert.deepEqual([posts[0].entry.answer, posts[0].entry.then, posts[0].entry.note], ['Adjust', 'go', 'Split the three clearest']);
+  assert.match(posts[0].comment, /Answer: \*\*Adjust\*\*, then \*\*go\*\*: make the change and carry on\n\n> Split the three clearest/);
+  assert.equal(data('slide').callNotes['c0ffee01-size'], '', 'the box is emptied once sent');
 });
 
 test('an address asking for Calls on a session with none lands on the outline', () => {
