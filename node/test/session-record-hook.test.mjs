@@ -110,6 +110,27 @@ test('hands the payload through byte-identical', () => {
   });
 });
 
+// A store reports a failure by printing a hook JSON line; the hook must pass it
+// through, and must return while the store's background publish is still running.
+test('passes the store report through without waiting on its background job', () => {
+  scratch((dir) => {
+    const repo = manifest(join(dir, 'private'), '{"sessions": "sessions"}');
+    const s = join(repo, 'sessions');
+    mkdirSync(join(s, 'tools'), { recursive: true });
+    writeFileSync(join(s, 'tools', 'on-stop.sh'),
+      '#!/usr/bin/env bash\ncat >/dev/null\necho \'{"systemMessage":"Session record: test"}\'\n(sleep 5) &\nexit 0\n');
+    const started = Date.now();
+    const res = spawnSync('bash', [HOOK], {
+      input: PAYLOAD,
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+    });
+    assert.equal(res.status, 0);
+    assert.equal(res.stdout.trim(), '{"systemMessage":"Session record: test"}');
+    assert.ok(Date.now() - started < 3000, 'the hook waited on the background job');
+  });
+});
+
 // Everything below is the quiet path: the common case is a session with no store
 // checked out at all, and it must cost nothing and say nothing.
 test('does nothing when no checkout declares a store', () => {
