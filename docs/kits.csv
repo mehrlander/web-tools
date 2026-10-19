@@ -25,7 +25,7 @@ lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a pa
 lib/kits/dictate-record.js,DictateRecord,"an edit to one file as data: its changes, and notes kept as records anchored to GitHub's copy, serialized as a `dictate/1` record.",353,no,no,1,yes
 lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1938,no,yes,11,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",142,no,no,2,yes
-lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,8,yes
+lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,8,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",506,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,461,no,no,7,yes
@@ -37,7 +37,7 @@ lib/kits/file-index.js,FileIndex,"the estate's file names, kept in the private r
 lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object.",245,no,no,4,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",655,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,3,yes
-lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,18,yes
+lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",446,no,no,18,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",232,no,yes,22,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
@@ -55,7 +55,7 @@ lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
 lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",137,no,no,8,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,5,yes
 lib/kits/page-storage.js,PageStorage,"What a visited page keeps in its browser storage, read from inside that page.",118,no,no,2,yes
-lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,305,no,yes,8,yes
+lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,306,no,yes,8,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2302,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",780,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,369,no,yes,8,yes
@@ -66,7 +66,7 @@ lib/kits/powershell-match.js,PowerShellMatch,"Which repository file a pasted pie
 lib/kits/powershell-outpost.js,PowerShellOutpost,"PowerShell outpost state: what the repository holds for the work computer's PowerShell suite, which has no Git checkout, where each file is meant to go, what…",605,no,no,2,yes
 lib/kits/powershell-units.js,PowerShellUnits,Parser-backed review units.,297,no,no,2,yes
 lib/kits/powershell-workspace.js,PowerShellWorkspace,PowerShell code workspace data.,304,no,no,1,yes
-lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",810,no,no,3,yes
+lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",811,no,no,3,yes
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes
 lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcdoc HTML out.",81,no,no,16,yes
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,3,yes
@@ -99,7 +99,7 @@ lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever 
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
-lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",399,no,yes,20,yes
+lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",400,no,yes,20,yes
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,185,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",692,yes,no,4,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,162,no,no,2,yes
