@@ -169,8 +169,7 @@ before sending it.
   request>).`, another session's open work on the same files or question.
 - **Restore:** the line below, for a session whose link is missing from every
   record's `agent_session` field in the session-record store
-  (`/portable:sessions`). It also goes alone to an unrecorded session idle in
-  the same window.
+  (`/portable:sessions`).
 
 > This session is missing from the session records in <store>. Invoke
 > /portable:sessions. If that skill is unknown, recover the portable plugin as
