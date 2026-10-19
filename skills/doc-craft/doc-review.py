@@ -66,13 +66,17 @@ def hunks(base, paths, context):
     return out
 
 
+def main_ref():
+    for ref in ("origin/HEAD", "origin/main", "origin/master"):
+        if subprocess.run(["git", "rev-parse", "-q", "--verify", ref], capture_output=True).returncode == 0:
+            return ref
+    return None
+
+
 def default_base():
     """Where the branch left origin's main, or HEAD when there is no such ref."""
-    for ref in ("origin/HEAD", "origin/main", "origin/master"):
-        r = subprocess.run(["git", "merge-base", "HEAD", ref], capture_output=True, text=True)
-        if r.returncode == 0:
-            return r.stdout.strip()
-    return "HEAD"
+    ref = main_ref()
+    return git("merge-base", "HEAD", ref).strip() if ref else "HEAD"
 
 
 def repo_slug(repo):
@@ -96,8 +100,11 @@ def toss_link(path, repo):
 
 def commit_link(base, repo):
     """The commit the review shows, or the compare across several; none while the
-    edits are uncommitted or HEAD is on no remote."""
-    commits = git("rev-list", "--no-merges", f"{base}..HEAD").split()
+    edits are uncommitted or HEAD is on no remote. Commits main already holds are
+    left out: a merge of main brings them in, and a conflict resolved in that merge
+    is the branch's own change, so the merge commit itself stays in."""
+    ref = main_ref()
+    commits = git("rev-list", f"{base}..HEAD", *([f"^{ref}"] if ref else [])).split()
     if not commits or not pushed():
         return None
     if len(commits) == 1:
