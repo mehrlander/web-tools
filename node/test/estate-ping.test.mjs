@@ -1,5 +1,5 @@
 // alpineComponents/estate.js — Ping, questions put to Gemini from the Lists
-// view. Sending files a laptop-daemon `ask` errand in the registry; the pane
+// view. Sending files a laptop-daemon `ping` errand in the registry; the pane
 // then follows each ask through the folder listings (sent, thinking once
 // claimed, answered once a result lands) and shows Gemini's reply. Driven over
 // a fake GH and a stubbed shell; no network, no pixels. The fake registry has
@@ -91,7 +91,7 @@ test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
 
-test('sending files one ask errand and lists the question as sent', async () => {
+test('sending files one ping errand and lists the question as sent', async () => {
   await seed();
   const id = await send('Which rivers feed the Columbia? A short list.');
   assert.equal(SAVES.length, 1, 'one write');
@@ -99,9 +99,9 @@ test('sending files one ask errand and lists the question as sent', async () => 
   assert.equal(path, 'errands/requests/' + id + '.json');
   assert.equal(ref, 'background', 'filed on the errand branch, not main');
   assert.equal(value.dest, REGISTRY + '@background:errands/results');
-  assert.match(id, /^daemon-\d{4}-\d{2}-\d{2}-ask-[a-z0-9]+$/);
+  assert.match(id, /^daemon-\d{4}-\d{2}-\d{2}-ping-[a-z0-9]+$/);
   assert.equal(value.run.method, 'laptop-daemon');
-  assert.equal(value.run.op, 'ask');
+  assert.equal(value.run.op, 'ping');
   assert.equal(value.run.args.prompt, 'Which rivers feed the Columbia? A short list.');
   assert.match(message, /^Ping Gemini/);
   assert.equal(data.pingItems[0].stage, 'sent');
@@ -117,7 +117,7 @@ test('a question moves to thinking when claimed, then shows the reply', async ()
 
   delete FILES['errands/claims/' + id + '.json'];
   FILES['errands/results/' + id + '.json'] = { id, ok: true, closedAt: '2026-10-02T17:03:00Z',
-    message: 'The Snake.', data: { op: 'ask', model: 'flash', reply: 'The Snake.\nThe Willamette.' } };
+    message: 'The Snake.', data: { op: 'ping', model: 'flash', reply: 'The Snake.\nThe Willamette.' } };
   await data.loadPings({ quiet: true });
   assert.equal(data.pingItems[0].stage, 'answered');
   assert.equal(data.pingItems[0].reply, 'The Snake.\nThe Willamette.');
@@ -134,8 +134,8 @@ test('a question just sent survives a listing that has not caught up with it', a
 });
 
 test('opening the view lists earlier asks newest first, from the app and the command line', async () => {
-  const older = 'daemon-2026-09-30-ask-a1b2c3';                 // filed by errand_runner.py file ask
-  const newer = 'daemon-2026-10-01-ask-mfoo1234';
+  const older = 'daemon-2026-09-30-ping-a1b2c3';                // filed by errand_runner.py file ping
+  const newer = 'daemon-2026-10-01-ping-mfoo1234';
   await seed({
     ['errands/requests/' + older + '.json']: { id: older, createdAt: '2026-09-30T08:00:00Z', run: { args: { prompt: 'from a session' } } },
     ['errands/requests/' + newer + '.json']: { id: newer, createdAt: '2026-10-01T08:00:00Z', run: { args: { prompt: 'from the app' } } },
