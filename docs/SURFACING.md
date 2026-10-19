@@ -50,7 +50,7 @@ templates.
 
 * **Show pixels.** For a visual change, inspect and include a headless screenshot. Measure `scrollWidth` for horizontal overflow.
 
-* **Hand over the artifact.** Send an artifact with `SendUserFile`, not a path. Images preview inline; HTML, zip, and audio download.
+* **Hand over the artifact.** Send an artifact with `SendUserFile`, not a path. Images preview inline; HTML, zip, and audio download. A script or other text file the reader will paste elsewhere goes as a link from web-tools' `npm run -s stage-link -- <file>`, which opens on the file with Copy.
 
 Run `npm run showing` before handing over a render link, and paste the line it prints. Re-run it for every link on every commit, and append nothing to what it prints: ask for a query with `--query`, a fragment with `--at`, or a line on what to look at with `--intro`. It reads the branch's changed files and prints the links that reach them, or reports that no link does.
 
