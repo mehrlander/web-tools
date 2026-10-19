@@ -538,9 +538,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // no touch screen shows one and no screenshot captures one.
   assert.equal(el.querySelectorAll('.cursor-help').length, 0);
   // Scoped to the strip and the head, not the whole view: the icon-only
-  // controls below keep a `title`, which is the case rule 11 does sanction, a
-  // simple label on a control that also carries an aria-label or is a link
-  // naming its own destination. What may not sit in one is a FACT.
+  // controls below carry their labels too, as title-tips since 2026-10-16 (a
+  // `title` before that). What may not sit in a title is a FACT.
   const strip = el.querySelector('.flex.flex-wrap.items-center.gap-x-2\\.5');
   assert.ok(strip, 'the facts strip');
   assert.equal(strip.querySelectorAll('[title]').length, 0, 'no fact is stranded in a title');
@@ -566,10 +565,15 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // comparison.
   const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  assert.equal(extras.length, 5,
-    'the id, the running-ref marker, the scope row, the pages mark, and the Gemini summary off-strip: '
-    + JSON.stringify(extras.map(n => n.textContent.trim())));
-  assert.equal(noted.length, d.strip.length + 5, 'every fact and those five, and nothing else');
+  // Ten more joined on 2026-10-16, when every title in the app became a
+  // title-tip: the labels on the icon-only controls, Contents, On GitHub,
+  // Previous view, Next view, Open the page in a new tab, Swipe through every
+  // view full screen, Open the cards and read them aloud, Read n cards one at a
+  // time, Open this session in Claude Code, and The stored record on GitHub.
+  assert.equal(extras.length, 15,
+    'the id, the running-ref marker, the scope row, the pages mark, the Gemini summary and ten control labels off-strip: '
+    + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
+  assert.equal(noted.length, d.strip.length + 15, 'every fact and those fifteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
