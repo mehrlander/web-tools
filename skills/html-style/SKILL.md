@@ -64,7 +64,8 @@ The shape is a default, and a page is **content-sensitive**: a slot the content
 would leave empty, such as a header figure the data does not have or a footer
 for a single item, is left out rather than filled with boilerplate. Use dots for
 up to about 25 items, then a progress bar. Support arrow keys, Escape, and the
-phone back button. Put filters in a header dropdown, not a chip row. Don't
+phone back button. Give each filter a row under the header: a label, then its
+options as pills on one line that scrolls sideways rather than wrapping. Don't
 embed a deck in a page; a strip under its own list (rule 12) is the exception,
 since its takeover is one tap away.
 
