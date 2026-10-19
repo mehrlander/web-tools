@@ -29,9 +29,10 @@ Each pill carries a menu of what can be done with its flavor. The menu offers
 **Copy**, **Markdown** on markup, **Base64**, and **Decoded** where the text
 decodes (`base64Info`, which also reads `data:` URIs). A conversion lands on the
 bar as a new dashed pill, labelled by the conversion, without opening the
-reader. The new pill carries its own menu, so conversions chain. A conversion's markdown opens raw, where every
-other `.md` in the app renders, because it is a payload to copy;
-`StageIntake.opensRaw` sets that rule for the reader and the hover card alike.
+reader. The new pill carries its own menu, so conversions chain. A conversion's
+markdown opens raw, where every other `.md` in the app renders, because it is a
+payload to copy; `StageIntake.opensRaw` sets that rule for the reader and the
+hover card alike.
 
 The stage opens the transform workbench
 ([`lib/alpineComponents/transform-workbench.js`](../lib/alpineComponents/transform-workbench.js))
