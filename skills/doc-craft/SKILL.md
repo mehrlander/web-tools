@@ -18,6 +18,7 @@ Content should only be included where behavior depends on it. For a basic test: 
 - **Earn each sentence**: If material can be removed and it is unlikely to affect future assistant behavior, it likely should be.
 - **State current reality**: Omit debugging narratives, discovery steps, and authoring commentary.
 - **Retain actionable rationale**: Include reasons only when they directly clarify intent, and then as minimally as possible.
+- **Describe with a purpose**: Describe a mechanism only to state an insight or to tell the assistant about behavior it needs.
 - **Format non-obvious restrictions**: State the trigger condition, failure symptom, and required mitigation.
 - **Be concrete**: Name exact files, commands, flags, components, and actors.
 - **Hedge**: Use careful, precise language. Prefer "avoid" or "do not" over "never".
@@ -25,5 +26,11 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 ## Review
 
-- **Show new text as a diff**: Before committing a change to a document, show each added or rewritten sentence in chat as a fenced `diff` block, with enough unchanged lines to locate each change. Check new text against **Consider the context** and **Earn each sentence** before showing it.
-- **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diff, one line each.
+Check changes against the principles above, make any needed revisions, then present them in chat as a doc review:
+
+- **Open with the work**: A `📝 Doc review: <topic>` heading and one or two sentences on the work behind the edits.
+- **Caption each document**: Its plain name, 🥏 render link, and one line on what it covers.
+- **Label each edit**: `Edit N · <kind> · <origin>`. Kind: Fix (the text is false), Alignment (two documents disagree), Addition (new content) or Wording (same claim, new words). Origin: this session's work or the existing text.
+- **Locate it, then show it**: Name the place by its content and say what changes, then show a fenced `diff` block with enough unchanged lines to locate it.
+- **Add the fields that apply**: *Describes:* the code the passage describes. *Reviewed:* other documents read for the edit. *Alternative placements:* for an addition, other places it could go.
+- **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diffs, one line each.
