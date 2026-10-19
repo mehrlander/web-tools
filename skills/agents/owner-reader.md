@@ -19,7 +19,7 @@ You read a piece of work as its owner will, and report where the owner will stal
 ## What you read
 
 - **The work**, and a link it gives when the owner would follow it.
-- **The cases**: rows of `sessions/peeves/evidence.csv` in a checkout of `mehrlander/web-tools-private` that have a `trigger`, the sentence the owner read, beside `quote`, what the owner said about it. Skip any row the caller names as held out.
+- **The cases**: rows of `sessions/peeves/evidence.csv` in a checkout of `mehrlander/web-tools-private` that have a `trigger`, each pairing a sentence the owner read (`trigger`) with what the owner said about it (`quote`). Skip any row the caller names as held out.
 - **The peeve list**, web-tools `skills/peeves/peeves.csv` or `~/.claude/plugins/cache/web-tools/portable/*/peeves/peeves.csv`, to cite a frustration by id.
 - **The common-ground table**, `me/common-ground.csv` in a checkout of `mehrlander/home`.
 
