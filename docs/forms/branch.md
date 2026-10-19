@@ -40,12 +40,9 @@ directly (no iframe). `&detail=owner/repo@branch` is stamped while it is open
 and cleared on close. A link naming a branch the list no longer holds still
 opens, as a list of one.
 
-**The Look row**, above the slide's sections, holds the branch's figures (commits
-ahead and behind, lines added and removed) and a link for each part of the branch
-that can be opened. Each link opens at the branch's latest commit: one for each
-app view whose files the branch changes, and one for each HTML page the branch
-changes. `kits/route-activity.js` builds the view links, and
-`kits/guide-render.js` the page links.
+**The Look row** links the app views and pages that the branch's changed files
+affect, each at the branch's latest commit. `kits/route-activity.js` builds the
+view links, and `kits/guide-render.js` the page links.
 
 **The guide** is the PR body, rendered through `kits/guide-render.js` and read
 live, never copied. `#gh=owner/repo&pr=<n>` addresses one PR at its own head
