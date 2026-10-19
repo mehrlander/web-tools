@@ -9,7 +9,7 @@ These policies set out the owner's preferences and conventions, organized by pri
 A policy states a preference that holds across tasks, in wording the owner approved, with the cases it covers.
 
 - An entry gives the preference and its scope, and links to the document that holds procedure and detail; neither restates the other.
-- A session shows proposed wording in chat as a `diff` block and commits it only after the owner approves it, quoting the approval in the commit's `Doc-change-approved:` trailer.
+- A session commits proposed wording on its branch, shows the owner the commit's diff in chat, and merges it only after the owner approves it.
 - A policy gets a document of its own only after its entry has been misapplied twice.
 - A shortcut names a preference or a bounded topic. A policy may have several shortcuts, and no shortcut is reused.
 - Cite an entry by its shortcut, a slash command such as `/h:qualify`. After the first mention in a document or reply, `h:qualify` alone is enough.
@@ -41,7 +41,7 @@ Use the standard term a general reader knows, in a plain, dry register.
 
 - Avoid slang, coined labels and figurative names.
 - Avoid informal tone with any hint of soapboxing.
-- Before denying something with *no* on a verb's object, as in "draws no underline" (no-negation), ask whether the reader expected it; if not, say what happens instead or cut the sentence.
+- Before denying something with *no* on a verb's object or with *nothing* or *none*, as in "draws no underline" or "nothing opens it" (no-negation), ask whether the reader expected it; if not, say what happens instead or cut the sentence.
 - Give one thing one name: its file name, label and title match.
 - Write "always" or "never" only where it can be checked, not for emphasis.
 - Name the exact file, column, count or command rather than referring to it in general.
@@ -160,7 +160,7 @@ Treat repo text whose wording the owner has not approved as a candidate reading 
 
 - When citing such text, say who or what wrote it, if known.
 - Do not extend such text past the cases it was written for.
-- Approved wording is the text of this document and any wording whose commit quotes the owner's approval.
+- Approved wording is the text of this document and any wording merged after the owner approved it.
 
 **Covers:** rules, CSV rows, skill text and code comments a session reads in any repo.
 

@@ -30,6 +30,8 @@
     read    the document as markdown, every unit tinted.
 
   Payload: audit/1, from ?src=<spec>, #gz=<base64url>, or the embedded default.
+  ?view=review (or #view=review) opens on Review: one category's units as a
+  list over a strip of the whole document, one slide per unit.
   Built by python/annotate/audit-payload.py (--inject refreshes the block below).
 -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
@@ -511,6 +513,15 @@ window.__audit = {
     for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   };
+  // The inverse, for a payload carried in this page's own #gz=: no commit, and
+  // the fragment never reaches a server.
+  const gunzipJson = async (b64) => {
+    const bin = Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+  };
+  // Review's own key in the chip row: every unit with a note. Not a label any
+  // vocabulary could declare.
+  const NOTED = '\u0000noted';
 
   // WHAT THE PAGE THROWS, WHERE THE READER CAN SEE IT. Until now an uncaught
   // error left the document rendered and the controls dead, with nothing on
@@ -709,13 +720,16 @@ window.__audit = {
 
   window.auditPage = () => ({
     a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, inDeck: false, mark: 'fill', off: {}, sel: null, selPt: null,
-    sections: [], ref: '',
+    sections: [], ref: '', lit: null, NOTED, rCat: null, rPick: null,
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
       let payload = window.__audit;
-      const spec = p.get('src') || new URLSearchParams(location.hash.slice(1)).get('src');
-      if (spec) payload = await this.fetchPayload(spec);
+      const hp = new URLSearchParams(location.hash.slice(1));
+      const gz = hp.get('gz') || p.get('gz'), spec = p.get('src') || hp.get('src');
+      if (gz) payload = await this.join(await gunzipJson(gz));
+      else if (spec) payload = await this.fetchPayload(spec);
       this.a = payload;
+      if ((hp.get('view') || p.get('view')) === 'review') this.view = 'review';
       // INTO THIS BROWSER'S COORDINATES, ONCE. segment.py writes offsets in code
       // points and every slice below is UTF-16, so an emoji anywhere earlier in
       // the document shifts a span silently. Everything from here to save() is
@@ -746,7 +760,12 @@ window.__audit = {
       this.$nextTick(() => {
         const h = this.$refs.hdr;
         if (h) new ResizeObserver(() => { this.hdrH = h.offsetHeight; }).observe(h);
+        // In Review, Left and Right step through the list while the pointer or
+        // focus is in it, under swipe-deck's rule for a strip's keys.
+        swipeDeck.keys(this.$refs.rbox, d => this.rGo(this.rAt + d), () => this.rRows.length);
+        if (this.view === 'review') this.rEnter();
       });
+      this.$watch('view', v => { if (v === 'review') this.rEnter(); else this.light(null); });
       addEventListener('resize', () => this.placePanel());
       addEventListener('scroll', () => this.placePanel(), true);
       // Pinching and the on-screen keyboard move the visual viewport without
@@ -761,9 +780,9 @@ window.__audit = {
     // against the sha256 it records: a document edited since the annotation
     // was made is reported, since every span would then point at the wrong
     // text. A pre-joined audit/1 payload (the builder's `payload` output)
-    // still loads as it is.
-    async fetchPayload(spec) {
-      const got = JSON.parse((await gh.get(spec)).text);
+    // still loads as it is, from ?src= or #gz=.
+    async fetchPayload(spec) { return this.join(JSON.parse((await gh.get(spec)).text)); },
+    async join(got) {
       if (got.kind !== 'standoff/1') return got;
       const text = (await gh.get(got.target.path)).text;
       const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))]
@@ -1256,19 +1275,172 @@ window.__audit = {
         this.saving = false;
       }
     },
-    dim(u) { return this.off[this.keyOf(u)] ? .12 : 1 },
+    // A label set aside fades hard; a label lit from its chip fades the rest
+    // less, so the document stays readable around the lit units.
+    dim(u) { const k = this.keyOf(u); return this.off[k] ? .12 : this.lit && !this.isLit(u) ? .35 : 1 },
+    // Lit by the chip in Doc, or by Review's category, Notes included.
+    isLit(u) { return this.lit === NOTED ? !!u.note : this.lit === this.keyOf(u); },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
+    // A PIECE'S BACKGROUND: its label's tint, the selection, or the lit label.
+    // piece() and heat() share it, so lighting a label restyles the pieces in
+    // place rather than rendering the document again on every hover.
+    shade(u, m = MARKS[this.mark] || MARKS.fill) {
+      const k = this.keyOf(u), a = this.dim(u);
+      if (this.isCur(u)) return tint(k, m.sel * a);
+      if (this.lit && this.isLit(u)) return tint(k, Math.max(m.over, .22));
+      return m.bg ? tint(k, m.bg * a) : '';
+    },
+    heat() {
+      const by = new Map(this.units.map(u => [u.uid, u]));
+      for (const el of this.$refs.doc?.querySelectorAll('[data-uid]') || []) {
+        const u = by.get(el.dataset.uid);
+        if (!u) continue;
+        el.style.opacity = this.dim(u);
+        el.style.background = this.shade(u);
+        this.decorate(el, u);
+      }
+    },
+    light(k) { if (this.lit === k) return; this.lit = k; this.heat(); },
+    // Hovering a chip lights its units, where a pointer can hover and the
+    // document is on screen.
+    chipOver(k) { if (this.view !== 'review' && matchMedia('(hover: hover) and (pointer: fine)').matches) this.light(k); },
+    chipOut() { if (this.view !== 'review') this.light(null); },
     // ONE TAP, ONE THING, ON A TOUCHSCREEN. title-tip.js opens a chip's tip on
     // tap where nothing can hover, so a tap there used to open the tip and
     // dim the label at once. There the first tap shows the tip and the next
     // tap on the same chip, which closes it, dims. A pointer that hovers gets
-    // the tip on hover, so every click dims.
+    // the tip on hover, so every click dims. In Review a chip carries no tip,
+    // and a tap picks the category the list holds.
     noteFor: null,
     chipTap(k) {
+      if (this.view === 'review') return this.rPickCat(k);
       if (matchMedia('(hover: none)').matches && this.noteFor !== k) { this.noteFor = k; return; }
       this.noteFor = null;
       this.toggle(k);
     },
+
+    // ── REVIEW: one category's units as a list over a strip of the document ──
+    // The list holds the category the chips pick: Notes (every unit with a
+    // note, the default where any unit has one) or a label. Below it a strip,
+    // one slide per unit: the whole document painted as in Doc, that unit
+    // current and its note set under it, scrolled into view. A swipe moves
+    // the list's selection and a pick in the list moves the strip (html-style
+    // rule 12). Stacked at every width, since the page sits in a deck, whose
+    // frame is vertical.
+    get noted() { return this.units.filter(u => u.note); },
+    get rKey() { return this.rCat ?? (this.noted.length ? NOTED : this.axis[0]); },
+    // What the list holds, said on the page: a tap on a chip picks the
+    // category, so a chip cannot also open a tip that explains it.
+    get rGloss() {
+      return this.rKey === NOTED
+        ? `every unit with a note, whatever its label: ${this.noted.length} of ${this.units.length}`
+        : this.gloss(this.rKey);
+    },
+    get rRows() {
+      const k = this.rKey;
+      return (k === NOTED ? this.noted : this.units.filter(u => this.keyOf(u) === k))
+        .slice().sort((a, b) => a.start - b.start);
+    },
+    get rAt() { const i = this.rRows.findIndex(u => u.uid === this.rPick); return i < 0 ? 0 : i; },
+    get rCur() { return this.rRows[this.rAt] || null; },
+    // The unit a view treats as current: the selection in Doc, the list's row
+    // in Review, and while a slide is painted, that slide's own unit.
+    isCur(u) { return u.uid === (this._paintCur ?? (this.view === 'review' ? this.rCur?.uid : this.sel?.uid)); },
+    rLight() { this.lit = this.rKey; },
+    rEnter() { this.sel = null; this.rLight(); this.$nextTick(() => { this.rBuild(); this.rShow(); }); },
+    rPickCat(k) { this.rCat = k; this.rPick = null; this.rLight(); this.$nextTick(() => { this.rBuild(); this.rShow(); }); },
+    // The strip, built again whenever its rows change: a category, an edit.
+    rBuild() {
+      const host = this.$refs.rdoc, rows = this.rRows;
+      if (!host) return;
+      host.replaceChildren();
+      this._rStrip = null;
+      if (!rows.length) return;
+      const at = this.rAt;
+      const strip = swipeDeck.core(rows.length, (i, el) => this.rSlide(rows[i], el), {
+        innerClass: 'w-full min-w-0', behavior: 'instant', start: at, slidePad: 'px-4 py-4',
+      });
+      host.append(strip.track);
+      strip.onSlide(i => { if (rows[i] && rows[i].uid !== this.rPick) { this.rPick = rows[i].uid; this.rShow(); } });
+      this._rStrip = strip;
+      requestAnimationFrame(() => strip.go(at, 'instant'));
+    },
+    // ONE SLIDE: the whole document with this unit current, its note set under
+    // the block that holds it, and the slide scrolled so the unit sits a third
+    // of the way down.
+    rSlide(u, el) {
+      this._paintCur = u.uid;
+      try { this.paint(el); } finally { this._paintCur = null; }
+      const first = el.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`);
+      if (u.note && first) {
+        const note = document.createElement('div');
+        note.className = 'my-2 rounded-box border-l-4 border-[var(--color-primary)] bg-base-200 px-3 py-2 text-sm leading-6 whitespace-pre-line text-pretty';
+        note.textContent = u.note;
+        const block = first.closest('li,p,h1,h2,h3,h4,h5,h6,blockquote,td');
+        if (block && /^(LI|TD)$/.test(block.tagName)) block.append(note);
+        else (block || first).insertAdjacentElement('afterend', note);
+      }
+      requestAnimationFrame(() => {
+        const box = el.closest('.sd-slide');
+        if (!box || !first) return;
+        const b = box.getBoundingClientRect(), r = first.getBoundingClientRect();
+        box.scrollTop += r.top - b.top - Math.max(8, (b.height - Math.min(r.height, b.height)) / 3);
+      });
+    },
+    // Move to row i, the strip following: instantly for a jump, smoothly for
+    // a step to a neighbour.
+    rGo(i, jump = false) {
+      const rows = this.rRows;
+      if (!rows.length) return;
+      i = (i + rows.length) % rows.length;
+      const far = jump || Math.abs(i - this.rAt) > 1;
+      this.rPick = rows[i].uid;
+      this.rShow();
+      this._rStrip?.go(i, far ? 'instant' : 'smooth');
+    },
+    // A row under the pointer tints its unit in the document, with an outline
+    // in the text colour so a pale label still shows; leaving puts the unit's
+    // own shade back.
+    rOver(u, on) {
+      const m = MARKS[this.mark] || MARKS.fill;
+      for (const p of this.$refs.rdoc?.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`) || []) {
+        p.style.background = on && !this.isCur(u) ? tint(this.keyOf(u), .45) : this.shade(u, m);
+        p.style.outline = on ? '1px solid color-mix(in srgb, var(--color-base-content) 45%, transparent)' : '';
+      }
+    },
+    // A tap on a unit in the document picks it, where the list holds it.
+    rTap(u) { const i = this.rRows.findIndex(x => x.uid === u.uid); if (i >= 0) this.rGo(i); },
+    // The current row kept in view inside the list, never by scrolling the page.
+    rShow() {
+      this.$nextTick(() => {
+        const list = this.$refs.rlist, row = list?.querySelectorAll('[data-row]')[this.rAt];
+        if (!row) return;
+        const b = list.getBoundingClientRect(), r = row.getBoundingClientRect();
+        if (r.top < b.top) list.scrollTop -= b.top - r.top;
+        else if (r.bottom > b.bottom) list.scrollTop += r.bottom - b.bottom;
+      });
+    },
+    // An edit from the Review bar: the unit panel's push(), then the strip
+    // built again. A relabel can take the unit out of the category in view;
+    // the selection then stays at the same place in the list.
+    rEdit(op) {
+      const i = this.rAt;
+      if (!this.push(op)) return;
+      this.sel = null;
+      const rows = this.rRows;
+      if (!rows.some(u => u.uid === this.rPick)) this.rPick = rows[Math.min(i, rows.length - 1)]?.uid ?? null;
+      this.rBuild();
+      this.rShow();
+    },
+    // A unit as one line of plain text: list markers, emphasis and link
+    // targets taken out.
+    gist(u) {
+      return this.a.text.slice(u.start, u.end)
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/^\s*(?:[-*+]|\d+\.|#+)\s+/, '')
+        .replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
+    },
+    lineOf(u) { return 'L' + ((this.a.text.slice(0, u.start).match(/\n/g) || []).length + 1); },
     // WHERE IN THE DOCUMENT, and only that. This opened with the target's path,
     // which is the same for every unit on the page and is already in the
     // header, so the first 21 characters of the panel's TALLEST line never
@@ -1303,6 +1475,7 @@ window.__audit = {
       const from = range ? range.start : 0;
       const src = range ? this.a.text.slice(range.start, range.end) : this.a.text;
       host_.innerHTML = '';
+      host_.dataset.paintHost = '';
       // The type classes go on an inner element, never on the host: paint() does
       // not own its container's layout, and assigning className to the host wiped
       // the padding the page and the deck slide had each given it.
@@ -1397,7 +1570,7 @@ window.__audit = {
     // markup happened to create.
     piece(u, text, m, first, last, at, atomic) {
       const el = document.createElement('span');
-      const a = this.dim(u), k = this.keyOf(u), sel = u.uid === this.sel?.uid;
+      const a = this.dim(u), k = this.keyOf(u);
       el.dataset.uid = u.uid;
       // A PIECE IS ALSO A MAPPED RUN. mapText wraps each text node and the
       // pieces are cut out of it, so the piece is what actually holds text now
@@ -1409,7 +1582,7 @@ window.__audit = {
       if (atomic) el.dataset.atomic = '1';
       el.className = 'cursor-pointer';
       el.textContent = text;
-      el.style.background = sel ? tint(k, m.sel * a) : (m.bg ? tint(k, m.bg * a) : '');
+      el.style.background = this.shade(u, m);
       el.style.opacity = a;
       el.style.transition = 'background-color .12s ease';
       el.style.boxShadow = [
@@ -1417,24 +1590,36 @@ window.__audit = {
         m.tick && last && `inset -1px 0 0 0 ${tint(k, m.tick * a)}`,
         m.under && `inset 0 -2px 0 0 ${tint(k, m.under * a)}`,
       ].filter(Boolean).join(', ');
-      // TEXT DECORATION IS THE FREE CHANNEL, which is why the remove marker can
-      // ride beside the label rather than displacing it: the tint, the ticks and
-      // the opacity are all spent on the label, and this is not.
-      const deco = [(u.verdict || 'KEEP') === 'DROP' && 'line-through',
-                    sel && 'underline'].filter(Boolean);
-      if (deco.length) {
-        el.style.textDecoration = deco.join(' ');
-        el.style.textDecorationThickness = '2px';
-        el.style.textUnderlineOffset = '3px';
-        // One property, one colour. Red wins where both apply: the selection is
-        // where you already are, the verdict is the finding.
-        el.style.textDecorationColor = tint(deco[0] === 'line-through' ? 'DROP' : k, .95);
-      }
-      const over = (bg) => { for (const p of this.$refs.doc.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`)) p.style.background = bg; };
-      el.onpointerenter = () => { if (this.sel?.uid !== u.uid) over(tint(k, m.over * a)); };
-      el.onpointerleave = () => { if (this.sel?.uid !== u.uid) over(m.bg ? tint(k, m.bg * a) : ''); };
-      el.onclick = (ev) => { this.selPt = { x: ev.clientX, y: ev.clientY }; this.hit(u); };
+      this.decorate(el, u);
+      // Hover tints the unit in whichever painted host it sits in, Doc's or
+      // Review's.
+      const over = (bg) => {
+        const root = el.closest('[data-paint-host]') || this.$refs.doc;
+        for (const p of root.querySelectorAll(`[data-uid="${CSS.escape(u.uid)}"]`)) p.style.background = bg;
+      };
+      el.onpointerenter = () => { if (!this.isCur(u)) over(tint(k, m.over * this.dim(u))); };
+      el.onpointerleave = () => { if (!this.isCur(u)) over(this.shade(u, m)); };
+      el.onclick = (ev) => {
+        if (this.view === 'review') return this.rTap(u);
+        this.selPt = { x: ev.clientX, y: ev.clientY }; this.hit(u);
+      };
       return el;
+    },
+    // TEXT DECORATION IS THE FREE CHANNEL, which is why the remove marker can
+    // ride beside the label rather than displacing it: the tint, the ticks and
+    // the opacity are all spent on the label, and this is not.
+    decorate(el, u) {
+      const deco = [(u.verdict || 'KEEP') === 'DROP' && 'line-through',
+                    this.isCur(u) && 'underline'].filter(Boolean);
+      el.style.textDecoration = deco.join(' ');
+      if (!deco.length) return;
+      el.style.textDecorationThickness = '2px';
+      el.style.textUnderlineOffset = '3px';
+      // One property, one colour. Red wins where both apply: the selection is
+      // where you already are, the verdict is the finding. Review's current
+      // unit takes the primary colour, whatever its label's tint.
+      el.style.textDecorationColor = deco[0] === 'line-through' ? tint('DROP', .95)
+        : this.view === 'review' ? 'var(--color-primary)' : tint(this.keyOf(u), .95);
     },
 
     // ── EDGES ────────────────────────────────────────────────────────────────
@@ -2011,21 +2196,23 @@ window.__audit = {
         <!-- The view controls. In the deck viewer they ride in its header. -->
         <div x-ref="ctrls" class="flex items-center gap-1 ml-auto">
         <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="what is on screen">
-          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view !== 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'read' || view === 'source' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = docView; paint()">Doc</button>
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = 'standoff'">Spans</button>
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'review' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                  @click="view = 'review'">Review</button>
         </div>
         <!-- Rendered, on or off, for whichever object is on screen: the
              formatted document or the spans table when on, the markdown or
              standoff.json when off. -->
         <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
-                :aria-pressed="form === 'rendered'"
+                :aria-pressed="form === 'rendered'" x-show="view !== 'review'"
                 :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
                 aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
           <i class="ph-bold ph-eye text-lg"></i></button>
-        <button class="btn btn-sm btn-ghost btn-square" @click="deck()"
+        <button class="btn btn-sm btn-ghost btn-square" @click="deck()" x-show="view !== 'review'"
                 title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
         <!-- On a phone the pair shrinks to undo and the count, so the deck's
              header keeps its title: redo stays in the unit panel and on the
@@ -2042,20 +2229,30 @@ window.__audit = {
       </div>
 
       <!-- The legend is the explanation. Each chip carries the treatment it
-           names, so a label chip is tinted as its units are. Tapping one dims
-           its units in place rather than hiding them, which keeps the document
-           readable while one category is set aside. -->
+           names, so a label chip is tinted as its units are. Hovering one
+           lights its units. Tapping one dims its units in place rather than
+           hiding them, which keeps the document readable while one category is
+           set aside. In Review the chips are the category the list holds, one
+           at a time, with Notes, every unit with a note, first. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
       <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
            x-show="view !== 'standoff'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
+        <button class="btn btn-xs gap-1.5 border-0 shrink-0 bg-base-200" x-show="view === 'review' && noted.length" x-cloak
+                :class="{ 'ring-1 ring-[var(--color-base-content)]': rKey === NOTED }" :aria-pressed="rKey === NOTED"
+                @click="rPickCat(NOTED)">
+          <i class="ph ph-note-pencil"></i><span>Notes</span>
+          <span class="opacity-60 font-mono" x-text="noted.length"></span>
+        </button>
         <template x-for="k in axis" :key="k">
           <button class="btn btn-xs gap-1.5 border-0 shrink-0"
-                  :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
-                           box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
-                  :class="off[k] && 'opacity-40'"
-                  :data-title-tip="noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
+                  :style="`background:rgba(${HUE[k]},${view !== 'review' && off[k] ? 0.05 : lit === k || (view === 'review' && rKey === k) ? 0.4 : 0.22});
+                           box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${view !== 'review' && off[k] ? 0.2 : 0.9})`"
+                  :class="{ 'opacity-40': view !== 'review' && off[k], 'ring-1 ring-[var(--color-base-content)]': view === 'review' && rKey === k }"
+                  :aria-pressed="view === 'review' ? rKey === k : null"
+                  :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
+                  @pointerenter="chipOver(k)" @pointerleave="chipOut()"
                   @click="chipTap(k)">
             <span x-text="k"></span>
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
@@ -2067,7 +2264,7 @@ window.__audit = {
           <!-- How a unit is drawn, Doc only: its label's tint over the whole
                span, or an underline. Icon toggles carry their state in the
                icon's colour alone: no outline, no fill. -->
-          <div class="flex items-center" aria-label="unit marks">
+          <div class="flex items-center" aria-label="unit marks" x-show="view !== 'review'">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
               <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                       :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
@@ -2083,7 +2280,7 @@ window.__audit = {
          and it scrolls inside itself: the whole document, top to bottom. -->
     <div x-ref="main" :class="inDeck && 'h-full overflow-y-auto'">
     <div class="relative">
-    <div x-ref="doc" class="px-4 py-4" x-show="view!=='standoff'"></div>
+    <div x-ref="doc" class="px-4 py-4" x-show="view === 'read' || view === 'source'"></div>
       <!-- The pin layer. It overlays the doc box exactly, takes no taps of its
            own, and hands each pin back its own: the painter writes the box's
            whole style attribute, so the exception is a rule here rather than
@@ -2094,13 +2291,84 @@ window.__audit = {
            @pointerdown="pinDown($event)"></div>
     </div>
 
+    <!-- REVIEW: the chips' category as a list over a strip of the document.
+         A caption says what the category is; the list under it is one line
+         per unit and as tall as its rows, up to a third of the height; the bar
+         under it steps through the list and edits the current unit; the strip
+         below holds one slide per unit, the whole document with that unit
+         current and its note under it. Stacked at every width, and it fills
+         the viewport under the header as Spans does. -->
+    <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_fit-content(33%)_auto_minmax(0,1fr)]"
+         x-show="view === 'review'" x-cloak
+         :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
+      <p class="px-4 pt-2 pb-1.5 text-xs leading-5 text-pretty border-b border-base-300">
+        <span class="mr-1.5 rounded px-1 font-mono font-medium" :class="rKey === NOTED && 'bg-base-200'"
+              :style="rKey === NOTED ? '' : `background:rgba(${HUE[rKey]},.28)`" x-text="rKey === NOTED ? 'Notes' : rKey"></span>
+        <span class="opacity-75" x-text="rGloss"></span>
+      </p>
+      <!-- A row under the pointer tints its unit in the document. The current
+           row carries the primary bar, the colour of the document's underline.
+           A row names its label only under Notes, the one category that mixes
+           labels. -->
+      <div x-ref="rlist" class="min-h-0 overflow-y-auto overscroll-contain py-1">
+        <template x-for="(u, i) in rRows" :key="u.uid">
+          <button type="button" data-row
+                  class="flex w-full items-baseline gap-2 px-4 py-1.5 text-left cursor-pointer focus:outline-none focus-visible:bg-base-300"
+                  :class="i === rAt ? 'bg-base-300 shadow-[inset_3px_0_0_0_var(--color-primary)]' : 'hover:bg-base-300/70'"
+                  :aria-current="i === rAt"
+                  @click="rGo(i, true)" @pointerenter="rOver(u, true)" @pointerleave="rOver(u, false)">
+            <span class="w-10 shrink-0 text-right font-mono text-xs opacity-50" x-text="lineOf(u)"></span>
+            <span class="shrink-0 rounded px-1 font-mono text-xs" x-show="rKey === NOTED"
+                  :style="{ background: `rgba(${HUE[u.label]},.28)` }" x-text="u.label"></span>
+            <span class="min-w-0 truncate" :class="u.verdict === 'DROP' && 'line-through opacity-60'" x-text="gist(u)"></span>
+          </button>
+        </template>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-base-300 bg-base-200/60 px-2 py-1 text-xs">
+        <div class="flex items-center">
+          <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt - 1)"
+                  title="Previous" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
+          <span class="font-mono" x-text="rRows.length ? `${rAt + 1} / ${rRows.length}` : '0'"></span>
+          <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt + 1)"
+                  title="Next" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
+        </div>
+        <!-- The label as a pill over the platform's own select, and the
+             verdict as Keep or Drop, both as in the unit panel. -->
+        <label class="relative inline-flex items-center rounded-full px-2 py-0.5 font-mono cursor-pointer" x-show="rCur"
+               :style="`background:rgba(${HUE[rCur?.label]},.28)`">
+          <span x-text="rCur?.label || 'unlabeled'"></span>
+          <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="relabel"
+                  x-effect="$el.value = rCur?.label || ''"
+                  @change="rEdit({ op: 'relabel', uid: rCur.uid, label: $event.target.value })">
+            <template x-for="v in (so.vocabulary || []).map(v => v.label)" :key="v"><option :value="v" x-text="v"></option></template>
+          </select>
+        </label>
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" role="group" aria-label="verdict"
+             x-show="rCur && so.verdicts">
+          <template x-for="v in ['KEEP', 'DROP']" :key="v">
+            <button type="button" class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
+                    :class="(rCur?.verdict || 'KEEP') !== v ? 'btn-ghost bg-base-100' : v === 'DROP' ? 'btn-error' : 'btn-neutral'"
+                    :aria-pressed="(rCur?.verdict || 'KEEP') === v"
+                    @click="(rCur.verdict || 'KEEP') !== v && rEdit({ op: 'verdict', uid: rCur.uid, verdict: v })"
+                    x-text="v === 'KEEP' ? 'Keep' : 'Drop'"></button>
+          </template>
+        </div>
+      </div>
+      <!-- rBuild() mounts the strip here. data-no-swipe: a sideways drag here
+           is the strip's, never the deck's. -->
+      <div x-ref="rdoc" data-no-swipe class="min-h-0 overflow-hidden"></div>
+    </div>
+
     <!-- The annotation as the thing it is: rows over spans, and the committed
          bytes underneath. The page never re-derives this; the builder copies
          standoff.json in verbatim, so what is on screen is what is in the file. -->
     <!-- Fills the viewport under the header, and the table or the JSON scrolls
-         inside it, so the column headings stay in view. -->
+         inside it, so the column headings stay in view. The height is bound
+         as an object, here and in Review: a string :style rewrites the whole
+         style attribute whenever inDeck or hdrH changes, which drops x-show's
+         display:none and left this table under every other view. -->
     <div class="px-4 pt-3 pb-2 flex flex-col" x-show="view==='standoff'" x-cloak
-         :style="inDeck ? 'height:100%' : `height:calc(100dvh - ${hdrH}px)`">
+         :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
       <div class="shrink-0 flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mb-2">
         <span x-text="so.kind"></span>
         <a class="link link-primary" :href="so.target.url" x-text="so.target.path"></a>
@@ -2146,7 +2414,7 @@ window.__audit = {
          same way: while a page's own bottom UI is up, it owns the bottom. -->
     <div class="fixed z-[90] bg-base-100 border border-base-300 rounded-xl shadow-lg px-3 py-2 text-xs
                 max-w-[min(20rem,calc(100vw-7rem))] max-h-[70vh] overflow-y-auto"
-         data-panel x-ref="panel" x-show="sel" x-cloak>
+         data-panel x-ref="panel" x-show="sel && view !== 'review'" x-cloak>
       <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
         <b class="font-mono" x-text="sel?.uid"></b>
 
@@ -2170,18 +2438,20 @@ window.__audit = {
             </select>
           </label>
         </template>
-        <!-- Whether the unit stays. The one edit the tools carry out; anything
-             else, a rewording included, goes in the note below. -->
-        <!-- Colour alone carries the state, as with the page's other toggles:
-             red when the unit is removed, muted when it stays. -->
-        <button class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
-                       focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
-                x-show="so.verdicts" x-cloak
-                :class="sel?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
-                :aria-pressed="sel?.verdict === 'DROP'"
-                @click="push({op:'verdict', uid:sel.uid, verdict: sel?.verdict === 'DROP' ? 'KEEP' : 'DROP'})">
-          <i class="text-base" :class="sel?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
-          <span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
+        <!-- Whether the unit stays: Keep, or Drop from the document. The one
+             edit the tools carry out; anything else, a rewording included, goes
+             in the note below. Both values are named, so the control reads as
+             a decision about this unit rather than as a delete. -->
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" role="group" aria-label="verdict"
+             x-show="so.verdicts" x-cloak>
+          <template x-for="v in ['KEEP', 'DROP']" :key="v">
+            <button type="button" class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
+                    :class="(sel?.verdict || 'KEEP') !== v ? 'btn-ghost bg-base-100' : v === 'DROP' ? 'btn-error' : 'btn-neutral'"
+                    :aria-pressed="(sel?.verdict || 'KEEP') === v"
+                    @click="(sel.verdict || 'KEEP') !== v && push({op:'verdict', uid:sel.uid, verdict: v})"
+                    x-text="v === 'KEEP' ? 'Keep' : 'Drop'"></button>
+          </template>
+        </div>
 
       </div>
 

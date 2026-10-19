@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'a29f6e7';
-const BUILT = '2026-10-18T21:21:21Z';
+const BUILD = '45a0039';
+const BUILT = '2026-10-18T21:52:01Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -482,6 +482,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     { id: 'links', label: 'Links', ext: 'md', icon: 'link' },
     { id: 'html', label: 'HTML', ext: 'html', icon: 'code' },
     { id: 'json', label: 'JSON', ext: 'json', icon: 'tree' },
+    { id: 'meta', label: 'Details', ext: 'json', icon: 'info' },
   ];
 
   const getSlides = () => {
@@ -523,7 +524,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
     formattedHtml: null, htmlLines: 0,
     shadowRoots: [], frames: [], activeFrameIndex: -1,
-    fullscreen: false, metaOpen: false, headMenuOpen: false, autoCheck: getPref('autocheck_updates'),
+    fullscreen: false, headMenuOpen: false, autoCheck: getPref('autocheck_updates'),
     pastedItems: [], sandboxOpen: false, sandboxView: 'cards', pasteComposerOpen: false,
     lastPageCopy: '', lastPageCopyAt: 0,
     ttsOpen: false, ttsSettingsOpen: false, ttsState: 'idle',
@@ -1223,7 +1224,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .panel.fullscreen ~ .backdrop,
     .panel.fullscreen + .backdrop { display: none; }
 
-    .head { padding: .5rem .75rem; border-bottom: 1px solid var(--wt-b300);
+    .head { position: relative; padding: .5rem .75rem; border-bottom: 1px solid var(--wt-b300);
             display: flex; flex-direction: column; gap: .25rem; flex: none; background: var(--wt-b100); }
     .head-top { display: flex; align-items: center; gap: .5rem; min-width: 0; }
     .plaque { width: 2.25rem; height: 2.25rem; border-radius: .625rem;
@@ -1259,9 +1260,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .more-dot[hidden] { display: none; }
 
     .head-menu {
-      margin-top: .375rem; border-radius: .5rem;
+      position: absolute; top: 2.95rem; right: .65rem;
+      width: min(17.5rem, calc(100vw - 1.3rem)); z-index: 60;
+      border-radius: .5rem;
       border: 1px solid var(--wt-b300); background: var(--wt-b100);
-      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, .18);
+      box-shadow: 0 14px 32px -6px rgba(0, 0, 0, .25);
       overflow: hidden; display: flex; flex-direction: column;
     }
     .head-menu[hidden] { display: none !important; }
@@ -1300,12 +1303,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .head-menu-right {
       display: inline-flex; align-items: center; gap: .3rem; flex: none; margin-left: auto;
     }
-    .meta-arr {
-      display: inline-flex; align-items: center; justify-content: center;
-      color: ${mix('var(--wt-bc)', 55)}; transition: transform .2s;
-    }
-    .meta-arr svg { width: 13px; height: 13px; }
-    .meta-toggle.on .meta-arr { transform: rotate(180deg); color: var(--wt-p); }
 
     .head-collect-banner {
       margin-top: .375rem; padding: .35rem .5rem; border-radius: .375rem;
@@ -1384,11 +1381,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
     .panel.fullscreen .head-desc,
     .panel.fullscreen .head-frame-banner { display: none !important; }
-    .page-meta { margin-top: .25rem; padding: .5rem .625rem; border-radius: .5rem;
+    .page-meta { padding: .625rem .75rem; border-radius: .5rem;
                  background: var(--wt-b200); border: 1px solid var(--wt-b300);
-                 font-size: 11px; max-height: 16rem; overflow-y: auto; }
-    .page-meta[hidden] { display: none; }
-    .page-meta p { margin: 0 0 .375rem; overflow-wrap: break-word; }
+                 font-size: 11.5px; }
+    .page-meta p { margin: 0 0 .5rem; overflow-wrap: break-word; }
     .page-meta p:last-child { margin-bottom: 0; }
     .page-meta .k { display: block; font: 10px ui-monospace, monospace;
                     color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
@@ -1536,7 +1532,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .head-tools, .head-scope-tools { display: flex; align-items: center; gap: .375rem; }
     .head-tools[hidden], .head-scope-tools[hidden] { display: none; }
 
-    .copy-btn.copied svg, .btn-store.stored svg { color: oklch(65% .2 145); }
+    .copy-btn.copied svg, .sb-copy-json-btn.copied svg, .btn-store.stored svg { color: oklch(65% .2 145); }
     .btn-store.stored .head-menu-label { color: oklch(55% .18 145); }
 
     .icon-btn.md-view-toggle svg { color: ${mix('var(--wt-bc)', 45)}; transition: color .15s; }
@@ -1854,9 +1850,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .panel.fullscreen .head-top {
       max-width: 52rem; width: 100%; margin-inline: auto;
     }
-    .panel.fullscreen .head-menu,
+    .panel.fullscreen .head-menu {
+      right: max(1.25rem, calc(50% - 26rem)); top: 3.3rem;
+    }
     .panel.fullscreen .head-collect-banner,
-    .panel.fullscreen .page-meta,
     .panel.fullscreen .head-copy-notice,
     .panel.fullscreen .tts-panel {
       max-width: 52rem; width: 100%; margin-inline: auto; box-sizing: border-box;
@@ -2032,15 +2029,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <button type="button" class="head-menu-row btn-recapture">
             <span class="head-menu-icon">${svg(ICON.refresh)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label recapture-menu-label">Re-read page now</span>
-              <span class="head-menu-sub">Refresh snapshot from the page's current DOM</span>
+              <span class="head-menu-label recapture-menu-label">Recapture page</span>
+              <span class="head-menu-sub">Refresh from live DOM</span>
             </span>
           </button>
           <button type="button" class="head-menu-row btn-merge">
             <span class="head-menu-icon">${svg(ICON.plus)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label merge-menu-label">Start auto-collecting on scroll</span>
-              <span class="head-menu-sub">Keep paragraphs and links as you scroll feeds that recycle rows</span>
+              <span class="head-menu-label merge-menu-label">Auto-collect on scroll</span>
+              <span class="head-menu-sub">Append blocks as you scroll</span>
             </span>
             <span class="head-menu-right">
               <span class="pill-toggle off merge-pill">OFF</span>
@@ -2049,27 +2046,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <a class="head-menu-row btn-store">
             <span class="head-menu-icon">${svg(ICON.tray)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label store-menu-label">Save via Log-Repo shortcut</span>
-              <span class="head-menu-sub store-menu-sub">Send capture to web-tools-private via iOS Shortcut</span>
+              <span class="head-menu-label store-menu-label">Log via Shortcut</span>
+              <span class="head-menu-sub store-menu-sub">Runs Log-Repo shortcut</span>
             </span>
           </a>
           <a class="head-menu-row btn-stage">
             <span class="head-menu-icon">${svg(ICON.out)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label stage-menu-label">Open in Web Tools Stage</span>
-              <span class="head-menu-sub stage-menu-sub">Hand off current slide via compressed #gz= URL</span>
+              <span class="head-menu-label stage-menu-label">Open in Stage</span>
+              <span class="head-menu-sub stage-menu-sub">Send slide to Web Tools Stage</span>
             </span>
           </a>
-          <button type="button" class="head-menu-row meta-toggle" aria-expanded="false">
-            <span class="head-menu-icon">${svg(ICON.info)}</span>
-            <span class="head-menu-text">
-              <span class="head-menu-label">Page details &amp; frames</span>
-              <span class="head-menu-sub">Inspect URL, selection, iframes, and Shadow DOM scopes</span>
-            </span>
-            <span class="head-menu-right">
-              <span class="meta-arr">${svg(ICON.caretDown)}</span>
-            </span>
-          </button>
         </div>
         <div class="head-collect-banner" hidden>
           <span class="paste-tag">${svg(ICON.plus)}<span>Auto-collecting on scroll</span><span class=" paste-meta collect-meta">· 0 blocks</span></span>
@@ -2142,18 +2129,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <span class="stale" hidden></span>
-        <div class="page-meta" hidden>
-          <p><span class="k">TITLE</span><span class="meta-title"></span></p>
-          <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
-          <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
-          <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
-          <p><span class="k">SCOPES &amp; FRAMES</span><span class="meta-scopes"></span></p>
-          <p><span class="k">SHADOW DOM</span><span class="meta-shadow"></span></p>
-          <div class="meta-pref-row">
-            <span class="k">AUTO-CHECK UPDATES</span>
-            <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
-          </div>
-        </div>
       </div>
       <div class="deck-nav">
         <div class="deck-bar">
@@ -2164,6 +2139,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <button class="deck-tab" data-slide="4" data-slide-id="links">Links</button>
           <button class="deck-tab" data-slide="5" data-slide-id="html" data-take-html>HTML</button>
           <button class="deck-tab" data-slide="6" data-slide-id="json">JSON</button>
+          <button class="deck-tab" data-slide="7" data-slide-id="meta">Details</button>
         </div>
       </div>
       <div class="deck-track" tabindex="0">
@@ -2211,13 +2187,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div class="deck-slide" data-slide-i="2" data-slide-id="sandbox" hidden>
           <div class="slide-tools">
             <div class="slide-tools-inner">
-              <button type="button" class="tool-btn on sb-paste-btn" title="Paste clipboard as a new unit">${svg(ICON.plus)}<span>Paste</span></button>
-              <button type="button" class="tool-btn sb-compose-btn" title="Manually paste or type a new unit">${svg(ICON.note)}<span>Compose</span></button>
+              <button type="button" class="icon-btn sb-paste-btn" aria-label="Paste clipboard as new unit" title="Paste clipboard as new unit">${svg(ICON.plus)}</button>
+              <button type="button" class="icon-btn sb-compose-btn" aria-label="Compose new unit" title="Compose new unit">${svg(ICON.note)}</button>
               <div class="seg seg-sm" role="group" aria-label="Sandbox view">
                 <button type="button" class="seg-btn on" data-sb-view="cards">Units</button>
                 <button type="button" class="seg-btn" data-sb-view="json">JSON</button>
               </div>
-              <button type="button" class="tool-btn sb-copy-json-btn" title="Copy structured JSON array of all units">${svg(ICON.copy)}<span>Copy JSON</span></button>
+              <button type="button" class="icon-btn sb-copy-json-btn" aria-label="Copy JSON" title="Copy JSON" hidden>${svg(ICON.copy)}</button>
               <span class="tool-meta sb-status">0 units</span>
             </div>
           </div>
@@ -2290,6 +2266,25 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             </div>
           </div>
         </div>
+        <!-- Slide 7: Details -->
+        <div class="deck-slide" data-slide-i="7" data-slide-id="meta">
+          <div class="slide-body">
+            <div class="slide-body-inner">
+              <div class="page-meta">
+                <p><span class="k">TITLE</span><span class="meta-title"></span></p>
+                <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
+                <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
+                <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+                <p><span class="k">SCOPES &amp; FRAMES</span><span class="meta-scopes"></span></p>
+                <p><span class="k">SHADOW DOM</span><span class="meta-shadow"></span></p>
+                <div class="meta-pref-row">
+                  <span class="k">AUTO-CHECK UPDATES</span>
+                  <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="foot">
         <div class="foot-inner">
@@ -2304,6 +2299,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <button class="dot" data-go="4" data-slide-id="links" aria-label="Slide 5: Links"></button>
             <button class="dot" data-go="5" data-slide-id="html" aria-label="Slide 6: HTML"></button>
             <button class="dot" data-go="6" data-slide-id="json" aria-label="Slide 7: JSON"></button>
+            <button class="dot" data-go="7" data-slide-id="meta" aria-label="Slide 8: Details"></button>
           </div>
           <span class="size" hidden></span>
         </div>
@@ -2360,7 +2356,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       moreBtn.setAttribute('aria-expanded', String(!!state.headMenuOpen));
     }
     if (moreDot) {
-      moreDot.hidden = !(state.appendMode || state.metaOpen);
+      moreDot.hidden = !state.appendMode;
     }
   };
 
@@ -2584,7 +2580,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         return out;
       }
       case 'sandbox':
-        return getSandboxJson();
+        return state.sandboxView === 'json' ? getSandboxJson() : (getHeldPasteText() || getSandboxJson());
       case 'text':
         return state.blocks.length ? state.blocks.join('\n\n') : (state.text || '');
       case 'links': {
@@ -2632,6 +2628,23 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           links: getActiveLinks(),
           text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
           markdown: state.localMd || domToMarkdown(),
+        }, null, 2);
+      case 'meta':
+        return JSON.stringify({
+          title: getActiveDocTitle(),
+          href: getActiveDocHref(),
+          description: page.description || undefined,
+          selection: state.sel || undefined,
+          activeScope: state.activeFrameIndex >= 0 ? `frame-${state.activeFrameIndex}` : 'main',
+          frames: (state.frames || []).map(f => ({
+            index: f.index,
+            title: f.title,
+            href: f.href,
+            accessible: f.accessible,
+            textLength: f.textLen,
+            reason: f.error || undefined,
+          })),
+          shadowRoots: (state.shadowRoots || []).map(r => ({ host: r.tag, mode: r.mode })),
         }, null, 2);
       default:
         return '';
@@ -2924,18 +2937,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
   };
 
-  const toggleMeta = on => {
-    state.metaOpen = typeof on === 'boolean' ? on : !state.metaOpen;
-    const metaEl = q('.page-meta');
-    const toggleBtn = q('.meta-toggle');
-    if (metaEl) metaEl.hidden = !state.metaOpen;
-    if (toggleBtn) {
-      toggleBtn.classList.toggle('on', state.metaOpen);
-      toggleBtn.setAttribute('aria-expanded', String(state.metaOpen));
-    }
-    updateMoreIndicator();
-  };
-
   const toggleFullscreen = on => {
     state.fullscreen = typeof on === 'boolean' ? on : !state.fullscreen;
     panel.classList.toggle('fullscreen', state.fullscreen);
@@ -2988,6 +2989,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const listEl = q('.sb-list');
     const jsonEl = q('.sb-json-wrap');
     const statusEl = q('.sb-status');
+    const copyJsonBtn = q('.sb-copy-json-btn');
     const totalChars = state.pastedItems.reduce((acc, it) => acc + it.text.length, 0);
 
     if (statusEl) {
@@ -2996,6 +2998,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     qa('[data-sb-view]').forEach(b => {
       b.classList.toggle('on', b.dataset.sbView === state.sandboxView);
     });
+    if (copyJsonBtn) {
+      copyJsonBtn.hidden = state.sandboxView !== 'json';
+    }
     if (listEl) listEl.hidden = state.sandboxView !== 'cards';
     if (jsonEl) {
       jsonEl.hidden = state.sandboxView !== 'json';
@@ -3204,6 +3209,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       case 'json':
         q('.json-content').textContent = getSlideText(i);
         break;
+      case 'meta':
+        renderPageMeta();
+        break;
     }
     refresh();
   };
@@ -3282,7 +3290,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           btnStage.href = url;
           btnStage.classList.remove('off');
         }
-        if (stageSub) stageSub.textContent = `Hand off ${slide.label} (${sizeText}) via compressed #gz= URL`;
+        if (stageSub) stageSub.textContent = `Send ${slide.label} (${sizeText})`;
       } else {
         sendEl.removeAttribute('href');
         sendEl.textContent = 'Stage';
@@ -3292,7 +3300,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           btnStage.removeAttribute('href');
           btnStage.classList.add('off');
         }
-        if (stageSub) stageSub.textContent = `${sizeText} exceeds Stage URL limit; use Copy instead`;
+        if (stageSub) stageSub.textContent = `${sizeText} · too large for URL`;
       }
     });
 
@@ -3304,7 +3312,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     packToStage(captureFile, JSON.stringify(capturePayload, null, 2), 'mehrlander/web-tools-private:captures').then(stageUrl => {
       const storeTarget = directOk ? directStoreUrl : (stageUrl || '#');
       const storeTitle = directOk
-        ? `Save ${slide.label} to web-tools-private (Log-Repo shortcut)`
+        ? `Log ${slide.label} via Log-Repo shortcut`
         : `Stage ${slide.label} to web-tools-private:captures`;
       const storeLabel = directOk ? 'Store' : 'Stage';
       const storeMenuLabel = q('.store-menu-label');
@@ -3312,13 +3320,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
       if (storeMenuLabel) {
         storeMenuLabel.textContent = directOk
-          ? 'Save via Log-Repo shortcut'
-          : 'Stage to web-tools-private';
+          ? 'Log via Shortcut'
+          : 'Stage to private repo';
       }
       if (storeMenuSub) {
         storeMenuSub.textContent = directOk
-          ? `Send ${slide.label} capture to web-tools-private via iOS Shortcut`
-          : `Large capture (${sizeText}); stages to web-tools-private:captures`;
+          ? `Runs Log-Repo · ${slide.label}`
+          : `Too large for Log-Repo (${sizeText}) · stages instead`;
       }
 
       [btnStore, storeEl].filter(Boolean).forEach(el => {
@@ -3799,8 +3807,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       state.formattedHtml = null;
       readPage();
       if (recapLabel && isManual) {
-        recapLabel.textContent = 'Page re-read';
-        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Re-read page now'; }, 1800);
+        recapLabel.textContent = 'Recaptured';
+        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Recapture page'; }, 1800);
       }
     } else {
       const added = collectBlocks();
@@ -3811,7 +3819,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       refresh();
       if (recapLabel && isManual) {
         recapLabel.textContent = `Collected +${added || 0} blocks`;
-        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Re-read page now'; }, 1800);
+        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Recapture page'; }, 1800);
       }
     }
     updateMergeUI();
@@ -3820,6 +3828,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('.more-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     setHeadMenu();
+  });
+
+  panel?.addEventListener('click', e => {
+    if (state.headMenuOpen && !e.target.closest('.head-menu') && !e.target.closest('.more-btn')) {
+      setHeadMenu(false);
+    }
   });
 
   q('.head-sub')?.addEventListener('click', async () => {
@@ -3980,6 +3994,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     b.addEventListener('click', () => {
       state.sandboxView = b.dataset.sbView;
       renderSandbox();
+      refresh();
     });
   });
   q('.sb-copy-json-btn')?.addEventListener('click', async () => {
@@ -3987,9 +4002,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     try {
       await writeClipboardInternal(getSandboxJson());
       if (btnEl) {
-        const orig = btnEl.innerHTML;
-        btnEl.innerHTML = `${svg(ICON.check)}<span>Copied JSON</span>`;
-        setTimeout(() => { if (btnEl) btnEl.innerHTML = orig; }, 1500);
+        btnEl.innerHTML = svg(ICON.check);
+        btnEl.classList.add('copied');
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.innerHTML = svg(ICON.copy);
+            btnEl.classList.remove('copied');
+          }
+        }, 1500);
       }
     } catch {}
   });
@@ -4371,8 +4391,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
     if (mergeLabel) {
       mergeLabel.textContent = state.appendMode
-        ? `Auto-collecting on scroll (${state.blocks.length} blocks)`
-        : 'Start auto-collecting on scroll';
+        ? `Auto-collecting (${state.blocks.length})`
+        : 'Auto-collect on scroll';
     }
     if (mergePill) {
       mergePill.textContent = state.appendMode ? 'ON' : 'OFF';
@@ -4485,10 +4505,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     };
   });
 
-  q('.meta-toggle').onclick = () => {
-    toggleMeta();
-    setHeadMenu(false);
-  };
   const expandBtn = q('.expand-btn');
   if (expandBtn) expandBtn.onclick = () => toggleFullscreen(true);
   const returnBtn = q('.return-btn');

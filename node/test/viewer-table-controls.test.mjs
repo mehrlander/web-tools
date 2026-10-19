@@ -59,12 +59,12 @@ test('the filter toggle says its state in the glyph, and flips both', () => {
 
   const btn = slot.querySelector('button');
   assert.equal(glyph(btn.querySelector('i')), 'ph-funnel');
-  assert.equal(btn.title, 'Hide the header filters');
+  assert.equal(btn.getAttribute('data-title-tip'), 'Hide the header filters');
 
   btn.dispatchEvent(new window.Event('click'));
   assert.equal(glyph(btn.querySelector('i')), 'ph-funnel-x',
     'an icon has to carry the state a checkbox carried in a word');
-  assert.equal(btn.title, 'Show the header filters', 'and the tooltip says where a tap goes');
+  assert.equal(btn.getAttribute('data-title-tip'), 'Show the header filters', 'and the tooltip says where a tap goes');
   assert.equal(target.querySelector('.tabulator-header-filter').style.display, 'none');
 
   btn.dispatchEvent(new window.Event('click'));
@@ -105,5 +105,5 @@ test('the deck entry wears the header row, not the Branch-detail emphasis', asyn
   const deck = slot.querySelectorAll('button')[1];
   assert.match(deck.className, /btn-ghost/, 'ghost here: the file is the subject, the deck is one lens');
   assert.doesNotMatch(deck.className, /btn-sm/, 'and full size, to sit with copy and mode');
-  assert.equal(deck.title, 'Read 2 records one at a time', 'same wording as every other door');
+  assert.equal(deck.getAttribute('data-title-tip'), 'Read 2 records one at a time', 'same wording as every other door');
 });

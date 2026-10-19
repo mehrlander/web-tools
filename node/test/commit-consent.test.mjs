@@ -31,17 +31,20 @@ function write(root, rel, body) {
   writeFileSync(join(root, rel), body);
 }
 
-/** A repo with `seed` committed, then `stage` staged on top. Returns the gate's
- *  exit status and stderr for `msg`. */
-function gate(seed, stage, msg) {
+/** A repo with `seed` committed on main, then `stage` staged on top, on
+ *  `branch` when one is named. Returns the gate's exit status and stderr for
+ *  `msg`. */
+function gate(seed, stage, msg, branch) {
   const root = mkdtempSync(join(tmpdir(), 'consent-'));
   try {
-    git(root, 'init', '-q');
+    git(root, 'init', '-q', '-b', 'main');
     git(root, 'config', 'user.email', 't@e.st');
     git(root, 'config', 'user.name', 'T');
     for (const [rel, body] of Object.entries(seed)) write(root, rel, body);
     git(root, 'add', '-A');
     git(root, 'commit', '-q', '-m', 'seed');
+    if (branch === 'detached') git(root, 'checkout', '-q', '--detach');
+    else if (branch) git(root, 'checkout', '-q', '-b', branch);
     for (const [rel, body] of Object.entries(stage)) write(root, rel, body);
     git(root, 'add', '-A');
     const file = join(root, 'MSG');
@@ -65,6 +68,22 @@ test('a modified documentation file is refused without a trailer, and passes wit
 
   const yes = gate(seed, stage, 'Revise the thing\n\nDoc-change-approved: "yes, reword it" -> docs/thing.md\n');
   assert.equal(yes.status, 0, yes.err);
+});
+
+test('on a branch, a modified document passes, with a reminder that the merge waits on approval', () => {
+  // The owner reviews wording as a commit and approves it before the merge, so
+  // the commit itself is not where the gate stands.
+  const seed = { [DOC]: '# Thing\n\nOne.\n' };
+  const stage = { [DOC]: '# Thing\n\nTwo.\n' };
+  const out = gate(seed, stage, 'Revise the thing\n', 'claude/revise-thing');
+  assert.equal(out.status, 0, out.err);
+  assert.match(out.err, /documentation changed: docs\/thing\.md/);
+  assert.match(out.err, /doc-craft/);
+  assert.match(out.err, /merge only after they approve/);
+
+  // A detached HEAD can be pushed straight to main, so it is held as main is.
+  const loose = gate(seed, stage, 'Revise the thing\n', 'detached');
+  assert.equal(loose.status, 1, 'a detached HEAD needs the approval on the commit');
 });
 
 test('a NEW documentation file is not refused: it retracts nothing', () => {
