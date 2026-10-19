@@ -79,12 +79,14 @@ agent,,skills/agents/closer.md,Closer,,plugin
 dir,,skills,Plugin source,"the portable plugin's source tree: every skill it carries and the hook bundle, also served as static files that load-skill fetches",plugin
 script,,skills/tasks/build-board.py,build-board.py,regenerate a tracker's board.md from task frontmatter; ships inside the plugin,plugin
 script,,skills/in-flight/in-flight.py,in-flight.py,classify a branch estate into live / merged / unrelated / undecidable and reconcile tracker claims against it; ships inside the plugin,plugin
+script,,skills/doc-craft/doc-review.py,doc-review.py,print the doc review doc-craft's Review section describes from a briefing and the uncommitted edits; ships inside the plugin,plugin
 script,,python/sunset-scan.py,sunset-scan.py,,on-demand
 script,,python/unclaimed-code.py,unclaimed-code.py,,on-demand
 script,,python/doc-placement.py,doc-placement.py,,on-demand
 script,,python/csv-census.py,csv-census.py,,on-demand
 script,,python/declared-paths.py,declared-paths.py,,on-demand
 script,,python/dead-links.py,dead-links.py,,on-demand
+script,,python/css-blocks.py,css-blocks.py,,on-demand
 script,,python/embedded-prose.py,embedded-prose.py,,on-demand
 script,,python/stranded-titles.py,stranded-titles.py,,on-demand
 script,,python/dead-opacity.py,dead-opacity.py,,on-demand

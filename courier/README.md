@@ -10,7 +10,8 @@ page a session cannot reach**, answered when you visit that page and tap one
 bookmark. The courier is the mechanism; the errand is one job it runs.
 
 Every errand waits on the Stage for a tap; nothing is answered on load. A
-session files one as `errands/requests/<id>.json` in the private registry and
+session files one as `errands/requests/<id>.json` on the private registry's
+`background` branch and
 hands you `?view=stage&errand=<id>`, which opens the Stage on that errand's
 card. The card says in one line whether the errand got what it came for, graded
 against its `expect` field, and its one green button completes it. Closing

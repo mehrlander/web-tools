@@ -747,7 +747,11 @@ test('applying the projection retires its insertions, because the digest stops m
 
 const CORPUS = ['docs/SURFACING.md', 'docs/TRACKER.md',
                 'docs/annotation.md', 'CLAUDE.md', 'docs/registries.md',
-                'docs/showing.md', 'docs/stage.md', 'docs/loader.md'];
+                'docs/showing.md', 'docs/stage.md', 'docs/loader.md',
+                // Added when docs/stage.md shrank from 7,366 words to 1,526 and
+                // took the corpus under the 1,000-unit floor below: a document
+                // with fences, tables and h3s, so the floor measures shapes.
+                'node/README.md'];
 
 // PYTHON INDEXES BY CODE POINT AND JAVASCRIPT BY UTF-16 CODE UNIT, so one astral
 // character (every emoji in these documents) shifts every later offset by one.

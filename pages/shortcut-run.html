@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run Shortcut</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>▶️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  shortcut-run.html — an https address for a shortcuts:// link.
+
+  The Claude iPhone app stopped treating a shortcuts:// address as a link
+  (measured 2026-10-18: the tap does nothing and a long-press offers no link
+  menu, while an https link beside it opens). So a session hands over
+  shortcut-run.html#<the shortcuts:// link> instead, and this page passes the
+  link on: once by itself on arrival, and from its button after that.
+
+  Only a shortcuts:// link is followed, so the page cannot be used to send a
+  reader anywhere else. A reload or a Back does not fire it again; the button
+  does, on purpose.
+-->
+</head>
+<body class="min-h-dvh bg-base-200 p-4">
+<main class="card bg-base-100 shadow-sm">
+  <div class="card-body gap-4">
+    <div class="flex items-center gap-2 text-xs text-base-content/60"><i class="ph ph-lightning"></i> Shortcuts</div>
+    <h1 id="name" class="text-2xl font-bold text-balance break-words"></h1>
+    <pre id="input" hidden class="whitespace-pre-wrap break-words font-sans text-base bg-base-200 rounded-box p-3"></pre>
+    <a id="run" hidden class="btn btn-primary btn-lg"><i class="ph-fill ph-play"></i> Run</a>
+  </div>
+</main>
+<script>
+{ // A block, not the global scope: a CDN script above already declares `link`.
+  const SCHEME = /^shortcuts:\/\//i;
+  let link = location.hash.slice(1);
+  if (!SCHEME.test(link)) { try { link = decodeURIComponent(link); } catch {} }
+  const $ = id => document.getElementById(id);
+  if (SCHEME.test(link)) {
+    const q = new URL(link).searchParams;
+    $('name').textContent = q.get('name') || 'Shortcuts';
+    if (q.get('text')) { $('input').textContent = q.get('text'); $('input').hidden = false; }
+    $('run').href = link;
+    $('run').hidden = false;
+    const nav = performance.getEntriesByType('navigation')[0];
+    if (!nav || nav.type === 'navigate') location.href = link;
+  } else {
+    $('name').textContent = 'No shortcuts:// link in this address';
+  }
+}
+</script>
+</body>
+</html>

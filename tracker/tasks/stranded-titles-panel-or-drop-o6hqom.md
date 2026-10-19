@@ -1,69 +1,52 @@
 ---
 id: stranded-titles-panel-or-drop-o6hqom
-title: Decide the remaining stranded title attributes, panel or leave
-status: in-progress
-session: claude/eager-ride-1lzonz
+title: Convert the title attributes outside the app to title-tips
+status: backlog
 opened: 2026-08-19
-size: S
+size: M
 priority: low
 ---
-# Decide the remaining stranded title attributes, panel or leave
+# Convert the title attributes outside the app to title-tips
 
-`npm run stranded-titles` reported 89 **stranded** titles across the app when
-this was filed, and 120 on 2026-09-04: places
-where a `title` attribute is the only route to a fact, so a phone reader never
-reaches it at all. PR #447 fixed the worst cases on the branch row and the
-sessions row and left the rest, because HTML-STYLE.md's rule turns on judgment
-the survey cannot supply: *a tooltip worth having is worth building*, and some
-of these tooltips are not worth having in the first place.
+The house style uses no `title` attribute at all since 2026-10-16
+(`skills/html-style/references/mechanics.md`, "Title-tips and panel-tips"; rule
+11 of `skills/html-style/SKILL.md`). PR #965 converted the Web Tools app and
+every kit it draws, so `npm run stranded-titles -- app` finds none. The rest of
+the repo still carries them: on 2026-10-19 `npm run stranded-titles -- --all`
+reported 186 title attributes plus 12 set from script, across standalone pages,
+kit demos and the components only those pages mount.
 
-They sit in four components, and the concentration is the point. This is a
-habit rather than a scattering of accidents:
+The largest carriers:
 
-| Component | Stranded |
+| File | Titles |
 | --- | --- |
-| `lib/alpineComponents/estate.js` | 24 |
-| `lib/alpineComponents/map.js` | 20 |
-| `lib/alpineComponents/state-view.js` | 15 |
-| `lib/alpineComponents/fab.js` | 13 |
-| everything else | 17 |
+| `pages/dictate.html` | 35 |
+| `lib/alpineComponents/transform-workbench.js` | 23 |
+| `lib/kits/demos/index.html` | 18 |
+| `pages/diff-tool.html` | 15 |
+| `pages/pdf-inspect.html` | 13 |
+| everything else | 82 |
 
-The method is settled, so this needs no design pass. For each one, decide
-between three answers: **build the panel** where the fact is worth reaching
-(the row card in `estate.js` is the worked precedent, and a list card costs
-nothing when the data is already in hand), **put words on the page** where a
-mark is carrying meaning no reader can guess, or **leave it** where the title
-is a convenience label for a control whose action is obvious and reachable by
-tapping. Most of the 89 are the third answer, which is why this is low
-priority rather than a defect list.
-
-Do it a component at a time; they decouple cleanly and nothing here needs to
-land together.
+The method is PR #965's: write `data-title-tip` where the `title` was, add
+`data-title-tip-bare` on an element that is not a control, and make sure the
+page loads `kits/title-tip.js`. A page on the `gh.load` chain gets the kit
+through `alpine-bundle.js`; a page that loads the pre-build or neither needs it
+named, which is why this goes a page at a time. The scanner also lists an
+`<iframe>` title, a `data-title` and an SVG axis title; those are not tooltips
+and stay.
 
 ## Related
 
-- `python/stranded-titles.py`: `npm run stranded-titles`; re-run before deciding (body table is pre-#610)
-- `lib/alpineComponents/map.js`: start here after Map cleanup; largest untouched carrier at filing
-- `lib/alpineComponents/estate.js`: worked precedent for building a panel from a stranded title
-- `lib/alpineComponents/state-view.js`, `lib/alpineComponents/fab.js`: other concentrated carriers in the filing table
-- `skills/html-style/SKILL.md`: house-style rule 11 (numbered 7 when PR #543 carried it in); the popup rule itself is in `references/mechanics.md`, "Title-tips and panel-tips"
-- PR #965: moved the clear-cut stranded titles to title-tips and added the `--facts` and `--script` readings to the scanner
-- task `align-map-view-cleanup-40afu8`: soft sequence: finish Map alignment before working map.js titles
-- PR #610: cut stranded titles ~128 to ~25 (notes+cards); restamp counts before acting
-- PR #447: original survey and worst-case fixes on branch/session rows
+- `python/stranded-titles.py`: `npm run stranded-titles -- --all` lists every title; `--script` lists the ones set from script
+- `lib/kits/title-tip.js`: the kit, and its header on title-tips that sit on controls
+- `skills/html-style/references/mechanics.md`: the popup rule, "Title-tips and panel-tips"
+- PR #965: the app's conversion, the worked precedent
+- PR #610, PR #447: the earlier surveys and fixes of stranded titles
 
 ## Done when
 
-Every stranded title in those four components has been decided rather than
-merely counted, and the ones that earned a panel have one.
-
-**Not** when the survey reports zero, and that distinction matters enough to
-state. The count cannot see its own best outcome: a mark that gains visible
-text still reports stranded while the *reason* stays in its title, which is the
-right result for a reader and no movement in the number. Two marks already sit
-in that state deliberately (the dimmed twins on a session row, where the visible
-dash says "unknown" and the title distinguishes the two causes). Read the list,
-not the total.
+`npm run stranded-titles -- --all` lists no tooltip `title` under `pages/` or
+`lib/`, and the pages that gained title-tips load the kit.
 
 ## Progress log
 - 2026-08-19: Filed. Findings and the audit behind them are in web-tools PR #447
@@ -90,3 +73,4 @@ not the total.
   `align-map-view-cleanup-40afu8` and start with `map.js`, the largest untouched
   carrier. Added `## Related`.
 - 2026-10-15: Claimed on `claude/eager-ride-1lzonz` (PR #965). Thirteen title-only facts on non-controls became title-tips, `cursor-help` is gone from live code, and the scanner reports 24 stranded across lib, app and pages (14 in the app's own files). The larger class is now facts parked in the `title` of a button or link, which the scanner used to call reachable and fine: `npm run stranded-titles -- --facts` lists 59 in the app, and `--script` counts 48 titles set from script. Most of the 59 explain how a control works, so house-style rule 2 (no explanatory prose) argues for trimming them to labels rather than moving them onto the page; that call, and a sentence for mechanics.md saying a title-tip does not go on a control whose tap acts, are with the owner on PR #965.
+- 2026-10-19: PR #965 merged. The owner ruled out `title` everywhere, icon buttons included, so the panel-or-leave question this task was filed to decide is settled: every title becomes a title-tip. The app holds none. Reframed around the rest of the repo, unclaimed, size S to M; the scanner's `--facts` reading was dropped in PR #965.
