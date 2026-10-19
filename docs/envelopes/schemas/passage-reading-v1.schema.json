@@ -45,6 +45,7 @@
         "required": ["label", "gloss", "basis"],
         "properties": {
           "label": { "type": "string" },
+          "kind": { "enum": ["thing", "record", "actor", "event", "measure", "condition", "concept"], "description": "What sort of thing the entity is: a physical object or a running system that does not decide; a document or part of one; a person, group or system that decides; something that happens or is done; an amount, count or limit, including a limit stated as a rule; a circumstance something can be in; or an idea or principle that fits none of these." },
           "gloss": { "type": "string" },
           "basis": { "enum": ["passage", "context", "general"] },
           "ctx": {
