@@ -39,6 +39,7 @@
     "stranded-titles": "python3 python/stranded-titles.py",
     "upstreams": "python3 python/upstream-skills.py",
     "showing": "python3 python/showing.py",
+    "stage-link": "node node/stage-link.mjs",
     "snags-index": "node node/build/snags-index.mjs",
     "pages": "npm run pages-shots && npm run pages-index",
     "wsl-fetch": "node pages/wsl-sync/fetch-data.mjs",
