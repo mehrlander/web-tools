@@ -98,3 +98,60 @@ test('address mode keeps fragment-only links on the rendered blob', () => {
   assert.match(shim, /location\.hash=h/,
     'fragment navigation must target the blob document itself');
 });
+
+const tokenHrefBlock = src.match(/\r?\n {2}function tokenHref\(\) \{[\s\S]*?\r?\n {2}\}\r?\n/);
+const savedTokenBlock = src.match(/\r?\n {2}function savedToken\(\) \{[\s\S]*?\r?\n {2}\}\r?\n/);
+const ghHeadersBlock = src.match(/\r?\n {2}function ghHeaders\(accept\) \{[\s\S]*?\r?\n {2}\}\r?\n/);
+const explainBlock = src.match(/\r?\n {2}async function explainAddressFailure\(res\) \{[\s\S]*?\r?\n {2}\}\r?\n/);
+assert.ok(tokenHrefBlock && savedTokenBlock && ghHeadersBlock && explainBlock,
+  'tokenHref, savedToken, ghHeaders, or explainAddressFailure not found in ' + PAGE);
+
+test('tokenHref points to This browser (?view=here) and carries the toss address as ?next=', () => {
+  const fn = new Function('location', tokenHrefBlock[0] + '\n  return tokenHref;')({
+    search: '?w=390',
+    hash: '#gh=mehrlander/home@c3cf462ebbec:created/2026-10-18-constellation-atlas/atlas.html',
+  });
+  assert.equal(
+    fn(),
+    '../app/?view=here&next=' + encodeURIComponent(
+      'pages/toss-render.html?w=390#gh=mehrlander/home@c3cf462ebbec:created/2026-10-18-constellation-atlas/atlas.html'
+    ),
+  );
+});
+
+test('explainAddressFailure distinguishes no token, rejected token, missing repo scope, and a real 404', async () => {
+  const makeExplain = (token, userRes) => new Function(
+    'localStorage', 'fetch',
+    savedTokenBlock[0] + ghHeadersBlock[0] + explainBlock[0] + '\n  return explainAddressFailure;'
+  )(
+    { getItem: (k) => (k === 'ghToken' ? token : null) },
+    async () => userRes,
+  );
+  const res404 = { status: 404, headers: { get: () => null } };
+
+  // 1. No token saved
+  const noTok = await makeExplain('', null)(res404);
+  assert.equal(noTok.tokenHint, true);
+  assert.match(noTok.why, /no GitHub token is saved in this browser/);
+
+  // 2. Classic token saved, /user rejects with 401
+  const expired = await makeExplain('ghp_' + 'a'.repeat(32) + 'Gc56', {
+    status: 401, ok: false, headers: { get: () => null },
+  })(res404);
+  assert.equal(expired.tokenHint, true);
+  assert.match(expired.why, /saved token …Gc56 was rejected by GitHub/);
+
+  // 3. Classic token saved, /user accepts (200) with empty x-oauth-scopes
+  const noScope = await makeExplain('ghp_' + 'a'.repeat(32) + '1ysY', {
+    status: 200, ok: true, headers: { get: (h) => (h === 'x-oauth-scopes' ? '' : null) },
+  })(res404);
+  assert.equal(noScope.tokenHint, true);
+  assert.match(noScope.why, /saved token …1ysY has no repo scope/);
+
+  // 4. Classic token saved, /user accepts (200) with repo scope -> real 404, no token prompt
+  const real404 = await makeExplain('ghp_' + 'a'.repeat(32) + 'XV4W', {
+    status: 200, ok: true, headers: { get: (h) => (h === 'x-oauth-scopes' ? 'repo, read:org' : null) },
+  })(res404);
+  assert.equal(real404.tokenHint, false);
+  assert.match(real404.why, /saved token …XV4W has repo access; check the repository, ref, or path/);
+});

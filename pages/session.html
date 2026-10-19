@@ -27,7 +27,7 @@
     #branch=claude/some-branch-ab12  that branch's LATEST session
     #gz=<base64url>                  a gzipped record, for a reader with no token
 
-  Any of the four takes `pane=outline|files|raw` and `card=<n>`, which say where
+  Any of the four takes `pane=outline|files|raw|calls` and `card=<n>`, which say where
   in the session to land: `card` opens the deck on one exchange, the session's
   answer to branch.html's `file=`.
 
@@ -245,7 +245,7 @@
         const find = (pick('find') || '').trim();
         // `now` names the ref the action message is read from, main by default.
         const nowRef = pick('now');
-        const at = { ...(['outline', 'files', 'raw'].includes(pane) ? { pane } : {}),
+        const at = { ...(['outline', 'files', 'raw', 'calls'].includes(pane) ? { pane } : {}),
                      ...(Number.isInteger(card) ? { start: card } : {}),
                      ...(find ? { find } : {}),
                      ...(nowRef ? { nowRef } : {}) };
