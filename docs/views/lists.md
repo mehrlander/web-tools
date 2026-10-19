@@ -36,8 +36,7 @@ viewer's token (`gh-store.js`'s `save`), so each check-off is a commit.
 - **Pins:** each `target` is `owner/repo[@ref]:path`; a path with an extension
   opens the file, anything else the Files view at that folder.
 - **Created lists:** a file in `lists/` with a `title` beside its `items` is a
-  list made in this view. Its file is named from its first title and keeps that
-  name through a rename. `capabilities` can turn on `done`, the one capability
+  list made in this view. `capabilities` can turn on `done`, the one capability
   `lib/kits/lists.js` opens to created lists so far; that kit declares the rest.
   `lists/autocorrect.json` has no title and stays the dictate page's.
 - **Note:** one line per note, appended through `lib/kits/notes.js` and never
