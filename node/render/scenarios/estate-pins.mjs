@@ -75,7 +75,7 @@ export default async function (page) {
       return origReq.call(this, path);
     };
 
-    window.__shell.goTodo();
+    window.__shell.goLists();
     const host = [...document.querySelectorAll('[x-data]')]
       .find(el => (el.getAttribute('x-data') || '').includes('estate('));
     if (!host) return 'no estate host';

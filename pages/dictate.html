@@ -449,6 +449,9 @@
   }
   await gh.load('gh-auth.js');
   await gh.load('gh-store.js');
+  // Jot appends through the registry's list writer (window.Lists), which keeps
+  // the file's other keys and reads fresh before it writes.
+  await gh.load('kits/lists.js');
   await gh.load('kits/dictate.js');
   // The fifth destination's link minter (window.PromptLink). Not in BOOT: the
   // only other consumer is app/index.html, and neither is on the chain every
@@ -4550,13 +4553,10 @@
       // page goes back to being blank, which is the state it is for.
       async jot() {
         await this.commit(async (reg) => {
-          let items = [];
-          try { const raw = JSON.parse((await reg.get(JOTS)).text); items = Array.isArray(raw.items) ? raw.items : []; }
-          catch (e) { if (e?.status && e.status !== 404) throw e; }
           const text = this.outgoing();
-          items = [...items, { id: 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                               text, created_at: new Date().toISOString() }];
-          await reg.save(JOTS, { items }, `Jot "${text.slice(0, 40)}" via dictate`);
+          await window.Lists.append(reg, JOTS, { id: 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                                                 text, created_at: new Date().toISOString() },
+                                    `Jot "${text.slice(0, 40)}" via dictate`);
           return 'the jots pile';
         }, REGISTRY, 'main');
       },
