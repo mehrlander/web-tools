@@ -126,8 +126,8 @@ test('the aim button shows the glyph of the aim in force, and names it in full',
   const S = A._state;
   // Resting: Page, the aim that needs nothing on the page to hit.
   assert.match(S.aimGlyph.className, /\bph-file\b/);
-  assert.equal(S.aimBtn.title, 'What the next note is about: Page');
-  assert.equal(S.aimBtn.getAttribute('aria-label'), S.aimBtn.title);
+  assert.equal(S.aimBtn.dataset.titleTip, 'What the next note is about: Page');
+  assert.equal(S.aimBtn.getAttribute('aria-label'), S.aimBtn.dataset.titleTip);
   // No visible word at all: the header carries five controls once the card is
   // expanded and the row does not fit a phone with a word on this button.
   assert.equal(S.aimBtn.textContent.trim(), '');
@@ -137,11 +137,11 @@ test('the aim button shows the glyph of the aim in force, and names it in full',
   assert.match(S.aimGlyph.className, /\bph-file-md\b/);
   // The DECLARED label, not the generic one. The button read `Section` while
   // the menu row beside it read `Markdown section`, in plain sight.
-  assert.equal(S.aimBtn.title, 'What the next note is about: Markdown section');
+  assert.equal(S.aimBtn.dataset.titleTip, 'What the next note is about: Markdown section');
 
   A.startRegion();
   assert.match(S.aimGlyph.className, /\bph-frame-corners\b/);
-  assert.equal(S.aimBtn.title, 'What the next note is about: Region');
+  assert.equal(S.aimBtn.dataset.titleTip, 'What the next note is about: Region');
   host.remove();
   A.disable();
 });

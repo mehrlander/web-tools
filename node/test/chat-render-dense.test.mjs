@@ -78,10 +78,10 @@ test('no clock on any dense turn, and every turn keeps its own on the icon', () 
   for (const role of ['user', 'assistant', 'system']) {
     const el = dense({ role, md: 'text here', ts: '22:58:30' });
     assert.ok(!el.textContent.includes('22:58:30'), `a ${role} turn prints no clock`);
-    assert.equal(el.querySelector('i.ph').getAttribute('title'), '22:58:30', 'but carries it');
+    assert.equal(el.querySelector('i.ph').getAttribute('data-title-tip'), '22:58:30', 'but carries it');
   }
   const none = dense({ role: 'user', md: 'text here' });
-  assert.equal(none.querySelector('i.ph').getAttribute('title'), null, 'and invents none where there was none');
+  assert.equal(none.querySelector('i.ph').getAttribute('data-title-tip'), null, 'and invents none where there was none');
   // Full size still prints it: a deck slide reads against the clock.
   assert.ok(cr.message({ role: 'user', md: 'x', ts: '22:58:30' }, { collapse: 0 })
     .textContent.includes('22:58:30'));
@@ -357,9 +357,9 @@ test('the more-chip is exported, so a second surface draws the same mark', () =>
   assert.equal(typeof cr.moreChip, 'function');
   const chip = cr.moreChip(1234, false);
   assert.equal(chip.textContent, '+1,234 chars');
-  assert.match(chip.title, /Open the session to read it whole/);
+  assert.match(chip.getAttribute('data-title-tip'), /Open the session to read it whole/);
   // The title is the one thing that legitimately differs: where the chip IS the
   // way to the rest, a sentence naming a longer route would be wrong.
-  assert.equal(cr.moreChip(9, false, 'Read the rest of this line').title,
+  assert.equal(cr.moreChip(9, false, 'Read the rest of this line').getAttribute('data-title-tip'),
     'Read the rest of this line');
 });

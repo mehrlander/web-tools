@@ -47,6 +47,7 @@ the link-dense text twin of the visual index above.
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
 | `shortcut-edit` | Shortcut Edit | [view](https://mehrlander.github.io/web-tools/pages/shortcut-edit.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-edit.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
+| `shortcut-run` | Run Shortcut | [view](https://mehrlander.github.io/web-tools/pages/shortcut-run.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html) |
 | `shortcuts` | Shortcuts | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
@@ -135,6 +136,7 @@ the link-dense text twin of the visual index above.
 | `export` | export — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/export.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html) |
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
+| `linked-swiper` | linked-swiper — a list over a strip of cards | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/linked-swiper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/linked-swiper.html) |
 | `look` | Look Markers | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/look.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/look.html) |
 | `md-diff` | md-diff — a documentation change, read as the document | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-diff.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html) |
 | `md-variants` | md-variants: a document read with its retained variants | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-variants.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html) |

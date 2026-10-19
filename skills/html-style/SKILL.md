@@ -97,8 +97,9 @@ treatment across every view. Where two concerns compete for the accent, let a
 control pick which one is marked rather than spending a second colour.
 
 **11. A tooltip worth having is worth building.** Prefer text on the page. Do
-not put a fact in a `title`: it reaches no touch screen and no screenshot. One
-line the page implies is a **title-tip**
+not use a `title`: the browser draws it only on mouse hover and outside the
+page, so touch screens and screenshots omit it. One line the page implies is a
+**title-tip**
 ([`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js));
 anything tapped, scrolled, or sourced is a **panel-tip**
 ([`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)).
@@ -114,8 +115,8 @@ moves the strip, and a swipe moves the list's selection and keeps it in view.
 The strip's header opens the deck takeover (rule 4) at the card in view, and
 closing it returns to the list at the card where it closed. In a wide pane the
 list sits beside the strip; on a phone it stays in view above the strip. The
-reference is the Waiting view
-([`waiting.js`](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/waiting.js)),
+reference is the linked-swiper kit
+([`linked-swiper.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js)),
 coded `linked-swiper`.
 
 ## Handing a page over
