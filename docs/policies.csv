@@ -241,7 +241,7 @@ pol-verdict-carried-when-branch-tip-default,app/branch,policy,A verdict is carri
 pol-quiet-repos-skipped-whole-if-pushed,app/branch,policy,Quiet repos are skipped whole if pushed_at and PR watermark both match the last crawl.,docs/views/branches.md,A quiet repo is skipped whole,,unknown,,,,sourced
 pol-branch-detail-takeover-drills-swipe-deck,app/branch,policy,The branch detail takeover drills as a swipe deck with slides that lazy-load content.,docs/forms/branch.md,a branch opens as a swipe deck over the Branches view,2026-08-13,unknown,,,,sourced
 pol-branch-detail-header-embedded-page-split,app/branch,policy,The branch detail header and embedded page split identity so neither repeats the other.,,,,unknown,,,,lead
-pol-look-row-shows-which-app-views,app/branch,policy,The Look row shows which app views the branch changes and links to render pages.,docs/forms/branch.md,The Look row links each app view the branch changes at the branch's own tip,,unknown,,,,sourced
+pol-look-row-shows-which-app-views,app/branch,policy,The Look row shows which app views the branch changes and links to render pages.,docs/forms/branch.md,a link for each part of the branch that can be opened,,unknown,,,,sourced
 pol-file-list-caps-row-count-because,app/branch,policy,The file list caps its row count because its length affects guide visibility.,,,,unknown,,,,lead
 pol-file-rows-start-collapsed-width-maintain,app/branch,policy,File rows start collapsed at every width to maintain scannable manifest and scrollable guide.,,,,unknown,,,,lead
 pol-file-content-verdict-carried-filter-tappable,app/branch,policy,"File content verdict is carried as a filter with tappable counts for landed, differs, missing.",,,2026-08-15,unknown,,,,lead
