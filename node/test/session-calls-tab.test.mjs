@@ -123,6 +123,9 @@ test('size and cautions ride the name\'s line, each with its tip', () => {
   assert.match(size.textContent, /S/);
   assert.match(size.dataset.titleTip, /one session with room to spare: the work the recommended answer sets off/);
   assert.match(two.querySelector('[data-chip=lean]').dataset.titleTip, /Another option has a real case: closer on average/);
+  decks.length = 0;
+  size.click();
+  assert.equal(decks.length, 0, 'a tap on a chip is for its tip, not the deck');
 });
 
 test('the pane holds one card per call: question, brief, recommendation, state', async () => {
