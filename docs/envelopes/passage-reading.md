@@ -26,7 +26,7 @@ Each key is read fragment first, query as fallback ([`lib/kits/url-params.js`](.
 | `gist` | One sentence on what the passage does, start to end |
 | `topic` | The id of the entity the passage is about; an ellipsis of it is not listed as a connection |
 | `context` | The documents supplied as context: `id`, `repo`, `path`, `ref` (a commit), `why` |
-| `entities` | Keyed by id: `label`, `gloss`, `basis`, and `ctx` when `basis` is `context` |
+| `entities` | Keyed by id: `label`, `gloss`, `basis`, `ctx` when `basis` is `context`, and optionally `kind` |
 | `lead` | A run-in heading before the first sentence, if the passage has one |
 | `sentences` | In order, numbered `n` from 1 |
 
@@ -62,6 +62,18 @@ Link `kind`, read as "this sentence *kind* sentence `to`", loosely after the rel
 | `narrows` | limits the earlier one or carves a case out of it |
 | `contrasts` | sets itself against the earlier one |
 | `supports` | offers evidence or an example for the earlier one |
+
+Entity `kind`, optional, saying what sort of thing the entity is:
+
+| Kind | The entity |
+| --- | --- |
+| `thing` | a physical object, or a running system that does not decide: a chair, a server |
+| `record` | a document or part of one: a file, a field, a message, a listing |
+| `actor` | a person, group or system that decides: a reader, an agency, a model |
+| `event` | something that happens or is done |
+| `measure` | an amount, a count or a limit, including a limit stated as a rule |
+| `condition` | a circumstance something can be in |
+| `concept` | an idea or principle that fits no row above |
 
 ## Anchoring
 
