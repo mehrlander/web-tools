@@ -341,7 +341,8 @@ def session_laws(text):
     for note in re.findall(r"\[([^\[\]]*\bc\s+\d+[^\[\]]*)\]", text):
         for m in SESSION_LAW.finditer(note):
             year, special, chapter, section = m.groups()
-            law = f"{year}{re.sub(r'\s+', ' ', special)} c {chapter} s {section}"
+            special = re.sub(r"\s+", " ", special)   # outside the f-string: Python 3.11, the laptop daemon's, refuses a backslash inside one
+            law = f"{year}{special} c {chapter} s {section}"
             if law not in out:
                 out.append(law)
     return out
