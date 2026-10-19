@@ -81,10 +81,10 @@ its `stage.targets` fills the send field's suggestions
   flag) draws with a dotted underline until a rename, since the extension picks
   the reader's mode and the deposited file's type. Ref items do not rename,
   because a ref's path is its identity at its source.
-- **Out** is the deposit surface: the concatenated bundle, each file under a
-  `// === owner/repo[@ref]:path ===` header, with refresh, copy and download;
-  and the send to a repo, a tap-through folder selector and a two-tap Send. The
-  base...head branch compare is in the Branches view.
+- **Out** is the deposit surface. The concatenated bundle puts each file under
+  a `// === owner/repo[@ref]:path ===` header and offers refresh, copy and
+  download. The send to a repo takes a tap-through folder selector and a
+  two-tap Send. The base...head branch compare is in the Branches view.
 - **Persistent link** copies a `#stage=` URL that reopens the stage elsewhere.
   Pasted text rides in `&gz=`; a local binary is left out and has to be sent to
   a repo.
@@ -114,10 +114,9 @@ a failed fetch renders a note.
 
 With two or more items staged, the reader's header carries a Compare button,
 titled with the pair (`Compare a.md ↔ b.md`). The comparison opens as a level
-over the reader, through
-`swipeDeck.drill`: its dismiss is a back chevron, and Escape and the phone Back
-button return to the reader. The comparison walks the same set, and backing
-out lands at the position the walk reached.
+over the reader, through `swipeDeck.drill`: its dismiss is a back chevron, and
+Escape and the phone Back button return to the reader. The comparison walks the
+same set, and backing out lands at the position the walk reached.
 
 Side A is the file on screen at every position. Side B defaults to the
 neighbour and can be picked from the other staged items, each listed with its
