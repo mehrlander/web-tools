@@ -28,7 +28,7 @@ class FakeGH {
   async ls() { return []; }
   async get(name) {
     if (this.repo === REGISTRY && name === NOTES && FILE) return { ...FILE };
-    if (this.repo === REGISTRY && name === 'lists/jots.json')
+    if (this.repo === REGISTRY && name === 'lists/jot.json')
       return { text: JSON.stringify({ items: [{ id: 'j1', text: 'an idea', created_at: '2026-09-01T00:00:00Z' }] }) };
     throw Object.assign(new Error('404'), { status: 404 });
   }
@@ -62,6 +62,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/surface.js',
   'lib/kits/repo-address.js',
   'lib/kits/notes.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
 const data = Alpine.$data(window.document.getElementById('es'));
@@ -111,12 +112,12 @@ test('a reply is a note about the note', async () => {
 test('a jot row addresses the next note to that jot, and counts what is already there', async () => {
   await data.loadJots(reg());
   const jot = data.jotItems[0];
-  data.noteOn(data.JOTS_PATH, jot);
-  assert.equal(data.noteAbout, 'me/registry:lists/jots.json#j1');
-  assert.equal(data.notesOn(data.JOTS_PATH, jot), 0);
+  data.noteOn(data.JOT_PATH, jot);
+  assert.equal(data.noteAbout, 'me/registry:lists/jot.json#j1');
+  assert.equal(data.notesOn(data.JOT_PATH, jot), 0);
   data.noteDraft = 'belongs with the branch page work';
   await data.addNote();
-  assert.equal(data.notesOn(data.JOTS_PATH, jot), 1);
+  assert.equal(data.notesOn(data.JOT_PATH, jot), 1);
   assert.equal(data.aboutLabel(data.noteAbout), 'jot: an idea');
 });
 

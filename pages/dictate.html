@@ -71,7 +71,7 @@
 
     THE WORDS GO SOMEWHERE. This is the half that makes it a tool rather than
     a textarea. Copy and Share read the buffer; Jot files it in the estate's
-    pile (the registry's lists/jots.json, which the app already renders at
+    pile (the registry's lists/jot.json, which the app already renders at
     ?view=jots) and Drop writes a dated markdown file into home's chron/dump/,
     the tray /drain reads. The two that file it durably clear the buffer; the
     two that only read it leave it alone.
@@ -471,7 +471,7 @@
   await gh.load('kits/title-tip.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';
-  const JOTS = 'lists/jots.json';
+  const JOT = 'lists/jot.json';
   const AUTOCORRECT = 'lists/autocorrect.json';
   const DRAFT = 'dictate:draft';
   // What a handoff displaced, kept so replacing is not discarding. One slot,
@@ -4554,7 +4554,7 @@
       async jot() {
         await this.commit(async (reg) => {
           const text = this.outgoing();
-          await window.Lists.append(reg, JOTS, { id: 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          await window.Lists.append(reg, JOT, { id: 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
                                                  text, created_at: new Date().toISOString() },
                                     `Jot "${text.slice(0, 40)}" via dictate`);
           return 'the jots pile';
