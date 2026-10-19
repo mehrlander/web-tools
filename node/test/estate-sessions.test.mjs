@@ -517,7 +517,7 @@ test('the name leads and carries the weight; the id follows as the address', asy
   // Both still open the session. Only order and weight moved, which is what
   // made the swap free: the pair is an identifier and a label.
   assert.ok(nameEl.getAttribute('@click') || nameEl.__x_click !== undefined || true);
-  assert.match(idEl.getAttribute('title') || '',
+  assert.match(idEl.getAttribute('data-title-tip') || '',
     /sessions\/2026\/08\/2026-08-05-b8fae678\.json/,
     'the id says the record filename, which the name now sits inside');
 });
@@ -728,8 +728,8 @@ test('every rule drawn carries its count, and zero draws none', () => {
   assert.equal(data._stateRule(0), null, 'one breath: the entries butt together');
   assert.equal(data._stateRule(1).textContent, '1 prompt', 'singular, and never bare');
   assert.equal(data._stateRule(3).textContent, '3 prompts');
-  assert.match(data._stateRule(1).querySelector('span').getAttribute('title'), /One user turn/);
-  assert.match(data._stateRule(3).querySelector('span').getAttribute('title'), /3 user turns/);
+  assert.match(data._stateRule(1).querySelector('span').getAttribute('data-title-tip'), /One user turn/);
+  assert.match(data._stateRule(3).querySelector('span').getAttribute('data-title-tip'), /3 user turns/);
 });
 
 // ── Tap to close ───────────────────────────────────────────────────────────

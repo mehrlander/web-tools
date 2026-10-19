@@ -192,3 +192,21 @@ test('line numbers still point into the unmasked file', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// The default listing is the stranded titles only; --all lists the rest.
+test('the default report lists only stranded titles', () => {
+  const r = scan('<button @click="go()" title="A fact. Another one.">x</button><div><span title="lone">*</span></div>');
+  assert.deepEqual(r.values, ['lone']);
+});
+
+test('a title set from script is counted on its own line', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'stranded-titles-'));
+  try {
+    const file = join(dir, 'probe.js');
+    writeFileSync(file, "const b = document.createElement('b');\nb.title = 'set late';\ndocument.title = 'not this one';\nel.setAttribute('title', t);\n");
+    const out = execFileSync('python3', [SCRIPT, file], { encoding: 'utf8' });
+    assert.match(out, /2 more set from script/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

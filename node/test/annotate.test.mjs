@@ -1951,7 +1951,7 @@ test('an unaimed note is a page note, and the menu names the aim in force', asyn
   // carries it as a GLYPH, so the header holds one line on a phone once the
   // card is expanded; the word is in the title and the aria-label.
   assert.match(S.aimGlyph.className, /\bph-file\b/);
-  assert.equal(S.aimBtn.title, 'What the next note is about: Page');
+  assert.equal(S.aimBtn.dataset.titleTip, 'What the next note is about: Page');
   assert.equal(S.aimMenu.style.display, 'none', 'and the alternatives cost nothing until asked for');
 
   S.aimBtn.dispatchEvent(new window.Event('click', { bubbles: true }));
@@ -1961,7 +1961,7 @@ test('an unaimed note is a page note, and the menu names the aim in force', asyn
   // you have to remember being in.
   S.modeChips.region.dispatchEvent(new window.Event('click', { bubbles: true }));
   assert.match(S.aimGlyph.className, /\bph-frame-corners\b/);
-  assert.equal(S.aimBtn.title, 'What the next note is about: Region');
+  assert.equal(S.aimBtn.dataset.titleTip, 'What the next note is about: Region');
   assert.equal(S.aimBtn.style.backgroundColor, 'rgb(250, 204, 21)');
   assert.equal(S.aimMenu.style.display, 'none', 'and picking closes the menu');
 
@@ -2017,7 +2017,7 @@ test('the cursor pad moves the caret and not the text', () => {
   A._paintDraft();
 
   assert.ok(S.compPad, 'the pad sits in the control row');
-  assert.match(S.compPad.title, /drag to move the cursor/i);
+  assert.match(S.compPad.dataset.titleTip, /drag to move the cursor/i);
   assert.match(S.compPad.getAttribute('style'), /touch-action:\s*none/,
     'or a phone scrolls the page instead of dragging');
 
@@ -2601,9 +2601,9 @@ test('every key in the header row wears one shape, and states on with a fill', (
   const keys = [S.placeBtn, ...Object.values(S.readChips), S.serialCopy, S.aimBtn];
   for (const b of keys) {
     const css = b.getAttribute('style');
-    assert.match(css, /min-height:\s*30px/, 'one height: ' + (b.title || b.textContent));
-    assert.equal(b.style.border, '0px', 'no outline at rest: ' + (b.title || b.textContent));
-    assert.equal(b.style.borderRadius, '7px', 'one corner: ' + (b.title || b.textContent));
+    assert.match(css, /min-height:\s*30px/, 'one height: ' + (b.dataset.titleTip || b.textContent));
+    assert.equal(b.style.border, '0px', 'no outline at rest: ' + (b.dataset.titleTip || b.textContent));
+    assert.equal(b.style.borderRadius, '7px', 'one corner: ' + (b.dataset.titleTip || b.textContent));
   }
 
   // ON IS A FILL AND AN INK, and nothing else, wherever it appears.
@@ -2733,7 +2733,7 @@ test('copy rides the header beside the readings, so it needs no word at all', ()
   A.setReading('md');
 
   assert.equal(S.serialCopy.textContent.trim(), '', 'the glyph alone: the chips beside it are the qualifier');
-  assert.match(S.serialCopy.title, /markdown/, 'the title still says which, for a pointer that hovers');
+  assert.match(S.serialCopy.dataset.titleTip, /markdown/, 'the title still says which, for a pointer that hovers');
   assert.equal(S.serialCopy.parentElement, S.aimBtn.parentElement,
     'the header holds it: one row of controls, none under the composer');
   assert.ok(!S.readBar.contains(S.serialCopy),
@@ -2741,7 +2741,7 @@ test('copy rides the header beside the readings, so it needs no word at all', ()
   assert.equal(S.serialCopy.style.display, 'flex');
 
   A.setReading('json');
-  assert.match(S.serialCopy.title, /JSON/, 'and it follows the chip it sits beside');
+  assert.match(S.serialCopy.dataset.titleTip, /JSON/, 'and it follows the chip it sits beside');
 
   // Both leave the row where they mean nothing. A Copy beside the Notes chip
   // has no bytes on screen to take.
