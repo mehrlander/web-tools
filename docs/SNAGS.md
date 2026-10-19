@@ -287,10 +287,9 @@ can see. *(seen: 2026-10-18)*
 
 `lib/kits/design-fill.js` gave a user call's glossary terms the `cursor-help`
 class, which rule 11 of the house style forbids; the one test that rejects
-`cursor-help` covers `session-brief.js` alone. Corrected move: give a hover term
-no cursor of its own, only its mark (the title-tip kit's dotted underline, or
-the raised dot a user call draws), and read rule 11 and its mechanics section
-before styling one. Owner-reported on PR #968.
+`cursor-help` covers `session-brief.js` alone. Corrected move: leave a hover
+term's cursor alone, and read rule 11 and its mechanics section before styling
+one. Owner-reported on PR #968.
 *(seen: 2026-10-15)*
 → [`skills/html-style/references/mechanics.md`](../skills/html-style/references/mechanics.md#title-tips-and-panel-tips)
 
