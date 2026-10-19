@@ -8274,8 +8274,9 @@ function app(){ return {
 
   // This browser. Arriving from another view remembers that view's address as
   // the way back; an address that already names This browser carries its own.
-  // `next` is only ever a query or fragment of THIS page, which is what keeps
-  // the Back button's navigation on this origin and this path.
+  // `next` is a query or fragment of THIS page, or a sibling page under
+  // pages/ or popups/ on this origin, which keeps the Back button's navigation
+  // inside Web Tools.
   // A plain arrival clears the failure record, so coming back later by the
   // account panel's link does not show an old failure as the reason.
   // `tab` and `item` come from an address; an arrival with neither opens the
@@ -8283,8 +8284,11 @@ function app(){ return {
   goHere(next, fail = null, tab = '', item = ''){
     const arriving = this.view !== 'here';
     const own = arriving ? location.search + location.hash : '';
-    const pick = next !== undefined && next !== '' ? next : own;
-    this.hereNext = /^[?#]/.test(pick || '') && !/[?&]view=here(&|#|$)/.test(pick) ? pick : '';
+    const pick = String(next !== undefined && next !== '' ? next : own).replace(/^\.\.\//, '');
+    const sameApp = /^[?#]/.test(pick) && !/[?&]view=here(&|#|$)/.test(pick);
+    const sameOriginPage = /^(pages|popups)\/[A-Za-z0-9._/-]+\.html(?:[?#][\s\S]*)?$/.test(pick)
+      && !pick.split(/[?#]/)[0].includes('..');
+    this.hereNext = (sameApp || sameOriginPage) ? pick : '';
     if (arriving) this.authFail = fail;
     if (arriving || tab) this.hereTab = tab === 'stored' || tab === 'page' ? tab : 'token';
     if (arriving || tab) this.hereItem = this.hereTab !== 'token' ? (item || '') : '';
