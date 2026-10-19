@@ -94,6 +94,29 @@ test('a page whose policy refuses the reader says so, and the list claims nothin
   window.__courier = link;
 });
 
+test('backHref resolves both in-app queries and sibling pages under pages/', () => {
+  window.__shell.hereNext = '?view=map&tab=skills';
+  assert.equal(data.backHref, '/catalog?view=map&tab=skills');
+  window.__shell.hereNext = 'pages/toss-render.html#gh=mehrlander/home@main:index.html';
+  assert.equal(data.backHref, '../pages/toss-render.html#gh=mehrlander/home@main:index.html');
+  window.__shell.hereNext = '';
+});
+
+test('a classic token accepted with no repo scope warns that private repos will answer 404', () => {
+  data.saved = 'ghp_' + 'a'.repeat(32) + '1ysY';
+  data.check = { state: 'ok', login: 'mehrlander', scopes: [], rateRem: 4999, rateLimit: 5000, error: '' };
+  assert.equal(data.missingRepoScope, true);
+  assert.equal(data.scopesLine, 'none');
+  assert.equal(data.statusIcon, 'ph-warning text-warning');
+  assert.equal(data.cause, 'no repo scope · private repos will answer 404');
+
+  data.check = { state: 'ok', login: 'mehrlander', scopes: ['repo'], rateRem: 4999, rateLimit: 5000, error: '' };
+  assert.equal(data.missingRepoScope, false);
+  assert.equal(data.scopesLine, 'repo');
+  assert.equal(data.statusIcon, 'ph-shield-check text-success');
+  assert.equal(data.cause, '');
+});
+
 test('mounts with no warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
