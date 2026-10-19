@@ -26,7 +26,6 @@ docs/harness.csv merge=derived-csv
 docs/kits.csv merge=derived-csv
 pages/pages.csv merge=derived-csv
 docs/registries.csv merge=derived-csv
-docs/snags.csv merge=derived-csv
 docs/tests.csv merge=derived-csv
 docs/themes.csv merge=derived-csv
 tracker/board-tags.csv merge=derived-csv

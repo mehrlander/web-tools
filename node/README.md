@@ -293,7 +293,6 @@ changes touch:
 | `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
-| `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
@@ -310,13 +309,14 @@ time after `docs-readme`. One more stamp settles it.
 
 **Order is part of the contract, and it runs one way: a leg that WRITES into a
 folder precedes the leg that MEASURES it.** `docs-reach` stamps every `docs/`
-file's length into the registry's `words`, so `tests-index`, `tools-index`,
-`registries-reach` and `snags-index` all run above it: each writes a file under
+file's length into the registry's `words`, so `tests-index`, `tools-index` and
+`registries-reach` all run above it: each writes a file under
 `docs/`, and a stamp taken before that write is stale by exactly that file's own
 delta. Nothing local reports it either, because the hook does not verify what it
 stamps; `docs-registry.test.mjs` catches it in CI, after the push. Three legs
 learned this separately and each left the finding as a comment on its own leg,
-which is how the fourth was free to repeat it in 2026-08-23. So it is stated
+which is how the fourth (`snags-index`, retired on 2026-10-20 with the Markdown
+snag log) was free to repeat it in 2026-08-23. So it is stated
 here once: a new generator that writes under `docs/` goes above leg docs-reach, and one
 that only reads goes wherever it likes.
 

@@ -69,7 +69,7 @@ never by renaming a side, which keeps the duplicate.
 
 ## Snags
 
-[`docs/SNAGS.md`](docs/SNAGS.md) is this repo's friction log, the store behind the conventions' "where a friction observation goes instead." Its own header carries the intake shape, the recurrence rule, the generated index, and what is still provisional; this section restated them and was the copy.
+Friction learned the hard way goes in the Lists view's Snag list, `lists/snag.json` in the private registry (web-tools-private): one item per trip, every repo's in one list, each naming the repo it belongs to. [docs/views/lists.md](docs/views/lists.md) states the item shape and the recurrence rule. A session adds a snag, or another date to the item a repeat belongs to, by editing that file and committing straight to the registry's main, as for any personal list. Snags were `docs/SNAGS.md` here until 2026-10-20; a citation names a snag by its id, which is the slug that file's heading carried.
 
 ## Environment & testing
 

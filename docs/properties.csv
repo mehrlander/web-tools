@@ -172,11 +172,6 @@ vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means,
 vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
 tracker-tags,tag,computed,skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
 tracker-tags,value,computed,skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
-snags,title,computed,node/build/snags-index.mjs,value,column,yes,,value,"the snag's one-line symptom, read off its heading"
-snags,seen,computed,node/build/snags-index.mjs,none,list,no,,value,"every date the snag was hit, oldest first; an undated entry is empty, not absent"
-snags,count,computed,node/build/snags-index.mjs,value,column,yes,,label,"how many times it bit, the field the recurrence rule turns on"
-snags,last_seen,computed,node/build/snags-index.mjs,none,column,yes,,value,"the most recent sighting, the log's own sort key"
-snags,targets,computed,node/build/snags-index.mjs,none,list,no,,locator,"the docs the entry points at with →, which carry the fix"
 aims-goals,key,recorded,,none,column,yes,,id,"stable identifier, one word"
 aims-goals,name,recorded,,none,column,yes,,value,the goal as a title
 aims-goals,gloss,recorded,,none,column,yes,,value,the goal in one sentence
