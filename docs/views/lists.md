@@ -19,9 +19,8 @@ its list and written whole through the viewer's token (`gh-store.js`'s
 | Note | `notes/notes.jsonl` | `{id, at, author, about, text, anchor}` |
 
 - **Optional fields round-trip.** A field is written only when set, and every
-  write reads the file fresh, changes it, and saves it (`lib/kits/lists.js`),
-  so a field or an item added by hand, by a session or in another tab survives
-  the pane. An undo puts back the one item it is about.
+  write changes a fresh read of the file (`lib/kits/lists.js`), so a field or
+  an item added elsewhere survives the pane.
 - **To-do:** an item is hot when `urgent` or its `due` (`YYYY-MM-DD`) has
   arrived.
 - **Jot:** no done state. A jot stays until it is promoted somewhere with a real
