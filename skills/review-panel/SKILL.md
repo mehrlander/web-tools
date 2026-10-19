@@ -19,7 +19,7 @@ web-tools:
 | Conservator | `portable:conservator` | what a change would lose |
 | Radical editor | `portable:radical-editor` | the largest simplification the subject survives |
 | Source historian | `portable:source-historian` | provenance and precedent, in git and dated records |
-| Owner reader | `portable:owner-reader` | where the owner, new to the session, stalls |
+| Owner reader | `portable:owner-reader` | what the owner would object to, from the owner's recorded words and preferences |
 | Counterexample hunter | `portable:counterexample-hunter` | the case where a claim does not hold |
 | Closer | `portable:closer` | which findings hold, and the decision they leave |
 
