@@ -291,11 +291,11 @@ rule 11 of the house style and the owner's peeve P49 both rule out. The panel
 it opened broke the same peeve a second way: a bold heading and a paragraph of
 up to 200 characters, where a tip should be a few words, with an "Open" button
 where the rule asks for a ↗ naming the source. Nothing caught it: the only test
-that rejects `cursor-help` covers `session-brief.js` alone, and
-`lib/alpineComponents/stage.js` and `lib/kits/json-explorer.js` still carry it.
-Corrected move: the dotted underline is the whole affordance, as the title-tip
-kit draws it; before styling a hover target, read rule 11 and its mechanics
-section. Owner-reported on PR #968.
+that rejects `cursor-help` covers `session-brief.js` alone.
+Corrected move: leave the cursor alone and let the term's mark be the whole
+affordance (the title-tip kit's dotted underline, or the small raised dot a
+user call draws); before styling a hover target, read rule 11 and its
+mechanics section. Owner-reported on PR #968.
 *(seen: 2026-10-15)*
 → [`skills/html-style/references/mechanics.md`](../skills/html-style/references/mechanics.md#title-tips-and-panel-tips)
 
