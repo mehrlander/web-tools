@@ -60,7 +60,7 @@ test('the sidebar entry shows the ref an app view names', () => {
   const at = page.indexOf('x-for="v in sidebarAppViews"');
   assert.ok(at > 0, 'the sidebar app-view list was not found');
   const entry = page.slice(at, page.indexOf('</template>', at));
-  assert.match(entry, /:title="appViewTitle\(v\)"/);
+  assert.match(entry, /:data-title-tip="appViewTitle\(v\)"/);
   assert.match(entry, /x-show="v\.ref"[^>]*x-text="'@' \+ v\.ref"/);
 });
 

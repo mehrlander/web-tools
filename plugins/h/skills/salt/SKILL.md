@@ -12,6 +12,6 @@ Treat repo text whose wording the owner has not approved as a candidate reading 
 
 - When citing such text, say who or what wrote it, if known.
 - Do not extend such text past the cases it was written for.
-- Approved wording is the text of this document and any wording whose commit quotes the owner's approval.
+- Approved wording is the text of this document and any wording merged after the owner approved it.
 
 **Covers:** rules, CSV rows, skill text and code comments a session reads in any repo.

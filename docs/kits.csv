@@ -1,6 +1,6 @@
 path,namespace,gloss,lines,boot,demo,users,tested
 lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the app on 2026-09-19 so the browser and a headless…",333,no,no,1,yes
-lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5132,no,yes,18,yes
+lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5134,no,yes,18,yes
 lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier for AI assistants and human contributors across the estate.,156,yes,no,1,yes
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",466,no,no,9,yes
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",612,no,no,7,yes
@@ -24,10 +24,10 @@ lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a pa
 lib/kits/dictate-record.js,DictateRecord,"an edit to one file as data: its changes, and notes kept as records anchored to GitHub's copy, serialized as a `dictate/1` record.",353,no,no,1,yes
 lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1938,no,yes,11,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",142,no,no,2,yes
-lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,6,yes
+lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,8,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",506,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
-lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,450,no,no,5,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,455,no,no,7,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",557,no,no,8,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",210,no,yes,9,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
@@ -41,9 +41,10 @@ lib/kits/io.js,io,"user data in and out of the page: file picker, file download,
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,4,yes
-lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",774,no,yes,4,yes
+lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",292,no,yes,1,yes
+lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",814,no,yes,4,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1488,no,yes,17,yes
-lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1029,no,no,15,yes
+lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1031,no,no,15,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",278,no,no,2,yes
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1254,no,no,5,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
@@ -54,7 +55,7 @@ lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,5
 lib/kits/page-storage.js,PageStorage,"What a visited page keeps in its browser storage, read from inside that page.",118,no,no,2,yes
 lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,305,no,yes,8,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2302,no,no,6,yes
-lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
+lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",780,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,369,no,yes,8,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
 lib/kits/powershell-editor.js,PowerShellEditor,"The PowerShell workspace's editor, on CodeMirror 6.",267,no,no,1,yes
@@ -73,7 +74,7 @@ lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in on
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,658,no,no,2,yes
-lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1955,no,no,4,yes
+lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1958,no,no,4,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes
 lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,5,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",354,no,no,6,yes
@@ -91,12 +92,12 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1535,no,yes,32,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1535,no,yes,34,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
-lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",340,no,yes,18,yes
+lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",399,no,yes,19,yes
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,185,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",692,yes,no,4,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,162,no,no,2,yes
@@ -105,7 +106,7 @@ lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,153
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",316,no,no,2,yes
 lib/kits/wring.js,wring,"single-document template induction: give it one document with repeated structure (a log, an HTML page) and it returns the recurring templates (fixed…",1320,no,no,4,yes
-lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",126,no,no,2,yes
+lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",127,no,no,2,yes
 lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",366,no,no,4,yes
 lib/kits/wsl.js,wsl,browser-facing WSL kit.,311,no,no,3,yes
 lib/kits/xlsx-chart.js,xlsxChartKit,Browser SVG previews of supported Excel chart models.,456,no,no,1,yes
