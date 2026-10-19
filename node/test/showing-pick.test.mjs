@@ -7,7 +7,7 @@
 // What is pinned is the CLASSIFIER, and the case that matters most is the one
 // the repo got wrong by hand on 2026-08-22: a change under
 // lib/alpineComponents/ was reported as unshowable "because it is in the app
-// shell". It is in lib, and `?use=` reaches it. That reading is now a fixture
+// shell". It is in lib, and a toss at the branch reaches it. That reading is now a fixture
 // rather than a thing a session has to recall correctly under pressure.
 //
 // The four rules come from docs/routes.json's `showing.picker`, so a rule
@@ -35,18 +35,23 @@ function run(files, extra = []) {
 
 // A diff fixture, since the top-level-document test reads hunks rather than
 // paths: the same file is showable or not depending on what the change DOES.
+// The tossed page's own ?query, which rides inside the fragment after its path.
+const pageQuery = (url) => new URLSearchParams(((url.split('#gh=')[1] || '').split('?')[1] || '').split('#')[0]);
+
 function withDiff(files, text) {
   const f = path.join(mkdtempSync(path.join(tmpdir(), 'showing-')), 'd.diff');
   writeFileSync(f, text);
   return run(files, ['--diff', f]);
 }
 
-test('a lib change resolves to ?use=, which is the call the repo got wrong by hand', () => {
+test('a lib change resolves to a toss of the page that draws it, which is the call the repo got wrong by hand', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js');
-  assert.equal(d.mechanism, 'use');
+  assert.equal(d.mechanism, 'toss-gh');
   const app = d.links.find(l => l.page === 'app/index.html');
   assert.ok(app, 'the app is the subject, since app-routes.csv declares the file as its code');
-  assert.match(app.url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/app/\\?use=${Z12}(&|$)`));
+  // The toss supersedes ?use= as the preview link (docs/showing-consolidation.md):
+  // tossed at the branch, the untouched page boots the branch's library.
+  assert.equal(app.url, `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:app/index.html`);
   assert.equal(d.sha, ZERO, 'the JSON keeps the whole commit; only the link is short');
   // Not seven links. A page importing the pre-build LOADS every component and
   // renders few, so those are reported as carried rather than offered.
@@ -75,16 +80,16 @@ test('a shared reader is offered to each page and requires an explicit app view'
   }
   const app = d.links.find(l => l.page === 'app/index.html');
   assert.equal(app.view, null, 'Search and Sessions share the reader, so neither route is implied');
-  assert.equal(new URL(app.url).searchParams.has('view'), false);
+  assert.equal(pageQuery(app.url).has('view'), false);
   assert.match(d.warnings.join(' '), /2 routes \(search, sessions\)/);
   for (const view of ['search', 'sessions']) {
     const explicit = run('lib/kits/session-render.js,dist/web-tools.js', ['--query', 'view=' + view]);
     const link = explicit.links.find(l => l.page === 'app/index.html');
-    assert.equal(new URL(link.url).searchParams.get('view'), view, 'the requested view reaches the shared reader');
+    assert.equal(pageQuery(link.url).get('view'), view, 'the requested view reaches the shared reader');
   }
 });
 
-test('a page file resolves to the toss, since ?use= never swaps a page shell', () => {
+test('a page file resolves to the toss at the branch', () => {
   const d = run('pages/session.html');
   assert.equal(d.mechanism, 'toss-gh');
   const [l] = d.links;
@@ -144,10 +149,9 @@ test('--top opens any toss as the tab, and says so where it has nothing to add',
   assert.match(lag.links[0].url, new RegExp(`toss-render\\.html\\?top&refs=mehrlander/web-tools@${B12}&`));
   const app = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html', ['--top']);
   assert.match(app.links[0].url, /toss-render\.html\?top#gh=mehrlander\/home@/);
-  const use = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--top']);
-  assert.equal(use.mechanism, 'use');
-  assert.equal(use.top, undefined);
-  assert.ok(use.warnings.some(w => /already opens the page as the tab/.test(w)));
+  const lib = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--top']);
+  assert.equal(lib.mechanism, 'toss-gh');
+  assert.equal(lib.top, true, 'a lib change is a toss too, so --top applies to it');
   const nested = run('pages/toss-render.html', ['--top']);
   assert.ok(nested.warnings.some(w => /nested renderer is never the tab/.test(w)));
   assert.doesNotMatch(nested.links[0].url, /\?top/);
@@ -196,11 +200,11 @@ test('any HTML outside archive/ is a page file, a kit demo or a dated prototype 
 
 test('a kit change reaches its demo, which gh.loads the kit like any page', () => {
   const d = run('lib/kits/md-diff.js,dist/web-tools.js');
-  assert.equal(d.mechanism, 'use');
+  assert.equal(d.mechanism, 'toss-gh');
   assert.ok(d.links.some(l => l.page === 'lib/kits/demos/md-diff.html'));
 });
 
-test('a lib file only a relative script tag loads is tossed on that page, never ?use=', () => {
+test('a lib file only a relative script tag loads is tossed on that page', () => {
   // page-skips-the-loader-ignores-use: transform.html loads its workbench with
   // a bare <script src>, so ?use= showed main's code with no error.
   const d = run('lib/alpineComponents/transform-workbench.js,dist/web-tools.js');
@@ -208,12 +212,42 @@ test('a lib file only a relative script tag loads is tossed on that page, never 
   assert.deepEqual(d.links.map(l => l.page), ['pages/transform.html']);
 });
 
-test('lib without a rebuilt pre-build warns, since ?use= fetches dist', () => {
+test('lib without a rebuilt pre-build warns, since the page loads dist at the link\'s commit', () => {
   const d = run('lib/kits/session-render.js');
   assert.match(d.warnings.join(' '), /build:lib/);
   // And says nothing about it once the artifact rides along.
   const built = run('lib/kits/session-render.js,dist/web-tools.js');
   assert.ok(!/build:lib/.test(built.warnings.join(' ')));
+});
+
+test('a change to the FAB is tossed with ?top, since a frame shows the renderer\'s FAB', () => {
+  const d = run('lib/alpineComponents/fab.js,dist/web-tools.js');
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.top, true);
+  assert.ok(d.links.length > 0 && d.links.every(l => /toss-render\.html\?top#gh=/.test(l.url)));
+  assert.ok(!d.links.some(l => l.page === 'pages/toss-render.html'), 'the renderer is never its own subject');
+  assert.match(d.why.join(' '), /FAB's own code/);
+});
+
+// --path is the link a session used to build by hand: a file the branch did
+// not change, at the real commit rather than --files' zero one.
+test('--path links any named file at the real commit, a page by toss and a document by the data route', () => {
+  const d = JSON.parse(execFileSync('python3', [SCRIPT, '--path', 'pages/branch.html', '--path', 'docs/APP.md', '--json'],
+    { cwd: repoRoot, encoding: 'utf8' }));
+  assert.equal(d.mechanism, 'toss-gh');
+  assert.match(d.sha, /^[0-9a-f]{40}$/);
+  assert.notEqual(d.sha, ZERO);
+  assert.match(d.links[0].url, new RegExp(`toss-render\\.html#gh=mehrlander/web-tools@${d.sha.slice(0, 12)}:pages/branch\\.html$`));
+  assert.deepEqual(d.documents.map(l => l.page), ['docs/APP.md']);
+  assert.match(d.documents[0].url, /toss-render\.html#data=mehrlander\/web-tools@[0-9a-f]{12}:docs\/APP\.md$/);
+});
+
+test('--width puts ?w= on the renderer, and says so when it cancels ?top', () => {
+  const d = run('pages/session.html', ['--width', '390']);
+  assert.match(d.links[0].url, /toss-render\.html\?w=390#gh=/);
+  const both = run('pages/session.html', ['--width', '390', '--top']);
+  assert.match(both.links[0].url, /toss-render\.html\?top&w=390#gh=/);
+  assert.ok(both.warnings.some(w => /ignores \?top/.test(w)));
 });
 
 // ── the read itself, not the classifier ─────────────────────────────────────
@@ -434,7 +468,7 @@ test('a lib change on a branch behind main, touching nothing main touched, is an
 
 test('main having changed an overlaid file refuses the overlay and says neither link is the merge', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/alpineComponents/estate.js']);
-  assert.equal(d.mechanism, 'use');
+  assert.equal(d.mechanism, 'toss-gh');
   assert.ok(d.warnings.some(w => /main has changed 1 of this branch's files.*Neither link shows the merge/.test(w)));
   assert.ok(d.why.some(w => /as it stands: 9 commit\(s\) behind main/.test(w)), 'the fallback does not claim to be the real thing');
 });
@@ -454,15 +488,15 @@ test('on a lagging branch a changed page is addressed at the branch, with pinned
   assert.ok(d.why.some(w => /2 commit\(s\) behind main.*a merge would produce/.test(w)));
 });
 
-test('while main cannot read path entries, a lib change stays on ?use=', () => {
+test('while main cannot read path entries, a lib change is the toss at the branch', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'no']);
-  assert.equal(d.mechanism, 'use');
+  assert.equal(d.mechanism, 'toss-gh');
 });
 
 test('past the cap the overlay steps aside and says so', () => {
   const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).join(',');
   const d = run(many, ['--overlay', 'yes', '--behind', '2']);
-  assert.equal(d.mechanism, 'use');
+  assert.equal(d.mechanism, 'toss-gh');
   assert.ok(d.warnings.some(w => /past the overlay's 20/.test(w)));
 });
 
@@ -486,10 +520,10 @@ test('level with main, a changed page is the plain toss at the branch, not an ov
   assert.ok(!d.warnings.some(w => /overlay/.test(w)), 'nothing to refuse when no overlay is wanted');
 });
 
-test('level with main, a rebuilt lib change is ?use= at the branch, and the cap does not apply', () => {
+test('level with main, a rebuilt lib change is the toss at the branch, and the cap does not apply', () => {
   const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).concat('dist/web-tools.js').join(',');
   const d = run(many, ['--overlay', 'yes']);
-  assert.equal(d.mechanism, 'use');
+  assert.equal(d.mechanism, 'toss-gh');
   assert.ok(!d.warnings.some(w => /past the overlay/.test(w)));
 });
 
@@ -499,7 +533,7 @@ test('level with main, a lib change with no rebuilt bundle keeps the overlay, wh
   assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
 });
 
-test('a kit demo is a page file under lib/, so it is tossed rather than reached by ?use=', () => {
+test('a kit demo is a page file under lib/, so the link is the demo\'s own toss', () => {
   // ?use= swaps the code a page loads, never the page: Pages serves the demo
   // file from the default branch, so a new demo had no ?use= link that showed
   // it, and the classifier used to offer the pre-build's pages instead.
