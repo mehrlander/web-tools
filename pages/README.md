@@ -46,6 +46,7 @@ the link-dense text twin of the visual index above.
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
 | `shortcut-edit` | Shortcut Edit | [view](https://mehrlander.github.io/web-tools/pages/shortcut-edit.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-edit.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
+| `shortcut-run` | Run Shortcut | [view](https://mehrlander.github.io/web-tools/pages/shortcut-run.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html) |
 | `shortcuts` | Shortcuts | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |

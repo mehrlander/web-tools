@@ -155,9 +155,31 @@ session's checkout or plugin copy may predate it:
 > The user in session <id> ran /tend prod. Tend this session's own work as
 > the Prod section of the tend skill defines it (mehrlander/web-tools,
 > skills/tend/SKILL.md at commit <sha>). Please proceed using your judgment.
+> When finished, send session <id> one line: what changed, and what waits on
+> the owner.
+
+Add these lines where they apply. Show the owner the text of any other note
+before sending it.
+
+- **Main's checks:** a check failing on main's head, and where it is
+  reported.
+- **Reference:** `For reference: <paths>.`, documents that bear on the
+  session's open work.
+- **Connected work:** `Connected work: <session link> (<title>, <pull
+  request>).`, another session's open work on the same files or question.
+- **Restore:** the line below, for a session whose link is missing from every
+  record's `agent_session` field in the session-record store
+  (`/portable:sessions`).
+
+> This session is missing from the session records in <store>. Invoke
+> /portable:sessions. If that skill is unknown, recover the portable plugin as
+> mehrlander/web-tools docs/environment/container.md describes under "If the
+> installed plugin fails to load".
 
 Then reply with the sessions messaged and the sessions skipped, each with its
-title and open work, and for a skipped one the reason.
+title, its open work and the lines added to its message, and for a skipped one
+the reason. As the one-line reports arrive, report what each session left
+waiting on the owner.
 
 A session that receives it works through whichever of these apply, under the
 principles above:
@@ -166,8 +188,11 @@ principles above:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.
 - **Ripen the open decision:** one question, a recommendation, the evidence.
-  Where cheap and reversible, build the recommended option on the branch so
-  the owner's answer is accept or reject. Ripen only decisions already open.
+  Where cheap and reversible, build the recommended option on the branch as a
+  commit of its own, so the owner's answer is keep or revert. Ripen only
+  decisions already open.
+- **Review documentation edits again,** even after an earlier pass: revise
+  each against doc-craft and show it as its Review section directs.
 - **Stand in for a hand check** the session asked the owner to make: a
   headless screenshot, a measurement at phone width, a test.
 - **Mark where to pick up** when the work continues until the owner is
@@ -178,5 +203,6 @@ principles above:
   fresh session to continue from.
 
 End the session's own reply with a recap for a reader coming back cold: what
-the session is for, what it did, where things stand, what waits on the owner,
-and where to pick up.
+waits on the owner, one question per decision, each linked to where the owner
+answers it; then what the session is for, what it did, where things stand, and
+where to pick up.
