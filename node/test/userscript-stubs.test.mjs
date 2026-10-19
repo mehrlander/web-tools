@@ -125,7 +125,7 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   const text = fs.readFileSync(path.join(ROOT, 'userscripts', 'lib', 'launcher.js'), 'utf8');
   assert.doesNotMatch(text, /courier\/errands\.json/, 'errands are private now; the Stage popup runs them');
   assert.match(text, /deck-track/, 'launcher must have a swipe deck track');
-  assert.match(text, /meta-toggle/, 'launcher must have a page metadata disclosure');
+  assert.match(text, /data-slide-id="meta"/, 'launcher must have a dedicated Details tab for page metadata and frames');
   assert.match(text, /data-take-html/, 'launcher must support copying HTML');
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
   assert.match(text, /data-slide-id="sel"/, 'launcher must support selective selection slide visibility');
@@ -139,6 +139,11 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   assert.match(text, /class="head-menu"/, 'launcher must consolidate header actions into a single explicit dropdown menu');
   assert.match(text, /ICON\.dotsThree/, 'launcher must use Phosphor dotsThree SVG icon for the header menu trigger');
   assert.doesNotMatch(text, /class="head-intro"/, 'launcher must not render the old duplicate head-intro button row');
+  assert.doesNotMatch(text, /class="head-menu-item btn-paste"/, 'launcher must not duplicate Paste in head-menu');
+  assert.doesNotMatch(text, /class="head-menu-item btn-tts"/, 'launcher must not duplicate Read aloud in head-menu');
+  assert.doesNotMatch(text, /meta-toggle/, 'launcher must not place Page details & frames inside head-menu');
+  assert.match(text, /data-slide-id="sandbox"/, 'launcher must provide a dedicated Sandbox slide for pasted units');
+  assert.match(text, /const getSandboxRecords =/, 'launcher must export Sandbox units as structured JSON records');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {

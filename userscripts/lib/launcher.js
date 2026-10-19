@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'df2d39a';
-const BUILT = '2026-10-17T21:44:51Z';
+const BUILD = '45a0039';
+const BUILT = '2026-10-18T21:52:01Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -477,15 +477,22 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const ALL_SLIDES = [
     { id: 'md', label: 'Markdown', ext: 'md', icon: 'note' },
     { id: 'sel', label: 'Selection', ext: 'txt', icon: 'cursor' },
+    { id: 'sandbox', label: 'Sandbox', ext: 'json', icon: 'clipboardText' },
     { id: 'text', label: 'Text', ext: 'txt', icon: 'textT' },
     { id: 'links', label: 'Links', ext: 'md', icon: 'link' },
     { id: 'html', label: 'HTML', ext: 'html', icon: 'code' },
     { id: 'json', label: 'JSON', ext: 'json', icon: 'tree' },
+    { id: 'meta', label: 'Details', ext: 'json', icon: 'info' },
   ];
 
   const getSlides = () => {
     const hasSel = !!(state.sel && state.sel.trim());
-    return hasSel ? ALL_SLIDES : ALL_SLIDES.filter(s => s.id !== 'sel');
+    const hasSandbox = !!(state.sandboxOpen || state.pastedItems.length > 0);
+    return ALL_SLIDES.filter(s => {
+      if (s.id === 'sel' && !hasSel) return false;
+      if (s.id === 'sandbox' && !hasSandbox) return false;
+      return true;
+    });
   };
 
   const getPref = (key, def = true) => {
@@ -509,6 +516,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (setGm) setGm('wt_' + key, val).catch(() => {});
   };
 
+  let nextSandboxUid = 1;
   const state = {
     slide: 0, links: [], text: '', picked: new Set(),
     sel: '', selHtml: '', appendMode: false, seen: new Set(),
@@ -516,8 +524,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
     formattedHtml: null, htmlLines: 0,
     shadowRoots: [], frames: [], activeFrameIndex: -1,
-    fullscreen: false, metaOpen: false, headMenuOpen: false, autoCheck: getPref('autocheck_updates'),
-    pastedItems: [], sourceMode: 'page', pasteComposerOpen: false,
+    fullscreen: false, headMenuOpen: false, autoCheck: getPref('autocheck_updates'),
+    pastedItems: [], sandboxOpen: false, sandboxView: 'cards', pasteComposerOpen: false,
     lastPageCopy: '', lastPageCopyAt: 0,
     ttsOpen: false, ttsSettingsOpen: false, ttsState: 'idle',
     ttsIdx: -1, ttsTotal: 0, ttsBlockMap: [],
@@ -531,7 +539,42 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     },
   };
 
-  const getHeldPasteText = () => state.pastedItems.map(p => p.text).join('\n\n---\n\n');
+  const getSandboxUnitName = (item, idx) => {
+    if (item && item.customName && String(item.name || '').trim()) {
+      return String(item.name).trim();
+    }
+    return String(idx + 1);
+  };
+
+  const deriveUnitNameFromText = (text, idx, style = 'slug') => {
+    const lines = String(text || '').split('\n').map(l => l.replace(/^[#>*\-\d.\s`]+/, '').trim()).filter(Boolean);
+    const first = lines[0] || '';
+    if (!first) return String(idx + 1);
+    if (style === 'title') {
+      const words = first.split(/\s+/).slice(0, 6).join(' ').replace(/[.,;:!?]+$/, '');
+      return words.slice(0, 42) || String(idx + 1);
+    }
+    const slug = first.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .split('-').slice(0, 5).join('-')
+      .slice(0, 36);
+    return slug || String(idx + 1);
+  };
+
+  const getSandboxRecords = () => state.pastedItems.map((item, idx) => ({
+    index: idx + 1,
+    name: getSandboxUnitName(item, idx),
+    text: item.text,
+  }));
+
+  const getSandboxJson = () => JSON.stringify(getSandboxRecords(), null, 2);
+
+  const getHeldPasteText = () => state.pastedItems.map((item, idx) =>
+    state.pastedItems.length > 1
+      ? `## ${getSandboxUnitName(item, idx)}\n\n${item.text}`
+      : item.text
+  ).join('\n\n---\n\n');
 
   const extractLinksFromText = text => {
     if (!text) return [];
@@ -1181,7 +1224,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .panel.fullscreen ~ .backdrop,
     .panel.fullscreen + .backdrop { display: none; }
 
-    .head { padding: .5rem .75rem; border-bottom: 1px solid var(--wt-b300);
+    .head { position: relative; padding: .5rem .75rem; border-bottom: 1px solid var(--wt-b300);
             display: flex; flex-direction: column; gap: .25rem; flex: none; background: var(--wt-b100); }
     .head-top { display: flex; align-items: center; gap: .5rem; min-width: 0; }
     .plaque { width: 2.25rem; height: 2.25rem; border-radius: .625rem;
@@ -1217,9 +1260,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .more-dot[hidden] { display: none; }
 
     .head-menu {
-      margin-top: .375rem; border-radius: .5rem;
+      position: absolute; top: 2.95rem; right: .65rem;
+      width: min(17.5rem, calc(100vw - 1.3rem)); z-index: 60;
+      border-radius: .5rem;
       border: 1px solid var(--wt-b300); background: var(--wt-b100);
-      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, .18);
+      box-shadow: 0 14px 32px -6px rgba(0, 0, 0, .25);
       overflow: hidden; display: flex; flex-direction: column;
     }
     .head-menu[hidden] { display: none !important; }
@@ -1258,12 +1303,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .head-menu-right {
       display: inline-flex; align-items: center; gap: .3rem; flex: none; margin-left: auto;
     }
-    .meta-arr {
-      display: inline-flex; align-items: center; justify-content: center;
-      color: ${mix('var(--wt-bc)', 55)}; transition: transform .2s;
-    }
-    .meta-arr svg { width: 13px; height: 13px; }
-    .meta-toggle.on .meta-arr { transform: rotate(180deg); color: var(--wt-p); }
 
     .head-collect-banner {
       margin-top: .375rem; padding: .35rem .5rem; border-radius: .375rem;
@@ -1342,11 +1381,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
     .panel.fullscreen .head-desc,
     .panel.fullscreen .head-frame-banner { display: none !important; }
-    .page-meta { margin-top: .25rem; padding: .5rem .625rem; border-radius: .5rem;
+    .page-meta { padding: .625rem .75rem; border-radius: .5rem;
                  background: var(--wt-b200); border: 1px solid var(--wt-b300);
-                 font-size: 11px; max-height: 16rem; overflow-y: auto; }
-    .page-meta[hidden] { display: none; }
-    .page-meta p { margin: 0 0 .375rem; overflow-wrap: break-word; }
+                 font-size: 11.5px; }
+    .page-meta p { margin: 0 0 .5rem; overflow-wrap: break-word; }
     .page-meta p:last-child { margin-bottom: 0; }
     .page-meta .k { display: block; font: 10px ui-monospace, monospace;
                     color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
@@ -1494,7 +1532,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .head-tools, .head-scope-tools { display: flex; align-items: center; gap: .375rem; }
     .head-tools[hidden], .head-scope-tools[hidden] { display: none; }
 
-    .copy-btn.copied svg, .btn-store.stored svg { color: oklch(65% .2 145); }
+    .copy-btn.copied svg, .sb-copy-json-btn.copied svg, .btn-store.stored svg { color: oklch(65% .2 145); }
     .btn-store.stored .head-menu-label { color: oklch(55% .18 145); }
 
     .icon-btn.md-view-toggle svg { color: ${mix('var(--wt-bc)', 45)}; transition: color .15s; }
@@ -1582,14 +1620,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       margin-left: -.35rem;
     }
 
-    /* Held Paste, Page Copy Notice & Inline Paste Composer */
-    .head-copy-notice, .head-paste-banner {
+    /* Page Copy Notice, Inline Sandbox Composer & Sandbox Units */
+    .head-copy-notice {
       margin-top: .375rem; padding: .35rem .5rem; border-radius: .375rem;
       background: ${mix(P, 10)}; border: 1px solid ${mix(P, 28)};
       display: flex; align-items: center; justify-content: space-between;
       gap: .375rem; flex-wrap: wrap;
     }
-    .head-copy-notice[hidden], .head-paste-banner[hidden] { display: none !important; }
+    .head-copy-notice[hidden] { display: none !important; }
     .copy-notice-label, .paste-tag {
       display: inline-flex; align-items: center; gap: .3rem;
       font: 600 11px ui-sans-serif, system-ui, sans-serif; color: var(--wt-p);
@@ -1615,11 +1653,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .paste-act-btn svg { width: 11px; height: 11px; flex: none; }
 
     .paste-composer {
-      margin-top: .375rem; padding: .5rem; border-radius: .375rem;
+      margin-bottom: .625rem; padding: .5rem; border-radius: .5rem;
       background: var(--wt-b200); border: 1px solid var(--wt-b300);
       display: flex; flex-direction: column; gap: .375rem;
     }
     .paste-composer[hidden] { display: none !important; }
+    .sb-composer-row { display: flex; align-items: center; gap: .375rem; }
+    .sb-compose-name {
+      width: 100%; box-sizing: border-box; padding: .3rem .45rem;
+      border-radius: .25rem; border: 1px solid var(--wt-b300);
+      background: var(--wt-b100); color: var(--wt-bc);
+      font: 600 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; outline: none;
+    }
+    .sb-compose-name:focus { border-color: var(--wt-p); }
     .paste-input {
       width: 100%; min-height: 4.75rem; max-height: 11rem; resize: vertical;
       box-sizing: border-box; padding: .4rem .5rem; border-radius: .25rem;
@@ -1635,6 +1681,81 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       font: 10.5px ui-sans-serif, system-ui, sans-serif; color: ${mix('var(--wt-bc)', 55)};
     }
     .paste-composer-btns { display: inline-flex; align-items: center; gap: .35rem; margin-left: auto; }
+
+    /* Sandbox Units */
+    .sb-list { display: flex; flex-direction: column; gap: .625rem; }
+    .sb-list[hidden], .sb-json-wrap[hidden] { display: none !important; }
+    .sb-card {
+      border: 1px solid var(--wt-b300); border-radius: .5rem;
+      background: var(--wt-b100); overflow: hidden;
+    }
+    .sb-card-head {
+      display: flex; align-items: center; gap: .35rem;
+      padding: .35rem .5rem; background: var(--wt-b200);
+      border-bottom: 1px solid var(--wt-b300);
+    }
+    .sb-idx {
+      font: 700 10.5px ui-monospace, monospace; color: var(--wt-p);
+      background: ${mix(P, 14)}; padding: .1rem .35rem;
+      border-radius: .25rem; flex: none;
+    }
+    .sb-name-input {
+      flex: 1; min-width: 60px; padding: .15rem .35rem;
+      border-radius: .25rem; border: 1px solid transparent;
+      background: transparent; color: var(--wt-bc);
+      font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      outline: none; transition: all .15s;
+    }
+    .sb-name-input:hover, .sb-name-input:focus {
+      background: var(--wt-b100); border-color: ${mix(P, 45)};
+    }
+    .sb-card-acts {
+      display: inline-flex; align-items: center; gap: .15rem;
+      margin-left: auto; flex: none;
+    }
+    .sb-icon-btn {
+      width: 24px; height: 24px; padding: 0; border-radius: .25rem;
+      border: 1px solid transparent; background: none;
+      color: ${mix('var(--wt-bc)', 65)};
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .15s;
+    }
+    .sb-icon-btn:hover { background: var(--wt-b300); color: var(--wt-bc); }
+    .sb-icon-btn.on {
+      background: ${mix(P, 15)}; color: var(--wt-p); border-color: ${mix(P, 35)};
+    }
+    .sb-icon-btn.danger:hover {
+      color: oklch(58% .2 25); background: oklch(92% .05 25);
+    }
+    .sb-icon-btn svg { width: 13px; height: 13px; }
+    .sb-card-body { padding: .5rem .625rem; }
+    .sb-card-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .25rem .625rem; border-top: 1px dashed var(--wt-b300);
+      font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 55)};
+      background: ${mix('var(--wt-b200)', 45)};
+    }
+    .sb-edit-wrap { display: flex; flex-direction: column; gap: .375rem; }
+    .sb-edit-ta {
+      width: 100%; min-height: 6.5rem; max-height: 16rem; resize: vertical;
+      box-sizing: border-box; padding: .45rem .5rem; border-radius: .3rem;
+      border: 1px solid var(--wt-b300); background: var(--wt-b100); color: var(--wt-bc);
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; outline: none;
+    }
+    .sb-edit-ta:focus { border-color: var(--wt-p); }
+    .sb-crop-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .35rem; flex-wrap: wrap;
+    }
+    .sb-crop-tools, .sb-crop-saves {
+      display: inline-flex; align-items: center; gap: .25rem; flex-wrap: wrap;
+    }
+    .sb-empty {
+      padding: 1.5rem 1rem; text-align: center;
+      border: 1px dashed var(--wt-b300); border-radius: .5rem;
+      background: ${mix('var(--wt-b200)', 45)};
+      display: flex; flex-direction: column; align-items: center; gap: .5rem;
+    }
 
     /* Read Aloud Transport & Customizer */
     .tts-panel {
@@ -1729,12 +1850,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .panel.fullscreen .head-top {
       max-width: 52rem; width: 100%; margin-inline: auto;
     }
-    .panel.fullscreen .head-menu,
+    .panel.fullscreen .head-menu {
+      right: max(1.25rem, calc(50% - 26rem)); top: 3.3rem;
+    }
     .panel.fullscreen .head-collect-banner,
-    .panel.fullscreen .page-meta,
-    .panel.fullscreen .head-paste-banner,
     .panel.fullscreen .head-copy-notice,
-    .panel.fullscreen .paste-composer,
     .panel.fullscreen .tts-panel {
       max-width: 52rem; width: 100%; margin-inline: auto; box-sizing: border-box;
     }
@@ -1844,6 +1964,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     plus: 'M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z',
     arrowUUpLeft: 'M232,144a64.07,64.07,0,0,1-64,64H80a8,8,0,0,1,0-16h88a48,48,0,0,0,0-96H51.31l34.35,34.34a8,8,0,0,1-11.32,11.32l-48-48a8,8,0,0,1,0-11.32l48-48A8,8,0,0,1,85.66,45.66L51.31,80H168A64.07,64.07,0,0,1,232,144Z',
     lock: 'M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z',
+    trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z',
+    scissors: 'M157.73,113.13A8,8,0,0,1,160,125.6l-19.89,14.4L236.7,210a8,8,0,1,1-9.4,12.94L126.43,149.7l-23.3,16.86a36,36,0,1,1-13-11.42l22.69-16.43L90.15,122.28a36,36,0,1,1,13-11.42l23.3,16.86,21.88-15.84A8,8,0,0,1,157.73,113.13ZM60,196a20,20,0,1,0-20-20A20,20,0,0,0,60,196ZM60,100a20,20,0,1,0-20-20A20,20,0,0,0,60,100Zm167.3-67a8,8,0,0,0-11.17-1.87l-69.08,50a8,8,0,1,0,9.39,12.95l69.09-50A8,8,0,0,0,227.3,33Z',
+    tag: 'M243.31,136,144,36.69A15.86,15.86,0,0,0,132.69,32H40a8,8,0,0,0-8,8v92.69A15.86,15.86,0,0,0,36.69,144L136,243.31a16,16,0,0,0,22.63,0l84.68-84.68a16,16,0,0,0,0-22.63Zm-96,96L48,132.69V48h84.69L232,147.31ZM96,84A12,12,0,1,1,84,72,12,12,0,0,1,96,84Z',
     sidebar: 'M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H80V200H40ZM216,200H96V56H216V200Z',
     cardsThree: 'M208,88H48a16,16,0,0,0-16,16v96a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104A16,16,0,0,0,208,88Zm0,112H48V104H208v96ZM48,64a8,8,0,0,1,8-8H200a8,8,0,0,1,0,16H56A8,8,0,0,1,48,64ZM64,32a8,8,0,0,1,8-8H184a8,8,0,0,1,0,16H72A8,8,0,0,1,64,32Z',
     copy: 'M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z',
@@ -1894,7 +2017,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
               <button type="button" class="icon-btn md-view-toggle on" aria-label="Toggle preview" title="Preview mode (click for raw Markdown)">${svg(ICON.eye)}</button>
               <a class="icon-btn jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" aria-label="Open in Jina Reader" title="Open in Jina Reader" hidden>${svg(ICON.out)}</a>
             </div>
-            <button type="button" class="icon-btn paste-head-btn" aria-label="Paste from clipboard" title="Paste from clipboard">${svg(ICON.clipboardText)}</button>
+            <button type="button" class="icon-btn paste-head-btn" aria-label="Paste into Sandbox" title="Paste into Sandbox">${svg(ICON.clipboardText)}</button>
             <button type="button" class="icon-btn tts-head-btn" aria-label="Read aloud" title="Read aloud">${svg(ICON.speakerHigh)}</button>
             <button type="button" class="icon-btn copy-btn" aria-label="Copy current slide" title="Copy">${svg(ICON.copy)}</button>
             <button type="button" class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
@@ -1903,32 +2026,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <div class="head-menu" hidden>
-          <button type="button" class="head-menu-row btn-paste">
-            <span class="head-menu-icon">${svg(ICON.clipboardText)}</span>
-            <span class="head-menu-text">
-              <span class="head-menu-label paste-menu-label">Paste from clipboard</span>
-              <span class="head-menu-sub">Hold copied text in the drawer to inspect or read aloud</span>
-            </span>
-          </button>
-          <button type="button" class="head-menu-row btn-tts">
-            <span class="head-menu-icon">${svg(ICON.speakerHigh)}</span>
-            <span class="head-menu-text">
-              <span class="head-menu-label tts-menu-label">Read current view aloud</span>
-              <span class="head-menu-sub">Speak content with speed, voice, and code-block controls</span>
-            </span>
-          </button>
           <button type="button" class="head-menu-row btn-recapture">
             <span class="head-menu-icon">${svg(ICON.refresh)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label recapture-menu-label">Re-read page now</span>
-              <span class="head-menu-sub">Refresh snapshot from the page's current DOM</span>
+              <span class="head-menu-label recapture-menu-label">Recapture page</span>
+              <span class="head-menu-sub">Refresh from live DOM</span>
             </span>
           </button>
           <button type="button" class="head-menu-row btn-merge">
             <span class="head-menu-icon">${svg(ICON.plus)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label merge-menu-label">Start auto-collecting on scroll</span>
-              <span class="head-menu-sub">Keep paragraphs and links as you scroll feeds that recycle rows</span>
+              <span class="head-menu-label merge-menu-label">Auto-collect on scroll</span>
+              <span class="head-menu-sub">Append blocks as you scroll</span>
             </span>
             <span class="head-menu-right">
               <span class="pill-toggle off merge-pill">OFF</span>
@@ -1937,27 +2046,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <a class="head-menu-row btn-store">
             <span class="head-menu-icon">${svg(ICON.tray)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label store-menu-label">Save via Log-Repo shortcut</span>
-              <span class="head-menu-sub store-menu-sub">Send capture to web-tools-private via iOS Shortcut</span>
+              <span class="head-menu-label store-menu-label">Log via Shortcut</span>
+              <span class="head-menu-sub store-menu-sub">Runs Log-Repo shortcut</span>
             </span>
           </a>
           <a class="head-menu-row btn-stage">
             <span class="head-menu-icon">${svg(ICON.out)}</span>
             <span class="head-menu-text">
-              <span class="head-menu-label stage-menu-label">Open in Web Tools Stage</span>
-              <span class="head-menu-sub stage-menu-sub">Hand off current slide via compressed #gz= URL</span>
+              <span class="head-menu-label stage-menu-label">Open in Stage</span>
+              <span class="head-menu-sub stage-menu-sub">Send slide to Web Tools Stage</span>
             </span>
           </a>
-          <button type="button" class="head-menu-row meta-toggle" aria-expanded="false">
-            <span class="head-menu-icon">${svg(ICON.info)}</span>
-            <span class="head-menu-text">
-              <span class="head-menu-label">Page details &amp; frames</span>
-              <span class="head-menu-sub">Inspect URL, selection, iframes, and Shadow DOM scopes</span>
-            </span>
-            <span class="head-menu-right">
-              <span class="meta-arr">${svg(ICON.caretDown)}</span>
-            </span>
-          </button>
         </div>
         <div class="head-collect-banner" hidden>
           <span class="paste-tag">${svg(ICON.plus)}<span>Auto-collecting on scroll</span><span class=" paste-meta collect-meta">· 0 blocks</span></span>
@@ -1970,29 +2069,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div class="head-copy-notice" hidden>
           <span class="copy-notice-label">${svg(ICON.clipboardText)}<span>Copied on page (<span class="copy-notice-len">0</span> chars)</span></span>
           <div class="copy-notice-actions">
-            <button type="button" class="paste-act-btn primary btn-use-copied">${svg(ICON.clipboardText)}<span>Hold in Drawer</span></button>
+            <button type="button" class="paste-act-btn primary btn-use-copied">${svg(ICON.plus)}<span>Add to Sandbox</span></button>
             <button type="button" class="paste-act-btn btn-read-copied">${svg(ICON.speakerHigh)}<span>Read Aloud</span></button>
             <button type="button" class="paste-act-btn icon-only btn-dismiss-copied" aria-label="Dismiss" title="Dismiss">${svg(ICON.x)}</button>
-          </div>
-        </div>
-        <div class="head-paste-banner" hidden>
-          <span class="paste-tag">${svg(ICON.clipboardText)}<span class="paste-tag-label">Held Paste</span><span class="paste-meta"></span></span>
-          <div class="paste-actions">
-            <button type="button" class="paste-act-btn btn-paste-append" title="Paste and append another clip">${svg(ICON.plus)}<span>Add Clip</span></button>
-            <button type="button" class="paste-act-btn btn-paste-edit" title="Edit or manually paste text">${svg(ICON.note)}<span>Edit</span></button>
-            <button type="button" class="paste-act-btn btn-paste-source-toggle" title="Switch between Held Paste and Live Page">${svg(ICON.arrowUUpLeft)}<span>Live Page</span></button>
-            <button type="button" class="paste-act-btn btn-paste-clear" title="Clear held paste">${svg(ICON.x)}<span>Clear</span></button>
-          </div>
-        </div>
-        <div class="paste-composer" hidden>
-          <textarea class="paste-input" rows="4" placeholder="Tap here and Paste, or type/edit held text…"></textarea>
-          <div class="paste-composer-foot">
-            <span class="paste-hint">Paste directly into box or tap Hold Text</span>
-            <div class="paste-composer-btns">
-              <button type="button" class="tool-btn paste-cancel-btn">Cancel</button>
-              <button type="button" class="tool-btn paste-append-save-btn">${svg(ICON.plus)}<span>Append</span></button>
-              <button type="button" class="tool-btn on paste-save-btn">${svg(ICON.check)}<span>Hold Text</span></button>
-            </div>
           </div>
         </div>
         <div class="tts-panel" hidden>
@@ -2050,27 +2129,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           </div>
         </div>
         <span class="stale" hidden></span>
-        <div class="page-meta" hidden>
-          <p><span class="k">TITLE</span><span class="meta-title"></span></p>
-          <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
-          <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
-          <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
-          <p><span class="k">SCOPES &amp; FRAMES</span><span class="meta-scopes"></span></p>
-          <p><span class="k">SHADOW DOM</span><span class="meta-shadow"></span></p>
-          <div class="meta-pref-row">
-            <span class="k">AUTO-CHECK UPDATES</span>
-            <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
-          </div>
-        </div>
       </div>
       <div class="deck-nav">
         <div class="deck-bar">
           <button class="deck-tab on" data-slide="0" data-slide-id="md">Markdown</button>
           <button class="deck-tab" data-slide="1" data-slide-id="sel">Selection</button>
-          <button class="deck-tab" data-slide="2" data-slide-id="text">Text</button>
-          <button class="deck-tab" data-slide="3" data-slide-id="links">Links</button>
-          <button class="deck-tab" data-slide="4" data-slide-id="html" data-take-html>HTML</button>
-          <button class="deck-tab" data-slide="5" data-slide-id="json">JSON</button>
+          <button class="deck-tab" data-slide="2" data-slide-id="sandbox" hidden>Sandbox</button>
+          <button class="deck-tab" data-slide="3" data-slide-id="text">Text</button>
+          <button class="deck-tab" data-slide="4" data-slide-id="links">Links</button>
+          <button class="deck-tab" data-slide="5" data-slide-id="html" data-take-html>HTML</button>
+          <button class="deck-tab" data-slide="6" data-slide-id="json">JSON</button>
+          <button class="deck-tab" data-slide="7" data-slide-id="meta">Details</button>
         </div>
       </div>
       <div class="deck-track" tabindex="0">
@@ -2114,8 +2183,42 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             </div>
           </div>
         </div>
-        <!-- Slide 2: Text -->
-        <div class="deck-slide" data-slide-i="2" data-slide-id="text">
+        <!-- Slide 2: Sandbox -->
+        <div class="deck-slide" data-slide-i="2" data-slide-id="sandbox" hidden>
+          <div class="slide-tools">
+            <div class="slide-tools-inner">
+              <button type="button" class="icon-btn sb-paste-btn" aria-label="Paste clipboard as new unit" title="Paste clipboard as new unit">${svg(ICON.plus)}</button>
+              <button type="button" class="icon-btn sb-compose-btn" aria-label="Compose new unit" title="Compose new unit">${svg(ICON.note)}</button>
+              <div class="seg seg-sm" role="group" aria-label="Sandbox view">
+                <button type="button" class="seg-btn on" data-sb-view="cards">Units</button>
+                <button type="button" class="seg-btn" data-sb-view="json">JSON</button>
+              </div>
+              <button type="button" class="icon-btn sb-copy-json-btn" aria-label="Copy JSON" title="Copy JSON" hidden>${svg(ICON.copy)}</button>
+              <span class="tool-meta sb-status">0 units</span>
+            </div>
+          </div>
+          <div class="slide-body">
+            <div class="slide-body-inner">
+              <div class="paste-composer" hidden>
+                <div class="sb-composer-row">
+                  <input type="text" class="sb-compose-name" placeholder="Optional unit name (defaults to index)…" />
+                </div>
+                <textarea class="paste-input" rows="4" placeholder="Tap here and Paste, or type unit content…"></textarea>
+                <div class="paste-composer-foot">
+                  <span class="paste-hint">Paste directly into box or tap Add Unit</span>
+                  <div class="paste-composer-btns">
+                    <button type="button" class="tool-btn paste-cancel-btn">Cancel</button>
+                    <button type="button" class="tool-btn on paste-save-btn">${svg(ICON.check)}<span>Add Unit</span></button>
+                  </div>
+                </div>
+              </div>
+              <div class="sb-list"></div>
+              <pre class="sb-json-wrap text" hidden></pre>
+            </div>
+          </div>
+        </div>
+        <!-- Slide 3: Text -->
+        <div class="deck-slide" data-slide-i="3" data-slide-id="text">
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <span class="tool-meta text-count"></span>
@@ -2127,8 +2230,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             </div>
           </div>
         </div>
-        <!-- Slide 3: Links -->
-        <div class="deck-slide" data-slide-i="3" data-slide-id="links">
+        <!-- Slide 4: Links -->
+        <div class="deck-slide" data-slide-i="4" data-slide-id="links">
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <button class="tool-btn" data-all>All</button>
@@ -2142,8 +2245,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             </div>
           </div>
         </div>
-        <!-- Slide 4: HTML -->
-        <div class="deck-slide" data-slide-i="4" data-slide-id="html" data-take-html>
+        <!-- Slide 5: HTML -->
+        <div class="deck-slide" data-slide-i="5" data-slide-id="html" data-take-html>
           <div class="slide-tools">
             <div class="slide-tools-inner">
               <span class="tool-meta html-meta"></span>
@@ -2155,11 +2258,30 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             </div>
           </div>
         </div>
-        <!-- Slide 5: JSON -->
-        <div class="deck-slide" data-slide-i="5" data-slide-id="json">
+        <!-- Slide 6: JSON -->
+        <div class="deck-slide" data-slide-i="6" data-slide-id="json">
           <div class="slide-body">
             <div class="slide-body-inner">
               <div class="text slide-content json-content"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Slide 7: Details -->
+        <div class="deck-slide" data-slide-i="7" data-slide-id="meta">
+          <div class="slide-body">
+            <div class="slide-body-inner">
+              <div class="page-meta">
+                <p><span class="k">TITLE</span><span class="meta-title"></span></p>
+                <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
+                <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
+                <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+                <p><span class="k">SCOPES &amp; FRAMES</span><span class="meta-scopes"></span></p>
+                <p><span class="k">SHADOW DOM</span><span class="meta-shadow"></span></p>
+                <div class="meta-pref-row">
+                  <span class="k">AUTO-CHECK UPDATES</span>
+                  <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2172,10 +2294,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <div class="pager" aria-label="Deck pagination">
             <button class="dot on" data-go="0" data-slide-id="md" aria-label="Slide 1: Markdown"></button>
             <button class="dot" data-go="1" data-slide-id="sel" aria-label="Slide 2: Selection"></button>
-            <button class="dot" data-go="2" data-slide-id="text" aria-label="Slide 3: Text"></button>
-            <button class="dot" data-go="3" data-slide-id="links" aria-label="Slide 4: Links"></button>
-            <button class="dot" data-go="4" data-slide-id="html" aria-label="Slide 5: HTML"></button>
-            <button class="dot" data-go="5" data-slide-id="json" aria-label="Slide 6: JSON"></button>
+            <button class="dot" data-go="2" data-slide-id="sandbox" aria-label="Slide 3: Sandbox" hidden></button>
+            <button class="dot" data-go="3" data-slide-id="text" aria-label="Slide 4: Text"></button>
+            <button class="dot" data-go="4" data-slide-id="links" aria-label="Slide 5: Links"></button>
+            <button class="dot" data-go="5" data-slide-id="html" aria-label="Slide 6: HTML"></button>
+            <button class="dot" data-go="6" data-slide-id="json" aria-label="Slide 7: JSON"></button>
+            <button class="dot" data-go="7" data-slide-id="meta" aria-label="Slide 8: Details"></button>
           </div>
           <span class="size" hidden></span>
         </div>
@@ -2232,7 +2356,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       moreBtn.setAttribute('aria-expanded', String(!!state.headMenuOpen));
     }
     if (moreDot) {
-      moreDot.hidden = !(state.appendMode || state.metaOpen);
+      moreDot.hidden = !state.appendMode;
     }
   };
 
@@ -2431,21 +2555,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     return res.text();
   };
 
-  const getActiveLinks = () => {
-    if (state.sourceMode === 'paste' && state.pastedItems.length) {
-      return extractLinksFromText(getHeldPasteText());
-    }
-    return state.links;
-  };
+  const getActiveLinks = () => state.links;
 
   const getSlideText = (i = state.slide) => {
     const slide = getSlides()[i] || getSlides()[0];
-    const isPaste = state.sourceMode === 'paste' && state.pastedItems.length > 0;
-    const heldText = isPaste ? getHeldPasteText() : '';
 
     switch (slide.id) {
       case 'md':
-        if (isPaste) return heldText;
         return state.mdEngine === 'jina' ? (state.jinaMd || '') : (state.localMd || domToMarkdown());
       case 'sel': {
         if (!state.sel) return '> (No text selected)';
@@ -2463,8 +2579,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         }
         return out;
       }
+      case 'sandbox':
+        return state.sandboxView === 'json' ? getSandboxJson() : (getHeldPasteText() || getSandboxJson());
       case 'text':
-        if (isPaste) return heldText;
         return state.blocks.length ? state.blocks.join('\n\n') : (state.text || '');
       case 'links': {
         const activeLinks = getActiveLinks();
@@ -2492,12 +2609,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
       case 'json':
         return JSON.stringify({
-          scope: isPaste ? 'paste' : (state.activeFrameIndex >= 0 ? 'frame' : 'page'),
+          scope: state.activeFrameIndex >= 0 ? 'frame' : 'page',
           title: getActiveDocTitle(),
           href: getActiveDocHref(),
           description: page.description,
           selection: state.sel,
-          pastedCount: state.pastedItems.length || undefined,
+          sandbox: state.pastedItems.length ? getSandboxRecords() : undefined,
           frames: (state.frames || []).map(f => ({
             index: f.index,
             title: f.title,
@@ -2509,12 +2626,54 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           })),
           shadowRoots: (state.shadowRoots || []).map(r => ({ host: r.tag, mode: r.mode })),
           links: getActiveLinks(),
-          text: isPaste ? heldText : (state.blocks.length ? state.blocks.join('\n\n') : state.text),
-          markdown: isPaste ? heldText : (state.localMd || domToMarkdown()),
+          text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
+          markdown: state.localMd || domToMarkdown(),
+        }, null, 2);
+      case 'meta':
+        return JSON.stringify({
+          title: getActiveDocTitle(),
+          href: getActiveDocHref(),
+          description: page.description || undefined,
+          selection: state.sel || undefined,
+          activeScope: state.activeFrameIndex >= 0 ? `frame-${state.activeFrameIndex}` : 'main',
+          frames: (state.frames || []).map(f => ({
+            index: f.index,
+            title: f.title,
+            href: f.href,
+            accessible: f.accessible,
+            textLength: f.textLen,
+            reason: f.error || undefined,
+          })),
+          shadowRoots: (state.shadowRoots || []).map(r => ({ host: r.tag, mode: r.mode })),
         }, null, 2);
       default:
         return '';
     }
+  };
+
+  const syncDynamicSlides = () => {
+    const hasSel = !!(state.sel && state.sel.trim());
+    const hasSandbox = !!(state.sandboxOpen || state.pastedItems.length > 0);
+    root.querySelectorAll('[data-slide-id="sel"]').forEach(el => {
+      el.hidden = !hasSel;
+      if (!hasSel) el.classList.remove('on', 'active');
+    });
+    root.querySelectorAll('[data-slide-id="sandbox"]').forEach(el => {
+      el.hidden = !hasSandbox;
+      if (!hasSandbox) el.classList.remove('on', 'active');
+    });
+    const sbTab = q('.deck-tab[data-slide-id="sandbox"]');
+    if (sbTab) {
+      sbTab.textContent = state.pastedItems.length > 0
+        ? `Sandbox (${state.pastedItems.length})`
+        : 'Sandbox';
+    }
+  };
+
+  const goToSlideById = (id, smooth = true) => {
+    syncDynamicSlides();
+    const idx = getSlides().findIndex(s => s.id === id);
+    if (idx >= 0) goToSlide(idx, smooth);
   };
 
   const updateCopyNoticeUI = () => {
@@ -2532,88 +2691,83 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const updatePasteUI = () => {
-    const banner = q('.head-paste-banner');
-    const labelEl = q('.paste-tag-label');
-    const metaEl = q('.head-paste-banner .paste-meta');
-    const toggleBtn = q('.btn-paste-source-toggle');
-    const pasteBtn = q('.btn-paste');
     const pasteHeadBtn = q('.paste-head-btn');
-    const pasteMenuLabel = q('.paste-menu-label');
+    const composeBtn = q('.sb-compose-btn');
     const composer = q('.paste-composer');
-    const hasPaste = state.pastedItems.length > 0;
-    const isPasteMode = state.sourceMode === 'paste' && hasPaste;
+    const hasSandbox = !!(state.sandboxOpen || state.pastedItems.length > 0);
+    const curSlide = getSlides()[state.slide] || getSlides()[0];
 
     if (pasteHeadBtn) {
-      pasteHeadBtn.classList.toggle('on', isPasteMode || state.pasteComposerOpen);
+      pasteHeadBtn.classList.toggle('on', (hasSandbox && curSlide?.id === 'sandbox') || state.pasteComposerOpen);
     }
-    if (pasteBtn) {
-      pasteBtn.classList.toggle('on', isPasteMode || state.pasteComposerOpen);
+    if (composeBtn) {
+      composeBtn.classList.toggle('on', !!state.pasteComposerOpen);
     }
-    if (pasteMenuLabel) {
-      pasteMenuLabel.textContent = hasPaste
-        ? `Paste from clipboard (${state.pastedItems.length} clip${state.pastedItems.length > 1 ? 's' : ''} held)`
-        : 'Paste from clipboard';
-    }
-
-    if (banner) {
-      if (hasPaste) {
-        const totalChars = getHeldPasteText().length;
-        const countLabel = state.pastedItems.length > 1 ? `${state.pastedItems.length} clips · ` : '';
-        if (labelEl) labelEl.textContent = isPasteMode ? 'Held Paste' : 'Paste Stored';
-        if (metaEl) metaEl.textContent = `· ${countLabel}${totalChars.toLocaleString()} chars`;
-        if (toggleBtn) {
-          toggleBtn.innerHTML = isPasteMode
-            ? `${svg(ICON.arrowUUpLeft)}<span>Live Page</span>`
-            : `${svg(ICON.clipboardText)}<span>Held Paste</span>`;
-          toggleBtn.title = isPasteMode ? 'Switch deck view back to live page' : 'Switch deck view to held paste';
-        }
-        banner.hidden = false;
-      } else {
-        banner.hidden = true;
-      }
-    }
-
     if (composer) {
       composer.hidden = !state.pasteComposerOpen;
     }
+    syncDynamicSlides();
     updateCopyNoticeUI();
   };
 
-  const holdPastedText = (rawText, append = false) => {
+  const holdPastedText = (rawText, append = true, customName = '') => {
     const trimmed = String(rawText || '').replace(/\r\n?/g, '\n').trim();
+    state.sandboxOpen = true;
     if (!trimmed) {
       openPasteComposer();
+      goToSlideById('sandbox');
       return false;
     }
-    const shouldAppend = append || (state.appendMode && state.pastedItems.length > 0);
-    if (shouldAppend && state.pastedItems.length > 0) {
-      state.pastedItems.push({ text: trimmed, timestamp: Date.now() });
-    } else {
-      state.pastedItems = [{ text: trimmed, timestamp: Date.now() }];
+    const hasCustom = !!(customName && String(customName).trim());
+    const lastItem = state.pastedItems[state.pastedItems.length - 1];
+    const isRapidDuplicate = lastItem && lastItem.text === trimmed && (Date.now() - lastItem.timestamp < 1500);
+
+    if (!isRapidDuplicate) {
+      const unit = {
+        uid: nextSandboxUid++,
+        name: hasCustom ? String(customName).trim() : '',
+        customName: hasCustom,
+        nameStyle: hasCustom ? 'custom' : 'index',
+        text: trimmed,
+        editing: false,
+        timestamp: Date.now(),
+      };
+      if (append !== false) {
+        state.pastedItems.push(unit);
+      } else {
+        state.pastedItems = [unit];
+      }
     }
-    state.sourceMode = 'paste';
     state.pasteComposerOpen = false;
+    const nameInput = q('.sb-compose-name');
+    if (nameInput) nameInput.value = '';
+    const pasteInput = q('.paste-input');
+    if (pasteInput) pasteInput.value = '';
     updatePasteUI();
-    updateHeader();
-    renderAllSlides();
+    goToSlideById('sandbox');
+    renderActiveSlide(state.slide);
     refresh();
     if (state.ttsOpen) rebuildAndSyncTts(false);
     return true;
   };
 
   const openPasteComposer = (prefill = '') => {
+    state.sandboxOpen = true;
+    state.sandboxView = 'cards';
     state.pasteComposerOpen = true;
     const input = q('.paste-input');
     if (input) {
-      input.value = prefill || (state.pastedItems.length ? getHeldPasteText() : (state.lastPageCopy || ''));
+      input.value = prefill || (state.lastPageCopy && !state.pastedItems.some(p => p.text === state.lastPageCopy) ? state.lastPageCopy : '');
     }
     updatePasteUI();
+    goToSlideById('sandbox');
     setTimeout(() => {
       try { input?.focus(); input?.select(); } catch {}
     }, 30);
   };
 
-  const handlePasteAction = async (append = false, autoRead = false) => {
+  const handlePasteAction = async (append = true, autoRead = false) => {
+    state.sandboxOpen = true;
     const clip = await readClipboardText();
     if (clip && clip.trim()) {
       holdPastedText(clip, append);
@@ -2633,27 +2787,30 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const curEl = q('.cur-slide');
     const totalEl = q('.total-slides');
     const headTools = q('.head-tools');
-    const isPaste = state.sourceMode === 'paste' && state.pastedItems.length > 0;
+    const slides = getSlides();
+    const slide = slides[state.slide] || slides[0];
 
     if (state.fullscreen) {
-      const slides = getSlides();
-      const slide = slides[state.slide] || slides[0];
-      if (headTitle) headTitle.textContent = isPaste ? `${slide.label} (Held Paste)` : slide.label;
-      if (headSub) headSub.textContent = isPaste
-        ? `Held Paste · ${getHeldPasteText().length.toLocaleString()} chars · ${page.title}`
+      if (headTitle) headTitle.textContent = slide.label;
+      if (headSub) headSub.textContent = slide.id === 'sandbox'
+        ? `${state.pastedItems.length} unit${state.pastedItems.length === 1 ? '' : 's'} · ${page.title}`
         : ((state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex]) ? `[Frame: ${state.frames[state.activeFrameIndex].title}]` : page.title);
       if (plaque) plaque.innerHTML = svg(ICON[slide.icon]);
       if (curEl) curEl.textContent = String(state.slide + 1);
       if (totalEl) totalEl.textContent = String(slides.length);
-      if (headTools) headTools.hidden = slide.id !== 'md' || isPaste;
+      if (headTools) headTools.hidden = slide.id !== 'md';
     } else {
       if (headTitle) headTitle.textContent = page.title;
-      const fLabel = isPaste
-        ? ` · [Held Paste]`
-        : (state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex] ? ` · [${state.frames[state.activeFrameIndex].title}]` : '');
+      const fLabel = (state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex])
+        ? ` · [${state.frames[state.activeFrameIndex].title}]`
+        : '';
       if (headSub) headSub.textContent = `${location.hostname}${fLabel} · ${BUILD} · built ${age(BUILT)}`;
-      if (plaque) plaque.innerHTML = svg(isPaste ? ICON.clipboardText : ICON.sidebar);
+      if (plaque) plaque.innerHTML = svg(slide?.id === 'sandbox' ? ICON.clipboardText : ICON.sidebar);
       if (headTools) headTools.hidden = true;
+    }
+    const pasteHeadBtn = q('.paste-head-btn');
+    if (pasteHeadBtn) {
+      pasteHeadBtn.classList.toggle('on', slide?.id === 'sandbox' || state.pasteComposerOpen);
     }
   };
 
@@ -2780,18 +2937,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
   };
 
-  const toggleMeta = on => {
-    state.metaOpen = typeof on === 'boolean' ? on : !state.metaOpen;
-    const metaEl = q('.page-meta');
-    const toggleBtn = q('.meta-toggle');
-    if (metaEl) metaEl.hidden = !state.metaOpen;
-    if (toggleBtn) {
-      toggleBtn.classList.toggle('on', state.metaOpen);
-      toggleBtn.setAttribute('aria-expanded', String(state.metaOpen));
-    }
-    updateMoreIndicator();
-  };
-
   const toggleFullscreen = on => {
     state.fullscreen = typeof on === 'boolean' ? on : !state.fullscreen;
     panel.classList.toggle('fullscreen', state.fullscreen);
@@ -2840,28 +2985,104 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     refresh();
   };
 
+  const renderSandbox = () => {
+    const listEl = q('.sb-list');
+    const jsonEl = q('.sb-json-wrap');
+    const statusEl = q('.sb-status');
+    const copyJsonBtn = q('.sb-copy-json-btn');
+    const totalChars = state.pastedItems.reduce((acc, it) => acc + it.text.length, 0);
+
+    if (statusEl) {
+      statusEl.textContent = `${state.pastedItems.length} unit${state.pastedItems.length === 1 ? '' : 's'} · ${totalChars.toLocaleString()} chars`;
+    }
+    qa('[data-sb-view]').forEach(b => {
+      b.classList.toggle('on', b.dataset.sbView === state.sandboxView);
+    });
+    if (copyJsonBtn) {
+      copyJsonBtn.hidden = state.sandboxView !== 'json';
+    }
+    if (listEl) listEl.hidden = state.sandboxView !== 'cards';
+    if (jsonEl) {
+      jsonEl.hidden = state.sandboxView !== 'json';
+      jsonEl.textContent = getSandboxJson();
+    }
+
+    if (!listEl) return;
+    if (state.pastedItems.length === 0) {
+      listEl.innerHTML = `
+        <div class="sb-empty">
+          <p class="none" style="margin:0">No units in Sandbox yet. Paste from clipboard or compose a unit.</p>
+          <button type="button" class="empty-paste-cta" data-sb-empty-paste>${svg(ICON.clipboardText)}<span>Paste from Clipboard</span></button>
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = state.pastedItems.map((item, idx) => {
+      const unitName = getSandboxUnitName(item, idx);
+      const linesCount = item.text.split('\n').length;
+      return `
+        <div class="sb-card" data-sb-idx="${idx}">
+          <div class="sb-card-head">
+            <span class="sb-idx">#${idx + 1}</span>
+            <input type="text" class="sb-name-input" data-sb-name="${idx}" value="${esc(unitName)}" placeholder="${idx + 1}" aria-label="Unit ${idx + 1} name" title="Tap to rename unit" />
+            <div class="sb-card-acts">
+              <button type="button" class="sb-icon-btn" data-sb-autoname="${idx}" title="Cycle name: slug / title / index">${svg(ICON.tag)}</button>
+              <button type="button" class="sb-icon-btn" data-sb-read="${idx}" title="Read this unit aloud">${svg(ICON.speakerHigh)}</button>
+              <button type="button" class="sb-icon-btn${item.editing ? ' on' : ''}" data-sb-edit="${idx}" title="Edit or crop this unit">${svg(ICON.scissors)}</button>
+              <button type="button" class="sb-icon-btn" data-sb-copy="${idx}" title="Copy this unit">${svg(ICON.copy)}</button>
+              <button type="button" class="sb-icon-btn danger" data-sb-del="${idx}" title="Remove this unit">${svg(ICON.trash)}</button>
+            </div>
+          </div>
+          <div class="sb-card-body">
+            ${item.editing ? `
+              <div class="sb-edit-wrap">
+                <textarea class="sb-edit-ta" data-sb-ta="${idx}" rows="6">${esc(item.text)}</textarea>
+                <div class="sb-crop-bar">
+                  <div class="sb-crop-tools">
+                    <button type="button" class="tool-btn" data-sb-crop-keep="${idx}" title="Keep only the highlighted text in the editor">${svg(ICON.scissors)}<span>Crop to Selection</span></button>
+                    <button type="button" class="tool-btn" data-sb-crop-cut="${idx}" title="Remove the highlighted text from the editor">${svg(ICON.x)}<span>Cut Selection</span></button>
+                    <button type="button" class="tool-btn" data-sb-trim-top="${idx}" title="Remove first paragraph or line">Trim Top</button>
+                    <button type="button" class="tool-btn" data-sb-trim-bot="${idx}" title="Remove last paragraph or line">Trim End</button>
+                  </div>
+                  <div class="sb-crop-saves">
+                    <button type="button" class="tool-btn" data-sb-edit-cancel="${idx}">Cancel</button>
+                    <button type="button" class="tool-btn on" data-sb-edit-save="${idx}">${svg(ICON.check)}<span>Save</span></button>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="sb-unit-preview md-prose">${renderMarkdownToHtml(item.text)}</div>
+            `}
+          </div>
+          <div class="sb-card-foot">
+            <span class="sb-foot-name">name: "${esc(unitName)}"</span>
+            <span>${item.text.length.toLocaleString()} chars · ${linesCount} line${linesCount === 1 ? '' : 's'}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Re-number data-tts-block sequentially across all Sandbox unit previews
+    let gBlock = 0;
+    listEl.querySelectorAll('[data-tts-block]').forEach(el => {
+      el.setAttribute('data-tts-block', String(gBlock++));
+    });
+    syncActiveTtsHighlight();
+  };
+
   const renderActiveSlide = (i = state.slide) => {
     const slide = getSlides()[i] || getSlides()[0];
-    const isPaste = state.sourceMode === 'paste' && state.pastedItems.length > 0;
-    const heldText = isPaste ? getHeldPasteText() : '';
 
     switch (slide.id) {
       case 'md': {
         const rawEl = q('.md-raw-wrap');
         const prevEl = q('.md-preview-wrap');
         const statusEl = q('.md-status');
-        const engineSeg = q('.deck-slide[data-slide-id="md"] .seg');
 
-        if (engineSeg) engineSeg.hidden = isPaste;
         root.querySelectorAll('.jina-ext').forEach(el => {
-          el.hidden = isPaste || state.mdEngine !== 'jina';
+          el.hidden = state.mdEngine !== 'jina';
         });
 
-        if (isPaste) {
-          if (rawEl) rawEl.textContent = heldText;
-          if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(heldText);
-          if (statusEl) statusEl.textContent = `Held Paste · ${heldText.length.toLocaleString()} chars`;
-        } else if (state.mdEngine === 'jina') {
+        if (state.mdEngine === 'jina') {
           if (state.jinaMd) {
             if (rawEl) rawEl.textContent = state.jinaMd;
             if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.jinaMd);
@@ -2875,7 +3096,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           if (prevEl) {
             let html = renderMarkdownToHtml(state.localMd);
             if ((state.text || '').trim().length < 40 && !state.blocks.length) {
-              html += `<div style="margin-top:.75rem"><button type="button" class="empty-paste-cta" data-empty-paste>${svg(ICON.clipboardText)}<span>Paste content from Clipboard</span></button></div>`;
+              html += `<div style="margin-top:.75rem"><button type="button" class="empty-paste-cta" data-empty-paste>${svg(ICON.clipboardText)}<span>Paste content into Sandbox</span></button></div>`;
             }
             prevEl.innerHTML = html;
           }
@@ -2941,23 +3162,22 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         }
         break;
       }
+      case 'sandbox':
+        renderSandbox();
+        break;
       case 'text': {
         const textContent = q('.text-content');
         if (textContent) {
-          if (isPaste) {
-            textContent.textContent = heldText;
+          const full = state.blocks.length
+            ? state.blocks.join('\n\n')
+            : (state.appendMode ? 'Nothing collected yet. Scroll the page.' : (state.text || ''));
+          if (!full) {
+            textContent.innerHTML = `<p class="none">No readable text found on this page.</p><button type="button" class="empty-paste-cta" data-empty-paste>${svg(ICON.clipboardText)}<span>Paste content into Sandbox</span></button>`;
+          } else if (state.sel && full.includes(state.sel)) {
+            const parts = full.split(state.sel);
+            textContent.innerHTML = parts.map(esc).join(`<mark class="sel-highlight">${esc(state.sel)}</mark>`);
           } else {
-            const full = state.blocks.length
-              ? state.blocks.join('\n\n')
-              : (state.appendMode ? 'Nothing collected yet. Scroll the page.' : (state.text || ''));
-            if (!full) {
-              textContent.innerHTML = `<p class="none">No readable text found on this page.</p><button type="button" class="empty-paste-cta" data-empty-paste>${svg(ICON.clipboardText)}<span>Paste content from Clipboard</span></button>`;
-            } else if (state.sel && full.includes(state.sel)) {
-              const parts = full.split(state.sel);
-              textContent.innerHTML = parts.map(esc).join(`<mark class="sel-highlight">${esc(state.sel)}</mark>`);
-            } else {
-              textContent.textContent = full;
-            }
+            textContent.textContent = full;
           }
         }
         break;
@@ -2988,6 +3208,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
       case 'json':
         q('.json-content').textContent = getSlideText(i);
+        break;
+      case 'meta':
+        renderPageMeta();
         break;
     }
     refresh();
@@ -3051,8 +3274,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const slide = getSlides()[state.slide] || getSlides()[0];
     const text = getSlideText(state.slide);
     const slug = pageSlug();
-    const isPaste = state.sourceMode === 'paste' && state.pastedItems.length > 0;
-    const filename = `${slug}-${isPaste ? 'paste-' : ''}${slide.id}.${slide.ext}`;
+    const filename = `${slug}-${slide.id}.${slide.ext}`;
     const sizeText = (text.length > 10000)
       ? `${Math.round(text.length / 1024)} KB`
       : `${text.length.toLocaleString()} chars`;
@@ -3068,7 +3290,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           btnStage.href = url;
           btnStage.classList.remove('off');
         }
-        if (stageSub) stageSub.textContent = `Hand off ${slide.label} (${sizeText}) via compressed #gz= URL`;
+        if (stageSub) stageSub.textContent = `Send ${slide.label} (${sizeText})`;
       } else {
         sendEl.removeAttribute('href');
         sendEl.textContent = 'Stage';
@@ -3078,19 +3300,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           btnStage.removeAttribute('href');
           btnStage.classList.add('off');
         }
-        if (stageSub) stageSub.textContent = `${sizeText} exceeds Stage URL limit; use Copy instead`;
+        if (stageSub) stageSub.textContent = `${sizeText} · too large for URL`;
       }
     });
 
     const capturePayload = buildCapturePayload(state.slide);
     const directStoreUrl = shortcutUrl(capturePayload);
     const directOk = directStoreUrl.length <= SEND_MAX;
-    const captureFile = `${slug}-${isPaste ? 'paste-' : ''}${slide.id}.json`;
+    const captureFile = `${slug}-${slide.id}.json`;
 
     packToStage(captureFile, JSON.stringify(capturePayload, null, 2), 'mehrlander/web-tools-private:captures').then(stageUrl => {
       const storeTarget = directOk ? directStoreUrl : (stageUrl || '#');
       const storeTitle = directOk
-        ? `Save ${slide.label} to web-tools-private (Log-Repo shortcut)`
+        ? `Log ${slide.label} via Log-Repo shortcut`
         : `Stage ${slide.label} to web-tools-private:captures`;
       const storeLabel = directOk ? 'Store' : 'Stage';
       const storeMenuLabel = q('.store-menu-label');
@@ -3098,13 +3320,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
       if (storeMenuLabel) {
         storeMenuLabel.textContent = directOk
-          ? 'Save via Log-Repo shortcut'
-          : 'Stage to web-tools-private';
+          ? 'Log via Shortcut'
+          : 'Stage to private repo';
       }
       if (storeMenuSub) {
         storeMenuSub.textContent = directOk
-          ? `Send ${slide.label} capture to web-tools-private via iOS Shortcut`
-          : `Large capture (${sizeText}); stages to web-tools-private:captures`;
+          ? `Runs Log-Repo · ${slide.label}`
+          : `Too large for Log-Repo (${sizeText}) · stages instead`;
       }
 
       [btnStore, storeEl].filter(Boolean).forEach(el => {
@@ -3119,14 +3341,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (linksCount) linksCount.textContent = `${state.picked.size}/${activeLinks.length} picked`;
     const textCount = q('.text-count');
     if (textCount) {
-      if (isPaste) {
-        const heldLen = getHeldPasteText().length;
-        textCount.textContent = `Held Paste · ${heldLen.toLocaleString()} chars`;
-      } else {
-        textCount.textContent = state.blocks.length
-          ? `${state.blocks.length} blocks · ${state.blockChars} chars`
-          : `${state.text.length} chars`;
-      }
+      textCount.textContent = state.blocks.length
+        ? `${state.blocks.length} blocks · ${state.blockChars} chars`
+        : `${state.text.length} chars`;
     }
   };
 
@@ -3177,7 +3394,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   const getSpeakableMarkdown = () => {
     const slide = getSlides()[state.slide] || getSlides()[0];
-    if (state.sourceMode === 'paste' && state.pastedItems.length > 0) {
+    if (slide.id === 'sandbox' && state.pastedItems.length > 0) {
       return getHeldPasteText();
     }
     if (slide.id === 'sel' && state.sel) return state.sel;
@@ -3186,16 +3403,22 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     return state.localMd || domToMarkdown();
   };
 
+  const getActiveTtsContainer = () => {
+    const slide = getSlides()[state.slide] || getSlides()[0];
+    if (slide.id === 'sandbox' && state.sandboxView === 'cards') return q('.sb-list');
+    if (slide.id === 'md' && state.mdView === 'preview') return q('.md-preview-wrap');
+    return null;
+  };
+
   const buildTtsQueueFromPreview = () => {
     ttsQueue = [];
     ttsChunkBlocks = [];
     ttsBlockFirstChunk = new Map();
 
-    const prevEl = q('.md-preview-wrap');
-    const blockEls = prevEl ? Array.from(prevEl.querySelectorAll('[data-tts-block]')) : [];
-    const slide = getSlides()[state.slide] || getSlides()[0];
+    const container = getActiveTtsContainer();
+    const blockEls = container ? Array.from(container.querySelectorAll('[data-tts-block]')) : [];
 
-    if (slide.id === 'md' && state.mdView === 'preview' && blockEls.length > 0) {
+    if (blockEls.length > 0) {
       for (const el of blockEls) {
         const bIdx = parseInt(el.getAttribute('data-tts-block'), 10);
         const tag = el.tagName.toUpperCase();
@@ -3240,19 +3463,24 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const syncActiveTtsHighlight = () => {
-    const prevEl = q('.md-preview-wrap');
-    if (!prevEl) return;
-    prevEl.classList.toggle('tts-seekable', !!state.ttsOpen);
     const activeBlock = (state.ttsState !== 'idle' && state.ttsIdx >= 0 && state.ttsIdx < ttsChunkBlocks.length)
       ? ttsChunkBlocks[state.ttsIdx]
       : -1;
-    prevEl.querySelectorAll('[data-tts-block]').forEach(el => {
-      const bIdx = parseInt(el.getAttribute('data-tts-block'), 10);
-      const isAct = bIdx === activeBlock && activeBlock >= 0;
-      el.classList.toggle('tts-active', isAct);
-      if (isAct && state.ttsState === 'playing') {
-        try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch {}
+    const activeContainer = getActiveTtsContainer();
+    [q('.md-preview-wrap'), q('.sb-list')].filter(Boolean).forEach(wrap => {
+      const isTarget = wrap === activeContainer;
+      wrap.querySelectorAll('.md-prose').forEach(p => p.classList.toggle('tts-seekable', !!(isTarget && state.ttsOpen)));
+      if (wrap.classList.contains('md-prose')) {
+        wrap.classList.toggle('tts-seekable', !!(isTarget && state.ttsOpen));
       }
+      wrap.querySelectorAll('[data-tts-block]').forEach(el => {
+        const bIdx = parseInt(el.getAttribute('data-tts-block'), 10);
+        const isAct = isTarget && bIdx === activeBlock && activeBlock >= 0;
+        el.classList.toggle('tts-active', isAct);
+        if (isAct && state.ttsState === 'playing') {
+          try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch {}
+        }
+      });
     });
   };
 
@@ -3267,20 +3495,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const rateBtn = q('.tts-rate-btn');
     const cfgBtn = q('.tts-cfg-btn');
     const headBtn = q('.tts-head-btn');
-    const introBtn = q('.btn-tts');
-    const ttsMenuLabel = q('.tts-menu-label');
 
     const active = state.ttsState === 'playing' || state.ttsState === 'paused';
     if (panelEl) panelEl.hidden = !state.ttsOpen;
     if (settingsEl) settingsEl.hidden = !state.ttsSettingsOpen;
     if (cfgBtn) cfgBtn.classList.toggle('on', !!state.ttsSettingsOpen);
     if (headBtn) headBtn.classList.toggle('on', state.ttsOpen || active);
-    if (introBtn) introBtn.classList.toggle('on', state.ttsOpen || active);
-    if (ttsMenuLabel) {
-      ttsMenuLabel.textContent = state.ttsState === 'playing'
-        ? 'Reading aloud (tap to pause)'
-        : (state.ttsState === 'paused' ? 'Paused reading (tap to resume)' : 'Read current view aloud');
-    }
 
     if (playBtn) {
       playBtn.innerHTML = svg(state.ttsState === 'playing' ? ICON.pause : ICON.play);
@@ -3424,14 +3644,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
   };
 
-  const startReadingCurrent = (autoPlay = true) => {
+  const startReadingCurrent = (autoPlay = true, startChunk = 0) => {
     state.ttsOpen = true;
     populateVoices();
     buildTtsQueueFromPreview();
     updateTtsUI();
     if (autoPlay) {
-      if (state.ttsState === 'paused') ttsResume();
-      else ttsPlay(0);
+      if (state.ttsState === 'paused' && startChunk === 0) ttsResume();
+      else ttsPlay(startChunk);
     }
   };
 
@@ -3503,13 +3723,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // its own body late: the launcher is on every page, the drawer on few.
   let read = false;
   let lastOpenedWithSel = false;
-  const syncSelectionVisibility = () => {
-    const hasSel = !!(state.sel && state.sel.trim());
-    root.querySelectorAll('[data-slide-id="sel"]').forEach(el => {
-      el.hidden = !hasSel;
-      if (!hasSel) el.classList.remove('on', 'active');
-    });
-  };
 
   const openDrawer = () => {
     const selObj = getActiveSelection();
@@ -3528,10 +3741,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (state.autoCheck) checkBuild();
 
     const hasSel = !!(state.sel && state.sel.trim());
-    syncSelectionVisibility();
+    syncDynamicSlides();
     const slides = getSlides();
-    if (hasSel && state.sourceMode !== 'paste') {
-      state.slide = 1;
+    if (hasSel) {
+      const selIdx = slides.findIndex(s => s.id === 'sel');
+      if (selIdx >= 0) state.slide = selIdx;
       lastOpenedWithSel = true;
     } else if (lastOpenedWithSel) {
       state.slide = 0;
@@ -3582,11 +3796,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     recapBtn?.querySelector('svg')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
     collectNowBtn?.querySelector('svg')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
 
-    if (state.sourceMode === 'paste' && isManual) {
-      state.sourceMode = 'page';
-      updatePasteUI();
-    }
-
     if (!state.appendMode) {
       state.blocks = [];
       state.blockChars = 0;
@@ -3598,8 +3807,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       state.formattedHtml = null;
       readPage();
       if (recapLabel && isManual) {
-        recapLabel.textContent = 'Page re-read';
-        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Re-read page now'; }, 1800);
+        recapLabel.textContent = 'Recaptured';
+        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Recapture page'; }, 1800);
       }
     } else {
       const added = collectBlocks();
@@ -3610,7 +3819,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       refresh();
       if (recapLabel && isManual) {
         recapLabel.textContent = `Collected +${added || 0} blocks`;
-        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Re-read page now'; }, 1800);
+        setTimeout(() => { if (recapLabel) recapLabel.textContent = 'Recapture page'; }, 1800);
       }
     }
     updateMergeUI();
@@ -3619,6 +3828,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('.more-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     setHeadMenu();
+  });
+
+  panel?.addEventListener('click', e => {
+    if (state.headMenuOpen && !e.target.closest('.head-menu') && !e.target.closest('.more-btn')) {
+      setHeadMenu(false);
+    }
   });
 
   q('.head-sub')?.addEventListener('click', async () => {
@@ -3759,53 +3974,54 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     } catch {}
   });
 
-  // ---- Paste & Hold Controls Wiring ---------------------------------------
+  // ---- Sandbox & Paste Controls Wiring ------------------------------------
   q('.paste-head-btn')?.addEventListener('click', () => {
     setHeadMenu(false);
-    handlePasteAction(state.appendMode, false);
-  });
-  q('.btn-paste')?.addEventListener('click', () => {
-    setHeadMenu(false);
-    handlePasteAction(state.appendMode, false);
-  });
-  q('.btn-paste-append')?.addEventListener('click', () => {
     handlePasteAction(true, false);
   });
-  q('.btn-paste-edit')?.addEventListener('click', () => {
+  q('.sb-paste-btn')?.addEventListener('click', () => {
+    handlePasteAction(true, false);
+  });
+  q('.sb-compose-btn')?.addEventListener('click', () => {
     if (state.pasteComposerOpen) {
       state.pasteComposerOpen = false;
       updatePasteUI();
     } else {
-      openPasteComposer(getHeldPasteText());
+      openPasteComposer('');
     }
   });
-  q('.btn-paste-source-toggle')?.addEventListener('click', () => {
-    if (!state.pastedItems.length) return;
-    state.sourceMode = state.sourceMode === 'paste' ? 'page' : 'paste';
-    updatePasteUI();
-    updateHeader();
-    renderAllSlides();
-    refresh();
-    if (state.ttsOpen) rebuildAndSyncTts(false);
+  qa('[data-sb-view]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.sandboxView = b.dataset.sbView;
+      renderSandbox();
+      refresh();
+    });
   });
-  q('.btn-paste-clear')?.addEventListener('click', () => {
-    state.pastedItems = [];
-    state.sourceMode = 'page';
-    state.pasteComposerOpen = false;
-    updatePasteUI();
-    updateHeader();
-    renderAllSlides();
-    refresh();
+  q('.sb-copy-json-btn')?.addEventListener('click', async () => {
+    const btnEl = q('.sb-copy-json-btn');
+    try {
+      await writeClipboardInternal(getSandboxJson());
+      if (btnEl) {
+        btnEl.innerHTML = svg(ICON.check);
+        btnEl.classList.add('copied');
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.innerHTML = svg(ICON.copy);
+            btnEl.classList.remove('copied');
+          }
+        }, 1500);
+      }
+    } catch {}
   });
 
   q('.btn-use-copied')?.addEventListener('click', () => {
     if (state.lastPageCopy) {
-      holdPastedText(state.lastPageCopy, state.appendMode);
+      holdPastedText(state.lastPageCopy, true);
     }
   });
   q('.btn-read-copied')?.addEventListener('click', () => {
     if (state.lastPageCopy) {
-      holdPastedText(state.lastPageCopy, state.appendMode);
+      holdPastedText(state.lastPageCopy, true);
       startReadingCurrent(true);
     }
   });
@@ -3820,7 +4036,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       const pasted = e.clipboardData?.getData('text/plain') || '';
       if (pasted && pasted.trim() && !pasteInput.value.trim()) {
         e.preventDefault();
-        holdPastedText(pasted, state.appendMode);
+        const customName = q('.sb-compose-name')?.value || '';
+        holdPastedText(pasted, true, customName);
         if (state.pendingAutoReadOnPaste) {
           state.pendingAutoReadOnPaste = false;
           startReadingCurrent(true);
@@ -3830,8 +4047,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   }
   q('.paste-save-btn')?.addEventListener('click', () => {
     const val = q('.paste-input')?.value || '';
+    const customName = q('.sb-compose-name')?.value || '';
     if (val.trim()) {
-      holdPastedText(val, false);
+      holdPastedText(val, true, customName);
       if (state.pendingAutoReadOnPaste) {
         state.pendingAutoReadOnPaste = false;
         startReadingCurrent(true);
@@ -3841,25 +4059,217 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       updatePasteUI();
     }
   });
-  q('.paste-append-save-btn')?.addEventListener('click', () => {
-    const val = q('.paste-input')?.value || '';
-    if (val.trim()) {
-      holdPastedText(val, true);
-    }
-  });
   q('.paste-cancel-btn')?.addEventListener('click', () => {
     state.pasteComposerOpen = false;
     state.pendingAutoReadOnPaste = false;
     updatePasteUI();
   });
 
+  // Sandbox unit card interactions (rename, auto-name, read, edit/crop, copy, remove)
+  const sbList = q('.sb-list');
+  if (sbList) {
+    sbList.addEventListener('input', e => {
+      const nameInput = e.target.closest('[data-sb-name]');
+      if (!nameInput) return;
+      const idx = parseInt(nameInput.getAttribute('data-sb-name'), 10);
+      const item = state.pastedItems[idx];
+      if (!item) return;
+      const val = nameInput.value.trim();
+      item.name = val;
+      item.customName = val.length > 0 && val !== String(idx + 1);
+      item.nameStyle = item.customName ? 'custom' : 'index';
+      const footName = nameInput.closest('.sb-card')?.querySelector('.sb-foot-name');
+      if (footName) footName.textContent = `name: "${getSandboxUnitName(item, idx)}"`;
+      const jsonEl = q('.sb-json-wrap');
+      if (jsonEl) jsonEl.textContent = getSandboxJson();
+      refresh();
+    });
+
+    sbList.addEventListener('click', async e => {
+      if (e.target.closest('[data-sb-empty-paste]')) {
+        handlePasteAction(true, false);
+        return;
+      }
+      const autoBtn = e.target.closest('[data-sb-autoname]');
+      if (autoBtn) {
+        const idx = parseInt(autoBtn.getAttribute('data-sb-autoname'), 10);
+        const item = state.pastedItems[idx];
+        if (!item) return;
+        const nextStyle = item.nameStyle === 'index' ? 'slug' : (item.nameStyle === 'slug' ? 'title' : 'index');
+        item.nameStyle = nextStyle;
+        if (nextStyle === 'index') {
+          item.name = '';
+          item.customName = false;
+        } else {
+          item.name = deriveUnitNameFromText(item.text, idx, nextStyle);
+          item.customName = true;
+        }
+        renderSandbox();
+        refresh();
+        return;
+      }
+
+      const readBtn = e.target.closest('[data-sb-read]');
+      if (readBtn) {
+        const idx = parseInt(readBtn.getAttribute('data-sb-read'), 10);
+        const cardEl = readBtn.closest('.sb-card');
+        const firstBlockEl = cardEl?.querySelector('[data-tts-block]');
+        state.ttsOpen = true;
+        populateVoices();
+        buildTtsQueueFromPreview();
+        let startChunk = 0;
+        if (firstBlockEl) {
+          const bIdx = parseInt(firstBlockEl.getAttribute('data-tts-block'), 10);
+          if (ttsBlockFirstChunk.has(bIdx)) startChunk = ttsBlockFirstChunk.get(bIdx);
+        }
+        ttsPlay(startChunk);
+        return;
+      }
+
+      const editBtn = e.target.closest('[data-sb-edit]');
+      if (editBtn) {
+        const idx = parseInt(editBtn.getAttribute('data-sb-edit'), 10);
+        const item = state.pastedItems[idx];
+        if (!item) return;
+        item.editing = !item.editing;
+        renderSandbox();
+        if (item.editing) {
+          const ta = sbList.querySelector(`[data-sb-ta="${idx}"]`);
+          setTimeout(() => { try { ta?.focus(); } catch {} }, 20);
+        }
+        return;
+      }
+
+      const copyUnitBtn = e.target.closest('[data-sb-copy]');
+      if (copyUnitBtn) {
+        const idx = parseInt(copyUnitBtn.getAttribute('data-sb-copy'), 10);
+        const item = state.pastedItems[idx];
+        if (!item) return;
+        try {
+          await writeClipboardInternal(item.text);
+          copyUnitBtn.innerHTML = svg(ICON.check);
+          setTimeout(() => { if (copyUnitBtn) copyUnitBtn.innerHTML = svg(ICON.copy); }, 1400);
+        } catch {}
+        return;
+      }
+
+      const delBtn = e.target.closest('[data-sb-del]');
+      if (delBtn) {
+        const idx = parseInt(delBtn.getAttribute('data-sb-del'), 10);
+        state.pastedItems.splice(idx, 1);
+        updatePasteUI();
+        renderSandbox();
+        refresh();
+        if (state.ttsOpen) rebuildAndSyncTts(false);
+        return;
+      }
+
+      const cropKeepBtn = e.target.closest('[data-sb-crop-keep]');
+      if (cropKeepBtn) {
+        const idx = parseInt(cropKeepBtn.getAttribute('data-sb-crop-keep'), 10);
+        const ta = sbList.querySelector(`[data-sb-ta="${idx}"]`);
+        if (!ta) return;
+        const start = ta.selectionStart ?? 0;
+        const end = ta.selectionEnd ?? 0;
+        if (end > start) {
+          ta.value = ta.value.slice(start, end).trim();
+          ta.selectionStart = 0;
+          ta.selectionEnd = ta.value.length;
+        } else {
+          const orig = cropKeepBtn.innerHTML;
+          cropKeepBtn.innerHTML = `<span>Select text in box first</span>`;
+          setTimeout(() => { if (cropKeepBtn) cropKeepBtn.innerHTML = orig; }, 1500);
+        }
+        return;
+      }
+
+      const cropCutBtn = e.target.closest('[data-sb-crop-cut]');
+      if (cropCutBtn) {
+        const idx = parseInt(cropCutBtn.getAttribute('data-sb-crop-cut'), 10);
+        const ta = sbList.querySelector(`[data-sb-ta="${idx}"]`);
+        if (!ta) return;
+        const start = ta.selectionStart ?? 0;
+        const end = ta.selectionEnd ?? 0;
+        if (end > start) {
+          ta.value = (ta.value.slice(0, start) + ta.value.slice(end)).replace(/\n{3,}/g, '\n\n').trim();
+        } else {
+          const orig = cropCutBtn.innerHTML;
+          cropCutBtn.innerHTML = `<span>Select text in box first</span>`;
+          setTimeout(() => { if (cropCutBtn) cropCutBtn.innerHTML = orig; }, 1500);
+        }
+        return;
+      }
+
+      const trimTopBtn = e.target.closest('[data-sb-trim-top]');
+      if (trimTopBtn) {
+        const idx = parseInt(trimTopBtn.getAttribute('data-sb-trim-top'), 10);
+        const ta = sbList.querySelector(`[data-sb-ta="${idx}"]`);
+        if (!ta) return;
+        const paras = ta.value.trim().split(/\n\s*\n/);
+        if (paras.length > 1) {
+          ta.value = paras.slice(1).join('\n\n').trim();
+        } else {
+          const lines = ta.value.trim().split('\n');
+          if (lines.length > 1) ta.value = lines.slice(1).join('\n').trim();
+        }
+        return;
+      }
+
+      const trimBotBtn = e.target.closest('[data-sb-trim-bot]');
+      if (trimBotBtn) {
+        const idx = parseInt(trimBotBtn.getAttribute('data-sb-trim-bot'), 10);
+        const ta = sbList.querySelector(`[data-sb-ta="${idx}"]`);
+        if (!ta) return;
+        const paras = ta.value.trim().split(/\n\s*\n/);
+        if (paras.length > 1) {
+          ta.value = paras.slice(0, -1).join('\n\n').trim();
+        } else {
+          const lines = ta.value.trim().split('\n');
+          if (lines.length > 1) ta.value = lines.slice(0, -1).join('\n').trim();
+        }
+        return;
+      }
+
+      const saveEditBtn = e.target.closest('[data-sb-edit-save]');
+      if (saveEditBtn) {
+        const idx = parseInt(saveEditBtn.getAttribute('data-sb-edit-save'), 10);
+        const item = state.pastedItems[idx];
+        const ta = sbList.querySelector(`[data-sb-ta="${idx}"]`);
+        if (item && ta) {
+          const nextVal = ta.value.trim();
+          if (nextVal) {
+            item.text = nextVal;
+            item.editing = false;
+          } else {
+            state.pastedItems.splice(idx, 1);
+          }
+          renderSandbox();
+          refresh();
+          if (state.ttsOpen) rebuildAndSyncTts(false);
+        }
+        return;
+      }
+
+      const cancelEditBtn = e.target.closest('[data-sb-edit-cancel]');
+      if (cancelEditBtn) {
+        const idx = parseInt(cancelEditBtn.getAttribute('data-sb-edit-cancel'), 10);
+        const item = state.pastedItems[idx];
+        if (item) {
+          item.editing = false;
+          renderSandbox();
+        }
+        return;
+      }
+    });
+  }
+
   q('.deck-track')?.addEventListener('click', e => {
     const emptyCta = e.target.closest('[data-empty-paste]');
     if (emptyCta) {
-      handlePasteAction(false, false);
+      handlePasteAction(true, false);
       return;
     }
-    if (state.ttsOpen && !e.target.closest('a')) {
+    if (state.ttsOpen && !e.target.closest('a, button, input, textarea')) {
       const blockEl = e.target.closest('[data-tts-block]');
       if (blockEl) {
         const bIdx = parseInt(blockEl.getAttribute('data-tts-block'), 10);
@@ -3885,7 +4295,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
   };
 
-  q('.btn-tts')?.addEventListener('click', toggleTtsPanel);
   q('.tts-head-btn')?.addEventListener('click', toggleTtsPanel);
 
   q('.tts-play-btn')?.addEventListener('click', () => {
@@ -3962,12 +4371,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('[data-menu-paste]')?.addEventListener('click', async () => {
     setMenu(false);
     openDrawer();
-    await handlePasteAction(state.appendMode, false);
+    await handlePasteAction(true, false);
   });
   q('[data-menu-paste-read]')?.addEventListener('click', async () => {
     setMenu(false);
     openDrawer();
-    await handlePasteAction(state.appendMode, true);
+    await handlePasteAction(true, true);
   });
 
   const updateMergeUI = () => {
@@ -3982,8 +4391,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
     if (mergeLabel) {
       mergeLabel.textContent = state.appendMode
-        ? `Auto-collecting on scroll (${state.blocks.length} blocks)`
-        : 'Start auto-collecting on scroll';
+        ? `Auto-collecting (${state.blocks.length})`
+        : 'Auto-collect on scroll';
     }
     if (mergePill) {
       mergePill.textContent = state.appendMode ? 'ON' : 'OFF';
@@ -4038,7 +4447,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   const selectFrameScope = index => {
     state.activeFrameIndex = index;
-    state.sourceMode = 'page';
     state.localMd = null;
     state.formattedHtml = null;
     state.seenLinks.clear();
@@ -4097,10 +4505,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     };
   });
 
-  q('.meta-toggle').onclick = () => {
-    toggleMeta();
-    setHeadMenu(false);
-  };
   const expandBtn = q('.expand-btn');
   if (expandBtn) expandBtn.onclick = () => toggleFullscreen(true);
   const returnBtn = q('.return-btn');

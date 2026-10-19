@@ -32,9 +32,10 @@ upper bound. The per-session `tools` count is complete, so a session with zero
 Skill calls of any kind is a certain `neither`; those are reported separately as
 the floor. Read the two together and do not quote the first alone.
 
-A READING IS NOT A PROD OUTCOME. `import` says the conventions arrived, not that
-the prod was silent: a session whose checkout predates 2026-09-12 carries the old
-`@`-import AND is prodded by the current plugin, so both channels fire and only
+A READING DOES NOT REPORT WHAT THE HOOK DID. `import` says the conventions
+arrived, not that the invoke-default hook stayed silent: a session whose checkout
+predates 2026-09-12 carries the old `@`-import AND receives the hook's
+instruction from the current plugin, so both channels fire and only
 the first is visible here. `hub_claude_md_sha` is the column that separates them,
 since a checkout on the post-cutover CLAUDE.md cannot have imported anything.
 A directive that failed to resolve leaves no trace in a record at all.
@@ -113,7 +114,8 @@ def main():
             continue
         # The denominator worth seeing beside the split: how many sessions even
         # had the hub checked out. Nearly all of them do, so cutting the import
-        # puts nearly every session on the prod rather than a minority.
+        # makes nearly every session, rather than a minority, depend on the
+        # invoke-default hook's instruction.
         checkout, surfacing, sha = hub_facts(rec)
         if checkout:
             with_checkout += 1
