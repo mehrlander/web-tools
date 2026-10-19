@@ -168,6 +168,8 @@ principles above:
 - **Ripen the open decision:** one question, a recommendation, the evidence.
   Where cheap and reversible, build the recommended option on the branch so
   the owner's answer is accept or reject. Ripen only decisions already open.
+- **Review documentation edits again,** even after an earlier pass: revise
+  each against doc-craft and show it as its Review section directs.
 - **Stand in for a hand check** the session asked the owner to make: a
   headless screenshot, a measurement at phone width, a test.
 - **Mark where to pick up** when the work continues until the owner is

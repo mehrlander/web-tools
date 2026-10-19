@@ -20,7 +20,8 @@ Reference only. Read before writing such a reply.
 ## Key insights
 
 - **Tool steps** (`Edit`, `Bash`): collapsed to one line, the file with its +/− counts or the command's description. The output is hidden.
-- **Prose:** `~~old~~` strikes through and `**new**` bolds, in the body font. HTML tags such as `<del>` show raw. Inline code gets a grey pill on desktop and none on the phone.
+- **Prose:** `~~old~~` strikes through and `**new**` bolds, in the body font. HTML tags such as `<del>` show raw. Inline code gets a grey pill on desktop and on the phone.
+- **File paths:** a path in a code span links to the app's Diff sheet when the branch's commits change that file. Other paths stay plain, including a file changed only in the working tree. On the iPhone app, links may stay plain until the app is reopened.
 - **Lists:** each item carries paragraph margin, and nesting compounds it. Tables and fenced blocks stay tight.
 - **Tables:** a cell trims leading space, nbsp and tab; a code span, U+2800 or a visible glyph holds an indent. `<br>` breaks a line in a cell. A fenced block cannot sit in a cell, and a code span there has no copy button. The header row renders bold and keeps its height when empty.
 - **Fenced blocks:** each has a copy button, copies raw text, and applies no Markdown. The language name after the opening backticks picks the coloring: `diff` colors `+` and `-` lines and leaves the file header and `@@` lines plain; `markdown` colors heading lines (blue on desktop, red on the phone) and colors bracketed text green when `()` follows, inside a heading too; an unknown name gives plain text.
