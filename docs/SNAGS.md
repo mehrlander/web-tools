@@ -285,17 +285,13 @@ can see. *(seen: 2026-10-18)*
 
 ### cursor-help-on-a-hover-term: the question-mark cursor, on terms a call explains
 
-`lib/kits/design-fill.js` gave every term it marks for a user call's glossary
-the `cursor-help` class, so hovering one showed the question-mark cursor, which
-rule 11 of the house style and the owner's peeve P49 both rule out. The panel
-it opened broke the same peeve a second way: a bold heading and a paragraph of
-up to 200 characters, where a tip should be a few words, with an "Open" button
-where the rule asks for a ↗ naming the source. Nothing caught it: the only test
-that rejects `cursor-help` covers `session-brief.js` alone.
-Corrected move: leave the cursor alone and let the term's mark be the whole
-affordance (the title-tip kit's dotted underline, or the small raised dot a
-user call draws); before styling a hover target, read rule 11 and its
-mechanics section. Owner-reported on PR #968.
+`lib/kits/design-fill.js` gave a user call's glossary terms the `cursor-help`
+class and a tip panel with a heading, a paragraph and an "Open" button, all
+three ruled out by rule 11 of the house style; the one test that rejects
+`cursor-help` covers `session-brief.js` alone. Corrected move: let the term's
+mark be the whole affordance (the title-tip kit's dotted underline, or the
+raised dot a user call draws), and read rule 11 and its mechanics section
+before styling a hover target. Owner-reported on PR #968.
 *(seen: 2026-10-15)*
 → [`skills/html-style/references/mechanics.md`](../skills/html-style/references/mechanics.md#title-tips-and-panel-tips)
 
