@@ -53,9 +53,19 @@ Only `stranded` is worth reading. Expect false positives: a decorative mark
 whose title is genuinely a nicety reports the same as a caveat nobody can
 reach, and the difference is judgment the tool cannot supply.
 
+Since 2026-10-16 the house style uses no title at all (html-style
+mechanics.md, "Title-tips and panel-tips"), so every title is a finding and
+--all lists them. The verdicts still order the work: a stranded title loses a
+fact when it goes, a reachable one only a label.
+
+Titles set from script (`el.title = …`, `setAttribute('title', …)`) never
+pass through the tag walk, so they are counted on their own line and listed
+with --script; their reach is unknown to this file.
+
 Usage:
   python3 python/stranded-titles.py [PATH...]      # default: lib/ app/ pages/
   python3 python/stranded-titles.py --all          # every verdict, not just stranded
+  python3 python/stranded-titles.py --script       # titles set from script instead
   npm run stranded-titles
 """
 
@@ -80,6 +90,8 @@ CLICKISH = re.compile(r'(:?href=|@click|x-on:click)')
 TAG = re.compile(r'</?\s*([a-zA-Z][\w:-]*)')
 TITLE = re.compile(r'''(:?title)=(["'])(.*?)\2''', re.S)
 XTEXT = re.compile(r'''x-text=(["'])(.*?)\1''', re.S)
+
+SCRIPT_SET = re.compile(r'''(?<![\w$])(?!document\b)[\w$]+\.title\s*=(?!=)|setAttribute\(\s*['"]title['"]''')
 
 
 # A `/` starts a REGEX literal rather than a division when the previous
@@ -280,6 +292,17 @@ def scan(path):
     return out
 
 
+def script_titles(path):
+    """Every title set from script in one file, as (line, source line)."""
+    src = path.read_text(encoding='utf8', errors='replace')
+    masked = mask_js(src, whole_file=path.suffix == '.js')
+    return [{'file': path, 'line': masked.count('\n', 0, m.start()) + 1,
+             'tag': 'script', 'verdict': 'script',
+             'value': ' '.join(src[src.rfind('\n', 0, m.start()) + 1:
+                                  src.find('\n', m.start())].split())}
+            for m in SCRIPT_SET.finditer(masked)]
+
+
 def files_under(roots):
     for r in roots:
         p = Path(r)
@@ -291,17 +314,22 @@ def files_under(roots):
 
 def main(argv):
     show_all = '--all' in argv
+    show_script = '--script' in argv
     roots = [a for a in argv[1:] if not a.startswith('-')] or list(DEFAULT_ROOTS)
-    rows, counts = [], Counter()
+    rows, scripted, counts = [], [], Counter()
     for f in files_under(roots):
         for r in scan(f):
             counts[r['verdict']] += 1
             rows.append(r)
-    if not rows:
+        scripted += script_titles(f)
+    if not rows and not scripted:
         print('stranded-titles: no title attributes found under ' + ', '.join(roots))
         return 0
 
-    wanted = [r for r in rows if show_all or r['verdict'] == 'stranded']
+    if show_script:
+        wanted = scripted
+    else:
+        wanted = [r for r in rows if show_all or r['verdict'] == 'stranded']
     by_file = {}
     for r in wanted:
         by_file.setdefault(r['file'], []).append(r)
@@ -315,6 +343,8 @@ def main(argv):
     print(f"\nstranded-titles: {total} titles; "
           f"{counts['reachable']} reachable by tap, {counts['echo']} echo visible text, "
           f"{counts['stranded']} stranded")
+    print(f"{len(scripted)} more set from script, reach unknown (--script). "
+          "The house style uses no title at all; --all lists every one.")
     if counts['stranded']:
         print('A stranded title is the only place its fact lives. '
               'house style: a tooltip worth having is worth building.')
