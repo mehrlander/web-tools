@@ -118,7 +118,8 @@ in the surrounding account. Maintained tools stay with their callers.
 
 ## Principle 6: documentation has four places, and everything else is a question
 
-Four slots. A markdown file in none of them is a **residual**.
+Four slots. A markdown file in none of them is a **residual**. Research a repository
+declares sits outside all four, its `README.md` included, and is not a residual.
 
 | Slot | Holds |
 | --- | --- |
