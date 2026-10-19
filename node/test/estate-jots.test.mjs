@@ -1,7 +1,7 @@
 // alpineComponents/estate.js — logic tests for the two personal lists, mainly
 // the jots pile: load (404 -> empty, real error -> surfaced), add (item shape,
 // draft clear, clipped commit message carrying the text), delete, and the
-// newest-first pile order. Also pins both lists' storage paths to lists/ in
+// newest-first pile order. Also pins the lists' storage paths to lists/ in
 // the registry (authored content; state/ stays derived caches only). Driven
 // over a fake GH and a stubbed shell; no network, no pixels.
 
@@ -32,7 +32,12 @@ class FakeGH {
       return { default_branch: 'main', description: '', private: true, pushed_at: '' };
     return {};
   }
-  async save(path, value, message) { SAVES.push({ repo: this.repo, path, value, message }); return {}; }
+  async save(path, value, message) {
+    SAVES.push({ repo: this.repo, path, value, message });
+    if (this.repo === REGISTRY) FILES[path] = JSON.parse(JSON.stringify(value));
+    return {};
+  }
+  async del(path) { delete FILES[path]; return {}; }
 }
 
 const { window, problems } = makeWindow({
@@ -57,6 +62,7 @@ const Alpine = await startAlpine(window, [
   // The shelf reads every surface through the shared envelope model, which
   // gh-boot loads ahead of the components for exactly this reason.
   'lib/kits/surface.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
 
@@ -67,13 +73,13 @@ test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
 
-test('loadJots reads lists/jots.json; a missing file is an empty pile, not an error', async () => {
+test('loadJots reads lists/jot.json; a missing file is an empty pile, not an error', async () => {
   FILES = {};
   await data.loadJots(reg());
   assert.equal(data.jotItems.length, 0);
   assert.equal(data.jotErr, '');
 
-  FILES = { 'lists/jots.json': { items: [{ id: 'j1', text: 'an idea', created_at: '2026-07-20T10:00:00Z' }] } };
+  FILES = { 'lists/jot.json': { items: [{ id: 'j1', text: 'an idea', created_at: '2026-07-20T10:00:00Z' }] } };
   await data.loadJots(reg());
   assert.equal(data.jotItems.length, 1);
   assert.equal(data.jotItems[0].text, 'an idea');
@@ -99,7 +105,7 @@ test('addJot appends {id, text, created_at}, clears the draft, and saves with th
   assert.ok(it.id && it.created_at && !('done' in it));       // no done state on a jot
   assert.equal(SAVES.length, 1);
   assert.equal(SAVES[0].repo, REGISTRY);
-  assert.equal(SAVES[0].path, 'lists/jots.json');             // authored content lives under lists/
+  assert.equal(SAVES[0].path, 'lists/jot.json');             // authored content lives under lists/
   assert.match(SAVES[0].message, /Jot "try the lightbulb icon" via Web Tools/);
   assert.deepEqual(SAVES[0].value.items, data.jotItems);
 });
@@ -125,29 +131,30 @@ test('jotPile orders newest first regardless of stored order', () => {
 
 test('deleteJot removes the item and saves the remainder', async () => {
   SAVES = [];
-  // The file is the source of truth now (mutateJots re-reads before saving),
-  // so the fixture seeds it to match the pane's local copy.
-  FILES = { 'lists/jots.json': { items: [...data.jotItems] } };
+  // The file is the source of truth (every write re-reads before saving), so
+  // the fixture seeds it to match the pane's local copy.
+  FILES = { 'lists/jot.json': { items: [...data.jotItems] } };
   const [a, , b] = data.jotItems;   // delete the middle one ('c', text "new")
   await data.deleteJot(data.jotItems[1]);
   assert.deepEqual([...data.jotItems.map(i => i.id)], [a.id, b.id]);
-  assert.equal(SAVES[0].path, 'lists/jots.json');
+  assert.equal(SAVES[0].path, 'lists/jot.json');
   assert.match(SAVES[0].message, /^Delete jot "new" via Web Tools$/);
 });
 
-test('the to-do list also lives under lists/ (moved out of state/)', async () => {
+test('the to-do and pin lists also live under lists/ (moved out of state/)', async () => {
   SAVES = [];
-  await data.saveTodos('probe');
-  assert.equal(SAVES[0].path, 'lists/todo.json');
+  await data.writeTodos(items => items, 'probe');
+  await data.writePins(items => items, 'probe');
+  assert.deepEqual(SAVES.map(s => s.path), ['lists/to-do.json', 'lists/pin.json']);
 });
 
 test('a write merges against a FRESH read, so a jot added elsewhere survives (the spine regression)', async () => {
   SAVES = [];
   // The pane loaded when only A existed…
-  FILES = { 'lists/jots.json': { items: [{ id: 'jA', text: 'A', created_at: '2026-01-01T00:00:00Z' }] } };
+  FILES = { 'lists/jot.json': { items: [{ id: 'jA', text: 'A', created_at: '2026-01-01T00:00:00Z' }] } };
   await data.loadJots(reg());
   // …then something else (the sidebar finder, a second tab) wrote B.
-  FILES['lists/jots.json'].items = [
+  FILES['lists/jot.json'].items = [
     { id: 'jA', text: 'A', created_at: '2026-01-01T00:00:00Z' },
     { id: 'jB', text: 'B', created_at: '2026-01-02T00:00:00Z' },
   ];
@@ -156,7 +163,7 @@ test('a write merges against a FRESH read, so a jot added elsewhere survives (th
   // The save carries all three: B was not clobbered by the pane's stale copy.
   assert.deepEqual([...SAVES.at(-1).value.items.map(i => i.text)], ['A', 'B', 'C']);
   // Deletion goes through the same fresh read.
-  FILES['lists/jots.json'] = SAVES.at(-1).value;
+  FILES['lists/jot.json'] = SAVES.at(-1).value;
   await data.deleteJot({ id: 'jB', text: 'B' });
   assert.deepEqual([...SAVES.at(-1).value.items.map(i => i.text)], ['A', 'C']);
 });
@@ -167,10 +174,10 @@ test('a write merges against a FRESH read, so a jot added elsewhere survives (th
 // handing the mutation a pre-write copy. The only thing a unit test can hold is
 // the option itself, so it holds it: every list read carries GH.FRESH.
 test('every list read asks to bypass the HTTP cache', async () => {
-  for (const [load, path] of [[data.loadJots, 'lists/jots.json'],
-                              [data.loadTodos, 'lists/todo.json'],
-                              [data.loadPins, 'lists/pins.json']]) {
-    READS = [];
+  for (const [load, path] of [[data.loadJots, 'lists/jot.json'],
+                              [data.loadTodos, 'lists/to-do.json'],
+                              [data.loadPins, 'lists/pin.json']]) {
+    READS = []; FILES = { [path]: { items: [] } };
     await load.call(data, reg());
     assert.equal(READS.length, 1, path + ': one read');
     assert.equal(READS[0].path, path);
@@ -178,10 +185,48 @@ test('every list read asks to bypass the HTTP cache', async () => {
   }
   // And the read a jot write merges against, which is the one with a documented
   // lost-update guard behind it.
-  READS = []; FILES = { 'lists/jots.json': { items: [] } };
+  READS = []; FILES = { 'lists/jot.json': { items: [] } };
   data.jotDraft = 'x';
   await data.addJot();
   assert.equal(READS.at(-1).opts?.cache, 'no-store');
+});
+
+// Until 2026-10-19 the To-do and Pin savers wrote the pane's own copy back,
+// so anything written since the pane loaded (an item an agent session added,
+// a second tab) was dropped by the next check-off or unpin.
+test('a to-do or pin gesture keeps an item written elsewhere since the pane loaded', async () => {
+  FILES = { 'lists/to-do.json': { items: [{ id: 't1', text: 'mine', done: false }] },
+            'lists/pin.json': { items: [{ id: 'p1', target: 'me/home:a.md', title: 'A' }] } };
+  await data.loadTodos(reg());
+  await data.loadPins(reg());
+  FILES['lists/to-do.json'].items.push({ id: 't2', text: 'from a session', done: false });
+  FILES['lists/pin.json'].items.push({ id: 'p2', target: 'me/home:b.md', title: 'B' });
+  await data.toggleTodo(data.todoItems[0]);
+  await data.deletePin(data.pinItems[0]);
+  assert.deepEqual(FILES['lists/to-do.json'].items.map(i => [i.id, i.done]), [['t1', true], ['t2', false]]);
+  assert.deepEqual(FILES['lists/pin.json'].items.map(i => i.id), ['p2']);
+  assert.deepEqual([...data.todoItems.map(i => i.id)], ['t1', 't2'], 'and the pane shows what the file holds');
+});
+
+test('an undo puts back the one item, and keeps what landed since', async () => {
+  FILES = { 'lists/to-do.json': { items: [{ id: 't1', text: 'a', done: false }, { id: 't2', text: 'b', done: false }] } };
+  await data.loadTodos(reg());
+  await data.deleteTodo(data.todoItems[0]);
+  FILES['lists/to-do.json'].items.push({ id: 't3', text: 'from a phone', done: false });
+  await data.takeUndo();
+  assert.deepEqual(FILES['lists/to-do.json'].items.map(i => i.id), ['t1', 't2', 't3']);
+});
+
+// The three files took their lists' names on 2026-10-19 (todo, jots and pins
+// before). kits/lists.js reads the old file until the new one exists.
+test('a list still in its old file loads from there, and the first write moves it', async () => {
+  FILES = { 'lists/jots.json': { items: [{ id: 'j1', text: 'old home', created_at: '2026-10-01T00:00:00Z' }] } };
+  await data.loadJots(reg());
+  assert.deepEqual([...data.jotItems.map(i => i.id)], ['j1']);
+  data.jotDraft = 'new';
+  await data.addJot();
+  assert.deepEqual(Object.keys(FILES), ['lists/jot.json'], 'saved under the new name, the old file deleted');
+  assert.deepEqual(FILES['lists/jot.json'].items.map(i => i.text), ['old home', 'new']);
 });
 
 // gh-store keeps the sha a successful write returns on the GH instance, and
@@ -192,8 +237,8 @@ test('every list read asks to bypass the HTTP cache', async () => {
 test('the registry client is held, not rebuilt per gesture', async () => {
   const first = data.regGH();
   BUILT = 0;
-  await data.saveTodos('probe');
-  await data.savePins('probe');
+  await data.writeTodos(items => items, 'probe');
+  await data.writePins(items => items, 'probe');
   await data.reloadTodos();
   assert.equal(BUILT, 0, 'no gesture builds its own client');
   assert.equal(data.regGH(), first, 'and they all share the one the writes cache their shas on');
@@ -205,16 +250,16 @@ test('the registry client is held, not rebuilt per gesture', async () => {
 // file and the shape stays the smallest thing that works.
 test('toggleUrgent sets the flag, and clearing it removes the key', async () => {
   SAVES = [];
-  data.todoItems = [{ id: 't1', text: 'Internal allotment by August 15', done: false, created_at: '2026-08-06T00:00:00Z' }];
-  const it = data.todoItems[0];
+  FILES = { 'lists/to-do.json': { items: [{ id: 't1', text: 'Internal allotment by August 15', done: false, created_at: '2026-08-06T00:00:00Z' }] } };
+  await data.loadTodos(reg());
 
-  await data.toggleUrgent(it);
-  assert.equal(it.urgent, true);
+  await data.toggleUrgent(data.todoItems[0]);
+  assert.equal(data.todoItems[0].urgent, true);
   assert.equal(SAVES.at(-1).value.items[0].urgent, true);
   assert.match(SAVES.at(-1).message, /^Flag "Internal allotment by August 15" urgent via Web Tools$/);
 
-  await data.toggleUrgent(it);
-  assert.equal('urgent' in it, false, 'cleared means absent, not false');
+  await data.toggleUrgent(data.todoItems[0]);
+  assert.equal('urgent' in data.todoItems[0], false, 'cleared means absent, not false');
   assert.match(SAVES.at(-1).message, /^Clear urgent on "Internal allotment by August 15" via Web Tools$/);
 });
 
@@ -278,23 +323,24 @@ test('the chip colors by band', () => {
 
 test('setDue stores a plain date, and anything else clears it', async () => {
   SAVES = [];
-  data.todoItems = [{ id: 't1', text: 'Internal allotment', done: false }];
-  const it = data.todoItems[0];
+  FILES = { 'lists/to-do.json': { items: [{ id: 't1', text: 'Internal allotment', done: false }] } };
+  await data.loadTodos(reg());
+  const it = () => data.todoItems[0];
 
-  await data.setDue(it, '2026-08-15');
-  assert.equal(it.due, '2026-08-15');
+  await data.setDue(it(), '2026-08-15');
+  assert.equal(it().due, '2026-08-15');
   assert.match(SAVES.at(-1).message, /^Set "Internal allotment" due 2026-08-15 via Web Tools$/);
 
   const before = SAVES.length;
-  await data.setDue(it, '2026-08-15');
+  await data.setDue(it(), '2026-08-15');
   assert.equal(SAVES.length, before, 'no write when the value did not change');
 
-  await data.setDue(it, '');                       // the picker's own clear control
-  assert.equal('due' in it, false, 'cleared means absent, not empty');
+  await data.setDue(it(), '');                     // the picker's own clear control
+  assert.equal('due' in it(), false, 'cleared means absent, not empty');
   assert.match(SAVES.at(-1).message, /^Clear due date on "Internal allotment" via Web Tools$/);
 
-  await data.setDue(it, '2026-8-1');               // half-typed: not a stored value
-  assert.equal('due' in it, false);
+  await data.setDue(it(), '2026-8-1');             // half-typed: not a stored value
+  assert.equal('due' in it(), false);
 });
 
 test('urgent and due are independent, and either one alone is enough', () => {
@@ -308,18 +354,19 @@ test('urgent and due are independent, and either one alone is enough', () => {
 // it, so the file's history stays readable as a log.
 test('a long to-do is clipped in the urgent commit message', async () => {
   SAVES = [];
-  data.todoItems = [{ id: 't1', text: 'y'.repeat(100), done: false }];
+  FILES = { 'lists/to-do.json': { items: [{ id: 't1', text: 'y'.repeat(100), done: false }] } };
+  await data.loadTodos(reg());
   await data.toggleUrgent(data.todoItems[0]);
   assert.match(SAVES.at(-1).message, /^Flag "y{59}…" urgent via Web Tools$/);
 });
 
 // The pane must not be the only thing that can write this field: the file is
-// hand-editable and an agent session drains it, and the savers write the parsed
-// items straight back. This is the property that made `urgent` possible to add
+// hand-editable and an agent session drains it, and every write changes a fresh
+// read of the file. This is the property that made `urgent` possible to add
 // without a migration, so it is worth holding.
 test('a key the pane does not know survives a round trip', async () => {
   SAVES = [];
-  FILES = { 'lists/todo.json': { items: [{ id: 't1', text: 'x', done: false, due: '2026-08-15', urgent: true }] } };
+  FILES = { 'lists/to-do.json': { items: [{ id: 't1', text: 'x', done: false, due: '2026-08-15', urgent: true }] } };
   await data.loadTodos(reg());
   await data.toggleTodo(data.todoItems[0]);
   const saved = SAVES.at(-1).value.items[0];

@@ -78,8 +78,8 @@ function seed() {
   SAVES = []; DELS = [];
   data.createdPick = '';
   FILES = {
-    'lists/todo.json': json({ items: [] }),
-    'lists/jots.json': json({ items: [] }),
+    'lists/to-do.json': json({ items: [] }),
+    'lists/jot.json': json({ items: [] }),
     'lists/autocorrect.json': json({ note: 'find and replace', items: [{ from: 'a', to: 'b' }] }),
     'lists/useful-words.json': json({ title: 'Useful words and phrases', icon: 'book-open-text',
       items: [{ id: 'l1', text: 'appurtenance', note: 'something that belongs to a larger thing', created_at: '2026-10-17T00:00:00Z' }] }),
@@ -266,7 +266,7 @@ test('only an empty list can be deleted', async () => {
 
 test('starting another edit commits an open created-list edit first', async () => {
   seed();
-  FILES['lists/jots.json'] = json({ items: [{ id: 'j1', text: 'a jot', created_at: '2026-10-01T00:00:00Z' }] });
+  FILES['lists/jot.json'] = json({ items: [{ id: 'j1', text: 'a jot', created_at: '2026-10-01T00:00:00Z' }] });
   await data.loadCreatedLists(reg());
   await data.loadJots(reg());
   const list = data.createdList, it = list.items[0];
@@ -288,9 +288,9 @@ test('a note about a created-list item is labelled with the list and the item', 
 
 test('the jot writer keeps the file’s other top-level keys', async () => {
   seed();
-  FILES['lists/jots.json'] = json({ owner: 'me', items: [] });
+  FILES['lists/jot.json'] = json({ owner: 'me', items: [] });
   data.jotDraft = 'an idea';
   await data.addJot();
-  assert.equal(saved('lists/jots.json').owner, 'me');
-  assert.equal(saved('lists/jots.json').items.length, 1);
+  assert.equal(saved('lists/jot.json').owner, 'me');
+  assert.equal(saved('lists/jot.json').items.length, 1);
 });

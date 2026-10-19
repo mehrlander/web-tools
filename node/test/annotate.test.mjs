@@ -124,7 +124,7 @@ test('saveJot appends one jot through fresh-read → mutate → save', async () 
   const jot = await A.saveJot();
   assert.equal(calls.length, 1);
   assert.equal(calls[0].repo, 'mehrlander/web-tools-private');
-  assert.equal(calls[0].path, 'lists/jots.json');
+  assert.equal(calls[0].path, 'lists/jot.json');
   assert.equal(calls[0].data.items.length, 1);
   assert.ok(calls[0].data.items[0].text.startsWith('# Notes — docs/sample.md'));
   assert.ok(calls[0].message.includes('via annotate'));

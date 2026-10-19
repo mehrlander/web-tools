@@ -30,7 +30,11 @@ class FakeGH {
       return { default_branch: 'main', description: '', private: true, pushed_at: '' };
     return {};
   }
-  async save(path, value, message) { SAVES.push({ path, value, message }); return {}; }
+  async save(path, value, message) {
+    SAVES.push({ path, value, message });
+    if (this.repo === REGISTRY) FILES[path] = JSON.parse(JSON.stringify(value));
+    return {};
+  }
 }
 
 const { window, problems } = makeWindow({
@@ -53,6 +57,7 @@ window.__shell = {
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/surface.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
 
@@ -61,17 +66,17 @@ const reg = () => new FakeGH({ repo: REGISTRY });
 const saved = (path) => SAVES.filter(s => s.path === path).at(-1)?.value;
 
 async function seedTodos(items) {
-  FILES['lists/todo.json'] = { items };
+  FILES['lists/to-do.json'] = { items };
   await data.loadTodos(reg());
   SAVES = [];
 }
 async function seedJots(items) {
-  FILES['lists/jots.json'] = { items };
+  FILES['lists/jot.json'] = { items };
   await data.loadJots(reg());
   SAVES = [];
 }
 async function seedPins(items) {
-  FILES['lists/pins.json'] = { items };
+  FILES['lists/pin.json'] = { items };
   await data.loadPins(reg());
   SAVES = [];
 }
@@ -104,7 +109,7 @@ test('commitTodoEdit rewrites the text and names both sides in the commit messag
   await data.commitTodoEdit(it);
 
   assert.equal(data.editId, null, 'the slot closes on commit');
-  assert.equal(saved('lists/todo.json').items[0].text, 'Re-date the environment notes');
+  assert.equal(saved('lists/to-do.json').items[0].text, 'Re-date the environment notes');
   const msg = SAVES.at(-1).message;
   assert.match(msg, /enviroment/, 'the old text says which item moved');
   assert.match(msg, /environment notes/, 'the new text says what it became');
@@ -176,7 +181,7 @@ test('commitJotEdit rewrites text and kind together, slugging the kind through K
   data.editNote = 'Doc Failure';
   await data.commitJotEdit(it);
 
-  const item = saved('lists/jots.json').items[0];
+  const item = saved('lists/jot.json').items[0];
   assert.equal(item.text, 'the combine route serves CJS for alpinejs');
   assert.equal(item.kind, 'doc-failure', 'lowercased and hyphenated, as the add form would have');
 });
@@ -190,7 +195,7 @@ test('clearing a jot kind DELETES the key rather than storing an empty one', asy
   data.editNote = '';
   await data.commitJotEdit(it);
 
-  const item = saved('lists/jots.json').items[0];
+  const item = saved('lists/jot.json').items[0];
   assert.equal('kind' in item, false,
     'a jot whose kind was cleared must read identically to one that never had a kind');
   assert.equal(item.text, 'an idea');
@@ -207,7 +212,7 @@ test('changing only the kind is a change, and changing neither is not', async ()
   data.startJotEdit(it);
   data.editNote = 'idea';
   await data.commitJotEdit(it);
-  assert.equal(saved('lists/jots.json').items[0].kind, 'idea');
+  assert.equal(saved('lists/jot.json').items[0].kind, 'idea');
 });
 
 test('editing one jot leaves every other jot in the file alone', async () => {
@@ -222,7 +227,7 @@ test('editing one jot leaves every other jot in the file alone', async () => {
   data.editDraft = 'second, corrected';
   await data.commitJotEdit(it);
 
-  const items = saved('lists/jots.json').items;
+  const items = saved('lists/jot.json').items;
   assert.equal(items.length, 3);
   // Array.from rebuilds the list in THIS realm. items comes back through the
   // jsdom window, so its prototype is that realm's Array and deepStrictEqual
@@ -244,7 +249,7 @@ test('commitPinEdit writes the three authored fields, note and group included', 
   data.editGroup = 'docs';
   await data.commitPinEdit(it);
 
-  const item = saved('lists/pins.json').items[0];
+  const item = saved('lists/pin.json').items[0];
   assert.equal(item.title, 'Showing: which link shows what');
   assert.equal(item.note, 'the frame and the record');
   assert.equal(item.group, 'docs');
@@ -259,7 +264,7 @@ test('a pin edit never re-aims the pin: target survives untouched', async () => 
   data.editDraft = 'new title';
   await data.commitPinEdit(it);
 
-  assert.equal(saved('lists/pins.json').items[0].target, 'me/tools@main:docs/showing.md');
+  assert.equal(saved('lists/pin.json').items[0].target, 'me/tools@main:docs/showing.md');
 });
 
 test('clearing a pin note or group DELETES the key, matching the jot kind rule', async () => {
@@ -274,7 +279,7 @@ test('clearing a pin note or group DELETES the key, matching the jot kind rule',
   data.editGroup = '';
   await data.commitPinEdit(it);
 
-  const item = saved('lists/pins.json').items[0];
+  const item = saved('lists/pin.json').items[0];
   assert.equal('note' in item, false);
   assert.equal('group' in item, false);
   assert.equal(item.title, 'A', 'the required field is untouched');
@@ -535,7 +540,9 @@ test('opening a second row commits the first rather than dropping its typing', a
 
   assert.equal(data.editId, 't2', 'the slot moved');
   assert.equal(data.editDraft, 'second', 'and the draft is the new row, not a leftover');
-  assert.equal(a.text, 'first, edited', "the first row's typing was committed, not discarded");
+  assert.equal(data.todoItems[0].text, 'first, edited', "the first row's typing was committed, not discarded");
+  // The write itself lands after the fresh read, a few turns later.
+  for (let i = 0; i < 40 && !SAVES.some(s => /first, edited/.test(s.message)); i++) await new Promise(r => setTimeout(r, 5));
   assert.match(SAVES.at(-1).message, /first, edited/);
 });
 
