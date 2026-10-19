@@ -34,3 +34,4 @@ Check changes against the principles above, make any needed revisions, then pres
 - **Locate it, then show it**: Name the place by its content and say what changes, then show a fenced `diff` block with enough unchanged lines to locate it.
 - **Add the fields that apply**: *Describes:* the code the passage describes. *Reviewed:* other documents read for the edit. *Alternative placements:* for an addition, other places it could go.
 - **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diffs, one line each.
+- **Print it with the script**: `python3 "${CLAUDE_PLUGIN_ROOT}/doc-craft/doc-review.py" briefing.json` renders the review from a JSON briefing and the uncommitted edits; `--list` names the hunks a briefing keys on.
