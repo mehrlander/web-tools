@@ -6,7 +6,7 @@
 | **PR comment, subscribed** | anyone with repo write *except this session* | **push** | yes | **yes** |
 | `send_message` between sessions | Claude sessions on the account | push | no | no |
 | Routine, `send_later` | a schedule, or a session arming itself | push | the trigger is | no |
-| errand, `errands/requests/` | a session; answered by a person in the browser or by the Gemini daemon | pull | yes | by token |
+| errand, `errands/requests/` on the registry's `background` branch | a session; answered by a person in the browser or by the Gemini daemon | pull | yes | by token |
 | `chron/dump/`, drained | the user | pull | yes | yes |
 | A tracker task | anyone | pull | yes | yes |
 | A commit on a branch, polled on a schedule | anyone with repo write | pull, on the poller's clock | yes | yes: a scheduled Codex check, while its machine and app run (2026-10-01) |
