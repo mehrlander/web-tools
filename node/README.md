@@ -313,12 +313,9 @@ file's length into the registry's `words`, so `tests-index`, `tools-index` and
 `registries-reach` all run above it: each writes a file under
 `docs/`, and a stamp taken before that write is stale by exactly that file's own
 delta. Nothing local reports it either, because the hook does not verify what it
-stamps; `docs-registry.test.mjs` catches it in CI, after the push. Three legs
-learned this separately and each left the finding as a comment on its own leg,
-which is how the fourth (`snags-index`, retired on 2026-10-20 with the Markdown
-snag log) was free to repeat it in 2026-08-23. So it is stated
-here once: a new generator that writes under `docs/` goes above leg docs-reach, and one
-that only reads goes wherever it likes.
+stamps; `docs-registry.test.mjs` catches it in CI, after the push. So a new
+generator that writes under `docs/` goes above leg docs-reach, and one that only
+reads goes wherever it likes.
 
 **And a leg has to stage the file it actually writes.** Every `git add` in the
 hook goes through a `stage()` helper that reports a path that is not there,

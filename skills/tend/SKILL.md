@@ -137,9 +137,9 @@ Branches does.
 
 ## Snags
 
-Snags are the Lists view's Snag list, `lists/snag.json` in the registry: one
-item per trip, with every date it bit in `seen` (the shape is in
-`docs/views/lists.md`). The count orders the reading and triggers nothing.
+Snags are the Lists view's Snag list (`lists/snag.json` in the registry, shape
+in `docs/views/lists.md`). How many dates an item's `seen` holds orders the
+reading and triggers nothing.
 
 - **Act:** log a trap this pass hits, as an item or as a date on the item that
   owns it.

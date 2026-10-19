@@ -6,8 +6,8 @@ description: "Review a rendered screenshot before handing it over or drawing a c
 # Screenshot Review
 
 A headless screenshot that fails rarely errors; it renders something plausible
-and wrong (the recorded classes are snags in the Lists view's Snag list,
-`lists/snag.json` in the registry). The session that
+and wrong (the recorded classes are snags, in the registry's
+`lists/snag.json`). The session that
 produced the shot is its worst-placed reader: it sees what the image is
 supposed to show. Put fresh readers in front of the image before the user is.
 
