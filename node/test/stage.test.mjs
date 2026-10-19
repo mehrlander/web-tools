@@ -2809,6 +2809,99 @@ test('decodePrompts drops malformed entries and bad payloads', () => {
   assert.deepEqual(plain_(StageLink.decodePrompts(enc)), [{ label: 'ok', ask: 'a' }], 'only complete {label,ask} survive');
 });
 
+// ── A read link hands over a file to copy ──────────────────────────────────
+//
+// `mode=read` is the handoff of something to READ, usually a script carried
+// whole in `#gz=`: it opens on the file rather than on Out, and the reader's
+// Copy gives the text back exactly as it was carried.
+
+test('mint/parseLink round-trip the read mode, and an unknown mode is dropped', () => {
+  const StageLink = window.StageLink;
+  const refs = [{ repo: 'me/a', ref: '', path: 'x.ps1' }];
+  const url = StageLink.mint(refs, 'https://h/p', { mode: 'read' });
+  assert.match(url, /&mode=read$/);
+  assert.equal(StageLink.parseLink(url).mode, 'read');
+  assert.equal(StageLink.parseLink('#stage=me/a:x.ps1&mode=play').mode, '',
+    'a mode the grammar does not name is ignored rather than trusted');
+  assert.ok(!StageLink.mint(refs, 'https://h/p', { mode: 'play' }).includes('&mode='));
+  assert.deepEqual(plain_(StageLink.MODES), ['diff', 'read']);
+});
+
+test('a read-mode link opens the reader on its first file, once', async () => {
+  reset();
+  // Flush the emptied stage first: the opener watches the item COUNT, and a
+  // test before this one can leave one item staged, so emptying and staging
+  // one in the same tick reads as no change and never fires.
+  await shown();
+  data.linkMode = 'read';
+  data._autoDiffed = false;
+  store.stage = [
+    { local: true, id: 311, name: 'Do-Thing.ps1', path: 'Do-Thing.ps1', size: 9, isText: true, text: 'Write-Host 1\n' },
+  ];
+  await shown();
+  assert.ok(data._rDeck, 'the reader opens without a tap');
+  assert.equal(data.reader.i, 0, 'on the first file');
+  assert.equal(data._cmpDeck, null, 'and compares nothing, since one file is not a pair');
+  assert.equal(data._autoDiffed, true, 'and only arms once');
+  data.linkMode = '';
+  data.reader = null;
+});
+
+test('the reader copies the file it was given, not the text it shows', async () => {
+  reset();
+  const copied = [];
+  const said = [];
+  const realToast = Alpine.store('toast');
+  const realIo = window.io;
+  window.io = { copy: async (t) => { copied.push(t); return true; } };
+  Alpine.store('toast', (kind, msg) => said.push(msg));
+  // Four-space indentation is what the screen halves (fmt), so it is the case
+  // where copying the viewer's content would have changed the script.
+  const text = "if ($x) {\n    Write-Host '    four spaces inside'\n}\n";
+  store.stage = [{ local: true, id: 312, name: 'Indent.ps1', path: 'Indent.ps1', size: text.length, isText: true, text }];
+  await data.readerAt(0);
+  await shown();
+  assert.notEqual(readerViewer(0).content, text, 'the screen shows its own spacing');
+  const copy = data._rActions(0).find(a => a.icon === 'ph-copy');
+  assert.ok(copy, 'the header offers Copy');
+  await copy.onClick();
+  assert.deepEqual(plain_(copied), [text], 'and Copy hands back the file byte for byte');
+  assert.match(said[0] || '', /^Copied Indent\.ps1$/);
+  window.io = realIo;
+  Alpine.store('toast', realToast);
+});
+
+test('stage-link mints a #gz= read link the stage decodes, and refuses what will not ride', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'stage-link-'));
+  const cli = new URL('../stage-link.mjs', import.meta.url).pathname;
+  const run = (...args) => execFileSync(process.execPath, [cli, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  try {
+    const a = path.join(dir, 'Do-Thing.ps1');
+    const b = path.join(dir, 'Notes.md');
+    writeFileSync(a, '﻿$x = 1\r\n    Write-Host $x\r\n');
+    writeFileSync(b, '# Notes\n');
+    const url = run(a, b);
+    assert.ok(url.startsWith('https://mehrlander.github.io/web-tools/app/#gz='));
+    const lk = window.StageLink.parseLink(url.slice(url.indexOf('#')));
+    assert.equal(lk.mode, 'read');
+    const items = await window.StageLink.decodeLocals(lk.gz);
+    assert.deepEqual(plain_(items), [
+      { name: 'Do-Thing.ps1', text: '$x = 1\r\n    Write-Host $x\r\n' },
+      { name: 'Notes.md', text: '# Notes\n' },
+    ], 'named by file, the BOM dropped and every other byte kept, CRLF included');
+    assert.match(run(a, b, '--diff'), /&mode=diff$/);
+    assert.throws(() => run(a, '--diff'), /needs two files/);
+    const bin = path.join(dir, 'latin.ps1');
+    writeFileSync(bin, Buffer.from([0x63, 0x61, 0x66, 0xe9]));
+    assert.throws(() => run(bin), /is not UTF-8 text/);
+    const big = path.join(dir, 'big.txt');
+    writeFileSync(big, Array.from({ length: 4000 }, () => createHash('sha256').update(String(Math.random())).digest('hex')).join('\n'));
+    assert.throws(() => run(big), /over the 24K a link can carry/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('a diff-mode link opens the reader on its diff, once', async () => {
   reset();
   data.reader = null;
