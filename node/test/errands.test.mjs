@@ -89,9 +89,9 @@ test('validate refuses a run its method cannot perform', () => {
 });
 
 test('a laptop-daemon errand, as errand_runner.py files it, is valid and needs no one', () => {
-  const e = E.normalize({ id: 'daemon-2026-10-02-ping-abc123', note: 'Ping the daemon', purpose: 'test-script',
-    dest: 'mehrlander/web-tools-private@main:errands/output/daemon-2026-10-02-ping-abc123',
-    run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'ping', args: {},
+  const e = E.normalize({ id: 'daemon-2026-10-02-status-abc123', note: 'Check that the daemon is running', purpose: 'test-script',
+    dest: 'mehrlander/web-tools-private@background:errands/results',
+    run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'status', args: {},
            script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
   assert.equal(E.validate(e).ok, true);
   assert.equal(e.run.outputReturn, 'self-filed', 'the daemon files its own result');
@@ -99,26 +99,26 @@ test('a laptop-daemon errand, as errand_runner.py files it, is valid and needs n
     run: { method: 'laptop-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'laptop only');
 });
 
-test('askRequest files a laptop-daemon ask the daemon and the Stage accept', () => {
-  const r = E.askRequest({ prompt: 'What rivers   feed the Columbia?', registry: 'me/reg',
+test('pingRequest files a laptop-daemon ping the daemon and the Stage accept', () => {
+  const r = E.pingRequest({ prompt: 'What rivers   feed the Columbia?', registry: 'me/reg',
                            now: '2026-10-02T17:00:00.123Z' });
-  assert.match(r.id, /^daemon-2026-10-02-ask-[a-z0-9]+$/);
+  assert.match(r.id, /^daemon-2026-10-02-ping-[a-z0-9]+$/);
   assert.match(r.id, /^[a-z0-9][a-z0-9.-]{0,95}$/, "the daemon's id rule");
   assert.deepEqual(r.run.args, { prompt: 'What rivers   feed the Columbia?' }, 'the prompt goes as typed');
-  assert.equal(r.title, 'Ask Gemini: What rivers feed the Columbia?');
+  assert.equal(r.title, 'Ping Gemini: What rivers feed the Columbia?');
   assert.equal(r.createdAt, '2026-10-02T17:00:00Z');
-  assert.equal(r.dest, 'me/reg@main:errands/results');
+  assert.equal(r.dest, 'me/reg@background:errands/results', 'results land on the errand branch');
   assert.equal(E.validate(E.normalize(r)).ok, true);
 });
 
-test('pingNames keeps ask errands, newest day first, and askStage reads where one stands', () => {
-  const a = E.askRequest({ prompt: 'x', now: '2026-10-01T10:00:00Z' }).id + '.json';
-  const b = E.askRequest({ prompt: 'y', now: '2026-10-02T10:00:00Z' }).id + '.json';
-  const cli = 'daemon-2026-09-30-ask-a1b2c3.json';
+test('pingNames keeps ping errands, newest day first, and pingStage reads where one stands', () => {
+  const a = E.pingRequest({ prompt: 'x', now: '2026-10-01T10:00:00Z' }).id + '.json';
+  const b = E.pingRequest({ prompt: 'y', now: '2026-10-02T10:00:00Z' }).id + '.json';
+  const cli = 'daemon-2026-09-30-ping-a1b2c3.json';
   assert.deepEqual(E.pingNames([a, cli, 'daemon-2026-10-02-status-abc123.json', b, 'ask-other.json']), [b, a, cli]);
-  assert.equal(E.askStage(a, [], []), 'sent');
-  assert.equal(E.askStage(a, [a], []), 'thinking');
-  assert.equal(E.askStage(a, [a], [a]), 'answered');
+  assert.equal(E.pingStage(a, [], []), 'sent');
+  assert.equal(E.pingStage(a, [a], []), 'thinking');
+  assert.equal(E.pingStage(a, [a], [a]), 'answered');
 });
 
 test('statusRequest files a status check the daemon and the Stage accept', () => {

@@ -12,7 +12,7 @@ viewer's token (`gh-store.js`'s `save`), so each check-off is a commit.
 | To-do | `lists/todo.json` | `{id, text, done, created_at, done_at, urgent, due}` |
 | Jot | `lists/jots.json` | `{id, text, created_at, kind}` |
 | Pins | `lists/pins.json` | `{id, target, title, note, group, created_at}` |
-| Ping | `errands/requests/`, `errands/results/` | an `ask` errand and its result |
+| Ping | `errands/requests/`, `errands/results/`, on the `background` branch | a `ping` errand and its result |
 | Note | `notes/notes.jsonl` | `{id, at, author, about, text, anchor}` |
 
 - **Optional fields round-trip.** A field is written only when set, and the
