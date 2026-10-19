@@ -466,7 +466,9 @@ test('a mount handed its record still loads the kit chain', async () => {
   await tick(6);
   const d = Alpine.$data(el);
   assert.equal(d.record.short, 'b8fae678');
-  assert.deepEqual(log, [], 'and it still reads nothing from the store');
+  // The Calls tab lists the session's user calls (session-calls-tab.test.mjs);
+  // that read is not the record's.
+  assert.deepEqual(log.filter(l => !l.startsWith('tree:contents/user-calls')), [], 'and it still reads no record from the store');
   assert.ok(loads.includes('kits/read-aloud.js'),
     'the kit the deck speaks with and the picker rows reduce their previews through');
   assert.ok(loads.includes('kits/session-render.js'), 'and the one settle() renders with');
