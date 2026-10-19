@@ -155,9 +155,35 @@ session's checkout or plugin copy may predate it:
 > The user in session <id> ran /tend prod. Tend this session's own work as
 > the Prod section of the tend skill defines it (mehrlander/web-tools,
 > skills/tend/SKILL.md at commit <sha>). Please proceed using your judgment.
+> When finished, send session <id> one line: what changed, and what waits on
+> the owner.
+
+Add only these lines, each where it applies:
+
+- **Main's checks:** a check failing on main's head and where it is reported,
+  so a session counts it as known rather than diagnosing it.
+- **Reference:** `For reference: <paths>.`, naming documents that bear on the
+  session's open work, such as a skill, a page under docs/ or a registry.
+- **Connected work:** `Connected work: <session link> (<title>, <pull
+  request>).`, naming another session's open work on the same files or
+  question.
+- **Restore:** the line below, for a session whose link appears in no
+  record's `agent_session` field in the session-record store
+  (`/portable:sessions`). A session in the window with no open work and no
+  record gets it alone.
+
+> This session has no record in <store>. Invoke /portable:sessions. If that
+> skill is unknown, recover the portable plugin as mehrlander/web-tools
+> docs/environment/container.md describes under "If the installed plugin fails
+> to load", and include what `claude plugin list` shows.
+
+The reference and connected-work lines name documents and work, not what to do
+with them. Show the owner any other note, word for word, before sending it.
 
 Then reply with the sessions messaged and the sessions skipped, each with its
-title and open work, and for a skipped one the reason.
+title, its open work and what its reference and connected-work lines named,
+and for a skipped one the reason. As the one-line reports arrive, gather what
+each session left waiting on the owner.
 
 A session that receives it works through whichever of these apply, under the
 principles above:
@@ -166,10 +192,12 @@ principles above:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.
 - **Ripen the open decision:** one question, a recommendation, the evidence.
-  Where cheap and reversible, build the recommended option on the branch so
-  the owner's answer is accept or reject. Ripen only decisions already open.
-- **Review documentation edits again,** even after an earlier pass: revise
-  each against doc-craft and show it as its Review section directs.
+  Where cheap and reversible, build the recommended option on the branch as a
+  commit of its own, so the owner's answer is keep or revert. Ripen only
+  decisions already open.
+- **Review documentation edits again,** even after an earlier pass, including
+  wording left uncommitted in a pull request comment or a reply: revise each
+  against doc-craft and show it as its Review section directs.
 - **Stand in for a hand check** the session asked the owner to make: a
   headless screenshot, a measurement at phone width, a test.
 - **Mark where to pick up** when the work continues until the owner is
@@ -179,6 +207,7 @@ principles above:
   context: in the pull request body if there is one, complete enough for a
   fresh session to continue from.
 
-End the session's own reply with a recap for a reader coming back cold: what
-the session is for, what it did, where things stand, what waits on the owner,
-and where to pick up.
+End the session's own reply with a recap for a reader coming back cold. Open
+it with what waits on the owner, one question per decision, each linked to
+where the owner answers it. Then say what the session is for, what it did,
+where things stand, and where to pick up.
