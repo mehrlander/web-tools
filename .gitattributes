@@ -12,7 +12,7 @@
 #
 # Why it matters more than the two minutes it saves: a conflicted pull request
 # has no merge ref, so no `pull_request` CI run starts and the head sits at zero
-# checks with nothing saying why. See docs/SNAGS.md, ci-run-silently-not-started
+# checks with nothing saying why. See the snag ci-run-silently-not-started
 # and derived-field-conflicts-per-branch.
 #
 # The driver itself is registered per checkout by `npm run setup`; Claude's
