@@ -17,10 +17,10 @@ its list and written whole through the viewer's token (`gh-store.js`'s
 | Ping | `errands/requests/`, `errands/results/`, on the `background` branch | a `ping` errand and its result |
 | Note | `notes/notes.jsonl` | `{id, at, author, about, text, anchor}` |
 
-- **Writes start from the file.** Every write reads the file fresh, changes
-  it, and saves it (`lib/kits/lists.js`), so an item or a field added by hand,
-  by a session or in another tab survives the pane. A field is written only
-  when set. An undo puts back the one item it is about.
+- **Optional fields round-trip.** A field is written only when set, and every
+  write reads the file fresh, changes it, and saves it (`lib/kits/lists.js`),
+  so a field or an item added by hand, by a session or in another tab survives
+  the pane. An undo puts back the one item it is about.
 - **To-do:** an item is hot when `urgent` or its `due` (`YYYY-MM-DD`) has
   arrived.
 - **Jot:** no done state. A jot stays until it is promoted somewhere with a real
