@@ -43,7 +43,7 @@ content,description,recorded,,none,column,yes,,value,one line on the artifact
 portable,kind,recorded,,value,column,yes,skill;agent;doc;script;dir,label,what species of thing travels
 portable,command,recorded,,none,column,yes,,value,the invocation name; present on kind:skill rows only
 portable,title,recorded,,none,column,yes,,value,display name
-portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time. Kept on the skills, whose skills row carries a model-facing trigger description rather than a reader's one-liner"
+portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time, and on every skill, which skills/manifest.csv describes"
 portable,use,recorded,,none,column,yes,plugin;live;reference;adopt;on-demand,label,"how a consumer takes the item: installed by the plugin, read live, referenced, adopted once, or fetched on demand"
 tools,icon,recorded,,none,column,yes,,value,phosphor icon name
 owners,kind,recorded,,value,column,yes,statement;family,label,"whether the row owns one repeated statement or declares a rule over a scope; a family row is a DECLARATION in this model, carried here because the file that owns it is distributed"

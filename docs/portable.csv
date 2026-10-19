@@ -1,28 +1,28 @@
 kind,command,path,title,role,use
-skill,/portable:default,skills/default/SKILL.md,default,"loads the plugin-vendored working conventions, and the vendored guide-PR course when a PR is in play",plugin
-skill,/portable:sessions,skills/sessions/SKILL.md,sessions,"attaches and clones the session-record store, named by SESSIONS_STORE_REPO, a sessionsStore declaration, or the built-in mehrlander/web-tools-private, so a task-spawned session is recorded like a hand-started one",plugin
-skill,/portable:load-skill,skills/load-skill/SKILL.md,load-skill,"fetch a skill by URL where the plugin is absent, or from another source",plugin
-skill,/portable:web-tools-app,skills/web-tools-app/SKILL.md,web-tools-app,browse any repo and move files across repos with the Web Tools app,plugin
-skill,/portable:tree,skills/tree/SKILL.md,tree,"render a linked file tree of the repo, table-first for mobile",plugin
-skill,/portable:in-flight,skills/in-flight/SKILL.md,in-flight,"check whether a branch, PR, or task is already working on something, and reconcile stale tracker claims",plugin
-skill,/portable:tasks,skills/tasks/SKILL.md,tasks,"operate the cross-session project tracker, and the filing rules: the bar, the propose-first gate, no fragmenting",plugin
-skill,/portable:repo-review,skills/repo-review/SKILL.md,repo-review,"read the repo's own state and report what stands out, at three depths (light, deep, sweep); probes, layers, lenses and destinations declared per repo",plugin
-skill,/portable:sandbox-traps,skills/sandbox-traps/SKILL.md,sandbox-traps,"the web sandbox's enumerable failures, each impersonating a worse one: the test that tells them apart, and the rule",plugin
-skill,/portable:content-registry,skills/content-registry/SKILL.md,content-registry,"the epistemic content registry: classify a repo's artifacts and their corpus membership in a curated content.csv; scaffold, verify, extract",plugin
-skill,/portable:concept-index,skills/concept-index/SKILL.md,concept-index,"build a repo's declared vocabulary and check a piece of writing against it: unlinked file names, terms of art used as if already known",plugin
-skill,/portable:drop-link,skills/drop-link/SKILL.md,drop-link,"mint a link that opens GitHub's new-file form on the working branch, so long content lands on the branch without riding through chat",plugin
+skill,/portable:default,skills/default/SKILL.md,default,,plugin
+skill,/portable:sessions,skills/sessions/SKILL.md,sessions,,plugin
+skill,/portable:load-skill,skills/load-skill/SKILL.md,load-skill,,plugin
+skill,/portable:web-tools-app,skills/web-tools-app/SKILL.md,web-tools-app,,plugin
+skill,/portable:tree,skills/tree/SKILL.md,tree,,plugin
+skill,/portable:in-flight,skills/in-flight/SKILL.md,in-flight,,plugin
+skill,/portable:tasks,skills/tasks/SKILL.md,tasks,,plugin
+skill,/portable:repo-review,skills/repo-review/SKILL.md,repo-review,,plugin
+skill,/portable:sandbox-traps,skills/sandbox-traps/SKILL.md,sandbox-traps,,plugin
+skill,/portable:content-registry,skills/content-registry/SKILL.md,content-registry,,plugin
+skill,/portable:concept-index,skills/concept-index/SKILL.md,concept-index,,plugin
+skill,/portable:drop-link,skills/drop-link/SKILL.md,drop-link,,plugin
 skill,/portable:look-markers,skills/look-markers/SKILL.md,look-markers,,plugin
-skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,"retrieve files from a configured corpus through a fixed-behavior tool: ranked snippet search and whole-document reads, one auditable command",plugin
-skill,/portable:scour,skills/scour/SKILL.md,scour,"acquisition fan-out: send agents to gather source material that does not exist locally, and map who says what about a subject across the open web",plugin
-skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,"measurement fan-out: build an independently labeled sample that scores a classifier or extractor for correctness, blind readers plus an adversarial skeptic plus a scoring script, and decide from the scorecard whether the program should change",plugin
-skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,compose Apple Shortcuts actions and hand them over as a tappable paste-in link for the device clipboard,plugin
-skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: investigate branches, pull requests, trackers and snags, store each conclusion as a finding, and bring the owner a prepared user call only where the next step needs their word",plugin
-skill,/portable:rundown,skills/rundown/SKILL.md,rundown,"read the owner's open Claude Code sessions and write a rundown: each session's state and a message to paste that moves it",plugin
-skill,/portable:notes,skills/notes/SKILL.md,notes,"leave, reply to and read notes: short, signed observations addressed to a repo, branch, file, pull request, task, snag, or another note",plugin
+skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,,plugin
+skill,/portable:scour,skills/scour/SKILL.md,scour,,plugin
+skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,,plugin
+skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,,plugin
+skill,/portable:tend,skills/tend/SKILL.md,tend,,plugin
+skill,/portable:rundown,skills/rundown/SKILL.md,rundown,,plugin
+skill,/portable:notes,skills/notes/SKILL.md,notes,,plugin
 skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
-skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,how the Claude app displays Markdown in a chat reply,plugin
+skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,,plugin
 skill,/portable:design-sprint,skills/design-sprint/SKILL.md,design-sprint,,plugin
 skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
