@@ -66,9 +66,9 @@ test('selecting text on the page raises the offer, on the passage', async () => 
   assert.notEqual(offerEl().style.display, 'none');
   // NO QUOTE ON IT: the offer sits on the words, so printing them would be the
   // text saying itself twice, in width taken from the thing being read. The
-  // passage rides the button's title instead.
+  // passage rides the button's title-tip instead.
   assert.equal(offerEl().textContent.replace(/\s+/g, ' ').trim(), '+ note');
-  assert.match(offerEl().querySelector('button').title, /quick brown fox/);
+  assert.match(offerEl().querySelector('button').getAttribute('data-title-tip'), /quick brown fox/);
 });
 
 test('the offer stands behind an open drawer instead of covering its phone-width pane', async () => {

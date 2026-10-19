@@ -96,10 +96,10 @@ test('the state split is the accent, and only five kinds carry it', () => {
 test('the Gemini daemon is told by its trailer, ahead of the crawl subject its cache refresh shares', () => {
   assert.equal(kind('topics: 2026-10-13-0852af41 via Gemini daemon'), 'daemon');
   assert.equal(kind('topics: 2026-10-12-8fbc1397 (+2 more) via Gemini daemon'), 'daemon');
-  assert.equal(kind('errands: claim daemon-2026-10-13-ask-d4e983 via Gemini daemon'), 'daemon');
+  assert.equal(kind('errands: claim daemon-2026-10-13-ping-d4e983 via Gemini daemon'), 'daemon');
   assert.equal(kind('Update sessions cache (state/sessions.json) via Gemini daemon'), 'daemon');
   assert.equal(kind('topics: 2026-10-13-0852af41'), 'authored', 'daemon writes from before the trailer');
-  assert.equal(kind('errands: file daemon-2026-10-13-ask-d4e983', 'Claude'), 'session', 'a session files an errand; the daemon answers it');
+  assert.equal(kind('errands: file daemon-2026-10-13-ping-d4e983', 'Claude'), 'session', 'a session files an errand; the daemon answers it');
 });
 
 test('a workflow run is told from the browser by its trailer, ahead of the crawl subject it shares', () => {

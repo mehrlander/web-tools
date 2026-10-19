@@ -40,7 +40,7 @@ function stubMatchMedia(window, matches) {
 }
 
 const paneBtn = (handle) => [...handle.el.querySelectorAll('button')]
-  .find(b => /Dock beside|Fill the pane/.test(b.title || ''));
+  .find(b => /Dock beside|Fill the pane/.test(b.getAttribute('data-title-tip') || ''));
 
 test('no hook means no toggle, which is every consumer that never asked', () => {
   const window = mount();

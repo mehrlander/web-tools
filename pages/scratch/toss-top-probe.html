@@ -51,7 +51,8 @@
   // errand method in docs/run-methods.csv. A person opens one link on the device
   // and does nothing else: this runs in the page it launched, walks the steps,
   // shows where it is in a banner, and closes the errand by writing
-  // errands/results/<id>.json with the device's stored token. Steps:
+  // errands/results/<id>.json on the registry's `background` branch, where
+  // errands live (kits/errands.js BRANCH), with the device's stored token. Steps:
   //   fab       open the FAB drawer as a tap does and wait; armed first, so a
   //             tab that dies here is recorded as `died` when Safari reloads it
   //   write     the page writes ?view=tools without the selection
@@ -104,7 +105,7 @@
         message: failed.length ? failed.length + ' step(s) failed: ' + failed.map(function (e) { return e.step; }).join(', ')
                                : 'every step passed' };
       try {
-        var G = window.GH, g = new G({ repo: cfg.registry, ref: '' });
+        var G = window.GH, g = new G({ repo: cfg.registry, ref: 'background' });
         if (typeof g.save !== 'function' && window.gh && window.gh.load) await window.gh.load('gh-store.js');
         await g.save('errands/results/' + cfg.id + '.json', rec, 'errand result: ' + cfg.id + ' (device)');
         banner((rec.pass ? 'Done: every check passed. ' : 'Done: ' + rec.message + '. ') + 'Result filed; nothing else to do.', rec.pass ? 'ok' : 'bad');

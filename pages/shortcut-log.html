@@ -525,7 +525,9 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
     s.open = !s.open;
     if (!s.open || s.lines.length || s.loading) return;
     s.loading = true;
-    const path = `shortcuts/sketches/${s.name.replace('/', ':')}.txt`;
+    // shortcut-tools' sketch.py names the file: each character Windows
+    // refuses in a file name becomes "_".
+    const path = `shortcuts/sketches/${s.name.replace(/[<>:"\/\\|?*]/g, '_')}.txt`;
     const at = ref => new window.GH({ repo: LOG, ref }).get(path).then(r => r.text).catch(() => null);
     try {
       const f = this.zip.fold;

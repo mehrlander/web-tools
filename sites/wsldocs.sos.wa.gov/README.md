@@ -11,11 +11,11 @@ client that does not run the interstitial's JavaScript gets a 403 page titled
 "Just a moment...": a Claude Code web session's `curl` and WebFetch, host-wide,
 the sandbox's headless Chromium (measured 2026-10-13), and a command-line fetch
 from the home laptop through the Gemini daemon (errand
-`daemon-2026-10-14-ask-a2701b`). The block follows the client, not the network.
+`daemon-2026-10-14-ping-a2701b`). The block follows the client, not the network.
 A browser navigating normally passes it without noticing, and so did one driven
 by an agent: the daemon reached the real page by running the laptop's Microsoft
 Edge, headed, with a temporary profile, over its remote-debugging connection
-(`daemon-2026-10-14-ask-b1808b`). Everything here therefore runs **on the page**
+(`daemon-2026-10-14-ping-b1808b`). Everything here therefore runs **on the page**
 in a real browser, yours or the laptop's, and nothing here should be written as
 though a session could fetch this host.
 
