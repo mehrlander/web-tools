@@ -369,7 +369,7 @@ test('hosted in a toss, the deck announces to the shell as well', async () => {
 test('the header carries the card\'s layouts and its github menu', async () => {
   const d = window.fileDeck.open({ ...AT, files: FILES });
   await tick(4);
-  const titles = [...d.el.querySelectorAll('.sd-header button')].map(b => b.title || '');
+  const titles = [...d.el.querySelectorAll('.sd-header button')].map(b => b.getAttribute('data-title-tip') || '');
   for (const t of ['Read', 'Compare, side by side', 'Compare, inline', 'This file on GitHub'])
     assert.ok(titles.includes(t), t + ' is on the header: ' + JSON.stringify(titles));
 
@@ -380,12 +380,12 @@ test('the header carries the card\'s layouts and its github menu', async () => {
   // order alone would pass either way, since the title block precedes the
   // cluster: the containment is the claim.
   const gh = [...d.el.querySelectorAll('.sd-header button')]
-    .find(b => b.title === 'This file on GitHub');
+    .find(b => b.getAttribute('data-title-tip') === 'This file on GitHub');
   assert.ok(d.el.querySelector('.sd-header h1').contains(gh),
     'the github mark is inside the title, beside the name');
   const cluster = [...d.el.querySelectorAll('.sd-header button')]
     .filter(b => !d.el.querySelector('.sd-header h1').contains(b))
-    .map(b => b.title || '')
+    .map(b => b.getAttribute('data-title-tip') || '')
     .filter(t => ['This file on GitHub', 'Read', 'Compare, side by side',
                   'Compare, inline'].includes(t));
   assert.deepEqual(cluster, ['Read', 'Compare, side by side', 'Compare, inline'],
@@ -400,7 +400,7 @@ test('the header carries the card\'s layouts and its github menu', async () => {
 
   // The one that is lit is the card's answer, not the header's own state.
   const lit = [...d.el.querySelectorAll('.sd-header button')]
-    .filter(b => b.className.includes('btn-active')).map(b => b.title);
+    .filter(b => b.className.includes('btn-active')).map(b => b.getAttribute('data-title-tip'));
   assert.deepEqual(lit, ['Read'], 'the card says which reading is showing');
 
   // And a tap reaches the card rather than being handled up here. THIS deck's
@@ -409,7 +409,7 @@ test('the header carries the card\'s layouts and its github menu', async () => {
   const slide = d.deck.track.children[d.deck.active()];
   const card = cards.get(slide.querySelector('[x-data^="fileReview"]'));
   assert.ok(card, 'the slide has a card');
-  d.el.querySelector('.sd-header button[title="Compare, inline"]').click();
+  d.el.querySelector('.sd-header button[data-title-tip="Compare, inline"]').click();
   assert.deepEqual(card.picked, ['unified'], 'the header asks the card to move');
   d.close(); await tick(6);
 });
@@ -419,7 +419,7 @@ test('the header carries the card\'s layouts and its github menu', async () => {
 test('the github menu opens under its button, from the kit', async () => {
   const d = window.fileDeck.open({ ...AT, files: FILES });
   await tick(4);
-  const btn = d.el.querySelector('.sd-header button[title="This file on GitHub"]');
+  const btn = d.el.querySelector('.sd-header button[data-title-tip="This file on GitHub"]');
   btn.click();
   const box = d.el.querySelector('.sd-hdr-menu');
   assert.ok(box, 'a menu appeared');
@@ -450,7 +450,7 @@ test('the github mark says it opens a menu', async () => {
   const d = window.fileDeck.open({ ...AT, files: FILES });
   await tick(4);
   const gh = [...d.el.querySelectorAll('.sd-header button')]
-    .find(b => b.title === 'This file on GitHub');
+    .find(b => b.getAttribute('data-title-tip') === 'This file on GitHub');
   assert.ok(gh.querySelector('.ph-github-logo'), 'the mark');
   assert.ok(gh.querySelector('.ph-caret-down'), 'and the caret beside it');
   d.close(); await tick(6);
@@ -463,7 +463,7 @@ test('the github mark says it opens a menu', async () => {
 test('no door to the sidebar on the header, and it still announces', async () => {
   const d = window.fileDeck.open({ ...AT, files: FILES });
   await tick(4);
-  assert.equal(d.el.querySelector('button[title="Open the sidebar for this file"]'), null,
+  assert.equal(d.el.querySelector('button[data-title-tip="Open the sidebar for this file"]'), null,
     'the header carries the file\'s controls and nothing else');
   assert.ok(window.__tossSubject && window.__tossSubject.path,
     'and the sidebar is still aimed at the file: ' + JSON.stringify(window.__tossSubject));
