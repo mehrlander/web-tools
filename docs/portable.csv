@@ -26,6 +26,7 @@ skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,
 skill,/portable:design-sprint,skills/design-sprint/SKILL.md,design-sprint,,plugin
 skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
+skill,/portable:doc-audit,skills/doc-audit/SKILL.md,doc-audit,,plugin
 skill,/portable:document-visual-mapping,skills/document-visual-mapping/SKILL.md,document-visual-mapping,,plugin
 skill,/portable:excel-com,skills/excel-com/SKILL.md,excel-com,,plugin
 skill,/portable:inspire-excellence,skills/inspire-excellence/SKILL.md,inspire-excellence,,plugin
@@ -58,7 +59,6 @@ skill,/portable:succinct-js-idioms,skills/succinct-js-idioms/SKILL.md,succinct-j
 skill,/portable:succinct-text,skills/succinct-text/SKILL.md,succinct-text,,plugin
 skill,/portable:userscripts,skills/userscripts/SKILL.md,userscripts,,plugin
 skill,/portable:windows-powershell,skills/windows-powershell/SKILL.md,windows-powershell,,plugin
-skill,/portable:wording-audit,skills/wording-audit/SKILL.md,wording-audit,,plugin
 doc,,docs/SURFACING.md,Surfacing,the canonical surfacing primitives; a byte-matched copy ships beside the plugin's default skill and is loaded with the writing rules,plugin
 doc,,docs/QUALIFIED-WRITING.md,Qualified writing,the canonical prose rules; a byte-matched copy ships beside the plugin's default skill and is loaded with the surfacing primitives,plugin
 doc,,docs/venues.md,Venues,"the venue map: the places agent work can run, what each reaches, and which programs there run attended",live
