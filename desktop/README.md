@@ -20,11 +20,12 @@ desktop app and leaves the worker alone.
 
 ## Build and run
 
-Requires Windows, .NET 8 SDK to build, .NET 8 Desktop Runtime to run, Git,
+Requires Windows, Node.js 22 or later and .NET 8 SDK to build, .NET 8 Desktop Runtime to run, Git,
 and Microsoft Edge WebView2 Runtime. GitHub CLI supplies the existing Web Tools
 login when available. An existing private activity checkout is needed for errands.
 
 ```powershell
+npm run setup
 .\desktop\build.ps1
 .\desktop\run.ps1
 .\desktop\run.ps1 -Laptop
@@ -77,7 +78,9 @@ view or written into settings or diagnostics. The browser profile persists the
 same authentication storage that the web app normally uses.
 
 `Core/` holds activity interpretation and Git reading; `App/` holds the WPF and
-Windows integration; `ui/` holds the laptop view. The app uses the
+Windows integration; `ui/` holds the laptop view. The build copies the existing
+Tailwind browser runtime from node_modules into the local app, so laptop styling
+loads without a network request. The app uses the
 [WebView2 SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2) and follows
 Microsoft's [WebView2 security guidance](https://learn.microsoft.com/microsoft-edge/webview2/concepts/security).
 `--diagnostics <path>` optionally writes the latest activity snapshot and loading

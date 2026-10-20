@@ -13,5 +13,9 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
     <ProjectReference Include="../Core/WebTools.Desktop.Core.csproj" />
     <Content Include="../ui/**" Link="ui/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../node_modules/@tailwindcss/browser/dist/index.global.js" Link="ui/vendor/tailwind.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="CheckDesktopStyleRuntime" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('../../node_modules/@tailwindcss/browser/dist/index.global.js')" Text="Run npm run setup from the repository root before building the desktop app." />
+  </Target>
 </Project>
