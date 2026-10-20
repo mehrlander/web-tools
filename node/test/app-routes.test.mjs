@@ -228,7 +228,9 @@ test('the two sub-tab encodings, counted', () => {
   // keeps in localStorage and IndexedDB, as a list and its detail).
   // 39 to 40 on 2026-10-15: This browser took Page, what the page a courier
   // bookmark opened the window from keeps in its own storage.
-  assert.equal(params, 40, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 40 to 43 on 2026-10-19: the Map gained Watch, with Triggers, Public and
+  // Names, read from the private registry.
+  assert.equal(params, 43, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
