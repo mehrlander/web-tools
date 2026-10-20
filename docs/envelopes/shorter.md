@@ -23,7 +23,7 @@ A payload is read by [`lib/kits/shorter-payload.js`](../../lib/kits/shorter-payl
 
 **Bare** is any text: prose, markdown, a pasted draft. It fills the left column and leaves the right one to you, so the page opens in its input form exactly as an empty visit does. This is the common case and needs no wrapper.
 
-**Envelope** is a JSON object carrying both sides. Use it for the one thing bare text cannot express: a shortening someone already produced, so the link opens straight into the adjudication view.
+**Envelope** is a JSON object carrying `original` and, optionally, `proposal`. Use it for a shortening someone already produced, so the link opens straight into the adjudication view.
 
 ```jsonc
 {
@@ -34,11 +34,11 @@ A payload is read by [`lib/kits/shorter-payload.js`](../../lib/kits/shorter-payl
 }
 ```
 
-**One producer worth naming.** [`pages/audit-render.html`](https://mehrlander.github.io/web-tools/pages/audit-render.html) mints this envelope from a standoff annotation: its **adjudicate** link projects the document (DROP spans cut, insertions placed) and hands the pair over as `#gz=`. The two pages split one job. Audit decides what a span is and whether it earns its place; this one decides what the replacement says. The projection is `Standoff.materialize`, held byte for byte against `skills/state-the-rule/materialize.py`.
+**One producer worth naming.** [`pages/audit-render.html`](https://mehrlander.github.io/web-tools/pages/audit-render.html) mints this envelope from a standoff annotation: its **adjudicate** link projects the document (DROP spans cut, insertions placed) and hands the pair over as `#gz=`. The two pages split one job. Audit decides what a span is and whether it earns its place; this one decides what the replacement says.
 
 `proposal` is optional. An envelope without one is a bare payload that also carries a title. Neither side is validated past being a string: the page word-diffs whatever it is given, and an empty proposal is the page's own "draft one for me" path rather than an error.
 
-**The discriminator is narrow on purpose.** The thing being shortened is arbitrary text, and some of it is JSON. An object qualifies as an envelope only when it declares `kind: "shorter/1"` or carries a string `original`. A JSON document that merely parses is read as bare text, which is what someone shortening a config file wants. This is the same rule [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) applies, for the same reason.
+**The discriminator is narrow on purpose.** The thing being shortened is arbitrary text, and some of it is JSON. An object qualifies as an envelope only when it declares `kind: "shorter/1"` or carries a string `original`. A JSON document that merely parses is read as bare text, which is what someone shortening a config file wants. [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) is narrow for the same reason.
 
 ## What opens where
 
@@ -52,6 +52,6 @@ An addressed payload takes its title from the file's path when the payload carri
 
 ## Contract notes
 
-- The page holds no state across loads. A link is the whole input, and the assembled result leaves by the copy button. Nothing is written back to the repo.
+- The page holds no state across loads. A link or a paste is the whole input, and the assembled result leaves by the copy button. Nothing is written back to the repo.
 - A private `?src=` needs the viewer's stored token. GitHub answers 404 rather than 401 for a private file fetched without one, so the page reports the failure inline rather than showing an empty form that looks like the link carried nothing.
 - `?use=<ref>` pins the lib chain to a branch, tag, or sha for previewing edits.
