@@ -36,9 +36,9 @@ An entity is a thing the passage names that a later sentence depends on, or a te
 
 `n`, `text`, and three lists. `text` is the sentence as a reader sees it: Markdown emphasis and link syntax dropped, inline code kept in its backticks, and a hard-wrapped sentence joined with single spaces.
 
-- **`mentions`**: each place the sentence refers to an entity. `e` is the entity id and `quote` is the span. `form` is omitted when the words name the entity. It is `anaphor` when the words need an antecedent to be understood: a pronoun, a demonstrative, or a definite description such as *that one decision*. It is `ellipsis` when a word leaves a slot of its own empty: `quote` is that word, `slot` names the slot (*object of Write*), and `fill` holds the missing words. Where `quote` occurs more than once in the sentence, `in` gives a longer span that contains it once (each *its* in *its own prompts* and *its own output*). An anaphor or ellipsis resolves to the entity's first named mention; `ante: <n>` overrides that, and `note` records a resolution a reader could get wrong. Where the passage never names the entity (a *this* that points at the document the passage opens), the mention is not a connection: the page shows the entity in its lists with its gloss, so the gloss carries what the words point to.
+- **`mentions`**: each place the sentence refers to an entity. `e` is the entity id and `quote` is the span. `form` is omitted when the words name the entity. It is `anaphor` when the words need an antecedent to be understood: a pronoun, a demonstrative, or a definite description such as *that one decision*. It is `ellipsis` when a word leaves one of its grammatical slots empty, such as a verb with no object: `quote` is that word, `slot` names the empty slot (*object of Write*), and `fill` holds the missing words. Where `quote` occurs more than once in the sentence, `in` gives a longer span that contains it once (each *its* in *its own prompts* and *its own output*). An anaphor or ellipsis resolves to the entity's first named mention; `ante: <n>` overrides that, and `note` records a resolution a reader could get wrong. Where the passage never names the entity (a *this* that points at the document the passage opens), the mention is not a connection: the page shows the entity in its lists with its gloss, so the gloss carries what the words point to.
 - **`links`**: connections to an earlier sentence that no mention makes. `to` is the earlier sentence, `kind` is below, `here` and `there` are the spans at each end, `gloss` states how the two sentences connect, and `implied: true` marks a connection that no connective states. A claim that follows from the connection without being written goes in an implied atom, not in the gloss.
-- **`atoms`**: the separate claims the sentence makes, after [atomic-decomposition](../../skills/atomic-decomposition/SKILL.md): `id` (a letter), `type`, `claim` (stated plainly, its references resolved, standing alone), `quote`, and optionally `on` (the entities the claim is about, named in the sentence or not), `for` and `as` (the atom of the same sentence this one serves, and how, from the link vocabulary below: an example `supports` the rule it illustrates), `implied`, `note`.
+- **`atoms`**: the separate claims the sentence makes, after [atomic-decomposition](../../skills/atomic-decomposition/SKILL.md): `id` (a letter), `type`, `claim` (stated plainly, its references resolved, standing alone), `quote`, and optionally `on` (the ids of the entities the claim is about, whether or not the sentence mentions them), `for` and `as` (the atom of the same sentence this one serves, and how, from the link vocabulary below: an example `supports` the rule it illustrates), `implied`, `note`.
 
 ## Vocabularies
 
@@ -65,15 +65,15 @@ Link `kind`, read as "this sentence *kind* sentence `to`", loosely after the rel
 
 Entity `kind`, optional, saying what sort of thing the entity is:
 
-| Kind | The entity |
+| Kind | What the entity is |
 | --- | --- |
 | `thing` | a physical object, or a running system that does not decide: a chair, a server |
 | `record` | a document or part of one: a file, a field, a message, a listing |
 | `actor` | a person, group or system that decides: a reader, an agency, a model |
 | `event` | something that happens or is done |
-| `measure` | an amount, a count or a limit, including a limit stated as a rule |
+| `measure` | an amount, a count or a limit, including one a rule sets, such as a character budget |
 | `condition` | a circumstance something can be in |
-| `concept` | an idea or principle that fits no row above |
+| `concept` | an idea or principle that fits none of the kinds above |
 
 ## Anchoring
 
@@ -85,7 +85,7 @@ The page computes these from the stored fields, and a reading does not store the
 
 - **A sentence's kind**: the type of its first atom.
 - **New here**: entities whose first mention is this sentence.
-- **In play**: entities the sentence mentions, the topic aside, and entities its atoms list in `on`; one first mentioned here is New here instead.
+- **In play**: the entities the sentence mentions other than the passage's `topic`, and every entity its atoms list in `on`, the topic included; an entity first mentioned in this sentence is listed under New here instead.
 - **Carried in**: each anaphor or ellipsis whose antecedent is in an earlier sentence, followed by the sentence's `links`. An ellipsis of the topic is left out unless it has a `note`.
 - **Within**: each anaphor whose antecedent is in the same sentence.
 - **Carried forward**: every later sentence whose carried-in list points here.

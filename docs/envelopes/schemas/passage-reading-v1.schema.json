@@ -45,7 +45,7 @@
         "required": ["label", "gloss", "basis"],
         "properties": {
           "label": { "type": "string" },
-          "kind": { "enum": ["thing", "record", "actor", "event", "measure", "condition", "concept"], "description": "What sort of thing the entity is: a physical object or a running system that does not decide; a document or part of one; a person, group or system that decides; something that happens or is done; an amount, count or limit, including a limit stated as a rule; a circumstance something can be in; or an idea or principle that fits none of these." },
+          "kind": { "enum": ["thing", "record", "actor", "event", "measure", "condition", "concept"], "description": "What sort of thing the entity is: a physical object or a running system that does not decide; a document or part of one; a person, group or system that decides; something that happens or is done; an amount, count or limit, including one a rule sets, such as a character budget; a circumstance something can be in; or an idea or principle that fits none of these." },
           "gloss": { "type": "string" },
           "basis": { "enum": ["passage", "context", "general"] },
           "ctx": {
@@ -128,7 +128,7 @@
                 "quote": { "type": "string" },
                 "for": { "type": "string", "pattern": "^[a-z]$" },
                 "as": { "$ref": "#/$defs/relation" },
-                "on": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Entity ids: what the claim is about, named in the sentence or not." },
+                "on": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Entity ids: what the claim is about, whether or not the sentence mentions it." },
                 "implied": { "type": "boolean" },
                 "note": { "type": "string" }
               },
