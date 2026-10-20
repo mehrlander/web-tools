@@ -591,16 +591,17 @@ document.addEventListener('alpine:init', () => {
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
     // A mention's tip: the entity's label as its lead, its gloss, then where
     // this mention stands in the entity's thread through the passage.
+    // A mention's tip carries the reading's own words for it: the entity's
+    // label, kind and gloss, and the mention's note. Where the entity is
+    // introduced and mentioned again is on the card, in its Entities row.
     tipFor(r) {
-      if (!r) return '';
-      const X = this.X, m = r.m, n = X.at[r.key], where = X.where[m.e] || [n];
-      const others = where.filter(x => x !== n), first = Math.min(...where);
-      const and = l => l.length < 2 ? `${l[0]}` : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`;
-      const place = m.form === 'anaphor'
-        ? (r.ante ? `Refers back to “${plain(r.ante.quote)}”${r.ante.n === n ? ' earlier in this sentence' : ` in ${r.ante.n}`}.` : 'The passage never names what this points to.')
-        : r.first ? (others.length ? `Introduced here; again in ${and(others)}.` : 'Mentioned only here.')
-        : first === n ? 'Named again; introduced earlier in this sentence.' : `Named again; introduced in ${first}.`;
-      return this.entityTip(m.e, [place, m.note]);
+      return r ? this.entityTip(r.m.e, [r.m.note]) : '';
+    },
+    // The sentences an entity is mentioned in, each a badge that goes there,
+    // in the colour of where it sits; the current one solid.
+    appears(k, n) {
+      const where = [...(this.X.where[k] || [])].sort((a, b) => a - b);
+      return where.length ? `<span class="flex flex-wrap items-center gap-1 pt-0.5 text-sm text-base-content/60">Mentioned in ${where.map(w => this.num(w, this.side(w, n), `Sentence ${w}`)).join('')}</span>` : '';
     },
     // An entity's tip: its label as the lead, its gloss, and any further lines.
     entityTip(k, more = []) {
@@ -671,7 +672,7 @@ document.addEventListener('alpine:init', () => {
         const tone = m === n ? 'fresh' : this.side(m, n), T = TONE[m === n ? 'fresh' : 'again'];
         const numbered = X.num[k] ? `<span class="ml-1 inline-grid align-[0.1em] ${NUM} ${T.mark}" aria-hidden="true">${X.num[k]}</span>` : '';
         return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone, left: this.num(m, tone, m === n ? 'From here' : `From sentence ${m}`),
-          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${T.lit}">${esc(e.label || k)}</span>${numbered}: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${T.lit}">${esc(e.label || k)}</span>${numbered}: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t)), this.appears(k, n)] };
       });
       const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
       return {
