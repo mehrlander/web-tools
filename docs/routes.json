@@ -63,7 +63,11 @@
         },
         {
           "when": "only lib/ or dist/ changed",
-          "then": "use"
+          "then": "toss-gh"
+        },
+        {
+          "when": "only lib/ or dist/ changed, and the change is the FAB's own code (lib/alpineComponents/fab.js), which a frame shows at main: the toss carries ?top",
+          "then": "toss-gh"
         },
         {
           "when": "only lib/ changed, and the only pages reaching it load it by a relative script tag",

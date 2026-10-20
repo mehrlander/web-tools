@@ -38,21 +38,21 @@ templates.
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include assistant commit trailers per [surfacing-course.md](surfacing-course.md).
 
-* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file its 🥏, ⭐, or 📦. Reserve `file:line` for grep and debugging.
+* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, ⭐ for the deployed page, 📦 for a Claude artifact. Reserve `file:line` for grep and debugging.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
 * **Guide pointer 🧭.** Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide region; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
 
-### Showing something
+### Displaying content
 
-* **Toss a live view 🥏.** Render an unhosted page with `toss-render.html#gh=owner/repo[@ref]:path`, and a document or data file with `#data=owner/repo[@ref]:path`. It may take a trailing `#frag` and `?w=<px>`. If `#gh=` is unavailable because of token or allowlist access, carry the page in the link with `#gz=` ([showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md#viewer-context)). Obtain an `@ref` SHA with `git rev-parse HEAD` and confirm it was pushed with `git rev-parse origin/<branch>`.
+* **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address), a query and a width.
 
-* **Show pixels.** For a visual change, inspect and include a headless screenshot. Measure `scrollWidth` for horizontal overflow.
+* **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button.
 
-* **Hand over the artifact.** Send an artifact with `SendUserFile`, not a path. Images preview inline; HTML, zip, and audio download. A script or other text file the reader will paste elsewhere goes as a link from web-tools' `npm run -s stage-link -- <file>`, which opens on the file with Copy.
+* **A screenshot.** In web-tools, `npm run shot -- <page>` saves a headless screenshot of a page from the working tree, and `--measure` adds overflow checks at desktop and phone width. The `screenshot-review` skill checks a shot before it is sent, and a file card shows it inline.
 
-Run `npm run showing` before handing over a render link, and paste the line it prints. Re-run it for every link on every commit, and append nothing to what it prints: ask for a query with `--query`, a fragment with `--at`, or a line on what to look at with `--intro`. It reads the branch's changed files and prints the links that reach them, or reports that no link does.
+* **A file card.** `SendUserFile` attaches a file to the chat as a file card, where images render inline and other types download to the device. The download can be useful for an uncommitted file or one opened in another application, such as a Word document or a workbook, but a rendered link is usually more convenient and preferred.
 
 ### PR events
 
