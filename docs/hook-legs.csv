@@ -9,7 +9,7 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 8,kits-registry,lib/kits/ -> the kits registry,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,regenerates,yes
 9,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
 10,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
-11,plugin-copies,the traveling docs -> the plugin's copies,docs/SURFACING.md;docs/surfacing-course.md;docs/QUALIFIED-WRITING.md;docs/CAUTIONS.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/SURFACING.md;skills/default/surfacing-course.md;skills/default/QUALIFIED-WRITING.md;skills/default/CAUTIONS.md,regenerates,yes
+11,plugin-copies,the traveling docs -> the plugin's copies,docs/SURFACING.md;docs/surfacing-course.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/SURFACING.md;skills/default/surfacing-course.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
 12,policy-skills,docs/house-policies.md -> the h plugin's skills,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,regenerates,yes
 13,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
 14,docs-readme,docs/docs.json -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes

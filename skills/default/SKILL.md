@@ -2,9 +2,8 @@
 name: default
 description: >-
   The context every session runs on: the portable conventions from
-  mehrlander/web-tools, the surfacing primitives (docs/SURFACING.md), the
-  Qualified writing rules (docs/QUALIFIED-WRITING.md) and the cautions
-  (docs/CAUTIONS.md), shipped beside
+  mehrlander/web-tools, the surfacing primitives (docs/SURFACING.md) and
+  the Qualified writing rules (docs/QUALIFIED-WRITING.md), shipped beside
   this skill. Load them at the start of any session that did not receive
   them, and in any repo when the user
   mentions "my conventions", "house rules", surfacing/per-file link
@@ -19,7 +18,7 @@ description: >-
 2026-09-12 web-tools' `CLAUDE.md` `@`-imported both halves, so the presence of
 that checkout meant the conventions were already in context and this skill said
 to stop. No repo imports them now. Read on whatever the checkout looks like, and
-stop only if all three documents are demonstrably in context already.
+stop only if both documents are demonstrably in context already.
 
 The failure that rule would cause is a closed loop rather than a missing file:
 the directive fires because nothing delivered the conventions, the session invokes
@@ -27,11 +26,10 @@ this skill, the skill sees a checkout and says there is nothing to load, and the
 session proceeds without them having done everything right. Measured live on
 2026-09-13, the first session to run the plugin-only path.
 
-Load all three. [`SURFACING.md`](SURFACING.md) governs how a reply reaches the reader;
+Load both. [`SURFACING.md`](SURFACING.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR
-body, and reply the session writes; [`CAUTIONS.md`](CAUTIONS.md) describes the risks we could miss
-when AI moves quickly. None is optional, and the writing rules
-are the ones a session is most likely to violate without noticing. Prefer the
+body, and reply the session writes. Neither is optional, and the writing half
+is the one a session is most likely to violate without noticing. Prefer the
 copies beside this `SKILL.md`, which ship in the plugin and cost no fetch;
 otherwise:
 
@@ -39,7 +37,6 @@ otherwise:
 base=https://raw.githubusercontent.com/mehrlander/web-tools/main/docs
 curl -fsSL "$base/SURFACING.md"
 curl -fsSL "$base/QUALIFIED-WRITING.md"
-curl -fsSL "$base/CAUTIONS.md"
 ```
 
 Load the [`surfacing-course.md`](surfacing-course.md) copy beside this skill only when this session

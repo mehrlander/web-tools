@@ -1,6 +1,6 @@
-// The documents the portable plugin loads into every session: the
+// The two documents the portable plugin loads into every session: the
 // invoke-default hook instructs the session to invoke /portable:default, which reads them. A word in
-// any of them is a cost paid at every session start, which is the argument PR #509
+// either is a cost paid at every session start, which is the argument PR #509
 // made when it cut the injected documents to their declarations, and PR #634
 // extended when it retired the injection hook and CONVENTIONS.md. What remains
 // always-loaded is CLAUDE.md (ceilinged in claude-md.test.mjs) and these two.
@@ -34,10 +34,6 @@ const LIMIT = 1800;
 // leaves room to explain a rule without room to grow a second document.
 const WRITING_LIMIT = 600;
 
-// 356 words when set (2026-10-19), four cautions and a scope line; the ceiling
-// leaves room for a fifth caution without room for a second document.
-const CAUTIONS_LIMIT = 450;
-
 test('docs/QUALIFIED-WRITING.md stays under its ceiling', () => {
   const n = words(read('docs/QUALIFIED-WRITING.md'));
   assert.ok(n < WRITING_LIMIT,
@@ -51,13 +47,5 @@ test('docs/SURFACING.md stays under its ceiling', () => {
   assert.ok(n < LIMIT,
     `docs/SURFACING.md is ${n} words, over its ${LIMIT}-word ceiling. It loads ` +
     'at every session start. Trim it. ' +
-    'Raising the limit requires user approval.');
-});
-
-test('docs/CAUTIONS.md stays under its ceiling', () => {
-  const n = words(read('docs/CAUTIONS.md'));
-  assert.ok(n < CAUTIONS_LIMIT,
-    `docs/CAUTIONS.md is ${n} words, over its ${CAUTIONS_LIMIT}-word ceiling. It loads ` +
-    'at every session start beside SURFACING.md. Trim it. ' +
     'Raising the limit requires user approval.');
 });

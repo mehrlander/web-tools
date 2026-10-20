@@ -260,9 +260,9 @@ fi
 # that installed the plugin reads them off disk. docs/ is authoritative; this
 # keeps the copy from drifting in the commit that moves the source, which is
 # how it drifted before (resynced by hand in 2b785b2).
-if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md docs/CAUTIONS.md node/build/vendor-docs.mjs; then
+if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md node/build/vendor-docs.mjs; then
   if npm run vendor-docs --silent >/dev/null 2>&1; then
-    stage skills/default/SURFACING.md skills/default/surfacing-course.md skills/default/QUALIFIED-WRITING.md skills/default/CAUTIONS.md
+    stage skills/default/SURFACING.md skills/default/surfacing-course.md skills/default/QUALIFIED-WRITING.md
   else
     echo "build hook: 'npm run vendor-docs' failed - the plugin's doc copies may be stale" >&2
   fi
