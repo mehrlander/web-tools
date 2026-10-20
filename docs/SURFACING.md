@@ -17,7 +17,7 @@ templates.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - 🪧 **Direction needed:** The session needs the reader to set the next step. Close with the recommendation: `🪧 **Direction needed:** <question>. Recommended: <answer>, because <reason>.`
+  - 🪧 **Direction needed:** Next steps are not established. Name the open question; "go" means the session looks into it and reports back.
   - ✴️ **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
@@ -26,7 +26,7 @@ templates.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢, not 🪧, when the session can proceed without the reader. Before 🪧, explore what could settle the question; more exploration is a valid recommendation. A call, a decision only the reader can make, closes instead on ⚖️ **Choice needed:** after a full assessment, with the same `Recommended:` clause.
+  Use 🟢, not 🪧, when the session can proceed without the reader. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been assessed, in this reply or an earlier one: give the assessment, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧.
 
 * **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 

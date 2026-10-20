@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
-"""Stop hook: sends a reply back, once, when its closing line asks for direction
-or a choice (🪧 or ⚖️) without the recommendation docs/SURFACING.md gives that
-line, or when this turn's commits changed a page and the reply gives no render
-link. Both checks are code; no model is called.
+"""Stop hook: sends a reply back, once, when its closing line presents a call
+(⚖️) without the recommendation docs/SURFACING.md gives that line, or when this
+turn's commits changed a page and the reply gives no render link. Both checks
+are code; no model is called.
 
 HISTORY. web-tools #1006 (2026-10-20) ran a prompt hook: Haiku read each reply
 against twelve peeves and wrote the send-back, and its limits were
 instructions Haiku followed some of the time, so sessions were sent back up to
 five times in one turn. #1008 replaced it with this script and kept one Haiku
 question, whether a reply that waits on the owner puts a decision to them.
-That question went once SURFACING.md gave the closing line that asks for
-direction a fixed recommendation clause, which code can check.
+That question went once SURFACING.md gave a call its own closing marker with
+a fixed recommendation clause, which code can check.
 
-THE MARKERS. 🪧 Direction needed and ⚖️ Choice needed (a call) both carry the
-clause. 🆚, which ⚖️ replaced on 2026-10-20, is checked too, for a session still
-on the earlier conventions.
+THE MARKERS. ⚖️ Choice needed presents a call and carries the clause. 🪧
+Direction needed names an open question and carries none: it exists so a reply
+can say next steps are unclear without putting a decision to the owner, and a
+required recommendation would push it back toward one. 🆚, which ⚖️ replaced
+on 2026-10-20, is checked as a call, for a session on the earlier conventions.
 
 THE TWO CHECKS.
-  Recommendation: the reply's last line starts with 🪧, ⚖️ or 🆚 and has no
+  Recommendation: the reply's last line starts with ⚖️ or 🆚 and has no
   "Recommended:" clause.
   Render link: a commit made since the owner's last message, on the current
   branch of the working directory's checkout or of a checkout one level below
@@ -35,7 +37,7 @@ import sys
 from pathlib import Path
 
 RECOMMENDED = re.compile(r'\bRecommended:', re.I)
-ASKS = ('🪧', '⚖', '🆚')
+CALLS = ('⚖', '🆚')
 RENDER = ('🥏', '⭐', '📦', 'No render link')
 
 
@@ -94,9 +96,10 @@ def main():
                            'no render link. Give the render line for them, or a "No render link:" line saying why '
                            'none reaches them.')
     last = lines[-1].lstrip()
-    if last.startswith(ASKS) and not RECOMMENDED.search(last.replace('*', '')):
-        reasons.append(f'The closing {last[0]} line has no "Recommended:" clause. Give that line again with it: '
-                       '`Recommended: <answer>, because <reason>.`')
+    if last.startswith(CALLS) and not RECOMMENDED.search(last.replace('*', '')):
+        reasons.append(f'The closing {last[0]} call has no "Recommended:" clause. If the question has been '
+                       'assessed, give that line again with `Recommended: <answer>, because <reason>.`; '
+                       'if not, close on 🪧 Direction needed instead, naming the open question.')
     if reasons:
         print(json.dumps({'decision': 'block', 'reason': 'Reply check. ' + ' '.join(reasons) +
                           ' Write only that, ending with the closing-state line; do not repeat the rest of the reply.'}))
