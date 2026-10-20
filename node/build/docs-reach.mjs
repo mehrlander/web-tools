@@ -157,7 +157,7 @@ export const APP_EXT = new Set(['.js', '.html', '.mjs']);
 // `//` inside a quoted string stays in the string. The string case is the one
 // an alternation of regexes could not see: `'skills/hooks/*-guard.sh'` in
 // map.js opened a block that ran to the next `*/`, 1,076 lines later, and map's
-// read of state/sessions.json vanished from the census (docs/SNAGS.md
+// read of state/sessions.json vanished from the census (the snag
 // comment-stripper-reads-a-string-as-a-comment). A regex literal is skipped
 // whole, so `/\//g` no longer reads as a line comment either.
 //

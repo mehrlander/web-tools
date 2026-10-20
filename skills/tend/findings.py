@@ -347,7 +347,7 @@ def observe(w, assessed, local, store_repo):
     if kind == "branch":   # contains
         if note.git(co, "cat-file", "-e", f"{w['contains']}^{{commit}}", check=False).returncode:
             # A shallow clone never fetched the older commits, so an absent one
-            # there means "cannot see", not "gone" (docs/SNAGS.md
+            # there means "cannot see", not "gone" (the snag
             # shallow-clone-reads-as-gone).
             if note.git(co, "rev-parse", "--is-shallow-repository", check=False).stdout.strip() == "true":
                 return {"error": f"{repo} is a shallow clone; run git fetch --unshallow origin in it"}

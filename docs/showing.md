@@ -71,7 +71,7 @@ makes the page the top-level document.
 - **Never pin both documents.** `?use=` on the shell alongside an `@ref` in the
   fragment pins two documents in one view, and on an iPhone that kills Safari's web
   process on the first tap of the FAB, whatever refs are named. The cause is
-  unknown; the record is `shell-pin-kills-the-tab` in [SNAGS.md](SNAGS.md).
+  unknown; the record is the snag `shell-pin-kills-the-tab`.
 - **The shell itself.** `pages/toss-render.html` cannot render itself at the top
   level, so a branch change to it previews by nesting (above).
 

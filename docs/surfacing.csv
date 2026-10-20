@@ -1,6 +1,6 @@
 key,lead,title,glyph,use,form,boundary
 reference-links,Reference is a link,Reference is a link,,Explicit [caption](url) for anything tappable; a proposal links its subject before the reasoning.,[caption](url),"Bare paths drop on mobile and in copies; every file on a branch gets its 🥏, a document included, and where no link reaches a change, say so (the honesty gate)."
-show-pixels,Show pixels,Show pixels,,"For visual changes, send an inspected headless-browser screenshot inline.",,A viewport shot cannot show horizontal overflow; measure scrollWidth (SNAGS).
+show-pixels,Show pixels,Show pixels,,"For visual changes, send an inspected headless-browser screenshot inline.",,A viewport shot cannot show horizontal overflow; measure scrollWidth (the snag screenshot-hides-overflow).
 hand-over,Hand over the artifact,Hand over the artifact,,"Send the file the user would open or run with SendUserFile, not just a description or a path.",,"proactive when unprompted, normal when replying; images preview inline, other types download."
 toss,Toss a live view 🥏,Toss a live view,🥏,"Render any file on a branch through the shared toss renderer rather than handing over source alone: a page by #gh=, a document or data file by #data=.",toss-render.html#gz=<base64url> | #gh=owner/repo[@ref]:path | #data=owner/repo@ref:path,"#gz= travels to any reader; #gh= is token- and allowlist-gated, and the token is browser-local."
 branch-anchor,Branch anchor,Branch anchor,,The first file-modifying reply leads with Working branch: [branch-name](url).,Working branch: [name](tree url),

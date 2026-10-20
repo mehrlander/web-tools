@@ -101,8 +101,8 @@ npm run shot -- pages/repo-atlas.html --query "repo=mehrlander/web-tools"
   package.json installs 0.5.0 a second time as `typography-dist`, and
   `PKG_ALIAS` in `node/render/cdn.mjs` maps the CDN path onto it. `npm run
   setup` installs it, so nothing is vendored by hand. The log line for a page
-  loading it should read `combine N/N` with no `MISS`. The trip is logged as
-  `headless-shot-prose-flat` in [SNAGS.md](../SNAGS.md).
+  loading it should read `combine N/N` with no `MISS`. The trip is the snag
+  `headless-shot-prose-flat`.
 
   This one was worth writing down for how it failed rather than for the gap
   itself. `readSpec` falls back to a package's declared entry when the request's
@@ -243,8 +243,8 @@ Component-test lessons that generalize:
   and all four of their tests stayed green because each stub was still handing
   over JSON. Read the fixture the way the reader will: give it CSV text, or a
   string built by the same writer the generator uses, and let the reader's own
-  parse run. The cousin failure is `stub-hides-the-wiring` in
-  [SNAGS.md](../SNAGS.md), where stubbing the product of a lazy load hides the
+  parse run. The cousin failure is the snag `stub-hides-the-wiring`, where
+  stubbing the product of a lazy load hides the
   load; the family is a stub that supplies exactly what the thing under test
   exists to obtain.
 - **Reactive values fail `deepStrictEqual`.** `Alpine.$data(el)` and anything
