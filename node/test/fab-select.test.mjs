@@ -229,6 +229,39 @@ test('typing that lands on the keyboard foothold is carried into the Note field'
   await tick(2);
 });
 
+test('closing the drawer before saving selects the passage again, and keeps what was written', async () => {
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  await d.noteSelection();
+  await tick(2);
+  const A = window.Annotate;
+  assert.ok(A._state.pending, 'the passage is marked while the drawer is open');
+  d.noteText = 'half a thought';
+  d.close();
+  await tick(2);
+  const sel = window.getSelection();
+  assert.equal(sel.toString(), 'quick brown fox', 'the selection is back on the passage');
+  assert.equal(A._state.pending, null, 'and the mark gives way to it');
+  assert.equal(d.noteText, 'half a thought', 'what was written stays in the field');
+  // The launcher hears the restored selection and lights for it, so one tap
+  // returns to the note in progress.
+  await settle();
+  assert.ok(d.selOffer, 'the launcher lights again');
+  await d.noteSelection();
+  await tick(2);
+  assert.equal(d.noteQuote, 'quick brown fox');
+  assert.equal(d.noteText, 'half a thought', 'and the text is still there');
+  // Filed, there is no passage left to hand back.
+  await d.saveNote();
+  d.close();
+  await tick(2);
+  assert.equal(window.getSelection().toString(), '', 'nothing is reselected after a save');
+  A.clear(); A.disable();
+  d.activeTab = 'render';
+  await tick(2);
+});
+
 test('the Note tab opened by hand writes about the page, and Ctrl or Cmd Enter saves', async () => {
   d.toggle();
   d.setTab('note');
