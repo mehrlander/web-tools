@@ -26,7 +26,7 @@ templates.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢, not 🪧, when the reader's prior intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been assessed, in this reply or an earlier one: give the assessment, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧.
+  Use 🟢, not 🪧, when the reader's shared intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧.
 
 * **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
