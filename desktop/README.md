@@ -38,6 +38,12 @@ node .\desktop\Checks\ui-checks.mjs
 Desktop and Start menu shortcuts. It does not register Windows sign-in startup.
 Close the app before updating an installation.
 
+The window, header, executable and shortcuts use the shared hex-nut mark from
+[`lib/favicon.svg`](../lib/favicon.svg). The header bundles its existing
+[`apple-touch-icon.png`](../apple-touch-icon.png) rendition. After changing that SVG, regenerate
+the Windows icon with `.\desktop\update-icon.ps1` (requires Inkscape).
+The generated ICO includes sizes from 16 to 256 pixels and is bundled in the app.
+
 The default repositories folder is `%USERPROFILE%\gh`. Settings chooses a
 different folder, or launch with `--root C:\path\to\repositories`. The private
 checkout is its `web-tools-private` child. Window size, the Web Tools address,

@@ -2,18 +2,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="Web Tools Desktop" Width="1440" Height="940" MinWidth="860" MinHeight="620"
         Background="#F6F7F3" FontFamily="Segoe UI" Foreground="{StaticResource Ink}"
-        Loaded="WindowLoaded" Closing="WindowClosing">
-  <Window.Icon><DrawingImage><DrawingImage.Drawing><DrawingGroup>
-    <GeometryDrawing Brush="#244B3B" Geometry="M 4,0 L 28,0 Q 32,0 32,4 L 32,28 Q 32,32 28,32 L 4,32 Q 0,32 0,28 L 0,4 Q 0,0 4,0" />
-    <GeometryDrawing Brush="White" Geometry="M 5,8 L 8,8 L 11,21 L 14,10 L 18,10 L 21,21 L 24,8 L 27,8 L 23,25 L 19,25 L 16,15 L 13,25 L 9,25 Z" />
-  </DrawingGroup></DrawingImage.Drawing></DrawingImage></Window.Icon>
+        Loaded="WindowLoaded" Closing="WindowClosing" Icon="Assets/WebTools.ico">
   <Grid>
     <Grid.RowDefinitions><RowDefinition Height="64" /><RowDefinition Height="32" /><RowDefinition Height="*" /></Grid.RowDefinitions>
     <Border Background="#F6F7F3" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
       <Grid Margin="22,0,16,0">
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Border Background="#244B3B" CornerRadius="7" Width="32" Height="32" Margin="0,0,12,0"><TextBlock Text="W" Foreground="White" FontWeight="SemiBold" FontSize="19" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+          <Image Source="Assets/WebTools.png" Width="32" Height="32" Margin="0,0,12,0" AutomationProperties.Name="Web Tools" />
           <TextBlock Text="Web Tools" FontWeight="SemiBold" FontSize="17" VerticalAlignment="Center" />
           <TextBlock Text="DESKTOP" Foreground="#7D8981" FontSize="10" Margin="10,3,0,0" VerticalAlignment="Center" />
         </StackPanel>

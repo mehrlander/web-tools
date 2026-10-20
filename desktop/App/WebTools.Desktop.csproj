@@ -7,8 +7,11 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WebTools.Desktop</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/WebTools.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets/WebTools.ico" />
+    <Resource Include="../../apple-touch-icon.png" Link="Assets/WebTools.png" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <ProjectReference Include="../Core/WebTools.Desktop.Core.csproj" />

@@ -14,6 +14,7 @@ $desktopShell = New-Object -ComObject WScript.Shell
 foreach ($desktopShortcutFolder in @([Environment]::GetFolderPath('Desktop'), (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'))) {
     $desktopShortcut = $desktopShell.CreateShortcut((Join-Path $desktopShortcutFolder 'Web Tools Desktop.lnk'))
     $desktopShortcut.TargetPath = $desktopExe
+    $desktopShortcut.IconLocation = "$desktopExe,0"
     $desktopShortcut.WorkingDirectory = $desktopDestination
     $desktopShortcut.Description = 'Web Tools and activity on this laptop'
     $desktopShortcut.Save()
