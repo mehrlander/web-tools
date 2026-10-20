@@ -465,6 +465,9 @@
   await gh.load('kits/md-unwrap.js');
   // The house panel-tip's ways out (window.PanelTip), for a card's Info.
   await gh.load('kits/panel-tip.js');
+  // Answering a documentation call (window.CallAnswer): its edits found in
+  // the file, the answer line, its patch and where it is recorded.
+  await gh.load('kits/call-answer.js');
   // The house title-tip (window.TitleTip): every [data-title-tip] works,
   // markup written later included. A fact never rides in a `title`, which
   // no phone shows (html-style rule 11).
@@ -524,47 +527,10 @@
   };
 
   // ── A call's edits against a text ──────────────────────────────────────
-  // An edit is { from, to }: text the file holds and what should stand in its
-  // place, block runs as call.py pairs them. Found exactly, else with any run
-  // of whitespace matching any other, so a re-wrap or a CRLF file still finds
-  // it; and found ONCE, since an edit that could land in two places is not one
-  // the page can stage without guessing.
-  const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const spans = (text, s) => {
-    if (!s.trim()) return [];
-    const out = [];
-    for (let i = text.indexOf(s); i >= 0; i = text.indexOf(s, i + 1)) out.push([i, i + s.length]);
-    if (out.length) return out;
-    const re = new RegExp(s.trim().split(/\s+/).map(escRe).join('\\s+'), 'g');
-    return [...text.matchAll(re)].map((m) => [m.index, m.index + m[0].length]);
-  };
-  // Which side of an edit a text holds: 'old', 'new' or 'neither'. The longer
-  // side is asked first, because an insertion's `to` contains its `from` (the
-  // neighbour it hangs on) and a removal's `from` contains its `to`.
-  const phase = (text, e) => {
-    const sides = [['old', e.from], ['new', e.to]];
-    if (e.to.length > e.from.length) sides.reverse();
-    for (const [k, s] of sides) if (spans(text, s).length) return k;
-    return !e.to.trim() && !spans(text, e.from).length ? 'new' : 'neither';
-  };
-  // The text with every stageable edit in it, and what became of each:
-  // staged, applied (the file already says it), stale (neither side found),
-  // ambiguous (found more than once), or overlap (its span crosses another's).
-  const stageEdits = (base, edits) => {
-    const status = [], take = [];
-    edits.forEach((e, i) => {
-      const at = phase(base, e) === 'old' ? spans(base, e.from) : null;
-      status[i] = !at ? (phase(base, e) === 'new' ? 'applied' : 'stale') : at.length > 1 ? 'ambiguous' : 'staged';
-      if (status[i] === 'staged') take.push({ i, at: at[0], to: e.to });
-    });
-    let text = base, floor = Infinity;
-    for (const t of take.sort((a, b) => b.at[0] - a.at[0])) {
-      if (t.at[1] > floor) { status[t.i] = 'overlap'; continue; }
-      text = text.slice(0, t.at[0]) + t.to + text.slice(t.at[1]);
-      floor = t.at[0];
-    }
-    return { text, status };
-  };
+  // Finding, staging and answering are kits/call-answer.js's, which the Docs
+  // tab of the Map view answers a call through as well. The page keeps only
+  // how it reads a decision off its buffer (callDecisions).
+  const { spans, phase, stage: stageEdits } = window.CallAnswer;
 
   document.addEventListener('alpine:init', () => {
     Alpine.data('dictate', () => ({
@@ -1136,10 +1102,7 @@
       // A copied answer carries the patch of what was confirmed as well, since
       // nothing was committed for a reader to look at instead.
       answerEntry(extra = {}) {
-        const ds = this.callDecisions(), n = {};
-        for (const d of ds) n[d] = (n[d] || 0) + 1;
-        const answer = ['confirmed', 'amended', 'discarded', 'open', 'applied', 'stale', 'ambiguous', 'overlap']
-          .filter((k) => n[k]).map((k) => n[k] + ' ' + k).join(', ');
+        const ds = this.callDecisions();
         // The reader's notes ride with the decisions: a note on an edit's card
         // with that edit, since it is usually the reason for the decision, and
         // any other note by the words it is on, since the session reading the
@@ -1152,11 +1115,10 @@
           return hit.map((x) => x.text.trim()).join('\n\n');
         };
         const decisions = ds.map((d, i) => { const note = noteOf(i); return { edit: i + 1, decision: d, ...(note ? { note } : {}) }; });
-        const rest = this.notes.filter((x) => !had.has(x.id) && String(x.text || '').trim())
+        const notes = this.notes.filter((x) => !had.has(x.id) && String(x.text || '').trim())
           .map((x) => ({ on: String(x.exact || '').replace(/\s+/g, ' ').trim().slice(0, 80), note: x.text.trim() }));
-        return { answer, note: this.answerNote.trim(), at: new Date().toISOString(),
-                 call: this.callWhere, file: FILE.repo + ':' + FILE.path,
-                 decisions, ...(rest.length ? { notes: rest } : {}), ...extra };
+        return window.CallAnswer.entry({ decisions, note: this.answerNote, call: this.callWhere,
+                                         file: FILE.repo + ':' + FILE.path, notes, ...extra });
       },
       async openAnswer() {
         if (!this.call) return;
@@ -1172,7 +1134,7 @@
       get answerJson() {
         if (!this.answerOpen || !this.call) return '';
         const next = this.confirmedText().next;
-        return JSON.stringify(this.answerEntry({ patch: window.MdSurface?.patch(FILE.path, this.fileBase, next) || '' }), null, 2);
+        return JSON.stringify(this.answerEntry({ patch: window.CallAnswer.patch(FILE.path, this.fileBase, next) }), null, 2);
       },
       async copyDecisions() {
         try {
@@ -1203,23 +1165,15 @@
         const record = this.answerTo === 'record';
         try {
           if (this.confirmedCount && record) {
-            entry.patch = window.MdSurface?.patch(FILE.path, this.fileBase, this.confirmedText().next) || '';
+            entry.patch = window.CallAnswer.patch(FILE.path, this.fileBase, this.confirmedText().next);
             entry.apply = 'session';
           } else if (this.confirmedCount) {
             const done = await this.applyConfirmed({ branch: toBranch, call: true });
             if (!done) return;
             Object.assign(entry, { target: done.target, commit: done.url });
           }
-          await gh.load('alpineComponents/user-call-form.js');
-          const pr = window.UserCallForm.prOf(this.call.pr);
-          const body = '**User call: ' + this.call.question + '**\n\nAnswer: **' + entry.answer + '**'
-            + (entry.commit ? '\n\nCommitted: ' + entry.commit : '')
-            + (entry.patch ? '\n\nRecorded with the confirmed edits as a patch, for a session to apply.' : '')
-            + (entry.note ? '\n\n> ' + entry.note : '')
-            + '\n\n_' + (this.call.id || '') + ', answered in Dictate._';
-          await window.UserCallForm.postAnswer({ repo: CALL.repo, ref: CALL.ref || undefined, token: this.token,
-            path: CALL.path.replace(/\.json$/, '') + '.answers.jsonl', entry,
-            pr: this.answerComment ? pr : null, comment: body });
+          await window.CallAnswer.record({ where: CALL, call: this.call, entry, token: this.token,
+                                           comment: this.answerComment, from: 'Dictate' });
           this.answerOpen = false;
           Alpine.store('toast')('check', 'Answer recorded' + (entry.target ? ', committed to ' + entry.target
             : entry.patch ? ', with its patch for a session to apply' : ''), 'alert-success', 4000);

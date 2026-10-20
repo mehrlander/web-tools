@@ -1785,6 +1785,104 @@ test('the reading deck labels the paragraph a pending edit would change', async 
   }
 });
 
+// Answering a documentation call where it is read: each edit confirmed or
+// discarded from its paragraph or the call's sheet, and one answer line
+// recorded beside the call with the confirmed edits as a patch, through
+// kits/call-answer.js. Nothing commits the document.
+test('a call is answered from the Docs deck: decisions, notes, a patch of the confirmed edits, and no commit', async () => {
+  const { marked } = await import('marked');
+  const Diff = await import('diff');
+  const prior = { marked: window.marked, gh: window.gh, GH: window.GH };
+  window.marked = marked;
+  window.Diff = Diff;
+  for (const f of ['lib/kits/md-diff.js', 'lib/kits/call-answer.js', 'lib/kits/md-surface.js'])
+    new window.Function(readFileSync(path.join(repoRoot, f), 'utf8'))();
+  const md = '# Title\n\nKeep this paragraph.\n\nA paragraph with a phrase here inside.\n\nAn ending to drop.\n';
+  const call = { id: 'c-test', kind: 'documentation', question: 'Apply 3 edits to docs/x.md?', pr: 'mehrlander/web-tools#9',
+    file: 'mehrlander/web-tools@main:docs/x.md', _repo: 'mehrlander/web-tools-private', _ref: 'main', _path: 'user-calls/c-test.json',
+    edits: [{ from: 'a phrase here', to: 'a better phrase', why: 'the phrase misleads' },
+            { from: 'An ending to drop.', to: 'A kept ending.' },
+            { from: 'not in the file', to: 'anything' }] };
+  const posted = [], wrote = [];
+  window.UserCallForm = { prOf: () => ({ slug: 'mehrlander/web-tools', n: 9 }),
+                          postAnswer: async (o) => { posted.push(o); return o.entry; } };
+  window.UserCalls = { where: (c) => c._repo + ':' + c._path, href: () => '#dictate', clear() {} };
+  window.GH = class extends prior.GH {
+    async get(p) { return p === 'docs/x.md' ? { text: md } : super.get(p); }
+    async req(p, o) { wrote.push(p); return {}; }
+  };
+  window.gh = { load: async () => {} };
+  const box = window.document.createElement('div');
+  box.dataset.deckContent = '';
+  box.innerHTML = marked.parse(md);
+  const host = window.document.createElement('div');
+  const slide = window.document.createElement('div');
+  slide.append(box);
+  const actionsSet = [];
+  data._deck = { el: host, deck: { active: () => 0, track: { children: [slide] } }, setActions: (a) => actionsSet.push(a) };
+  data._deckFiles = [{ path: 'docs/x.md' }];
+  data.docPending = new Map([['docs/x.md', { staged: 0, items: [], calls: [call] }]]);
+  data._callAns = null;
+  try { window.localStorage.removeItem('map:call-answer:c-test'); } catch {}
+  try {
+    assert.equal(await data.markDeckProposals(box, 'docs/x.md', md), 2, 'the two edits the file holds are labelled');
+    assert.ok(data.deckActions('docs/x.md').some(a => /Answer the user call/.test(a.title)), 'the header can open the sheet');
+    // From the paragraph's container: Confirm sets, and the chip says so.
+    data.setCallDecision(call, 0, 'confirmed');
+    const chip = box.querySelector('[data-call-edit="c-test:0"]');
+    assert.equal(chip.dataset.callDecision, 'confirmed');
+    assert.match(chip.textContent, /confirmed/);
+    await data.openCallSheet(call, 'docs/x.md');
+    const sheet = host.querySelector('[data-call-sheet]');
+    assert.ok(sheet, 'the sheet opens on the deck');
+    assert.deepEqual([...data.callDecisions(call)], ['confirmed', 'open', 'stale'], 'an edit the file lacks keeps its standing');
+    assert.equal(sheet.querySelectorAll('[data-call-set]').length, 4, 'only staged edits take a decision');
+    // From the sheet: discard edit 2, with a note, and a note on the answer.
+    sheet.querySelector('[data-call-set="discarded"][data-i="1"]').click();
+    host.querySelector('[data-call-note="1"]').click();
+    const ta = host.querySelector('[data-call-note-edit="1"]');
+    ta.value = 'keep the ending';
+    ta.dispatchEvent(new window.Event('input'));
+    const say = host.querySelector('[data-call-answer-note]');
+    say.value = 'Good call.';
+    say.dispatchEvent(new window.Event('input'));
+    assert.equal(box.querySelector('[data-call-edit="c-test:1"]').dataset.callDecision, 'discarded', 'the sheet repaints the paragraph');
+    assert.match(host.querySelector('[data-call-tally]').textContent, /1 confirmed, 1 discarded, 1 stale/);
+    // The draft outlives a reload of the view.
+    data._callAns = null;
+    assert.deepEqual([...data.callState(call).decisions], ['confirmed', 'discarded', 'open'], 'the draft outlives a reload');
+    data._callAns = null;
+    await data.openCallSheet(call, 'docs/x.md');
+    window.TOKEN = 'a-token';
+    await data.recordCallAnswer(call);
+    assert.equal(posted.length, 1, 'one line is recorded');
+    const line = posted[0].entry;
+    assert.equal(posted[0].path, 'user-calls/c-test.answers.jsonl');
+    assert.equal(line.answer, '1 confirmed, 1 discarded, 1 stale');
+    assert.equal(line.note, 'Good call.');
+    assert.deepEqual(JSON.parse(JSON.stringify(line.decisions)), [{ edit: 1, decision: 'confirmed' }, { edit: 2, decision: 'discarded', note: 'keep the ending' },
+                                      { edit: 3, decision: 'stale' }]);
+    assert.equal(line.apply, 'session');
+    assert.match(line.patch, /^diff --git a\/docs\/x\.md b\/docs\/x\.md/);
+    assert.match(line.patch, /\+A paragraph with a better phrase inside\./, 'the confirmed edit is in the patch');
+    assert.doesNotMatch(line.patch, /A kept ending/, 'the discarded one is not');
+    assert.ok(posted[0].pr, 'posted on the PR, the default for a call that names one');
+    assert.match(posted[0].comment, /answered in the Docs tab/);
+    assert.deepEqual(wrote, [], 'nothing was committed');
+    // Answered, the call is off the deck.
+    assert.equal(host.querySelector('[data-call-sheet]'), null);
+    assert.equal(box.querySelector('[data-call-edit]'), null);
+    assert.equal(data.docPending.has('docs/x.md'), false);
+    assert.equal(window.localStorage.getItem('map:call-answer:c-test'), null);
+  } finally {
+    data.closeCallSheet();
+    data._deck = null; data._deckFiles = null; data.docPending = null; data._callAns = null;
+    window.TOKEN = 'ignored-in-test';
+    for (const k of ['marked', 'gh', 'GH']) { if (prior[k] === undefined) delete window[k]; else window[k] = prior[k]; }
+    delete window.UserCallForm; delete window.UserCalls;
+  }
+});
+
 test('a proposal basis is read into fields, and its tip counts from the collection', () => {
   if (!window.TextCollection) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/text-collection.js'), 'utf8'))();
   const RUN = 'https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification/README.md';
