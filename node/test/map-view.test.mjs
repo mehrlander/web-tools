@@ -860,7 +860,10 @@ test('the Overview\'s Contents lists every address but itself under its tab with
   await tick(3);
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'overview', 'a bare Map lands on the Overview');
-  const want = Object.values(d3.SUBVIEWS).flat().map(v => v.k).filter(k => k !== 'overview');
+  // An address drawn inside a subview (WITHIN) is listed after its host.
+  const want = Object.values(d3.SUBVIEWS).flat().flatMap(v => [v, ...d3.WITHIN.filter(w => w.host === v.k)])
+    .map(v => v.k).filter(k => k !== 'overview');
+  assert.ok(want.includes('hooks') && want.includes('scheduled'));
   const rows = d3.overviewGroups.flatMap(g => g.rows);
   assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
   assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
@@ -948,7 +951,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'scheduled', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
     'Harness exposes Automation, Scheduled, Set, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
