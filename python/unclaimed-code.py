@@ -55,10 +55,10 @@ def tracked_files(root):
     """Prefer git's file list (respects .gitignore); fall back to a walk."""
     try:
         out = subprocess.run(
-            ["git", "-C", root, "ls-files"],
+            ["git", "-C", root, "ls-files", "-z"],
             capture_output=True, text=True, check=True,
         ).stdout
-        files = [l for l in out.splitlines() if l]
+        files = [l for l in out.split("\0") if l]
         if files:
             return files
     except (OSError, subprocess.CalledProcessError):

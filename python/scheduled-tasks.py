@@ -75,6 +75,8 @@ import urllib.request
 from html.parser import HTMLParser
 from pathlib import Path
 
+import repo_address  # python/repo_address.py: the estate's address grammar
+
 STORE = "mehrlander/web-tools-private"
 TASKS_CSV = "data/design/scheduled-tasks.csv"
 STAGES_CSV = "data/design/scheduled-task-stages.csv"
@@ -87,7 +89,11 @@ TICK = dt.timedelta(hours=1)     # the workflow's own period: hourly
 # Writes view's only signal (web-tools docs/views/writes.md).
 VIA = " via Actions" if os.environ.get("GITHUB_ACTIONS") == "true" else ""
 USER_AGENT = "mehrlander-web-tools scheduled-tasks (+https://github.com/mehrlander/web-tools)"
-ADDR = re.compile(r"^([\w.-]+/[\w.-]+)@([^:]+):(.+)$")
+def address(spec):
+    """owner/repo@ref:path as (repo, ref, path), or None; a scheduled task
+    names its ref, so one without is not an address here."""
+    a = repo_address.parse(spec)
+    return (a["repo"], a["ref"], a["path"]) if a and a["ref"] else None
 TASK_ID = re.compile(r"^[a-z0-9-]+$")
 
 
@@ -113,10 +119,10 @@ class Files:
 
     def read(self, addr):
         """The text at owner/repo@ref:path."""
-        m = ADDR.match(addr)
-        if not m:
+        parts = address(addr)
+        if not parts:
             raise ValueError(f"not an estate address: {addr}")
-        repo, ref, path = m.groups()
+        repo, ref, path = parts
         if repo in self.local:
             return (self.local[repo] / path).read_text(encoding="utf-8")
         url = f"https://api.github.com/repos/{repo}/contents/{path}?ref={ref}"
@@ -155,8 +161,8 @@ def load_registry(files, store_ref):
 
 def entry_parts(row):
     """(repo, path) of a row's entry, owner/repo@ref:path."""
-    m = ADDR.match(row["entry"] or "")
-    return (m.group(1), m.group(3)) if m else (None, None)
+    parts = address(row["entry"] or "")
+    return (parts[0], parts[2]) if parts else (None, None)
 
 
 def inputs_of(row):

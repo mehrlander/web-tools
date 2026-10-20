@@ -48,7 +48,7 @@
   } else {
     await import('../dist/web-tools.js');
   }
-  try { await gh.load('gh-store.js'); } finally { window.__depsDone(); }
+  try { await gh.load('kits/gz-payload.js'); await gh.load('gh-store.js'); } finally { window.__depsDone(); }
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
@@ -166,7 +166,7 @@ document.addEventListener('alpine:init', () => {
   // the reply leg was dead on this page exactly as it was on approve.html.
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
-    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+    return window.ghAuth?.resolve() || '';
   };
 
   Alpine.data('inquiryApp', () => ({
@@ -210,16 +210,12 @@ document.addEventListener('alpine:init', () => {
         const gz = this.param('gz');
         const src = this.param('src');
         if (gz) {
-          const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-          const ds = new DecompressionStream('gzip');
-          const text = await new Response(new Blob([bin]).stream().pipeThrough(ds)).text();
-          this.env = JSON.parse(text);
+          this.env = await window.GzPayload.decodeJson(gz);
         } else if (src) {
-          const [addr, ...rest] = src.split(':');
-          const path = rest.join(':');
-          const [repo, ref] = addr.split('@');
+          const a = window.RepoAddress.parse(src);
+          if (!a) throw new Error('#src= reads owner/repo[@ref]:path, and this is not one: ' + src);
           // A read-only instance: no @ref follows the selection. The answer write below keeps its own ref.
-          this.env = JSON.parse((await new GH({ token: tokenNow(), repo, ...(ref ? { ref } : {}) }).get(path)).text);
+          this.env = JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text);
         } else {
           this.error = 'No envelope. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }
@@ -251,7 +247,7 @@ document.addEventListener('alpine:init', () => {
         };
         const res = await gh2.save(path, body, `Inquiry answers: ${this.env.manifest?.name || path}`);
         this.sentPath = path;
-        this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+        this.sent = res?.content?.html_url || window.RepoAddress.github.blob(repo, 'HEAD', path);
       } catch (e) {
         this.error = e.message;
       }

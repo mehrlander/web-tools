@@ -12,6 +12,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/kits/branch-status.js'), 'utf8');
 const window = {};
+// The address kit gh-boot loads before any chain: dropFileUrl builds through it.
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(window);
 new Function('window', src)(window);
 const B = window.BranchStatus;
 

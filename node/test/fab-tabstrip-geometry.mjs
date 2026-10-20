@@ -34,11 +34,10 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PAGE = 'pages/shorter.html';
 const WIDTH = 390;           // an iPhone's CSS width, where the strip is tightest
 const TABS = ['render', 'inspect', 'traffic', 'text'];   // Notes left the strip on 2026-08-25 (the annotate card reads the set)

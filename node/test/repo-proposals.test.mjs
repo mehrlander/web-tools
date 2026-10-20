@@ -12,9 +12,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { makeWindow, repoRoot } from './bootstrap.mjs';
+import { makeWindow, repoRoot, withBase64 } from './bootstrap.mjs';
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
+// The encoder is gh-api.js's, on the window.GH every page boots first.
+window.GH = withBase64({});
+// Every github.com link the kit builds goes through window.RepoAddress.github,
+// which every page boots ahead of any kit.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-proposals.js'), 'utf8'))();
 const P = window.RepoProposals;
 
@@ -306,7 +311,7 @@ test('a PR that cannot be opened still reports the branch and a compare link', a
   assert.equal(res.ok, true, 'the branch and commit landed, so the record is not a failure');
   assert.equal(res.branch, 'proposal/p1');
   assert.match(res.prError, /not accessible/);
-  assert.match(res.compare, /compare\/main\.\.\.proposal%2Fp1/);
+  assert.match(res.compare, /compare\/main\.\.\.proposal\/p1\?expand=1$/);
 });
 
 test('an existing proposal branch is a resume, not a collision', async () => {

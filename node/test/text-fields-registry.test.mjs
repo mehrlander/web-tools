@@ -26,9 +26,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const raw = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 
 // Minimal RFC4180: quoted cells carrying commas and doubled quotes, which every

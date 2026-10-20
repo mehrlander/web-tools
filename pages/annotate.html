@@ -57,11 +57,8 @@
 
   const DEFAULT_DOC = 'docs/CONVENTIONS.md';
 
-  // owner/repo[@ref]:path, or a plain path in this repo.
-  const parseSpec = (s) => {
-    const m = /^([\w.-]+\/[\w.-]+)(?:@([^:]+))?:(.+)$/.exec(s || '');
-    return m ? { repo: m[1], ref: m[2] || '', path: m[3] } : { repo: '', ref: '', path: s || '' };
-  };
+  // owner/repo[@ref]:path (lib/kits/repo-address.js), or a plain path in this repo.
+  const parseSpec = (s) => window.RepoAddress.parse(s) || { repo: '', ref: '', path: s || '' };
 
   const fetchText = async (spec) => {
     const s = parseSpec(spec);
@@ -78,7 +75,7 @@
   const blobUrl = (spec) => {
     const s = parseSpec(spec);
     const repo = s.repo || 'mehrlander/web-tools';
-    return `https://github.com/${repo}/blob/${s.ref || window.GH?.refFor?.(repo, s.path) || 'main'}/${s.path}`;
+    return window.RepoAddress.github.blob(repo, s.ref || window.GH?.refFor?.(repo, s.path) || 'main', s.path);
   };
 
   window.annotatePage = () => ({

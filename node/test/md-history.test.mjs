@@ -15,6 +15,8 @@ import * as Diff from 'diff';
 
 const { window } = makeWindow();
 window.marked = marked;
+// GH.decode, as gh-api.js answers it: the contents API's base64 as UTF-8.
+window.GH = { decode: (s) => Buffer.from(String(s), 'base64').toString('utf8') };
 window.Diff = Diff;
 global.DOMParser = window.DOMParser;
 for (const kit of ['guide-render.js', 'swipe-deck.js', 'md-diff.js', 'text-collection.js', 'md-history.js']) {

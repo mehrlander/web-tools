@@ -37,10 +37,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { loadRegistries, REGISTRY_COLS } from '../build/registries-load.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const reg = loadRegistries(repoRoot);
 
 const decls = reg.properties;
@@ -315,6 +313,7 @@ test('every registry declares its area, and leads with a title and a gloss', () 
 // field's point: it is the Registries tab's warning state, a registry no app
 // surface reads.
 import { deriveRendersIn } from '../build/registries-reach.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 test('renders_in matches its derivation on every registry', () => {
   const derived = deriveRendersIn(repoRoot, reg.registries.map(r => r.file));

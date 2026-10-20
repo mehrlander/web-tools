@@ -57,6 +57,7 @@
     await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/url-params.js');
     await gh.load('kits/repo-address.js');
     await gh.load('kits/swipe-deck.js');
@@ -106,10 +107,10 @@ document.addEventListener('alpine:init', () => {
 
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
-    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+    return window.ghAuth?.resolve() || '';
   };
   const param = k => UrlParams.get(k);
-  const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;
+  const blob = (repo, ref, path) => window.RepoAddress.github.blob(repo, ref || 'main', path);
   // Inline code keeps its backticks in the data, where quotes are matched.
   const plain = s => String(s ?? '').replace(/`/g, '');
   // A quote's first two words stay together, so a line never ends on its opening mark.
@@ -238,8 +239,7 @@ document.addEventListener('alpine:init', () => {
       const gz = param('gz'), spec = param('src');
       if (gz) {
         this.src = {};
-        const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-        return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+        return window.GzPayload.decodeJson(gz);
       }
       if (spec) {
         const a = RepoAddress.parse(spec);
