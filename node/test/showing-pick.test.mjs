@@ -558,3 +558,24 @@ test('a page that takes look links says so, and a look link naming no anchor is 
   d = run('pages/approve.html');
   assert.deepEqual(d.look, [], 'a page without the kit gets no hint');
 });
+
+test('once main reads it, a link names the branch beside its commit', () => {
+  // owner/repo@branch@commit:path (lib/kits/repo-address.js, "A PINNED
+  // ADDRESS"). Every 🥏 link is served by main's renderer, so the form waits
+  // on main reading it: a renderer that does not would fetch a ref named
+  // `branch@commit` and find nothing.
+  const pin = ['--pin', 'yes', '--branch', 'claude/x'];
+  assert.equal(run('pages/branch.html', pin).links[0].url,
+    `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/x@${Z12}:pages/branch.html`);
+  assert.equal(run('pages/branch.html', ['--pin', 'no', '--branch', 'claude/x']).links[0].url,
+    `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:pages/branch.html`,
+    'while main cannot read it, the commit alone');
+  const doc = run('docs/locators.md', pin);
+  assert.match(doc.links[0].url, new RegExp(`#data=mehrlander/web-tools@claude/x@${Z12}:docs/locators\\.md$`));
+  // The subject names the branch; the refs= entries keep a plain commit,
+  // since the selection's grammar takes one.
+  const o = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2', ...pin]);
+  assert.equal(o.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/kits/branch-status.js`
+    + `#gh=mehrlander/web-tools@claude/x@${Z12}:pages/diff-tool.html`);
+});

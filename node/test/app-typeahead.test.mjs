@@ -202,7 +202,8 @@ const DECLARED = [
   // sibling mapTab sections. x-show leaves only the selected section with client
   // rects, so the router still sees exactly one visible primary finder at a time.
   // 7 to 8 on 2026-10-12: the Overview, the Map's front door, finds an address.
-  ['lib/alpineComponents/map.js', "the Map's Overview, Projects, Research, Distribution, Docs Inventory, Skills, Agents and Peeves searches", 8],
+  // 8 to 10 on 2026-10-19: Watch's Public and Names, siblings like the rest.
+  ['lib/alpineComponents/map.js', "the Map's Overview, Projects, Research, Distribution, Docs Inventory, Skills, Agents, Peeves, Public and Names searches", 10],
   ['lib/alpineComponents/config.js', "the Config view's key filter", 1],
   ['lib/alpineComponents/public-browse.js', 'the public browser file filter', 1],
 ];

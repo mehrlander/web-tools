@@ -20,6 +20,11 @@ from urllib.parse import quote
 # as JavaScript reads \w.
 ADDR_RE = re.compile(r"^([\w.-]+/[\w.-]+?)(?:@([^:]+))?:(.+)$", re.ASCII)
 
+# A pinned address names the branch beside the commit it was read at,
+# owner/repo@branch@commit:path: the commit is the ref, and the branch rides as
+# "branch". lib/kits/repo-address.js splitPin.
+PIN_RE = re.compile(r"(.+)@([0-9a-f]{7,40})", re.ASCII)
+
 GITHUB = "https://github.com/"
 
 
@@ -27,7 +32,13 @@ def parse(spec):
     """'owner/repo[@ref]:path' -> {'repo', 'ref', 'path'}, or None when the
     string is not one. A missing ref is '' (unspecified), never a guess."""
     m = ADDR_RE.match(str(spec or "").strip())
-    return {"repo": m.group(1), "ref": m.group(2) or "", "path": m.group(3)} if m else None
+    return {"repo": m.group(1), **split_pin(m.group(2)), "path": m.group(3)} if m else None
+
+
+def split_pin(ref):
+    """'branch@commit' -> {'ref': commit, 'branch': branch}; anything else -> {'ref': ref}."""
+    m = PIN_RE.fullmatch(ref or "")
+    return {"ref": m.group(2), "branch": m.group(1)} if m else {"ref": ref or ""}
 
 
 def enc(s):

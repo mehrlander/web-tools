@@ -1,6 +1,6 @@
 # Project tracker
 
-Cross-session memory for the work of a workspace: what is planned, in flight, blocked, and done, in a form the next session can read. Tracker state lives on `main`: one shared place every session knows to check. Canonical source `mehrlander/web-tools` at `docs/TRACKER.md`; local `CLAUDE.md` sets placement and the registry.
+Cross-session memory for the work of a workspace: what is planned, in flight, blocked, and done, in a form the next session can read. Tracker state lives on `main`: one shared place every session knows to check. Each repo's own `CLAUDE.md` sets placement and the registry.
 
 **This file is the contract, not the instructions.** Read it to adopt a tracker, to write a second implementation of the generator, or to change the design. Every rule about *operating* a tracker (when to file, how to claim, how to close, how to push) has one owner, the [`tasks` skill](../skills/tasks/SKILL.md), which is what a session loads at the moment it acts.
 
