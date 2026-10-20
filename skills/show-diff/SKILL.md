@@ -33,6 +33,8 @@ One self-contained HTML artifact: a console-style inline diff of a single before
 
 ## Extending
 
+The estate's other diff views and their engines are listed in web-tools [`docs/diff-views.md`](https://github.com/mehrlander/web-tools/blob/main/docs/diff-views.md); `lib/kits/text-diff.js` already does the first extension below and `lib/kits/cm6-merge.js` the second.
+
 - Word-level highlight inside changed lines: pair changed line i with i, diff within. Recovers the surgical-edit case the line view gives up.
 - Side-by-side on desktop, collapsing to unified below a width threshold. Cramped on a phone.
 - Copyable git patch: standard `@@` hunks with `+`/`-` prefixes as plain selectable text.

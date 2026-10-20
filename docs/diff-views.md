@@ -14,7 +14,7 @@ A change can be shown in eleven places here. Pick the view by the question you a
 | How do two files on the stage differ? | the app's Stage view, Diff | two files in the working set |
 | How do two pasted texts differ? | [Diff tool](../pages/diff-tool.html) | any two texts |
 | How did a bill's text change? | [Legislative Diff Tool](../pages/drop/diff-tool.html) | two texts, pasted or loaded by URL |
-| How should an edit look in a reply? | the [show-diff](../skills/show-diff/SKILL.md) skill | a proposed change, shown in chat |
+| How should an edit look in a reply? | a fenced `diff` block ([claude-markdown](../skills/claude-markdown/SKILL.md)), or [show-diff](../skills/show-diff/SKILL.md)'s one-page diff | a proposed change, shown in chat |
 
 ## The engines
 
