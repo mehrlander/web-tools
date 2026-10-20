@@ -11,7 +11,7 @@ An owner approving a document reads it one sentence at a time, and many objectio
 
 ## Goal and output
 
-One `audit/1` payload per document, to the contract in [`docs/envelopes/audit.md`](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/audit.md), with [`vocab.tsv`](vocab.tsv) as its vocabulary: every unit labeled OK, WEAK or WRONG with a KEEP or DROP verdict, and each flag carrying a note with the shortest fix. It is handed over as a link that opens the page on Review, with the findings no unit label can hold listed beside it.
+One `audit/1` payload per document, to the contract in [`docs/envelopes/audit.md`](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/audit.md), with [`vocab.tsv`](vocab.tsv) as its vocabulary: every unit labeled OK, WEAK or WRONG with a KEEP or DROP verdict, and each flag with a note giving the shortest fix. It is handed over as a link that opens the page on Review, with the findings no unit label can hold listed beside it.
 
 ## Process
 
@@ -45,11 +45,11 @@ Give each half-reader this, with the paths filled in.
 ## Key insights
 
 - **A flag is a proposal.** The readers' labels, notes and DROP verdicts propose; the owner's verdicts in the page decide. The document stays unchanged until the owner has walked the audit.
-- **A label needs both readers.** One reader's flag survives as a note, not a label, which keeps the Review list to the units worth the owner's time: 17 of 158 in the first run.
+- **A label needs both readers.** The merge rule keeps the Review list to the units worth the owner's time: 17 of 158 in the first run.
 - **The shortest fix.** In the first run, readers asked for a plain register wrote replacements that lengthened most sentences they touched. The brief asks for the shortest wording and prefers a cut.
 - **Provenance before a cut.** A phrase a reader would cut may be the owner's own, reworded by a session. In the first run an exact-phrase search missed the owner's own analogy, which the document had reworded; `run.py provenance` matches the phrase's rarer words by stem and ranks the owner's prompt first.
 - **The peeves check predicts the owner.** Over the first run's document, the `peeves-critic` agent predicted the objections that a read of 530 of the owner's recorded prompts found. Use the prompt history for provenance, not for prediction.
-- **Findings across units go beside the link.** A unit's label cannot say that two units name one thing differently. The fifth reader's list carries those, each item naming its uids so the owner can find them in the page.
+- **Findings across units go beside the link.** A unit's label cannot say that two units name one thing differently. The fifth reader's list holds those, each item naming its uids so the owner can find them in the page.
 
 ## Bundled
 

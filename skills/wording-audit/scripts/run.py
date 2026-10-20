@@ -9,7 +9,7 @@
         read-*.tsv -> labels.tsv and notes.json, by the merge rule below.
 
     run.py link <payload.json>
-        the audit-render link carrying the payload in its fragment, opening on
+        the audit-render link with the payload in its fragment, opening on
         Review. The standoff's `self` is left out: a payload in a link has no
         committed file to save an edit to, so the page offers the patch instead.
 

@@ -1,14 +1,14 @@
 # Audit: the envelope contract
 
-An **audit** gives every unit of one document, a sentence or a block, a label from a declared vocabulary and a verdict on whether the unit stays. It is a standoff annotation: units carry character offsets into the document, which is never edited, so an audit describes a document only while that document's bytes match the digest the audit records. Two formats carry it. `standoff/1` is the annotation, the file that is kept; `audit/1` joins a standoff to the document's text so a page can render both with no fetch. [`python/annotate/audit-payload.py`](../../python/annotate/audit-payload.py) writes both, ⭐ [pages/audit-render.html](https://mehrlander.github.io/web-tools/pages/audit-render.html) renders either, and the [`wording-audit`](../../skills/wording-audit/SKILL.md) skill produces audits of a document's wording. The invariants and edits below have two implementations, [`lib/kits/standoff.js`](../../lib/kits/standoff.js) in the page and [`python/annotate/ops.py`](../../python/annotate/ops.py) in a session, so a change to one needs the same change in the other; `node/render/scenarios/audit-edit.mjs` compares them over one patch.
+An **audit** gives every unit of one document, a sentence or a block, a label from a declared vocabulary and a verdict on whether the unit stays. It is a standoff annotation: units record character offsets into the document and leave it unedited, so an audit describes a document only while that document's bytes match the digest the audit records. An audit has two formats. `standoff/1` is the annotation alone, naming its document and recording the digest; `audit/1` joins a standoff to the document's text so a page can render both from one file. [`python/annotate/audit-payload.py`](../../python/annotate/audit-payload.py) writes both, ⭐ [pages/audit-render.html](https://mehrlander.github.io/web-tools/pages/audit-render.html) renders either, and the [`wording-audit`](../../skills/wording-audit/SKILL.md) skill produces audits of a document's wording. The invariants and edits below have two implementations, [`lib/kits/standoff.js`](../../lib/kits/standoff.js) in the page and [`python/annotate/ops.py`](../../python/annotate/ops.py) in a session, so a change to one needs the same change in the other; `node/render/scenarios/audit-edit.mjs` compares them over one patch.
 
 ## Delivery
 
-First match wins:
+The page reads `#gz=` before `?src=`, and shows its embedded payload when it has neither:
 
 | channel | form | use when |
 | --- | --- | --- |
-| `#gz=<base64url>` | a gzipped `audit/1` payload in the URL fragment | handing over an audit: no commit, and the fragment never reaches a server |
+| `#gz=<base64url>` | a gzipped `audit/1` payload in the URL fragment | handing over an audit without a commit; the fragment never reaches a server |
 | `#audit=<spec>` | the toss route: `…/toss-render.html#audit=<owner>/<repo>[@<ref>]:<path>` | the shortest link to a committed file; resolves into this page's `?src=` |
 | `?src=<spec>` | `owner/repo[@ref]:path`, fetched via the contents API | a committed `audit/1` payload, or a `standoff/1` file, whose document the page reads from `target.path` on the same branch and checks against `target.sha256` |
 | (none) | the page's embedded payload, a binding audit of `docs/CONVENTIONS.md` | a look at the page |
@@ -37,7 +37,7 @@ First match wins:
 | `vocabulary` | The labels in order, each with `label`, `side` (the group it belongs to), `gloss`, and optionally `color` as an `r,g,b` string |
 | `verdicts` | The verdicts a unit may take, each with `verdict` and `gloss`: `KEEP` and `DROP` |
 | `units` | In document order |
-| `insertions` | Optional: text the document does not have, each placed at a boundary between units |
+| `insertions` | Optional: text the document does not have, each placed after a unit or at the head of the document |
 
 A **unit** has a `uid`, `start` and `end` (offsets into the document in code points, end exclusive), `kind` (`h1` to `h6`, `sent`, `code`, `table` or `mixed`, derived from the span), `words`, `label` and `verdict`. It may also have a `note`, a `why` (the reason given for the last edit to it), and a `from` naming the edit that produced its span: `split:<uid>`, `merge:<uid>+<uid>` or `shift:<uid>/<uid>`. A split's halves take the parent's uid with `a` and `b` appended.
 
@@ -49,11 +49,11 @@ In offset order the units partition the document: only whitespace lies between o
 
 ## Edits
 
-A patch is a JSON list of operations, each keyed by a unit's `uid`, or for a boundary by `after`, never by array position. `split`, `merge` and `shift` change the units' boundaries; `relabel`, `verdict` and `note` change what a unit carries; `insert` adds text at a boundary. The fields of each are in `ops.py`'s docstring. A patch applies whole or not at all: if one operation is refused or breaks an invariant, nothing changes.
+A patch is a JSON list of operations, each keyed by a unit's `uid`, or for a boundary by `after`, rather than by array position. `split`, `merge` and `shift` change the units' boundaries; `relabel`, `verdict` and `note` change what a unit carries; `insert` adds text at a boundary. The fields of each are in `ops.py`'s docstring. A patch applies whole or not at all: if one operation is refused or breaks an invariant, nothing changes.
 
 ## Vocabularies
 
-The format fixes no labels. A vocabulary is a TSV with the columns `label`, `side`, `gloss` and optionally `color`, passed to `audit-payload.py standoff` with `--vocab` and the matching `--question`, and copied into the standoff. Two are in use:
+Each audit declares its labels in a vocabulary, a TSV with the columns `label`, `side`, `gloss` and optionally `color`, passed to `audit-payload.py standoff` with `--vocab` and the matching `--question`, and copied into the standoff. Two are in use:
 
 | Question | Vocabulary | Labels |
 | --- | --- | --- |
