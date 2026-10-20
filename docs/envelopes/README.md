@@ -17,6 +17,7 @@ The members run from the most general to the most specific; [Membership](#member
 | **Shorter** | [`shorter.md`](shorter.md) | [`pages/shorter.html`](../../pages/shorter.html) | [audit-render](../../pages/audit-render.html)'s adjudicate link, or by hand | a document and, optionally, a shortening of it to adjudicate against it |
 | **Workbook extract** | [`workbook-extract.md`](workbook-extract.md) + [`schemas/workbook-extract-v2.schema.json`](schemas/workbook-extract-v2.schema.json) | [`pages/data-view.html`](../../pages/data-view.html) | [`lib/kits/xlsx-extract.js`](../../lib/kits/xlsx-extract.js) | selected sheet readings and individual workbook objects, with provenance |
 | **Passage reading** | [`passage-reading.md`](passage-reading.md) + [`schemas/passage-reading-v1.schema.json`](schemas/passage-reading-v1.schema.json) | [`pages/passage-reader.html`](../../pages/passage-reader.html) | the [`passage-reading`](../../skills/passage-reading/SKILL.md) skill | a passage read sentence by sentence, with each sentence's references, terms and claims |
+| **Audit** | [`audit.md`](audit.md) | [`pages/audit-render.html`](../../pages/audit-render.html) | [`python/annotate/audit-payload.py`](../../python/annotate/audit-payload.py); the [`wording-audit`](../../skills/wording-audit/SKILL.md) skill | a document's units, each with a label from a declared vocabulary and a verdict on whether it stays |
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 
@@ -46,7 +47,7 @@ A format is a member when three things hold: a producer (a skill or a script) wr
 
 The family is indexed by format, not by page, because a page can be replaced while its format stays (Dictate's review modes took over part of Approve's job) and one page can render two formats. Decided 2026-10-15 ([PR #953](https://github.com/mehrlander/web-tools/pull/953)).
 
-Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the show-diff skill's template. Five formats with renderer pages are not yet listed: `approval/1`, `inquiry/1`, `user-call/1`, `audit/1` and the idea board.
+Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the show-diff skill's template. Four formats with renderer pages are not yet listed: `approval/1`, `inquiry/1`, `user-call/1` and the idea board.
 
 ## The decision: chat-results stays a sibling
 

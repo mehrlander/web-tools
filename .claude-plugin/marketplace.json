@@ -73,7 +73,8 @@
         "./succinct-js-idioms",
         "./succinct-text",
         "./userscripts",
-        "./windows-powershell"
+        "./windows-powershell",
+        "./wording-audit"
       ],
       "agents": [
         "./agents/house-style-critic.md",

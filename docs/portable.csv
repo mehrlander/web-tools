@@ -58,6 +58,7 @@ skill,/portable:succinct-js-idioms,skills/succinct-js-idioms/SKILL.md,succinct-j
 skill,/portable:succinct-text,skills/succinct-text/SKILL.md,succinct-text,,plugin
 skill,/portable:userscripts,skills/userscripts/SKILL.md,userscripts,,plugin
 skill,/portable:windows-powershell,skills/windows-powershell/SKILL.md,windows-powershell,,plugin
+skill,/portable:wording-audit,skills/wording-audit/SKILL.md,wording-audit,,plugin
 doc,,docs/SURFACING.md,Surfacing,the canonical surfacing primitives; a byte-matched copy ships beside the plugin's default skill and is loaded with the writing rules,plugin
 doc,,docs/QUALIFIED-WRITING.md,Qualified writing,the canonical prose rules; a byte-matched copy ships beside the plugin's default skill and is loaded with the surfacing primitives,plugin
 doc,,docs/venues.md,Venues,"the venue map: the places agent work can run, what each reaches, and which programs there run attended",live
