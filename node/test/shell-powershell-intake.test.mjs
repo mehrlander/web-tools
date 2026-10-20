@@ -137,7 +137,7 @@ test('a selected XAML document accepts exact unsigned XAML through the same inta
 
 test('a malformed declaration is reported without taking any source or navigating', async () => {
   const h = fixture();
-  await h.shell.takeCorrespondence('# @file C:\\Users\\me\\Report.ps1\ncopy');
+  await h.shell.takeCorrespondence('# @file C:\\Users\\me\\Report.ps1\ncopy'); // machine-path-ok: a fake path, fed in to be rejected
   assert.deepEqual(h.received, []);
   assert.deepEqual(h.comparisons, []);
   assert.match(h.toasts.at(-1).message, /repository root/i);

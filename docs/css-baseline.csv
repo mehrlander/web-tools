@@ -26,12 +26,6 @@ lib/kits/peek.js,24
 lib/kits/proof.js,7
 lib/kits/xlsx-chart.js,8
 node/build/pages-index.mjs,1
-node/render/build-chrono-comparison.mjs,7
-node/render/build-fixed-widget.mjs,5
-node/render/build-mockup-widget.mjs,7
-node/render/crop-duo.mjs,5
-node/render/crop-fixed-shots.mjs,10
-node/render/crop-possibilities.mjs,5
 node/render/scenarios/deck-split.mjs,4
 pages/annotate.html,27
 pages/approve.html,1
