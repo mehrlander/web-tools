@@ -94,10 +94,6 @@ test('docs/themes.csv matches the corpus the theme graph is read from', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'themes-graph --check failed');
 });
 
-test('the snags index and registry match docs/SNAGS.md', () => {
-  const r = check(['node/build/snags-index.mjs', '--check']);
-  assert.equal(r.status, 0, (r.stderr || '').trim() || 'snags-index --check failed');
-});
 
 test('the tracker board matches tracker/tasks/', () => {
   const r = spawnSync('python3',

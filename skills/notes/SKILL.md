@@ -43,7 +43,8 @@ nothing.
 | repo | `owner/repo` |
 | branch | `owner/repo@branch` |
 | file, task, doc | `owner/repo:path` |
-| snag, section | `owner/repo:path#fragment` |
+| section | `owner/repo:path#fragment` |
+| snag, list item | `<registry>:lists/<file>.json#<id>`; a snag's file is `snag.json` |
 | pull request | `owner/repo#N` |
 | another note | `note:<id>` |
 

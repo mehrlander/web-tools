@@ -71,6 +71,7 @@ dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code
 dir,,docs/envelopes,Content envelopes,"the envelope family: the surface contract, chat-results, and the schemas that validate them",on-demand
 agent,,skills/agents/house-style-critic.md,House-style critic,,plugin
 agent,,skills/agents/peeves-critic.md,Peeves critic,,plugin
+agent,,skills/agents/owner-proxy.md,Owner proxy,,plugin
 agent,,skills/agents/conservator.md,Conservator,,plugin
 agent,,skills/agents/radical-editor.md,Radical editor,,plugin
 agent,,skills/agents/source-historian.md,Source historian,,plugin

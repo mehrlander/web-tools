@@ -1,6 +1,6 @@
 path,namespace,gloss,lines,boot,demo,users,tested
 lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the app on 2026-09-19 so the browser and a headless…",333,no,no,1,yes
-lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5134,no,yes,18,yes
+lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5132,no,yes,18,yes
 lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier for AI assistants and human contributors across the estate.,156,yes,no,1,yes
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",466,no,no,9,yes
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",612,no,no,7,yes
@@ -41,9 +41,10 @@ lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",232,no,yes,22,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
-lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,4,yes
+lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",292,no,yes,1,yes
-lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",814,no,yes,4,yes
+lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",252,no,no,4,yes
+lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1239,no,yes,4,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1488,no,yes,17,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1031,no,no,15,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",278,no,no,2,yes
@@ -78,7 +79,7 @@ lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart t
 lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1958,no,no,4,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes
 lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,5,yes
-lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",354,no,no,6,yes
+lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",358,no,no,6,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes
 lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",242,no,yes,3,yes
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1538,no,no,5,yes
@@ -95,7 +96,7 @@ lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are 
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1535,no,yes,35,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
-lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",947,no,no,1,yes
+lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",974,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",400,no,yes,21,yes

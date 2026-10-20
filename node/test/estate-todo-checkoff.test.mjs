@@ -32,7 +32,11 @@ class FakeGH {
       return { default_branch: 'main', description: '', private: true, pushed_at: '' };
     return {};
   }
-  async save(path, value, message) { SAVES.push({ path, value, message }); return {}; }
+  async save(path, value, message) {
+    SAVES.push({ path, value, message });
+    if (this.repo === REGISTRY) FILES[path] = JSON.parse(JSON.stringify(value));
+    return {};
+  }
 }
 
 const { window, problems } = makeWindow({
@@ -55,6 +59,7 @@ window.__shell = {
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/surface.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
 
@@ -68,7 +73,7 @@ const todoRows = () => [...doc.querySelectorAll('div')].filter(
 const rowFor = (text) => todoRows().find(el => el.textContent.includes(text));
 
 async function seed(items) {
-  FILES['lists/todo.json'] = { items };
+  FILES['lists/to-do.json'] = { items };
   await data.loadTodos(reg());
   data.todoShowDone = false;
   window.__shell.view = 'lists';

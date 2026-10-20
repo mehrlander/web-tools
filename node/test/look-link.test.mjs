@@ -65,7 +65,7 @@ test('check names a walk step and an opener that resolve to nothing, and fails',
   const r = py('check', bad);
   assert.equal(r.status, 1);
   assert.match(r.stdout, /walk 'w' step 2: 'renamed' is not an anchor/);
-  assert.match(r.stdout, /walk 'w' step 3 has no anchor/);
+  assert.match(r.stdout, /walk 'w' step 3 has neither an anchor nor a message/);
   assert.match(r.stdout, /data-at-open='gone' names no anchor/);
 });
 
@@ -87,6 +87,31 @@ test('make prints the plainest fragment and exits 1 on an anchor the page lacks'
   assert.match(r.stderr, /matches only a bound prefix/, 'a prefix match passes, and says how weakly');
   r = py('make', FIXTURE, '--walk', 'absent');
   assert.equal(r.status, 1);
+});
+
+test('make puts an intro first, alone or ahead of a place, and checks only the anchors', () => {
+  let r = py('make', FIXTURE, '--intro', 'What changed, briefly');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), 'intro=What%20changed%2C%20briefly');
+  r = py('make', FIXTURE, '--intro', 'First', '--show', 'tab-a', '--say', 'Then here');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), 'intro=First&show=tab-a&say=Then%20here');
+  r = py('make', FIXTURE, '--steps', JSON.stringify([{ say: 'a note' }, { at: 'tab-a' }]));
+  assert.equal(r.status, 0, 'a note step names no anchor, so it cannot miss one');
+  r = py('make', FIXTURE, '--steps', JSON.stringify([{ tap: true }]));
+  assert.equal(r.status, 2, 'a step with neither anchor nor message is refused');
+  r = py('make', FIXTURE);
+  assert.equal(r.status, 2, 'make with nothing to say is an error');
+});
+
+test('a stop that names this page is checked; one on another page is noted, not failed', () => {
+  // The fixture lives outside the site, so name it the way make was given it.
+  let r = py('make', FIXTURE, '--steps', JSON.stringify([{ at: 'pages/other.html!anything' }, { at: 'tab-a' }]));
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /'pages\/other\.html!anything' is on another page, so it is unchecked here/);
+  r = py('make', 'lib/kits/demos/look.html', '--steps', JSON.stringify([{ at: 'lib/kits/demos/look.html!btn-nope' }]));
+  assert.equal(r.status, 1, 'an address naming this page is checked against it');
+  assert.match(r.stderr, /'btn-nope' is not an anchor on this page/);
 });
 
 test('steps encoded here decode to the same steps in the kit', () => {

@@ -200,7 +200,7 @@
   })();
   // The selection is for the PAGE, never for this renderer's own code (its FAB
   // and drawer). A renderer running Web Tools at a chosen ref while it hosts a
-  // frame is the shape recorded as killing Safari's tab (docs/SNAGS.md,
+  // frame is the shape recorded as killing Safari's tab (the snag
   // shell-pin-kills-the-tab), so this document's own globals are emptied here,
   // before its FAB boots, and the boot below imports entry.js at main.
   window.__refs = {};
@@ -1296,7 +1296,7 @@ document.addEventListener('click',function(e){
   }
 
   // LOOK MARKERS ON A PAGE THAT NEVER ASKED FOR THEM. A trailing fragment
-  // carrying a look key (show=, tap=, walk=, steps=; lib/kits/look.js) asks the
+  // carrying a look key (show=, tap=, walk=, steps=, intro=; lib/kits/look.js) asks the
   // page to land on a place and say why, and a page that loads the kit answers
   // it itself. One that does not gets the kit here, from Web Tools at the
   // version this render boots (`lib`), after its own scripts, so a look link
@@ -1305,7 +1305,7 @@ document.addEventListener('click',function(e){
   // no look key leaves the page byte for byte as it was, and a failed fetch
   // leaves it as it was too, since a page without its marker still renders.
   async function withLook(text, frag, lib) {
-    if (!/(?:^|&)(?:show|tap|walk|steps)=/.test(frag || '')) return text;
+    if (!/(?:^|&)(?:show|tap|walk|steps|intro)=/.test(frag || '')) return text;
     // Loading a kit, not naming it: a page that links to look.js's source must
     // still get the kit. A second copy would be harmless (look.js defers to
     // the first), so the test errs toward fetching.

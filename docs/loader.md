@@ -74,7 +74,7 @@ it loads through the contents API at the same ref either way:
   are both fresh on a just-pushed branch.
 
 The unpinned route stays a native import rather than the blob route at main.
-The device measurement behind that (`SNAGS.md`, `shell-pin-kills-the-tab`)
+The device measurement behind that (the snag `shell-pin-kills-the-tab`)
 found that a toss shell pinned with `?use=<sha>` dies on an iPhone when it
 hosts a frame. It predates `entry.js`, and no cell has run the blob route at
 main, so whether the blob import or the shell's ref is the fatal part is
