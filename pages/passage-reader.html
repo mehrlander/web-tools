@@ -110,7 +110,7 @@ document.addEventListener('alpine:init', () => {
     return window.ghAuth?.resolve() || '';
   };
   const param = k => UrlParams.get(k);
-  const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;
+  const blob = (repo, ref, path) => window.RepoAddress.github.blob(repo, ref || 'main', path);
   // Inline code keeps its backticks in the data, where quotes are matched.
   const plain = s => String(s ?? '').replace(/`/g, '');
   // A quote's first two words stay together, so a line never ends on its opening mark.

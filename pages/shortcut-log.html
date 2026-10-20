@@ -467,7 +467,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
     return `${p2(e.when.getHours())}:${p2(e.when.getMinutes())}`;
   },
   fullTime(e) { return e.when ? e.when.toLocaleString() : e.stem; },
-  fileUrl(e) { return `https://github.com/${LOG}/blob/main/${DIR}/${e.stem}.json`; },
+  fileUrl(e) { return window.RepoAddress.github.blob(LOG, 'main', `${DIR}/${e.stem}.json`); },
   size(t) { const n = (t || '').length; return n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB'; },
   pretty(e) { return SE.pretty(e.payload || e.raw); },
   copy(t) { navigator.clipboard?.writeText(t); },
@@ -567,7 +567,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
     if (e.source) {
       const b = this.base[e.source.ref];
       out.push({ k: 'from', v: `${short(e.source.ref)} · ${e.source.dir}/${e.source.file}`,
-                 href: `https://github.com/${TOOLS}/blob/${e.source.ref}/${e.source.dir}/${e.source.file}`,
+                 href: window.RepoAddress.github.blob(TOOLS, e.source.ref, `${e.source.dir}/${e.source.file}`),
                  note: b && b.kind === 'pr' ? `PR #${b.pr}` : '' });
     }
     if (e.installer && e.installer.build) out.push({ k: 'by', v: `${e.installer.name} ${e.installer.build}`, mono: true });

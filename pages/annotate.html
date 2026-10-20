@@ -75,7 +75,7 @@
   const blobUrl = (spec) => {
     const s = parseSpec(spec);
     const repo = s.repo || 'mehrlander/web-tools';
-    return `https://github.com/${repo}/blob/${s.ref || window.GH?.refFor?.(repo, s.path) || 'main'}/${s.path}`;
+    return window.RepoAddress.github.blob(repo, s.ref || window.GH?.refFor?.(repo, s.path) || 'main', s.path);
   };
 
   window.annotatePage = () => ({

@@ -163,7 +163,7 @@
       }
     },
     blobUrl(r) {
-      return r.source ? `https://github.com/${r.source.repo}/blob/${r.source.ref || 'main'}/${r.source.path}` : null;
+      return r.source ? window.RepoAddress.github.blob(r.source.repo, r.source.ref || 'main', r.source.path) : null;
     },
 
     // ── copy-out: serialize the current filtered set to markdown ──

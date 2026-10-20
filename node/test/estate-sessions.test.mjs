@@ -1371,7 +1371,7 @@ test('a captured path resolves to the owner and the branch the session was on', 
   // At the BRANCH, not at main: a file opened during a session is the version
   // that session saw.
   assert.equal(data.sessionFileUrl(row, 'web-tools/lib/a.js'),
-    'https://github.com/mehrlander/web-tools/blob/claude%2Fa-1/lib/a.js');
+    'https://github.com/mehrlander/web-tools/blob/claude/a-1/lib/a.js');
 });
 
 test('a checkout the session did not name falls back to the default branch', () => {

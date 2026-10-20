@@ -10,7 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { makeWindow, tick, repoRoot, captureAlpineErrors, withBase64 } from './bootstrap.mjs';
 
 const { window, problems } = makeWindow({
   html: `<!doctype html><html><body>
@@ -1823,6 +1823,7 @@ test('Apply commits the one block with the sha it read, and refuses what moved',
     async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c0ffee1234' } }; }
   };
   window.GH.FRESH = { cache: 'no-store' };
+  withBase64(window.GH);   // the write encodes through gh-api.js's GH.toBase64
   window.TOKEN = 'gh_test';
   try {
     const sha = await data.commitBlockSwap('docs/x.md', 'The old paragraph.', 'The new paragraph.', 'msg via Web Tools');
@@ -1877,6 +1878,7 @@ test('a schedule edit rewrites one registry row, guarded by the sha it read', as
     async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c1' } }; }
   };
   window.GH.FRESH = { cache: 'no-store' };
+  withBase64(window.GH);   // the write encodes through gh-api.js's GH.toBase64
   window.TOKEN = 'gh_test';
   try {
     const t = window.Csv.rows(file)[0];

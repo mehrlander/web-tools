@@ -353,7 +353,7 @@ document.addEventListener('alpine:init', () => {
         const res = await gh2.save(path, body, `Approval ${decision}: ${this.ctx.id}`);
         this.decision = decision;
         this.sentPath = path;
-        this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+        this.sent = res?.content?.html_url || window.RepoAddress.github.blob(repo, 'HEAD', path);
         // Now there is something to show, so the slot gets filled. `$nextTick`
         // because the alert inside it is `x-show`-ed on `sent`, which Alpine
         // has not applied yet at this line.

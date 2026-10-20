@@ -34,6 +34,26 @@ const require = createRequire(import.meta.url);
 import { repoRoot } from '../repo-root.mjs';
 export { repoRoot };
 
+// gh-api.js's base64 statics, the real ones. The kits read them off window.GH
+// (GH.toBase64, GH.toBase64url, GH.decode, GH.decodeBytes), which is on every
+// page; a test whose window.GH is a fake of its own gives the fake these, so
+// what it encodes is what a page would. Importing gh-api.js in Node is inert:
+// it boots only where a page has set window.__ghBlobBoot. It is imported as a
+// data: module, which Node reads as ESM without the "module type not specified"
+// warning a plain import prints, since that warning would land in every test
+// that asserts a quiet startup.
+const { default: RealGH } = await import('data:text/javascript;base64,'
+  + Buffer.from(readFileSync(path.join(repoRoot, 'lib/gh-api.js'), 'utf8')).toString('base64'));
+export const GH_BASE64 = {
+  toBase64: RealGH.toBase64, toBase64url: RealGH.toBase64url,
+  decode: RealGH.decode, decodeBytes: RealGH.decodeBytes,
+};
+// Give a fake GH (a class or a plain object) whichever of them it lacks.
+export const withBase64 = (fake) => {
+  for (const [k, v] of Object.entries(GH_BASE64)) if (!(k in fake)) fake[k] = v;
+  return fake;
+};
+
 // CDN url → vendored loader. Each must return what the kit's `await import()`
 // would have resolved to (a module-namespace-like object).
 export const KIT_IMPORTS = {
@@ -107,8 +127,10 @@ export function loadKit(name, { window: w = {}, imports = KIT_IMPORTS, console: 
     return Promise.resolve(loader());
   };
   // The address grammar is standing equipment for kits as it is for
-  // components (STANDING, below): gh-boot loads it before any page chain.
+  // components (STANDING, below): gh-boot loads it before any page chain. So
+  // is gh-api.js's base64, on whatever window.GH the test has, or a bare one.
   if (!w.RepoAddress && file !== ADDRESS_KIT) new Function('window', readFileSync(ADDRESS_KIT, 'utf8'))(w);
+  withBase64(w.GH ??= {});
   w.__kitReturn = new Function('window', 'console', src)(w, cons);
   return w;
 }

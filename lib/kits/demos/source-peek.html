@@ -168,7 +168,7 @@ The tracker's mechanics live only in `docs/TRACKER.md`: the task file schema, th
         <button class="btn btn-sm btn-primary"
                 :disabled="!ready"
                 @click="window.SourcePeek.seed(addr(), text); $refs.trig.focus()">Seed and peek</button>
-        <a x-ref="trig" :data-peek="addr()" :href="'https://github.com/mehrlander/web-tools/blob/main/' + path"
+        <a x-ref="trig" :data-peek="addr()" :href="ready ? window.RepoAddress.github.blob('mehrlander/web-tools', 'main', path) : ''"
            target="_blank" rel="noopener" title="Open on GitHub"
            class="text-base-content/30 hover:text-primary"><i class="ph ph-github-logo text-[17px]"></i></a>
       </span>

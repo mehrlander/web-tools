@@ -247,7 +247,7 @@ document.addEventListener('alpine:init', () => {
         };
         const res = await gh2.save(path, body, `Inquiry answers: ${this.env.manifest?.name || path}`);
         this.sentPath = path;
-        this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+        this.sent = res?.content?.html_url || window.RepoAddress.github.blob(repo, 'HEAD', path);
       } catch (e) {
         this.error = e.message;
       }

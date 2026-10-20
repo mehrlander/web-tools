@@ -543,7 +543,7 @@ test('the card splits a path so a truncation cannot eat the filename', () => {
 
 test('fileBlobUrl encodes the branch and each path segment, not the slashes', () => {
   assert.equal(data.fileBlobUrl('me/tools', 'claude/feat a', 'lib/kits/x y.js'),
-    'https://github.com/me/tools/blob/claude%2Ffeat%20a/lib/kits/x%20y.js');
+    'https://github.com/me/tools/blob/claude/feat%20a/lib/kits/x%20y.js');
 });
 
 test('openBranchMenu anchors through the shell and closes on a pick', () => {
@@ -563,12 +563,12 @@ test('openBranchMenu anchors through the shell and closes on a pick', () => {
 test('runBranchMenu builds the GitHub destinations', () => {
   const row = data.openBranches[0], bare = data.openBranches[1];
   const urlFor = (key, r) => { opened.length = 0; data.menuBranch = r; data.runBranchMenu(key); return opened[0]; };
-  assert.equal(urlFor('tree', row), 'https://github.com/me/tools/tree/feat%2Fa');
-  assert.equal(urlFor('compare', row), 'https://github.com/me/tools/compare/main...feat%2Fa');
-  assert.equal(urlFor('commits', row), 'https://github.com/me/tools/commits/feat%2Fa');
+  assert.equal(urlFor('tree', row), 'https://github.com/me/tools/tree/feat/a');
+  assert.equal(urlFor('compare', row), 'https://github.com/me/tools/compare/main...feat/a');
+  assert.equal(urlFor('commits', row), 'https://github.com/me/tools/commits/feat/a');
   assert.equal(urlFor('prFiles', row), 'https://github.com/me/tools/pull/12/files');
   assert.equal(urlFor('prChecks', row), 'https://github.com/me/tools/pull/12/checks');
-  assert.equal(urlFor('newPr', bare), 'https://github.com/me/tools/compare/main...feat%2Fb?expand=1');
+  assert.equal(urlFor('newPr', bare), 'https://github.com/me/tools/compare/main...feat/b?expand=1');
 });
 
 // ── Drop a file here ─────────────────────────────────────────────────────

@@ -221,7 +221,7 @@
   <footer class="px-4 py-1.5 bg-base-100 border-t border-base-300 flex items-center gap-3 text-xs opacity-50">
     <span x-show="bills" x-text="`${bills?.chapters} chapters · ${bills?.biennia?.length} biennia`"></span>
     <a class="link link-hover ml-auto"
-       :href="`https://github.com/${BILLS}/blob/${BILLS_REF}/${BILLS_PATH}`">index</a>
+       :href="window.RepoAddress.github.blob(BILLS, BILLS_REF, BILLS_PATH)">index</a>
   </footer>
 
   <dialog x-ref="info" class="modal">

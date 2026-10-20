@@ -240,3 +240,27 @@ test('the shell routes a paste through fromPaste rather than its own matcher', (
   assert.match(shell, /if \(\[\.\.\.\(cd\.items \|\| \[\]\)\]\.some\(i => i\.kind === 'file'\)\) return false;/,
     'pasteRoute no longer yields a file-carrying clipboard to the Stage');
 });
+
+// ── github: where an address lives on GitHub ───────────────────────────────
+test('github builders encode a ref and a path per segment, and default the ref to HEAD', () => {
+  const G = RA.github;
+  assert.equal(G.blob('o/r', 'claude/x-y', 'docs/a b.md'), 'https://github.com/o/r/blob/claude/x-y/docs/a%20b.md');
+  assert.equal(G.blob('o/r', '', 'a.md'), 'https://github.com/o/r/blob/HEAD/a.md', 'no ref is HEAD');
+  assert.equal(G.blob('o/r', 'main', '/a.md', 12), 'https://github.com/o/r/blob/main/a.md#L12');
+  assert.equal(G.blob('o/r', 'main', 'a.md', '12-20'), 'https://github.com/o/r/blob/main/a.md#L12-L20');
+  assert.equal(G.blob('o/r', 'main', 'a.md', 'L3'), 'https://github.com/o/r/blob/main/a.md#L3');
+  assert.equal(G.blob('o/r', 'f#1', 'x?.md'), 'https://github.com/o/r/blob/f%231/x%3F.md', 'what broke the raw form');
+  assert.equal(G.tree('o/r', 'claude/x'), 'https://github.com/o/r/tree/claude/x');
+  assert.equal(G.tree('o/r', 'main', 'lib/kits'), 'https://github.com/o/r/tree/main/lib/kits');
+  assert.equal(G.commits('o/r', 'claude/x', 'a.md'), 'https://github.com/o/r/commits/claude/x/a.md');
+  assert.equal(G.commit('o/r', 'abc123'), 'https://github.com/o/r/commit/abc123');
+  assert.equal(G.compare('o/r', 'main', 'claude/x'), 'https://github.com/o/r/compare/main...claude/x');
+  assert.equal(G.pull('o/r', 7), 'https://github.com/o/r/pull/7');
+  assert.equal(G.issue('o/r', 7), 'https://github.com/o/r/issues/7');
+  assert.equal(G.repo('o/r'), 'https://github.com/o/r');
+  assert.equal(G.repo('o/r', 'pulls'), 'https://github.com/o/r/pulls');
+  assert.equal(G.newFile('o/r', 'claude/x', 'chron/dump/a b.md'), 'https://github.com/o/r/new/claude/x/chron/dump?filename=a%20b.md');
+  assert.equal(G.newFile('o/r', 'main', 'top.md'), 'https://github.com/o/r/new/main?filename=top.md');
+  assert.equal(G.of(RA.parse('o/r@claude/x:a.md')), 'https://github.com/o/r/blob/claude/x/a.md');
+  assert.equal(G.of(null), '');
+});

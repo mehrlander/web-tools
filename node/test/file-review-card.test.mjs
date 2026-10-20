@@ -25,7 +25,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { makeWindow, tick, repoRoot, captureAlpineErrors, withBase64 } from './bootstrap.mjs';
 
 const { window, problems } = makeWindow({
   html: `<!doctype html><html><body>
@@ -81,6 +81,8 @@ window.GH = class {
                    return { bytes: new Uint8Array([1, 2, 3]), size: 3 }; }
   async req() { return []; }
 };
+// The deck encodes image bytes through gh-api.js's own base64 statics.
+withBase64(window.GH);
 window.TOKEN = 't';
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
@@ -95,7 +97,9 @@ Alpine.plugin(collapse);
 // it supplies window.esc, which the card's frontmatter header escapes with.
 // Omitted here, that header threw into the catch that tolerates a missing kit
 // and the metadata leaked back into the prose, silently.
-for (const p of ['lib/vanilla-bundle.js',
+// repo-address.js too, which every page boots: the card's GitHub links are
+// built by window.RepoAddress.github.
+for (const p of ['lib/vanilla-bundle.js', 'lib/kits/repo-address.js',
                  'lib/kits/guide-render.js', 'lib/kits/source-peek.js',
                  'lib/alpineComponents/viewer.js',
                  'lib/alpineComponents/file-review.js']) {

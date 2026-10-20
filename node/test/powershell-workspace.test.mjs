@@ -46,6 +46,7 @@ function harness(options = {}) {
       };
     } },
   };
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(win);
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/powershell-outpost.js'), 'utf8'))(win);
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/powershell-workspace.js'), 'utf8'))(win);
   const gh = {
@@ -301,7 +302,7 @@ test('publish validates every base before creating one atomic commit on a new br
   assert.equal(result.revision, NEXT);
   assert.equal(result.baseRevision, REV);
   assert.deepEqual(result.files, [FILE]);
-  assert.match(result.compareUrl, /compare\/[a-f0-9]{40}\.\.\.wps%2Ftry-example/);
+  assert.match(result.compareUrl, /compare\/[a-f0-9]{40}\.\.\.wps\/try-example\?expand=1$/);
   assert.equal(gh.ref, 'main');
   assert.equal(records.get(saved.id).text, saved.text, 'publication never deletes the recovery copy');
 });

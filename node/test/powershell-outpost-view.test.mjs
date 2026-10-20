@@ -169,7 +169,8 @@ window.__shell = {
 };
 // The pane links the explanation document and the ledger through the shared
 // link builder, so the harness carries the real one rather than a guess at
-// the URL shape it produces.
+// the URL shape it produces, and the address module it builds through.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/github-links.js'), 'utf8'))();
 const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };

@@ -311,7 +311,7 @@
         </button>
       </div>
 
-      <a :href="`https://github.com/${REPO}/tree/${DATA_REF}/news`" target="_blank"
+      <a :href="window.RepoAddress.github.tree(REPO, DATA_REF, 'news')" target="_blank"
          class="btn btn-ghost btn-xs btn-square opacity-70 hover:opacity-100" title="home/news on GitHub">
         <i class="ph ph-github-logo"></i>
       </a>

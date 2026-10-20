@@ -66,6 +66,25 @@ test('nor does anything split one on its @ and its colon by hand', () => {
   assert.deepEqual(offenders, [], 'these split an address by hand; use window.RepoAddress.parse (or parseRepo) instead');
 });
 
+test('nor does anything build a github.com URL by hand', () => {
+  // RepoAddress.github builds them (blob, tree, commits, compare, pull...),
+  // with one encoding for a ref and a path. About 130 places concatenated
+  // their own until 2026-10-20 and encoded a ref three ways. A fixed literal
+  // with nothing joined to it is fine; a literal with a value appended is the
+  // copy this catches.
+  const URL_OK = new Set([...Object.keys(ALLOWED), 'pages/guides/code-layers.html']);
+  const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app'], { cwd: repoRoot, encoding: 'utf8' })
+    .split('\n').filter((f) => /\.(js|html)$/.test(f) && !SKIP.test(f) && !URL_OK.has(f) && !f.startsWith('lib/ops/'));
+  const BUILT = /https:\/\/github\.com\/[^'"`\s]*(?:['"`]\s*\+|\$\{)|\+\s*['"`]https:\/\/github\.com\//;
+  const offenders = [];
+  for (const f of files) {
+    readFileSync(path.join(repoRoot, f), 'utf8').split('\n').forEach((line, i) => {
+      if (BUILT.test(line)) offenders.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(offenders, [], 'these build a github.com URL by hand; use window.RepoAddress.github instead');
+});
+
 test('the detector still sees the shape it was written for', () => {
   // A guard whose pattern drifted would pass by matching nothing. These are
   // three of the copies it replaced, verbatim.
