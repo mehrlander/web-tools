@@ -273,6 +273,13 @@ export function deriveCallers(repoRoot, subjects, files, npm) {
           if (known.has(t)) add(t, from);
         }
       }
+      // A hyphenated name cannot be imported, so such a module is loaded by
+      // path through importlib, with the file named in a string.
+      if (code.includes('spec_from_file_location')) {
+        for (const m of code.matchAll(/['"]([\w.-]+\.py)['"]/g)) {
+          for (const t of subjects) if (t.endsWith('/' + m[1])) add(t, from);
+        }
+      }
     }
     // A command inside a string counts: checkout-setup.mjs registers git's
     // merge driver as a quoted command, and git runs it. The cost is that a
@@ -325,7 +332,9 @@ export function deriveTools(repoRoot) {
 
   // A subject another subject invokes by name (a shell hook calling its
   // python half, the dispatcher running the injector) has a route the node
-  // import scan cannot see.
+  // import scan cannot see. The name match alone also catches a comment that
+  // mentions a command-line tool, so it counts only where deriveCallers
+  // found code that runs the file.
   const srcs = new Map(subjects.map(rel => [rel, read(repoRoot, rel)]));
   const invoked = new Set();
   for (const rel of subjects) {
@@ -348,7 +357,7 @@ export function deriveTools(repoRoot) {
     else if (rel.startsWith('.github/workflows/')) invocation = 'ci:' + workflowEvents(src);
     else if (npm.has(rel) || npm.has(base)) invocation = 'npm:' + (npm.get(rel) || npm.get(base));
     else if (imported.has(rel)) invocation = 'imported';
-    else if (invoked.has(base)) invocation = 'imported';
+    else if (invoked.has(base) && (callers.get(rel) || []).some(c => !c.endsWith('.md'))) invocation = 'imported';
     else if (src.startsWith('#!')) invocation = 'argv';
     else invocation = 'none found';
     out.set(rel, {

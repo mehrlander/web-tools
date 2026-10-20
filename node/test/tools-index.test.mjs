@@ -50,5 +50,7 @@ test('callers are what runs a file, never a mention of it', async () => {
   assert.ok(callers('python/scheduled-tasks.py').includes('.github/workflows/scheduled-tasks.yml'), 'python3 <path> in a workflow');
   assert.ok(callers('node/render/cdn.mjs').includes('node/test/'), 'an import from the suite');
   assert.ok(callers('python/mcp-link-safe.py').some(c => c.endsWith('.md')), 'a document that gives the command');
+  assert.ok(callers('python/look-link.py').includes('python/showing.py'), 'a module loaded by path through importlib');
   assert.deepEqual(callers('node/check-branch-status.mjs'), [], 'named in a comment and in prose, run by nothing');
+  assert.equal(rows.get('node/check-branch-status.mjs').invocation, 'argv', 'a comment naming a command-line tool does not make it imported');
 });

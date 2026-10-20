@@ -1413,8 +1413,11 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.equal(reach.get('skills/hooks/commit-consent.py').events, '.githooks/commit-msg', 'the consent engine runs when commit-msg does');
     assert.ok('events' in reach.get('node/build/build-app.mjs') && 'hand' in reach.get('node/build/build-app.mjs'),
       'an npm script the commit hook runs is both on demand and on an event');
-    assert.match(reach.get('python/mcp-link-safe.py').hand, /\.md$/, 'a command a document gives is on demand');
-    assert.equal(Object.keys(reach.get('node/check-branch-status.mjs')).length, 0, 'a file only mentioned, never run, has no route');
+    assert.equal(reach.get('python/mcp-link-safe.py').hand, '', 'a command-line tool is on demand by its own route, before any document that gives its command');
+    assert.equal(reach.get('node/check-branch-status.mjs').hand, '', 'a command-line tool another file only mentions is on demand in its own right');
+    for (const t of state.toolsReg.tools) {
+      if (!Object.keys(reach.get(t.path)).length) assert.equal(t.invocation, 'none found', `${t.path} has a route, so it is not under No route`);
+    }
     const commitMsg = git.events.find(e => e.event === 'commit-msg').hooks[0];
     assert.ok(commitMsg.runs.some(r => r.path === 'skills/hooks/commit-consent.py'), 'an event lists what its file runs');
     await tick(2);
