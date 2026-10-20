@@ -336,7 +336,7 @@ skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-create
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,no,yes,yes
 skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,70,hook:SessionStart,no,yes,yes
-skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing 🆚 line with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,105,hook:Stop,no,no,yes
+skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing 🪧 or ⚖️ line with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,110,hook:Stop,no,no,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,no,yes,yes

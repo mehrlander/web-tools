@@ -1,6 +1,6 @@
 // skills/hooks/reply-check.py: the Stop hook that sends a reply back once.
-// Both checks are code, so both directions are asserted: a 🆚 closing line
-// without its "Recommended:" clause goes back and one with it passes; a page
+// Both checks are code, so both directions are asserted: a 🪧 or ⚖️ closing
+// line without its "Recommended:" clause goes back and one with it passes; a page
 // committed since the owner's last message needs a render link. The limits
 // are asserted too: a second stop in one turn passes, and any failure passes.
 // The render-link check runs against a real git checkout one level below the
@@ -43,17 +43,21 @@ function run(hook) {
 }
 const body = 'The branch is ready.\n\n';
 
-test('a 🆚 closing line without its "Recommended:" clause goes back, naming the clause', () => {
-  const d = run({ last_assistant_message: body + '🆚 **Choice needed:** merge now or wait for review.' });
-  assert.equal(d.decision, 'block');
-  assert.match(d.reason, /Recommended: <option>, because <reason>/);
-  assert.match(d.reason, /do not repeat the rest of the reply/);
+test('a 🪧 or ⚖️ closing line without its "Recommended:" clause goes back, naming the clause', () => {
+  for (const line of ['🪧 **Direction needed:** merge now or wait for review.',
+                      '⚖️ **Choice needed:** merge now or wait for review.',
+                      '🆚 **Choice needed:** merge now or wait for review.']) {
+    const d = run({ last_assistant_message: body + line });
+    assert.equal(d.decision, 'block', line);
+    assert.match(d.reason, /Recommended: <answer>, because <reason>/);
+    assert.match(d.reason, /do not repeat the rest of the reply/);
+  }
 });
 
 test('the clause passes in the shapes a reply writes it, bold included', () => {
-  for (const line of ['🆚 **Choice needed:** merge now or wait. Recommended: merge now, because CI passed.',
-                      '🆚 **Choice needed:** merge now or wait. **Recommended:** merge now, because CI passed.',
-                      '🆚 **Choice needed:** merge now or wait. recommended: merge now.']) {
+  for (const line of ['🪧 **Direction needed:** merge now or wait. Recommended: merge now, because CI passed.',
+                      '⚖️ **Choice needed:** merge now or wait. **Recommended:** merge now, because CI passed.',
+                      '🪧 **Direction needed:** merge now or wait. recommended: merge now.']) {
     assert.equal(run({ last_assistant_message: body + line }), null, line);
   }
 });
@@ -61,12 +65,12 @@ test('the clause passes in the shapes a reply writes it, bold included', () => {
 test('only the closing line is read: other markers, and a clause elsewhere in the reply, are not it', () => {
   assert.equal(run({ last_assistant_message: body + '🟡 **Pending:** your yes or no on the merge.' }), null);
   assert.equal(run({ last_assistant_message: body + '🟢 **Ready to continue:** merging next.' }), null);
-  const elsewhere = 'Recommended: merge now, because CI passed.\n\n🆚 **Choice needed:** merge now or wait.';
+  const elsewhere = 'Recommended: merge now, because CI passed.\n\n🪧 **Direction needed:** merge now or wait.';
   assert.equal(run({ last_assistant_message: elsewhere }).decision, 'block');
 });
 
 test('the limits: a second stop in one turn passes, and so does input it cannot read', () => {
-  assert.equal(run({ last_assistant_message: body + '🆚 **Choice needed:** merge or wait.', stop_hook_active: true }), null);
+  assert.equal(run({ last_assistant_message: body + '🪧 **Direction needed:** merge or wait.', stop_hook_active: true }), null);
   assert.equal(run('not json'), null);
   assert.equal(run({ last_assistant_message: '' }), null);
 });
