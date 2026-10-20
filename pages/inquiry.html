@@ -215,11 +215,10 @@ document.addEventListener('alpine:init', () => {
           const text = await new Response(new Blob([bin]).stream().pipeThrough(ds)).text();
           this.env = JSON.parse(text);
         } else if (src) {
-          const [addr, ...rest] = src.split(':');
-          const path = rest.join(':');
-          const [repo, ref] = addr.split('@');
+          const a = window.RepoAddress.parse(src);
+          if (!a) throw new Error('#src= reads owner/repo[@ref]:path, and this is not one: ' + src);
           // A read-only instance: no @ref follows the selection. The answer write below keeps its own ref.
-          this.env = JSON.parse((await new GH({ token: tokenNow(), repo, ...(ref ? { ref } : {}) }).get(path)).text);
+          this.env = JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text);
         } else {
           this.error = 'No envelope. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }

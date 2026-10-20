@@ -230,10 +230,10 @@ document.addEventListener('alpine:init', () => {
           const ds = new DecompressionStream('gzip');
           this.env = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(ds)).text());
         } else if (src) {
-          const [addr, ...rest] = src.split(':');
-          const [repo, ref] = addr.split('@');
+          const a = window.RepoAddress.parse(src);
+          if (!a) throw new Error('#src= reads owner/repo[@ref]:path, and this is not one: ' + src);
           // A read-only instance: no @ref follows the selection. The reply write below keeps its own ref.
-          this.env = JSON.parse((await new GH({ token: this.token, repo, ...(ref ? { ref } : {}) }).get(rest.join(':'))).text);
+          this.env = JSON.parse((await new GH({ token: this.token, repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text);
         } else {
           this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }

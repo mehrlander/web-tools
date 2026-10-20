@@ -49,6 +49,23 @@ test('only lib/kits/repo-address.js reads the owner/repo[@ref]:path grammar', ()
     'these lines parse the address with a regex of their own; use window.RepoAddress.parse (or parseRepo) instead');
 });
 
+test('nor does anything split one on its @ and its colon by hand', () => {
+  // The same reader written without a regex: `const [addr, ...rest] =
+  // src.split(':'); const [repo, ref] = addr.split('@')`. Four were found
+  // after the regex sweep, which could not see them. Two pages that load no
+  // library keep theirs; kits/brief.js splits npm specs, not addresses.
+  const SPLIT_OK = new Set(['pages/doc-growth.html', 'pages/delivery.html', 'lib/kits/brief.js', ...Object.keys(ALLOWED)]);
+  const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app'], { cwd: repoRoot, encoding: 'utf8' })
+    .split('\n').filter((f) => /\.(js|html)$/.test(f) && !SKIP.test(f) && !SPLIT_OK.has(f));
+  const offenders = [];
+  for (const f of files) {
+    readFileSync(path.join(repoRoot, f), 'utf8').split('\n').forEach((line, i) => {
+      if (/\.split\(\s*['"]@['"]\s*\)/.test(line)) offenders.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(offenders, [], 'these split an address by hand; use window.RepoAddress.parse (or parseRepo) instead');
+});
+
 test('the detector still sees the shape it was written for', () => {
   // A guard whose pattern drifted would pass by matching nothing. These are
   // three of the copies it replaced, verbatim.
