@@ -208,6 +208,8 @@ def parse_ref(ref):
     if not m:
         return "unknown", "", "", ""
     repo, at = m.group(1), m.group(2) or ""
+    pin = note.PIN_RE.fullmatch(at)
+    at = pin.group(2) if pin else at
     path = (m.group(3) if m.re is note.ADDR_RE else "").split("#")[0]
     return ("path" if path else "branch"), repo, at or "main", path
 

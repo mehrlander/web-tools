@@ -34,6 +34,8 @@ function lift(signature) {
 }
 
 const splitAddrSrc = lift('splitAddr(addr)');
+// splitAddr reads a pinned ref (@branch@commit) through it.
+const splitPinSrc = lift('splitPin(ref)');
 const showRouteSrc = lift('showRoute(key, raw)');
 const setSubjectSrc = lift('setSubject(s)');
 // showRoute resolves the viewer page through the renderer's selection.
@@ -41,7 +43,7 @@ const refForInSrc = lift('refForIn(E, I, repo, path, pathOnly)');
 const parseRefsSrc = (src.match(/const parseRefs = [\s\S]*?\n {2}\};\n/) || [''])[0];
 assert.ok(parseRefsSrc, 'parseRefs not found in ' + PAGE);
 
-const splitAddr = new Function(splitAddrSrc + '\n  return splitAddr;')();
+const splitAddr = new Function(splitPinSrc + splitAddrSrc + '\n  return splitAddr;')();
 
 // The page's own showRoute and setSubject, wired to a recording harness. Every
 // name they close over is a parameter, so nothing here is a stand-in for logic
@@ -67,6 +69,7 @@ function harness({ routes, fail, query = '' } = {}) {
      // The renderer's SELECTED, built from its query the way the page builds it.
      const SELECTED = parseRefs(queryParams.getAll('refs'), {});
      if (queryParams.get('lib')) SELECTED['mehrlander/web-tools'] = queryParams.get('lib');
+     ${splitPinSrc}
      ${splitAddrSrc}
      ${setSubjectSrc}
      ${showRouteSrc}
@@ -116,6 +119,11 @@ test('an envelope address comes apart into repo, ref, and path', () => {
 test('a slashed ref survives, since every session branch has one', () => {
   assert.deepEqual(splitAddr('mehrlander/web-tools@claude/a-b-c:tracker/board.md'),
     { repo: 'mehrlander/web-tools', ref: 'claude/a-b-c', path: 'tracker/board.md' });
+});
+
+test('a pinned ref reads as its commit, the branch being a label', () => {
+  assert.deepEqual(splitAddr('mehrlander/web-tools@claude/a-b-c@1014b1897601:tracker/board.md'),
+    { repo: 'mehrlander/web-tools', ref: '1014b1897601', path: 'tracker/board.md' });
 });
 
 test('a query or frag on the address belongs to the renderer, not the path', () => {

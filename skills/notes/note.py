@@ -55,6 +55,9 @@ NOTE_RE = re.compile(r"note:n[0-9a-z]+", re.ASCII)
 PULL_RE = re.compile(r"([\w.-]+/[\w.-]+)#(\d+)", re.ASCII)
 ADDR_RE = re.compile(r"([\w.-]+/[\w.-]+?)(?:@([^:]+))?:(.+)", re.ASCII)
 REPO_RE = re.compile(r"([\w.-]+/[\w.-]+?)(?:@([^:]+))?", re.ASCII)
+# A ref of the form branch@commit pins the commit and names its branch
+# (lib/kits/repo-address.js splitPin): the commit is what a reader fetches.
+PIN_RE = re.compile(r"(.+)@([0-9a-f]{7,40})", re.ASCII)
 
 
 def is_locator(about):

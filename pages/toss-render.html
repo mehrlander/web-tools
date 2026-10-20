@@ -37,7 +37,9 @@
   for a page that NEEDS the token: an un-deployed branch copy reaches the same
   localStorage the deployed page will, which a #gz= payload cannot. The ':'
   before <path> is unambiguous because git forbids ':' in ref names, and no
-  @ref means the repo's default branch (and no ?use shim). Neither the ?query
+  @ref means the repo's default branch (and no ?use shim). A pinned address,
+  @<branch>@<commit> with the commit 7 to 40 hex characters, reads the commit
+  and carries the branch as a label (splitPin). Neither the ?query
   nor the #frag reaches the API: both are handed to the PAGE, by the shims
   addressHtml assembles.
 
@@ -1403,6 +1405,15 @@ document.addEventListener('click',function(e){
     return { why: 'GitHub error ' + res.status, tokenHint: false };
   }
 
+  // A pinned address names the branch beside the commit it was read at,
+  // @branch@commit, the commit 7 to 40 hex characters. The commit is what is
+  // read; the branch is a label. lib/kits/repo-address.js splitPin, copied
+  // because this render path loads no lib.
+  function splitPin(ref) {
+    const m = /^(.+)@([0-9a-f]{7,40})$/.exec(ref || '');
+    return m ? { ref: m[2], branch: m[1] } : { ref: ref || '', branch: '' };
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path>[?<query>][#<frag>] — ':' can't appear in a
     // git ref name. Neither suffix reaches the API: both are handed to the
@@ -1414,6 +1425,8 @@ document.addEventListener('click',function(e){
     if (!m) return showEmpty('Could not parse the gh address. Expected owner/repo[@ref]:path[?query][#frag], e.g. ' +
       'gh=mehrlander/web-tools@main:pages/index.html');
     let [, owner, name, ref, path] = m;
+    let branch;
+    ({ ref, branch } = splitPin(ref));
     let pageQuery = '', pageFrag = '';
     const hi = path.indexOf('#');
     if (hi !== -1) { pageFrag = path.slice(hi + 1); path = path.slice(0, hi); }
@@ -1441,7 +1454,7 @@ document.addEventListener('click',function(e){
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
-    const at = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path;
+    const at = owner + '/' + name + (ref ? '@' + (branch ? branch + '@' : '') + ref : '') + ':' + path;
     if (!res.ok) {
       const { why, tokenHint } = await explainAddressFailure(res);
       return showEmpty(at + ' — ' + why + '.', tokenHint);
@@ -1580,7 +1593,7 @@ document.addEventListener('click',function(e){
   function splitAddr(addr) {
     const m = String(addr || '').match(/^([^/@:]+\/[^/@:]+)(?:@([^:]+))?:(.+)$/);
     if (!m) return null;
-    return { repo: m[1], ref: m[2] || '', path: m[3].split(/[?#]/)[0] };
+    return { repo: m[1], ref: splitPin(m[2]).ref, path: m[3].split(/[?#]/)[0] };
   }
 
   // ── Look at what is on the clipboard ─────────────────────────────────────
