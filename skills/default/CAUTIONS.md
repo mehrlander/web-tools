@@ -2,8 +2,6 @@
 
 These cautions cover risks we could miss when AI moves quickly.
 
-The canonical source is `mehrlander/web-tools` at `docs/CAUTIONS.md`. The portable plugin's `default` skill loads the byte-matched copy shipped beside it and fetches this source only as a fallback.
-
 ## People's names
 
 A person's name written into a repo can reach readers the person never expected, since a repo's files feed pages, artifacts and other repos, private repos included. Where the name came from decides whether it is already public. A name in a document published online is public, and the document can be shown or quoted with its names as published. A name that reached the session from the owner, a work email, a meeting, a chat or a session record usually is not, and the person's role often makes the point as well as the name would.
