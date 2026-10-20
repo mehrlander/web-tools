@@ -338,6 +338,20 @@ document.addEventListener('alpine:init', () => {
       document.querySelectorAll(`[data-k~="${g.dataset.ante}"]`).forEach(el => el.setAttribute('data-on', ''));
       this.drawArrows();
     },
+    // Marked words in the passage answer a hover as the card's words do: an
+    // entity's mentions light and its row on the current card is marked, and a
+    // connection with an end there is traced. Atoms are left to their rows.
+    passageOver(e) {
+      if (!HOVER.matches || e.target.closest?.('[data-gap]')) return;
+      const ks = (e.target.closest?.('[data-k]')?.dataset.k || '').split(' ').filter(Boolean);
+      const el = [...document.querySelectorAll(`[data-card="${this.cur}"]`)].find(x => x.offsetParent);
+      const ids = ks.length && el?._items ? Object.values(el._items).filter(it => it.mode !== 'atom' && it.keys.some(k => ks.includes(k))).map(it => it.id) : [];
+      if (ids.length) { this.point(ids, el, false, true); this.trace(ks); }
+    },
+    passageOut(e) {
+      const t = e.target.closest?.('[data-k]');
+      if (t && HOVER.matches && this.hot && !t.contains(e.relatedTarget)) this.light(null);
+    },
     gapOver(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches) { this.fitGap(g); this.gapTrace(g); } },
     gapOut(e) {
       const g = e.target.closest && e.target.closest('[data-gap]');
@@ -708,6 +722,7 @@ document.addEventListener('alpine:init', () => {
       const n = this.R.sentences[i].n;
       const all = this.items(n), active = [...all.entities, ...all.links];
       el._items = Object.fromEntries(Object.values(all).flat().map(it => [it.id, it]));
+      el.dataset.card = i;
       const key = g => LEGEND[g.key].filter(([t]) => all[g.key].some(it => it.tone === t))
         .map(([t, label]) => `<span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full ${TONE[t].dot}"></span>${label}</span>`).join('');
       const head = g => `<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1"><h3 class="text-sm font-semibold text-base-content/60">${g.label}</h3>`
@@ -817,7 +832,7 @@ document.addEventListener('alpine:init', () => {
         </div>
         <div x-ref="pwrap" class="relative">
           <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event)" @pointerout="gapOut($event)"></p>
+          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event); passageOver($event)" @pointerout="gapOut($event); passageOut($event)"></p>
         </div>
       </section>
 
