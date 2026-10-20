@@ -64,7 +64,16 @@ test('every key the pattern can produce is complete in all three tables', () => 
     assert.ok(CS.HUE[k], 'no hue for ' + k);
     assert.equal(CS.MARK[CS.GLYPH[k]], k, 'glyph and key disagree for ' + k);
   }
-  assert.equal(keys.length, 11);
+  assert.equal(keys.length, 12);
+});
+
+test('direction and choice read in both spellings, and 🆚 still reads as choice', () => {
+  // ⚖️ replaced 🆚 for a call on 2026-10-20; past records carry 🆚, so it stays.
+  assert.deepEqual(CS.marks('🪧 **Direction needed:** which way?'), ['direction']);
+  assert.deepEqual(CS.marks('⚖️ **Choice needed:** merge?'), ['choice']);
+  assert.deepEqual(CS.marks('⚖ **Choice needed:** merge?'), ['choice']);
+  assert.deepEqual(CS.marks('🆚 **Choice needed:** merge?'), ['choice']);
+  assert.equal(CS.GLYPH.choice, '⚖️');
 });
 
 test('nobody keeps a second copy of the pattern or the table', () => {
