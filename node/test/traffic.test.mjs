@@ -621,6 +621,8 @@ test('the traffic log files a finding once, leaves out its own writes, and needs
     Traffic: T, __traffic: [], __trafficTotals: { calls: 0 }, __jobs: [{ id: 1, name: 'Poll Gemini pings' }],
     __trafficRate: 4000, __trafficRateReset: 1,
     BrowserKind: { kind: () => 'Mac Chrome', note: () => 'Desk Chrome' },
+    // gh-auth.js's reader, over the same store: it is on every page that boots.
+    ghAuth: { resolve: () => store.ghToken || '' },
   };
   const env = {
     window: w,

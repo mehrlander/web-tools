@@ -15,13 +15,12 @@
 
 import path from 'node:path';
 import http from 'node:http';
-import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const asJson = process.argv.includes('--json');
 const VERSIONS = args.length ? args : ['3.4.120', '4.10.38', '5.4.149', '6.1.200'];

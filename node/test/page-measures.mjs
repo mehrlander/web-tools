@@ -20,9 +20,8 @@
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT = path.join(root, 'node/.preview/page-measures-fixture.png');
 const r = spawnSync(process.execPath, [path.join(root, 'node/render/screenshot.mjs'),
   'node/test/fixtures/page-measures.html', '--measure', '--width', '1000', '--height', '625', '--out', OUT],

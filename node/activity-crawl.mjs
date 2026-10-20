@@ -32,9 +32,9 @@
 // estate and a write token for one repo.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
+import { repoRoot as root } from './repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REGISTRY = 'mehrlander/web-tools-private';
 
 const argv = process.argv.slice(2);

@@ -25,7 +25,7 @@ the only signal**, and its shape is a contract that `write-kinds.js` reads:
 - **`via Actions`** marks a write a GitHub Actions run makes with the owner's
   token, appended when `GITHUB_ACTIONS` is set. Add it to any new write a run
   makes with that token.
-- **`via Gemini daemon`** marks a write the Gemini daemon makes on the home
+- **`via Gemini daemon`** marks a write the laptop daemon makes on the home
   laptop: topic summaries, errand claims, results and follow-ups, and its
   sessions-cache refresh (web-tools-private `sessions/tools/poll_followup.py`
   and `errand_runner.py`). Its commits from before the trailer read as

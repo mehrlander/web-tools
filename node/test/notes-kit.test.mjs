@@ -6,6 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
@@ -47,7 +48,28 @@ test('make refuses what is not a locator and an empty note, and keeps a quote an
   assert.deepEqual(Object.keys(n), ['id', 'at', 'author', 'about', 'text', 'anchor']);
   assert.deepEqual(n.anchor, { exact: 'the words', prefix: 'p', suffix: '' });
   for (const about of ['a/b', 'a/b@claude/x', 'a/b:p', 'a/b:p#frag', 'a/b@main:p', 'a/b#12', 'note:nabc1'])
-    assert.ok(N.LOCATOR.test(about), about);
+    assert.ok(N.isLocator(about), about);
+});
+
+// note.py carries the notes grammar as patterns, since the plugin ships it
+// without lib/; the browser reads the same grammar through RepoAddress. The
+// cases are the edges where two copies of a grammar drift: whitespace, a
+// non-ASCII name, a slashed ref, and the forms only notes have.
+const LOCATOR_CASES = [
+  'a/b', 'a/b@claude/x', 'a/b:p', 'a/b:p#frag', 'a/b@main:p', 'a/b#12', 'note:nabc1',
+  'me.dash/a.b-c@v2:x/y.json', 'o/r@main:dir/a b(1).md', 'a/b@x#1', 'a/b@feat/x:p#h=1',
+  'not a locator', '', ' a/b', 'a/b ', 'a/b\n', 'a/b:', 'a/b#', 'a/b#x', 'note:', 'note:N1',
+  'é/r:x', 'a/b@:x', 'README.md', 'a/b/c',
+];
+
+test('the browser and note.py accept the same locators', () => {
+  const py = JSON.parse(execFileSync('python3', ['-c', `
+import json, sys
+sys.path.insert(0, ${JSON.stringify(path.join(repoRoot, 'skills/notes'))})
+import note
+print(json.dumps([note.is_locator(s) for s in json.loads(sys.argv[1])]))
+`, JSON.stringify(LOCATOR_CASES)], { encoding: 'utf8' }));
+  LOCATOR_CASES.forEach((s, i) => assert.equal(py[i], N.isLocator(s), JSON.stringify(s)));
 });
 
 test('append writes to an empty store, then extends it', async () => {

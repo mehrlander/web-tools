@@ -63,6 +63,13 @@ const saved = [], RESULTS = {};
 const TASKS = { 'tracker/tasks/trim-ab12cd.md': 'in-progress' };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
+  // gh-fetch.js's GH.ago, which the view reads for every "when".
+  static ago(d) {
+    const s = (Date.now() - Date.parse(d)) / 1000;
+    if (!Number.isFinite(s)) return '';
+    for (const [u, v] of [['y', 31536000], ['mo', 2592000], ['d', 86400], ['h', 3600], ['m', 60]]) if (s >= v) return Math.floor(s / v) + u + ' ago';
+    return 'just now';
+  }
   static toBase64(t) { return Buffer.from(t).toString('base64'); }
   async save(path, data, message) { saved.push({ repo: this.repo, path, data, message }); return { ok: true }; }
   constructor(o = {}) { this.repo = o.repo; }

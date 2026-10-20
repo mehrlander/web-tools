@@ -12,6 +12,7 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 const win = {};
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(win);
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/errands.js'), 'utf8'))(win);
 const E = win.Errands;
 
