@@ -61,9 +61,32 @@ test('parseRepo reads the grammar with no path: a repo or a branch', () => {
 });
 
 test('fmt round-trips what parse read', () => {
-  for (const s of ['me/proj:a.md', 'me/proj@feat/x:a/b.md']) {
+  for (const s of ['me/proj:a.md', 'me/proj@feat/x:a/b.md', 'me/proj@claude/x@1014b1897601:a/b.md']) {
     assert.equal(RA.fmt(RA.parse(s)), s);
   }
+});
+
+test('a pinned address reads at its commit and names its branch', () => {
+  // owner/repo@branch@commit:path, the commit 7 to 40 hex characters: every
+  // caller fetching by `ref` reads what a commit-only address would.
+  assert.deepEqual({...RA.parse('me/proj@claude/x@1014b18:a.md')},
+    { repo: 'me/proj', ref: '1014b18', branch: 'claude/x', path: 'a.md' });
+  assert.deepEqual({...RA.parseRepo('me/proj@claude/x@1014b18')},
+    { repo: 'me/proj', ref: '1014b18', branch: 'claude/x' });
+  // Not a commit after the last '@', so the whole of it is the ref, as before.
+  for (const ref of ['feat@x', 'b@abc123', 'b@ABCDEF1', 'b@' + 'f'.repeat(41)])
+    assert.deepEqual({...RA.parse('me/proj@' + ref + ':a.md')}, { repo: 'me/proj', ref, path: 'a.md' }, ref);
+  const t = RA.fromPaste('https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=me/proj@claude/x@1014b1897601:pages/a.html?v=1');
+  assert.deepEqual({...t}, { repo: 'me/proj', ref: '1014b1897601', branch: 'claude/x', path: 'pages/a.html', query: 'v=1' });
+});
+
+test('the renderer splits a pinned ref as this module does', () => {
+  // toss-render.html keeps a copy, since its render path loads no lib.
+  const src = readFileSync(path.join(repoRoot, 'pages/toss-render.html'), 'utf8');
+  const copy = src.match(/function splitPin\(ref\) \{\n\s*const m = (\/.+\/)\.exec/);
+  assert.ok(copy, 'toss-render.html defines splitPin');
+  const lib = readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8').match(/const PIN_RE = (\/.+\/);/);
+  assert.equal(copy[1], lib[1]);
 });
 
 test('a box spec is a folder by default, on the default branch', () => {

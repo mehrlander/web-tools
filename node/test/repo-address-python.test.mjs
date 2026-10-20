@@ -18,6 +18,8 @@ const CASES = [
   'me/proj:a.md', 'me/proj@feat/x:a/b.md', ' me.dash/a.b-c@v2:x/y.json ', 'a/b@feat/x:p',
   'o/r@f#1:x?.md', 'o/r@main:dir/a b(1).md', 'o/r:', 'just/a/path.md', 'README.md', '', 'o/r@x',
   'é/r:x', 'o/ré:x', 'o/r@ré:chemin/é.md',
+  'o/r@claude/x@1014b1897601:pages/a.html', 'o/r@main@abc1234:p', 'o/r@feat@x:p', 'o/r@b@ABCDEF1:p',
+  'o/r@b@' + 'f'.repeat(40) + ':p', 'o/r@b@' + 'f'.repeat(41) + ':p', 'o/r@b@abc123:p',
 ];
 
 test('Python and JavaScript read every address alike, and build the same GitHub URL', () => {
