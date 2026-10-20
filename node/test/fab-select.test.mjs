@@ -126,7 +126,19 @@ test('taking the offer turns the annotator on and opens the composer on the pass
   assert.ok(S.draft, 'and a draft is open');
   assert.equal(S.draft.target.type, 'text');
   assert.equal(S.draft.target.quote.exact, 'quick brown fox');
+  // DOCKED IN THE DRAWER: the drawer opened with the card at its foot, and
+  // nothing floats over the page.
+  assert.equal(d.open, true, 'the drawer opened');
+  const dock = host.querySelector('[data-fab-note-dock]');
+  assert.ok(dock && dock.contains(S.ui), 'the card is in the drawer\'s dock');
+  assert.equal(S.ui.style.position, 'relative', 'in flow, not fixed over the page');
+  // IDLE: a lit launcher tapped may be a reader who wanted the drawer, so the
+  // draft does not switch the microphone on.
+  assert.ok(!(S.dict && S.dict.listening), 'not listening');
   A.disable();
+  assert.equal(dock.children.length, 0, 'and the dock empties when the annotator goes off');
+  d.close();
+  await tick(2);
 });
 
 test('a tap on the lit launcher takes the passage, even when the press collapsed the selection first', async () => {
@@ -142,11 +154,15 @@ test('a tap on the lit launcher takes the passage, even when the press collapsed
   await settle();
   assert.equal(d.selOffer, null, 'the read cleared the offer');
   d.onUp(press());
-  for (let i = 0; i < 40 && !(window.Annotate.enabled && window.Annotate._state.draft); i++) await tick(1);
+  // The tap opens the drawer first (its body is built on the first open),
+  // then docks the card, so this polls on time rather than on ticks.
+  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !(window.Annotate.enabled && window.Annotate._state.draft); ) await tick(1);
   const A = window.Annotate;
   assert.equal(A.enabled, true, 'the annotator came on');
   assert.equal(A._state.draft.target.quote.exact, 'quick brown fox');
   A.disable();
+  d.close();
+  await tick(2);
 });
 
 test('with nothing selected, a tap on the launcher opens the drawer as it always has', async () => {
