@@ -286,8 +286,8 @@ node/sessions-crawl.mjs,"refresh state/sessions.json, the phone's state/session-
 node/stage-link.mjs,"mint a Web Tools #gz= stage link that carries local files whole as text and opens the Stage reader on the first (&mode=read) or on a comparison (--diff), so a session can hand over a script with no commit, no repo and no token",node,66,npm:stage-link,no,yes,yes
 node/ui-units.mjs,"write data/ui-units/units.csv and signals.csv: every unit the Web Tools and budget-drs apps show, with its ring and its files' kit signals, as dated snapshots split by visibility between data/ui-units/ here and home's data/ui-units/",node,433,npm:ui-units,yes,yes,yes
 node/xlsx-picker-sweep.mjs,,node,104,imported,yes,yes,yes
-python/annotate/anchors.py,,python/annotate,265,imported,no,yes,yes
-python/annotate/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",python/annotate,153,imported,no,yes,yes
+python/annotate/anchors.py,,python/annotate,277,imported,no,yes,yes
+python/annotate/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",python/annotate,157,imported,no,yes,yes
 python/annotate/check.py,,python/annotate,82,imported,no,yes,yes
 python/annotate/materialize.py,,python/annotate,174,imported,yes,yes,yes
 python/annotate/ops.py,,python/annotate,355,imported,no,yes,yes
@@ -316,7 +316,8 @@ python/mcp-link-safe.py,"report markdown links the GitHub MCP write path would d
 python/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the result",python,187,imported,no,yes,no
 python/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",python,97,argv,no,no,no
 python/pip-steps.py,,python,209,argv,no,no,no
-python/scheduled-tasks.py,"the scheduled-tasks workflow's script: reads the scheduled-tasks registry, runs the statute check by progressive action, and dispatches the other scheduled workflows",python,579,imported,yes,no,yes
+python/repo_address.py,"the owner/repo[@ref]:path address and its GitHub blob URL for the Python side, matching lib/kits/repo-address.js; imported by scheduled-tasks.py and the annotate scripts",python,40,imported,no,no,yes
+python/scheduled-tasks.py,"the scheduled-tasks workflow's script: reads the scheduled-tasks registry, runs the statute check by progressive action, and dispatches the other scheduled workflows",python,585,imported,yes,no,yes
 python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,1254,npm:showing,no,yes,yes
 python/stranded-titles.py,,python,356,npm:stranded-titles,no,yes,yes
 python/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",python,269,argv,no,yes,yes

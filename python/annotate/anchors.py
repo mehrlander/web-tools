@@ -45,10 +45,22 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(1, str(Path(__file__).resolve().parent.parent))
 from reanchor import CTX, resolve  # noqa: E402
 from segment import units as segment_units  # noqa: E402
+from repo_address import parse as parse_address  # noqa: E402
 
-FILE = re.compile(r"^([\w.-]+/[\w.-]+)(?:@([^\s:]+))?:([^\s#]+)(?:#\S+)?$")
+
+def file_address(about):
+    """A note's file locator, owner/repo[@ref]:path[#fragment], as
+    (repo, ref, path), or None. The grammar is python/repo_address.py's, the
+    same one lib/kits/repo-address.js reads; a locator holds no whitespace."""
+    s = str(about or "")
+    if re.search(r"\s", s):
+        return None
+    a = parse_address(s.split("#", 1)[0])
+    return (a["repo"], a["ref"], a["path"]) if a else None
+
 # A fixed string, twice as fast as a pattern over a large checkout; the parsed
 # `kind` is what decides.
 STANDOFF = "standoff/1"
@@ -101,7 +113,7 @@ def notes(repos):
             except ValueError:
                 continue
             a = n.get("anchor")
-            if isinstance(a, dict) and a.get("exact") and FILE.match(str(n.get("about", ""))):
+            if isinstance(a, dict) and a.get("exact") and file_address(n.get("about")):
                 out.append(n)
     return out
 
@@ -207,7 +219,7 @@ def run(root, only_staged=False):
 
     rows = []
     for n in notes(repos):
-        repo, ref, path = FILE.match(n["about"]).groups()
+        repo, ref, path = file_address(n["about"])
         if changes is not None and (repo != here or path not in changes or (ref and ref not in ("main", "HEAD"))):
             continue
         what = f'note {n.get("id", "?")} "{" ".join(n["anchor"]["exact"].split())[:60]}"'
