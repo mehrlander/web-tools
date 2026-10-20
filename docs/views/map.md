@@ -50,11 +50,11 @@ its own filter. A user call waits on the owner, so its badge, filter and
 marks take the attention colour, which a proposal from a batch process does
 not. In the reading deck a proposal is labelled on the paragraph it would
 change and applied or rejected in place. Each edit a call proposes is open
-there as a change container. A call is answered for all its edits at once,
-from its sheet, which steps through the edits like a walkthrough and stays
-open while it does: each edit confirmed or discarded, with a note if wanted,
-and the answer recorded in web-tools-private beside the call with the
-confirmed edits as a patch for a session to apply
+there as a change container, and the call's mark, in the place of the
+container's number, confirms or discards it and takes a note. The call's sheet
+steps through the edits like a walkthrough and records the answer for all of
+them at once, in web-tools-private beside the call, with the confirmed edits
+as a patch for a session to apply
 ([`lib/kits/call-answer.js`](../../lib/kits/call-answer.js), which Dictate
 shares). The sheet commits nothing: a call is read on main, so a commit from
 the browser would land there outside any pull request and skip the target

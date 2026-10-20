@@ -1833,30 +1833,35 @@ test('a call is answered from the Docs deck: decisions, notes, a patch of the co
   try {
     assert.equal(await data.markDeckProposals(box, 'docs/x.md', md), 2, 'the two edits the file holds are labelled');
     assert.ok(data.deckActions('docs/x.md').some(a => /Answer the user call/.test(a.title)), 'the header can open the sheet');
-    // From the paragraph's container: Confirm sets, and the chip says so.
-    data.setCallDecision(call, 0, 'confirmed');
+    // From the container's chip, which stands in md-diff's index: Confirm.
     const chip = box.querySelector('[data-call-edit="c-test:0"]');
+    assert.ok(chip.closest('.md-diff-change')?.querySelector('.md-diff-idx.hidden'), "the chip takes the index's place");
+    chip.querySelector('[data-act="confirmed"]').click();
     assert.equal(chip.dataset.callDecision, 'confirmed');
-    assert.match(chip.textContent, /confirmed/);
     await data.openCallSheet(call, 'docs/x.md');
     const sheet = host.querySelector('[data-call-sheet]');
     assert.ok(sheet, 'the sheet opens on the deck');
     assert.deepEqual([...data.callDecisions(call)], ['confirmed', 'open', 'stale'], 'an edit the file lacks keeps its standing');
-    assert.equal(sheet.querySelectorAll('[data-call-set]').length, 4, 'only staged edits take a decision');
+    assert.equal(sheet.querySelectorAll('[data-call-set]').length, 0, 'a drawn edit is decided on its chip, a stale one not at all');
+    assert.ok(sheet.querySelector('[data-decision="stale"]'), 'the edit the file lacks shows its standing');
+    assert.equal(sheet.querySelector('[data-call-answer-note]').value, 'Apply the verdicts as given.', 'Send speaks for itself');
     // A walk: stepping keeps the sheet and marks the edit's row.
     data.stepCallEdit(call, 1);
     data.stepCallEdit(call, 1);
     assert.ok(host.querySelector('[data-call-sheet]'), 'the sheet stays open while the reader moves');
     assert.equal(host.querySelector('[data-call-here]')?.dataset.callRow, '1');
-    assert.match(host.querySelector('[data-call-at]').textContent, /2 \/ 3/);
-    assert.equal(host.querySelectorAll('[data-call-unplaced]').length, 1, 'the edit the page could not draw says so on its row');
+    assert.match(host.querySelector('[data-call-at]').textContent, /2\/3/);
     assert.equal(data.docCallCount, 0, 'counted against the registry, which has no docs/x.md');
-    // From the sheet: discard edit 2, with a note, and a note on the answer.
-    sheet.querySelector('[data-call-set="discarded"][data-i="1"]').click();
-    host.querySelector('[data-call-note="1"]').click();
-    const ta = host.querySelector('[data-call-note-edit="1"]');
+    // From edit 2's chip: discard, with a note; then a note on the answer.
+    const chip2 = box.querySelector('[data-call-edit="c-test:1"]');
+    chip2.querySelector('[data-act="discarded"]').click();
+    chip2.querySelector('[data-act="note"]').click();
+    const ta = box.querySelector('[data-call-edit-box="c-test:1"] [data-call-note-box] textarea');
     ta.value = 'keep the ending';
     ta.dispatchEvent(new window.Event('input'));
+    ta.dispatchEvent(new window.Event('blur'));
+    assert.match(box.querySelector('[data-call-edit-box="c-test:1"] [data-call-note-box]').textContent, /keep the ending/);
+    assert.ok(host.querySelector('[data-call-row="1"] [data-call-note-mark]'), 'the sheet marks the row with a note');
     const say = host.querySelector('[data-call-answer-note]');
     say.value = 'Good call.';
     say.dispatchEvent(new window.Event('input'));
