@@ -153,8 +153,8 @@ test('remove deletes an empty list and refuses one with items', async () => {
 
 test('the built-in paths are the ones the Lists pane writes, each named for its list', () => {
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/estate.js'), 'utf8');
-  const pane = Object.fromEntries([...src.matchAll(/const (TODO|JOT|PIN)_PATH = '([^']+)'/g)].map(m => [m[1], m[2]]));
-  assert.deepEqual(L.BUILT_IN.map(b => b.path), [pane.TODO, pane.JOT, pane.PIN]);
+  const pane = Object.fromEntries([...src.matchAll(/const (TODO|JOT|PIN|SNAG)_PATH = '([^']+)'/g)].map(m => [m[1], m[2]]));
+  assert.deepEqual(L.BUILT_IN.map(b => b.path), [pane.TODO, pane.JOT, pane.PIN, pane.SNAG]);
   for (const b of L.BUILT_IN) assert.equal(b.path, L.pathFor(b.title), b.title);
 });
 

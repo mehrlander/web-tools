@@ -7,7 +7,7 @@ with no rule renders a zero-width blank. No console error, no layout complaint,
 no fallback glyph. The element is there, sized, and empty.
 
 That failure reads as a logic bug and gets debugged as one, which is the snag
-docs/SNAGS.md files under `phosphor-weight-is-a-family`. The nine this scan
+`phosphor-weight-is-a-family`. The nine this scan
 first found (PR #555) had shipped unnoticed; one of them was a tab in the Map
 view's own strip, blank beside eleven siblings that were not.
 
