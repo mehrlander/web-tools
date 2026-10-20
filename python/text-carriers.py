@@ -210,7 +210,9 @@ def naming_corpus(root):
     """Every byte of prose and registry data that could NAME a carrier."""
     blob = []
     for rel in tracked(root, (".md", ".json", ".csv", ".py", ".mjs", ".js", ".html")):
-        if rel.endswith((".md",)) or "/design/" in rel or "/docs/" in rel or rel.count("/") == 0:
+        # A top-level docs/ path has no leading slash, so "/docs/" alone
+        # missed docs/registries.csv, the registry every docs/ CSV is declared in.
+        if rel.endswith((".md",)) or "/design/" in rel or "/docs/" in rel or rel.startswith("docs/") or rel.count("/") == 0:
             try:
                 with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
                     blob.append((rel, fh.read()))

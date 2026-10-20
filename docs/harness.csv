@@ -284,7 +284,7 @@ node/render/screenshot.mjs,the Chromium pixel render behind npm run shot; --scri
 node/repo-root.mjs,"The repo root as one exported constant, split out of node/test/bootstrap.mjs so a consumer outside the suite can have it without that file's top-level jsdom import. bootstrap re-exports it, so its 207 importers are unaffected.",node,20,imported,no,no,yes
 node/sessions-crawl.mjs,"refresh state/sessions.json, the phone's state/session-menu.json and the session search shards in web-tools-private without a browser, from the hourly activity-cache Action, so the phone's Claude menu knows a session nobody has opened the app since. A second CALLER of the app's own sessions crawl (lib/kits/sessions-crawl.js), not a second crawler. REST only, so unlike activity-crawl.mjs it needs no GraphQL preflight",node,179,npm:sessions-refresh,yes,no,yes
 node/stage-link.mjs,"mint a Web Tools #gz= stage link that carries local files whole as text and opens the Stage reader on the first (&mode=read) or on a comparison (--diff), so a session can hand over a script with no commit, no repo and no token",node,66,npm:stage-link,no,yes,yes
-node/ui-units.mjs,"write data/ui-units/units.csv and signals.csv: every unit the Web Tools and budget-drs apps show, with its ring and its files' kit signals, as dated snapshots split by visibility between data/ui-units/ here and home's data/ui-units/",node,433,npm:ui-units,yes,yes,yes
+node/ui-units.mjs,"write data/ui-units/units.csv and signals.csv: every unit the Web Tools and budget-drs apps show, with its ring and its files' kit signals, as dated snapshots split by visibility between data/ui-units/ here and home's data/ui-units/",node,439,npm:ui-units,yes,yes,yes
 node/xlsx-picker-sweep.mjs,,node,104,imported,yes,yes,yes
 python/annotate/anchors.py,,python/annotate,265,imported,no,yes,yes
 python/annotate/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",python/annotate,153,imported,no,yes,yes
@@ -321,7 +321,7 @@ python/showing.py,"decide which render link, if any, shows what a branch changed
 python/stranded-titles.py,,python,356,npm:stranded-titles,no,yes,yes
 python/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",python,269,argv,no,yes,yes
 python/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,python,111,npm:sunset,no,no,yes
-python/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",python,545,imported,no,yes,yes
+python/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",python,547,imported,no,yes,yes
 python/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",python,187,npm:code-scan,no,yes,no
 python/upstream-skills.py,"compares each outside skill's pinned version with what its author holds now, and every held or vendored copy with its pin; --pin records a new pin",python,194,npm:upstreams,yes,yes,yes
 python/userscript-stub.py,,python,217,argv,no,yes,yes
