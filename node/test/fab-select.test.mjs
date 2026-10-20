@@ -232,10 +232,12 @@ test('typing that lands on the keyboard foothold is carried into the Note field'
 test('closing the drawer before saving selects the passage again, and keeps what was written', async () => {
   // jsdom has no Highlight API; a stub records what the kit paints, so the
   // mark can be seen to go when the selection comes back.
+  // A Set-backed Highlight and a Map registry, which is the shape the real
+  // ones have (setlike and maplike), so clear(), size and get() behave.
   const had = { Highlight: window.Highlight, CSS: window.CSS };
   const marks = new Map();
-  window.Highlight = class { constructor(...r) { this.ranges = r; } };
-  window.CSS = { highlights: { set: (k, v) => marks.set(k, v), delete: (k) => marks.delete(k) } };
+  window.Highlight = class extends Set { constructor(...r) { super(r); } };
+  window.CSS = { highlights: marks };
   try {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
@@ -244,9 +246,18 @@ test('closing the drawer before saving selects the passage again, and keeps what
   await tick(2);
   const A = window.Annotate;
   assert.ok(A._state.pending, 'the passage is marked while the drawer is open');
-  assert.equal(marks.get('annotate-notes-draft').ranges.map(String).join(), 'quick brown fox', 'painted on the page');
+  const mark = marks.get('annotate-notes-draft');
+  assert.equal([...mark].map(String).join(), 'quick brown fox', 'painted on the page');
   d.noteText = 'half a thought';
+  const p1el = doc.getElementById('p1');
   d.close();
+  // WebKit kept the orange painted when the registry merely let go of it
+  // (reported from an iPhone). The old mark is cleared, which is what makes
+  // an engine repaint what it covered, and the block it sat on is nudged.
+  assert.equal(mark.size, 0, 'the old mark is cleared, not just dropped');
+  assert.equal(p1el.style.opacity, '0.999', 'and the passage is made to repaint');
+  await new Promise(r => setTimeout(r, 60));
+  assert.equal(p1el.style.opacity, '', 'leaving its style as it was');
   await tick(2);
   const sel = window.getSelection();
   assert.equal(sel.toString(), 'quick brown fox', 'the selection is back on the passage');
