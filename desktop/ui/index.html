@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>On this laptop | Web Tools Desktop</title>
+  <link rel="stylesheet" href="laptop.css">
+  <script src="laptop.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div><div class="eyebrow" id="machine">THIS COMPUTER</div><h1>On this laptop</h1><p class="intro">What is happening here, and where to go next.</p></div>
+      <div class="page-actions"><span id="checked" class="muted" role="status">Waiting for the first check</span><button data-action="refresh" class="secondary">Refresh activity <span aria-hidden="true">↻</span></button></div>
+    </header>
+    <div id="notice" role="status"></div>
+    <section class="metrics" aria-label="Activity overview">
+      <button class="metric" data-filter="open"><span class="metric-label"><span class="dot green"></span>In progress</span><strong id="running">—</strong><span class="metric-note" id="running-note">Checking errands</span></button>
+      <button class="metric" data-filter="queued"><span class="metric-label"><span class="dot amber"></span>Queued</span><strong id="queued">—</strong><span class="metric-note">Waiting to be claimed</span></button>
+      <button class="metric" data-filter="new"><span class="metric-label"><span class="dot blue"></span>New results</span><strong id="new-count">—</strong><span class="metric-note">Since you last marked results seen</span></button>
+    </section>
+    <div class="columns">
+      <div class="work-column">
+        <section class="panel errands-panel" aria-labelledby="errands-title">
+          <div class="panel-heading"><div><h2 id="errands-title">Gemini errands</h2><p>Requests sent to the worker on this laptop.</p></div><button data-action="seen" class="text-button" id="seen" disabled>Mark results seen</button></div>
+          <div class="list-toolbar"><div class="filters" role="group" aria-label="Filter errands"><button data-filter="all" aria-pressed="true">Recent</button><button data-filter="open" aria-pressed="false">In progress</button><button data-filter="new" aria-pressed="false">New results</button></div><input id="search" type="search" aria-label="Find an errand" placeholder="Find an errand…"></div>
+          <div id="errands" aria-live="polite"><div class="empty">Reading the current activity records…</div></div>
+          <div class="panel-foot" id="record-note">The first check can take a moment.</div>
+        </section>
+        <section class="panel downloads-panel" aria-labelledby="downloads-title"><div class="panel-heading"><div><h2 id="downloads-title">Recent downloads</h2><p>A few of the latest files on this computer.</p></div><button class="text-button" data-action="place" data-id="downloads">Open folder ↗</button></div><div id="downloads"><div class="empty compact">Checking Downloads…</div></div></section>
+      </div>
+      <aside>
+        <section class="panel worker-panel" aria-labelledby="worker-title"><div class="panel-heading"><h2 id="worker-title">Gemini worker</h2><span id="worker-state" class="badge neutral">Checking</span></div><div class="panel-body"><p id="worker-detail">Checking the local process and its latest log activity.</p><div class="fact"><span>Last log activity</span><strong id="last-log">Not checked</strong></div><div class="fact"><span>Activity records</span><strong id="connection">Not checked</strong></div></div></section>
+        <section class="panel" aria-labelledby="apps-title"><div class="panel-heading"><h2 id="apps-title">Applications</h2></div><div id="applications" class="panel-body"><p class="muted">Checking local applications…</p></div><div class="panel-foot">An open application does not indicate that an agent is working.</div></section>
+        <section class="panel" aria-labelledby="places-title"><div class="panel-heading"><h2 id="places-title">Places</h2></div><div id="places" class="places"></div></section>
+      </aside>
+    </div>
+    <footer>Web Tools Desktop <span>Local activity stays available while you use Web Tools.</span></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,28 @@
+name: Windows desktop
+on:
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Check activity interpretation and Git isolation
+        run: dotnet run --project desktop/Checks/DesktopChecks.csproj
+      - name: Build the Windows app
+        run: dotnet build desktop/App/WebTools.Desktop.csproj -c Release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the existing browser test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check laptop view interactions
+        run: node desktop/Checks/ui-checks.mjs
