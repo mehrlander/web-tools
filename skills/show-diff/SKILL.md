@@ -33,7 +33,7 @@ One self-contained HTML artifact: a console-style inline diff of a single before
 
 ## Extending
 
-The estate's other diff views and their engines are listed in web-tools [`docs/diff-views.md`](https://github.com/mehrlander/web-tools/blob/main/docs/diff-views.md); `lib/kits/text-diff.js` already does the first extension below and `lib/kits/cm6-merge.js` the second.
+Two of these exist in web-tools already: `lib/kits/text-diff.js` does the word-level highlight and `lib/kits/cm6-merge.js` the side-by-side view.
 
 - Word-level highlight inside changed lines: pair changed line i with i, diff within. Recovers the surgical-edit case the line view gives up.
 - Side-by-side on desktop, collapsing to unified below a width threshold. Cramped on a phone.
