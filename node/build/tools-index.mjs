@@ -61,6 +61,7 @@ import { parseCsv, writeCsv } from './registries-load.mjs';
 // Fixed here so a restamp cannot reorder the file.
 const HARNESS_COLS = ['path', 'role', 'layer', 'lines', 'invocation', 'emits', 'named', 'tested'];
 import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
 const CODE_EXT = ['.mjs', '.js', '.cjs', '.py', '.sh'];
 
@@ -316,7 +317,6 @@ export function carryMovedRoles(byPath, added, gone) {
 // ── CLI: restamp (or --check) docs/tools.csv ───────────────────────────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const file = path.join(repoRoot, 'docs', 'harness.csv');
   const checkOnly = process.argv.includes('--check');
   let registry;

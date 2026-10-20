@@ -74,6 +74,7 @@ import { parseCsv, writeCsv, splitList } from './registries-load.mjs';
 // Fixed here so a restamp cannot reorder the file.
 const TEST_COLS = ['path', 'kind', 'protects', 'test_count', 'method', 'runner', 'boot_smoke', 'test_names'];
 import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
 // Two values, because `method` already answers the question the other five
 // were answering. component/kit/tool glossed to `alpine`/`kit`/`spawn` word
@@ -182,7 +183,6 @@ export function deriveTests(repoRoot) {
 // ── CLI: restamp docs/tests.csv ────────────────────────────────────────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const file = path.join(repoRoot, 'docs', 'tests.csv');
   const registry = { tests: parseCsv(readFileSync(file, 'utf8')).map(t => ({
     ...t,

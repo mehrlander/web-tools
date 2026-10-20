@@ -35,17 +35,16 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { loadKit } from './kit-shim.mjs';
+import { repoRoot as webToolsRoot } from '../repo-root.mjs';
 
 const WIDTH = 1000, HEIGHT = 625;            // 16:10, matches pages-shots + the card aspect
 const WAIT = 3000;                            // let the CDN libs + Alpine + data settle
 
 // node_modules (the vendored libs) lives at this repo's root, regardless of which
 // repo's pages we are shooting.
-const webToolsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function parseArgs(argv) {
   const o = { repo: '', root: '', out: '', pages: [] };
