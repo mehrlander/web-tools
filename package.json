@@ -26,7 +26,6 @@
     "docs-reach": "node node/build/docs-reach.mjs",
     "vendor-docs": "node node/build/vendor-docs.mjs",
     "policy-skills": "node node/build/policy-skills.mjs",
-    "reply-check-hook": "node node/build/reply-check-hook.mjs",
     "registries-reach": "node node/build/registries-reach.mjs",
     "gold-set": "node node/gold-set.mjs",
     "claims-scan": "python3 python/duplicated-claims.py",
