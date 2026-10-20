@@ -15,10 +15,14 @@ public sealed class ErrandReader(string repository)
     private string? recordNotice;
     private List<Errand> cached = [];
     private DateTimeOffset cachedSeen;
+    private DateTimeOffset cloudAttempt;
+    private string? cloudSha;
+    private CloudSnapshot cloud = new([], null, null);
 
     private Task<string> Git(params string[] args) => Commands.Text("git", args, repository);
 
     public double SyncMilliseconds => remote.Milliseconds;
+    public CloudSnapshot Cloud => cloud;
 
     public async Task Synchronize(bool force = false)
     {
@@ -33,7 +37,23 @@ public sealed class ErrandReader(string repository)
         } catch {
             remote = new(attempted, previous.SyncedAt, false,
                 "GitHub could not be reached. Showing the last available activity records.", watch.Elapsed.TotalMilliseconds);
-        } finally { syncGate.Release(); }
+        } finally {
+            if (DateTimeOffset.UtcNow - cloudAttempt > TimeSpan.FromSeconds(30)) {
+                cloudAttempt = DateTimeOffset.UtcNow;
+                try {
+                    await Git("fetch", "--quiet", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main");
+                    var sha = await Git("rev-parse", "--verify", "refs/remotes/origin/main:state/sessions.json");
+                    if (sha != cloudSha) {
+                        var parsed = CloudSessions.Parse(await Git("cat-file", "blob", sha), DateTimeOffset.UtcNow);
+                        cloud = parsed;
+                        cloudSha = sha;
+                    } else cloud = cloud with { Notice = null };
+                } catch {
+                    cloud = cloud with { Notice = cloud.CapturedAt is null ? "Cloud session records unavailable." : "Cloud sync unavailable; showing saved session records." };
+                }
+            }
+            syncGate.Release();
+        }
     }
 
     public async Task<ActivitySnapshot> Read(DateTimeOffset seenThrough, bool force = false, bool synchronize = true)

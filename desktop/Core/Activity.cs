@@ -18,11 +18,15 @@ public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogA
 public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
-    DateTimeOffset UpdatedAt, string Workspace);
+    DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop");
 public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
+public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice);
+public record ActivityEvent(string Id, string Provider, string Title, string State,
+    DateTimeOffset At, string Detail, string Location, string SessionId);
 public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
-    string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds);
+    string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds,
+    CloudSnapshot Cloud, List<ActivityEvent> Events);
 
 public static class Activity
 {

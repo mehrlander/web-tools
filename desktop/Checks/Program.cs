@@ -59,7 +59,14 @@ try {
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/claims/test-1.json"), claim.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/output/test-1/report.txt"), "Fixture output");
     await File.WriteAllTextAsync(Path.Combine(seed, "worker.txt"), "Committed worker file");
+    Directory.CreateDirectory(Path.Combine(seed, "state"));
+    var cacheAt = DateTimeOffset.UtcNow.ToString("O");
+    await File.WriteAllTextAsync(Path.Combine(seed, "state/sessions.json"), JsonSerializer.Serialize(new {
+        generatedAt = cacheAt, rows = new[] { new { id = "cloud-1", agent = "https://claude.ai/code/session_fixture",
+            ask = "Cloud fixture", ended = cacheAt, state = "needs" } }
+    }));
     await CommitFixture();
+    await Git(seed, "push", "--quiet", "origin", "background:main");
     await Git(fixture, "clone", "--quiet", "--", remote, checkout);
     await Git(checkout, "switch", "-c", "codex/fixture");
     await File.WriteAllTextAsync(Path.Combine(checkout, "worker.txt"), "Uncommitted worker edit");
@@ -68,6 +75,8 @@ try {
     var reader = new ErrandReader(checkout);
     var live = await reader.Read(seen, force: true);
     Check(live.Connected && live.Errands.Count == 2, "A real Git object read joins the available worker records.");
+    Check(reader.Cloud.Items.Single() is { State: "recorded", Location: "Cloud" },
+        "The remote main cache supplies recorded cloud activity without asserting a running session.");
     Check(live.Errands.Single(j => j.Id == "test-1") is { State: "complete", HasOutput: true }, "Output presence and a result survive an old claim in Git.");
     Check(statusBefore == await Commands.Text("git", ["status", "--porcelain"], checkout)
         && headBefore == await Commands.Text("git", ["rev-parse", "HEAD"], checkout)

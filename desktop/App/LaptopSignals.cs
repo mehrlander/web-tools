@@ -13,6 +13,7 @@ public static class LaptopSignals
         var specs = new[] {
             ("Codex", new[] { "codex", "ChatGPT.Codex" }),
             ("Gemini / Antigravity", new[] { "Antigravity" }),
+            ("Claude", new[] { "Claude" }),
             ("Stereo Bridge", new[] { "StereoBridge" }),
             ("Ollama", new[] { "ollama" })
         };

@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer syncTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly DispatcherTimer loadingTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly SessionReader sessions = new(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+    private readonly ActivityJournal journal = new(Path.Combine(UserSettings.DataDirectory, "activity-history.json"));
     private ErrandReader reader;
     private LaptopSnapshot? snapshot;
     private bool refreshing, syncing, initialSyncFinished, laptopReady, closing, laptopSelected, webNavigating;
@@ -137,9 +138,10 @@ public partial class MainWindow : Window
                     processesChecked = now;
                 }
                 var currentSessions = sessions.Read(now);
+                var events = journal.Observe(currentSessions.Items, now);
                 return new LaptopSnapshot(activity, daemon, applications,
                     LaptopSignals.Places(root), LaptopSignals.Downloads(), Environment.MachineName, seenThrough,
-                    currentSessions, watch.Elapsed.TotalMilliseconds);
+                    currentSessions, watch.Elapsed.TotalMilliseconds, activeReader.Cloud, events);
             });
             if (closing || activeReader != reader) return;
             snapshot = next;
@@ -149,28 +151,28 @@ public partial class MainWindow : Window
             var arriving = jobs.Count(j => j.State == "reply");
             var newResults = jobs.Count(j => j.IsNew);
             var attention = jobs.Count(j => j.State == "failed" && j.IsNew);
-            var parts = new List<string> { "On this laptop" };
+            var parts = new List<string> { "Now" };
             var working = snapshot.Sessions.Items.Count(s => s.State == "working");
             if (working > 0) parts.Add($"{working} working session{(working == 1 ? "" : "s")}");
             if (claimed > 0) parts.Add($"{claimed} claimed");
-            if (queued > 0) parts.Add($"{queued} queued");
+            if (queued > 0) parts.Add($"{queued} waiting for Gemini");
             if (arriving > 0) parts.Add($"{arriving} replies arriving");
             if (newResults > 0) parts.Add($"{newResults} new result{(newResults == 1 ? "" : "s")}");
             if (attention > 0) parts.Add($"{attention} to review");
-            if (parts.Count == 1) parts.Add(snapshot.Daemon.State == "detected" ? "Worker detected · no open errands" : "No open errands");
+            if (parts.Count == 1) parts.Add(snapshot.Daemon.State == "detected" ? "Gemini queue clear" : "No current local work");
             ActivityText.Text = string.Join("   ·   ", parts);
             ActivityText.ToolTip = null;
             ActivityDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
-                !snapshot.Activity.Connected || attention > 0 ? "#BD8540" : claimed > 0 || arriving > 0 ? "#4C8069" : "#809489"));
+                !snapshot.Activity.Connected || attention > 0 ? "#BD8540" : working > 0 || claimed > 0 || arriving > 0 ? "#4C8069" : "#809489"));
             SyncText.Text = snapshot.Activity.Connected ? "Live" : syncing && !initialSyncFinished ? "Connecting…" : "Offline";
             SyncText.ToolTip = "Local activity every 2 seconds; errands every 5 seconds.\n"
-                + $"Local scan: {snapshot.ScanMilliseconds:F0} ms · Last record sync: {reader.SyncMilliseconds:F0} ms\n"
+                + $"Cloud records every 30 seconds. Local scan: {snapshot.ScanMilliseconds:F0} ms · Last record sync: {reader.SyncMilliseconds:F0} ms\n"
                 + (snapshot.Activity.SyncedAt is { } at ? "Last record sync: " + at.ToLocalTime().ToString("h:mm:ss tt") : "No completed record sync yet.");
             await SendSnapshot();
             WriteDiagnostics();
         } catch (Exception ex) {
             SyncText.Text = "Activity unavailable";
-            ActivityText.Text = "On this laptop · Activity could not be checked";
+            ActivityText.Text = "Now · Activity could not be checked";
             ActivityText.ToolTip = ex.Message;
         } finally {
             refreshing = false;
@@ -211,6 +213,19 @@ public partial class MainWindow : Window
                 case "refresh": _ = SyncErrands(force: true); await Refresh(force: true); break;
                 case "seen": settings.SeenThrough = DateTimeOffset.UtcNow; settings.Save(); await Refresh(); break;
                 case "web": SelectLaptop(false); break;
+                case "activity":
+                    settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions";
+                    WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false); break;
+                case "cloud-session":
+                    if (snapshot?.Cloud.Items.Any(s => s.Id == id) == true) {
+                        settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(id);
+                        WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false);
+                    }
+                    break;
+                case "session-folder":
+                    var session = snapshot?.Sessions.Items.Find(s => s.Id == id);
+                    if (session is not null && session.Workspace.Length > 0) OpenFolder(session.Workspace);
+                    break;
                 case "errand":
                     var job = snapshot?.Activity.Errands.Find(j => j.Id == id);
                     if (job is not null) {

@@ -16,11 +16,11 @@
         <Border Grid.Column="1" Background="#E8EDE7" CornerRadius="8" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">
             <Button x:Name="WebTab" Content="Web Tools" Click="ShowWeb" MinWidth="110" Background="White" />
-            <Button x:Name="LaptopTab" Content="On this laptop" Click="ShowLaptop" MinWidth="130" />
+            <Button x:Name="LaptopTab" Content="Now" Click="ShowLaptop" MinWidth="110" />
           </StackPanel>
         </Border>
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-          <Button x:Name="BrowserButton" Click="OpenBrowser" ToolTip="Open in browser" AutomationProperties.Name="Open in browser" Padding="10,9" Margin="0,0,4,0">
+          <Button x:Name="BrowserButton" Click="OpenBrowser" ToolTip="Open Web Tools in browser" AutomationProperties.Name="Open Web Tools in browser" Padding="10,9" Margin="0,0,4,0">
             <Viewbox Width="17" Height="17"><Path Data="M 9,3 L 3,3 3,17 17,17 17,11 M 10,1 L 19,1 19,10 M 19,1 L 9,11" Stroke="#52675A" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" /></Viewbox>
           </Button>
           <Button x:Name="SettingsButton" Click="OpenSettings" ToolTip="Settings" AutomationProperties.Name="Settings" Padding="10,9">
@@ -32,8 +32,8 @@
     <Border Grid.Row="1" Background="#EDF2ED" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
       <Grid Margin="18,0,14,0">
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <Button x:Name="ActivityButton" Click="ShowLaptop" Padding="5,5" HorizontalAlignment="Left" ToolTip="See laptop activity">
-          <StackPanel Orientation="Horizontal"><Ellipse x:Name="ActivityDot" Fill="#73977D" Width="7" Height="7" Margin="0,0,9,0" /><TextBlock x:Name="ActivityText" Text="Checking laptop activity…" FontSize="12" /></StackPanel>
+        <Button x:Name="ActivityButton" Click="ShowLaptop" Padding="5,5" HorizontalAlignment="Left" ToolTip="See current activity">
+          <StackPanel Orientation="Horizontal"><Ellipse x:Name="ActivityDot" Fill="#73977D" Width="7" Height="7" Margin="0,0,9,0" /><TextBlock x:Name="ActivityText" Text="Reading current activity…" FontSize="12" /></StackPanel>
         </Button>
         <TextBlock x:Name="SyncText" Grid.Column="1" Text="Starting…" FontSize="11" Foreground="#758178" VerticalAlignment="Center" Margin="12,0" />
       </Grid>

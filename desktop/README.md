@@ -1,18 +1,24 @@
 # Web Tools Desktop
 
 A Windows desktop version of [Web Tools](https://mehrlander.github.io/web-tools/app/).
-The Web Tools tab loads the deployed app directly. The On this laptop tab adds
-local activity, with an activity strip visible above either tab.
+The Web Tools tab loads the deployed app directly. The Now tab brings current
+assistant work, the Gemini queue and recent results together. An activity strip
+stays visible above either tab.
 
 ## First version
 
-- Gemini errands: queued, claimed, first reply arriving, complete, or needing review.
+- Codex, Gemini and Claude lanes with shared assistant marks, session names,
+  activity states, timestamps and explicit Laptop or Cloud labels.
+- Gemini worker queue: waiting errands in request order, claimed work, arriving
+  replies, and distinct empty, unavailable and saved-snapshot states.
 - New results since the owner last marked results seen, with local output folders
   and the corresponding Web Tools errand one click away.
 - Gemini worker process detection and the last local log write time.
-- Current Codex and Gemini sessions, with working, quiet, idle and interrupted states.
-- Open application signals for Codex, Antigravity, Stereo Bridge, and Ollama.
-- Local places and the six most recently modified Downloads files.
+- Current Codex and Gemini sessions, recent Claude desktop metadata, and Claude
+  cloud session updates from Web Tools' existing captured-session cache.
+- An activity feed with assistant, state and text filters, plus a selected result
+  or a short history of observed local session events.
+- Local places, service processes and the three newest Downloads files.
 
 An open application establishes no task state. A claim establishes ownership,
 not continued execution. The worker's last log write is not a heartbeat.
@@ -49,7 +55,8 @@ different folder, or launch with `--root C:\path\to\repositories`. The private
 checkout is its `web-tools-private` child. Window size, the Web Tools address,
 and the time through which results were reviewed persist under
 `%LOCALAPPDATA%\WebToolsDesktop\settings.json`. Browser storage lives beside
-that file. Ctrl+1 selects Web Tools; Ctrl+2 selects On this laptop.
+that file. Ctrl+1 selects Web Tools; Ctrl+2 selects Now. The existing `--laptop`
+launch option still selects the Now tab.
 Alt+Left and Alt+Right navigate Web Tools history. A second launch focuses the
 existing window.
 
@@ -57,6 +64,7 @@ existing window.
 
 Local activity updates every two seconds. Remote activity fetches run separately
 every five seconds, so a slow network request does not stall local sessions.
+Cloud session records synchronize every thirty seconds.
 App process detection runs every ten seconds. Updates preserve selected errands
 and scroll position. The status stays steady during background polling; a thin
 loading indicator appears only for a slow initial load or Web Tools navigation.
@@ -64,7 +72,7 @@ Hover over Live to see scan and synchronization timings.
 
 The reader fetches the private checkout's `background` branch. It reads requests, claims, results, and output presence
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
-updates only `origin/background`; the checkout, index, local edits, and checked-out
+updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
 The latest eighty request filenames and every unresolved request are available;
 the list shows forty matching entries at once. A first launch treats results
@@ -77,17 +85,26 @@ an offline notice. Missing configuration is shown explicitly.
 
 Sessions use read-only queries against local Codex and Antigravity metadata.
 Codex turn lifecycle events are read incrementally from local session files.
-Prompts and replies are not collected. A working session with no event for three
-minutes becomes quiet; recent idle sessions remain visible for thirty minutes.
+Short Codex commentary updates supply the latest observed action. Full local
+prompts and replies are not collected. A working session with no event for three
+minutes becomes quiet. Recent sessions and observed events remain for one day.
+The last 150 observed events persist locally in `activity-history.json` beside
+settings. Polling without a state or commentary change adds no history entry.
 An agent's local storage format can change. Unavailable metadata produces a
 source notice while other activity continues updating.
+
+Claude cloud records come from `state/sessions.json` at one immutable revision
+of the private repository's main branch. Recorded closing states identify
+published updates, including choices or requests for the owner; they never
+assert that a cloud session is running. Selecting a record opens its exact
+session in Web Tools. Signal details use the shared accessible title-tip kit.
 
 ## Desktop boundary
 
 The hosted Web Tools page has no native message bridge. Only the bundled laptop
 document receives native actions, and those actions accept known place keys or
-errand identifiers from the current snapshot. They open folders or Web Tools
-records; the laptop view has no command execution action. Replies and filenames
+errand or session identifiers from the current snapshot. They open folders or Web Tools
+records; the Now view has no command execution action. Replies and filenames
 render as text. External web destinations open in the default browser.
 Open errands link to the Stage. Errands with a reply link to their exact saved
 result in Web Tools' Files view, since the Stage lists only open errands.
