@@ -64,10 +64,14 @@ the same file in the browser.
 
 - **Word.** Copy an existing sheet as the formatting carrier and replace its
   text, keeping its tables, widths and styles. `build-sheet.py` is the example
-  for a carrier shaped like the fiscal-note sheet. Commit the content file and
-  the builder; the carrier and the built document stay out of the repo.
+  for a carrier shaped like the fiscal-note sheet. Commit the carrier, the
+  content file, the builder and the built sheet: `build-sheet.py --check`
+  rebuilds the sheet from the carrier and compares, and a viewer opens only a
+  committed file. Write the zip entries with a fixed date, so the same content
+  builds the same file.
 - **In the browser.** A view or page reads the same content file, as the Org view
-  does, rather than a copy of it.
+  does, rather than a copy of it. The built sheet opens in the Web Tools data
+  viewer at `toss-render.html#data=owner/repo@ref:path.docx`.
 - **One page.** After every edit, render to PDF
   (`soffice --headless --convert-to pdf`) and count the pages (`pdfinfo`). When
   a bullet wraps the sheet onto a second page, shorten the bullet; the type size
