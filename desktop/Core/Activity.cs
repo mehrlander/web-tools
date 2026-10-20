@@ -17,9 +17,12 @@ public record ApplicationSignal(string Name, string State, string Detail, int Pr
 public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogAt);
 public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
+public record LocalSession(string Id, string Provider, string Title, string State,
+    DateTimeOffset UpdatedAt, string Workspace);
+public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
 public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
-    string MachineName, DateTimeOffset SeenThrough);
+    string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds);
 
 public static class Activity
 {

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace WebTools.Desktop;
 
@@ -7,34 +8,43 @@ namespace WebTools.Desktop;
 // the worker's index, checkout, branches and local edits are never changed.
 public sealed class ErrandReader(string repository)
 {
-    private DateTimeOffset lastFetchAttempt;
-    private DateTimeOffset? syncedAt;
+    private sealed record RemoteState(DateTimeOffset Attempt, DateTimeOffset? SyncedAt, bool Connected, string? Notice, double Milliseconds);
+    private RemoteState remote = new(default, null, false, null, 0);
+    private readonly SemaphoreSlim syncGate = new(1, 1);
     private string? revision;
-    private bool connected;
-    private string? notice;
     private string? recordNotice;
     private List<Errand> cached = [];
     private DateTimeOffset cachedSeen;
 
     private Task<string> Git(params string[] args) => Commands.Text("git", args, repository);
 
-    public async Task<ActivitySnapshot> Read(DateTimeOffset seenThrough, bool force = false)
+    public double SyncMilliseconds => remote.Milliseconds;
+
+    public async Task Synchronize(bool force = false)
+    {
+        if (!Directory.Exists(repository) || !force && DateTimeOffset.UtcNow - remote.Attempt < TimeSpan.FromSeconds(5)) return;
+        if (!await syncGate.WaitAsync(0)) return;
+        var previous = remote;
+        var attempted = DateTimeOffset.UtcNow;
+        var watch = Stopwatch.StartNew();
+        try {
+            await Git("fetch", "--quiet", "--no-tags", "origin", "+refs/heads/background:refs/remotes/origin/background");
+            remote = new(attempted, DateTimeOffset.UtcNow, true, null, watch.Elapsed.TotalMilliseconds);
+        } catch {
+            remote = new(attempted, previous.SyncedAt, false,
+                "GitHub could not be reached. Showing the last available activity records.", watch.Elapsed.TotalMilliseconds);
+        } finally { syncGate.Release(); }
+    }
+
+    public async Task<ActivitySnapshot> Read(DateTimeOffset seenThrough, bool force = false, bool synchronize = true)
     {
         var now = DateTimeOffset.UtcNow;
         if (!Directory.Exists(repository))
             return new(now, null, null, false, "The private activity repository was not found. Check the repositories folder in Settings.", []);
-        if (force || now - lastFetchAttempt > TimeSpan.FromSeconds(60)) {
-            lastFetchAttempt = now;
-            try {
-                await Git("fetch", "--quiet", "--no-tags", "origin", "+refs/heads/background:refs/remotes/origin/background");
-                syncedAt = DateTimeOffset.UtcNow;
-                connected = true;
-                notice = null;
-            } catch {
-                connected = false;
-                notice = "GitHub could not be reached. Showing the last available activity records.";
-            }
-        }
+        if (synchronize) await Synchronize(force);
+        var state = remote;
+        var connected = state.Connected;
+        var notice = state.Notice;
         try {
             var current = await Git("rev-parse", "--verify", "refs/remotes/origin/background^{commit}");
             if (current != revision || cachedSeen != seenThrough) {
@@ -86,7 +96,7 @@ public sealed class ErrandReader(string repository)
                 : "Activity could not be read. Keeping the previous snapshot until the next refresh.";
         }
         var notices = new[] { notice, recordNotice }.Where(n => n is not null);
-        return new(DateTimeOffset.UtcNow, syncedAt, revision, connected, string.Join(" ", notices) is { Length: > 0 } text ? text : null, cached);
+        return new(DateTimeOffset.UtcNow, state.SyncedAt, revision, connected, string.Join(" ", notices) is { Length: > 0 } text ? text : null, cached);
     }
 
     private async Task<Dictionary<string, byte[]>> ReadBlobs(List<string> shas)

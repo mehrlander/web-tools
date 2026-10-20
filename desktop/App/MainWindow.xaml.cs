@@ -15,10 +15,16 @@ public partial class MainWindow : Window
 {
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private readonly UserSettings settings = UserSettings.Load();
-    private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(15) };
+    private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private readonly DispatcherTimer syncTimer = new() { Interval = TimeSpan.FromSeconds(5) };
+    private readonly DispatcherTimer loadingTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
+    private readonly SessionReader sessions = new(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     private ErrandReader reader;
     private LaptopSnapshot? snapshot;
-    private bool refreshing, laptopReady, closing, laptopSelected;
+    private bool refreshing, syncing, initialSyncFinished, laptopReady, closing, laptopSelected, webNavigating;
+    private DateTimeOffset refreshStarted, syncStarted, navigationStarted, processesChecked;
+    private List<ApplicationSignal> applications = [];
+    private DaemonSignal daemon = new("unknown", "Checking the worker process.", null);
     private string? webError;
     private readonly string? diagnosticsPath;
 
@@ -37,6 +43,14 @@ public partial class MainWindow : Window
         if (settings.Maximized) WindowState = WindowState.Maximized;
         PreviewKeyDown += HandleKeys;
         timer.Tick += async (_, _) => await Refresh();
+        syncTimer.Tick += async (_, _) => await SyncErrands(force: true);
+        loadingTimer.Tick += (_, _) => {
+            var now = DateTimeOffset.UtcNow;
+            var loading = refreshing && snapshot is null && now - refreshStarted > TimeSpan.FromMilliseconds(700)
+                || syncing && !initialSyncFinished && snapshot?.Activity.Revision is null && now - syncStarted > TimeSpan.FromMilliseconds(700)
+                || webNavigating && !laptopSelected && now - navigationStarted > TimeSpan.FromMilliseconds(700);
+            LoadingProgress.Visibility = loading ? Visibility.Visible : Visibility.Collapsed;
+        };
     }
 
     private string Registry => Path.Combine(settings.RepositoriesRoot, "web-tools-private");
@@ -56,8 +70,11 @@ public partial class MainWindow : Window
                 if (laptopReady) await SendSnapshot();
             };
             LaptopView.Source = new Uri(NavigationPolicy.LocalUrl);
-            _ = Refresh(force: true);
+            _ = Refresh();
+            _ = SyncErrands(force: true);
             timer.Start();
+            syncTimer.Start();
+            loadingTimer.Start();
             await WebView.EnsureCoreWebView2Async(environment);
             var web = WebView.CoreWebView2;
             web.Settings.IsWebMessageEnabled = false;
@@ -70,7 +87,10 @@ public partial class MainWindow : Window
                     + "if(!localStorage.getItem('ghToken')) localStorage.setItem('ghToken'," + JsonSerializer.Serialize(token) + "); }");
             } catch { /* The existing Web Tools token screen remains available. */ }
             web.NavigationStarting += (_, a) => {
-                if (NavigationPolicy.IsWebTools(a.Uri)) { webError = null; ErrorPanel.Visibility = Visibility.Collapsed; }
+                if (NavigationPolicy.IsWebTools(a.Uri)) {
+                    webNavigating = true; navigationStarted = DateTimeOffset.UtcNow;
+                    webError = null; ErrorPanel.Visibility = Visibility.Collapsed;
+                }
                 else { a.Cancel = true; OpenExternal(a.Uri); }
             };
             web.NewWindowRequested += (_, a) => {
@@ -79,6 +99,7 @@ public partial class MainWindow : Window
                 else OpenExternal(a.Uri);
             };
             web.NavigationCompleted += (_, a) => {
+                webNavigating = false;
                 webError = a.IsSuccess ? null : "The hosted Web Tools page could not be reached (" + a.WebErrorStatus + "). Laptop activity remains available.";
                 if (!a.IsSuccess && !laptopSelected) ShowWebError();
                 WriteDiagnostics();
@@ -99,18 +120,29 @@ public partial class MainWindow : Window
     {
         if (refreshing || closing) return;
         refreshing = true;
-        RefreshButton.IsEnabled = false;
-        SyncText.Text = "Checking…";
+        refreshStarted = DateTimeOffset.UtcNow;
         try {
             var seenThrough = settings.SeenThrough;
-            snapshot = await Task.Run(async () => {
-                var activity = await reader.Read(seenThrough, force);
+            var activeReader = reader;
+            var root = settings.RepositoriesRoot;
+            var next = await Task.Run(async () => {
+                var watch = Stopwatch.StartNew();
+                var activity = await activeReader.Read(seenThrough, synchronize: false);
                 activity = activity with { Errands = activity.Errands.Select(j => j with {
                     HasLocalOutput = Directory.Exists(LaptopSignals.Outbox(j.Id)) }).ToList() };
-                return new LaptopSnapshot(activity, LaptopSignals.Daemon(Registry), LaptopSignals.Applications(),
-                    LaptopSignals.Places(settings.RepositoriesRoot), LaptopSignals.Downloads(), Environment.MachineName, seenThrough);
+                var now = DateTimeOffset.UtcNow;
+                if (force || now - processesChecked > TimeSpan.FromSeconds(10)) {
+                    daemon = LaptopSignals.Daemon(Path.Combine(root, "web-tools-private"));
+                    applications = LaptopSignals.Applications();
+                    processesChecked = now;
+                }
+                var currentSessions = sessions.Read(now);
+                return new LaptopSnapshot(activity, daemon, applications,
+                    LaptopSignals.Places(root), LaptopSignals.Downloads(), Environment.MachineName, seenThrough,
+                    currentSessions, watch.Elapsed.TotalMilliseconds);
             });
-            if (closing) return;
+            if (closing || activeReader != reader) return;
+            snapshot = next;
             var jobs = snapshot.Activity.Errands;
             var claimed = jobs.Count(j => j.State == "claimed");
             var queued = jobs.Count(j => j.State == "queued");
@@ -118,6 +150,8 @@ public partial class MainWindow : Window
             var newResults = jobs.Count(j => j.IsNew);
             var attention = jobs.Count(j => j.State == "failed" && j.IsNew);
             var parts = new List<string> { "On this laptop" };
+            var working = snapshot.Sessions.Items.Count(s => s.State == "working");
+            if (working > 0) parts.Add($"{working} working session{(working == 1 ? "" : "s")}");
             if (claimed > 0) parts.Add($"{claimed} claimed");
             if (queued > 0) parts.Add($"{queued} queued");
             if (arriving > 0) parts.Add($"{arriving} replies arriving");
@@ -125,9 +159,13 @@ public partial class MainWindow : Window
             if (attention > 0) parts.Add($"{attention} to review");
             if (parts.Count == 1) parts.Add(snapshot.Daemon.State == "detected" ? "Worker detected · no open errands" : "No open errands");
             ActivityText.Text = string.Join("   ·   ", parts);
+            ActivityText.ToolTip = null;
             ActivityDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
                 !snapshot.Activity.Connected || attention > 0 ? "#BD8540" : claimed > 0 || arriving > 0 ? "#4C8069" : "#809489"));
-            SyncText.Text = snapshot.Activity.Connected ? "Checked " + DateTime.Now.ToString("h:mm tt") : "Saved activity · offline";
+            SyncText.Text = snapshot.Activity.Connected ? "Live" : syncing && !initialSyncFinished ? "Connecting…" : "Offline";
+            SyncText.ToolTip = "Local activity every 2 seconds; errands every 5 seconds.\n"
+                + $"Local scan: {snapshot.ScanMilliseconds:F0} ms · Last record sync: {reader.SyncMilliseconds:F0} ms\n"
+                + (snapshot.Activity.SyncedAt is { } at ? "Last record sync: " + at.ToLocalTime().ToString("h:mm:ss tt") : "No completed record sync yet.");
             await SendSnapshot();
             WriteDiagnostics();
         } catch (Exception ex) {
@@ -136,7 +174,20 @@ public partial class MainWindow : Window
             ActivityText.ToolTip = ex.Message;
         } finally {
             refreshing = false;
-            if (!closing) RefreshButton.IsEnabled = true;
+        }
+    }
+
+    private async Task SyncErrands(bool force = false)
+    {
+        if (syncing || closing) return;
+        syncing = true;
+        syncStarted = DateTimeOffset.UtcNow;
+        var activeReader = reader;
+        try { await activeReader.Synchronize(force); }
+        finally {
+            syncing = false;
+            if (activeReader == reader) initialSyncFinished = true;
+            if (!closing) await Refresh();
         }
     }
 
@@ -157,7 +208,7 @@ public partial class MainWindow : Window
             var id = Activity.Text(message, "id");
             switch (action) {
                 case "ready": await SendSnapshot(); break;
-                case "refresh": await Refresh(force: true); break;
+                case "refresh": _ = SyncErrands(force: true); await Refresh(force: true); break;
                 case "seen": settings.SeenThrough = DateTimeOffset.UtcNow; settings.Save(); await Refresh(); break;
                 case "web": SelectLaptop(false); break;
                 case "errand":
@@ -191,7 +242,6 @@ public partial class MainWindow : Window
 
     private void ShowWeb(object sender, RoutedEventArgs e) => SelectLaptop(false);
     private void ShowLaptop(object sender, RoutedEventArgs e) => SelectLaptop(true);
-    private async void RefreshClicked(object sender, RoutedEventArgs e) => await Refresh(force: true);
     private void OpenBrowser(object sender, RoutedEventArgs e) => OpenExternal(WebView.Source?.AbsoluteUri ?? NavigationPolicy.AppUrl);
     private void RetryWeb(object sender, RoutedEventArgs e) {
         ErrorPanel.Visibility = Visibility.Collapsed;
@@ -202,11 +252,12 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFolderDialog { Title = "Choose the folder containing your repository checkouts", InitialDirectory = settings.RepositoriesRoot };
         if (dialog.ShowDialog(this) != true) return;
-        if (refreshing) { MessageBox.Show(this, "A refresh is still running. Choose the folder again after the refresh finishes.", "Web Tools Desktop"); return; }
         settings.RepositoriesRoot = dialog.FolderName;
         settings.Save();
         reader = new(Registry);
+        initialSyncFinished = false;
         _ = Refresh(force: true);
+        _ = SyncErrands(force: true);
     }
 
     private void HandleKeys(object sender, KeyEventArgs e)
@@ -246,6 +297,8 @@ public partial class MainWindow : Window
     {
         closing = true;
         timer.Stop();
+        syncTimer.Stop();
+        loadingTimer.Stop();
         var bounds = RestoreBounds;
         settings.Width = bounds.Width;
         settings.Height = bounds.Height;

@@ -25,6 +25,7 @@ const data = {
   applications: [{name: 'Fixture app', detail: 'Open application', state: 'open'}],
   places: [{id: 'outputs', name: 'Outputs', detail: 'Fixture output folder'}],
   downloads: [{id: '0', name: '<img src=x>.txt', modifiedAt: now}],
+  sessions: {items: [{id:'local', provider:'Codex', title:'Current <b>session</b>', state:'working', updatedAt:now, workspace:'C:/fixture'}], notices:[]},
 };
 const snapshot = () => receive({ data: { type: 'snapshot', data } });
 snapshot();
@@ -34,10 +35,20 @@ window.document.querySelector('.errand-title').click();
 assert.equal(window.document.querySelector('.errand-detail b'), null, 'Untrusted notes stay text.');
 assert.equal(window.document.querySelectorAll('script').length, 2, 'Reply markup never becomes a script.');
 const expandedTitle = window.document.querySelector('.errand-title');
+const session = window.document.querySelector('.session');
 data.activity.observedAt = new Date(Date.now() + 15000).toISOString();
 snapshot();
 assert.equal(window.document.querySelector('.errand-title'), expandedTitle, 'A periodic check keeps focused errand controls stable.');
 assert.ok(window.document.querySelector('.errand-detail'), 'A periodic check preserves an expanded result.');
+assert.equal(window.document.querySelector('.session'), session, 'An unchanged poll preserves session DOM.');
+assert.equal(window.document.querySelector('.session b'), null, 'Session titles remain text.');
+assert.equal(window.document.querySelector('#session-count').textContent, '1 working session');
+assert.equal(window.document.querySelector('[data-action=refresh]'), null, 'Continuous polling needs no Refresh control.');
+assert.equal(window.document.querySelector('#checked'), null, 'Polling has no flashing checked timestamp.');
+data.sessions.items[0].state = 'quiet';
+snapshot();
+assert.equal(window.document.querySelector('#session-count').textContent, '');
+assert.match(window.document.querySelector('.session').textContent, /Quiet/);
 window.document.querySelector('[data-action=output]').click();
 assert.equal(messages.at(-1).action, 'output');
 assert.equal(messages.at(-1).id, 'fixture-1');
@@ -53,4 +64,4 @@ assert.match(window.document.querySelector('#errands').textContent, /No matching
 window.document.querySelector('[data-action=seen]').click();
 assert.equal(messages.at(-1).action, 'seen');
 dom.window.close();
-console.log('12 laptop UI checks passed: text handling, refresh stability, filters, and desktop actions.');
+console.log('19 laptop UI checks passed: live sessions, text handling, polling stability, filters, and desktop actions.');

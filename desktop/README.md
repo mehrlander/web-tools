@@ -10,6 +10,7 @@ local activity, with an activity strip visible above either tab.
 - New results since the owner last marked results seen, with local output folders
   and the corresponding Web Tools errand one click away.
 - Gemini worker process detection and the last local log write time.
+- Current Codex and Gemini sessions, with working, quiet, idle and interrupted states.
 - Open application signals for Codex, Antigravity, Stereo Bridge, and Ollama.
 - Local places and the six most recently modified Downloads files.
 
@@ -48,11 +49,17 @@ existing window.
 
 ## Reading activity
 
-The reader fetches the private checkout's `background` branch at most once per
-minute, or on Refresh. It reads requests, claims, results, and output presence
+Local activity updates every two seconds. Remote activity fetches run separately
+every five seconds, so a slow network request does not stall local sessions.
+App process detection runs every ten seconds. Updates preserve selected errands
+and scroll position. The status stays steady during background polling; a thin
+loading indicator appears only for a slow initial load or Web Tools navigation.
+Hover over Live to see scan and synchronization timings.
+
+The reader fetches the private checkout's `background` branch. It reads requests, claims, results, and output presence
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates only `origin/background`; the checkout, index, local edits, and checked-out
-branch are untouched. The activity panel refreshes every fifteen seconds.
+branch are untouched.
 The latest eighty request filenames and every unresolved request are available;
 the list shows forty matching entries at once. A first launch treats results
 from the preceding day as new. Mark results seen advances the review time.
@@ -61,6 +68,13 @@ The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).
 When GitHub cannot be reached, the last available records remain visible with
 an offline notice. Missing configuration is shown explicitly.
+
+Sessions use read-only queries against local Codex and Antigravity metadata.
+Codex turn lifecycle events are read incrementally from local session files.
+Prompts and replies are not collected. A working session with no event for three
+minutes becomes quiet; recent idle sessions remain visible for thirty minutes.
+An agent's local storage format can change. Unavailable metadata produces a
+source notice while other activity continues updating.
 
 ## Desktop boundary
 

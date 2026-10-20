@@ -92,4 +92,5 @@ try {
         Directory.Delete(fixtureRoot, recursive: true);
     }
 }
+SessionChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");

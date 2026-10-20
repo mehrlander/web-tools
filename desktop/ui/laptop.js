@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  let snapshot, filter = 'all', search = '', selected = '', lastJobsRender = '';
+  let snapshot, filter = 'all', search = '', selected = '', lastJobsRender = '', lastSessionsRender = '';
   let visible = [];
   const bridge = window.chrome?.webview;
   const el = id => document.getElementById(id);
@@ -13,14 +13,32 @@
   function ago(value) {
     const date = new Date(value);
     if (!Number.isFinite(date.getTime()) || date.getFullYear() < 2000) return 'Time unavailable';
-    const minutes = Math.max(0, Math.floor((Date.now() - date) / 60000));
-    if (minutes < 1) return 'Just now';
+    const seconds = Math.max(0, Math.floor((Date.now() - date) / 1000));
+    if (seconds < 5) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
     if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
     return date.toLocaleDateString(undefined, {month:'short', day:'numeric'});
   }
   const stamp = value => { const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toLocaleString() : 'Time unavailable'; };
   const badge = job => `<span class="rounded px-1.5 py-0.5 text-xs ${tones[job.state] || tones.complete}">${escape(labels[job.state] || job.state)}</span>`;
+
+  function updateTimes() {
+    document.querySelectorAll('time[data-at]').forEach(time => { time.textContent = ago(time.dataset.at); });
+  }
+
+  function renderSessions(data) {
+    const sessions = data.sessions?.items || [];
+    const working = sessions.filter(s => s.state === 'working').length;
+    el('session-count').textContent = working ? `${working} working session${working === 1 ? '' : 's'}` : '';
+    el('session-notice').textContent = (data.sessions?.notices || []).join(' ');
+    const signature = JSON.stringify(sessions);
+    if (signature === lastSessionsRender) return;
+    lastSessionsRender = signature;
+    const states = {working:'Working',quiet:'Quiet',idle:'Idle',interrupted:'Interrupted',recent:'Recent'};
+    html('sessions', sessions.length ? sessions.map(s => `<article class="session py-3 first:pt-0 last:pb-0"><div class="flex items-center justify-between gap-2 text-xs"><span class="text-stone-500">${escape(s.provider)}</span><span class="flex items-center gap-1.5 ${s.state === 'working' ? 'text-emerald-800' : 'text-stone-500'}">${s.state === 'working' ? '<span class="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true"></span>' : ''}${escape(states[s.state] || 'Recent')}</span></div><p class="mt-1 break-words text-base leading-6" title="${escape(s.workspace || s.title)}">${escape(s.title)}</p><time class="text-xs text-stone-500" data-at="${escape(s.updatedAt)}">${escape(ago(s.updatedAt))}</time></article>`).join('') : '<p class="text-sm text-stone-500">No recent local sessions</p>');
+  }
 
   function renderDetail() {
     const job = visible.find(j => j.id === selected);
@@ -54,7 +72,6 @@
     snapshot = data;
     const a = data.activity, jobs = a.errands;
     el('machine').textContent = data.machineName;
-    el('checked').textContent = `Checked ${new Date(a.observedAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`;
     el('running').textContent = jobs.filter(j => ['claimed','reply'].includes(j.state)).length;
     el('queued').textContent = jobs.filter(j => j.state === 'queued').length;
     el('new-count').textContent = jobs.filter(j => j.isNew).length;
@@ -65,13 +82,14 @@
     html('notice', notices.length ? `<div class="rounded border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">${notices.map(escape).join('<br>')}</div>` : '');
     el('worker-state').textContent = {detected:'Detected',absent:'Not detected',unknown:'Unknown'}[data.daemon.state] || 'Unknown';
     el('worker-detail').textContent = data.daemon.detail;
-    el('last-log').textContent = data.daemon.lastLogAt ? ago(data.daemon.lastLogAt) : 'No local log';
+    html('last-log', data.daemon.lastLogAt ? `<time data-at="${escape(data.daemon.lastLogAt)}">${escape(ago(data.daemon.lastLogAt))}</time>` : 'No local log');
     el('connection').textContent = a.connected ? 'Up to date' : 'Saved records';
     html('applications', data.applications.map(app => `<div class="flex items-center justify-between gap-3"><span class="text-base">${escape(app.name)}</span><span class="shrink-0 text-xs ${app.state === 'open' ? 'text-emerald-800' : 'text-stone-500'}">${app.state === 'open' ? 'Open' : 'Not detected'}</span></div>`).join(''));
     html('places', data.places.map(p => `<button class="flex items-center justify-between rounded px-1 py-2 text-left text-base text-emerald-900 hover:bg-emerald-50" data-action="place" data-id="${escape(p.id)}">${escape(p.name)}<span aria-hidden="true">↗</span></button>`).join('') || '<span class="text-sm text-stone-500">Choose a repositories folder in Settings.</span>');
-    html('downloads', data.downloads.map(f => `<div class="min-w-0"><div class="break-words text-base">${escape(f.name)}</div><time class="text-xs text-stone-500">${escape(ago(f.modifiedAt))}</time></div>`).join('') || '<span class="text-sm text-stone-500">No files found</span>');
+    html('downloads', data.downloads.map(f => `<div class="min-w-0"><div class="break-words text-base">${escape(f.name)}</div><time class="text-xs text-stone-500" data-at="${escape(f.modifiedAt)}">${escape(ago(f.modifiedAt))}</time></div>`).join('') || '<span class="text-sm text-stone-500">No files found</span>');
+    renderSessions(data);
     renderJobs();
-    document.querySelectorAll('.errand-time[data-at]').forEach(time => { time.textContent = ago(time.dataset.at); });
+    updateTimes();
     el('record-note').textContent = `${visible.length} shown / ${jobs.length} available · ${a.connected ? 'Current records' : 'Saved records'}`;
   }
 
@@ -87,5 +105,6 @@
   });
   el('search').addEventListener('input', event => { search = event.target.value.toLowerCase().trim(); renderJobs(); });
   bridge?.addEventListener('message', event => { if (event.data?.type === 'snapshot') render(event.data.data); });
+  window.setInterval(updateTimes, 1000);
   send('ready');
 })();

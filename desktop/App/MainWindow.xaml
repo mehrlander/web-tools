@@ -8,7 +8,7 @@
     <GeometryDrawing Brush="White" Geometry="M 5,8 L 8,8 L 11,21 L 14,10 L 18,10 L 21,21 L 24,8 L 27,8 L 23,25 L 19,25 L 16,15 L 13,25 L 9,25 Z" />
   </DrawingGroup></DrawingImage.Drawing></DrawingImage></Window.Icon>
   <Grid>
-    <Grid.RowDefinitions><RowDefinition Height="64" /><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <Grid.RowDefinitions><RowDefinition Height="64" /><RowDefinition Height="32" /><RowDefinition Height="*" /></Grid.RowDefinitions>
     <Border Background="#F6F7F3" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
       <Grid Margin="22,0,16,0">
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -24,21 +24,25 @@
           </StackPanel>
         </Border>
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-          <Button Content="Open in browser ↗" Click="OpenBrowser" ToolTip="Open the current Web Tools page in your default browser" />
-          <Button Content="Settings" Click="OpenSettings" />
+          <Button x:Name="BrowserButton" Click="OpenBrowser" ToolTip="Open in browser" AutomationProperties.Name="Open in browser" Padding="10,9" Margin="0,0,4,0">
+            <Viewbox Width="17" Height="17"><Path Data="M 9,3 L 3,3 3,17 17,17 17,11 M 10,1 L 19,1 19,10 M 19,1 L 9,11" Stroke="#52675A" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" /></Viewbox>
+          </Button>
+          <Button x:Name="SettingsButton" Click="OpenSettings" ToolTip="Settings" AutomationProperties.Name="Settings" Padding="10,9">
+            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="18" Foreground="#52675A" />
+          </Button>
         </StackPanel>
       </Grid>
     </Border>
     <Border Grid.Row="1" Background="#EDF2ED" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
       <Grid Margin="18,0,14,0">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
         <Button x:Name="ActivityButton" Click="ShowLaptop" Padding="5,5" HorizontalAlignment="Left" ToolTip="See laptop activity">
           <StackPanel Orientation="Horizontal"><Ellipse x:Name="ActivityDot" Fill="#73977D" Width="7" Height="7" Margin="0,0,9,0" /><TextBlock x:Name="ActivityText" Text="Checking laptop activity…" FontSize="12" /></StackPanel>
         </Button>
-        <TextBlock x:Name="SyncText" Grid.Column="1" Text="Starting" FontSize="11" Foreground="#758178" VerticalAlignment="Center" Margin="12,0" />
-        <Button x:Name="RefreshButton" Grid.Column="2" Content="Refresh" Click="RefreshClicked" Padding="10,5" FontSize="12" />
+        <TextBlock x:Name="SyncText" Grid.Column="1" Text="Starting…" FontSize="11" Foreground="#758178" VerticalAlignment="Center" Margin="12,0" />
       </Grid>
     </Border>
+    <ProgressBar x:Name="LoadingProgress" Grid.Row="1" Height="2" VerticalAlignment="Bottom" IsIndeterminate="True" Visibility="Collapsed" Foreground="#73977D" Background="Transparent" BorderThickness="0" />
     <Grid Grid.Row="2">
       <wv:WebView2 x:Name="WebView" DefaultBackgroundColor="White" />
       <wv:WebView2 x:Name="LaptopView" Visibility="Hidden" DefaultBackgroundColor="#F6F7F3" />
