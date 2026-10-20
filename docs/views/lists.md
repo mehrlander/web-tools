@@ -1,23 +1,25 @@
 # Lists
 
-The Lists view holds To-do, Jot, Ping, Note and Pins
+The Lists view holds To-do, Jot, Ping, Note, Pin and the lists created in it
 (`lib/alpineComponents/estate.js`). Its address is `?view=lists`; the older
-`?view=todo` and `?view=jots` open it too. To-do, Jot and Pins are authored
-files in the private registry under `lists/`, written whole through the
-viewer's token (`gh-store.js`'s `save`), so each check-off is a commit.
+`?view=todo` and `?view=jots` open it too. To-do, Jot, Pin and the created
+lists are authored files in the private registry under `lists/`, each named for
+its list and written whole through the viewer's token (`gh-store.js`'s
+`save`), so each check-off is a commit.
 `state/` holds only derived caches, never these.
 
 | List | File | Item shape |
 | --- | --- | --- |
-| To-do | `lists/todo.json` | `{id, text, done, created_at, done_at, urgent, due}` |
-| Jot | `lists/jots.json` | `{id, text, created_at, kind}` |
-| Pins | `lists/pins.json` | `{id, target, title, note, group, created_at}` |
+| To-do | `lists/to-do.json` | `{id, text, done, created_at, done_at, urgent, due}` |
+| Jot | `lists/jot.json` | `{id, text, created_at, kind}` |
+| Pin | `lists/pin.json` | `{id, target, title, note, group, created_at}` |
+| Created lists | `lists/<name>.json` with a `title` | `{title, icon, capabilities, items: [{id, text, note, done, done_at, created_at}]}` |
 | Ping | `errands/requests/`, `errands/results/`, on the `background` branch | a `ping` errand and its result |
 | Note | `notes/notes.jsonl` | `{id, at, author, about, text, anchor}` |
 
-- **Optional fields round-trip.** A field is written only when set, and the
-  savers write parsed items back whole, so a field added by hand or by a session
-  survives the pane.
+- **Optional fields round-trip.** A field is written only when set, and every
+  write changes a fresh read of the file (`lib/kits/lists.js`), so a field or
+  an item added elsewhere survives the pane.
 - **To-do:** an item is hot when `urgent` or its `due` (`YYYY-MM-DD`) has
   arrived.
 - **Jot:** no done state. A jot stays until it is promoted somewhere with a real
@@ -32,9 +34,13 @@ viewer's token (`gh-store.js`'s `save`), so each check-off is a commit.
   session's command line appear too. A marker beside the heading says whether
   the daemon is running: active, behind, or quiet. Its Check asks the daemon
   to answer a `status` errand.
-- **Pins:** each `target` is `owner/repo[@ref]:path`; a path with an extension
+- **Pin:** each `target` is `owner/repo[@ref]:path`; a path with an extension
   opens the file, anything else the Files view at that folder.
+- **Created lists:** a file in `lists/` with a `title` beside its `items` is a
+  list made in this view. `capabilities` can turn on `done`, the one capability
+  `lib/kits/lists.js` opens to created lists so far; that kit declares the rest.
+  `lists/autocorrect.json` has no title and stays the dictate page's.
 - **Note:** one line per note, appended through `lib/kits/notes.js` and never
-  rewritten. A to-do's or jot's note key addresses it as
+  rewritten. A list item's note key addresses it as
   `<registry>:lists/<file>.json#<id>`. The skill is
   [`skills/notes/SKILL.md`](../../skills/notes/SKILL.md).

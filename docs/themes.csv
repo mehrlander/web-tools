@@ -80,3 +80,4 @@ docs/column-primitives.md,docs/text-content.md,3,,https github com mehrlander ho
 docs/artifacts.md,skills/web-tools-app/SKILL.md,3,,the claude app's in app browser keeps its own storage so the,10,208
 docs/SNAGS.md,skills/phosphor-icons/SKILL.md,3,,measure the element's width before suspecting the state that controls it;reads as a logic bug and gets debugged as one,10,208
 docs/SNAGS.md,docs/views/branches.md,3,,lib kits repo activity cache js lib kits repo activity cache js,10,208
+docs/CONSTELLATION.md,skills/doc-craft/SKILL.md,3,,principle 6 documentation has four places and everything else is a question,10,208

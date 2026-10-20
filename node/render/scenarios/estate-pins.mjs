@@ -13,7 +13,7 @@
 // GitHub jump-over beside its count; To-do and Jot unchanged in their halves
 // below.
 //
-// p1 carries the REAL note from lists/pins.json, and p5 the title addPin
+// p1 carries the REAL note from lists/pin.json, and p5 the title addPin
 // derives when none is typed (the path's last segment, one long hyphenated
 // token). Both are here as the truncation case: this pane clipped the first
 // to one line and had nowhere to break the second, so a fixture carrying
@@ -57,9 +57,9 @@ export default async function (page) {
     const origReq = window.GH.prototype.req;
     const origLs = window.GH.prototype.ls;
     window.GH.prototype.get = async function (name) {
-      if (name === 'lists/pins.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(PINS) };
-      if (name === 'lists/jots.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(JOTS) };
-      if (name === 'lists/todo.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(TODOS) };
+      if (name === 'lists/pin.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(PINS) };
+      if (name === 'lists/jot.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(JOTS) };
+      if (name === 'lists/to-do.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(TODOS) };
       if (name === '.web-tools.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: '{"repos":[]}' };
       if (name === 'state/configs.json' || name === 'state/activity.json')
         throw Object.assign(new Error('404'), { status: 404 });
@@ -75,7 +75,7 @@ export default async function (page) {
       return origReq.call(this, path);
     };
 
-    window.__shell.goTodo();
+    window.__shell.goLists();
     const host = [...document.querySelectorAll('[x-data]')]
       .find(el => (el.getAttribute('x-data') || '').includes('estate('));
     if (!host) return 'no estate host';

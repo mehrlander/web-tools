@@ -2,7 +2,7 @@
 // (404 -> empty, real error -> surfaced), add (address gate, title default,
 // draft handling, commit message), delete (the "Unpin" message), the grouped
 // render order, and the open routing (extension = file, else folder). Also
-// pins the storage path to lists/pins.json in the registry, beside the other
+// pins the storage path to lists/pin.json in the registry, beside the other
 // two lists. Driven over a fake GH and a stubbed shell; no network, no pixels.
 
 import test from 'node:test';
@@ -29,7 +29,11 @@ class FakeGH {
       return { default_branch: 'main', description: '', private: true, pushed_at: '' };
     return {};
   }
-  async save(path, value, message) { SAVES.push({ repo: this.repo, path, value, message }); return {}; }
+  async save(path, value, message) {
+    SAVES.push({ repo: this.repo, path, value, message });
+    if (this.repo === REGISTRY) FILES[path] = JSON.parse(JSON.stringify(value));
+    return {};
+  }
 }
 
 const { window, problems } = makeWindow({
@@ -61,6 +65,7 @@ const Alpine = await startAlpine(window, [
   // loads it too (the other estate suites never toggle it and stay clean).
   'lib/kits/repo-address.js',
   'lib/alpineComponents/path-picker.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
 
@@ -71,13 +76,13 @@ test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
 
-test('loadPins reads lists/pins.json; a missing file is an empty list, not an error', async () => {
+test('loadPins reads lists/pin.json; a missing file is an empty list, not an error', async () => {
   FILES = {};
   await data.loadPins(reg());
   assert.equal(data.pinItems.length, 0);
   assert.equal(data.pinErr, '');
 
-  FILES = { 'lists/pins.json': { items: [{ id: 'p1', target: 'me/home:docs/a.md', title: 'A', created_at: '2026-08-07T10:00:00Z' }] } };
+  FILES = { 'lists/pin.json': { items: [{ id: 'p1', target: 'me/home:docs/a.md', title: 'A', created_at: '2026-08-07T10:00:00Z' }] } };
   await data.loadPins(reg());
   assert.equal(data.pinItems.length, 1);
   assert.equal(data.pinItems[0].title, 'A');
@@ -116,7 +121,7 @@ test('addPin stores {id, target, title, created_at}, defaults the title from the
   assert.ok(it.id && it.created_at);
   assert.equal(SAVES.length, 1);
   assert.equal(SAVES[0].repo, REGISTRY);
-  assert.equal(SAVES[0].path, 'lists/pins.json');          // authored content lives under lists/
+  assert.equal(SAVES[0].path, 'lists/pin.json');          // authored content lives under lists/
   assert.match(SAVES[0].message, /^Pin "2026-08-07-merge-methods\.md" via Web Tools$/);
   assert.deepEqual(SAVES[0].value.items, data.pinItems);
 });
@@ -176,13 +181,14 @@ test('the picker panel mounts lazily on first toggle and opens', async () => {
 });
 
 test('deletePin removes the item and saves with an Unpin message', async () => {
-  data.pinItems = [
+  FILES = { 'lists/pin.json': { items: [
     { id: 'a', target: 'me/home:x/one.md', title: 'One' },
     { id: 'b', target: 'me/tools:y/two.md', title: 'Two' },
-  ];
+  ] } };
+  await data.loadPins(reg());
   SAVES = [];
   await data.deletePin(data.pinItems[0]);
-  assert.deepEqual(data.pinItems.map(i => i.id), ['b']);
-  assert.equal(SAVES[0].path, 'lists/pins.json');
+  assert.deepEqual([...data.pinItems.map(i => i.id)], ['b']);
+  assert.equal(SAVES[0].path, 'lists/pin.json');
   assert.match(SAVES[0].message, /^Unpin "One" via Web Tools$/);
 });
