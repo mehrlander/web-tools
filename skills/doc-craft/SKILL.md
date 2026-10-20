@@ -36,4 +36,4 @@ Check changes against the principles above, make any needed revisions, commit th
 - **List corrections separately**: A correction replaces a wrong word, number, path, or link without changing what the sentence asks the reader to do. List corrections after the diffs, one line each.
 - **Print it with the script**: `python3 "${CLAUDE_PLUGIN_ROOT}/doc-craft/doc-review.py" briefing.json` renders the review from a JSON briefing and the branch's edits; `--list` names the hunks a briefing keys on.
 
-Revise on request, and merge only after the owner approves the wording.
+Revise on request, and merge only after the owner approves the wording. Approval covers documentation, the four places of [principle 6](https://github.com/mehrlander/web-tools/blob/main/docs/CONSTELLATION.md#principle-6-documentation-has-four-places-and-everything-else-is-a-question), including a doc of dated measurements. It does not cover an account: research a repository declares in `.web-tools.json`, its README included, or a record, which preserves a moment.
