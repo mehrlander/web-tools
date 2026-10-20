@@ -62,7 +62,7 @@ Use "0. None." when nothing remains.
 * Put session context that belongs nowhere else in the guide or a PR comment, never in a tracker task.
 * Make ✴️ requests in the reply and copy them into the PR body.
 * Update the guide after every push that materially changes state, rewriting only between the markers with `update_pull_request`. Verify URLs first with `python3 python/mcp-link-safe.py --check body.md`.
-* Ask binary decisions as **Question?** Yes / No, followed by the recommendation and consequence.
+* Put a decision in the 🆚 closing line with its `Recommended:` clause, as [SURFACING.md](SURFACING.md) gives it, and state the consequence in the reply.
 * Do not create your own action item. If automation can perform it, do it now; if only the user can, make it ✴️.
 * Correct discovered facts immediately.
 * Add a new thread, choice, or risk before continuing work on a new fork.

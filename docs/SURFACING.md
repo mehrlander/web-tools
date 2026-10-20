@@ -16,8 +16,8 @@ templates.
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
-  - 🟡 **Pending:** Waiting on an action, answer, or dependency.
-  - 🆚 **Choice needed:** Two competing changes. Assess, recommend, and name the choice.
+  - 🟡 **Pending:** Waiting on an action or dependency that is not a decision.
+  - 🆚 **Choice needed:** A decision only the reader can make: choosing between options, or approving or rejecting one. Name the decision, then the recommendation: `🆚 **Choice needed:** <decision>. Recommended: <option>, because <reason>.`
   - ✴️ **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
@@ -26,7 +26,7 @@ templates.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  For more than three requests, use an inquiry surface. Use 🟢, not 🆚, for confirmation.
+  For more than three requests, use an inquiry surface. Use 🟢, not 🆚, when the session can proceed without the reader's answer; a step that waits on the reader's yes is a 🆚.
 
 * **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
