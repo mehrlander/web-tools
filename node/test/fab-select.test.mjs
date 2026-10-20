@@ -1,13 +1,16 @@
 // fab-select.test.mjs — the launcher's selection offer: select text on the
-// page and "+ note" appears above the launcher; one tap turns the annotator on
-// and opens the composer on that passage.
+// page and the launcher lights; a tap then turns the annotator on and opens
+// the composer on that passage. Nothing is drawn at the words.
 //
 // The fab declined a listener on the host document for years (the Text tab
 // snapshots the selection at the launcher tap instead), and the cost was that
 // a selection had no route to a note from the fab at all: the launcher's press
 // collapses it, and the menu behind the press offers every aim but the text.
 // Since 2026-09-08 the fab watches selectionchange, debounced, and offers the
-// passage; the kit loads only when the offer is taken.
+// passage; the kit loads only when the offer is taken. From 2026-09-08 to
+// 2026-10-20 the offer was a "+ note" control drawn on the passage; it is the
+// launcher itself now, since the platform's callout covered the control on a
+// phone and it interrupted every copy on a desktop.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -48,72 +51,31 @@ const select = (node, a, b) => {
   doc.dispatchEvent(new window.Event('selectionchange'));
 };
 const settle = async () => { await new Promise(r => setTimeout(r, 30)); await tick(2); };
-// TELEPORTED, so it is a child of the BODY rather than of the fab: the
-// launcher's root carries a transform for the drag, which is a containing
-// block for fixed descendants, so an offer inside it would be placed against
-// that box and would travel with the launcher.
-const offerEl = () => doc.body.querySelector('[data-fab-sel-offer]');
+// The launcher's disc: the element the offer lights.
+const disc = () => host.querySelector('[role="button"][tabindex="0"]');
+// A press and a release on the launcher, as onDown/onUp receive them.
+const press = () => ({ button: 0, pointerId: 1, clientX: 0, clientY: 0, pointerType: 'touch',
+                        currentTarget: { setPointerCapture() {} }, preventDefault() {} });
 
-test('selecting text on the page raises the offer, on the passage', async () => {
+test('selecting text on the page lights the launcher, and draws nothing at the words', async () => {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
   assert.ok(d.selOffer, 'the offer is up');
   assert.equal(d.selOffer.quote, 'quick brown fox');
-  // x-transition lifts display:none on a later frame; bounded poll, as the
-  // menu test does, rather than counting the scheduler's flushes.
-  for (let i = 0; i < 20 && offerEl().style.display === 'none'; i++) await tick(1);
-  assert.notEqual(offerEl().style.display, 'none');
-  // NO QUOTE ON IT: the offer sits on the words, so printing them would be the
-  // text saying itself twice, in width taken from the thing being read. The
-  // passage rides the button's title-tip instead.
-  assert.equal(offerEl().textContent.replace(/\s+/g, ' ').trim(), '+ note');
-  assert.match(offerEl().querySelector('button').getAttribute('data-title-tip'), /quick brown fox/);
-});
-
-test('the offer stands behind an open drawer instead of covering its phone-width pane', async () => {
-  const p1 = doc.getElementById('p1').firstChild;
-  select(p1, 4, 19);
-  await settle();
-  assert.ok(d.selOffer, 'the selection remains available');
-  d.open = true;
-  await tick(3);
-  assert.equal(offerEl().style.display, 'none', 'the teleported offer cannot sit over the drawer');
-  d.open = false;
-  await tick(3);
-});
-
-test('the offer is placed on the passage, and follows it when the page scrolls', async () => {
-  // It sat above the launcher first, which put a control about these words in
-  // the corner where the fab lives. jsdom has no layout, so the range's rect is
-  // stubbed: what is under test is the placement rule, not the geometry engine.
-  const p1 = doc.getElementById('p1').firstChild;
-  const base = rect;
-  try {
-    select(p1, 4, 19);
-    await settle();
-    assert.ok(d.selOffer, 'the offer is up');
-    // Below the passage by default: iOS puts its own callout above a selection
-    // where there is room, so the underside is the freer one more often.
-    assert.equal(d.selOffer.top, 326, 'just under the passage');
-    assert.equal(d.selOffer.left, 120, 'aligned to its left edge');
-
-    // Scrolling moves the words and fires no selectionchange, so the offer has
-    // to be told; otherwise it points at whatever scrolled into its place.
-    rect = { ...base, top: 60, bottom: 78 };
-    doc.dispatchEvent(new window.Event('scroll'));
-    await tick(2);
-    assert.equal(d.selOffer.top, 86, 'and it followed');
-
-    // Scrolled clear of the viewport, the offer goes rather than clamping to an
-    // edge, where it would point at nothing.
-    rect = { ...base, top: -400, bottom: -382 };
-    doc.dispatchEvent(new window.Event('scroll'));
-    await tick(2);
-    assert.equal(d.selOffer, null);
-  } finally {
-    rect = base;
-  }
+  await tick(2);
+  // The highlighter replaces the mark, the disc wears a ring, and the passage
+  // rides the disc's title-tip, which is a hover label on a control.
+  assert.ok(disc().querySelector('i').classList.contains('ph-highlighter'), 'the highlighter is on the launcher');
+  assert.match(disc().className, /ring-2/);
+  assert.match(disc().getAttribute('data-title-tip'), /quick brown fox/);
+  assert.equal(disc().getAttribute('aria-label'), 'Note the selected text');
+  // Nothing at the words: the control the platform's callout used to cover is gone.
+  assert.equal(doc.querySelector('[data-fab-sel-offer]'), null);
+  d.dropSelOffer();
+  await tick(2);
+  assert.ok(disc().querySelector('i').classList.contains('ph-sidebar-simple'), 'and the mark comes back');
+  assert.equal(disc().getAttribute('data-title-tip'), null);
 });
 
 test('a collapsed selection takes the offer down; a caret is not a passage', async () => {
@@ -139,11 +101,12 @@ test('a selection inside a field the reader is typing in is not offered', async 
   ta.blur();
 });
 
-test('the offer stands down while the annotator is on, whose own controls offer the same', async () => {
+test('the launcher lights with the annotator on as well', async () => {
   window.Annotate.enable({ doc });
   select(doc.getElementById('p1').firstChild, 4, 19);
   await settle();
-  assert.equal(d.selOffer, null);
+  assert.ok(d.selOffer);
+  d.dropSelOffer();
   window.Annotate.disable();
 });
 
@@ -164,6 +127,36 @@ test('taking the offer turns the annotator on and opens the composer on the pass
   assert.equal(S.draft.target.type, 'text');
   assert.equal(S.draft.target.quote.exact, 'quick brown fox');
   A.disable();
+});
+
+test('a tap on the lit launcher takes the passage, even when the press collapsed the selection first', async () => {
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  assert.ok(d.selOffer);
+  d.onDown(press());
+  // The press collapses the page's selection, and the debounced read clears
+  // the offer before the release arrives: the case that motivated holding it.
+  window.getSelection().removeAllRanges();
+  doc.dispatchEvent(new window.Event('selectionchange'));
+  await settle();
+  assert.equal(d.selOffer, null, 'the read cleared the offer');
+  d.onUp(press());
+  for (let i = 0; i < 40 && !(window.Annotate.enabled && window.Annotate._state.draft); i++) await tick(1);
+  const A = window.Annotate;
+  assert.equal(A.enabled, true, 'the annotator came on');
+  assert.equal(A._state.draft.target.quote.exact, 'quick brown fox');
+  A.disable();
+});
+
+test('with nothing selected, a tap on the launcher opens the drawer as it always has', async () => {
+  d.dropSelOffer();
+  d.onDown(press());
+  d.onUp(press());
+  await tick(2);
+  assert.equal(d.open, true);
+  d.close();
+  await tick(2);
 });
 
 test('forgetting the offer drops it and the range with it', async () => {
@@ -188,4 +181,32 @@ test('a page that notes a selection itself declares so, and the offer stands dow
   await settle();
   assert.ok(d.selOffer, 'any other page keeps the offer');
   d.dropSelOffer();
+});
+
+test('in a toss, a document the subject frame loads after the announcement is watched too', async () => {
+  // toss-render announces the subject as it STARTS the frame's load, so a
+  // launcher already up reads the document being replaced. Two jsdom iframes
+  // stand in for the outgoing and the incoming document of one frame.
+  const mk = () => { const f = doc.createElement('iframe'); doc.body.appendChild(f);
+    f.contentDocument.body.innerHTML = '<p>Words in the framed page to select.</p>'; return f.contentDocument; };
+  const outgoing = mk(), incoming = mk();
+  const frame = new window.EventTarget();
+  let current = outgoing;
+  Object.defineProperty(frame, 'contentDocument', { get: () => current });
+  window.__tossFrame = frame;
+  try {
+    d.adoptSubject();
+    current = incoming;
+    frame.dispatchEvent(new window.Event('load'));
+    const t = incoming.querySelector('p').firstChild;
+    const r = incoming.createRange(); r.setStart(t, 0); r.setEnd(t, 5);
+    const sel = incoming.defaultView.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    incoming.dispatchEvent(new window.Event('selectionchange'));
+    await settle();
+    assert.ok(d.selOffer, 'the incoming document was heard');
+    assert.equal(d.selOffer.quote, 'Words');
+    d.dropSelOffer();
+  } finally {
+    window.__tossFrame = null;
+  }
 });
