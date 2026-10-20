@@ -1780,6 +1780,7 @@ document.addEventListener('click',function(e){
   // fetch. Edit the manifest, then mirror it here (three fields per key);
   // node/test/routes-manifest.test.mjs fails if the two drift.
   const TOSS_ROUTES = {
+    'audit':        { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/audit-render.html' },
     'chat-results': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/chat-results.html' },
     'data':         { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/data-view.html' },
     'passage-reading': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/passage-reader.html' },
