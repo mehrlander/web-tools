@@ -2413,7 +2413,7 @@ function loadMarked(){
   return _markedP ??= Promise.all([
     new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+      s.src = 'https://cdn.jsdelivr.net/combine/npm/marked/marked.min.js,npm/dompurify/dist/purify.min.js';
       s.onload = res; s.onerror = rej;
       document.head.appendChild(s);
     }),
@@ -2428,8 +2428,14 @@ function loadMarked(){
 // container class lives on the <article> in the template, so what comes back
 // here is the body: mdDoc.html() would wrap it in a second prose box, and its
 // `proseClass: ''` says the caller already has one.
+//
+// Sanitized, as the viewer's Preview is (viewer.js): ?repo= opens any repo, so
+// its README is content nobody vetted, landing by x-html on an origin whose
+// localStorage holds a GitHub token. Without the sanitizer it renders as text.
 function mdHtml(src){
-  return window.mdDoc ? window.mdDoc.html(src, { proseClass: '' }) : window.marked.parse(src);
+  const clean = window.DOMPurify && (h => window.DOMPurify.sanitize(h));
+  if (!clean) return '<pre>' + String(src).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
+  return window.mdDoc ? window.mdDoc.html(src, { proseClass: '', sanitize: clean }) : clean(window.marked.parse(src));
 }
 
 // ── Shell: repo context + view state. The header carries the app-level nav,
