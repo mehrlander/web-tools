@@ -1832,7 +1832,7 @@ test('a call is answered from the Docs deck: decisions, notes, a patch of the co
   try { window.localStorage.removeItem('map:call-answer:c-test'); } catch {}
   try {
     assert.equal(await data.markDeckProposals(box, 'docs/x.md', md), 2, 'the two edits the file holds are labelled');
-    assert.ok(data.deckActions('docs/x.md').some(a => /Answer the user call/.test(a.title)), 'the header can open the sheet');
+    assert.ok(data.deckActions('docs/x.md').some(a => a.title === 'User call'), 'the header can open the sheet');
     // From the container's chip, which stands in md-diff's index: Confirm.
     const chip = box.querySelector('[data-call-edit="c-test:0"]');
     assert.ok(chip.closest('.md-diff-change')?.querySelector('.md-diff-idx.hidden'), "the chip takes the index's place");
