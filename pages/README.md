@@ -35,6 +35,7 @@ the link-dense text twin of the visual index above.
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `links` | Links | [view](https://mehrlander.github.io/web-tools/pages/links.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/links.html) |
+| `passage-reader` | Passage reader | [view](https://mehrlander.github.io/web-tools/pages/passage-reader.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/passage-reader.html) |
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |
 | `pip-steps` | Floating steps | [view](https://mehrlander.github.io/web-tools/pages/pip-steps.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html) |

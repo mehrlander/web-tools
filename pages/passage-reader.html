@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passage reader</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📖</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  passage-reader.html: one passage-reading/1 file, read a sentence at a time.
+  The renderer of a member of the envelope family; the format is
+  docs/envelopes/passage-reading.md, and the passage-reading skill writes it.
+
+  Input by URL, first match wins, each key read fragment first and query as
+  fallback (lib/kits/url-params.js):
+    #gz=<base64url>   a gzipped reading carried in the link
+    ?src=<spec>       owner/repo[@ref]:path, via the contents API; the
+                      #passage-reading= toss route hands its address over this way
+    (neither)         the skill's worked example
+  The page keeps the current sentence in the fragment as s=<n>.
+
+  A linked swiper (data/ui-units codes.csv): the passage is the list, a strip
+  of sentence cards moves with it, and the strip's deck button opens the same
+  cards as a takeover at the card in view. index() derives every card section the file
+  does not store. A span or a list row takes the colour of where it sits
+  relative to the current sentence: purple in it, amber before it, blue after
+  it. An atom's quote, while its row is hovered or tapped, is underlined in
+  amber, in the passage and on the card; a line rather than a fill, so the
+  entity fills inside the quote do not hide it. The passage marks only what
+  touches the current sentence, one mark per kind: every mention of its
+  entities, the topic aside, filled in the position colours; every
+  connection touching it, either way, drawn as a purple arrow with both ends
+  tinted light grey, which the arrow button in the card bar shows or hides.
+  The card
+  shows the sentence alone under its bar and a rule, then its atoms, then
+  Entities (In play, New here) and Connections (Carried in, Within, Carried
+  forward), each part told apart by its colour. Purple also marks the current
+  sentence itself: its outline in the passage, the bar beside it on its card,
+  its dot, and its number in the card bar, solid like its "from here" badge.
+  An ellipsis, words a sentence leaves for the reader to supply, shows as a
+  raised question mark after the word its gap follows; hovering or tapping it
+  draws an arrow to the words it stands for, and the sentence's own words stay
+  as written.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/url-params.js');
+    await gh.load('kits/repo-address.js');
+    await gh.load('kits/swipe-deck.js');
+    await gh.load('kits/title-tip.js');
+  } finally { window.__depsDone(); }
+</script>
+<script>
+document.addEventListener('alpine:init', () => {
+  const SAMPLE = { repo: 'mehrlander/web-tools', path: 'skills/passage-reading/references/skill-prefs-description.json' };
+  // An atom's type: what kind of statement it is, shown as an icon on every atom.
+  const TYPE = {
+    definition: { label: 'Definition', icon: 'ph-book-open-text' }, assertion: { label: 'Assertion', icon: 'ph-info' },
+    judgment: { label: 'Judgment', icon: 'ph-scales' }, rule: { label: 'Rule', icon: 'ph-signpost' },
+  };
+  // An entity's kind, when the reading gives one: a glance cue before its label.
+  const KIND = {
+    thing: { label: 'Thing', icon: 'ph-cube' }, record: { label: 'Record', icon: 'ph-file-text' },
+    actor: { label: 'Actor', icon: 'ph-person-simple-walk' }, event: { label: 'Event', icon: 'ph-lightning' },
+    measure: { label: 'Measure', icon: 'ph-ruler' }, condition: { label: 'Condition', icon: 'ph-cloud-sun' },
+    concept: { label: 'Concept', icon: 'ph-lightbulb' },
+  };
+  const kindIcon = k => KIND[k] ? `<i class="ph ${KIND[k].icon} mr-1.5 align-[-0.125em] text-base-content/50" aria-label="${KIND[k].label}" data-title-tip="${KIND[k].label}" data-title-tip-bare></i>` : '';
+  const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
+  // An ellipsis badge: a raised question mark in the primary text colour, the
+  // page's mark for something to open, full when the gap is lit and faded when
+  // it waits.
+  const GAP = { base: 'align-[0.45em] ml-px text-sm font-bold leading-none', idle: 'text-primary/50', lit: 'text-primary', on: 'data-[on]:text-primary' };
+  // Two lists, each of parts that never overlap, told apart by colour; the
+  // colour says where a span or row sits relative to the current sentence.
+  const GROUPS = [{ key: 'entities', label: 'Entities' }, { key: 'links', label: 'Connections' }];
+  const LEGEND = {
+    links: [['before', 'Carried in'], ['here', 'Within'], ['after', 'Carried forward']],
+    entities: [['before', 'In play'], ['here', 'New here']],
+  };
+  // An atom's quote is underlined, in the passage and on the card, so it
+  // reads apart from the entity fills it crosses. A shadow rather than
+  // text-decoration: a browser that skips the spaces at an element's edges
+  // would break the line between pieces, and the title-tip kit's unlayered
+  // text-decoration:none on a bare tip would remove it.
+  const ATOM = 'data-[atom]:shadow-[0_3px_0_var(--color-warning)]';
+  const TONE = {
+    before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
+    here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary text-primary-content font-semibold ring-2 ring-[var(--color-primary)]/30 ring-offset-1 ring-offset-base-100 hover:ring-[var(--color-primary)]/60' },
+    after: { fill: 'bg-info/30', lit: 'data-[on]:bg-info/60 data-[ev]:bg-info/60', dot: 'bg-info', badge: 'bg-info/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
+  };
+  const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
+
+  const tokenNow = () => {
+    if (window.TOKEN) return window.TOKEN;
+    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+  };
+  const param = k => UrlParams.get(k);
+  const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;
+  // Inline code keeps its backticks in the data, where quotes are matched.
+  const plain = s => String(s ?? '').replace(/`/g, '');
+  // A quote's first two words stay together, so a line never ends on its opening mark.
+  const quote = (s, within) => {
+    if (!within) return `“${esc(plain(s)).replace(' ', '&nbsp;')}”`;
+    const a = within.indexOf(s);
+    return `“${esc(plain(within.slice(0, a)))}<b>${esc(plain(s))}</b>${esc(plain(within.slice(a + s.length)))}”`;
+  };
+
+  // Where a quote sits in its sentence; `within` is a longer unique span for
+  // a quote that repeats (each "its" in a sentence).
+  function locate(text, q, within) {
+    if (!q) return null;
+    let base = 0, hay = text;
+    if (within) {
+      base = text.indexOf(within);
+      if (base < 0 || text.indexOf(within, base + 1) >= 0) return null;
+      hay = within;
+    }
+    const a = hay.indexOf(q);
+    if (a < 0) return null;
+    return { a: base + a, b: base + a + q.length, repeats: hay.indexOf(q, a + 1) >= 0 };
+  }
+
+  // Everything a card shows that the file does not store. An anaphor or
+  // ellipsis resolves to its entity's first named mention, or to the first in
+  // sentence `ante`. An ellipsis of the topic is not a connection; it shows
+  // only as its badge.
+  function index(R) {
+    const S = R.sentences, topic = R.topic, by = {}, firstNamed = {}, firstAny = {};
+    S.forEach((s, i) => { if (!Number.isInteger(s.n)) s.n = i + 1; });
+    for (const s of S) {
+      by[s.n] = s;
+      s.mentions.forEach((m, i) => {
+        if (!(m.e in firstAny)) firstAny[m.e] = { n: s.n, i };
+        if (!m.form && !(m.e in firstNamed)) firstNamed[m.e] = { n: s.n, i };
+      });
+    }
+    const rng = {}, inn = {}, fwd = {}, own = {}, keysOf = {}, where = {}, at = {}, problems = [];
+    for (const s of S) { rng[s.n] = []; inn[s.n] = []; fwd[s.n] = []; own[s.n] = []; }
+    const add = (n, key, q, extra, within) => {
+      const p = by[n] && locate(by[n].text, q, within);
+      if (!p) { problems.push({ n, q, why: 'not found' }); return false; }
+      if (p.repeats) problems.push({ n, q, why: 'occurs more than once' });
+      rng[n].push({ key, a: p.a, b: p.b, ...extra });
+      at[key] = n;
+      return true;
+    };
+    for (const s of S) {
+      const n = s.n;
+      s.mentions.forEach((m, i) => {
+        const key = `m${n}-${i}`;
+        (keysOf[m.e] ||= []).push(key);
+        if (!(where[m.e] ||= []).includes(n)) where[m.e].push(n);
+        const f = !m.form ? null : m.ante ? { n: m.ante, i: (by[m.ante]?.mentions || []).findIndex(x => x.e === m.e && !x.form) } : firstNamed[m.e];
+        const ante = f && f.i >= 0 && f.n <= n ? { key: `m${f.n}-${f.i}`, n: f.n, quote: by[f.n].mentions[f.i].quote } : null;
+        const ok = add(n, key, m.quote, { kind: 'm', m, first: firstAny[m.e].n === n && firstAny[m.e].i === i, gap: m.form === 'ellipsis', ante }, m.in);
+        if (!m.form || (m.e === topic && m.form === 'ellipsis' && !m.note)) return;
+        if (!f || f.i < 0 || f.n > n) return;
+        const item = { kind: m.form, from: n, to: f.n, e: m.e, here: m.quote, within: m.in, fill: m.fill,
+          there: by[f.n].mentions[f.i].quote, thereIn: by[f.n].mentions[f.i].in, keys: [key, `m${f.n}-${f.i}`], note: m.note, ok };
+        if (f.n < n) { inn[n].push(item); fwd[f.n].push(item); } else own[n].push(item);
+      });
+      s.links.forEach((l, j) => {
+        const h = `l${n}-${j}h`, t = `l${n}-${j}t`;
+        const ok = add(n, h, l.here, { kind: 'l' }) & add(l.to, t, l.there, { kind: 'l' });
+        const item = { ...l, from: n, keys: [h, t], ok: !!ok };
+        inn[n].push(item); if (fwd[l.to]) fwd[l.to].push(item);
+      });
+      s.atoms.forEach((a, k) => add(n, `a${n}-${k}`, a.quote, { kind: 'a' }));
+      for (const c of s.text.matchAll(/`[^`]+`/g)) rng[n].push({ key: '', a: c.index, b: c.index + c[0].length, kind: 'code' });
+    }
+    const fresh = {};
+    for (const [e, f] of Object.entries(firstAny)) (fresh[f.n] ||= []).push(e);
+    // Every connection in the passage once, each held by the later sentence.
+    const links = S.flatMap(s => [...inn[s.n], ...own[s.n]]);
+    return { by, rng, inn, fwd, own, links, fresh, keysOf, where, at, problems };
+  }
+
+  // Text cut at every range boundary, so overlapping ranges need no nesting.
+  function pieces(text, ranges) {
+    const pts = [...new Set([0, text.length, ...ranges.flatMap(r => [r.a, r.b])])].sort((x, y) => x - y);
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      out.push({ text: text.slice(a, b), a, b, on: ranges.filter(r => r.a <= a && r.b >= b) });
+    }
+    return out;
+  }
+
+  // Scroll a passage pane and never the document, which inside an app frame
+  // would move the shell as well.
+  function reveal(box, el) {
+    if (!box || !el) return;
+    const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+    if (r.top >= b.top + 8 && r.bottom <= b.bottom - 8) return;
+    box.scrollTop += r.top - b.top - Math.max(8, (b.height - Math.min(r.height, b.height)) / 3);
+  }
+
+  Alpine.data('passageReader', () => ({
+    R: null, X: null, src: null, err: '', cur: 0, about: false, strip: null, deck: null, wide: false, gapOpen: null, hot: null, traced: [], arrows: true, KIND,
+    get N() { return this.R.sentences.length; },
+    get s() { return this.R.sentences[this.cur]; },
+
+    async init() {
+      await window.__depsReady;
+      try { this.R = await this.read(); this.X = index(this.R); }
+      catch (e) { this.err = e.message; return; }
+      this.cur = Math.max(0, this.R.sentences.findIndex(s => String(s.n) === param('s')));
+      try { this.arrows = localStorage.getItem('passage-reader:arrows') !== '0'; } catch (e) {}
+      addEventListener('keydown', e => { if (e.key === 'Escape' && this.gapOpen) { this.gapOpen = null; document.querySelectorAll('[data-gap][data-open]').forEach(x => x.removeAttribute('data-open')); this.light(null); } });
+      addEventListener('resize', () => { this.revealLit(); this.drawArrows(); });
+      document.fonts?.ready.then(() => this.drawArrows());
+      this.$nextTick(() => {
+        this.strip = swipeDeck.core(this.N, (i, el) => this.render(i, el), {
+          innerClass: 'w-full', keys: this.$refs.main, behavior: 'instant', start: this.cur,
+          slidePad: 'px-4 pt-5 pb-28 sm:px-8 sm:pt-8',
+        });
+        this.$refs.track.append(this.strip.track);
+        this.strip.onSlide(i => i !== this.cur && this.sync(i, 'strip'));
+        requestAnimationFrame(() => { this.strip.go(this.cur, 'instant'); this.revealLit(); this.drawArrows(); });
+      });
+    },
+
+    async read() {
+      const gz = param('gz'), spec = param('src');
+      if (gz) {
+        this.src = {};
+        const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+      }
+      if (spec) {
+        const a = RepoAddress.parse(spec);
+        if (!a) throw new Error(`Not an owner/repo[@ref]:path address: ${spec}`);
+        this.src = a;
+        try { return JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
+        catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+      }
+      this.src = { ...SAMPLE };
+      const r = await fetch('../' + SAMPLE.path);
+      if (!r.ok) throw new Error('No reading. Address one with ?src=owner/repo@ref:path or #gz=…');
+      return r.json();
+    },
+    get fileUrl() { return this.src && this.src.path ? blob(this.src.repo, this.src.ref, this.src.path) : ''; },
+    link(o) { return o && o.repo ? blob(o.repo, o.ref, o.path) : null; },
+    get entityList() { return Object.entries(this.R.entities).map(([k, e]) => ({ k, ...e, where: (this.X.where[k] || []).join(', ') })); },
+
+    // The sentence's number and kind, the type of its first atom.
+    kindOf(i) {
+      const s = this.R.sentences[i], t = TYPE[s.atoms?.[0]?.type];
+      return s.n + (t ? ' · ' + t.label : '');
+    },
+    get kindLabel() { return this.kindOf(this.cur); },
+    get kindName() { return TYPE[this.s.atoms?.[0]?.type]?.label || ''; },
+    // Sentences tied to the lit one by a link, either way.
+    get linked() {
+      const n = this.s.n;
+      return new Set([...this.X.inn[n].map(it => it.to), ...this.X.fwd[n].map(it => it.from)]);
+    },
+
+    // One move, from the passage, the dots, the strip or a card link, reaches the others.
+    sync(i, from) {
+      this.cur = i;
+      this.light(null);
+      if (from !== 'strip' && this.strip && this.strip.active() !== i) this.strip.go(i, 'instant');
+      if (from !== 'deck' && this.deck && this.deck.deck.active() !== i) this.deck.deck.go(i, 'instant');
+      try {
+        history.replaceState(history.state, '', UrlParams.withKey(location.hash || '#', 's', this.s.n));
+      } catch (e) {}
+      this.$nextTick(() => { this.revealLit(); this.drawArrows(); });
+    },
+    step(d) { this.sync(Math.max(0, Math.min(this.N - 1, this.cur + d)), 'list'); },
+    go(n) { const i = this.R.sentences.findIndex(s => s.n === n); if (i >= 0) this.sync(i, 'list'); },
+    // On a phone, the passage takes the screen and the strip folds to its
+    // counter row, which stays as the way back and still moves the sentence.
+    toggleWide() {
+      this.wide = !this.wide;
+      this.$nextTick(() => { if (!this.wide && this.strip) this.strip.go(this.cur, 'instant'); this.revealLit(); this.drawArrows(); });
+    },
+    // The strip's takeover, opened at the card in view: the same card over the
+    // whole window, and closing returns to the strip where the deck stopped.
+    openDeck() {
+      if (this.deck) return;
+      const head = i => ({ title: this.kindOf(i), subtitle: this.R.title, icon: 'ph-book-open-text' });
+      this.deck = swipeDeck.open({
+        count: this.N, start: this.cur, render: (i, el) => this.render(i, el), innerClass: 'w-full',
+        ...head(this.cur), index: head,
+        onClose: () => { this.deck = null; this.$nextTick(() => { this.revealLit(); this.drawArrows(); }); },
+      });
+      this.deck.deck.onSlide(i => { this.deck.setTitle(this.kindOf(i)); if (i !== this.cur) this.sync(i, 'deck'); });
+    },
+    revealLit() { reveal(this.$refs.passage, this.$refs.passage?.querySelector(`[data-s="${this.s.n}"]`)); },
+    pick(e) { const g = e.target.closest('[data-gap]'); if (g) return this.gapToggle(g); const t = e.target.closest('[data-s]'); if (t) this.go(+t.dataset.s); },
+    // A gap's own arrow, to the mention it stands for, drawn in either view.
+    gapTrace(g) {
+      if (!g || !g.dataset.ante) return;
+      this.light(null);
+      this.traced = [`${g.dataset.k} ${g.dataset.ante}`];
+      document.querySelectorAll(`[data-k~="${g.dataset.ante}"]`).forEach(el => el.setAttribute('data-on', ''));
+      this.drawArrows();
+    },
+    gapOver(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches) { this.fitGap(g); this.gapTrace(g); } },
+    gapOut(e) {
+      const g = e.target.closest && e.target.closest('[data-gap]');
+      if (!g || !HOVER.matches || g.contains(e.relatedTarget)) return;
+      const open = this.gapOpen && this.$refs.ptext?.querySelector(`[data-gap][data-k="${this.gapOpen}"]`);
+      open ? this.gapTrace(open) : this.light(null);
+    },
+
+    // About is a third tab beside the lists: it takes the card pane's place,
+    // and leaving it puts the strip back at the current card.
+    toggleAbout(on = !this.about) {
+      if (on === this.about) return;
+      this.about = on;
+      this.light(null);
+      this.$nextTick(() => { if (!on && this.strip) this.strip.go(this.cur, 'instant'); this.revealLit(); this.drawArrows(); });
+    },
+
+    light(keys, attr = 'data-on') {
+      document.querySelectorAll('[data-on],[data-ev],[data-atom],[data-hot]').forEach(el => ['data-on', 'data-ev', 'data-atom', 'data-hot'].forEach(a => el.removeAttribute(a)));
+      this.hot = null;
+      if (this.traced.length) { this.traced = []; this.drawArrows(); }
+      if (keys) for (const k of keys) document.querySelectorAll(`[data-k~="${k}"]`).forEach(el => el.setAttribute(attr, ''));
+    },
+    // A span on the card traces its own connections: every connection with an
+    // end in it is drawn bold in the passage, even with the arrows off. The
+    // arrow alone marks it: a connection's end can run past the span (a link's
+    // end is often a clause), and a fill there would read as the entity's.
+    trace(keys) {
+      const ks = new Set(keys), hit = this.X.links.filter(it => it.keys.length === 2 && it.keys.some(k => ks.has(k)));
+      this.traced = hit.map(it => it.keys.join(' '));
+      this.drawArrows();
+    },
+    // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
+    // the passage) or 'dim' (any other). The sentence's own words, unchanged:
+    // formatting marks them, and nothing is added to them.
+    // `m`, in the passage only: `pos` is where the piece's sentence sits
+    // relative to the current one and picks its colour, `fill` its strong
+    // spans, `ends` (grey) the ends of the connections touching the current one.
+    span(p, mode, m) {
+      p = { ...p, on: p.on.filter(r => !r.gap) };
+      const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
+      const code = p.on.some(r => r.kind === 'code');
+      const has = set => set && p.on.some(r => set.has(r.key));
+      const T = TONE[m?.pos || 'here'], cls = [T.lit, ATOM];
+      if (has(m?.fill)) cls.push(T.fill, mode === 'dim' ? 'text-base-content' : '');
+      else if (has(m?.ends)) cls.push('bg-base-200');
+      if (code) cls.push('bg-base-200 rounded');
+      const text = esc(code ? plain(p.text) : p.text);
+      // In the passage a mention's tip is for a hovering pointer and takes no
+      // tab stop: the card's sentence gives the keyboard the same tips.
+      const tip = mode === 'card' ? this.tipFor(this.mentionIn(p)) : HOVER.matches && this.mentionIn(p) ? this.tipFor(this.mentionIn(p)) + ' tabindex="-1"' : '';
+      return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}"${tip}>${text}</span>` : text;
+    },
+
+    // An ellipsis is marked where its words are missing: a raised question
+    // mark after the word the gap follows, carrying the mention's key, so it
+    // lights when a mention there would. Its tip names the empty slot (object
+    // of Write), and hovering or tapping it draws an arrow to the words that
+    // fill it; only a gap whose entity the passage never names spells those
+    // words out in the tip. The sentence's own words stay as written.
+    // A tap or click pins the mark's label; it stays through scrolling, since
+    // it moves with its word, until the mark is tapped again, another is
+    // opened, or Escape.
+    gapToggle(g) {
+      const k = g.dataset.k;
+      this.gapOpen = this.gapOpen === k ? null : k;
+      document.querySelectorAll('[data-gap]').forEach(x => x.toggleAttribute('data-open', x.dataset.k === this.gapOpen));
+      if (!this.gapOpen) return this.light(null);
+      this.$nextTick(() => { this.fitOpen(); this.gapTrace(this.$refs.ptext?.querySelector(`[data-gap][data-k="${k}"]`) || g); });
+    },
+    // A label that would run past the edge of the box it scrolls in shifts
+    // back inside it, and drops below its mark when the mark sits on the
+    // box's top line.
+    fitGap(g) {
+      const lab = g.lastElementChild; lab.style.translate = ''; lab.removeAttribute('data-below');
+      let lb = lab.getBoundingClientRect(); if (!lb.width) return;
+      let box = g.parentElement, st;
+      while (box && (st = getComputedStyle(box)).overflowX === 'visible' && st.overflowY === 'visible') box = box.parentElement;
+      const bb = (box || document.documentElement).getBoundingClientRect();
+      if (lb.top < bb.top + 4) { lab.setAttribute('data-below', ''); lb = lab.getBoundingClientRect(); }
+      const dx = Math.max(bb.left + 8 - lb.left, Math.min(0, bb.right - 8 - lb.right));
+      if (dx) lab.style.translate = `${Math.round(dx)}px`;
+    },
+    fitOpen() { document.querySelectorAll('[data-gap][data-open]').forEach(g => this.fitGap(g)); },
+    // The label restores the missing words in brackets, the editor's mark for
+    // words supplied, with the entity's own words in its purple, then any
+    // note. The slot they fill is read out, not shown.
+    gapsAfter(p, lit) {
+      return p.on.filter(r => r.gap && r.b === p.b).map(r => {
+        const m = r.m, a = r.ante, fill = m.fill || (this.R.entities[m.e] || {}).label || m.e, name = m.slot || 'Ellipsis';
+        const tip = `[${fill}], ${name}` + (m.note ? `. ${m.note}` : '');
+        const words = this.markNames(fill, [m.e], (k, t) => `<span class="rounded box-decoration-clone bg-primary/20 px-0.5">${t}</span>`);
+        const label = `<span class="block text-sm leading-6">[${words}]</span>`
+          + (m.note ? `<span class="block text-base-content/60">${esc(m.note)}</span>` : '');
+        return `<span data-k="${r.key}" data-gap data-ante="${a ? a.key : ''}"${this.gapOpen === r.key ? ' data-open' : ''} tabindex="0" role="button" aria-label="${esc(tip)}"`
+          + ` class="group relative select-none ${GAP.base} ${GAP.on} ${lit(r.key) ? GAP.lit : GAP.idle}">?`
+          + `<span class="absolute bottom-full left-0 mb-1 data-[below]:bottom-auto data-[below]:top-full data-[below]:mb-0 data-[below]:mt-1 hidden group-hover:block group-data-[open]:block w-max max-w-64 rounded border border-base-300 bg-base-100 px-1.5 py-1 text-xs font-normal leading-tight text-base-content shadow-sm pointer-events-none">${label}</span></span>`;
+      }).join('');
+    },
+
+    // What the passage shows for sentence n, one mark per kind. `fill`: every
+    // mention of the entities n names, the topic aside (the passage mentions
+    // it throughout, and its row shows where), in the position colours.
+    // `ends`: both spans of every connection touching n either way, tinted
+    // grey, joined by an arrow (`near`); only while the arrows are on.
+    focus(n) {
+      const X = this.X, fill = new Set(), ends = new Set(), near = new Set();
+      for (const e of this.named(n)) if (e !== this.R.topic) (X.keysOf[e] || []).forEach(k => fill.add(k));
+      if (this.arrows) for (const it of [...X.inn[n], ...X.fwd[n], ...X.own[n]]) {
+        it.keys.forEach(k => ends.add(k));
+        if (it.keys.length === 2) near.add(it.keys.join(' '));
+      }
+      return { fill, ends, near };
+    },
+    side(m, n) { return m < n ? 'before' : m > n ? 'after' : 'here'; },
+
+    // The passage: the current sentence outlined, the rest dimmed, and
+    // focus()'s marks.
+    get passageHtml() {
+      if (!this.R) return '';
+      const lit = this.s.n, X = this.X, { fill, ends } = this.focus(lit);
+      const lead = this.R.lead ? `<span class="font-semibold text-base-content/60">${esc(this.R.lead)}</span> ` : '';
+      return lead + this.R.sentences.map(s => {
+        const on = s.n === lit;
+        const ranges = X.rng[s.n], m = { fill, ends, pos: this.side(s.n, lit) };
+        const gapTone = k => on || fill.has(k);
+        const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
+        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
+      }).join(' ');
+    },
+
+    // Arrows behind the passage, with Connections active, one for every
+    // connection in it, from the referring span straight through the lines
+    // between to the span it leans on; the text paints over them. Those
+    // touching the current sentence are darker, and a hovered row's darker
+    // still. Entities draws none.
+    drawArrows() {
+      const wrap = this.$refs.pwrap, text = this.$refs.ptext, layer = this.$refs.arrows;
+      if (!wrap || !text || !layer || !this.R) return;
+      this.fitOpen(); // first, since the layer takes the passage's width, labels included
+      const W = wrap.getBoundingClientRect(), HEAD = 7;
+      // A span's box on each line it occupies, its pieces (split where other spans overlap it) merged.
+      const rects = k => Object.values([...text.querySelectorAll(`[data-k~="${k}"]`)].flatMap(el => [...el.getClientRects()]).filter(r => r.width)
+        .reduce((by, r) => {
+          const t = Math.round(r.top - W.top), o = by[t], l = r.left - W.left, rt = r.right - W.left;
+          by[t] = o ? { ...o, l: Math.min(o.l, l), r: Math.max(o.r, rt) } : { l, r: rt, t: r.top - W.top, b: r.bottom - W.top };
+          return by;
+        }, {}));
+      const traced = new Set(this.traced), pairs = [...new Set([...this.focus(this.s.n).near, ...traced])];
+      // A span can wrap, so each arrow joins the nearest pair of its two spans'
+      // line boxes: out of the top of the later one and into the foot of the
+      // earlier, or on one line, over the top of both.
+      const legs = pairs.map(pair => {
+        const [from, to] = pair.split(' ');
+        let best = null;
+        for (const s of rects(from)) for (const t of rects(to)) {
+          const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b : t.t;
+          const gap = Math.hypot((t.l + t.r - s.l - s.r) / 2, y1 - y0);
+          if (!best || gap < best.gap) best = { pair, lit: traced.has(pair), s, t, up, down, y0, y1, gap };
+        }
+        return best;
+      }).filter(Boolean);
+      // Heads that would land close together on one line spread apart, in the
+      // order their sources sit, since links often end on the same words.
+      const lines = {}, room = HEAD + 6;
+      for (const g of legs) { g.tx = (g.t.l + g.t.r) / 2; (lines[Math.round(g.y1)] ||= []).push(g); }
+      for (const list of Object.values(lines)) {
+        list.sort((a, b) => a.tx - b.tx);
+        for (let i = 0, j; i < list.length; i = j) {
+          for (j = i + 1; j < list.length && list[j].tx - list[j - 1].tx < room; j++);
+          const run = list.slice(i, j).sort((a, b) => a.s.l - b.s.l), mid = run.reduce((m, g) => m + g.tx, 0) / run.length;
+          run.forEach((g, k) => { g.tx = mid + (k - (run.length - 1) / 2) * room; });
+        }
+      }
+      const paths = legs.map(({ pair, lit, s, up, down, y0, y1, tx }) => {
+        const sx = (s.l + s.r) / 2, k = Math.max(4, Math.abs(y1 - y0) * 0.45);
+        const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
+          : `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`;
+        return `<path data-k="${pair}"${lit ? ' data-on' : ''} d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
+          + ` class="opacity-70 data-[on]:opacity-100 stroke-[var(--color-primary)] stroke-2"/>`;
+      }).join('');
+      const marker = `<marker id="pr-head" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="${HEAD}" markerHeight="${HEAD}" orient="auto">`
+        + `<path d="M0,1 L9,5 L0,9 z" class="fill-[var(--color-primary)]"/></marker>`;
+      layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
+        + `<defs>${marker}</defs>${paths}</svg>`;
+    },
+
+    // A sentence number in the colour of where that sentence sits, which
+    // goes there; its tip says which sentence it is: where an entity comes
+    // from, or the other end of a connection. The current sentence's own
+    // number is solid, with a halo: you are here.
+    num(n, tone = 'here', tip = '') {
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}"${tip ? ` data-title-tip="${esc(tip)}" data-title-tip-bare` : ''} class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums">${esc(n)}</button>`;
+    },
+    row(it) {
+      return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
+        class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 px-2 -mx-2 py-0.5 rounded-box outline-none hover:bg-base-300 focus-visible:bg-base-300 data-[hot]:bg-base-300">
+        <div class="pt-1 text-sm text-base-content/60 leading-5">${it.left || ''}</div>
+        <div class="grid leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
+    },
+    text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
+    // A quoted span as a chip, lit with its span in the colour of where that
+    // span sits; `within` bolds the word inside a longer anchor.
+    chip(text, key, within, tone) {
+      const t = plain(text), w = within && plain(within), at = w ? w.indexOf(t) : -1;
+      const inner = at >= 0 ? `${esc(w.slice(0, at))}<b>${esc(t)}</b>${esc(w.slice(at + t.length))}` : esc(t);
+      return `<span data-chip="${key}" data-k="${key}" class="rounded-md bg-base-200 px-1.5 py-0.5 box-decoration-clone ${TONE[tone || 'here'].lit}">${inner}</span>`;
+    },
+    // One connection read as a statement: the later span, a relation, the
+    // earlier span, each chip toned by where it sits relative to sentence n.
+    statement(it, n) {
+      const tone = k => this.side(this.X.at[k], n);
+      const fill = () => it.fill || (this.R.entities[it.e] || {}).label || it.e;
+      // The relation as a small arrow-shaped tag between the two chips.
+      const verb = v => `<span class="inline-flex items-center pl-3 pr-4 py-0.5 text-sm leading-5 bg-base-content/15 text-base-content/80 [clip-path:polygon(0_0,calc(100%_-_8px)_0,100%_50%,calc(100%_-_8px)_100%,0_100%,6px_50%)]">${v}</span>`;
+      const line = parts => `<span class="flex flex-wrap items-center gap-x-1 gap-y-1">${parts.join('')}</span>`;
+      if (it.kind === 'ellipsis') return line([this.chip(it.here, it.keys[0], null, tone(it.keys[0])), verb('leaves out'), `<span>${esc(fill())}</span>`]);
+      return line([this.chip(it.here, it.keys[0], it.within, tone(it.keys[0])), verb(VERB[it.kind] || esc(it.kind)), this.chip(it.there, it.keys[1], it.thereIn, tone(it.keys[1]))]);
+    },
+    flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
+    // A mention's tip: the entity's label as its lead, its gloss, then where
+    // this mention stands in the entity's thread through the passage.
+    tipFor(r) {
+      if (!r) return '';
+      const X = this.X, m = r.m, n = X.at[r.key], where = X.where[m.e] || [n];
+      const others = where.filter(x => x !== n), first = Math.min(...where);
+      const and = l => l.length < 2 ? `${l[0]}` : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`;
+      const place = m.form === 'anaphor'
+        ? (r.ante ? `Refers back to “${plain(r.ante.quote)}”${r.ante.n === n ? ' earlier in this sentence' : ` in ${r.ante.n}`}.` : 'The passage never names what this points to.')
+        : r.first ? (others.length ? `Introduced here; again in ${and(others)}.` : 'Mentioned only here.')
+        : first === n ? 'Named again; introduced earlier in this sentence.' : `Named again; introduced in ${first}.`;
+      return this.entityTip(m.e, [place, m.note]);
+    },
+    // An entity's tip: its label as the lead, its gloss, and any further lines.
+    entityTip(k, more = []) {
+      const e = this.R.entities[k] || {};
+      const lines = [e.gloss, ...more, k === this.R.topic ? 'What the whole passage is about.' : ''].filter(Boolean);
+      const lead = (e.label || k) + (KIND[e.kind] ? ` · ${KIND[e.kind].label.toLowerCase()}` : '');
+      return ` data-title-tip-lead="${esc(lead)}" data-title-tip="${esc(lines.join('\n'))}" data-title-tip-bare`;
+    },
+    // The innermost mention a piece of text sits in.
+    mentionIn(p) { return p.on.filter(r => r.kind === 'm' && !r.gap).sort((x, y) => (x.b - x.a) - (y.b - y.a))[0]; },
+    // An atom's claim with the words naming the entities it is about marked,
+    // found by the entity's label or the quote of a mention that names it or
+    // describes it (two words or more, so a definite description such as
+    // "the situation" counts and a pronoun does not), whole words, longest
+    // first. A claim that names one some other way leaves it unmarked; `on`
+    // still lists it, and hovering the atom still marks its row.
+    claimHtml(a, eid) {
+      return this.markNames(a.claim, a.on || [], (k, t) => `<span data-k="e:${k}" data-items="${eid[k] || ''}" class="rounded box-decoration-clone bg-primary/20 ${TONE.here.lit}"${this.entityTip(k)}>${t}</span>`);
+    },
+    // Text with the words naming entities `ks` wrapped by `wrap(k, words)`, the rest escaped.
+    markNames(text, ks, wrap) {
+      const E = this.R.entities, hits = [];
+      const names = k => [E[k]?.label, ...this.R.sentences.flatMap(s => s.mentions.filter(m => m.e === k && (!m.form || m.form === 'anaphor' && /\s/.test(m.quote.trim()))).map(m => m.quote))]
+        .filter(Boolean).map(plain).sort((x, y) => y.length - x.length);
+      for (const k of ks) for (const q of names(k)) {
+        const mt = new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').exec(text);
+        if (mt && !hits.some(h => mt.index < h.b && mt.index + q.length > h.a)) { hits.push({ a: mt.index, b: mt.index + q.length, k }); break; }
+      }
+      let out = '', at = 0;
+      for (const h of hits.sort((x, y) => x.a - y.a)) {
+        out += esc(text.slice(at, h.a)) + wrap(h.k, esc(text.slice(h.a, h.b)));
+        at = h.b;
+      }
+      return out + esc(text.slice(at));
+    },
+    // Entities in play: those the sentence names, the topic aside, and those
+    // its atoms are about, the topic included, so a sentence lists what it is
+    // about whether or not it names it.
+    playing(n) {
+      const s = this.X.by[n], named = s.mentions.map(m => m.e).filter(k => k !== this.R.topic);
+      return [...new Set([...named, ...s.atoms.flatMap(a => a.on || [])])].filter(k => !(this.X.fresh[n] || []).includes(k));
+    },
+    named(n) { return [...this.playing(n), ...(this.X.fresh[n] || [])]; },
+    // The arrow button shows or hides the connections in the passage.
+    toggleArrows() {
+      this.arrows = !this.arrows;
+      try { localStorage.setItem('passage-reader:arrows', this.arrows ? '1' : '0'); } catch (e) {}
+      this.light(null);
+      this.$nextTick(() => this.drawArrows());
+    },
+
+    // Every list's items for sentence n, in passage order of the sentence
+    // each points to, and toned by where that sentence sits. `spans` are the
+    // range keys an item marks in this sentence; `keys` are what it lights,
+    // here and in the passage.
+    items(n) {
+      const X = this.X, E = this.R.entities, s = X.by[n];
+      const notes = k => s.mentions.filter(m => m.e === k && m.note && !m.form).map(m => m.note);
+      const here = k => (X.keysOf[k] || []).filter(x => x.startsWith(`m${n}-`));
+      const ends = [...X.inn[n].map(it => [it, it.to, 0]), ...X.own[n].map(it => [it, n, 0]), ...X.fwd[n].map(it => [it, it.from, 1])];
+      const first = k => Math.min(...(X.where[k] || [n]));
+      const entities = this.named(n).map(k => [k, first(k)]).sort((a, b) => a[1] - b[1]).map(([k, m], j) => {
+        const e = E[k] || {}, basis = e.basis === 'general' ? ' (general knowledge)' : '';
+        // `e:<id>` lights the words naming the entity in the atoms' claims.
+        const keys = [...(X.keysOf[k] || []), `e:${k}`];
+        // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
+        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n), m === n ? 'From here' : `From sentence ${m}`),
+          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+      });
+      const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
+      return {
+        links: ends.sort((a, b) => a[1] - b[1]).map(([it, m, mine], j) => ({ id: `links:${j}`, mode: 'on', keys: it.keys, spans: [it.keys[mine]],
+          tone: this.side(m, n), left: this.num(m, this.side(m, n), mine ? `Sentence ${m} connects back to this one` : m === n ? 'Within this sentence' : `Connects back to sentence ${m}`),
+          body: [this.statement(it, n), this.text(it.gloss), this.text(it.note), this.flag(it.ok)] })),
+        entities,
+        atoms: s.atoms.map((a, k) => {
+          const tags = [a.for ? `${VERB[a.as] || a.as} ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean), t = TYPE[a.type] || { label: a.type, icon: 'ph-circle' };
+          const key = `a${n}-${k}`;
+          return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id), about: a.on || [],
+            body: [`<span class="text-pretty${a.implied ? ' italic' : ''}"><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}" data-title-tip-bare></i>`
+              + `${this.claimHtml(a, eid)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
+                   this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
+        }),
+      };
+    },
+
+    // The sentence with the marks the passage uses: its entities' mentions
+    // filled, its connections' ends tinted grey. Hovering one lights its row
+    // below, and a mention shows its tip.
+    sentenceHtml(n, sel) {
+      const X = this.X, len = {}, by = {};
+      for (const r of X.rng[n]) if (r.key) len[r.key] = r.b - r.a;
+      for (const it of sel) for (const k of it.spans) (by[k] ||= []).push(it);
+      const gapTone = () => true;
+      return pieces(X.by[n].text, X.rng[n]).map(p => {
+        const on = p.on.filter(r => !r.gap), gaps = this.gapsAfter(p, gapTone);
+        const its = [...new Set(on.flatMap(r => by[r.key] || []))];
+        if (!its.length) return this.span(p, 'card') + gaps;
+        const keys = on.map(r => r.key).filter(Boolean).join(' ');
+        const tint = its.some(it => it.mode === 'ev') ? 'bg-primary/20' : 'bg-base-200';
+        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="${tint} ${TONE.here.lit} ${ATOM}"`
+          + `${this.tipFor(this.mentionIn(p))}>${esc(plain(p.text))}</span>` + gaps;
+      }).join('');
+    },
+
+    // The card: the sentence alone under its bar, a rule, then its atoms and
+    // each list, each under a heading; a list's heading carries a key naming
+    // the parts present.
+    render(i, el) {
+      const n = this.R.sentences[i].n;
+      const all = this.items(n), active = [...all.entities, ...all.links];
+      el._items = Object.fromEntries(Object.values(all).flat().map(it => [it.id, it]));
+      const key = g => LEGEND[g.key].filter(([t]) => all[g.key].some(it => it.tone === t))
+        .map(([t, label]) => `<span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full ${TONE[t].dot}"></span>${label}</span>`).join('');
+      const head = g => `<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1"><h3 class="text-sm font-semibold text-base-content/60">${g.label}</h3>`
+        + `<span class="flex flex-wrap gap-x-3 text-sm text-base-content/60">${key(g)}</span></div>`;
+      const list = its => `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
+      const atoms = all.atoms.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</section>` : '';
+      el.innerHTML = `<article class="grid gap-4 text-lg">
+        <p class="leading-8 text-pretty border-l-4 border-primary pl-4">${this.sentenceHtml(n, active)}</p>
+        <hr class="border-base-300">
+        ${atoms}
+        ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid gap-1">${head(g)}${list(all[g.key])}</section>`).join('')}
+      </article>`;
+      this.wire(el);
+    },
+
+    // Light an item's keys and mark its row; from a span, every item it sits
+    // in, though only its entities light, since trace() draws its connections.
+    point(ids, el, show, fromSpan) {
+      const its = ids.map(id => el._items[id]).filter(Boolean), lit = fromSpan ? its.filter(it => it.mode !== 'on') : its;
+      if (!its.length) return;
+      this.light([...new Set(lit.flatMap(it => it.keys))], { ev: 'data-ev', atom: 'data-atom' }[lit[0]?.mode] || 'data-on');
+      // An atom marks the rows of the entities it is about, on the card only;
+      // hovering one of those rows lights its mentions across the passage.
+      const about = new Set(its.flatMap(it => it.about || []));
+      for (const it of Object.values(el._items)) if (about.has(it.e)) {
+        const r = el.querySelector(`[data-item="${it.id}"]`);
+        r?.setAttribute('data-hot', ''); r?.querySelector('[data-k]')?.setAttribute('data-on', '');
+      }
+      for (const it of its) el.querySelector(`[data-item="${it.id}"]`)?.setAttribute('data-hot', '');
+      this.hot = ids.join(' ');
+      // A tap brings the partner span into the passage pane, which on a phone
+      // is a short band; for an atom, its own quote.
+      const P = this.$refs.passage;
+      if (show) reveal(P, its[0].mode === 'atom' ? P.querySelector('[data-atom]') : [...P.querySelectorAll('[data-on],[data-ev]')].find(x => !x.closest(`[data-s="${this.s.n}"]`)));
+    },
+
+    wire(el) {
+      el.querySelectorAll('[data-go]').forEach(b => { b.onclick = e => { e.stopPropagation(); this.go(+b.dataset.go); }; });
+      el.querySelectorAll('[data-item]').forEach(r => {
+        const ids = [r.dataset.item];
+        // Entering a row straight onto an entity's words inside it fires the
+        // words' pointerover first; the row then leaves the hover to them.
+        r.addEventListener('pointerenter', () => HOVER.matches && !r.querySelector('[data-items]:hover') && this.point(ids, el, false));
+        r.addEventListener('pointerleave', () => HOVER.matches && this.light(null));
+        // Keyboard focus only: a tap also focuses the row, just before its own click.
+        r.addEventListener('focus', () => r.matches(':focus-visible') && this.point(ids, el, false));
+        r.addEventListener('blur', () => HOVER.matches && this.light(null));
+        r.addEventListener('click', () => HOVER.matches || this.hot !== ids.join(' ') ? this.point(ids, el, true) : this.light(null));
+      });
+      el.querySelectorAll('[data-chip]').forEach(c => {
+        const key = c.dataset.chip, row = c.closest('[data-item]');
+        const one = () => { this.light([key], 'data-on'); row?.setAttribute('data-hot', ''); };
+        c.addEventListener('pointerenter', () => HOVER.matches && one());
+        c.addEventListener('pointerleave', () => HOVER.matches && (row ? this.point([row.dataset.item], el, false) : this.light(null)));
+        c.addEventListener('click', e => { if (HOVER.matches) return; e.stopPropagation(); one(); this.hot = 'chip'; });
+      });
+      // The highlighted spans answer the same way, so a span and its row light together.
+      const spanOf = e => e.target.closest && e.target.closest('[data-items]');
+      const hold = (t, show) => { this.point(t.dataset.items.split(' '), el, show, true); this.trace(t.dataset.k.split(' ')); };
+      el.addEventListener('pointerover', e => { const t = spanOf(e); if (t && HOVER.matches) hold(t, false); });
+      el.addEventListener('pointerout', e => {
+        const t = spanOf(e); if (!t || !HOVER.matches || t.contains(e.relatedTarget)) return;
+        // Leaving an entity's words inside an atom hands the hover back to the atom.
+        const row = e.relatedTarget?.closest?.('[data-item]');
+        row && el.contains(row) ? this.point([row.dataset.item], el, false) : this.light(null);
+      });
+      el.addEventListener('click', e => { const t = spanOf(e); if (t && !HOVER.matches) hold(t, true); });
+      el.addEventListener('pointerover', e => this.gapOver(e));
+      el.addEventListener('pointerout', e => this.gapOut(e));
+      el.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-gap]'); if (g) { e.stopPropagation(); this.gapToggle(g); } });
+    },
+  }));
+});
+</script>
+</head>
+<body class="bg-base-100 text-base-content">
+<div x-data="passageReader()" x-cloak class="[&[x-cloak]]:hidden h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+
+  <header class="bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-3">
+    <i class="ph ph-book-open-text text-xl"></i>
+    <div class="min-w-0">
+      <h1 class="font-semibold text-lg leading-snug text-balance" x-text="R ? R.title : 'Passage reader'"></h1>
+      <template x-if="R && R.source">
+        <a class="block text-xs text-base-content/60 truncate link link-hover" target="_blank" rel="noopener" :href="link(R.source)" x-text="R.source.path + (R.source.repo ? ' ↗' : '')"></a>
+      </template>
+    </div>
+    <template x-if="R">
+      <div class="ml-auto flex items-center gap-1">
+        <template x-if="fileUrl">
+          <a class="btn btn-ghost btn-sm btn-square" :href="fileUrl" target="_blank" rel="noopener" aria-label="GitHub" data-title-tip="Reading on GitHub" data-title-tip-bare><i class="ph ph-github-logo text-lg"></i></a>
+        </template>
+      </div>
+    </template>
+  </header>
+
+  <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
+
+  <template x-if="R">
+    <main x-ref="main" data-pattern="linked-swiper"
+          class="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[minmax(0,1fr)] min-h-0 min-w-0"
+          :class="wide ? 'grid-rows-[minmax(0,1fr)_auto]' : 'grid-rows-[minmax(0,1fr)_minmax(0,2fr)]'">
+      <section x-ref="passage" aria-label="Passage"
+               class="overflow-y-auto overscroll-contain border-b lg:border-b-0 lg:border-r border-base-300 px-4 py-4 sm:px-6 grid gap-4 content-start">
+        <div x-show="R.gist" class="hidden lg:grid gap-1">
+          <h2 class="text-sm font-semibold text-base-content/60">Gist</h2>
+          <p class="text-lg leading-8 text-balance" x-text="R.gist"></p>
+        </div>
+        <div x-ref="pwrap" class="relative">
+          <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event)" @pointerout="gapOut($event)"></p>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+        <div class="flex items-center gap-1 px-2 sm:px-4 py-1 border-b border-base-200">
+          <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
+          <div class="items-center gap-2 px-1" :class="N <= 12 ? 'hidden' : N <= 25 ? 'flex sm:hidden' : 'flex'">
+            <progress class="progress progress-primary w-20 sm:w-32" :value="cur + 1" :max="N"></progress>
+            <span class="tabular-nums text-sm text-base-content/60" x-text="(cur + 1) + ' / ' + N"></span>
+          </div>
+          <div class="items-center" :class="N <= 12 ? 'flex' : N <= 25 ? 'hidden sm:flex' : 'hidden'">
+            <template x-for="(t, i) in R.sentences" :key="t.n">
+              <button class="p-[2px] sm:p-[3px]" @click="sync(i, 'list')" :aria-label="'Sentence ' + t.n" :aria-current="i === cur ? 'true' : 'false'">
+                <span class="block size-2 sm:size-2.5 rounded-full" :class="i === cur ? 'bg-primary' : linked.has(t.n) ? 'bg-base-content/40' : 'bg-base-300'"></span>
+              </button>
+            </template>
+          </div>
+          <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(1)" :disabled="cur === N - 1" aria-label="Next sentence"><i class="ph ph-caret-right text-lg"></i></button>
+          <span class="flex items-center gap-1 sm:gap-1.5 min-w-0 text-sm font-semibold text-base-content/70 ml-1 sm:ml-0" :aria-label="kindLabel">
+            <span class="inline-flex shrink-0 items-center justify-center size-5 rounded-full text-xs tabular-nums bg-primary text-primary-content ring-2 ring-[var(--color-primary)]/30 ring-offset-1 ring-offset-base-100" x-text="s.n"></span>
+            <span class="truncate" x-text="kindName"></span></span>
+          <button type="button" class="btn btn-ghost btn-sm btn-square ml-auto shrink-0" :class="arrows ? 'text-primary' : 'text-base-content/40'"
+                  :aria-pressed="arrows ? 'true' : 'false'" @click="toggleArrows()" aria-label="Connections" data-title-tip="Connections" data-title-tip-bare>
+            <i class="ph ph-flow-arrow text-lg"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0" :class="about ? 'text-primary' : ''"
+                  :aria-pressed="about ? 'true' : 'false'" @click="toggleAbout()" aria-label="About" data-title-tip="About" data-title-tip-bare>
+            <i class="ph ph-info text-lg"></i></button>
+          <button type="button" :class="swipeDeck.entry.cls('ghost', 'tight')" @click="openDeck()"
+                  :aria-label="swipeDeck.entry.title(N, 'sentence')" :data-title-tip="swipeDeck.entry.title(N, 'sentence')" data-title-tip-bare><i class="ph text-lg" :class="swipeDeck.entry.icon"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm btn-square lg:hidden" @click="toggleWide()"
+                  :aria-label="wide ? 'Show the cards' : 'Give the passage the screen'" :data-title-tip="wide ? 'Show the cards' : 'Give the passage the screen'" data-title-tip-bare>
+            <i class="ph text-lg" :class="wide ? 'ph-caret-double-up' : 'ph-caret-double-down'"></i></button>
+        </div>
+        <div x-ref="track" class="min-h-0 min-w-0 h-full" x-show="!about" :class="wide && 'max-lg:hidden'"></div>
+        <div x-show="about" class="min-h-0 overflow-y-auto px-4 pt-5 pb-28 sm:px-8 sm:pt-8" :class="wide && 'max-lg:hidden'" aria-label="About">
+          <dl class="grid grid-cols-1 sm:grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-3 text-lg leading-7 [&>dt:not(:first-child)]:max-sm:pt-4">
+            <dt class="text-sm text-base-content/60 pt-1">Source</dt><dd class="text-pretty" x-text="R?.source?.note"></dd>
+            <dt class="text-sm text-base-content/60 pt-1 lg:hidden">Gist</dt><dd class="text-pretty lg:hidden" x-text="R?.gist"></dd>
+            <template x-if="R?.topic"><dt class="text-sm text-base-content/60 pt-1">Topic</dt></template>
+            <template x-if="R?.topic"><dd x-text="(R.entities[R.topic] || {}).label || R.topic"></dd></template>
+            <dt class="text-sm text-base-content/60 pt-1">Context</dt>
+            <dd class="grid gap-2">
+              <template x-for="c in R?.context || []" :key="c.id">
+                <span class="grid">
+                  <a class="link link-hover" target="_blank" rel="noopener" :href="link(c)" x-text="c.path + (c.repo ? ' ↗' : '')"></a>
+                  <span class="text-pretty text-base-content/70" x-text="c.why"></span>
+                </span>
+              </template>
+              <span x-show="!(R?.context || []).length" class="text-base-content/60">None supplied</span>
+            </dd>
+            <dt class="text-sm text-base-content/60 pt-1">Entities</dt>
+            <dd class="grid gap-2">
+              <template x-for="e in R ? entityList : []" :key="e.k">
+                <span class="grid">
+                  <span><i class="ph mr-1.5 align-[-0.125em] text-base-content/50" :class="KIND[e.kind]?.icon" x-show="KIND[e.kind]" :aria-label="KIND[e.kind]?.label"></i><span class="font-semibold" x-text="e.label"></span> <span class="text-sm tabular-nums text-base-content/60" x-text="e.where"></span></span>
+                  <span class="text-pretty text-base-content/70" x-text="e.gloss"></span>
+                </span>
+              </template>
+            </dd>
+            <template x-if="X && X.problems.length"><dt class="text-sm text-error pt-1">Anchoring</dt></template>
+            <template x-if="X && X.problems.length">
+              <dd class="grid gap-1"><template x-for="m in X.problems" :key="m.n + m.q + m.why"><span x-text="m.n + ': “' + m.q + '” ' + m.why"></span></template></dd>
+            </template>
+            <dt class="text-sm text-base-content/60 pt-1">Format</dt>
+            <dd><a class="link link-hover" target="_blank" rel="noopener" href="https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/passage-reading.md">passage-reading/1 ↗</a></dd>
+          </dl>
+        </div>
+      </section>
+    </main>
+  </template>
+
+</div>
+</body>
+</html>
