@@ -29,6 +29,7 @@ const { window, problems } = makeWindow({
 });
 
 const Alpine = await startAlpine(window, [
+  'lib/vanilla-bundle.js',
   'lib/alpine-bundle.js',
   'lib/alpineComponents/viewer.js',
 ]);
