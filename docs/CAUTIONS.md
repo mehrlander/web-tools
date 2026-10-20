@@ -1,6 +1,6 @@
 # Cautions
 
-These cautions cover moves whose harm the owner is unlikely to notice afterward. Each calls for judgment rather than a fixed rule, and names what to establish before acting. A repo's own narrower rule governs within its scope.
+These cautions cover risks we could miss when AI moves quickly. Each calls for care rather than a fixed rule, and names what to establish before acting. A repo's own narrower rule governs within its scope.
 
 The canonical source is `mehrlander/web-tools` at `docs/CAUTIONS.md`. The portable plugin's `default` skill loads the byte-matched copy shipped beside it and fetches this source only as a fallback.
 

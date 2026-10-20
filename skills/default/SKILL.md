@@ -29,8 +29,8 @@ session proceeds without them having done everything right. Measured live on
 
 Load all three. [`SURFACING.md`](SURFACING.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR
-body, and reply the session writes; [`CAUTIONS.md`](CAUTIONS.md) names what to establish before a
-move whose harm the owner is unlikely to notice. None is optional, and the writing rules
+body, and reply the session writes; [`CAUTIONS.md`](CAUTIONS.md) names the risks we could miss when
+AI moves quickly, and what to establish before each. None is optional, and the writing rules
 are the ones a session is most likely to violate without noticing. Prefer the
 copies beside this `SKILL.md`, which ship in the plugin and cost no fetch;
 otherwise:
