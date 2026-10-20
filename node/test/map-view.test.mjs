@@ -1918,11 +1918,13 @@ test("a call edit's mark shows a glyph per note, corrections first, and folds on
     data.paintCallChip(chip, call, i);
     return { glyphs: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.callKind),
              tips: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.titleTip),
+             leads: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.titleTipLead || ''),
              more: chip.querySelector('[data-call-kinds] span')?.dataset.titleTip || '' };
   };
   const mixed = kinds(0);
   assert.deepEqual(mixed.glyphs, ['correct', 'clarify'], 'both shown, the correction first');
-  assert.deepEqual(mixed.tips, ['Correct: was false', 'Clarify: reworded']);
+  assert.deepEqual(mixed.tips, ['was false', 'reworded']);
+  assert.deepEqual(mixed.leads, ['Correct', 'Clarify'], 'each tip leads with its kind, drawn as a pill');
   assert.deepEqual(kinds(1).glyphs, ['none'], 'a why is one note of no kind');
   const many = kinds(2);
   assert.equal(many.glyphs.length, 3);
