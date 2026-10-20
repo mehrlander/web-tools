@@ -134,6 +134,17 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-record.sh\""
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "claude-haiku-5-5",
+            "timeout": 30,
+            "prompt": "You check the reply a Claude Code session is about to end its turn with, reading it as its owner will: without having seen the session. The hook input:\n\n$ARGUMENTS\n\nIf stop_hook_active is true, answer {\"ok\": true}. Otherwise read last_assistant_message and check three things.\n\n1. Decision. If the reply asks the owner to decide, choose or approve something, it says what is being decided, what the options are and which one it recommends.\n2. Status line. A reply longer than one line ends with exactly one status line: a line that starts with one of 🟢 ❇️ 🟡 🆚 ✴️ 🟠 ⚪ 🟣 🔴 ⚫ 🔵 followed by a bold lead. No other line in the reply starts with one of those glyphs.\n3. References. Every numbered or named item the reply points to, such as \"item 7\", \"rows 3 and 5\" or \"your two calls\", is introduced in the reply itself.\n\nIf all three hold, answer {\"ok\": true}. If any fails, answer {\"ok\": false, \"reason\": \"...\"}, where the reason names each failed check, quotes the words, and says what to add. Answer with the JSON object only."
+          }
+        ]
       }
     ]
   }
