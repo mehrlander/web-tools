@@ -13,9 +13,9 @@
 //                 an inline code span
 //   reported      every other figure in a living doc's prose
 //
-// "Living" is docs.csv's status column, the genre the census read. One living
-// doc is exempt by name: docs/SNAGS.md is append-on-trip (its own docs.csv
-// row says so), and each entry records what a trip measured when it happened.
+// "Living" is docs.csv's status column, the genre the census read. A living
+// doc can be exempted by name below; the one that was, docs/SNAGS.md, became
+// the Lists view's Snag list on 2026-10-20 and left docs/ with its entries.
 // Added 2026-10-07 with the six figures it found deleted.
 
 import test from 'node:test';
@@ -24,9 +24,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
-const EXEMPT = new Map([
-  ['docs/SNAGS.md', 'append-on-trip: each entry records what a trip measured when it happened'],
-]);
+const EXEMPT = new Map([]);
 
 const SIZE = /(?<![\w.$,])~?\d[\d,]*(?:\.\d+)?\s?(?:KB|MB|GB|KiB|MiB|GiB|kB|bytes|words(?! per))\b/g;
 const RULE_BEFORE = /\b(under|over|below|above|up to|at most|cap|caps|capped|limit|threshold|ceiling|budget|budgeted|maximum|max|exceeds?|guard|fewer than|less than|more than)\b[^.;:]{0,30}$/i;

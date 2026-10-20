@@ -50,7 +50,7 @@ export default async function (page) {
       if (key in FILES) return { text: FILES[key] };
       if (name === '.claude/settings.json' || name === 'CLAUDE.md' || name === '.web-tools.json'
           || name === 'docs/portable.csv' || name === 'state/configs.json' || name === 'state/activity.json'
-          || name === 'lists/todo.json' || name === 'lists/jots.json')
+          || name === 'lists/to-do.json' || name === 'lists/jot.json')
         throw Object.assign(new Error('404'), { status: 404 });
       return origGet.call(this, name);
     };

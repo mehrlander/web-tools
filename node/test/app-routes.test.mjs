@@ -13,6 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv, splitList } from '../build/registries-load.mjs';
@@ -449,7 +450,8 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
   const stage = manifest.routes.find(r => r.key === 'stage');
   assert.ok(stage, 'the stage route is declared');
   assert.equal(R.viewUrl(stage, 'abc123'),
-    'https://mehrlander.github.io/web-tools/app/?use=abc123&view=stage');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=stage');
+  assert.equal(R.viewUrl(stage, ''), 'https://mehrlander.github.io/web-tools/app/?view=stage', 'no ref is the deployed app');
 });
 
 // A Map chip names the tab a branch changes, from the files each tab's lede
@@ -465,7 +467,7 @@ test('a Map hit names the tab most of its files belong to, and the link lands th
   const policy = map(['docs/policies.csv', 'docs/policy-topics.csv', 'data/csv-census.csv', 'lib/alpineComponents/map.js']);
   assert.equal(policy.tab, 'policy');
   assert.equal(R.viewUrl(policy, 'abc123'),
-    'https://mehrlander.github.io/web-tools/app/?use=abc123&view=map&tab=policy');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
   assert.equal(map(['docs/policies.csv', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
   assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
   assert.equal(R.routesTouched(manifest, ['docs/policies.csv']).on.find(r => r.key === 'map').tab, undefined,
@@ -476,11 +478,13 @@ test('a Map hit names the tab most of its files belong to, and the link lands th
 // agreement is the point: two answers to "where do I look at this branch" is
 // the state this replaced.
 test('the app and the script agree on the lib-only address', () => {
-  const py = readFileSync(path.join(repoRoot, 'python/showing.py'), 'utf8');
-  const m = py.match(/q = join_query\(\[\("use", sha\), \("view", view\)\], query\)/);
-  assert.ok(m, 'showing.py still writes ?use=<sha>&view=<key>; update the kit if it moved');
+  // Asked of the script itself rather than of its source text, so the two
+  // agree on the address as printed.
+  const out = execFileSync('python3', [path.join(repoRoot, 'python/showing.py'),
+    '--files', 'lib/alpineComponents/stage.js,dist/app.js', '--json'], { cwd: repoRoot, encoding: 'utf8' });
+  const app = JSON.parse(out).links.find(l => l.page === 'app/index.html');
   const stage = manifest.routes.find(r => r.key === 'stage');
-  assert.ok(R.viewUrl(stage, 'deadbeef').endsWith('/app/?use=deadbeef&view=stage'));
+  assert.equal(R.viewUrl(stage, '0'.repeat(12)), app.url);
 });
 
 test('a route whose address carries a placeholder yields no link at all', () => {
@@ -494,7 +498,7 @@ test('a route whose address carries a placeholder yields no link at all', () => 
   }
   const bare = manifest.routes.filter(r => /^\?view=[a-z]+$/.test(r.address || ''));
   assert.ok(bare.length > 10, 'most routes are plain ?view= addresses');
-  for (const r of bare) assert.ok(R.viewUrl(r, 'x').includes('&view=' + r.key));
+  for (const r of bare) assert.ok(R.viewUrl(r, 'x').includes('?view=' + r.key));
 });
 
 // Every live row happens to carry an address, so this one is synthetic on
@@ -506,13 +510,13 @@ test('a row with no address, or none at all, is not openable', () => {
   assert.equal(R.viewUrl({ key: 'x' }, 'abc'), '');
 });
 
-// ?use= fetches the BUNDLE, not lib/, so this is the one caveat that turns a
+// A link at a branch loads the BUNDLE, not lib/, so this is the one caveat that turns a
 // link which resolves and renders into a link that shows last week's code.
 test('a lib change without a rebuilt pre-build is reported, not swallowed', () => {
   assert.equal(R.bundleStale(['lib/alpineComponents/stage.js']), true);
   assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/app.js']), false);
   assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/web-tools.js']), true,
-    'the app pins its own bundle now; the whole-library one is not what ?use= fetches here');
+    'the app pins its own bundle now; the whole-library one is not what the app loads');
   assert.equal(R.bundleStale(['pages/branch.html']), false, 'a page change does not ride the bundle');
   assert.equal(R.bundleStale([]), false);
 });

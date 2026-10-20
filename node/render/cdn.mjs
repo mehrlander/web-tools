@@ -133,7 +133,7 @@ function nodeFile(repoRoot, pkg, sub, esm, cdn) {
       // build, which threw "Unexpected token 'export'" and took a whole
       // combined script down with it; one that read `unpkg`, or a per-package
       // table, gave a bare `npm/alpinejs` the working build jsDelivr never
-      // sends (SNAGS: combine-serves-cjs). unpkg reads `unpkg`, then `main`,
+      // sends (the snag combine-serves-cjs). unpkg reads `unpkg`, then `main`,
       // and ignores `browser` too: a bare `daisyui@5` there is index.js.
       const def = esm
         ? (dot && (dot.import || dot.module || dot.default)) || j.module

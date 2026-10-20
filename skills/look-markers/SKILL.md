@@ -17,7 +17,8 @@ Write "look marker" and "look link" in full; "marker" alone means other things h
 
 Whenever a reply would locate something on a page in words, send the link and
 let the reply say what to notice. One place is `show`, or `tap` when the reader
-should press it; three or more ordered steps are a walk. Where no route below
+should press it; three or more ordered steps are a walk. A link that hands over
+a change carries `intro=<one line>` naming what to look at. Where no route below
 reaches the page, say it in words.
 
 ## Making the link
@@ -29,6 +30,7 @@ Use `python/look-link.py` (from another repo, `../web-tools/python/look-link.py`
     look-link.py make <page> --tap <anchor> --say "<what to do>"
     look-link.py make <page> --walk <name>
     look-link.py make <page> --steps '[{"at":"…","tap":true,"say":"…"}, …]'
+    look-link.py make <page> --intro "<what to look at>" [any of the above]
 
 `make` prints the fragment and exits 1 when a page that declares anchors lacks
 the one named; do not send a rejected link. Pass the fragment to `showing` as
@@ -36,7 +38,7 @@ the one named; do not send a rejected link. Pass the fragment to `showing` as
 paste what it prints.
 
 `say` is one sentence the reader can act on: "Recalculate after changing an
-amount", not "Click here".
+amount", not "Click here". `tap` is `true`, or the hand's label (`"Tap to open"`).
 
 ## Anchors
 
@@ -45,6 +47,7 @@ amount", not "Click here".
 | `<name>` | `data-at="<name>"`, else `id="<name>"` | the attribute goes |
 | `text:<words>` | the smallest element whose whole text is those words | the wording changes |
 | `css:<selector>` | the first match | the structure changes |
+| `<page>!<at>` | `<at>` on that page, which a walk opens (`pages/branch.html!files`) | the page moves |
 
 Prefer `data-at` names and ids: only they are checked before sending.
 
@@ -52,7 +55,9 @@ Prefer `data-at` names and ids: only they are checked before sending.
 
 - A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); it loads
   the kit when a fragment asks.
-- Any page through a toss link (🥏); the renderer adds the kit.
+- Any page through a toss link (🥏); the renderer adds the kit, and a walk there
+  stays on the framed page.
+- A document through the data route (🥏 `#data=`); name a heading with `text:`.
 - A page that loads `lib/kits/look.js`.
 - Not inside a frame of the budget-drs app; link the framed page itself.
 
@@ -64,7 +69,8 @@ Prefer `data-at` names and ids: only they are checked before sending.
   shows it, so a link into a closed tab opens it first.
 - Walks in `<script type="application/json" id="look-walks">`, as
   `{ "<name>": [{ "at": …, "say": …, "tap": true }, …] }`.
-- Leave `show`, `tap`, `say`, `walk` and `steps` to the kit; do not route on them.
+- Leave `show`, `tap`, `say`, `walk`, `steps`, `intro` and `stop` to the kit; do
+  not route on them.
 
 `look-link.py check <page>` fails on a walk step or an opener that names nothing,
 and the suite runs it over web-tools. Demo: [`lib/kits/demos/look.html`](../../lib/kits/demos/look.html).
