@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-19 by a skill, 41 by a page or component. The remaining 45 are
+21 by a skill, 40 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -107,6 +107,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
 - [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 - [`passage-reading.md`](envelopes/passage-reading.md) — the passage-reading envelope contract: one passage read sentence by sentence
+- [`audit.md`](envelopes/audit.md) — the audit envelope contract: a document's units, each with a label from a declared vocabulary and a verdict
 
 ## docs/envelopes/schemas/
 

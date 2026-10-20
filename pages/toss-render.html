@@ -261,7 +261,7 @@
   // visitable address of its own, which is the real problem: the enclosing page
   // is the thing a bookmark can name. Same-origin in address mode, so read it.
   //
-  // The query rides along: `?w=` (and `?use=`) say how to render what the
+  // The query rides along: `?w=` (and `?lib=`) say how to render what the
   // fragment addresses, so a bookmark that dropped them would name the right
   // page and open it in the wrong shape.
   const absUrl = frag => {
@@ -1780,6 +1780,7 @@ document.addEventListener('click',function(e){
   // fetch. Edit the manifest, then mirror it here (three fields per key);
   // node/test/routes-manifest.test.mjs fails if the two drift.
   const TOSS_ROUTES = {
+    'audit':        { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/audit-render.html' },
     'chat-results': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/chat-results.html' },
     'data':         { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/data-view.html' },
     'passage-reading': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/passage-reader.html' },
@@ -1831,7 +1832,8 @@ document.addEventListener('click',function(e){
 <script type="module">
   // Mount the FAB toolbox. Runs after the render logic above, and the FAB
   // self-loads its own kits, so a blocked CDN degrades to render-only rather
-  // than breaking the page. ?use=<ref> pins this shell's lib chain.
+  // than breaking the page. The import's ?ref=main outranks a ?use= or ?lib=
+  // in the address, so this FAB always runs main (see SELECTED above).
   // Not in top mode: the page is the tab's document and boots its own.
   if (!window.__tossTopMode) try {
     await import('https://mehrlander.github.io/web-tools/lib/entry.js?ref=main');
