@@ -570,7 +570,7 @@ document.addEventListener('alpine:init', () => Alpine.data('pdfInspect', () => (
   // header link is to reach the file where it lives, with its history beside it.
   get addressUrl() {
     const a = this.address;
-    return a ? `https://github.com/${a.repo}/blob/${a.ref || 'HEAD'}/${a.path}` : '';
+    return a ? window.RepoAddress.github.blob(a.repo, a.ref || 'HEAD', a.path) : '';
   },
 
   // TWO SPELLINGS, because two callers write them and neither is wrong.

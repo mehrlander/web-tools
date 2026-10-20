@@ -38,7 +38,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from './repo-root.mjs';
 
 const args = process.argv.slice(2);
 const clone = args.find(a => !a.startsWith('--'));
@@ -47,7 +47,6 @@ const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1
 const script = opt('--script') || path.join(clone, 'tools/unmerged-branches.sh');
 const limit = +(opt('--limit') || 0);
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = readFileSync(path.join(repoRoot, 'lib/kits/branch-status.js'), 'utf8');
 const window = {};
 new Function('window', src)(window);

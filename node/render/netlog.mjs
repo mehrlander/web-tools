@@ -21,11 +21,10 @@
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from './cdn.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const argv = process.argv.slice(2);
 const o = { wait: 8000, query: '', fab: false, label: '', click: null, page: null, notoken: false };
 for (let i = 0; i < argv.length; i++) {

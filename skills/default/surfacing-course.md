@@ -62,7 +62,7 @@ Use "0. None." when nothing remains.
 * Put session context that belongs nowhere else in the guide or a PR comment, never in a tracker task.
 * Make ✴️ requests in the reply and copy them into the PR body.
 * Update the guide after every push that materially changes state, rewriting only between the markers with `update_pull_request`. Verify URLs first with `python3 python/mcp-link-safe.py --check body.md`.
-* Ask binary decisions as **Question?** Yes / No, followed by the recommendation and consequence.
+* Put a decision to the user as a ⚖️ call, with its assessment and `Recommended:` clause, as [SURFACING.md](SURFACING.md) gives it, and state the consequence in the reply.
 * Do not create your own action item. If automation can perform it, do it now; if only the user can, make it ✴️.
 * Correct discovered facts immediately.
 * Add a new thread, choice, or risk before continuing work on a new fork.
@@ -74,7 +74,7 @@ Use "0. None." when nothing remains.
 
 Each phase begins only on the user's word.
 
-1. **Plan.** State the recommendation, options, and risks. End 🆚.
+1. **Plan.** State the recommendation, options, and risks. End ⚖️.
 2. **Apply.** Implement the chosen scope, update the guide and template, open a draft PR, and push. Do not claim green while checks run. Continue until 🟢.
 3. **Review.** Apply requested changes as they arrive. Propose merge only after confirming that no blocker, risk, or choice remains.
 4. **Wrap.** After explicit agreement to wrap: first run the repo's per-session refreshes, which its `CLAUDE.md` names; then inspect view, checks, and comments; resolve actionable failures and report external failures; sync the guide, commit, and push; stop before merge.

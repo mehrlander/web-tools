@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TextEncoder, TextDecoder } from 'node:util';
 import path from 'node:path';
-import { makeWindow, repoRoot } from './bootstrap.mjs';
+import { makeWindow, repoRoot, withBase64 } from './bootstrap.mjs';
 
 const KIT = readFileSync(path.join(repoRoot, 'lib/kits/look.js'), 'utf8');
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -45,6 +45,8 @@ function realm(body, hash = '', at = 'https://localhost/test/') {
   window.getComputedStyle = (el) => style(el);
   window.TextEncoder = TextEncoder;
   window.TextDecoder = TextDecoder;
+  // The steps ride as base64url through gh-api.js's GH, which every page boots.
+  window.GH = withBase64({});
   new window.Function(KIT)();
   open.push(window);
   return window;

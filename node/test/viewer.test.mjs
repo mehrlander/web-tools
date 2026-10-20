@@ -19,6 +19,7 @@ const { window, problems } = makeWindow({
 
 // alpine-bundle.js defines the browser store the viewer reads for repo/ref.
 const Alpine = await startAlpine(window, [
+  'lib/vanilla-bundle.js',
   'lib/alpine-bundle.js',
   'lib/alpineComponents/viewer.js',
 ]);

@@ -20,6 +20,7 @@ import { makeWindow, repoRoot } from './bootstrap.mjs';
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/swipe-deck.js'), 'utf8'))();
 window.Alpine = { data: () => {} };
+new window.Function(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/viewer.js'), 'utf8'))();
 const R = window.ViewRegistry;
 

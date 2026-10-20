@@ -280,7 +280,7 @@
               <template x-for="r in repos" :key="r">
                 <tr class="hover align-baseline">
                   <th class="text-xl leading-8 font-normal whitespace-nowrap">
-                    <a class="link link-hover" :href="`https://github.com/${full(r)}`" x-text="name(r)"></a>
+                    <a class="link link-hover" :href="window.RepoAddress.github.repo(full(r))" x-text="name(r)"></a>
                   </th>
                   <template x-for="l in matrixLabels" :key="l">
                     <td>
@@ -313,7 +313,7 @@
   <!-- ── footer: thin ───────────────────────────────────────────────────── -->
   <footer class="px-4 py-1.5 bg-base-100 border-t border-base-300 flex items-center gap-3 text-xs opacity-50">
     <span x-show="idx" x-text="`spaCy en_core_web_sm · OntoNotes · ${idx?.generatedAt}`"></span>
-    <a class="link link-hover ml-auto" :href="`https://github.com/${REGISTRY}/blob/${DATA_REF}/${PATH}`">index</a>
+    <a class="link link-hover ml-auto" :href="window.RepoAddress.github.blob(REGISTRY, DATA_REF, PATH)">index</a>
   </footer>
 
   <!-- ── the method, one tap away rather than on the page ───────────────── -->
