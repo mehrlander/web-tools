@@ -26,7 +26,7 @@ function harness(options = {}) {
   const blobs = new Map([[blobSha(TEXT), Buffer.from(TEXT, 'utf8')]]);
   const state = { current: REV, exists: false, failAt: '', truncated: false, storageFailure: false,
     tree: [{ path: FILE, type: 'blob', mode: '100755', sha: blobSha(TEXT) }], ...options };
-  const win = { crypto: webcrypto, GH: { FRESH: { cache: 'no-store' } },
+  const win = { crypto: webcrypto, GH: { FRESH: { cache: 'no-store' }, decodeBytes: (s) => new Uint8Array(Buffer.from(String(s), 'base64')) },
     persistence: { collection: name => {
       assert.equal(name, 'wpsWorkspace.drafts');
       return {

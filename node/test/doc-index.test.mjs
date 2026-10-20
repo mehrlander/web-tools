@@ -10,7 +10,8 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { repoRoot as root } from '../repo-root.mjs';
 
-const win = {};
+// GH.decode, as gh-api.js answers it: the contents API's base64 as UTF-8.
+const win = { GH: { decode: (s) => Buffer.from(String(s), 'base64').toString('utf8') } };
 for (const f of ['lib/kits/file-index.js', 'lib/kits/doc-index.js'])
   new Function('window', readFileSync(path.join(root, f), 'utf8'))(win);
 const D = win.DocIndex;

@@ -33,6 +33,7 @@
     await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/io.js');
     await gh.load('kits/title-tip.js');
@@ -86,8 +87,7 @@ document.addEventListener('alpine:init', () => {
     async read() {
       const gz = param('gz'), spec = param('gh');
       if (gz) {
-        const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-        return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+        return window.GzPayload.decodeJson(gz);
       }
       if (spec) {
         const a = window.RepoAddress.parse(spec);

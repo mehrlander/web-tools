@@ -88,6 +88,9 @@ const Alpine = await startAlpine(window, [
   // the pre-build boots both in this position for the same reason.
   'lib/kits/url-params.js',
   'lib/kits/repo-address.js',
+  // The #gz= codec. The Stage fetches it at the point of use with gh.load,
+  // which this harness does not have, so it is here instead.
+  'lib/kits/gz-payload.js',
   // The errands kit: the stage lists, grades and closes errands through it.
   // The app loads every kit before any component, so this mirrors the
   // page's own order rather than adding a dependency the page lacks.

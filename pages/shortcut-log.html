@@ -488,7 +488,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
       // them base64'd, so read either.
       if (!/json/.test(r.headers.get('content-type') || '')) return r.arrayBuffer();
       const j = await r.json();
-      return Uint8Array.from(atob((j.content || '').replace(/\n/g, '')), c => c.charCodeAt(0)).buffer;
+      return window.GH.decodeBytes(j.content).buffer;
     };
     try {
       const folded = `shortcuts/dumps/${stem}-dump.zip`;

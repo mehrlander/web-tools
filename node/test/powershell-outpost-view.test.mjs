@@ -63,6 +63,8 @@ const advanceHead = () => {
 let treeReads = 0;
 window.TOKEN = 't';
 window.GH = class {
+  // gh-api.js's decoder, as Node answers it: the contents API's base64 as bytes.
+  static decodeBytes(s) { return new Uint8Array(Buffer.from(String(s), 'base64')); }
   constructor({ repo, ref } = {}) { this.repo = repo; this.ref = ref || ''; }
   async get(p, opts = {}) {
     const t = snapshotAt(this.ref)[p];

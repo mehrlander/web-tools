@@ -58,6 +58,7 @@
     await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('gh-store.js');
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/subject-channel.js');
@@ -226,9 +227,7 @@ document.addEventListener('alpine:init', () => {
         const gz = this.param('gz');
         const src = this.param('src');
         if (gz) {
-          const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-          const ds = new DecompressionStream('gzip');
-          this.env = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(ds)).text());
+          this.env = await window.GzPayload.decodeJson(gz);
         } else if (src) {
           const a = window.RepoAddress.parse(src);
           if (!a) throw new Error('#src= reads owner/repo[@ref]:path, and this is not one: ' + src);

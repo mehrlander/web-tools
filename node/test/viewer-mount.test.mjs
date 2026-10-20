@@ -155,6 +155,9 @@ window.xlsxKit = {
   colLetter: () => 'A',
 };
 
+// gh-api.js's byte decoder, as Node answers it; the viewer reads a data URI's
+// base64 through it.
+window.GH = { decodeBytes: (s) => new Uint8Array(Buffer.from(String(s), 'base64')) };
 const XLSX_URI = 'data:application/vnd.openxmlformats;base64,' + window.btoa('PK');
 // Either mode's strip: the sheet render and the grid publish the same contract
 // and wear the same tab row under different data attributes.
