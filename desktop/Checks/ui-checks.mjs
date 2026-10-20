@@ -67,6 +67,8 @@ click('[data-action=errand]'); check(messages.at(-1).action === 'errand', 'Erran
 click('[data-assistant=claude]');
 check(doc.querySelectorAll('#errands .activity-row').length === 1 && doc.querySelector('#errands').textContent.includes('Cloud work'), 'Selecting Claude filters the activity list.');
 click('[data-action=cloud-session]'); check(messages.at(-1).id === 'cloud', 'Cloud activity opens the exact recorded session.');
+data.cloud.items[0].detail = 'Recorded: done'; snapshot(); click('[data-filter=done]');
+check(doc.querySelector('#errands').textContent.includes('Cloud work'), 'Explicitly completed Claude cloud records appear under Finished.');
 click('[data-queue-pick="errand:first"]');
 check(doc.querySelector('#detail h3').textContent === 'First in queue', 'A queue pick opens the selected errand across assistant filters.');
 

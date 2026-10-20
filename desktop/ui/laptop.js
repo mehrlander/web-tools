@@ -29,7 +29,8 @@
   const stamp = at => new Date(at).toLocaleString();
   const needs = item => item.state === 'failed' && item.isNew || item.state === 'interrupted'
     || item.kind === 'cloud' && /Recorded: (needs you|choice needed)/.test(item.detail);
-  const finished = item => item.state === 'complete' || item.detail === 'Turn finished';
+  const finished = item => item.state === 'complete' || item.detail === 'Turn finished'
+    || item.kind === 'cloud' && /Recorded: (done|merged|closed|clean exit)/.test(item.detail);
   const open = item => ['working','quiet','claimed','reply'].includes(item.state);
 
   function collect(data) {
