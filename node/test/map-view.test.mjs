@@ -74,6 +74,9 @@ const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.cs
 const ctxLinksCsv = readFileSync(path.join(repoRoot, 'docs', 'context-links.csv'), 'utf8');
 const ctxHooksJson = readFileSync(path.join(repoRoot, 'skills', 'hooks', 'hooks.json'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
+// The Events view's three files, read from the working tree like the rest.
+const automationFiles = Object.fromEntries(['docs/harness.csv', 'docs/hook-legs.csv', 'docs/hook-events.csv']
+  .map(p => [p, readFileSync(path.join(repoRoot, p), 'utf8')]));
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
 // is the join the readership column has to get right.
@@ -117,6 +120,7 @@ window.GH = class {
     if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
     if (p === 'docs/context-links.csv') return { text: ctxLinksCsv };
     if (p === 'skills/hooks/hooks.json') return { text: ctxHooksJson };
+    if (Object.hasOwn(automationFiles, p)) return { text: automationFiles[p] };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
     return { text: toCsv(manifest.items) };
@@ -1368,6 +1372,53 @@ test('Context ignores retired lens addresses, restores source/topic links and jo
     assert.equal(state.ctxTopic, 'writing-rules', 'a pop onto another tab leaves Context as it was');
     assert.equal(state.ctxSpectraSelected, 'plugin-writing');
   } finally { close(); }
+});
+
+test('Events lays out every kind of event in the order a change meets them, with what runs on each', async () => {
+  window.history.replaceState({}, '', '?view=map&tab=events');
+  window.__shell = { mapTab: 'events', goMapTab: () => {} };
+  const host = window.document.createElement('div');
+  host.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(4);
+  const state = Alpine.$data(host);
+  try {
+    assert.equal(state.displayTab, 'harness');
+    assert.equal(state.subviewKey, 'harness', 'the strip marks Automation while Events is open');
+    const kinds = state.eventKinds;
+    assert.deepEqual([...kinds.map(k => k.key)], ['env', 'claude', 'git', 'ci']);
+    const claude = kinds.find(k => k.key === 'claude');
+    const events = Csv => Csv.split('\n').slice(1).filter(Boolean).length;
+    assert.equal(claude.phases.reduce((n, p) => n + p.events.length, 0), events(automationFiles['docs/hook-events.csv']),
+      'every Claude Code event is on the board, with a hook or without');
+    const start = claude.phases.flatMap(p => p.events).find(e => e.event === 'SessionStart');
+    const dispatch = start.hooks.find(h => h.name === 'session-dispatch.sh');
+    assert.ok(dispatch.runs.some(r => r.path === '.claude/hooks/session-start.sh'), 'the dispatcher lists the files it runs');
+    const git = kinds.find(k => k.key === 'git');
+    assert.deepEqual([...git.events.map(e => e.event)].slice(0, 2), ['pre-commit', 'commit-msg'], 'git events in the order a commit meets them');
+    const preCommit = git.events[0].hooks[0];
+    assert.equal(preCommit.name, '.githooks/pre-commit', 'a git file is named by its path, not by its event again');
+    assert.equal(preCommit.steps.length, automationFiles['docs/hook-legs.csv'].split('\n').slice(1).filter(Boolean).length,
+      'the commit hook lists every step, open');
+    const ci = kinds.find(k => k.key === 'ci');
+    const push = ci.events.find(e => e.event === 'push');
+    assert.ok(push.hooks.some(h => h.path === '.github/workflows/test.yml'), 'a workflow sits under each event in its on: block');
+    assert.ok(ci.events.find(e => e.event === 'pull_request').hooks.some(h => h.path === '.github/workflows/test.yml'));
+    assert.equal(state.automationTriggers.find(t => t.k === 'events').count, state.eventFileCount);
+    assert.deepEqual([...state.automationTriggers.map(t => t.k)].filter(k => k !== 'scheduled'),
+      ['all', 'events', 'hand', 'imported', 'none'], 'one Event pill stands for every kind of event');
+    await tick(2);
+    assert.equal(host.querySelectorAll('[data-event-kind]').length, 4);
+    assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-legs]'), 'the steps are drawn under pre-commit');
+    state.pickTrigger(state.automationTriggers.find(t => t.k === 'hand'));
+    assert.equal(state.mapTab, 'harness');
+    assert.ok(state.harnessDirFiles.length, 'a file trigger lands on a folder holding its files');
+    assert.ok(state.harnessDirFiles.every(t => ['npm', 'argv', 'driver'].some(r => t.invocation === r || t.invocation.startsWith(r + ':'))));
+  } finally {
+    Alpine.destroyTree(host); host.remove(); window.__shell = undefined;
+    window.history.replaceState({}, '', '/');
+  }
 });
 
 test('an Aims deep link opens Overview/Purpose and loads its existing sources', async () => {
