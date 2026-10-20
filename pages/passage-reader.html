@@ -490,10 +490,10 @@ document.addEventListener('alpine:init', () => {
         const d = !up && !down ? `M${sx},${y0} C${sx},${y0 - 18} ${tx},${y1 - 18} ${tx},${y1}`
           : `M${sx},${y0} C${sx},${y0 + (up ? -k : k)} ${tx},${y1 + (up ? k : -k)} ${tx},${y1}`;
         return `<path data-k="${pair}"${lit ? ' data-on' : ''} d="${d}" fill="none" stroke-linecap="round" marker-end="url(#pr-head)"`
-          + ` class="opacity-70 data-[on]:opacity-100" style="stroke:var(--color-primary);stroke-width:2px"/>`;
+          + ` class="opacity-70 data-[on]:opacity-100 stroke-[var(--color-primary)] stroke-2"/>`;
       }).join('');
       const marker = `<marker id="pr-head" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="${HEAD}" markerHeight="${HEAD}" orient="auto">`
-        + `<path d="M0,1 L9,5 L0,9 z" style="fill:var(--color-primary)"/></marker>`;
+        + `<path d="M0,1 L9,5 L0,9 z" class="fill-[var(--color-primary)]"/></marker>`;
       layer.innerHTML = `<svg class="absolute left-0 top-0 overflow-visible" width="${wrap.scrollWidth}" height="${wrap.scrollHeight}">`
         + `<defs>${marker}</defs>${paths}</svg>`;
     },
@@ -729,10 +729,9 @@ document.addEventListener('alpine:init', () => {
   }));
 });
 </script>
-<style>[x-cloak]{display:none!important}</style>
 </head>
 <body class="bg-base-100 text-base-content">
-<div x-data="passageReader()" x-cloak class="h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+<div x-data="passageReader()" x-cloak class="[&[x-cloak]]:hidden h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
 
   <header class="bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-3">
     <i class="ph ph-book-open-text text-xl"></i>
