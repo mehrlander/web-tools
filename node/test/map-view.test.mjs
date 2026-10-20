@@ -1902,6 +1902,34 @@ test('a call is answered from the Docs deck: decisions, notes, a patch of the co
   }
 });
 
+// Each note on a call's edit is for a kind, correct or clarify, and every
+// note shows on the edit's mark, corrections first; a `why` alone is one note
+// of no kind, and past four notes the rest fold into a "+n" that lists them.
+test("a call edit's mark shows a glyph per note, corrections first, and folds only past four", () => {
+  const note = (kind, text) => ({ kind, text });
+  const call = { id: 'k-test', question: 'Q?', edits: [
+    { from: 'a', to: 'b', notes: [note('clarify', 'reworded'), note('correct', 'was false')] },
+    { from: 'c', to: 'd', why: 'an old call' },
+    { from: 'e', to: 'f', notes: [1, 2, 3, 4, 5].map(n => note('clarify', 'n' + n)) },
+  ] };
+  data._callAns = null;
+  const kinds = (i) => {
+    const chip = window.document.createElement('div');
+    data.paintCallChip(chip, call, i);
+    return { glyphs: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.callKind),
+             tips: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.titleTip),
+             more: chip.querySelector('[data-call-kinds] span')?.dataset.titleTip || '' };
+  };
+  const mixed = kinds(0);
+  assert.deepEqual(mixed.glyphs, ['correct', 'clarify'], 'both shown, the correction first');
+  assert.deepEqual(mixed.tips, ['Correct: was false', 'Clarify: reworded']);
+  assert.deepEqual(kinds(1).glyphs, ['none'], 'a why is one note of no kind');
+  const many = kinds(2);
+  assert.equal(many.glyphs.length, 3);
+  assert.equal(many.more, 'Clarify: n4; Clarify: n5', 'nothing is dropped: the fold lists the rest');
+  data._callAns = null;
+});
+
 test('a proposal basis is read into fields, and its tip counts from the collection', () => {
   if (!window.TextCollection) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/text-collection.js'), 'utf8'))();
   const RUN = 'https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-09-27-doc-simplification/README.md';
