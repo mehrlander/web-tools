@@ -247,9 +247,10 @@ export function captureAlpineErrors(Alpine) {
 // "mounting is quiet" fails for a reason that is the harness's, not the code's.
 // Kept to what a component actually reaches for, so a test still fails when a
 // real dependency goes missing (see the `stub-hides-the-wiring` snag). The
-// address grammar is the other: components read window.RepoAddress at call
-// time, since lib/kits/repo-address.js owns the owner/repo[@ref]:path grammar.
-const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js'];
+// address grammar is another: components read window.RepoAddress at call
+// time, since lib/kits/repo-address.js owns the owner/repo[@ref]:path grammar,
+// and the assistant prefixes a branch label drops are window.AssistantMark's.
+const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js', 'lib/kits/assistant-mark.js'];
 
 // Import the real Alpine, register it on the window, run each component file
 // in the window realm (they hook 'alpine:init'), start Alpine, and let the

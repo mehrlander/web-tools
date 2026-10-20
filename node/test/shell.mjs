@@ -54,6 +54,9 @@ export function makeShell({ browserStore, search = '', win = {} } = {}) {
   // pane's typed read depends on the first, the catalog's addresses on the second.
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(win);
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(win);
+  // The assistant prefixes a pasted bare branch is recognized by, from the
+  // boot list too (kits/assistant-mark.js).
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/assistant-mark.js'), 'utf8'))(win);
   new Function('window', 'document', 'Alpine', 'location', 'history', '__exports',
     shellScript(page) + '\n;__exports.app = app;__exports.gallery = gallery;')(
     win, doc, alpine, loc, hist, exports);

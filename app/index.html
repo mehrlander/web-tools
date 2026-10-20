@@ -8207,8 +8207,8 @@ function app(){ return {
       }
       if (repo.includes('/') && name) return { repo, name };
     }
-    // Form 3: assistant-prefixed bare branch: claude/..., codex/..., gemini/..., grok/..., agent/...
-    if (/^(?:claude|codex|gemini|grok|agent)\/[A-Za-z0-9_.-]+$/.test(s)) {
+    // Form 3: a bare branch carrying an assistant prefix, from kits/assistant-mark.js's list
+    if (window.AssistantMark.PREFIX_RE.test(s) && /^[^/]+\/[A-Za-z0-9_.-]+$/.test(s)) {
       const es = document.querySelector('[x-data^="estate"]');
       const esData = es ? window.Alpine?.$data(es) : null;
       const hit = esData?.allBranchRows?.find(r => r.name === s);
