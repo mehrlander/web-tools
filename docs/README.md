@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-18 by a skill, 41 by a page or component. The remaining 44 are
+19 by a skill, 41 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -106,12 +106,14 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`surface.md`](envelopes/surface.md) *(orphan)* — the surface format contract
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
 - [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
+- [`passage-reading.md`](envelopes/passage-reading.md) — the passage-reading envelope contract: one passage read sentence by sentence
 
 ## docs/envelopes/schemas/
 
 - [`surface-v2.schema.json`](envelopes/schemas/surface-v2.schema.json) *(orphan)* — the surface v2 JSON Schema
 - [`workbook-extract-v1.schema.json`](envelopes/schemas/workbook-extract-v1.schema.json) *(orphan)* — the workbook-extract v1 JSON Schema
 - [`workbook-extract-v2.schema.json`](envelopes/schemas/workbook-extract-v2.schema.json) *(orphan)* — the workbook-extract v2 JSON Schema for independent sheet and object choices
+- [`passage-reading-v1.schema.json`](envelopes/schemas/passage-reading-v1.schema.json) *(orphan)* — the passage-reading v1 JSON Schema
 
 ## docs/envelopes/schemas/profiles/
 
