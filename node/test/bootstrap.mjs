@@ -106,9 +106,13 @@ export function loadKit(name, { window: w = {}, imports = KIT_IMPORTS, console: 
     if (!loader) return Promise.reject(new Error(`bootstrap: no KIT_IMPORTS mapping for ${url}`));
     return Promise.resolve(loader());
   };
+  // The address grammar is standing equipment for kits as it is for
+  // components (STANDING, below): gh-boot loads it before any page chain.
+  if (!w.RepoAddress && file !== ADDRESS_KIT) new Function('window', readFileSync(ADDRESS_KIT, 'utf8'))(w);
   w.__kitReturn = new Function('window', 'console', src)(w, cons);
   return w;
 }
+const ADDRESS_KIT = path.join(repoRoot, 'lib', 'kits', 'repo-address.js');
 
 // jsdom window prepared for the real Alpine runtime. Returns:
 //   window   — the jsdom window (runScripts: 'dangerously')
@@ -242,8 +246,10 @@ export function captureAlpineErrors(Alpine) {
 // turns every mount into an Alpine expression error and a test asserting
 // "mounting is quiet" fails for a reason that is the harness's, not the code's.
 // Kept to what a component actually reaches for, so a test still fails when a
-// real dependency goes missing (see the `stub-hides-the-wiring` snag).
-const STANDING = ['lib/kits/claude-mark.js'];
+// real dependency goes missing (see the `stub-hides-the-wiring` snag). The
+// address grammar is the other: components read window.RepoAddress at call
+// time, since lib/kits/repo-address.js owns the owner/repo[@ref]:path grammar.
+const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js'];
 
 // Import the real Alpine, register it on the window, run each component file
 // in the window realm (they hook 'alpine:init'), start Alpine, and let the

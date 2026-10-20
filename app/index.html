@@ -2359,9 +2359,7 @@ function selectionEntries(refs, skip){
 }
 
 function resolveCatalogPath(rawPath, declRepo, declRef){
-  const m = String(rawPath || '').match(/^([\w.-]+\/[\w.-]+)(?:@([\w./-]+))?:(.+)$/);
-  if (m) return { repo: m[1], ref: m[2] || '', path: m[3] };
-  return { repo: declRepo, ref: declRef || '', path: rawPath };
+  return window.RepoAddress.parse(rawPath) || { repo: declRepo, ref: declRef || '', path: rawPath };
 }
 
 // A catalog page's file in the private thumb cache (web-tools-private), written

@@ -27,13 +27,13 @@ lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, 
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,8,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",506,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
-lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,461,no,no,7,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,463,no,no,7,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",557,no,no,8,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",210,no,yes,9,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,13,yes
 lib/kits/file-index.js,FileIndex,"the estate's file names, kept in the private registry so the sidebar finder can match a name in every repo on the first keystroke.",197,no,no,3,yes
-lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object.",245,no,no,4,yes
+lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object.",252,no,no,4,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",655,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",446,no,no,18,yes
@@ -71,7 +71,7 @@ lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcd
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,3,yes
 lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",337,no,no,5,yes
 lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web-tools ecosystem.,221,no,no,7,yes
-lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",149,yes,no,14,yes
+lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",164,yes,no,21,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,658,no,no,2,yes
@@ -106,7 +106,7 @@ lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,162
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,8,yes
 lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,153,no,no,3,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
-lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",316,no,no,2,yes
+lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",315,no,no,2,yes
 lib/kits/wring.js,wring,"single-document template induction: give it one document with repeated structure (a log, an HTML page) and it returns the recurring templates (fixed…",1320,no,no,4,yes
 lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",127,no,no,2,yes
 lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",366,no,no,4,yes

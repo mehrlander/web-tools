@@ -492,11 +492,13 @@
   };
 
   // A destination address: "owner/repo[@ref]:dir". The same grammar every
-  // envelope here uses, so ?dest= reads like a stage item rather than like a
-  // third way of naming a place.
+  // envelope here uses (lib/kits/repo-address.js), so ?dest= reads like a stage
+  // item rather than like a third way of naming a place. An empty dir
+  // ("owner/repo:") is the repo root.
   const parseDest = (s) => {
-    const m = /^([^/\s]+\/[^@:\s]+)(?:@([^:\s]+))?:(.*)$/.exec(String(s || '').trim());
-    return m ? { repo: m[1], ref: m[2] || '', dir: m[3].replace(/^\/|\/$/g, '') } : null;
+    const t = String(s || '').trim();
+    const a = window.RepoAddress.parse(t) || (t.endsWith(':') ? window.RepoAddress.parseRepo(t.slice(0, -1)) : null);
+    return a ? { repo: a.repo, ref: a.ref, dir: (a.path || '').replace(/^\/|\/$/g, '') } : null;
   };
   const DEST = parseDest(q.get('dest')) || { repo: 'mehrlander/home', ref: '', dir: 'chron/dump' };
   // File mode's address, in the same grammar with a file where the directory

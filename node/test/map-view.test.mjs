@@ -131,6 +131,7 @@ new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8')
 // The ambient bundle, in the same position gh-boot's BOOT manifest gives it
 // (first): the doc deck's rendition escapes through window.esc.
 new window.Function(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'))();
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8'))();
 Alpine.start();
 await tick(3);

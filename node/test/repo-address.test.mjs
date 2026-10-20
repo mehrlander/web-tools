@@ -51,6 +51,15 @@ test('a non-address is null, so a caller can read it as a bare path', () => {
   assert.equal(RA.parse(null), null);
 });
 
+test('parseRepo reads the grammar with no path: a repo or a branch', () => {
+  assert.deepEqual({...RA.parseRepo('me/proj')}, { repo: 'me/proj', ref: '' });
+  assert.deepEqual({...RA.parseRepo(' me/proj@feat/x ')}, { repo: 'me/proj', ref: 'feat/x' }, 'trimmed; a slashed ref intact');
+  assert.equal(RA.parseRepo('me/proj:a.md'), null, 'a file address is parse()\'s, not this');
+  assert.equal(RA.parseRepo('me/proj@x:a.md'), null);
+  assert.equal(RA.parseRepo('proj@x'), null, 'no owner, no repo');
+  assert.equal(RA.parseRepo(''), null);
+});
+
 test('fmt round-trips what parse read', () => {
   for (const s of ['me/proj:a.md', 'me/proj@feat/x:a/b.md']) {
     assert.equal(RA.fmt(RA.parse(s)), s);

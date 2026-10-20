@@ -30,7 +30,7 @@ node/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per pa
 node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,101,npm:policy-skills,yes,yes,yes
 node/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",node/build,103,imported,no,yes,yes
 node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",node/build,90,npm:registries-reach,yes,yes,yes
-node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,no,yes,yes
+node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,185,argv,no,yes,yes
 node/build/sample-workbook.mjs,,node/build,437,npm:sample-workbook,yes,yes,yes
 node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,245,npm:tests-index,yes,no,yes
 node/build/tools-index.mjs,restamp the derived half of this registry,node/build,388,npm:tools-index,yes,no,yes

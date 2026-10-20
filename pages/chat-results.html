@@ -76,10 +76,10 @@
   };
 
   const fetchText = async spec => {
-    // spec: 'owner/repo@ref:path' or a path in this repo
-    const m = String(spec).match(/^([\w.-]+\/[\w.-]+)(?:@([^:]+))?:(.+)$/);
-    if (!m) return (await gh.get(spec)).text;
-    const data = await gh.req(`/repos/${m[1]}/contents/${m[3]}?ref=${encodeURIComponent(m[2] || window.GH.refFor(m[1], m[3]) || 'main')}`);
+    // spec: 'owner/repo@ref:path' (lib/kits/repo-address.js) or a path in this repo
+    const a = window.RepoAddress.parse(spec);
+    if (!a) return (await gh.get(spec)).text;
+    const data = await gh.req(`/repos/${a.repo}/contents/${a.path}?ref=${encodeURIComponent(a.ref || window.GH.refFor(a.repo, a.path) || 'main')}`);
     return gh.decode(data.content);
   };
 

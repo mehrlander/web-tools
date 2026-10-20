@@ -57,11 +57,8 @@
 
   const DEFAULT_DOC = 'docs/CONVENTIONS.md';
 
-  // owner/repo[@ref]:path, or a plain path in this repo.
-  const parseSpec = (s) => {
-    const m = /^([\w.-]+\/[\w.-]+)(?:@([^:]+))?:(.+)$/.exec(s || '');
-    return m ? { repo: m[1], ref: m[2] || '', path: m[3] } : { repo: '', ref: '', path: s || '' };
-  };
+  // owner/repo[@ref]:path (lib/kits/repo-address.js), or a plain path in this repo.
+  const parseSpec = (s) => window.RepoAddress.parse(s) || { repo: '', ref: '', path: s || '' };
 
   const fetchText = async (spec) => {
     const s = parseSpec(spec);
