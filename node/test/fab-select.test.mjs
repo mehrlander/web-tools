@@ -1,6 +1,7 @@
 // fab-select.test.mjs — the launcher's selection offer: select text on the
-// page and the launcher lights; a tap then turns the annotator on and opens
-// the composer on that passage. Nothing is drawn at the words.
+// page and the launcher lights; a tap then opens the drawer's Note tab with the
+// passage quoted over a plain field, and Save files the note into the
+// annotator's set. Nothing is drawn at the words.
 //
 // The fab declined a listener on the host document for years (the Text tab
 // snapshots the selection at the launcher tap instead), and the cost was that
@@ -110,7 +111,7 @@ test('the launcher lights with the annotator on as well', async () => {
   window.Annotate.disable();
 });
 
-test('taking the offer turns the annotator on and opens the composer on the passage', async () => {
+test('taking the offer opens the Note tab with the passage quoted over an empty field', async () => {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
@@ -119,25 +120,41 @@ test('taking the offer turns the annotator on and opens the composer on the pass
   // offer read is what travels, so the note is still about the passage.
   window.getSelection().removeAllRanges();
   await d.noteSelection();
+  await tick(2);
   assert.equal(d.selOffer, null, 'the offer is spent');
-  const A = window.Annotate;
-  assert.equal(A.enabled, true, 'the annotator came on');
-  const S = A._state;
-  assert.ok(S.draft, 'and a draft is open');
-  assert.equal(S.draft.target.type, 'text');
-  assert.equal(S.draft.target.quote.exact, 'quick brown fox');
-  // DOCKED IN THE DRAWER: the drawer opened with the card at its foot, and
-  // nothing floats over the page.
   assert.equal(d.open, true, 'the drawer opened');
-  const dock = host.querySelector('[data-fab-note-dock]');
-  assert.ok(dock && dock.contains(S.ui), 'the card is in the drawer\'s dock');
-  assert.equal(S.ui.style.position, 'relative', 'in flow, not fixed over the page');
-  // IDLE: a lit launcher tapped may be a reader who wanted the drawer, so the
-  // draft does not switch the microphone on.
-  assert.ok(!(S.dict && S.dict.listening), 'not listening');
+  assert.equal(d.activeTab, 'note', 'on the Note tab');
+  assert.equal(d.noteQuote, 'quick brown fox', 'with the passage quoted');
+  const ta = host.querySelector('[data-fab-note-ta]');
+  assert.ok(ta, 'the field is there');
+  assert.equal(doc.activeElement, ta, 'and has the focus');
+  // The annotator holds the set and the highlight; its card is not the surface.
+  const A = window.Annotate, S = A._state;
+  assert.equal(A.enabled, true, 'the annotator came on');
+  assert.ok(host.querySelector('[data-fab-note-hold]').contains(S.ui), 'its card waits in the hidden holder');
+  assert.equal(S.draft, null, 'and stages no draft of its own');
+  assert.equal(d.noteTarget.quote.exact, 'quick brown fox');
+  assert.equal(S.pending && S.pending.quote.exact, 'quick brown fox', 'the passage is marked while the note is written');
+
+  // Saving files the note into the annotator's set, and the list reads it back.
+  d.noteText = 'a note on the fox';
+  await d.saveNote();
+  await tick(2);
+  assert.equal(A.items.length, 1);
+  assert.equal(A.items[0].target.quote.exact, 'quick brown fox');
+  assert.equal(window.Alpine.raw(A.items[0].target), A.items[0].target, 'the set keeps a plain object, not the tab\'s proxy');
+  assert.equal(A.items[0].note, 'a note on the fox');
+  assert.equal(S.pending, null, 'the mark gives way to the note\'s own highlight');
+  assert.equal(d.noteQuote, '', 'the field is ready for the next one');
+  assert.equal(d.noteText, '');
+  assert.equal(d.notesList.length, 1);
+  assert.match(d.notesList[0].about, /quick brown fox/);
+  d.noteRemove(d.notesList[0].id);
+  await tick(2);
+  assert.equal(A.items.length, 0, 'deleting from the list deletes from the set');
+  assert.equal(d.notesList.length, 0);
   A.disable();
-  assert.equal(dock.children.length, 0, 'and the dock empties when the annotator goes off');
-  d.close();
+  d.close(); d.activeTab = 'render';
   await tick(2);
 });
 
@@ -154,13 +171,49 @@ test('a tap on the lit launcher takes the passage, even when the press collapsed
   await settle();
   assert.equal(d.selOffer, null, 'the read cleared the offer');
   d.onUp(press());
-  // The tap opens the drawer first (its body is built on the first open),
-  // then docks the card, so this polls on time rather than on ticks.
-  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !(window.Annotate.enabled && window.Annotate._state.draft); ) await tick(1);
+  // The quote and the tab are set inside the tap; the anchoring follows the
+  // kit, so this polls on time rather than on ticks.
+  assert.equal(d.activeTab, 'note');
+  assert.equal(d.noteQuote, 'quick brown fox');
+  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !d.noteTarget; ) await tick(1);
+  assert.equal(d.noteTarget.quote.exact, 'quick brown fox');
+  d.noteClear();
+  assert.equal(window.Annotate._state.pending, null, 'clearing drops the mark');
+  window.Annotate.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('the Note tab opened by hand writes about the page, and Ctrl or Cmd Enter saves', async () => {
+  d.toggle();
+  d.setTab('note');
+  await tick(3);
+  assert.equal(d.noteQuote, '');
+  const ta = host.querySelector('[data-fab-note-ta]');
+  ta.value = 'a thought about the whole page';
+  ta.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick(1);
+  ta.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
+  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !(window.Annotate && window.Annotate.items.length); ) await tick(1);
   const A = window.Annotate;
-  assert.equal(A.enabled, true, 'the annotator came on');
-  assert.equal(A._state.draft.target.quote.exact, 'quick brown fox');
-  A.disable();
+  assert.equal(A.items.length, 1);
+  assert.equal(A.items[0].target.type, 'page');
+  assert.equal(A.items[0].note, 'a thought about the whole page');
+  assert.equal(d.notesList[0].about, 'About the page');
+  A.clear(); A.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('an aim from the launcher menu steps off the Note tab, since the dock is hidden there', async () => {
+  d.toggle();
+  d.setTab('note');
+  await tick(2);
+  await d.openAnnotate();
+  await tick(2);
+  assert.notEqual(d.activeTab, 'note');
+  assert.ok(host.querySelector('[data-fab-note-dock]').contains(window.Annotate._state.ui), 'the card is in the dock');
+  window.Annotate.disable();
   d.close();
   await tick(2);
 });
