@@ -312,7 +312,7 @@ def mounted(lib_paths, pages):
     script, draws it. pages/session.html is the case that prompted this
     (2026-10-12): it mounts sessionBrief from the pre-build, unframed, while the
     app mounts it framed and hides part of it, and the app was the only link
-    offered (docs/SNAGS.md, showing-picks-the-framed-view)."""
+    offered (the snag showing-picks-the-framed-view)."""
     names = set()
     for p in lib_paths:
         try:
@@ -1067,7 +1067,7 @@ def lines(d):
 # refs= inside the framed page's query (--query, after `#gh=`) never reaches
 # the selection and the page reads the other repo at main. Seen 2026-10-03,
 # when a page said "No proposals queued" about proposals filed on a branch
-# (docs/SNAGS.md refs-in-page-query-ignored-by-toss). --refs is that half, so
+# (the snag refs-in-page-query-ignored-by-toss). --refs is that half, so
 # the whole link still comes from one command.
 def host_refs(d, refs, query):
     warn = d.setdefault("warnings", [])

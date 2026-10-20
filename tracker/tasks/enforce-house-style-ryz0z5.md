@@ -11,7 +11,7 @@ Discovery half and rule 3 are shipped (PR #554, PR #565). Residual only:
 gate rule 1 (stat-card grids) and widen `dead-opacity.py` / `stranded-titles.py`
 roots (or make them read the branch diff).
 
-Third recurrence of `house-style-not-consulted` in [SNAGS.md](../../docs/SNAGS.md)
+Third recurrence of the snag `house-style-not-consulted` (the Lists view's Snag list)
 (2026-08-04, 2026-08-29, 2026-08-30). PR #554 fixed the discovery half: the style
 guide now states its own names, and `daisy-alpine`'s description leads with the
 binding rules instead of selling syntax reference. Nothing yet **catches** a
@@ -44,7 +44,7 @@ scanners reach files outside `lib app pages`.
 
 ## Related
 
-- `docs/SNAGS.md`: third recurrence of `house-style-not-consulted`
+- `docs/views/lists.md`: third recurrence of the snag `house-style-not-consulted` (in `docs/SNAGS.md` until 2026-10-20)
 - `python/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
 - `python/stranded-titles.py`: sibling scanner with the same root limit
 - `skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
