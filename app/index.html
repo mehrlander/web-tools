@@ -4905,8 +4905,10 @@ function app(){ return {
     const p = this.project;
     if (!p || !p.landing) return '';
     const s = Alpine.store('browser');
-    const ref = s.ref && s.ref !== s.defaultRef ? '@' + s.ref : '';
-    return '../pages/toss-render.html#gh=' + s.repo + ref + ':' + p.landing
+    // A landing in another repo is a qualified owner/repo[@ref]:path, the
+    // grammar `pages` entries use, and renders at its own ref.
+    const t = resolveCatalogPath(p.landing, s.repo, s.ref && s.ref !== s.defaultRef ? s.ref : '');
+    return '../pages/toss-render.html#gh=' + t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path
       + (this.projectAppRoute ? '?' + this.projectAppRoute : '');
   },
   // The workspace's slice of the repo catalog, DERIVED rather than declared: an
@@ -4939,7 +4941,8 @@ function app(){ return {
       const inFolder = t.repo === s.repo && t.path.startsWith(p.path + '/');
       if (!claimed && !inFolder) continue;
       const q = typeof e.query === 'string' ? e.query.replace(/^\?/, '') : '';
-      const app = !!p.landing && t.repo === s.repo && t.path === p.landing;
+      const land = p.landing ? resolveCatalogPath(p.landing, s.repo, declRef) : null;
+      const app = !!land && t.repo === land.repo && t.path === land.path;
       if (app && !q) continue;
       const url = '../pages/toss-render.html#gh=' + t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path + (q ? '?' + q : '');
       const blobRef = t.ref || (t.repo === s.repo ? (s.defaultRef || 'main') : 'main');
@@ -6690,7 +6693,7 @@ function app(){ return {
     { param: 'u', carries: 'inline' }, { param: 'src', carries: 'reference' },
   ],
   VISIT_TOSS_ROUTES: [
-    { key: 'chat-results' }, { key: 'data' }, { key: 'passage-reading' }, { key: 'pdf' }, { key: 'shorter' },
+    { key: 'audit' }, { key: 'chat-results' }, { key: 'data' }, { key: 'passage-reading' }, { key: 'pdf' }, { key: 'shorter' },
   ],
 
   visits: [],
@@ -9080,7 +9083,10 @@ function gallery(){
         // the missing-shot face, and live stays one tap away on its toggle.
         // Project view's Pages, projectPages, says why at more length.
         const landings = new Set((window.__shell?.repoProjects(repo) || [])
-          .filter(pr => pr.landing).map(pr => repo + ':' + pr.landing));
+          .filter(pr => pr.landing).map(pr => {
+            const t = resolveCatalogPath(pr.landing, repo, '');
+            return t.repo + ':' + t.path;
+          }));
         const items = declared.map(p => {
           const t = resolveCatalogPath(p.path, repo, declRef);
           const q = typeof p.query === 'string' ? p.query.replace(/^\?/, '') : '';

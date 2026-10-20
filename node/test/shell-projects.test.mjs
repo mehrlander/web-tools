@@ -441,6 +441,28 @@ test('a landing is the App tab, rendered through toss-render at the browsed ref,
   assert.equal(shell.projectPane, 'overview');
 });
 
+test('a landing in another repo is a qualified address, rendered at its own repo and ref', () => {
+  const { shell, browserStore } = makeShell({
+    browserStore: { repo: 'mehrlander/home', ref: 'claude/b', defaultRef: 'main' },
+  });
+  const lab = 'mehrlander/web-tools:pages/text-lab.html';
+  browserStore.config = {
+    projects: [{ path: 'projects/text', landing: lab }],
+    pages: [{ path: lab, project: 'projects/text' },
+            { path: lab, project: 'projects/text', query: 'pane=runs' }],
+  };
+  shell.syncUrl = () => {};
+  shell.loadProjectReadme = async () => {};
+  shell.goProject('projects/text', 'app');
+  assert.equal(shell.projectPane, 'app');
+  // The browsed ref is this repo's, so it does not ride onto another repo's page.
+  assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=' + lab);
+  // The bare landing gets no card in Pages, as for a landing in the same repo; a route into it does.
+  assert.deepEqual(shell.projectPages.map(c => c.key), [lab + '?pane=runs']);
+  browserStore.config.projects[0].landing = 'mehrlander/web-tools@v2:pages/text-lab.html';
+  assert.equal(shell.projectLandingUrl, '../pages/toss-render.html#gh=mehrlander/web-tools@v2:pages/text-lab.html');
+});
+
 
 test('the FAB busts out of a project landing embed', () => {
   const { shell, browserStore } = makeShell({

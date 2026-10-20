@@ -6,10 +6,11 @@ is one workspace declared in its repo's `.web-tools.json` `projects`
 project's `icon`, opens a menu of the repo's other projects, plus the open one's
 folder on GitHub.
 
-Overview is always the workspace README. Two tabs follow the manifest entry:
+Overview is always the workspace README. Two tabs follow the manifest entry.
 App, opened by the button beside the project name, renders the `landing` page
-live, and Outpost holds the PowerShell outpost view for a
-`powershellOutpost`. Board appears for a file board. Pages is shown, disabled,
+live: at the browsed ref for a page in the same repo, and at its own address for a
+qualified `owner/repo[@ref]:path` in another. Outpost holds the PowerShell outpost
+view for a `powershellOutpost`. Board appears for a file board. Pages is shown, disabled,
 even for a workspace with no pages, as an invitation to add some; do not hide
 it. Docs is a mode of Files: `&tab=docs` opens Files
 filtered to the workspace's Markdown, as a tree beside a reader, and `&item=`
