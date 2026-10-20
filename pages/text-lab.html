@@ -9,8 +9,8 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  text-lab.html — the estate's text-analysis and NLP work as one reading
-  surface. Five panes over one subject: what we tried, the variants we
+  text-lab.html — the front page of home's Text project (projects/text), the
+  estate's text analysis as one reading surface. Five panes over one subject: what we tried, the variants we
   retained, what we read with, what we read against, and what came out.
 
   Named Text LAB, not Text Instruments. That name collided twice: with Texas
@@ -19,7 +19,7 @@
   `-lab` is the suffix the tools themselves already use (termlab, registerlab,
   entitylab, concept-lab), so it names the whole without renaming a part.
 
-    probes       projects/local-models/probes/probes.json. One record per
+    probes       projects/text/probes/probes.json. One record per
                  bounded question: question, method, corpus, result, verdict,
                  what it opens. Failures are recorded at the same weight as
                   successes, so the standing counts lead the header rather than
@@ -36,7 +36,7 @@
                  unit of analysis (word, term of art, named entity, speaker,
                  sentence, document), because that is the question a session
                  actually arrives with: I have text at this grain.
-    resources    projects/local-models/resources.csv, the word lists and norms
+    resources    projects/text/resources.csv, the word lists and norms
                  tables, grouped by whether the estate holds one, fetches it at
                  run time, or does not have it. A coverage grid leads the pane:
                  property by state, so the empty cells read as loudly as the
@@ -102,7 +102,7 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('textInstruments', () => ({
       REPO: 'mehrlander/home',
-      ROOT: 'projects/local-models',
+      ROOT: 'projects/text',
       INSTRUMENTS: 'projects/text/INSTRUMENTS.md',
       TOSS: 'https://mehrlander.github.io/web-tools/pages/toss-render.html',
       // Read-modify-write: this page reads home and saves back to it, so the
@@ -133,26 +133,22 @@
       RUNS: [
         { date: '2026-08-26', title: 'The scare-quote test',
           line: 'Whether a reader\'s urge to put quotation marks round a term detects the term doing unearned work.',
-          dir: 'projects/local-models/runs/2026-08-26-scare-quote', page: '' },
+          dir: 'projects/text/runs/2026-08-26-scare-quote', page: '' },
         { date: '2026-08-19', title: 'Model voice',
           line: 'Which words and phrases each speaker owns, and which phrases every model overuses against a human control corpus.',
-          dir: 'projects/local-models/runs/2026-08-19-model-voice',
-          page: 'projects/local-models/runs/2026-08-19-model-voice/report.html' },
+          dir: 'projects/text/runs/2026-08-19-model-voice',
+          page: 'projects/text/runs/2026-08-19-model-voice/report.html' },
         { date: '2026-08-18', title: 'Claim strength',
           line: 'Measuring how far a claim reaches and how sharply it resolves, and which lexical features carry neither.',
-          dir: 'projects/local-models/runs/2026-08-18-claim-strength',
-          page: 'projects/local-models/runs/2026-08-18-claim-strength/report.html' },
-        { date: '2026-08-04', title: 'Pension classification',
-          line: 'A local open-weight model set against Haiku\'s reads of the same pension bills.',
-          dir: 'projects/local-models/runs/2026-08-04-pension-classification',
-          page: 'projects/local-models/runs/2026-08-04-pension-classification/deck.html' },
+          dir: 'projects/text/runs/2026-08-18-claim-strength',
+          page: 'projects/text/runs/2026-08-18-claim-strength/report.html' },
         { date: '2026-06-09', title: 'Document audit',
           line: 'Reading one document unit by unit: redundancy, drift, and what a receipt cannot see.',
-          dir: 'projects/doc-audit', page: 'projects/doc-audit/demo/index.html' },
+          dir: 'projects/text/doc-audit', page: 'projects/text/doc-audit/demo/index.html' },
       ],
 
       // A resource has coverage to assess and no inference to run, which is the
-      // distinction local-models/README.md draws against an instrument, and the
+      // distinction projects/text/README.md draws against a model, and the
       // reason these are a separate register rather than rows in INSTRUMENTS.md.
       // held: committed somewhere in the estate. fetched: depended on and
       // downloaded at run time, so no version is recorded anywhere. absent:
