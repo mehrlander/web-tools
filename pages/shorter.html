@@ -465,7 +465,7 @@ function shorter() {
     },
     async copyResult() {
       try { await navigator.clipboard.writeText(this.assembled); }
-      catch { const t = document.createElement('textarea'); t.value = this.assembled; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      catch { window.copy.legacy(this.assembled); }
       this.copied = true; setTimeout(() => this.copied = false, 1400);
     },
 

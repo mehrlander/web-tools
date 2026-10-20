@@ -38,7 +38,7 @@ lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unp
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",446,no,no,18,yes
 lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",49,no,no,13,yes
-lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",232,no,yes,22,yes
+lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",225,no,yes,23,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",974,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
