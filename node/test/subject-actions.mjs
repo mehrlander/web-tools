@@ -20,11 +20,10 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REF = 'main';
 const ADDR = `gh=mehrlander/web-tools@${REF}:pages/toss-render.html` +
              `#gh=mehrlander/web-tools@${REF}:pages/word-select.html`;

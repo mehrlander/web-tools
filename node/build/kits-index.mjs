@@ -35,6 +35,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeCsv } from './registries-load.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
 export const KITS_COLS = ['path', 'namespace', 'gloss', 'lines', 'boot', 'demo', 'users', 'tested'];
@@ -150,7 +151,6 @@ export function deriveKits(repoRoot) {
 // ── CLI: restamp (or --check) docs/kits.csv ────────────────────────────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const file = path.join(repoRoot, 'docs', 'kits.csv');
   const checkOnly = process.argv.includes('--check');
   const rows = deriveKits(repoRoot);

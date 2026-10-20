@@ -855,7 +855,7 @@
         if (loc.startsWith('nltk:')) return '';
         const [repo, path] = loc.split(':');
         const ref = repo === this.REPO ? this.DATA_REF : (window.GH?.refFor?.(repo, path) || 'main');
-        return `https://github.com/${repo}/blob/${ref}/${path}`;
+        return window.RepoAddress.github.blob(repo, ref, path);
       },
       resourceLabel(loc) {
         if (!loc) return '';
@@ -874,12 +874,12 @@
           if (seg === '..') out.pop();
           else if (seg && seg !== '.') out.push(seg);
         }
-        return `https://github.com/${this.REPO}/blob/${this.DATA_REF}/${out.join('/')}`;
+        return window.RepoAddress.github.blob(this.REPO, this.DATA_REF, out.join('/'));
       },
       artifactName(a) { return a.split('/').filter(Boolean).pop() },
 
       tossUrl(path) { return `${this.TOSS}#gh=${this.REPO}@${this.DATA_REF}:${path}` },
-      treeUrl(path) { return `https://github.com/${this.REPO}/tree/${this.DATA_REF}/${path}` },
+      treeUrl(path) { return window.RepoAddress.github.tree(this.REPO, this.DATA_REF, path) },
       shut() { document.activeElement?.blur() },
     }));
   });

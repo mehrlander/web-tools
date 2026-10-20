@@ -45,12 +45,11 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile, mkdir } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import JSZip from 'jszip';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // JSZip is seeded as a global rather than imported. The kit checks for a global
 // before it fetches, exactly so a page that already has JSZip does not pull a

@@ -96,7 +96,7 @@
       <span class="font-semibold hidden sm:inline">Review</span>
     </a>
     <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode !== 'empty'">
-      <a :href="'https://github.com/' + repo" target="_blank" class="link link-hover text-primary truncate" x-text="repo"></a>
+      <a :href="window.RepoAddress.github.repo(repo)" target="_blank" class="link link-hover text-primary truncate" x-text="repo"></a>
       <span class="opacity-70 truncate" x-text="rangeLabel"></span>
     </div>
     <div class="grow"></div>
@@ -198,7 +198,7 @@
         <div class="text-xs font-mono flex flex-col gap-0.5 max-h-48 overflow-y-auto">
           <template x-for="c in (data?.commits || [])" :key="c.sha">
             <div class="flex items-baseline gap-2">
-              <a :href="'https://github.com/' + repo + '/commit/' + c.sha" target="_blank"
+              <a :href="window.RepoAddress.github.commit(repo, c.sha)" target="_blank"
                  class="text-primary shrink-0" x-text="c.sha.slice(0,7)"></a>
               <span class="truncate" x-text="(c.commit?.message || '').split('\n')[0]"></span>
             </div>
@@ -274,8 +274,8 @@ function reviewApp() { return {
     return '';
   },
   get githubUrl() {
-    if (this.mode === 'changeset') return 'https://github.com/' + this.repo + '/compare/' + this.base + '...' + this.head;
-    if (this.mode === 'file') return 'https://github.com/' + this.repo + '/blob/' + this.head + '/' + this.path;
+    if (this.mode === 'changeset') return window.RepoAddress.github.compare(this.repo, this.base, this.head);
+    if (this.mode === 'file') return window.RepoAddress.github.blob(this.repo, this.head, this.path);
     return '';
   },
   get statusClass() {

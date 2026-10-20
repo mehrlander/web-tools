@@ -10,7 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot } from './bootstrap.mjs';
+import { repoRoot, withBase64 } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/gh-store.js'), 'utf8');
 const b64ToBytes = (b64) => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -41,7 +41,8 @@ function makeGH({ failPuts = 0, lsRows = [{ name: 'todo.json', sha: 'cursha' }] 
     if (lsRows === null) throw Object.assign(new Error('not a directory'), { status: 415 });
     return lsRows;
   };
-  const window = { GH };
+  // save() encodes through gh-api.js's GH.toBase64, which a real GH carries.
+  const window = { GH: withBase64(GH) };
   new Function('window', src)(window);
   return { gh: new GH(), puts, reads };
 }

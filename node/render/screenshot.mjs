@@ -35,12 +35,12 @@ import { existsSync } from 'node:fs';
 import http from 'node:http';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from './cdn.mjs';
 import { measure, findings, signals } from './measure.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function parseArgs(argv) {
   const o = { full: false, touch: false, build: false, measure: false, width: 1280, height: 800, wait: 2500, ref: null, query: null, hash: null, out: null, script: null, eval: null };

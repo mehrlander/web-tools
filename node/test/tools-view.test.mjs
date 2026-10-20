@@ -53,6 +53,7 @@ window.GH = class {
 // kits/csv.js first: the view parses both files through it, the same way
 // the pre-build's boot list supplies it on a real page.
 new window.Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(window);
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/tools.js'), 'utf8'))();
 Alpine.start();
 await tick(3);

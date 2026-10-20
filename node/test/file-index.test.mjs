@@ -7,9 +7,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const win = {};
 new Function('window', readFileSync(path.join(root, 'lib/kits/file-index.js'), 'utf8'))(win);
 const F = win.FileIndex;

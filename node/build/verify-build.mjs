@@ -16,9 +16,8 @@ import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const pagePath = process.argv[2];
 if (!pagePath) {
   console.error('Usage: node node/build/verify-build.mjs <page-path>');
