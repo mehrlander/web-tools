@@ -193,8 +193,8 @@ def classify(root, owner, src, target):
 def scan(root, owner):
     global GH_URL, RAW_URL
     GH_URL, RAW_URL = build_patterns(owner)
-    files = subprocess.run(["git", "-C", str(root), "ls-files", "*.md"],
-                           capture_output=True, text=True).stdout.split()
+    files = [f for f in subprocess.run(["git", "-C", str(root), "ls-files", "-z", "*.md"],
+                                       capture_output=True, text=True).stdout.split("\0") if f]
     findings = []
     for f in files:
         p = root / f
@@ -334,8 +334,8 @@ def url_at(text, offset, url):
 def scan_skills(root, owner, manifest):
     in_web_tools = manifest is not None and manifest.parent.parent == root
     known = manifest_names(manifest) if manifest else None
-    files = subprocess.run(["git", "-C", str(root), "ls-files", "*.md"],
-                           capture_output=True, text=True).stdout.split()
+    files = [f for f in subprocess.run(["git", "-C", str(root), "ls-files", "-z", "*.md"],
+                                       capture_output=True, text=True).stdout.split("\0") if f]
     findings = []
     for f in files:
         if not (INSTRUCTION.search(f) or (in_web_tools and WEB_TOOLS_SKILL_FILE.match(f))):
