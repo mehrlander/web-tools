@@ -16,8 +16,9 @@ from urllib.parse import quote
 
 # ':' cannot appear in a git ref name, which is what makes the split
 # unambiguous. The repo half is non-greedy so a/b@feat/x:p splits at the first
-# '@', leaving a slashed ref intact. lib/kits/repo-address.js ADDR_RE.
-ADDR_RE = re.compile(r"^([\w.-]+/[\w.-]+?)(?:@([^:]+))?:(.+)$")
+# '@', leaving a slashed ref intact. lib/kits/repo-address.js ADDR_RE; ASCII,
+# as JavaScript reads \w.
+ADDR_RE = re.compile(r"^([\w.-]+/[\w.-]+?)(?:@([^:]+))?:(.+)$", re.ASCII)
 
 GITHUB = "https://github.com/"
 

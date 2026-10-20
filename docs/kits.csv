@@ -52,7 +52,7 @@ lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still ai
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",281,no,yes,5,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
-lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",137,no,no,8,yes
+lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",149,no,no,8,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,5,yes
 lib/kits/page-storage.js,PageStorage,"What a visited page keeps in its browser storage, read from inside that page.",118,no,no,2,yes
 lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,306,no,yes,8,yes

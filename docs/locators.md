@@ -17,7 +17,7 @@ relation. The shapes in use today are all references in this sense:
 
 | Record | Source | Target | Relation |
 | --- | --- | --- | --- |
-| A note (`web-tools-private/notes/notes.jsonl`, [notes skill](../.claude/skills/notes/SKILL.md)) | the note | its `about` locator, plus an optional quote anchor | comments on |
+| A note (`web-tools-private/notes/notes.jsonl`, [notes skill](../skills/notes/SKILL.md)) | the note | its `about` locator, plus an optional quote anchor | comments on |
 | A finding (a note carrying `finding`, [tending.md](views/tending.md)) | the finding | each subject, followed; each witness, pinned | concludes about; rests on |
 | A standoff ([annotation.md](annotation.md)) | the standoff file | a document, by character spans and the document's `sha256` | annotates |
 | A text proposal (`home/projects/text/proposals.jsonl`) | one passage id | another passage id | proposes a rewrite of |
@@ -146,11 +146,14 @@ trap).
 
 ## What exists, and what does not yet
 
-**Exists:** the path grammar and its parser; fragment locators in the content
-registry; spans pinned by a document hash in standoffs; quote anchors on notes;
-content-addressed passages; notes addressed to any locator, with
-`note.py show <about>` as the inbound lookup for notes; and the broken test with
-its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
+**Exists:** the path grammar and its parser, `repo-address.js`, which the notes
+locator reads and extends with `owner/repo#N` and `note:<id>` (`note.py` keeps a
+copy of the patterns, held to the same answers by
+[`notes-kit.test.mjs`](../node/test/notes-kit.test.mjs)); fragment locators in
+the content registry; spans pinned by a document hash in standoffs; quote
+anchors on notes; content-addressed passages; notes addressed to any locator,
+with `note.py show <about>` as the inbound lookup for notes; and the broken test
+with its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
 notes and spans in standoffs; the pre-commit hook runs it on what a commit
 changes.
 
@@ -158,17 +161,7 @@ changes.
 on anything but standoffs; the cascade; an inbound index across kinds of
 reference; and one checker applying these tests in place of one tool per kind.
 
-**Two facts to resolve before building on this.**
-
-- The grammar has two definitions. `repo-address.js` reads a file address
-  with `parse()` and, since 2026-10-20, the same with no path (`owner/repo`,
-  `owner/repo@branch`) with `parseRepo()`. The notes locator (in
-  [`notes.js`](../lib/kits/notes.js) and `note.py`) also accepts `#N` for a
-  pull request and `note:<id>`, and validates with a pattern of its own;
-  [`findings.js`](../lib/kits/findings.js) reads that superset through the two
-  functions above. The notes grammar is the superset and should become the one
-  definition, with `repo-address.js` parsing the subset without `#N` and `note:`.
-- Notes address a tracker task by path (`owner/repo:tracker/tasks/<slug>.md`).
-  That is a path used for a record, which this document advises against. A
-  record-key form for tasks would survive a move of the tracker to another
-  format; the grammar does not have one yet.
+**One fact to resolve before building on this.** Notes address a tracker task by
+path (`owner/repo:tracker/tasks/<slug>.md`). That is a path used for a record,
+which this document advises against. A record-key form for tasks would survive a
+move of the tracker to another format; the grammar does not have one yet.
