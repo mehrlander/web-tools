@@ -86,8 +86,8 @@ different one.
 
 The failures recorded in this file share one shape: the link renders something
 plausible but wrong, and reports no error. The mechanism table cannot catch that,
-so two checks remain in use: CLAUDE.md's honesty rule ("only a page renders this
-way; for a kit or doc, ⭐ links the `[new]` blob") and a headless screenshot.
+so two checks remain in use: CLAUDE.md's honesty rule ("where no link reaches a
+change, say so") and a headless screenshot.
 
 ## Viewer context
 

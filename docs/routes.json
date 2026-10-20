@@ -74,6 +74,10 @@
           "then": "toss-nested"
         },
         {
+          "when": "a document or data file changed (Markdown, CSV, JSON, YAML, text), alone or beside a page",
+          "then": "toss-data"
+        },
+        {
           "when": "the reader has no token",
           "then": "toss-gz or artifact"
         }

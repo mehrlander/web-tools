@@ -17,9 +17,8 @@ changed files and prints the render line to paste, or an honest no-link with the
 reason ([`python/showing.py`](python/showing.py)). It
 happened again on 2026-08-22, with the `?use=` trap itself in context, which is
 why the last rule this section stated in prose is now executable. The honesty
-rule survives, since no script supplies it: only a page renders this way, for a
-kit or doc ⭐ links the `[new]` blob, and where no link reaches a change, say so
-and send a headless screenshot.
+rule survives, since no script supplies it: where no link reaches a change, say
+so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails
 
