@@ -45,11 +45,15 @@ These are **app routes**. [routes-routes.csv](../routes-routes.csv) holds
 
 With a token, a document named by an open documentation user call, or by a
 Text collection proposal, carries a badge on its row
-([`lib/kits/user-calls.js`](../../lib/kits/user-calls.js)), and the reading
-deck labels each proposed edit on the paragraph it would change. A
-proposal is applied or rejected in place. A call is answered for all its edits
-at once, from its sheet: each edit confirmed or discarded, with a note if
-wanted, and the answer recorded in web-tools-private beside the call with the
+([`lib/kits/user-calls.js`](../../lib/kits/user-calls.js)), and each kind has
+its own filter. A user call waits on the owner, so its badge, filter and
+marks take the attention colour, which a proposal from a batch process does
+not. In the reading deck a proposal is labelled on the paragraph it would
+change and applied or rejected in place. Each edit a call proposes is open
+there as a change container. A call is answered for all its edits at once,
+from its sheet, which steps through the edits like a walkthrough and stays
+open while it does: each edit confirmed or discarded, with a note if wanted,
+and the answer recorded in web-tools-private beside the call with the
 confirmed edits as a patch for a session to apply
 ([`lib/kits/call-answer.js`](../../lib/kits/call-answer.js), which Dictate
 shares). The sheet commits nothing: a call is read on main, so a commit from

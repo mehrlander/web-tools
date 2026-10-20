@@ -1751,10 +1751,15 @@ test('the reading deck labels the paragraph a pending edit would change', async 
   const { marked } = await import('marked');
   const prior = window.marked;
   window.marked = marked;
-  if (!window.mdDiff) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))();
+  // A call's edit opens as a change container, so md-diff's renderer and its
+  // two kits are here as they are in md-diff.test.mjs.
+  window.Diff ||= await import('diff');
+  for (const f of ['lib/kits/guide-render.js', 'lib/kits/swipe-deck.js', 'lib/kits/md-diff.js'])
+    new window.Function(readFileSync(path.join(repoRoot, f), 'utf8'))();
   const md = '# Title\n\nKeep this paragraph.\n\nAn **old** paragraph to tighten.\n\nA paragraph with a phrase here inside.\n';
   const box = window.document.createElement('div');
   box.innerHTML = marked.parse(md);
+  window.document.body.append(box);   // a container opens only on a connected paragraph
   data.docPending = new Map([['docs/x.md', {
     staged: 1, calls: [{ id: 'c1', kind: 'documentation', question: 'Fix the phrase?', why: 'general',
       edits: [{ from: 'a phrase here', to: 'a better phrase', why: 'the old phrase misleads' }] }],
@@ -1795,7 +1800,7 @@ test('a call is answered from the Docs deck: decisions, notes, a patch of the co
   const prior = { marked: window.marked, gh: window.gh, GH: window.GH };
   window.marked = marked;
   window.Diff = Diff;
-  for (const f of ['lib/kits/md-diff.js', 'lib/kits/call-answer.js', 'lib/kits/md-surface.js'])
+  for (const f of ['lib/kits/guide-render.js', 'lib/kits/swipe-deck.js', 'lib/kits/md-diff.js', 'lib/kits/call-answer.js', 'lib/kits/md-surface.js'])
     new window.Function(readFileSync(path.join(repoRoot, f), 'utf8'))();
   const md = '# Title\n\nKeep this paragraph.\n\nA paragraph with a phrase here inside.\n\nAn ending to drop.\n';
   const call = { id: 'c-test', kind: 'documentation', question: 'Apply 3 edits to docs/x.md?', pr: 'mehrlander/web-tools#9',
@@ -1818,6 +1823,7 @@ test('a call is answered from the Docs deck: decisions, notes, a patch of the co
   const host = window.document.createElement('div');
   const slide = window.document.createElement('div');
   slide.append(box);
+  window.document.body.append(slide);
   const actionsSet = [];
   data._deck = { el: host, deck: { active: () => 0, track: { children: [slide] } }, setActions: (a) => actionsSet.push(a) };
   data._deckFiles = [{ path: 'docs/x.md' }];
@@ -1837,6 +1843,14 @@ test('a call is answered from the Docs deck: decisions, notes, a patch of the co
     assert.ok(sheet, 'the sheet opens on the deck');
     assert.deepEqual([...data.callDecisions(call)], ['confirmed', 'open', 'stale'], 'an edit the file lacks keeps its standing');
     assert.equal(sheet.querySelectorAll('[data-call-set]').length, 4, 'only staged edits take a decision');
+    // A walk: stepping keeps the sheet and marks the edit's row.
+    data.stepCallEdit(call, 1);
+    data.stepCallEdit(call, 1);
+    assert.ok(host.querySelector('[data-call-sheet]'), 'the sheet stays open while the reader moves');
+    assert.equal(host.querySelector('[data-call-here]')?.dataset.callRow, '1');
+    assert.match(host.querySelector('[data-call-at]').textContent, /2 \/ 3/);
+    assert.equal(host.querySelectorAll('[data-call-unplaced]').length, 1, 'the edit the page could not draw says so on its row');
+    assert.equal(data.docCallCount, 0, 'counted against the registry, which has no docs/x.md');
     // From the sheet: discard edit 2, with a note, and a note on the answer.
     sheet.querySelector('[data-call-set="discarded"][data-i="1"]').click();
     host.querySelector('[data-call-note="1"]').click();
