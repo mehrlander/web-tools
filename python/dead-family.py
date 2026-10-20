@@ -76,7 +76,7 @@ PATTERN = re.compile(r'\b(?P<cls>(?P<util>' + _UTILS + r')-(?P<colour>' + _COLOU
 DEFINED = re.compile(r'(?:^|[},;>+~\s])\.((?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*?)-(?:' + _COLOURS + r'))(?=[,{:\s])')
 
 # Markdown is left out: every .md occurrence in this tree is prose ABOUT the
-# trap (this file, the mechanics reference, SNAGS.md), and a class in a fenced
+# trap (this file and the mechanics reference), and a class in a fenced
 # example is documentation rather than markup a browser will meet.
 EXTS = ('.html', '.js', '.mjs')
 # `node/test` holds FIXTURES: a check for this trap has to write the dead class
