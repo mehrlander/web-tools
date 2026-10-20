@@ -2998,7 +2998,7 @@ test('a text draft keeps its passage painted, since opening it clears the select
 
     S.dict.text = 'a note on the fox';
     S.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
-    assert.deepEqual(painted('annotate-notes-draft'), [], 'saved, the draft mark goes');
+    assert.equal(sets.has('annotate-notes-draft'), false, 'saved, the draft mark goes: removed, not emptied');
     assert.deepEqual([...painted('annotate-notes'), ...painted('annotate-notes-active')], ['quick brown fox'],
       'and the note\'s own highlight takes over');
 

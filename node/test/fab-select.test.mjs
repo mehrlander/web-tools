@@ -230,6 +230,13 @@ test('typing that lands on the keyboard foothold is carried into the Note field'
 });
 
 test('closing the drawer before saving selects the passage again, and keeps what was written', async () => {
+  // jsdom has no Highlight API; a stub records what the kit paints, so the
+  // mark can be seen to go when the selection comes back.
+  const had = { Highlight: window.Highlight, CSS: window.CSS };
+  const marks = new Map();
+  window.Highlight = class { constructor(...r) { this.ranges = r; } };
+  window.CSS = { highlights: { set: (k, v) => marks.set(k, v), delete: (k) => marks.delete(k) } };
+  try {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
@@ -237,12 +244,14 @@ test('closing the drawer before saving selects the passage again, and keeps what
   await tick(2);
   const A = window.Annotate;
   assert.ok(A._state.pending, 'the passage is marked while the drawer is open');
+  assert.equal(marks.get('annotate-notes-draft').ranges.map(String).join(), 'quick brown fox', 'painted on the page');
   d.noteText = 'half a thought';
   d.close();
   await tick(2);
   const sel = window.getSelection();
   assert.equal(sel.toString(), 'quick brown fox', 'the selection is back on the passage');
   assert.equal(A._state.pending, null, 'and the mark gives way to it');
+  assert.equal(marks.has('annotate-notes-draft'), false, 'with nothing of it left on the page');
   assert.equal(d.noteText, 'half a thought', 'what was written stays in the field');
   // The launcher hears the restored selection and lights for it, so one tap
   // returns to the note in progress.
@@ -260,6 +269,7 @@ test('closing the drawer before saving selects the passage again, and keeps what
   A.clear(); A.disable();
   d.activeTab = 'render';
   await tick(2);
+  } finally { window.Highlight = had.Highlight; window.CSS = had.CSS; }
 });
 
 test('the Note tab opened by hand writes about the page, and Ctrl or Cmd Enter saves', async () => {
