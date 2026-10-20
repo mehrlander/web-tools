@@ -1,6 +1,6 @@
 ---
 name: review-panel
-description: "Convene a general review panel over a document, page, plan or change: five reader seats defined by how they search (conservator, radical editor, source historian, novice reader, counterexample hunter), each blind to the others, then a closer who verifies and weighs their findings and states the decision. Use when the user asks for a panel, a review from several angles, a second opinion that is more than one voice, or a cold read of something important before it ships. Not for domain review chains with their own seats (the DRS budget seats in home), for cutting a document shorter (reduction-panel), or for a screenshot (screenshot-review)."
+description: "Convene a general review panel over a document, page, plan or change: five reader seats defined by how they search (conservator, radical editor, source historian, owner proxy, counterexample hunter), each blind to the others, then a closer who verifies and weighs their findings and states the decision. Use when the user asks for a panel, a review from several angles, a second opinion that is more than one voice, or a cold read of something important before it ships. Not for domain review chains with their own seats (the DRS budget seats in home), for cutting a document shorter (reduction-panel), or for a screenshot (screenshot-review)."
 ---
 
 # Review panel
@@ -19,7 +19,7 @@ web-tools:
 | Conservator | `portable:conservator` | what a change would lose |
 | Radical editor | `portable:radical-editor` | the largest simplification the subject survives |
 | Source historian | `portable:source-historian` | provenance and precedent, in git and dated records |
-| Novice reader | `portable:novice-reader` | where a reader new to the repo gets lost |
+| Owner proxy | `portable:owner-proxy` | what the owner would object to, from the owner's recorded words and preferences |
 | Counterexample hunter | `portable:counterexample-hunter` | the case where a claim does not hold |
 | Closer | `portable:closer` | which findings hold, and the decision they leave |
 
@@ -30,7 +30,9 @@ web-tools:
    (ship it, merge it, rewrite it).
 2. **Pick the seats.** All five readers by default. Drop a seat only when its
    lane is empty for this subject (no history worth tracing, nothing proposed
-   to lose), and say which you dropped.
+   to lose), and say which you dropped. Add the novice reader
+   (`portable:novice-reader`) as a sixth seat when the subject is written for
+   readers without the owner's context, such as a public page.
 3. **Run the readers in parallel**, one Agent call each, every one given the
    same subject statement and nothing else: not the other seats' output, not
    your own view, not the conversation. Blind is the point.
