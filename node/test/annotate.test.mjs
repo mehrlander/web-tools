@@ -2971,3 +2971,40 @@ test('enabling with a different host re-mounts the card there; the same host kee
     assert.equal(A._state.ui.style.position, 'fixed');
   } finally { other.remove(); done(); }
 });
+
+test('a text draft keeps its passage painted, since opening it clears the selection', () => {
+  // Reported from a phone, 2026-10-20: the tap on the lit launcher made the
+  // selection vanish. Opening a draft clears the page's selection on purpose
+  // (it takes the platform's callout with it), so the draft paints the passage
+  // itself, until it is saved or dropped. jsdom has no Highlight API; a stub
+  // records what the kit hands it.
+  const had = { Highlight: window.Highlight, CSS: window.CSS };
+  const sets = new Map();
+  window.Highlight = class { constructor(...r) { this.ranges = r; } };
+  window.CSS = { highlights: { set: (k, v) => sets.set(k, v), delete: (k) => sets.delete(k) } };
+  const painted = (k) => (sets.get(k) ? sets.get(k).ranges.map(String) : []);
+  try {
+    A.enable({ doc, subject: { title: 'x', url: '' } });
+    A.clear();
+    const S = A._state;
+    const p1 = doc.getElementById('p1').firstChild;
+    const r = doc.createRange();
+    r.setStart(p1, 4); r.setEnd(p1, 19);                  // "quick brown fox"
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+    assert.equal(A.noteSelection({ range: r, listen: false }), true);
+    assert.equal(sel.rangeCount, 0, 'the selection is cleared, callout and all');
+    assert.deepEqual(painted('annotate-notes-draft'), ['quick brown fox'], 'and the draft paints the passage in its place');
+
+    S.dict.text = 'a note on the fox';
+    S.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
+    assert.deepEqual(painted('annotate-notes-draft'), [], 'saved, the draft mark goes');
+    assert.deepEqual([...painted('annotate-notes'), ...painted('annotate-notes-active')], ['quick brown fox'],
+      'and the note\'s own highlight takes over');
+
+    A.disable();
+    assert.equal(sets.has('annotate-notes-draft'), false, 'off, nothing is left painted');
+  } finally {
+    window.Highlight = had.Highlight; window.CSS = had.CSS;
+  }
+});
