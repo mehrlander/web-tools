@@ -21,7 +21,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
-- [`CAUTIONS.md`](CAUTIONS.md) — cautions: risks we could miss when AI moves quickly, and what to establish before each
+- [`CAUTIONS.md`](CAUTIONS.md) — cautions: risks we could miss when AI moves quickly
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
