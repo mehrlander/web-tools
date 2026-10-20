@@ -26,6 +26,7 @@ mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as 
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,../skills/html-style/references/mechanics.md;../skills/html-style/SKILL.md
+rename-called-not-worth-it,a stale file name was kept because renaming it was called a migration that buys nothing,1,2026-10-19,2026-10-19,../lib/kits/lists.js
 autocrlf-rewrites-fetched-originals,pages committed from the laptop were not the bytes fetched,1,2026-10-18,2026-10-18,venues.md
 laptop-python-older-than-ci,code the laptop daemon loads passed every test and would not import there,1,2026-10-18,2026-10-18,venues.md
 one-word-filename-needs-explaining,a file called `mechanics.md` had to be explained before an edit to it could be reviewed,1,2026-10-18,2026-10-18,house-policies.md
