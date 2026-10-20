@@ -1407,14 +1407,25 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.ok(ci.events.find(e => e.event === 'pull_request').hooks.some(h => h.path === '.github/workflows/test.yml'));
     assert.equal(state.automationTriggers.find(t => t.k === 'events').count, state.eventFileCount);
     assert.deepEqual([...state.automationTriggers.map(t => t.k)].filter(k => k !== 'scheduled'),
-      ['all', 'events', 'hand', 'imported', 'none'], 'one Event pill stands for every kind of event');
+      ['all', 'events', 'hand', 'none'], 'one Event pill for every kind of event, On demand, and No route');
+    // A file counts under the triggers of what runs it.
+    const reach = state.harnessTriggers;
+    assert.equal(reach.get('skills/hooks/commit-consent.py').events, '.githooks/commit-msg', 'the consent engine runs when commit-msg does');
+    assert.ok('events' in reach.get('node/build/build-app.mjs') && 'hand' in reach.get('node/build/build-app.mjs'),
+      'an npm script the commit hook runs is both on demand and on an event');
+    assert.match(reach.get('python/mcp-link-safe.py').hand, /\.md$/, 'a command a document gives is on demand');
+    assert.equal(Object.keys(reach.get('node/check-branch-status.mjs')).length, 0, 'a file only mentioned, never run, has no route');
+    const commitMsg = git.events.find(e => e.event === 'commit-msg').hooks[0];
+    assert.ok(commitMsg.runs.some(r => r.path === 'skills/hooks/commit-consent.py'), 'an event lists what its file runs');
     await tick(2);
     assert.equal(host.querySelectorAll('[data-event-kind]').length, 4);
     assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-legs]'), 'the steps are drawn under pre-commit');
     state.pickTrigger(state.automationTriggers.find(t => t.k === 'hand'));
     assert.equal(state.mapTab, 'harness');
     assert.ok(state.harnessDirFiles.length, 'a file trigger lands on a folder holding its files');
-    assert.ok(state.harnessDirFiles.every(t => ['npm', 'argv', 'driver'].some(r => t.invocation === r || t.invocation.startsWith(r + ':'))));
+    assert.ok(state.harnessDirFiles.every(t => 'hand' in (state.harnessTriggers.get(t.path) || {})));
+    state.harnessInvoke = 'events';
+    assert.equal(state.harnessVia({ path: 'skills/hooks/commit-consent.py' }), 'commit-msg', 'the file list names the caller a trigger arrives through');
   } finally {
     Alpine.destroyTree(host); host.remove(); window.__shell = undefined;
     window.history.replaceState({}, '', '/');
