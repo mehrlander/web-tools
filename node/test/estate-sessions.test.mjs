@@ -44,6 +44,9 @@ function rec(over = {}) {
 }
 
 class FakeGH {
+  // The views call the static GH.ago (gh-fetch.js); it answers with this
+  // fake's own formatter below.
+  static ago(d) { return FakeGH.prototype.ago.call(null, d); }
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   // The real formatter's shape (gh-fetch.js proto.ago), not a constant, because
   // the row's lifespan is built out of it: a stub returning one string cannot

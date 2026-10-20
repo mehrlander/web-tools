@@ -14,6 +14,9 @@ import assert from 'node:assert/strict';
 import { makeWindow, startAlpine, deckGeometry } from './bootstrap.mjs';
 
 class FakeGH {
+  // The views call the static GH.ago (gh-fetch.js); it answers with this
+  // fake's own formatter below.
+  static ago(d) { return FakeGH.prototype.ago.call(null, d); }
   constructor(conf = {}) { this.repo = conf.repo || ''; }
   // The relative-time source behind agoOf/agoShort. Fixed "now" so the
   // lifespan labels below are deterministic.
