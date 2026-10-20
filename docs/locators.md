@@ -160,11 +160,14 @@ reference; and one checker applying these tests in place of one tool per kind.
 
 **Two facts to resolve before building on this.**
 
-- The grammar has two definitions. `repo-address.js` requires `:path`;
-  the notes locator (in [`notes.js`](../lib/kits/notes.js) and `note.py`) also
-  accepts `owner/repo`, `@branch` alone, `#N` for a pull request, and
-  `note:<id>`. The notes grammar is the superset and should become the one
-  definition, with `repo-address.js` parsing the path-bearing subset of it.
+- The grammar has two definitions. `repo-address.js` reads a file address
+  with `parse()` and, since 2026-10-20, the same with no path (`owner/repo`,
+  `owner/repo@branch`) with `parseRepo()`. The notes locator (in
+  [`notes.js`](../lib/kits/notes.js) and `note.py`) also accepts `#N` for a
+  pull request and `note:<id>`, and validates with a pattern of its own;
+  [`findings.js`](../lib/kits/findings.js) reads that superset through the two
+  functions above. The notes grammar is the superset and should become the one
+  definition, with `repo-address.js` parsing the subset without `#N` and `note:`.
 - Notes address a tracker task by path (`owner/repo:tracker/tasks/<slug>.md`).
   That is a path used for a record, which this document advises against. A
   record-key form for tasks would survive a move of the tracker to another
