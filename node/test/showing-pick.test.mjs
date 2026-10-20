@@ -237,9 +237,11 @@ test('--path links any named file at the real commit, a page by toss and a docum
   assert.equal(d.mechanism, 'toss-gh');
   assert.match(d.sha, /^[0-9a-f]{40}$/);
   assert.notEqual(d.sha, ZERO);
-  assert.match(d.links[0].url, new RegExp(`toss-render\\.html#gh=mehrlander/web-tools@${d.sha.slice(0, 12)}:pages/branch\\.html$`));
+  // The branch rides ahead of the commit wherever one is checked out and main's
+  // renderer reads that form (a detached CI checkout has neither).
+  assert.match(d.links[0].url, new RegExp(`toss-render\\.html#gh=mehrlander/web-tools@(?:[\\w./-]+@)?${d.sha.slice(0, 12)}:pages/branch\\.html$`));
   assert.deepEqual(d.documents.map(l => l.page), ['docs/APP.md']);
-  assert.match(d.documents[0].url, /toss-render\.html#data=mehrlander\/web-tools@[0-9a-f]{12}:docs\/APP\.md$/);
+  assert.match(d.documents[0].url, /toss-render\.html#data=mehrlander\/web-tools@(?:[\w./-]+@)?[0-9a-f]{12}:docs\/APP\.md$/);
 });
 
 test('--width puts ?w= on the renderer, and says so when it cancels ?top', () => {
