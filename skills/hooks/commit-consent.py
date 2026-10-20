@@ -262,8 +262,9 @@ Ask plainly and quote whatever they answer; never tell them what words to use.""
 
 DOC_REMINDER = """Note: {what}.
 
-Show the user this commit's diff, as the Review section of the doc-craft skill
-describes, and merge only after they approve the wording."""
+Show the user this commit's diff for approval now, as the Review section of the
+doc-craft skill describes. List it again whenever they ask what is open or ask to
+merge, and merge only after they approve the wording."""
 
 
 def main(argv):
