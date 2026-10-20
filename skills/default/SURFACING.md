@@ -17,7 +17,7 @@ templates.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - 🪧 **Direction needed:** Next steps are not established. Name the open question; "go" means the session looks into it and reports back.
+  - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
   - ✴️ **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
