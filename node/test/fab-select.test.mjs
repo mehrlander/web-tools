@@ -184,6 +184,51 @@ test('a tap on the lit launcher takes the passage, even when the press collapsed
   await tick(2);
 });
 
+test('the page selection is cleared inside the tap, before any field takes the focus', async () => {
+  // WebKit's document selection includes a focused field's caret, so clearing
+  // the selection after the Note field had the focus left an iPhone's keyboard
+  // up with nowhere to type. The clear has to happen in the tap, synchronously.
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  assert.ok(d.selOffer);
+  // jsdom, like WebKit, moves the document's selection into a field that
+  // takes the focus, which would deselect the passage on its own; the
+  // foothold's focus is stubbed so only the explicit clear can.
+  const proxy = host.querySelector('input[aria-hidden="true"]');
+  proxy.focus = () => {};
+  const pending = d.noteSelection();          // not awaited: what follows is the tap's own work
+  assert.equal(window.getSelection().rangeCount, 0, 'the passage is deselected before the first await');
+  delete proxy.focus;
+  await pending;
+  await tick(2);
+  // And nothing after the anchoring takes the focus from the field.
+  assert.equal(doc.activeElement, host.querySelector('[data-fab-note-ta]'));
+  d.noteClear();
+  window.Annotate.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('typing that lands on the keyboard foothold is carried into the Note field', async () => {
+  d.toggle();
+  d.setTab('note');
+  await tick(3);
+  const proxy = host.querySelector('input[aria-hidden="true"]');
+  const ta = host.querySelector('[data-fab-note-ta]');
+  // As on a phone where the move to the field missed: the foothold has focus.
+  proxy.focus();
+  proxy.value = 'H';
+  proxy.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick(2);
+  assert.equal(d.noteText, 'H', 'the keystroke reached the note');
+  assert.equal(proxy.value, '', 'and left the foothold empty');
+  assert.equal(doc.activeElement, ta, 'and the focus moved to the field with it');
+  d.noteClear();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
 test('the Note tab opened by hand writes about the page, and Ctrl or Cmd Enter saves', async () => {
   d.toggle();
   d.setTab('note');
