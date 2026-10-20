@@ -3,8 +3,8 @@
 Three Web Tools surfaces read prose where it is displayed: the **Text tab** in
 the drawer of the FAB (the floating action button on every page), and the file
 viewer's **Variants** and **History** modes. The estate's other text
-instruments take a corpus or pasted text; these read the document a reader has
-open. None calls a model or changes anything. The mechanics are in
+instruments take a corpus or pasted text. None of the three calls a model or
+changes anything. The mechanics are in
 [`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.
 
 ## The Text tab
@@ -79,10 +79,7 @@ to 20 commits and offers more.
 
 The pairing is an inference, not a record. A paragraph split in two is paired
 with the part that shares more words. A paragraph moved to another file has no
-history, because git records a deletion and an addition. A third collection
-file, `revisions.jsonl`, held these connections until 2026-09-22;
-the one-list run in `mehrlander/home`
-(`projects/text/runs/2026-09-22-one-list/README.md`) records why git replaced it.
+history, because git records a deletion and an addition.
 
 ## Where variants and proposals come from
 
@@ -96,5 +93,9 @@ joins each proposal onto the variant with the same passage pair.
 
 Variants enter the collection from runs in `mehrlander/home`, including a
 [local-model worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/variants)
-that appends its edits with the author `Ollama <model>`. Web Tools only
-displays them.
+that appends its edits with the author `Ollama <model>`. Proposals are filed
+there by `projects/text/tools/propose.py`. Web Tools displays both, and applies
+proposals in one place: Dictate's file mode (`pages/dictate.html`), opened with
+`&proposed`, stages a file's queued proposals as change cards and applies only
+the ones the reader confirms. The app's Waiting view lists every file with a
+proposal Dictate would stage.
