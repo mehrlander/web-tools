@@ -296,6 +296,7 @@ changes touch:
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
+| `skills/peeves/peeves.csv` | `npm run reply-check-hook` | the reply check's prompt in `skills/hooks/hooks.json` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 
 Most of these files are generated whole. Four are not. `docs/docs.csv`,
