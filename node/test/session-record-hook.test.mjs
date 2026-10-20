@@ -231,7 +231,9 @@ test('the hook is wired at the default location, and the entry does not redeclar
   // root is the entry's source, not the repo root.
   const hooksPath = join(portable.source, 'hooks', 'hooks.json');
   const hooks = JSON.parse(readFileSync(hooksPath, 'utf8'));
-  const commands = hooks.hooks.Stop.flatMap((g) => g.hooks.map((h) => h.command));
+  // Stop also carries the reply check (reply-check.test.mjs asserts its entry).
+  const commands = hooks.hooks.Stop.flatMap((g) => g.hooks.map((h) => h.command))
+    .filter((c) => /session-record\.sh/.test(c));
   assert.equal(commands.length, 1);
   assert.match(commands[0], /\$\{CLAUDE_PLUGIN_ROOT\}/);
   assert.match(commands[0], /hooks\/session-record\.sh/);

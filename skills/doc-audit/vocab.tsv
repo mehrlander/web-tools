@@ -1,0 +1,4 @@
+label	side	gloss	color
+OK	pass	neither weak nor wrong	203,213,225
+WEAK	wording	unclear, hard to read, or unneeded	245,158,11
+WRONG	content	false, or stronger than the document supports	225,29,72
