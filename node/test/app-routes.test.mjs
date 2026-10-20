@@ -228,9 +228,9 @@ test('the two sub-tab encodings, counted', () => {
   // keeps in localStorage and IndexedDB, as a list and its detail).
   // 39 to 40 on 2026-10-15: This browser took Page, what the page a courier
   // bookmark opened the window from keeps in its own storage.
-  // 40 to 41 on 2026-10-20: the Map took `hooks`, the Claude Code events
-  // Automation's trigger row opens; Scheduled moved under the same row and
-  // kept its key.
+  // 40 to 41 on 2026-10-20: the Map took `events`, the view of what runs on
+  // an event that Automation's trigger row opens; Scheduled moved under the
+  // same row and kept its key.
   assert.equal(params, 41, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 

@@ -80,7 +80,7 @@ const GROUPS = [
 ];
 
 test('an address drawn inside a subview is routable and names a host on the strip', () => {
-  assert.deepEqual(WITHIN.map(w => w.k), ['hooks', 'scheduled']);
+  assert.deepEqual(WITHIN.map(w => w.k), ['events', 'scheduled']);
   for (const w of WITHIN) {
     assert.ok(MAP_ROUTES.includes(w.k), `${w.k} is a shell route`);
     assert.ok(SUBVIEWS.some(v => v.k === w.host), `${w.k} is hosted by ${w.host}, a subview on the strip`);
@@ -113,7 +113,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // must say exactly what the groups say, and nothing for a landing subview.
   const parents = Object.fromEntries(SUBVIEW_GROUPS.flatMap(g => g.options.slice(1).map(([k]) => [k, g.parent])));
   // 2026-10-20: Scheduled left the strip for Automation's trigger row, beside
-  // the new Claude Code events view; both keep a top-level parent.
+  // the new Events view; both keep a top-level parent.
   for (const w of WITHIN) parents[w.k] = SUBVIEW_GROUPS.find(g => g.options.some(([k]) => k === w.host)).parent;
   assert.deepEqual(SUBVIEW_PARENT, parents, 'SUBVIEW_PARENT agrees with SUBVIEWS and WITHIN');
   assert.deepEqual(routeKeys('MAP_TABS'), TABS.map(t => t.k), 'the shell lists the tabs in strip order');

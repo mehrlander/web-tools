@@ -863,7 +863,7 @@ test('the Overview\'s Contents lists every address but itself under its tab with
   // An address drawn inside a subview (WITHIN) is listed after its host.
   const want = Object.values(d3.SUBVIEWS).flat().flatMap(v => [v, ...d3.WITHIN.filter(w => w.host === v.k)])
     .map(v => v.k).filter(k => k !== 'overview');
-  assert.ok(want.includes('hooks') && want.includes('scheduled'));
+  assert.ok(want.includes('events') && want.includes('scheduled'));
   const rows = d3.overviewGroups.flatMap(g => g.rows);
   assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
   assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
