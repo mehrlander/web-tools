@@ -80,9 +80,11 @@ test('a row either names a file or says where it is defined', () => {
 test('every hook the plugin registers has a row', () => {
   const hooks = JSON.parse(read('skills/hooks/hooks.json')).hooks;
   const scripts = new Set();
-  for (const entries of Object.values(hooks))
+  // A prompt hook runs no script; its row names hooks.json and the event.
+  for (const [event, entries] of Object.entries(hooks))
     for (const e of entries) for (const h of e.hooks)
-      for (const m of h.command.matchAll(/hooks\/([\w.-]+\.sh)/g)) scripts.add('skills/hooks/' + m[1]);
+      if (h.type === 'prompt') scripts.add('skills/hooks/hooks.json#' + event);
+      else for (const m of h.command.matchAll(/hooks\/([\w.-]+\.sh)/g)) scripts.add('skills/hooks/' + m[1]);
   const claimed = new Set(rows.map(r => r.path));
   for (const s of scripts) assert.ok(claimed.has(s), s + ' enters sessions but has no row in docs/context-sources.csv');
 });

@@ -44,6 +44,7 @@ skill,/portable:peeves,skills/peeves/SKILL.md,peeves,,plugin
 skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin
 skill,/portable:reorient-me,skills/reorient-me/SKILL.md,reorient-me,,plugin
 skill,/portable:report-distiller,skills/report-distiller/SKILL.md,report-distiller,,plugin
+skill,/portable:roles-sheet,skills/roles-sheet/SKILL.md,roles-sheet,,plugin
 skill,/portable:screenshot-review,skills/screenshot-review/SKILL.md,screenshot-review,,plugin
 skill,/portable:session-review,skills/session-review/SKILL.md,session-review,,plugin
 skill,/portable:shape-text,skills/shape-text/SKILL.md,shape-text,,plugin
