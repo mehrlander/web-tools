@@ -106,7 +106,7 @@ document.addEventListener('alpine:init', () => {
 
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
-    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+    return window.ghAuth?.resolve() || '';
   };
   const param = k => UrlParams.get(k);
   const blob = (repo, ref, path) => `https://github.com/${repo}/blob/${ref || 'main'}/${path}`;

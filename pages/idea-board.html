@@ -51,7 +51,7 @@ document.addEventListener('alpine:init', () => {
   };
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
-    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+    return window.ghAuth?.resolve() || '';
   };
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
 
