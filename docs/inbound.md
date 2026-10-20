@@ -49,6 +49,9 @@ the result text says so.
 
 ## Hook timing
 
-The plugin refreshes at session start, but that session's hooks run from the
-previous pin. A hook change applies from the next session, or after
-`/reload-plugins`.
+The plugin moves to the tip of web-tools `main` when a session starts or
+resumes. Hooks that already ran at that start ran from the earlier version;
+hooks that run later in the session, such as a `Stop` hook at the end of the
+turn, run from the new one, with no `/reload-plugins` (observed 2026-10-20,
+Claude Code 2.1.304). A session that has not resumed since a hook change picks
+it up at its next resume.
