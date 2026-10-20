@@ -49,7 +49,7 @@ In offset order the units partition the document: only whitespace lies between o
 
 ## Edits
 
-A patch is a JSON list of operations, each keyed by a unit's `uid`, or for a boundary by `after`, rather than by array position. `split`, `merge` and `shift` change the units' boundaries; `relabel`, `verdict` and `note` change what a unit carries; `insert` adds text at a boundary. The fields of each are in `ops.py`'s docstring. A patch applies whole or not at all: if one operation is refused or breaks an invariant, nothing changes.
+A patch is a JSON list of operations, each keyed by a unit's `uid`, or for a boundary by `after`, rather than by array position. `split`, `merge` and `shift` change the units' boundaries; `relabel`, `verdict` and `note` change a unit's label, verdict or note; `insert` adds text at a boundary. The fields of each are in `ops.py`'s docstring. A patch applies whole or not at all: if one operation is refused or breaks an invariant, nothing changes.
 
 ## Vocabularies
 
