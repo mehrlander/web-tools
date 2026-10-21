@@ -755,6 +755,26 @@ test('repository links page within the current deck and drill for a child with B
 // are asserted: absent without a token, and never a bare zero on an injected
 // doc, which is the case where the number would be exactly backwards.
 
+// An unresolved read is a Markdown path under docs/ that no registry row
+// carries now and the doc-growth history never held: a retired doc, a data
+// file and a path that walks out of docs/ are not one.
+test('an unresolved read is a Markdown path under docs/ the repo never held', () => {
+  const prior = { reads: data.docReads, reg: data.docsReg, grown: data.docGrowthPaths, repo: data.docRepo };
+  const read = (path, sessions = 1) => ({ path, sessions, last: '2026-10-20' });
+  data.docRepo = '';
+  data.docsReg = { documents: [{ path: 'docs/APP.md' }] };
+  data.docGrowthPaths = new Set(['docs/SNAGS.md']);
+  data.docReads = Object.fromEntries([
+    read('web-tools/docs/APP.md'), read('web-tools/docs/SNAGS.md', 80), read('web-tools/docs/snags.csv'),
+    read('web-tools/docs/../pages/pages.md'), read('web-tools/docs/html-style.md', 2), read('web-tools/docs/SNAGS.m'),
+  ].map(r => [r.path, r]));
+  try {
+    assert.deepEqual([...data.docPhantoms.map(p => p.path)], ['web-tools/docs/html-style.md', 'web-tools/docs/SNAGS.m'], 'the never-held guesses, a name cut short of .md among them');
+  } finally {
+    data.docReads = prior.reads; data.docsReg = prior.reg; data.docGrowthPaths = prior.grown; data.docRepo = prior.repo;
+  }
+});
+
 test('without a token the registry renders and the readership column does not', () => {
   assert.equal(data.hasToken(), false);
   assert.equal(data.docReads, null, 'no token, no column, no error');
