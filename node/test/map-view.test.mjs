@@ -1407,8 +1407,9 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.ok(push.hooks.some(h => h.path === '.github/workflows/test.yml'), 'a workflow sits under each event in its on: block');
     assert.ok(ci.events.find(e => e.event === 'pull_request').hooks.some(h => h.path === '.github/workflows/test.yml'));
     assert.equal(state.automationTriggers.find(t => t.k === 'events').count, state.eventFileCount);
+    const unrouted = state.toolsReg.tools.some(t => !Object.keys(state.harnessTriggers.get(t.path)).length);
     assert.deepEqual([...state.automationTriggers.map(t => t.k)].filter(k => k !== 'scheduled'),
-      ['all', 'events', 'hand', 'none'], 'one Event pill for every kind of event, On demand, and No route');
+      ['all', 'events', 'hand', ...(unrouted ? ['none'] : [])], 'one Event pill for every kind of event, On demand, and No route while a file has none');
     // A file counts under the triggers of what runs it.
     const reach = state.harnessTriggers;
     assert.equal(reach.get('skills/hooks/commit-consent.py').events, '.githooks/commit-msg', 'the consent engine runs when commit-msg does');
