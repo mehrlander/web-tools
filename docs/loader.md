@@ -492,8 +492,11 @@ A short list of footguns to avoid when adding new files:
   elsewhere.** It's local to the eval'd function body and vanishes. Assign
   to `window.X`, or register a side effect.
 - **Forgetting the `🎟️GitHubToken` sentinel.** Any new file that wants a
-  token should look for that exact sentinel and fall back via
-  `try { localStorage.getItem('ghToken') } catch {}` to stay data-URL-safe.
+  token should look for that exact sentinel and fall back to the saved token
+  through `window.ghAuth.resolve()`, which gh-boot loads on every page and which
+  stays data-URL-safe. Only a file that runs before any library has loaded, or
+  on a page that loads none, reads `localStorage` itself;
+  [`token-one-owner.test.mjs`](../node/test/token-one-owner.test.mjs) names each one.
 - **Relying on `Alpine.store('…')` at file top level.** Stores only exist
   after `alpine-bundle.js`'s `alpine:init` listener runs. Access them inside
   `init()` / methods / getters, not at the top level of the file.

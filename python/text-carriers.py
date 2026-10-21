@@ -86,9 +86,9 @@ def is_prose(v):
 def tracked(root, exts):
     try:
         out = subprocess.run(
-            ["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True
+            ["git", "-C", root, "ls-files", "-z"], capture_output=True, text=True, check=True
         ).stdout
-        return [f for f in out.splitlines() if f.endswith(exts)]
+        return [f for f in out.split("\0") if f.endswith(exts)]
     except Exception:
         found = []
         for d, dn, fn in os.walk(root):

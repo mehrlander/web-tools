@@ -10,7 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { makeWindow, tick, repoRoot, captureAlpineErrors, withBase64 } from './bootstrap.mjs';
 
 const { window, problems } = makeWindow({
   html: `<!doctype html><html><body>
@@ -135,6 +135,7 @@ new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8')
 // The ambient bundle, in the same position gh-boot's BOOT manifest gives it
 // (first): the doc deck's rendition escapes through window.esc.
 new window.Function(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'))();
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8'))();
 Alpine.start();
 await tick(3);
@@ -1920,6 +1921,7 @@ test('Apply commits the one block with the sha it read, and refuses what moved',
     async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c0ffee1234' } }; }
   };
   window.GH.FRESH = { cache: 'no-store' };
+  withBase64(window.GH);   // the write encodes through gh-api.js's GH.toBase64
   window.TOKEN = 'gh_test';
   try {
     const sha = await data.commitBlockSwap('docs/x.md', 'The old paragraph.', 'The new paragraph.', 'msg via Web Tools');
@@ -1974,6 +1976,7 @@ test('a schedule edit rewrites one registry row, guarded by the sha it read', as
     async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c1' } }; }
   };
   window.GH.FRESH = { cache: 'no-store' };
+  withBase64(window.GH);   // the write encodes through gh-api.js's GH.toBase64
   window.TOKEN = 'gh_test';
   try {
     const t = window.Csv.rows(file)[0];

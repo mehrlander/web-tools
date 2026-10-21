@@ -36,11 +36,10 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PROBE_PATH = 'pages/__probe-mic.html';
 const PROBE_HTML = `<!doctype html><html><head><title>mic probe</title></head><body>
 <script>

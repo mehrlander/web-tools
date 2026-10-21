@@ -20,6 +20,9 @@ let FILES = {};
 let GETS = [];
 
 class FakeGH {
+  // The views call the static GH.ago (gh-fetch.js); it answers with this
+  // fake's own formatter below.
+  static ago(d) { return FakeGH.prototype.ago.call(null, d); }
   static FRESH = { cache: 'no-store' };
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   ago(d) {

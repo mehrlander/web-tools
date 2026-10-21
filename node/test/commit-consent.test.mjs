@@ -127,25 +127,27 @@ test('a copy that has drifted from its source is authored again, and is caught a
   assert.match(out.err, /documentation changed/);
 });
 
-test('a document that says not to ask is taken at its word', () => {
-  // A friction log is a record of what tripped, not a claim anyone has to
-  // endorse, and stopping an entry to ask costs a cycle for nothing. Whole
-  // trees are exempt by path; a single file inside docs/ is not reachable that
-  // way, and naming it in the engine would put one repo's filenames in a
-  // portable gate. So the document says it in the sentence a reader sees, as a
-  // plain instruction rather than a machine token, and the gate reads the same
-  // sentence.
-  const head = '# Snags\n\nA log of what tripped. Do not ask user to approve these.\n\n';
-  const rel = 'docs/SNAGS.md';
-  const out = gate({ [rel]: head + 'One.\n' }, { [rel]: head + 'Two.\n' }, 'Log a snag\n');
-  assert.equal(out.status, 0, out.err);
+test('research the repo declares is not documentation, and a sentence in the file does not make it so', () => {
+  // A dated log of what was tried and what came back is research, filed
+  // outside documentation (docs/CONSTELLATION.md) and declared in
+  // .web-tools.json. The declaration is the one statement: a declared file is
+  // exempt, and so is the folder of a declared README.md.
+  const manifest = JSON.stringify({ research: [{ path: 'docs/lab/findings.md', kind: 'probe' },
+                                               { path: 'docs/probes/README.md', kind: 'probe' }] });
+  const seed = { '.web-tools.json': manifest, 'docs/lab/findings.md': '# Findings\n\nOne.\n',
+                 'docs/probes/2026-10-20-run.md': '# A run\n\nOne.\n', [DOC]: 'One.\n' };
+  const file = gate(seed, { 'docs/lab/findings.md': '# Findings\n\nTwo.\n' }, 'Log a finding\n');
+  assert.equal(file.status, 0, file.err);
+  const folder = gate(seed, { 'docs/probes/2026-10-20-run.md': '# A run\n\nTwo.\n' }, 'Add to a run\n');
+  assert.equal(folder.status, 0, folder.err);
 
-  // And only near the top, so the phrase appearing in a paragraph halfway down
-  // some other document does not quietly exempt it.
-  const buried = '# Thing\n' + '\nfiller\n'.repeat(12);
-  const late = gate({ [DOC]: buried + 'Do not ask anyone to approve it.\n\nOne.\n' },
-                    { [DOC]: buried + 'Do not ask anyone to approve it.\n\nTwo.\n' }, 'Revise\n');
-  assert.equal(late.status, 1, 'a declaration buried in the body is not a declaration');
+  // Everything else stays documentation, including a file that asks in its own
+  // words not to be gated: the in-document sentence was retired for the declaration.
+  const other = gate(seed, { [DOC]: 'Two.\n' }, 'Revise\n');
+  assert.equal(other.status, 1, 'an undeclared document is still gated');
+  const said = '# Notes\n\nA log. Do not ask anyone to approve these.\n\n';
+  const sentence = gate({ [DOC]: said + 'One.\n' }, { [DOC]: said + 'Two.\n' }, 'Revise\n');
+  assert.equal(sentence.status, 1, 'a sentence in the document is not a declaration');
 });
 
 test('a new task file is refused without the field naming who asked for it', () => {

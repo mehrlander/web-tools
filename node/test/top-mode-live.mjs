@@ -26,11 +26,10 @@
 
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { resolveCdn } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const argv = process.argv.slice(2);
 const arg = (k, d = '') => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : d);
 const SHA = arg('--sha');

@@ -17,9 +17,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot as ROOT } from '../repo-root.mjs';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const DATA_PATH = 'docs/environment/lifetimes.json';
 const VIEW_PATH = 'lib/alpineComponents/map.js';
 const data = JSON.parse(readFileSync(path.join(ROOT, DATA_PATH), 'utf8'));

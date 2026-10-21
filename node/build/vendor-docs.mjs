@@ -21,9 +21,8 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // Every doc that ships inside the default skill. A doc added here must also be
 // linked as an absolute hub URL unless its target travels too: the

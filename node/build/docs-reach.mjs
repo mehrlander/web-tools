@@ -105,6 +105,7 @@ import { parseCsv, writeCsv } from './registries-load.mjs';
 // Column order is fixed here so a restamp cannot reorder the file.
 const DOC_COLS = ['path', 'subject', 'status', 'reach', 'words', 'maintenance', 'formerly'];
 import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
 export const CHANNELS = ['injected', 'project', 'skill', 'app', 'orphan'];
 
@@ -292,7 +293,6 @@ export function deriveWords(repoRoot, paths) {
 // ── CLI: restamp docs/docs.csv ──────────────────────────────────────────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const file = path.join(repoRoot, 'docs', 'docs.csv');
   const registry = { documents: parseCsv(readFileSync(file, 'utf8')) };
   const paths = registry.documents.map(d => d.path);

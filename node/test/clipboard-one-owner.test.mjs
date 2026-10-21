@@ -9,34 +9,41 @@
 // The gate is deliberately about the FALLBACK, not about `navigator.clipboard`:
 // a kit may reach the modern API directly as its no-io.js degradation, and the
 // delegates do exactly that. What no kit may re-implement is the legacy path.
+//
+// THE RECIPE MOVED DOWN A LAYER on 2026-10-20, to vanilla-bundle.js as
+// window.copy.legacy. Outside the kits the same textarea write had four more
+// copies (window.copy's own fallback, the Alpine $clip magic, the transform
+// workbench, and the shorter and chat-results pages), and io.js could not be
+// their owner: it is fetched by the kits that copy, while vanilla-bundle loads
+// first on every page. io.copy keeps the focus wait and the modern API, and
+// falls back through window.copy.legacy like everything else.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { repoRoot } from '../repo-root.mjs';
 
 const KITS = 'lib/kits';
 
-// annotate.js is the one exception and it is earned: the card mounts into
-// ARBITRARY documents, including a page running inside a toss frame, so its
-// fallback selects into `S.doc` rather than the top-level `document` that
-// io.copy reaches. A shared helper cannot do that without being handed a
-// document, which is a wider change than this gate is asking for.
-const ALLOWED = new Set(['io.js', 'annotate.js']);
+const ALLOWED = new Set([
+  // The owner.
+  'lib/vanilla-bundle.js',
+  // annotate.js's exception is earned: the card mounts into ARBITRARY
+  // documents, including a page running inside a toss frame, so its fallback
+  // selects into `S.doc` rather than the top-level `document`, and marks its
+  // textarea so its own observer ignores it.
+  'lib/kits/annotate.js',
+  // A drop page that loads no library.
+  'pages/drop/live-docs-concept.html',
+]);
 
-const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-  e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]);
-
-test('only kits/io.js and kits/annotate.js implement the legacy clipboard write', () => {
-  const offenders = [];
-  for (const file of walk(KITS)) {
-    if (!file.endsWith('.js')) continue;
-    const name = file.slice(KITS.length + 1);
-    if (ALLOWED.has(name)) continue;
-    const src = readFileSync(file, 'utf8');
-    if (/execCommand\(\s*['"]copy['"]\s*\)/.test(src)) offenders.push(name);
-  }
+test('only vanilla-bundle.js (and the annotator) implement the legacy clipboard write', () => {
+  const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app', 'popups'], { cwd: repoRoot, encoding: 'utf8' })
+    .split('\n').filter((f) => /\.(js|html)$/.test(f) && !f.startsWith('pages/scratch/') && !ALLOWED.has(f));
+  const offenders = files.filter((f) => /execCommand\(\s*['"]copy['"]\s*\)/.test(readFileSync(join(repoRoot, f), 'utf8')));
   assert.deepEqual(offenders, [],
-    'these kits re-implement the legacy copy; delegate to window.io.copy instead');
+    'these re-implement the legacy copy; delegate to window.copy.legacy (or io.copy) instead');
 });
 
 test('every kit that copies delegates to io.copy and fetches it at load time', () => {

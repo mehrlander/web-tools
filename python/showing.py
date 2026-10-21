@@ -425,6 +425,34 @@ def overlay_ready(base, use_git, forced=None):
     b = sh("git", "show", f"{base}:lib/build.js")
     return bool(r and "getAll('refs')" in r and b and "__servesFromBuild" in b)
 
+# BRANCH AND COMMIT. A link names the branch beside the commit it pins,
+# owner/repo@branch@commit:path, so it says where its version came from as well
+# as which version it is (lib/kits/repo-address.js, "A PINNED ADDRESS"). Every
+# 🥏 link is served by web-tools main's renderer, whatever repo it shows, so
+# the form is minted only once main reads it: a renderer that does not asks
+# GitHub for a ref named `branch@commit` and finds nothing. Read from this
+# checkout's base when it is web-tools, else from a sibling web-tools checkout;
+# with neither, links name the commit alone, as they always have.
+PIN_READERS = ("pages/toss-render.html", "lib/kits/repo-address.js")
+PIN_BRANCH = ""   # set by main(): the branch a link names, or "" for none
+
+def pin_ready(base, use_git, forced=None):
+    if forced is not None:
+        return forced
+    if not use_git:
+        return False
+    hub, at = (ROOT, base) if (ROOT / PIN_READERS[0]).exists() else (ROOT.parent / "web-tools", "origin/main")
+    if not (hub / ".git").exists():
+        return False
+    return all("splitPin" in sh("git", "show", f"{at}:{p}", cwd=hub) for p in PIN_READERS)
+
+def branch_of(ref):
+    """The branch `ref` names: the checked-out one for HEAD, the branch itself
+    for a branch name, nothing for a commit or a detached HEAD."""
+    b = sh("git", "rev-parse", "--abbrev-ref", ref)
+    b = b[len("origin/"):] if b.startswith("origin/") else b
+    return "" if b in ("", "HEAD") or re.fullmatch(r"[0-9a-f]{7,40}", b) else b
+
 def overlay_entries(slug, sha, paths, skip=()):
     derived = derived_paths()
     return [f"{slug}@{sha}:{p}" for p in sorted(paths)
@@ -520,8 +548,18 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
     # to toss-render.html is also a shell change, and the shell rule would send
     # the reader to the deployed renderer to look at itself.
     if b["renderer"]:
-        why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment.")
-        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query)
+        # A REAL PAGE IN THE NEST, not a placeholder. This printed
+        # `pages/<the page to render>.html` until 2026-10-21, and a space in a
+        # link's destination is not markdown: pasted unchanged as the
+        # conventions ask, the whole `[caption](url)` showed as raw text in the
+        # Claude app, linked only up to the first space. The branch's own
+        # changed page if it has one, since that is what the reader came to
+        # see; else the pages index, which renders anywhere.
+        inner = next((p for p in paths if p.startswith("pages/") and p.endswith(".html")
+                      and p != "pages/toss-render.html" and not p.startswith("pages/thumbs/")), "pages/index.html")
+        why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment, here "
+                   + inner + "; any page can take its place after the second #gh=.")
+        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
 
     # A page's own file. ?use= cannot reach it: Pages serves the page FILE from
     # the default branch, so the old shell would wrap the new lib, silently.
@@ -756,8 +794,12 @@ def join_query(own, query=""):
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
-def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref=""):
+def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
+    # The subject's ref: the commit, with its branch ahead of it once main's
+    # renderer reads that (pin_ready). Not the refs= entries, whose grammar
+    # takes a plain ref.
+    pin = f"{PIN_BRANCH}@{sha}" if PIN_BRANCH else sha
     entries = [short_entry(e) for e in (entries or [])]
     base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
@@ -791,7 +833,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         # A route key opens the app on that view, joined with --query as on
         # toss-app below.
         q = join_query([("view", view)], query)
-        return f"{base}pages/toss-render.html#gh={slug}@{sha}:{page}{q}{frag}"
+        return f"{base}pages/toss-render.html#gh={slug}@{pin}:{page}{q}{frag}"
     if mech == "toss-app":
         # The renderer is web-tools' own, on main, so no ?use= pins it; the
         # ref belongs to the framed repo and rides in the #gh= address, where
@@ -802,25 +844,25 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         # `sessions?lens=table` and routes nowhere.
         q = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
-                f"#gh={slug}@{sha}:{page}{q}{frag}")
+                f"#gh={slug}@{pin}:{page}{q}{frag}")
     if mech == "overlay":
         # The renderer is main's; the selection rides on ITS query as refs=, and
         # the page is addressed at the branch only when the page itself changed.
         sel = "&".join("refs=" + e for e in (entries or []))
-        at_ref = f"@{page_ref}" if page_ref else ""
+        at_ref = f"@{PIN_BRANCH + '@' if PIN_BRANCH else ''}{page_ref}" if page_ref else ""
         vq = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html" + (f"?{sel}" if sel else "")
                 + f"#gh={slug}{at_ref}:{page}{vq}{frag}")
     if mech == "toss-nested":
-        return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
-                f"#gh={slug}@{sha}:pages/<the page to render>.html")
+        return (f"{base}pages/toss-render.html#gh={slug}@{pin}:pages/toss-render.html"
+                f"#gh={slug}@{pin}:{inner or 'pages/index.html'}")
     if mech == "toss-data":
         # The renderer's data route, on web-tools main whatever repo holds the
         # file: data-view.html reads the file at the ref in the address and
         # picks a mode by its content. A trailing #frag reaches the viewer page,
         # so a look link rides here as it does on a page.
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
-                f"#data={slug}@{sha}:{quote(page, safe='/@:._-~')}{frag}")
+                f"#data={slug}@{pin}:{quote(page, safe='/@:._-~')}{frag}")
     return ""
 
 
@@ -992,8 +1034,10 @@ def look_cmd():
         return "python3 " + str(f)
 
 
-def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref=""):
-    if not at:
+def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref="", inner=""):
+    # A nested toss carries its address in the inner #gh=, so the renderer's
+    # own hash routing is spoken for.
+    if not at and mech != "toss-nested":
         needs = [p for p, _ in subjects if routes_on_hash(p)]
         if needs:
             warn.append("these route on their own location.hash, so a link with no address opens "
@@ -1002,7 +1046,7 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         + "): pass --at '<fragment>' to put an address on the link, e.g. "
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
-    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
+    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref, inner)} for p, v in subjects]
     look = look_hints(subjects, at, warn)
     return warn_cap({"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
                      "repo": slug, "links": links, "why": why, "warnings": warn, "look": look})
@@ -1201,6 +1245,8 @@ def main():
                     help="the width the page renders at (toss-render's ?w=), e.g. 390 for a phone; it keeps "
                          "the page in a frame, so it outranks --top")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--pin", choices=["yes", "no"], help="(for tests) treat main's renderer as reading the branch@commit form, or not, instead of asking git")
+    ap.add_argument("--branch", default="", help="(for tests, with --files) the branch a link names beside its commit")
     ap.add_argument("--overlay", choices=["yes", "no"], help="(for tests) treat main's renderer as reading refs= path entries, or not, instead of asking git")
     ap.add_argument("--main-changed", default="", help="(for tests, with --files) the files main changed since the branch point")
     ap.add_argument("--removed", default="", help="(for tests, with --files) the files the branch deletes or renames")
@@ -1209,7 +1255,7 @@ def main():
                                    "directory, else this repo); another repo's pages come from its "
                                    ".web-tools.json `showing` block")
     a = ap.parse_args()
-    global ROOT
+    global ROOT, PIN_BRANCH
     if a.intro:
         # First in the fragment, ahead of a page's own address keys, so a reader
         # of the raw link meets it where the page will.
@@ -1221,6 +1267,9 @@ def main():
         if top:
             ROOT = Path(top)
     diff = Path(a.diff).read_text() if a.diff else None
+    branch = a.branch if a.files is not None else branch_of(a.ref)
+    if branch and pin_ready(a.base, a.files is None, None if a.pin is None else a.pin == "yes"):
+        PIN_BRANCH = branch
     if a.path:
         d = named(a.path, a.ref, a.at, a.query)
     elif a.files is not None:

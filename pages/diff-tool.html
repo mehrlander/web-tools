@@ -17,6 +17,7 @@
 <script type="module">
   // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/gz-payload.js');   // the #gz= codec
   await gh.load('kits/url-params.js');
   await gh.load('kits/repo-address.js');
   await gh.load('kits/text-diff.js');
@@ -1301,26 +1302,9 @@ function diffApp() {
     },
 
     // ── serialization ────────────────────────────────────────────────────
-    b64urlEncode(bytes) {
-      let s = '';
-      for (const x of bytes) s += String.fromCharCode(x);
-      return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    },
-    b64urlDecode(str) {
-      let s = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (s.length % 4) s += '=';
-      const raw = atob(s), b = new Uint8Array(raw.length);
-      for (let i = 0; i < raw.length; i++) b[i] = raw.charCodeAt(i);
-      return b;
-    },
-    async gzipB64(str) {
-      const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'));
-      return this.b64urlEncode(new Uint8Array(await new Response(stream).arrayBuffer()));
-    },
-    async gunzipB64(b64) {
-      const stream = new Blob([this.b64urlDecode(b64)]).stream().pipeThrough(new DecompressionStream('gzip'));
-      return await new Response(stream).text();
-    },
+    // The #gz= codec is kits/gz-payload.js's.
+    gzipB64(str) { return window.GzPayload.encode(str); },
+    gunzipB64(b64) { return window.GzPayload.decode(b64); },
 
     state() {
       return {
