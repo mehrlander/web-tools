@@ -75,6 +75,12 @@ window.GH = withBase64(class {});
 // shared shim: with clientWidth falling back to 1, a slide index and a pixel
 // offset coincide and go(2) lands on slide 2, which is what a logic test needs.
 deckGeometry(window);
+// jsdom has no object URLs, and the paste bar's image pill makes one per image.
+// The set is what is live, so a test can see a closed bar revoke its own.
+const liveUrls = new Set();
+let urlSeq = 0;
+window.URL.createObjectURL = () => { const u = 'blob:test/' + ++urlSeq; liveUrls.add(u); return u; };
+window.URL.revokeObjectURL = (u) => { liveUrls.delete(u); };
 
 // alpine-bundle.js defines the browser store; the stager composes dropZone and
 // pathPicker, and its inline reader mounts a viewer, so all three must be
@@ -986,6 +992,26 @@ test('an image carries no peek, since the card reads text', async () => {
   await paste(fakeCd({ types: ['Files'], files: [fakeFile('image.png', 'image/png', 4096)] }));
   assert.equal(data.peekKey(data.offers[0]), '');
   assert.equal(peeks().size, 0);
+});
+
+test('an image pill shows its image instead, and closing the bar lets the URL go', async () => {
+  reset();
+  await paste(fakeCd({ types: ['Files', 'text/plain'], data: { 'text/plain': 'hello there' },
+                       files: [fakeFile('image.png', 'image/png', 4096)] }));
+  const img = data.offers.find(o => o.type === 'image/png');
+  const url = data.flavorThumb(img);
+  assert.match(url, /^blob:/);
+  assert.equal(data.flavorThumb(img), url, 'one URL per image, however often the pill draws');
+  assert.equal(data.flavorThumb(data.offers.find(o => o.type === 'text/plain')), '', 'a text flavor has no picture');
+  await tick(2);
+  assert.ok([...window.document.querySelectorAll('#st img')].some(i => i.getAttribute('src') === url),
+    'and the pill draws it');
+  // A decoded flavor carries no File; its picture is the staged item's bytes.
+  data.landDerived({ name: 'decoded.png', b64: { bytes: new Uint8Array([1, 2, 3]), mime: 'image/png' }, tag: 'base64' });
+  const decoded = data.flavorThumb(data.offers.find(o => o.name === 'decoded.png'));
+  assert.match(decoded, /^blob:/);
+  data.dismissOffers();
+  assert.ok(!liveUrls.has(url) && !liveUrls.has(decoded), 'closing the bar revokes both');
 });
 
 // ---- the pill's menu -------------------------------------------------------
