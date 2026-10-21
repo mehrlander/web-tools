@@ -37,10 +37,12 @@ const ROWS = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 
 // are addressable subviews rather than entries in the top-level strip.
 const tabsBlock = src.match(/TABS:\s*\[([\s\S]*?)\r?\n\s*\],\r?\n\s*SUBVIEWS:/)?.[1] || '';
 const subviewsBlock = src.match(/SUBVIEWS:\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*SUBVIEW_PARENT:/)?.[1] || '';
-const optionPattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: '(ph-[a-z-]+)'/g;
-const TABS = [...tabsBlock.matchAll(optionPattern)].map(m => ({ k: m[1], n: m[2], i: m[3] }));
+// An icon is a Phosphor class in quotes, or the name of a glyph the app draws
+// itself (REGISTRY_GLYPH, since Phosphor has no registry), held as a constant.
+const optionPattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: (?:'(ph-[a-z-]+)'|([A-Z_]+_GLYPH))/g;
+const TABS = [...tabsBlock.matchAll(optionPattern)].map(m => ({ k: m[1], n: m[2], i: m[3] || m[4] }));
 const SUBVIEWS = [...subviewsBlock.matchAll(optionPattern)]
-  .map(m => ({ k: m[1], n: m[2], i: m[3] }));
+  .map(m => ({ k: m[1], n: m[2], i: m[3] || m[4] }));
 // The same block read per tab, the way node/ui-units.mjs reads it to label a
 // unit: each group's key, then its options in strip order.
 const SUBVIEW_GROUPS = [...subviewsBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)]
@@ -250,8 +252,14 @@ test('every icon is a name the installed Phosphor carries', () => {
   const sheet = readFileSync(
     path.join(repoRoot, 'node_modules', '@phosphor-icons', 'web', 'src', 'regular', 'style.css'), 'utf8');
   const carried = new Set([...sheet.matchAll(/\.ph\.ph-([a-z0-9-]+)/g)].map(m => m[1]));
-  for (const t of [...TABS, ...SUBVIEWS])
+  for (const t of [...TABS, ...SUBVIEWS]) {
+    if (t.i.endsWith('_GLYPH')) {
+      assert.match(src, new RegExp(`const ${t.i} = '[^']*\\[mask:url\\(data:image/svg\\+xml,`),
+        `${t.n}: ${t.i} is not a mask glyph map.js defines`);
+      continue;
+    }
     assert.ok(carried.has(t.i.slice(3)), `${t.n}: ${t.i} is not an icon the font carries`);
+  }
 });
 
 test('a lede is one sentence and stays one', () => {
