@@ -4,10 +4,6 @@ Two things live here: the **Web Tools app**, the front door to the development e
 
 ⭐ **[Open the Web Tools app →](https://mehrlander.github.io/web-tools/app/)**: browse any repo, stage and move files between repos, read cross-repo activity, and reach the tools. [docs/APP.md](docs/APP.md) states the mission and is the app's reference. The [pages index](https://mehrlander.github.io/web-tools/pages/) lists every page with screenshots, live previews, and source links.
 
-[Web Tools Desktop](desktop/README.md) opens the same app in a Windows window,
-with a persistent laptop activity strip and a second view for local errands,
-results, applications, and folders.
-
 [Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), and [development checkout](#development-checkout), plus the parts used to build them.
 
 Four shapes have emerged:
@@ -356,3 +352,8 @@ one-sentence summary is enough.
 The repo's top-level `archive/` folder is reference material from earlier
 iterations, kept on disk for grep value. Not part of the current library or
 the menu above.
+## Web Tools Desktop
+
+[Web Tools Desktop](desktop/README.md) opens the same app in a Windows window,
+with a Now view for assistant work, the Gemini queue and recent results. A shared
+background companion supplies a private phone view through Tailscale.
