@@ -8,7 +8,7 @@ docs,status,recorded,,none,column,yes,living;record;measured,label,"whether the 
 docs,reach,computed,node/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
 docs,words,computed,node/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
 docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true; a bare row is counted by the registry rather than hidden
-docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
+docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename keeps its readership"
 tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
 tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
 tests,test_count,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many top-level test() calls the file writes, a static lower bound, not a count of the assert calls inside them. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
@@ -44,7 +44,7 @@ content,description,recorded,,none,column,yes,,value,one line on the artifact
 portable,kind,recorded,,value,column,yes,skill;agent;doc;script;dir,label,what species of thing travels
 portable,command,recorded,,none,column,yes,,value,the invocation name; present on kind:skill rows only
 portable,title,recorded,,none,column,yes,,value,display name
-portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time. Kept on the skills, whose skills row carries a model-facing trigger description rather than a reader's one-liner"
+portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time, and on every skill, which skills/manifest.csv describes"
 portable,use,recorded,,none,column,yes,plugin;live;reference;adopt;on-demand,label,"how a consumer takes the item: installed by the plugin, read live, referenced, adopted once, or fetched on demand"
 tools,icon,recorded,,none,column,yes,,value,phosphor icon name
 owners,kind,recorded,,value,column,yes,statement;family,label,"whether the row owns one repeated statement or declares a rule over a scope; a family row is a DECLARATION in this model, carried here because the file that owns it is distributed"
