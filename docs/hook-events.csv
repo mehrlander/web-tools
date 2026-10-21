@@ -1,0 +1,34 @@
+event,phase,summary
+Setup,session,Repo setup hooks for init and maintenance
+SessionStart,session,When a new session is started
+InstructionsLoaded,session,When an instruction file (CLAUDE.md or rule) is loaded
+ConfigChange,session,When configuration files change during a session
+CwdChanged,session,After the working directory changes
+DirectoryAdded,session,After a working directory is added mid-session
+FileChanged,session,When a watched file changes
+PreCompact,session,Before conversation compaction
+PostCompact,session,After conversation compaction
+PreModelSwitch,session,"Before a requested model switch (/model, model picker, set_model)"
+PostModelSwitch,session,After the session model changes (any cause)
+SessionEnd,session,When a session is ending
+UserPromptSubmit,prompt,When the user submits a prompt
+UserPromptExpansion,prompt,When a user-typed slash command expands into a prompt
+MessageDisplay,prompt,While assistant message text is displayed
+Notification,prompt,When notifications are sent
+Stop,prompt,Right before Claude concludes its response
+StopFailure,prompt,When the turn ends due to an API error
+PreToolUse,tool,Before tool execution
+PermissionRequest,tool,When a permission dialog is displayed
+PermissionDenied,tool,After auto mode classifier denies a tool call
+PostToolUse,tool,After tool execution
+PostToolUseFailure,tool,After tool execution fails
+PostToolBatch,tool,After a batch of tool calls resolves
+Elicitation,tool,When an MCP server requests user input (elicitation)
+ElicitationResult,tool,After a user responds to an MCP elicitation
+SubagentStart,agents,When a subagent (Agent tool call) is started
+SubagentStop,agents,Right before a subagent (Agent tool call) concludes its response
+TeammateIdle,agents,When a teammate is about to go idle
+TaskCreated,agents,When a task is being created
+TaskCompleted,agents,When a task is being marked as completed
+WorktreeCreate,agents,Create an isolated worktree for VCS-agnostic isolation
+WorktreeRemove,agents,Remove a previously created worktree

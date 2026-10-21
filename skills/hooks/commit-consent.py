@@ -16,9 +16,9 @@ THE TWO TRIGGERS, and both are narrow on purpose.
   a new file under tracker/tasks/    -> Task-named-by-user, or Approved
   a MODIFIED documentation file, on main -> Doc-change-approved, or Approved
 
-On any other branch a modified document passes with a reminder: its wording
-reaches the owner as a commit, and their approval comes before the merge
-rather than before the commit. A detached HEAD counts as main, since it can be
+On any other branch a modified or new document passes with a reminder: its
+wording reaches the owner as a commit, and their approval comes before the
+merge rather than before the commit. A detached HEAD counts as main, since it can be
 pushed straight there.
 
 Modified, not added: a new document retracts nothing and overrides nothing, so
@@ -270,8 +270,10 @@ Ask plainly and quote whatever they answer; never tell them what words to use.""
 
 DOC_REMINDER = """Note: {what}.
 
-Show the user this commit's diff, as the Review section of the doc-craft skill
-describes, and merge only after they approve the wording."""
+Show the user this commit's diff for approval now, as the Review section of the
+doc-craft skill describes. Name this change again whenever they ask what is open,
+show its diff again if they ask to merge, and merge only after they approve the
+wording."""
 
 
 def main(argv):
@@ -294,7 +296,10 @@ def main(argv):
     docs = [p for st, p in rows if st == "M" and is_doc(p, globs)
             and not is_generated(root, p) and not is_copy(root, p)
             and not is_research(p, research)]
-    if not tasks and not docs:
+    new_docs = [p for st, p in rows if st == "A" and is_doc(p, globs)
+                and not is_generated(root, p) and not is_copy(root, p)
+                and not is_research(p, research)]
+    if not tasks and not docs and not new_docs:
         return 0
 
     cited = trailers(msg, "Approved")
@@ -312,11 +317,13 @@ def main(argv):
             print(f"\n  The Approved trailer did not settle it: {p}", file=sys.stderr)
         return 1
 
+    if (docs or new_docs) and on_branch(root) and not approved and not trailers(msg, "Doc-change-approved"):
+        what = "documentation changed: " + ", ".join((docs + new_docs)[:3])
+        print(DOC_REMINDER.format(what=what), file=sys.stderr)
+        return 0
+
     if docs and not approved and not trailers(msg, "Doc-change-approved"):
         what = "documentation changed: " + ", ".join(docs[:3])
-        if on_branch(root):
-            print(DOC_REMINDER.format(what=what), file=sys.stderr)
-            return 0
         print(DOC_PROMPT.format(what=what), file=sys.stderr)
         for p in problems:
             print(f"\n  The Approved trailer did not settle it: {p}", file=sys.stderr)
