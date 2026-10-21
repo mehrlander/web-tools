@@ -15,7 +15,7 @@ substituting the current repo in URL templates.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
-  - ✴️ **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
+  - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
   - 🟣 **Merged:** This branch merged. State what shipped in one line.
@@ -35,7 +35,7 @@ substituting the current repo in URL templates.
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include assistant commit trailers per [surfacing-course.md](surfacing-course.md).
 
-* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, ⭐ for the deployed page, 📦 for a Claude artifact. Reserve `file:line` for grep and debugging.
+* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, ⭐ for the deployed page, 📦 for a Claude artifact. Cite a pull request as `[web-tools #997](…/pull/997) [🌿](…#gh=owner/repo&pr=997) [💬](…/pages/session.html#id=<short>) [<title>](https://claude.ai/code/<session>)`, writing (**this session**) in place of the title for the writer's own. Its head commit's `Claude-Session` trailer names the session, the session record's `short` field gives `<short>`, and a part with nothing to point at is left out. Reserve `file:line` for grep and debugging.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 

@@ -49,6 +49,13 @@ test('both spellings of the three variation-selector glyphs settle to one key', 
   assert.deepEqual(CS.marks('❇️ **a**'), CS.marks('❇ **a**'));
 });
 
+test('needs reads as 🛵, and ✴️ still reads as needs', () => {
+  // 🛵 replaced ✴️ for Needs you on 2026-10-21; past records carry ✴️, so it stays.
+  assert.deepEqual(CS.marks('🛵 **Needs you:** tap the link.'), ['needs']);
+  assert.deepEqual(CS.marks('✴️ **Needs you:** tap the link.'), ['needs']);
+  assert.equal(CS.GLYPH.needs, '🛵');
+});
+
 test('order and duplicates survive, because an exchange that closed twice did', () => {
   const md = '🆚 **Choice needed.** Pick.\n\n…\n\n🟢 **Ready.** Go.\n\n🟢 **Ready.** Again.';
   assert.deepEqual(CS.marks(md), ['choice', 'ready', 'ready']);
