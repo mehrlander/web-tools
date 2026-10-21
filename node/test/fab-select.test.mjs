@@ -1,13 +1,17 @@
 // fab-select.test.mjs — the launcher's selection offer: select text on the
-// page and "+ note" appears above the launcher; one tap turns the annotator on
-// and opens the composer on that passage.
+// page and the launcher lights; a tap then opens the drawer's Note tab with the
+// passage quoted over a plain field, and Save files the note into the
+// annotator's set. Nothing is drawn at the words.
 //
 // The fab declined a listener on the host document for years (the Text tab
 // snapshots the selection at the launcher tap instead), and the cost was that
 // a selection had no route to a note from the fab at all: the launcher's press
 // collapses it, and the menu behind the press offers every aim but the text.
 // Since 2026-09-08 the fab watches selectionchange, debounced, and offers the
-// passage; the kit loads only when the offer is taken.
+// passage; the kit loads only when the offer is taken. From 2026-09-08 to
+// 2026-10-20 the offer was a "+ note" control drawn on the passage; it is the
+// launcher itself now, since the platform's callout covered the control on a
+// phone and it interrupted every copy on a desktop.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -48,72 +52,31 @@ const select = (node, a, b) => {
   doc.dispatchEvent(new window.Event('selectionchange'));
 };
 const settle = async () => { await new Promise(r => setTimeout(r, 30)); await tick(2); };
-// TELEPORTED, so it is a child of the BODY rather than of the fab: the
-// launcher's root carries a transform for the drag, which is a containing
-// block for fixed descendants, so an offer inside it would be placed against
-// that box and would travel with the launcher.
-const offerEl = () => doc.body.querySelector('[data-fab-sel-offer]');
+// The launcher's disc: the element the offer lights.
+const disc = () => host.querySelector('[role="button"][tabindex="0"]');
+// A press and a release on the launcher, as onDown/onUp receive them.
+const press = () => ({ button: 0, pointerId: 1, clientX: 0, clientY: 0, pointerType: 'touch',
+                        currentTarget: { setPointerCapture() {} }, preventDefault() {} });
 
-test('selecting text on the page raises the offer, on the passage', async () => {
+test('selecting text on the page lights the launcher, and draws nothing at the words', async () => {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
   assert.ok(d.selOffer, 'the offer is up');
   assert.equal(d.selOffer.quote, 'quick brown fox');
-  // x-transition lifts display:none on a later frame; bounded poll, as the
-  // menu test does, rather than counting the scheduler's flushes.
-  for (let i = 0; i < 20 && offerEl().style.display === 'none'; i++) await tick(1);
-  assert.notEqual(offerEl().style.display, 'none');
-  // NO QUOTE ON IT: the offer sits on the words, so printing them would be the
-  // text saying itself twice, in width taken from the thing being read. The
-  // passage rides the button's title-tip instead.
-  assert.equal(offerEl().textContent.replace(/\s+/g, ' ').trim(), '+ note');
-  assert.match(offerEl().querySelector('button').getAttribute('data-title-tip'), /quick brown fox/);
-});
-
-test('the offer stands behind an open drawer instead of covering its phone-width pane', async () => {
-  const p1 = doc.getElementById('p1').firstChild;
-  select(p1, 4, 19);
-  await settle();
-  assert.ok(d.selOffer, 'the selection remains available');
-  d.open = true;
-  await tick(3);
-  assert.equal(offerEl().style.display, 'none', 'the teleported offer cannot sit over the drawer');
-  d.open = false;
-  await tick(3);
-});
-
-test('the offer is placed on the passage, and follows it when the page scrolls', async () => {
-  // It sat above the launcher first, which put a control about these words in
-  // the corner where the fab lives. jsdom has no layout, so the range's rect is
-  // stubbed: what is under test is the placement rule, not the geometry engine.
-  const p1 = doc.getElementById('p1').firstChild;
-  const base = rect;
-  try {
-    select(p1, 4, 19);
-    await settle();
-    assert.ok(d.selOffer, 'the offer is up');
-    // Below the passage by default: iOS puts its own callout above a selection
-    // where there is room, so the underside is the freer one more often.
-    assert.equal(d.selOffer.top, 326, 'just under the passage');
-    assert.equal(d.selOffer.left, 120, 'aligned to its left edge');
-
-    // Scrolling moves the words and fires no selectionchange, so the offer has
-    // to be told; otherwise it points at whatever scrolled into its place.
-    rect = { ...base, top: 60, bottom: 78 };
-    doc.dispatchEvent(new window.Event('scroll'));
-    await tick(2);
-    assert.equal(d.selOffer.top, 86, 'and it followed');
-
-    // Scrolled clear of the viewport, the offer goes rather than clamping to an
-    // edge, where it would point at nothing.
-    rect = { ...base, top: -400, bottom: -382 };
-    doc.dispatchEvent(new window.Event('scroll'));
-    await tick(2);
-    assert.equal(d.selOffer, null);
-  } finally {
-    rect = base;
-  }
+  await tick(2);
+  // The highlighter replaces the mark, the disc wears a ring, and the passage
+  // rides the disc's title-tip, which is a hover label on a control.
+  assert.ok(disc().querySelector('i').classList.contains('ph-highlighter'), 'the highlighter is on the launcher');
+  assert.match(disc().className, /ring-2/);
+  assert.match(disc().getAttribute('data-title-tip'), /quick brown fox/);
+  assert.equal(disc().getAttribute('aria-label'), 'Note the selected text');
+  // Nothing at the words: the control the platform's callout used to cover is gone.
+  assert.equal(doc.querySelector('[data-fab-sel-offer]'), null);
+  d.dropSelOffer();
+  await tick(2);
+  assert.ok(disc().querySelector('i').classList.contains('ph-sidebar-simple'), 'and the mark comes back');
+  assert.equal(disc().getAttribute('data-title-tip'), null);
 });
 
 test('a collapsed selection takes the offer down; a caret is not a passage', async () => {
@@ -139,15 +102,16 @@ test('a selection inside a field the reader is typing in is not offered', async 
   ta.blur();
 });
 
-test('the offer stands down while the annotator is on, whose own controls offer the same', async () => {
+test('the launcher lights with the annotator on as well', async () => {
   window.Annotate.enable({ doc });
   select(doc.getElementById('p1').firstChild, 4, 19);
   await settle();
-  assert.equal(d.selOffer, null);
+  assert.ok(d.selOffer);
+  d.dropSelOffer();
   window.Annotate.disable();
 });
 
-test('taking the offer turns the annotator on and opens the composer on the passage', async () => {
+test('taking the offer opens the Note tab with the passage quoted over an empty field', async () => {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
@@ -156,14 +120,211 @@ test('taking the offer turns the annotator on and opens the composer on the pass
   // offer read is what travels, so the note is still about the passage.
   window.getSelection().removeAllRanges();
   await d.noteSelection();
+  await tick(2);
   assert.equal(d.selOffer, null, 'the offer is spent');
-  const A = window.Annotate;
+  assert.equal(d.open, true, 'the drawer opened');
+  assert.equal(d.activeTab, 'note', 'on the Note tab');
+  assert.equal(d.noteQuote, 'quick brown fox', 'with the passage quoted');
+  const ta = host.querySelector('[data-fab-note-ta]');
+  assert.ok(ta, 'the field is there');
+  assert.equal(doc.activeElement, ta, 'and has the focus');
+  // The annotator holds the set and the highlight; its card is not the surface.
+  const A = window.Annotate, S = A._state;
   assert.equal(A.enabled, true, 'the annotator came on');
-  const S = A._state;
-  assert.ok(S.draft, 'and a draft is open');
-  assert.equal(S.draft.target.type, 'text');
-  assert.equal(S.draft.target.quote.exact, 'quick brown fox');
+  assert.ok(host.querySelector('[data-fab-note-hold]').contains(S.ui), 'its card waits in the hidden holder');
+  assert.equal(S.draft, null, 'and stages no draft of its own');
+  assert.equal(d.noteTarget.quote.exact, 'quick brown fox');
+  assert.equal(S.pending && S.pending.quote.exact, 'quick brown fox', 'the passage is marked while the note is written');
+
+  // Saving files the note into the annotator's set, and the list reads it back.
+  d.noteText = 'a note on the fox';
+  await d.saveNote();
+  await tick(2);
+  assert.equal(A.items.length, 1);
+  assert.equal(A.items[0].target.quote.exact, 'quick brown fox');
+  assert.equal(window.Alpine.raw(A.items[0].target), A.items[0].target, 'the set keeps a plain object, not the tab\'s proxy');
+  assert.equal(A.items[0].note, 'a note on the fox');
+  assert.equal(S.pending, null, 'the mark gives way to the note\'s own highlight');
+  assert.equal(d.noteQuote, '', 'the field is ready for the next one');
+  assert.equal(d.noteText, '');
+  assert.equal(d.notesList.length, 1);
+  assert.match(d.notesList[0].about, /quick brown fox/);
+  d.noteRemove(d.notesList[0].id);
+  await tick(2);
+  assert.equal(A.items.length, 0, 'deleting from the list deletes from the set');
+  assert.equal(d.notesList.length, 0);
   A.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('a tap on the lit launcher takes the passage, even when the press collapsed the selection first', async () => {
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  assert.ok(d.selOffer);
+  d.onDown(press());
+  // The press collapses the page's selection, and the debounced read clears
+  // the offer before the release arrives: the case that motivated holding it.
+  window.getSelection().removeAllRanges();
+  doc.dispatchEvent(new window.Event('selectionchange'));
+  await settle();
+  assert.equal(d.selOffer, null, 'the read cleared the offer');
+  d.onUp(press());
+  // The quote and the tab are set inside the tap; the anchoring follows the
+  // kit, so this polls on time rather than on ticks.
+  assert.equal(d.activeTab, 'note');
+  assert.equal(d.noteQuote, 'quick brown fox');
+  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !d.noteTarget; ) await tick(1);
+  assert.equal(d.noteTarget.quote.exact, 'quick brown fox');
+  d.noteClear();
+  assert.equal(window.Annotate._state.pending, null, 'clearing drops the mark');
+  window.Annotate.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('the page selection is cleared inside the tap, before any field takes the focus', async () => {
+  // WebKit's document selection includes a focused field's caret, so clearing
+  // the selection after the Note field had the focus left an iPhone's keyboard
+  // up with nowhere to type. The clear has to happen in the tap, synchronously.
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  assert.ok(d.selOffer);
+  // jsdom, like WebKit, moves the document's selection into a field that
+  // takes the focus, which would deselect the passage on its own; the
+  // foothold's focus is stubbed so only the explicit clear can.
+  const proxy = host.querySelector('input[aria-hidden="true"]');
+  proxy.focus = () => {};
+  const pending = d.noteSelection();          // not awaited: what follows is the tap's own work
+  assert.equal(window.getSelection().rangeCount, 0, 'the passage is deselected before the first await');
+  delete proxy.focus;
+  await pending;
+  await tick(2);
+  // And nothing after the anchoring takes the focus from the field.
+  assert.equal(doc.activeElement, host.querySelector('[data-fab-note-ta]'));
+  d.noteClear();
+  window.Annotate.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('typing that lands on the keyboard foothold is carried into the Note field', async () => {
+  d.toggle();
+  d.setTab('note');
+  await tick(3);
+  const proxy = host.querySelector('input[aria-hidden="true"]');
+  const ta = host.querySelector('[data-fab-note-ta]');
+  // As on a phone where the move to the field missed: the foothold has focus.
+  proxy.focus();
+  proxy.value = 'H';
+  proxy.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick(2);
+  assert.equal(d.noteText, 'H', 'the keystroke reached the note');
+  assert.equal(proxy.value, '', 'and left the foothold empty');
+  assert.equal(doc.activeElement, ta, 'and the focus moved to the field with it');
+  d.noteClear();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('closing the drawer before saving selects the passage again, and keeps what was written', async () => {
+  // jsdom has no Highlight API; a stub records what the kit paints, so the
+  // mark can be seen to go when the selection comes back.
+  // A Set-backed Highlight and a Map registry, which is the shape the real
+  // ones have (setlike and maplike), so clear(), size and get() behave.
+  const had = { Highlight: window.Highlight, CSS: window.CSS };
+  const marks = new Map();
+  window.Highlight = class extends Set { constructor(...r) { super(r); } };
+  window.CSS = { highlights: marks };
+  try {
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  await d.noteSelection();
+  await tick(2);
+  const A = window.Annotate;
+  assert.ok(A._state.pending, 'the passage is marked while the drawer is open');
+  const mark = marks.get('annotate-notes-draft');
+  assert.equal([...mark].map(String).join(), 'quick brown fox', 'painted on the page');
+  d.noteText = 'half a thought';
+  const p1el = doc.getElementById('p1');
+  d.close();
+  // WebKit kept the orange painted when the registry merely let go of it
+  // (reported from an iPhone). The old mark is cleared, which is what makes
+  // an engine repaint what it covered, and the block it sat on is nudged.
+  assert.equal(mark.size, 0, 'the old mark is cleared, not just dropped');
+  assert.equal(p1el.style.opacity, '0.999', 'and the passage is made to repaint');
+  await new Promise(r => setTimeout(r, 60));
+  assert.equal(p1el.style.opacity, '', 'leaving its style as it was');
+  await tick(2);
+  const sel = window.getSelection();
+  assert.equal(sel.toString(), 'quick brown fox', 'the selection is back on the passage');
+  assert.equal(A._state.pending, null, 'and the mark gives way to it');
+  assert.equal(marks.has('annotate-notes-draft'), false, 'with nothing of it left on the page');
+  assert.equal(d.noteText, 'half a thought', 'what was written stays in the field');
+  // The launcher hears the restored selection and lights for it, so one tap
+  // returns to the note in progress.
+  await settle();
+  assert.ok(d.selOffer, 'the launcher lights again');
+  await d.noteSelection();
+  await tick(2);
+  assert.equal(d.noteQuote, 'quick brown fox');
+  assert.equal(d.noteText, 'half a thought', 'and the text is still there');
+  // Filed, there is no passage left to hand back.
+  await d.saveNote();
+  d.close();
+  await tick(2);
+  assert.equal(window.getSelection().toString(), '', 'nothing is reselected after a save');
+  A.clear(); A.disable();
+  d.activeTab = 'render';
+  await tick(2);
+  } finally { window.Highlight = had.Highlight; window.CSS = had.CSS; }
+});
+
+test('the Note tab opened by hand writes about the page, and Ctrl or Cmd Enter saves', async () => {
+  d.toggle();
+  d.setTab('note');
+  await tick(3);
+  assert.equal(d.noteQuote, '');
+  const ta = host.querySelector('[data-fab-note-ta]');
+  ta.value = 'a thought about the whole page';
+  ta.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick(1);
+  ta.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
+  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !(window.Annotate && window.Annotate.items.length); ) await tick(1);
+  const A = window.Annotate;
+  assert.equal(A.items.length, 1);
+  assert.equal(A.items[0].target.type, 'page');
+  assert.equal(A.items[0].note, 'a thought about the whole page');
+  assert.equal(d.notesList[0].about, 'About the page');
+  A.clear(); A.disable();
+  d.close(); d.activeTab = 'render';
+  await tick(2);
+});
+
+test('an aim from the launcher menu steps off the Note tab, since the dock is hidden there', async () => {
+  d.toggle();
+  d.setTab('note');
+  await tick(2);
+  await d.openAnnotate();
+  await tick(2);
+  assert.notEqual(d.activeTab, 'note');
+  assert.ok(host.querySelector('[data-fab-note-dock]').contains(window.Annotate._state.ui), 'the card is in the dock');
+  window.Annotate.disable();
+  d.close();
+  await tick(2);
+});
+
+test('with nothing selected, a tap on the launcher opens the drawer as it always has', async () => {
+  d.dropSelOffer();
+  d.onDown(press());
+  d.onUp(press());
+  await tick(2);
+  assert.equal(d.open, true);
+  d.close();
+  await tick(2);
 });
 
 test('forgetting the offer drops it and the range with it', async () => {
@@ -188,4 +349,32 @@ test('a page that notes a selection itself declares so, and the offer stands dow
   await settle();
   assert.ok(d.selOffer, 'any other page keeps the offer');
   d.dropSelOffer();
+});
+
+test('in a toss, a document the subject frame loads after the announcement is watched too', async () => {
+  // toss-render announces the subject as it STARTS the frame's load, so a
+  // launcher already up reads the document being replaced. Two jsdom iframes
+  // stand in for the outgoing and the incoming document of one frame.
+  const mk = () => { const f = doc.createElement('iframe'); doc.body.appendChild(f);
+    f.contentDocument.body.innerHTML = '<p>Words in the framed page to select.</p>'; return f.contentDocument; };
+  const outgoing = mk(), incoming = mk();
+  const frame = new window.EventTarget();
+  let current = outgoing;
+  Object.defineProperty(frame, 'contentDocument', { get: () => current });
+  window.__tossFrame = frame;
+  try {
+    d.adoptSubject();
+    current = incoming;
+    frame.dispatchEvent(new window.Event('load'));
+    const t = incoming.querySelector('p').firstChild;
+    const r = incoming.createRange(); r.setStart(t, 0); r.setEnd(t, 5);
+    const sel = incoming.defaultView.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    incoming.dispatchEvent(new window.Event('selectionchange'));
+    await settle();
+    assert.ok(d.selOffer, 'the incoming document was heard');
+    assert.equal(d.selOffer.quote, 'Words');
+    d.dropSelOffer();
+  } finally {
+    window.__tossFrame = null;
+  }
 });

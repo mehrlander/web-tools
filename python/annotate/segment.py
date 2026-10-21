@@ -25,7 +25,7 @@ import re, sys, json, hashlib
 # the masked text and emits them against the original, so every unit after
 # one of these abbreviations in a block is shifted. The digit and list-marker
 # guards keep the length. Padding each token to the width it replaces would fix
-# it (docs/SNAGS.md, `guards-shift-the-offsets`).
+# it (the snag `guards-shift-the-offsets`).
 GUARD = [(r'\be\.g\.', '\x01'), (r'\bi\.e\.', '\x02'), (r'\betc\.', '\x03'),
          (r'\bvs\.', '\x04'), (r'(\d)\.(\d)', lambda m: m.group(1)+'\x05'+m.group(2)),
          (r'(?m)^([ \t]{0,3}\d+)\.(?=[ \t])', lambda m: m.group(1)+'\x05')]

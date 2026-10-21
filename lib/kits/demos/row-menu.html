@@ -27,7 +27,7 @@
     { kit: 'source-peek.js',   ns: 'SourcePeek',  lines: 477,  users: 8 },
     { kit: 'src-doc.js',       ns: 'srcDoc',      lines: 97,   users: 8 },
     { kit: 'swipe-deck.js',    ns: 'swipeDeck',   lines: 1043, users: 5 },
-  ].map(r => ({ ...r, url: 'https://github.com/mehrlander/web-tools/blob/main/lib/kits/' + r.kit }));
+  ].map(r => ({ ...r, url: window.RepoAddress.github.blob('mehrlander/web-tools', 'main', 'lib/kits/' + r.kit) }));
 
   const table = new Tabulator('#grid', {
     data: KITS, maxHeight: '280px', layout: 'fitColumns',

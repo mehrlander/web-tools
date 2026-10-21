@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { makeWindow, tick, repoRoot, captureAlpineErrors, withBase64 } from './bootstrap.mjs';
 
 const { window, problems } = makeWindow({
   html: `<!doctype html><html><body><div id="p" x-data="proposals()"></div></body></html>`,
@@ -65,8 +65,13 @@ window.GH = class {
   async createPull(args) { writes.push({ createPull: args }); return { html_url: 'https://github.com/' + this.repo + '/pull/12', number: 12 }; }
   async save(p, body) { saves.push({ repo: this.repo, path: p, body }); }
 };
+// The base64 statics are gh-api.js's own, which the kit encodes through.
+withBase64(window.GH);
 window.__shell = { REGISTRY_REPO: REG, hasToken: () => true, loadProposalCount: () => { window.__shell._counted = true; } };
 
+// Every github.com link goes through window.RepoAddress.github, which every
+// page boots ahead of any kit or component.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-proposals.js'), 'utf8'))();
 // The put-file pane diffs through the shared kit when it is present, which it
 // is wherever the view really runs (the app loads it in its own chain).

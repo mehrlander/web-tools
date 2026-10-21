@@ -178,7 +178,7 @@ const CHAINS  = 'mehrlander/shortcut-tools';
 const PRIVATE = 'mehrlander/web-tools-private';
 const CATALOG = `https://raw.githubusercontent.com/${CHAINS}/${REF}/catalog.json`;
 const PLIST   = n => `https://raw.githubusercontent.com/${CHAINS}/${REF}/plists/${n}.plist`;
-const BLOB    = f => `https://github.com/${CHAINS}/blob/${REF}/workflows/${f}`;
+const BLOB    = f => window.RepoAddress.github.blob(CHAINS, REF, `workflows/${f}`);
 const LOGS    = 40;   // enough history for build freshness; older runs say nothing new
 
 const el = id => document.getElementById(id);

@@ -7,7 +7,7 @@
 //
 // The sandbox blocks api.github.com and the registry is private, so the
 // scenario stubs the GH methods the estate touches and serves a fixture
-// lists/jots.json. What the pixels prove: the capture box on top, the pile
+// lists/jot.json. What the pixels prove: the capture box on top, the pile
 // below it newest first, each row with the lightbulb mark, wrapping text,
 // and its age at the right edge.
 //
@@ -33,7 +33,7 @@ export default async function (page) {
       items: [
         { id: 'j1', text: 'A jots pile beside the to-do list: capture has no done state, only promotion or deletion', created_at: h(90) },
         { id: 'j2', text: 'A page that skips the loader ignores ?use= and the wrong link looks right', kind: 'snag', created_at: h(26) },
-        { id: 'j3', text: 'Drain pass: an agent reads lists/jots.json and promotes each jot to chron, a task, or a to-do', created_at: h(3) },
+        { id: 'j3', text: 'Drain pass: an agent reads lists/jot.json and promotes each jot to chron, a task, or a to-do', created_at: h(3) },
         { id: 'j4', text: 'Jot commit messages carry the text, so the file history is a capture log', kind: 'idea', created_at: h(0) },
       ],
     };
@@ -42,8 +42,8 @@ export default async function (page) {
     const origReq = window.GH.prototype.req;
     const origLs = window.GH.prototype.ls;
     window.GH.prototype.get = async function (name) {
-      if (name === 'lists/jots.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(JOTS) };
-      if (name === 'lists/todo.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(TODOS) };
+      if (name === 'lists/jot.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(JOTS) };
+      if (name === 'lists/to-do.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(TODOS) };
       if (name === '.web-tools.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: '{"repos":[]}' };
       if (name === 'state/configs.json' || name === 'state/activity.json')
         throw Object.assign(new Error('404'), { status: 404 });

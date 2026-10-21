@@ -4,7 +4,7 @@
 
   THE QUESTION. On an iPhone, a toss shell whose own lib is pinned with ?use=
   and that hosts a frame loses Safari's web process on the first FAB tap
-  (docs/SNAGS.md, shell-pin-kills-the-tab). That matrix ran on 2026-09-08,
+  (the snag shell-pin-kills-the-tab). That matrix ran on 2026-09-08,
   when the unpinned shell imported its modules from jsDelivr. Since 2026-09-26
   both routes read everything after gh-api.js through the contents API, so the
   delivery difference left is narrower: HOW gh-api.js arrives (native import
@@ -17,7 +17,8 @@
   is only trustworthy if its positive control (cell D, the recorded crash
   shape) dies on the device. If D survives, the replica is not reproducing the
   failure and no other cell here means anything; cell G, the real toss-render
-  in the shape the app's ref switcher mints, is there to say which.
+  pinned with ?use=, was there to say which. Since PR #825 the renderer ignores
+  ?use=, so cell G no longer tests the pin.
 
   THE RETURN CHANNEL is the FAB's own: every cell carries ?case=<cell>, the FAB
   stamps it into its crash trail at tap time, and the next page to boot a FAB
@@ -187,7 +188,7 @@
     }
   } else {
     renderMatrix();
-    // The real thing, in the shape lib/alpineComponents/ref-switch.js mints.
+    // The real thing, in the shape lib/alpineComponents/ref-switch.js minted.
     // Its drawer cannot be watched from here, and a crash there is filed by
     // toss-render's own FAB, which clears the trail before this page could
     // read it. So G's row says only that it was opened, and its result is the

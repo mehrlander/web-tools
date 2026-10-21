@@ -441,6 +441,7 @@ window.__audit = {
   // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
   const p = new URLSearchParams(location.search);
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/gz-payload.js');   // the #gz= codec
   await gh.load('vanilla-bundle.js');   // window.esc; the suite gates local copies
   await gh.load('kits/md-doc.js');
   await gh.load('kits/swipe-deck.js');
@@ -502,23 +503,11 @@ window.__audit = {
                   h4: 'heading 4', h5: 'heading 5', h6: 'heading 6' };
 
   const WORD = /[\w'\u2019-]/;
-  // The fragment encoding pages/shorter.html reads: gzip, then base64url with
-  // the padding dropped. Its own gunzipB64url is the inverse, character for
-  // character; kits/compression.js is the wrong shelf for this, since its gzip
-  // emits a GZ64-prefixed payload for a different reader.
-  const gzipB64url = async (text) => {
-    const cs = new CompressionStream('gzip');
-    const buf = await new Response(new Blob([text]).stream().pipeThrough(cs)).arrayBuffer();
-    let bin = '';
-    for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
-    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  };
-  // The inverse, for a payload carried in this page's own #gz=: no commit, and
-  // the fragment never reaches a server.
-  const gunzipJson = async (b64) => {
-    const bin = Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-    return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
-  };
+  // The fragment encoding pages/shorter.html reads, and this page's own #gz=:
+  // kits/gz-payload.js's codec. kits/compression.js is the wrong shelf for
+  // this, since its gzip emits a GZ64-prefixed payload for a different reader.
+  const gzipB64url = (text) => window.GzPayload.encode(text);
+  const gunzipJson = (b64) => window.GzPayload.decodeJson(b64);
   // Review's own key in the chip row: every unit with a note. Not a label any
   // vocabulary could declare.
   const NOTED = '\u0000noted';
@@ -912,7 +901,7 @@ window.__audit = {
     // Two rounds of "no change" were spent on a `?use=` address, which swaps the
     // LIB at a ref and never the page file: Pages serves the page from the
     // default branch, so a fix living in this file was absent with nothing on
-    // screen to say so (docs/SNAGS.md, use-swaps-the-lib-not-the-page).
+    // screen to say so (the snag use-swaps-the-lib-not-the-page).
     //
     // A stamp injected at build time would be the general answer and is not
     // what this is. This is cheaper and cannot go stale: each token is a claim

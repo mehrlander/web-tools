@@ -32,7 +32,8 @@ to see the vital choice and commit.
    requires the owner's judgment, as a user call with a recommendation.
 4. **A finding is stored, linked to its subjects.** Write it with
    `findings.py` into the notes store (`/portable:notes`), naming every subject
-   it concerns. A trap still goes in its `docs/SNAGS.md` entry. Create no other
+   it concerns. A trap still goes in the Snag list (`lists/snag.json` in the
+   registry). Create no other
    record to hold a finding; where no notes store is reachable, it goes in the
    reply.
 
@@ -136,11 +137,14 @@ Branches does.
 
 ## Snags
 
-The `×N` count in `docs/SNAGS.md` orders the reading and triggers nothing.
+Snags are the Lists view's Snag list (`lists/snag.json` in the registry, shape
+in `docs/views/lists.md`). How many dates an item's `seen` holds orders the
+reading and triggers nothing.
 
-- **Act:** log a trap this pass hits, as an entry or a date on its owner.
-- **Find:** a snag that still bites (no task cites its slug, its entry records
-  no fix in place), and entries the index flags as overlapping.
+- **Act:** log a trap this pass hits, as an item or as a date on the item that
+  owns it.
+- **Find:** a snag that still bites (no task cites its id, its entry records no
+  fix in place), and items whose titles name the same trap.
 - **Propose:** a task for a snag that still bites.
 
 ## Prod

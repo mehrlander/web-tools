@@ -22,8 +22,8 @@
 
 import { readFileSync, readdirSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { loadKit } from './kit-shim.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 // Git stores source text with LF, but a Windows checkout may present CRLF.
 // Normalize embedded source so the committed bundle is byte-identical on
@@ -31,7 +31,6 @@ import { loadKit } from './kit-shim.mjs';
 const sourceText = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 
 const REPO = 'mehrlander/web-tools';
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const libDir = path.join(repoRoot, 'lib');
 
 // Every .js under lib/, as posix paths relative to lib/ (the gh.load arg form).

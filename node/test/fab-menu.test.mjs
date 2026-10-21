@@ -25,10 +25,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 const doc = window.document;
@@ -499,9 +498,13 @@ test('a declaration with no sections offers no row', async () => {
 test('each row arms its own aim on the kit, and turns the annotator on first', async () => {
   clearPages();
   const calls = [];
+  const hosts = [];
   window.Annotate = {
     enabled: false,
-    enable() { this.enabled = true; calls.push('enable'); },
+    // Every aim goes through openAnnotate now, since the card lives in the
+    // drawer and an aim taken with the drawer shut has to open it; the kit's
+    // enable is idempotent for one document and one host, as this one is.
+    enable(o) { hosts.push(o && o.host); if (!this.enabled) calls.push('enable'); this.enabled = true; },
     notePage(o) { calls.push('page:' + JSON.stringify(o)); },
     startPick(o) { calls.push('pick:' + (o && o.aim ? o.aim : 'el')); },
     startRegion() { calls.push('region'); },
@@ -509,14 +512,22 @@ test('each row arms its own aim on the kit, and turns the annotator on first', a
     items: [],
   };
   const d = await mountFab();
-  await d.annAim('page');
-  await d.annAim('pick');
-  await d.annAim('section');
-  await d.annAim('region');
-  assert.deepEqual(calls,
-    ['enable', 'page:{"listen":false}', 'pick:el', 'pick:section', 'region'],
-    'the first aim enables and the rest find it already on');
-  delete window.Annotate;
+  try {
+    await d.annAim('page');
+    // A page note is written with the drawer up, in the dock at its foot.
+    assert.equal(d.open, true, 'a page note keeps the drawer open');
+    assert.ok(hosts[0] && hosts[0].hasAttribute('data-fab-note-dock'), 'the card is aimed at the drawer\'s dock');
+    await d.annAim('pick');
+    // A pick covers the page, so the drawer steps aside for it.
+    assert.equal(d.open, false, 'a pick puts the drawer away');
+    await d.annAim('section');
+    await d.annAim('region');
+    assert.deepEqual(calls,
+      ['enable', 'page:{"listen":false}', 'pick:el', 'pick:section', 'region'],
+      'the first aim enables and the rest find it already on');
+  } finally {
+    delete window.Annotate;
+  }
 });
 
 // The toss case, and the bug the probe fixes. subjectReached is set inside

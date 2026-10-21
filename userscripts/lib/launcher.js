@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '45a0039';
-const BUILT = '2026-10-18T21:52:01Z';
+const BUILD = '532e690';
+const BUILT = '2026-10-20T14:33:22Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -1201,10 +1201,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
              font: 400 14px/1.4 ui-sans-serif, -apple-system, system-ui, sans-serif;
              color: var(--wt-bc); }
     .backdrop {
-      position: absolute; inset: 0; background: rgba(0, 0, 0, .28);
+      position: absolute; inset: 0; background: rgba(0, 0, 0, .12);
       opacity: 0; pointer-events: none; transition: opacity .25s ease-out;
     }
-    .layer.open .backdrop { opacity: 1; pointer-events: auto; }
+    .layer.open .backdrop { opacity: 1; pointer-events: none; }
 
     .panel { position: absolute; inset-block: 0; right: 0; left: auto;
              width: 22rem; max-width: 88vw;
@@ -1212,8 +1212,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
              display: flex; flex-direction: column;
              background: var(--wt-b100); border-left: 1px solid var(--wt-b300);
              box-shadow: 0 25px 50px -12px #00000040;
-             pointer-events: auto; overscroll-behavior: contain; }
-    .panel.open { transform: translateX(0); }
+             pointer-events: none; overscroll-behavior: contain; }
+    .panel.open { transform: translateX(0); pointer-events: auto; }
 
     .panel.fullscreen {
       left: 0; right: 0; top: 0; bottom: 0;
@@ -4509,7 +4509,32 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   if (expandBtn) expandBtn.onclick = () => toggleFullscreen(true);
   const returnBtn = q('.return-btn');
   if (returnBtn) returnBtn.onclick = () => toggleFullscreen(false);
-  q('.backdrop').onclick = closeDrawer;
+
+  let outsideTap = null;
+  let lastPageScrollAt = 0;
+  window.addEventListener('scroll', () => { lastPageScrollAt = Date.now(); }, { passive: true, capture: true });
+  document.addEventListener('pointerdown', e => {
+    if (!panel.classList.contains('open') || state.fullscreen) { outsideTap = null; return; }
+    if (e.composedPath().includes(host)) { outsideTap = null; return; }
+    if (Date.now() - lastPageScrollAt < 350) { outsideTap = null; return; }
+    outsideTap = { x: e.clientX, y: e.clientY, t: Date.now(), sy: window.scrollY };
+  }, { passive: true });
+  document.addEventListener('pointermove', e => {
+    if (!outsideTap) return;
+    if (Math.hypot(e.clientX - outsideTap.x, e.clientY - outsideTap.y) > 6) outsideTap = null;
+  }, { passive: true });
+  document.addEventListener('pointercancel', () => { outsideTap = null; }, { passive: true });
+  document.addEventListener('pointerup', e => {
+    if (!outsideTap) return;
+    const tap = outsideTap;
+    outsideTap = null;
+    if (Date.now() - tap.t > 300) return;
+    if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 6) return;
+    if (Math.abs(window.scrollY - tap.sy) > 2 || (Date.now() - lastPageScrollAt < 350)) return;
+    const tEl = e.target?.nodeType === 1 ? e.target : e.target?.parentElement;
+    if (tEl?.closest?.('a, button, input, textarea, select, label, summary, [role="button"], [contenteditable]')) return;
+    closeDrawer();
+  }, { passive: true });
 
   const copyBtn = q('.copy-btn');
   if (copyBtn) {

@@ -21,8 +21,8 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const self = path.relative(repoRoot, fileURLToPath(import.meta.url)).split(path.sep).join('/');
 
 const CODE = /\.(m?js|cjs|html|py|sh)$/;

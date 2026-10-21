@@ -6,7 +6,8 @@ description: "Review a rendered screenshot before handing it over or drawing a c
 # Screenshot Review
 
 A headless screenshot that fails rarely errors; it renders something plausible
-and wrong (the recorded classes: web-tools `docs/SNAGS.md`). The session that
+and wrong (the recorded classes are snags, in the registry's
+`lists/snag.json`). The session that
 produced the shot is its worst-placed reader: it sees what the image is
 supposed to show. Put fresh readers in front of the image before the user is.
 
@@ -32,7 +33,7 @@ text to the shot log.
 
 ## Checklist
 
-Extend it in SNAGS first, here second.
+Record a new class as a snag first, then extend the checklist here.
 
 - Flat prose: default serif or unstyled weights where the page uses a design
   system.

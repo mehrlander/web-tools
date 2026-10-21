@@ -17,9 +17,8 @@ changed files and prints the render line to paste, or an honest no-link with the
 reason ([`python/showing.py`](python/showing.py)). It
 happened again on 2026-08-22, with the `?use=` trap itself in context, which is
 why the last rule this section stated in prose is now executable. The honesty
-rule survives, since no script supplies it: only a page renders this way, for a
-kit or doc ⭐ links the `[new]` blob, and where no link reaches a change, say so
-and send a headless screenshot.
+rule survives, since no script supplies it: where no link reaches a change, say
+so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails
 
@@ -69,10 +68,10 @@ never by renaming a side, which keeps the duplicate.
 
 ## Snags
 
-[`docs/SNAGS.md`](docs/SNAGS.md) is this repo's friction log, the store behind the conventions' "where a friction observation goes instead." Its own header carries the intake shape, the recurrence rule, the generated index, and what is still provisional; this section restated them and was the copy.
+Snags go in the Lists view's Snag list, `lists/snag.json` in web-tools-private, which holds every repo's; [docs/views/lists.md](docs/views/lists.md) has the item shape and the recurrence rule. A session adds one, or a date to the item a repeat belongs to, by editing that file and committing to the registry's main. A citation names a snag by its `id`, the slug its heading carried in `docs/SNAGS.md` before 2026-10-20.
 
 ## Environment & testing
 
-For visual changes, `npm run shot -- <page>` (`--ref` for `?use=`, `--script` for interactions, `--measure` for phone-width overflow and render health) renders branch pixels headless; send the PNG into chat (conventions: "Show pixels").
+For visual changes, `npm run shot -- <page>` (`--ref` for `?use=`, `--script` for interactions, `--measure` for phone-width overflow and render health) renders branch pixels headless; send the PNG into chat (conventions: "A screenshot").
 
 [`docs/environment/`](docs/environment/) is a living, dated record of the Claude Code web environment, split by concern: [capabilities](docs/environment/capabilities.md) (network allowlist, headless browser, toolchain), [container](docs/environment/container.md) (what persists across sessions), [testing](docs/environment/testing.md) (the jsdom+Alpine recipe and page-preview constraints), and [extending](docs/environment/extending.md) (the Claude Code component model and the hooks this repo runs). Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.

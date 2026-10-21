@@ -4,8 +4,9 @@
 #
 # A cloud session restores a snapshot taken when the environment was built, so
 # the plugin pin is build day's until something moves it. This moves it. Skills
-# from the new pin appear within the session; hooks follow next session or after
-# /reload-plugins. Each printed line names a moved or newly installed pin.
+# from the new pin appear within the session, and so do hooks that run after
+# this one; the start-up hooks that already ran used the old pin. Each printed
+# line names a moved or newly installed pin.
 #
 # It cannot recover a pin that fails to load, since it runs from the plugin: fix
 # main, then change any byte of the setup script to force a rebuild
@@ -44,7 +45,7 @@ if ! claude plugin update --scope user portable@web-tools >> "$LOG" 2>&1; then
   echo "portable@web-tools refresh FAILED (pin still ${before:-none}); see $LOG"
 else
   after=$(pin portable@web-tools)
-  [ "$before" != "$after" ] && echo "portable@web-tools refreshed ${before:-none} to ${after:-unknown}; its hooks ran from the old pin, so /reload-plugins if you were waiting on a hook change"
+  [ "$before" != "$after" ] && echo "portable@web-tools refreshed ${before:-none} to ${after:-unknown}; the hooks that ran at this start used the old version, and later hooks in this session use the new one"
 fi
 
 # The h plugin (the house policies as slash commands) installs here when absent,
