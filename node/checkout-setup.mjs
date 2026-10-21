@@ -22,8 +22,8 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoRoot as ownRoot } from './repo-root.mjs';
 
-const ownRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOK_PATH = '.githooks';
 const DRIVER_NAME = 'registry CSVs: union the rows, let the deriver own its own columns';
 const DRIVER_COMMAND = 'node node/derived-csv-merge.mjs %O %A %B %P';

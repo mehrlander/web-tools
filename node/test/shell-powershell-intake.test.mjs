@@ -17,7 +17,7 @@ const { window, problems } = makeWindow();
 window.TextDecoder = TextDecoder;
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 window.Alpine = Alpine; captureAlpineErrors(Alpine);
-for (const name of ['csv', 'file-correspondence', 'repo-address'])
+for (const name of ['csv', 'file-correspondence', 'repo-address', 'assistant-mark'])
   new window.Function(readFileSync(new URL('../../lib/kits/' + name + '.js', import.meta.url), 'utf8'))();
 const correspondence = window.FileCorrespondence, address = window.RepoAddress;
 const app = new window.Function(shellScript() + '\nreturn app;')();

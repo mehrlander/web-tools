@@ -72,6 +72,7 @@ const GROUPS = [
   ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
+  ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];
 
 test('every tab in the strip is one entry in the array that generates it', () => {
@@ -88,7 +89,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 6 to 7 on 2026-10-12: Overview, the front door, leads the strip.
   // 7 to 6 on 2026-10-13: two doors. Purpose joined Overview, and Projects
   // joined Routes, Distribution, Outposts and Data under Reach.
-  assert.equal(TABS.length, 6, 'six top-level tabs, Overview first and Reach second');
+  // 6 to 7 on 2026-10-19: Watch, by the owner's decision in session 1fd50ebd.
+  assert.equal(TABS.length, 7, 'seven top-level tabs, Overview first and Reach second');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
     'each tab carries exactly its subviews, in order, under their established keys');

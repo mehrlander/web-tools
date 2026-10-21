@@ -182,9 +182,9 @@ def main(argv):
     root = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"],
                                capture_output=True, text=True).stdout.strip())
     scope = args.scope
-    files = subprocess.run(["git", "ls-files", "--", scope],
-                           capture_output=True, text=True, cwd=root
-                           ).stdout.splitlines()
+    files = [f for f in subprocess.run(["git", "ls-files", "-z", "--", scope],
+                                       capture_output=True, text=True, cwd=root
+                                       ).stdout.split("\0") if f]
     records = record_paths(root)
     files = [f for f in files if f.endswith(".md")
              and not any(f.startswith(p) for p in EXCLUDE_PREFIXES)

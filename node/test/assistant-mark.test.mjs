@@ -285,3 +285,41 @@ test('estate integration: branch author helpers and filtering', () => {
   assert.equal(mockEstate.openRows[0].name, 'gemini/baz');
 });
 
+
+test('shortBranch drops the assistant prefix the classifier reads, for a label', () => {
+  const { assistantMark } = load();
+  assert.equal(assistantMark.shortBranch('claude/budget-drs-foo-123456'), 'budget-drs-foo-123456');
+  for (const p of ['codex', 'chatgpt', 'gemini', 'antigravity', 'grok', 'copilot', 'agent', 'Claude']) {
+    assert.equal(assistantMark.shortBranch(p + '/x-y'), 'x-y', p);
+  }
+  assert.equal(assistantMark.shortBranch('feature/x'), 'feature/x', 'a prefix that names no assistant stays');
+  assert.equal(assistantMark.shortBranch('claude/a/b'), 'a/b', 'one prefix, not every segment');
+  assert.equal(assistantMark.shortBranch('pension-fix-grok'), 'pension-fix', "Grok's suffix is its mark too");
+  assert.equal(assistantMark.shortBranch(''), '');
+  assert.equal(assistantMark.shortBranch(null), '');
+});
+
+test('only assistant-mark.js lists the assistant branch prefixes', async () => {
+  // Seven copies stripped a prefix for a label and disagreed on the list:
+  // four knew claude, codex, gemini and grok, the estate row added chatgpt,
+  // agent and copilot, the app's paste reader added agent alone (2026-10-20).
+  // Two others stay, each for a reason a shared helper cannot answer.
+  const ALLOWED = {
+    'lib/kits/assistant-mark.js': 'the list itself',
+    // An op is one standalone function a phone evaluates with no page around
+    // it, so it cannot reach window.AssistantMark (lib/ops/README.md).
+    'lib/ops/session-menu.js': 'a standalone op',
+    // whoOf names the AUTHOR of a vote ("Claude", "Gemini"), not a branch.
+    'lib/alpineComponents/waiting.js': 'an author name, not a branch',
+  };
+  const { execFileSync } = await import('node:child_process');
+  const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app'], { cwd: repoRoot, encoding: 'utf8' })
+    .split('\n').filter((f) => /\.(js|html)$/.test(f) && !(f in ALLOWED) && !f.startsWith('pages/scratch/'));
+  const offenders = [];
+  for (const f of files) {
+    readFileSync(path.join(repoRoot, f), 'utf8').split('\n').forEach((line, i) => {
+      if (/\((?:\?:)?claude\|(?:codex|gemini|chatgpt)/i.test(line)) offenders.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(offenders, [], 'these list assistant prefixes themselves; use window.AssistantMark.shortBranch or PREFIX_RE');
+});

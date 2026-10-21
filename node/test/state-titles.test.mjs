@@ -48,6 +48,9 @@ const SESSIONS = {
 
 let gets = 0;
 class FakeGH {
+  // The views call the static GH.ago (gh-fetch.js); it answers with this
+  // fake's own formatter below.
+  static ago(d) { return FakeGH.prototype.ago.call(null, d); }
   constructor(conf = {}) { this.repo = conf.repo || ''; }
   ago(iso) { return 'aged:' + iso; }
   async ls() { return []; }

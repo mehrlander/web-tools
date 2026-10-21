@@ -14,15 +14,15 @@
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import jsdomPkg from 'jsdom';
 import 'fake-indexeddb/auto';
 import * as idbKeyval from 'idb-keyval';
+import { repoRoot } from '../repo-root.mjs';
 
 const { JSDOM, VirtualConsole, requestInterceptor } = jsdomPkg;
 
 const REPO = 'mehrlander/web-tools';
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const arg = process.argv[2];
 if (!arg) {

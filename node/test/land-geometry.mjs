@@ -24,10 +24,9 @@
 
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const failures = [];
 const ok = (name, cond, detail = '') => {
   if (cond) console.log(`  ok    ${name}`);

@@ -125,6 +125,12 @@ for s in S:
         if not 1 <= l.get("to", 0) < n: err(f"s{n}: link to s{l.get('to')} does not point back")
         unique(l.get("here"), t, f"s{n} link here")
         if l.get("to") in by_n: unique(l.get("there"), by_n[l["to"]]["text"], f"s{n} link there (s{l['to']})")
+        # An end is a whole atom or a mention: an atom is never split, except to name an entity.
+        for side, at in (("here", s), ("there", by_n.get(l.get("to")))):
+            if not (at and l.get(side)): continue
+            ends = {a.get("quote") for a in at.get("atoms", [])} | {m.get(k) for m in at.get("mentions", []) for k in ("quote", "in")}
+            if l[side] not in ends:
+                err(f"s{n} link {side}: {l[side]!r} is not an atom's or a mention's quote in s{at['n']}; widen it to the whole atom")
         if not l.get("gloss"): err(f"s{n}: link to s{l.get('to')} has no gloss")
     ids = [a.get("id") for a in s.get("atoms", [])]
     if len(set(ids)) != len(ids): err(f"s{n}: atom ids repeat")

@@ -13,43 +13,43 @@ path,role,layer,lines,invocation,emits,named,tested
 .github/workflows/test.yml,"runs npm test on pull requests and pushes; reports, never commits",.github/workflows,120,ci:pull_request+push+workflow_dispatch,no,yes,yes
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, started by the scheduled-tasks workflow",.github/workflows,81,ci:workflow_dispatch,yes,yes,yes
 node/activity-crawl.mjs,"refresh the estate activity cache (state/activity.json in web-tools-private) without a browser, so a merge to main updates the Activity view instead of the cache waiting for whoever opens the app next. A second CALLER of the app's own crawl (lib/kits/activity-crawl.js), not a second crawler. Refuses to run where GraphQL is unavailable, which is every Claude session: two of the crawl's reads are GraphQL and their failure mode is a pass that looks successful and writes a wrong entry",node,276,npm:activity-refresh,no,no,yes
-node/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,node/build,53,npm:bake,yes,yes,no
-node/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",node/build,161,npm:build:app,yes,yes,yes
-node/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",node/build,113,npm:build:lib,yes,yes,yes
-node/build/build.mjs,"emit dist/<page>.js: a page's gh.load chain frozen offline, through lib/build.js's emitter",node/build,103,npm:build,yes,yes,yes
+node/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,node/build,52,npm:bake,yes,yes,no
+node/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",node/build,160,npm:build:app,yes,yes,yes
+node/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",node/build,112,npm:build:lib,yes,yes,yes
+node/build/build.mjs,"emit dist/<page>.js: a page's gh.load chain frozen offline, through lib/build.js's emitter",node/build,102,npm:build,yes,yes,yes
 node/build/cache-readers.mjs,"derive the cache-to-module half of the cache-to-view relation: for each thing the estate keeps derived, the app files that read it, with the shell and the declaring kit excluded as writers rather than consumers",node/build,125,imported,no,yes,yes
 node/build/console-suite.mjs,assemble console/suite.js from base.js plus the layered console modules,node/build,51,npm:build:console,yes,yes,yes
 node/build/docs-reach.mjs,restamp the derived reach and words fields of docs/docs.csv,node/build,347,npm:docs-reach,yes,yes,yes
-node/build/docs-readme.mjs,regenerate docs/README.md from docs/docs.csv,node/build,96,npm:docs-readme,yes,yes,yes
+node/build/docs-readme.mjs,regenerate docs/README.md from docs/docs.csv,node/build,95,npm:docs-readme,yes,yes,yes
 node/build/graph.mjs,the static resolver for a page's gh.load chain; feeds build.mjs its cache,node/build,117,imported,no,yes,yes
-node/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,node/build,230,npm:graphql-schema,yes,no,no
+node/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,node/build,229,npm:graphql-schema,yes,no,no
 node/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge build.mjs and the suite share,node/build,19,imported,no,yes,no
 node/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",node/build,173,npm:kits-index,yes,no,yes
-node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,469,npm:pages-index,yes,yes,yes
+node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,468,npm:pages-index,yes,yes,yes
 node/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",node/build,92,npm:pages-shots,no,yes,yes
-node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,101,npm:policy-skills,yes,yes,yes
+node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,100,npm:policy-skills,yes,yes,yes
 node/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",node/build,103,imported,no,yes,yes
 node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",node/build,90,npm:registries-reach,yes,yes,yes
 node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,no,yes,yes
-node/build/sample-workbook.mjs,,node/build,437,npm:sample-workbook,yes,yes,yes
+node/build/sample-workbook.mjs,,node/build,436,npm:sample-workbook,yes,yes,yes
 node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,245,npm:tests-index,yes,no,yes
 node/build/tools-index.mjs,restamp the derived half of this registry,node/build,388,npm:tools-index,yes,no,yes
 node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,262,npm:ui-instances,yes,yes,no
 node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,312,imported,no,yes,no
 node/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at desktop and phone width and write the JPEG thumbnails and thumbs.csv the Map's UI > Patterns gallery reads, public units here and home's in web-tools-private",node/build,253,npm:ui-shots,yes,yes,no
-node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",node/build,53,npm:vendor-docs,yes,no,yes
-node/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,node/build,86,npm:verify-build,no,yes,no
-node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,145,imported,no,yes,no
+node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",node/build,52,npm:vendor-docs,yes,no,yes
+node/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,node/build,85,npm:verify-build,no,yes,no
+node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,144,imported,no,yes,no
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,yes,yes,yes
-node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,154,imported,yes,no,yes
-node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,74,argv,yes,no,no
+node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,153,imported,yes,no,yes
+node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,73,argv,yes,no,no
 node/git-change.mjs,,node,292,argv,yes,no,yes
-node/gold-set.mjs,,node,200,npm:gold-set,yes,yes,no
+node/gold-set.mjs,,node,199,npm:gold-set,yes,yes,no
 node/powershell-units.mjs,Emit PowerShell statement inventories or before/after review units without executing the input,node,50,argv,yes,no,no
 node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,797,imported,no,yes,yes
 node/render/measure.mjs,,node/render,178,imported,no,no,yes
-node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,158,imported,no,yes,no
-node/render/page-measures.mjs,,node/render,117,npm:page-measures,yes,no,yes
+node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,157,imported,no,yes,no
+node/render/page-measures.mjs,,node/render,116,npm:page-measures,yes,no,yes
 node/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",node/render,370,npm:preview,yes,yes,yes
 node/render/scenarios/activity-chrome-probe.mjs,,node/render/scenarios,91,driver,no,no,no
 node/render/scenarios/activity-fake.mjs,seed fake activity data so the token-gated Open view renders for a shot,node/render/scenarios,111,driver,no,no,no
@@ -89,7 +89,7 @@ node/render/scenarios/audit-absorb.mjs,,node/render/scenarios,160,driver,no,no,n
 node/render/scenarios/audit-boots.mjs,,node/render/scenarios,79,driver,no,no,no
 node/render/scenarios/audit-deck.mjs,"the audit render in the swipe deck, one document section per slide",node/render/scenarios,22,driver,no,no,no
 node/render/scenarios/audit-edges.mjs,"drive the audit render's edge gestures on real touch against the RENDERED text: two pins per unit, each stem measured against the line it marks, a tapped pinhead going red, a tap in the text placing the boundary, the ballistic pad walking it, and the pin itself dragged. Every gesture starts from a fresh selection: chaining them read as a series of dead controls and was not, since an earlier one left a two-character unit behind and every later gesture was correctly refused for having nowhere to go. It also probes twenty offsets inside markup and asserts all twenty come back empty. STATE=look arms an edge and stops, for the picture",node/render/scenarios,282,driver,no,no,no
-node/render/scenarios/audit-edit.mjs,"drive the audit render's grain edits and read back the patch: split a fused unit at its connective, relabel the reason half, note the rule half, then assert the units still tile and the patch names exactly the operations that moved them. The touched units are printed so they can be diffed against skills/state-the-rule/ops.py over the same patch, which is the property that makes the optimistic view a preview rather than a second implementation. stop=menu photographs the offer instead of the result",node/render/scenarios,126,driver,no,no,yes
+node/render/scenarios/audit-edit.mjs,"drive the audit render's grain edits and read back the patch: split a fused unit at its connective, relabel the reason half, note the rule half, then assert the units still tile and the patch names exactly the operations that moved them. The touched units are printed so they can be diffed against skills/state-the-rule/ops.py over the same patch, which is the property that makes the optimistic view a preview rather than a second implementation. stop=menu photographs the offer instead of the result",node/render/scenarios,126,driver,no,yes,yes
 node/render/scenarios/audit-fab-crumb.mjs,,node/render/scenarios,125,driver,no,no,no
 node/render/scenarios/audit-heading.mjs,"drive a boundary into a heading's own line on the audit render, and back out of it, asserting the heading stays one heading element carrying two units. This is the case that motivated rendering the document once: under the per-unit render the same drag moved the previous unit's text into a heading and dropped the heading's own words to a paragraph, so one drag changed the document's outline. Both directions are driven because the report named both. The offsets are read off the render rather than typed, so it does not go stale when the payload is refreshed. audit-list.mjs guards the same property for list items",node/render/scenarios,126,driver,no,no,no
 node/render/scenarios/audit-insert.mjs,"drive an insertion on the audit render: arm a boundary, push text the document does not have, and assert the anchor the page recorded, the place it drew, and that no offset can be found inside the drawn text. The last one is what a picture cannot show: an insertion is inert with respect to every span invariant, so a page that mapped the inserted text would look exactly right while offering a boundary inside characters the document does not contain. stop=head drives the head of the document instead, the boundary that follows no unit",node/render/scenarios,148,driver,no,no,no
@@ -230,7 +230,7 @@ node/render/scenarios/repo-landing-row.mjs,"the per-repo sidebar for a repo decl
 node/render/scenarios/report-layout-by-year.mjs,"Shoots the report-layout demo on its second committed layout, the half a default shot cannot reach: the same rows banded on fiscal year instead of on budget version.",node/render/scenarios,13,driver,no,no,no
 node/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",node/render/scenarios,12,driver,no,no,no
 node/render/scenarios/routed-subject.mjs,"the drawer over a routed subject, the file as the reported identity",node/render/scenarios,54,driver,no,no,no
-node/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",node/render/scenarios,78,driver,no,no,no
+node/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",node/render/scenarios,77,driver,no,no,no
 node/render/scenarios/search-chats.mjs,the Files view's Chats lane: the fourth mode pill and a chat hit's shape,node/render/scenarios,56,driver,no,no,no
 node/render/scenarios/search-cold.mjs,the Files view's cold open: a bare arrival scopes to the browsed repo and walks it,node/render/scenarios,50,driver,no,no,no
 node/render/scenarios/search-controls.mjs,"the Files view's scope controls, with the ref picker open",node/render/scenarios,72,driver,no,no,no
@@ -279,8 +279,8 @@ node/sessions-crawl.mjs,"refresh state/sessions.json, the phone's state/session-
 node/stage-link.mjs,"mint a Web Tools #gz= stage link that carries local files whole as text and opens the Stage reader on the first (&mode=read) or on a comparison (--diff), so a session can hand over a script with no commit, no repo and no token",node,66,npm:stage-link,no,yes,yes
 node/ui-units.mjs,"write data/ui-units/units.csv and signals.csv: every unit the Web Tools and budget-drs apps show, with its ring and its files' kit signals, as dated snapshots split by visibility between data/ui-units/ here and home's data/ui-units/",node,433,npm:ui-units,yes,yes,yes
 node/xlsx-picker-sweep.mjs,,node,104,imported,yes,yes,yes
-python/annotate/anchors.py,,python/annotate,265,imported,no,yes,yes
-python/annotate/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",python/annotate,153,imported,no,yes,yes
+python/annotate/anchors.py,,python/annotate,277,imported,no,yes,yes
+python/annotate/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",python/annotate,157,imported,no,yes,yes
 python/annotate/check.py,,python/annotate,82,imported,no,yes,yes
 python/annotate/materialize.py,,python/annotate,174,imported,yes,yes,yes
 python/annotate/ops.py,,python/annotate,355,imported,no,yes,yes
@@ -309,8 +309,9 @@ python/mcp-link-safe.py,"report markdown links the GitHub MCP write path would d
 python/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the result",python,187,imported,no,yes,no
 python/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",python,97,argv,no,no,no
 python/pip-steps.py,,python,209,argv,no,no,no
-python/scheduled-tasks.py,"the scheduled-tasks workflow's script: reads the scheduled-tasks registry, runs the statute check by progressive action, and dispatches the other scheduled workflows",python,579,imported,yes,no,yes
-python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,1254,npm:showing,no,yes,yes
+python/repo_address.py,"the owner/repo[@ref]:path address and its GitHub blob URL for the Python side, matching lib/kits/repo-address.js; imported by scheduled-tasks.py and the annotate scripts",python,52,imported,no,no,yes
+python/scheduled-tasks.py,"the scheduled-tasks workflow's script: reads the scheduled-tasks registry, runs the statute check by progressive action, and dispatches the other scheduled workflows",python,585,imported,yes,no,yes
+python/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. On a page that takes look links, checks any anchor the link names, and where the page declares anchors says the link can carry a marker. Advisory, never gates",python,1303,npm:showing,no,yes,yes
 python/stranded-titles.py,,python,356,npm:stranded-titles,no,yes,yes
 python/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",python,269,argv,no,yes,yes
 python/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,python,111,npm:sunset,no,no,yes
@@ -320,7 +321,7 @@ python/upstream-skills.py,"compares each outside skill's pinned version with wha
 python/userscript-stub.py,,python,217,argv,no,yes,yes
 skills/hooks/account-skills.py,"compares the claude.ai account's synced skills with docs/account-skills.csv and the plugin's own copies, printing one line at session start only when something needs attention; by hand it lists every skill's state, writes the observation, and builds upload zips",skills/hooks,338,hook:SessionStart,yes,yes,yes
 skills/hooks/ask-question-guard.sh,refuses AskUserQuestion in every session the plugin reaches and says to ask in prose; the project-settings deny in home and web-tools stays as a backstop,skills/hooks,38,hook:PreToolUse,no,yes,yes
-skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,321,imported,no,no,yes
+skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,330,imported,no,no,yes
 skills/hooks/environment-report.sh,"Prints at session start which commit of the setup script built the environment, and says to rebuild when it has moved on main.",skills/hooks,27,hook:SessionStart,no,yes,yes
 skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,skills/hooks,150,hook:SessionStart,no,yes,yes
 skills/hooks/invoke-sessions.sh,tells a session to invoke /portable:sessions when no session-record store is checked out beside the project root,skills/hooks,99,hook:SessionStart,no,yes,yes
@@ -330,9 +331,9 @@ skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-create
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,no,yes,yes
 skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,70,hook:SessionStart,no,yes,yes
-skills/hooks/reply-check.py,"sends the final reply back once at Stop: a decision put to the owner without a recommendation (Haiku judges the decision), or a page committed this turn with no render link",skills/hooks,146,hook:Stop,no,no,yes
+skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,113,hook:Stop,no,no,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,73,hook:PostToolUse,no,no,yes
-skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",skills/hooks,48,hook:PostToolUse,no,no,no
+skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry, and silent on research declared in .web-tools.json",skills/hooks,58,hook:PostToolUse,no,no,yes

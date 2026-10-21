@@ -27,9 +27,8 @@
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, copyFileSync, unlinkSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT = path.join(root, 'node/render/screenshot.mjs');
 const PAGE = 'pages/data-view.html';           // boots the gh.load chain
 const VICTIM = path.join(root, 'lib/kits/url-params.js');   // a file that page loads

@@ -166,7 +166,7 @@
         { "e": "situation", "quote": "the situation that summons it" }
       ],
       "links": [
-        { "to": 3, "kind": "elaborates", "here": "Lead with what the skill does", "there": "Write for that one decision", "implied": true, "gloss": "Says what writing for the decision about what to load means in practice: what goes first in the description, and what follows." }
+        { "to": 3, "kind": "elaborates", "here": "Lead with what the skill does, a verb and its object", "there": "Write for that one decision", "implied": true, "gloss": "Says what writing for the decision about what to load means in practice: what goes first in the description, and what follows." }
       ],
       "atoms": [
         { "id": "a", "type": "rule", "claim": "Open a skill's description with what the skill does, as a verb and its object.", "quote": "Lead with what the skill does, a verb and its object", "on": ["description"] },
