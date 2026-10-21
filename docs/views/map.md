@@ -47,10 +47,10 @@ These are **app routes**. [routes-routes.csv](../routes-routes.csv) holds
 
 With a token, a document named by an open documentation user call, or by a
 Text collection proposal, carries a badge on its row
-([`lib/kits/user-calls.js`](../../lib/kits/user-calls.js)), and each kind has
-its own filter. A user call waits on the owner, so its badge, filter and
-marks take the attention colour, which a proposal from a batch process does
-not. In the reading deck a proposal is labelled on the paragraph it would
+([`lib/kits/user-calls.js`](../../lib/kits/user-calls.js)), and calls and
+proposals each have their own filter. A user call waits on the owner, so its
+badge, filter and marks take the attention colour, which a proposal from a
+batch process does not. In the reading deck a proposal is labelled on the paragraph it would
 change and applied or rejected in place. Each edit a call proposes is open
 there as a change container, and the call's mark, in the place of the
 container's number, confirms or discards it and takes a note. The call's sheet
