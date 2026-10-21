@@ -556,7 +556,7 @@ html.dk-dragging main{transition:none !important}
         <button type="button" x-show="!open" @click="$refs.box.focus()"
                 class="shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
                 :class="q ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'"
-                :aria-label="q ? 'Filter: ' + q : 'Filter this view'">
+                :aria-label="'Filter: ' + (q || placeholder)">
           <i class="ph ph-magnifying-glass text-lg leading-none"></i>
           <span x-show="q" class="max-w-28 truncate font-medium" x-text="q"></span>
         </button>
@@ -9310,12 +9310,14 @@ function findPill(){
     find(){
       const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-box]')]
         .find(el => el.closest('label')?.matches('[data-slot="frame:search"]') && seen(el.closest('label').parentElement)) || null;
+      // The placeholder is read even when the box is the same one: Activity's
+      // four panes share a box whose placeholder follows the pane.
+      this.placeholder = hit?.placeholder || 'Filter';
       if (hit === box) return;
       this.release();
       box = hit;
       this.has = !!box;
       this.q = box ? box.value : '';
-      this.placeholder = box?.placeholder || 'Filter';
       watch?.disconnect();
       if (box) {
         watch = new MutationObserver(() => this.mark());
@@ -9335,6 +9337,7 @@ function findPill(){
       if (!box) return;
       this.open = true;
       this.q = box.value;
+      this.placeholder = box.placeholder || this.placeholder;
       this.recents = this.loadRecents();
       scroller = box.closest('[data-pane]');
       saved = scroller.scrollTop;
