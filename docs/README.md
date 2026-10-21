@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-21 by a skill, 40 by a page or component. The remaining 45 are
+21 by a skill, 41 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -38,6 +38,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
 - [`harness.csv`](harness.csv) — the harness registry: every script under node/, python/ and the platform folders (.githooks/, .github/workflows/, .claude/, skills/hooks/), its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
+- [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
 - [`ios-sheet-drags.md`](ios-sheet-drags.md) — why a drag inside a sheet-presented in-app browser dismisses the sheet, and the two fixes, measured on device
