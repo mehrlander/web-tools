@@ -17,7 +17,7 @@ substituting the current repo in URL templates.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows something for the reader's judgment: a page, a draft, a change. Give each a look link: its render link with an intro naming what changed, landing on what to look at, or walking through it.
-  - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, shown as the doc-craft skill's Review section directs. Once it is approved and nothing else is open, the next close is 🟢 **Ready to merge**.
+  - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review, waits on the reader's approval. Say what the session will do once it is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
   - 🟣 **Merged:** This branch merged. State what shipped in one line.
