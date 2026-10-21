@@ -93,7 +93,13 @@ const mapTabNames = new Map(optionsIn(mapSrc.match(/\n\s*TABS:\s*\[([\s\S]*?)\n\
 const subBlock = mapSrc.match(/SUBVIEWS:\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*SUBVIEW_PARENT:/)?.[1] || '';
 const mapSubviews = new Map();
 for (const m of subBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)) for (const o of optionsIn(m[2])) mapSubviews.set(o.k, { parent: m[1], n: o.n });
+// An address a subview draws inside itself (map()'s WITHIN) is named under
+// that subview: "Map: Harness › Automation › Scheduled".
+const mapWithin = new Map([...(mapSrc.match(/\n\s*WITHIN:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || '')
+  .matchAll(/\{ k: '([a-z]+)', n: '([^']+)', i: '[^']+', host: '([a-z]+)' \}/g)].map(m => [m[1], { n: m[2], host: m[3] }]));
 const mapLabel = (k) => {
+  const within = mapWithin.get(k);
+  if (within) return mapLabel(within.host) + ' › ' + within.n;
   const sub = mapSubviews.get(k);
   const name = sub ? (mapTabNames.get(sub.parent) || sub.parent) + ' › ' + sub.n : mapTabNames.get(k);
   return 'Map: ' + (name || k);

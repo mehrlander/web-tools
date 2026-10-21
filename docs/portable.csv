@@ -14,6 +14,7 @@ skill,/portable:drop-link,skills/drop-link/SKILL.md,drop-link,,plugin
 skill,/portable:look-markers,skills/look-markers/SKILL.md,look-markers,,plugin
 skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,,plugin
 skill,/portable:scour,skills/scour/SKILL.md,scour,,plugin
+skill,/portable:wayback,skills/wayback/SKILL.md,wayback,,plugin
 skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,,plugin
 skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,,plugin
 skill,/portable:tend,skills/tend/SKILL.md,tend,,plugin

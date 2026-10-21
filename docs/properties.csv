@@ -20,6 +20,7 @@ harness,role,recorded,,counted,column,yes,,value,what the file is for; blanks ar
 harness,layer,computed,node/build/tools-index.mjs,value,column,yes,python;python/annotate;node;node/build;node/render;node/render/scenarios;.githooks;.claude;.claude/hooks;skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
 harness,lines,computed,node/build/tools-index.mjs,value,column,yes,,value,file length
 harness,invocation,computed,node/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
+harness,callers,computed,node/build/tools-index.mjs,none,list,yes,,locator,"what runs the file: a harness file that imports it, runs it by path, runs its npm script or finds it through plugin_script; node/test/ when the suite imports it; a tracked .md that gives the command to run it"
 harness,emits,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
 harness,named,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
 harness,tested,computed,node/build/tools-index.mjs,value,column,yes,yes;no,label,a file under node/test/ exercises it
@@ -241,6 +242,8 @@ context-links,gloss,recorded,,value,column,yes,,value,the condition and meaning 
 context-topics,label,recorded,,value,column,yes,,value,the topic as a reader would name it
 context-topics,verdict,recorded,,value,column,yes,layered;redundant;conflicting;transitional,label,"whether the overlap is layered by design, redundant, conflicting, or transitional while a replacement lands"
 context-topics,gloss,recorded,,value,column,yes,,value,"who says what about the topic, in a sentence or two"
+hook-events,phase,recorded,,value,column,yes,session;prompt;tool;agents,label,"which part of a session the event belongs to: the session's own lifecycle, a prompt and its reply, a tool call, or subagents, teammates and tasks"
+hook-events,summary,recorded,,value,column,yes,,value,"when the event fires, in the words of Claude Code's /hooks menu"
 map-tabs,gloss,recorded,,value,column,yes,,value,"what the rows at this address are, in one sentence, never what the reader can do with them; listed with every other in the Overview, the Map's front door, and opening the address's own Sources and methods panel"
 map-tabs,refs,recorded,,counted,list,no,,locator,"the description's links: phrase=path pairs, each phrase a verbatim span of the gloss and each path the file or folder (ending in /) it opens"
 map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"

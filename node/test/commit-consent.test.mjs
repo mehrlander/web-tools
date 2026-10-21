@@ -92,6 +92,12 @@ test('a NEW documentation file is not refused: it retracts nothing', () => {
   // have been stretched over, so the trigger is modified-only.
   const out = gate({ 'README.md': 'x\n' }, { [DOC]: '# Thing\n' }, 'Add the thing\n');
   assert.equal(out.status, 0, out.err);
+  assert.doesNotMatch(out.err, /documentation changed/, 'on main a new document passes silently');
+
+  // On a branch its wording still reaches the owner as a commit, so it gets the reminder.
+  const branch = gate({ 'README.md': 'x\n' }, { [DOC]: '# Thing\n' }, 'Add the thing\n', 'claude/add-thing');
+  assert.equal(branch.status, 0, branch.err);
+  assert.match(branch.err, /documentation changed: docs\/thing\.md/);
 });
 
 test('a generated file is not authored language, and says so in its banner', () => {
