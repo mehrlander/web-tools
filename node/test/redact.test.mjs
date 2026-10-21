@@ -69,35 +69,35 @@ const editor = async () => {
 const tap = (ed, x, y) => { ed.down({ clientX: x, clientY: y, pointerId: 1, target: { setPointerCapture() {} } }); ed.up(); };
 
 test('a tap on a box selects it, and a second tap edits its label in the box', async () => {
-  // Draw selects a box on the press, so a release that toggled the selection
+  // A press selects a box, so a release that toggled the selection
   // unselected the box the finger had just picked.
   const ed = await editor();
   ed.addBox({ x: 10, y: 10, w: 40, h: 20, label: '[removed]' });
   const id = ed.sel;
-  for (const mode of ['draw', 'tap']) {
-    ed.mode = mode;
-    tap(ed, 80, 80);
-    assert.equal(ed.sel, null, `${mode}: a tap off every box clears the selection and ends any edit`);
-    assert.equal(ed.editing, null);
-    tap(ed, 30, 20);
-    assert.equal(ed.sel, id, `${mode}: a tap on the box selects it`);
-    assert.equal(ed.editing, null, `${mode}: the first tap does not edit`);
-    tap(ed, 30, 20);
-    assert.equal(ed.sel, id, `${mode}: a second tap leaves it selected`);
-    assert.equal(ed.editing?.id, id, `${mode}: and edits its label in the box`);
-  }
+  ed.sel = null;
+  tap(ed, 30, 20);
+  assert.equal(ed.sel, null, 'with the tools off the image is only shown: a tap selects nothing');
+  ed.active = true;
+  tap(ed, 80, 80);
+  assert.equal(ed.sel, null, 'a tap off every box clears the selection and ends any edit');
+  assert.equal(ed.editing, null);
+  tap(ed, 30, 20);
+  assert.equal(ed.sel, id, 'a tap on the box selects it');
+  assert.equal(ed.editing, null, 'the first tap does not edit');
+  tap(ed, 30, 20);
+  assert.equal(ed.sel, id, 'a second tap leaves it selected');
+  assert.equal(ed.editing?.id, id, 'and edits its label in the box');
   ed.selLabel = '[Name removed]';
   ed.endEdit(false);
   assert.equal(ed.selBox.label, '[removed]', 'Escape restores the label the edit opened with');
 });
 
-test('a tap on a found word boxes it in Tap, and only clears the selection in Draw', async () => {
+test('a tap on a found word boxes it, once the tools are on', async () => {
   const ed = await editor();
   ed.lines = [{ words: [{ id: 0, line: 0, i: 0, text: 'Jane', kind: '', bbox: { x0: 10, y0: 60, x1: 40, y1: 75 } }] }];
-  ed.mode = 'draw';
   tap(ed, 20, 70);
-  assert.equal(ed.boxes.length, 0, 'Draw leaves the word alone');
-  ed.mode = 'tap';
+  assert.equal(ed.boxes.length, 0, 'tools off: the word is left alone');
+  ed.active = true;
   tap(ed, 20, 70);
-  assert.equal(ed.boxes.length, 1, 'Tap boxes it');
+  assert.equal(ed.boxes.length, 1, 'tools on: the word is boxed');
 });

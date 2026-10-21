@@ -4152,13 +4152,13 @@ const withRedact = async (fn) => {
   const had = window.Redact;
   window.Redact = { mount: (el, cfg) => {
     withRedact.cfg = cfg;
-    el.__redact = withRedact.ed = { changed: false, meta: '4 × 4', copy() { this.copied = true; }, apply() {} };
+    el.__redact = withRedact.ed = { active: false, changed: false, meta: '4 × 4', copy() { this.copied = true; }, apply() {} };
     return el;
   } };
   try { await fn(); } finally { if (had === undefined) delete window.Redact; else window.Redact = had; }
 };
 
-test('a staged image opens in the editor, with copy on the header and the check mark once edited', async () => {
+test('a staged image opens in the editor, with the brush and copy on the header and the check mark once edited', async () => {
   reset();
   store.stage = [png(901, 'shot.png'), local(902, 'a.md', 'one\n')];
   await shown();
@@ -4167,6 +4167,9 @@ test('a staged image opens in the editor, with copy on the header and the check 
     await shown();
     assert.equal(withRedact.cfg?.name, 'shot.png', 'the slide is the editor, told what it is editing');
     const titles = (n) => data._rActions(n).map(a => a.title || '');
+    data._rActions(0).find(a => a.title === 'Edit the image: cover, label, crop').onClick();
+    assert.equal(withRedact.ed.active, true, 'the brush turns the tools on in place');
+    assert.ok(titles(0).includes('Stop editing'), 'and then offers to turn them off');
     assert.ok(titles(0).includes('Copy the image'));
     assert.ok(!titles(0).some(t => t.startsWith('Keep the edits')), 'nothing to keep before an edit');
     withRedact.ed.changed = true;
