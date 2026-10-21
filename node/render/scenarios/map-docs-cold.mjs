@@ -1,5 +1,5 @@
 // screenshot.mjs interaction scenario: the Map view's Docs tab sorted coldest
-// first, with the unresolved-reads strip above it.
+// first.
 //
 //   node node/render/screenshot.mjs app/index.html \
 //     --script node/render/scenarios/map-docs-cold.mjs \
@@ -7,27 +7,14 @@
 //
 // The third of the readership scenarios. map-docs.mjs holds a tokenless reader
 // and shows the registry with no column; map-docs-reads.mjs holds a token and
-// shows the column in registry order; this one shows the two things that make
-// the column answerable rather than merely present, which is the ordering that
-// puts the unread at the top and the reads that landed on no file at all.
-//
-// The five phantom paths are the real ones, read out of the 2026-08-30 fold:
-// three cut short of their .md, one pluralised folder, and docs/html-style.md,
-// which is a session reaching for HTML-STYLE.md by the name it assumed. That
-// last row is the reason the strip exists, so it is transcribed rather than
-// invented.
-const PHANTOMS = [
-  ['web-tools/docs/html-style.md', 1, '2026-08-26'],
-  ['web-tools/docs/SNAGS.m', 1, '2026-08-05'],
-  ['web-tools/docs/TRACKER.m', 1, '2026-08-08'],
-  ['web-tools/docs/APP.m', 1, '2026-08-07'],
-  ['web-tools/docs/pages.md', 1, '2026-08-14'],
-];
+// shows the column in registry order; this one shows what makes the column
+// answerable rather than merely present: the ordering that puts the unread at
+// the top.
 
 export default async function (page) {
   const reg = await page.evaluate(() => fetch('../../docs/docs.csv').then(r => r.text()));
 
-  const ok = await page.evaluate(({ regText, phantoms }) => {
+  const ok = await page.evaluate(({ regText }) => {
     if (!window.Alpine || !window.__shell || !window.GH) return 'no shell';
 
     // The registry is a CSV and is parsed through the app's own kit, the way
@@ -46,9 +33,6 @@ export default async function (page) {
           count: Math.max(1, 16 - i * 2) * 2,
           last: '2026-08-29T20:00:16Z',
         })),
-        ...phantoms.map(([path, sessions, day]) => ({
-          path, sessions, count: sessions, last: day + 'T12:00:00Z',
-        })),
       ],
     };
 
@@ -66,7 +50,7 @@ export default async function (page) {
 
     window.__shell.goMap();
     return true;
-  }, { regText: reg, phantoms: PHANTOMS });
+  }, { regText: reg });
   if (ok !== true) throw new Error('map-docs-cold scenario: ' + ok);
 
   await page.evaluate(() => {

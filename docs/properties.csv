@@ -8,7 +8,7 @@ docs,status,recorded,,none,column,yes,living;record;measured,label,"whether the 
 docs,reach,computed,node/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
 docs,words,computed,node/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
 docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true; a bare row is counted by the registry rather than hidden
-docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
+docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename keeps its readership"
 tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
 tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
 tests,test_count,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many top-level test() calls the file writes, a static lower bound, not a count of the assert calls inside them. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
