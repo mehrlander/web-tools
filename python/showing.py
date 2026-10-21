@@ -781,7 +781,11 @@ def join_query(own, query=""):
 # address, and the link still resolves and renders, which is this script's own
 # failure shape one level down. The `at` below is that address: on a toss it
 # rides as a trailing #frag, which toss-render hands to the framed page as a
-# real location.hash; on a deployed page it is just the fragment.
+# real location.hash; on a deployed page it is just the fragment. The toss
+# percent-decodes its whole value once on the way, so its `%` are written as
+# `%25`: an intro or a look step's text naming "PR #1035" otherwise reaches the
+# frame with a bare `#` and splits there (2026-10-21, Snag list
+# look-intro-hash-cuts-the-walk).
 #
 # Measured 2026-09-05, when this script emitted a branch-page toss with nothing
 # on it and the reader opened an empty form twice. Which pages need one is not
@@ -804,6 +808,8 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
+    if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):
+        frag = frag.replace("%", "%25")
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
         # crashes Safari's web process on an iPhone, every time, which is what

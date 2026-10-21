@@ -195,6 +195,15 @@ test('the data route takes a look link like a page does, and spells a space', ()
   assert.match(d.links[0].url, /#data=mehrlander\/web-tools@0{12}:docs\/a%20b\.md#show=text:Intro&say=Start here$/);
 });
 
+test('a look fragment inside a toss keeps its escapes through the toss', () => {
+  // toss-render percent-decodes its whole value once, so a `%23` written for a
+  // "#" in an intro would reach the frame as a bare "#" and split the fragment.
+  const d = run('docs/a.md', ['--intro', 'PR #1035 & more']);
+  assert.match(d.links[0].url, /#intro=PR%2520%25231035%2520%2526%2520more$/);
+  const once = decodeURIComponent(d.links[0].url.split('#').pop());
+  assert.equal(new URLSearchParams(once).get('intro'), 'PR #1035 & more');
+});
+
 test('any HTML outside archive/ is a page file, a kit demo or a dated prototype alike', () => {
   // showing-whitelists-pages-only: a branch whose only HTML sat in dump/ was
   // handed links to two pages it never touched.

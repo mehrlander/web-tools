@@ -16,6 +16,7 @@ substituting the current repo in URL templates.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
+  - 👁️‍🗨️ **Have a look:** The session shows something for the reader's judgment: a page, a draft, a change. Give each a look link: its render link with an intro naming what changed, landing on what to look at, or walking through it.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
   - 🟣 **Merged:** This branch merged. State what shipped in one line.
@@ -23,7 +24,7 @@ substituting the current repo in URL templates.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢, not 🪧, when the reader's shared intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧.
+  Use 🟢, not 🪧, when the reader's shared intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
 * **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
@@ -44,6 +45,8 @@ substituting the current repo in URL templates.
 ### Displaying content
 
 * **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address), a query and a width.
+
+* **A look link 👁️‍🗨️.** A render link that greets the reader and lands on the place to see: `npm run showing -- --intro "<what changed>" --at "<fragment>"`, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walk` or `steps` for several; the `look-markers` skill). Send one whenever a reply asks the reader to look at or tap something on a page, mark it 👁️‍🗨️ in place of 🥏, and add `--width 390` when the look is about a phone.
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button.
 

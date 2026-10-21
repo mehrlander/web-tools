@@ -56,6 +56,13 @@ test('needs reads as 🛵, and ✴️ still reads as needs', () => {
   assert.equal(CS.GLYPH.needs, '🛵');
 });
 
+test('have a look reads in all four spellings of its joined glyph', () => {
+  // 👁️‍🗨️ is four code points joined; a client may drop either variation selector.
+  for (const g of ['👁️‍🗨️', '👁‍🗨️', '👁️‍🗨', '👁‍🗨'])
+    assert.deepEqual(CS.marks(g + ' **Have a look:** the page is up.'), ['look'], g);
+  assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'a look link mid-line is not a state');
+});
+
 test('order and duplicates survive, because an exchange that closed twice did', () => {
   const md = '🆚 **Choice needed.** Pick.\n\n…\n\n🟢 **Ready.** Go.\n\n🟢 **Ready.** Again.';
   assert.deepEqual(CS.marks(md), ['choice', 'ready', 'ready']);
@@ -71,7 +78,7 @@ test('every key the pattern can produce is complete in all three tables', () => 
     assert.ok(CS.HUE[k], 'no hue for ' + k);
     assert.equal(CS.MARK[CS.GLYPH[k]], k, 'glyph and key disagree for ' + k);
   }
-  assert.equal(keys.length, 12);
+  assert.equal(keys.length, 13);
 });
 
 test('direction and choice read in both spellings, and 🆚 still reads as choice', () => {
