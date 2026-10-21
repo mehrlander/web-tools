@@ -11,7 +11,7 @@ substituting the current repo in URL templates.
 ### Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead; "go" merges.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
