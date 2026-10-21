@@ -112,6 +112,14 @@ test('the renderer previews by nesting rather than by rendering itself', () => {
   const d = run('pages/toss-render.html');
   assert.equal(d.mechanism, 'toss-nested');
   assert.equal((d.links[0].url.match(/#gh=/g) || []).length, 2);
+  // A real page in the nest: a space or an angle bracket in the destination is
+  // not markdown, and the pasted line showed as raw text (2026-10-21).
+  assert.match(d.links[0].url, /^[^\s<>]+$/);
+  assert.match(d.links[0].url, new RegExp(`#gh=mehrlander/web-tools@${Z12}:pages/index\\.html$`));
+  assert.ok(!d.warnings.some(w => /route on their own location\.hash/.test(w)), 'the inner #gh= is the address');
+  const own = run('pages/toss-render.html,pages/diff-tool.html');
+  assert.match(own.links[0].url, new RegExp(`#gh=mehrlander/web-tools@${Z12}:pages/diff-tool\\.html$`),
+    'the branch\'s own changed page, when it has one');
 });
 
 test('a shell change acting on the tab is tossed with ?top, since a frame never is the tab', () => {
