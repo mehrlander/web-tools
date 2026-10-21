@@ -58,13 +58,17 @@ const editor = async () => {
   globalThis.createImageBitmap = async () => ({ width: 100, height: 100 });
   loadKit('redact.js', { window: w });
   const ed = make();
-  ed.$refs = { cv: { width: 0, height: 0, getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) } };
+  ed.$refs = {
+    cv: { width: 0, height: 0, clientWidth: 100, offsetLeft: 0, offsetTop: 0, clientLeft: 0, clientTop: 0,
+          getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) },
+    edit: { style: {}, value: '', focus() {}, select() {}, blur() {} },
+  };
   await ed.load({}, 'test.png');
   return ed;
 };
 const tap = (ed, x, y) => { ed.down({ clientX: x, clientY: y, pointerId: 1, target: { setPointerCapture() {} } }); ed.up(); };
 
-test('a tap on a box selects it and leaves it selected, in Draw as in Tap', async () => {
+test('a tap on a box selects it, and a second tap edits its label in the box', async () => {
   // Draw selects a box on the press, so a release that toggled the selection
   // unselected the box the finger had just picked.
   const ed = await editor();
@@ -73,12 +77,18 @@ test('a tap on a box selects it and leaves it selected, in Draw as in Tap', asyn
   for (const mode of ['draw', 'tap']) {
     ed.mode = mode;
     tap(ed, 80, 80);
-    assert.equal(ed.sel, null, `${mode}: a tap off every box clears the selection`);
+    assert.equal(ed.sel, null, `${mode}: a tap off every box clears the selection and ends any edit`);
+    assert.equal(ed.editing, null);
     tap(ed, 30, 20);
     assert.equal(ed.sel, id, `${mode}: a tap on the box selects it`);
+    assert.equal(ed.editing, null, `${mode}: the first tap does not edit`);
     tap(ed, 30, 20);
     assert.equal(ed.sel, id, `${mode}: a second tap leaves it selected`);
+    assert.equal(ed.editing?.id, id, `${mode}: and edits its label in the box`);
   }
+  ed.selLabel = '[Name removed]';
+  ed.endEdit(false);
+  assert.equal(ed.selBox.label, '[removed]', 'Escape restores the label the edit opened with');
 });
 
 test('a tap on a found word boxes it in Tap, and only clears the selection in Draw', async () => {
