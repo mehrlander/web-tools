@@ -173,7 +173,7 @@ node/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered h
 node/render/scenarios/kind-labels-the-aim.mjs,the aim menu labelling itself from the declared kind,node/render/scenarios,53,driver,,no,no,no
 node/render/scenarios/map-context.mjs,"Context grouping and list-detail flow: visible questions, source navigation, usage sorting and phone layout.",node/render/scenarios,159,driver,,no,no,no
 node/render/scenarios/map-data-census.mjs,,node/render/scenarios,64,driver,,no,no,yes
-node/render/scenarios/map-docs-cold.mjs,"the Map's Docs tab sorted coldest first, with the unresolved-reads strip: the ordering and the misspelled paths that make the readership column answerable",node/render/scenarios,93,driver,,no,no,no
+node/render/scenarios/map-docs-cold.mjs,the Map's Docs tab sorted coldest first: the ordering that makes the readership column answerable,node/render/scenarios,77,driver,,no,no,no
 node/render/scenarios/map-docs-reads.mjs,the Map's Docs tab with the readership column,node/render/scenarios,73,driver,,no,no,no
 node/render/scenarios/map-docs.mjs,"the Map's Docs tab, the documentation registry rendered live",node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/map-growth.mjs,"the Map's Growth tab with its corpus strip: a fixture config cache declaring two repos' growth payloads, so the federated selector renders and GROWTH_REPO switches the framed chart",node/render/scenarios,75,driver,,no,no,no

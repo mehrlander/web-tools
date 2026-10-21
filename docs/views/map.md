@@ -43,6 +43,26 @@ route chips on Branches rows.
 These are **app routes**. [routes-routes.csv](../routes-routes.csv) holds
 **toss routes**, content types mapped to renderer pages.
 
+## Docs: edits waiting on a document
+
+With a token, a document named by an open documentation user call, or by a
+Text collection proposal, carries a badge on its row
+([`lib/kits/user-calls.js`](../../lib/kits/user-calls.js)), and calls and
+proposals each have their own filter. A user call waits on the owner, so its
+badge, filter and marks take the attention colour, which a proposal from a
+batch process does not. In the reading deck a proposal is labelled on the paragraph it would
+change and applied or rejected in place. Each edit a call proposes is open
+there as a change container, and the call's mark, in the place of the
+container's number, confirms or discards it and takes a note. The call's sheet
+steps through the edits like a walkthrough and records the answer for all of
+them at once, in web-tools-private beside the call, with the confirmed edits
+as a patch for a session to apply
+([`lib/kits/call-answer.js`](../../lib/kits/call-answer.js), which Dictate
+shares). The sheet commits nothing: a call is read on main, so a commit from
+the browser would land there outside any pull request and skip the target
+repository's commit hook. To amend an edit or commit it, the sheet opens the
+call in Dictate.
+
 ## Tests: what checks protect and how they run
 
 The Tests view explains the checks a repository owns and how its declared
