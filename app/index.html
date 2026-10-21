@@ -543,11 +543,15 @@ html.dk-dragging main{transition:none !important}
            this pill drives it instead, so the filter costs the view no row.
            At rest it is a magnifier, or the term as a chip once one is set.
            Tapped, the field spreads over this whole row (the nav is what a
-           reader typing does not need) at 16px, so iOS does not zoom, and
-           the pane scrolls its list up under the header, so the rows that
-           narrow with each keystroke sit above the keyboard rather than
-           behind it. The input is always laid out, only transparent, because
-           iOS raises the keyboard only for a focus made inside the tap. -->
+           reader typing does not need), and the pane scrolls its list up
+           under the header, so the rows that narrow with each keystroke sit
+           above the keyboard rather than behind it. The input is always laid
+           out, only transparent, because iOS raises the keyboard only for a
+           focus made inside the tap. It opens by a clip from the right, never
+           a scale: a transformed field can read to iOS as smaller text, and
+           smaller text is what it zooms for (guardFocusZoom). No Done button:
+           the keyboard's Search key, the iOS bar's Done and a tap anywhere
+           else all close it. -->
       <div x-data="findPill()" x-effect="view; mapTab; resolve()" x-show="has" class="contents sm:hidden">
         <button type="button" x-show="!open" @click="$refs.box.focus()"
                 class="shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
@@ -560,8 +564,8 @@ html.dk-dragging main{transition:none !important}
                 class="shrink-0 -ml-1 h-9 w-8 grid place-items-center rounded-lg text-primary hover:bg-base-200">
           <i class="ph ph-x text-base leading-none"></i>
         </button>
-        <div class="absolute inset-0 z-10 flex items-center gap-2 px-3 bg-base-100 origin-right transition-[opacity,transform] duration-150"
-             :class="open ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-50 pointer-events-none'">
+        <div class="absolute inset-0 z-10 flex items-center px-3 bg-base-100 transition-[opacity,clip-path] duration-150"
+             :class="open ? 'opacity-100 [clip-path:inset(0)]' : 'opacity-0 [clip-path:inset(0_0_0_70%)] pointer-events-none'">
           <label class="input flex items-center gap-2 grow min-w-0 h-10">
             <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
             <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
@@ -576,7 +580,6 @@ html.dk-dragging main{transition:none !important}
               <i class="ph ph-x-circle text-lg leading-none"></i>
             </button>
           </label>
-          <button type="button" @pointerdown.prevent @click="$refs.box.blur()" class="btn btn-ghost btn-sm px-2">Done</button>
         </div>
         <!-- Recent terms, only while the field is open and empty: nothing is
              filtering yet, so the panel covers nothing a reader is watching,
@@ -2991,6 +2994,7 @@ function app(){ return {
     this.wireAppDrop();
     this.wireAppPaste();
     this.wireAppTypeahead();
+    this.guardFocusZoom();
     // PRELOAD THE CLIPBOARD KIT, because the header's Paste button cannot
     // afford to fetch it. Reading the clipboard needs the tap's own user
     // activation, and an await inside the handler spends it, so a lazy load
@@ -8058,6 +8062,24 @@ function app(){ return {
   // class change lands a tick later and the default action has nowhere to go,
   // so that one path preventDefaults and seeds the character by hand, through
   // an `input` event so x-model writes it back to the component's own `q`.
+  // ── NO FOCUS ZOOM ON iOS ──────────────────────────────────────────────────
+  // iOS Safari zooms the page when a focused input's text is under 16px, and
+  // leaves it zoomed. Sizing each box to 16px did not stop it for the
+  // header's find pill opened through a toss (owner, 2026-10-21), and the
+  // decisive control is the TOP document's viewport tag: maximum-scale=1
+  // stops the focus zoom, while iOS has ignored it for pinch zoom since iOS
+  // 10 (kits/annotate.js guards its note box the same way, and restores the
+  // tag as it found it, so the two agree). iOS only, since Android Chrome
+  // does honor it for pinch; a cross-origin top is left alone.
+  guardFocusZoom(){
+    try {
+      const os = window.BrowserKind?.detect().os;
+      if (os !== 'iPhone' && os !== 'iPad') return;
+      const meta = window.top.document.querySelector('meta[name=viewport]');
+      if (meta && !/maximum-scale/.test(meta.content)) meta.content += ', maximum-scale=1';
+    } catch {}
+  },
+
   wireAppTypeahead(){
     window.addEventListener('keydown', (e) => {
       // A bare printable key, one character wide, so every named key (Tab,
