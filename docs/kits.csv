@@ -6,7 +6,7 @@ lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",466,no,
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",615,no,no,7,yes
 lib/kits/brief.js,brief,"assemble a page into a review brief: one markdown document holding the page source plus the source of the modules the page itself loaded, sized for pasting…",247,no,no,3,yes
 lib/kits/browser-kind.js,BrowserKind,"what kind of browser this is, and what the reader calls it ─ Browser storage is kept per browser, per profile and, on iOS, per home-screen app, so anything…",58,no,no,2,yes
-lib/kits/call-answer.js,CallAnswer,answering a documentation user call (window.CallAnswer).,141,no,no,2,yes
+lib/kits/call-answer.js,CallAnswer,answering a documentation user call (window.CallAnswer).,143,no,no,2,yes
 lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, read one month at a time.",330,no,no,4,yes
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,9,yes
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
@@ -73,7 +73,7 @@ lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcd
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,3,yes
 lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",337,no,no,5,yes
 lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web-tools ecosystem.,221,no,no,7,yes
-lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,23,yes
+lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,24,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,652,no,no,2,yes

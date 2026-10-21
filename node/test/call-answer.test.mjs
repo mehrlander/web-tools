@@ -15,8 +15,10 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/kits/call-answer.js'), 'utf8');
+const addr = readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8');
 const load = (extra = {}) => {
   const window = { ...extra };
+  new Function('window', addr)(window);
   new Function('window', src)(window);
   return { A: window.CallAnswer, window };
 };
