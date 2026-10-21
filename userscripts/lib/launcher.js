@@ -1785,6 +1785,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       max-width: none; cursor: zoom-out;
     }
     .snap-img[hidden] { display: none !important; }
+    .snap-placeholder { margin: 0; }
     .snap-foot {
       margin-top: .5rem; padding: .35rem .5rem;
       border-radius: .375rem; background: var(--wt-b200);
@@ -2322,7 +2323,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <div class="slide-body-inner">
               <div class="snap-stage">
                 <img class="snap-img" alt="Rendered page viewport preview" title="Tap to toggle zoom" hidden />
-                <p class="none snap-placeholder" style="margin:0">Rendering current viewport (excluding launcher)…</p>
+                <p class="none snap-placeholder">Rendering current viewport (excluding launcher)…</p>
               </div>
               <div class="snap-foot"></div>
             </div>
