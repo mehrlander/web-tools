@@ -4150,8 +4150,9 @@ const withRedact = async (fn) => {
   const had = window.Redact;
   window.Redact = { mount: (el, cfg) => {
     withRedact.cfg = cfg;
-    el.__redact = withRedact.ed = { active: false, view: 'image', changed: false, meta: '4 × 4',
-      copy() { this.copied = true; }, apply() {}, showText() { this.view = 'text'; } };
+    el.__redact = withRedact.ed = { active: false, mode: 'box', view: 'image', sel: null, selBox: null,
+      styleOpen: false, changed: false, meta: '4 × 4', copy() { this.copied = true; }, apply() {},
+      removeBox() { this.removed = true; }, showText() { this.view = 'text'; } };
     return el;
   } };
   try { await fn(); } finally { if (had === undefined) delete window.Redact; else window.Redact = had; }
@@ -4166,9 +4167,20 @@ test('a staged image opens in the editor, with the brush and copy on the header 
     await shown();
     assert.equal(withRedact.cfg?.name, 'shot.png', 'the slide is the editor, told what it is editing');
     const titles = (n) => data._rActions(n).map(a => a.title || '');
-    data._rActions(0).find(a => a.title === 'Edit the image: cover, label, crop').onClick();
-    assert.equal(withRedact.ed.active, true, 'the brush turns the tools on in place');
-    assert.ok(titles(0).includes('Stop editing'), 'and then offers to turn them off');
+    // The brush is a menu: choosing to crop turns editing on in that mode.
+    data._rDeck.el.querySelector('.sd-header button[aria-label="Edit the image"]').click();
+    const row = [...document.querySelectorAll('.sd-hdr-menu button')].find(b => b.textContent === 'Crop the image');
+    assert.ok(row, 'the brush opens a menu of what to do');
+    row.click();
+    assert.equal(withRedact.ed.active, true);
+    assert.equal(withRedact.ed.mode, 'crop');
+    assert.ok(titles(0).includes('Editing: crop the image'), 'and then names what is being done');
+    withRedact.ed.mode = 'box';
+    assert.ok(!titles(0).includes('Delete the selected box'), 'no box selected, nothing to style or delete');
+    withRedact.ed.selBox = {}; withRedact.ed.sel = 1;
+    assert.ok(titles(0).includes('Style the selected box'));
+    data._rActions(0).find(a => a.title === 'Delete the selected box').onClick();
+    assert.ok(withRedact.ed.removed, 'the header deletes through the editor');
     assert.ok(titles(0).includes('Copy the image'));
     assert.ok(!titles(0).some(t => t.startsWith('Keep the edits')), 'nothing to keep before an edit');
     withRedact.ed.changed = true;
