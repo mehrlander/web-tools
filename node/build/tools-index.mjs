@@ -35,6 +35,16 @@
 //                 ci:<events>   a .github/workflows/ file; the events come from
 //                               its top-level `on:` block, '+'-joined
 //                 none found    no route the derivation can see
+//   callers     what runs the file, semicolon-joined (added 2026-10-20): a
+//               harness file that imports it, runs it by path (python3,
+//               node, bash), runs its npm script, or finds it through the
+//               hooks' plugin_script; node/test/ when the suite imports it;
+//               and a tracked .md that gives the command to run it, which
+//               stands for a reader following that document. A file named
+//               only in prose or a comment has no caller: a mention is not a
+//               call. The Automation tab reads this to count a file under
+//               the triggers of whatever runs it, so a helper the commit
+//               hook calls counts as running on an event.
 //   emits       writes a file (a generator rather than a reader); for a
 //               workflow, runs `git push`, so its run lands a commit (added
 //               2026-10-07: the file-write patterns below never match YAML, so
@@ -59,7 +69,7 @@ import path from 'node:path';
 import { parseCsv, writeCsv } from './registries-load.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
-const HARNESS_COLS = ['path', 'role', 'layer', 'lines', 'invocation', 'emits', 'named', 'tested'];
+const HARNESS_COLS = ['path', 'role', 'layer', 'lines', 'invocation', 'callers', 'emits', 'named', 'tested'];
 import { fileURLToPath } from 'node:url';
 import { repoRoot } from '../repo-root.mjs';
 
@@ -209,6 +219,96 @@ export function deriveHookLegs(src) {
   }));
 }
 
+// ── Callers: what runs each file ────────────────────────────────────────────
+//
+// Comments and docstrings are stripped first, because the file that most
+// often names another in a comment is the one describing it, not calling it:
+// this file names a dozen it never runs.
+const stripJs = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
+const stripPy = s => s.replace(/("""|\'\'\')[\s\S]*?\1/g, '').replace(/(^|\s)#[^\n]*/g, '$1');
+const stripSh = s => s.replace(/(^|\s)#(?!!)[^\n]*/g, '$1');
+function codeOf(rel, src) {
+  if (rel.endsWith('.py')) return stripPy(src);
+  if (/\.(sh|ya?ml)$/.test(rel) || rel.startsWith('.githooks/')) return stripSh(src);
+  return stripJs(src);
+}
+// A command that runs a file by path, as code or a document writes it.
+const RUN = /\b(?:python3?|node|bash|sh)\s+(?:-\S+\s+)*["']?\.?\/?((?:[\w.$\{\}-]+\/)*([\w.-]+\.(?:py|mjs|js|cjs|sh)))\b/g;
+
+/**
+ * path -> sorted callers, for every subject. See the header's `callers`.
+ * @param {string} repoRoot
+ * @param {string[]} subjects  the harness files
+ * @param {string[]} files     every tracked file
+ * @param {Map<string,string>} npm  file -> npm script
+ */
+export function deriveCallers(repoRoot, subjects, files, npm) {
+  const known = new Set(subjects);
+  const callers = new Map(subjects.map(p => [p, new Set()]));
+  const add = (target, from) => {
+    if (callers.has(target) && target !== from) callers.get(target).add(from.startsWith('node/test/') ? 'node/test/' : from);
+  };
+  const byScript = new Map();
+  for (const rel of subjects) {
+    const script = npm.get(rel) || npm.get(path.posix.basename(rel));
+    if (script && !byScript.has(script)) byScript.set(script, rel);
+  }
+  const byRun = (from, ref, base) => {
+    const plain = ref.replace(/^.*?\$\{?\w+\}?\//, '');
+    for (const t of subjects) {
+      if (t === ref || t.endsWith('/' + plain) || (ref.includes('$') && path.posix.basename(t) === base)) add(t, from);
+    }
+  };
+  const sources = [...subjects, ...files.filter(f => f.startsWith('node/test/') && /\.(mjs|js|cjs)$/.test(f))];
+  for (const from of sources) {
+    const code = codeOf(from, read(repoRoot, from));
+    const dir = path.posix.dirname(from);
+    for (const m of code.matchAll(/(?:from\s+|import\s*\(\s*|require\(\s*)['"](\.{1,2}\/[^'"]+)['"]/g)) {
+      add(path.posix.normalize(path.posix.join(dir, m[1])), from);
+    }
+    if (from.endsWith('.py')) {
+      for (const m of code.matchAll(/^\s*(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))/gm)) {
+        const mod = (m[1] || m[2]).replace(/^\.+/, '').split('.');
+        for (const base of [dir, 'python']) {
+          const t = path.posix.join(base, ...mod) + '.py';
+          if (known.has(t)) add(t, from);
+        }
+      }
+      // A hyphenated name cannot be imported, so such a module is loaded by
+      // path through importlib, with the file named in a string.
+      if (code.includes('spec_from_file_location')) {
+        for (const m of code.matchAll(/['"]([\w.-]+\.py)['"]/g)) {
+          for (const t of subjects) if (t.endsWith('/' + m[1])) add(t, from);
+        }
+      }
+    }
+    // A command inside a string counts: checkout-setup.mjs registers git's
+    // merge driver as a quoted command, and git runs it. The cost is that a
+    // message telling a reader what to run counts too (showing.py's warning
+    // names npm run build:app), which adds a caller that only advises.
+    for (const m of code.matchAll(RUN)) byRun(from, m[1], m[2]);
+    for (const m of code.matchAll(/npm (?:run(?: -s)? ([\w:.-]+)|test\b)/g)) {
+      const t = byScript.get(m[1] || 'test');
+      if (t) add(t, from);
+    }
+    for (const m of code.matchAll(/plugin_script\s+(hooks\/[\w.-]+)/g)) add('skills/' + m[1], from);
+  }
+  // A package.json script that runs another through npm run.
+  const scripts = JSON.parse(read(repoRoot, 'package.json')).scripts || {};
+  for (const [name, cmd] of Object.entries(scripts)) {
+    const from = byScript.get(name);
+    for (const m of cmd.matchAll(/npm run (?:-s )?([\w:.-]+)/g)) {
+      const t = byScript.get(m[1]);
+      if (from && t) add(t, from);
+    }
+  }
+  // A document that gives the command stands for a reader running it.
+  for (const doc of files.filter(f => f.endsWith('.md'))) {
+    for (const m of read(repoRoot, doc).matchAll(RUN)) if (known.has(m[1])) callers.get(m[1]).add(doc);
+  }
+  return new Map([...callers].map(([p, c]) => [p, [...c].sort()]));
+}
+
 /**
  * Derive the machine-visible fields for every harness file on disk.
  * @param {string} repoRoot
@@ -227,12 +327,15 @@ export function deriveTools(repoRoot) {
   const hookEvents = pluginHookEvents(repoRoot);
   const npm = npmScriptMap(repoRoot);
   const imported = importedSet(repoRoot, [...subjects, ...files.filter(f => f.startsWith('node/test/'))]);
+  const callers = deriveCallers(repoRoot, subjects, files, npm);
   const prose = files.filter(f => f.endsWith('.md')).map(f => read(repoRoot, f)).join('\n');
   const tests = files.filter(f => f.startsWith('node/test/')).map(f => read(repoRoot, f)).join('\n');
 
   // A subject another subject invokes by name (a shell hook calling its
   // python half, the dispatcher running the injector) has a route the node
-  // import scan cannot see.
+  // import scan cannot see. The name match alone also catches a comment that
+  // mentions a command-line tool, so it counts only where deriveCallers
+  // found code that runs the file.
   const srcs = new Map(subjects.map(rel => [rel, read(repoRoot, rel)]));
   const invoked = new Set();
   for (const rel of subjects) {
@@ -255,13 +358,14 @@ export function deriveTools(repoRoot) {
     else if (rel.startsWith('.github/workflows/')) invocation = 'ci:' + workflowEvents(src);
     else if (npm.has(rel) || npm.has(base)) invocation = 'npm:' + (npm.get(rel) || npm.get(base));
     else if (imported.has(rel)) invocation = 'imported';
-    else if (invoked.has(base)) invocation = 'imported';
+    else if (invoked.has(base) && (callers.get(rel) || []).some(c => !c.endsWith('.md'))) invocation = 'imported';
     else if (src.startsWith('#!')) invocation = 'argv';
     else invocation = 'none found';
     out.set(rel, {
       layer: path.posix.dirname(rel),
       lines: src ? src.split('\n').length : 0,
       invocation,
+      callers: (callers.get(rel) || []).join(';'),
       // yes/no rather than a raw boolean, which is the estate's CSV spelling
       // (manifest-fields.required, properties.exclusive) and is declared as a
       // closed domain so the gate holds it. Letting a JS boolean stringify

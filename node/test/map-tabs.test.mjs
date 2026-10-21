@@ -45,6 +45,11 @@ const SUBVIEWS = [...subviewsBlock.matchAll(optionPattern)]
 // unit: each group's key, then its options in strip order.
 const SUBVIEW_GROUPS = [...subviewsBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)]
   .map(m => ({ parent: m[1], options: [...m[2].matchAll(optionPattern)].map(o => [o[1], o[2]]) }));
+// Addresses a subview draws inside itself (Automation's trigger views), each
+// with the subview that hosts it.
+const withinBlock = src.match(/WITHIN:\s*\[([\s\S]*?)\r?\n\s*\],/)?.[1] || '';
+const WITHIN = [...withinBlock.matchAll(/\{ k: '([a-z]+)', n: '([^']+)', i: '(ph-[a-z-]+)', host: '([a-z]+)' \}/g)]
+  .map(m => ({ k: m[1], n: m[2], i: m[3], host: m[4] }));
 const parentBlock = src.match(/SUBVIEW_PARENT:\s*\{([^}]+)\}/)?.[1] || '';
 const SUBVIEW_PARENT = Object.fromEntries(
   [...parentBlock.matchAll(/(?:^|,)\s*([a-z]+): '([a-z]+)'(?=\s*(?:,|$))/g)]
@@ -69,11 +74,20 @@ const GROUPS = [
   ['Overview', [['overview', 'Contents'], ['aims', 'Purpose']]],
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
-  ['Harness', [['harness', 'Automation'], ['scheduled', 'Scheduled'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
+  ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];
+
+test('an address drawn inside a subview is routable and names a host on the strip', () => {
+  assert.deepEqual(WITHIN.map(w => w.k), ['events', 'scheduled']);
+  for (const w of WITHIN) {
+    assert.ok(MAP_ROUTES.includes(w.k), `${w.k} is a shell route`);
+    assert.ok(SUBVIEWS.some(v => v.k === w.host), `${w.k} is hosted by ${w.host}, a subview on the strip`);
+    assert.ok(!SUBVIEWS.some(v => v.k === w.k), `${w.k} is not also a stop on the strip`);
+  }
+});
 
 test('every tab in the strip is one entry in the array that generates it', () => {
   // 12 to 13 on 2026-09-05: the Kits tab. 13 to 14 on 2026-09-08: the Views tab.
@@ -100,7 +114,10 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // The parent map restates SUBVIEWS for the lookup displayTab makes, so it
   // must say exactly what the groups say, and nothing for a landing subview.
   const parents = Object.fromEntries(SUBVIEW_GROUPS.flatMap(g => g.options.slice(1).map(([k]) => [k, g.parent])));
-  assert.deepEqual(SUBVIEW_PARENT, parents, 'SUBVIEW_PARENT agrees with SUBVIEWS');
+  // 2026-10-20: Scheduled left the strip for Automation's trigger row, beside
+  // the new Events view; both keep a top-level parent.
+  for (const w of WITHIN) parents[w.k] = SUBVIEW_GROUPS.find(g => g.options.some(([k]) => k === w.host)).parent;
+  assert.deepEqual(SUBVIEW_PARENT, parents, 'SUBVIEW_PARENT agrees with SUBVIEWS and WITHIN');
   assert.deepEqual(routeKeys('MAP_TABS'), TABS.map(t => t.k), 'the shell lists the tabs in strip order');
   // One x-for per level, not hand-copied buttons: the copies are what let a tab
   // ship without a sentence, and what let the Injection tab ship without an icon.

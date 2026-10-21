@@ -1,4 +1,4 @@
-// Context: visible questions and source grouping share one table and inspector.
+// Context: a question filters one source table, and a source opens in its panel-tip.
 // The working-tree fixtures pair registry edits with the current code before a commit.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -21,7 +21,7 @@ export default async function (page) {
       state.ctxReg = null;
       await state.loadContextReg();
       await state.loadTabLedes();
-      state.openCtxDeliveryTopic('conventions-delivery');
+      state.openCtxDeliveryTopic('conventions-delivery', true);
     } finally { window.GH.prototype.get = get; }
   }, files);
   assert.equal(await page.locator('[data-context-matrix]').count(), 0);
@@ -32,30 +32,45 @@ export default async function (page) {
   for (const question of await page.locator('[data-context-question]').all()) assert.ok(await question.isVisible());
   assert.equal(await page.locator('[data-context-path]').count(), 2);
   assert.match(await page.locator('[data-context-paths]').innerText(), /asks to read/);
+  const panel = page.locator('[data-context-tip-panel]');
+  const heading = () => panel.locator('[data-context-source-heading]').innerText();
   await page.locator('[data-context-path-source="plugin-writing"]').click();
-  let inspector = page.locator('[data-context-inspector]');
-  assert.equal(await inspector.locator('h3').innerText(), 'Qualified writing rules');
-  assert.match(await inspector.innerText(), /No joined tally/);
+  await panel.waitFor({ state: 'visible' });
+  assert.equal(await heading(), 'Qualified writing rules');
+  // Each scale lights the source's own value among its alternatives.
+  const lit = key => panel.locator('[data-context-scale="' + key + '"] [aria-current="true"]').allInnerTexts();
+  assert.deepEqual(await lit('circle'), ['Portable plugin']);
+  assert.ok((await panel.locator('[data-context-scale="circle"] .rounded').count()) >= 6, 'the whole circle scale is drawn');
+  await page.keyboard.press('Escape');
+  await panel.waitFor({ state: 'hidden' });
 
-  await page.getByRole('radio', { name: 'Source', exact: true }).check();
+  await page.locator('[data-context-show-all]').click();
   const table = page.locator('[data-context-table]');
   const count = await page.locator('[data-context-source-row]').count();
-  assert.equal(count, 31);
+  assert.equal(count, await page.evaluate(() => window.Alpine.$data(document.querySelector('[data-context-workspace]')).ctxAll.length),
+    'with no question picked the table holds every source');
+  assert.equal(await page.locator('[data-context-question-detail]').count(), 0, 'with no question there is no question detail');
   await table.locator('[data-context-source="env-setup"]').click();
-  inspector = page.locator('[data-context-inspector]');
-  assert.equal(await inspector.locator('h3').innerText(), 'Environment setup script');
-  assert.equal(await inspector.count(), 1, 'one expanded source owns the inspector');
-  assert.equal(await page.locator('[data-context-source-row]').count(), count, 'selection never filters the table');
+  await panel.waitFor({ state: 'visible' });
+  assert.equal(await heading(), 'Environment setup script');
+  assert.equal(await page.locator('[data-context-source-row]').count(), count, 'a panel never filters the table');
   await table.locator('[data-context-source="env-setup"]').click();
-  assert.equal(await page.locator('[data-context-inspector]').count(), 0, 'the table can show only its rows');
+  await panel.waitFor({ state: 'hidden' });
   await table.locator('[data-context-source="env-setup"]').click();
-  await inspector.locator('summary').click();
-  await inspector.locator('[data-context-connections]').getByRole('button', { name: 'The portable plugin', exact: true }).click();
-  assert.equal(await page.locator('[data-context-inspector] h3').innerText(), 'The portable plugin');
+  await panel.waitFor({ state: 'visible' });
+  await panel.locator('[data-context-connections]').getByRole('button', { name: 'The portable plugin', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[data-context-tip-panel] [data-context-source-heading]')?.textContent === 'The portable plugin');
+  // Hover opens an unpinned panel on a fine pointer, and leaving closes it.
+  await page.keyboard.press('Escape');
+  await panel.waitFor({ state: 'hidden' });
+  await table.locator('[data-context-source="hook-refresh"]').hover();
+  await panel.waitFor({ state: 'visible' });
+  assert.equal(await heading(), 'Plugin refresher');
+  await page.mouse.move(2, 2);
+  await panel.waitFor({ state: 'hidden' });
 
   const tableSize = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
   assert.ok(tableSize.scroll <= tableSize.width + 1, JSON.stringify(tableSize));
-  await page.getByRole('radio', { name: 'Question', exact: true }).check();
   const chooseQuestion = async key => {
     await page.locator('[data-context-question="' + key + '"]').click();
     await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-question-heading'));
@@ -63,14 +78,12 @@ export default async function (page) {
   await chooseQuestion('askuserquestion');
   assert.equal(await page.locator('[data-context-path]').count(), 0, 'topic association has no arrows');
   assert.ok(await page.locator('[data-context-source-row]').count() >= 2);
-  assert.equal(await page.locator('[data-context-inspector]').count(), 0, 'a question does not open an arbitrary source');
+  assert.ok(await panel.isHidden(), 'a question does not open an arbitrary source');
   await chooseQuestion('pr-lifecycle');
   assert.match(await page.locator('[data-context-paths]').innerText(), /create_pull_request/);
   await chooseQuestion('conventions-delivery');
-  await page.locator('[data-context-path-source="plugin-writing"]').click();
-  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-source-heading'));
-  await page.getByRole('radio', { name: 'Source', exact: true }).check();
-  assert.equal(await page.locator('[data-context-inspector] h3').innerText(), 'Qualified writing rules');
+  await page.locator('[data-context-question="conventions-delivery"]').click();
+  assert.equal(await page.locator('[data-context-source-row]').count(), count, 'picking the picked question again shows every source');
 
   // Synthetic observations exercise the measurement UI, then are removed before the shot.
   await page.evaluate(() => {
@@ -79,29 +92,31 @@ export default async function (page) {
       'fixture/CLAUDE.md': { path: 'fixture/CLAUDE.md', sessions: 3, reconstructed: 3, last: '2026-10-01' } };
     s.skillUses = { default: { path: 'default', sessions: 7, last: '2026-10-01' },
       'fixture-skill': { path: 'fixture-skill', sessions: 2, last: '2026-10-01' } };
+    s.docReadsSessions = 40;
   });
   await page.getByRole('combobox', { name: 'Sort context sources' }).selectOption('usage');
   assert.equal(await page.locator('[data-context-source-row]').first().getAttribute('data-context-source-row'), 'wt-claude');
   assert.match(await page.locator('[data-context-source-row="wt-claude"]').innerText(), /12 sessions[\s\S]*At session start/);
   assert.match(await page.locator('[data-context-source-row="plugin-default"]').innerText(), /7 sessions[\s\S]*Skill invoked/);
   assert.match(await page.locator('[data-context-source-row="plugin-writing"]').innerText(), /Not measured/);
-  assert.equal(await page.locator('[data-context-inspector] h3').innerText(), 'Qualified writing rules', 'sorting preserves selection');
-  await page.locator('[data-context-session-records] > summary').click();
+  await table.locator('[data-context-source="wt-claude"]').click();
+  await panel.waitFor({ state: 'visible' });
+  assert.match(await panel.locator('[data-context-scale="sessions"]').innerText(), /12 of 40 recorded/);
+  await page.keyboard.press('Escape');
+  await panel.waitFor({ state: 'hidden' });
   assert.match(await page.locator('[data-context-session-records]').innerText(), /fixture\/CLAUDE.md/);
   assert.match(await page.locator('[data-context-session-records]').innerText(), /fixture-skill/);
-  await page.locator('[data-context-session-records] > summary').click();
   await page.evaluate(() => {
     const s = window.Alpine.$data(document.querySelector('[data-context-workspace]'));
-    s.docStartup = null; s.skillUses = null;
+    s.docStartup = null; s.skillUses = null; s.docReadsSessions = 0;
     s.ctxSpectraSelected = ''; s.setCtxSort('name');
   });
-  await page.getByRole('radio', { name: 'Question', exact: true }).check();
   await chooseQuestion('conventions-delivery');
   await page.getByRole('button', { name: 'All questions ↑', exact: true }).click();
   await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-question-index'));
 
   const sources = page.locator('[data-map-sources-button]:visible');
-  const panel = page.locator('[data-map-sources-panel]');
+  const sourcesPanel = page.locator('[data-map-sources-panel]');
   await sources.scrollIntoViewIfNeeded();
   // All questions uses smooth scrolling. A source panel deliberately closes
   // when its anchor scrolls away, so finish that navigation before opening it.
@@ -113,18 +128,18 @@ export default async function (page) {
     moved();
   }));
   await sources.click();
-  await panel.waitFor({ state: 'visible' });
-  assert.match(await panel.innerText(), /docs\/context-sources\.csv/);
-  assert.match(await panel.innerText(), /skills\/hooks\/hooks\.json/);
+  await sourcesPanel.waitFor({ state: 'visible' });
+  assert.match(await sourcesPanel.innerText(), /docs\/context-sources\.csv/);
+  assert.match(await sourcesPanel.innerText(), /skills\/hooks\/hooks\.json/);
   await page.keyboard.press('Escape');
-  await panel.waitFor({ state: 'hidden' });
+  await sourcesPanel.waitFor({ state: 'hidden' });
   assert.ok(await sources.evaluate(e => e === document.activeElement), 'Escape restores the source control');
   await sources.click();
-  await panel.getByRole('button', { name: 'Close sources', exact: true }).click();
-  await panel.waitFor({ state: 'hidden' });
+  await sourcesPanel.getByRole('button', { name: 'Close sources', exact: true }).click();
+  await sourcesPanel.waitFor({ state: 'hidden' });
   await sources.click();
   await page.getByRole('tab', { name: /Tests/ }).click();
-  await panel.waitFor({ state: 'hidden' });
+  await sourcesPanel.waitFor({ state: 'hidden' });
   await page.getByRole('tab', { name: /Context/ }).click();
 
   const result = await page.evaluate(() => {
@@ -132,11 +147,10 @@ export default async function (page) {
     const s = window.Alpine.$data(el);
     for (const box of document.querySelectorAll('*')) if (box.scrollTop) box.scrollTop = 0;
     window.scrollTo(0, 0);
-    return { lens: s.ctxLens, selected: s.ctxSpectraActive?.id || '', topic: s.ctxTopic,
+    return { selected: s.ctxSpectraActive?.id || '', topic: s.ctxTopic,
       sources: s.ctxAll.length, questionSources: s.ctxGroupedSources.length, paths: s.ctxQuestionPaths.length,
       width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth };
   });
-  assert.equal(result.lens, 'delivery');
   assert.equal(result.selected, '');
   assert.equal(result.topic, 'conventions-delivery');
   assert.ok(result.scrollWidth <= result.width + 1, JSON.stringify(result));

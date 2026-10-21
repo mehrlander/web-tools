@@ -27,7 +27,9 @@ controls and filter rows scroll away with the list.
 
 The shell validates `?tab=` against `MAP_TABS` and `MAP_SUBVIEWS` in
 `app/index.html` before `map()` mounts. `SUBVIEWS` in `map.js` groups the
-addresses under tabs.
+addresses under tabs, and `WITHIN` lists the addresses a subview opens inside
+itself rather than as a stop of its own on the strip: Automation's trigger row
+opens Events and Scheduled.
 
 ## Views: the app's own destinations
 

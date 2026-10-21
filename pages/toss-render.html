@@ -1496,7 +1496,9 @@ document.addEventListener('click',function(e){
     }
     showTrusted(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
-    setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
+    // A pinned address's branch rides on the subject, so the FAB can tell
+    // whether that branch has moved past the commit on screen.
+    setSubject({ repo: owner + '/' + name, ref: ref || 'main', path, ...(branch ? { branch } : {}) });
   }
 
   // Re-address in place, for the fab's "Re-toss at ref": swap the #gh= hash
@@ -1583,7 +1585,7 @@ document.addEventListener('click',function(e){
     const a = splitAddr(env);
     if (!a) return;
     document.title = 'Toss · ' + a.path.split('/').pop() + (a.ref ? ' @ ' + a.ref : '');
-    setSubject({ repo: a.repo, ref: a.ref, path: a.path, route: key,
+    setSubject({ repo: a.repo, ref: a.ref, ...(a.branch ? { branch: a.branch } : {}), path: a.path, route: key,
                  via: { repo: r.repo, ref: viewerRef, path: r.path } });
   }
 
@@ -1593,7 +1595,8 @@ document.addEventListener('click',function(e){
   function splitAddr(addr) {
     const m = String(addr || '').match(/^([^/@:]+\/[^/@:]+)(?:@([^:]+))?:(.+)$/);
     if (!m) return null;
-    return { repo: m[1], ref: splitPin(m[2]).ref, path: m[3].split(/[?#]/)[0] };
+    const p = splitPin(m[2]);
+    return { repo: m[1], ref: p.ref, ...(p.branch ? { branch: p.branch } : {}), path: m[3].split(/[?#]/)[0] };
   }
 
   // ── Look at what is on the clipboard ─────────────────────────────────────
