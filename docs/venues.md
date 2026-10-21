@@ -7,7 +7,7 @@ Agent work in this estate can run in the places listed below.
 | **Anthropic's cloud** | Claude Code on the web (attended; unattended when a Routine starts it); Cowork on web and mobile (scheduled tasks unattended) | a clone of each repository the session was started with, connectors, an allowlisted network, headless Chromium; none of your files | a session, a Routine, or `create_session` |
 | **OpenAI's cloud** | Codex cloud tasks (unattended; unused here) | a clone of a connected repo; none of your files | a task in Codex |
 | **Home laptop** | attended: Claude Code, Cowork, Remote Control, Dispatch, Gemini in Antigravity, the Codex app; unattended: the laptop daemon | the laptop as you: files, apps, browser, and fetched clones of the estate's repos under `~/gh` | a session there; a `computer-use` errand; a `laptop-daemon` errand; a scheduled `daemon` row |
-| **Work machine** | you, and any agent installed there (attended) | work files, under work's rules | an `ise-f5` errand, run by hand |
+| **Work machine** | you; no agent runs there | work files, under work's rules; code arrives by copy-paste from GitHub or the Web Tools app | an `ise-f5` errand, run by hand |
 | **GitHub's runners** | GitHub Actions (unattended) | open egress, CPU only, no local files | `workflow_dispatch`, `repository_dispatch` or `push`; on a schedule, through web-tools-private's `data/design/scheduled-tasks.csv` |
 
 This account has no self-hosted Claude Code Remote pool (`ccpool_`), as of
