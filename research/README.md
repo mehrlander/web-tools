@@ -17,9 +17,7 @@ account links to its own materials. The shared placement rule is in
 
 - [Documentation problems and drafting proposals](DOC_CRAFT_STUDY.md), with the original specimens.
 
-The three Excel research packages are in `projects/office/research/` in
-`mehrlander/home`, beside the inventory of routes into Excel, Word and
-PowerPoint files.
+The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
 ## Exploration
 
