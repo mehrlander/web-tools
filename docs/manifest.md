@@ -334,7 +334,7 @@ token:
   tab alive; `node/test/probe-driver.mjs` checks the driver before a person
   is asked to open anything.
 - **`laptop-daemon`** (venue `personal-laptop`) asks Gemini, through the
-  Gemini home laptop daemon, to do something, usually to answer a prompt. File
+  laptop daemon, to do something, usually to answer a prompt. File
   it with `sessions/tools/errand_runner.py` in web-tools-private. While the
   laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
   reply to the result file. Declining the errand on the Stage cancels it.

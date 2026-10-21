@@ -68,6 +68,15 @@ test('a toss shell carrying a page\'s look keys inside its address loads nothing
   assert.deepEqual(loaded, []);
 });
 
+test('nor when the page fragment carries two look keys, which split on & would surface', async () => {
+  for (const h of ['#data=mehrlander/home@abc123:a.md#intro=hi&show=row',
+                   '#gh=mehrlander/web-tools@abc123:pages/branch.html#gh=o/r&pr=1&show=row']) {
+    const { loaded } = run(h);
+    await tick();
+    assert.deepEqual(loaded, [], h);
+  }
+});
+
 test('Look still arrives when Land cannot be loaded', async () => {
   const { loaded } = run('#show=x', ['kits/land.js']);
   await tick(); await tick();

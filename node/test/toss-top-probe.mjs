@@ -14,11 +14,10 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const server = http.createServer(async (req, res) => {
   const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\//, '');
   try { res.writeHead(200, { 'content-type': typeFor(rel) }); res.end(await readFile(path.join(root, rel))); }

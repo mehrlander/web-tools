@@ -37,7 +37,9 @@
   for a page that NEEDS the token: an un-deployed branch copy reaches the same
   localStorage the deployed page will, which a #gz= payload cannot. The ':'
   before <path> is unambiguous because git forbids ':' in ref names, and no
-  @ref means the repo's default branch (and no ?use shim). Neither the ?query
+  @ref means the repo's default branch (and no ?use shim). A pinned address,
+  @<branch>@<commit> with the commit 7 to 40 hex characters, reads the commit
+  and carries the branch as a label (splitPin). Neither the ?query
   nor the #frag reaches the API: both are handed to the PAGE, by the shims
   addressHtml assembles.
 
@@ -129,8 +131,8 @@
   </form>
 
   <p id="empty-msg" class="text-error text-xs max-w-md font-mono"></p>
-  <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
-     href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
+  <a id="empty-token" class="link link-primary text-xs hidden"
+     href="../app/?view=here">Set or check the GitHub token in This browser</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
     URL forms: <code>#gh=owner/repo@ref:path?a=1&amp;b=2</code> (the whole ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL. Add <code>?w=390</code> to render at that width, <code>?lib=ref</code> to run another Web Tools version, <code>?refs=owner/repo@ref</code> (repeatable, or <code>@ref:path</code> for one file) to read a repository at another version.
   </p>
@@ -200,7 +202,7 @@
   })();
   // The selection is for the PAGE, never for this renderer's own code (its FAB
   // and drawer). A renderer running Web Tools at a chosen ref while it hosts a
-  // frame is the shape recorded as killing Safari's tab (docs/SNAGS.md,
+  // frame is the shape recorded as killing Safari's tab (the snag
   // shell-pin-kills-the-tab), so this document's own globals are emptied here,
   // before its FAB boots, and the boot below imports entry.js at main.
   window.__refs = {};
@@ -261,7 +263,7 @@
   // visitable address of its own, which is the real problem: the enclosing page
   // is the thing a bookmark can name. Same-origin in address mode, so read it.
   //
-  // The query rides along: `?w=` (and `?use=`) say how to render what the
+  // The query rides along: `?w=` (and `?lib=`) say how to render what the
   // fragment addresses, so a bookmark that dropped them would name the right
   // page and open it in the wrong shape.
   const absUrl = frag => {
@@ -274,6 +276,11 @@
     return location.origin + location.pathname + location.search + frag;
   };
 
+  function tokenHref() {
+    const next = 'pages/toss-render.html' + (location.search || '') + (location.hash || '');
+    return '../app/?view=here&next=' + encodeURIComponent(next);
+  }
+
   function showInput(error, tokenHint) {
     tossLinkFn = null;
     // Back to the panel (or an error): nothing rendered, so no subject.
@@ -285,9 +292,14 @@
     // unable to scroll: the frame it was hiding overflow for is not there.
     document.body.style.overflow = '';
     msg.textContent = error || '';
-    // Only token-shaped failures surface the token link; a decode or parse
-    // failure must not send the viewer off to mint a new token for nothing.
-    document.getElementById('empty-token').classList.toggle('hidden', !tokenHint);
+    // Only token-shaped failures surface the token link, which sends the viewer
+    // to This browser (?view=here) with ?next= carrying this toss address so
+    // the Back button returns here once the token is updated.
+    const tokLink = document.getElementById('empty-token');
+    if (tokLink) {
+      tokLink.href = tokenHref();
+      tokLink.classList.toggle('hidden', !tokenHint);
+    }
   }
   // Kept name for the existing error call sites; an error just re-shows the panel.
   const showEmpty = showInput;
@@ -1145,12 +1157,16 @@ document.addEventListener('click',function(e){
   // returns an empty "content" field, so the contents fetches below ask for raw
   // and sniff the response; directories and errors come back as JSON regardless.
   const RAW_MEDIA = 'application/vnd.github.raw+json';
-  function ghHeaders(accept) {
-    const headers = { Accept: accept || 'application/vnd.github.v3+json' };
+  function savedToken() {
     try {
       const t = localStorage.getItem('ghToken');
-      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
-    } catch (e) {}
+      return (t && !t.includes('🎟')) ? t.trim() : '';
+    } catch (e) { return ''; }
+  }
+  function ghHeaders(accept) {
+    const headers = { Accept: accept || 'application/vnd.github.v3+json' };
+    const t = savedToken();
+    if (t) headers.Authorization = 'Bearer ' + t;
     return headers;
   }
 
@@ -1282,7 +1298,7 @@ document.addEventListener('click',function(e){
   }
 
   // LOOK MARKERS ON A PAGE THAT NEVER ASKED FOR THEM. A trailing fragment
-  // carrying a look key (show=, tap=, walk=, steps=; lib/kits/look.js) asks the
+  // carrying a look key (show=, tap=, walk=, steps=, intro=; lib/kits/look.js) asks the
   // page to land on a place and say why, and a page that loads the kit answers
   // it itself. One that does not gets the kit here, from Web Tools at the
   // version this render boots (`lib`), after its own scripts, so a look link
@@ -1291,7 +1307,7 @@ document.addEventListener('click',function(e){
   // no look key leaves the page byte for byte as it was, and a failed fetch
   // leaves it as it was too, since a page without its marker still renders.
   async function withLook(text, frag, lib) {
-    if (!/(?:^|&)(?:show|tap|walk|steps)=/.test(frag || '')) return text;
+    if (!/(?:^|&)(?:show|tap|walk|steps|intro)=/.test(frag || '')) return text;
     // Loading a kit, not naming it: a page that links to look.js's source must
     // still get the kit. A second copy would be harmless (look.js defers to
     // the first), so the test errs toward fetching.
@@ -1307,6 +1323,97 @@ document.addEventListener('click',function(e){
     return end === -1 ? text + tags : text.slice(0, end) + tags + text.slice(end);
   }
 
+  // Distinguish the four reasons an address fetch fails instead of guessing
+  // "not found, or the stored token lacks access" on every 404:
+  //   1. No token is saved in localStorage.ghToken.
+  //   2. A token is saved, and GitHub rejects it (401 on the read or on /user).
+  //   3. A classic token is saved and accepted by /user, but x-oauth-scopes
+  //      lacks `repo`, so GitHub hides private repositories as 404.
+  //   4. The saved token has `repo` scope and /user accepts it, which means a
+  //      404 is a missing repository, ref, or file path rather than a token
+  //      problem (so the token link stays hidden).
+  async function explainAddressFailure(res) {
+    const tok = savedToken();
+    const tail = tok ? '…' + tok.slice(-4) : '';
+    const rem = res.headers && typeof res.headers.get === 'function'
+      ? res.headers.get('x-ratelimit-remaining') : null;
+    if (res.status === 401) {
+      return {
+        why: tok ? 'saved token ' + tail + ' was rejected by GitHub (expired or revoked)'
+                 : 'authentication required (no GitHub token saved in this browser)',
+        tokenHint: true,
+      };
+    }
+    if (res.status === 403) {
+      if (rem === '0') {
+        return {
+          why: tok ? 'hourly rate limit reached for saved token ' + tail
+                   : 'anonymous hourly rate limit reached (no GitHub token saved in this browser)',
+          tokenHint: true,
+        };
+      }
+      return {
+        why: tok ? 'forbidden with saved token ' + tail
+                 : 'forbidden (no GitHub token saved in this browser)',
+        tokenHint: true,
+      };
+    }
+    if (res.status === 404) {
+      if (!tok) {
+        return {
+          why: 'not found (no GitHub token is saved in this browser; a private repository needs one)',
+          tokenHint: true,
+        };
+      }
+      try {
+        const u = await fetch('https://api.github.com/user', { headers: ghHeaders(), cache: 'no-store' });
+        if (u.status === 0 || u.status === 401) {
+          return {
+            why: 'saved token ' + tail + ' was rejected by GitHub (expired or revoked)',
+            tokenHint: true,
+          };
+        }
+        if (u.ok) {
+          const scopesRaw = u.headers && typeof u.headers.get === 'function'
+            ? u.headers.get('x-oauth-scopes') : null;
+          if (scopesRaw !== null && !/^github_pat_/.test(tok)) {
+            const scopes = scopesRaw.split(',').map(s => s.trim()).filter(Boolean);
+            if (!scopes.includes('repo')) {
+              return {
+                why: 'saved token ' + tail + ' has no repo scope, so GitHub hides private repositories',
+                tokenHint: true,
+              };
+            }
+            return {
+              why: 'not found on GitHub (saved token ' + tail + ' has repo access; check the repository, ref, or path)',
+              tokenHint: false,
+            };
+          }
+          if (/^github_pat_/.test(tok)) {
+            return {
+              why: 'not found on GitHub (check the repository, ref, or path, or whether fine-grained token ' + tail + ' grants Contents access to this repository)',
+              tokenHint: true,
+            };
+          }
+        }
+      } catch (e) {}
+      return {
+        why: 'not found on GitHub (check the path, or whether saved token ' + tail + ' has access to this repository)',
+        tokenHint: true,
+      };
+    }
+    return { why: 'GitHub error ' + res.status, tokenHint: false };
+  }
+
+  // A pinned address names the branch beside the commit it was read at,
+  // @branch@commit, the commit 7 to 40 hex characters. The commit is what is
+  // read; the branch is a label. lib/kits/repo-address.js splitPin, copied
+  // because this render path loads no lib.
+  function splitPin(ref) {
+    const m = /^(.+)@([0-9a-f]{7,40})$/.exec(ref || '');
+    return m ? { ref: m[2], branch: m[1] } : { ref: ref || '', branch: '' };
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path>[?<query>][#<frag>] — ':' can't appear in a
     // git ref name. Neither suffix reaches the API: both are handed to the
@@ -1318,6 +1425,8 @@ document.addEventListener('click',function(e){
     if (!m) return showEmpty('Could not parse the gh address. Expected owner/repo[@ref]:path[?query][#frag], e.g. ' +
       'gh=mehrlander/web-tools@main:pages/index.html');
     let [, owner, name, ref, path] = m;
+    let branch;
+    ({ ref, branch } = splitPin(ref));
     let pageQuery = '', pageFrag = '';
     const hi = path.indexOf('#');
     if (hi !== -1) { pageFrag = path.slice(hi + 1); path = path.slice(0, hi); }
@@ -1345,15 +1454,10 @@ document.addEventListener('click',function(e){
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
-    const at = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path;
+    const at = owner + '/' + name + (ref ? '@' + (branch ? branch + '@' : '') + ref : '') + ':' + path;
     if (!res.ok) {
-      // Token-shaped failures say so and surface the token link; anything
-      // else is labeled as GitHub's answer, not the viewer's credentials.
-      const why = res.status === 404 ? 'not found, or the stored token lacks access (a private repo needs one)'
-                : res.status === 401 ? 'the stored token was rejected (expired or revoked)'
-                : res.status === 403 ? 'rate-limited or forbidden (is a token saved?)'
-                : 'GitHub error ' + res.status;
-      return showEmpty(at + ' — ' + why + '.', [401, 403, 404].includes(res.status));
+      const { why, tokenHint } = await explainAddressFailure(res);
+      return showEmpty(at + ' — ' + why + '.', tokenHint);
     }
     let text;
     try {
@@ -1392,7 +1496,9 @@ document.addEventListener('click',function(e){
     }
     showTrusted(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
-    setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
+    // A pinned address's branch rides on the subject, so the FAB can tell
+    // whether that branch has moved past the commit on screen.
+    setSubject({ repo: owner + '/' + name, ref: ref || 'main', path, ...(branch ? { branch } : {}) });
   }
 
   // Re-address in place, for the fab's "Re-toss at ref": swap the #gh= hash
@@ -1479,7 +1585,7 @@ document.addEventListener('click',function(e){
     const a = splitAddr(env);
     if (!a) return;
     document.title = 'Toss · ' + a.path.split('/').pop() + (a.ref ? ' @ ' + a.ref : '');
-    setSubject({ repo: a.repo, ref: a.ref, path: a.path, route: key,
+    setSubject({ repo: a.repo, ref: a.ref, ...(a.branch ? { branch: a.branch } : {}), path: a.path, route: key,
                  via: { repo: r.repo, ref: viewerRef, path: r.path } });
   }
 
@@ -1489,7 +1595,8 @@ document.addEventListener('click',function(e){
   function splitAddr(addr) {
     const m = String(addr || '').match(/^([^/@:]+\/[^/@:]+)(?:@([^:]+))?:(.+)$/);
     if (!m) return null;
-    return { repo: m[1], ref: m[2] || '', path: m[3].split(/[?#]/)[0] };
+    const p = splitPin(m[2]);
+    return { repo: m[1], ref: p.ref, ...(p.branch ? { branch: p.branch } : {}), path: m[3].split(/[?#]/)[0] };
   }
 
   // ── Look at what is on the clipboard ─────────────────────────────────────
@@ -1689,8 +1796,10 @@ document.addEventListener('click',function(e){
   // fetch. Edit the manifest, then mirror it here (three fields per key);
   // node/test/routes-manifest.test.mjs fails if the two drift.
   const TOSS_ROUTES = {
+    'audit':        { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/audit-render.html' },
     'chat-results': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/chat-results.html' },
     'data':         { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/data-view.html' },
+    'passage-reading': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/passage-reader.html' },
     'pdf':          { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/pdf-inspect.html' },
     'shorter':      { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/shorter.html' },
   };
@@ -1739,7 +1848,8 @@ document.addEventListener('click',function(e){
 <script type="module">
   // Mount the FAB toolbox. Runs after the render logic above, and the FAB
   // self-loads its own kits, so a blocked CDN degrades to render-only rather
-  // than breaking the page. ?use=<ref> pins this shell's lib chain.
+  // than breaking the page. The import's ?ref=main outranks a ?use= or ?lib=
+  // in the address, so this FAB always runs main (see SELECTED above).
   // Not in top mode: the page is the tab's document and boots its own.
   if (!window.__tossTopMode) try {
     await import('https://mehrlander.github.io/web-tools/lib/entry.js?ref=main');

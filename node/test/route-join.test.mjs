@@ -349,11 +349,11 @@ test('a branch row chip opens the view running THAT branch', async () => {
   const r = data.branchRoutes({ repo: 'mehrlander/web-tools', name: 'claude/registries', sha });
   assert.equal(r.on[0].key, 'map');
   assert.equal(r.on[0].url,
-    'https://mehrlander.github.io/web-tools/app/?use=' + sha + '&view=map');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@' + sha + ':app/index.html?view=map');
 });
 
-// A SHA and never the branch name: ?use= is interpolated straight into a
-// raw.githubusercontent path and every branch here has a slash in its name, so
+// A SHA and never the branch name: the toss hands the ref to the app as use=,
+// which is interpolated straight into a raw.githubusercontent path and every branch here has a slash in its name, so
 // a row the crawl has no tip for keeps the in-shell hop rather than minting an
 // address that may not resolve. The chip's title is what tells the reader.
 test('a row with no crawled tip keeps the old behavior instead of guessing', async () => {

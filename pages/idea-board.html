@@ -33,6 +33,7 @@
     await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/io.js');
     await gh.load('kits/title-tip.js');
@@ -51,7 +52,7 @@ document.addEventListener('alpine:init', () => {
   };
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
-    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+    return window.ghAuth?.resolve() || '';
   };
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
 
@@ -86,14 +87,13 @@ document.addEventListener('alpine:init', () => {
     async read() {
       const gz = param('gz'), spec = param('gh');
       if (gz) {
-        const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-        return JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+        return window.GzPayload.decodeJson(gz);
       }
       if (spec) {
-        const [at, ...rest] = spec.split(':');
-        const [repo, ref] = at.split('@');
+        const a = window.RepoAddress.parse(spec);
+        if (!a) throw new Error('#gh= reads owner/repo[@ref]:path, and this is not one: ' + spec);
         this.addr = spec;
-        try { return JSON.parse((await new GH({ token: tokenNow(), repo, ...(ref ? { ref } : {}) }).get(rest.join(':'))).text); }
+        try { return JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
         catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
       }
       const r = await fetch('demos/idea-board.json');

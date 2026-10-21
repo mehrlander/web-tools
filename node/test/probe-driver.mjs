@@ -11,11 +11,10 @@
 // that the driver itself works before a person is asked to open anything.
 // Not part of `npm test` (needs a browser).
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEL = ['mehrlander/home@main', 'mehrlander/web-tools-private@main',
   'mehrlander/home@main:projects/budget-drs/submittal/link-rewrite.js'];
 const framed = encodeURIComponent('view=app&appRepo=mehrlander/web-tools&appPath=pages/diff-tool.html');

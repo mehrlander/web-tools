@@ -3,8 +3,10 @@
 
 The rule is docs/CONSTELLATION.md, principle 6. This counts it.
 
-Six buckets, in the order a file is tested:
+Seven buckets, in the order a file is tested:
 
+    research    a research account the repo declares in `.web-tools.json`,
+                with every file in its folder when the account is a README
     docs        any markdown under a `docs/` folder at any depth
     readme      basename README.md, anywhere
     contract    CLAUDE.md or AGENTS.md
@@ -28,23 +30,39 @@ invisible. python3 stdlib only, argv-driven, runs against any repo path.
 
     doc-placement.py [--list] [repo ...]
 """
-import os, re, subprocess, sys
+import json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 
 CAPS = re.compile(r"^[A-Z][A-Z0-9_-]*\.md$")
 CONTRACTS = {"CLAUDE.md", "AGENTS.md"}
-BUCKETS = ["docs", "readme", "contract", "skill", "content", "residual"]
+BUCKETS = ["research", "docs", "readme", "contract", "skill", "content", "residual"]
 
 
 def tracked(root, pattern=None):
-    args = ["git", "-C", root, "ls-files"] + ([pattern] if pattern else [])
+    args = ["git", "-C", root, "ls-files", "-z"] + ([pattern] if pattern else [])
     out = subprocess.run(args, capture_output=True, text=True).stdout
-    return [f for f in out.splitlines() if not f.startswith("node_modules/")]
+    return [f for f in out.split("\0") if f and not f.startswith("node_modules/")]
 
 
-def bucket(path):
+def research(root):
+    """(files, folders) the repo declares as research. Principle 6 puts research
+    outside the four slots, its README included, so a declared README claims
+    its folder and any other declared account claims itself."""
+    try:
+        with open(os.path.join(root, ".web-tools.json"), encoding="utf-8") as fh:
+            entries = json.load(fh).get("research") or []
+    except (OSError, ValueError, AttributeError):
+        return set(), ()
+    paths = [e["path"] for e in entries if isinstance(e, dict) and isinstance(e.get("path"), str)]
+    folders = tuple(os.path.dirname(p) + "/" for p in paths if os.path.basename(p) == "README.md")
+    return set(paths), folders
+
+
+def bucket(path, declared=(set(), ())):
     parts = path.split("/")
     base = parts[-1]
+    if path in declared[0] or path.startswith(declared[1]):
+        return "research"
     if "docs" in parts[:-1]:
         return "docs"
     if base == "README.md":
@@ -63,8 +81,9 @@ def report(root, show_list):
         print("%-20s no tracked markdown" % name)
         return
     held = defaultdict(list)
+    declared = research(root)
     for f in files:
-        held[bucket(f)].append(f)
+        held[bucket(f, declared)].append(f)
     print("%-20s %5d md   " % (name, len(files))
           + "".join("%s %-5d " % (b, len(held[b])) for b in BUCKETS))
 

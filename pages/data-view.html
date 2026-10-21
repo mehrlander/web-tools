@@ -57,18 +57,15 @@
 <script type="module">
   // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/gz-payload.js');   // the #gz= codec
   await gh.load('kits/url-params.js');
   // The owner/repo[@ref]:path grammar, which data-payload.js delegates to.
   await gh.load('kits/repo-address.js');
   await gh.load('kits/data-payload.js');
   await gh.load('alpineComponents/viewer.js');
 
-  const gunzipB64url = async s => {
-    const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
-  };
+  // The #gz= codec is kits/gz-payload.js's.
+  const gunzipB64url = s => window.GzPayload.decode(s);
 
   // spec -> text. A plain path reads this repo through gh.get (which already
   // falls back to the git blobs API over 1 MB); a cross-repo spec takes the

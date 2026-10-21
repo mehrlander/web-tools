@@ -4,7 +4,14 @@
 A look link is a fragment that lib/kits/look.js reads on arrival: it lands on a
 place in the page, can say why, and can ring the control to tap. The kit's
 header owns the grammar; in short, `show=<anchor>`, `tap=<anchor>`, `say=<text>`,
-`walk=<name>` and `steps=<base64url JSON>`.
+`walk=<name>`, `steps=<base64url JSON>`, and `intro=<text>`, a message card
+with no target shown before any of the others or alone. A step with `say` and
+no `at` is such a card inside a sequence, so it has no anchor to check.
+
+A step's `at` may name its page first, as a spreadsheet names a sheet:
+`pages/branch.html!files`. An anchor on the page being checked is checked;
+one on another page is reported as unchecked, since this reads one page's
+source.
 
 An anchor is only a reference once something has checked it, and the kit can
 only check at run time, on the reader's screen, by saying "Not on this page".
@@ -32,6 +39,7 @@ Usage:
     look-link.py make PAGE --tap A [--say TEXT]
     look-link.py make PAGE --walk NAME
     look-link.py make PAGE --steps JSON    a sequence, carried in the link
+    look-link.py make PAGE --intro TEXT    a message first; joins any of the above
 
 `make` prints the fragment without its '#', ready for `npm run showing -- --at`,
 and names any anchor the page does not declare on stderr, exiting 1.
@@ -118,6 +126,7 @@ def read_page(text, page=None):
         "scripted": bool(SCRIPTED.search(text)),
         "walks": walks,
         "walk_error": walk_error,
+        "path": page,
     }
 
 
@@ -148,9 +157,12 @@ def problems(info):
             out.append(f"walk {name!r} has no steps")
             continue
         for i, s in enumerate(steps, 1):
-            at = str((s or {}).get("at", "")).strip() if isinstance(s, dict) else ""
+            page, at = address((s or {}).get("at", "")) if isinstance(s, dict) else ("", "")
+            if page and not on_page(page, info.get("path")):
+                continue
             if not at:
-                out.append(f"walk {name!r} step {i} has no anchor")
+                if not (isinstance(s, dict) and str(s.get("say", "")).strip()):
+                    out.append(f"walk {name!r} step {i} has neither an anchor nor a message")
             elif resolve(info, at) is None:
                 out.append(f"walk {name!r} step {i}: {at!r} is not an anchor on this page")
     for at in info["opens"]:
@@ -172,27 +184,71 @@ def decode(value):
     return json.loads(base64.urlsafe_b64decode(v + "=" * (-len(v) % 4)).decode("utf-8"))
 
 
-def fragment(show=None, tap=None, say=None, walk=None, steps=None):
+def fragment(show=None, tap=None, say=None, walk=None, steps=None, intro=None):
     """The fragment, without '#', in the plainest form that carries the ask."""
+    lead = "intro=" + quote(intro, safe="") if intro else ""
     if steps is not None:
-        return "steps=" + encode(steps)
-    if walk is not None:
-        return "walk=" + quote(walk, safe="")
-    key, at = ("tap", tap) if tap is not None else ("show", show)
-    out = f"{key}={quote(at, safe=':')}"
-    if say:
-        out += "&say=" + quote(say, safe="")
-    return out
+        out = "steps=" + encode(steps)
+    elif walk is not None:
+        out = "walk=" + quote(walk, safe="")
+    elif tap is None and show is None:
+        return lead
+    else:
+        key, at = ("tap", tap) if tap is not None else ("show", show)
+        out = f"{key}={quote(at, safe=':')}"
+        if say:
+            out += "&say=" + quote(say, safe="")
+    return lead + "&" + out if lead else out
 
 
-def asked(info, show=None, tap=None, walk=None, steps=None):
+def asked(info, show=None, tap=None, walk=None, steps=None, path=None):
     """The anchors a link asks for that the page does not declare."""
     if walk is not None:
         if walk not in info["walks"]:
             return [f"the page declares no walk named {walk!r}"]
         return []
-    ats = [s.get("at", "") for s in steps] if steps is not None else [tap if tap is not None else show]
+    ats = anchors_of(show, tap, steps, path)
     return [f"{a!r} is not an anchor on this page" for a in ats if resolve(info, str(a)) is None]
+
+
+def address(at):
+    """(page, anchor): the page part before the first '!', when what comes
+    before it reads as a page (lib/kits/look.js, address())."""
+    at = str(at or "").strip()
+    k = at.find("!")
+    if k > 0:
+        page = at[:k].strip()
+        if not re.match(r"(text|css):", page) and re.search(r"[/?]|\.html?(#|$)", page):
+            return page, at[k + 1:].strip()
+    return "", at
+
+
+def on_page(page, path):
+    """Whether a page part names the file being checked: the same path, read
+    from the site root, with an index.html or a query and fragment set aside."""
+    if not page:
+        return True
+    bare = lambda p: re.sub(r"index\.html?$", "", p.lstrip("/"))
+    return bare(re.split(r"[?#]", page)[0]) == bare(str(path))
+
+
+def anchors_of(show=None, tap=None, steps=None, path=None):
+    """The anchors a link names on this page; a note step and an intro name
+    none, and a stop on another page is not this page's to check."""
+    if steps is not None:
+        out = []
+        for s in steps:
+            page, at = address(s.get("at"))
+            if at and on_page(page, path) if path is not None else at and not page:
+                out.append(at)
+        return out
+    one = tap if tap is not None else show
+    return [one] if one is not None else []
+
+
+def elsewhere(steps, path):
+    """The stops a sequence places on another page."""
+    return [s.get("at") for s in (steps or []) if address(s.get("at"))[0] and not on_page(address(s.get("at"))[0], path)]
 
 
 def main(argv=None):
@@ -205,12 +261,13 @@ def main(argv=None):
     c.add_argument("pages", nargs="+")
     m = sub.add_parser("make", help="print a look fragment for a page")
     m.add_argument("page")
-    g = m.add_mutually_exclusive_group(required=True)
+    g = m.add_mutually_exclusive_group()
     g.add_argument("--show")
     g.add_argument("--tap")
     g.add_argument("--walk")
-    g.add_argument("--steps", help="a JSON list of {at, say?, tap?}")
+    g.add_argument("--steps", help="a JSON list of {at, say?, tap?}, or {say} for a message with no target")
     m.add_argument("--say")
+    m.add_argument("--intro", help="a message card shown first, with no target")
     o = ap.parse_args(argv)
 
     if o.cmd == "anchors":
@@ -239,6 +296,8 @@ def main(argv=None):
                 bad += 1
         return 1 if bad else 0
 
+    if o.show is None and o.tap is None and o.walk is None and o.steps is None and not o.intro:
+        m.error("one of --show, --tap, --walk, --steps or --intro is required")
     info = read_page(Path(o.page).read_text(errors="ignore"), o.page)
     steps = None
     if o.steps is not None:
@@ -247,15 +306,16 @@ def main(argv=None):
         except json.JSONDecodeError as e:
             print(f"! --steps is not JSON: {e.msg}", file=sys.stderr)
             return 2
-        if not isinstance(steps, list) or not all(isinstance(s, dict) and s.get("at") for s in steps):
-            print("! --steps must be a list of objects, each with an `at`", file=sys.stderr)
+        if not isinstance(steps, list) or not all(isinstance(s, dict) and (s.get("at") or s.get("say")) for s in steps):
+            print("! --steps must be a list of objects, each with an `at` or a `say`", file=sys.stderr)
             return 2
-    print(fragment(show=o.show, tap=o.tap, say=o.say, walk=o.walk, steps=steps))
-    misses = asked(info, show=o.show, tap=o.tap, walk=o.walk, steps=steps)
+    print(fragment(show=o.show, tap=o.tap, say=o.say, walk=o.walk, steps=steps, intro=o.intro))
+    misses = asked(info, show=o.show, tap=o.tap, walk=o.walk, steps=steps, path=o.page)
     for x in misses:
         print("! " + x, file=sys.stderr)
-    ats = [] if o.walk is not None else (
-        [s["at"] for s in steps] if steps is not None else [o.tap if o.tap is not None else o.show])
+    ats = [] if o.walk is not None else anchors_of(o.show, o.tap, steps, o.page)
+    for at in elsewhere(steps, o.page):
+        print(f"note: {at!r} is on another page, so it is unchecked here", file=sys.stderr)
     for at in ats:
         how = resolve(info, str(at))
         if how == "prefix":

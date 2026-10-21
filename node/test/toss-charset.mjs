@@ -33,11 +33,10 @@ import http from 'node:http';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const failures = [];
 const ok = (name, cond, detail = '') => {

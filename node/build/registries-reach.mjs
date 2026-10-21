@@ -37,6 +37,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus, stripComments, APP_DIRS, APP_EXT } from './docs-reach.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 /**
  * For each registry path, the sorted app files that name it in code.
@@ -56,7 +57,6 @@ export function deriveRendersIn(repoRoot, registryPaths) {
 // ── CLI: restamp docs/registries.csv (--check compares instead) ─────────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const { loadRegistries, writeCsv, REGISTRY_COLS } = await import('./registries-load.mjs');
   const file = path.join(repoRoot, 'docs', 'registries.csv');
   const { registries } = loadRegistries(repoRoot);

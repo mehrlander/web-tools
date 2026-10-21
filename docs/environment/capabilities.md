@@ -214,7 +214,7 @@ is catalogued in [testing.md](testing.md).
 git traffic goes through a **separate** GitHub proxy that scopes operations to
 the authorized repo. It does not limit push to the current branch: a push to
 `main` or another branch lands, though deleting a branch does not
-([SNAGS.md](../SNAGS.md#web-session-cannot-delete-branches)). A sibling repo like
+(the snag `web-session-cannot-delete-branches`). A sibling repo like
 `<repo>.wiki.git` returns `Proxy error: repository not authorized` (502) even
 though `github.com` itself is allowed, which is a different failure mode from a
 host denial.
@@ -309,9 +309,8 @@ tool, not markdown: a `![](local-path)` image link renders as inert text or a
 broken thumbnail, so write the file to disk and hand its path to the tool. The
 UI draws each delivered file as a clickable element, a **file card** (also
 **file chip**): image types preview inline; HTML, ZIP, and MP3 (and similar
-non-previewable types) render as a chip that downloads on click. Reach for it
-whenever you make an artifact the user would open, run, or iterate on (the
-*Hand over the artifact* primitive in [SURFACING.md](../SURFACING.md)); the
+non-previewable types) render as a chip that downloads on click.
+[SURFACING.md](../SURFACING.md)'s *A file card* bullet says when to send one; the
 screenshot-specific case (show a rendered PNG) is in
 [headless-vendoring.md](../headless-vendoring.md#showing-the-result-in-chat).
 

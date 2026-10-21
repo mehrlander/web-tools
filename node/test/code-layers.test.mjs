@@ -21,9 +21,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const out = execFileSync('python3', [path.join(root, 'python', 'code-shape.py'), '--json', 'lib'],
   { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 const rows = JSON.parse(out).rows.filter(r => r.side === 'browser');

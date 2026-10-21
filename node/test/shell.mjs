@@ -48,10 +48,15 @@ export function makeShell({ browserStore, search = '', win = {} } = {}) {
   const loc = { search, href: 'https://localhost/', pathname: '/app/index.html', hash: '' };
   const hist = { pushState: () => {}, replaceState: () => {} };
   const exports = {};
-  // kits/csv.js rides in the pre-build's boot list, so the real shell always
-  // has window.Csv by the time any method runs; the harness installs it for the
-  // same reason, and the board pane's typed read depends on it.
+  // kits/csv.js and kits/repo-address.js ride in the pre-build's boot list, so
+  // the real shell always has window.Csv and window.RepoAddress by the time any
+  // method runs; the harness installs them for the same reason. The board
+  // pane's typed read depends on the first, the catalog's addresses on the second.
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(win);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(win);
+  // The assistant prefixes a pasted bare branch is recognized by, from the
+  // boot list too (kits/assistant-mark.js).
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/assistant-mark.js'), 'utf8'))(win);
   new Function('window', 'document', 'Alpine', 'location', 'history', '__exports',
     shellScript(page) + '\n;__exports.app = app;__exports.gallery = gallery;')(
     win, doc, alpine, loc, hist, exports);

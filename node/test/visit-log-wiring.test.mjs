@@ -26,6 +26,7 @@ const page = readFileSync(path.join(repoRoot, 'app/index.html'), 'utf8');
 const rows = (f) => parseCsv(readFileSync(path.join(repoRoot, 'docs', f), 'utf8'));
 
 const win = {};
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(win);
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/visit-log.js'), 'utf8'))(win);
 
 function shellWith() {

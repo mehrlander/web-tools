@@ -59,6 +59,7 @@ window.__shell = {
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/surface.js',
+  'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
 
@@ -67,7 +68,7 @@ const reg = () => new FakeGH({ repo: REGISTRY });
 
 async function seed({ jots = [], todos = [] } = {}) {
   FAIL = new Set();
-  FILES = { 'lists/jots.json': { items: jots }, 'lists/todo.json': { items: todos } };
+  FILES = { 'lists/jot.json': { items: jots }, 'lists/to-do.json': { items: todos } };
   await data.loadJots(reg());
   await data.loadTodos(reg());
   SAVES = [];
@@ -84,11 +85,11 @@ test('a promoted jot arrives as a to-do and leaves the pile', async () => {
   await seed({ jots: [{ ...JOT }] });
   await data.promoteJot(data.jotItems[0]);
 
-  const todos = FILES['lists/todo.json'].items;
+  const todos = FILES['lists/to-do.json'].items;
   assert.equal(todos.length, 1);
   assert.equal(todos[0].text, 'the combine route serves CJS for alpinejs');
   assert.equal(todos[0].done, false);
-  assert.equal(FILES['lists/jots.json'].items.length, 0, 'the jot is gone from the pile');
+  assert.equal(FILES['lists/jot.json'].items.length, 0, 'the jot is gone from the pile');
   assert.equal(data.jotItems.length, 0, 'and gone from the pane');
 });
 
@@ -96,7 +97,7 @@ test('the to-do is written BEFORE the jot is removed', async () => {
   await seed({ jots: [{ ...JOT }] });
   await data.promoteJot(data.jotItems[0]);
 
-  assert.deepEqual(Array.from(SAVES, s => s.path), ['lists/todo.json', 'lists/jots.json'],
+  assert.deepEqual(Array.from(SAVES, s => s.path), ['lists/to-do.json', 'lists/jot.json'],
     'to-do first: a half-landed promotion must duplicate, never delete');
 });
 
@@ -104,7 +105,7 @@ test('the kind rides in the commit message and not into the to-do item', async (
   await seed({ jots: [{ ...JOT }] });
   await data.promoteJot(data.jotItems[0]);
 
-  const todo = FILES['lists/todo.json'].items[0];
+  const todo = FILES['lists/to-do.json'].items[0];
   assert.equal('kind' in todo, false, "a to-do's schema stays the smallest thing that works");
   assert.match(SAVES[0].message, /\[snag\]/, 'the kind is kept where the capture log is read');
   assert.match(SAVES[0].message, /Promote jot/);
@@ -114,7 +115,7 @@ test('a jot with no kind promotes just the same, with no empty bracket in the me
   await seed({ jots: [{ id: 'j2', text: 'a bare idea', created_at: '2026-09-01T10:00:00Z' }] });
   await data.promoteJot(data.jotItems[0]);
 
-  assert.equal(FILES['lists/todo.json'].items[0].text, 'a bare idea');
+  assert.equal(FILES['lists/to-do.json'].items[0].text, 'a bare idea');
   assert.doesNotMatch(SAVES[0].message, /\[\]/);
 });
 
@@ -125,7 +126,7 @@ test('promotion appends; it does not disturb the to-dos already there', async ()
   });
   await data.promoteJot(data.jotItems[0]);
 
-  const todos = FILES['lists/todo.json'].items;
+  const todos = FILES['lists/to-do.json'].items;
   assert.equal(todos.length, 2);
   assert.equal(todos[0].text, 'already here');
   assert.equal(todos[0].urgent, true, 'the existing row round-tripped untouched');
@@ -135,7 +136,7 @@ test('promotion appends; it does not disturb the to-dos already there', async ()
 
 test('a refused to-do write leaves the jot alone and adds no to-do anywhere', async () => {
   await seed({ jots: [{ ...JOT }] });
-  FAIL.add('lists/todo.json');
+  FAIL.add('lists/to-do.json');
 
   await data.promoteJot(data.jotItems[0]);
 
@@ -147,11 +148,11 @@ test('a refused to-do write leaves the jot alone and adds no to-do anywhere', as
 
 test('a refused jot write leaves a visible duplicate, which is the survivable failure', async () => {
   await seed({ jots: [{ ...JOT }] });
-  FAIL.add('lists/jots.json');
+  FAIL.add('lists/jot.json');
 
   await data.promoteJot(data.jotItems[0]);
 
-  assert.equal(FILES['lists/todo.json'].items.length, 1, 'the to-do landed');
+  assert.equal(FILES['lists/to-do.json'].items.length, 1, 'the to-do landed');
   assert.equal(data.jotItems.length, 1,
     'and the jot stayed, so the reader sees both and clears one rather than losing the text');
 });
@@ -163,9 +164,11 @@ test('an empty or whitespace jot promotes nothing', async () => {
   assert.equal(data.jotItems.length, 1);
 });
 
-test('saveTodos reports whether the write landed, which is what promoteJot reads', async () => {
+test('writeTodos reports whether the write landed, which is what promoteJot reads', async () => {
   await seed({ todos: [] });
-  assert.equal(await data.saveTodos('a message'), true);
-  FAIL.add('lists/todo.json');
-  assert.equal(await data.saveTodos('a message'), false);
+  const row = { id: 't1', text: 'x', done: false };
+  assert.equal(await data.writeTodos(items => [...items, row], 'a message'), true);
+  FAIL.add('lists/to-do.json');
+  assert.equal(await data.writeTodos(items => [...items, { ...row, id: 't2' }], 'a message'), false);
+  assert.deepEqual([...data.todoItems.map(i => i.id)], ['t1'], 'and a failed write takes the pane back');
 });

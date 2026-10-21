@@ -19,12 +19,11 @@
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
-import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outDir = path.join(root, 'node', '.preview', 'pdf-kit');
 const keep = process.argv.includes('--keep');
 

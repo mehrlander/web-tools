@@ -22,8 +22,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { repoRoot as ROOT } from '../repo-root.mjs';
 
-const ROOT = path.resolve(import.meta.dirname, '../..');
 const stubs = fs.readdirSync(path.join(ROOT, 'userscripts'))
   .filter(f => f.endsWith('.user.js'));
 

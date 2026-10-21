@@ -26,6 +26,7 @@ const { window } = makeWindow({
 });
 const doc = window.document;
 
+loadKit('lists.js', { window });
 loadKit('annotate.js', { window });
 const A = window.Annotate;
 
@@ -123,7 +124,7 @@ test('saveJot appends one jot through fresh-read → mutate → save', async () 
   const jot = await A.saveJot();
   assert.equal(calls.length, 1);
   assert.equal(calls[0].repo, 'mehrlander/web-tools-private');
-  assert.equal(calls[0].path, 'lists/jots.json');
+  assert.equal(calls[0].path, 'lists/jot.json');
   assert.equal(calls[0].data.items.length, 1);
   assert.ok(calls[0].data.items[0].text.startsWith('# Notes — docs/sample.md'));
   assert.ok(calls[0].message.includes('via annotate'));
@@ -2860,4 +2861,150 @@ test('an empty draft assembles to nothing worth carrying', () => {
   // words and refuses on the button rather than navigating to a blank page.
   assert.equal(A.handoffText().replace(/^On .*$/m, '').trim(), '');
   A.disable();
+});
+
+// ── Docked in a host ────────────────────────────────────────────────────────
+// The launcher (alpineComponents/fab.js) hosts the card at the foot of its
+// drawer, which lives in the top document while the page being annotated may
+// be a framed one in a toss. So the kit keeps two documents apart: the one it
+// annotates (anchors, highlights, selection) and the one its card is built in.
+// A frame here stands in for the page, and an element in the top document for
+// the drawer's dock.
+const docked = () => {
+  const frame = doc.createElement('iframe');
+  doc.body.appendChild(frame);
+  const fd = frame.contentDocument;
+  fd.body.innerHTML = '<article><p id="fp">Words in the framed page to note.</p></article>';
+  const dock = doc.createElement('div');
+  dock.setAttribute('data-test-dock', '');
+  doc.body.appendChild(dock);
+  const done = () => { A.disable(); frame.remove(); dock.remove(); };
+  return { fd, dock, done };
+};
+const rangeIn = (fd, a, b) => {
+  const t = fd.getElementById('fp').firstChild;
+  const r = fd.createRange();
+  r.setStart(t, a); r.setEnd(t, b);
+  return r;
+};
+
+test('docked in a host, the card is built in the host\'s document and flows in it', () => {
+  const { fd, dock, done } = docked();
+  try {
+    A.enable({ doc: fd, host: dock, subject: { title: 'x', url: '' } });
+    const S = A._state;
+    assert.equal(S.doc, fd, 'the framed page is what is annotated');
+    assert.ok(dock.contains(S.ui), 'the card is in the dock');
+    assert.equal(S.ui.ownerDocument, doc, 'built by the host\'s document, not the page\'s');
+    assert.equal(S.ui.style.position, 'relative', 'in flow, not fixed over the page');
+    // The page keeps the kit's stylesheet and icons, which its highlights and
+    // capture covers draw with; nothing else of the card lands there.
+    assert.deepEqual([...fd.querySelectorAll('[data-annotate-ui]')].filter(e => !/^(LINK|STYLE)$/.test(e.tagName)), [],
+      'nothing of the card lands in the page');
+    // A docked card is not dragged: the drawer places it.
+    assert.notEqual(S.panel.querySelector('div').style.cursor, 'move');
+    A.disable();
+    assert.equal(dock.children.length, 0, 'and it leaves the dock when the annotator goes off');
+  } finally { done(); }
+});
+
+test('docked, a selection stages on the card and draws no chip at the words', async () => {
+  const { fd, dock, done } = docked();
+  const fw = fd.defaultView;
+  const rect = { width: 40, height: 12, left: 10, right: 50, top: 20, bottom: 32 };
+  fw.Range.prototype.getBoundingClientRect = () => rect;     // jsdom has no layout
+  try {
+    A.enable({ doc: fd, host: dock, subject: { title: 'x', url: '' } });
+    A.clear();
+    const S = A._state;
+    const sel = fw.getSelection();
+    sel.removeAllRanges(); sel.addRange(rangeIn(fd, 0, 5));
+    fd.dispatchEvent(new fw.Event('pointerup', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 40));            // the handler settles on a timer
+    assert.equal(S.selBar.style.display, 'flex', 'the card\'s bar offers the passage');
+    assert.match(S.selQuote.textContent, /Words/);
+    // The launcher already lit for this selection, and the drawer it opens
+    // holds the bar, so a chip at the words is the retired control again.
+    assert.equal(fd.querySelector('[data-annotate-offer]'), null, 'no chip in the page');
+    assert.equal(doc.querySelector('[data-annotate-offer]'), null, 'nor in the host');
+  } finally { done(); }
+});
+
+test('the launcher\'s draft on a docked card is idle, and says so to the launcher', () => {
+  const { fd, dock, done } = docked();
+  let heard = 0;
+  const hear = () => { heard++; };
+  window.addEventListener('annotate:draft', hear);
+  try {
+    A.enable({ doc: fd, host: dock, subject: { title: 'x', url: '' } });
+    A.clear();
+    const S = A._state;
+    assert.equal(A.noteSelection({ range: rangeIn(fd, 0, 5), listen: false }), true);
+    assert.equal(S.draft.target.type, 'text');
+    assert.equal(S.draft.target.quote.exact, 'Words');
+    assert.equal(S.dict.listening, false, 'no microphone the reader did not start');
+    assert.equal(S.editing, false, 'and no keyboard either: a phone keeps the passage in view');
+    // A draft that opens while the drawer is shut (a pick, a region) has to
+    // bring the drawer back, so a docked card announces it.
+    assert.ok(heard >= 1, 'annotate:draft announced');
+
+    A.clear();
+    assert.equal(A.noteSelection({ range: rangeIn(fd, 9, 12), listen: false, type: true }), true);
+    assert.equal(S.editing, true, 'type: true opens the keyboard editor, the desktop\'s way in');
+  } finally { window.removeEventListener('annotate:draft', hear); done(); }
+});
+
+test('enabling with a different host re-mounts the card there; the same host keeps it', () => {
+  const { fd, dock, done } = docked();
+  const other = doc.createElement('div');
+  doc.body.appendChild(other);
+  try {
+    A.enable({ doc: fd, host: dock, subject: { title: 'x', url: '' } });
+    const first = A._state.ui;
+    A.enable({ doc: fd, host: dock, subject: { title: 'x', url: '' } });
+    assert.equal(A._state.ui, first, 'the same host is a no-op');
+    A.enable({ doc: fd, host: other, subject: { title: 'x', url: '' } });
+    assert.ok(other.contains(A._state.ui), 'a new host gets the card');
+    assert.equal(dock.children.length, 0, 'and the old one gives it up');
+    A.enable({ doc: fd, subject: { title: 'x', url: '' } });
+    assert.equal(A._state.ui.parentNode, fd.body, 'unhosted, the card floats in the page as before');
+    assert.equal(A._state.ui.style.position, 'fixed');
+  } finally { other.remove(); done(); }
+});
+
+test('a text draft keeps its passage painted, since opening it clears the selection', () => {
+  // Reported from a phone, 2026-10-20: the tap on the lit launcher made the
+  // selection vanish. Opening a draft clears the page's selection on purpose
+  // (it takes the platform's callout with it), so the draft paints the passage
+  // itself, until it is saved or dropped. jsdom has no Highlight API; a stub
+  // records what the kit hands it.
+  const had = { Highlight: window.Highlight, CSS: window.CSS };
+  const sets = new Map();
+  window.Highlight = class { constructor(...r) { this.ranges = r; } };
+  window.CSS = { highlights: { set: (k, v) => sets.set(k, v), delete: (k) => sets.delete(k) } };
+  const painted = (k) => (sets.get(k) ? sets.get(k).ranges.map(String) : []);
+  try {
+    A.enable({ doc, subject: { title: 'x', url: '' } });
+    A.clear();
+    const S = A._state;
+    const p1 = doc.getElementById('p1').firstChild;
+    const r = doc.createRange();
+    r.setStart(p1, 4); r.setEnd(p1, 19);                  // "quick brown fox"
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+    assert.equal(A.noteSelection({ range: r, listen: false }), true);
+    assert.equal(sel.rangeCount, 0, 'the selection is cleared, callout and all');
+    assert.deepEqual(painted('annotate-notes-draft'), ['quick brown fox'], 'and the draft paints the passage in its place');
+
+    S.dict.text = 'a note on the fox';
+    S.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
+    assert.equal(sets.has('annotate-notes-draft'), false, 'saved, the draft mark goes: removed, not emptied');
+    assert.deepEqual([...painted('annotate-notes'), ...painted('annotate-notes-active')], ['quick brown fox'],
+      'and the note\'s own highlight takes over');
+
+    A.disable();
+    assert.equal(sets.has('annotate-notes-draft'), false, 'off, nothing is left painted');
+  } finally {
+    window.Highlight = had.Highlight; window.CSS = had.CSS;
+  }
 });
