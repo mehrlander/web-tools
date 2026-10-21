@@ -538,59 +538,64 @@ html.dk-dragging main{transition:none !important}
         </template>
       </div>
 
-      <!-- ── The find pill: a view's filter, hoisted into the header on a phone ──
-           Below sm a pane marked data-find-hoist hides its own filter box, and
-           this pill drives it instead, so the filter costs the view no row.
-           At rest it is a magnifier, or the term as a chip once one is set.
-           Tapped, the field spreads over this whole row (the nav is what a
-           reader typing does not need), and the pane scrolls its list up
+      <!-- ── The find pill: a view's filter, in the header at every width ──────
+           A view marked data-find-hoist hides its own filter box, and this
+           drives it instead, so a filter costs no view a row and sits in one
+           place on every view that has one. One control, two shapes by width.
+           At lg and up there is room for the field itself, placeholder showing.
+           Below lg it rests as a magnifier, or the term as a chip once one is
+           set; tapped, the field spreads over this whole row (the nav is what
+           a reader typing does not need), and the view scrolls its list up
            under the header, so the rows that narrow with each keystroke sit
            above the keyboard rather than behind it. The input is always laid
-           out, only transparent, because iOS raises the keyboard only for a
-           focus made inside the tap. It opens by a clip from the right, never
-           a scale: a transformed field can read to iOS as smaller text, and
-           smaller text is what it zooms for (guardFocusZoom). No Done button:
-           the keyboard's Search key, the iOS bar's Done and a tap anywhere
-           else all close it. -->
-      <div x-data="findPill()" x-effect="view; mapTab; resolve()" x-show="has" class="contents sm:hidden">
+           out, only transparent at rest, because iOS raises the keyboard only
+           for a focus made inside the tap. It opens by a clip from the right,
+           never a scale: a transformed field can read to iOS as smaller text,
+           and smaller text is what it zooms for (guardFocusZoom). No Done
+           button: the keyboard's Search key, the iOS bar's Done and a tap
+           elsewhere all close it. -->
+      <div x-data="findPill()" x-effect="view; mapTab; projectTab; resolve()" x-show="has" class="contents">
         <button type="button" x-show="!open" @click="$refs.box.focus()"
-                class="shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
+                class="lg:hidden shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
                 :class="q ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'"
                 :aria-label="'Filter: ' + (q || placeholder)">
           <i class="ph ph-magnifying-glass text-lg leading-none"></i>
           <span x-show="q" class="max-w-28 truncate font-medium" x-text="q"></span>
         </button>
         <button type="button" x-show="!open && q" @click="clear()" aria-label="Clear the filter"
-                class="shrink-0 -ml-1 h-9 w-8 grid place-items-center rounded-lg text-primary hover:bg-base-200">
+                class="lg:hidden shrink-0 -ml-1 h-9 w-8 grid place-items-center rounded-lg text-primary hover:bg-base-200">
           <i class="ph ph-x text-base leading-none"></i>
         </button>
-        <div class="absolute inset-0 z-10 flex items-center px-3 bg-base-100 transition-[opacity,clip-path] duration-150"
+        <div class="absolute inset-0 z-10 flex items-center px-3 bg-base-100 transition-[opacity,clip-path] duration-150
+                    lg:static lg:z-auto lg:px-0 lg:mx-2 lg:w-64 xl:w-80 lg:shrink-0 lg:bg-transparent lg:opacity-100 lg:[clip-path:none] lg:pointer-events-auto"
              :class="open ? 'opacity-100 [clip-path:inset(0)]' : 'opacity-0 [clip-path:inset(0_0_0_70%)] pointer-events-none'">
-          <label class="input flex items-center gap-2 grow min-w-0 h-10">
-            <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
-            <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
-                   autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                   class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
-                   :placeholder="placeholder" :tabindex="open ? 0 : -1"
-                   x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
-                   @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
-            <span x-show="q && shown !== null" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' shown'"></span>
-            <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
-                    class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
-              <i class="ph ph-x-circle text-lg leading-none"></i>
-            </button>
-          </label>
-        </div>
-        <!-- Recent terms, only while the field is open and empty: nothing is
-             filtering yet, so the panel covers nothing a reader is watching,
-             and it goes the moment a key lands. -->
-        <div x-show="open && !q && recents.length" x-transition.opacity
-             class="absolute left-0 right-0 top-full z-10 px-3 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-base-100 border-b border-base-300 shadow-sm">
-          <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
-          <template x-for="t in recents" :key="t">
-            <button type="button" @pointerdown.prevent @click="q = t; push()"
-                    class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
-          </template>
+          <div class="relative grow min-w-0">
+            <label class="input flex items-center gap-2 w-full h-10 lg:h-9">
+              <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
+              <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
+                     autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                     class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
+                     :placeholder="placeholder"
+                     x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
+                     @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+              <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' match'"></span>
+              <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
+                      class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
+                <i class="ph ph-x-circle text-lg leading-none"></i>
+              </button>
+            </label>
+            <!-- Recent terms, only while the field is open and empty: nothing
+                 is filtering yet, so the panel covers nothing a reader is
+                 watching, and it goes the moment a key lands. -->
+            <div x-show="open && !q && recents.length" x-transition.opacity
+                 class="absolute left-0 right-0 top-full mt-1 z-10 px-2 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-base-100 border border-base-300 rounded-lg shadow-sm">
+              <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
+              <template x-for="t in recents" :key="t">
+                <button type="button" @pointerdown.prevent @click="q = t; push()"
+                        class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1369,7 +1374,7 @@ html.dk-dragging main{transition:none !important}
          renders both and switches on the shell view, so both share this lazy
          mount. Full width, so the repo grid runs three cards wide like the
          pages index; the Stage constrains its own column. -->
-    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full max-sm:[&_label:has(>input[data-find-box])]:hidden"
+    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full [&_label:has(>input[data-find-box])]:hidden"
          :class="listsFill ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'">
       <!-- w-full is load-bearing under listsFill and inert without it. An auto
            inline margin on a flex ITEM sizes it to its content instead of
@@ -1399,7 +1404,7 @@ html.dk-dragging main{transition:none !important}
 
     <!-- Public browse: the no-token jsDelivr file browser (estate-level, beside
          Repos / Stage). Lazy-mounted on first visit. -->
-    <div x-show="view==='public'" class="h-full overflow-y-auto">
+    <div x-show="view==='public'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
       <div class="mx-auto px-6 py-8 !max-w-none">
         <template x-if="publicSeen">
           <div x-data="publicBrowse()"></div>
@@ -1422,7 +1427,7 @@ html.dk-dragging main{transition:none !important}
 
     <!-- Pages: web-tools' own catalog, or any repo's `pages` entries, reached
          at ?view=pages or via the repo sidebar/tabs. -->
-    <div x-show="view==='pages'" class="h-full overflow-y-auto">
+    <div x-show="view==='pages'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
 
       <div class="!max-w-none px-6 py-8">
 
@@ -1461,7 +1466,7 @@ html.dk-dragging main{transition:none !important}
                   <!-- data-find-box: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
                        sidebar finder (wireAppTypeahead). -->
-                  <input type="search" x-model.debounce="q" placeholder="filter by name…" data-find-box class="grow min-w-0">
+                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-box class="grow min-w-0">
                 </label>
               </div>
 
@@ -1828,7 +1833,7 @@ html.dk-dragging main{transition:none !important}
          same as a repo's custom landing), every other project gets its README.
          Pages and Docs are DERIVED rather than declared: see projectPages and
          loadProjectDocs below. -->
-    <div x-show="view==='project'" class="h-full flex flex-col">
+    <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-box])]:hidden">
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-6 pt-6">
@@ -1908,7 +1913,7 @@ html.dk-dragging main{transition:none !important}
                 <i class="ph ph-magnifying-glass opacity-50"></i>
                 <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
                      the tree instead of opening the sidebar finder. -->
-                <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0"></label>
+                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-box class="grow min-w-0"></label>
             </div>
             </div>
 
@@ -2239,7 +2244,7 @@ html.dk-dragging main{transition:none !important}
          repo-owned scope story plus a live adoption read. The operational face
          of the constellation doctrine. Estate-level, its own component and lazy
          mount. (Formerly "Portable"; ?view=portable still resolves here.) -->
-    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto max-sm:[&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
       <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
         <template x-if="mapSeen">
           <div x-data="map()"></div>
@@ -9283,33 +9288,50 @@ function gallery(){
   };
 }
 
-// ── Find pill: a view's filter box, hoisted into the header below sm ─────────
+// ── Find pill: a view's filter box, hoisted into the header ─────────────────
 // The pill owns no query. It writes to the open view's own box (the
-// [data-find-box] input inside a pane marked data-find-hoist, which that pane
-// hides below sm) and dispatches `input`, so each view's x-model, filtering
-// and URL stamp run exactly as if typed there. What it adds is placement: no
-// row of the view at rest, a full-width 16px field when tapped, the list lifted
-// to just under the header so it narrows above the keyboard, and the matches
-// marked through the CSS Custom Highlight API, which colors text ranges
-// without touching any view's markup. The list is the view's data-part="list"
-// (the UI-units codebook's marker), else whatever follows the box's row.
+// [data-find-box] input inside a view marked data-find-hoist, which that view
+// hides) and dispatches `input`, so each view's x-model, filtering and URL
+// stamp run exactly as if typed there. What it adds is placement: no row of
+// the view, one place for every view's filter, below lg a full-width 16px
+// field when tapped with the list lifted to just under the header so it
+// narrows above the keyboard, and the matches marked through the CSS Custom
+// Highlight API, which colors text ranges without touching any view's markup.
+// The list is the view's data-part="list" (the UI-units codebook's marker),
+// else whatever follows the box's row. Two boxes stay where they are: the
+// Search view's, which is that view's whole subject, and Config's key filter,
+// inside a reference panel that starts closed.
 function findPill(){
   // Elements stay out of Alpine's reactive state: a proxied node throws on
   // dispatchEvent.
   let box = null, list = null, scroller = null, saved = 0, watch = null, frame = 0, typed = 0;
   const seen = el => !!el && el.getClientRects().length > 0;
+  const viewOf = el => el.closest('[data-find-hoist]');
+  // The nearest ancestor that scrolls, which is the view itself for most and
+  // an inner column for a project.
+  const scrollerOf = el => {
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement)
+      if (/auto|scroll/.test(getComputedStyle(n).overflowY)) return n;
+    return null;
+  };
+  // A view's box is hidden by its view's class, so whether its tab is the one
+  // on screen is read off the row it sits in, whether it is shown there at
+  // all off the label's own x-show (Docs' box is only on the Docs tab), and
+  // whether it filters there off its search slot, which Activity drops on
+  // State and Traffic.
+  const live = el => {
+    const lab = el.closest('label');
+    return !!lab && lab.matches('[data-slot="frame:search"]') && lab.style.display !== 'none' && seen(lab.parentElement);
+  };
   const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
   return {
-    has: false, open: false, q: '', placeholder: 'Filter', shown: null, recents: [],
+    has: false, open: false, q: '', placeholder: 'Filter', shown: '', recents: [],
 
-    // The box is hidden below sm, so whether its tab is the one on screen is
-    // read off the row it sits in, and whether it filters there off its
-    // label's search slot, which Activity drops on State and Traffic.
-    // Retried because a pane mounts its component lazily on first visit.
+    // Retried because a view mounts its component lazily on first visit.
     resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
     find(){
       const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-box]')]
-        .find(el => el.closest('label')?.matches('[data-slot="frame:search"]') && seen(el.closest('label').parentElement)) || null;
+        .find(live) || null;
       // The placeholder is read even when the box is the same one: Activity's
       // four panes share a box whose placeholder follows the pane.
       this.placeholder = hit?.placeholder || 'Filter';
@@ -9321,7 +9343,7 @@ function findPill(){
       watch?.disconnect();
       if (box) {
         watch = new MutationObserver(() => this.mark());
-        watch.observe(box.closest('[data-pane]'), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] });
+        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count'] });
       }
       this.mark();
     },
@@ -9339,8 +9361,11 @@ function findPill(){
       this.q = box.value;
       this.placeholder = box.placeholder || this.placeholder;
       this.recents = this.loadRecents();
-      scroller = box.closest('[data-pane]');
-      saved = scroller.scrollTop;
+      // The lift is for a keyboard that covers half the screen; at lg and
+      // up the field is in the header already and the list stays put.
+      if (window.innerWidth >= 1024) return;
+      scroller = scrollerOf(box);
+      saved = scroller?.scrollTop || 0;
       this.lift();
     },
     collapse(){
@@ -9398,12 +9423,12 @@ function findPill(){
     // Looked for inside the box's own section where it has one (a Map tab),
     // so a list belonging to another tab can never be picked.
     listOf(){
-      list = [...(box.closest('section') || box.closest('[data-pane]')).querySelectorAll('[data-part="list"]')]
+      list = [...(box.closest('section') || viewOf(box)).querySelectorAll('[data-part="list"]')]
         .find(el => seen(el) && (box.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)) || null;
       return list;
     },
     after(){
-      for (let el = box.closest('label'); el && !el.matches('section, [data-pane]'); el = el.parentElement)
+      for (let el = box.closest('label'); el && !el.matches('section, [data-find-hoist]'); el = el.parentElement)
         for (let n = el.nextElementSibling; n; n = n.nextElementSibling) if (seen(n)) return n;
       return null;
     },
@@ -9417,9 +9442,12 @@ function findPill(){
         if (box && scroller && Date.now() - typed < 600) this.align();
         const reg = window.CSS?.highlights;
         const terms = this.q.toLowerCase().split(/\s+/).filter(Boolean);
-        if (!box || !terms.length) { reg?.delete('find-pill'); this.shown = null; return; }
-        const root = this.listOf() || box.closest('section') || box.closest('[data-pane]');
-        this.shown = list ? [...list.children].filter(seen).length : null;
+        // A count only where the view declares one on its box: rows read
+        // off the page's structure miscounted wherever a list is grouped or
+        // holds its own empty line.
+        this.shown = box?.dataset.findCount || '';
+        if (!box || !terms.length) { reg?.delete('find-pill'); return; }
+        const root = this.listOf() || box.closest('section') || viewOf(box);
         if (!reg) return;
         const ranges = [], walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         for (let n = walk.nextNode(); n && ranges.length < 500; n = walk.nextNode()) {

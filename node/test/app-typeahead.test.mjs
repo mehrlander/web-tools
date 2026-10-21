@@ -203,7 +203,9 @@ const DECLARED = [
   // rects, so the router still sees exactly one visible primary finder at a time.
   // 7 to 8 on 2026-10-12: the Overview, the Map's front door, finds an address.
   // 8 to 10 on 2026-10-19: Watch's Public and Names, siblings like the rest.
-  ['lib/alpineComponents/map.js', "the Map's Overview, Projects, Research, Distribution, Docs Inventory, Skills, Agents, Peeves, Public and Names searches", 10],
+  // 10 to 12 on 2026-10-21: Policy and Data, siblings too, so the header's
+  // find pill can drive every Map tab that has a filter.
+  ['lib/alpineComponents/map.js', "the Map's Overview, Projects, Research, Distribution, Docs Inventory, Policy, Data, Skills, Agents, Peeves, Public and Names searches", 12],
   ['lib/alpineComponents/config.js', "the Config view's key filter", 1],
   ['lib/alpineComponents/public-browse.js', 'the public browser file filter', 1],
 ];

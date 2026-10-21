@@ -44,6 +44,8 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 **Header.** The estate navigation (`estateNav`) lists Activity, Waiting (with a token), Lists, Repos, Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow, one button each, from `sidebarAppViews`, the same list the sidebar renders; keep one list so the two cannot disagree. The rail (`rail: true` links) and the ref switch appear on desktop. Select a repo in Repos.
 
+**Filter.** A view whose container carries `data-find-hoist` hides its own filter box (`data-find-box`), and the header's find pill drives it: the field itself at `lg` and up, and below `lg` a magnifier that opens over the header and lifts the view's list under it. Each box's placeholder names what its filter matches, as "<rows> by <fields>". The Search view and Config keep their boxes.
+
 **Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos and app views.
 
 **Repo views.** Overview displays the README. Other views are Pages, Atlas, Config, Files, and Project. A declared landing page renders as an app view.
