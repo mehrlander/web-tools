@@ -72,6 +72,7 @@ lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhe
 lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcdoc HTML out.",81,no,no,16,yes
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,3,yes
 lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",337,no,no,5,yes
+lib/kits/redact.js,Redact,"cover parts of an image with labelled boxes, crop it, and prove the covered pixels are gone before it is copied out.",585,no,no,1,yes
 lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web-tools ecosystem.,221,no,no,7,yes
 lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,24,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
@@ -95,7 +96,7 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1535,no,yes,35,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1543,no,yes,35,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",972,no,no,1,yes
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
