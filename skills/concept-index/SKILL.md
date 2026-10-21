@@ -95,8 +95,8 @@ passage's own location. A term graded `bare` is never flagged; one graded
 `by-location` or `unknown` is flagged whenever it appears without a handle,
 whatever its tier or frequency, and the finding carries the grade as `reader`.
 Estate coinages are not in that table by design (the index derives them), so
-the canonical tier keeps flagging them: for that reader a coinage wants a link,
-not a definition.
+the canonical tier keeps flagging them. Replace a flagged term with plain words,
+or define it where it first appears.
 
 ## Interpretation
 
