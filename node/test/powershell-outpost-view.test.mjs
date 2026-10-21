@@ -63,6 +63,8 @@ const advanceHead = () => {
 let treeReads = 0;
 window.TOKEN = 't';
 window.GH = class {
+  // gh-api.js's decoder, as Node answers it: the contents API's base64 as bytes.
+  static decodeBytes(s) { return new Uint8Array(Buffer.from(String(s), 'base64')); }
   constructor({ repo, ref } = {}) { this.repo = repo; this.ref = ref || ''; }
   async get(p, opts = {}) {
     const t = snapshotAt(this.ref)[p];
@@ -167,7 +169,8 @@ window.__shell = {
 };
 // The pane links the explanation document and the ledger through the shared
 // link builder, so the harness carries the real one rather than a guess at
-// the URL shape it produces.
+// the URL shape it produces, and the address module it builds through.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/github-links.js'), 'utf8'))();
 const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };

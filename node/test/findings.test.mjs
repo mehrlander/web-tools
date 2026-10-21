@@ -535,3 +535,23 @@ test('the kit and findings.py agree on every shared witness case', async () => {
   const py = JSON.parse(execFileSync('python3', [repoRoot + '/skills/tend/findings.py', 'vectors', file], { encoding: 'utf8' }));
   assert.deepEqual(py.map(x => x.verdict), WITNESS_CASES.map(c => c.verdict), 'findings.py disagrees with the cases');
 });
+
+test('the kit and findings.py read a witness ref alike, a pinned one included', async () => {
+  // A pinned ref (@branch@commit) reads at the commit in both: the kit through
+  // RepoAddress, findings.py through note.py's patterns.
+  const { execFileSync } = await import('node:child_process');
+  const { repoRoot } = await import('./bootstrap.mjs');
+  const refs = ['acme/w@claude/x', 'acme/w@claude/x@1014b18', 'acme/w@main:docs/x.md#h',
+    'acme/w@claude/x@1014b1897601:docs/x.md', 'acme/w@feat@x:docs/x.md'];
+  const py = JSON.parse(execFileSync('python3', ['-c', `
+import json, sys
+sys.path.insert(0, ${JSON.stringify(repoRoot + '/skills/tend')})
+import findings
+print(json.dumps([findings.parse_ref(r) for r in json.loads(sys.argv[1])]))
+`, JSON.stringify(refs)], { encoding: 'utf8' }));
+  refs.forEach((r, i) => {
+    const k = F.parse(r);
+    const [, repo, at, p] = py[i];
+    assert.deepEqual([repo, at, p], [k.repo, k.ref, k.path || ''], r);
+  });
+});

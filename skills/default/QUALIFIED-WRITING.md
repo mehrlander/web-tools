@@ -1,11 +1,8 @@
 # Qualified writing
 
 For every piece of prose a session writes: documents, commit
-messages, pull request bodies, tracker tasks, and chat replies alike. The
-canonical source is `mehrlander/web-tools` at `docs/QUALIFIED-WRITING.md`.
-The portable plugin's `default` skill loads the byte-matched copy shipped beside
-it and fetches this source only as a fallback. Local `CLAUDE.md` rules override
-these defaults.
+messages, pull request bodies, tracker tasks, and chat replies alike. Local
+`CLAUDE.md` rules override these defaults.
 
 ---
 

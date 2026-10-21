@@ -29,7 +29,7 @@ its list and written whole through the viewer's token (`gh-store.js`'s
   name only by naming a destination the text cannot imply (`snag` → the Snag
   list).
 - **Ping:** a question typed here goes to Gemini as an errand in the
-  registry's `errands/` folder, which the Gemini home laptop daemon answers.
+  registry's `errands/` folder, which the laptop daemon answers.
   The ten latest questions are listed, each showing when it is sent, when
   Gemini is working on it, and Gemini's reply. Questions filed from a
   session's command line appear too. A marker beside the heading says whether

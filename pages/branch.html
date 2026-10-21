@@ -108,6 +108,7 @@
     await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/review-target.js');
     // branch-brief reads compareFields from BranchStatus, so it loads first.
     await gh.load('kits/branch-status.js');
@@ -381,10 +382,7 @@
         const src = params.get('src') || hash.get('src');
         try {
           if (gz) {
-            const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-            const ds = new DecompressionStream('gzip');
-            const text = await new Response(new Blob([bin]).stream().pipeThrough(ds)).text();
-            return window.BranchBrief.readAuthored(JSON.parse(text));
+            return window.BranchBrief.readAuthored(await window.GzPayload.decodeJson(gz));
           }
           if (src) {
             const spec = window.DataPayload?.parseSpec?.(src);

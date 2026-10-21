@@ -50,7 +50,7 @@ window.GH = class {
     return { text: readFileSync(path.join(repoRoot, file), 'utf8') };
   }
 };
-for (const file of ['lib/kits/csv.js', 'lib/vanilla-bundle.js', 'lib/alpineComponents/map.js'])
+for (const file of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/vanilla-bundle.js', 'lib/alpineComponents/map.js'])
   new window.Function(readFileSync(path.join(repoRoot, file), 'utf8'))();
 Alpine.start();
 const el = window.document.getElementById('map'), data = Alpine.$data(el);
@@ -103,7 +103,9 @@ test('authentication and selection read a member declaration and workflow at the
   assert.ok(asked.some(a => a.repo === member && a.file === '.web-tools.json' && a.ref === memberRef));
   assert.ok(asked.some(a => a.repo === member && a.file === declaration.workflow && a.ref === memberRef));
   assert.ok(asked.filter(a => a.file === 'state/configs.json').every(a => a.repo === 'mehrlander/web-tools-private' && a.ref === 'main'));
-  assert.match(data.executionFileUrl(data.testExecutionGroups[1], 'tools/check.py'), /codex%2Fmember-preview/);
+  // Per segment, the way RepoAddress.github encodes every ref: the slash stays.
+  assert.equal(data.executionFileUrl(data.testExecutionGroups[1], 'tools/check.py'),
+    'https://github.com/example/member/blob/codex/member-preview/tools/check.py');
 });
 
 test('a failed workflow keeps the source link and refresh recovers without stale success', async () => {

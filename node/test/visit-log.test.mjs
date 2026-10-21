@@ -26,6 +26,7 @@ import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
 const win = {};
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))(win);
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/visit-log.js'), 'utf8'))(win);
 const V = win.VisitLog;
 

@@ -6,7 +6,7 @@
 | **PR comment, subscribed** | anyone with repo write *except this session* | **push** | yes | **yes** |
 | `send_message` between sessions | Claude sessions on the account | push | no | no |
 | Routine, `send_later` | a schedule, or a session arming itself | push | the trigger is | no |
-| errand, `errands/requests/` on the registry's `background` branch | a session; answered by a person in the browser or by the Gemini daemon | pull | yes | by token |
+| errand, `errands/requests/` on the registry's `background` branch | a session; answered by a person in the browser or by the laptop daemon | pull | yes | by token |
 | `chron/dump/`, drained | the user | pull | yes | yes |
 | A tracker task | anyone | pull | yes | yes |
 | A commit on a branch, polled on a schedule | anyone with repo write | pull, on the poller's clock | yes | yes: a scheduled Codex check, while its machine and app run (2026-10-01) |
@@ -49,6 +49,9 @@ the result text says so.
 
 ## Hook timing
 
-The plugin refreshes at session start, but that session's hooks run from the
-previous pin. A hook change applies from the next session, or after
-`/reload-plugins`.
+The plugin moves to the tip of web-tools `main` when a session starts or
+resumes. Hooks that already ran at that start ran from the earlier version;
+hooks that run later in the session, such as a `Stop` hook at the end of the
+turn, run from the new one, with no `/reload-plugins` (observed 2026-10-20,
+Claude Code 2.1.304). A session that has not resumed since a hook change picks
+it up at its next resume.

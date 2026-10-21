@@ -51,10 +51,42 @@ test('a non-address is null, so a caller can read it as a bare path', () => {
   assert.equal(RA.parse(null), null);
 });
 
+test('parseRepo reads the grammar with no path: a repo or a branch', () => {
+  assert.deepEqual({...RA.parseRepo('me/proj')}, { repo: 'me/proj', ref: '' });
+  assert.deepEqual({...RA.parseRepo(' me/proj@feat/x ')}, { repo: 'me/proj', ref: 'feat/x' }, 'trimmed; a slashed ref intact');
+  assert.equal(RA.parseRepo('me/proj:a.md'), null, 'a file address is parse()\'s, not this');
+  assert.equal(RA.parseRepo('me/proj@x:a.md'), null);
+  assert.equal(RA.parseRepo('proj@x'), null, 'no owner, no repo');
+  assert.equal(RA.parseRepo(''), null);
+});
+
 test('fmt round-trips what parse read', () => {
-  for (const s of ['me/proj:a.md', 'me/proj@feat/x:a/b.md']) {
+  for (const s of ['me/proj:a.md', 'me/proj@feat/x:a/b.md', 'me/proj@claude/x@1014b1897601:a/b.md']) {
     assert.equal(RA.fmt(RA.parse(s)), s);
   }
+});
+
+test('a pinned address reads at its commit and names its branch', () => {
+  // owner/repo@branch@commit:path, the commit 7 to 40 hex characters: every
+  // caller fetching by `ref` reads what a commit-only address would.
+  assert.deepEqual({...RA.parse('me/proj@claude/x@1014b18:a.md')},
+    { repo: 'me/proj', ref: '1014b18', branch: 'claude/x', path: 'a.md' });
+  assert.deepEqual({...RA.parseRepo('me/proj@claude/x@1014b18')},
+    { repo: 'me/proj', ref: '1014b18', branch: 'claude/x' });
+  // Not a commit after the last '@', so the whole of it is the ref, as before.
+  for (const ref of ['feat@x', 'b@abc123', 'b@ABCDEF1', 'b@' + 'f'.repeat(41)])
+    assert.deepEqual({...RA.parse('me/proj@' + ref + ':a.md')}, { repo: 'me/proj', ref, path: 'a.md' }, ref);
+  const t = RA.fromPaste('https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=me/proj@claude/x@1014b1897601:pages/a.html?v=1');
+  assert.deepEqual({...t}, { repo: 'me/proj', ref: '1014b1897601', branch: 'claude/x', path: 'pages/a.html', query: 'v=1' });
+});
+
+test('the renderer splits a pinned ref as this module does', () => {
+  // toss-render.html keeps a copy, since its render path loads no lib.
+  const src = readFileSync(path.join(repoRoot, 'pages/toss-render.html'), 'utf8');
+  const copy = src.match(/function splitPin\(ref\) \{\n\s*const m = (\/.+\/)\.exec/);
+  assert.ok(copy, 'toss-render.html defines splitPin');
+  const lib = readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8').match(/const PIN_RE = (\/.+\/);/);
+  assert.equal(copy[1], lib[1]);
 });
 
 test('a box spec is a folder by default, on the default branch', () => {
@@ -230,4 +262,28 @@ test('the shell routes a paste through fromPaste rather than its own matcher', (
   // A file in the clipboard is content whatever text rides beside it.
   assert.match(shell, /if \(\[\.\.\.\(cd\.items \|\| \[\]\)\]\.some\(i => i\.kind === 'file'\)\) return false;/,
     'pasteRoute no longer yields a file-carrying clipboard to the Stage');
+});
+
+// ── github: where an address lives on GitHub ───────────────────────────────
+test('github builders encode a ref and a path per segment, and default the ref to HEAD', () => {
+  const G = RA.github;
+  assert.equal(G.blob('o/r', 'claude/x-y', 'docs/a b.md'), 'https://github.com/o/r/blob/claude/x-y/docs/a%20b.md');
+  assert.equal(G.blob('o/r', '', 'a.md'), 'https://github.com/o/r/blob/HEAD/a.md', 'no ref is HEAD');
+  assert.equal(G.blob('o/r', 'main', '/a.md', 12), 'https://github.com/o/r/blob/main/a.md#L12');
+  assert.equal(G.blob('o/r', 'main', 'a.md', '12-20'), 'https://github.com/o/r/blob/main/a.md#L12-L20');
+  assert.equal(G.blob('o/r', 'main', 'a.md', 'L3'), 'https://github.com/o/r/blob/main/a.md#L3');
+  assert.equal(G.blob('o/r', 'f#1', 'x?.md'), 'https://github.com/o/r/blob/f%231/x%3F.md', 'what broke the raw form');
+  assert.equal(G.tree('o/r', 'claude/x'), 'https://github.com/o/r/tree/claude/x');
+  assert.equal(G.tree('o/r', 'main', 'lib/kits'), 'https://github.com/o/r/tree/main/lib/kits');
+  assert.equal(G.commits('o/r', 'claude/x', 'a.md'), 'https://github.com/o/r/commits/claude/x/a.md');
+  assert.equal(G.commit('o/r', 'abc123'), 'https://github.com/o/r/commit/abc123');
+  assert.equal(G.compare('o/r', 'main', 'claude/x'), 'https://github.com/o/r/compare/main...claude/x');
+  assert.equal(G.pull('o/r', 7), 'https://github.com/o/r/pull/7');
+  assert.equal(G.issue('o/r', 7), 'https://github.com/o/r/issues/7');
+  assert.equal(G.repo('o/r'), 'https://github.com/o/r');
+  assert.equal(G.repo('o/r', 'pulls'), 'https://github.com/o/r/pulls');
+  assert.equal(G.newFile('o/r', 'claude/x', 'chron/dump/a b.md'), 'https://github.com/o/r/new/claude/x/chron/dump?filename=a%20b.md');
+  assert.equal(G.newFile('o/r', 'main', 'top.md'), 'https://github.com/o/r/new/main?filename=top.md');
+  assert.equal(G.of(RA.parse('o/r@claude/x:a.md')), 'https://github.com/o/r/blob/claude/x/a.md');
+  assert.equal(G.of(null), '');
 });

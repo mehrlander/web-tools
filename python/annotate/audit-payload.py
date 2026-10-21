@@ -25,6 +25,9 @@ the artifact:
 """
 import sys, json, csv, re, hashlib, pathlib
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+import repo_address  # noqa: E402  python/repo_address.py, the shared grammar
+
 # THE LABELS ARE DATA. A vocabulary is a TSV of label / side / gloss, with an
 # optional color column (an "r,g,b" string the page paints with). The default
 # is doc-craft's binding question; --vocab names any other, and --question says
@@ -52,15 +55,16 @@ VERDICTS = [
 ]
 
 def parse_addr(spec):
+    """owner/repo[@ref]:path, or a bare path in this repo. A missing ref
+    reads main, as this payload always has."""
     if not spec:
         return {}
-    m = re.match(r"(?:([^/]+/[^@:]+)(?:@([^:]+))?:)?(.+)", spec)
-    repo, ref, path = m.group(1), m.group(2) or "main", m.group(3)
-    out = {"path": path}
-    if repo:
-        out |= {"repo": repo, "ref": ref,
-                "url": f"https://github.com/{repo}/blob/{ref}/{path}"}
-    return out
+    a = repo_address.parse(spec)
+    if not a:
+        return {"path": spec}
+    ref = a["ref"] or "main"
+    return {"path": a["path"], "repo": a["repo"], "ref": ref,
+            "url": repo_address.github_blob(a["repo"], ref, a["path"])}
 
 def build_standoff(doc, run, addr, self_repo, question, vocab):
     raw = pathlib.Path(doc).read_bytes()

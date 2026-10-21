@@ -12,12 +12,11 @@
 
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { buildGraph } from './graph.mjs';
 import { loadKit } from './kit-shim.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 const REPO = 'mehrlander/web-tools';
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const arg = process.argv[2];
 if (!arg) {

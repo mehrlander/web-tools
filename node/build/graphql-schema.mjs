@@ -21,14 +21,13 @@
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot as root } from '../repo-root.mjs';
 import {
   parse, buildSchema, validate, print,
   TypeInfo, visit, visitWithTypeInfo, getNamedType,
   isObjectType, isInterfaceType, isUnionType, isEnumType, isInputObjectType, isScalarType,
 } from 'graphql';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCHEMA_URL = 'https://docs.github.com/public/fpt/schema.docs.graphql';
 const OUT = path.join(root, 'node', 'graphql', 'github-schema.pruned.graphql');
 const BUILTIN = new Set(['String', 'Int', 'Float', 'Boolean', 'ID']);

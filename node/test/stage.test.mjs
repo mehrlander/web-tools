@@ -13,19 +13,16 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { makeWindow, startAlpine, tick, deckGeometry } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick, deckGeometry, withBase64, GH_BASE64 } from './bootstrap.mjs';
 
 const calls = [];
 
 // A GH stand-in: srcGh builds `new base.constructor(...)`, so the methods must
 // live on the class. copyTo (refs), save/saveBytes (local bytes), get (reads).
 class FakeGH {
-  // The deposit reaches the encoder through the class, the way gh-store.js puts
-  // it on window.GH, so the fake carries it as a static too.
-  static toBase64(input) {
-    if (typeof input === 'string') return btoa(String.fromCharCode(...new TextEncoder().encode(input)));
-    return btoa(String.fromCharCode(...input));
-  }
+  // The deposit reaches the encoder through the class, as gh-api.js's static
+  // GH.toBase64, so the fake carries the real one.
+  static toBase64 = GH_BASE64.toBase64;
   constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = 'main'; }
   async get(path) {
     // One repo that always 404s, so a failing read has a fixture: the reader
@@ -70,6 +67,9 @@ const { window, problems } = makeWindow({
     <div id="st" x-data="stager()"></div>
   </body></html>`,
 });
+// The page's GH class carries gh-api.js's base64, which the #gz= codec under
+// pasted-file links encodes through. The Stage builds no client from it here.
+window.GH = withBase64(class {});
 // The reader is a swipe-deck takeover now, and the deck pages by scrolling a
 // track it measures. jsdom has neither layout nor scrollTo, so give it the
 // shared shim: with clientWidth falling back to 1, a slide index and a pixel
@@ -88,6 +88,9 @@ const Alpine = await startAlpine(window, [
   // the pre-build boots both in this position for the same reason.
   'lib/kits/url-params.js',
   'lib/kits/repo-address.js',
+  // The #gz= codec. The Stage fetches it at the point of use with gh.load,
+  // which this harness does not have, so it is here instead.
+  'lib/kits/gz-payload.js',
   // The errands kit: the stage lists, grades and closes errands through it.
   // The app loads every kit before any component, so this mirrors the
   // page's own order rather than adding a dependency the page lacks.

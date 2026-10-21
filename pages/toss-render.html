@@ -37,7 +37,9 @@
   for a page that NEEDS the token: an un-deployed branch copy reaches the same
   localStorage the deployed page will, which a #gz= payload cannot. The ':'
   before <path> is unambiguous because git forbids ':' in ref names, and no
-  @ref means the repo's default branch (and no ?use shim). Neither the ?query
+  @ref means the repo's default branch (and no ?use shim). A pinned address,
+  @<branch>@<commit> with the commit 7 to 40 hex characters, reads the commit
+  and carries the branch as a label (splitPin). Neither the ?query
   nor the #frag reaches the API: both are handed to the PAGE, by the shims
   addressHtml assembles.
 
@@ -261,7 +263,7 @@
   // visitable address of its own, which is the real problem: the enclosing page
   // is the thing a bookmark can name. Same-origin in address mode, so read it.
   //
-  // The query rides along: `?w=` (and `?use=`) say how to render what the
+  // The query rides along: `?w=` (and `?lib=`) say how to render what the
   // fragment addresses, so a bookmark that dropped them would name the right
   // page and open it in the wrong shape.
   const absUrl = frag => {
@@ -1403,6 +1405,15 @@ document.addEventListener('click',function(e){
     return { why: 'GitHub error ' + res.status, tokenHint: false };
   }
 
+  // A pinned address names the branch beside the commit it was read at,
+  // @branch@commit, the commit 7 to 40 hex characters. The commit is what is
+  // read; the branch is a label. lib/kits/repo-address.js splitPin, copied
+  // because this render path loads no lib.
+  function splitPin(ref) {
+    const m = /^(.+)@([0-9a-f]{7,40})$/.exec(ref || '');
+    return m ? { ref: m[2], branch: m[1] } : { ref: ref || '', branch: '' };
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path>[?<query>][#<frag>] — ':' can't appear in a
     // git ref name. Neither suffix reaches the API: both are handed to the
@@ -1414,6 +1425,8 @@ document.addEventListener('click',function(e){
     if (!m) return showEmpty('Could not parse the gh address. Expected owner/repo[@ref]:path[?query][#frag], e.g. ' +
       'gh=mehrlander/web-tools@main:pages/index.html');
     let [, owner, name, ref, path] = m;
+    let branch;
+    ({ ref, branch } = splitPin(ref));
     let pageQuery = '', pageFrag = '';
     const hi = path.indexOf('#');
     if (hi !== -1) { pageFrag = path.slice(hi + 1); path = path.slice(0, hi); }
@@ -1441,7 +1454,7 @@ document.addEventListener('click',function(e){
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
-    const at = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path;
+    const at = owner + '/' + name + (ref ? '@' + (branch ? branch + '@' : '') + ref : '') + ':' + path;
     if (!res.ok) {
       const { why, tokenHint } = await explainAddressFailure(res);
       return showEmpty(at + ' — ' + why + '.', tokenHint);
@@ -1483,7 +1496,9 @@ document.addEventListener('click',function(e){
     }
     showTrusted(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
-    setSubject({ repo: owner + '/' + name, ref: ref || 'main', path });
+    // A pinned address's branch rides on the subject, so the FAB can tell
+    // whether that branch has moved past the commit on screen.
+    setSubject({ repo: owner + '/' + name, ref: ref || 'main', path, ...(branch ? { branch } : {}) });
   }
 
   // Re-address in place, for the fab's "Re-toss at ref": swap the #gh= hash
@@ -1570,7 +1585,7 @@ document.addEventListener('click',function(e){
     const a = splitAddr(env);
     if (!a) return;
     document.title = 'Toss · ' + a.path.split('/').pop() + (a.ref ? ' @ ' + a.ref : '');
-    setSubject({ repo: a.repo, ref: a.ref, path: a.path, route: key,
+    setSubject({ repo: a.repo, ref: a.ref, ...(a.branch ? { branch: a.branch } : {}), path: a.path, route: key,
                  via: { repo: r.repo, ref: viewerRef, path: r.path } });
   }
 
@@ -1580,7 +1595,8 @@ document.addEventListener('click',function(e){
   function splitAddr(addr) {
     const m = String(addr || '').match(/^([^/@:]+\/[^/@:]+)(?:@([^:]+))?:(.+)$/);
     if (!m) return null;
-    return { repo: m[1], ref: m[2] || '', path: m[3].split(/[?#]/)[0] };
+    const p = splitPin(m[2]);
+    return { repo: m[1], ref: p.ref, ...(p.branch ? { branch: p.branch } : {}), path: m[3].split(/[?#]/)[0] };
   }
 
   // ── Look at what is on the clipboard ─────────────────────────────────────
@@ -1780,8 +1796,10 @@ document.addEventListener('click',function(e){
   // fetch. Edit the manifest, then mirror it here (three fields per key);
   // node/test/routes-manifest.test.mjs fails if the two drift.
   const TOSS_ROUTES = {
+    'audit':        { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/audit-render.html' },
     'chat-results': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/chat-results.html' },
     'data':         { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/data-view.html' },
+    'passage-reading': { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/passage-reader.html' },
     'pdf':          { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/pdf-inspect.html' },
     'shorter':      { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/shorter.html' },
   };
@@ -1830,7 +1848,8 @@ document.addEventListener('click',function(e){
 <script type="module">
   // Mount the FAB toolbox. Runs after the render logic above, and the FAB
   // self-loads its own kits, so a blocked CDN degrades to render-only rather
-  // than breaking the page. ?use=<ref> pins this shell's lib chain.
+  // than breaking the page. The import's ?ref=main outranks a ?use= or ?lib=
+  // in the address, so this FAB always runs main (see SELECTED above).
   // Not in top mode: the page is the tab's document and boots its own.
   if (!window.__tossTopMode) try {
     await import('https://mehrlander.github.io/web-tools/lib/entry.js?ref=main');

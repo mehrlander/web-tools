@@ -26,6 +26,7 @@ skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,
 skill,/portable:design-sprint,skills/design-sprint/SKILL.md,design-sprint,,plugin
 skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
+skill,/portable:doc-audit,skills/doc-audit/SKILL.md,doc-audit,,plugin
 skill,/portable:document-visual-mapping,skills/document-visual-mapping/SKILL.md,document-visual-mapping,,plugin
 skill,/portable:excel-com,skills/excel-com/SKILL.md,excel-com,,plugin
 skill,/portable:inspire-excellence,skills/inspire-excellence/SKILL.md,inspire-excellence,,plugin
@@ -34,6 +35,7 @@ skill,/portable:ios-sheet-drag,skills/ios-sheet-drag/SKILL.md,ios-sheet-drag,,pl
 skill,/portable:mobile,skills/mobile/SKILL.md,mobile,,plugin
 skill,/portable:office-scripts-shape-ui,skills/office-scripts-shape-ui/SKILL.md,office-scripts-shape-ui,,plugin
 skill,/portable:outlining,skills/outlining/SKILL.md,outlining,,plugin
+skill,/portable:passage-reading,skills/passage-reading/SKILL.md,passage-reading,,plugin
 skill,/portable:phosphor-icons,skills/phosphor-icons/SKILL.md,phosphor-icons,,plugin
 skill,/portable:power-query,skills/power-query/SKILL.md,power-query,,plugin
 skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,powershell-ise-theming,,plugin
@@ -43,6 +45,7 @@ skill,/portable:peeves,skills/peeves/SKILL.md,peeves,,plugin
 skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin
 skill,/portable:reorient-me,skills/reorient-me/SKILL.md,reorient-me,,plugin
 skill,/portable:report-distiller,skills/report-distiller/SKILL.md,report-distiller,,plugin
+skill,/portable:roles-sheet,skills/roles-sheet/SKILL.md,roles-sheet,,plugin
 skill,/portable:screenshot-review,skills/screenshot-review/SKILL.md,screenshot-review,,plugin
 skill,/portable:session-review,skills/session-review/SKILL.md,session-review,,plugin
 skill,/portable:shape-text,skills/shape-text/SKILL.md,shape-text,,plugin

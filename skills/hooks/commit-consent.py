@@ -95,28 +95,36 @@ def doc_globs(root):
 GENERATED = re.compile(r"generated\b.*\b(from|by)\b|do not hand-edit", re.I)
 
 
-# A LOG SAYS SO ITSELF. Some documents are records of what happened rather than
-# claims about the world: a friction log, a session diary, a run sheet. Nobody
-# has to endorse an entry, and stopping one to ask costs a cycle for nothing.
-# chron/, blog/ and dump/ are exempt by path because whole trees of a repo are
-# that kind; a single file inside docs/ is not reachable that way, and naming it
-# here would put one repo's filenames in a portable gate.
-#
-# So the document says it, in the sentence a reader sees, and this reads the
-# same sentence. One statement, one owner, which is the estate's own rule about
-# where a fact lives. The shape is the instruction as a person writes it, "do
-# not ask ... to approve", rather than a machine token: a reader who has never
-# heard of this gate still learns the intake rule from it.
-DO_NOT_ASK = re.compile(r"\bdo not ask\b[^.]{0,40}\bapprove\b", re.I)
-
-
-def declares_free(root, rel):
+# DECLARED RESEARCH IS NOT DOCUMENTATION. A repository lists its research in
+# .web-tools.json (`research`, one entry per path), and docs/CONSTELLATION.md
+# files research outside documentation: a question kept with what was tried and
+# what came back, which nobody endorses entry by entry. A declared path is
+# exempt, and where it is a folder's README.md, so is the folder. The
+# declaration is the one statement, and naming the path there rather than here
+# keeps one repo's filenames out of a portable gate. warn-governing-docs.sh reads
+# the same list at edit time; doc-craft's approval rule names it in prose. The
+# staged copy is read, so a commit that declares a path and edits it agrees with
+# itself.
+def declared_research(root):
+    """(files, folders) the repo declares as research, as repo-relative paths."""
+    raw = git(root, "show", ":.web-tools.json")
     try:
-        with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
-            head = "".join(next(fh, "") for _ in range(12))
-    except OSError:
-        return False
-    return bool(DO_NOT_ASK.search(head))
+        entries = json.loads(raw).get("research") or []
+    except (ValueError, AttributeError):
+        return [], []
+    files, folders = [], []
+    for e in entries:
+        p = (e.get("path") or "").strip("/") if isinstance(e, dict) else ""
+        if p and os.path.basename(p) == "README.md":
+            folders.append(os.path.dirname(p) + "/")
+        elif p:
+            files.append(p)
+    return files, folders
+
+
+def is_research(rel, declared):
+    files, folders = declared
+    return rel in files or any(f != "/" and rel.startswith(f) for f in folders)
 
 
 def is_generated(root, rel):
@@ -284,12 +292,13 @@ def main(argv):
     rows = staged(root)
     globs = doc_globs(root)
     tasks = [p for st, p in rows if st == "A" and "/tracker/tasks/" in f"/{p}"]
+    research = declared_research(root)
     docs = [p for st, p in rows if st == "M" and is_doc(p, globs)
             and not is_generated(root, p) and not is_copy(root, p)
-            and not declares_free(root, p)]
+            and not is_research(p, research)]
     new_docs = [p for st, p in rows if st == "A" and is_doc(p, globs)
                 and not is_generated(root, p) and not is_copy(root, p)
-                and not declares_free(root, p)]
+                and not is_research(p, research)]
     if not tasks and not docs and not new_docs:
         return 0
 

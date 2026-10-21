@@ -72,9 +72,10 @@ test('the strip is data, and every tab in it has a pane', async () => {
   // Joined rather than deep-compared: Alpine hands back a reactive Proxy, and
   // deepEqual checks the prototype before it checks the contents.
   const keys = [...d.TABS].map(t => t.key);
-  assert.equal(keys.join(','), 'render,inspect,traffic,text',
-    'reading order: delivery first, then what the page says (Notes was the fifth '
-    + 'until it moved into the annotate card, kits/annotate.js)');
+  assert.equal(keys.join(','), 'render,inspect,traffic,text,note',
+    'reading order: delivery first, then what the page says, then a place to write '
+    + 'about it (Notes moved into the annotate card on 2026-08-25; Note came back on '
+    + '2026-10-20 as a plain field that writes into the annotator\'s set)');
 
   // The pane list lives in the template, so read it from the source the
   // component was built from rather than from a second list here.
