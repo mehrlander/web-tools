@@ -2,7 +2,7 @@ path,role,layer,lines,invocation,callers,emits,named,tested
 .claude/environment-setup.sh,"The environment's setup script: installs the portable plugin and records its own text, commit and run time for the environment report.",.claude,16,env:build,,no,yes,yes
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,,no,yes,yes
-.githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,,no,yes,yes
+.githooks/commit-msg,"the refusing gates: refuses a commit that files a task or rewrites a governing document without saying what it rests on, or whose added lines name a path into one machine's user folder",.githooks,65,git:commit-msg,,no,yes,yes
 .githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,374,git:pre-commit,,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through node/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists; the hourly pass also folds the session records into state/sessions.json and the phone's state/session-menu.json through node/sessions-crawl.mjs",.github/workflows,155,ci:push+repository_dispatch+workflow_dispatch,,no,no,yes
@@ -46,13 +46,7 @@ node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-p
 node/git-change.mjs,,node,292,argv,,yes,no,yes
 node/gold-set.mjs,,node,199,npm:gold-set,,yes,yes,no
 node/powershell-units.mjs,Emit PowerShell statement inventories or before/after review units without executing the input,node,50,argv,,yes,no,no
-node/render/build-chrono-comparison.mjs,,node/render,192,none found,,yes,no,no
-node/render/build-fixed-widget.mjs,,node/render,86,none found,,yes,no,no
-node/render/build-mockup-widget.mjs,,node/render,186,none found,,yes,no,no
 node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,797,imported,node/build/repo-pages-shots.mjs;node/render/netlog.mjs;node/render/screenshot.mjs;node/test/,no,yes,yes
-node/render/crop-duo.mjs,,node/render,36,none found,,no,no,no
-node/render/crop-fixed-shots.mjs,,node/render,50,none found,,no,no,no
-node/render/crop-possibilities.mjs,,node/render,38,none found,,no,no,no
 node/render/measure.mjs,,node/render,178,imported,node/render/page-measures.mjs;node/render/screenshot.mjs,no,no,yes
 node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,157,argv,,no,yes,no
 node/render/page-measures.mjs,,node/render,116,npm:page-measures,.github/workflows/page-measures.yml,yes,no,yes
@@ -249,7 +243,6 @@ node/render/scenarios/session-exchange-card.mjs,,node/render/scenarios,58,driver
 node/render/scenarios/session-list.mjs,"seed a token and wait for the list's own line, so the token-gated Sessions pane renders a list of sessions for a shot",node/render/scenarios,27,driver,,no,no,no
 node/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",node/render/scenarios,166,driver,,no,no,no
 node/render/scenarios/session-topics.mjs,,node/render/scenarios,81,driver,,no,no,no
-node/render/scenarios/shoot-cards.mjs,,node/render/scenarios,50,driver,,no,no,no
 node/render/scenarios/shortcut-log-app-view.mjs,,node/render/scenarios,73,driver,,no,no,no
 node/render/scenarios/showing-paste-rows.mjs,,node/render/scenarios,27,driver,,no,no,no
 node/render/scenarios/sidebar-compare.mjs,,node/render/scenarios,194,driver,,no,no,yes
@@ -332,6 +325,7 @@ skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg c
 skills/hooks/environment-report.sh,"Prints at session start which commit of the setup script built the environment, and says to rebuild when it has moved on main.",skills/hooks,27,hook:SessionStart,,no,yes,yes
 skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,skills/hooks,150,hook:SessionStart,,no,yes,yes
 skills/hooks/invoke-sessions.sh,tells a session to invoke /portable:sessions when no session-record store is checked out beside the project root,skills/hooks,99,hook:SessionStart,,no,yes,yes
+skills/hooks/machine-paths.py,the machine-path gate a repo's .githooks/commit-msg calls: refuses a commit whose added lines name a path into one machine's user folder; --tree scans every tracked file for the suite,skills/hooks,139,imported,.githooks/commit-msg,no,no,yes
 skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,skills/hooks,41,hook:PostToolUseFailure,,no,yes,no
 skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,skills/hooks,88,hook:PostToolUse,,no,yes,no
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,,no,no,yes

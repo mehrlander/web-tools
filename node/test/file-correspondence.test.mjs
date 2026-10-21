@@ -72,7 +72,7 @@ test('declaration accepts repository-relative PowerShell paths and rejects local
   assert.equal(K.declaration('function F {}'), '');
   assert.equal(K.applies(form), true, 'a selected XAML form can be compared');
   assert.equal(K.declaration('<Window></Window>'), '', 'XAML needs selected-file context');
-  for (const path of ['C:\\Users\\me\\Forms.psm1', '/Users/me/F.ps1', '../F.ps1',
+  for (const path of ['C:\\Users\\me\\Forms.psm1', '/Users/me/F.ps1', '../F.ps1', // machine-path-ok: a fake path, fed in to be rejected
                       'mehrlander/home:Forms.psm1', 'projects/wps/app/readme.md']) {
     assert.throws(() => K.declaration('# @file ' + path), /repository root/);
   }
@@ -100,7 +100,7 @@ test('multiple declarations require one exact repository file identity', () => {
     assert.throws(() => K.declaration('# @file ' + target.path + '\n# @file ' + second), /conflicting # @file/,
       'GitHub paths remain case-sensitive');
   }
-  for (const second of ['C:\\Users\\me\\Forms.psm1', '../Forms.psm1', '']) {
+  for (const second of ['C:\\Users\\me\\Forms.psm1', '../Forms.psm1', '']) { // machine-path-ok: a fake path, fed in to be rejected
     assert.throws(() => K.declaration('# @file ' + target.path + '\n# @file ' + second), /repository root/,
       'a valid first declaration cannot hide an invalid later one');
   }
