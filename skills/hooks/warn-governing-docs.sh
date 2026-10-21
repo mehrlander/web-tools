@@ -50,8 +50,10 @@ def glob_hit(rel, g):
 hit = any(glob_hit(rel, g) for g in globs) \
       or os.path.basename(rel) in ("CLAUDE.md", "SKILL.md")
 if hit:
+    craft = "doc-craft and skill-prefs skills" if os.path.basename(rel) == "SKILL.md" else "doc-craft skill"
     print(f"{rel} is documentation ({basis}). Edit it only with the user's specific "
           "permission for this file; adjacent work does not imply it. If this edit "
-          "was not specifically asked for, say so and offer to revert.", file=sys.stderr)
+          f"was not specifically asked for, say so and offer to revert. Follow the {craft} "
+          "for the wording.", file=sys.stderr)
     sys.exit(2)
 PY
