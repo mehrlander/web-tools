@@ -17,9 +17,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SETUP = path.join(repoRoot, 'node', 'checkout-setup.mjs');
 const NPM_CLI = [
   process.env.npm_execpath,

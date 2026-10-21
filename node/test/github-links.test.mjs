@@ -14,6 +14,8 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 const window = {};
+// The URLs are RepoAddress.github's, which every page boots ahead of this kit.
+new Function('window', readFileSync(path.join(repoRoot, 'lib', 'kits/repo-address.js'), 'utf8'))(window);
 new Function('window', readFileSync(path.join(repoRoot, 'lib', 'kits/github-links.js'), 'utf8'))(window);
 const GL = window.GithubLinks;
 

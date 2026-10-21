@@ -14,6 +14,7 @@ skill,/portable:drop-link,skills/drop-link/SKILL.md,drop-link,"mint a link that 
 skill,/portable:look-markers,skills/look-markers/SKILL.md,look-markers,,plugin
 skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,"retrieve files from a configured corpus through a fixed-behavior tool: ranked snippet search and whole-document reads, one auditable command",plugin
 skill,/portable:scour,skills/scour/SKILL.md,scour,"acquisition fan-out: send agents to gather source material that does not exist locally, and map who says what about a subject across the open web",plugin
+skill,/portable:wayback,skills/wayback/SKILL.md,wayback,"read the Internet Archive: enumerate its captures under an address prefix and read them, from a machine that reaches it (the laptop or a GitHub runner; most cloud sandboxes are refused)",plugin
 skill,/portable:gold-set,skills/gold-set/SKILL.md,gold-set,"measurement fan-out: build an independently labeled sample that scores a classifier or extractor for correctness, blind readers plus an adversarial skeptic plus a scoring script, and decide from the scorecard whether the program should change",plugin
 skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,apple-shortcuts-actions,compose Apple Shortcuts actions and hand them over as a tappable paste-in link for the device clipboard,plugin
 skill,/portable:tend,skills/tend/SKILL.md,tend,"cultivate the workspace: investigate branches, pull requests, trackers and snags, store each conclusion as a finding, and bring the owner a prepared user call only where the next step needs their word",plugin
@@ -26,6 +27,7 @@ skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,
 skill,/portable:design-sprint,skills/design-sprint/SKILL.md,design-sprint,,plugin
 skill,/portable:html-style,skills/html-style/SKILL.md,html-style,,plugin
 skill,/portable:doc-craft,skills/doc-craft/SKILL.md,doc-craft,,plugin
+skill,/portable:doc-audit,skills/doc-audit/SKILL.md,doc-audit,,plugin
 skill,/portable:document-visual-mapping,skills/document-visual-mapping/SKILL.md,document-visual-mapping,,plugin
 skill,/portable:excel-com,skills/excel-com/SKILL.md,excel-com,,plugin
 skill,/portable:inspire-excellence,skills/inspire-excellence/SKILL.md,inspire-excellence,,plugin

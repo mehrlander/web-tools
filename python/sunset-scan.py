@@ -43,7 +43,7 @@ def tracked_files(root):
     """Prefer git's file list (respects .gitignore); fall back to a walk."""
     try:
         out = subprocess.run(
-            ["git", "-C", root, "ls-files"],
+            ["git", "-C", root, "ls-files", "-z"],
             capture_output=True, text=True, check=True,
         ).stdout
         # SKIP_DIRS applies here too, not only to the walk below. A build
@@ -51,7 +51,7 @@ def tracked_files(root):
         # then every marker in its source is reported a second time, from a
         # bundled line thousands of characters wide. A marker in generated
         # output is a copy: acting on it means editing the source anyway.
-        return [os.path.join(root, p) for p in out.splitlines()
+        return [os.path.join(root, p) for p in out.split("\0")
                 if p and not _skipped(p)]
     except Exception:
         files = []

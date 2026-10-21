@@ -49,7 +49,7 @@ window.GH = class {
     return { text: readFileSync(path.join(repoRoot, file), 'utf8') };
   }
 };
-for (const file of ['lib/kits/csv.js', 'lib/vanilla-bundle.js', 'lib/alpineComponents/map.js'])
+for (const file of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/vanilla-bundle.js', 'lib/alpineComponents/map.js'])
   new window.Function(readFileSync(path.join(repoRoot, file), 'utf8'))();
 Alpine.start();
 const el = window.document.getElementById('map'), data = Alpine.$data(el);

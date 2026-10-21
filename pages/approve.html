@@ -58,6 +58,7 @@
     await import('../dist/web-tools.js');
   }
   try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('gh-store.js');
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/subject-channel.js');
@@ -151,7 +152,7 @@ document.addEventListener('alpine:init', () => {
     // undefined, buttons dead. The surface had never been usable.
     get token() {
       if (window.TOKEN) return window.TOKEN;
-      try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+      return window.ghAuth?.resolve() || '';
     },
 
     get ctx() { return this.env?.context || {}; },
@@ -226,14 +227,12 @@ document.addEventListener('alpine:init', () => {
         const gz = this.param('gz');
         const src = this.param('src');
         if (gz) {
-          const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-          const ds = new DecompressionStream('gzip');
-          this.env = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(ds)).text());
+          this.env = await window.GzPayload.decodeJson(gz);
         } else if (src) {
-          const [addr, ...rest] = src.split(':');
-          const [repo, ref] = addr.split('@');
+          const a = window.RepoAddress.parse(src);
+          if (!a) throw new Error('#src= reads owner/repo[@ref]:path, and this is not one: ' + src);
           // A read-only instance: no @ref follows the selection. The reply write below keeps its own ref.
-          this.env = JSON.parse((await new GH({ token: this.token, repo, ...(ref ? { ref } : {}) }).get(rest.join(':'))).text);
+          this.env = JSON.parse((await new GH({ token: this.token, repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text);
         } else {
           this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }
@@ -354,7 +353,7 @@ document.addEventListener('alpine:init', () => {
         const res = await gh2.save(path, body, `Approval ${decision}: ${this.ctx.id}`);
         this.decision = decision;
         this.sentPath = path;
-        this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+        this.sent = res?.content?.html_url || window.RepoAddress.github.blob(repo, 'HEAD', path);
         // Now there is something to show, so the slot gets filled. `$nextTick`
         // because the alert inside it is `x-show`-ed on `sent`, which Alpine
         // has not applied yet at this line.

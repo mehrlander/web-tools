@@ -519,9 +519,9 @@ def inline_prose(path, src):
 def tracked_files(root):
     try:
         out = subprocess.run(
-            ["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True
+            ["git", "-C", root, "ls-files", "-z"], capture_output=True, text=True, check=True
         ).stdout
-        return [f for f in out.splitlines() if f.endswith(EXTS)]
+        return [f for f in out.split("\0") if f.endswith(EXTS)]
     except Exception:
         found = []
         for d, dirnames, filenames in os.walk(root):

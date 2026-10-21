@@ -18,8 +18,8 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SETUP = path.join(repoRoot, 'node', 'checkout-setup.mjs');
 const PRE_MERGE = readFileSync(path.join(repoRoot, '.githooks', 'pre-merge-commit'), 'utf8');
 const CSV_DRIVER = readFileSync(path.join(repoRoot, 'node', 'derived-csv-merge.mjs'), 'utf8');
