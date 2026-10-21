@@ -84,12 +84,14 @@
       <i class="ph ph-arrows-clockwise text-lg" :class="loading && 'animate-spin'"></i></button>
   </header>
 
-  <div x-show="sent" style="display: none" class="px-3 py-2 border-b border-base-300 flex items-center gap-2" data-sent>
-    <i class="ph ph-paper-plane-tilt text-base-content/50"></i>
-    <span class="min-w-0 truncate">Sent: <span class="font-semibold" x-text="sent && sent.name"></span></span>
-    <div class="grow"></div>
-    <a :href="sent && sent.link" class="btn btn-ghost btn-sm shrink-0"><i class="ph ph-arrow-clockwise"></i> Run again</a>
-  </div>
+  <template x-if="sent">
+    <div class="px-3 py-2 border-b border-base-300 flex items-center gap-2" data-sent>
+      <i class="ph ph-paper-plane-tilt text-base-content/50"></i>
+      <span class="min-w-0 truncate">Sent: <span class="font-semibold" x-text="sent.name"></span></span>
+      <div class="grow"></div>
+      <a :href="sent.link" class="btn btn-ghost btn-sm shrink-0"><i class="ph ph-arrow-clockwise"></i> Run again</a>
+    </div>
+  </template>
 
   <p x-show="err" class="text-error px-3 py-2" x-text="err"></p>
 
