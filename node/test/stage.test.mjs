@@ -2562,20 +2562,18 @@ test('the comparison walk keeps the sidebar following side A', async () => {
   data.reader = null;
 });
 
-test('the reader offers a door into the sidebar', async () => {
+// THE DOOR TO THE SIDEBAR IS GONE here too (2026-10-21), as from
+// kits/file-deck.js: the reader still announces, so the floating button's
+// sidebar opens on the file being read.
+test('no door to the sidebar on the reader header, and it still announces', async () => {
   reset();
   store.stage = [{ repo: 'me/a', ref: '', path: 'lib/x.js' }];
   await shown();
   await data.view(data.items[0]);
   await shown();
-  const door = data._rActions(0).find(a => a.icon === 'ph-sidebar-simple');
-  assert.ok(door, 'nothing else says the sidebar is now aimed at the file in front of you');
-  let tab = null;
-  const on = (e) => { tab = e.detail && e.detail.tab; };
-  window.addEventListener('web-tools:open-drawer', on);
-  door.onClick();
-  window.removeEventListener('web-tools:open-drawer', on);
-  assert.equal(tab, 'render', 'and it opens on the tab that names the file');
+  assert.equal(data._rActions(0).find(a => a.icon === 'ph-sidebar-simple'), undefined,
+    'the header carries the file\'s controls and nothing else');
+  assert.equal(said()?.path, 'lib/x.js', 'and the sidebar is still aimed at the file');
   data.reader = null;
 });
 
