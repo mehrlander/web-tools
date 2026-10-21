@@ -428,7 +428,7 @@ html.dk-dragging main{transition:none !important}
      carries the mode as a bar. ─────────────────────────────────────────── -->
 <header x-show="shellMode !== 'none'" class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
-    <div class="relative h-14 flex items-center gap-0.5">
+    <div class="h-14 flex items-center gap-0.5">
       <!-- App-level views: Activity / Repos / Stage / Tools / Map, the
            estate's own set, always labeled, inline on one row from the left
            edge, at any phone width. Public browse left the
@@ -538,65 +538,68 @@ html.dk-dragging main{transition:none !important}
         </template>
       </div>
 
-      <!-- ── The find pill: a view's filter, in the header at every width ──────
+      <!-- ── The find pill: a view's filter, from the header ──────────────────
            A view marked data-find-hoist hides its own filter box, and this
-           drives it instead, so a filter costs no view a row and sits in one
-           place on every view that has one. One control, two shapes by width.
-           At lg and up there is room for the field itself, placeholder showing.
-           Below lg it rests as a magnifier, or the term as a chip once one is
-           set; tapped, the field spreads over this whole row (the nav is what
-           a reader typing does not need), and the view scrolls its list up
-           under the header, so the rows that narrow with each keystroke sit
-           above the keyboard rather than behind it. The input is always laid
-           out, only transparent at rest, because iOS raises the keyboard only
-           for a focus made inside the tap. It opens by a clip from the right,
-           never a scale: a transformed field can read to iOS as smaller text,
-           and smaller text is what it zooms for (guardFocusZoom). No Done
-           button: the keyboard's Search key, the iOS bar's Done and a tap
-           elsewhere all close it. -->
+           drives it instead, so a filter costs no view a row and opens from
+           one place on every view that has one. The same at every width: a
+           magnifier here, or the term as a chip once one is set, and tapped,
+           a bar that slides down below the header (#find-bar, teleported
+           there because this row cannot hold it) and pushes the view down
+           rather than covering it. Below lg the view also scrolls its list up
+           under the bar, so the rows that narrow with each keystroke sit
+           above the keyboard rather than behind it. Ctrl or Cmd+F opens it
+           too (wireAppTypeahead). The input is laid out even while the bar is
+           shut, only at no height, because iOS raises the keyboard only for a
+           focus made inside the tap. No Done button: the keyboard's Search
+           key, the iOS bar's Done, Enter, and a tap elsewhere all close it;
+           Escape clears it as well. -->
       <div x-data="findPill()" x-effect="view; mapTab; projectTab; resolve()" x-show="has" class="contents">
-        <button type="button" x-show="!open" @click="$refs.box.focus()"
-                class="lg:hidden shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
-                :class="q ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'"
-                :aria-label="'Filter: ' + (q || placeholder)">
+        <button type="button" @click="open ? $refs.box.blur() : $refs.box.focus()" @pointerdown="open && $event.preventDefault()"
+                class="shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
+                :class="q || open ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'"
+                :aria-label="'Filter: ' + (q || placeholder)" :aria-expanded="open ? 'true' : 'false'">
           <i class="ph ph-magnifying-glass text-lg leading-none"></i>
-          <span x-show="q" class="max-w-28 truncate font-medium" x-text="q"></span>
+          <span x-show="q && !open" class="max-w-28 truncate font-medium" x-text="q"></span>
         </button>
         <button type="button" x-show="!open && q" @click="clear()" aria-label="Clear the filter"
-                class="lg:hidden shrink-0 -ml-1 h-9 w-8 grid place-items-center rounded-lg text-primary hover:bg-base-200">
+                class="shrink-0 -ml-1 h-9 w-8 grid place-items-center rounded-lg text-primary hover:bg-base-200">
           <i class="ph ph-x text-base leading-none"></i>
         </button>
-        <div class="absolute inset-0 z-10 flex items-center px-3 bg-base-100 transition-[opacity,clip-path] duration-150
-                    lg:static lg:z-auto lg:px-0 lg:mx-2 lg:w-64 xl:w-80 lg:shrink-0 lg:bg-transparent lg:opacity-100 lg:[clip-path:none] lg:pointer-events-auto"
-             :class="open ? 'opacity-100 [clip-path:inset(0)]' : 'opacity-0 [clip-path:inset(0_0_0_70%)] pointer-events-none'">
-          <div class="relative grow min-w-0">
-            <label class="input flex items-center gap-2 w-full h-10 lg:h-9">
-              <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
-              <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
-                     autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                     class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
-                     :placeholder="placeholder"
-                     x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
-                     @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
-              <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' match'"></span>
-              <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
-                      class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
-                <i class="ph ph-x-circle text-lg leading-none"></i>
-              </button>
-            </label>
-            <!-- Recent terms, only while the field is open and empty: nothing
-                 is filtering yet, so the panel covers nothing a reader is
-                 watching, and it goes the moment a key lands. -->
-            <div x-show="open && !q && recents.length" x-transition.opacity
-                 class="absolute left-0 right-0 top-full mt-1 z-10 px-2 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-base-100 border border-base-300 rounded-lg shadow-sm">
-              <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
-              <template x-for="t in recents" :key="t">
-                <button type="button" @pointerdown.prevent @click="q = t; push()"
-                        class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
-              </template>
+        <template x-teleport="#find-bar">
+          <div x-show="has" class="grid transition-[grid-template-rows] duration-150" :class="open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+            <div class="min-h-0" :class="open ? 'overflow-visible' : 'overflow-hidden'">
+              <div class="px-4 pb-2.5 pt-0.5 flex lg:justify-end">
+                <div class="relative w-full lg:w-[32rem]">
+                  <label class="input flex items-center gap-2 w-full h-10">
+                    <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
+                    <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
+                           autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                           class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
+                           :placeholder="placeholder"
+                           x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
+                           @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+                    <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' match'"></span>
+                    <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
+                            class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
+                      <i class="ph ph-x-circle text-lg leading-none"></i>
+                    </button>
+                  </label>
+                  <!-- Recent terms, only while the bar is open and empty:
+                       nothing is filtering yet, so the panel covers nothing a
+                       reader is watching, and it goes the moment a key lands. -->
+                  <div x-show="open && !q && recents.length" x-transition.opacity
+                       class="absolute left-0 right-0 top-full mt-1 z-10 px-2 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-base-100 border border-base-300 rounded-lg shadow-sm">
+                    <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
+                    <template x-for="t in recents" :key="t">
+                      <button type="button" @pointerdown.prevent @click="q = t; push()"
+                              class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
+                    </template>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- ── The ref switch: which ref THIS PAGE is running at ─────────────
@@ -674,6 +677,8 @@ html.dk-dragging main{transition:none !important}
       </button>
     </div>
   </div>
+  <!-- The find pill's bar lands here, below the row that holds its button. -->
+  <div id="find-bar"></div>
 </header>
 
 <div class="flex-1 flex min-h-0">
@@ -8087,6 +8092,22 @@ function app(){ return {
 
   wireAppTypeahead(){
     window.addEventListener('keydown', (e) => {
+      // CTRL OR CMD+F OPENS THE VIEW'S OWN FILTER, where the view has one:
+      // its box if it shows one, else the header's find pill. The browser's
+      // find reads the page as text, which on a list the view already knows
+      // how to narrow is the weaker search. Pressed again with the filter
+      // focused, it is left to the browser, so its find is one more press
+      // away and never lost; on a view with no filter it is never taken.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+        if (window.swipeDeck?.stack?.length || document.querySelector('dialog[open]')) return;
+        const pill = document.getElementById('find-pill-box');
+        const to = Array.from(document.querySelectorAll('[data-find-box]')).find(el => el.getClientRects().length)
+          || (pill && pill.getClientRects().length ? pill : null);
+        if (!to || document.activeElement === to) return;
+        e.preventDefault();
+        to.focus();
+        return;
+      }
       // A bare printable key, one character wide, so every named key (Tab,
       // Enter, Escape, the arrows, the function row) passes untouched. Space
       // goes with them: it scrolls, it activates a focused button, and no

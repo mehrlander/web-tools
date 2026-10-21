@@ -101,6 +101,31 @@ test('what the router does not claim', () => {
   }
 });
 
+test('Ctrl or Cmd+F opens the view\'s filter, and a second press is the browser\'s', () => {
+  for (const mod of [{ ctrlKey: true }, { metaKey: true }]) {
+    const own = fakeBox();
+    const { type, doc } = wired({ box: fakeBox(), viewBoxes: [own] });
+    assert.equal(type('f', mod), true, 'the browser\'s find is held back');
+    assert.equal(doc.activeElement, own, 'and the view\'s box takes focus');
+    assert.equal(type('f', { ...mod, target: { tagName: 'INPUT' } }), false,
+      'pressed again in the filter, it is the browser\'s find');
+  }
+  // With the view's box hoisted, the header's find pill is the filter.
+  const pill = fakeBox();
+  const h = wired({ box: fakeBox(), viewBoxes: [fakeBox({ rects: 0 })] });
+  pill.doc = h.doc;
+  h.doc.getElementById = (id) => (id === 'find-pill-box' ? pill : null);
+  assert.equal(h.type('F', { ctrlKey: true }), true);
+  assert.equal(h.doc.activeElement, pill, 'the pill takes it');
+  // No filter on the view: the browser keeps its find.
+  const bare = wired({ box: fakeBox(), viewBoxes: [] });
+  assert.equal(bare.type('f', { ctrlKey: true }), false);
+  assert.equal(bare.doc.activeElement, null);
+  // And a shifted or alt combination is someone else's.
+  const other = wired({ box: fakeBox(), viewBoxes: [fakeBox()] });
+  assert.equal(other.type('f', { ctrlKey: true, shiftKey: true }), false);
+});
+
 test('an overlay that owns the screen takes the key off the router', () => {
   for (const [why, opts] of [['a deck', { deck: 1 }], ['a modal dialog', { dialogOpen: true }]]) {
     const box = fakeBox();
