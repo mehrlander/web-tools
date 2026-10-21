@@ -581,12 +581,22 @@ html.dk-dragging main{transition:none !important}
                          :placeholder="placeholder"
                          x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
                          @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
-                  <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' match'"></span>
+                  <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown"></span>
                   <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
                           class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
                     <i class="ph ph-x-circle text-lg leading-none"></i>
                   </button>
                 </label>
+                <!-- Where else the word landed, when a view's one query runs
+                     over several kinds of row (Activity's four panes): each a
+                     count that opens its pane in a tap. -->
+                <div x-show="q && also.length" class="flex items-center gap-1.5 pt-2 overflow-x-auto no-scrollbar text-sm">
+                  <span class="shrink-0 text-base-content/50">Also</span>
+                  <template x-for="a in also" :key="a.go">
+                    <button type="button" @pointerdown.prevent @click="goAlso(a)"
+                            class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 hover:text-primary tabular-nums" x-text="a.text"></button>
+                  </template>
+                </div>
                 <!-- Recent terms, only while the bar is open and empty. The bar
                      lies over the view, so the row lengthens it without moving
                      anything, and it goes the moment a key lands. -->
@@ -1473,7 +1483,7 @@ html.dk-dragging main{transition:none !important}
                   <!-- data-find-box: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
                        sidebar finder (wireAppTypeahead). -->
-                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-box class="grow min-w-0">
+                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-box data-find-noun="page" :data-find-count="filteredGroups.reduce((n, g) => n + g.items.length, 0)" class="grow min-w-0">
                 </label>
               </div>
 
@@ -1920,7 +1930,7 @@ html.dk-dragging main{transition:none !important}
                 <i class="ph ph-magnifying-glass opacity-50"></i>
                 <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
                      the tree instead of opening the sidebar finder. -->
-                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-box class="grow min-w-0"></label>
+                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-box data-find-noun="doc" :data-find-count="projectDocsGroups.reduce((n, g) => n + g.files.length, 0)" class="grow min-w-0"></label>
             </div>
             </div>
 
@@ -9355,7 +9365,7 @@ function findPill(){
   };
   const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
   return {
-    has: false, open: false, q: '', placeholder: 'Filter', shown: '', recents: [],
+    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [],
 
     // Retried because a view mounts its component lazily on first visit.
     resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
@@ -9373,7 +9383,7 @@ function findPill(){
       watch?.disconnect();
       if (box) {
         watch = new MutationObserver(() => this.mark());
-        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count'] });
+        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also'] });
       }
       this.mark();
     },
@@ -9477,10 +9487,15 @@ function findPill(){
         if (box && scroller && Date.now() - typed < 600) this.align();
         const reg = window.CSS?.highlights;
         const terms = this.q.toLowerCase().split(/\s+/).filter(Boolean);
-        // A count only where the view declares one on its box: rows read
-        // off the page's structure miscounted wherever a list is grouped or
-        // holds its own empty line.
-        this.shown = box?.dataset.findCount || '';
+        // A count only where the view declares one on its box, with the
+        // noun for its rows: rows read off the page's structure miscounted
+        // wherever a list is grouped or holds its own empty line. A view whose
+        // query reaches other kinds of row declares those too (find-also).
+        const d = box?.dataset || {};
+        this.shown = d.findCount === undefined || d.findCount === '' ? '' : this.phrase(+d.findCount, d.findNoun || undefined);
+        let also = [];
+        try { also = JSON.parse(d.findAlso || '[]'); } catch {}
+        this.also = also.filter(a => a.n > 0).map(a => ({ ...a, text: this.phrase(a.n, a.noun) }));
         if (!box || !terms.length) { reg?.delete('find-pill'); return; }
         const root = this.listOf() || box.closest('section') || viewOf(box);
         if (!reg) return;
@@ -9495,6 +9510,17 @@ function findPill(){
         }
         reg.set('find-pill', new Highlight(...ranges));
       });
+    },
+
+    // "1 session", "46 sessions"; a noun declared as "branch|branches" names
+    // its own plural.
+    phrase(n, noun = 'match|matches'){
+      const [one, many] = noun.includes('|') ? noun.split('|') : [noun, noun + 's'];
+      return n + ' ' + (n === 1 ? one : many);
+    },
+    goAlso(a){
+      window.__shell?.[a.go]?.();
+      setTimeout(() => this.lift(), 250);
     },
 
     // The last few terms per view, offered while the field is open and empty.
