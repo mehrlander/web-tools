@@ -33,6 +33,6 @@ One self-contained HTML artifact: a console-style inline diff of a single before
 
 ## Extending
 
-- Word-level highlight inside changed lines: pair changed line i with i, diff within. Recovers the surgical-edit case the line view gives up.
-- Side-by-side on desktop, collapsing to unified below a width threshold. Cramped on a phone.
+- Word-level highlight inside changed lines: pair changed line i with i, diff within. Recovers the surgical-edit case the line view gives up. web-tools' `lib/kits/text-diff.js` already does this.
+- Side-by-side on desktop, collapsing to unified below a width threshold. Cramped on a phone. web-tools' `lib/kits/cm6-merge.js` draws both views.
 - Copyable git patch: standard `@@` hunks with `+`/`-` prefixes as plain selectable text.
