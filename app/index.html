@@ -426,7 +426,10 @@ html.dk-dragging main{transition:none !important}
      with no standalone page behind it to link to the way an app view or a
      custom landing has one. The way back is the FAB's Render tab, which
      carries the mode as a bar. ─────────────────────────────────────────── -->
-<header x-show="shellMode !== 'none'" class="shrink-0 z-30 bg-base-100 border-b border-base-300">
+<!-- z-[35], one past the Map's pinned tab strip (z-30 below lg), which would
+     otherwise paint over the find pill's bar hung from this header; still
+     under the sidebar's backdrop (z-40). -->
+<header x-show="shellMode !== 'none'" class="relative shrink-0 z-[35] bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-0.5">
       <!-- App-level views: Activity / Repos / Stage / Tools / Map, the
@@ -543,11 +546,11 @@ html.dk-dragging main{transition:none !important}
            drives it instead, so a filter costs no view a row and opens from
            one place on every view that has one. The same at every width: a
            magnifier here, or the term as a chip once one is set, and tapped,
-           a bar that slides down below the header (#find-bar, teleported
-           there because this row cannot hold it) and pushes the view down
-           rather than covering it. Below lg the view also scrolls its list up
-           under the bar, so the rows that narrow with each keystroke sit
-           above the keyboard rather than behind it. Ctrl or Cmd+F opens it
+           a bar that slides down from the header's edge over the top of the
+           view (#find-bar, teleported there because this row cannot hold
+           it), so opening it moves nothing. Below lg the view also scrolls
+           its list up under the bar, so the rows that narrow with each
+           keystroke sit above the keyboard rather than behind it. Ctrl or Cmd+F opens it
            too (wireAppTypeahead). The input is laid out even while the bar is
            shut, only at no height, because iOS raises the keyboard only for a
            focus made inside the tap. No Done button: the keyboard's Search
@@ -567,34 +570,32 @@ html.dk-dragging main{transition:none !important}
         </button>
         <template x-teleport="#find-bar">
           <div x-show="has" class="grid transition-[grid-template-rows] duration-150" :class="open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
-            <div class="min-h-0" :class="open ? 'overflow-visible' : 'overflow-hidden'">
-              <div class="px-4 pb-2.5 pt-0.5 flex lg:justify-end">
-                <div class="relative w-full lg:w-[32rem]">
-                  <label class="input flex items-center gap-2 w-full h-10">
-                    <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
-                    <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
-                           autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                           class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
-                           :placeholder="placeholder"
-                           x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
-                           @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
-                    <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' match'"></span>
-                    <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
-                            class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
-                      <i class="ph ph-x-circle text-lg leading-none"></i>
-                    </button>
-                  </label>
-                  <!-- Recent terms, only while the bar is open and empty:
-                       nothing is filtering yet, so the panel covers nothing a
-                       reader is watching, and it goes the moment a key lands. -->
-                  <div x-show="open && !q && recents.length" x-transition.opacity
-                       class="absolute left-0 right-0 top-full mt-1 z-10 px-2 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-base-100 border border-base-300 rounded-lg shadow-sm">
-                    <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
-                    <template x-for="t in recents" :key="t">
-                      <button type="button" @pointerdown.prevent @click="q = t; push()"
-                              class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
-                    </template>
-                  </div>
+            <div class="min-h-0 overflow-hidden">
+              <div data-find-bar class="pointer-events-auto bg-base-100 border-b border-base-300 shadow-md px-4 pt-1 pb-2.5
+                                        lg:ml-auto lg:mr-4 lg:w-[32rem] lg:px-3 lg:pt-2.5 lg:border-x lg:rounded-b-xl">
+                <label class="input flex items-center gap-2 w-full h-10">
+                  <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
+                  <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
+                         autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                         class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
+                         :placeholder="placeholder"
+                         x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
+                         @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+                  <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown + ' match'"></span>
+                  <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
+                          class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
+                    <i class="ph ph-x-circle text-lg leading-none"></i>
+                  </button>
+                </label>
+                <!-- Recent terms, only while the bar is open and empty. The bar
+                     lies over the view, so the row lengthens it without moving
+                     anything, and it goes the moment a key lands. -->
+                <div x-show="!q && recents.length" class="flex items-center gap-1.5 pt-2 overflow-x-auto no-scrollbar">
+                  <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
+                  <template x-for="t in recents" :key="t">
+                    <button type="button" @pointerdown.prevent @click="q = t; push()"
+                            class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
+                  </template>
                 </div>
               </div>
             </div>
@@ -677,8 +678,9 @@ html.dk-dragging main{transition:none !important}
       </button>
     </div>
   </div>
-  <!-- The find pill's bar lands here, below the row that holds its button. -->
-  <div id="find-bar"></div>
+  <!-- The find pill's bar lands here: hung from the header's bottom edge and
+       lying over the view, so opening it moves nothing beneath. -->
+  <div id="find-bar" class="absolute inset-x-0 top-full pointer-events-none"></div>
 </header>
 
 <div class="flex-1 flex min-h-0">
@@ -9340,9 +9342,16 @@ function findPill(){
   // all off the label's own x-show (Docs' box is only on the Docs tab), and
   // whether it filters there off its search slot, which Activity drops on
   // State and Traffic.
+  // A display:contents wrapper has no box of its own, so the row is the
+  // first ancestor that does.
+  const row = el => {
+    let n = el.parentElement;
+    while (n && getComputedStyle(n).display === 'contents') n = n.parentElement;
+    return n;
+  };
   const live = el => {
     const lab = el.closest('label');
-    return !!lab && lab.matches('[data-slot="frame:search"]') && lab.style.display !== 'none' && seen(lab.parentElement);
+    return !!lab && lab.matches('[data-slot="frame:search"]') && lab.style.display !== 'none' && seen(row(lab));
   };
   const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
   return {
@@ -9428,7 +9437,12 @@ function findPill(){
           && (el.compareDocumentPosition(anchor) & Node.DOCUMENT_POSITION_FOLLOWING)
           && getComputedStyle(el).position === 'sticky')
         .map(el => (parseFloat(getComputedStyle(el).top) || 0) + el.getBoundingClientRect().height);
-      const cover = pinned.length ? Math.max(...pinned) + 8 : (parseFloat(getComputedStyle(scroller).scrollPaddingTop) || 8);
+      // The bar lies over the top of the view, so the list lands below it
+      // too: at its natural height, since it may still be sliding open.
+      const card = document.querySelector('[data-find-bar]');
+      const slot = document.getElementById('find-bar');
+      const bar = card && slot ? slot.getBoundingClientRect().top + card.offsetHeight - scroller.getBoundingClientRect().top : 0;
+      const cover = Math.max(bar + 8, pinned.length ? Math.max(...pinned) + 8 : (parseFloat(getComputedStyle(scroller).scrollPaddingTop) || 8));
       const top = scroller.scrollTop + anchor.getBoundingClientRect().top - scroller.getBoundingClientRect().top - cover;
       scroller.scrollTo({ top: Math.max(0, top), behavior });
     },
