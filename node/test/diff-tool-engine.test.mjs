@@ -20,14 +20,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { repoRoot } from '../repo-root.mjs';
 
 // htmlToText() is the one method that needs a DOM. jsdom supplies the parser
 // rather than the engine being changed to accommodate the test.
 globalThis.DOMParser = new JSDOM('').window.DOMParser;
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // The kit: a plain IIFE that attaches window.textDiff.
 const kitSrc = await readFile(path.join(repoRoot, 'lib', 'kits', 'text-diff.js'), 'utf8');

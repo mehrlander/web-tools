@@ -32,9 +32,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const hooks = path.join(repoRoot, 'skills', 'hooks');
 const script = path.join(hooks, 'reading-column.py');
 const guard = path.join(hooks, 'reading-column-guard.sh');

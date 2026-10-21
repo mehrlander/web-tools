@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-19 by a skill, 41 by a page or component. The remaining 45 are
+21 by a skill, 41 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -96,6 +96,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`idea-board.md`](idea-board.md) — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
 - [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
+- [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 
 ## docs/envelopes/
 
@@ -107,6 +108,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
 - [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 - [`passage-reading.md`](envelopes/passage-reading.md) — the passage-reading envelope contract: one passage read sentence by sentence
+- [`audit.md`](envelopes/audit.md) — the audit envelope contract: a document's units, each with a label from a declared vocabulary and a verdict
 
 ## docs/envelopes/schemas/
 

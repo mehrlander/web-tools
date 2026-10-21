@@ -25,10 +25,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 const doc = window.document;

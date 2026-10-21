@@ -82,7 +82,9 @@ const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
 Alpine.data('userCallForm', (o) => ({ init() { forms.push(o.call.id); } }));
-for (const k of ['lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
+// repo-address.js is booted by every page; the component's GitHub links are
+// built by window.RepoAddress.github.
+for (const k of ['lib/kits/repo-address.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 for (const p of ['lib/alpine-bundle.js', 'lib/alpineComponents/session-brief.js']) {

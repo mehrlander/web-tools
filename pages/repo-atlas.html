@@ -210,8 +210,7 @@ const esc = s => window.esc(s);
 // GitHub URL for a repo path: per-segment encoding (keeps the slashes) so '#',
 // '%', '?' in filenames can't derail the URL — then esc() when it rides in an
 // href attribute, so a quote in a filename can't break out of it (XSS).
-const encPath = p => p.split('/').map(encodeURIComponent).join('/');
-const ghUrl = (kind, path) => `https://github.com/${S.repo}/${kind}/${encodeURIComponent(S.ref)}/${encPath(path)}`;
+const ghUrl = (kind, path) => window.RepoAddress.github[kind](S.repo, S.ref, path);
 
 // ── State ────────────────────────────────────────────────────────────────────
 const S = {
@@ -546,8 +545,9 @@ function renderCrumbs() {
 // same rule GithubLinks.repoUrl follows. A local folder has no GitHub home, so
 // its chip stays inert.
 const repoGhUrl = () =>
-  `https://github.com/${S.repo}` +
-  (S.ref && S.defaultRef && S.ref !== S.defaultRef ? `/tree/${encodeURIComponent(S.ref)}` : '');
+  S.ref && S.defaultRef && S.ref !== S.defaultRef
+    ? window.RepoAddress.github.tree(S.repo, S.ref)
+    : window.RepoAddress.github.repo(S.repo);
 
 function renderStats() {
   const r = S.root;

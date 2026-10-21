@@ -10,8 +10,8 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 // core first (kernels + onSet bus every mod uses), recipe last (it wraps the
 // verbs the others install).
 export const MODS = [

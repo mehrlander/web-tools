@@ -26,9 +26,8 @@ import { spawn, execFileSync } from 'node:child_process';
 import { readFile, readdir, writeFile, appendFile, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOT = path.join(repoRoot, 'node/render/screenshot.mjs');
 const OUT = path.join(repoRoot, 'node/.preview/page-measures');
 const WIDENS = [/^node\/render\//, /^\.github\/workflows\/page-measures\.yml$/];

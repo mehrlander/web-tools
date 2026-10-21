@@ -1,0 +1,453 @@
+{
+ "kind": "audit/1",
+ "title": "shorter.md",
+ "standoff": {
+  "kind": "standoff/1",
+  "question": "is this unit's wording weak or wrong?",
+  "target": {
+   "path": "docs/envelopes/shorter.md",
+   "repo": "mehrlander/web-tools",
+   "ref": "1014b1897601",
+   "url": "https://github.com/mehrlander/web-tools/blob/1014b1897601/docs/envelopes/shorter.md",
+   "bytes": 4833,
+   "sha256": "f114f3a4f31252b51c88f5afe3989f437f194646c74cf618e3bd5d86f026137d"
+  },
+  "vocabulary": [
+   {
+    "label": "OK",
+    "side": "pass",
+    "gloss": "neither weak nor wrong",
+    "color": "203,213,225"
+   },
+   {
+    "label": "WEAK",
+    "side": "wording",
+    "gloss": "unclear, hard to read, or unneeded",
+    "color": "245,158,11"
+   },
+   {
+    "label": "WRONG",
+    "side": "content",
+    "gloss": "false, or stronger than the document supports",
+    "color": "225,29,72"
+   }
+  ],
+  "verdicts": [
+   {
+    "verdict": "KEEP",
+    "gloss": "stays; a note on it asks for any rewording"
+   },
+   {
+    "verdict": "DROP",
+    "gloss": "removed from the document"
+   }
+  ],
+  "units": [
+   {
+    "uid": "shorte-001",
+    "start": 0,
+    "end": 31,
+    "kind": "h1",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-002",
+    "start": 33,
+    "end": 159,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-003",
+    "start": 160,
+    "end": 323,
+    "kind": "sent",
+    "words": 30,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-004",
+    "start": 324,
+    "end": 446,
+    "kind": "sent",
+    "words": 21,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"The work is subtraction\": vague referent, and rejecting cuts and rewriting are not subtraction; \"You review: skim, reject the cuts that went too far, rewrite or regenerate a span, copy the assembled result.\"\nReader 2 (WEAK, low): \"The work is subtraction:\" is figurative, and rejecting cuts or rewriting a span restores or adds text. Cut; open with \"You skim, reject the cuts that went too far, ...\""
+   },
+   {
+    "uid": "shorte-005",
+    "start": 447,
+    "end": 477,
+    "kind": "sent",
+    "words": 5,
+    "label": "WEAK",
+    "verdict": "DROP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"Getting a shortening is cheap\": unverifiable aside restating the opening sentence; Cut.\nReader 2 (WEAK, low): \"Getting a shortening is cheap.\" restates \"not a shortener\" as a premise for the next sentence. Cut (with the next sentence)."
+   },
+   {
+    "uid": "shorte-006",
+    "start": 478,
+    "end": 535,
+    "kind": "sent",
+    "words": 12,
+    "label": "WEAK",
+    "verdict": "DROP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"Going through it piece by piece is what this page is for\": restates the first three sentences, \"it\" unanchored; Cut.\nReader 2 (WEAK, low): \"Going through it piece by piece is what this page is for.\" restates the opening sentence, and \"it\" leans on the previous sentence. Cut (with the previous sentence)."
+   },
+   {
+    "uid": "shorte-007",
+    "start": 537,
+    "end": 590,
+    "kind": "sent",
+    "words": 9,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"It is the renderer\": bare \"It\" has two candidate referents (the shortening, the page); \"The page is the renderer behind the `#shorter=` toss route.\"\nReader 2 (WEAK, high): \"It is the renderer\": the paragraph opens on a bare \"It\". \"The page is the renderer behind the `#shorter=` toss route.\""
+   },
+   {
+    "uid": "shorte-008",
+    "start": 591,
+    "end": 786,
+    "kind": "sent",
+    "words": 32,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-009",
+    "start": 788,
+    "end": 799,
+    "kind": "h2",
+    "words": 2,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-010",
+    "start": 801,
+    "end": 818,
+    "kind": "sent",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WRONG, low): \"First match wins:\" the table lists `?src=` before `#gz=`, but the page reads `#gz=` first. Swap those two rows, or say \"`#gz=` wins over `?src=`\"."
+   },
+   {
+    "uid": "shorte-011",
+    "start": 820,
+    "end": 1453,
+    "kind": "table",
+    "words": 109,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, high): \"which is what the page has always done\": unverifiable history aside; Cut. Also \"the contents API\" unnamed; \"the GitHub contents API\".\nReader 2 (WEAK, high): \"which is what the page has always done\" is history, not current behavior. Cut."
+   },
+   {
+    "uid": "shorte-012",
+    "start": 1455,
+    "end": 1605,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, low): \"Each key\" opens the paragraph on a bare quantifier, and the table has no key column. \"Each parameter above is read fragment first, query as fallback\"."
+   },
+   {
+    "uid": "shorte-013",
+    "start": 1606,
+    "end": 1844,
+    "kind": "sent",
+    "words": 43,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, high): \"while `?src=` is how a routed toss hands an address to the page through toss-render's params shim\": hard-to-read mechanism clause already covered by the first table row, and \"the Pages edge\" is unnamed; \"Prefer the forms above: put prose in the fragment, since GitHub Pages rejects a query string over roughly 8KB with a 414.\"\nReader 2 (WEAK, high): \"the Pages edge\" and \"toss-render's params shim\" are unexplained, and the \"while `?src=` ...\" clause repeats the first table row. \"...belongs in the fragment, since GitHub Pages answers a query string over roughly 8KB with a 414.\""
+   },
+   {
+    "uid": "shorte-014",
+    "start": 1846,
+    "end": 1875,
+    "kind": "h2",
+    "words": 5,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, low): \"no declaration\" reads as none allowed, yet the optional `kind` field is one. \"Two shapes, no declaration needed\"."
+   },
+   {
+    "uid": "shorte-015",
+    "start": 1877,
+    "end": 2010,
+    "kind": "sent",
+    "words": 14,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-016",
+    "start": 2012,
+    "end": 2066,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-017",
+    "start": 2067,
+    "end": 2192,
+    "kind": "sent",
+    "words": 26,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"the left column\" and \"the right one\" are never introduced, and \"an empty visit\" is not the table's \"empty form\"; \"It fills the left (original) column and leaves the right (shorter) one to you, so the page opens in its input form.\"\nReader 2 (WEAK, low): \"exactly as an empty visit does\" overstates: the left column arrives filled. Cut \"exactly\"."
+   },
+   {
+    "uid": "shorte-018",
+    "start": 2193,
+    "end": 2238,
+    "kind": "sent",
+    "words": 9,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, high): \"This is the common case and needs no wrapper\": bare \"This\", and \"wrapper\" for what is later the \"envelope\"; \"A bare payload is the common case and needs no envelope.\"\nReader 2 (WEAK, high): \"This is the common case and needs no wrapper.\" has a bare \"This\", and \"wrapper\" is a second name for the envelope. \"Bare text is the common case and needs no envelope.\""
+   },
+   {
+    "uid": "shorte-019",
+    "start": 2240,
+    "end": 2290,
+    "kind": "sent",
+    "words": 8,
+    "label": "WRONG",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WRONG, high): \"carrying both sides\": contradicted by \"proposal is optional\" and the \"original only\" row; \"Envelope is a JSON object carrying the original text and, optionally, the shorter version.\"\nReader 2 (WRONG, high): \"carrying both sides\" contradicts \"`proposal` is optional\" and the table row \"envelope with `original` only\". \"is a JSON object carrying `original` and, optionally, `proposal`.\""
+   },
+   {
+    "uid": "shorte-020",
+    "start": 2291,
+    "end": 2435,
+    "kind": "sent",
+    "words": 24,
+    "label": "WRONG",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WRONG, low): \"the one thing bare text cannot express\": an envelope also carries a title, which bare text cannot; \"Use it for what bare text cannot express: a title, or a shortening someone already produced, so the link opens straight into the adjudication view.\"\nReader 2 (WRONG, low): \"the one thing bare text cannot express\" is too strong: an envelope also carries a title. \"Use it for a shortening someone already produced, so the link opens straight into the adjudication view.\""
+   },
+   {
+    "uid": "shorte-021",
+    "start": 2437,
+    "end": 2692,
+    "kind": "code",
+    "words": 32,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-022",
+    "start": 2693,
+    "end": 2980,
+    "kind": "sent",
+    "words": 30,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"standoff annotation\" and \"(DROP spans cut, insertions placed)\" are terms this document never defines; \"One producer worth naming\" is filler. Fix: \"**Producer.** pages/audit-render.html mints this envelope from an annotated document: its adjudicate link hands the original and the edited version over as #gz=.\"\nReader 2 (WEAK, high): \"One producer worth naming.\" is a filler lead-in label, and \"standoff annotation\" and \"DROP spans\" are not defined here. Cut the label: \"pages/audit-render.html mints this envelope ...\"."
+   },
+   {
+    "uid": "shorte-023",
+    "start": 2981,
+    "end": 3009,
+    "kind": "sent",
+    "words": 6,
+    "label": "WEAK",
+    "verdict": "DROP",
+    "note": "Both readers.\nReader 1 (WEAK, high): \"The two pages split one job.\" is vague (which job?) and the next sentence says it. Cut.\nReader 2 (WEAK, low): \"The two pages split one job.\" only previews the next sentence, and \"The two pages\" is not yet identified. Cut."
+   },
+   {
+    "uid": "shorte-024",
+    "start": 3010,
+    "end": 3114,
+    "kind": "sent",
+    "words": 19,
+    "label": "WEAK",
+    "verdict": "DROP",
+    "note": "Both readers.\nReader 1 (WEAK, high): \"Audit\", \"a span\" and \"this one\" are unintroduced shorthand and the sentence is commentary on another page, not payload contract. Cut.\nReader 2 (WEAK, low): \"Audit\" is bare and \"what a span is\" is unclear; the division of labor does not affect the contract. Cut."
+   },
+   {
+    "uid": "shorte-025",
+    "start": 3115,
+    "end": 3223,
+    "kind": "sent",
+    "words": 10,
+    "label": "WRONG",
+    "verdict": "DROP",
+    "note": "Both readers.\nReader 1 (WRONG, high): \"skills/state-the-rule/materialize.py\" does not exist; the file is python/annotate/materialize.py. The byte-for-byte comparison is an implementation detail of another page. Cut.\nReader 2 (WRONG, high): \"skills/state-the-rule/materialize.py\" does not exist; the file is python/annotate/materialize.py. The parity detail is also not needed by a payload producer. Cut."
+   },
+   {
+    "uid": "shorte-026",
+    "start": 3225,
+    "end": 3248,
+    "kind": "sent",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-027",
+    "start": 3249,
+    "end": 3317,
+    "kind": "sent",
+    "words": 13,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, low): Restates the second row of the \"What opens where\" table; \"one\" also leans on the previous sentence. Cut."
+   },
+   {
+    "uid": "shorte-028",
+    "start": 3318,
+    "end": 3492,
+    "kind": "sent",
+    "words": 32,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"draft one for me\" is quoted as if it were page text, but the control reads \"Draft a shorter version\". Fix: the page's own \"Draft a shorter version\" path.\nReader 2 (WEAK, low): \"the page's own 'draft one for me' path\" is an undefined quoted label. Say: \"an empty proposal makes the page draft one with the local model, not fail\"."
+   },
+   {
+    "uid": "shorte-029",
+    "start": 3494,
+    "end": 3606,
+    "kind": "sent",
+    "words": 19,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, high): \"The discriminator is narrow on purpose.\" uses an undefined term as a label lead-in. Cut it: \"The text being shortened can itself be JSON, so only some objects count as envelopes.\""
+   },
+   {
+    "uid": "shorte-030",
+    "start": 3607,
+    "end": 3715,
+    "kind": "sent",
+    "words": 17,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-031",
+    "start": 3716,
+    "end": 3826,
+    "kind": "sent",
+    "words": 20,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-032",
+    "start": 3827,
+    "end": 3939,
+    "kind": "sent",
+    "words": 11,
+    "label": "WRONG",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WRONG, low): \"the same rule\" overstates: data-payload.js tests for kind \"data-view/1\" or an items array of item records, not a string original. Fix: \"data-payload.js applies a rule of the same kind, for the same reason\", or Cut.\nReader 2 (WRONG, low): \"the same rule\" overstates: data-payload.js qualifies an object by `kind: \"data-view/1\"` or an `items` array of item records, a different test. Say \"a similarly narrow rule\"; \"This\" is also bare."
+   },
+   {
+    "uid": "shorte-033",
+    "start": 3941,
+    "end": 3960,
+    "kind": "h2",
+    "words": 4,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-034",
+    "start": 3962,
+    "end": 4190,
+    "kind": "table",
+    "words": 48,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-035",
+    "start": 4192,
+    "end": 4322,
+    "kind": "sent",
+    "words": 23,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, low): \"so a tossed document says what it opened\" is figurative and adds nothing. Cut it."
+   },
+   {
+    "uid": "shorte-036",
+    "start": 4324,
+    "end": 4341,
+    "kind": "h2",
+    "words": 3,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-037",
+    "start": 4343,
+    "end": 4382,
+    "kind": "sent",
+    "words": 8,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, low): \"holds no state\" is unqualified and sits beside the viewer's \"stored token\" below. Say \"keeps no document state across loads\"."
+   },
+   {
+    "uid": "shorte-038",
+    "start": 4383,
+    "end": 4461,
+    "kind": "sent",
+    "words": 15,
+    "label": "WRONG",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WRONG, low): \"A link is the whole input\" overstates: the Delivery table also has the paste-by-hand form, and the next bullets add the stored token. Fix: \"A link or pasted text is the whole input\".\nReader 2 (WEAK, low): \"A link is the whole input\" ignores the hand-pasted empty form listed under Delivery. Say \"A link carries the whole payload\"."
+   },
+   {
+    "uid": "shorte-039",
+    "start": 4462,
+    "end": 4498,
+    "kind": "sent",
+    "words": 7,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-040",
+    "start": 4499,
+    "end": 4551,
+    "kind": "sent",
+    "words": 9,
+    "label": "OK",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "shorte-041",
+    "start": 4552,
+    "end": 4741,
+    "kind": "sent",
+    "words": 33,
+    "label": "OK",
+    "verdict": "KEEP",
+    "note": "One reader of two (WEAK, high): \"without one\" has a bare pronoun and \"rather than\" appears twice. Say \"for a private file fetched without a token, so the page shows the failure inline, not an empty form that looks like the link carried nothing\"."
+   },
+   {
+    "uid": "shorte-042",
+    "start": 4742,
+    "end": 4822,
+    "kind": "sent",
+    "words": 15,
+    "label": "WEAK",
+    "verdict": "KEEP",
+    "note": "Both readers.\nReader 1 (WEAK, low): \"the lib chain\" is repo shorthand this document never defines. Fix: \"pins the page's lib/ scripts to a branch, tag, or sha for previewing edits.\"\nReader 2 (WEAK, low): \"the lib chain\" is repo jargon this document never defines. Say \"the page's library files\"."
+   }
+  ]
+ },
+ "text": "# Shorter: the payload contract\n\n⭐ [pages/shorter.html](https://mehrlander.github.io/web-tools/pages/shorter.html) is an adjudication surface, not a shortener. You bring a text and a shorter version of it; the page word-diffs them and lays the shorter version out as a stream of discrete edits, each defaulting to accepted. The work is subtraction: skim, reject the cuts that went too far, rewrite or regenerate a span, copy the assembled result. Getting a shortening is cheap. Going through it piece by piece is what this page is for.\n\nIt is the renderer behind the `#shorter=` toss route. The in-browser model (Llama-3.2-1B via web-llm, WebGPU) stays optional and lazy: nothing is fetched from huggingface.co until a ✨ action is pressed, so the review flow works with no model at all.\n\n## Delivery\n\nFirst match wins:\n\n| channel | form | use when |\n| --- | --- | --- |\n| `#shorter=<spec>` | the toss route: `…/toss-render.html#shorter=<owner>/<repo>[@<ref>]:<path>` | the shortest link to a committed document; resolves into this page's `?src=` |\n| `?src=<spec>` | fetched via the contents API; a plain path is this repo, or `owner/repo[@ref]:path` | reaching the page directly |\n| `#gz=<base64url>` | gzipped text or envelope in the fragment | a draft with no committed home, or a completed pair; private-safe, since the fragment never reaches a server |\n| (none) | the empty form | pasting both sides by hand, which is what the page has always done |\n\nEach key is read fragment first, query as fallback ([`lib/kits/url-params.js`](../../lib/kits/url-params.js)), so `?gz=` and `#src=` are accepted too. Prefer the forms above: prose is unbounded and belongs in the fragment, since the Pages edge caps a query string at roughly 8KB with a 414, while `?src=` is how a routed toss hands an address to the page through toss-render's params shim.\n\n## Two shapes, no declaration\n\nA payload is read by [`lib/kits/shorter-payload.js`](../../lib/kits/shorter-payload.js), which decides what it is rather than asking:\n\n**Bare** is any text: prose, markdown, a pasted draft. It fills the left column and leaves the right one to you, so the page opens in its input form exactly as an empty visit does. This is the common case and needs no wrapper.\n\n**Envelope** is a JSON object carrying both sides. Use it for the one thing bare text cannot express: a shortening someone already produced, so the link opens straight into the adjudication view.\n\n```jsonc\n{\n  \"kind\": \"shorter/1\",      // optional; settles an ambiguous payload outright\n  \"title\": \"Constellation architecture\",\n  \"original\": \"The full text, at its original length…\",\n  \"proposal\": \"The shorter version to adjudicate against it…\"\n}\n```\n\n**One producer worth naming.** [`pages/audit-render.html`](https://mehrlander.github.io/web-tools/pages/audit-render.html) mints this envelope from a standoff annotation: its **adjudicate** link projects the document (DROP spans cut, insertions placed) and hands the pair over as `#gz=`. The two pages split one job. Audit decides what a span is and whether it earns its place; this one decides what the replacement says. The projection is `Standoff.materialize`, held byte for byte against `skills/state-the-rule/materialize.py`.\n\n`proposal` is optional. An envelope without one is a bare payload that also carries a title. Neither side is validated past being a string: the page word-diffs whatever it is given, and an empty proposal is the page's own \"draft one for me\" path rather than an error.\n\n**The discriminator is narrow on purpose.** The thing being shortened is arbitrary text, and some of it is JSON. An object qualifies as an envelope only when it declares `kind: \"shorter/1\"` or carries a string `original`. A JSON document that merely parses is read as bare text, which is what someone shortening a config file wants. This is the same rule [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) applies, for the same reason.\n\n## What opens where\n\n| payload | page opens in |\n| --- | --- |\n| bare text | the input form, left column filled |\n| envelope with `original` only | the input form, left column filled, title set |\n| envelope with both sides | review, already diffed |\n\nAn addressed payload takes its title from the file's path when the payload carries none, so a tossed document says what it opened.\n\n## Contract notes\n\n- The page holds no state across loads. A link is the whole input, and the assembled result leaves by the copy button. Nothing is written back to the repo.\n- A private `?src=` needs the viewer's stored token. GitHub answers 404 rather than 401 for a private file fetched without one, so the page reports the failure inline rather than showing an empty form that looks like the link carried nothing.\n- `?use=<ref>` pins the lib chain to a branch, tag, or sha for previewing edits.\n"
+}

@@ -102,7 +102,7 @@ def fold(notes):
 # ── Writing ──────────────────────────────────────────────────────────────────
 def witness_errors(w):
     ref = str(w.get("ref", ""))
-    if not note.LOCATOR.match(ref):
+    if not note.is_locator(ref):
         return [f"witness ref is not a locator: {ref!r}"]
     kind, repo, at, path = parse_ref(ref)
     if kind == "pr" and not w.get("state"):
@@ -141,7 +141,7 @@ def validate(f):
     if not subs:
         errs.append("a finding needs at least one subject")
     for s in subs:
-        if not note.LOCATOR.match(s):
+        if not note.is_locator(s):
             errs.append(f"subject is not a locator: {s!r}")
     if not str(f.get("why", "")).strip():
         errs.append("a finding needs a why")
@@ -200,13 +200,17 @@ def update(repo, store, fid, u, author):
 
 # ── Witnesses: observe, then compare ─────────────────────────────────────────
 def parse_ref(ref):
-    m = re.match(r"^([\w.-]+/[\w.-]+)#(\d+)$", ref)
+    """A witness ref as (kind, repo, at, path), read through note.py's patterns."""
+    m = note.PULL_RE.fullmatch(ref)
     if m:
         return "pr", m.group(1), int(m.group(2)), ""
-    m = re.match(r"^([\w.-]+/[\w.-]+)(?:@([^\s:]+))?(?::(\S+))?$", ref)
+    m = None if re.search(r"\s", ref) else note.REPO_RE.fullmatch(ref) or note.ADDR_RE.fullmatch(ref)
     if not m:
         return "unknown", "", "", ""
-    repo, at, path = m.group(1), m.group(2) or "", (m.group(3) or "").split("#")[0]
+    repo, at = m.group(1), m.group(2) or ""
+    pin = note.PIN_RE.fullmatch(at)
+    at = pin.group(2) if pin else at
+    path = (m.group(3) if m.re is note.ADDR_RE else "").split("#")[0]
     return ("path" if path else "branch"), repo, at or "main", path
 
 

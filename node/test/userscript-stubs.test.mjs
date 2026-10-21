@@ -22,8 +22,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { repoRoot as ROOT } from '../repo-root.mjs';
 
-const ROOT = path.resolve(import.meta.dirname, '../..');
 const stubs = fs.readdirSync(path.join(ROOT, 'userscripts'))
   .filter(f => f.endsWith('.user.js'));
 
@@ -144,6 +144,9 @@ test('launcher body includes the swipe deck and artifact definitions, and no err
   assert.doesNotMatch(text, /meta-toggle/, 'launcher must not place Page details & frames inside head-menu');
   assert.match(text, /data-slide-id="sandbox"/, 'launcher must provide a dedicated Sandbox slide for pasted units');
   assert.match(text, /const getSandboxRecords =/, 'launcher must export Sandbox units as structured JSON records');
+  assert.match(text, /data-slide-id="snap"/, 'launcher must provide a dedicated Image slide for viewport snapshots');
+  assert.match(text, /const renderViewportCanvas =/, 'launcher must include Canvas 2D DOM/Range viewport painter');
+  assert.match(text, /const renderViewportSvg =/, 'launcher must include SVG foreignObject viewport cloner');
 });
 
 test('stubs include @version, versioned @require, and auto-update storage loader', () => {

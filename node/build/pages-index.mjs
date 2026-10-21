@@ -19,8 +19,8 @@
 
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { writeCsv } from './registries-load.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 // Fixed here so a regeneration cannot reorder the file.
 const PAGE_COLS = ['top', 'group', 'label', 'title', 'href', 'thumb', 'code', 'note'];
@@ -65,7 +65,6 @@ const NOTES = {
   'kit-demos/report-layout.html': 'Report layout kit: one rows file, two committed layouts, the table redrawn from whichever JSON you edit.',
 };
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const pagesDir = path.join(repoRoot, 'pages');
 const mdPath = path.join(pagesDir, 'README.md');
 const htmlPath = path.join(pagesDir, 'index.html');

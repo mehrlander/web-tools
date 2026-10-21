@@ -217,7 +217,7 @@ test('a row is validated field by field, and only an explicit kind claims a plac
   assert.throws(() => rowOf({ match: 'exact' }), /blank for installed/);
   assert.throws(() => rowOf({ kind: 'verified' }), /exact, line-endings, whitespace or none/);
   assert.throws(() => rowOf({ method: '' }), /method/);
-  assert.throws(() => rowOf({ path: 'C:\\Users\\x\\Forms.psm1' }), /repository-relative/);
+  assert.throws(() => rowOf({ path: 'C:\\Users\\x\\Forms.psm1' }), /repository-relative/); // machine-path-ok: a fake path, fed in to be rejected
   assert.equal(rowOf({ note: 'two\nlines, "quoted"' }).note, 'two lines, "quoted"', 'a note is one line');
   assert.equal(K.line(rowOf({ note: 'two lines, "quoted"' })).split(',').length, 10,
     'a note with a comma is quoted, so it stays one field');

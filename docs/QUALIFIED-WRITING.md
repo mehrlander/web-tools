@@ -1,11 +1,8 @@
 # Qualified writing
 
 For every piece of prose a session writes: documents, commit
-messages, pull request bodies, tracker tasks, and chat replies alike. The
-canonical source is `mehrlander/web-tools` at `docs/QUALIFIED-WRITING.md`.
-The portable plugin's `default` skill loads the byte-matched copy shipped beside
-it and fetches this source only as a fallback. Local `CLAUDE.md` rules override
-these defaults.
+messages, pull request bodies, tracker tasks, and chat replies alike. Local
+`CLAUDE.md` rules override these defaults.
 
 ---
 
@@ -13,7 +10,7 @@ Qualify noun phrases to increase clarity, strengthen claims, highlight questions
 
 1. **Introduce before you refer.** Name the subject of a reply, section, or paragraph as it opens. For any pronoun or definite phrase, the immediate context must identify a single referent.
    *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
-2. **Use standard terms for a general audience.** Specialized topics develop shorthand terms, but avoid them and speak to an unfamiliar reader.
+2. **Use standard terms for a general audience.** Specialized topics develop shorthand terms, but avoid them and speak to an unfamiliar reader. A term's use elsewhere does not show the reader knows it: when a reader questions a term, replace it rather than cite where it appears.
    *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
 3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
    *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.

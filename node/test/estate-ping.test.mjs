@@ -18,6 +18,9 @@ let COMMITS = [];
 const branchOf = (p) => (p.startsWith('errands/') || p === 'state/session-topics.json') ? 'background' : 'main';
 
 class FakeGH {
+  // The views call the static GH.ago (gh-fetch.js); it answers with this
+  // fake's own formatter below.
+  static ago(d) { return FakeGH.prototype.ago.call(null, d); }
   static FRESH = { cache: 'no-store' };
   constructor(c = {}) { this.repo = c.repo || ''; this.ref = c.ref || 'main'; }
   // gh-fetch.js's ago, so the marker's words read as they do in the app.

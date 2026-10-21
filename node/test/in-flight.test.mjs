@@ -10,12 +10,11 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
 // Deliberately not ./bootstrap.mjs: that pulls in jsdom, and this suite drives
 // a stdlib-only python script through its CLI. Keeping the test's dependencies
 // as narrow as the script's means it runs wherever the script does.
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SCRIPT = path.join(repoRoot, 'skills/in-flight/in-flight.py');
 
 // One timestamp for the whole run, two days old: fixed enough that two commits

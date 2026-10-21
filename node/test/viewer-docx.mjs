@@ -41,12 +41,11 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import JSZip from 'jszip';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
 const shot = opt('--shot');

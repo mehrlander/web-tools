@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { TextEncoder, TextDecoder } from 'node:util';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { makeWindow, repoRoot } from './bootstrap.mjs';
+import { makeWindow, repoRoot, withBase64 } from './bootstrap.mjs';
 
 const SCRIPT = path.join(repoRoot, 'python/look-link.py');
 const dir = mkdtempSync(path.join(tmpdir(), 'look-link-'));
@@ -126,6 +126,7 @@ test('steps encoded here decode to the same steps in the kit', () => {
   window.TextEncoder = TextEncoder;
   window.TextDecoder = TextDecoder;
   window.Element.prototype.animate = function () { return { cancel() {} }; };
+  window.GH = withBase64({});
   new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/look.js'), 'utf8'))();
   const read = JSON.parse(JSON.stringify(window.Look.fromHash('#' + frag)));
   window.close();

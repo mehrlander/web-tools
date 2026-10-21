@@ -68,10 +68,10 @@ BROWSER_PREFIX = "lib/"
 def tracked_files(root):
     try:
         out = subprocess.run(
-            ["git", "-C", root, "ls-files"],
+            ["git", "-C", root, "ls-files", "-z"],
             capture_output=True, text=True, check=True,
         ).stdout
-        return [p for p in out.splitlines() if p]
+        return [p for p in out.split("\0") if p]
     except Exception:
         found = []
         for dirpath, dirnames, filenames in os.walk(root):

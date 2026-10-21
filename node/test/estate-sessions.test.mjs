@@ -44,6 +44,9 @@ function rec(over = {}) {
 }
 
 class FakeGH {
+  // The views call the static GH.ago (gh-fetch.js); it answers with this
+  // fake's own formatter below.
+  static ago(d) { return FakeGH.prototype.ago.call(null, d); }
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   // The real formatter's shape (gh-fetch.js proto.ago), not a constant, because
   // the row's lifespan is built out of it: a stub returning one string cannot
@@ -1368,7 +1371,7 @@ test('a captured path resolves to the owner and the branch the session was on', 
   // At the BRANCH, not at main: a file opened during a session is the version
   // that session saw.
   assert.equal(data.sessionFileUrl(row, 'web-tools/lib/a.js'),
-    'https://github.com/mehrlander/web-tools/blob/claude%2Fa-1/lib/a.js');
+    'https://github.com/mehrlander/web-tools/blob/claude/a-1/lib/a.js');
 });
 
 test('a checkout the session did not name falls back to the default branch', () => {

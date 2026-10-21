@@ -43,12 +43,27 @@ from datetime import datetime, timezone
 
 # A vote on a user call's recommendation (lib/kits/notes.js); withdraw writes "".
 VOTES = ("up", "down", "withdraw")
-LOCATOR = re.compile(
-    r"^(?:note:n[0-9a-z]+"                      # another note
-    r"|[\w.-]+/[\w.-]+"                         # owner/repo
-    r"(?:#\d+"                                  #   #N  pull request
-    r"|(?:@[^\s:]+)?(?::[^\s#]+(?:#\S+)?)?))$"  #   [@ref][:path[#fragment]]
-)
+# A note's subject, with no whitespace anywhere. Two forms are the notes' own:
+# another note, and a pull request. The other two are the grammar of
+# lib/kits/repo-address.js, pattern for pattern: ADDR_RE, a file with any
+# #fragment riding in the path, and REPO_RE, a repo or a branch. This script
+# ships in the plugin without lib/ or python/, so it carries the patterns rather
+# than importing them; skills/tend/findings.py reads locators through these,
+# and node/test/notes-kit.test.mjs holds them to the browser's answers. ASCII,
+# as JavaScript reads \w. Each is matched whole (fullmatch).
+NOTE_RE = re.compile(r"note:n[0-9a-z]+", re.ASCII)
+PULL_RE = re.compile(r"([\w.-]+/[\w.-]+)#(\d+)", re.ASCII)
+ADDR_RE = re.compile(r"([\w.-]+/[\w.-]+?)(?:@([^:]+))?:(.+)", re.ASCII)
+REPO_RE = re.compile(r"([\w.-]+/[\w.-]+?)(?:@([^:]+))?", re.ASCII)
+# A ref of the form branch@commit pins the commit and names its branch
+# (lib/kits/repo-address.js splitPin): the commit is what a reader fetches.
+PIN_RE = re.compile(r"(.+)@([0-9a-f]{7,40})", re.ASCII)
+
+
+def is_locator(about):
+    s = str(about or "")
+    return bool(s) and not re.search(r"\s", s) and any(p.fullmatch(s) for p in (NOTE_RE, PULL_RE, ADDR_RE, REPO_RE))
+
 ASSISTANT_PREFIXES = ("claude/", "codex/", "gemini/", "grok/")
 NOTES_FILE = "notes.jsonl"
 
@@ -172,7 +187,7 @@ def main(argv):
     repo, store = find_store(args.store)
     if args.cmd in ("add", "reply"):
         about = args.about if args.cmd == "add" else f"note:{args.id}"
-        if not LOCATOR.match(about):
+        if not is_locator(about):
             raise SystemExit(f"note.py: not a locator: {about!r}")
         if not args.text.strip():
             raise SystemExit("note.py: a note needs text")

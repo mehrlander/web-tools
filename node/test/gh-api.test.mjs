@@ -250,3 +250,16 @@ test('a JSON answer under another vnd.github label still parses', async () => {
   assert.deepEqual(out, { total_count: 0 });
   assert.equal(tries, 1);
 });
+
+test('GH.decode and GH.decodeBytes read the contents API base64, line wraps and all', () => {
+  // The contents API wraps its base64 at 60 columns with '\n'. Six places
+  // outside gh-api.js decoded it themselves until 2026-10-20; these statics
+  // are what they read now, so a kit with no client decodes as a client does.
+  const text = 'héllo 🌳 '.repeat(20);
+  const wrapped = Buffer.from(text).toString('base64').replace(/(.{60})/g, '$1\n');
+  assert.equal(GH.decode(wrapped), text);
+  assert.deepEqual([...GH.decodeBytes(wrapped)], [...Buffer.from(text)]);
+  assert.equal(new GH({ repo: 'o/r' }).decode(wrapped), text, 'the instance method is the static');
+  assert.equal(GH.decode(''), '');
+  assert.equal(GH.decodeBytes(null).length, 0);
+});

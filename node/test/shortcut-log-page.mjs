@@ -22,12 +22,11 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { typeFor, resolveCdn } from '../render/cdn.mjs';
 import JSZip from 'jszip';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const failures = [];
 const ok = (n, c, d = '') => {
   if (c) console.log(`  ok    ${n}`);
