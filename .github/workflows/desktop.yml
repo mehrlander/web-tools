@@ -23,6 +23,10 @@ jobs:
       - name: Check activity interpretation and Git isolation
         run: dotnet run --project desktop/Checks/DesktopChecks.csproj
       - name: Build the Windows app
-        run: dotnet build desktop/App/WebTools.Desktop.csproj -c Release
+        run: ./desktop/build.ps1
       - name: Check laptop view interactions
         run: node desktop/Checks/ui-checks.mjs
+      - name: Check phone interactions
+        run: node desktop/Checks/phone-ui-checks.mjs
+      - name: Check companion access and API
+        run: node desktop/Checks/companion-checks.mjs

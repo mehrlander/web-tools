@@ -102,4 +102,5 @@ try {
     }
 }
 SessionChecks.Run(Check);
+PhoneChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");

@@ -12,7 +12,8 @@ public sealed class UserSettings
     public double Height { get; set; } = 940;
     public bool Maximized { get; set; }
 
-    public static readonly string DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WebToolsDesktop");
+    public static readonly string DataDirectory = Environment.GetEnvironmentVariable("WEBTOOLS_COMPANION_DATA")
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WebToolsDesktop");
     private static readonly string FilePath = Path.Combine(DataDirectory, "settings.json");
 
     public static UserSettings Load()

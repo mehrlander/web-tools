@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
@@ -13,19 +15,15 @@ namespace WebTools.Desktop;
 
 public partial class MainWindow : Window
 {
-    private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly UserSettings settings = UserSettings.Load();
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(2) };
-    private readonly DispatcherTimer syncTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly DispatcherTimer loadingTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
-    private readonly SessionReader sessions = new(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-    private readonly ActivityJournal journal = new(Path.Combine(UserSettings.DataDirectory, "activity-history.json"));
-    private ErrandReader reader;
+    private readonly HttpClient companion = CompanionAccess.Client();
     private LaptopSnapshot? snapshot;
-    private bool refreshing, syncing, initialSyncFinished, laptopReady, closing, laptopSelected, webNavigating;
-    private DateTimeOffset refreshStarted, syncStarted, navigationStarted, processesChecked;
-    private List<ApplicationSignal> applications = [];
-    private DaemonSignal daemon = new("unknown", "Checking the worker process.", null);
+    private bool refreshing, laptopReady, closing, laptopSelected, webNavigating;
+    private DateTimeOffset refreshStarted, navigationStarted, restartAttempt;
+    private double syncMilliseconds;
     private string? webError;
     private readonly string? diagnosticsPath;
 
@@ -33,32 +31,34 @@ public partial class MainWindow : Window
     {
         var args = Environment.GetCommandLineArgs();
         var rootAt = Array.IndexOf(args, "--root");
-        if (rootAt >= 0 && rootAt + 1 < args.Length) settings.RepositoriesRoot = Path.GetFullPath(args[rootAt + 1]);
+        if (rootAt >= 0 && rootAt + 1 < args.Length) {
+            settings.RepositoriesRoot = Path.GetFullPath(args[rootAt + 1]); settings.Save();
+        }
         var diagnosticAt = Array.IndexOf(args, "--diagnostics");
         if (diagnosticAt >= 0 && diagnosticAt + 1 < args.Length) diagnosticsPath = Path.GetFullPath(args[diagnosticAt + 1]);
-        reader = new(Registry);
         InitializeComponent();
-        Width = Math.Clamp(settings.Width, 860, SystemParameters.WorkArea.Width);
-        Height = Math.Clamp(settings.Height, 620, SystemParameters.WorkArea.Height);
+        var availableWidth = Math.Max(320, SystemParameters.WorkArea.Width);
+        var availableHeight = Math.Max(240, SystemParameters.WorkArea.Height);
+        MinWidth = Math.Min(860, availableWidth);
+        MinHeight = Math.Min(620, availableHeight);
+        Width = Math.Clamp(settings.Width, MinWidth, availableWidth);
+        Height = Math.Clamp(settings.Height, MinHeight, availableHeight);
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         if (settings.Maximized) WindowState = WindowState.Maximized;
         PreviewKeyDown += HandleKeys;
         timer.Tick += async (_, _) => await Refresh();
-        syncTimer.Tick += async (_, _) => await SyncErrands(force: true);
         loadingTimer.Tick += (_, _) => {
             var now = DateTimeOffset.UtcNow;
             var loading = refreshing && snapshot is null && now - refreshStarted > TimeSpan.FromMilliseconds(700)
-                || syncing && !initialSyncFinished && snapshot?.Activity.Revision is null && now - syncStarted > TimeSpan.FromMilliseconds(700)
                 || webNavigating && !laptopSelected && now - navigationStarted > TimeSpan.FromMilliseconds(700);
             LoadingProgress.Visibility = loading ? Visibility.Visible : Visibility.Collapsed;
         };
     }
 
-    private string Registry => Path.Combine(settings.RepositoriesRoot, "web-tools-private");
-
     private async void WindowLoaded(object sender, RoutedEventArgs e)
     {
         try {
+            CompanionAccess.Start();
             var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(UserSettings.DataDirectory, "browser"));
             await LaptopView.EnsureCoreWebView2Async(environment);
             var local = LaptopView.CoreWebView2;
@@ -72,9 +72,7 @@ public partial class MainWindow : Window
             };
             LaptopView.Source = new Uri(NavigationPolicy.LocalUrl);
             _ = Refresh();
-            _ = SyncErrands(force: true);
             timer.Start();
-            syncTimer.Start();
             loadingTimer.Start();
             await WebView.EnsureCoreWebView2Async(environment);
             var web = WebView.CoreWebView2;
@@ -123,28 +121,11 @@ public partial class MainWindow : Window
         refreshing = true;
         refreshStarted = DateTimeOffset.UtcNow;
         try {
-            var seenThrough = settings.SeenThrough;
-            var activeReader = reader;
-            var root = settings.RepositoriesRoot;
-            var next = await Task.Run(async () => {
-                var watch = Stopwatch.StartNew();
-                var activity = await activeReader.Read(seenThrough, synchronize: false);
-                activity = activity with { Errands = activity.Errands.Select(j => j with {
-                    HasLocalOutput = Directory.Exists(LaptopSignals.Outbox(j.Id)) }).ToList() };
-                var now = DateTimeOffset.UtcNow;
-                if (force || now - processesChecked > TimeSpan.FromSeconds(10)) {
-                    daemon = LaptopSignals.Daemon(Path.Combine(root, "web-tools-private"));
-                    applications = LaptopSignals.Applications();
-                    processesChecked = now;
-                }
-                var currentSessions = sessions.Read(now);
-                var events = journal.Observe(currentSessions.Items, now);
-                return new LaptopSnapshot(activity, daemon, applications,
-                    LaptopSignals.Places(root), LaptopSignals.Downloads(), Environment.MachineName, seenThrough,
-                    currentSessions, watch.Elapsed.TotalMilliseconds, activeReader.Cloud, events);
-            });
-            if (closing || activeReader != reader) return;
-            snapshot = next;
+            var collected = await companion.GetFromJsonAsync<CollectedActivity>("/api/v1/desktop", Json);
+            if (closing || collected is null) return;
+            snapshot = collected.Snapshot;
+            syncMilliseconds = collected.SyncMilliseconds;
+            var stale = DateTimeOffset.UtcNow - collected.ObservedAt > TimeSpan.FromSeconds(15);
             var jobs = snapshot.Activity.Errands;
             var claimed = jobs.Count(j => j.State == "claimed");
             var queued = jobs.Count(j => j.State == "queued");
@@ -164,9 +145,9 @@ public partial class MainWindow : Window
             ActivityText.ToolTip = null;
             ActivityDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(
                 !snapshot.Activity.Connected || attention > 0 ? "#BD8540" : working > 0 || claimed > 0 || arriving > 0 ? "#4C8069" : "#809489"));
-            SyncText.Text = snapshot.Activity.Connected ? "Live" : syncing && !initialSyncFinished ? "Connecting…" : "Offline";
+            SyncText.Text = stale ? "Last observation" : snapshot.Activity.Connected ? "Live" : "Records offline";
             SyncText.ToolTip = "Local activity every 2 seconds; errands every 5 seconds.\n"
-                + $"Cloud records every 30 seconds. Local scan: {snapshot.ScanMilliseconds:F0} ms · Last record sync: {reader.SyncMilliseconds:F0} ms\n"
+                + $"Cloud records every 30 seconds. Local scan: {snapshot.ScanMilliseconds:F0} ms · Last record sync: {syncMilliseconds:F0} ms\n"
                 + (snapshot.Activity.SyncedAt is { } at ? "Last record sync: " + at.ToLocalTime().ToString("h:mm:ss tt") : "No completed record sync yet.");
             await SendSnapshot();
             WriteDiagnostics();
@@ -174,22 +155,12 @@ public partial class MainWindow : Window
             SyncText.Text = "Activity unavailable";
             ActivityText.Text = "Now · Activity could not be checked";
             ActivityText.ToolTip = ex.Message;
+            if (DateTimeOffset.UtcNow - restartAttempt > TimeSpan.FromSeconds(10)) {
+                restartAttempt = DateTimeOffset.UtcNow;
+                try { CompanionAccess.Start(); } catch { }
+            }
         } finally {
             refreshing = false;
-        }
-    }
-
-    private async Task SyncErrands(bool force = false)
-    {
-        if (syncing || closing) return;
-        syncing = true;
-        syncStarted = DateTimeOffset.UtcNow;
-        var activeReader = reader;
-        try { await activeReader.Synchronize(force); }
-        finally {
-            syncing = false;
-            if (activeReader == reader) initialSyncFinished = true;
-            if (!closing) await Refresh();
         }
     }
 
@@ -210,7 +181,7 @@ public partial class MainWindow : Window
             var id = Activity.Text(message, "id");
             switch (action) {
                 case "ready": await SendSnapshot(); break;
-                case "refresh": _ = SyncErrands(force: true); await Refresh(force: true); break;
+                case "refresh": await Refresh(force: true); break;
                 case "seen": settings.SeenThrough = DateTimeOffset.UtcNow; settings.Save(); await Refresh(); break;
                 case "web": SelectLaptop(false); break;
                 case "activity":
@@ -269,10 +240,7 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
         settings.RepositoriesRoot = dialog.FolderName;
         settings.Save();
-        reader = new(Registry);
-        initialSyncFinished = false;
         _ = Refresh(force: true);
-        _ = SyncErrands(force: true);
     }
 
     private void HandleKeys(object sender, KeyEventArgs e)
@@ -312,13 +280,12 @@ public partial class MainWindow : Window
     {
         closing = true;
         timer.Stop();
-        syncTimer.Stop();
         loadingTimer.Stop();
         var bounds = RestoreBounds;
         settings.Width = bounds.Width;
         settings.Height = bounds.Height;
         settings.Maximized = WindowState == WindowState.Maximized;
         try { settings.Save(); } catch { }
-        WebView.Dispose(); LaptopView.Dispose();
+        WebView.Dispose(); LaptopView.Dispose(); companion.Dispose();
     }
 }

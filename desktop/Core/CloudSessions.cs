@@ -28,6 +28,8 @@ public static class CloudSessions
                 "clean" => "Recorded: clean exit", _ => "Recorded session update"
             };
             var title = Activity.Text(row, "title", Activity.Text(row, "ask", "Claude session"));
+            if (string.IsNullOrWhiteSpace(title)) title = Activity.Text(row, "ask", "Claude session");
+            if (string.IsNullOrWhiteSpace(title)) title = "Claude session";
             if (title.Length > 180) title = title[..180] + "…";
             items.Add(new(id, "Claude", title, "recorded", at, "", detail, "Cloud"));
         }
