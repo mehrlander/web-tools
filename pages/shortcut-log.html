@@ -16,7 +16,7 @@
   if (link && !/^shortcuts:\/\//i.test(link)) { try { link = decodeURIComponent(link); } catch {} }
   if (/^shortcuts:\/\//i.test(link)) {
     const q = new URL(link).searchParams;
-    window.handedOff = { name: q.get('name') || 'Shortcuts', text: q.get('text') || '', link };
+    window.handedOff = { name: q.get('name') || 'Shortcuts', base: link.split('?')[0], params: [...q.entries()], link };
     history.replaceState(null, '', location.pathname + location.search);
     document.addEventListener('DOMContentLoaded', () => { location.href = link; });
   }
@@ -85,18 +85,30 @@
       <i class="ph ph-arrows-clockwise text-lg" :class="loading && 'animate-spin'"></i></button>
   </header>
 
+  <!-- The run handed over from chat: the shortcut, and the link it was sent as,
+       read back as code, one argument a row with its value decoded. -->
   <template x-if="sent">
-    <div class="px-3 py-2 border-b border-base-300" data-sent>
-      <div class="flex items-center gap-2">
+    <section class="m-3 rounded-box border border-base-300 overflow-hidden" data-sent>
+      <div class="flex items-center gap-2 px-3 py-2 bg-base-200/60 border-b border-base-300">
         <i class="ph ph-paper-plane-tilt text-base-content/50"></i>
-        <span class="min-w-0 truncate">Sent: <span class="font-semibold" x-text="sent.name"></span></span>
+        <span class="text-xs font-mono uppercase tracking-wider text-base-content/50">sent</span>
+        <span class="min-w-0 truncate font-semibold" x-text="sent.name"></span>
         <div class="grow"></div>
-        <a :href="sent.link" class="btn btn-ghost btn-sm shrink-0"><i class="ph ph-arrow-clockwise"></i> Run again</a>
+        <button @click="copy(sent.link); copied = true; setTimeout(() => copied = false, 1500)"
+                class="btn btn-ghost btn-sm btn-square shrink-0" aria-label="Copy the link">
+          <i class="ph text-lg" :class="copied ? 'ph-check text-success' : 'ph-copy'"></i></button>
+        <a :href="sent.link" class="btn btn-primary btn-sm shrink-0"><i class="ph-fill ph-play"></i> Run again</a>
       </div>
-      <template x-if="sent.text">
-        <pre class="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans bg-base-200 rounded-box px-3 py-2" x-text="sent.text" data-sent-text></pre>
-      </template>
-    </div>
+      <div class="px-3 py-2 font-mono text-sm space-y-1" data-sent-link>
+        <div class="break-all"><span class="text-base-content/50" x-text="sent.base.replace(/[^/]*$/, '')"></span><span x-text="sent.base.replace(/^.*\//, '')"></span></div>
+        <template x-for="([k, v], i) in sent.params" :key="k">
+          <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+            <span class="text-base-content/50" x-text="(i ? '&' : '?') + k"></span>
+            <span class="whitespace-pre-wrap break-words max-h-40 overflow-auto" x-text="v"></span>
+          </div>
+        </template>
+      </div>
+    </section>
   </template>
 
   <p x-show="err" class="text-error px-3 py-2" x-text="err"></p>
@@ -328,7 +340,8 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   verdicts: {},       // stem -> verdict
   scrollY: 0,
   zip: { stem: '', loading: false, err: '', note: '', list: [], fold: null, folded: false },
-  sent: window.handedOff || null,   // {name, link}: the run the head script handed off
+  sent: window.handedOff || null,   // {name, base, params, link}: the run the head script handed off
+  copied: false,
 
   async boot() {
     await this.load(false);
