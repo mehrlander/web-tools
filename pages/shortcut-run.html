@@ -15,11 +15,14 @@
   (measured 2026-10-18: the tap does nothing and a long-press offers no link
   menu, while an https link beside it opens). So a session hands over
   shortcut-run.html#<the shortcuts:// link> instead, and this page passes the
-  link on: once by itself on arrival, and from its button after that.
+  link on: once by itself on arrival, and from its button after that. Measured
+  2026-10-21: the hand-off on arrival works from the app with no tap.
 
   Only a shortcuts:// link is followed, so the page cannot be used to send a
   reader anywhere else. A reload or a Back does not fire it again; the button
-  does, on purpose.
+  does, on purpose. After a hand-off the page replaces itself with
+  shortcuts.html?name=<the shortcut>, so returning to the browser shows what
+  ran, and a Back skips this page rather than running it again.
 -->
 </head>
 <body class="min-h-dvh bg-base-200 p-4">
@@ -43,6 +46,14 @@
     if (q.get('text')) { $('input').textContent = q.get('text'); $('input').hidden = false; }
     $('run').href = link;
     $('run').hidden = false;
+    // Once Shortcuts has opened, the browser goes to the background; that is
+    // the sign the hand-off happened, and this page gives way to the shortcut's
+    // own page in the Shortcuts view. A blocked hand-off never hides the page,
+    // so the Run button stays.
+    const next = 'shortcuts.html' + (q.get('name') ? '?name=' + encodeURIComponent(q.get('name')) : '');
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') location.replace(next);
+    });
     const nav = performance.getEntriesByType('navigation')[0];
     if (!nav || nav.type === 'navigate') location.href = link;
   } else {
