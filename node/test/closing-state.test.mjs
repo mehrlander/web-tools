@@ -63,6 +63,11 @@ test('have a look reads in all four spellings of its joined glyph', () => {
   assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'a look link mid-line is not a state');
 });
 
+test('sign-off needed reads in both spellings', () => {
+  assert.deepEqual(CS.marks('✍️ **Sign-off needed:** the wording above.'), ['signoff']);
+  assert.deepEqual(CS.marks('✍ **Sign-off needed:** the wording above.'), ['signoff']);
+});
+
 test('order and duplicates survive, because an exchange that closed twice did', () => {
   const md = '🆚 **Choice needed.** Pick.\n\n…\n\n🟢 **Ready.** Go.\n\n🟢 **Ready.** Again.';
   assert.deepEqual(CS.marks(md), ['choice', 'ready', 'ready']);
@@ -78,7 +83,7 @@ test('every key the pattern can produce is complete in all three tables', () => 
     assert.ok(CS.HUE[k], 'no hue for ' + k);
     assert.equal(CS.MARK[CS.GLYPH[k]], k, 'glyph and key disagree for ' + k);
   }
-  assert.equal(keys.length, 13);
+  assert.equal(keys.length, 14);
 });
 
 test('direction and choice read in both spellings, and 🆚 still reads as choice', () => {
