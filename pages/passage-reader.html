@@ -25,20 +25,22 @@
   of sentence cards moves with it, and the strip's deck button opens the same
   cards as a takeover at the card in view. index() derives every card section the file
   does not store. A span or a list row takes the colour of where it sits
-  relative to the current sentence: purple in it, amber before it, blue after
-  it. An atom's quote, while its row is hovered or tapped, is underlined in
-  amber, in the passage and on the card; a line rather than a fill, so the
-  entity fills inside the quote do not hide it. The passage marks only what
-  touches the current sentence, one mark per kind: every mention of its
-  entities, the topic aside, filled in the position colours; every
-  connection touching it, either way, drawn as a purple arrow with both ends
-  tinted light grey, which the arrow button in the card bar shows or hides.
+  relative to the current sentence: amber before it, blue after it. In the
+  current sentence a mention is green where its entity first appears and gray
+  where it returns. An atom's quote, while its row is hovered or tapped, is
+  underlined in amber, in the passage and on the card; a line rather than a
+  fill, so the entity fills inside the quote do not hide it. The passage marks
+  only what touches the current sentence, one mark per kind: every mention of
+  its entities, the topic aside, filled and numbered by entity, so mentions of
+  one entity match without a line; every relation between statements touching
+  it, drawn as a purple arrow between underlined ends, which the arrow button
+  in the card bar shows or hides.
   The card
   shows the sentence alone under its bar and a rule, then its atoms, then
   Entities (In play, New here) and Connections (Carried in, Within, Carried
   forward), each part told apart by its colour. Purple also marks the current
   sentence itself: its outline in the passage, the bar beside it on its card,
-  its dot, and its number in the card bar, solid like its "from here" badge.
+  its dot, and every badge carrying its number.
   An ellipsis, words a sentence leaves for the reader to supply, shows as a
   raised question mark after the word its gap follows; hovering or tapping it
   draws an arrow to the words it stands for, and the sentence's own words stay
@@ -90,7 +92,7 @@ document.addEventListener('alpine:init', () => {
   const GROUPS = [{ key: 'entities', label: 'Entities' }, { key: 'links', label: 'Connections' }];
   const LEGEND = {
     links: [['before', 'Carried in'], ['here', 'Within'], ['after', 'Carried forward']],
-    entities: [['before', 'In play'], ['here', 'New here']],
+    entities: [['again', 'In play'], ['fresh', 'New here']],
   };
   // An atom's quote is underlined, in the passage and on the card, so it
   // reads apart from the entity fills it crosses. A shadow rather than
@@ -98,11 +100,32 @@ document.addEventListener('alpine:init', () => {
   // would break the line between pieces, and the title-tip kit's unlayered
   // text-decoration:none on a bare tip would remove it.
   const ATOM = 'data-[atom]:shadow-[0_3px_0_var(--color-warning)]';
+  // `fresh` and `again` are a mention's colours in the current sentence: its
+  // entity's first appearance, and a return. `deep` is the shade for words
+  // inside another mention, and `mark` (`markDeep` inside one) the entity
+  // number's badge, a dark form of the same colour.
   const TONE = {
-    before: { fill: 'bg-warning/30', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', badge: 'bg-warning/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
+    before: { fill: 'bg-warning/30', deep: 'bg-warning/45', lit: 'data-[on]:bg-warning/60 data-[ev]:bg-warning/60', dot: 'bg-warning', mark: 'bg-amber-600', markDeep: 'bg-amber-800', badge: 'bg-warning/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
     here: { fill: 'bg-primary/20', lit: 'data-[on]:bg-primary/40 data-[ev]:bg-primary/40', dot: 'bg-primary', badge: 'bg-primary text-primary-content font-semibold ring-2 ring-[var(--color-primary)]/30 ring-offset-1 ring-offset-base-100 hover:ring-[var(--color-primary)]/60' },
-    after: { fill: 'bg-info/30', lit: 'data-[on]:bg-info/60 data-[ev]:bg-info/60', dot: 'bg-info', badge: 'bg-info/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
+    after: { fill: 'bg-info/30', deep: 'bg-info/45', lit: 'data-[on]:bg-info/60 data-[ev]:bg-info/60', dot: 'bg-info', mark: 'bg-sky-600', markDeep: 'bg-sky-800', badge: 'bg-info/30 text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/30' },
+    fresh: { fill: 'bg-success/30', deep: 'bg-success/50', lit: 'data-[on]:bg-success/65 data-[ev]:bg-success/65', dot: 'bg-emerald-600', mark: 'bg-emerald-600', markDeep: 'bg-emerald-800' },
+    again: { fill: 'bg-base-content/15', deep: 'bg-base-content/30', lit: 'data-[on]:bg-base-content/40 data-[ev]:bg-base-content/40', dot: 'bg-neutral-500', mark: 'bg-neutral-500', markDeep: 'bg-neutral-700' },
   };
+  // A relation's ends, underlined in the arrow's colour: an inset line, so it
+  // shows beside the atom underline rather than replacing it.
+  const END = 'inset-shadow-[0_-2px_0_var(--color-primary)]';
+  // An entity's number on a mention, off the top-right corner of its last
+  // piece, overlapping the corner only, so it covers none of the words.
+  const NUM = 'place-items-center min-w-[14px] h-[14px] px-[2px] rounded-full text-[9px] leading-none font-bold tabular-nums text-white select-none';
+  const shortest = (x, y) => (x.b - x.a) - (y.b - y.a);
+  // The badges go on the text's last character, held in its own span: a
+  // badge placed against a phrase that wraps would take the first line's corner.
+  const withNums = (text, nums) => {
+    if (!nums) return esc(text);
+    const cs = [...text], last = cs.pop();
+    return esc(cs.join('')) + `<span class="relative">${esc(last)}${nums}</span>`;
+  };
+  const numBadge = (n, mark) => `<span class="absolute left-full bottom-full -translate-x-[5px] translate-y-[5px] grid pointer-events-none ${NUM} ${mark}" aria-hidden="true">${n}</span>`;
   const VERB = { anaphor: 'refers to', elaborates: 'elaborates', 'rests-on': 'rests on', narrows: 'narrows', contrasts: 'contrasts with', supports: 'supports' };
 
   const tokenNow = () => {
@@ -183,11 +206,12 @@ document.addEventListener('alpine:init', () => {
       s.atoms.forEach((a, k) => add(n, `a${n}-${k}`, a.quote, { kind: 'a' }));
       for (const c of s.text.matchAll(/`[^`]+`/g)) rng[n].push({ key: '', a: c.index, b: c.index + c[0].length, kind: 'code' });
     }
-    const fresh = {};
+    const fresh = {}, num = {};
     for (const [e, f] of Object.entries(firstAny)) (fresh[f.n] ||= []).push(e);
+    for (const s of S) for (const m of s.mentions) if (m.e !== topic && !(m.e in num)) num[m.e] = Object.keys(num).length + 1;
     // Every connection in the passage once, each held by the later sentence.
     const links = S.flatMap(s => [...inn[s.n], ...own[s.n]]);
-    return { by, rng, inn, fwd, own, links, fresh, keysOf, where, at, problems };
+    return { by, rng, inn, fwd, own, links, fresh, num, keysOf, where, at, problems };
   }
 
   // Text cut at every range boundary, so overlapping ranges need no nesting.
@@ -311,6 +335,20 @@ document.addEventListener('alpine:init', () => {
       document.querySelectorAll(`[data-k~="${g.dataset.ante}"]`).forEach(el => el.setAttribute('data-on', ''));
       this.drawArrows();
     },
+    // Marked words in the passage answer a hover as the card's words do: an
+    // entity's mentions light and its row on the current card is marked, and a
+    // connection with an end there is traced. Atoms are left to their rows.
+    passageOver(e) {
+      if (!HOVER.matches || e.target.closest?.('[data-gap]')) return;
+      const ks = (e.target.closest?.('[data-k]')?.dataset.k || '').split(' ').filter(Boolean);
+      const el = [...document.querySelectorAll(`[data-card="${this.cur}"]`)].find(x => x.offsetParent);
+      const ids = ks.length && el?._items ? Object.values(el._items).filter(it => it.mode !== 'atom' && it.keys.some(k => ks.includes(k))).map(it => it.id) : [];
+      if (ids.length) { this.point(ids, el, false, true); this.trace(ks); }
+    },
+    passageOut(e) {
+      const t = e.target.closest?.('[data-k]');
+      if (t && HOVER.matches && this.hot && !t.contains(e.relatedTarget)) this.light(null);
+    },
     gapOver(e) { const g = e.target.closest && e.target.closest('[data-gap]'); if (g && HOVER.matches) { this.fitGap(g); this.gapTrace(g); } },
     gapOut(e) {
       const g = e.target.closest && e.target.closest('[data-gap]');
@@ -345,24 +383,36 @@ document.addEventListener('alpine:init', () => {
     },
     // mode: 'card' (the sentence on its card), 'lit' (the current sentence in
     // the passage) or 'dim' (any other). The sentence's own words, unchanged:
-    // formatting marks them, and nothing is added to them.
+    // formatting marks them, and the only thing added is an entity's number,
+    // hung outside the line.
     // `m`, in the passage only: `pos` is where the piece's sentence sits
     // relative to the current one and picks its colour, `fill` its strong
-    // spans, `ends` (grey) the ends of the connections touching the current one.
+    // spans, `ends` the ends of the relations touching the current one.
     span(p, mode, m) {
       p = { ...p, on: p.on.filter(r => !r.gap) };
       const keys = p.on.map(r => r.key).filter(Boolean).join(' ');
       const code = p.on.some(r => r.kind === 'code');
       const has = set => set && p.on.some(r => set.has(r.key));
-      const T = TONE[m?.pos || 'here'], cls = [T.lit, ATOM];
-      if (has(m?.fill)) cls.push(T.fill, mode === 'dim' ? 'text-base-content' : '');
-      else if (has(m?.ends)) cls.push('bg-base-200');
+      // The filled mentions over this piece, innermost first: it picks the
+      // colour, and a second one deepens it.
+      const filled = p.on.filter(r => r.kind === 'm' && m?.fill?.has(r.key)).sort(shortest);
+      const tone = r => m.pos !== 'here' ? m.pos : r.first ? 'fresh' : 'again';
+      const T = TONE[filled.length ? tone(filled[0]) : m?.pos || 'here'], cls = [T.lit, ATOM];
+      if (filled.length) cls.push(filled.length > 1 ? T.deep : T.fill, mode === 'dim' ? 'text-base-content' : '');
+      if (has(m?.ends)) cls.push(END);
       if (code) cls.push('bg-base-200 rounded');
-      const text = esc(code ? plain(p.text) : p.text);
+      const nums = this.nums(filled, p, tone);
+      const text = withNums(code ? plain(p.text) : p.text, nums);
       // In the passage a mention's tip is for a hovering pointer and takes no
       // tab stop: the card's sentence gives the keyboard the same tips.
       const tip = mode === 'card' ? this.tipFor(this.mentionIn(p)) : HOVER.matches && this.mentionIn(p) ? this.tipFor(this.mentionIn(p)) + ' tabindex="-1"' : '';
       return keys || cls.length > 1 ? `<span data-k="${keys}" class="${cls.filter(Boolean).join(' ')}"${tip}>${text}</span>` : text;
+    },
+    // The number badges of the mentions that end on this piece; the innermost
+    // of nested mentions takes the deeper badge, as its words take the deeper fill.
+    nums(filled, p, tone) {
+      return filled.filter(r => r.b === p.b && this.X.num[r.m.e])
+        .map(r => numBadge(this.X.num[r.m.e], TONE[tone(r)][r === filled[0] && filled.length > 1 ? 'markDeep' : 'mark'])).join('');
     },
 
     // An ellipsis is marked where its words are missing: a raised question
@@ -419,7 +469,9 @@ document.addEventListener('alpine:init', () => {
     focus(n) {
       const X = this.X, fill = new Set(), ends = new Set(), near = new Set();
       for (const e of this.named(n)) if (e !== this.R.topic) (X.keysOf[e] || []).forEach(k => fill.add(k));
+      // A reference shows by its entity's number; only a relation is drawn.
       if (this.arrows) for (const it of [...X.inn[n], ...X.fwd[n], ...X.own[n]]) {
+        if (it.e) continue;
         it.keys.forEach(k => ends.add(k));
         if (it.keys.length === 2) near.add(it.keys.join(' '));
       }
@@ -460,14 +512,17 @@ document.addEventListener('alpine:init', () => {
           return by;
         }, {}));
       const traced = new Set(this.traced), pairs = [...new Set([...this.focus(this.s.n).near, ...traced])];
-      // A span can wrap, so each arrow joins the nearest pair of its two spans'
-      // line boxes: out of the top of the later one and into the foot of the
-      // earlier, or on one line, over the top of both.
+      // A span can wrap, so each arrow leaves the line box of its later span
+      // nearest the first line of the earlier one, the line the phrase begins
+      // on: out of the top of the later and into the foot of the earlier, or
+      // on one line, over the top of both. The head stops CLEAR short, so it
+      // never lands on the current sentence's outline.
       const legs = pairs.map(pair => {
         const [from, to] = pair.split(' ');
         let best = null;
-        for (const s of rects(from)) for (const t of rects(to)) {
-          const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b : t.t;
+        const t = rects(to).sort((a, b) => a.t - b.t || a.l - b.l)[0], CLEAR = 5;
+        if (t) for (const s of rects(from)) {
+          const up = t.t < s.t - 4, down = t.t > s.t + 4, y0 = down ? s.b : s.t, y1 = up ? t.b + CLEAR : t.t - CLEAR;
           const gap = Math.hypot((t.l + t.r - s.l - s.r) / 2, y1 - y0);
           if (!best || gap < best.gap) best = { pair, lit: traced.has(pair), s, t, up, down, y0, y1, gap };
         }
@@ -533,16 +588,17 @@ document.addEventListener('alpine:init', () => {
     flag(ok) { return ok === false ? '<span class="text-sm text-error">quote not found</span>' : ''; },
     // A mention's tip: the entity's label as its lead, its gloss, then where
     // this mention stands in the entity's thread through the passage.
+    // A mention's tip carries the reading's own words for it: the entity's
+    // label, kind and gloss, and the mention's note. Where the entity is
+    // introduced and mentioned again is on the card, in its Entities row.
     tipFor(r) {
-      if (!r) return '';
-      const X = this.X, m = r.m, n = X.at[r.key], where = X.where[m.e] || [n];
-      const others = where.filter(x => x !== n), first = Math.min(...where);
-      const and = l => l.length < 2 ? `${l[0]}` : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`;
-      const place = m.form === 'anaphor'
-        ? (r.ante ? `Refers back to “${plain(r.ante.quote)}”${r.ante.n === n ? ' earlier in this sentence' : ` in ${r.ante.n}`}.` : 'The passage never names what this points to.')
-        : r.first ? (others.length ? `Introduced here; again in ${and(others)}.` : 'Mentioned only here.')
-        : first === n ? 'Named again; introduced earlier in this sentence.' : `Named again; introduced in ${first}.`;
-      return this.entityTip(m.e, [place, m.note]);
+      return r ? this.entityTip(r.m.e, [r.m.note]) : '';
+    },
+    // The sentences an entity is mentioned in, each a badge that goes there,
+    // in the colour of where it sits; the current one solid.
+    appears(k, n) {
+      const where = [...(this.X.where[k] || [])].sort((a, b) => a - b);
+      return where.length ? `<span class="flex flex-wrap items-center gap-1 pt-0.5 text-sm text-base-content/60">Mentioned in ${where.map(w => this.num(w, this.side(w, n), `Sentence ${w}`)).join('')}</span>` : '';
     },
     // An entity's tip: its label as the lead, its gloss, and any further lines.
     entityTip(k, more = []) {
@@ -559,8 +615,9 @@ document.addEventListener('alpine:init', () => {
     // "the situation" counts and a pronoun does not), whole words, longest
     // first. A claim that names one some other way leaves it unmarked; `on`
     // still lists it, and hovering the atom still marks its row.
-    claimHtml(a, eid) {
-      return this.markNames(a.claim, a.on || [], (k, t) => `<span data-k="e:${k}" data-items="${eid[k] || ''}" class="rounded box-decoration-clone bg-primary/20 ${TONE.here.lit}"${this.entityTip(k)}>${t}</span>`);
+    claimHtml(a, eid, n) {
+      const T = k => TONE[(this.X.fresh[n] || []).includes(k) ? 'fresh' : 'again'];
+      return this.markNames(a.claim, a.on || [], (k, t) => `<span data-k="e:${k}" data-items="${eid[k] || ''}" class="rounded box-decoration-clone ${T(k).fill} ${T(k).lit}"${this.entityTip(k)}>${t}</span>`);
     },
     // Text with the words naming entities `ks` wrapped by `wrap(k, words)`, the rest escaped.
     markNames(text, ks, wrap) {
@@ -609,8 +666,13 @@ document.addEventListener('alpine:init', () => {
         // `e:<id>` lights the words naming the entity in the atoms' claims.
         const keys = [...(X.keysOf[k] || []), `e:${k}`];
         // The label lights with the entity's spans, so hovering a mention in the sentence finds its row.
-        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone: this.side(m, n), left: this.num(m, this.side(m, n), m === n ? 'From here' : `From sentence ${m}`),
-          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${TONE.here.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t))] };
+        // The left column carries the entity's number, as an atom's carries its
+        // letter: green if it first appears here, gray if it returns. The topic
+        // has none, since its mentions are never marked.
+        const tone = m === n ? 'fresh' : 'again', T = TONE[tone];
+        const left = X.num[k] ? `<span class="inline-grid place-items-center min-w-5 h-5 px-1 rounded-full text-xs leading-none font-bold tabular-nums text-white ${T.mark}" aria-label="Entity ${X.num[k]}">${X.num[k]}</span>` : '';
+        return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone, left,
+          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${T.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t)), this.appears(k, n)] };
       });
       const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
       return {
@@ -623,7 +685,7 @@ document.addEventListener('alpine:init', () => {
           const key = `a${n}-${k}`;
           return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id), about: a.on || [],
             body: [`<span class="text-pretty${a.implied ? ' italic' : ''}"><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}" data-title-tip-bare></i>`
-              + `${this.claimHtml(a, eid)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
+              + `${this.claimHtml(a, eid, n)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
       };
@@ -642,9 +704,15 @@ document.addEventListener('alpine:init', () => {
         const its = [...new Set(on.flatMap(r => by[r.key] || []))];
         if (!its.length) return this.span(p, 'card') + gaps;
         const keys = on.map(r => r.key).filter(Boolean).join(' ');
-        const tint = its.some(it => it.mode === 'ev') ? 'bg-primary/20' : 'bg-base-200';
-        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="${tint} ${TONE.here.lit} ${ATOM}"`
-          + `${this.tipFor(this.mentionIn(p))}>${esc(plain(p.text))}</span>` + gaps;
+        // Coloured and numbered as in the passage; a relation's end underlined.
+        const ev = new Set(its.filter(it => it.mode === 'ev').flatMap(it => it.spans));
+        const filled = on.filter(r => r.kind === 'm' && ev.has(r.key)).sort(shortest);
+        const tone = r => r.first ? 'fresh' : 'again', T = TONE[filled.length ? tone(filled[0]) : 'here'];
+        const end = on.some(r => r.kind === 'l' && its.some(it => it.mode === 'on' && it.keys.includes(r.key)));
+        const nums = this.nums(filled, p, tone);
+        const cls = [filled.length ? (filled.length > 1 ? T.deep : T.fill) : '', end ? END : '', T.lit, ATOM];
+        return `<span data-k="${keys}" data-items="${its.map(it => it.id).join(' ')}" class="${cls.filter(Boolean).join(' ')}"`
+          + `${this.tipFor(this.mentionIn(p))}>${withNums(plain(p.text), nums)}</span>` + gaps;
       }).join('');
     },
 
@@ -655,6 +723,7 @@ document.addEventListener('alpine:init', () => {
       const n = this.R.sentences[i].n;
       const all = this.items(n), active = [...all.entities, ...all.links];
       el._items = Object.fromEntries(Object.values(all).flat().map(it => [it.id, it]));
+      el.dataset.card = i;
       const key = g => LEGEND[g.key].filter(([t]) => all[g.key].some(it => it.tone === t))
         .map(([t, label]) => `<span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full ${TONE[t].dot}"></span>${label}</span>`).join('');
       const head = g => `<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1"><h3 class="text-sm font-semibold text-base-content/60">${g.label}</h3>`
@@ -764,7 +833,7 @@ document.addEventListener('alpine:init', () => {
         </div>
         <div x-ref="pwrap" class="relative">
           <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event)" @pointerout="gapOut($event)"></p>
+          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event); passageOver($event)" @pointerout="gapOut($event); passageOut($event)"></p>
         </div>
       </section>
 

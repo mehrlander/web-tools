@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# git commit-msg hook — the consent gate. The engine is portable and lives in
-# the plugin (skills/hooks/commit-consent.py); this file is the two
-# lines that let git find it, the same split markers/status.py already uses.
+# git commit-msg hook — the consent gate, then the machine-path gate. Both
+# engines are portable and live in the plugin (skills/hooks/commit-consent.py,
+# skills/hooks/machine-paths.py); this file is the lines that let git find
+# them, the same split markers/status.py already uses. The machine-path gate
+# refuses a commit whose added lines name a path into one machine's user
+# folder; it sits here because commit-msg is the hook that refuses, while
+# pre-commit only regenerates and warns.
 #
 # WHY commit-msg AND NOT pre-commit. pre-commit runs before the message exists,
 # so it can refuse but cannot read an answer. commit-msg gets the message file
@@ -51,5 +55,10 @@ plugin_script() {            # $1 = e.g. hooks/commit-consent.py
   return 1
 }
 
-script=$(plugin_script hooks/commit-consent.py) || exit 0   # absent: never block
-python3 "$script" "$1" || exit 1
+# An engine that is absent never blocks.
+if script=$(plugin_script hooks/commit-consent.py); then
+  python3 "$script" "$1" || exit 1
+fi
+if script=$(plugin_script hooks/machine-paths.py); then
+  python3 "$script" --staged || exit 1
+fi

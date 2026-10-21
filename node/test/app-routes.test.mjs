@@ -229,8 +229,10 @@ test('the two sub-tab encodings, counted', () => {
   // 39 to 40 on 2026-10-15: This browser took Page, what the page a courier
   // bookmark opened the window from keeps in its own storage.
   // 40 to 43 on 2026-10-19: the Map gained Watch, with Triggers, Public and
-  // Names, read from the private registry.
-  assert.equal(params, 43, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // Names, read from the private registry. 43 to 44 on 2026-10-20: the Map
+  // took `events`, the view of what runs on an event that Automation's
+  // trigger row opens; Scheduled moved under the same row and kept its key.
+  assert.equal(params, 44, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

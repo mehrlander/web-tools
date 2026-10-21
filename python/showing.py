@@ -548,8 +548,18 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
     # to toss-render.html is also a shell change, and the shell rule would send
     # the reader to the deployed renderer to look at itself.
     if b["renderer"]:
-        why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment.")
-        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query)
+        # A REAL PAGE IN THE NEST, not a placeholder. This printed
+        # `pages/<the page to render>.html` until 2026-10-21, and a space in a
+        # link's destination is not markdown: pasted unchanged as the
+        # conventions ask, the whole `[caption](url)` showed as raw text in the
+        # Claude app, linked only up to the first space. The branch's own
+        # changed page if it has one, since that is what the reader came to
+        # see; else the pages index, which renders anywhere.
+        inner = next((p for p in paths if p.startswith("pages/") and p.endswith(".html")
+                      and p != "pages/toss-render.html" and not p.startswith("pages/thumbs/")), "pages/index.html")
+        why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment, here "
+                   + inner + "; any page can take its place after the second #gh=.")
+        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
 
     # A page's own file. ?use= cannot reach it: Pages serves the page FILE from
     # the default branch, so the old shell would wrap the new lib, silently.
@@ -784,7 +794,7 @@ def join_query(own, query=""):
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
-def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref=""):
+def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
     # The subject's ref: the commit, with its branch ahead of it once main's
     # renderer reads that (pin_ready). Not the refs= entries, whose grammar
@@ -845,7 +855,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
                 + f"#gh={slug}{at_ref}:{page}{vq}{frag}")
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{pin}:pages/toss-render.html"
-                f"#gh={slug}@{pin}:pages/<the page to render>.html")
+                f"#gh={slug}@{pin}:{inner or 'pages/index.html'}")
     if mech == "toss-data":
         # The renderer's data route, on web-tools main whatever repo holds the
         # file: data-view.html reads the file at the ref in the address and
@@ -1024,8 +1034,10 @@ def look_cmd():
         return "python3 " + str(f)
 
 
-def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref=""):
-    if not at:
+def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref="", inner=""):
+    # A nested toss carries its address in the inner #gh=, so the renderer's
+    # own hash routing is spoken for.
+    if not at and mech != "toss-nested":
         needs = [p for p, _ in subjects if routes_on_hash(p)]
         if needs:
             warn.append("these route on their own location.hash, so a link with no address opens "
@@ -1034,7 +1046,7 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         + "): pass --at '<fragment>' to put an address on the link, e.g. "
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
-    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref)} for p, v in subjects]
+    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref, inner)} for p, v in subjects]
     look = look_hints(subjects, at, warn)
     return warn_cap({"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
                      "repo": slug, "links": links, "why": why, "warnings": warn, "look": look})
