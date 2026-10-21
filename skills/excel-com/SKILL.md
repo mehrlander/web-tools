@@ -6,7 +6,7 @@ description: Drive a live Excel from Windows PowerShell over COM: build a format
 # Excel over COM, from PowerShell
 
 The operating manual for one route into a workbook. The route table, and whether
-a capability already exists on another route, belong to `projects/workbooks/` in
+a capability already exists on another route, belong to `projects/office/` in
 `mehrlander/home`. Language-level PS 5.1 rules belong to `windows-powershell`,
 which loads alongside this.
 
@@ -173,6 +173,6 @@ Open items:
   which point section 4 shortens to naming it.
 - Section 5 rests on two examples by one author in one session. Promote it to a
   convention or drop it once a third sheet exists.
-- `ImportExcel` and `EPPlus` sit in the same route as COM in `workbooks` but need
+- `ImportExcel` and `EPPlus` sit in the same route as COM in `office` but need
   no running Excel, which makes them behave like section 1's right-hand column.
   Out of scope here until someone uses them.
