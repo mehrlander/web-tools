@@ -92,21 +92,6 @@
   ],
   "research": [
     {
-      "path": "research/excel-validation-2026-09-24/README.md",
-      "label": "Native Excel validation and workbook delivery",
-      "kind": "probe"
-    },
-    {
-      "path": "research/excel-chart-review-2026-09-25/README.md",
-      "label": "Excel chart rendering: findings and current status",
-      "kind": "probe"
-    },
-    {
-      "path": "research/excel-chart-cleanup-2026-09-25/README.md",
-      "label": "Excel chart and PivotTable corrections",
-      "kind": "probe"
-    },
-    {
       "path": "research/DOC_CRAFT_STUDY.md",
       "label": "Documentation problems and drafting proposals",
       "kind": "probe"
