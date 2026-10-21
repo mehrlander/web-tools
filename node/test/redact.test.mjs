@@ -1,8 +1,9 @@
-// kits/redact.js: the pure parts. The editor is canvas work that jsdom cannot
-// draw, so what is held here is what decides behaviour without pixels: which
-// words get flagged for hiding, what a box is labelled, how a dragged
-// rectangle snaps to whole pixels, and which ink a fill gets. The Stage's door
-// into the editor, and the swap it makes, are held in stage.test.mjs.
+// kits/redact.js: what decides behaviour without pixels. The editor is canvas
+// work that jsdom cannot draw, so what is held here is which words get
+// flagged for hiding, what a box is labelled, how a dragged rectangle snaps to
+// whole pixels, which ink a fill gets, and what a tap selects or boxes. The
+// Stage's door into the editor, and the swap it makes, are held in
+// stage.test.mjs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeWindow, loadKit } from './bootstrap.mjs';
@@ -44,4 +45,49 @@ test('a label reads on its fill', () => {
   assert.equal(R.ink('#fde047'), '#000000');
   assert.equal(R.ink('#000000'), '#ffffff');
   assert.equal(R.ink('#1d4ed8'), '#ffffff');
+});
+
+// The editor's press-and-release logic, run on the component itself over a
+// stand-in canvas 100 px square at scale 1: no pixels are drawn, only what a
+// tap selects or boxes is read back.
+const editor = async () => {
+  const { window: w } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
+  let make;
+  w.Alpine = { data: (_, f) => { make = f; } };
+  // The kit runs through new Function, so its bare names resolve here.
+  globalThis.createImageBitmap = async () => ({ width: 100, height: 100 });
+  loadKit('redact.js', { window: w });
+  const ed = make();
+  ed.$refs = { cv: { width: 0, height: 0, getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) } };
+  await ed.load({}, 'test.png');
+  return ed;
+};
+const tap = (ed, x, y) => { ed.down({ clientX: x, clientY: y, pointerId: 1, target: { setPointerCapture() {} } }); ed.up(); };
+
+test('a tap on a box selects it and leaves it selected, in Draw as in Tap', async () => {
+  // Draw selects a box on the press, so a release that toggled the selection
+  // unselected the box the finger had just picked.
+  const ed = await editor();
+  ed.addBox({ x: 10, y: 10, w: 40, h: 20, label: '[removed]' });
+  const id = ed.sel;
+  for (const mode of ['draw', 'tap']) {
+    ed.mode = mode;
+    tap(ed, 80, 80);
+    assert.equal(ed.sel, null, `${mode}: a tap off every box clears the selection`);
+    tap(ed, 30, 20);
+    assert.equal(ed.sel, id, `${mode}: a tap on the box selects it`);
+    tap(ed, 30, 20);
+    assert.equal(ed.sel, id, `${mode}: a second tap leaves it selected`);
+  }
+});
+
+test('a tap on a found word boxes it in Tap, and only clears the selection in Draw', async () => {
+  const ed = await editor();
+  ed.lines = [{ words: [{ id: 0, line: 0, i: 0, text: 'Jane', kind: '', bbox: { x0: 10, y0: 60, x1: 40, y1: 75 } }] }];
+  ed.mode = 'draw';
+  tap(ed, 20, 70);
+  assert.equal(ed.boxes.length, 0, 'Draw leaves the word alone');
+  ed.mode = 'tap';
+  tap(ed, 20, 70);
+  assert.equal(ed.boxes.length, 1, 'Tap boxes it');
 });
