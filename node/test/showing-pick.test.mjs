@@ -252,6 +252,21 @@ test('--path links any named file at the real commit, a page by toss and a docum
   assert.match(d.documents[0].url, /toss-render\.html#data=mehrlander\/web-tools@(?:[\w./-]+@)?[0-9a-f]{12}:docs\/APP\.md$/);
 });
 
+// Only web-tools serves toss-render.html, so a page in any other repo is tossed
+// by web-tools' renderer. Until 2026-10-21 it got its own repo's Pages host,
+// a 404 for a private repo with no site.
+test('a page in a repo without the renderer is tossed by web-tools\' renderer', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'showing-other-'));
+  const git = (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8' });
+  git('init', '-q', '-b', 'main');
+  git('remote', 'add', 'origin', 'https://github.com/mehrlander/budget-wa.git');
+  writeFileSync(path.join(dir, 'page.html'), '<!doctype html><title>t</title>');
+  git('add', 'page.html');
+  git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'page');
+  const d = JSON.parse(execFileSync('python3', [SCRIPT, '--path', 'page.html', '--json'], { cwd: dir, encoding: 'utf8' }));
+  assert.match(d.links[0].url, /^https:\/\/mehrlander\.github\.io\/web-tools\/pages\/toss-render\.html#gh=mehrlander\/budget-wa@/);
+});
+
 test('--width puts ?w= on the renderer, and says so when it cancels ?top', () => {
   const d = run('pages/session.html', ['--width', '390']);
   assert.match(d.links[0].url, /toss-render\.html\?w=390#gh=/);
