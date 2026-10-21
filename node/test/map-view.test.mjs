@@ -74,6 +74,9 @@ const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.cs
 const ctxLinksCsv = readFileSync(path.join(repoRoot, 'docs', 'context-links.csv'), 'utf8');
 const ctxHooksJson = readFileSync(path.join(repoRoot, 'skills', 'hooks', 'hooks.json'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
+// The Events view's three files, read from the working tree like the rest.
+const automationFiles = Object.fromEntries(['docs/harness.csv', 'docs/hook-legs.csv', 'docs/hook-events.csv']
+  .map(p => [p, readFileSync(path.join(repoRoot, p), 'utf8')]));
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
 // is the join the readership column has to get right.
@@ -117,6 +120,7 @@ window.GH = class {
     if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
     if (p === 'docs/context-links.csv') return { text: ctxLinksCsv };
     if (p === 'skills/hooks/hooks.json') return { text: ctxHooksJson };
+    if (Object.hasOwn(automationFiles, p)) return { text: automationFiles[p] };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
     return { text: toCsv(manifest.items) };
@@ -861,7 +865,10 @@ test('the Overview\'s Contents lists every address but itself under its tab with
   await tick(3);
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'overview', 'a bare Map lands on the Overview');
-  const want = Object.values(d3.SUBVIEWS).flat().map(v => v.k).filter(k => k !== 'overview');
+  // An address drawn inside a subview (WITHIN) is listed after its host.
+  const want = Object.values(d3.SUBVIEWS).flat().flatMap(v => [v, ...d3.WITHIN.filter(w => w.host === v.k)])
+    .map(v => v.k).filter(k => k !== 'overview');
+  assert.ok(want.includes('events') && want.includes('scheduled'));
   const rows = d3.overviewGroups.flatMap(g => g.rows);
   assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
   assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
@@ -949,7 +956,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'scheduled', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
     'Harness exposes Automation, Scheduled, Set, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
@@ -1022,8 +1029,9 @@ test('Context opens under Harness and derives question membership from the publi
   const ask = state.ctxQuestions.find(o => o.topic === 'askuserquestion');
   assert.ok(ask && ask.rows.length >= 2, 'the AskUserQuestion ban is spoken to by more than one source');
   assert.ok(ask.rows.every(r => r.topicList.includes('askuserquestion')));
+  assert.equal(state.ctxQuestion, null, 'with no question picked the table holds every source');
+  assert.equal(state.ctxGroupedSources.length, rows.length);
   state.openCtxTopic('askuserquestion');
-  assert.equal(state.ctxLens, 'delivery');
   assert.equal(state.ctxQuestion.topic, 'askuserquestion');
   assert.equal(state.ctxGroupedSources.length, ask.rows.length);
   state.ctxTopic = '';
@@ -1082,43 +1090,70 @@ test('The source table uses every registry source, including later additions and
     assert.equal(state.ctxRoleLabel('automation'), vocab('role', 'automation'));
     assert.deepEqual([...state.ctxSourceTable.map(m => m.id)].sort(), [...state.ctxAll.map(r => r.id)].sort());
     assert.ok(state.ctxQuestions.find(t => t.topic === 'writing-rules').rows.some(r => r.id === legacy.id));
-    state.selectCtxSource(legacy.id);
-    state.setCtxLens('sources');
     await tick(2);
     assert.equal(host.querySelectorAll('[data-context-source-row]').length, state.ctxAll.length);
     assert.equal(host.querySelector('[data-context-matrix]'), null);
-    assert.match(host.querySelector('[data-context-inspector]').textContent, /Nothing records it/);
-    assert.match(host.querySelector('[data-context-inspector]').textContent, /No joined tally/);
-    assert.doesNotMatch(host.querySelector('[data-context-inspector]').textContent, /tokens|Footprint/);
+    await state.showCtxTip(legacy.id, host.querySelector('[data-context-source="' + legacy.id + '"]'), true);
+    await tick(2);
+    const panel = host.querySelector('[data-context-inspector]');
+    assert.equal(window.__shell.mapCtx.ctxsource, legacy.id, 'a pinned panel is the source the address names');
+    // Each property is drawn as its whole scale, the source's own value lit.
+    const lit = key => [...panel.querySelectorAll('[data-context-scale="' + key + '"] [aria-current="true"]')].map(e => e.textContent);
+    assert.deepEqual(lit('evidence'), [vocab('evidence', 'none')]);
+    assert.equal(panel.querySelectorAll('[data-context-scale="evidence"] [aria-current]').length + 3,
+      panel.querySelectorAll('[data-context-scale="evidence"] .rounded').length, 'the other evidence values are drawn unlit');
+    assert.deepEqual(lit('circle'), ['claude.ai account']);
+    assert.deepEqual(lit('discretion'), [], 'an unclassified source lights nothing rather than a guess');
+    assert.equal(panel.querySelector('[data-context-scale="sessions"]'), null, 'a source with no tally key has no sessions row');
+    assert.doesNotMatch(panel.textContent, /tokens|Footprint/);
+    state.closeCtxTip();
+    assert.equal(window.__shell.mapCtx.ctxsource, '', 'closing a pinned panel clears the address');
   } finally { close(); }
 });
 
-test('Question grouping uses the shared source table and source grouping restores the complete inventory', async () => {
+test('A question filters the one source table, and clearing it restores the complete inventory', async () => {
   const { state, close } = await contextState();
   try {
-    state.selectCtxSource('wt-claude');
     const count = state.ctxSourceTable.length;
+    assert.equal(state.ctxQuestion, null, 'an address with no question lands on every source');
+    assert.equal(state.ctxGroupedSources.length, count);
+    state.selectCtxSource('wt-claude');
     state.setCtxAssistant('gemini');
-    assert.equal(state.ctxSpectraActive, null, 'empty results have no unrelated inspector');
+    assert.equal(state.ctxSpectraActive, null, 'empty results have no unrelated selection');
     state.openCtxDeliveryTopic('askuserquestion');
     assert.equal(state.ctxSpectraEnv, 'all');
     assert.equal(state.ctxSourceTable.length, count, 'the underlying inventory remains complete');
     const members = state.ctxAll.filter(r => r.topicList.includes('askuserquestion'));
     assert.deepEqual([...state.ctxSpectraVisible.filter(m => m.topics.includes('askuserquestion')).map(m => m.id)], [...members.map(r => r.id)]);
     assert.deepEqual([...state.ctxGroupedSources.map(m => m.id)].sort(), [...members.map(r => r.id)].sort());
-    assert.equal(state.ctxSpectraActive, null, 'selecting a question does not expand an arbitrary source');
+    assert.equal(state.ctxSpectraActive, null, 'picking a question does not select an arbitrary source');
     state.selectCtxSource(members[0].id);
     const id = state.ctxSpectraActive.id;
-    state.openCtxTopic('askuserquestion'); state.setCtxLens('when');
-    assert.equal(state.ctxLens, 'sources', 'legacy timing links reach the source table');
-    assert.equal(state.ctxGroupedSources.length, count, 'source grouping shows all rows while highlighting the question');
-    state.setCtxLens('circles');
-    assert.equal(state.ctxLens, 'sources', 'legacy scope links reach the source table');
-    state.setCtxLens('delivery');
-    assert.equal(state.ctxSpectraActive.id, id, 'changing the view preserves identity');
     const address = window.__shell.mapCtx;
     assert.equal(address.ctxtopic, 'askuserquestion'); assert.equal(address.ctxsource, id);
+    assert.equal(address.ctxlens, '', 'the retired grouping key is cleared from the address');
+    state.openCtxDeliveryTopic('askuserquestion');
+    assert.equal(state.ctxQuestion, null, 'picking the picked question again clears the filter');
+    assert.equal(state.ctxGroupedSources.length, count);
+    assert.equal(state.ctxSpectraActive.id, id, 'clearing the filter preserves the selection');
+    state.openCtxDeliveryTopic('askuserquestion', true);
+    state.openCtxDeliveryTopic('askuserquestion', true);
+    assert.equal(state.ctxQuestion.topic, 'askuserquestion', 'a forced pick never toggles off');
+    const outsider = state.ctxAll.find(r => !r.topicList.includes('askuserquestion'));
+    state.selectCtxSource(outsider.id);
+    assert.equal(state.ctxQuestion, null, 'a source outside the question drops the filter so its row stays in the table');
+    assert.equal(state.ctxSpectraActive.id, outsider.id);
   } finally { close(); }
+});
+
+test('Retired grouping addresses land on the one table', async () => {
+  for (const lens of ['sources', 'circles', 'when', 'delivery', 'overlaps']) {
+    const { state, close } = await contextState('&ctxlens=' + lens);
+    try {
+      assert.equal(state.ctxQuestion, null, lens + ': no question is picked');
+      assert.equal(state.ctxGroupedSources.length, state.ctxSourceTable.length, lens + ': every source is listed');
+    } finally { close(); }
+  }
 });
 
 test('Question paths separate a request from its material and never turn shared topics into arrows', async () => {
@@ -1167,22 +1202,24 @@ test('Every question is listed above one detail and the shared table, with no Co
     assert.match(workspace.querySelector('[data-context-question-detail]').textContent, /conflicting/);
     assert.equal(window.document.activeElement, workspace.querySelector('[data-context-question-heading]'));
     assert.equal(workspace.querySelectorAll('[data-context-source-row]').length, state.ctxQuestion.rows.length);
-    state.selectCtxSource('plugin-skill-list');
-    state.setCtxLens('sources');
-    await tick(2);
-    assert.equal(workspace.querySelectorAll('[data-context-source-row]').length, state.ctxAll.length);
-    assert.equal(workspace.querySelectorAll('[data-context-inspector]').length, 1);
-    state.setCtxLens('delivery');
-    await tick(2);
+    assert.equal(workspace.querySelectorAll('[data-context-show-all]').length, 1);
+    workspace.querySelector('[data-context-source="plugin-skill-list"]').click();
+    await tick(3);
     assert.equal(state.ctxSpectraActive.id, 'plugin-skill-list');
-    assert.equal(workspace.querySelectorAll('[data-context-inspector]').length, 1);
+    assert.equal(host.querySelectorAll('[data-context-inspector]').length, 1, 'a click pins the source panel');
+    assert.equal(workspace.querySelectorAll('[data-context-source-row]').length, state.ctxQuestion.rows.length, 'a panel never changes the table');
+    workspace.querySelector('[data-context-question="house-style"]').click();
+    await tick(3);
+    assert.equal(state.ctxQuestion, null, 'picking the picked question again shows every source');
+    assert.equal(workspace.querySelectorAll('[data-context-source-row]').length, state.ctxAll.length);
+    assert.equal(workspace.querySelectorAll('[data-context-question-detail]').length, 0);
   } finally { close(); }
 });
 
 test('Usage sorting keeps missing measurements distinct from zero and retains unclaimed session records', async () => {
   const { state, host, close } = await contextState('&ctxlens=measured');
   try {
-    assert.equal(state.ctxLens, 'sources', 'an old Measured address opens the common table');
+    assert.equal(state.ctxQuestion, null, 'an old Measured address opens the whole table');
     assert.equal(state.ctxSort, 'usage');
     const row = id => state.ctxAll.find(r => r.id === id);
     assert.equal(state.ctxUsage(row('plugin-default')).sessions, null);
@@ -1218,48 +1255,49 @@ test('Usage sorting keeps missing measurements distinct from zero and retains un
     state.setCtxSort('usage');
     assert.equal(state.ctxSpectraActive.id, 'plugin-default');
     assert.equal(window.__shell.mapCtx.ctxsort, 'usage');
-    assert.equal(window.__shell.mapCtx.ctxlens, 'sources');
+    assert.equal(window.__shell.mapCtx.ctxlens, '', 'the retired grouping key is never written');
   } finally { close(); }
 });
 
-test('Source details close in place and never carry an unrelated selection into a question', async () => {
+test('Source panels close in place and never carry an unrelated selection into a question', async () => {
   const { state, host, close } = await contextState('&ctxlens=sources');
   try {
-    assert.equal(state.ctxSpectraActive, null, 'the inventory opens without expanded details');
+    assert.equal(state.ctxSpectraActive, null, 'the inventory opens with no panel');
     const count = state.ctxSourceTable.length;
     const button = host.querySelector('[data-context-source="session-messages"]');
     button.click();
     await tick(2);
     assert.equal(host.querySelectorAll('[data-context-inspector]').length, 1);
+    assert.equal(window.__shell.mapCtx.ctxsource, 'session-messages');
     button.click();
     await tick(2);
-    assert.equal(host.querySelectorAll('[data-context-inspector]').length, 0);
+    assert.equal(host.querySelectorAll('[data-context-inspector]').length, 0, 'a second click closes the pinned panel');
     assert.equal(host.querySelectorAll('[data-context-source-row]').length, count);
     assert.equal(window.__shell.mapCtx.ctxsource, '');
     state.selectCtxSource('session-messages');
-    state.ctxTopic = 'conventions-delivery';
-    state.setCtxLens('delivery');
+    state.openCtxDeliveryTopic('conventions-delivery');
     assert.equal(state.ctxSpectraActive, null, 'a source with no matching topic is not shown as part of a question');
     state.selectCtxSource('env-setup');
-    assert.equal(state.ctxQuestion.topic, 'plugin-currency', 'following a source selects its actual question');
+    assert.equal(state.ctxQuestion, null, 'following a source outside the question drops the filter');
     assert.equal(state.ctxSpectraActive.id, 'env-setup');
-    state.selectCtxSource('session-messages');
-    assert.equal(state.ctxLens, 'sources', 'a source without a topic is still reachable');
-    assert.equal(state.ctxSpectraActive.id, 'session-messages');
   } finally { close(); }
 });
 
 test('Context connections navigate source identity and keep registration separate from delivery receipts', async () => {
   const { state, host, close } = await contextState('&ctxsource=plugin-default');
   try {
-    const prompts = state.ctxActiveConnections.find(e => e.kind === 'prompts');
+    await tick(2);
+    assert.equal(state.ctxTip?.id, 'plugin-default', 'a ?ctxsource= address opens that source pinned');
+    const prompts = state.ctxTipConnections.find(e => e.kind === 'prompts');
     assert.equal(prompts.from.id, 'hook-invoke-default');
     assert.equal(prompts.to.id, 'plugin-default');
     assert.equal(prompts.basis, 'skills/hooks/invoke-default.sh');
     await tick(2);
     [...host.querySelectorAll('[data-context-connections] button')].find(b => b.textContent === 'Conventions directive').click();
+    await tick(2);
     assert.equal(state.ctxSpectraActive.id, prompts.from.id);
-    const registration = state.ctxActiveConnections.find(e => e.kind === 'registers');
+    assert.equal(state.ctxTip.id, prompts.from.id, 'a connection opens its source in the same panel');
+    const registration = state.ctxTipConnections.find(e => e.kind === 'registers');
     assert.equal(registration.from.id, 'plugin-package');
     assert.equal(registration.basis, 'skills/hooks/hooks.json');
     assert.equal(state.ctxSpectraActive.source.evidence, 'receipt', 'a connection never rewrites the source evidence');
@@ -1272,9 +1310,9 @@ test('Context connections navigate source identity and keep registration separat
     state.ctxReg.rows.push(state.ctxRow({ id: 'new-hook', item: 'New hook', repo: 'mehrlander/web-tools',
       path: 'skills/hooks/new-hook.sh', circle: 'plugin', arrives: 'hook', discretion: 'reactive' }));
     state.ctxReg.hooks.TestEvent = [{ matcher: 'example', hooks: [{ command: 'bash /plugin/hooks/new-hook.sh' }] }];
-    state.selectCtxSource('new-hook');
-    assert.equal(state.ctxActiveConnections[0].from.id, 'plugin-package');
-    assert.equal(state.ctxActiveConnections[0].gloss, 'TestEvent: example');
+    await state.showCtxTip('new-hook', host.querySelector('[data-context-source="plugin-default"]'), true);
+    assert.equal(state.ctxTipConnections[0].from.id, 'plugin-package');
+    assert.equal(state.ctxTipConnections[0].gloss, 'TestEvent: example');
     state.ctxReg.links.push({ from: 'missing', to: 'plugin-default', kind: 'prompts', gloss: 'Unavailable endpoint' });
     assert.ok(state.ctxConnections.every(e => e.from && e.to));
   } finally { close(); }
@@ -1302,10 +1340,10 @@ test('Context sources remain usable when connection files are unavailable or mal
   } finally { window.GH.prototype.get = get; close(); }
 });
 
-test('Context validates lens addresses, restores source/topic links and joins real measurements', async () => {
+test('Context ignores retired lens addresses, restores source/topic links and joins real measurements', async () => {
   const { state, host, close } = await contextState('&ctxlens=unknown&ctxtopic=conventions-delivery&ctxsource=plugin-default');
   try {
-    assert.equal(state.ctxLens, 'delivery'); assert.equal(state.ctxSpectraActive.id, 'plugin-default');
+    assert.equal(state.ctxSpectraActive.id, 'plugin-default');
     assert.equal(state.ctxTopic, 'conventions-delivery');
     const source = state.ctxSpectraActive.source;
     state.skillUses = null;
@@ -1319,13 +1357,12 @@ test('Context validates lens addresses, restores source/topic links and joins re
     assert.equal(opened, 'plugin-default');
     window.history.replaceState({}, '', '?view=map&tab=context&ctxlens=spectra&ctxsource=wt-claude');
     window.dispatchEvent(new window.PopStateEvent('popstate'));
-    assert.equal(state.ctxLens, 'delivery'); assert.equal(state.ctxSpectraActive.id, 'wt-claude');
+    assert.equal(state.ctxQuestion, null); assert.equal(state.ctxSpectraActive.id, 'wt-claude');
     assert.equal(state.ctxTopic, '');
-    for (const [lens, group, sort] of [['overlaps', 'delivery', 'name'], ['measured', 'sources', 'usage'],
-      ['circles', 'sources', 'name'], ['when', 'sources', 'name'], ['unknown', 'delivery', 'name']]) {
+    for (const [lens, sort] of [['overlaps', 'name'], ['measured', 'usage'],
+      ['circles', 'name'], ['when', 'name'], ['unknown', 'name']]) {
       window.history.replaceState({}, '', '?view=map&tab=context&ctxlens=' + lens + '&ctxsort=invalid&ctxtopic=writing-rules&ctxsource=plugin-writing');
       window.dispatchEvent(new window.PopStateEvent('popstate'));
-      assert.equal(state.ctxLens, group, lens + ' grouping');
       assert.equal(state.ctxSort, sort, lens + ' sort');
       assert.equal(state.ctxSpectraActive.id, 'plugin-writing');
       assert.equal(state.ctxQuestion.topic, 'writing-rules');
@@ -1336,6 +1373,68 @@ test('Context validates lens addresses, restores source/topic links and joins re
     assert.equal(state.ctxTopic, 'writing-rules', 'a pop onto another tab leaves Context as it was');
     assert.equal(state.ctxSpectraSelected, 'plugin-writing');
   } finally { close(); }
+});
+
+test('Events lays out every kind of event in the order a change meets them, with what runs on each', async () => {
+  window.history.replaceState({}, '', '?view=map&tab=events');
+  window.__shell = { mapTab: 'events', goMapTab: () => {} };
+  const host = window.document.createElement('div');
+  host.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(4);
+  const state = Alpine.$data(host);
+  try {
+    assert.equal(state.displayTab, 'harness');
+    assert.equal(state.subviewKey, 'harness', 'the strip marks Automation while Events is open');
+    const kinds = state.eventKinds;
+    assert.deepEqual([...kinds.map(k => k.key)], ['env', 'claude', 'git', 'ci']);
+    const claude = kinds.find(k => k.key === 'claude');
+    const events = Csv => Csv.split('\n').slice(1).filter(Boolean).length;
+    assert.equal(claude.phases.reduce((n, p) => n + p.events.length, 0), events(automationFiles['docs/hook-events.csv']),
+      'every Claude Code event is on the board, with a hook or without');
+    const start = claude.phases.flatMap(p => p.events).find(e => e.event === 'SessionStart');
+    const dispatch = start.hooks.find(h => h.name === 'session-dispatch.sh');
+    assert.ok(dispatch.runs.some(r => r.path === '.claude/hooks/session-start.sh'), 'the dispatcher lists the files it runs');
+    const git = kinds.find(k => k.key === 'git');
+    assert.deepEqual([...git.events.map(e => e.event)].slice(0, 2), ['pre-commit', 'commit-msg'], 'git events in the order a commit meets them');
+    const preCommit = git.events[0].hooks[0];
+    assert.equal(preCommit.name, '.githooks/pre-commit', 'a git file is named by its path, not by its event again');
+    assert.equal(preCommit.steps.length, automationFiles['docs/hook-legs.csv'].split('\n').slice(1).filter(Boolean).length,
+      'the commit hook lists every step, open');
+    const ci = kinds.find(k => k.key === 'ci');
+    const push = ci.events.find(e => e.event === 'push');
+    assert.ok(push.hooks.some(h => h.path === '.github/workflows/test.yml'), 'a workflow sits under each event in its on: block');
+    assert.ok(ci.events.find(e => e.event === 'pull_request').hooks.some(h => h.path === '.github/workflows/test.yml'));
+    assert.equal(state.automationTriggers.find(t => t.k === 'events').count, state.eventFileCount);
+    const unrouted = state.toolsReg.tools.some(t => !Object.keys(state.harnessTriggers.get(t.path)).length);
+    assert.deepEqual([...state.automationTriggers.map(t => t.k)].filter(k => k !== 'scheduled'),
+      ['all', 'events', 'hand', ...(unrouted ? ['none'] : [])], 'one Event pill for every kind of event, On demand, and No route while a file has none');
+    // A file counts under the triggers of what runs it.
+    const reach = state.harnessTriggers;
+    assert.equal(reach.get('skills/hooks/commit-consent.py').events, '.githooks/commit-msg', 'the consent engine runs when commit-msg does');
+    assert.ok('events' in reach.get('node/build/build-app.mjs') && 'hand' in reach.get('node/build/build-app.mjs'),
+      'an npm script the commit hook runs is both on demand and on an event');
+    assert.equal(reach.get('python/mcp-link-safe.py').hand, '', 'a command-line tool is on demand by its own route, before any document that gives its command');
+    assert.equal(reach.get('node/check-branch-status.mjs').hand, '', 'a command-line tool another file only mentions is on demand in its own right');
+    for (const t of state.toolsReg.tools) {
+      if (!Object.keys(reach.get(t.path)).length) assert.equal(t.invocation, 'none found', `${t.path} has a route, so it is not under No route`);
+    }
+    const commitMsg = git.events.find(e => e.event === 'commit-msg').hooks[0];
+    assert.ok(commitMsg.runs.some(r => r.path === 'skills/hooks/commit-consent.py'), 'an event lists what its file runs');
+    await tick(2);
+    assert.equal(host.querySelectorAll('[data-event-kind]').length, 4);
+    assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-legs]'), 'the steps are drawn under pre-commit');
+    state.pickTrigger(state.automationTriggers.find(t => t.k === 'hand'));
+    assert.equal(state.mapTab, 'harness');
+    assert.ok(state.harnessDirFiles.length, 'a file trigger lands on a folder holding its files');
+    assert.ok(state.harnessDirFiles.every(t => 'hand' in (state.harnessTriggers.get(t.path) || {})));
+    state.harnessInvoke = 'events';
+    assert.equal(state.harnessVia({ path: 'skills/hooks/commit-consent.py' }), 'commit-msg', 'the file list names the caller a trigger arrives through');
+  } finally {
+    Alpine.destroyTree(host); host.remove(); window.__shell = undefined;
+    window.history.replaceState({}, '', '/');
+  }
 });
 
 test('an Aims deep link opens Overview/Purpose and loads its existing sources', async () => {
