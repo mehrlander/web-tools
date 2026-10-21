@@ -336,4 +336,4 @@ skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,73,hook:PostToolUse,,no,no,yes
-skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry, and silent on research declared in .web-tools.json",skills/hooks,58,hook:PostToolUse,,no,no,yes
+skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry, and silent on research declared in .web-tools.json",skills/hooks,60,hook:PostToolUse,,no,no,yes
