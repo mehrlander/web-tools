@@ -42,7 +42,6 @@ the link-dense text twin of the visual index above.
 | `pivot-table` | Excel Pivot Table Viewer | [view](https://mehrlander.github.io/web-tools/pages/pivot-table.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html) |
 | `probe-snap` | Probe snap | [view](https://mehrlander.github.io/web-tools/pages/probe-snap.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html) |
 | `probe-window` | Probe window | [view](https://mehrlander.github.io/web-tools/pages/probe-window.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html) |
-| `redact` | Redact | [view](https://mehrlander.github.io/web-tools/pages/redact.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/redact.html) |
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |

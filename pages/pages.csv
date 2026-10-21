@@ -26,7 +26,6 @@ main,,pip-steps,Floating steps,pip-steps.html,thumbs/pip-steps.png,https://githu
 main,,pivot-table,Excel Pivot Table Viewer,pivot-table.html,thumbs/pivot-table.png,https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html,
 main,,probe-snap,Probe snap,probe-snap.html,thumbs/probe-snap.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html,
 main,,probe-window,Probe window,probe-window.html,thumbs/probe-window.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html,
-main,,redact,Redact,redact.html,thumbs/redact.png,https://github.com/mehrlander/web-tools/blob/main/pages/redact.html,
 main,,repo-atlas,Repo Atlas,repo-atlas.html,thumbs/repo-atlas.png,https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html,"Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count."
 main,,review,Review,review.html,thumbs/review.png,https://github.com/mehrlander/web-tools/blob/main/pages/review.html,"A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target."
 main,,session,Session,session.html,thumbs/session.png,https://github.com/mehrlander/web-tools/blob/main/pages/session.html,
