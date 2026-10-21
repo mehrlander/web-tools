@@ -15,7 +15,8 @@
   let link = m ? m[1] : '';
   if (link && !/^shortcuts:\/\//i.test(link)) { try { link = decodeURIComponent(link); } catch {} }
   if (/^shortcuts:\/\//i.test(link)) {
-    window.handedOff = { name: new URL(link).searchParams.get('name') || 'Shortcuts', link };
+    const q = new URL(link).searchParams;
+    window.handedOff = { name: q.get('name') || 'Shortcuts', text: q.get('text') || '', link };
     history.replaceState(null, '', location.pathname + location.search);
     document.addEventListener('DOMContentLoaded', () => { location.href = link; });
   }
@@ -85,11 +86,16 @@
   </header>
 
   <template x-if="sent">
-    <div class="px-3 py-2 border-b border-base-300 flex items-center gap-2" data-sent>
-      <i class="ph ph-paper-plane-tilt text-base-content/50"></i>
-      <span class="min-w-0 truncate">Sent: <span class="font-semibold" x-text="sent.name"></span></span>
-      <div class="grow"></div>
-      <a :href="sent.link" class="btn btn-ghost btn-sm shrink-0"><i class="ph ph-arrow-clockwise"></i> Run again</a>
+    <div class="px-3 py-2 border-b border-base-300" data-sent>
+      <div class="flex items-center gap-2">
+        <i class="ph ph-paper-plane-tilt text-base-content/50"></i>
+        <span class="min-w-0 truncate">Sent: <span class="font-semibold" x-text="sent.name"></span></span>
+        <div class="grow"></div>
+        <a :href="sent.link" class="btn btn-ghost btn-sm shrink-0"><i class="ph ph-arrow-clockwise"></i> Run again</a>
+      </div>
+      <template x-if="sent.text">
+        <pre class="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans bg-base-200 rounded-box px-3 py-2" x-text="sent.text" data-sent-text></pre>
+      </template>
     </div>
   </template>
 
