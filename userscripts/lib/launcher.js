@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '56667b0';
-const BUILT = '2026-10-21T03:09:22Z';
+const BUILD = '861e0d1';
+const BUILT = '2026-10-21T03:35:13Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
