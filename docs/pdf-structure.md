@@ -326,8 +326,8 @@ Stated plainly, because the honest limit is more useful than the feature list.
 ## Where this sits
 
 The Python side of the same problem (scanned pages, OCR, multi-method
-agreement) is tracked as
-[a multi-method harness for extracting structure from scanned documents](../tracker/tasks/document-structure-harness-4mz7wk.md).
+agreement) is docstruct, in `projects/pdf/` in `mehrlander/home`
+([its filing](../tracker/tasks/document-structure-harness-4mz7wk.md)).
 This kit is the born-digital front end of the same question: it handles the case
 where a text layer exists and the difficulty is geometry. The two want the same
 output vocabulary, and settling that vocabulary is open work on both sides.
