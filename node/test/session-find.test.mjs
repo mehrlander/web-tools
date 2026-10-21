@@ -23,7 +23,9 @@ window.gh = { load: async () => {} };
 window.chatRender = {};
 window.readAloud = {};
 window.TitleTip = {};
-for (const file of ['lib/kits/closing-state.js', 'lib/kits/session-render.js']) {
+// repo-address.js is booted by every page; the component's GitHub links are
+// built by window.RepoAddress.github.
+for (const file of ['lib/kits/repo-address.js', 'lib/kits/closing-state.js', 'lib/kits/session-render.js']) {
   new window.Function(readFileSync(path.join(repoRoot, file), 'utf8'))();
 }
 const opens = [];

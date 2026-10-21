@@ -48,7 +48,7 @@ const { window, problems } = makeWindow({
 const optsRef = { repo: REPO, branch: 'feat/x', base: 'main' };
 window.__opts = optsRef;
 
-for (const f of ['lib/kits/branch-status.js', 'lib/kits/branch-brief.js']) {
+for (const f of ['lib/kits/repo-address.js', 'lib/kits/branch-status.js', 'lib/kits/branch-brief.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, f), 'utf8'))(window);
 }
 

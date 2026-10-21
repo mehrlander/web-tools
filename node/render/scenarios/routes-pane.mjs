@@ -12,9 +12,8 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 function touchesFromGit() {
   const m = JSON.parse(readFileSync(path.join(repoRoot, 'docs/app-routes.csv'), 'utf8'));

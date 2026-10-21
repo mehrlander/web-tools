@@ -86,9 +86,9 @@ def is_prose(v):
 def tracked(root, exts):
     try:
         out = subprocess.run(
-            ["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True
+            ["git", "-C", root, "ls-files", "-z"], capture_output=True, text=True, check=True
         ).stdout
-        return [f for f in out.splitlines() if f.endswith(exts)]
+        return [f for f in out.split("\0") if f.endswith(exts)]
     except Exception:
         found = []
         for d, dn, fn in os.walk(root):
@@ -210,7 +210,9 @@ def naming_corpus(root):
     """Every byte of prose and registry data that could NAME a carrier."""
     blob = []
     for rel in tracked(root, (".md", ".json", ".csv", ".py", ".mjs", ".js", ".html")):
-        if rel.endswith((".md",)) or "/design/" in rel or "/docs/" in rel or rel.count("/") == 0:
+        # A top-level docs/ path has no leading slash, so "/docs/" alone
+        # missed docs/registries.csv, the registry every docs/ CSV is declared in.
+        if rel.endswith((".md",)) or "/design/" in rel or "/docs/" in rel or rel.startswith("docs/") or rel.count("/") == 0:
             try:
                 with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
                     blob.append((rel, fh.read()))

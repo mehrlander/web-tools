@@ -52,6 +52,7 @@
   // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
   try {
     await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/url-params.js');
     await gh.load('kits/proof.js');
     await gh.load('kits/swipe-deck.js');
@@ -68,18 +69,14 @@
 
   const exCache = new Map();   // result id -> excerpt DOM (kept out of Alpine's proxy)
 
-  const gunzipB64url = async s => {
-    const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
-  };
+  // The #gz= codec is kits/gz-payload.js's.
+  const gunzipB64url = s => window.GzPayload.decode(s);
 
   const fetchText = async spec => {
-    // spec: 'owner/repo@ref:path' or a path in this repo
-    const m = String(spec).match(/^([\w.-]+\/[\w.-]+)(?:@([^:]+))?:(.+)$/);
-    if (!m) return (await gh.get(spec)).text;
-    const data = await gh.req(`/repos/${m[1]}/contents/${m[3]}?ref=${encodeURIComponent(m[2] || window.GH.refFor(m[1], m[3]) || 'main')}`);
+    // spec: 'owner/repo@ref:path' (lib/kits/repo-address.js) or a path in this repo
+    const a = window.RepoAddress.parse(spec);
+    if (!a) return (await gh.get(spec)).text;
+    const data = await gh.req(`/repos/${a.repo}/contents/${a.path}?ref=${encodeURIComponent(a.ref || window.GH.refFor(a.repo, a.path) || 'main')}`);
     return gh.decode(data.content);
   };
 
@@ -166,7 +163,7 @@
       }
     },
     blobUrl(r) {
-      return r.source ? `https://github.com/${r.source.repo}/blob/${r.source.ref || 'main'}/${r.source.path}` : null;
+      return r.source ? window.RepoAddress.github.blob(r.source.repo, r.source.ref || 'main', r.source.path) : null;
     },
 
     // ── copy-out: serialize the current filtered set to markdown ──
@@ -190,7 +187,7 @@
     async doCopy() {
       const t = this.exportMd();
       try { await navigator.clipboard.writeText(t); }
-      catch (_) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+      catch (_) { window.copy.legacy(t); }
       this.copied = true; setTimeout(() => this.copied = false, 1500);
     },
     download() {

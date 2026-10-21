@@ -12,9 +12,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseCsv } from './registries-load.mjs';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REG_PATH = path.join(repoRoot, 'docs', 'docs.csv');
 // The owners table moved out of docs.json on 2026-08-09 into its own file, and
 // split again on 2026-08-16: a repetition is a different target from the

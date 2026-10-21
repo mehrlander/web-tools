@@ -29,14 +29,13 @@
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import jsdomPkg from 'jsdom';
 import { loadKit } from './test/bootstrap.mjs';
+import { repoRoot } from './repo-root.mjs';
 
 const { JSDOM } = jsdomPkg;
 globalThis.DOMParser = new JSDOM('').window.DOMParser;
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // The sources are OFM's published 2027-29 budget instruction forms. They live
 // in the private `home` repo, checked out beside this one, which is the layout

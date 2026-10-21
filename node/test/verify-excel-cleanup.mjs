@@ -8,8 +8,8 @@ import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(import.meta.dirname, '../..');
 const out = path.resolve(process.env.XLSX_PREVIEW_DIR || path.join(root, 'node/.preview/excel-cleanup'));
 await mkdir(out, { recursive: true });
 const sha = b => createHash('sha256').update(b).digest('hex');

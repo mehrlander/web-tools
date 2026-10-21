@@ -36,9 +36,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const script = path.join(repoRoot, 'python', 'bound-boolean-attrs.py');
 
 // Returns { code, out }. The script exits 1 under --check when it finds

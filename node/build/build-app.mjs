@@ -32,8 +32,8 @@
 
 import { readFileSync, readdirSync, mkdirSync, writeFileSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { loadKit } from './kit-shim.mjs';
+import { repoRoot } from '../repo-root.mjs';
 
 // Keep both graph discovery and emitted source independent of checkout EOLs.
 const sourceText = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
@@ -41,7 +41,6 @@ const sourceText = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const REPO = 'mehrlander/web-tools';
 const PAGE = 'app/index.html';
 const OUT = 'dist/app.js';
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const libDir = path.join(repoRoot, 'lib');
 
 function walk(dir) {

@@ -80,6 +80,8 @@ Alpine.store('toast', () => {});
 // The shared CSV parser, because the field reference reads a registry with it.
 // The same kit the component uses at runtime, not a second parse for the test.
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))();
+// The address kit, which builds the file's GitHub link (every page boots it first).
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/repo-address.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/config.js'), 'utf8'))();
 Alpine.start();
 await tick(3);

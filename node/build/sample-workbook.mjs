@@ -35,10 +35,9 @@
 // real zeros rather than only numbers.
 import path from 'node:path';
 import { writeFile, readFile, mkdir } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import JSZip from 'jszip';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const argv = process.argv.slice(2);
 const flag = (name, fallback = null) => {
   const i = argv.indexOf(name);

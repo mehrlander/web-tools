@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '532e690';
-const BUILT = '2026-10-20T14:33:22Z';
+const BUILD = '56667b0';
+const BUILT = '2026-10-21T03:09:22Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -482,6 +482,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     { id: 'links', label: 'Links', ext: 'md', icon: 'link' },
     { id: 'html', label: 'HTML', ext: 'html', icon: 'code' },
     { id: 'json', label: 'JSON', ext: 'json', icon: 'tree' },
+    { id: 'snap', label: 'Image', ext: 'png', icon: 'camera' },
     { id: 'meta', label: 'Details', ext: 'json', icon: 'info' },
   ];
 
@@ -526,6 +527,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     shadowRoots: [], frames: [], activeFrameIndex: -1,
     fullscreen: false, headMenuOpen: false, autoCheck: getPref('autocheck_updates'),
     pastedItems: [], sandboxOpen: false, sandboxView: 'cards', pasteComposerOpen: false,
+    snapEngine: 'canvas', snapDataUrl: '', snapBlob: null, snapMeta: '', snapZoom: false, snapBusy: false,
     lastPageCopy: '', lastPageCopyAt: 0,
     ttsOpen: false, ttsSettingsOpen: false, ttsState: 'idle',
     ttsIdx: -1, ttsTotal: 0, ttsBlockMap: [],
@@ -1757,6 +1759,40 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       display: flex; flex-direction: column; align-items: center; gap: .5rem;
     }
 
+    /* Viewport Image Snapshot Slide */
+    .snap-stage {
+      border: 1px solid var(--wt-b300); border-radius: .5rem;
+      background:
+        linear-gradient(45deg, var(--wt-b200) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--wt-b200) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--wt-b200) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--wt-b200) 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-color: var(--wt-b100);
+      padding: .5rem; overflow: auto;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 14rem;
+    }
+    .snap-img {
+      display: block; max-width: 100%; height: auto;
+      border-radius: .375rem; border: 1px solid var(--wt-b300);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .14);
+      cursor: zoom-in; background: #fff;
+      transition: transform .15s;
+    }
+    .snap-img.zoom {
+      max-width: none; cursor: zoom-out;
+    }
+    .snap-img[hidden] { display: none !important; }
+    .snap-foot {
+      margin-top: .5rem; padding: .35rem .5rem;
+      border-radius: .375rem; background: var(--wt-b200);
+      border: 1px solid var(--wt-b300);
+      font: 11px/1.4 ui-sans-serif, system-ui, sans-serif;
+      color: ${mix('var(--wt-bc)', 72)};
+    }
+
     /* Read Aloud Transport & Customizer */
     .tts-panel {
       margin-top: .375rem; border-radius: .375rem;
@@ -1993,6 +2029,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     eye: 'M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z',
     cursor: 'M216.42,106.15l-144-80a16,16,0,0,0-23.7,17.47l32,144a16,16,0,0,0,29.74,2.94L134.61,142l48.69,48.69a8,8,0,0,0,11.31-11.31L145.92,130.7l48.58-24.15A16,16,0,0,0,216.42,106.15Z',
     tray: 'M224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V128a16,16,0,0,1,16-16H80a8,8,0,0,1,0,16H48v80H208V128H176a8,8,0,0,1,0-16h32A16,16,0,0,1,224,128Zm-90.34,2.34a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32L136,112.69V40a8,8,0,0,0-16,0v72.69L90.34,87a8,8,0,0,0-11.32,11.32Z',
+    camera: 'M208,56H180.28L166.65,35.56A8,8,0,0,0,160,32H96a8,8,0,0,0-6.65,3.56L75.71,56H48A24,24,0,0,0,24,80V192a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V80A24,24,0,0,0,208,56Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H80a8,8,0,0,0,6.66-3.56L100.28,48h55.43l13.63,20.44A8,8,0,0,0,176,72h32a8,8,0,0,1,8,8ZM128,88a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,88Zm0,72a28,28,0,1,1,28-28A28,28,0,0,1,128,160Z',
   };
 
   const layer = document.createElement('div');
@@ -2139,7 +2176,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <button class="deck-tab" data-slide="4" data-slide-id="links">Links</button>
           <button class="deck-tab" data-slide="5" data-slide-id="html" data-take-html>HTML</button>
           <button class="deck-tab" data-slide="6" data-slide-id="json">JSON</button>
-          <button class="deck-tab" data-slide="7" data-slide-id="meta">Details</button>
+          <button class="deck-tab" data-slide="7" data-slide-id="snap">Image</button>
+          <button class="deck-tab" data-slide="8" data-slide-id="meta">Details</button>
         </div>
       </div>
       <div class="deck-track" tabindex="0">
@@ -2266,8 +2304,32 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             </div>
           </div>
         </div>
-        <!-- Slide 7: Details -->
-        <div class="deck-slide" data-slide-i="7" data-slide-id="meta">
+        <!-- Slide 7: Image -->
+        <div class="deck-slide" data-slide-i="7" data-slide-id="snap">
+          <div class="slide-tools">
+            <div class="slide-tools-inner">
+              <button type="button" class="icon-btn snap-refresh-btn" aria-label="Retake viewport image" title="Retake viewport image">${svg(ICON.refresh)}</button>
+              <div class="seg seg-sm" role="group" aria-label="Image engine">
+                <button type="button" class="seg-btn on" data-snap-engine="canvas" title="Canvas 2D DOM & Range layout painter">Canvas</button>
+                <button type="button" class="seg-btn" data-snap-engine="svg" title="SVG foreignObject computed-style clone">SVG</button>
+              </div>
+              <button type="button" class="icon-btn snap-copy-btn" aria-label="Copy image" title="Copy PNG image to clipboard">${svg(ICON.copy)}</button>
+              <button type="button" class="icon-btn snap-dl-btn" aria-label="Download image" title="Download image">${svg(ICON.tray)}</button>
+              <span class="tool-meta snap-status"></span>
+            </div>
+          </div>
+          <div class="slide-body">
+            <div class="slide-body-inner">
+              <div class="snap-stage">
+                <img class="snap-img" alt="Rendered page viewport preview" title="Tap to toggle zoom" hidden />
+                <p class="none snap-placeholder" style="margin:0">Rendering current viewport (excluding launcher)…</p>
+              </div>
+              <div class="snap-foot"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Slide 8: Details -->
+        <div class="deck-slide" data-slide-i="8" data-slide-id="meta">
           <div class="slide-body">
             <div class="slide-body-inner">
               <div class="page-meta">
@@ -2299,7 +2361,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <button class="dot" data-go="4" data-slide-id="links" aria-label="Slide 5: Links"></button>
             <button class="dot" data-go="5" data-slide-id="html" aria-label="Slide 6: HTML"></button>
             <button class="dot" data-go="6" data-slide-id="json" aria-label="Slide 7: JSON"></button>
-            <button class="dot" data-go="7" data-slide-id="meta" aria-label="Slide 8: Details"></button>
+            <button class="dot" data-go="7" data-slide-id="snap" aria-label="Slide 8: Image"></button>
+            <button class="dot" data-go="8" data-slide-id="meta" aria-label="Slide 9: Details"></button>
           </div>
           <span class="size" hidden></span>
         </div>
@@ -2629,6 +2692,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
           markdown: state.localMd || domToMarkdown(),
         }, null, 2);
+      case 'snap':
+        return state.snapDataUrl || '';
       case 'meta':
         return JSON.stringify({
           title: getActiveDocTitle(),
@@ -3069,6 +3134,505 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     syncActiveTtsHighlight();
   };
 
+  // ---- Viewport DOM-to-Image Snapshot Engines (Canvas & SVG) ----------------
+  // Both engines render the currently visible viewport while skipping #wt-launcher
+  // so neither the FAB nor the open sidebar drawer appears in the captured image.
+  const isTransparentBg = c => !c || c === 'transparent' || c === 'rgba(0, 0, 0, 0)';
+
+  const drawRoundedRectPath = (ctx, x, y, w, h, r) => {
+    const rad = Math.max(0, Math.min(r || 0, w / 2, h / 2));
+    ctx.beginPath();
+    if (rad > 0 && typeof ctx.roundRect === 'function') {
+      ctx.roundRect(x, y, w, h, rad);
+    } else if (rad > 0) {
+      ctx.moveTo(x + rad, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rad);
+      ctx.arcTo(x + w, y + h, x, y + h, rad);
+      ctx.arcTo(x, y + h, x, y, rad);
+      ctx.arcTo(x, y, x + w, y, rad);
+      ctx.closePath();
+    } else {
+      ctx.rect(x, y, w, h);
+    }
+  };
+
+  const applyTextTransform = (str, tt) => {
+    if (tt === 'uppercase') return str.toUpperCase();
+    if (tt === 'lowercase') return str.toLowerCase();
+    if (tt === 'capitalize') return str.replace(/\b\w/g, c => c.toUpperCase());
+    return str;
+  };
+
+  const renderViewportCanvas = async () => {
+    const targetDoc = getActiveDoc();
+    const win = targetDoc.defaultView || window;
+    const vw = Math.max(320, Math.round(win.visualViewport?.width || win.innerWidth || 390));
+    const vh = Math.max(240, Math.round(win.visualViewport?.height || win.innerHeight || 844));
+    const dpr = Math.min(win.devicePixelRatio || 1, 2);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(vw * dpr);
+    canvas.height = Math.round(vh * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // 1. Base viewport background color
+    const docEl = targetDoc.documentElement;
+    const bodyEl = targetDoc.body;
+    const htmlStyle = docEl ? win.getComputedStyle(docEl) : null;
+    const bodyStyle = bodyEl ? win.getComputedStyle(bodyEl) : null;
+    let baseBg = (bodyStyle && !isTransparentBg(bodyStyle.backgroundColor))
+      ? bodyStyle.backgroundColor
+      : ((htmlStyle && !isTransparentBg(htmlStyle.backgroundColor)) ? htmlStyle.backgroundColor : '');
+    if (!baseBg) {
+      const isDark = (htmlStyle?.colorScheme || '').includes('dark') ||
+        win.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
+      baseBg = isDark ? '#121212' : '#ffffff';
+    }
+    ctx.fillStyle = baseBg;
+    ctx.fillRect(0, 0, vw, vh);
+
+    // 2. Collect visible elements intersecting viewport (skipping #wt-launcher)
+    const SKIP_SNAP = /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|HEAD|META|LINK|TITLE|BR|WBR|SOURCE|TRACK|PARAM)$/;
+    const items = [];
+    let domOrder = 0;
+
+    const collectTree = (node, depth = 0, stackZ = 0) => {
+      if (!node || depth > 42 || items.length > 2600) return;
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.id === ID || node.closest?.('#' + ID)) return;
+        const tag = node.tagName.toUpperCase();
+        if (SKIP_SNAP.test(tag)) return;
+
+        const cs = win.getComputedStyle(node);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
+
+        let z = stackZ;
+        if (cs.position !== 'static' && cs.zIndex && cs.zIndex !== 'auto') {
+          const parsedZ = parseInt(cs.zIndex, 10);
+          if (!Number.isNaN(parsedZ)) z = Math.max(-1000, Math.min(100000, parsedZ));
+        } else if (cs.position === 'fixed' || cs.position === 'sticky') {
+          z = Math.max(z, 1);
+        }
+
+        const rect = node.getBoundingClientRect();
+        const inView = rect.width > 0.5 && rect.height > 0.5 &&
+          rect.bottom >= -4 && rect.top <= vh + 4 &&
+          rect.right >= -4 && rect.left <= vw + 4;
+
+        if (inView && tag !== 'HTML' && tag !== 'BODY') {
+          items.push({ el: node, tag, cs, rect, z, order: domOrder++ });
+        }
+
+        if (tag === 'SVG') return;
+        if (node.shadowRoot) {
+          for (const sc of node.shadowRoot.childNodes) collectTree(sc, depth + 1, z);
+        }
+      }
+      if (node.childNodes) {
+        for (const c of node.childNodes) collectTree(c, depth + 1, stackZ);
+      }
+    };
+
+    collectTree(bodyEl || docEl, 0, 0);
+    items.sort((a, b) => (a.z !== b.z ? a.z - b.z : a.order - b.order));
+
+    const range = targetDoc.createRange();
+    let paintedEls = 0;
+    let paintedTextLines = 0;
+
+    for (const { el, tag, cs, rect } of items) {
+      paintedEls++;
+      ctx.save();
+      const op = parseFloat(cs.opacity);
+      if (!Number.isNaN(op) && op < 1) ctx.globalAlpha = Math.max(0.05, op);
+
+      const radius = parseFloat(cs.borderTopLeftRadius) || 0;
+
+      // Box shadow (outer drop shadow approximation)
+      if (cs.boxShadow && cs.boxShadow !== 'none' && !cs.boxShadow.includes('inset')) {
+        const colorMatch = cs.boxShadow.match(/rgba?\([^)]+\)|#[0-9a-fA-F]{3,8}/);
+        if (colorMatch && !isTransparentBg(cs.backgroundColor)) {
+          ctx.save();
+          ctx.shadowColor = colorMatch[0];
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 2;
+          drawRoundedRectPath(ctx, rect.left, rect.top, rect.width, rect.height, radius);
+          ctx.fillStyle = cs.backgroundColor;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // Element background color
+      if (!isTransparentBg(cs.backgroundColor)) {
+        drawRoundedRectPath(ctx, rect.left, rect.top, rect.width, rect.height, radius);
+        ctx.fillStyle = cs.backgroundColor;
+        ctx.fill();
+      } else if (cs.backgroundImage && cs.backgroundImage.includes('gradient(')) {
+        const stopColors = cs.backgroundImage.match(/rgba?\([^)]+\)|#[0-9a-fA-F]{3,8}/g);
+        if (stopColors && stopColors.length >= 2) {
+          const grad = ctx.createLinearGradient(rect.left, rect.top, rect.right, rect.bottom);
+          grad.addColorStop(0, stopColors[0]);
+          grad.addColorStop(1, stopColors[stopColors.length - 1]);
+          drawRoundedRectPath(ctx, rect.left, rect.top, rect.width, rect.height, radius);
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+      }
+
+      // Borders
+      const bwT = parseFloat(cs.borderTopWidth) || 0;
+      const bwR = parseFloat(cs.borderRightWidth) || 0;
+      const bwB = parseFloat(cs.borderBottomWidth) || 0;
+      const bwL = parseFloat(cs.borderLeftWidth) || 0;
+      if (bwT > 0 && bwT === bwR && bwT === bwB && bwT === bwL && !isTransparentBg(cs.borderTopColor)) {
+        drawRoundedRectPath(ctx, rect.left + bwT / 2, rect.top + bwT / 2, Math.max(0, rect.width - bwT), Math.max(0, rect.height - bwT), radius);
+        ctx.strokeStyle = cs.borderTopColor;
+        ctx.lineWidth = bwT;
+        ctx.stroke();
+      } else {
+        if (bwT > 0 && !isTransparentBg(cs.borderTopColor)) {
+          ctx.fillStyle = cs.borderTopColor;
+          ctx.fillRect(rect.left, rect.top, rect.width, bwT);
+        }
+        if (bwB > 0 && !isTransparentBg(cs.borderBottomColor)) {
+          ctx.fillStyle = cs.borderBottomColor;
+          ctx.fillRect(rect.left, rect.bottom - bwB, rect.width, bwB);
+        }
+        if (bwL > 0 && !isTransparentBg(cs.borderLeftColor)) {
+          ctx.fillStyle = cs.borderLeftColor;
+          ctx.fillRect(rect.left, rect.top, bwL, rect.height);
+        }
+        if (bwR > 0 && !isTransparentBg(cs.borderRightColor)) {
+          ctx.fillStyle = cs.borderRightColor;
+          ctx.fillRect(rect.right - bwR, rect.top, bwR, rect.height);
+        }
+      }
+
+      // Replaced media & form elements
+      if (tag === 'HR') {
+        ctx.fillStyle = !isTransparentBg(cs.borderTopColor) ? cs.borderTopColor : 'rgba(128,128,128,0.35)';
+        ctx.fillRect(rect.left, rect.top, rect.width, Math.max(1, rect.height));
+      } else if (tag === 'IMG' || tag === 'CANVAS' || tag === 'VIDEO') {
+        let drewMedia = false;
+        try {
+          if (tag !== 'IMG' || (el.complete && el.naturalWidth > 0)) {
+            ctx.save();
+            drawRoundedRectPath(ctx, rect.left, rect.top, rect.width, rect.height, radius);
+            ctx.clip();
+            ctx.drawImage(el, rect.left, rect.top, rect.width, rect.height);
+            ctx.restore();
+            // Verify canvas was not tainted by cross-origin image
+            ctx.getImageData(0, 0, 1, 1);
+            drewMedia = true;
+          }
+        } catch {
+          drewMedia = false;
+        }
+        if (!drewMedia) {
+          ctx.save();
+          drawRoundedRectPath(ctx, rect.left, rect.top, rect.width, rect.height, radius);
+          ctx.fillStyle = 'rgba(128, 128, 128, 0.12)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(128, 128, 128, 0.28)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          const alt = clean(el.getAttribute?.('alt') || tag);
+          if (alt && rect.width > 36 && rect.height > 18) {
+            ctx.fillStyle = cs.color || '#666';
+            ctx.font = '500 11px ui-sans-serif, system-ui, sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(alt.slice(0, 28), rect.left + 6, rect.top + rect.height / 2, Math.max(16, rect.width - 12));
+          }
+          ctx.restore();
+        }
+      } else if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        const val = tag === 'SELECT'
+          ? (el.options?.[el.selectedIndex]?.text || '')
+          : (el.value || el.getAttribute('placeholder') || '');
+        if (val && el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'hidden') {
+          const padL = parseFloat(cs.paddingLeft) || 6;
+          const padT = parseFloat(cs.paddingTop) || 4;
+          const fSize = parseFloat(cs.fontSize) || 13;
+          ctx.fillStyle = el.value ? (cs.color || '#222') : 'rgba(128,128,128,0.65)';
+          ctx.font = `${cs.fontStyle || 'normal'} ${cs.fontWeight || '400'} ${fSize}px ${cs.fontFamily || 'sans-serif'}`;
+          ctx.textBaseline = 'top';
+          ctx.fillText(String(val).split('\n')[0].slice(0, 80), rect.left + padL, rect.top + padT, Math.max(16, rect.width - padL * 2));
+        }
+      }
+
+      // Direct text node children via Range client rects
+      const fSize = parseFloat(cs.fontSize) || 14;
+      ctx.font = `${cs.fontStyle || 'normal'} ${cs.fontWeight || '400'} ${fSize}px ${cs.fontFamily || 'ui-sans-serif, system-ui, sans-serif'}`;
+      ctx.fillStyle = cs.color || '#111';
+      ctx.textBaseline = 'top';
+      const tt = cs.textTransform || 'none';
+      const hasUnderline = (cs.textDecorationLine || '').includes('underline');
+
+      for (const child of el.childNodes) {
+        if (child.nodeType !== Node.TEXT_NODE) continue;
+        const raw = child.nodeValue;
+        if (!raw || !raw.trim()) continue;
+        try {
+          range.selectNodeContents(child);
+          const rects = range.getClientRects();
+          if (!rects || rects.length === 0) continue;
+
+          if (rects.length === 1) {
+            const r = rects[0];
+            if (r.width >= 1 && r.bottom >= 0 && r.top <= vh) {
+              const txt = applyTextTransform(raw.replace(/\s+/g, ' ').trim(), tt);
+              if (txt) {
+                const y = r.top + Math.max(0, (r.height - fSize) * 0.25);
+                ctx.fillText(txt, r.left, y, r.width + 4);
+                if (hasUnderline) {
+                  ctx.fillRect(r.left, r.bottom - 1.5, r.width, 1);
+                }
+                paintedTextLines++;
+              }
+            }
+          } else {
+            // Multi-line wrapped text node: group word tokens by vertical line position
+            const tokenRe = /\S+\s*/g;
+            let m;
+            let lineText = '';
+            let lineLeft = 0;
+            let lineTop = null;
+            let lineH = fSize;
+            let lineRight = 0;
+
+            const flushLine = () => {
+              const t = applyTextTransform(lineText.replace(/\s+$/, ''), tt);
+              if (t && lineTop !== null && lineTop + lineH >= 0 && lineTop <= vh) {
+                const y = lineTop + Math.max(0, (lineH - fSize) * 0.25);
+                const w = Math.max(12, lineRight - lineLeft);
+                ctx.fillText(t, lineLeft, y, w + 8);
+                if (hasUnderline) {
+                  ctx.fillRect(lineLeft, lineTop + lineH - 1.5, w, 1);
+                }
+                paintedTextLines++;
+              }
+            };
+
+            while ((m = tokenRe.exec(raw)) !== null) {
+              range.setStart(child, m.index);
+              range.setEnd(child, m.index + m[0].length);
+              const wr = range.getBoundingClientRect();
+              if (wr.width <= 0 && wr.height <= 0) continue;
+              if (lineTop === null || Math.abs(wr.top - lineTop) > fSize * 0.45) {
+                flushLine();
+                lineText = m[0].replace(/\s+/g, ' ');
+                lineLeft = wr.left;
+                lineTop = wr.top;
+                lineH = wr.height || fSize;
+                lineRight = wr.right;
+              } else {
+                lineText += m[0].replace(/\s+/g, ' ');
+                lineRight = Math.max(lineRight, wr.right);
+              }
+            }
+            flushLine();
+          }
+        } catch {}
+      }
+
+      ctx.restore();
+    }
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const blob = await new Promise(res => {
+      try { canvas.toBlob(b => res(b), 'image/png'); } catch { res(null); }
+    });
+    return {
+      dataUrl,
+      blob,
+      meta: `${vw}×${vh} @${dpr}x · ${paintedEls} els · ${paintedTextLines} lines`,
+    };
+  };
+
+  // SVG <foreignObject> viewport cloner: clones the live DOM (excluding #wt-launcher),
+  // inlines computed styles on visible elements, shifts by (-scrollX, -scrollY),
+  // and wraps in an SVG data URL that WebKit renders directly inside <img class="snap-img">.
+  const renderViewportSvg = () => {
+    const targetDoc = getActiveDoc();
+    const win = targetDoc.defaultView || window;
+    const vw = Math.max(320, Math.round(win.visualViewport?.width || win.innerWidth || 390));
+    const vh = Math.max(240, Math.round(win.visualViewport?.height || win.innerHeight || 844));
+    const sx = Math.round(win.scrollX || win.pageXOffset || 0);
+    const sy = Math.round(win.scrollY || win.pageYOffset || 0);
+
+    const bodyEl = targetDoc.body || targetDoc.documentElement;
+    const clone = bodyEl.cloneNode(true);
+    clone.querySelectorAll('#' + ID + ', script, noscript, template, iframe').forEach(n => n.remove());
+
+    const KEY_PROPS = [
+      'display', 'position', 'top', 'left', 'right', 'bottom', 'width', 'height',
+      'margin', 'padding', 'background-color', 'color', 'font', 'line-height',
+      'text-align', 'border', 'border-radius', 'box-sizing', 'flex', 'flex-direction',
+      'align-items', 'justify-content', 'gap', 'grid-template-columns', 'overflow', 'opacity'
+    ];
+
+    const origEls = Array.from(bodyEl.querySelectorAll('*')).filter(el => el.id !== ID && !el.closest?.('#' + ID));
+    const cloneEls = Array.from(clone.querySelectorAll('*'));
+    const limit = Math.min(origEls.length, cloneEls.length, 900);
+
+    for (let i = 0; i < limit; i++) {
+      const o = origEls[i];
+      const c = cloneEls[i];
+      if (!o || !c) continue;
+      const r = o.getBoundingClientRect();
+      if (r.bottom < -100 || r.top > vh + 100) continue;
+      const cs = win.getComputedStyle(o);
+      let inline = '';
+      for (const p of KEY_PROPS) {
+        const v = cs.getPropertyValue(p);
+        if (v) inline += `${p}:${v};`;
+      }
+      if (inline) c.setAttribute('style', inline);
+      if (c.tagName === 'IMG') {
+        const src = c.getAttribute('src') || '';
+        if (src && !src.startsWith('data:')) {
+          c.removeAttribute('src');
+          c.removeAttribute('srcset');
+        }
+      }
+    }
+
+    const docCs = win.getComputedStyle(targetDoc.documentElement);
+    const bodyCs = win.getComputedStyle(bodyEl);
+    const bg = !isTransparentBg(bodyCs.backgroundColor)
+      ? bodyCs.backgroundColor
+      : (!isTransparentBg(docCs.backgroundColor) ? docCs.backgroundColor : '#ffffff');
+
+    clone.setAttribute(
+      'style',
+      `margin:0;padding:${bodyCs.padding || '0'};background:${bg};color:${bodyCs.color || '#111'};` +
+      `font:${bodyCs.font || '14px system-ui, sans-serif'};width:${vw}px;min-height:${vh}px;` +
+      `transform:translate(${-sx}px, ${-sy}px);overflow:hidden;box-sizing:border-box;`
+    );
+
+    const serializer = new XMLSerializer();
+    let xhtml = serializer.serializeToString(clone);
+    if (!xhtml.includes('xmlns=')) {
+      xhtml = xhtml.replace(/^<([a-zA-Z0-9_-]+)/, '<$1 xmlns="http://www.w3.org/1999/xhtml"');
+    }
+
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}">` +
+      `<rect width="100%" height="100%" fill="${esc(bg)}"/>` +
+      `<foreignObject x="0" y="0" width="${vw}" height="${vh}">${xhtml}</foreignObject>` +
+      `</svg>`;
+    const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    return {
+      dataUrl,
+      blob,
+      meta: `${vw}×${vh} SVG foreignObject · ${limit} styled nodes`,
+    };
+  };
+
+  const renderSnapSlide = async (force = false) => {
+    const imgEl = q('.snap-img');
+    const phEl = q('.snap-placeholder');
+    const statusEl = q('.snap-status');
+    const footEl = q('.snap-foot');
+
+    qa('[data-snap-engine]').forEach(b => {
+      b.classList.toggle('on', b.dataset.snapEngine === state.snapEngine);
+    });
+
+    if (!force && state.snapDataUrl) {
+      if (imgEl) {
+        imgEl.src = state.snapDataUrl;
+        imgEl.hidden = false;
+        imgEl.classList.toggle('zoom', !!state.snapZoom);
+      }
+      if (phEl) phEl.hidden = true;
+      if (statusEl) statusEl.textContent = state.snapMeta;
+      return;
+    }
+
+    if (state.snapBusy) return;
+    state.snapBusy = true;
+    if (statusEl) statusEl.textContent = 'Rendering…';
+    if (phEl) {
+      phEl.textContent = 'Rendering current viewport (excluding FAB & drawer)…';
+      phEl.hidden = false;
+    }
+
+    try {
+      const res = state.snapEngine === 'svg'
+        ? renderViewportSvg()
+        : await renderViewportCanvas();
+      state.snapDataUrl = res.dataUrl;
+      state.snapBlob = res.blob;
+      state.snapMeta = res.meta;
+      if (imgEl) {
+        imgEl.src = res.dataUrl;
+        imgEl.hidden = false;
+        imgEl.classList.toggle('zoom', !!state.snapZoom);
+      }
+      if (phEl) phEl.hidden = true;
+      if (statusEl) statusEl.textContent = res.meta;
+      if (footEl) {
+        footEl.textContent = state.snapEngine === 'svg'
+          ? 'SVG <foreignObject> mode: clones live DOM with computed styles and shifts by scroll offset (#wt-launcher excluded). Tap image to zoom.'
+          : 'Canvas 2D DOM + Range painter: walks visible elements and text line rects at Retina scale (#wt-launcher excluded). Tap image to zoom.';
+      }
+    } catch (err) {
+      if (phEl) {
+        phEl.textContent = `Render failed: ${err?.message || 'error'}`;
+        phEl.hidden = false;
+      }
+      if (statusEl) statusEl.textContent = 'Render failed';
+    } finally {
+      state.snapBusy = false;
+      refresh();
+    }
+  };
+
+  const copySnapImage = async btnEl => {
+    if (!state.snapDataUrl) await renderSnapSlide(true);
+    let copied = false;
+    if (state.snapBlob && state.snapEngine === 'canvas' && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+      try {
+        internalCopy = true;
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': state.snapBlob })]);
+        copied = true;
+      } catch {} finally {
+        setTimeout(() => { internalCopy = false; }, 120);
+      }
+    }
+    if (!copied && state.snapDataUrl) {
+      try {
+        await writeClipboardInternal(state.snapDataUrl);
+        copied = true;
+      } catch {}
+    }
+    if (btnEl && copied) {
+      const prev = btnEl.innerHTML;
+      btnEl.innerHTML = svg(ICON.check);
+      btnEl.classList.add('copied');
+      setTimeout(() => {
+        if (btnEl) {
+          btnEl.innerHTML = prev;
+          btnEl.classList.remove('copied');
+        }
+      }, 1500);
+    }
+    return copied;
+  };
+
+  const downloadSnapImage = async () => {
+    if (!state.snapDataUrl) await renderSnapSlide(true);
+    if (!state.snapDataUrl) return;
+    const ext = state.snapEngine === 'svg' ? 'svg' : 'png';
+    const a = document.createElement('a');
+    a.href = state.snapDataUrl;
+    a.download = `${pageSlug()}-viewport.${ext}`;
+    a.click();
+  };
+
   const renderActiveSlide = (i = state.slide) => {
     const slide = getSlides()[i] || getSlides()[0];
 
@@ -3208,6 +3772,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
       case 'json':
         q('.json-content').textContent = getSlideText(i);
+        break;
+      case 'snap':
+        renderSnapSlide(false);
         break;
       case 'meta':
         renderPageMeta();
@@ -3666,6 +4233,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.localMd = null;
     state.jinaMd = null;
     state.formattedHtml = null;
+    state.snapDataUrl = '';
+    state.snapBlob = null;
     state.shadowRoots = findShadowRoots();
     state.frames = findFrames();
     readLinks();
@@ -3805,6 +4374,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       state.localMd = null;
       state.jinaMd = null;
       state.formattedHtml = null;
+      state.snapDataUrl = '';
+      state.snapBlob = null;
       readPage();
       if (recapLabel && isManual) {
         recapLabel.textContent = 'Recaptured';
@@ -3815,6 +4386,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       readLinks();
       state.localMd = null;
       state.formattedHtml = null;
+      state.snapDataUrl = '';
+      state.snapBlob = null;
       renderAllSlides();
       refresh();
       if (recapLabel && isManual) {
@@ -4536,9 +5109,39 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     closeDrawer();
   }, { passive: true });
 
+  q('.snap-refresh-btn')?.addEventListener('click', () => {
+    const refreshBtn = q('.snap-refresh-btn');
+    refreshBtn?.querySelector('svg')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
+    renderSnapSlide(true);
+  });
+  qa('[data-snap-engine]').forEach(b => {
+    b.addEventListener('click', () => {
+      if (state.snapEngine === b.dataset.snapEngine) return;
+      state.snapEngine = b.dataset.snapEngine;
+      state.snapDataUrl = '';
+      state.snapBlob = null;
+      renderSnapSlide(true);
+    });
+  });
+  q('.snap-copy-btn')?.addEventListener('click', () => {
+    copySnapImage(q('.snap-copy-btn'));
+  });
+  q('.snap-dl-btn')?.addEventListener('click', () => {
+    downloadSnapImage();
+  });
+  q('.snap-img')?.addEventListener('click', () => {
+    state.snapZoom = !state.snapZoom;
+    q('.snap-img')?.classList.toggle('zoom', state.snapZoom);
+  });
+
   const copyBtn = q('.copy-btn');
   if (copyBtn) {
     copyBtn.onclick = async () => {
+      const curSlide = getSlides()[state.slide] || getSlides()[0];
+      if (curSlide.id === 'snap') {
+        await copySnapImage(copyBtn);
+        return;
+      }
       const text = getSlideText(state.slide);
       try {
         await writeClipboardInternal(text);

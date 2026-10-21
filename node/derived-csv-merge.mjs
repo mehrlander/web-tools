@@ -52,10 +52,9 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseCsv, writeCsv } from './build/registries-load.mjs';
+import { repoRoot } from './repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Exit 1 is not a failure of this script, it is its considered answer: hand the
 // file back to git as a normal conflict. Every unknown shape lands here.

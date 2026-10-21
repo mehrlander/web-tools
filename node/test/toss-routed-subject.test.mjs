@@ -34,6 +34,8 @@ function lift(signature) {
 }
 
 const splitAddrSrc = lift('splitAddr(addr)');
+// splitAddr reads a pinned ref (@branch@commit) through it.
+const splitPinSrc = lift('splitPin(ref)');
 const showRouteSrc = lift('showRoute(key, raw)');
 const setSubjectSrc = lift('setSubject(s)');
 // showRoute resolves the viewer page through the renderer's selection.
@@ -41,7 +43,7 @@ const refForInSrc = lift('refForIn(E, I, repo, path, pathOnly)');
 const parseRefsSrc = (src.match(/const parseRefs = [\s\S]*?\n {2}\};\n/) || [''])[0];
 assert.ok(parseRefsSrc, 'parseRefs not found in ' + PAGE);
 
-const splitAddr = new Function(splitAddrSrc + '\n  return splitAddr;')();
+const splitAddr = new Function(splitPinSrc + splitAddrSrc + '\n  return splitAddr;')();
 
 // The page's own showRoute and setSubject, wired to a recording harness. Every
 // name they close over is a parameter, so nothing here is a stand-in for logic
@@ -67,6 +69,7 @@ function harness({ routes, fail, query = '' } = {}) {
      // The renderer's SELECTED, built from its query the way the page builds it.
      const SELECTED = parseRefs(queryParams.getAll('refs'), {});
      if (queryParams.get('lib')) SELECTED['mehrlander/web-tools'] = queryParams.get('lib');
+     ${splitPinSrc}
      ${splitAddrSrc}
      ${setSubjectSrc}
      ${showRouteSrc}
@@ -118,6 +121,11 @@ test('a slashed ref survives, since every session branch has one', () => {
     { repo: 'mehrlander/web-tools', ref: 'claude/a-b-c', path: 'tracker/board.md' });
 });
 
+test('a pinned ref reads as its commit, the branch riding beside it', () => {
+  assert.deepEqual(splitAddr('mehrlander/web-tools@claude/a-b-c@1014b1897601:tracker/board.md'),
+    { repo: 'mehrlander/web-tools', ref: '1014b1897601', branch: 'claude/a-b-c', path: 'tracker/board.md' });
+});
+
 test('a query or frag on the address belongs to the renderer, not the path', () => {
   assert.equal(splitAddr('o/r@br:data/rows.csv?view=table').path, 'data/rows.csv');
   assert.equal(splitAddr('o/r@br:data/rows.csv#item=2').path, 'data/rows.csv');
@@ -153,6 +161,17 @@ test('a routed toss leaves the FILE as the subject, with the app as via', async 
     via: { repo: 'mehrlander/web-tools', ref: 'main', path: 'pages/data-view.html' },
   });
   assert.equal(h.window.__tossFrame.id, 'the-frame', 'the frame still comes along');
+});
+
+test('a pinned envelope stamps its commit as the ref and its branch beside it', async () => {
+  // The FAB reads the branch to tell whether it has moved past the commit.
+  const h = harness();
+  await h.showRoute('data', 'mehrlander/home@claude/x@1014b1897601:CLAUDE.md');
+  assert.equal(h.window.__tossSubject.ref, '1014b1897601');
+  assert.equal(h.window.__tossSubject.branch, 'claude/x');
+  const bare = harness();
+  await bare.showRoute('data', 'mehrlander/home@main:CLAUDE.md');
+  assert.ok(!('branch' in bare.window.__tossSubject), 'an unpinned subject carries no branch');
 });
 
 test('a bare address keeps its empty ref, which the grammar reads as the default branch', async () => {

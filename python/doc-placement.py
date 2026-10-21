@@ -39,9 +39,9 @@ BUCKETS = ["research", "docs", "readme", "contract", "skill", "content", "residu
 
 
 def tracked(root, pattern=None):
-    args = ["git", "-C", root, "ls-files"] + ([pattern] if pattern else [])
+    args = ["git", "-C", root, "ls-files", "-z"] + ([pattern] if pattern else [])
     out = subprocess.run(args, capture_output=True, text=True).stdout
-    return [f for f in out.splitlines() if not f.startswith("node_modules/")]
+    return [f for f in out.split("\0") if f and not f.startswith("node_modules/")]
 
 
 def research(root):

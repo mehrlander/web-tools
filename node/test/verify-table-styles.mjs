@@ -6,12 +6,11 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile, mkdir } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const JSZIP_UMD = await readFile(path.join(root, 'node_modules/jszip/dist/jszip.min.js'), 'utf8');
 
 const previewDir = path.resolve(process.env.XLSX_PREVIEW_DIR || path.join(root, 'node', '.preview'));

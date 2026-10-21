@@ -15,9 +15,8 @@
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SOURCE = 'docs/house-policies.md';
 const SKILLS = path.join(repoRoot, 'plugins', 'h', 'skills');
 const BANNER = `<!-- Generated from ${SOURCE} by node/build/policy-skills.mjs; do not hand-edit. -->`;

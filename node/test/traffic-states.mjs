@@ -30,10 +30,9 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { repoRoot as root } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const BODY_BYTES = 20000;
 const body = '/*' + 'x'.repeat(BODY_BYTES) + '*/';
 

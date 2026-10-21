@@ -12,6 +12,7 @@
   <script type="module">
     // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
     await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/url-params.js');
     // The owner/repo[@ref]:path grammar, which shorter-payload.js delegates to.
     await gh.load('kits/repo-address.js');
@@ -325,12 +326,8 @@ function shorter() {
         : new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
       return (await g.get(spec ? spec.path : String(raw || ''))).text;
     },
-    async gunzipB64url(s) {
-      const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
-      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      const ds = new DecompressionStream('gzip');
-      return new Response(new Blob([bytes]).stream().pipeThrough(ds)).text();
-    },
+    // The #gz= codec is kits/gz-payload.js's.
+    gunzipB64url(s) { return window.GzPayload.decode(s); },
 
     // ── helpers ──────────────────────────────────────────────────────
     w(s) { return s ? (s.trim().match(/\S+/g) || []).length : 0; },
@@ -468,7 +465,7 @@ function shorter() {
     },
     async copyResult() {
       try { await navigator.clipboard.writeText(this.assembled); }
-      catch { const t = document.createElement('textarea'); t.value = this.assembled; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      catch { window.copy.legacy(this.assembled); }
       this.copied = true; setTimeout(() => this.copied = false, 1400);
     },
 
