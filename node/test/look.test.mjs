@@ -30,7 +30,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const open = [];
 afterEach(() => { for (const w of open.splice(0)) { try { w.Look?.stop(); } catch {} w.close(); } });
 
-function realm(body, hash = '', at = 'https://localhost/test/') {
+function realm(body, hash = '', at = 'https://localhost/test/', { gh = true } = {}) {
   const { window } = makeWindow({
     html: `<!doctype html><html><head></head><body>${body}</body></html>`,
     url: at + (hash ? '#' + hash : ''),
@@ -46,7 +46,7 @@ function realm(body, hash = '', at = 'https://localhost/test/') {
   window.TextEncoder = TextEncoder;
   window.TextDecoder = TextDecoder;
   // The steps ride as base64url through gh-api.js's GH, which every page boots.
-  window.GH = withBase64({});
+  if (gh) window.GH = withBase64({});
   new window.Function(KIT)();
   open.push(window);
   return window;
@@ -252,6 +252,18 @@ test('one message per card: an intro is the first card\'s message only when that
   await wait(30);
   assert.equal(said(two), 'Hi');
   assert.match(card(two).textContent, /1 of 2/);
+});
+
+test('base64 steps wait for gh-api.js rather than reading as unreadable', async () => {
+  // The toss data route ran this kit before the page's boot loaded gh-api.js.
+  const steps = Buffer.from(JSON.stringify([{ at: 'x', say: 'Here' }])).toString('base64url');
+  const w = realm('<p data-at="x">Hello</p>', 'steps=' + steps, undefined, { gh: false });
+  await loaded(w);
+  await wait(30);
+  assert.equal(card(w), null, 'nothing read before the codec is there');
+  w.GH = withBase64({});
+  await wait(150);
+  assert.equal(said(w), 'Here');
 });
 
 test('a broken walk still shows its intro, then says what broke', async () => {
