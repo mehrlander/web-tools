@@ -1,9 +1,8 @@
 // kits/redact.js: what decides behaviour without pixels. The editor is canvas
-// work that jsdom cannot draw, so what is held here is which words get
-// flagged for hiding, what a box is labelled, how a dragged rectangle snaps to
-// whole pixels, which ink a fill gets, and what a tap selects or boxes. The
-// Stage's door into the editor, and the swap it makes, are held in
-// stage.test.mjs.
+// work that jsdom cannot draw, so what is held here is how a dragged
+// rectangle snaps to whole pixels, which ink a fill gets, and what a tap
+// selects or edits. The Stage's half (the slide, the header, the swap) is
+// held in stage.test.mjs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeWindow, loadKit } from './bootstrap.mjs';
@@ -11,26 +10,6 @@ import { makeWindow, loadKit } from './bootstrap.mjs';
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 loadKit('redact.js', { window });
 const R = window.Redact;
-
-test('the flags catch the shapes they claim, and leave plain words alone', () => {
-  const kinds = Object.fromEntries([
-    '<jane.doe@example.com>', '(360)', '555-0142', '360-555-0142', '$1,240.18',
-    '2026-44817', '4417', '9:41', 'Friday.', 'Jane', '123',
-  ].map(t => [t, R.kindOf(t)]));
-  assert.deepEqual(kinds, {
-    '<jane.doe@example.com>': 'email', '(360)': 'phone', '555-0142': 'phone',
-    '360-555-0142': 'phone', '$1,240.18': 'amount', '2026-44817': 'number', '4417': 'number',
-    // A clock time, a word, a name and a short number are not flagged. Names
-    // in particular: no pattern tells a name from a word.
-    '9:41': '', 'Friday.': '', 'Jane': '', '123': '',
-  });
-});
-
-test('a box spanning several kinds takes the strongest label', () => {
-  assert.equal(R.labelOf(['phone', 'phone']), '[phone]');
-  assert.equal(R.labelOf(['number', 'email']), '[email]', 'an email outranks a number beside it');
-  assert.equal(R.labelOf([]), '');
-});
 
 test('a rectangle snaps outward to whole pixels and stays on the image', () => {
   // Outward, not rounded: a fractional edge would leave the original blended
@@ -90,14 +69,4 @@ test('a tap on a box selects it, and a second tap edits its label in the box', a
   ed.selLabel = '[Name removed]';
   ed.endEdit(false);
   assert.equal(ed.selBox.label, '[removed]', 'Escape restores the label the edit opened with');
-});
-
-test('a tap on a found word boxes it, once the tools are on', async () => {
-  const ed = await editor();
-  ed.lines = [{ words: [{ id: 0, line: 0, i: 0, text: 'Jane', kind: '', bbox: { x0: 10, y0: 60, x1: 40, y1: 75 } }] }];
-  tap(ed, 20, 70);
-  assert.equal(ed.boxes.length, 0, 'tools off: the word is left alone');
-  ed.active = true;
-  tap(ed, 20, 70);
-  assert.equal(ed.boxes.length, 1, 'tools on: the word is boxed');
 });

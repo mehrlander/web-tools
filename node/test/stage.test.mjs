@@ -4150,7 +4150,8 @@ const withRedact = async (fn) => {
   const had = window.Redact;
   window.Redact = { mount: (el, cfg) => {
     withRedact.cfg = cfg;
-    el.__redact = withRedact.ed = { active: false, changed: false, meta: '4 × 4', copy() { this.copied = true; }, apply() {} };
+    el.__redact = withRedact.ed = { active: false, view: 'image', changed: false, meta: '4 × 4',
+      copy() { this.copied = true; }, apply() {}, showText() { this.view = 'text'; } };
     return el;
   } };
   try { await fn(); } finally { if (had === undefined) delete window.Redact; else window.Redact = had; }
@@ -4174,6 +4175,9 @@ test('a staged image opens in the editor, with the brush and copy on the header 
     assert.ok(titles(0).includes('Keep the edits: replace shot.png'));
     data._rActions(0).find(a => a.title === 'Copy the image').onClick();
     assert.ok(withRedact.ed.copied, 'the header copy is the editor\'s');
+    data._rActions(0).find(a => a.title === 'Show the text in the image').onClick();
+    assert.equal(titles(0).slice(-2).join(' | '), 'Show the image | Copy the text',
+      'on the text the header turns back to the image and copies the text, with no brush and nothing to keep');
     assert.ok(!titles(1).includes('Copy the image'), 'markdown is not an image');
   });
   data.reader = null;
