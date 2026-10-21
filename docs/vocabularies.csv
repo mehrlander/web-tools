@@ -76,6 +76,47 @@ context-sources,discretion,instructed,Instructed,An instruction in context asks 
 context-sources,discretion,reactive,Reactive,Feedback or material arrives in response to an event.
 context-sources,discretion,pulled,Pulled,The user or assistant requests the material.
 context-sources,discretion,outside,Harness only,Configuration or execution outside model context; does not imply that its output can never enter context.
+context-sources,circle,account,claude.ai account,Set in the claude.ai account settings; it applies to every session the account starts.
+context-sources,circle,environment,Cloud environment,Set in the cloud environment or its setup script; it applies to every session in that environment.
+context-sources,circle,user,User scope,"A file in ~/.claude inside the container, written when the environment is built."
+context-sources,circle,plugin,Portable plugin,"Shipped in the portable plugin, which every session installs at user scope."
+context-sources,circle,repo,Checked-out repos,A file in a repository the session has checked out.
+context-sources,circle,session,The session,"Produced inside the session by the harness, such as tool results and messages."
+context-sources,arrives,instructions,Instructions,"Instruction text loaded into context, such as a CLAUDE.md file."
+context-sources,arrives,skill-listing,Skill listing,A skill's name and description in the list of available skills.
+context-sources,arrives,skill,Skill,"A skill's full text, loaded when it is invoked."
+context-sources,arrives,hook,Hook output,"Text a hook prints, which the harness adds to context."
+context-sources,arrives,settings,Settings,"A setting the harness applies; the model sees its effect, not its text."
+context-sources,arrives,install,Install,An installation step that puts other sources in place.
+context-sources,arrives,tool,Tool results,The result of a tool call.
+context-sources,arrives,message,Message,A message the harness adds between turns.
+context-sources,arrives,continuity,Carried forward,Earlier conversation carried into a resumed or compacted session.
+context-sources,arrives,none,Configures only,Nothing reaches the model; the source configures one that does.
+context-sources,when,build,Environment build,"Once, when the cloud environment is built, before any session."
+context-sources,when,start,Session start,When a session starts.
+context-sources,when,invoke,When invoked,Only when the assistant or the user invokes it.
+context-sources,when,turn,Every turn,With every turn of the conversation.
+context-sources,when,event,On an event,"When a particular event happens, such as a tool call or a pull request event."
+context-sources,reach,every,Every session,Every session.
+context-sources,reach,checkout,Repo checked out,Sessions with the repository checked out.
+context-sources,reach,root,Repo is the root,Only sessions whose root is the repository.
+context-sources,reach,invoke,When invoked,Sessions that invoke it.
+context-sources,reach,pr,PR open,Sessions with a pull request open.
+context-sources,read,yes,Directly,A session can read the source itself.
+context-sources,read,copy,Through a copy,A session can read only a committed copy of the source.
+context-sources,read,no,Not at all,A session cannot read the source.
+context-sources,change,pr,Pull request,Anyone can change it through a pull request.
+context-sources,change,owner,Owner only,"Only the owner can change it, in a settings page."
+context-sources,change,session,The session,The session itself can change it.
+context-sources,change,none,Nobody,Nobody can change it.
+context-sources,evidence,receipt,Delivery receipt,The delivering script reports what it delivered.
+context-sources,evidence,reconstructed,Reconstructed,A hook reconstructs what arrived from what it can see.
+context-sources,evidence,recorded,Session record,The session record captures it.
+context-sources,evidence,none,Nothing records it,Nothing records whether it arrived.
+hook-events,phase,session,Session,"The session itself: setup, start, instructions and settings loading, the working directory, compaction, model switches and the end."
+hook-events,phase,prompt,Prompt and reply,"A prompt arriving and the reply it gets, through to the turn ending."
+hook-events,phase,tool,Tool calls,"A tool call: its permission, the call, its result and any MCP input it asks for."
+hook-events,phase,agents,Agents and tasks,"Subagents, teammates, tasks and worktrees."
 agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name"
 agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows"
 agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard"

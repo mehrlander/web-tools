@@ -37,6 +37,13 @@ test('a document in a governed place warns', () => {
   const r = edit(files, 'docs/guide.md');
   assert.equal(r.status, 2);
   assert.match(r.err, /is documentation/);
+  assert.match(r.err, /Follow the doc-craft skill for the wording/);
+});
+
+test('a skill file is pointed at skill-prefs too', () => {
+  const r = edit({ 'skills/x/SKILL.md': 'x' }, 'skills/x/SKILL.md');
+  assert.equal(r.status, 2);
+  assert.match(r.err, /doc-craft and skill-prefs skills/);
 });
 
 test('declared research stays silent: the file itself, or a file in a declared folder', () => {
