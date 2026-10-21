@@ -592,7 +592,7 @@ html.dk-dragging main{transition:none !important}
                      count that opens its pane in a tap. -->
                 <div x-show="q && also.length" class="flex items-center gap-1.5 pt-2 overflow-x-auto no-scrollbar text-sm">
                   <span class="shrink-0 text-base-content/50">Also</span>
-                  <template x-for="a in also" :key="a.go">
+                  <template x-for="a in also" :key="a.go + ':' + a.arg">
                     <button type="button" @pointerdown.prevent @click="goAlso(a)"
                             class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 hover:text-primary tabular-nums" x-text="a.text"></button>
                   </template>
@@ -9518,8 +9518,12 @@ function findPill(){
       const [one, many] = noun.includes('|') ? noun.split('|') : [noun, noun + 's'];
       return n + ' ' + (n === 1 ? one : many);
     },
+    // An Also entry names a method of the view's own component (the box's
+    // scope) and its argument, so the view decides what opening its other
+    // rows means: Activity widens the pane's scope to show every match.
     goAlso(a){
-      window.__shell?.[a.go]?.();
+      const view = box && window.Alpine?.$data(box);
+      if (typeof view?.[a.go] === 'function') view[a.go](a.arg);
       setTimeout(() => this.lift(), 250);
     },
 
