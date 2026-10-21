@@ -53,7 +53,9 @@ with its caller: a pipeline step with its pipeline, a skill's script in that
 skill's folder, and a script a platform runs with that platform's files
 (`.githooks/`, `.github/workflows/`, `.claude/`, `skills/hooks/`). A script kept
 only to explain a probe stays with the probe's findings
-([`CONSTELLATION.md`](CONSTELLATION.md#projects-and-research)). Anything else goes
+([`CONSTELLATION.md`](CONSTELLATION.md#projects-and-research)). A script a
+session wrote for its own use, such as a one-off crop, render or comparison,
+stays in that session's scratch folder and is not committed. Anything else goes
 in `python/` or `node/` by language, and [`node/README.md`](../node/README.md)
 splits `node/` further. The commit hook adds a [`harness.csv`](harness.csv) row
 for a new file in those folders; fill in its `role`.
