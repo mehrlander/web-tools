@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Run Shortcut</title>
+<script>
+{ // Before anything loads or paints: a valid link leaves for the log at once.
+  const SCHEME = /^shortcuts:\/\//i;
+  let link = location.hash.slice(1);
+  if (!SCHEME.test(link)) { try { link = decodeURIComponent(link); } catch {} }
+  if (SCHEME.test(link)) location.replace('shortcut-log.html#run=' + link);
+}
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>▶️</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -14,52 +22,23 @@
   The Claude iPhone app stopped treating a shortcuts:// address as a link
   (measured 2026-10-18: the tap does nothing and a long-press offers no link
   menu, while an https link beside it opens). So a session hands over
-  shortcut-run.html#<the shortcuts:// link> instead, and this page passes the
-  link on: once by itself on arrival, and from its button after that. Measured
-  2026-10-21: the hand-off on arrival works from the app with no tap.
+  shortcut-run.html#<the shortcuts:// link>, and tools/run.py in shortcut-tools
+  prints that form.
 
-  Only a shortcuts:// link is followed, so the page cannot be used to send a
-  reader anywhere else. A reload or a Back does not fire it again; the button
-  does, on purpose. After a hand-off the page replaces itself with
-  shortcuts.html?name=<the shortcut>, so returning to the browser shows what
-  ran, and a Back skips this page rather than running it again.
+  This page only redirects. It replaces itself with shortcut-log.html#run=<link>
+  before it draws, and the log page makes the hand-off and stays open on the
+  log, where the run's row lands. Measured 2026-10-21: a hand-off made on
+  arrival works from the Claude app with no tap.
+
+  Only a shortcuts:// link is followed, so the address cannot send a reader
+  anywhere else; anything else gets the line below.
 -->
 </head>
 <body class="min-h-dvh bg-base-200 p-4">
 <main class="card bg-base-100 shadow-sm">
-  <div class="card-body gap-4">
-    <div class="flex items-center gap-2 text-xs text-base-content/60"><i class="ph ph-lightning"></i> Shortcuts</div>
-    <h1 id="name" class="text-2xl font-bold text-balance break-words"></h1>
-    <pre id="input" hidden class="whitespace-pre-wrap break-words font-sans text-base bg-base-200 rounded-box p-3"></pre>
-    <a id="run" hidden class="btn btn-primary btn-lg"><i class="ph-fill ph-play"></i> Run</a>
+  <div class="card-body">
+    <h1 class="text-2xl font-bold text-balance">No shortcuts:// link in this address</h1>
   </div>
 </main>
-<script>
-{ // A block, not the global scope: a CDN script above already declares `link`.
-  const SCHEME = /^shortcuts:\/\//i;
-  let link = location.hash.slice(1);
-  if (!SCHEME.test(link)) { try { link = decodeURIComponent(link); } catch {} }
-  const $ = id => document.getElementById(id);
-  if (SCHEME.test(link)) {
-    const q = new URL(link).searchParams;
-    $('name').textContent = q.get('name') || 'Shortcuts';
-    if (q.get('text')) { $('input').textContent = q.get('text'); $('input').hidden = false; }
-    $('run').href = link;
-    $('run').hidden = false;
-    // Once Shortcuts has opened, the browser goes to the background; that is
-    // the sign the hand-off happened, and this page gives way to the shortcut's
-    // own page in the Shortcuts view. A blocked hand-off never hides the page,
-    // so the Run button stays.
-    const next = 'shortcuts.html' + (q.get('name') ? '?name=' + encodeURIComponent(q.get('name')) : '');
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') location.replace(next);
-    });
-    const nav = performance.getEntriesByType('navigation')[0];
-    if (!nav || nav.type === 'navigate') location.href = link;
-  } else {
-    $('name').textContent = 'No shortcuts:// link in this address';
-  }
-}
-</script>
 </body>
 </html>
