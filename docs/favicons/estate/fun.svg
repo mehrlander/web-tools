@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="fun">
+  <title>fun</title>
+  <desc>A sprout, two leaves on a stem: personal projects and experiments. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <rect x="14.5" y="12.5" width="3" height="16.5" rx="1"/>
+    <path d="M14.5 18.5 A10 10 0 0 1 2.5 8.5 A10 10 0 0 1 14.5 18.5 Z"/>
+    <path d="M17.5 14.5 A10.5 10.5 0 0 0 29.5 3.5 A10.5 10.5 0 0 0 17.5 14.5 Z"/>
+  </g>
+</svg>
