@@ -12,7 +12,8 @@
 //
 // WHERE IT SHOWS changed on 2026-10-12, by the owner's decision on PR #889. It
 // used to head each tab; now the tab's controls and counts lead, and the
-// sentence opens with the tab's files and builders in Sources and methods. The
+// sentence opens the tab's About in the app drawer (2026-10-22), above its
+// files and builders. The
 // need it answers did not change, so it is still required of every address,
 // and the reader arriving cold now meets every set at once: the Overview, the
 // Map's front door, lists each address under its tab with this sentence.
@@ -130,7 +131,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /@click="setTab\(t\.k\)"/,
     'a top-level stop opens its own route, so Docs opens Inventory');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
-  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the source panel renders the selected description, including its references');
+  assert.match(src, /lede: this\.ledeParts\.map\(/, 'the About contract carries the selected description, including its references');
 });
 
 // Pill rows stay on one line and scroll sideways. A filter row that wraps

@@ -139,16 +139,23 @@ await tick(3);
 const el = window.document.getElementById('map');
 const data = Alpine.$data(el);
 
-test('every Map address has one source control and keeps its description in the shared panel', () => {
-  const panel = el.querySelector('[data-map-sources-panel]');
-  assert.ok(panel.querySelector('[data-map-description]'));
-  assert.equal(data.mapSourcesOpen, false, 'descriptions are closed on arrival');
+// What a tab is and reads went to the app drawer's About tab on 2026-10-22
+// (fab.js, pageAbout): every address supplies it through `about`, and a tab's
+// own screen leads with its controls where it has any.
+test('every Map address says what it is through about, and leads with its controls', () => {
+  assert.equal(el.querySelector('[data-map-sources-panel]'), null, 'the panel retired into the drawer');
   assert.equal(el.querySelector('[data-slot="frame:lede"]'), null);
-  for (const view of Object.values(data.SUBVIEWS).flat()) {
-    const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
-    assert.equal(section.querySelectorAll('[data-map-sources-button]').length, 1, view.k);
-    assert.equal(section.firstElementChild.dataset.slot, 'frame:toolbar', view.k + ': controls first');
-  }
+  const old = data.mapTab;
+  try {
+    for (const view of Object.values(data.SUBVIEWS).flat()) {
+      data.mapTab = view.k;
+      assert.equal(data.about.title, view.n, view.k + ': the About title is the tab');
+      assert.ok(Array.isArray(data.about.sources), view.k);
+      const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
+      const toolbar = section.querySelector(':scope > [data-slot="frame:toolbar"]');
+      if (toolbar) assert.equal(section.firstElementChild, toolbar, view.k + ': controls first');
+    }
+  } finally { data.mapTab = old; }
 });
 
 test('source provenance follows the selected collection and preserves an external census ref', () => {
@@ -185,10 +192,8 @@ test('opening a source keeps its repository and ref in the in-app reader', async
   const calls = [];
   data.openFileDeck = (...args) => calls.push(args);
   try {
-    data.mapSourcesOpen = true;
     await data.openMapSource({ path: 'data/census.csv', repo: 'mehrlander/home', ref: 'feature/census',
       addr: 'mehrlander/home@feature/census:data/census.csv', role: 'CSV census' });
-    assert.equal(data.mapSourcesOpen, false);
     assert.equal(calls[0][0][0].path, 'mehrlander/home@feature/census:data/census.csv');
     assert.equal(calls[0][2].label().subtitle, 'mehrlander/home · feature/census');
   } finally { data.openFileDeck = open; }

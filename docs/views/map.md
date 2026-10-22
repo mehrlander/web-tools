@@ -19,11 +19,12 @@ diagram of every repository and outpost the hub reaches, then offers Projects,
 Distribution, Outposts and Data. Until 2026-10-12 the Map itself opened on that
 diagram, and each tab headed its own screen with its sentence.
 
-Every address opens with the same toolbar: its controls and counts, then a
-database icon that opens Sources and methods, which holds the description, the
-files and builders, and notes on reading them. Below the `lg` breakpoint the two
-tab rows and the current group heading stay pinned while the pane scrolls; the
-controls and filter rows scroll away with the list.
+Every address that has controls or counts opens with them in one toolbar row.
+What the address is and reads (its description, the files and builders behind
+it, and notes on reading them) is in the About tab of the app drawer, which the
+launcher opens on. Below the `lg` breakpoint the two tab rows and the current
+group heading stay pinned while the pane scrolls; the controls and filter rows
+scroll away with the list.
 
 The shell validates `?tab=` against `MAP_TABS` and `MAP_SUBVIEWS` in
 `app/index.html` before `map()` mounts. `SUBVIEWS` in `map.js` groups the

@@ -72,10 +72,11 @@ test('the strip is data, and every tab in it has a pane', async () => {
   // Joined rather than deep-compared: Alpine hands back a reactive Proxy, and
   // deepEqual checks the prototype before it checks the contents.
   const keys = [...d.TABS].map(t => t.key);
-  assert.equal(keys.join(','), 'render,inspect,traffic,text,note',
-    'reading order: delivery first, then what the page says, then a place to write '
-    + 'about it (Notes moved into the annotate card on 2026-08-25; Note came back on '
-    + '2026-10-20 as a plain field that writes into the annotator\'s set)');
+  assert.equal(keys.join(','), 'about,render,inspect,traffic,text,note',
+    'reading order: what the page is, then how it was delivered, then what it says, then '
+    + 'a place to write about it (Notes moved into the annotate card on 2026-08-25; Note '
+    + 'came back on 2026-10-20 as a plain field; About took over the Map\'s Sources and '
+    + 'methods on 2026-10-22)');
 
   // The pane list lives in the template, so read it from the source the
   // component was built from rather than from a second list here.
@@ -90,6 +91,33 @@ test('the strip is data, and every tab in it has a pane', async () => {
   for (const t of d.TABS) {
     assert.equal(typeof d[t.on], 'function', `${t.key}.on names no method: ${t.on}`);
   }
+});
+
+// About reads the page's own account (pageAbout) from the first component on
+// screen that exposes `about`, at paint time, so it follows the page's state.
+test('About reads the page’s about live, skips one not on screen, and steps aside to act', async () => {
+  Alpine.data('aboutOffscreen', () => ({ get about() { return { title: 'not on screen' }; } }));
+  Alpine.data('aboutPage', () => ({ tab: 'one', get about() { return { title: 'Tab ' + this.tab, lede: [{ t: 'Rows.' }] }; } }));
+  const off = doc.createElement('div'); off.setAttribute('x-data', 'aboutOffscreen');
+  const page = doc.createElement('div'); page.setAttribute('x-data', 'aboutPage');
+  doc.body.append(off, page);
+  Alpine.initTree(off); Alpine.initTree(page);
+  // jsdom lays nothing out, so every element reports no boxes; the page in
+  // view is given one, and the other stands for a view the app has hidden.
+  page.getClientRects = () => [{}];
+  try {
+    const d = await mountFab();
+    assert.equal(d.activeTab, 'about', 'the drawer opens on About');
+    d.detect();
+    assert.equal(d.pageAbout.title, 'Tab one', 'a component not on screen says nothing about this page');
+    Alpine.$data(page).tab = 'two';
+    assert.equal(d.pageAbout.title, 'Tab two', 'read at paint time, not copied at the scan');
+    d.open = true;
+    let ran = 0;
+    d.aboutRun(() => { ran++; });
+    assert.equal(ran, 1);
+    assert.equal(d.open, false, 'the drawer steps out of the way of what the row opens');
+  } finally { off.remove(); page.remove(); }
 });
 
 test('setTab switches the pane and runs the tab’s opener', async () => {

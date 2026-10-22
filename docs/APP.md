@@ -64,8 +64,9 @@ App views default to `nav`; other views default to `full`. Omit the default from
 
 ## Page controls
 
-The floating action button (FAB) reads three optional lists from page components:
+The floating action button (FAB) reads four optional fields from page components:
 
+- `about`: what the page in view is and reads, shown on the drawer's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, narrative, record }`. The Map supplies it per address; a page without one shows its components' `description` lines.
 - `actions`: actions shown in the drawer.
 - `toggles`: `[{ key, label, icon, on, title, set }]`, controls on the Render tab's width row, read on each paint.
 - `menu`: `[{ label, icon, run }]`, rows in the launcher's long-press menu, read when opened (`readPageMenu()`). No description field.
