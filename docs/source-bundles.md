@@ -11,8 +11,9 @@ manifest file such as `source.json`: budget-drs retired 35 of them on
 
 ## What a bundle is
 
-A bundle is a folder one level below a declared root that holds a tracked
-`README.md`. Everything tracked beside and below that README belongs to the
+A bundle is a folder that holds a tracked `README.md` and sits either one level
+below a declared root or at a path the declaration names under `folders`, for
+bundles that share no parent folder. Everything tracked beside and below that README belongs to the
 bundle, except path parts that start with a dot, `__pycache__`, and the names a
 declaration lists under `skip`.
 

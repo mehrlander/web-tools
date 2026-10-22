@@ -51,7 +51,8 @@ data,object,app,,no,Optional CSV inventory declaration read by Map Data through 
 data.census,string,app,,yes,Repository-relative path to the generated tracked-CSV inventory. Contract and adoption: docs/csv-census.md.
 bundles,array,portable,,,"Source-bundle sets this repository holds: folders of material from outside it, each with a README whose frontmatter states what it is and where it came from. python/source-bundles.py writes and checks each set's two tables. Contract: docs/source-bundles.md."
 bundles[].base,string,portable,,no,"Directory the set's other paths, and the bundle and root columns of its tables, are relative to; the repository root when absent."
-bundles[].roots,array,portable,,yes,Folders whose child folders holding a tracked README.md are bundles.
+bundles[].roots,array,portable,,no,Folders whose child folders holding a tracked README.md are bundles. A set names roots or folders or both.
+bundles[].folders,array,portable,,no,"Bundle folders named directly, relative to base, for bundles that share no parent folder; each must hold a tracked README.md."
 bundles[].table,string,portable,,yes,"The bundle table: one row per bundle, from its README's frontmatter."
 bundles[].fileTable,string,portable,,yes,"The file table: one row per tracked file in a bundle, with its size and sha256."
 bundles[].fileSources,string,portable,,no,An authored per-file table; each row must name a file the file table lists.

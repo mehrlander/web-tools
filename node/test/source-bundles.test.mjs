@@ -112,6 +112,24 @@ test('an excluded folder is not a bundle, and a stale exclusion fails', t => {
   assert.match(stale.stderr, /exclude names source\/gone, which is not a folder under a declared root/);
 });
 
+test('a named folder is a bundle wherever it sits, and must hold a README', t => {
+  const root = fixture(t, { table: 'catalog/bundles.csv', fileTable: 'catalog/bundle-files.csv',
+    folders: ['checkbook', 'deep/register'] });
+  put(root, 'checkbook/README.md', README('title: "Checkbook"\nacquired: "2026-01-01"'));
+  put(root, 'deep/register/README.md', README('title: "Register"\nacquired: "2026-01-02"'));
+  git(root, 'add', '.');
+  assert.equal(run(root).status, 0);
+  assert.deepEqual(table(root, 'catalog/bundles.csv').map(b => [b.bundle, b.root]),
+    [['checkbook', '.'], ['deep/register', 'deep']]);
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify({ bundles: [{
+    table: 'catalog/bundles.csv', fileTable: 'catalog/bundle-files.csv', folders: ['checkbook', 'empty'] }] }) + '\n');
+  put(root, 'empty/data.csv', 'a\n');
+  git(root, 'add', '.');
+  const r = run(root);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /folders names empty, which holds no tracked README\.md/);
+});
+
 test('an authored per-file row must name a file the file table lists', t => {
   const root = fixture(t);
   put(root, 'proj/source/x/README.md', README('title: "X"\nacquired: "2026-01-01"'));

@@ -78,9 +78,12 @@ def declarations(config):
         base = d.get("base", "")
         if base and not valid_path(base):
             raise ValueError(f"{where}.base is not a relative path: {base!r}")
-        roots = d.get("roots")
-        if not isinstance(roots, list) or not roots or not all(valid_path(r) for r in roots):
-            raise ValueError(f"{where}.roots must be a list of relative paths")
+        roots, folders = d.get("roots", []), d.get("folders", [])
+        for key, value in (("roots", roots), ("folders", folders)):
+            if not isinstance(value, list) or not all(valid_path(v) for v in value):
+                raise ValueError(f"{where}.{key} must be a list of relative paths")
+        if not roots and not folders:
+            raise ValueError(f"{where} names no `roots` and no `folders`")
         for key in ("table", "fileTable"):
             if not valid_path(d.get(key), ".csv"):
                 raise ValueError(f"{where}.{key} must be a relative .csv path")
@@ -96,7 +99,7 @@ def declarations(config):
         exclude = d.get("exclude", [])
         if not isinstance(exclude, list) or not all(valid_path(x) for x in exclude):
             raise ValueError(f"{where}.exclude must be a list of relative folder paths")
-        out.append({"base": base, "roots": roots, "table": d["table"],
+        out.append({"base": base, "roots": roots, "folders": folders, "table": d["table"],
                     "fileTable": d["fileTable"], "fileSources": sources,
                     "skip": ALWAYS_SKIP | set(skip), "enumerateMax": cap,
                     "exclude": set(exclude)})
@@ -238,59 +241,70 @@ def parts_key(path):
 def build(root, d, blobs):
     base = d["base"]
     roots = [join(base, r) for r in d["roots"]]
-    files = tracked(root, roots)
+    named = [join(base, f) for f in d["folders"]]
+    files = tracked(root, roots + named)
     brows, frows, missing = [], [], []
     excluded = set()
+    # A root's child folders holding a README are bundles; a named folder is
+    # one whatever it holds, so a named folder with no README fails.
+    candidates = []
     for r in roots:
-        names = sorted({p[len(r) + 1:].split("/", 1)[0] for p in files
-                        if p.startswith(r + "/") and p[len(r) + 1:].count("/") >= 1})
-        for name in names:
-            bdir = f"{r}/{name}"
-            bundle = bdir[len(base) + 1:] if base else bdir
-            if bundle in d["exclude"]:
-                excluded.add(bundle)
+        candidates += [(r, f"{r}/{name}") for name in sorted(
+            {p[len(r) + 1:].split("/", 1)[0] for p in files
+             if p.startswith(r + "/") and p[len(r) + 1:].count("/") >= 1})]
+    for f in sorted(named):
+        if any(bdir == f for _, bdir in candidates):
+            continue                                   # already a root's child
+        if f"{f}/README.md" not in files:
+            missing.append(f"folders names {f}, which holds no tracked README.md")
+            continue
+        candidates.append((f.rsplit("/", 1)[0] if "/" in f else "", f))
+    for r, bdir in candidates:
+        bundle = bdir[len(base) + 1:] if base else bdir
+        if bundle in d["exclude"]:
+            excluded.add(bundle)
+            continue
+        if f"{bdir}/README.md" not in files:
+            continue
+        mine = []
+        for p in files:
+            if not p.startswith(bdir + "/"):
                 continue
-            if f"{bdir}/README.md" not in files:
+            rel = p[len(bdir) + 1:]
+            if any(part in d["skip"] or part.startswith(".") for part in rel.split("/")):
                 continue
-            mine = []
-            for p in files:
-                if not p.startswith(bdir + "/"):
-                    continue
-                rel = p[len(bdir) + 1:]
-                if any(part in d["skip"] or part.startswith(".") for part in rel.split("/")):
-                    continue
-                mine.append(rel)
-            mine.sort(key=parts_key)
-            readme = blobs.read(files[f"{bdir}/README.md"]).decode("utf-8")
-            fm = read_frontmatter(readme)
-            for k in REQUIRED:
-                if not fm.get(k):
-                    missing.append(f"{bdir}: frontmatter has no `{k}`")
-            if len(mine) <= d["enumerateMax"]:
-                sizes = []
-                for rel in mine:
-                    data = blobs.read(files[f"{bdir}/{rel}"])
-                    sizes.append(len(data))
-                    frows.append({"bundle": bundle, "path": rel, "bytes": len(data),
-                                  "sha256": hashlib.sha256(data).hexdigest()})
-                total = sum(sizes)
-            else:
-                total = sum(blobs.size(files[f"{bdir}/{rel}"]) for rel in mine)
-                frows.append({"bundle": bundle,
-                              "path": f"({len(mine)} files, past the {d['enumerateMax']} "
-                                      f"enumeration cap; the bundle inventories itself)",
-                              "bytes": total, "sha256": ""})
-            brows.append({"bundle": bundle,
-                          "root": r[len(base) + 1:] if base else r,
-                          "title": fm.get("title", ""),
-                          "publisher": fm.get("publisher", ""),
-                          "source_page": fm.get("source_page", ""),
-                          "acquired": fm.get("acquired", ""),
-                          "arrival": fm.get("arrival", ""),
-                          "note": fm.get("note", ""),
-                          "not_taken": flatten_not_taken(fm.get("not_taken")),
-                          "files": len(mine),
-                          "bytes": total})
+            mine.append(rel)
+        mine.sort(key=parts_key)
+        readme = blobs.read(files[f"{bdir}/README.md"]).decode("utf-8")
+        fm = read_frontmatter(readme)
+        for k in REQUIRED:
+            if not fm.get(k):
+                missing.append(f"{bdir}: frontmatter has no `{k}`")
+        if len(mine) <= d["enumerateMax"]:
+            sizes = []
+            for rel in mine:
+                data = blobs.read(files[f"{bdir}/{rel}"])
+                sizes.append(len(data))
+                frows.append({"bundle": bundle, "path": rel, "bytes": len(data),
+                              "sha256": hashlib.sha256(data).hexdigest()})
+            total = sum(sizes)
+        else:
+            total = sum(blobs.size(files[f"{bdir}/{rel}"]) for rel in mine)
+            frows.append({"bundle": bundle,
+                          "path": f"({len(mine)} files, past the {d['enumerateMax']} "
+                                  f"enumeration cap; the bundle inventories itself)",
+                          "bytes": total, "sha256": ""})
+        brows.append({"bundle": bundle,
+                      "root": (r[len(base) + 1:] if base else r) or ".",
+                      "title": fm.get("title", ""),
+                      "publisher": fm.get("publisher", ""),
+                      "source_page": fm.get("source_page", ""),
+                      "acquired": fm.get("acquired", ""),
+                      "arrival": fm.get("arrival", ""),
+                      "note": fm.get("note", ""),
+                      "not_taken": flatten_not_taken(fm.get("not_taken")),
+                      "files": len(mine),
+                      "bytes": total})
     for x in sorted(d["exclude"] - excluded):
         missing.append(f"exclude names {x}, which is not a folder under a declared root; "
                        f"delete the entry")
