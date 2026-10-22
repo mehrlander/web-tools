@@ -47,6 +47,8 @@ Phases 2 and 3 run in one reply, so the idea board explains the choice rather th
 
 Resolve structure, sequence, wording, visuals and behavior together. Make the central mechanism concrete with real content. When the concept needs material that does not exist yet, such as a run of another skill or a measurement, produce it here and label it as produced for the page.
 
+**Comparing working options.** When two or more concepts survive phase 2, or the reader would rather choose by trying than by reading, build them as one option page: each option drawn in full over the real data, under a thin strip at the top that names the options and switches between them. Tint the strip apart from the page, so everything under it reads as the finished view would, and give each option an address (`#v=<key>`), so a link or a screenshot can land on one. Hand it over as a `#gz=` toss link with a screenshot of each option. The worked example is [`docs/prototypes/themes-options.html`](https://github.com/mehrlander/web-tools/blob/main/docs/prototypes/themes-options.html), four layouts of the Map's Themes tab.
+
 Walk through the result as the intended reader: where would they stall, what connections would they miss, and could they state the intended result afterward? Fix gaps. Keep untested assumptions explicit. Return to an earlier phase when development exposes a problem in it.
 
 Open the hand-over with any departure from the agreed brief, such as a different subject or scope, before the work itself.

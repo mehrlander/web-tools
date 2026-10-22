@@ -20,8 +20,8 @@ Each assistant identifies its work using its dedicated branch prefix and commit 
 | Assistant | Branch Prefix | Commit Signature / Trailer | Notes |
 | :--- | :--- | :--- | :--- |
 | **Claude** | `claude/<slug>` | `Claude-Session: <url>` | Automated by Claude Code harness |
-| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Include trailer on all commits |
-| **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits |
+| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Include trailer on all commits; commits before 2026-09-20 carry the prefix alone |
+| **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits; `antigravity/` reads as Gemini |
 | **Grok** | `grok/<slug>` | `Signed: Chief of Staff (Grok)` | Include signature on all commits |
 
 A commit or branch that carries no assistant prefix or trailer is **unclassified**, not human. A branch that predates this table, or went out without its prefix, is declared by a row in [assistant-branches.csv](https://github.com/mehrlander/web-tools/blob/main/docs/assistant-branches.csv) with the basis for the claim; the Activity view reads declarations only and guesses nothing.
