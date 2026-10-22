@@ -22,7 +22,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
-- 🎫 [Retire docs/surfacing-course.md into the documents that already cover its parts](tasks/retire-surfacing-course-5szz7c.md) · M (`claude/confident-brown-xg6m93`)
+- (none)
 
 ## Blocked
 - (none)
@@ -83,6 +83,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Render files over 1 MB in toss-render and the shell viewers](tasks/render-large-files-toss-render-xm9ex7.md)
 - 🎫 [Repo-designated inbox and outbox in .web-tools.json](tasks/repo-inbox-outbox-manifest-0g6c8s.md) (`claude/tracker-status-cjogjn`)
 - 🎫 [Repo-level GitHub links in show-repo's shield dialog](tasks/repo-level-github-links-shield-9aufgx.md)
+- 🎫 [Retire docs/surfacing-course.md into the documents that already cover its parts](tasks/retire-surfacing-course-5szz7c.md) (`claude/confident-brown-xg6m93`)
 - 🎫 [Resolve a branch's session from the commit trailer, not the open PR body](tasks/session-link-from-commit-trailer-7a407c.md) (`claude/active-work-branches-sd289p`)
 - 🎫 [Session-start nudge for repos that never opted in](tasks/session-start-nudge-unconfigured-z0g4zn.md) (`claude/zealous-fermat-s12v9r`)
 - 🎫 [Carry real session titles from the Dispatch export, without depending on it](tasks/session-titles-from-export-4vgu4x.md) (`claude/session-titles-join-7wq3vz`)

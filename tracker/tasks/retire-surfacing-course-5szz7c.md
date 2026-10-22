@@ -1,7 +1,8 @@
 ---
 id: retire-surfacing-course-5szz7c
 title: Retire docs/surfacing-course.md into the documents that already cover its parts
-status: in-progress
+status: done
+closed: 2026-10-22
 session: claude/confident-brown-xg6m93
 opened: 2026-10-22
 project: surfacing
@@ -30,3 +31,4 @@ docs/surfacing-course.md is gone, nothing in web-tools or home links it, no hook
 ## Progress log
 - 2026-10-22: Filed at the owner's request in session 007acb88, as the surfacing program's first mission. Next: once web-tools #1055 merges, run /portable:programs surfacing and map the course's sections against the documents above.
 - 2026-10-22: Claimed in session 007acb88 on claude/confident-brown-xg6m93. The guide template moves into SURFACING.md's Guide pointer; the course file and its vendored copy are deleted on that branch, so they leave this Related list.
+- 2026-10-22: Done in web-tools #1061 and home #859, both merged. The guide template now lives in SURFACING.md's Guide pointer, web-tools AGENTS.md owns the assistant table, and the Lifecycle sequence is gone; Ready to merge and Merged carry what survived of its Wrap and Merge steps. The check afterwards is the closings measure's Choice needed share, first readable after the daemon's 2026-10-23 run.
