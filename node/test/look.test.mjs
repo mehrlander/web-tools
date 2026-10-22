@@ -596,6 +596,93 @@ test('Escape takes the marker down', async () => {
   assert.equal(w.document.querySelector('[data-look]'), null);
 });
 
+// EVERY STEP ONE TAP AWAY, AND A NOTE ON ANY OF THEM (the owner, 2026-10-22).
+const three = [{ at: 'a', say: 'First' }, { at: 'b', say: 'Second' }, { at: 'c', say: 'Third' }];
+const threeBody = '<p data-at="a">Alpha</p><p data-at="b">Beta</p><p data-at="c">Gamma</p>';
+
+test('the dock\'s counter opens every step as a list, and a row goes to its step', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-list]').click();
+  const rows = [...w.document.querySelectorAll('[data-look="steps"] [data-jump]')];
+  assert.deepEqual(rows.map(b => b.textContent), ['1First', '2Second', '3Third']);
+  assert.equal(rows[0].getAttribute('aria-current'), 'step', 'the current step is marked');
+  rows[2].click();
+  await wait(30);
+  assert.equal(said(w), 'Third');
+  assert.equal(w.document.querySelector('[data-look="steps"]'), null, 'the list closes on the jump');
+});
+
+test('a note is kept as a draft per walkthrough, follows it when a page is stamped in, and can be removed', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  const area = card(w).querySelector('[data-draft]');
+  area.value = 'Is this the right label?';
+  area.dispatchEvent(new w.Event('input'));
+  card(w).querySelector('[data-add]').click();
+  const key = Object.keys(w.localStorage).find(k => k.startsWith('look:notes:'));
+  const kept = JSON.parse(w.localStorage.getItem(key));
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].text, 'Is this the right label?');
+  assert.equal(kept[0].step, 0);
+  assert.equal(kept[0].quote, 'Alpha', 'the marked words, short enough to quote');
+  assert.match(kept[0].where, /step 1 of 3: "First"/);
+  assert.match(card(w).querySelector('[data-send]').textContent, /Send 1/);
+  // The same walkthrough with a page stamped into its first stop, as a carried
+  // tap leaves it, reads the same drafts.
+  w.Look.start([{ ...three[0], at: 'test/!a' }, three[1], three[2]]);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  assert.equal(card(w).querySelectorAll('[data-drop]').length, 1, 'the draft is shown on its step');
+  card(w).querySelector('[data-drop]').click();
+  assert.equal(w.localStorage.getItem(key), null, 'removing the last draft clears its key');
+  assert.equal(card(w).querySelector('[data-send]'), null);
+});
+
+test('Send appends each draft as a note about the file its step shows, then lets the draft go', async () => {
+  const at = 'https://mehrlander.github.io/web-tools/pages/toss-render.html?top&gh=o/r@main:pages/a.html';
+  const w = realm(threeBody, '', at);
+  const appended = [];
+  w.TOKEN = 't0ken';
+  w.GH = function GH(conf) { this.repo = conf.repo; this.ref = conf.ref; };
+  w.RepoAddress = {};
+  w.Notes = {
+    author: async () => 'reader',
+    make: (n) => ({ id: 'n1', ...n }),
+    append: async (reg, n) => { appended.push({ repo: reg.repo, ref: reg.ref, ...n }); },
+  };
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  card(w).querySelector('[data-draft]').value = 'Rename this';
+  card(w).querySelector('[data-add]').click();
+  card(w).querySelector('[data-send]').click();
+  await wait(30);
+  assert.equal(appended.length, 1);
+  const n = appended[0];
+  assert.equal(n.repo, 'mehrlander/web-tools-private', 'the estate\'s notes store, on main');
+  assert.equal(n.ref, 'main');
+  assert.equal(n.about, 'o/r:pages/a.html', 'about the file the toss shows, not the renderer');
+  assert.equal(n.author, 'reader');
+  assert.deepEqual(JSON.parse(JSON.stringify(n.anchor)), { exact: 'Alpha' });
+  assert.match(n.text, /^Rename this\n\nWritten on walkthrough step 1 of 3: "First"$/);
+  assert.equal(Object.keys(w.localStorage).filter(k => k.startsWith('look:notes:')).length, 0, 'the draft is let go');
+  assert.match(card(w).querySelector('[data-status]').textContent, /Sent 1 note\./);
+});
+
+test('Escape in the note closes the note, not the walkthrough', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  card(w).querySelector('[data-draft]').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.ok(card(w), 'the walkthrough is still up');
+  assert.equal(card(w).querySelector('[data-draft]'), null, 'the note is closed');
+});
+
 test('an anchor is a data-at name first, then an id, then words or a selector', () => {
   const w = realm(
     '<p id="dup">by id</p><p data-at="dup">by name</p>' +
