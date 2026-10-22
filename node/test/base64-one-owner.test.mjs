@@ -28,6 +28,9 @@ const ALLOWED = {
   // These two lines are page source the kit emits into a self-extracting
   // data: URL, which opens with nothing booted.
   'lib/kits/compression.js': { n: 2, why: 'code it emits into a page that loads no lib' },
+  // The toss renderer injects the look kit into a tossed page that boots
+  // nothing; it calls gh-api.js's codec wherever the page has one.
+  'lib/kits/look.js': { n: 2, why: 'injected into pages that load no lib' },
   // Sample chat turns that quote the API as text.
   'pages/chat-results.html': { n: 3, why: 'quoted sample code, not code that runs' },
   // Pages that load no library at all, so gh-api.js is not there to call.
