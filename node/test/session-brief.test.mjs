@@ -703,13 +703,16 @@ test('the checkouts panel lists every branch with work on it, under its reposito
       repos: [{ name: 'home', branch: 'claude/a-1', ahead_base: 2 },
               { name: 'web-tools', branch: 'claude/a-1', ahead_base: 0 },
               { name: 'web-tools-private', branch: 'claude/a-1', ahead_base: 0 }],
-      pushed: [{ name: 'web-tools', branch: 'claude/a-1' }, { name: 'web-tools', branch: 'claude/b-2' }] };
+      pushed: [{ name: 'web-tools', branch: 'claude/a-1' }, { name: 'web-tools', branch: 'claude/b-2' },
+               { name: 'wt-extra', branch: 'claude/c-3' }] };
     assert.deepEqual(shape(), {
       home: ['claude/a-1: 2 commits, not pushed'],
       'web-tools': ['claude/a-1: pushed', 'claude/b-2: pushed'],
       'web-tools-private': 'no commits',
-    }, 'two pushed branches in one repository are two lines, and a bare checkout branch is none');
-    assert.equal(d.scopePushed, 2, 'the header counts branches pushed');
+      'wt-extra': ['claude/c-3: pushed'],
+    }, 'two pushed branches in one repository are two lines, a bare checkout branch is none, '
+       + 'and a checkout the session only pushed from is still a checkout');
+    assert.equal(d.scopePushed, 3, 'the header counts branches pushed');
     assert.match(d.scopeRows[0].branches[0].url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
     // What the page read live, once loadWork has run: the PR, and the count
     // of renderable views. A PR also counts as pushed for a record that
@@ -727,7 +730,7 @@ test('the checkouts panel lists every branch with work on it, under its reposito
 });
 
 test('the Now section draws two branch rows at most, the most recently moved', () => {
-  // A long session pushed 23 branches under 14 names and drew fourteen rows of
+  // A long session pushed 26 branches under 16 names and drew sixteen rows of
   // chips. The rest are one line that opens the checkouts panel.
   const d = lent();
   const work = d.work.branches;
