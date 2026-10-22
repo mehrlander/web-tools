@@ -910,7 +910,8 @@ const mountRead = async (doc, repo, patch, sha) => {
 
 test('every turn summarized from this version of the record reads as current', async () => {
   const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
-  const g = (await mountRead(doc, 'me/gemini-a', {}, 'aaa')).gemini;
+  const d0 = await mountRead(doc, 'me/gemini-a', {}, 'aaa');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
   assert.equal(g.state, 'current');
   assert.equal(g.icon, 'ph-check');
   assert.deepEqual(JSON.parse(JSON.stringify(g.head)), { count: '1/1', unit: 'turns summarized' });
@@ -921,7 +922,8 @@ test('a session that went on after Gemini read it is behind, by the turns it mis
   // The case that prompted this (2026-10-22): six turns in the record, five in
   // the file, and nothing on the page said so.
   const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
-  const g = (await mountRead(doc, 'me/gemini-b', { prompts: TWO, ended: '2026-08-05T15:30:00Z' }, 'bbb')).gemini;
+  const d0 = await mountRead(doc, 'me/gemini-b', { prompts: TWO, ended: '2026-08-05T15:30:00Z' }, 'bbb');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
   assert.equal(g.state, 'behind');
   assert.equal(g.label, '1/2', 'the strip shows how far it got');
   assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'after']);
@@ -932,7 +934,8 @@ test('the blob decides where both sides have one, even when the end stamp agrees
   // The last exchange can grow without a new turn: replies land, `ended` is
   // rewritten. The blob is the poller's own test, so it is this one's too.
   const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
-  const g = (await mountRead(doc, 'me/gemini-c', {}, 'ccc')).gemini;
+  const d0 = await mountRead(doc, 'me/gemini-c', {}, 'ccc');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
   assert.equal(g.state, 'behind');
   assert.equal(g.icon, 'ph-arrows-clockwise', 'no turn to count, so a mark says it moved');
 });
@@ -941,7 +944,8 @@ test('a file from before per-turn summaries reads as topics only, not as turns s
   // Format 4 has the summary and the topics and no `turns` at all; 95 of the
   // 150 files on background were that shape on 2026-10-22.
   const { turns, ...doc } = { ...TOPICS_DOC, format: 4, turn_count: 1, source_ended: record.ended };
-  const g = (await mountRead(doc, 'me/gemini-d')).gemini;
+  const d0 = await mountRead(doc, 'me/gemini-d');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
   assert.equal(g.state, 'topics');
   assert.equal(g.rows.length, 0, 'no rows, since there is nothing per turn to list');
   assert.equal(g.head.unit, 'turns read');
@@ -950,14 +954,16 @@ test('a file from before per-turn summaries reads as topics only, not as turns s
 test('a turn step 1 skipped is a gap, named as skipped', async () => {
   const doc = { ...TOPICS_DOC, turn_count: 2, source_ended: record.ended,
                 turns: [...TOPICS_DOC.turns, { turn: 1, summary: null, headline: null }] };
-  const g = (await mountRead(doc, 'me/gemini-e', { prompts: TWO })).gemini;
+  const d0 = await mountRead(doc, 'me/gemini-e', { prompts: TWO });
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
   assert.equal(g.state, 'gaps');
   assert.equal(g.label, '1/2');
   assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'skipped']);
 });
 
 test('no file is "not yet", and a record with no path makes no claim at all', async () => {
-  const g = (await mountRead(null, 'me/gemini-f')).gemini;
+  const d0 = await mountRead(null, 'me/gemini-f');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
   assert.equal(g.state, 'none');
   // A #gz= record was never in the store, so there is nothing to look for.
   window.__gzMount = { record: { ...record, short: 'gz1' } };
