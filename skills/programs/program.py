@@ -100,11 +100,33 @@ def report(repo, prog, since):
         print(f"Notes: unavailable ({e})\n")
     if not since:
         last = [n["at"] for n in notes or [] if n.get("about", "").split("#")[0] == charter]
-        since = last[-1][:10] if last else (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+        # The note's full timestamp: git reads a bare date as that day at the
+        # current clock time, which drops the commits made earlier that day.
+        since = last[-1] if last else (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
 
     print(f"## Changes to governed files since {since}\n")
-    log = git(repo, "log", "--no-merges", f"--since={since}", "--format=%h %ad %s", "--date=short", "origin/main", "--", *governs).stdout.strip()
-    print(log and "\n".join("- " + l for l in log.splitlines()) or "None.")
+    # Each commit with the files it touched, so the count can be read per
+    # governed entry: a month of a broad program runs to hundreds of commits.
+    commits, per_entry = [], {}
+    log = git(repo, "log", "--no-merges", f"--since={since}", "--format=@%h %ad %s", "--date=short",
+              "--name-only", "origin/main", "--", *governs).stdout
+    for line in log.splitlines():
+        if line.startswith("@"):
+            commits.append(line[1:])
+        elif line and commits:
+            for g in governs:
+                if line == g or (g.endswith("/") and line.startswith(g)):
+                    per_entry.setdefault(g, set()).add(commits[-1])
+    if not commits:
+        print("None.")
+    else:
+        top = sorted(per_entry.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        print(f"{len(commits)} commits. By governed path, a commit counting once for each it touched:\n")
+        print(table(["path", "commits"], [[f"`{g}`", len(c)] for g, c in top[:12]]))
+        if len(top) > 12:
+            print(f"\n{len(top) - 12} more paths with fewer commits.")
+        print("\nLatest:\n")
+        print("\n".join("- " + c for c in commits[:10]))
 
     print("\n## Measures\n")
     for m in prog.get("measures") or []:
@@ -151,9 +173,12 @@ def report(repo, prog, since):
         items = json.loads(git(store_repo, "show", "origin/main:lists/snag.json").stdout)["items"] if store_repo else []
     except (ValueError, KeyError, TypeError):
         items = []
-    hits = [i for i in items if any(about_program(t) for t in i.get("targets") or [])]
-    print("\n".join(f"- `{i['id']}` · {len(i.get('seen') or [])} dates · {i['text']}" for i in hits) if hits
+    hits = sorted((i for i in items if any(about_program(t) for t in i.get("targets") or [])),
+                  key=lambda i: -len(i.get("seen") or []))
+    print("\n".join(f"- `{i['id']}` · {len(i.get('seen') or [])} dates · {i['text']}" for i in hits[:12]) if hits
           else ("None." if snag_file else "Unavailable: no snag list beside this checkout."))
+    if len(hits) > 12:
+        print(f"\n{len(hits) - 12} more, seen on fewer dates.")
 
     print("\n## Notes\n")
     if notes is None:

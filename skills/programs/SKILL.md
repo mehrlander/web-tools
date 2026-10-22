@@ -22,10 +22,11 @@ in chat. One note addressed to the charter closes each run.
 ## Process
 
 1. **Report.** Run `python3 program.py report <name>` beside this file, from the
-   declaring checkout or its parent. It prints commits to the governed files since
-   the charter's latest note, each measure's summary and caveats, open tasks
-   marked `project: <name>`, snags whose targets include a governed file, and the
-   notes on the charter and the governed files. `list` names the declared programs.
+   declaring checkout or its parent. It prints the commits to the governed files
+   since the charter's latest note, counted by governed path, each measure's
+   summary and caveats, open tasks marked `project: <name>`, snags whose targets
+   include a governed file, and the notes on the charter and the governed files.
+   `list` names the declared programs.
 2. **Read it against the charter.** Read the charter's Measures row for what
    working means. Say what moved, what the measure shows with its caveats, and
    which snags or tasks bear on it. Recommend a next step.

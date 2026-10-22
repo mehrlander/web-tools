@@ -135,7 +135,8 @@
         "lib/alpineComponents/user-call-form.js"
       ],
       "measures": [
-        "mehrlander/web-tools-private@background:state/closings.json"
+        "mehrlander/web-tools-private@background:state/closings.json",
+        "mehrlander/web-tools-private@background:state/render-links.json"
       ],
       "reviewers": [
         "portable:owner-proxy",
