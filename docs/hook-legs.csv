@@ -18,3 +18,4 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 17,reading-columns,reading columns (warn only),,skills/hooks/reading-column.py,,warns,yes
 18,sunset-markers,SUNSET markers now due (warn only),,python/sunset-scan.py,,warns,yes
 19,anchors,annotations into what this commit changes (warn only),,python/annotate/anchors.py,,warns,no
+20,vendored,a staged change to a vendored copy (warn only),,python/vendored-copies.py,,warns,no
