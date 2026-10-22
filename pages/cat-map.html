@@ -118,7 +118,11 @@ document.addEventListener('alpine:init', () => {
     label(c) { return c.sense ? `${c.word} (${c.sense})` : c.word; },
     tag(c) { return c.tag || c.id; },
     kind(k) { return KIND[k] || k || ''; },
-    toggle(id, from) { const same = this.open === id && this.from === from; this.open = same ? '' : id; this.from = same ? '' : from; },
+    toggle(id, from) {
+      const same = this.open === id && this.from === from;
+      this.open = same ? '' : id; this.from = same ? '' : from;
+      if (!same && from === 'field') this.$nextTick(() => document.getElementById('field-card')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    },
     inst(id) { return this.insts.find(i => i.id === id); },
     get docket() {
       return [
@@ -139,8 +143,7 @@ document.addEventListener('alpine:init', () => {
         <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1">${rows}</dl></div>`;
     },
     get rest() {
-      const drawn = new Set(['constant', 'fixed']);
-      return (this.R.findings || []).filter(f => !drawn.has(f.kind));
+      return this.R.findings || [];
     },
 
     // Compare: the words under test, and each run's senses of each.
@@ -165,9 +168,9 @@ document.addEventListener('alpine:init', () => {
         <div class="px-4 pb-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
           <span class="text-xs text-base-content/60 shrink-0">Run</span>
           <template x-for="(run, k) in D.runs" :key="k">
-            <button class="btn btn-xs rounded-full" :class="view === 'map' && r === k ? 'btn-primary' : 'btn-ghost border-base-300'" @click="view = 'map'; pick(k)" x-text="run.by"></button>
+            <button class="btn btn-xs rounded-full" :class="view === 'map' && r === k ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'map'; pick(k)" x-text="run.by"></button>
           </template>
-          <button class="btn btn-xs rounded-full" :class="view === 'compare' ? 'btn-primary' : 'btn-ghost border-base-300'" @click="view = 'compare'">Compare</button>
+          <button class="btn btn-xs rounded-full" :class="view === 'compare' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'compare'">Compare</button>
         </div>
       </template>
     </header>
@@ -175,7 +178,7 @@ document.addEventListener('alpine:init', () => {
     <!-- One run -->
     <main x-show="view === 'map'" class="px-4 py-4 grid gap-6">
       <section class="grid gap-2">
-        <p class="text-sm text-pretty" x-text="R.outcome?.summary"></p>
+        <p class="text-sm text-balance" x-text="R.outcome?.summary"></p>
         <div class="flex flex-wrap gap-1">
           <template x-for="c in cats" :key="c.id">
             <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
@@ -211,11 +214,11 @@ document.addEventListener('alpine:init', () => {
                 <template x-for="xv in used(x)" :key="yv + '|' + xv">
                   <div class="rounded-box border p-1.5 grid content-start gap-1"
                        :class="cellCats(xv, yv).length ? 'border-base-content/30' : 'border-dashed border-base-300 bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]'">
-                    <div class="flex flex-wrap gap-1">
+                    <div class="grid">
                       <template x-for="c in cellCats(xv, yv)" :key="c.id">
-                        <span class="text-xs font-semibold" x-text="tag(c)"></span>
+                        <span class="text-sm font-semibold" x-text="tag(c)"></span>
                       </template>
-                      <span x-show="!cellCats(xv, yv).length" class="text-xs text-base-content/60">no word</span>
+                      <span x-show="!cellCats(xv, yv).length" class="text-sm text-base-content/60">no word</span>
                     </div>
                     <div class="flex flex-wrap gap-1">
                       <template x-for="i in cellInsts(xv, yv)" :key="i.id">
@@ -229,10 +232,10 @@ document.addEventListener('alpine:init', () => {
           </div>
         </div>
         <div x-show="offField.length || otherAxes.length" class="grid gap-1">
-          <div x-show="otherAxes.length" class="flex flex-wrap items-center gap-1">
+          <div x-show="otherAxes.length" class="grid gap-0.5">
             <span class="text-xs text-base-content/60">Not on these axes</span>
             <template x-for="c in otherAxes" :key="'o' + c.id">
-              <span class="text-xs font-semibold" x-text="tag(c) + ' · ' + Object.entries(c.requires || {}).map(([k, v]) => short(char(k)) + ': ' + v).join(', ')"></span>
+              <div class="text-sm"><span class="font-semibold" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + Object.entries(c.requires || {}).map(([k, v]) => short(char(k)) + ': ' + v).join(', ')"></span></div>
             </template>
           </div>
           <div x-show="offField.length" class="flex flex-wrap items-center gap-1">
@@ -242,14 +245,14 @@ document.addEventListener('alpine:init', () => {
             </template>
           </div>
         </div>
-        <div x-show="open && from === 'field'" x-html="open && from === 'field' ? card(inst(open)) : ''"></div>
+        <div id="field-card" class="scroll-mt-28" x-show="open && from === 'field'" x-html="open && from === 'field' ? card(inst(open)) : ''"></div>
       </section>
 
       <!-- The docket -->
       <section class="grid gap-2 min-w-0">
         <h2 class="text-sm font-semibold">Docket</h2>
         <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table table-sm text-sm">
+          <table class="table text-sm [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-1.5">
             <thead>
               <tr>
                 <th class="sticky left-0 bg-base-100 z-10"></th>
@@ -264,7 +267,7 @@ document.addEventListener('alpine:init', () => {
               <tbody>
                 <template x-if="g.t === 'cat'">
                   <tr class="bg-base-200">
-                    <th class="sticky left-0 bg-base-200 z-10 align-top min-w-48 max-w-72 font-normal whitespace-normal">
+                    <th class="sticky left-0 bg-base-200 z-10 align-top min-w-32 sm:min-w-48 max-w-44 sm:max-w-72 font-normal whitespace-normal">
                       <div class="font-semibold" x-text="label(g.c)"></div>
                       <div class="text-xs text-base-content/60" x-text="kind(g.c.kind)"></div>
                       <div class="text-pretty mt-1" x-text="g.c.verdict"></div>
@@ -278,6 +281,7 @@ document.addEventListener('alpine:init', () => {
                   <tr class="cursor-pointer hover:bg-base-200" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : ''" @click="toggle(g.i.id, 'docket')">
                     <th class="sticky left-0 z-10 font-mono font-normal whitespace-nowrap" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : 'bg-base-100'">
                       <span :class="admits(g.c, g.i) ? '' : 'text-error'" x-text="g.i.id"></span>
+                      <span x-show="!admits(g.c, g.i)" class="block text-xs font-sans text-error whitespace-normal" x-text="'breaks ' + breaks(g.c, g.i).map(k => short(char(k))).join(', ')"></span>
                     </th>
                     <template x-for="h in chars" :key="g.k + h.id">
                       <td class="whitespace-nowrap" :class="!(h.id in (g.c.requires || {})) ? 'text-base-content/60' : val(g.i, h.id) === g.c.requires[h.id] ? 'text-base-content/40' : 'text-error font-semibold'"
@@ -295,7 +299,7 @@ document.addEventListener('alpine:init', () => {
                   <tr class="cursor-pointer hover:bg-base-200" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : ''" @click="toggle(g.i.id, 'docket')">
                     <th class="sticky left-0 z-10 font-mono font-normal whitespace-nowrap" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : 'bg-base-100'">
                       <span x-text="g.i.id"></span>
-                      <span class="text-xs font-sans text-base-content/60" x-text="fits(g.i).length ? '· fits ' + fits(g.i).map(tag).join(', ') : '· fits no word'"></span>
+                      <span class="block text-xs font-sans text-base-content/60 whitespace-normal" x-text="fits(g.i).length ? 'fits ' + fits(g.i).map(tag).join(', ') : 'fits no word'"></span>
                     </th>
                     <template x-for="h in chars" :key="g.k + h.id">
                       <td class="whitespace-nowrap text-base-content/60" x-text="val(g.i, h.id)"></td>
@@ -311,12 +315,12 @@ document.addEventListener('alpine:init', () => {
         </div>
       </section>
 
-      <!-- Findings the field and docket do not already draw -->
-      <section x-show="rest.length" class="grid gap-1">
+      <!-- Every finding the checks wrote, including the ones the docket header marks -->
+      <section x-show="rest.length" class="grid gap-1 scroll-mt-28">
         <h2 class="text-sm font-semibold">Checks</h2>
         <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1">
           <template x-for="(f, k) in rest" :key="'f' + k">
-            <div class="contents"><span class="text-xs font-mono text-base-content/60 pt-0.5" x-text="f.kind"></span><span class="text-sm" x-text="f.text"></span></div>
+            <div class="contents"><span class="text-xs font-mono text-base-content/60 pt-0.5" x-text="f.kind"></span><span class="text-sm text-pretty" x-text="f.text"></span></div>
           </template>
         </div>
       </section>
@@ -328,7 +332,7 @@ document.addEventListener('alpine:init', () => {
       <section class="grid gap-2 min-w-0">
         <h2 class="text-sm font-semibold">Verdicts</h2>
         <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table table-sm text-sm">
+          <table class="table text-sm [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-1.5">
             <thead><tr>
               <th class="sticky left-0 bg-base-100 z-10">Word</th>
               <template x-for="(run, k) in D.runs" :key="'ch' + k"><th class="font-medium min-w-56" x-text="run.by"></th></template>
