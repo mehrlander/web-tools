@@ -397,6 +397,18 @@ def classify(paths):
 OVERLAY_CAP = 20
 TEST_BASE_SHA = "b" * 40
 
+def vendored_copies():
+    """The plugin's copies of the traveling docs, named by VENDORED in
+    node/build/vendor-docs.mjs, which writes them whole. Not skills/default/
+    entire: its SKILL.md is authored."""
+    try:
+        src = (ROOT / "node/build/vendor-docs.mjs").read_text(encoding="utf-8")
+    except OSError:
+        return ()
+    m = re.search(r"export const VENDORED = \[([^\]]*)\]", src)
+    return tuple(f"skills/default/{n}" for n in re.findall(r"'([^']+)'", m.group(1))) if m else ()
+
+
 # Files a merge regenerates rather than takes from either side: the builds,
 # the files the commit hook writes whole (node/README.md, "The refresh
 # model"), and the catalogs .gitattributes merges with the derived-csv driver.
@@ -404,7 +416,7 @@ TEST_BASE_SHA = "b" * 40
 # and says so, and they do not count against it as files main also changed.
 WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
                    "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
-                   ".claude/skills/default/")
+                   *vendored_copies())
 
 def derived_paths():
     try:
@@ -798,6 +810,19 @@ def join_query(own, query=""):
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
+# THE RENDERER'S HOST. A toss is drawn by toss-render.html on a deployed Pages
+# site, and the only checkout that carries one is web-tools; every other repo is
+# tossed by web-tools' renderer, which reads it by its #gh= address. Until
+# 2026-10-21 a page in any repo got its own repo's Pages host, which for a
+# private repo with no site is a 404: budget-wa's explorer.html, handed over
+# from both the default pick and --path that day.
+def renderer_base(slug):
+    top = sh("git", "rev-parse", "--show-toplevel")
+    if top and (Path(top) / PIN_READERS[0]).exists():
+        return f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
+    return "https://mehrlander.github.io/web-tools/"
+
+
 def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
     # The subject's ref: the commit, with its branch ahead of it once main's
@@ -805,7 +830,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     # takes a plain ref.
     pin = f"{PIN_BRANCH}@{sha}" if PIN_BRANCH else sha
     entries = [short_entry(e) for e in (entries or [])]
-    base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
+    base = renderer_base(slug)
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
     if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):

@@ -80,6 +80,14 @@ test('append writes to an empty store, then extends it', async () => {
   assert.equal(gh.S.text.split('\n').length, 3, 'two lines and a trailing newline');
 });
 
+test('several notes append as one write, and survive a write between the read and the PUT', async () => {
+  const gh = registry({ interfere: () => gh.commit(gh.S.text + JSON.stringify(note('a/b', 'theirs')) + '\n') });
+  gh.commit(JSON.stringify(note('a/b', 'mine')) + '\n');
+  const all = await N.append(gh, [note('a/b', 'x'), note('a/b:p', 'y'), note('a/b', 'z')]);
+  assert.deepEqual(all.map(n => n.text), ['mine', 'theirs', 'x', 'y', 'z']);
+  assert.equal(gh.S.puts, 2, 'one refused PUT and one that carried all three');
+});
+
 test('a note written between the read and the write survives the append', async () => {
   const gh = registry({ interfere: () => gh.commit(gh.S.text + JSON.stringify(note('a/b', 'theirs')) + '\n') });
   gh.commit(JSON.stringify(note('a/b', 'mine')) + '\n');

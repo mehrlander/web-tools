@@ -833,8 +833,8 @@ test('a fence outranks the blank line inside it, and every other marker does not
 // 📊 📋 📲 🎫 🔍) left it and their holding file, surfacing-extended.md, was
 // deleted on 2026-10-07. The floor is a claim about the CORPUS, so it counts the
 // corpus; the round trip still runs per document, since drift accumulates
-// within one file. The course and the tree skill are the next richest in emoji.
-const EMOJI_DOCS = ['docs/SURFACING.md', 'docs/surfacing-course.md', 'skills/tree/SKILL.md'];
+// within one file. The tree skill is the next richest in emoji.
+const EMOJI_DOCS = ['docs/SURFACING.md', 'skills/tree/SKILL.md'];
 
 test('every unit of an emoji-carrying document resolves to the text segment.py recorded', () => {
   const astral = EMOJI_DOCS

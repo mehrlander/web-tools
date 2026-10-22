@@ -1,6 +1,7 @@
 source,glob
 docs,docs/**/*.md
 docs,*.md
+docs,programs/**/*.md
 tracker,tracker/**/*.md
 skills,skills/**/*.md
 lib,lib/**/*.js

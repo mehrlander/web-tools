@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Reach">
+  <title>Map Reach</title>
+  <desc>The routes diagram in miniature: the hub's hexagon joined to three nodes. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path d="M14 16.25 L11 21.45 L5 21.45 L2 16.25 L5 11.05 L11 11.05 Z"/>
+    <rect x="23.5" y="3" width="6" height="6" rx="1.2"/>
+    <rect x="23.5" y="13.25" width="6" height="6" rx="1.2"/>
+    <rect x="23.5" y="23.5" width="6" height="6" rx="1.2"/>
+    <path d="M12.86 17.22 L24.46 6.97 L22.74 5.03 L11.14 15.28 Z"/>
+    <path d="M12 17.55 L23.6 17.55 L23.6 14.95 L12 14.95 Z"/>
+    <path d="M11.14 17.22 L22.74 27.47 L24.46 25.53 L12.86 15.28 Z"/>
+  </g>
+</svg>

@@ -84,6 +84,22 @@ test('the definition rows are exactly the files in the plugin\'s agents folder',
   assert.deepEqual(listed, onDisk, 'a definition file has no row, or a row names no file');
 });
 
+// The review panel's rules are copied into each seat's definition on purpose:
+// the platform loads a definition on its own, and the review-panel skill's
+// fallback hands a subagent the file alone ("The file is the seat"), so the
+// rules cannot live in one shared preload. Copies, then, held equal here, so an
+// edit to one seat's rules is an edit to all of them.
+test('every seat that carries the panel\'s rules carries the same text', () => {
+  const section = (text) => (text.match(/^## The panel's rules\r?\n([\s\S]*?)(?=^## |(?![\s\S]))/m) || [])[1];
+  const seats = readdirSync(path.join(repoRoot, AGENTS_DIR)).filter(f => f.endsWith('.md'))
+    .map(f => ({ f, rules: section(readFileSync(path.join(repoRoot, AGENTS_DIR, f), 'utf8')) }))
+    .filter(s => s.rules);
+  assert.ok(seats.length >= 2, `only ${seats.length} seat files carry the panel's rules; the section heading moved`);
+  const [first, ...rest] = seats;
+  for (const s of rest) assert.equal(s.rules.trim(), first.rules.trim(),
+    `${s.f}: its panel's rules differ from ${first.f}'s; edit every copy together`);
+});
+
 test('an inline reader still appears where its row says it does', () => {
   for (const r of rows.filter(r => r.kind === 'inline')) {
     const skill = r.path.match(/^skills\/([^/]+)\//)?.[1];
