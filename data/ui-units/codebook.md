@@ -30,8 +30,8 @@ draws it.
 
 A unit is coded on seven **dimensions**. `frame`, `body`, `reach`, `binding`
 and `phone` say how it is arranged; `occasion` and `answer` say which kind of
-form it is ([docs/forms/README.md](../../docs/forms/README.md)). Each is a row of [`dimensions.csv`](dimensions.csv), which says
-what the dimension holds, the test that decides it, and whether a unit takes
+form it is ([docs/forms/README.md](../../docs/forms/README.md)). Each is a
+row of [`dimensions.csv`](dimensions.csv), which says what the dimension holds, the test that decides it, and whether a unit takes
 exactly one of its codes (`per_unit` is `one`) or any number of them (`any`).
 A sixth row, `ring`, is computed rather than coded (README, "Rings"). The
 codes a dimension divides the units into are the rows of `codes.csv` whose
