@@ -28,8 +28,9 @@ draws it.
 
 ## Fields
 
-A unit is coded on five **dimensions**: `frame`, `body`, `reach`, `binding`
-and `phone`. Each is a row of [`dimensions.csv`](dimensions.csv), which says
+A unit is coded on seven **dimensions**. `frame`, `body`, `reach`, `binding`
+and `phone` say how it is arranged; `occasion` and `answer` say which kind of
+form it is ([docs/forms/README.md](../../docs/forms/README.md)). Each is a row of [`dimensions.csv`](dimensions.csv), which says
 what the dimension holds, the test that decides it, and whether a unit takes
 exactly one of its codes (`per_unit` is `one`) or any number of them (`any`).
 A sixth row, `ring`, is computed rather than coded (README, "Rings"). The
@@ -50,15 +51,15 @@ The other fields record what draws the unit and how sure the reader is:
 | `confidence` | `high` (code and pixels), `medium` (code only), `low` (inferred) | |
 | `at` | the commit the unit was read at, where its `file:line` citations resolve | `git rev-parse --short=12 HEAD` in the unit's repo |
 
-A unit can hold several frame and reach codes and exactly one body code. Code
-the unit as it first paints. A tab that opens on a chart, with a list one switch
+A unit can hold several frame, reach and answer codes, and exactly one body
+and one occasion code. Code the unit as it first paints. A tab that opens on a chart, with a list one switch
 away, is coded on the chart.
 
 ## Codes
 
 The codes are rows of [`codes.csv`](codes.csv), one per code, grouped by
-`axis`, which names the dimension: `frame`, `body`, `reach`, `binding` and
-`phone`, plus the five `ring` rows no reader codes. Each row gives the
+`axis`, which names the dimension: `frame`, `body`, `reach`, `binding`,
+`phone`, `occasion` and `answer`, plus the five `ring` rows no reader codes. Each row gives the
 code's arrangement (`gloss`), the `test` that decides it, what it is
 `not_to_confuse` with, and the `kits` that draw it where any do. A reader codes
 from that file, and the Map view renders the same rows, so a code changed there
@@ -68,6 +69,9 @@ Three rules the rows cannot hold:
 
 - **Binding:** code the strongest tie present; `notes` may name the rest.
 - **Phone:** `hide` is written `hide:<region>`, naming what is dropped.
+- **Answer:** code every answer the unit can record, including one it records
+  only on an address that carries an occasion, such as a documentation call
+  opened in the Docs tab.
 - **A code that fits nothing:** write `new:<proposed-code>` and say in `notes`
   what it is. A new code is settled at synthesis, not by the reader.
 
@@ -235,6 +239,9 @@ that basis.
   body is recorded in `notes`, not as a row of its own.
 - **`style: own` is recorded, not judged.** Whether a page should move to the
   house look is a separate question.
+- **Occasion and answer were coded on every existing row in one pass** on
+  2026-10-22, from code. A row that is not standing, or that records an answer,
+  gives its evidence in `notes`.
 
 ## Settled at synthesis
 
