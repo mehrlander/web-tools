@@ -64,7 +64,7 @@ test('JsonProfile.analyze computes metrics, type counts, and collection schemas'
   assert.equal(cmdCol.fillRate, 1 / 3, 'partial fill rate for sparse column');
 });
 
-test('JsonExplorer.mount builds toolbar, breadcrumbs, and renders tree', () => {
+test('JsonExplorer.mount builds the toolbar once and draws the top level as rows', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {
     data: sampleSession,
@@ -74,27 +74,43 @@ test('JsonExplorer.mount builds toolbar, breadcrumbs, and renders tree', () => {
   assert.ok(explorer, 'explorer instance returned');
   assert.ok(container.querySelector('.json-explorer'), 'explorer element mounted');
 
-  // Toolbar elements
-  const tabs = container.querySelectorAll('[role="tablist"] .tab');
-  assert.ok(tabs.length >= 3, 'tabs rendered (Tree, Schema, Table, Raw)');
-  const select = container.querySelector('select');
-  assert.ok(select, 'chunk select rendered');
-  assert.ok(select.options.length >= 3, 'chunks populated in dropdown');
+  const tabs = [...container.querySelectorAll('[role="tablist"] [role="tab"]')]
+    .filter(t => !t.classList.contains('hidden')).map(t => t.textContent.trim());
+  assert.deepEqual(tabs, ['Tree', 'Schema', 'JSON'], 'Table is offered only on an array of records');
+  assert.equal(container.querySelector('select'), null, 'no chunk select: the tree drills in itself');
 
-  const searchInput = container.querySelector('input[type="search"], input[type="text"]');
+  const searchInput = container.querySelector('input[type="search"]');
   assert.ok(searchInput, 'search input rendered');
 
-  // Tree nodes rendered
-  const nodes = container.querySelectorAll('[data-path]');
-  assert.ok(nodes.length > 5, 'tree nodes rendered in DOM');
+  // One row per top-level field, and no root row above them.
+  const rows = [...container.querySelectorAll('[data-path]')];
+  assert.equal(rows.length, Object.keys(sampleSession).length, 'one row per top-level field');
+  assert.equal(container.querySelector('[data-path="root"]'), null, 'no root row');
+  assert.ok(!container.textContent.includes('nullnull'), 'no "nullnull" label (Element.append(null) writes "null")');
 
-  // Badges
-  const arrayBadges = [...container.querySelectorAll('.badge')].filter(b => b.textContent.includes('Array'));
-  assert.ok(arrayBadges.length >= 2, 'array badges rendered');
+  const calls = container.querySelector('[data-path="calls"]');
+  assert.match(calls.textContent, /3 items/, 'a collection says how many items it holds');
+  assert.equal(calls.getAttribute('aria-expanded'), 'false', 'collections start closed');
 
-  // Breadcrumbs
-  const breadcrumbs = container.querySelectorAll('[data-crumb]');
-  assert.ok(breadcrumbs.length >= 1, 'breadcrumbs rendered root');
+  // At the top level there is nothing to show in the crumb trail.
+  assert.ok(container.querySelector('[data-crumbs]').classList.contains('hidden'), 'crumbs hidden at the top level');
+
+  explorer.destroy();
+});
+
+test('JsonExplorer opens a collection on a tap and offers a way back', () => {
+  const container = window.document.getElementById('c');
+  const explorer = JsonExplorer.mount(container, { data: sampleSession, name: 's.json' });
+
+  container.querySelector('[data-path="calls"]').click();
+  assert.equal(container.querySelector('[data-path="calls"]').getAttribute('aria-expanded'), 'true');
+  assert.ok(container.querySelector('[data-path="calls[0]"]'), 'children drawn once opened');
+
+  const collapse = container.querySelector('[aria-label="Collapse to the top level"]');
+  assert.ok(!collapse.classList.contains('hidden'), 'collapse offered once something is open');
+  collapse.click();
+  assert.equal(container.querySelector('[data-path="calls[0]"]'), null, 'collapse closes it again');
+  assert.ok(collapse.classList.contains('hidden'), 'and hides itself');
 
   explorer.destroy();
 });
@@ -106,48 +122,63 @@ test('JsonExplorer chunk zooming and path navigation', () => {
     chunk: ['calls'],
   });
 
-  // Breadcrumbs should now include root and calls
   const crumbs = [...container.querySelectorAll('[data-crumb]')].map(b => b.textContent.trim());
-  assert.deepEqual(crumbs, ['root', 'calls']);
+  assert.deepEqual(crumbs, ['document.json', 'calls']);
+  assert.match(container.querySelector('[data-crumbs]').textContent, /3 items/, 'the trail says what is open');
 
-  // Table tab should be available for record array
   const tableTab = [...container.querySelectorAll('[role="tab"]')].find(t => t.textContent.includes('Table'));
-  assert.ok(tableTab, 'table tab available for calls chunk');
+  assert.ok(tableTab && !tableTab.classList.contains('hidden'), 'table tab available for calls chunk');
 
-  // Switch to table view
   explorer.setView('table');
   const table = container.querySelector('table');
   assert.ok(table, 'table element rendered');
   const headers = [...table.querySelectorAll('th')].map(th => th.textContent.trim());
   assert.ok(headers.includes('tool') && headers.includes('status'), 'table headers match calls schema');
 
-  // Zoom back to root
   explorer.focusChunk([]);
-  const updatedCrumbs = [...container.querySelectorAll('[data-crumb]')].map(b => b.textContent.trim());
-  assert.deepEqual(updatedCrumbs, ['root']);
+  assert.deepEqual([...container.querySelectorAll('[data-crumb]')], [], 'no trail back at the top level');
+  assert.equal(container.querySelector('[role="tab"][aria-selected="true"]').textContent.trim(), 'Tree',
+    'leaving an array of records leaves the Table view');
+
+  // The row's arrow opens a field on its own.
+  container.querySelector('[data-path="repos"] [aria-label="Open repos on its own"]').click();
+  assert.deepEqual([...container.querySelectorAll('[data-crumb]')].map(b => b.textContent.trim()), ['document.json', 'repos']);
 
   explorer.destroy();
 });
 
-test('JsonExplorer search filters and highlights matching nodes', () => {
+test('JsonExplorer search filters to matching rows and their ancestors', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {
     data: sampleSession,
   });
 
   explorer.updateSearch('run_cmd');
-  const matchBadge = container.querySelector('.badge-primary');
-  assert.ok(matchBadge, 'match count badge rendered');
-  assert.equal(matchBadge.textContent.trim(), '1');
+  assert.equal(container.querySelector('[data-match-count]').textContent.trim(), '1');
 
-  // Matched node should be highlighted
+  const paths = [...container.querySelectorAll('[data-path]')].map(r => r.dataset.path);
+  assert.deepEqual(paths, ['calls', 'calls[2]', 'calls[2].tool'], 'only the match and the way to it');
   const matchedRow = container.querySelector('.bg-primary\\/10');
   assert.ok(matchedRow, 'matched row highlighted');
   assert.ok(matchedRow.textContent.includes('run_cmd'));
 
   explorer.updateSearch('');
-  assert.equal(container.querySelector('.badge-primary'), null, 'match badge cleared on empty search');
+  assert.equal(container.querySelector('[data-match-count]').textContent, '', 'count cleared on empty search');
+  assert.equal(container.querySelectorAll('[data-path]').length, Object.keys(sampleSession).length);
 
+  explorer.destroy();
+});
+
+test('JsonExplorer keeps one filter input across renders, so typing is not interrupted', () => {
+  const container = window.document.getElementById('c');
+  const explorer = JsonExplorer.mount(container, { data: sampleSession });
+  const input = container.querySelector('input[type="search"]');
+  explorer.updateSearch('csv');
+  assert.equal(container.querySelector('input[type="search"]'), input,
+    'the input survives a render; it was rebuilt on every keystroke and lost focus');
+  explorer.setView('schema');
+  explorer.setView('tree');
+  assert.equal(container.querySelector('input[type="search"]'), input);
   explorer.destroy();
 });
 

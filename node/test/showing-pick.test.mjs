@@ -192,16 +192,34 @@ test('documents ride after the page links, and generated files are not documents
 test('the data route takes a look link like a page does, and spells a space', () => {
   const d = run('docs/a b.md', ['--at', 'show=text:Intro&say=Start here']);
   assert.equal(d.mechanism, 'toss-data');
-  assert.match(d.links[0].url, /#data=mehrlander\/web-tools@0{12}:docs\/a%20b\.md#show=text:Intro&say=Start here$/);
+  assert.match(d.links[0].url, /#data=mehrlander\/web-tools@0{12}:docs\/a%20b\.md%23show=text:Intro%26say=Start here$/);
 });
 
 test('a look fragment inside a toss keeps its escapes through the toss', () => {
   // toss-render percent-decodes its whole value once, so a `%23` written for a
   // "#" in an intro would reach the frame as a bare "#" and split the fragment.
   const d = run('docs/a.md', ['--intro', 'PR #1035 & more']);
-  assert.match(d.links[0].url, /#intro=PR%2520%25231035%2520%2526%2520more$/);
-  const once = decodeURIComponent(d.links[0].url.split('#').pop());
-  assert.equal(new URLSearchParams(once).get('intro'), 'PR #1035 & more');
+  assert.match(d.links[0].url, /%23intro=PR%2520%25231035%2520%2526%2520more$/);
+  const url = d.links[0].url;
+  const once = decodeURIComponent(url.slice(url.indexOf('#') + 1));
+  assert.equal(new URLSearchParams(once.slice(once.indexOf('#') + 1)).get('intro'), 'PR #1035 & more');
+});
+
+test('a toss link holds one raw "#", so a client that re-encodes an invalid URL leaves it alone', () => {
+  // A second raw "#" is not a legal URL character. The Claude app on an iPhone
+  // re-encodes a link holding one, "%" included, and the intro's card read
+  // "Swipe%20between%20sessions" (2026-10-22). The page's fragment rides
+  // behind "%23", and its own "&" as "%26", so the shell's look gate, which
+  // reads the shell's whole fragment, finds no page key of its own.
+  const d = run('pages/index.html', ['--query', 'view=a&x=1', '--intro', 'Look here', '--at', 'show=row']);
+  const url = d.links[0].url;
+  assert.equal(url.split('#').length, 2, url);
+  const shell = new URLSearchParams(url.slice(url.indexOf('#') + 1));
+  for (const k of ['intro', 'show']) assert.equal(shell.has(k), false, 'the shell reads no ' + k + '=');
+  const value = decodeURIComponent(url.slice(url.indexOf('#') + 1));
+  const page = new URLSearchParams(value.slice(value.indexOf('#') + 1));
+  assert.equal(page.get('intro'), 'Look here');
+  assert.equal(page.get('show'), 'row');
 });
 
 test('any HTML outside archive/ is a page file, a kit demo or a dated prototype alike', () => {
@@ -309,8 +327,10 @@ test('a page that routes on its own hash is warned about, and --at answers it', 
     'and the bare link carries no address');
 
   const at = run('pages/branch.html', ['--at', 'gh=owner/repo&pr=12']);
-  assert.ok(at.links[0].url.endsWith(':pages/branch.html#gh=owner/repo&pr=12'),
+  assert.ok(at.links[0].url.endsWith(':pages/branch.html%23gh=owner/repo%26pr=12'),
     'the address rides as a trailing fragment, which the toss hands the page as its own hash');
+  assert.ok(decodeURIComponent(at.links[0].url).endsWith(':pages/branch.html#gh=owner/repo&pr=12'),
+    'and the toss\'s one decode gives the page exactly that address');
   assert.equal(at.warnings.filter(w => /location\.hash/.test(w)).length, 0,
     'and the warning stands down once an address is given');
 });
@@ -464,7 +484,7 @@ test('--at puts a fragment on a framed link', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--at', 'note=abc']);
   assert.equal(d.mechanism, 'toss-app');
-  assert.match(d.links[0].url, /#note=abc$/);
+  assert.match(d.links[0].url, /%23note=abc$/);
 });
 
 // ── The overlay (docs/loader.md, "The selection") ───────────────────────────
