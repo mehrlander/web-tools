@@ -568,7 +568,7 @@ test('a page that takes look links says so, and a look link naming no anchor is 
   assert.equal(d.look.length, 1);
   assert.equal(d.look[0].page, 'lib/kits/demos/look.html');
   assert.ok(d.look[0].anchors.includes('btn-export'));
-  assert.ok(d.look[0].walks.includes('change-licenses'));
+  assert.ok(d.look[0].walkthroughs.includes('change-licenses'));
   d = run('lib/kits/demos/look.html', ['--at', 'tap=btn-export&say=here']);
   assert.deepEqual(d.look, [], 'a link already carrying a look key needs no hint');
   assert.ok(!d.warnings.some(w => /look link/.test(w)), 'and a resolving anchor draws no warning');

@@ -972,10 +972,10 @@ GLYPH = {"toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay"
 # reading lives in python/look-link.py, imported rather than repeated; where
 # that file is absent (this script fetched alone into another repo) the hint
 # is simply not given.
-LOOK_KEYS = ("show", "tap", "walk", "steps", "intro")
+LOOK_KEYS = ("show", "tap", "walkthrough", "steps", "intro")
 # The keys that name a place on the page, which are the ones an anchor check
 # reads; an intro is a message with no target.
-ANCHORED = ("show", "tap", "walk", "steps")
+ANCHORED = ("show", "tap", "walkthrough", "steps")
 _look = []
 
 
@@ -1019,16 +1019,16 @@ def look_hints(subjects, at, warn):
                     warn.append(f"the look link's steps= cannot be read; make it with {look_cmd()} make {p} --steps '<json>'.")
                     continue
             for miss in ll.asked(info, show=asked.get("show"), tap=asked.get("tap"),
-                                 walk=asked.get("walk"), steps=steps):
+                                 walkthrough=asked.get("walkthrough"), steps=steps):
                 warn.append(f"look link on {p}: {miss}, so the reader would get a \"not on this page\" card. "
                             f"Its anchors: {look_cmd()} anchors {p}")
-        elif info["names"] or info["prefixes"] or info["walks"]:
+        elif info["names"] or info["prefixes"] or info["walkthroughs"]:
             # Only a page that declares anchors gets the hint: every page that
             # boots the loader takes look links, and a hint on all of them
             # would be noise at every handover.
             names = sorted(info["names"])
             hints.append({"page": p, "anchors": names[:6], "more": max(0, len(names) - 6),
-                          "prefixes": sorted(info["prefixes"]), "walks": sorted(info["walks"])})
+                          "prefixes": sorted(info["prefixes"]), "walkthroughs": sorted(info["walkthroughs"])})
     return hints
 
 
@@ -1103,10 +1103,10 @@ def lines(d):
         for h in d.get("look", []):
             more = [f"+{h['more']} more"] if h["more"] else []
             named = h["anchors"] + more + [x + "*" for x in h["prefixes"]]
-            walks = f"; walks: {', '.join(h['walks'])}" if h["walks"] else ""
+            walkthroughs = f"; walkthroughs: {', '.join(h['walkthroughs'])}" if h["walkthroughs"] else ""
             make = f"{look_cmd()} make {h['page']} --show <anchor> --say '<why>'"
             out.append(f"look: {h['page']} takes look links, so the link can land on the place you mean "
-                       f"(anchors: {', '.join(named)}{walks}). Rerun with --at \"$({make})\".")
+                       f"(anchors: {', '.join(named)}{walkthroughs}). Rerun with --at \"$({make})\".")
     for w in d["warnings"]:
         out.append("! " + w)
     return out
