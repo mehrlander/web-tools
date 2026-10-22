@@ -37,7 +37,7 @@ node/build/tools-index.mjs,restamp the derived half of this registry,node/build,
 node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,262,npm:ui-instances,,yes,yes,no
 node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,312,imported,node/build/ui-instances.mjs;node/build/ui-shots.mjs,no,yes,no
 node/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at desktop and phone width and write the JPEG thumbnails and thumbs.csv the Map's UI > Patterns gallery reads, public units here and home's in web-tools-private",node/build,253,npm:ui-shots,,yes,yes,no
-node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",node/build,52,npm:vendor-docs,.githooks/pre-commit,yes,no,yes
+node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",node/build,52,npm:vendor-docs,.githooks/pre-commit,yes,yes,yes
 node/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,node/build,85,npm:verify-build,,no,yes,no
 node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,144,argv,,no,yes,yes
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,.claude/hooks/session-githooks.sh;.claude/hooks/session-start.sh;README.md;node/README.md;node/test/,yes,yes,yes
@@ -330,10 +330,11 @@ skills/hooks/invoke-sessions.sh,tells a session to invoke /portable:sessions whe
 skills/hooks/machine-paths.py,the machine-path gate a repo's .githooks/commit-msg calls: refuses a commit whose added lines name a path into one machine's user folder; --tree scans every tracked file for the suite,skills/hooks,139,imported,.githooks/commit-msg,no,no,yes
 skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,skills/hooks,41,hook:PostToolUseFailure,,no,yes,no
 skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,skills/hooks,88,hook:PostToolUse,,no,yes,no
+skills/hooks/program-files.sh,,skills/hooks,44,hook:PostToolUse,,yes,no,yes
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,.githooks/pre-commit,no,yes,yes
 skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,70,hook:SessionStart,,no,yes,yes
-skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,150,hook:Stop,,no,no,yes
+skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,150,hook:Stop,,no,yes,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,,no,no,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes

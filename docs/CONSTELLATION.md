@@ -97,6 +97,12 @@ sessions needs one; a project does not need a tracker to exist. Repositories
 declare their projects in `.web-tools.json`, which the Map's Projects view and
 the project navigation both read.
 
+A program is created to organize work and related resources around an ongoing
+concern. It has a folder of its own, `programs/<name>/`, whose README.md is its
+charter and where its material accumulates; the files it governs stay where they
+sit, declared under `programs` in `.web-tools.json`. A session takes on its
+manager role through `/portable:programs <name>`.
+
 Research keeps a question together with what was tried or gathered, the
 findings, and the material that lets someone inspect them. It lives outside
 `docs/`, usually under `research/` in its repository or project. A small probe

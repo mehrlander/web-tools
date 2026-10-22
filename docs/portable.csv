@@ -5,6 +5,7 @@ skill,/portable:load-skill,skills/load-skill/SKILL.md,load-skill,,plugin
 skill,/portable:web-tools-app,skills/web-tools-app/SKILL.md,web-tools-app,,plugin
 skill,/portable:tree,skills/tree/SKILL.md,tree,,plugin
 skill,/portable:in-flight,skills/in-flight/SKILL.md,in-flight,,plugin
+skill,/portable:programs,skills/programs/SKILL.md,programs,,plugin
 skill,/portable:tasks,skills/tasks/SKILL.md,tasks,,plugin
 skill,/portable:repo-review,skills/repo-review/SKILL.md,repo-review,,plugin
 skill,/portable:sandbox-traps,skills/sandbox-traps/SKILL.md,sandbox-traps,,plugin
