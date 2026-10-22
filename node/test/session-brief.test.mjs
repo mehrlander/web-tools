@@ -751,6 +751,24 @@ test('a Markdown view born with an empty html is read, once', async () => {
   } finally { window.marked = was; }
 });
 
+test('one container: the views are a tab and the calls are the Calls tab\'s alone', () => {
+  // The page drew two: the head and a views card exactly one screen tall,
+  // with the tabs a screen down, and the user calls listed above them as
+  // well as in their own tab (owner, 2026-10-22). Read off the source, since
+  // jsdom lays nothing out.
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
+  const at = src.indexOf('── NOW: where the session');
+  const now = src.slice(at, src.indexOf('</section>', at));
+  assert.ok(at > 0 && now.length > 2000, 'the Now section, found and whole');
+  assert.doesNotMatch(now, /in calls"/, 'no call is listed above the tabs');
+  assert.doesNotMatch(now, /data-views/, 'and no views card');
+  assert.match(now, /<div x-show="now" data-peek-host/, 'the card is the action message, where there is one');
+  assert.doesNotMatch(src, /h-\[calc\(100dvh-4\.75rem\)\]/, 'nothing above the tabs is sized to the screen');
+  assert.match(src, /x-show="pane === 'views' && work\.views\.length"/, 'the views are a pane');
+  assert.match(src, /data-session-views-tab/, 'behind a tab of their own');
+  assert.match(src, /pane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
+});
+
 test('a session that names no checkout draws no pill', () => {
   const d = lent();
   const was = d.record;
