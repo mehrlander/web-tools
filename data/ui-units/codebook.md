@@ -28,16 +28,16 @@ draws it.
 
 ## Fields
 
-A unit is coded on seven **dimensions**. `frame`, `body`, `reach`, `binding`
-and `phone` say how it is arranged; `occasion` and `answer` say which kind of
-form it is ([docs/forms/README.md](../../docs/forms/README.md)). Each is a
-row of [`dimensions.csv`](dimensions.csv), which says what the dimension holds, the test that decides it, and whether a unit takes
-exactly one of its codes (`per_unit` is `one`) or any number of them (`any`).
-A sixth row, `ring`, is computed rather than coded (README, "Rings"). The
-codes a dimension divides the units into are the rows of `codes.csv` whose
-`axis` names it. The Map view renders both files: Dimensions shows
-each dimension with its codes and counts, and Gallery groups the units' shots
-by any one of them.
+A unit is coded on seven **dimensions**. `frame`, `body`, `reach`, `binding` and
+`phone` say how it is arranged; `occasion` and `answer` say which kind of form
+it is ([docs/forms/README.md](../../docs/forms/README.md)). Each is a row of
+[`dimensions.csv`](dimensions.csv), which says what the dimension holds, the
+test that decides it, and whether a unit takes exactly one of its codes
+(`per_unit` is `one`) or any number of them (`any`). An eighth row, `ring`, is
+computed rather than coded (README, "Rings"). The codes a dimension divides the
+units into are the rows of `codes.csv` whose `axis` names it. The Map view
+renders both files: Dimensions shows each dimension with its codes and counts,
+and Gallery groups the units' shots by any one of them.
 
 The other fields record what draws the unit and how sure the reader is:
 
