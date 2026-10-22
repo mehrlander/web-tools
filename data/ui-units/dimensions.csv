@@ -5,5 +5,5 @@ reach,Reach,what one tap on the body opens,"the thing opens over or beside the b
 binding,Binding,"how the body's regions, or the body and its reach, are tied",the strongest tie present,one,coded.csv binding,
 phone,Phone,what changes below 640 pixels wide,"compare the two screenshots, or read the breakpoint in code",one,coded.csv phone,
 ring,Ring,how far the unit sits from the Web Tools app's center,the declaration the unit's ring_basis names,one,units.csv app_ring,
-occasion,Occasion,"what brings the reader to the unit: what persists, what work raised, or a collection of what work raised","the unit draws one payload that a link or file carries, which a session, a run or a sprint produced for the reader",one,coded.csv occasion,
-answer,Answer,what the reader gives back on the unit,"a control on the unit records the reader's judgment of what it shows, and the record outlives the page",any,coded.csv answer,
+occasion,Occasion,"what brings the reader to the unit: what persists, what work raised, or a collection of what work raised","the unit draws one payload that a session, a run or a sprint made for the reader, carried by the link or file that opens it",one,coded.csv occasion,
+answer,Answer,what the reader gives back on the unit,"a control on the unit records the reader's judgment of what it shows, and the unit writes it where the work that raised it can read it: a repository, a store or a reply address; browser storage and the clipboard do not count",any,coded.csv answer,

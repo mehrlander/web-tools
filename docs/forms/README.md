@@ -25,9 +25,14 @@ An occasioned form is known by the answer it asks for.
 | decision | approves or returns one proposal | the Approve page (`approval/1`); a user call | a verdict file beside the request; the call's `answers.jsonl` |
 | choice | picks one of several alternatives | the idea board; the design sprint's option page | chat |
 | change | keeps or discards each proposed edit | Dictate and the Map's Docs tab for a documentation call; the Proposals view | the call's `answers.jsonl`; the target file |
-| label | gives each item one label from a fixed set | none yet | |
+| label | gives each item one label from a fixed set | the audit render (`audit/1`) | the standoff file, saved back to its path |
 | reaction | votes or comments, closing nothing | Text Lab; the Tending view | home's `reviews.jsonl`; the notes store |
 | questionnaire | fills in named boxes | the Inquiry page (`inquiry/1`) | the payload's `reply_to` |
+
+An answer counts only where the form writes it for the work that raised it to
+read. The idea board and Shorter collect a choice and a change review but keep
+them in the browser or hand them over by copying, so they reach the work only
+through chat.
 
 A diff is a way of drawing a change, not a kind of form: a diff of a proposed
 edit belongs to a change form, and a diff of two pasted texts is a tool.
