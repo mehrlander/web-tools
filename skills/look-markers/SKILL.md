@@ -57,8 +57,8 @@ Prefer `data-at` names and ids: only they are checked before sending.
 - A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); it loads
   the kit when a fragment asks.
 - Any page through a toss link (🥏); the renderer adds the kit. A framed toss keeps a
-  walkthrough on its one page, so `npm run showing` opens a link whose steps name pages
-  as the tab (`?top`) and writes each step's page at the link's ref.
+  walkthrough on its one page; for steps on other pages, `npm run showing` makes the
+  link a top-level toss (`?top`).
 - A document through the data route (🥏 `#data=`); name a heading with `text:`.
 - A page that loads `lib/kits/look.js`.
 - Not inside a frame of the budget-drs app; link the framed page itself.
