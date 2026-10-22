@@ -31,7 +31,7 @@ checks[].staleOver,number,app,,no,dir-count: the count above which a folder mean
 checks[].ignore,array,app,,no,dir-count: names not counted. Defaults to .gitkeep.
 checks[].awaitingOver,number,app,,no,tracker: the number of tasks awaiting someone above which the check fails. Default 0.
 links,string,app,,,Path to the repo's links board (the store pages/links.html renders). The shell surfaces items flagged `rail: true` as the rail. Which board is this field; what is on the rail is the board itself.
-programs,array,app,,,"The repo's programs: ongoing concerns that keep a standard other work follows, each governing files wherever they sit and naming its charter, measures and reviewers (docs/CONSTELLATION.md, Programs). Read by the Map's Programs tab, the programs skill and the program-files hook."
+programs,array,app,,,"The repo's programs: each organizes work and related resources around an ongoing concern, governing files wherever they sit and naming its charter, measures and reviewers (docs/CONSTELLATION.md, Programs). Read by the Map's Programs tab, the programs skill and the program-files hook."
 programs[].name,string,app,,yes,"The program's key: what /portable:programs takes, and the `project:` value its tasks carry in the repo's tracker."
 programs[].label,string,app,,no,Display name. Defaults to the name.
 programs[].icon,string,app,,yes,A `ph-` glyph drawn wherever the program is named.

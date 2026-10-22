@@ -1,17 +1,17 @@
 ---
 name: programs
-description: "Manage a declared program, an ongoing concern that keeps a standard other work follows, such as surfacing. Reports what changed in its governed files, what its measures show, its open tasks and the snags on its files, then works a proposed change through its reviewers to the owner. Use when the owner invokes /portable:programs with a program's name, when the program-files hook names a program after an edit, or when asked how a program is doing or to manage one."
+description: "Manage a declared program, which organizes work and related resources around an ongoing concern such as surfacing. Reports what changed in its governed files, what its measures show, its open tasks and the snags on its files, then works a proposed change through its reviewers to the owner. Use when the owner invokes /portable:programs with a program's name, when the program-files hook names a program after an edit, or when asked how a program is doing or to manage one."
 ---
 
 # programs
 
 ## Premise
 
-A standard that every session follows, such as how a reply reaches the reader,
-changes often and is changed by whichever session is at hand. Nothing returns to
-ask whether a change did what it was meant to. A program gives the standard a
-declaration (`programs` in `.web-tools.json`), a charter in `docs/programs/`,
-measures, reviewers and a slice of the tracker. The manager is the role a session
+An ongoing concern, such as how a reply reaches the reader, changes often, and
+whichever session is at hand changes it. Nothing returns to ask whether a change
+did what it was meant to. A program gives the concern a declaration (`programs`
+in `.web-tools.json`), a charter in `docs/programs/`, measures, reviewers and a
+slice of the tracker. The manager is the role a session
 takes on here; the record stays with the program, whoever fills the role.
 
 ## Goal and output
