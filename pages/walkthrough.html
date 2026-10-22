@@ -342,6 +342,7 @@ document.addEventListener('alpine:init', () => {
           ids: () => this.rows().map(r => r.id), sel: () => this.sel[this.lens],
           noun: 'item', seam: 'walkthrough-list', listMax: 'max-h-[38vh]',
           name: id => this.nameOf(id),
+          head: ({ i, n, tight }) => this.headHtml(i, n, tight),
           body: id => this.cardHtml(id),
           drawn: el => this.mountReviews(el),
           release: (i, el) => this.releaseReview(el),
@@ -353,6 +354,8 @@ document.addEventListener('alpine:init', () => {
           },
           deck: () => this.openDeck(),
         });
+        // The head row may wrap: a file's readings drop to a second line on a phone.
+        this.$refs.card.querySelector('[data-ls="head"]')?.classList.add('flex-wrap');
       } else {
         this._swiper.mount();
       }
@@ -376,8 +379,10 @@ document.addEventListener('alpine:init', () => {
         title: LENSES.find(l => l[0] === this.lens)[1], icon: 'ph-broom', innerClass: 'w-full',
         index: i => ({ title: this.plain(rows[i].title), group: rows[i].facet }),
         render: (i, el) => {
-          el.innerHTML = `<h2 class="mb-1 text-2xl font-bold text-balance break-words">${esc(this.plain(rows[i].title))}</h2>`
-            + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>` + this.cardHtml(rows[i].id, true);
+          // A file's slide is its card, which names the file in its own row.
+          el.innerHTML = (rows[i].type === 'file' ? ''
+            : `<h2 class="mb-1 text-2xl font-bold text-balance break-words">${esc(this.plain(rows[i].title))}</h2>`
+              + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>`) + this.cardHtml(rows[i].id, true);
           this.mountReviews(el);
         },
         release: (i, el) => this.releaseReview(el),
@@ -482,7 +487,7 @@ document.addEventListener('alpine:init', () => {
     // reading is the summary below (the card's hostPane), then the file and the
     // comparisons.
     docCard(it, size) {
-      return `<div data-review="${esc(it.id)}" data-size="${size}"></div>`;
+      return `<div data-review="${esc(it.id)}" data-size="${size}" data-hosted="${size === 'text-sm' ? 1 : 0}"></div>`;
     },
     docSummary(it, size) {
       const m = this.m(it), s = m.survey, out = [];
@@ -543,6 +548,9 @@ document.addEventListener('alpine:init', () => {
         path: s.path, prevPath: it.change?.previous_path || '', status: STATUS[it.change?.status] || it.change?.status || '',
         additions: this.m(it).lines_added ?? null, deletions: this.m(it).lines_removed ?? null,
         open: true, read: true, fill: true, openOn: this.tab,
+        // In the strip the card is content alone and its controls ride the
+        // strip's head row (headHtml); in the takeover it keeps its own row.
+        hosted: box.dataset.hosted === '1', onChrome: () => this.repaint(it.id),
         hostPane: { label: 'Summary', icon: 'ph-list-bullets', html: () => this.docSummary(it, size) },
         onView: id => { this.tab = id; this.address(); },
       };
@@ -550,6 +558,36 @@ document.addEventListener('alpine:init', () => {
       el.setAttribute('x-data', `fileReview(window.${key})`);
       box.append(el);
       window.Alpine.initTree(el);
+      if (box.dataset.hosted === '1') queueMicrotask(() => this.repaint(it.id));
+    },
+    // The strip's card for a file is the file card, so the strip draws ONE head
+    // row and the card none: the file's name and its GitHub menu, the card's
+    // readings, then the kit's arrows, counter and full-screen door. What the
+    // card would draw is read off it, as kits/file-deck.js does for its header.
+    cardData(id) {
+      const el = this.$refs.card?.querySelector(`[data-review="${CSS.escape(id)}"] [x-data^="fileReview"]`);
+      try { return el ? window.Alpine.$data(el) : null; } catch { return null; }
+    },
+    repaint(id) { if (id === this.sel[this.lens]) this._swiper?.paint(); },
+    headHtml(i, n, tight) {
+      const id = this.rows()[i]?.id, d = this.byId(id)?.type === 'file' ? this.cardData(id) : null;
+      // Where the row is tight and carries the card's controls, the name drops
+      // its folder, which the list just above already shows.
+      const name = d && tight ? { title: this.nameOf(id).title } : this.nameOf(id);
+      const kit = linkedSwiper.head(name, i, n, 'item', { deck: true, tight });
+      if (!d) return kit;
+      const btn = 'btn btn-ghost btn-xs sm:btn-sm btn-square shrink-0';
+      const gh = d.ghLinks.length ? `<details class="dropdown shrink-0"><summary class="btn btn-ghost btn-xs px-1 text-base-content/50" aria-label="This file on GitHub">`
+        + `<i class="ph ph-github-logo text-base"></i><i class="ph ph-caret-down text-[10px] opacity-60"></i></summary>`
+        + `<ul class="menu dropdown-content z-20 w-56 rounded-box border border-base-300 bg-base-100 p-1 text-sm shadow">`
+        + d.ghLinks.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener"><i class="ph ${esc(l.icon)}"></i>${esc(l.label)}`
+          + `<span class="ml-auto font-mono text-xs opacity-50">${esc(l.hint || '')}</span></a></li>`).join('') + '</ul></details>' : '';
+      // On a phone the readings take a line of their own under the name, so the
+      // name keeps its width (the head row wraps; see mountList).
+      const views = `<div class="flex shrink-0 items-center max-sm:order-last max-sm:w-full">` + d.viewModes.map(m => `<button type="button" class="${btn}${m.on ? ' btn-active' : ''}"`
+        + ` data-act="view" data-key="${esc(m.key)}" aria-label="${esc(m.label)}" aria-pressed="${!!m.on}"><i class="ph ${esc(m.icon)} text-base"></i></button>`).join('') + '</div>';
+      const cut = kit.indexOf('</h2>') + 5;
+      return kit.slice(0, cut) + gh + views + kit.slice(cut);
     },
     releaseReview(root) {
       for (const box of root?.querySelectorAll?.('[data-mounted]') || []) delete window[box.dataset.mounted];
@@ -560,6 +598,10 @@ document.addEventListener('alpine:init', () => {
       if (!b) return;
       if (b.dataset.act === 'goto') { if (this._deck && this.lens !== 'documents') this._deck.close?.(); this.goto(b.dataset.id); }
       if (b.dataset.act === 'filter') this.setFilter(b.dataset.key, b.dataset.value);
+      if (b.dataset.act === 'view') {
+        const d = this.cardData(this.sel[this.lens]), m = d?.viewModes.find(v => v.key === b.dataset.key);
+        if (m) d.pickView(m);
+      }
     },
 
     // Loading -----------------------------------------------------------------
