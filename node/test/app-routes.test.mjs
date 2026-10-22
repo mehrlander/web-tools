@@ -232,7 +232,8 @@ test('the two sub-tab encodings, counted', () => {
   // Names, read from the private registry. 43 to 44 on 2026-10-20: the Map
   // took `events`, the view of what runs on an event that Automation's
   // trigger row opens; Scheduled moved under the same row and kept its key.
-  assert.equal(params, 44, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 44 to 45 on 2026-10-22: Harness took Programs, the declared programs.
+  assert.equal(params, 45, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

@@ -101,5 +101,36 @@
       "label": "Category mapping: skills and methods for finding the characteristics that separate a set of things",
       "kind": "exploration"
     }
+  ],
+  "programs": [
+    {
+      "name": "surfacing",
+      "label": "Surfacing",
+      "icon": "ph-megaphone",
+      "path": "programs/surfacing",
+      "governs": [
+        "docs/SURFACING.md",
+        "docs/surfacing-course.md",
+        "docs/surfacing.csv",
+        "docs/showing.md",
+        "docs/showing-mechanisms.csv",
+        "python/showing.py",
+        "python/look-link.py",
+        "skills/look-markers/SKILL.md",
+        "skills/claude-markdown/SKILL.md",
+        "skills/hooks/reply-check.py"
+      ],
+      "measures": [
+        "mehrlander/web-tools-private@background:state/closings.json"
+      ],
+      "reviewers": [
+        "portable:owner-proxy",
+        "portable:peeves-critic"
+      ],
+      "views": [
+        "?view=map&tab=surfacing",
+        "?view=map&tab=showing"
+      ]
+    }
   ]
 }

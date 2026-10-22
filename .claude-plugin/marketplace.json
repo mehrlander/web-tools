@@ -34,6 +34,7 @@
         "./sessions",
         "./tend",
         "./notes",
+        "./programs",
         "./atomic-decomposition",
         "./bake-page",
         "./cat-map",
