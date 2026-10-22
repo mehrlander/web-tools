@@ -714,35 +714,23 @@ test('the checkouts panel lists every branch with work on it, under its reposito
        + 'and a checkout the session only pushed from is still a checkout');
     assert.equal(d.scopePushed, 3, 'the header counts branches pushed');
     assert.match(d.scopeRows[0].branches[0].url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
-    // What the page read live, once loadWork has run: the PR, and the count
-    // of renderable views. A PR also counts as pushed for a record that
-    // predates `pushed`.
-    const work = d.work.branches;
-    d.work.branches = [{ repoShort: 'home', branch: 'claude/a-1', pr: 7, prState: 'open', prUrl: 'pr7',
-                         views: 2, ahead: 2, url: 'live-url' }];
+    // What the page read live, once loadWork has run: the PR, the branch's
+    // place in the branch deck, and its views counted from every view, not
+    // the strip's first 24, which once left a count that opened nothing.
+    const work = d.work.branches, all = d.work.allViews;
+    d.work.branches = [{ repoShort: 'web-tools', branch: 'claude/z-9', ahead: 1 },
+                       { repoShort: 'home', branch: 'claude/a-1', pr: 7, prState: 'open', prUrl: 'pr7', ahead: 2, url: 'live-url' }];
+    d.work.allViews = [{ repoShort: 'home', branch: 'claude/a-1' }, { repoShort: 'home', branch: 'claude/a-1' },
+                       { repoShort: 'web-tools', branch: 'claude/a-1' }];
     const home = d.scopeRows[0].branches[0];
-    assert.deepEqual([home.pr, home.prState, home.views, home.word, home.url], [7, 'open', 2, 'pushed', 'live-url']);
-    d.work.branches = work;
+    assert.deepEqual([home.pr, home.prState, home.views, home.word, home.url, home.n],
+                     [7, 'open', 2, 'pushed', 'live-url', 1]);
+    assert.equal(d.scopeRows.find(g => g.name === 'web-tools-private').branches.length, 0);
+    d.work.branches = work; d.work.allViews = all;
     d.record = { ...d.rec, schema: 4, attached: undefined, pushed: undefined,
       repos: [{ name: 'web-tools', branch: 'claude/a-1' }] };
     assert.deepEqual(shape(), { 'web-tools': '' }, 'an old record makes no claim about commits');
   } finally { d.record = was; }
-});
-
-test('the Now section draws two branch rows at most, the most recently moved', () => {
-  // A long session pushed 26 branches under 16 names and drew sixteen rows of
-  // chips. The rest are one line that opens the checkouts panel.
-  const d = lent();
-  const work = d.work.branches;
-  const b = (branch, repoShort, updated) => ({ branch, repoShort, short: branch, slug: 'me/' + repoShort, updated });
-  try {
-    d.work.branches = [b('claude/old', 'home', '2026-10-01T00:00:00Z'), b('claude/new', 'web-tools', '2026-10-09T00:00:00Z'),
-                       b('claude/new', 'home', '2026-10-03T00:00:00Z'), b('claude/mid', 'web-tools', '2026-10-05T00:00:00Z')];
-    assert.equal(d.workGroups.length, 3);
-    assert.deepEqual(Array.from(d.shownWorkGroups, g => g.branch), ['claude/new', 'claude/mid']);
-    assert.deepEqual(Array.from(d.shownWorkGroups[0].items, x => x.n), [1, 2],
-      'a chip still opens the deck at its own place in the whole order');
-  } finally { d.work.branches = work; }
 });
 
 test('a session that names no checkout draws no pill', () => {
