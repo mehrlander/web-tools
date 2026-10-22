@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Themes options</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // An option page (skills/design-sprint, "Comparing working options"): four
+  // layouts of the Map's Themes tab, built 2026-10-22 to choose how Similar
+  // wording should sit beside the identical runs. Each option is drawn in full
+  // over the real data, under a thin strip that switches between them and is
+  // tinted apart from the page; #v=a to #v=d addresses one. Option D was
+  // built (lib/alpineComponents/map.js, the Themes section). Not app code: the
+  // app's markup and kits are imitated or loaded so each option can be seen
+  // and, for D, swiped. Data is read at main, so it shows the tab's data today.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  for (const k of ['kits/csv.js', 'kits/swipe-deck.js', 'kits/dock-split.js', 'kits/linked-swiper.js']) await gh.load(k);
+
+  const SHA = 'main';
+  const RAW = p => `https://raw.githubusercontent.com/mehrlander/web-tools/${SHA}/${p}`;
+  const get = p => fetch(RAW(p)).then(r => r.text());
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const dir = p => p.slice(0, p.lastIndexOf('/') + 1), base = p => p.slice(p.lastIndexOf('/') + 1);
+  // A generic file name says nothing alone: SKILL.md is its skill's folder.
+  const GENERIC = /^(SKILL|README|PROMPT|IMPORT|index)\.md$/;
+  const short = p => GENERIC.test(base(p)) ? p.split('/').slice(-2).join('/') : base(p);
+
+  const [tcsv, dcsv, mcsv] = await Promise.all(['docs/themes.csv', 'data/doc-overlap/docs.csv', 'data/doc-overlap/matches.csv'].map(get));
+  const EDGES = Csv.rows(tcsv).map(e => ({ a: e.a, b: e.b, w: +e.w, quoted: Csv.list(e.quoted || '') }));
+  const EDGE = Object.fromEntries(EDGES.map(e => [e.a + '\n' + e.b, e]));
+  const DOCS = Object.fromEntries(Csv.rows(dcsv).map(d => [d.path, { words: +d.prose_words, shingles: +d.shingles }]));
+  const MATCHES = Csv.rows(mcsv).map(r => ({ ...r, start: +r.start, end: +r.end, line: +r.line, words: +r.words,
+    target_start: +r.target_start, target_end: +r.target_end, target_line: +r.target_line, target_words: +r.target_words, cosine: +r.cosine }));
+
+  const S = { c: 'd', th: 12, measure: 'identical', cut: 0.78, short: false, open: {} };
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('v')) S.c = h.get('v');
+  if (h.get('open')) S.openFirst = true;
+  if (h.get('m')) S.measure = h.get('m');
+
+  // ── The tab's own derivations, as map.js has them ────────────────────────
+  function clusters(th) {
+    const edges = EDGES.filter(e => e.w >= th).sort((x, y) => y.w - x.w), p = {};
+    const find = x => { if (p[x] == null) p[x] = x; while (p[x] !== x) { p[x] = p[p[x]]; x = p[x]; } return x; };
+    for (const e of edges) { const a = find(e.a), b = find(e.b); if (a !== b) p[a] = b; }
+    const by = {};
+    for (const e of edges) { const g = (by[find(e.a)] ||= { files: new Set(), edges: [] }); g.files.add(e.a); g.files.add(e.b); g.edges.push(e); }
+    return Object.values(by).map(g => {
+      const rows = {};
+      for (const e of g.edges) {
+        const key = (e.quoted[0] || '').split(' ').slice(0, 10).join(' ');
+        const r = (rows[key] ||= { key, w: e.w, quoted: [], files: new Set() });
+        for (const q of e.quoted) if (!r.quoted.includes(q)) r.quoted.push(q);
+        r.files.add(e.a); r.files.add(e.b);
+      }
+      return { files: [...g.files].sort(), w: g.edges[0].w, edges: g.edges, passages: Object.values(rows).map(r => ({ ...r, files: [...r.files] })) };
+    }).sort((x, y) => y.w - x.w || y.files.length - x.files.length);
+  }
+  function simPairs(cut = 0.78, short = false) {
+    const by = {};
+    for (const r of MATCHES) {
+      if (r.cosine < cut || (!short && Math.min(r.words, r.target_words) < 20)) continue;
+      const [a, b] = [r.source, r.target].sort();
+      const q = (by[a + '\n' + b] ||= { key: a + '\n' + b, a, b, seen: new Set(), wa: 0, wb: 0, matches: [] });
+      const k = r.source + ':' + r.start;
+      if (!q.seen.has(k)) { q.seen.add(k); if (r.source === a) q.wa += r.words; else q.wb += r.words; }
+      q.matches.push(r);
+    }
+    return Object.values(by).map(q => {
+      const fwd = new Set(q.matches.filter(m => m.source === q.a).map(m => m.start + ':' + m.target_start));
+      q.matches = q.matches.filter(m => m.source === q.a || !fwd.has(m.target_start + ':' + m.start))
+        .sort((x, y) => (x.source === q.a ? 0 : 1) - (y.source === q.a ? 0 : 1) || y.cosine - x.cosine);
+      const e = EDGE[q.key];
+      return { ...q, w: e ? e.w : 0, edge: e, semA: q.wa / (DOCS[q.a]?.words || 1), semB: q.wb / (DOCS[q.b]?.words || 1),
+               best: Math.max(...q.matches.map(m => m.cosine)) };
+    }).sort((x, y) => Math.max(y.semA, y.semB) - Math.max(x.semA, x.semB));
+  }
+  const SIM = simPairs();
+  const pct = x => x > 0 && x < 0.005 ? '<1%' : Math.round(100 * x) + '%';
+
+  // ── Files, fetched once, and the passages cut from them ──────────────────
+  const TEXT = {};
+  const text = p => TEXT[p] ||= get(p);
+  const TOKS = {};
+  function toks(t) {
+    if (TOKS[t.length + t.slice(0, 64)]) return TOKS[t.length + t.slice(0, 64)];
+    const low = t.toLowerCase(), re = /[a-z0-9']+/g, out = [];
+    let m; while ((m = re.exec(low))) out.push([m.index, m.index + m[0].length, m[0]]);
+    return TOKS[t.length + t.slice(0, 64)] = out;
+  }
+  // The run's place in the file: its words in order, or, where prose() dropped
+  // a table or a fence from the middle of it, its first and last eight words.
+  function locate(t, quote) {
+    const want = quote.split(' '), T = toks(t);
+    const seq = (ws, from = 0) => {
+      for (let i = from; i + ws.length <= T.length; i++) {
+        if (T[i][2] !== ws[0]) continue;
+        let k = 1; while (k < ws.length && T[i + k][2] === ws[k]) k++;
+        if (k === ws.length) return i;
+      }
+      return -1;
+    };
+    const i = seq(want);
+    if (i >= 0) return [T[i][0], T[i + want.length - 1][1]];
+    const n = Math.min(8, want.length), a = seq(want.slice(0, n));
+    if (a < 0) return null;
+    const b = seq(want.slice(-n), a);
+    return b >= 0 && b - a < want.length * 3 ? [T[a][0], T[b + n - 1][1]] : null;
+  }
+  // Every run of one passage in one file, as excerpts: runs closer than a few
+  // hundred characters share one excerpt, so context is never shown twice.
+  function excerpts(t, spans) {
+    spans = spans.filter(Boolean).sort((x, y) => x[0] - y[0]);
+    const groups = [];
+    for (const sp of spans) {
+      const g = groups[groups.length - 1];
+      if (g && sp[0] - g[g.length - 1][1] < 400) g.push(sp); else groups.push([sp]);
+    }
+    return groups.map(g => {
+      const s = g[0][0], e = g[g.length - 1][1];
+      let a = t.lastIndexOf('\n\n', s); a = a < 0 ? 0 : a + 2;
+      let b = t.indexOf('\n\n', e); b = b < 0 ? t.length : b;
+      const cutA = s - a > 200, cutB = b - e > 200;
+      if (cutA) a = t.indexOf(' ', s - 200) + 1;
+      if (cutB) b = t.lastIndexOf(' ', e + 200);
+      let out = cutA ? '…' : '', pos = a;
+      for (const [x, y] of g) {
+        if (x < pos) continue;
+        out += esc(t.slice(pos, x)) + '<mark class="rounded-sm bg-primary/10 text-base-content">' + esc(t.slice(x, y)) + '</mark>';
+        pos = y;
+      }
+      return out + esc(t.slice(pos, b)) + (cutB ? '…' : '');
+    });
+  }
+  async function fill(el) {
+    const SP = {};
+    for (const n of el.querySelectorAll('[data-run]')) {
+      const [f, i] = n.dataset.run.split('|'), qs = RUNS[i], t = await text(f);
+      const spans = qs.map(q => locate(t, q)), found = excerpts(t, spans);
+      // The same runs' places in every file of the card, for dropping matches below.
+      for (const g of el.querySelectorAll('[data-card]')) for (const ff of n.closest('[data-card]') ? [...new Set([...g.querySelectorAll('[data-m]')].flatMap(x => [x.dataset.m.split('|')[0], x.dataset.m.split('|')[3]]))] : [])
+        { const tt = await text(ff); (SP[ff] ||= []).push(...qs.map(q => locate(tt, q)).filter(Boolean)); }
+      const lost = qs.filter((q, j) => !spans[j]);
+      n.innerHTML = found.map(x => `<p class="text-base leading-7 whitespace-pre-wrap break-words">${unwrap(x)}</p>`).join('<div class="h-2"></div>')
+        + lost.map(q => `<p class="text-base leading-7 text-base-content/70 break-words">&ldquo;${esc(q)}&rdquo;</p>`).join('');
+    }
+    const hit = (f, s, e) => (SP[f] || []).some(([a, b]) => a < +e && +s < b);
+    for (const n of el.querySelectorAll('[data-m]')) {
+      const [a, s, e, b, ts, te] = n.dataset.m.split('|');
+      if (hit(a, s, e) || hit(b, ts, te)) n.remove();
+    }
+    for (const sec of el.querySelectorAll('[data-sims]')) {
+      const k = sec.querySelectorAll('[data-m]').length;
+      if (!k) sec.remove(); else sec.querySelector('[data-count]').textContent = k + ' similar passage' + (k > 1 ? 's' : '');
+    }
+    for (const n of el.querySelectorAll('[data-slice]')) {
+      const [f, s, e] = n.dataset.slice.split('|'), t = await text(f);
+      n.innerHTML = unwrap(esc(t.slice(+s, +e).trim()));
+    }
+  }
+  const RUNS = []; const run = q => RUNS.push(q) - 1;
+  const unwrap = html => html.replace(/\n(?!\n)(?![ \t]*([-*+] |\d+\. |#|\|))/g, ' ').replace(/[ \t]{2,}/g, ' ');
+
+  // ── Shared pieces in the app's own forms ─────────────────────────────────
+  const tally = (icon, n, noun) => `<span class="inline-flex items-baseline gap-1.5 text-sm text-base-content/60 tabular-nums">
+      <i class="ph ${icon} text-lg self-center text-base-content/50"></i><span class="text-base font-medium text-base-content">${n}</span><span class="max-sm:sr-only">${noun}</span></span>`;
+  const dial = (v, min, max, step, act, label) => `<div class="flex items-center gap-3 min-w-0 grow">
+      <span class="text-base text-base-content/50 shrink-0 tabular-nums"><span class="font-semibold text-base-content">${label}</span></span>
+      <input type="range" class="range range-xs range-primary w-full min-w-0 grow" min="${min}" max="${max}" step="${step}" value="${v}" data-act="${act}"></div>`;
+  const sw = (items, cur, act) => `<div class="join shrink-0">${items.map(([k, n, i]) => `
+      <button type="button" data-act="${act}" data-k="${k}" class="join-item btn btn-sm max-sm:h-11 gap-1.5 px-2.5 border-base-300 text-sm font-normal shadow-none ${cur === k ? 'bg-primary/10 text-primary' : 'bg-base-100 text-base-content/60'}">
+      <i class="ph ${i} text-lg"></i><span>${n}</span></button>`).join('')}</div>`;
+  const toolbar = (controls, actions = '') => `<div class="flex shrink-0 items-center gap-2 px-4 py-2 min-w-0"><div class="flex flex-wrap items-center gap-x-3 gap-y-2 grow min-w-0 min-h-8 max-sm:min-h-11 text-sm">${controls}</div>${actions}</div>`;
+  const fileLine = f => `<span class="min-w-0 wrap-anywhere"><span class="text-base-content/40">${esc(dir(f))}</span><span class="font-medium">${esc(base(f))}</span></span>`;
+  const files = fs => `<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-base">${fs.map((f, i) => (i ? '<span class="text-base-content/20">·</span>' : '') + fileLine(f)).join('')}</div>`;
+  // One similar match, the two passages side by side where the card is wide.
+  const matchBlock = m => `<div class="grid grid-cols-1 @2xl:grid-cols-2 gap-x-6 gap-y-2">
+      <div class="min-w-0"><div class="text-sm text-base-content/50 tabular-nums">${esc(short(m.source))} L${m.line} · ${m.cosine.toFixed(2)}</div>
+        <p class="text-base leading-7 whitespace-pre-wrap break-words" data-slice="${esc(m.source)}|${m.start}|${m.end}">…</p></div>
+      <div class="min-w-0"><div class="text-sm text-base-content/50 tabular-nums">${esc(short(m.target))} L${m.target_line}</div>
+        <p class="text-base leading-7 whitespace-pre-wrap break-words" data-slice="${esc(m.target)}|${m.target_start}|${m.target_end}">…</p></div></div>`;
+
+  // The current card: files, then each shared passage as its lowercased quote.
+  const quoteRows = ps => ps.map((e, pi) => `<div class="flex items-baseline gap-2 py-0.5">
+      <span class="tabular-nums text-sm shrink-0 w-10 text-right text-base-content/40">${e.w}</span>
+      <div class="min-w-0 grow">${e.files.length > 2 ? `<span class="text-sm text-base-content/50">in all ${e.files.length} files</span>` : ''}
+        <p class="text-base text-base-content/70 leading-6 mt-1 break-words">&ldquo;${esc(e.quoted[0].length > 180 ? e.quoted[0].slice(0, 180).replace(/\s+\S*$/, '') + '…' : e.quoted[0])}&rdquo;</p>
+        ${e.quoted.length > 1 || e.quoted[0].length > 180 ? `<button type="button" class="text-sm text-primary py-1">${e.quoted.length > 1 ? 'Show all ' + e.quoted.length + ' passages' : 'Show full passage'}</button>` : ''}
+      </div></div>`).join('');
+
+  // ── A · a switch between the two measures ────────────────────────────────
+  function viewA() {
+    if (S.measure === 'identical') {
+      const cl = clusters(S.th);
+      return toolbar(`${tally('ph-arrows-left-right', cl.reduce((n, g) => n + g.edges.length, 0), 'pairs')}${dial(S.th, 3, 200, 1, 'th', S.th + '+ shared')}`,
+          sw([['identical', 'Identical', 'ph-equals'], ['similar', 'Similar', 'ph-approximate-equals']], S.measure, 'measure'))
+        + `<div class="flex flex-col gap-2 px-4 pb-6">${cl.map(g => `<div class="border border-base-300 rounded-lg p-3 bg-base-100">
+            <div class="mb-2">${files(g.files)}</div>${quoteRows(g.passages)}</div>`).join('')}</div>`;
+    }
+    const ps = simPairs(S.cut, S.short);
+    return toolbar(`${tally('ph-arrows-left-right', ps.length, 'pairs')}${dial(S.cut, 0.75, 0.95, 0.01, 'cut', S.cut.toFixed(2) + '+ cosine')}
+          <label class="flex items-center gap-1.5 text-sm text-base-content/50 shrink-0"><input type="checkbox" class="toggle toggle-xs" data-act="short" ${S.short ? 'checked' : ''}> under 20 words</label>`,
+        sw([['identical', 'Identical', 'ph-equals'], ['similar', 'Similar', 'ph-approximate-equals']], S.measure, 'measure'))
+      + `<div class="flex flex-col px-4 pb-6">${ps.map(q => `<div class="border-b border-base-300 py-2">
+          <button type="button" class="w-full text-left" data-act="open" data-k="${esc(q.key)}">
+            <div class="flex items-baseline gap-2 flex-wrap text-base">${fileLine(q.a)}<i class="ph ph-arrows-left-right text-base-content/20"></i>${fileLine(q.b)}</div>
+            <div class="flex items-baseline gap-4 flex-wrap text-sm text-base-content/60 tabular-nums">
+              <span><span class="text-base-content/40">passages</span> <span class="text-primary font-semibold">${pct(q.semA)}</span> · <span class="text-primary font-semibold">${pct(q.semB)}</span></span>
+              ${q.best >= 0.85 ? '<span class="text-primary">likely restates</span>' : ''}
+              <span><span class="text-base-content/40">shingles</span> ${q.w}</span></div></button>
+          ${S.open[q.key] ? `<div class="@container flex flex-col gap-4 mt-3">${q.matches.map(matchBlock).join('')}</div>` : ''}</div>`).join('')}</div>`;
+  }
+
+  // ── B · the similar passages folded into each card ───────────────────────
+  function viewB() {
+    const cl = clusters(S.th);
+    let firsts = 0;
+    return toolbar(`${tally('ph-arrows-left-right', cl.reduce((n, g) => n + g.edges.length, 0), 'pairs')}${dial(S.th, 3, 200, 1, 'th', S.th + '+ shared')}`)
+      + `<div class="flex flex-col gap-2 px-4 pb-6">${cl.map(g => {
+          const sims = SIM.filter(p => g.files.includes(p.a) && g.files.includes(p.b));
+          return `<div class="border border-base-300 rounded-lg p-3 bg-base-100">
+            <div class="mb-2">${files(g.files)}</div>${quoteRows(g.passages)}
+            ${sims.map(p => {
+              const open = S.open[p.key] ?? (S.openFirst && firsts++ < 2);
+              return `<div class="mt-2 pt-2 border-t border-base-200">
+                <button type="button" data-act="open" data-k="${esc(p.key)}" class="flex items-center gap-2 text-sm text-primary py-1 text-left">
+                  <i class="ph ph-approximate-equals text-lg"></i><span>${esc(short(p.a))} ↔ ${esc(short(p.b))} · ${p.matches.length} similar passage${p.matches.length > 1 ? 's' : ''}</span>
+                  <i class="ph ${open ? 'ph-caret-up' : 'ph-caret-down'}"></i></button>
+                ${open ? `<div class="@container flex flex-col gap-4 mt-2">${p.matches.map(matchBlock).join('')}</div>` : ''}</div>`;
+            }).join('')}</div>`;
+        }).join('')}</div>`;
+  }
+
+  // ── C · related files on the document, in Docs › Inventory ──────────────
+  function viewC() {
+    const only = SIM.filter(p => !p.w), by = {};
+    for (const p of only) { (by[p.a] ||= []).push(p); (by[p.b] ||= []).push(p); }
+    const docs = Object.keys(by).sort((x, y) => by[y].length - by[x].length || x.localeCompare(y));
+    return toolbar(tally('ph-file-text', docs.length, 'documents'))
+      + `<div class="flex flex-col px-4 pb-6">${docs.map(d => `<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 border-b border-base-200 py-2">
+          <span class="text-base min-w-0 grow">${fileLine(d)}</span>
+          <span class="flex flex-wrap items-center gap-1.5">${by[d].map(p => { const o = p.a === d ? p.b : p.a; return `
+            <button type="button" data-act="pairdeck" data-k="${esc(p.key)}" class="shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm whitespace-nowrap bg-base-200/60 text-base-content/70 hover:text-primary">
+              <i class="ph ph-approximate-equals"></i><span>${esc(short(o))}</span><span class="font-mono opacity-60">${p.matches.length}</span></button>`; }).join('')}</span></div>`).join('')}</div>`;
+  }
+
+  // ── D · one list over a strip of cards ───────────────────────────────────
+  // Every repeat in one flat list, a marker per measure; a card per row in a
+  // strip below or beside it, holding both measures' passages in full.
+  let swiper = null, deck = null, sel = null, R = [];
+  function rowsD() {
+    const groups = clusters(S.th).map(g => ({ id: 'g:' + g.files.join('|'), kind: 'g', files: g.files, w: g.w, passages: g.passages,
+      sims: SIM.filter(p => g.files.includes(p.a) && g.files.includes(p.b)) }));
+    const inG = new Set(groups.flatMap(g => g.sims.map(p => p.key)));
+    const pairs = SIM.filter(p => !inG.has(p.key)).sort((x, y) => y.matches.length - x.matches.length || y.best - x.best).map(p => ({ id: 's:' + p.key, kind: 's', files: [p.a, p.b], w: p.w, sims: [p],
+      passages: p.edge ? [{ w: p.w, quoted: p.edge.quoted, files: [p.a, p.b] }] : [] }));
+    return [...groups, ...pairs];
+  }
+  const nameD = r => r.files.map(short).join(' · ');
+  function listD() {
+    let last = '';
+    return R.map(r => {
+      const label = r.kind !== last ? `<div class="sticky top-0 z-10 flex items-center gap-1.5 bg-base-200 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          <i class="ph ${r.kind === 'g' ? 'ph-equals' : 'ph-approximate-equals'} text-sm"></i>${(last = r.kind) === 'g' ? 'Identical runs' : 'Similar wording'}</div>` : '';
+      const n = r.kind === 'g' ? r.w : '≈' + r.sims[0].matches.length;
+      return label + `<div role="option" tabindex="0" data-row="${esc(r.id)}" aria-selected="${r.id === sel}" data-title-tip-bare data-title-tip="${esc(r.files.join('\n'))}"
+          class="flex cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-2 hover:bg-base-200 aria-selected:bg-primary/10">
+          <i class="ph ${r.kind === 'g' ? 'ph-equals text-primary' : 'ph-approximate-equals text-base-content/40'} shrink-0"></i>
+          <span class="min-w-0 flex-1 truncate text-base">${esc(nameD(r))}</span>
+          ${r.files.length > 2 ? `<span class="flex-none text-sm text-base-content/40 tabular-nums">${r.files.length} files</span>` : ''}
+          <span class="flex-none font-mono text-sm tabular-nums text-base-content/50">${n}</span></div>`;
+    }).join('');
+  }
+  function cardD(r) {
+    const ident = r.passages.map(e => `<section class="flex flex-col gap-1">
+        <div class="flex items-center gap-1.5 text-sm text-base-content/50 tabular-nums"><i class="ph ph-equals text-primary"></i>${e.w} shared runs${e.files.length > 2 ? ' · in all ' + e.files.length + ' files' : ''}</div>
+        <div data-run="${esc(e.files[0])}|${run(e.quoted)}">…</div></section>`).join('');
+    // A match whose text is a shared run (cosine 1, or overlapping a located
+    // run) says nothing the runs above have not; fill() drops it.
+    const sims = r.sims.map(p => `<section class="flex flex-col gap-3" data-sims>
+        <div class="flex items-center gap-1.5 text-sm text-base-content/50"><i class="ph ph-approximate-equals self-start mt-0.5"></i><span>${esc(short(p.a))} ↔ ${esc(short(p.b))} · <span data-count></span></span></div>
+        ${p.matches.filter(m => m.cosine < 0.995).map(m => `<div data-m="${esc(m.source)}|${m.start}|${m.end}|${esc(m.target)}|${m.target_start}|${m.target_end}" class="border-t border-base-200 pt-3 first-of-type:border-0 first-of-type:pt-0">${matchBlock(m)}</div>`).join('')}</section>`).join('');
+    const list = `<div class="flex flex-col text-base">${r.files.map(f => `<span class="truncate">${fileLine(f)}</span>`).join('')}</div>`;
+    return `<div class="@container flex flex-col gap-5" data-card>${list}${ident}${sims}</div>`;
+  }
+  function viewD(view) {
+    R = rowsD();
+    if (sel == null && h.get('sel')) { const w = h.get('sel').replace(/\|/g, '\n'); sel = (R.find(r => r.id === w) || R.find(r => r.id.includes(w)))?.id; }
+    if (!R.find(r => r.id === sel)) sel = R[0]?.id;
+    const g = R.filter(r => r.kind === 'g').length;
+    view.innerHTML = toolbar(`${tally('ph-equals', g, g === 1 ? 'group' : 'groups')}${tally('ph-approximate-equals', R.length - g, 'pairs')}${dial(S.th, 3, 200, 1, 'th', S.th + '+ shared')}`)
+      + `<div id="root" class="px-3 pb-3"><div id="list" role="listbox" aria-label="Themes"></div><div id="card"></div></div>`;
+    view.querySelector('#list').innerHTML = listD();
+    swiper?.destroy?.();
+    const ids = () => R.map(r => r.id), by = id => R.find(r => r.id === id);
+    swiper = linkedSwiper.attach({
+      root: view.querySelector('#root'), list: view.querySelector('#list'), card: view.querySelector('#card'), key: 'row',
+      ids, sel: () => sel, noun: 'theme',
+      name: id => ({ title: nameD(by(id)) }),
+      body: (id, el) => { el.innerHTML = cardD(by(id)); fill(el); },
+      onPick: (id, via) => { sel = id; if (deck && via !== 'deck') deck.deck.go(ids().indexOf(id), 'instant'); },
+      deck: () => {
+        deck = swipeDeck.open({ count: R.length, start: ids().indexOf(sel), title: 'Themes', icon: 'ph-graph',
+          index: i => ({ title: nameD(R[i]) }),
+          render: (i, el) => { el.innerHTML = cardD(R[i]); fill(el); },
+          onSlide: i => swiper.pick(R[i].id), onClose: () => { deck = null; } });
+      },
+    });
+    setTimeout(() => linkedSwiper.mark(view.querySelector('#list'), 'row', sel), 300);
+  }
+
+  // ── Frame: the mock's own switch, the Docs sub-tabs, the view ────────────
+  const view = document.getElementById('view');
+  function render() {
+    document.querySelectorAll('[data-mock]').forEach(b => {
+      const on = b.dataset.mock === S.c;
+      b.classList.toggle('bg-warning/25', on); b.classList.toggle('font-semibold', on);
+    });
+    document.querySelectorAll('[data-sub]').forEach(b => {
+      const on = b.dataset.sub === (S.c === 'c' ? 'inventory' : 'themes');
+      b.classList.toggle('bg-base-100', on); b.classList.toggle('text-primary', on); b.classList.toggle('shadow-sm', on);
+    });
+    view.className = S.c === 'd' ? 'flex min-h-0 flex-auto flex-col' : 'min-h-0 flex-auto overflow-y-auto';
+    if (S.c === 'd') return viewD(view);
+    swiper?.destroy?.(); swiper = null;
+    view.innerHTML = S.c === 'a' ? viewA() : S.c === 'b' ? viewB() : viewC();
+    fill(view);
+  }
+  document.querySelectorAll('[data-mock]').forEach(b => b.addEventListener('click', () => { S.c = b.dataset.mock; S.open = {}; S.openFirst = false; try { history.replaceState(null, '', '#v=' + S.c); } catch {} render(); }));
+  view.addEventListener('input', e => {
+    const a = e.target.dataset.act;
+    if (a === 'th') { S.th = +e.target.value; render(); }
+    if (a === 'cut') { S.cut = +e.target.value; render(); }
+  });
+  view.addEventListener('change', e => { if (e.target.dataset.act === 'short') { S.short = e.target.checked; render(); } });
+  view.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = b.dataset.act, k = b.dataset.k;
+    if (a === 'measure') { S.measure = k; render(); }
+    if (a === 'open') { S.open[k] = !S.open[k]; render(); }
+    if (a === 'pairdeck') {
+      const p = SIM.find(q => q.key === k);
+      swipeDeck.open({ count: p.matches.length, start: 0, title: short(p.a) + ' ↔ ' + short(p.b), icon: 'ph-approximate-equals',
+        render: (i, el) => { el.innerHTML = `<div class="@container">${matchBlock(p.matches[i])}</div>`; fill(el); } });
+    }
+  });
+  render();
+</script>
+</head>
+<body class="flex h-dvh flex-col bg-base-100 text-base-content">
+  <div class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-warning/40 bg-warning/10 px-2 py-1.5 text-sm">
+    <i class="ph ph-flask shrink-0 px-1 text-lg text-warning-content/70"></i>
+    <button type="button" data-mock="a" class="shrink-0 rounded-full px-2.5 py-1">A · Switch</button>
+    <button type="button" data-mock="b" class="shrink-0 rounded-full px-2.5 py-1">B · In the card</button>
+    <button type="button" data-mock="c" class="shrink-0 rounded-full px-2.5 py-1">C · On the document</button>
+    <button type="button" data-mock="d" class="shrink-0 rounded-full px-2.5 py-1">D · List and strip</button>
+  </div>
+  <div class="flex shrink-0 gap-1 overflow-x-auto px-3 pt-2 pb-1">
+    <div class="flex gap-0.5 rounded-lg bg-base-200/60 p-0.5 text-sm text-base-content/60">
+      <span data-sub="inventory" class="flex items-center gap-1.5 rounded-md px-2.5 py-1"><i class="ph ph-list"></i>Inventory</span>
+      <span data-sub="growth" class="flex items-center gap-1.5 rounded-md px-2.5 py-1"><i class="ph ph-chart-scatter"></i>Growth</span>
+      <span data-sub="policy" class="flex items-center gap-1.5 rounded-md px-2.5 py-1"><i class="ph ph-tree-structure"></i>Policy</span>
+      <span data-sub="themes" class="flex items-center gap-1.5 rounded-md px-2.5 py-1"><i class="ph ph-graph"></i>Themes</span>
+    </div>
+  </div>
+  <div id="view"></div>
+</body>
+</html>
