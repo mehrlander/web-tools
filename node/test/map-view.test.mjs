@@ -187,6 +187,59 @@ test('source provenance follows the selected collection and preserves an externa
   } finally { Object.assign(data, old); }
 });
 
+// Themes is one list over a strip since 2026-10-22: the groups of files the
+// dial makes, then the pairs similar only in wording. A pair whose matches are
+// all identical text shares runs below the dial; that is a run, not a
+// paraphrase, so it is not listed as similar wording.
+test('Themes lists the dial\'s groups, then the pairs only similar in wording', () => {
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh };
+  const row = (source, target, cosine, words = 30) => ({ source, target, cosine, words, target_words: words,
+    start: 0, end: 10, line: 1, target_start: 0, target_end: 10, target_line: 1 });
+  try {
+    data.themeTh = 12;
+    data.themeGraph = { shingle: 10, scanned: 5, edges: [
+      { a: 'a.md', b: 'b.md', w: 20, quoted: ['one two three'] },
+      { a: 'c.md', b: 'd.md', w: 5, quoted: ['four five six'] } ] };
+    data.overlap = { docs: Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map(f => [f + '.md', { words: 100, shingles: 90 }])),
+      rows: [row('a.md', 'b.md', 0.9), row('c.md', 'd.md', 1), row('a.md', 'e.md', 0.8), row('a.md', 'e.md', 0.79, 10)] };
+    assert.deepEqual(Array.from(data.themeRows, r => r.id), ['g:a.md|b.md', 's:a.md\ne.md']);
+    assert.equal(data.themeRows[0].sims.length, 1, 'a group carries the similar wording of its own pairs');
+    assert.equal(data.themeRows[1].n, 1, 'a passage under 20 words is left out');
+    assert.deepEqual(Array.from(data.themeItems.filter(i => i.label), i => i.label), ['g', 's'], 'a label heads each measure');
+    assert.deepEqual({ ...data.themeTally }, { groups: 1, pairs: 1 });
+  } finally { Object.assign(data, old); }
+});
+
+// The card reads the files: a run is shown in its file's own text with the run
+// marked, and a similar passage that overlaps a run is left out, since for the
+// pairs that share runs most similar matches were the run again.
+test('a Themes card shows a run in its file and drops similar wording the run already shows', async () => {
+  const run = 'The quick brown fox jumps over the lazy dog every single morning now.';
+  const A = 'Intro line.\n\n' + run + '\n\nA different paragraph about cats and the naps they take in the afternoon sun.';
+  const B = 'Other start.\n\n' + run + '\n\nSomething on felines, napping in sunlight after lunch, in other words.';
+  const at = (t, x) => [t.indexOf(x), t.indexOf(x) + x.length];
+  const pa = 'A different paragraph about cats and the naps they take in the afternoon sun.';
+  const pb = 'Something on felines, napping in sunlight after lunch, in other words.';
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh, themeFile: data.themeFile };
+  const m = (s1, s2, cosine) => ({ source: 'a.md', target: 'b.md', cosine, words: 30, target_words: 30, line: 3, target_line: 3,
+    start: at(A, s1)[0], end: at(A, s1)[1], target_start: at(B, s2)[0], target_end: at(B, s2)[1] });
+  try {
+    data.themeTh = 12;
+    data.themeGraph = { shingle: 10, scanned: 2, edges: [{ a: 'a.md', b: 'b.md', w: 12,
+      quoted: ['the quick brown fox jumps over the lazy dog every single morning now'] }] };
+    data.overlap = { docs: { 'a.md': { sha: 'aaa', words: 40, shingles: 30 }, 'b.md': { sha: 'bbb', words: 40, shingles: 30 } },
+      rows: [m(run, run, 0.97), m(pa, pb, 0.8)] };
+    data.themeFile = async p => ({ text: p === 'a.md' ? A : B, sha: p === 'a.md' ? 'aaa' : 'bbb' });
+    const box = window.document.createElement('div');
+    box.innerHTML = data.themeCard(data.themeRows[0]);
+    await data.themeFill(box);
+    assert.equal(box.querySelector('[data-theme-run] mark').textContent, run.replace(/\.$/, ''), 'the run, marked in the file\'s own text');
+    const kept = [...box.querySelectorAll('[data-theme-match] [data-theme-cut]')].map(n => n.textContent);
+    assert.deepEqual(kept, [pa, pb], 'only the paraphrase is left');
+    assert.equal(box.querySelector('[data-theme-count]').textContent, '1 similar passage');
+  } finally { Object.assign(data, old); }
+});
+
 test('opening a source keeps its repository and ref in the in-app reader', async () => {
   const open = data.openFileDeck;
   const calls = [];
