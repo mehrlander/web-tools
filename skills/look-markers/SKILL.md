@@ -1,23 +1,24 @@
 ---
 name: look-markers
-description: "Hand over a look link: a page link whose fragment scrolls to one element, tints it, shows a one-line reason, and can ring a control to tap or run a walk of such steps. Use unprompted whenever a reply would tell the reader where to look or what to tap on a page, and when asked to point at, highlight, or walk someone through something on a page."
+description: "Hand over a look link: a page link whose fragment scrolls to one element, tints it, shows a one-line reason, and can ring a control to tap or run a walkthrough of such steps. Use unprompted whenever a reply would tell the reader where to look or what to tap on a page, and when asked to point at, highlight, or walk someone through something on a page."
 ---
 
 # Look markers
 
 A **look link** is a page link whose `#fragment` puts a **look marker** on one
 element: the page scrolls there, tints it, and shows a card saying why. A marker
-can also ring a control the reader must tap before going on, and a **walk** is a
+can also ring a control the reader must tap before going on, and a **walkthrough** is a
 sequence of markers. The grammar is in the header of
 [`lib/kits/look.js`](../../lib/kits/look.js).
 
-Write "look marker" and "look link" in full; "marker" alone means other things here.
+Write "look marker", "look link" and "walkthrough" in full; "marker" and "walk"
+alone mean other things here.
 
 ## When
 
 Whenever a reply would locate something on a page in words, send the link and
 let the reply say what to notice. One place is `show`, or `tap` when the reader
-should press it; three or more ordered steps are a walk. A link that hands over
+should press it; three or more ordered steps are a walkthrough. A link that hands over
 a change carries `intro=<one line>` naming what to look at. Where no route below
 reaches the page, say it in words.
 
@@ -28,7 +29,7 @@ Use `python/look-link.py` (from another repo, `../web-tools/python/look-link.py`
     look-link.py anchors <page>
     look-link.py make <page> --show <anchor> --say "<why>"
     look-link.py make <page> --tap <anchor> --say "<what to do>"
-    look-link.py make <page> --walk <name>
+    look-link.py make <page> --walkthrough <name>
     look-link.py make <page> --steps '[{"at":"…","tap":true,"say":"…"}, …]'
     look-link.py make <page> --intro "<what to look at>" [any of the above]
 
@@ -47,7 +48,7 @@ amount", not "Click here". `tap` is `true`, or the hand's label (`"Tap to open"`
 | `<name>` | `data-at="<name>"`, else `id="<name>"` | the attribute goes |
 | `text:<words>` | the smallest element whose whole text is those words | the wording changes |
 | `css:<selector>` | the first match | the structure changes |
-| `<page>!<at>` | `<at>` on that page, which a walk opens (`pages/branch.html!files`) | the page moves |
+| `<page>!<at>` | `<at>` on that page, which a walkthrough opens (`pages/branch.html!files`) | the page moves |
 
 Prefer `data-at` names and ids: only they are checked before sending.
 
@@ -55,7 +56,7 @@ Prefer `data-at` names and ids: only they are checked before sending.
 
 - A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); it loads
   the kit when a fragment asks.
-- Any page through a toss link (🥏); the renderer adds the kit, and a walk there
+- Any page through a toss link (🥏); the renderer adds the kit, and a walkthrough there
   stays on the framed page.
 - A document through the data route (🥏 `#data=`); name a heading with `text:`.
 - A page that loads `lib/kits/look.js`.
@@ -67,10 +68,10 @@ Prefer `data-at` names and ids: only they are checked before sending.
   `:data-at="'row-' + r.id"` is checked by its prefix.
 - `data-at-open="<name>"` on a region that starts hidden, naming the control that
   shows it, so a link into a closed tab opens it first.
-- Walks in `<script type="application/json" id="look-walks">`, as
+- Walkthroughs in `<script type="application/json" id="look-walkthroughs">`, as
   `{ "<name>": [{ "at": …, "say": …, "tap": true }, …] }`.
-- Leave `show`, `tap`, `say`, `walk`, `steps`, `intro` and `stop` to the kit; do
+- Leave `show`, `tap`, `say`, `walkthrough`, `steps`, `intro` and `stop` to the kit; do
   not route on them.
 
-`look-link.py check <page>` fails on a walk step or an opener that names nothing,
+`look-link.py check <page>` fails on a walkthrough step or an opener that names nothing,
 and the suite runs it over web-tools. Demo: [`lib/kits/demos/look.html`](../../lib/kits/demos/look.html).

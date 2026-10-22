@@ -60,7 +60,7 @@ test('have a look reads in all four spellings of its joined glyph', () => {
   // 👁️‍🗨️ is four code points joined; a client may drop either variation selector.
   for (const g of ['👁️‍🗨️', '👁‍🗨️', '👁️‍🗨', '👁‍🗨'])
     assert.deepEqual(CS.marks(g + ' **Have a look:** the page is up.'), ['look'], g);
-  assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'a look link mid-line is not a state');
+  assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'the glyph mid-line is not a state');
 });
 
 test('sign-off needed reads in both spellings', () => {
