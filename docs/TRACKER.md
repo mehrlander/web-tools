@@ -14,7 +14,7 @@ Three kinds of file, all on `main`:
 - `board.md`, with `board.csv` and `board-tags.csv` beside it: rollups generated from the task files, never hand-edited.
 - `assessments/YYYY-MM-DD.json`: optional dated assessment records, authored judgment about the tracker as a whole (see Assessment and refinement below).
 
-Feature work follows GitHub flow on a branch as usual. Tracker changes operate in Real-time mode: task files, assessment records, and the generated rollups are committed directly to `main` and pushed to GitHub as you go, which is what makes the tracker shared. Where a session carries a blanket instruction to keep its commits on its feature branch (some environments inject one), this Real-time path is the standing exception, not a violation. Nothing else about a repo's branch or PR flow changes. The skill carries the push recipe and the scope of the permission.
+Feature work follows GitHub flow on a branch as usual. Tracker changes operate in Real-time mode: task files, assessment records, and the generated rollups are committed directly to `main` and pushed to GitHub as you go, which is what makes the tracker shared. That path is the standing exception to an instruction to keep commits on the feature branch, and nothing else about a repo's branch or PR flow changes; the skill carries the push recipe.
 
 Scope a tracker to a workspace, a bounded area you keep coherent across sessions. A repo may have several (nested or sibling), each in its own directory; a repo whose work is coherent uses one.
 
@@ -67,25 +67,25 @@ priority: high        # example open tag: not acted on until promoted
 
 Rules: high-signal only (skip "might be related"); one line per pointer; grooming may append without rewriting the body; do not encode a product decision here (`awaiting:` and open questions stay elsewhere). Filing may omit Related when nothing is known yet; refining should add it when the connections are found.
 
-**A path here must resolve, and a check enforces it.** The shape it keys on is the one the example shows: where a bullet opens with backticked tokens before its first colon, each is read as a repository path and must exist. A bullet opening with `task ` or `PR ` is a reference of another kind, and backticks after the colon are prose, so neither is path-checked; a path that does not exist yet can still be named after the colon, where it reads as description rather than as a pointer to open. `node/test/tracker-tasks.test.mjs` holds this, and the same file holds the no-em-dash line above. Both rules were stated here and enforced nowhere until 2026-09-17, when one grooming pass broke both inside the pass that added this section.
+**A path here must resolve, and a check enforces it.** The shape it keys on is the one the example shows: where a bullet opens with backticked tokens before its first colon, each is read as a repository path and must exist. A bullet opening with `task ` or `PR ` is a reference of another kind, and backticks after the colon are prose, so neither is path-checked; a path that does not exist yet can still be named after the colon. `node/test/tracker-tasks.test.mjs` holds this, and the same file holds the no-em-dash line above.
 
-**A pointer leaving the prose moves here rather than disappearing.** A cross-reference can go stale in one sense and stay live in another: a sibling task that closed is no longer a dependency, and is still where the reasoning happened. Refinement that cuts such a reference out of a paragraph puts it in Related with its new status. This is what makes the section cheaper than prose rather than merely shorter.
+**A pointer leaving the prose moves here rather than disappearing.** A cross-reference can go stale in one sense and stay live in another: a sibling task that closed is no longer a dependency, and is still where the reasoning happened. Refinement that cuts such a reference out of a paragraph puts it in Related with its new status.
 
-**Conventional body section: `## Done when`.** One or two sentences naming the observable condition that closes the task, stated so a later session can check it without rebuilding the argument. Because it is the exit and not a summary, **a task folded into another sends its exit condition along**, as a clause of the host's `## Done when`. A fold that carries the work and leaves the exit behind retires a question nobody decided to retire, which is what happened to `estate-js-commentary-read-mymt4u` on 2026-09-17 before the clause was restored.
+**Conventional body section: `## Done when`.** One or two sentences naming the observable condition that closes the task, stated so a later session can check it without rebuilding the argument. Because it is the exit and not a summary, **a task folded into another sends its exit condition along**, as a clause of the host's `## Done when`; a fold that leaves the exit behind retires a question nobody decided to retire.
 
 **`## Progress log` is last, and appends at the bottom,** oldest entry first, so the end of the file is the newest state and "append-only" below means what it says. A file that still runs newest-first is migrated when next touched, rather than in a sweep. **Do not rewrite a dated entry** to restamp a fact; add a new entry that corrects it, so the log stays a record of what was believed when.
 
 **Status carries two companion fields.** `session` names the owning branch while a task is `in-progress`; `closed` dates it when it goes `done`. A `done` task keeps `session` set to the branch that completed it, so the board can say where the work happened after the fact.
 
-**`size` and `awaiting` answer questions `status` does not.** `status` says whether a session can start a task. `size` says how much work it is, and `awaiting` says what is holding it. The three are independent, which is why `awaiting` renders on a `backlog` row and not only on a `blocked` one: a task can be startable in part and still be waiting on someone for the rest. Both are silent on a `done` task, since a finished task's estimate and its old blocker are history, the same rule that already silences `depends-on:`.
+**`size` and `awaiting` answer questions `status` does not.** `status` says whether a session can start a task. `size` says how much work it is, and `awaiting` says what is holding it. The three are independent, which is why `awaiting` renders on a `backlog` row and not only on a `blocked` one: a task can be startable in part and still be waiting on someone for the rest. Both are silent on a `done` task, since a finished task's estimate and its old blocker are history.
 
-Calibrate `size` to the session, the real unit of execution: **XS** folds into another task's pass, **S** is one session with room to spare, **M** is one full session, **L** is several, **XL** is a project. **`?`** means not specifiable yet, which is a state rather than a magnitude: the task needs a design pass before it can be sized, and saying so is more useful than guessing. Treat **XL as a smell** rather than a value, since a task that large is usually several outcomes under one title and wants a phase carved off (see Conflicts' sibling rule in the `tasks` skill against fragmenting one outcome, which runs both directions).
+Calibrate `size` to the session, the real unit of execution: **XS** folds into another task's pass, **S** is one session with room to spare, **M** is one full session, **L** is several, **XL** is a project. **`?`** means not specifiable yet, which is a state rather than a magnitude: the task needs a design pass before it can be sized, and saying so is more useful than guessing. Treat **XL as a smell** rather than a value, since a task that large is usually several outcomes under one title and wants a phase carved off; the `tasks` skill's rule against fragmenting one outcome runs both directions.
 
 `awaiting` is free text and cleared by hand. Its natural values carry colons ("awaiting: OFM ruling: candidate 1"); the parser splits on the first colon, so they survive. When an open user call holds the decision, the line names it: `awaiting: user-call <call id>`. The Web Tools app's Board then links the task to that call in the Waiting view, and the call names the task back as a `task` link (web-tools-private `user-calls/user-call.py`). The line is cleared by hand once the call is answered, like any other value.
 
 **Task id.** The `id` is a filing handle: it names the task file (`<id>.md`). Mint it as a short interpretable slug plus a random suffix, `<slug>-<rrrrrr>`, mirroring how a working branch is named (`fn-data-tracker-assessment-npjxbj`). The slug is a few lowercase hyphen-separated words drawn from the title, kept under about 40 characters, so a directory listing reads as a table of contents and a `depends-on` reference reads as a phrase. The six-character base36 suffix is what keeps two sessions filing at the same moment from colliding. Do not use a sequential integer (see Conflicts). The slug is frozen at filing: it is a handle, not a live summary, so if the title later changes, leave the filename and `id` as they are.
 
-Bring existing tasks aboard the new form at first opportunity. The generator keys on the filename, so a mixed directory works and nothing forces a flag-day, but the target is one scheme everywhere, not a standing exception for old files. The next time a session touches a tracker that still carries legacy ids (integers like `0001`, or the earlier dated form `20260716-8p0`), migrate them: rename each `tasks/<old-id>.md` to a slug, set the file's `id` to match, update any `depends-on` references that point at it, regenerate the rollups, and commit the renames to `main` like any other tracker change.
+A tracker that still carries legacy ids (integers like `0001`, or the earlier dated form `20260716-8p0`) migrates them when a session next touches it: rename each `tasks/<old-id>.md` to a slug, set the file's `id` to match, update any `depends-on` reference to it, regenerate the rollups, and commit the renames to `main`. The generator keys on the filename, so a mixed directory works in the meantime.
 
 **Parser contract.** Frontmatter is flat `key: value` pairs, split on the first colon, scalars only. No YAML library, no lists, no nesting, no multi-line values. Unknown keys are preserved and ignored, never errors. This is deliberate: a file arriving from any channel (a web edit, a paste) needs no valid YAML to parse, so imperfect input degrades to an ignored tag rather than a failure.
 
@@ -97,35 +97,13 @@ Bring existing tasks aboard the new form at first opportunity. The generator key
 
 ### Two conventional open tags: `venue` and `action`
 
-Both are open tags in the sense above, unrecognized by the generator and carried into `board-tags.csv`, so a consumer can select on either today without the generator learning anything. Promote either when grouping the board by it is worth the code, not before.
+Both are open tags in the sense above, unrecognized by the generator and carried into `board-tags.csv`, so a consumer can select on either today. Promote either when grouping the board by it is worth the code, not before.
 
-**`venue: <channel>` says where the session happens** (the values are `cli`, `cowork`, `dispatch` and `daemon`; the tag was `runner:` until 2026-08-10). A task is parked for a machine when the work needs something only that machine has: data that must not leave it, a local model, a runtime, or simply an hour of unattended time. Absent means anywhere. It is a routing hint and nothing more: a parked task is still claimed, discussed, and closed exactly like any other, by a session that reads it and talks it through. The body carries one line naming which constraint parked it, because the constraints have different lifespans and the tag cannot tell them apart. A task parked for token cost can migrate back the moment tokens are cheap; one parked because the data stays on the machine never can.
+**`venue: <channel>` says where the session happens** (`cli`, `cowork`, `dispatch` or `daemon`): the work needs something only that machine has, such as data that must not leave it, a local model, a runtime, or an hour of unattended time. Absent means anywhere. It is a routing hint only; a parked task is claimed, discussed and closed like any other.
 
-**`action: <name>` says the method is already settled.** Its value names a procedure the claiming session executes rather than designs. The discussion when such a task is picked up is about scope and results, not about how.
+**`action: <name>` says the method is already settled.** Its value names a procedure the claiming session executes rather than designs, resolved the way an invocation of the same name resolves: the repo's own skills first, then the plugin's, with the `namespace:` prefix to disambiguate. There is no separate registry of actions. Such a task is written thin, and its parameters live in the body, not in frontmatter, since the parser takes scalars only and a parameter set is routinely a list.
 
-**The catalog is the skill set.** An `action` resolves the way an invocation of the same name resolves: the repo's own skills first, then the plugin's, with the `namespace:` prefix available to disambiguate. There is no separate registry of standard actions. The gate that keeps this honest is that **if the procedure is not a skill yet, writing the skill is part of filing the task.** That is the right direction of pressure.
-
-**The two are orthogonal.** `venue` alone is an ordinary task that happens elsewhere. `action` alone is a settled procedure any session can run. Neither is a queue: nothing reads the tags to pick work up. A one-off piece of work for a machine is an errand ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)), which names the task it serves in `for`.
-
-**A task carrying `action` is characteristically thin,** and that is what distinguishes it on sight. It holds no argument and no history, because the reasoning lives in the skill. Three sections carry it:
-
-```markdown
-# <title>
-
-Run `<action>` for <the subject, in one line>.
-
-## Parameters
-- <key>: <value, or the rule that derives it>
-
-## Done when
-<the observable condition>
-```
-
-**Parameters live in the body, not in frontmatter.** The parser contract is scalars only, and a parameter set is routinely a list. Prefer a *derivation* to a literal list where one exists ("every month in X with no file in Y") so the task self-updates as the work lands and does not have to be edited to stay true.
-
-**Prefer a batch whose progress is derivable from the repo.** When the artifact itself shows what is finished, a run that stops halfway is legible to whoever resumes without trusting the log, and the same rule that governs a generated artifact governs job state. Such a batch is also the one honest `XL`: the size warning above is aimed at several outcomes hiding under one title, and one outcome repeated many times is not that.
-
-**What does not belong here.** Work that is fully mechanical and needs no session at all belongs in a commit hook, a test, or CI, which is where a repo already puts its deterministic regeneration. The runnable class is for work that needs a session even when it needs no design.
+Neither tag is a queue: nothing reads them to pick work up. A one-off piece of work for a machine is an errand ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)), which names the task it serves in `for`. The [`tasks` skill](../skills/tasks/SKILL.md#file-a-runnable-task) carries the rules for filing a runnable task and its template.
 
 ## Board format
 
@@ -140,11 +118,11 @@ Run `<action>` for <the subject, in one line>.
 
 One line per task, each prefixed with the 🎫 task marker, keyed by title (not id); in-progress lines also show the owning branch. Nothing else: an open tag is never rendered, per the two-layer rule above.
 
-**The title is a link to the task file**, `🎫 [title](tasks/<file>.md)`, so the board is a table of contents: the row says what the work is and one tap reaches the file. The href is relative to the **board's** folder, since that is the one base both consumers resolve against: GitHub renders `board.md` in place, and the Web Tools app's board pane resolves a row's relative href against the board file's folder and opens the task in its viewer. It targets the file on disk rather than the `id` field, so a task whose id drifted from its filename still links to something that exists. A task's next step belongs in its Progress log, never in a frontmatter key. The board is a faithful projection of the task files. Regenerate and commit both rollups with any commit that changes what the board shows: status, owning branch, or an unmet dependency.
+**The title is a link to the task file**, `🎫 [title](tasks/<file>.md)`, so the board is a table of contents: the row says what the work is and one tap reaches the file. The href is relative to the **board's** folder, the one base both consumers resolve against (GitHub rendering `board.md` in place, and the Web Tools app's board pane), and it targets the file on disk rather than the `id` field, so a task whose id drifted from its filename still links to something that exists. A task's next step belongs in its Progress log, never in a frontmatter key. The board is a faithful projection of the task files. Regenerate and commit both rollups with any commit that changes what the board shows: status, owning branch, or an unmet dependency.
 
 **Dependencies render only while they bite.** A task carrying `depends-on: <id>[, <id>...]` shows ` (needs: <blocker title>)`, resolved to each blocker's title because the id means nothing to a reader who did not write the task. Several unmet blockers join with `; `. The line is suppressed once a dependency is settled (`done` or `dormant`) and on a settled task, whose dependency is history either way. A `depends-on` pointing at an id no task file defines renders as such rather than silently vanishing, since a dangling reference is the one case worth interrupting for.
 
-The value is a **comma-separated scalar, not a YAML list**: the parser contract below is flat `key: value` pairs, and a real list is the one thing that would force a YAML dependency. **Absence means no dependency**, so there is no value meaning "independent".
+The value is a **comma-separated scalar, not a YAML list**, per the parser contract above. **Absence means no dependency**, so there is no value meaning "independent".
 
 ### The typed projection
 
@@ -177,7 +155,7 @@ Two operations read the whole tracker rather than one task, and they are distinc
 - **Assessment interprets.** It reads the tracker as a whole and renders judgment: the workstreams the open tasks form, framing that has fallen behind the work, decisions hiding inside tasks, differences in scale and readiness, bundles that would travel together, and good next-session candidates. It recommends and does not mutate.
 - **Refinement mutates.** It restores scope truth in the task files: closing stale or superseded tasks, reframing inaccurate ones, narrowing residual work, splitting or consolidating where justified.
 
-The cycle they form: tracker state → assessment → refinement → dispatch and execution → changed tracker state → later assessment. Neither obligates the other. A refinement pass does not owe an assessment record, and an assessment does not commit anyone to acting on it. The split is one of permission and record, not sequencing: asking for an assessment alone does not authorize refinement, and one session may do both in a single pass once the refinement is agreed. The [`tasks` skill](../skills/tasks/SKILL.md) carries the operating rules for both; what belongs here is the record.
+Neither obligates the other: a refinement pass does not owe an assessment record, and an assessment commits no one to acting on it. The [`tasks` skill](../skills/tasks/SKILL.md) carries the operating rules for both, including the permission boundary between them; what belongs here is the record.
 
 ### The assessment record
 
@@ -196,7 +174,7 @@ The record is **authored judgment anchored to a repository state, and it is a hi
 }
 ```
 
-Everything else is an open, authored section, the record-level analogue of an open tag. The sections in use so far: `workstreams` (task groupings, each with an assessment and a next move), `hygiene` (per-task scope-truth findings, each naming an action and a reason; refinement's natural worklist), `decisions` (rulings tasks are waiting on), `dispatch` (ready-to-launch session briefs, each with a why and a full prompt; converting backlog into launchable work is much of an assessment's point), and `watch` (tasks noted without action). These are conventions, not contract: a reader tolerates their absence and their variation, and a key hardens into the contract only when a consumer earns it. Judgment stays prose inside whatever structure a section needs; do not add fields because JSON permits them.
+Everything else is an open, authored section, the record-level analogue of an open tag. The sections in use so far: `workstreams` (task groupings, each with an assessment and a next move), `hygiene` (per-task scope-truth findings, each naming an action and a reason; refinement's natural worklist), `decisions` (rulings tasks are waiting on), `dispatch` (ready-to-launch session briefs, each with a why and a full prompt), and `watch` (tasks noted without action). These are conventions, not contract: a reader tolerates their absence and their variation, and a key hardens into the contract only when a consumer earns it. Judgment stays prose inside whatever structure a section needs; do not add fields because JSON permits them.
 
 **Do not copy what the task files and `board.csv` already carry.** Titles, statuses, sizes, and logs live in the tasks; the record cites ids and states judgment about them. `basis` may carry the open counts as read (`onDeck`, `inProgress`, `blocked`) to fix the scale of what was assessed; that is an anchor, not data for a consumer.
 
@@ -206,33 +184,15 @@ The board generator does not read `assessments/`, the board does not render them
 
 Each session should edit only the task file it owns, so task conflicts should be rare. If two sessions edit the same task file, resolve that file as real content.
 
-The collision that is not rare is two sessions **filing** at once. With sequential integer ids they pick the same next number, so each creates the same filename with different content. Nothing warns the first pusher: a fast-forward push raises no conflict, and the add/add only surfaces at the second session's merge, where it is resolved in that session's favor and the earlier task drops from `main`. The random suffix in the id above is the fix: two independently minted ids do not collide, so concurrent filings land as two separate files with no contact.
+The collision that is not rare is two sessions **filing** at once. With sequential integer ids both create the same filename with different content; nothing warns the first pusher, and the add/add surfaces only at the second session's merge, where the earlier task drops from `main`. The random suffix in the id prevents it: concurrent filings land as two separate files.
 
 `board.md` is generated. If it conflicts, take either side and regenerate it. A concurrent filing still leaves the board stale (each side regenerated it against a partial set of task files), so rerun the generator after resolving; that is the same benign generated-file case.
 
 ## Across repositories
 
-Trackers are scoped to a workspace and sessions are scoped to a repository, so the two do not line up: a session working in one repo routinely learns something that makes a task in another repo's tracker wrong.
-
-**References carry their repo.** A task naming material in another repository writes the `owner/repo` prefix, always, even where the reader could infer it: `budget-wa's tools/split-bill.py`, not `tools/split-bill.py`. A bare path reads as in-repo, so a task that is really a cross-repo dependency looks like a local refactor, and it keeps looking like one until someone tries it.
+Trackers are scoped to a workspace and sessions to a repository, so a session working in one repo routinely learns something that makes a task in another repo's tracker wrong. The [`tasks` skill](../skills/tasks/SKILL.md#another-repos-tracker) carries the rules for correcting and filing there and for naming another repo's material.
 
 `depends-on` does not cross a tracker. It resolves against task files in one `tasks/` directory, so a dependency on another repo's task is named in prose, by repo and title, not by id.
-
-**Correcting is maintenance; filing is filing.** Fixing a statement another repo's tracker makes that is now false (a moved corpus, a path that changed repos, a dependency that closed elsewhere) is the same class of act as updating your own task, and carries the same standing permission: do it, and say so in the reply. Creating a *new* task in another repo's tracker is filing, and takes the gate every filing takes, because the cost being managed is that repo's backlog, not the write.
-
-The line is whether the tracker currently says something untrue. It does: correct it. It merely lacks something you noticed: propose it.
-
-**Use the ordinary mechanism.** Cut a scratch branch from that repo's `origin/main`, edit the task file, regenerate the rollups, push to `main`, as the [`tasks` skill](../skills/tasks/SKILL.md) already describes. No PR, no branch left behind. The repository has to be in the session's scope; if it is not, the correction is a line in your reply for the next session that holds it, not a task filed at home to remember it.
-
-**It announces itself in two places, and both matter.** The commit message names the correction and where it came from, so the other repo's history does not show an unexplained edit from a session that was working elsewhere:
-
-```
-tracker: repoint document-structure-harness at budget-wa (corpus moved; found from a home session)
-```
-
-And the task's own progress log takes a dated line naming the originating repo.
-
- A session moving material across a repo boundary owns repointing every tracker that names it, which in practice means grepping the old path and the old repo name across every tracker in scope before the move is called done.
 
 ## One logging axis
 

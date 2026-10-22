@@ -7,8 +7,7 @@ a live page. The estate already uses the word as a column type
 a path, a URL, or a key into another registry"), and registry columns are
 typed that way in [`properties.csv`](properties.csv). This document gives the type its kinds, states how
 a reference is found from the thing it points at, and states how a reference is
-tested for still being true. It adds no mechanism; where a piece exists, it is
-named and linked.
+tested for still being true; where a piece exists, it is named and linked.
 
 ## References are records
 

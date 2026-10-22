@@ -36,6 +36,8 @@ whose vocabulary is not this repo's.
 ## Tiers
 
 A term's tier comes from how the repo declares it, not from how often it appears.
+Frequency rankings reward rare vocabulary, and a repo's terms of art are its
+shared vocabulary, so frequency is only a tiebreak.
 
 | Tier | Means | Use |
 | --- | --- | --- |
@@ -44,20 +46,8 @@ A term's tier comes from how the repo declares it, not from how often it appears
 | `assumed` | never declared, but referenced as though it were | the risk list: "the X" with no X anywhere |
 | `template` | in over 30% of files | frontmatter and template field names, not terms of art |
 
-`assumed` is the one worth reading directly. It is where a term catches on and
-starts doing work nobody defined, which is what got `spine`, `backbone`, and
-`weld` retired in `mehrlander/home`.
-
-## Why declaration and not statistics
-
-Two statistical rankings were measured against a hand-written target set and
-both failed the same way. Context entropy (PR #336) and in-repo TF-IDF each
-reward *rare* vocabulary, and a repo's terms of art are its *shared* vocabulary,
-spread across files by definition. Under entropy the top of the list was
-`asked`, `grounds`, `whole point`; under IDF it was `qpdf`, `textarea`, `docx`
-from unrelated bundled skills. Nothing distributional separates "workstream"
-from "page": the difference is that the repo defines one of them. So declaration
-is ground truth and frequency is only a tiebreak.
+`assumed` is the one worth reading directly: it is where a term catches on and
+starts doing work nobody defined.
 
 ## What `check` reports, and what it deliberately does not
 
@@ -67,12 +57,11 @@ Two findings, in confidence order:
    real tracked file and sits outside any `[](…)`. Decidable, so it leads.
 2. **Declared terms used without a handle.** A handle is a link, a code span, or
    an immediate parenthetical that *names the term*. Something merely nearby
-   does not count: on `docs/SURFACING.md` a 200-character window contains some
-   link for 9 of 9 mentions of "toss", so the loose test can never say anything.
+   does not count, since in a well-linked document nearly every mention has a
+   link somewhere near it.
 
 Fenced code blocks are stripped before checking, since a block quoting a tool's
-output is a demonstration and not prose. Measured on one reply, 7 of 12 flags
-came from a single code block before this was fixed.
+output is a demonstration and not prose.
 
 A single ordinary word is flagged only when used referentially ("the stage
 link", not "bare paths"), because nothing here can separate a repurposed common

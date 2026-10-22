@@ -53,10 +53,4 @@ Open the hand-over with any departure from the agreed brief, such as a different
 
 ## Working with the user
 
-Use existing context. Enter at the phase needed, citing earlier outputs rather than restating them. Bring concrete proposals and reasoned recommendations; fold reactions into the outputs.
-
-Preserve decisions and unresolved questions. When asked for a scaffold, deliver a complete scaffold rather than a partial page.
-
-## Source
-
-Kit methods drawn on: Abstraction Laddering, The Warm Up: Comparable Problem, Crazy 8's, Rumble or All-In-One, Solution Sketch, Assumptions and Sprint Questions, Cognitive Walkthroughs.
+Enter at the phase needed, citing earlier outputs rather than restating them, and fold reactions into the outputs. Bring concrete proposals with a recommendation, and carry decisions and unresolved questions forward. When asked for a scaffold, deliver a complete scaffold rather than a partial page.

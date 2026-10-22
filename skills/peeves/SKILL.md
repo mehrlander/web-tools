@@ -17,9 +17,9 @@ description: "The owner's pet peeves: a numbered list (peeves.csv beside this fi
 | `detector` | what catches a trip: `reader` (judgment, the peeves-critic's job), `lint` (a script), `hook` (refused or flagged at edit or commit time), `measure` (web-tools' page-measures) |
 | `sessions` | roughly how many recorded sessions show the owner correcting it, from the 2026-08 to 2026-10 records |
 
-Each row was drawn from the owner's own words in the recorded sessions
-(web-tools-private `sessions/`); the quotes behind each row are kept there, in
-`sessions/peeves/evidence.csv`, not here, because this skill travels publicly.
+The owner's quotes behind each row are in web-tools-private
+`sessions/peeves/evidence.csv`, kept out of this skill because it travels
+publicly.
 
 ## Using it
 

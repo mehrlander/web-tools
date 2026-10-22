@@ -5,7 +5,7 @@ description: "Build interactive UI inside Excel using Office Scripts bound to sh
 
 # Office Scripts Shape UI
 
-Excel's drawing layer plus Office Scripts is a surprisingly capable UI shell. A shape acts as a button, a display surface, or both. State lives in the workbook itself: a hidden sheet, alt text on the shape, or the shape's own geometry. The framing line is **workbook is application state, shapes are event handlers, sheets are views**.
+With Office Scripts, a shape in Excel's drawing layer acts as a button, a display surface, or both. State lives in the workbook itself: a hidden sheet, alt text on the shape, or the shape's own geometry. The framing line is **workbook is application state, shapes are event handlers, sheets are views**.
 
 This skill covers three patterns and the constraints they all run into.
 
@@ -134,8 +134,6 @@ const m: { [key: string]: RawRow[] } = {};
 
 **No parameters from button-triggered scripts.** A script with parameters can only be invoked from Power Automate. Workaround: read a cell.
 
-**Border radius is immutable.** Set at shape creation. Choose the shape type up front.
-
 ### Architecture gotchas
 
 **CORS applies to `fetch`.** Office Scripts runs in a browser sandbox. Calls to APIs without permissive CORS headers fail. Workaround: Power Query fetches, Office Script reads from the resulting table.
@@ -145,15 +143,6 @@ const m: { [key: string]: RawRow[] } = {};
 **`refreshAllDataConnections()` works from a button, not from Power Automate.** Known limitation.
 
 **Excel for the Web no longer supports assigning scripts to arbitrary shapes.** Use the official Add-in-workbook button, or assign to shapes via the desktop client.
-
-### Patterns that avoid the gotchas
-
-- Read a cell instead of accepting a parameter.
-- Anchor to a cell instead of trying to read the viewport.
-- Group rows in a plain object instead of a `Map` with a union-typed value.
-- Inline enum paths instead of aliasing.
-- Pick shape geometry deliberately at creation.
-- Let Power Query own all external fetches.
 
 ---
 
@@ -205,9 +194,3 @@ function main(workbook: ExcelScript.Workbook) {
   // paint, clearHighlight, stamp: not shown.
 }
 ```
-
----
-
-## When in doubt
-
-The constraints look annoying in the abstract and shrink in practice. Most cards Marcus has built fit comfortably in the collapsible toggle pattern with a single shape, alt text state, and Cascadia Mono columns. Reach for the master-detail pattern only when the content genuinely needs real Excel features.

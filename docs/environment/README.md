@@ -1,7 +1,7 @@
 # Environment
 
-The execution environments and harnesses that power development across this estate:
-split by concern so each page answers one question.
+The execution environments and harnesses this estate is developed in, split by
+concern so each page answers one question.
 
 ## Claude Code Cloud Environment
 
@@ -12,8 +12,8 @@ The remote container sandbox running on Anthropic infrastructure:
   ceilings, and the provenance of state (what persists, what is isolated).
 * **[capabilities.md](capabilities.md)**: what the box can run and reach:
   the toolchain, git transport, network egress, the pre-installed Chromium, and
-  the session and subagent mechanics. What the **GitHub MCP layer** does moved to
-  [`../github/mcp.md`](../github/mcp.md) on 2026-09-07.
+  the session and subagent mechanics. The **GitHub MCP layer** is in
+  [`../github/mcp.md`](../github/mcp.md).
 * **[testing.md](testing.md)**: the sensible way to test HTML and JS in the container:
   choosing the lightest tool that proves the claim, driving Chromium for
   screenshots, rendering a repo page, and the jsdom and Alpine logic recipe.
@@ -31,9 +31,9 @@ The persistent local machine environment running on the developer workstation:
 
 ## Harness Comparison
 
-* **[harness-comparison.md](harness-comparison.md)**: defining what a harness is,
-  with a side-by-side architecture diagram and capability matrix comparing the
-  Claude Code cloud harness and the Antigravity local harness.
+* **[harness-comparison.md](harness-comparison.md)**: what a harness is, and a
+  matrix comparing the Claude Code cloud harness with the Antigravity local
+  harness.
 
 ---
 

@@ -7,9 +7,9 @@ description: Read a transcript, a reply, or a document as the questions it answe
 
 ## Objective
 
-Re-express a piece of writing as the questions it answers, one per unit, each with its answer. The output runs beside the text as a margin, or replaces it as a list. You are not summarizing. A summary compresses by dropping; this keeps every unit and changes its form, so nothing is lost and the index is complete.
+Re-express a piece of writing as the questions it answers, one per unit, each with its answer. The output runs beside the text as a margin, or replaces it as a list. You are not summarizing. A summary compresses by dropping; this keeps every unit and changes its form, so nothing is lost and the index is complete, and a missing question becomes visible where a gap in answer form would not.
 
-The payoff is that **absence becomes visible**. In answer form a gap is nothing, and nothing cannot be seen. Line the same content up as questions and the missing one announces itself.
+The measurements behind the rules below are recorded in [`chron/2026/08/2026-08-28-discussion-as-questions.md`](https://github.com/mehrlander/home/blob/main/chron/2026/08/2026-08-28-discussion-as-questions.md) in `mehrlander/home`.
 
 ## Pick the grain first, and it decides the object
 
@@ -20,26 +20,26 @@ This is the one choice that cannot be deferred, because the two grains attach to
 | paragraph | one paragraph | **one reply or one document section** | ~9 prose paragraphs a reply |
 | exchange | one user ask and its answer | **one session** | ~10 exchanges a session |
 
-Measured across the 192 session records in `mehrlander/web-tools-private` that carry both halves: a substantive reply (400+ characters) runs a median of 11 paragraphs, 9 of them prose, and a session runs a median of 10 exchanges. **A session at paragraph grain is about 204 rows, which is a corpus rather than a view.** So paragraph grain annotates a reply and never a whole session; exchange grain indexes a session and is too coarse for one reply. Do not mix them in one artifact.
+A session at paragraph grain runs to about 200 rows, a corpus rather than a view. So paragraph grain annotates a reply and never a whole session; exchange grain indexes a session and is too coarse for one reply. Do not mix them in one artifact.
 
-**Where the source has no paragraph breaks, the paragraph is not the unit.** Dictated prose arrives as one block and carries its boundaries in discourse markers instead of whitespace: *"And then in addition to that"*, *"So it's possible that"*, *"Maybe the natural thought is"*, *"Anyway"*. Segment on the shift of subject and take those phrases as the cue. Measured on one 2,075-character spoken prompt in the store: paragraph grain gives **one** row, subject grain gives **five**, and the five are all real. Never report a wall of dictation as a single question.
+**Where the source has no paragraph breaks, the paragraph is not the unit.** Dictated prose arrives as one block and carries its boundaries in discourse markers instead of whitespace: *"And then in addition to that"*, *"So it's possible that"*, *"Maybe the natural thought is"*, *"Anyway"*. Segment on the shift of subject and take those phrases as the cue. Never report a wall of dictation as a single question.
 
-Non-prose blocks get no question of their own, and **which way they attach depends on what they are**. A list, table or code fence attaches **upward**, to the paragraph that introduced it. A heading, and any bare transition sentence under it (*"The landing turned up things my checks could not see:"*), attaches **downward**, to the section it opens. Attaching a heading upward is the mistake this rule exists to stop: it lands the heading on the block above and orphans the section it was announcing.
+Non-prose blocks get no question of their own, and **which way they attach depends on what they are**. A list, table or code fence attaches **upward**, to the paragraph that introduced it. A heading, and any bare transition sentence under it (*"The landing turned up things my checks could not see:"*), attaches **downward**, to the section it opens. Attached upward, a heading lands on the block above and orphans the section it was announcing.
 
 ## The question is what the unit answers, asked or not
 
-Most units answer a question nobody posed. Measured on one session: of the 42 questions it answered, **16 (38%) were never asked**, and two of those were its most durable findings, both arriving under the user prompt "Done." A prompt carrying no question is not a low-content exchange; it is often the highest-content one, because it is where the work was handed over.
+Most units answer a question nobody posed. A prompt carrying no question (*"Done."*) is not a low-content exchange; it is often the highest-content one, because it is where the work was handed over.
 
 So every row carries a provenance mark, and the mark is epistemic rather than decorative:
 
 - **`?`** a question somebody actually asked. Derived from their words.
 - **`·`** a question the content answers without posing. Written by you, after the fact.
 
-A `·` row is a model artifact with a model's failure modes: it can fluently name a question the passage does not actually answer. Never merge the two marks into one column. This is the same distinction the `content-registry` skill's `creation_mode` exists to keep, and a table that blurs it is claiming provenance it does not have.
+A `·` row is a model artifact with a model's failure modes: it can fluently name a question the passage does not actually answer. Never merge the two marks into one column; this is the distinction the `content-registry` skill's `creation_mode` keeps, and a table that blurs it claims provenance it does not have.
 
 ## Writing the answer
 
-**Every answer stands alone without its question.** This is the rule the first attempt got wrong, and the failure is specific enough to name: a bad answer inherits its subject from the question and keeps only the modifier.
+**Every answer stands alone without its question.** The failure to avoid: a bad answer inherits its subject from the question and keeps only the modifier.
 
 | written | fails because |
 | --- | --- |
@@ -55,7 +55,7 @@ Three rules fix all three:
 
 So `No. An orphaned artifact keeps serving a withdrawn link, and I did not fix it.` rather than `no, and I left it unfixed`.
 
-**Brevity was never the constraint.** "Merged into shortcut-tools main" is four words and complete; "both, in that order" is four words and useless. A short answer is right where the fact is short, and nowhere else.
+Length is not the constraint: "Merged into shortcut-tools main" is four words and complete; "both, in that order" is four words and useless. A short answer is right where the fact is short, and nowhere else.
 
 ## Mood sorts the kinds apart
 
@@ -67,13 +67,11 @@ Three moods, and they separate themselves without help:
 | **finding** | *does this work*, *is this true* | a self-audit |
 | **proposal** | *can we*, *should we* | a design conversation |
 
-The first two separate on the page. On the page every paragraph is the same shape and a finding buried among status reports is camouflaged. In the margin, the one question in a different mood stands out with no colour, status field or convention doing the work.
+On the page a finding buried among status reports has the same shape as they do; in the margin, the one question in a different mood stands out with no colour, status field or convention doing the work.
 
 Do not add a status column to encode this. The grammar already carries it, and a column would invite you to write the mood rather than let it fall out.
 
-**State the mix alongside the table**, since it says what kind of turn you are reading before you read it. Three measured so far: a wrap-up reply ran six reports to one finding, and rescuing that finding is the whole case for the margin; a defects reply ran five findings to five reports with four findings answered "No"; a spoken prompt ran five proposals and nothing else.
-
-**Three units, and only one of them a user's.** Nothing here is tested on a document, or across authors.
+**State the mix alongside the table** (six reports to one finding, say), since it says what kind of turn you are reading before you read it.
 
 ## The open-loop filter (exchange grain only)
 
@@ -81,11 +79,13 @@ At exchange grain a question can outlive the turn that raised it. Count how many
 
 > **An open loop is a question that was explicitly asked and did not settle inside the turn that raised it.**
 
-On the worked session this cuts 42 rows to 12, and the 30 it drops are the ones asked and answered in one breath, which is exactly the population a list was never needed for. Show the count as `×N` and let a zero render as nothing.
+The rows it drops are the ones asked and answered in one breath, the population a list was never needed for. Show the count as `×N` and let a zero render as nothing.
 
 The full list and the filtered one are **one structure with two masks**, never two artifacts. Deriving the second from the first is what keeps them from drifting.
 
-**Withdrawn is not settled, and the filter cannot see the difference.** A question can be raised and parked in the same breath: *"I kinda want it to be a little bit like Wikipedia where you can go in and edit the section. But maybe that's not really feasible there for now."* That closes inside its turn, so the open-loop filter drops it, but it closed by abandonment rather than by an answer. Mark it `~` and give it the asker's own reason as its answer. It is usually the one item in a turn that nobody will ever come back to, which is exactly why it is worth a row.
+**Withdrawn is not settled, and the filter cannot see the difference.** A question can be raised and parked in the same breath: *"I kinda want it to be a little bit like Wikipedia where you can go in and edit the section. But maybe that's not really feasible there for now."* That closes inside its turn, so the open-loop filter drops it, but it closed by abandonment rather than by an answer. Mark it `~` and give it the asker's own reason as its answer. It is usually the one item in a turn that nobody will come back to, which is why it is worth a row.
+
+Two independent passes agree on the contents at the high-severity end and not on the count. Present the list as approximately right: no total, no "N of M resolved."
 
 ## Output
 
@@ -100,23 +100,13 @@ Default to a markdown table in chat, since the point is to be cheap enough to ac
 
 Three densities are available and worth naming when handing one over: **prose** leaves the text untouched with the index beside it, **answers** keeps the shape and drops the argument, **questions** is what the text was for. Answers is the useful default.
 
-A rendered page is worth it only when the margin has to sit beside the prose to make its point. The dated prototypes are `dump/2026-08-28-question-margin.html` (paragraph grain) and `dump/2026-08-28-question-lane.html` (exchange grain) in `mehrlander/web-tools`, each with its build script beside it.
+A rendered page is worth it only when the margin has to sit beside the prose to make its point. Prototypes: `dump/2026-08-28-question-margin.html` (paragraph grain) and `dump/2026-08-28-question-lane.html` (exchange grain) in `mehrlander/web-tools`, each with its build script beside it.
+
+The mood sort rests on one reply, the open-loop filter on one session and the document audit below on one section, all read after the fact and none across authors. Granularity also tracks the writer's formatting: an enumerated ask splits the same way every time, a paragraph carrying three concerns does not, and no rule covers that case. Say so when a result you hand over leans on any of these.
 
 ## Auditing a document
 
-Run at paragraph grain over a document and **a section that yields no distinct question is carrying no criterion.** Measured on one section of `docs/SURFACING.md`: its enumerated closing states yielded one question repeated once per state, because a definition list is already in answer form, while the boundary paragraph beneath yielded seven distinct questions, every one sharper as a question than as prose.
-
-That is the same cut the conventions make in "what earns its place is the criterion inside a reason," so the digest doubles as a bloat detector. Report the sections that produced nothing rather than padding them with a question you had to invent.
-
-## What is not established
-
-Say these where they bear on what you are handing over.
-
-- Every measurement above is **post-hoc**, over records of finished sessions. Whether producing this live changes what happens in a session is untested.
-- The mood observation is **one reply**.
-- The 42-row and 12-row figures are **one session**, and a build session at that. A long analysis session was read for granularity but never counted.
-- Two independent passes will agree on the contents at the high-severity end and **will not agree on the count**. Present the list to be approximately right: no total, no "N of M resolved."
-- Granularity tracks the writer's formatting. An enumerated ask splits the same way every time; a paragraph carrying three concerns does not, and no rule for that case has been proposed.
+Run at paragraph grain over a document and **a section that yields no distinct question is carrying no criterion.** A definition list is already in answer form and yields one question repeated once per item; the prose that states its boundaries yields the distinct questions. Report the sections that produced nothing rather than padding them with a question you had to invent.
 
 ## Relation to atomic-decomposition
 

@@ -41,7 +41,7 @@ python3 "$CLAUDE_PLUGIN_ROOT/content-registry/registry.py" corpus <root> concept
    handful of subtree rows plus targeted file rows over an inventory.
 3. **Fragments only for genuinely mixed files** that cannot be
    restructured: `#heading=<slug>` (Markdown), `#column=<name>` (CSV),
-   `#html-id=<id>` (HTML). Measured caveat: a Markdown heading region
+   `#html-id=<id>` (HTML). Caveat: a Markdown heading region
    includes its subsections, so a preamble above quoted material cannot
    be isolated by heading; restructure instead.
 4. **Verification is advisory.** Run `verify` after edits and at renames;
@@ -51,8 +51,7 @@ python3 "$CLAUDE_PLUGIN_ROOT/content-registry/registry.py" corpus <root> concept
    file, `analysis_use` decides whether content counts as the repo's
    authored voice, undeclared content falls back to heuristics.
 
-The staged design (deferred provenance relations, generated inventory,
-comparison layer) follows the Epistemic Content and Provenance Registry
-ADR, summarized in the 2026-08-02 entry of `mehrlander/home`'s
-`projects/text/instruments/concept-lab/findings.md`; build later
-layers only when their operational need appears.
+Build the design's later layers (provenance relations, a generated
+inventory, a comparison layer; summarized in the 2026-08-02 entry of
+`mehrlander/home`'s `projects/text/instruments/concept-lab/findings.md`)
+only when their operational need appears.

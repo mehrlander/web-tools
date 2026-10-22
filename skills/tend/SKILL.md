@@ -11,12 +11,6 @@ disable-model-invocation: true
 
 # tend
 
-## Premise
-
-Tending is the cultivation of a workspace toward recognized objectives. It
-clears paths, prunes dead ends, and carries work forward. It readies the owner
-to see the vital choice and commit.
-
 ## Principles
 
 1. **Commitment belongs to the owner.** Merging code, deleting unique

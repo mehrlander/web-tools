@@ -9,7 +9,7 @@ description: Revise expository writing toward succinctness by establishing topic
 
 ## Premise
 
-Agents can be tuned to guard against possible misunderstandings, and generally to over-explain. And as Pascal observed, before AI set out to prove it, brevity takes more work.
+Agents tend to over-explain, guarding against possible misunderstandings, and brevity takes more work than length.
 
 ## Objective
 
@@ -37,11 +37,11 @@ Material that doesn't earn its place is shortened, extracted, or delegated.
 
 ### 0. Name Audience and Goal
 
-Name the reader and the action you need from them. What do we assume they know, and what do we want them to see? From there we keep exactly what moves the needle. Key them in, not show them the house. The rest is NV, no value. Variants we might discuss: TAW (tilting at windmills) and BTP (belabors the point).
+Name the reader and the action you need from them. What do we assume they know, and what do we want them to see? Keep exactly what moves the reader toward that action: key them in, do not show them the house. Everything else has no value to that reader, including a rebuttal of a case nobody raised and a point repeated after it landed.
 
 ### 1. Derive Theme and Fit
 
-Gloss the piece in one sentence. Then give subthemes for each section, down to where each claim can be judged against it. Themes and subthemes are the document's outline, its wireframe. Do the themes flow, and does the content fit the theme? Don't LTP (lose the plot). Ask also: how long would it take to fully contextualize why this point needs saying? We might be ITW (in the weeds).
+Gloss the piece in one sentence. Then give subthemes for each section, down to where each claim can be judged against it. Themes and subthemes are the document's outline, its wireframe. Do the themes flow, and does the content fit the theme? Keep each section on its theme. Ask also how long it would take to explain why a point needs saying: a long answer marks a detail too fine for this reader.
 
 ### 2. Condense
 

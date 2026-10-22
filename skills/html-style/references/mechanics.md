@@ -2,19 +2,19 @@
 
 How a page here is built. What it should look like is the house style in
 [`SKILL.md`](../SKILL.md) one folder up; that one is binding and this one is the
-means. Every rule below is here because it compiles, renders, or silently does
-nothing in a way nobody would guess from reading the class list.
+means.
 
 ## Rules that look like taste and are not
 
-**A theme colour takes opacity in tens, 10 through 90.** `bg-success/10`,
-`text-base-content/60`. Anything else on a daisyUI theme colour generates no
-rule: `/0`, `/100`, every step off the tens, and the bracket form (`/[5%]`).
-Stock palette colours are unaffected and take any step, so `bg-red-500/33` is
-fine. The reason to care is the direction of the failure, not the tidiness: a
-background falls back to transparent and TEXT falls back to FULL strength, so a
-line meant to be quiet comes out louder than the line above it. Nothing errors,
-which is why it survives review. Enforced by `npm run opacity-scan`
+**A theme colour takes opacity in tens, 10 through 90, unless the page
+registers the theme colours.** A page that boots through `lib/gh-boot.js`, which
+registers them (`@theme inline`), composes every step. On a page that does not,
+only a static step in tens survives (`bg-success/10`,
+`text-base-content/60`); `/0`, `/100`, every step off the tens, the bracket form
+(`/[5%]`) and any variant (`hover:bg-primary/10`) generate no rule. A background
+then falls back to transparent and text keeps its resting colour, so a line
+meant to be quiet or to change does not, and nothing errors. Stock palette
+colours take any step (`bg-red-500/33`). Enforced by `npm run opacity-scan`
 (`python/dead-opacity.py`), gated in `node/test/dead-opacity.test.mjs`, which
 also carries the measurement.
 
@@ -28,12 +28,10 @@ enforces it, gated in `node/test/blank-icons.test.mjs`.
 whenever the expression contains a dot, and `bind()` removes an attribute only
 for `null`, `undefined` and `false`, so `''` takes the other branch and WRITES
 it. A property that is simply absent therefore disables the button, freezes the
-input, or checks the box, and the author is looking at a field that is plainly
-not true. Only a bare fetch is exposed: `!row.busy` and `row.busy === true`
-already yield a real boolean and need nothing. Two shipped controls were dead
-this way before anyone found the cause (PR #469), both with passing suites,
-because a test that calls a method on the component cannot see an attribute the
-template put on a button. Enforced by `npm run bool-attr-scan`
+input, or checks the box. Only a bare fetch is exposed: `!row.busy` and
+`row.busy === true` already yield a real boolean and need nothing. A passing
+suite does not clear it, since a test that calls a method on the component
+cannot see an attribute the template put on a button. Enforced by `npm run bool-attr-scan`
 (`python/bound-boolean-attrs.py`), gated in
 `node/test/bound-boolean-attrs.test.mjs`.
 
@@ -115,9 +113,8 @@ quotes, `<`, and closing script text; ordinary data alone does not check escapin
 
 ## Title-tips and panel-tips
 
-**This section is the one statement of the house popup rule.** Rule 11 of the
-style guide, the kit headers and page comments point here rather than
-restating it.
+This section is the one statement of the house popup rule; rule 11 of the
+style guide, the kit headers and page comments point here.
 
 A popup is a **title-tip** or a **panel-tip**, and one question decides which:
 **can the reader tap anything inside it?** A link, a ↗ reference, a copy button,
@@ -127,10 +124,8 @@ rests on, it is also a panel-tip, and it names its source with a ↗. Size and
 importance do not enter into it. The standard terms are a tooltip (ARIA
 `role="tooltip"`) and a popover.
 
-A `title` attribute is neither, and is not used: the browser draws it only on
-mouse hover and outside the page, so phones and screenshots omit it. daisyUI's
-`tooltip`, `data-tip` and `cursor-help` are not used; this overrides
-`references/daisyui.md`.
+A `title` attribute is neither, and neither are daisyUI's `tooltip`,
+`data-tip` and `cursor-help`; none is used (rule 11).
 
 | | Title-tip | Panel-tip | Panel-tip, pinned |
 | --- | --- | --- | --- |
@@ -197,8 +192,8 @@ composition views. Demo:
 
 ## References
 
-- **DaisyUI 5 components**: See `daisyui.md` for complete component syntax, class names, and usage rules
-- **Alpine.js V3 patterns**: See `alpine-v3.md` for V3 API and key differences from V2
+- **DaisyUI 5 components**: See `daisyui.md` for component syntax, class names, and usage rules, an excerpt of upstream's list
+- **Alpine.js V3 patterns**: See `alpine-v3.md` for the scope and registration rules that trip a page, and the Alpine 3 forms of v2 idioms
 - **Reactivity cost in long lists**: See `reactivity-cost.md` for the per-row binding pattern that scales badly with N, the direct-DOM fix, and the DOM-reuse gotcha
 - **Full demo**: See `demo-sortable.html` for a complete working example demonstrating CDN usage, DaisyUI components, Alpine.js patterns, Phosphor Icons, and third-party library integration
 
@@ -210,8 +205,8 @@ composition views. Demo:
 4. Alpine's `x-data`, `x-show`, `x-bind` for reactivity: no React
 5. Use Phosphor Icons via CDN for iconography: no inline SVGs
 6. No `<style>` blocks: no vanilla CSS, no `<style type="text/tailwindcss">`, no `@apply`. Generally, avoid all efforts to override styles in third-party components. Where no utility can reach, write `/* exempt(<kind>): <reason> */` before the rule, with a kind from [`python/css-blocks.py`](https://github.com/mehrlander/web-tools/blob/main/python/css-blocks.py). Enforced by `npm run css-scan`, gated in `node/test/css-blocks.test.mjs` against [`docs/css-baseline.csv`](https://github.com/mehrlander/web-tools/blob/main/docs/css-baseline.csv), a per-file ceiling; after converting a file, lower its row with `--write`.
-7. A daisyUI semantic colour works only in the utility families daisyUI itself ships, and there are **exactly three**: `bg`, `border`, `text`. Derived from daisyUI 5.7.28's own stylesheet on 2026-09-08, not estimated: it defines 207 classes on a semantic colour, and every family but those three is a daisyUI COMPONENT (`btn-primary`, `badge-error`, `alert-warning`), which is a different thing. So `bg-base-200`, `text-base-content` and `border-base-300` resolve, while `divide-base-200`, `ring-primary`, `outline-primary`, `accent-primary`, `from-base-100`, `via-`, `to-`, `fill-`, `stroke-`, `caret-`, `placeholder-`, `decoration-` and `shadow-` on a semantic colour all compile to nothing and are dropped silently. **The fix is mechanical: write the same utility with an arbitrary value, `ring-primary` to `ring-[var(--color-primary)]`.** Measured 2026-09-08 in headless Chromium: the arbitrary form sets `--tw-ring-color` to the theme colour where the semantic name set nothing, `divide-[var(--color-base-200)]` paints at `oklch(0.98 0 0)` where `divide-base-200` painted in the text colour, and an opacity step rides along unchanged (`/40` becomes `color-mix(... 40%, transparent)`). So the ring stays a ring and takes no layout space, which swapping to `border-*` would not preserve, and the colour still follows the theme, which a palette colour would not. One exception measured: `shadow-*` leaves `--tw-shadow-color` unset in the arbitrary form, so a shadow tint has to be written out. **Run it rather than remember it: `npm run family-scan`** ([`python/dead-family.py`](https://github.com/mehrlander/web-tools/blob/main/python/dead-family.py)), which derives the supported set from the installed daisyUI, names the substitution per finding, and gates the tree in `node/test/dead-family.test.mjs`. Tailwind v4 then defaults `border-color` to `currentColor` (v3 defaulted to `gray-200`), so `divide-y` alone paints hairlines in the **text colour**: black lines where a faint grey was intended. The same trap waits in `ring-*`, `outline-*`, and `accent-*`. Separate rows with `gap`, or write the border explicitly (`[&>*+*]:border-t [&>*+*]:border-base-200`). A Tailwind palette name (`divide-slate-300`) also works and is the tell: if swapping the colour name fixes it, the semantic name was never compiling. Inside an `x-for`, reach for the index rather than the adjacency selector; see 8.
-8. **Structural selectors are wrong inside an `x-for`, including the adjacency fix above.** Alpine inserts each clone *after* the `<template>` rather than replacing it, so the template stays in the DOM and occupies the parent's first child slot. Measured with jsdom against the real runtime, three rows in a bare parent:
+7. On a page that does not reach `lib/gh-boot.js`'s theme registration, a daisyUI semantic colour works only in the utility families daisyUI itself ships, and there are **exactly three**: `bg`, `border`, `text`. Every other family daisyUI defines on a semantic colour is a daisyUI COMPONENT (`btn-primary`, `badge-error`, `alert-warning`), which is a different thing. So `bg-base-200`, `text-base-content` and `border-base-300` resolve, while `divide-base-200`, `ring-primary`, `outline-primary`, `accent-primary`, `from-base-100`, `via-`, `to-`, `fill-`, `stroke-`, `caret-`, `placeholder-`, `decoration-` and `shadow-` on a semantic colour all compile to nothing and are dropped silently. **The fix is mechanical: write the same utility with an arbitrary value, `ring-primary` to `ring-[var(--color-primary)]`.** An opacity step rides along unchanged (`/40`), the ring stays a ring and takes no layout space, which swapping to `border-*` would not preserve, and the colour still follows the theme, which a palette colour would not. One exception: `shadow-*` leaves `--tw-shadow-color` unset in the arbitrary form, so a shadow tint has to be written out. **Run it rather than remember it: `npm run family-scan`** ([`python/dead-family.py`](https://github.com/mehrlander/web-tools/blob/main/python/dead-family.py)), which derives the supported set from the installed daisyUI, names the substitution per finding, and gates the tree in `node/test/dead-family.test.mjs`. Tailwind v4 then defaults `border-color` to `currentColor`, so `divide-y` alone paints hairlines in the **text colour**: black lines where a faint grey was intended. The same trap waits in `ring-*`, `outline-*`, and `accent-*`. Separate rows with `gap`, or write the border explicitly (`[&>*+*]:border-t [&>*+*]:border-base-200`). A Tailwind palette name (`divide-slate-300`) also works and is the tell: if swapping the colour name fixes it, the semantic name was never compiling. Inside an `x-for`, reach for the index rather than the adjacency selector; see 8.
+8. **Structural selectors are wrong inside an `x-for`, including the adjacency fix above.** Alpine inserts each clone *after* the `<template>` rather than replacing it, so the template stays in the DOM and occupies the parent's first child slot. Three rows in a bare parent:
 
    ```
    children: template,span,span,span
@@ -220,15 +215,15 @@ composition views. Demo:
    :scope > * + * hits:           span,span,span
    ```
 
-   So `first:` matches nothing at all, `last:` matches only when the loop is the last thing in its parent (add a footer under it and that silently stops too), and `[&>*+*]:border-t` puts a border on **every** row including the first, because the first clone's preceding sibling is the template. All three compile and all three are real CSS, so nothing warns; the rule just lands on the wrong element or on none.
+   So `first:` matches nothing at all, `last:` matches only when the loop is the last thing in its parent (add a footer under it and that silently stops too), and `[&>*+*]:border-t` puts a border on **every** row including the first, because the first clone's preceding sibling is the template. All three compile, so nothing warns.
 
    Take the position from the loop, which is the one source that knows it: `x-for="(row, i) in rows"` then `:class="{ 'border-t border-base-200': i }"`. Or separate with `gap` on a flex/grid parent, which is ordinal-free. Reserve `first:`/`last:`/`[&>*+*]:` for static markup.
 
-9. **A daisyUI control does not fill its parent, and a phone is where you find out.** `.input` and `.textarea` compute to `width: clamp(3rem, 20rem, 100%)`, so in a column narrower than 20rem they look correct and in a wider one they stop short while their label runs on. Measured at a 390px viewport: the label 342px, the field 320px, a ragged right edge down the whole form. Put `w-full` on every input, textarea, and select rather than relying on the flex parent to stretch it, since `align-self: stretch` does not apply to an item with an explicit width.
+9. **A daisyUI control does not fill its parent, and a phone is where you find out.** `.input` and `.textarea` compute to `width: clamp(3rem, 20rem, 100%)`, so in a column narrower than 20rem they look correct and in a wider one they stop short while their label runs on, leaving a ragged right edge down the form. Put `w-full` on every input, textarea, and select rather than relying on the flex parent to stretch it, since `align-self: stretch` does not apply to an item with an explicit width.
 
 10. **Size a pane by its container, not by the viewport.** A pane that is half a screen on desktop and the whole screen on a phone cannot be laid out with `sm:`/`lg:`, which ask how wide the *window* is: the same `lg:grid-cols-6` that reads well full-width puts six columns in a 360px column when the pane is split. Put `@container` on the column and use `@md:`/`@xl:`, which ask how wide the *column* is. The variants degrade to one column where they are unsupported, which is the safe direction.
 
-11. **Tailwind v4 layers its utilities; the typography stylesheet is unlayered, and unlayered wins.** `.prose{max-width:65ch}` therefore beats `.max-w-none` on the cascade-layer rule rather than on specificity, and nothing in the class list looks wrong. Reach for `!max-w-none`, or keep the 65ch measure on purpose and centre the column. Prefer `lib/kits/guide-render.js` for anything new, which brings its own CSS and sidesteps this; do not convert a working surface just for symmetry. Any hand-written or kit-injected stylesheet wins the same way, so a utility beside such a rule may never have applied, and converting the rule switches it on: keep what rendered, and drop the utility that never did.
+11. **Tailwind v4 layers its utilities, and an unlayered stylesheet beats them on the cascade-layer rule rather than on specificity.** The typography `prose` cap is the case `SKILL.md` rule 3 names (`!max-w-none`); the guide renderer above sidesteps it. Any hand-written or kit-injected stylesheet wins the same way, so a utility beside such a rule may never have applied, and converting the rule switches it on: keep what rendered, and drop the utility that never did.
 
 12. **An `x-data` expression sees every registered component name.** Alpine injects each name passed to `Alpine.data` into the scope of an `x-data` expression, so a config that closes over host state, such as `x-data="refPicker({ repo: () => repo })"`, reads the `repo` component's factory when one is registered under that name, not the host's field. A callback built in that expression and invoked bare has `this` bound to the same scope proxy, and `$data` is that proxy too. Build a child mount's config in the host's `init()`, over a `self` captured there, and pass the stored object: `x-data="refPicker(pickerCfg.ref)"`.
 
@@ -255,9 +250,4 @@ Alpine core must load last when combining with plugins. Use `defer` so Alpine in
 
 ### Phosphor Icons
 
-Use `<i class="ph ph-icon-name">` for regular weight, `ph-bold`, `ph-fill`, etc. for variants. Avoids inline SVGs entirely.
-```html
-<i class="ph ph-caret-down"></i>
-<i class="ph ph-file-text"></i>
-<i class="ph ph-check"></i>
-```
+The combine above loads them; the [`phosphor-icons` skill](../../phosphor-icons/SKILL.md) has the class syntax and weights.

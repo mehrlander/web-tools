@@ -15,32 +15,25 @@ description: >-
 # tree
 
 An orientation view: the shape of a repo or a subtree, rendered for a chat
-reader on a phone. It is the structural sibling of the surfacing contract's
-change handoff. The boundary, worth stating so the two do not drift:
-
-- **Surfacing** answers *what moved* this session (axis: the git diff; a
-  branch-page caption by default, with `[new]/[main]/[diff]` file rows as the
-  fallback when that page cannot be used).
-- **tree** answers *what is here* (axis: the filesystem; folders and files
-  as links, depth shown visually).
-
-They share DNA (tappable GitHub links at a ref) but answer different
-questions. When the ask is about change, follow
-[`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md); about structure, use this.
+reader on a phone. A tree answers *what is here* (the filesystem); the
+surfacing contract,
+[`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md),
+answers *what moved* (the git diff), and the
+[`surfacing-course`](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md)
+owns PR bodies and wrap-up. A tree carries no change state and no diff links:
+when the ask is "what did I touch", follow the surfacing contract, and treat a
+tree that also marks change as a deliberate combined view, not the default.
 
 Substitute the current repo into all URL templates. The rendering rules
-below are the applied form of [`claude-markdown`](../claude-markdown/SKILL.md);
-read that for *why* tables beat bullets and which characters survive a
-table cell.
+below are the applied form of [`claude-markdown`](../claude-markdown/SKILL.md),
+which owns which characters survive a table cell.
 
 ## The generator
 
-Hand-building nested links with correct blob/tree URLs is exactly the
-tedious, error-prone work to script. [`python/build-tree.py`](https://github.com/mehrlander/web-tools/blob/main/python/build-tree.py)
-(python3 stdlib, argv-parameterized, raw-URL fetchable) emits the table.
-It produces structure, links, and icons; it leaves the gloss column empty,
-because a one-line "what this is" needs judgement the walker lacks (same
-split as `build-board.py`: the tool rolls up, the human writes the prose).
+[`python/build-tree.py`](https://github.com/mehrlander/web-tools/blob/main/python/build-tree.py)
+(python3 stdlib, argv-parameterized, raw-URL fetchable) emits the table:
+structure, links, and icons. It leaves the gloss column empty, because a
+one-line "what this is" needs judgement the walker lacks; write it yourself when a gloss is wanted.
 
 ```
 python3 python/build-tree.py <root> [--repo owner/repo] [--ref REF]
@@ -87,14 +80,13 @@ as the color anchor, name linked to its GitHub blob (files) or tree
 keeps the box-art rail, so the first level hangs off the header the way a
 classic `tree` hangs off its root; braille indents it one step.
 
-### A. codespan (default) — box art in an inline code span
+### A. codespan (default): box art in an inline code span
 
 The connector prefix (`├─ │ └─`, the exact string `tree` already emits)
 goes inside backticks. A code span preserves its whitespace and renders
 monospace, so the rails align column-to-column and the corner art survives
 the cell trim; the icon and link sit outside the span, so they stay
-tappable. This is the most capable format: full box art, perfect
-alignment, links, icons, optional gloss.
+tappable.
 
 | [skills](https://github.com/mehrlander/web-tools/tree/main/skills) | What it is |
 |---|---|
@@ -103,7 +95,7 @@ alignment, links, icons, optional gloss.
 | `└─ `📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/skills/tasks) | the tracker protocol |
 | `   └─ `📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/skills/tasks/SKILL.md) | the skill |
 
-### B. braille — invisible indent + icons
+### B. braille: invisible indent + icons
 
 No connectors: depth is pure indentation built from the braille blank
 (U+2800), which survives the cell trim where ASCII space, nbsp, and tab do
@@ -159,35 +151,16 @@ For when links are noise, or the reader wants something pasteable into a
 terminal or another editor. It is a fallback, not a default, because it
 drops the navigation that is the point of rendering in chat.
 
-## Rendering rules (why this shape)
-
-These are load-bearing, established empirically (see
-[`claude-markdown`](../claude-markdown/SKILL.md)):
+## Rendering rules
 
 - **Never nested bullets.** Chat renders each list item with paragraph
   margin, and nesting compounds it, so a deep bullet tree is mostly
-  whitespace on a phone. Tables (and code blocks) render vertically tight.
-- **A table cell trims leading whitespace,** including ASCII space, nbsp
-  (U+00A0), and tab, and collapses internal runs of spaces. So depth can
-  never ride on plain indentation; it needs a surviving character.
-- **What survives as a leading indent:** a visible glyph (the `│` rail, an
-  icon), a code span (its whitespace is preserved), or the braille blank
-  U+2800 (a printable non-space).
+  whitespace on a phone. Use a table (or a code block).
+- **Depth needs a surviving character,** because a table cell trims leading
+  whitespace and collapses internal runs of spaces: a visible glyph, a code
+  span, or the braille blank U+2800
+  ([`claude-markdown`](../claude-markdown/SKILL.md)).
 - **A code span cannot hold a link,** so the structure prefix goes in
   backticks and the name/icon stay outside it.
-
-## Icon legend
-
-Folders 📁; markdown/text/other 📄; python 🐍; js/ts 📜; html 🌐; css 🎨;
-json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
-`build-tree.py`; extend it there, not per-render.
-
-## Boundary with surfacing and Web Tools
-
-This skill owns structure rendering. [`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md)
-owns change surfacing: the branch-page caption by default, the
-`[new]/[main]/[diff]` file list as fallback, and render lines. The
-[`surfacing-course`](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md) owns PR bodies and
-wrap-up. A tree is not a change handoff: it carries no change state and no
-diff links. If the ask is "what did I touch," follow the surfacing contract; a
-tree that also marks change is a deliberate combined view, not the default.
+- **Icons** come from the filetype map in `build-tree.py`; extend it there,
+  not per-render.

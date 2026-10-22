@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Walkthrough</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧹</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+
+<!--
+  walkthrough.html — a branch-review/1 surface read as a walkthrough of a large
+  documentation change across repositories: what each document was judged, what
+  left it and why, and what is left for the owner.
+
+    #src=owner/repo[@ref]:path     the surface, fetched with the stored token
+    &lens=overview|documents|findings|questions   &item=<item id>
+    &repo= &area= &outcome=        the Documents filters
+
+  The surface is the one the builder beside the data writes (for the first use,
+  home projects/text/runs/2026-10-22-doc-survey/build-walkthrough.py). A file
+  item's metadata carries words before and after, the outcome, the cuts and
+  the survey's verdict; `context.compares` pins each repository's base and head,
+  which is what the Diff button hands kits/file-deck.js.
+
+  Lists are html-style rule 12 (kits/linked-swiper.js): one root, re-mounted
+  with the rows of the lens in view.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/gz-payload.js');
+    await gh.load('gh-store.js');
+    await gh.load('kits/swipe-deck.js');
+    await gh.load('kits/dock-split.js');
+    await gh.load('kits/linked-swiper.js');
+    await gh.load('kits/subject-channel.js');
+    await gh.load('kits/file-deck.js');
+    await gh.load('kits/cm6-merge.js');
+    await gh.load('alpineComponents/file-review.js');
+  } finally { window.__depsDone(); }
+</script>
+</head>
+<body class="h-dvh flex flex-col bg-base-200 text-base-content overflow-hidden [&[x-cloak]]:hidden"
+      x-data="walkthrough()" x-cloak @click="act($event)">
+
+<header class="flex-none border-b border-base-300 bg-base-100">
+  <div class="flex items-center gap-2 px-3 pt-2">
+    <i class="ph ph-broom text-lg text-base-content/60"></i>
+    <h1 class="min-w-0 flex-1 truncate text-base font-bold" x-text="env?.manifest?.name || 'Walkthrough'"></h1>
+    <button type="button" class="btn btn-ghost btn-sm btn-square" x-show="env" @click="$refs.info.showModal()"
+            aria-label="Stages, pull requests and sources"><i class="ph ph-info text-lg"></i></button>
+  </div>
+  <div class="text-balance px-3 pb-1 font-mono text-xs tabular-nums text-base-content/70" x-show="env" x-text="headline"></div>
+  <div role="tablist" class="tabs tabs-border px-1" x-show="env">
+    <template x-for="l in lenses" :key="l.id">
+      <button type="button" role="tab" class="tab gap-1.5 text-sm" :class="lens === l.id && 'tab-active'" @click="setLens(l.id)">
+        <span x-text="l.label"></span><span class="font-mono text-xs text-base-content/50" x-show="l.n" x-text="l.n"></span>
+      </button>
+    </template>
+  </div>
+</header>
+
+<div x-show="loading" class="flex items-center gap-2 px-3 py-3 opacity-70">
+  <span class="loading loading-spinner loading-sm"></span> Loading
+</div>
+<div x-show="error" class="alert alert-error m-3 px-3 py-2">
+  <i class="ph ph-warning-circle"></i><span x-text="error"></span>
+</div>
+<form x-show="!loading && !env" class="flex gap-2 p-3" @submit.prevent="openSrc()">
+  <input x-model="srcInput" class="input input-sm min-w-0 flex-1 font-mono" placeholder="owner/repo@ref:path.surface.json" aria-label="Surface address" />
+  <button class="btn btn-sm">Open</button>
+</form>
+
+<main x-show="env" class="flex min-h-0 flex-1 flex-col">
+
+  <!-- Overview: the areas compared on one scale, the outcomes, the largest reductions. -->
+  <section x-show="lens === 'overview'" class="min-h-0 flex-1 overflow-y-auto p-3 pb-24">
+    <div class="grid gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
+        <table class="table table-sm text-sm">
+          <thead><tr class="text-xs">
+            <th>Area</th><th class="text-right">Docs</th><th class="text-right">Changed</th><th class="text-right">Deleted</th>
+            <th class="text-right">Words</th><th class="w-1/4 min-w-24"></th><th class="text-right">Cut</th><th class="text-right">Survey est.</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="r in areaRows" :key="r.area">
+              <tr class="cursor-pointer hover:bg-base-200" @click="filterTo({ area: r.area })">
+                <td class="whitespace-nowrap" x-text="r.area"></td>
+                <td class="text-right tabular-nums" x-text="r.docs"></td>
+                <td class="text-right tabular-nums" x-text="r.changed"></td>
+                <td class="text-right tabular-nums" x-text="r.deleted || ''"></td>
+                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums" x-text="r.words ? fmt(r.before) + ' → ' + fmt(r.after) : ''"></td>
+                <td><div x-show="r.words" x-html="bar(r.before, r.after, maxAreaWords)"></div></td>
+                <td class="text-right tabular-nums" x-text="r.words ? pct(r.before, r.after) : ''"></td>
+                <td class="text-right tabular-nums text-base-content/60" x-text="r.est == null ? '' : r.est + '%'"></td>
+              </tr>
+            </template>
+          </tbody>
+          <tfoot><tr class="text-xs">
+            <th>All documents</th><th class="text-right" x-text="totals.docs"></th><th class="text-right" x-text="totals.changed"></th>
+            <th class="text-right" x-text="totals.deleted"></th>
+            <th class="whitespace-nowrap text-right font-mono" x-text="fmt(totals.before) + ' → ' + fmt(totals.after)"></th>
+            <th></th><th class="text-right" x-text="pct(totals.before, totals.after)"></th><th class="text-right" x-text="totals.est == null ? '' : totals.est + '%'"></th>
+          </tr></tfoot>
+        </table>
+      </div>
+      <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
+        <table class="table table-sm text-sm">
+          <thead><tr class="text-xs"><th>Outcome</th><th class="text-right">Docs</th><th class="text-right">Words removed</th><th class="w-1/3"></th></tr></thead>
+          <tbody>
+            <template x-for="r in outcomeRows" :key="r.outcome">
+              <tr class="cursor-pointer hover:bg-base-200" @click="filterTo({ outcome: r.outcome })">
+                <td class="whitespace-nowrap" x-text="r.outcome"></td>
+                <td class="text-right tabular-nums" x-text="r.docs"></td>
+                <td class="text-right font-mono text-xs tabular-nums" x-text="r.removed ? fmt(r.removed) : ''"></td>
+                <td><div class="h-2 rounded-sm bg-primary" x-show="r.removed > 0" :style="`width:${100 * r.removed / maxOutcomeRemoved}%`"></div></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100 xl:col-span-2">
+        <table class="table table-sm text-sm">
+          <thead><tr class="text-xs"><th>Largest reductions</th><th>Area</th><th class="text-right">Words</th><th class="w-1/4 min-w-24"></th><th class="text-right">Cut</th></tr></thead>
+          <tbody>
+            <template x-for="d in largest" :key="d.id">
+              <tr class="cursor-pointer hover:bg-base-200" @click="goto(d.id)">
+                <td class="max-w-0 truncate" x-html="pathHtml(d)"></td>
+                <td class="whitespace-nowrap text-base-content/70" x-text="d.facet"></td>
+                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums" x-text="fmt(m(d).words_before) + ' → ' + fmt(m(d).words_after)"></td>
+                <td x-html="bar(m(d).words_before, m(d).words_after, largestMax)"></td>
+                <td class="text-right tabular-nums" x-text="pct(m(d).words_before, m(d).words_after)"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Documents, findings and questions: one list over one strip, re-mounted per lens. -->
+  <section x-show="lens !== 'overview'" class="flex min-h-0 flex-1 flex-col">
+    <div x-show="lens === 'documents'" class="flex-none space-y-1 border-b border-base-300 bg-base-100 px-3 py-1.5">
+      <template x-for="f in filterRows" :key="f.key">
+        <div class="flex items-center gap-2">
+          <span class="w-14 flex-none text-xs text-base-content/60" x-text="f.label"></span>
+          <div class="flex min-w-0 flex-1 gap-1 overflow-x-auto whitespace-nowrap">
+            <template x-for="o in f.options" :key="o.value">
+              <button type="button" class="btn btn-xs rounded-full font-normal" :class="filters[f.key] === o.value ? 'btn-neutral' : 'btn-ghost'"
+                      @click="setFilter(f.key, o.value)">
+                <span x-text="o.label"></span><span class="font-mono opacity-60" x-show="o.n != null" x-text="o.n"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div class="flex min-h-0 flex-1 flex-col p-2.5">
+      <div x-ref="root">
+        <div x-ref="list" role="listbox" aria-label="Items"></div>
+        <div x-ref="card"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog x-ref="info" class="modal">
+  <div class="modal-box max-w-3xl text-sm">
+    <h2 class="mb-2 text-base font-bold">Stages</h2>
+    <table class="table table-sm mb-4">
+      <tbody>
+        <template x-for="s in ctx.stages || []" :key="s.name">
+          <tr><td x-text="s.name"></td><td class="text-right font-mono tabular-nums" x-text="fmt(s.count)"></td><td class="text-base-content/70" x-text="s.unit"></td></tr>
+        </template>
+      </tbody>
+    </table>
+    <h2 class="mb-2 text-base font-bold">Repositories</h2>
+    <table class="table table-sm mb-4">
+      <tbody>
+        <template x-for="c in ctx.compares || []" :key="c.repository">
+          <tr>
+            <td class="font-mono text-xs" x-text="c.repository"></td>
+            <td><a class="underline" target="_blank" :href="gh().compare(c.repository, c.base.revision, c.head.ref)">compare</a></td>
+            <td><a class="underline" target="_blank" x-show="c.pr" :href="gh().pull(c.repository, c.pr)" x-text="'#' + c.pr"></a></td>
+            <td class="font-mono text-xs text-base-content/60" x-text="c.base.revision.slice(0, 7) + ' → ' + c.head.revision.slice(0, 7)"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <div class="font-mono text-xs text-base-content/60">
+      <a class="underline" target="_blank" :href="srcUrl" x-text="src"></a>
+      <div x-text="env?.manifest?.created_at"></div>
+    </div>
+    <div class="modal-action"><form method="dialog"><button class="btn btn-sm">Close</button></form></div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  const esc = (s) => window.esc(s);
+  const md = (s, inline) => {
+    if (!s) return '';
+    if (!window.marked) return esc(s);
+    return inline ? marked.parseInline(String(s)) : marked.parse(String(s));
+  };
+  const MD = '[&_a]:underline [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1 [&_code]:font-mono [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5';
+  const label = t => `<div class="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">${esc(t)}</div>`;
+  const LENSES = [['overview', 'Overview'], ['documents', 'Documents'], ['findings', 'Findings'], ['questions', 'Questions']];
+
+  Alpine.data('walkthrough', () => ({
+    env: null, src: '', srcInput: '', loading: true, error: '',
+    lens: 'overview', sel: {}, filters: { repo: '', area: '', outcome: '' },
+    _swiper: null, _deck: null,
+
+    get token() { return window.TOKEN || window.ghAuth?.resolve() || ''; },
+    gh() { return window.RepoAddress.github; },
+    get ctx() { return this.env?.context || {}; },
+    get docs() { return (this.env?.items || []).filter(i => i.type === 'file'); },
+    get findings() { return (this.env?.items || []).filter(i => i.role === 'finding'); },
+    get questions() { return (this.env?.items || []).filter(i => i.role === 'question'); },
+    // Counted: a living document, before or after. Records and supporting files
+    // are listed but kept out of the word totals.
+    get prose() { return this.docs.filter(d => this.m(d).counted); },
+    m(d) { return d.metadata || {}; },
+    repoOf(d) { return (d.target?.source?.repository || '').split('/')[1] || ''; },
+    get srcUrl() {
+      const a = this.src && window.RepoAddress?.parse(this.src);
+      return a ? window.RepoAddress.github.blob(a.repo, a.ref || 'main', a.path) : '';
+    },
+
+    // Figures --------------------------------------------------------------
+    fmt(n) { return (n || 0).toLocaleString('en-US'); },
+    pct(b, a) {
+      if (!b) return a ? 'new' : '';
+      const p = Math.round(100 * (a - b) / b);
+      return (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) + '%';
+    },
+    // One scale per table. The kept share is neutral and the removed share is
+    // the page's one accent, so a bar reads the same in every view.
+    bar(before, after, max) {
+      const w = max ? 100 * Math.max(before, after) / max : 100;
+      const keep = Math.min(before, after), cut = Math.max(0, before - after), grew = Math.max(0, after - before);
+      const tot = Math.max(before, after) || 1;
+      return `<div class="flex h-2 overflow-hidden rounded-sm" style="width:${w}%">`
+        + `<div class="bg-base-content/25" style="width:${100 * keep / tot}%"></div>`
+        + (cut ? `<div class="bg-primary" style="width:${100 * cut / tot}%"></div>` : '')
+        + (grew ? `<div class="bg-base-content/60" style="width:${100 * grew / tot}%"></div>` : '')
+        + '</div>';
+    },
+    estOf(d) { const v = parseFloat(String(this.m(d).survey?.cut_pct ?? '')); return isNaN(v) ? null : v; },
+    weightedEst(list) {
+      let w = 0, s = 0;
+      for (const d of list) { const e = this.estOf(d); if (e != null) { w += this.m(d).words_before; s += e * this.m(d).words_before; } }
+      return w ? Math.round(s / w) : null;
+    },
+    sum(list, k) { return list.reduce((t, d) => t + (this.m(d)[k] || 0), 0); },
+    get totals() {
+      const p = this.prose;
+      return {
+        docs: p.length, changed: p.filter(d => d.change).length,
+        deleted: p.filter(d => d.change?.status === 'deleted').length,
+        before: this.sum(p, 'words_before'), after: this.sum(p, 'words_after'), est: this.weightedEst(p),
+      };
+    },
+    get headline() {
+      const t = this.totals, open = this.questions.filter(q => this.m(q).status !== 'applied').length;
+      return `${this.fmt(t.before)} → ${this.fmt(t.after)} words (${this.pct(t.before, t.after)}) · `
+        + `${t.changed} of ${t.docs} documents changed · ${t.deleted} deleted · ${open} questions`;
+    },
+    get areaRows() {
+      return (this.ctx.areas || []).map(area => {
+        const list = this.docs.filter(d => d.facet === area);
+        const words = list.some(d => this.m(d).counted);
+        return {
+          area, words, docs: list.length, changed: list.filter(d => d.change).length,
+          deleted: list.filter(d => d.change?.status === 'deleted').length,
+          before: this.sum(list, 'words_before'), after: this.sum(list, 'words_after'), est: words ? this.weightedEst(list) : null,
+        };
+      }).filter(r => r.docs);
+    },
+    get maxAreaWords() { return Math.max(1, ...this.areaRows.filter(r => r.words).map(r => Math.max(r.before, r.after))); },
+    get outcomeRows() {
+      const by = {};
+      for (const d of this.prose) {
+        const o = this.m(d).outcome || 'unlogged';
+        (by[o] ||= { outcome: o, docs: 0, removed: 0 }).docs++;
+        by[o].removed += Math.max(0, this.m(d).words_before - this.m(d).words_after);
+      }
+      return Object.values(by).sort((a, b) => b.removed - a.removed || b.docs - a.docs);
+    },
+    get maxOutcomeRemoved() { return Math.max(1, ...this.outcomeRows.map(r => r.removed)); },
+    removed(d) { return this.m(d).words_before - this.m(d).words_after; },
+    get largest() { return [...this.prose].sort((a, b) => this.removed(b) - this.removed(a)).slice(0, 20); },
+    get largestMax() { return Math.max(1, ...this.largest.map(d => this.m(d).words_before)); },
+
+    // Lenses and filters -----------------------------------------------------
+    get lenses() {
+      const n = { documents: this.docs.length, findings: this.findings.length, questions: this.questions.length };
+      return LENSES.map(([id, label]) => ({ id, label, n: n[id] })).filter(l => l.id === 'overview' || l.n);
+    },
+    get filterRows() {
+      const count = (key, v) => this.filtered({ ...this.filters, [key]: v }).length;
+      const opts = (key, values) => [{ value: '', label: 'All', n: null }, ...values.map(v => ({ value: v, label: v, n: count(key, v) }))];
+      const repos = [...new Set(this.docs.map(d => this.repoOf(d)))];
+      const outcomes = [...new Set(this.docs.map(d => this.m(d).outcome))].sort();
+      return [
+        { key: 'repo', label: 'Repo', options: opts('repo', repos) },
+        { key: 'area', label: 'Area', options: opts('area', (this.ctx.areas || []).filter(a => this.docs.some(d => d.facet === a))) },
+        { key: 'outcome', label: 'Outcome', options: opts('outcome', outcomes) },
+      ];
+    },
+    filtered(f = this.filters) {
+      const order = this.ctx.areas || [];
+      return this.docs.filter(d => (!f.repo || this.repoOf(d) === f.repo) && (!f.area || d.facet === f.area)
+          && (!f.outcome || this.m(d).outcome === f.outcome))
+        .sort((a, b) => order.indexOf(a.facet) - order.indexOf(b.facet) || this.removed(b) - this.removed(a) || a.title.localeCompare(b.title));
+    },
+    rows() {
+      if (this.lens === 'documents') return this.filtered();
+      return this.lens === 'findings' ? this.findings : this.questions;
+    },
+    byId(id) { return (this.env?.items || []).find(i => i.id === id); },
+
+    setLens(l) {
+      this._deck?.close?.();
+      this.lens = l;
+      this.address();
+      if (l !== 'overview') this.$nextTick(() => this.mountList());
+    },
+    setFilter(key, v) {
+      this.filters[key] = v;
+      this.address();
+      this.$nextTick(() => this.mountList());
+    },
+    filterTo(f) {
+      this.filters = { repo: '', area: '', outcome: '', ...f };
+      this.setLens('documents');
+    },
+    goto(id) {
+      const it = this.byId(id);
+      if (!it) return;
+      if (it.type === 'file') {
+        if (!this.filtered().some(d => d.id === id)) this.filters = { repo: '', area: '', outcome: '' };
+        this.sel.documents = id;
+        this.setLens('documents');
+      } else {
+        const l = it.role === 'finding' ? 'findings' : 'questions';
+        this.sel[l] = id;
+        this.setLens(l);
+      }
+    },
+    address() {
+      const h = new URLSearchParams();
+      if (this.src) h.set('src', this.src);
+      if (this.lens !== 'overview') h.set('lens', this.lens);
+      for (const k of ['repo', 'area', 'outcome']) if (this.lens === 'documents' && this.filters[k]) h.set(k, this.filters[k]);
+      if (this.lens !== 'overview' && this.sel[this.lens]) h.set('item', this.sel[this.lens]);
+      history.replaceState(null, '', '#' + h.toString().replace(/%2F/g, '/').replace(/%3A/g, ':').replace(/%40/g, '@'));
+    },
+
+    // The list and the strip ------------------------------------------------
+    pathHtml(d) {
+      const p = d.title, i = p.lastIndexOf('/');
+      return (i >= 0 ? `<span class="text-base-content/50">${esc(p.slice(0, i + 1))}</span>` : '') + esc(p.slice(i + 1));
+    },
+    rowHtml(it) {
+      const sel = this.sel[this.lens] === it.id;
+      let right = '';
+      if (it.type === 'file') {
+        const r = this.removed(it), o = this.m(it).outcome;
+        right = `<span class="flex-none font-mono text-xs text-base-content/60">${esc(o)}</span>`
+          + `<span class="w-16 flex-none text-right font-mono text-xs tabular-nums">${r ? (r > 0 ? '−' : '+') + this.fmt(Math.abs(r)) : ''}</span>`;
+      } else {
+        right = `<span class="flex-none font-mono text-xs text-base-content/60">${esc(this.m(it).status || '')}</span>`;
+      }
+      const name = it.type === 'file' ? this.pathHtml(it) : esc(it.title);
+      return `<div role="option" tabindex="0" data-item="${esc(it.id)}" aria-selected="${sel}"
+        class="flex cursor-pointer items-baseline gap-2 border-b border-base-200 px-2.5 py-1.5 text-sm hover:bg-base-200 aria-selected:bg-base-300">
+        <span class="min-w-0 flex-1 truncate">${name}</span>${right}</div>`;
+    },
+    listHtml(rows) {
+      let group = null;
+      return rows.map(it => {
+        const g = it.facet || '';
+        const head = g !== group ? `<div class="sticky top-0 z-10 bg-base-200 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-base-content/60">${esc(group = g)}</div>` : '';
+        return head + this.rowHtml(it);
+      }).join('');
+    },
+    mountList() {
+      const rows = this.rows();
+      const ids = rows.map(r => r.id);
+      if (!ids.includes(this.sel[this.lens])) this.sel[this.lens] = ids[0];
+      this.$refs.list.innerHTML = this.listHtml(rows);
+      if (!this._swiper) {
+        this._swiper = linkedSwiper.attach({
+          root: this.$refs.root, list: this.$refs.list, card: this.$refs.card, key: 'item',
+          ids: () => this.rows().map(r => r.id), sel: () => this.sel[this.lens],
+          noun: 'item', seam: 'walkthrough-list', listMax: 'max-h-[38vh]',
+          name: id => this.nameOf(id),
+          body: id => this.cardHtml(id),
+          empty: '<div class="p-4 text-sm text-base-content/60">Nothing matches.</div>',
+          onPick: (id, via) => {
+            this.sel[this.lens] = id;
+            this.address();
+            if (this._deck && via !== 'deck') this._deck.deck.go(this.rows().findIndex(r => r.id === id), 'instant');
+          },
+          deck: () => this.openDeck(),
+        });
+      } else {
+        this._swiper.mount();
+      }
+    },
+    nameOf(id) {
+      const it = this.byId(id) || {};
+      if (it.type !== 'file') return { code: it.facet, title: it.title };
+      const p = it.title, i = p.lastIndexOf('/');
+      return { code: this.repoOf(it) + ' ' + p.slice(0, i + 1), title: p.slice(i + 1) };
+    },
+    openDeck() {
+      const rows = this.rows();
+      this._deck = swipeDeck.open({
+        count: rows.length, start: Math.max(0, rows.findIndex(r => r.id === this.sel[this.lens])),
+        title: LENSES.find(l => l[0] === this.lens)[1], icon: 'ph-broom', innerClass: 'w-full',
+        index: i => ({ title: rows[i].type === 'file' ? rows[i].title : rows[i].title, group: rows[i].facet }),
+        render: (i, el) => {
+          el.innerHTML = `<h2 class="mb-1 text-lg font-bold break-words">${esc(rows[i].title)}</h2>`
+            + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>` + this.cardHtml(rows[i].id);
+        },
+        onSlide: i => this._swiper?.pick(rows[i].id),
+        onClose: () => { this._deck = null; },
+      });
+    },
+
+    // A card ------------------------------------------------------------------
+    links(it) {
+      const s = it.target?.source || {}, prev = it.change?.previous_path || s.path;
+      const out = [];
+      if (it.change && /\.md$/.test(s.path) && it.change.status !== 'added') out.push(['diff', 'ph-git-diff', 'Diff', '']);
+      if (it.change?.status !== 'added') out.push(['link', 'ph-clock-counter-clockwise', 'Before', this.gh().blob(s.repository, s.base_revision, prev)]);
+      if (it.change?.status !== 'deleted') {
+        out.push(['link', 'ph-github-logo', 'After', this.gh().blob(s.repository, s.ref, s.path)]);
+        out.push(['link', 'ph-eye', 'Render', `toss-render.html#data=${s.repository}@${s.ref}:${s.path}`]);
+      }
+      return out.map(([act, icon, text, href]) => act === 'diff'
+        ? `<button type="button" class="btn btn-sm" data-act="diff" data-id="${esc(it.id)}"><i class="ph ${icon}"></i>${text}</button>`
+        : `<a class="btn btn-sm btn-ghost" target="_blank" href="${esc(href)}"><i class="ph ${icon}"></i>${text}</a>`).join('');
+    },
+    cardHtml(id) {
+      const it = this.byId(id);
+      if (!it) return '';
+      return it.type === 'file' ? this.docCard(it) : this.noteCard(it);
+    },
+    docCard(it) {
+      const m = this.m(it), s = m.survey, out = [];
+      const delta = m.words_before - m.words_after;
+      const status = [this.repoOf(it), it.change ? it.change.status + (it.change.previous_path ? ' from ' + it.change.previous_path : '') : 'unchanged', m.outcome].join(' · ');
+      out.push(`<div class="font-mono text-xs text-base-content/60">${esc(status)}</div>`);
+      if (m.words_before || m.words_after) {
+        out.push(`<div><div class="mb-1 font-mono text-sm tabular-nums">${this.fmt(m.words_before)} → ${this.fmt(m.words_after)} words`
+          + (delta ? ` · ${delta > 0 ? '−' : '+'}${this.fmt(Math.abs(delta))} (${this.pct(m.words_before, m.words_after)})` : '')
+          + (s?.cut_pct ? `<span class="text-base-content/60"> · survey est. ${esc(s.cut_pct)}%</span>` : '') + '</div>'
+          + this.bar(m.words_before, m.words_after, 0) + '</div>');
+      }
+      out.push(`<div class="flex flex-wrap gap-1">${this.links(it)}</div>`);
+      if (it.commentary) out.push(`<div>${label('Now')}<div class="${MD}">${md(it.commentary)}</div></div>`);
+      if (m.cuts?.length) {
+        out.push(`<div>${label('Removed')}<div class="overflow-x-auto"><table class="table table-sm text-sm"><tbody>`
+          + m.cuts.map(c => `<tr class="align-top"><td class="w-1/4 min-w-28 ${MD}">${md(c.section, true)}</td>`
+            + `<td class="whitespace-nowrap text-right font-mono text-xs tabular-nums">${c.words ? this.fmt(c.words) : ''}</td>`
+            + `<td class="whitespace-nowrap font-mono text-xs text-base-content/60">${esc(c.kind || '')}</td>`
+            + `<td class="${MD}">${md(c.why, true)}${c.owner ? ` <span class="text-base-content/60">→ ${md('`' + c.owner + '`', true)}</span>` : ''}</td></tr>`).join('')
+          + '</tbody></table></div></div>');
+      }
+      if (m.moved_to) out.push(`<div>${label('Moved to')}<div class="${MD}">${md('`' + m.moved_to + '`', true)}</div></div>`);
+      if (m.kept_on_purpose) out.push(`<div>${label('Kept on purpose')}<div class="${MD}">${md(m.kept_on_purpose)}</div></div>`);
+      if (m.audit?.length) out.push(`<div>${label('Restored by the audit')}<ul class="list-disc space-y-1 pl-5 ${MD}">`
+        + m.audit.map(a => `<li>${md(a.what, true)}${a.why ? ` <span class="text-base-content/60">${md(a.why, true)}</span>` : ''}</li>`).join('') + '</ul></div>');
+      if (m.wave1?.length) out.push(`<div>${label('Wave 1 fixes')}<ul class="space-y-1 ${MD}">`
+        + m.wave1.map(w => `<li><span class="mr-1 font-mono text-xs text-base-content/60">${esc(w.kind)}</span>${md(w.summary, true)}</li>`).join('') + '</ul></div>');
+      if (s) out.push(`<div>${label('Survey')}<div class="mb-1"><span class="font-semibold">${esc(s.verdict)}</span>`
+        + (s.issues?.length ? `<span class="ml-2 font-mono text-xs text-base-content/60">${esc(s.issues.join(' · '))}</span>` : '')
+        + `</div><div class="${MD}">${md(s.note, true)}</div><div class="mt-1 font-mono text-xs text-base-content/50">${esc(s.report)}</div></div>`);
+      const related = this.relatedTo(it.id);
+      if (related.length) out.push(`<div>${label('Raised in')}<div class="flex flex-col items-start gap-1">${related.map(r => this.gotoBtn(r)).join('')}</div></div>`);
+      return `<div class="space-y-4 text-sm">${out.join('')}</div>`;
+    },
+    noteCard(it) {
+      const m = this.m(it), out = [];
+      out.push(`<div class="font-mono text-xs text-base-content/60">${esc([it.facet, m.status].filter(Boolean).join(' · '))}</div>`);
+      if (it.content) out.push(`<div class="${MD}">${md(it.content)}</div>`);
+      if (it.commentary) out.push(`<div>${label('Recommended')}<div class="${MD}">${md(it.commentary)}</div></div>`);
+      const rel = (it.related || []).map(r => this.byId(r.item)).filter(Boolean);
+      if (rel.length) out.push(`<div>${label('Documents')}<div class="flex flex-col items-start gap-1">${rel.map(r => this.gotoBtn(r)).join('')}</div></div>`);
+      return `<div class="space-y-4 text-sm">${out.join('')}</div>`;
+    },
+    gotoBtn(r) {
+      const text = r.type === 'file' ? `${this.repoOf(r)} ${r.title}` : r.title;
+      return `<button type="button" class="btn btn-ghost btn-sm h-auto min-h-0 justify-start py-1 text-left font-normal" data-act="goto" data-id="${esc(r.id)}">`
+        + `<i class="ph ${r.type === 'file' ? 'ph-file-text' : r.role === 'finding' ? 'ph-magnifying-glass' : 'ph-question'}"></i><span class="break-all">${esc(text)}</span></button>`;
+    },
+    relatedTo(id) { return (this.env?.items || []).filter(i => (i.related || []).some(r => r.item === id)); },
+
+    act(e) {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      if (b.dataset.act === 'goto') { this._deck?.close?.(); this.goto(b.dataset.id); }
+      if (b.dataset.act === 'diff') this.openDiff(b.dataset.id);
+    },
+    // The diff deck holds every changed Markdown file of the same repository in
+    // the list's order, so a reader can swipe on from the one they opened.
+    openDiff(id) {
+      const it = this.byId(id), repo = it.target.source.repository;
+      const cmp = (this.ctx.compares || []).find(c => c.repository === repo);
+      const pool = (this.lens === 'documents' ? this.filtered() : this.docs)
+        .filter(d => d.target?.source?.repository === repo && d.change && /\.md$/.test(d.target.source.path) && d.change.status !== 'added');
+      const files = pool.map(d => ({
+        path: d.target.source.path, previousPath: d.change.previous_path, status: d.change.status,
+        additions: this.m(d).lines_added, deletions: this.m(d).lines_removed,
+      }));
+      fileDeck.open({
+        repo, ref: cmp.head.ref, base: cmp.base.revision, baseName: 'main', files,
+        start: Math.max(0, pool.findIndex(d => d.id === id)), title: 'Diffs', subtitle: repo,
+        openOn: 'mddiff', parent: this._deck || undefined,
+      });
+    },
+
+    // Loading -----------------------------------------------------------------
+    param(key) {
+      const h = new URLSearchParams(location.hash.slice(1)).get(key);
+      return h || new URLSearchParams(location.search).get(key);
+    },
+    openSrc() {
+      if (!this.srcInput.trim()) return;
+      location.hash = 'src=' + this.srcInput.trim();
+      location.reload();
+    },
+    async init() {
+      await window.__depsReady;
+      this.src = this.param('src') || '';
+      try {
+        if (!this.src) return;
+        const a = window.RepoAddress.parse(this.src);
+        this.env = JSON.parse((await new GH({ token: this.token, repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text);
+        const lens = this.param('lens');
+        for (const k of ['repo', 'area', 'outcome']) this.filters[k] = this.param(k) || '';
+        if (lens && LENSES.some(l => l[0] === lens)) this.sel[lens] = this.param('item') || undefined;
+        this.setLens(lens && LENSES.some(l => l[0] === lens) ? lens : 'overview');
+      } catch (e) {
+        this.error = `${this.src}: ${e.message || e}`;
+      } finally {
+        this.loading = false;
+      }
+    },
+  }));
+});
+</script>
+</body>
+</html>

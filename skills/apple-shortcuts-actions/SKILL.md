@@ -10,12 +10,8 @@ description: Compose Apple Shortcuts actions and hand them over as a tappable li
 A whole `.shortcut` file needs Apple's signature and does not import without it.
 An individual action needs only the `com.apple.shortcuts.action` pasteboard
 type, which a shortcut on the device can stamp. Actions can therefore be
-composed anywhere and pasted freely.
-
-That also supplies a primitive the app withholds. Shortcuts copies one action at
-a time and offers no way to copy a set, so "here is a wired chain of nine
-actions on your clipboard" is not a convenience over the editor. It is something
-the editor cannot do.
+composed anywhere and pasted freely, a wired chain at once, which the editor
+cannot do: it copies one action at a time.
 
 Delivery is a `shortcuts://run-shortcut` link. Tapping it runs a receiver that
 decodes the payload, stamps the type, and copies. Nothing is signed, installed,
@@ -48,9 +44,9 @@ control-flow entries, so for anything else this is the sole source.
 ## Key insights
 
 - **The receiver is `Copy-ActionFromClaude`**, five actions, no JavaScript,
-  source at `workflows/copy-action-from-claude.json`. An older receiver,
-  `Copy-ActionFromJson`, takes uncompressed `{id, p}` and builds the plist on
-  device. It still works; the packed route is the current one.
+  source at `workflows/copy-action-from-claude.json`. The older
+  `Copy-ActionFromJson` still works, takes uncompressed `{id, p}` and builds the
+  plist on device; the packed route is the current one.
 - **Derive anchor offsets.** A variable inside a string occupies one U+FFFC
   character and `attachmentsByRange` keys its offset. Counting by hand is the
   step that fails; `tokenString()` in the repo derives it.

@@ -5,13 +5,10 @@ can reach, the browser it ships with, and how subagents share it. For what the
 box *is* and what persists, see [container.md](container.md); for how to use
 these to test HTML and JS, see [testing.md](testing.md). What the **GitHub MCP
 layer** does to a call and to the text it carries is
-[`../github/mcp.md`](../github/mcp.md), moved out of here on 2026-09-07 having
-grown to half this file.
+[`../github/mcp.md`](../github/mcp.md).
 
-> **Probing discipline (read first).** Most of the errors this doc has carried
-> came from one habit: letting a *status code* or a *failed command* stand in for
-> a fact you can observe directly. Three rules that would have caught every past
-> mistake:
+> **Probing discipline (read first).** Do not let a *status code* or a *failed
+> command* stand in for a fact you can observe directly:
 > 1. **Allowed vs. denied is told by a header, not a status.** A real proxy
 >    denial carries `x-deny-reason: host_not_allowed`. A bare 400/403/404 with no
 >    such header means the origin was *reached* and answered: the host is allowed.
@@ -40,17 +37,14 @@ Past a size threshold the harness saves a hook's whole stdout to a file and
 passes the session a preview wrapped in `<persisted-output>`, opening
 `Output too large (28KB). Full output saved to: …` and then
 `Preview (first 2KB):`. The hook exits 0 and reports success, so from inside the
-script the cut is invisible; this is the failure the injector's rungs and the
-dispatcher's warning both exist for.
+script the cut is invisible.
 
 Four things measured on one live session:
 
-- **The preview is 1,997 bytes**, and it ended partway into `CONVENTIONS.md`'s
-  opening. Only the head of a payload is guaranteed to arrive, which is why
-  `inject-conventions.sh`, the conventions injector since retired, printed its
-  recovery block first and
-  [`session-dispatch.sh`](../../skills/hooks/session-dispatch.sh) prints
-  its warning first.
+- **The preview is 1,997 bytes.** Only the head of a payload is guaranteed to
+  arrive, so a hook prints what matters first, as
+  [`session-dispatch.sh`](../../skills/hooks/session-dispatch.sh) prints its
+  warning first.
 - **The cap is per hook entry, not across the event.** In the same session the
   dispatcher's 28,670-character payload was cut while a separate 298-character
   SessionStart hook arrived whole. Each registered hook command gets its own
@@ -76,8 +70,7 @@ persisted output in the session archive is 29.4 KB, so it sits at or below that;
 *(verified 2026-07-20)*
 
 `git push` runs through the same proxy, which caps a single push's request
-body. A push of ~757 MB (a fresh corpus of 1,435 PDFs committed at once)
-returns **HTTP 413** and the whole pack is rejected:
+body. A push of ~757 MB returns **HTTP 413** and the whole pack is rejected:
 
 ```
 error: RPC failed; HTTP 413 curl 22 The requested URL returned error: 413
@@ -95,7 +88,7 @@ rest stream in behind it.
 
 ## Git transport: a fetched ref can be stale, and the merge that follows lies
 
-*(measured 2026-08-14, PR #416: three merge attempts refused)*
+*(measured 2026-08-14)*
 
 `git fetch origin main` through the proxy can return a ref **behind** what
 GitHub has. Not an error, not a warning: `origin/main` simply names an older
@@ -104,13 +97,11 @@ origin/main HEAD` then certifies a merge that GitHub refuses with **405 `Pull
 Request has merge conflicts`**, and `PUT .../update-branch` refuses the same way
 with 422.
 
-The failure impersonates a GitHub bug, which is what makes it expensive. Local
-git says the branch already contains main (`git merge-base --is-ancestor
+Local git says the branch already contains main (`git merge-base --is-ancestor
 origin/main HEAD` passes, so the merge is a fast-forward and cannot conflict)
 while the API insists on a conflict. **That contradiction is the tell, and the
-API is the one telling the truth.** Reading the PR through
-`pull_request_read` returned a base SHA the fetch had never shown; closing and
-reopening the PR forced a recompute and surfaced a base two commits further on.
+API is the one telling the truth.** `pull_request_read` returns the real base
+SHA, and closing and reopening the PR forces GitHub to recompute it.
 
 The corrected move, in order:
 
@@ -120,10 +111,8 @@ The corrected move, in order:
    whatever is caching the ref name.
 3. Merge, resolve, push, and only then check mergeability again.
 
-A busy `main` makes this worse rather than causing it: five PRs landed under one
-branch in an hour, and each stale read cost a full merge, suite run, and CI
-round before the refusal. When the base is moving, re-read it from the API
-immediately before every merge attempt rather than once at the start.
+When the base is moving, re-read it from the API immediately before every
+merge attempt rather than once at the start.
 
 ## Toolchain: `check-tools`, and what it omits
 
@@ -166,28 +155,17 @@ succeed, `python3 -m spacy download en_core_web_sm` fetches and loads its
 model (install `click` first; the spacy CLI imports it and errors without
 it), and model2vec pulls `minishlab/potion-base-8M` from the Hugging Face
 Hub unauthenticated, so a tiny static-embedding model runs in-session with
-no torch. Measured in the concept-lab experiments, whose findings log moved to
-the private estate on 2026-08-25 and now lives at
-`projects/text/instruments/concept-lab/findings.md`.
-Heavier stacks (torch, sentence-transformers) untested.
+no torch. Heavier stacks (torch, sentence-transformers) untested.
 
 ## Network access: two gates, and a browser with no egress
 
-*(host reachability re-measured 2026-08-05, superseding the 2026-05-30 allowlist
-table; the browser finding is from the same probe)*
+*(host reachability measured 2026-08-05; browser egress 2026-09-29)*
 
-**The shell reaches arbitrary hosts.** Ten were re-probed with `curl -D -`,
-including every one the original table marked denied: all answered with the
-origin's own status and none carried `x-deny-reason`. The JS CDNs, MDN,
+**The shell reaches arbitrary hosts.** Ten probed with `curl -D -` all answered
+with the origin's own status and none carried `x-deny-reason`; the JS CDNs, MDN,
 Wikipedia and `docs.anthropic.com` are reachable.
 
-**The headless browser reaches none of them**, including the hosts the shell
-gets. `raw.githubusercontent.com`, `api.github.com` and `cdn.jsdelivr.net` all
-fail with `net::ERR_CONNECTION_RESET`, whether the proxy is passed through
-Playwright's `proxy:` option or `--proxy-server`, with `ignoreHTTPSErrors` and
-`--ignore-certificate-errors` set. The cause was not chased.
-
-**Re-measured 2026-09-29: the browser now has egress, and it is unreliable.**
+**The headless browser's egress is unreliable** *(measured 2026-09-29)*.
 Through Playwright's `proxy:` option, Chromium reached Pages, raw, the contents
 API and jsDelivr, and the proxy authenticated GitHub API calls (a 15,000-request
 budget, private repositories readable). But one to three requests per page load
@@ -199,13 +177,10 @@ the proxy despite a `bypass`, and the proxy answered 405. What worked is serving
 the page by interception at a stand-in `https://` origin and letting every other
 request go live ([`node/test/showing-refs-live.mjs`](../../node/test/showing-refs-live.mjs)).
 So a live run can confirm what a page asked for and where it booted; a complete
-page load is not something to count on.
-
-That asymmetry is the load-bearing half. A repo page cannot be booted as-is in
-the headless browser, and not because a CDN is denied: the browser has no egress
-at all, so [node/render/cdn.mjs](../../node/render/cdn.mjs)'s interception is
-what every render depends on, for every host rather than only the CDN ones. The
-technique in portable form is [`../headless-vendoring.md`](../headless-vendoring.md),
+page load is not something to count on, so a repo page cannot be booted as-is in the headless browser, and not because
+a CDN is denied: [node/render/cdn.mjs](../../node/render/cdn.mjs)'s
+interception is what every render depends on, for every host rather than only
+the CDN ones. The technique in portable form is [`../headless-vendoring.md`](../headless-vendoring.md),
 and where the interceptor still falls short of jsDelivr's value-adds
 (default-entry selection, generated `.min.*`, server-side CJS to ESM bundling)
 is catalogued in [testing.md](testing.md).
@@ -219,10 +194,9 @@ the authorized repo. It does not limit push to the current branch: a push to
 though `github.com` itself is allowed, which is a different failure mode from a
 host denial.
 
-**If a denial does appear, the tell is a header, not a status:**
-`x-deny-reason: host_not_allowed`. An allowed host returns whatever the origin
-says, including a 403 of its own, and carries no deny header. Three origin
-behaviours that get misread as denials: `api.github.com` 403s without auth or a
+**A denial carries `x-deny-reason: host_not_allowed`;** an allowed host returns
+whatever the origin says, with no deny header. Three origin behaviours that get
+misread as denials: `api.github.com` 403s without auth or a
 user agent, a 403 on a Google Cloud Storage *bucket path* is the origin's own,
 and `docs.github.com` throws intermittent 503s (twice in about twenty tries), so
 retry before calling it unreachable.
@@ -322,8 +296,7 @@ are confirmed.
 
 ## WebSearch is metered per session and shared across every subagent
 
-Measured 2026-08-13 from 81 subagent transcripts in one Claude Code web
-session. The refusal is explicit and names its own lever:
+*(measured 2026-08-13)* The refusal is explicit and names its own lever:
 
 ```
 this session has used its web search budget (200 of 200 WebSearch calls).
@@ -333,31 +306,22 @@ CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION.
 ```
 
 **The pool is shared, not per-agent.** Agents dispatched later in a fan-out
-found the budget already spent by earlier agents, before issuing a query of
-their own. Across that run, 541 searches were attempted, 45 were refused, and
-the refusals hit **19 of 75 agents**.
+find the budget already spent by earlier agents: in one run of 75 agents, 45 of
+541 searches were refused, across 19 agents. The counter resets on some
+boundary the transcripts cannot pin down (496 searches ran across subagents
+alone, past the stated cap), so plan against 200 in a window, not 200 for all
+time.
 
-**One number does not reconcile, and is recorded rather than explained away.**
-496 searches were actually performed across subagents alone, well past a stated
-cap of 200, so the counter resets on some boundary the transcripts cannot pin
-down (a container swap is known to have happened mid-session). Plan against 200
-in a window, not 200 for all time.
-
-**WebFetch is not metered**, and the same run made 1,687 fetches against 541
-searches. When the budget ran out, agents independently improvised the same
-workaround: fetching search-engine result pages through WebFetch, visible in
-the host list as `html.duckduckgo.com` (16 agents), `bing.com` (12),
-`google.com` (11), `duckduckgo.com` (11). That degrades *discovery* while
-leaving *retrieval* intact, so the damage is per-claim rather than per-source:
-anything from a known URL is unaffected, and anything that required locating a
-document is exposed.
+**WebFetch is not metered.** When the search budget runs out, agents fall back
+to fetching search-engine result pages through WebFetch, which degrades
+*discovery* while leaving *retrieval* intact: anything from a known URL is
+unaffected, and anything that required locating a document is exposed.
 
 ## Subagents share the container, not just the budget
 
-Tested directly, both directions, in one session: a subagent read a file the
-main loop had just written, and the main loop read a file the subagent wrote.
-Same hostname, same `/proc/uptime` (sixteen seconds apart, so the same boot),
-same `HTTPS_PROXY`, same user, same repo checkouts, same branch, same HEAD.
+A subagent reads a file the main loop just wrote and the reverse: same
+hostname, same boot, same `HTTPS_PROXY`, same user, same checkouts, branch and
+HEAD.
 
 **What is separate is the context window, not the machine.** That single fact
 explains the shared search budget, the shared concurrency cap, and why agents
@@ -378,9 +342,8 @@ machine** *(measured 2026-09-06)*: min(16, CPUs minus 2) per run, per the
 authoring reference, and this container reported 4 CPUs (`nproc`), so a
 Workflow would have run two agents at a time against the Agent tool's twenty.
 Read `nproc` before choosing the venue for a fan-out; on this box the Agent
-tool wins by a factor of ten. Two more facts from the same run of 124 agents
-(62 Sonnet readers of 40 items, 62 Opus skeptics of 11 to 23 rows, 17 minutes
-at the cap):
+tool wins by a factor of ten. From the same run of 124 agents (17 minutes at
+the cap):
 
 - The Agent tool has no effort parameter; only Workflow's `agent()` takes one.
   A "low effort" instruction has to travel in the prompt.
@@ -402,12 +365,9 @@ at the cap):
 
 Every subagent's full turn-by-turn transcript is a real file at
 `~/.claude/projects/<session>/subagents/agent-<id>.jsonl`, holding every tool
-call with its arguments. One session's set was 81 files and about 30 MB, and
-they survived a container swap.
-
-This is more recoverable than it looks: a corpus whose *written output*
-preserved a URL in only 7 of 776 files still yielded **1,734 fetches across
-511 hosts** when the transcripts were mined. What transcripts do **not** carry
+call with its arguments, and the set survives a container swap. Mining them
+recovers what written output dropped: a corpus whose files preserved a URL in
+7 of 776 yielded 1,734 fetches across 511 hosts. What transcripts do **not** carry
 is page link structure, because WebFetch returns a small model's answer rather
 than the page's markdown; a check of `tool_result` blocks found zero markdown
 links.
@@ -417,7 +377,7 @@ matters into a committed artifact while the environment is alive.
 
 **One contaminant worth knowing:** the WebFetch summarizer sometimes returns
 `Anthropic` or `Anthropic's Claude Agent SDK` as page content on unrelated
-pages. Four agents caught and excluded it independently in one run.
+pages; exclude it.
 
 ## `web.archive.org` is gated per container, and the container can change under a session
 

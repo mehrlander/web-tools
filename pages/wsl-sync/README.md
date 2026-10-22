@@ -10,22 +10,11 @@ bills for the current biennium:
   bills that classify as pension-related. It never fetches from the
   legislature; it reads the committed snapshot (plus any IDB overlay).
 
-Both are thin Alpine UIs over `window.wsl`. The logic lives in two kits
-under [`lib/kits/`](../../lib/kits/):
-
-- [`wsl-core.js`](../../lib/kits/wsl-core.js) — **dependency-free core**:
-  endpoint URL builders, the XML→record parsers (exposed as a
-  `makeParsers({ XMLParser, flatten })` factory rather than importing the
-  libraries), pension classification, and pure list/group helpers. Because it
-  imports nothing, the same file runs in the browser (via `gh.load`) and in
-  Node (`fetch-data.mjs` executes it with `new Function`, exactly as
-  `gh.load` would).
-- [`wsl.js`](../../lib/kits/wsl.js) — **browser kit**: loads the core,
-  registers `window.wsl` with lazy parsers (the XML libraries load from the
-  CDN only on the first parse call, so a snapshot-only page like pension-dash
-  never downloads them), the snapshot loader (`loadStore`/`saveStore`),
-  direct fetch-and-parse helpers, and the RCW lookup/linkify/popup display
-  utilities.
+Both are thin Alpine UIs over `window.wsl`. The logic lives in two kits whose
+header comments are their reference:
+[`wsl-core.js`](../../lib/kits/wsl-core.js), the dependency-free core that runs
+in the browser and in Node (`fetch-data.mjs`), and
+[`wsl.js`](../../lib/kits/wsl.js), the browser kit over it.
 
 ## Two kinds of data
 
@@ -67,9 +56,7 @@ monthly with `full=true` to keep the open biennium fresh; the schedule is the
 ### Locally
 
 [`fetch-data.mjs`](fetch-data.mjs) runs anywhere with Node 18+ and direct
-network access to `wslwebservices.leg.wa.gov` (the Claude Code sandbox
-default allowlist blocks it — a blocked host answers 403 with
-`x-deny-reason: host_not_allowed`):
+network access to `wslwebservices.leg.wa.gov`:
 
 ```sh
 npm install            # once; pulls fast-xml-parser + flat (same versions the pages use)

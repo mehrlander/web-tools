@@ -7,9 +7,7 @@ description: Break a document into the claims it makes, tagging what kind of com
 
 ## Objective
 
-Turn running prose into a structured list of the claims it makes. Each claim is stated plainly as a standalone proposition, tagged by what kind of commitment it is, and linked back to the text it came from. The goal is to inventory what the document asserts, including what it asserts without saying. You are not checking truth. A claim goes on the list whether it is true, false, or unfalsifiable.
-
-This is a decomposition tool, not a fact-checker. The factuality literature it draws from decomposes in order to verify, and so it discards anything not checkable. This skill keeps the decomposition and drops the verification motive, which widens the net: an opinion is as much a thing being said as a statistic, so it stays.
+Turn running prose into a structured list of the claims it makes. Each claim is stated plainly as a standalone proposition, tagged by what kind of commitment it is, and linked back to the text it came from. The goal is to inventory what the document asserts, including what it asserts without saying. You are not checking truth. A claim goes on the list whether it is true, false, or unfalsifiable, and an opinion is as much a thing being said as a statistic.
 
 ## A claim is produced, not located
 
@@ -26,8 +24,8 @@ So every entry carries both: the `span` it anchors to, and the `claim` as you ha
 Each claim gets one `type`. The four mark genuinely different ways a text commits, and three of them catch things a plain reading nods past.
 
 - **stated.** A fact asserted on the surface. Checkable in principle. The default, and most claims are these.
-- **existence.** The presupposition, carried by a definite reference, that some entity or event is real. "The actuary," "the fee increase," "the program" each assert *this thing exists* without ever predicating it. This is the most hidden type, because it never appears as a sentence: the document leans on the thing without ever asserting it outright. Subject to the load-bearing threshold below.
-- **causal.** Asserts that one thing brought about another. Flagged as its own type because prose smuggles causation constantly through juxtaposition or a soft connective ("following," "led to," "after which," "in the wake of") while looking like mere sequence. The causal claim is the one a reader absorbs without noticing it was a claim. When the cause is implied by arrangement rather than stated outright, mark the entry `implied: true`, so the sequence-versus-cause question stays queryable.
+- **existence.** The presupposition, carried by a definite reference, that some entity or event is real. "The actuary," "the fee increase," "the program" each assert *this thing exists* without ever predicating it, so it never appears as a sentence. Subject to the load-bearing threshold below.
+- **causal.** Asserts that one thing brought about another. Flagged as its own type because prose smuggles causation constantly through juxtaposition or a soft connective ("following," "led to," "after which," "in the wake of") while looking like mere sequence. When the cause is implied by arrangement rather than stated outright, mark the entry `implied: true`, so the sequence-versus-cause question stays queryable.
 - **evaluative.** A judgment the text commits to. "Well run," "the best account," "a troubled program." Not checkable against a source, which is why verification pipelines discard it, but fully a thing being said, so it is kept.
 
 Chronology is deliberately not a type. "X happened, then Y happened" wears its temporal claim on its surface; it is a stated claim, not a hidden one, and needs no special tag. Causation is flagged precisely because it looks like chronology and asserts more.
@@ -50,7 +48,7 @@ This is a judgment call, like the grain, so apply it the same way each time: fla
 
 ## The one decision that governs consistency: grain
 
-Everything that makes this inconsistent run to run is grain. How small is a claim. The same sentence can yield one claim or four, and across published methods the count per document swings by half depending on whose rule you follow. So the grain is fixed up front and held the same every time.
+Grain, how small a claim is, is what makes this inconsistent run to run: the same sentence can yield one claim or four. So the grain is fixed up front and held the same every time.
 
 The target is **not the smallest possible claim.** A claim broken to its atoms loses the context that lets it be interpreted, and a bare fragment like "won a medal" attaches to the wrong subject the moment it leaves its paragraph. The target is the **smallest claim that still stands on its own.** Two criteria set the level:
 
@@ -71,19 +69,12 @@ Work strictly local, sentence by sentence, paragraph by paragraph. This is what 
 4. **Tag and anchor.** Give each entry its `type` and its `span`. For presupposed or structural claims the span points at the trigger.
 5. **Process every sentence.** A sentence that yields no claim contributes no entry, and that is a correct result, not an omission. Move on without forcing one out of it.
 
-## What a single stated claim looks like
-
-A claim is a single proposition, something that could be marked true or false on its own. The canonical illustration: "Thierry Henry, born 17 August 1977, is a French former football player and pundit" yields four of them. *Thierry Henry was born on 17 August 1977. Thierry Henry is French. Thierry Henry is a former football player. Thierry Henry is a football pundit.* Each is singular and stands alone. The sentence bundled four; the decomposition separates them.
-
 ## What counts as a claim
 
-The obvious ones announce themselves: a figure, a date, a dollar amount, a named quote. These categories catch the ones that hide in plainer prose:
+Beyond the four types, three shapes hide claims in plain prose:
 
-- **Characterizations stated as fact.** "The troubled program" asserts trouble. "The leading vendor" asserts a ranking. (Often `evaluative`.)
 - **Attributions.** "X said Y" is potentially two claims: that X said it, and, if Y is asserted as true, Y itself.
-- **Causal and sequence links.** "Because," "led to," "after which" assert a relationship the prose may be smuggling in. (Often `causal`.)
 - **Superlatives and firsts.** "Only," "first," "largest," "unprecedented."
-- **Definite references.** "The reserve," "the agreement." Each presupposes its subject into existence. (Often `existence`.)
 - **Numbers buried in prose.** A percentage inside a clause is as much a claim as one in a table.
 
 ## Standing alone, minimally: worked examples
@@ -98,13 +89,13 @@ The rule under all three: add a detail only when its absence leaves the line amb
 
 ## The trap: decontextualization re-bundles
 
-This is the documented failure mode, and it is where the work goes wrong quietly. Making a fragment stand alone tempts you to fold in a second fact, and now the entry is no longer one claim. "The album was released in 2018" becomes "The 'Blackpink in Your Area' compilation album was released in 2018," which has smuggled in a second claim: that the album is a compilation. The entry now reads as one assertion but carries two, and anyone checking it cannot tell which part failed.
+Making a fragment stand alone tempts you to fold in a second fact, and now the entry is no longer one claim. "The album was released in 2018" becomes "The 'Blackpink in Your Area' compilation album was released in 2018," which has smuggled in a second claim: that the album is a compilation. The entry now reads as one assertion but carries two, and anyone checking it cannot tell which part failed.
 
 Hold the line: resolve references, but do not annex neighboring facts. If standing alone seems to require a second full claim, that is a signal the two were never separable, and they stay as one entry marked `composite`, rather than one entry pretending to be atomic.
 
 ## Composite vs singular: the call you will keep facing
 
-The grain is a choice, not a discovery, so this is the one judgment the procedure cannot remove. It can only make it repeatable. "She was a medallist at the European Championships in 1986" can be kept as one claim or split into three: that she medalled, the venue, the year. There is no universal right answer, only a consistent one.
+The grain is a choice, not a discovery, so the procedure can only make this judgment repeatable. "She was a medallist at the European Championships in 1986" can be kept as one claim or split into three: that she medalled, the venue, the year. There is no universal right answer, only a consistent one.
 
 The rule: **keep facts in one entry when they form a single event reported together, split them when each is independently checkable and independently interesting.** A date or venue bound to an event stays with it. A fact that could be true while the others are false gets its own entry.
 
@@ -117,7 +108,7 @@ Pick one reading of "event reported together" and apply it to every sentence in 
 
 ## Output
 
-The stored format is a flat list of claim objects, in document order. This is the canonical artifact, because it is data: a later step can join it to the source to compute repetition, claim density, or an existence checklist, and can render it as an inline-footnoted document on demand. Storing the structured object and rendering the footnoted view from it is the right direction; parsing footnotes back into structure is the wrong one.
+The stored format is a flat list of claim objects, in document order. It is the canonical artifact: render any inline-footnoted view from it, and never parse footnotes back into structure.
 
 Each object:
 
@@ -149,6 +140,5 @@ For a human reading rather than a downstream process, render a plain numbered li
 
 ## Guardrails
 
-- **Inventory, do not edit.** This skill produces the list. Cutting comes after, as a separate pass that works from the list. Do not rewrite the source here.
-- **What's said, not what's true.** Every claim is recorded regardless of truth, including opinions and claims that turn out false. The point is to surface what the document commits to.
+- **Inventory, do not edit.** Do not rewrite the source here; cutting is a separate pass that works from the list.
 - **Hold the grain, and hold the threshold.** Two judgment calls drift as you tire: the grain creeps finer, and the existence threshold creeps toward listing presuppositions the document never actually leans on. Re-read the worked examples mid-document if either starts slipping.

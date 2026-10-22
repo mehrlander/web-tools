@@ -26,5 +26,5 @@ One line per point, most important first:
 at <quote or place in the subject> · <the owner's likely reaction> · <source> · <what the owner would want>
 ```
 
-- The source is a peeve id, a quote with its session, a rule or a snag slug. Mark a point with no source `inferred`.
+- The source is a peeve id, a quote with its session, a rule or a snag id. Mark a point with no source `inferred`.
 - If the owner would have no objection, say so in one line.

@@ -43,9 +43,9 @@ After `(h)`, is `(i)` the next letter or the first Roman numeral?
 | `v/V` | 22nd | 5 |
 | `x/X` | 24th | 10 |
 
-Multi-character patterns are unambiguous: `(ii)`, `(iv)`, `(vi)` — clearly Roman.
+Multi-character patterns are unambiguous: `(ii)`, `(iv)`, `(vi)` are Roman.
 
-Single letters `(c)`, `(d)`, `(l)`, `(m)` are almost always letters in practice — documents rarely nest deep enough for those Roman values.
+Single letters `(c)`, `(d)`, `(l)`, `(m)` are almost always letters in practice: documents rarely nest deep enough for those Roman values.
 
 ---
 
@@ -87,48 +87,11 @@ Both cases, up to 3999:
 
 ---
 
-## Implementations
+## Implementation
 
-### JavaScript Bookmarklet
-
-```javascript
-javascript:(function() {
-  function isRoman(s) {
-    return /^(x{0,3})(ix|iv|v?i{0,3})$/.test(s.replace(/[()]/g, '').toLowerCase());
-  }
-
-  function level(text) {
-    const m = text.trim().split(' ')[0];
-    if (/^\(\d+\)/.test(m)) return 0;
-    if (/^\([a-z]\)/.test(m)) return isRoman(m) ? 2 : 1;
-    if (/^\([A-Z]\)/.test(m)) return 3;
-    return 0;
-  }
-
-  document.querySelectorAll('div').forEach(div => {
-    div.style.marginLeft = (level(div.textContent) * 0.25) + 'in';
-  });
-})();
-```
-
-### PowerShell
-
-```powershell
-function Get-ParagraphLevel {
-    param([string]$Text)
-    $m = ($Text.Trim() -split ' ')[0]
-    switch -Regex ($m) {
-        '^\(\d+\)'    { 0 }
-        '^\([a-h]\)'  { 1 }
-        '^\([ivx]+\)' { 2 }
-        '^\([j-z]\)'  { 1 }
-        '^\([A-H]\)'  { 3 }
-        '^\([IVX]+\)' { 4 }
-        '^\([J-Z]\)'  { 3 }
-        default       { 0 }
-    }
-}
-```
+[`console/helper.js`](../console/helper.js) is this host's stateful parser: it
+tracks the marker path while walking the document and stamps each paragraph's
+level, level name and path onto its `div`.
 
 ---
 
@@ -153,21 +116,7 @@ function Get-ParagraphLevel {
 </Bill>
 ```
 
-The XML gives document structure, but paragraph-level hierarchy markers are embedded in text content — parsing requires text analysis.
-
----
-
-## Color Coding
-
-```javascript
-const colors = {
-  0: '#4A5568',  // (1), (2) — dark grey
-  1: '#4299E1',  // (a), (b) — light blue
-  2: '#2B6CB0',  // (i), (ii) — medium blue
-  3: '#1A365D',  // (A), (B) — dark blue
-  4: '#14274E'   // (I), (II) — darker blue
-};
-```
+The XML gives document structure, but paragraph-level hierarchy markers are embedded in text content, so parsing requires text analysis.
 
 ---
 
@@ -194,11 +143,3 @@ These are private links (author's working notes):
 | Web services | `wslwebservices.leg.wa.gov/LegislationService.asmx` |
 | HTM versions | Contain hyperlinked RCW refs not in XML |
 
----
-
-## Future Work
-
-- Full stateful parser tracking complete hierarchy path
-- Validation mode flagging out-of-sequence markers
-- Amendment diff visualization
-- RCW graph integration

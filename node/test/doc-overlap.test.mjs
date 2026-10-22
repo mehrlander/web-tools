@@ -94,6 +94,10 @@ test('the gold set carries its labels in their domains, and each passage still c
   assert.ok(gold.length >= 100, 'the gold set parsed short');
   const RELATIONS = ['same', 'summary', 'related', 'conflict', 'unrelated', 'fragment'];
   let checked = 0, present = 0;
+  const moved = [];
+  // Where a passage can begin: the file's start, a line's first non-blank
+  // character, or a sentence's first word.
+  const starts = (text) => [0, ...[...text.matchAll(/\n[ \t]*|[.!?] +/g)].map((m) => m.index + m[0].length)];
   for (const g of gold) {
     assert.ok(RELATIONS.includes(g.relation) && RELATIONS.includes(g.reader_relation), `${g.id}: relation`);
     for (const k of ['reading', 'consolidate']) assert.ok(['yes', 'no'].includes(g[k]), `${g.id}: ${k}`);
@@ -103,14 +107,21 @@ test('the gold set carries its labels in their domains, and each passage still c
     for (const s of ['a', 'b']) {
       const p = path.join(repoRoot, g[s + '_path']);
       if (!existsSync(p)) continue;
+      const text = readFileSync(p, 'utf8'), a = +g[s + '_start'], b = +g[s + '_end'], h = g[s + '_hash'];
+      if (h12(text.slice(a, b)) === h) { present++; checked++; continue; }
+      const at = starts(text).find((i) => h12(text.slice(i, i + b - a)) === h);
+      if (at == null) continue;
       present++;
-      const text = readFileSync(p, 'utf8').slice(+g[s + '_start'], +g[s + '_end']);
-      if (h12(text) === g[s + '_hash']) checked++;
+      moved.push(`${g.id}.${s} ${g[s + '_path']}: ${a} is now ${at}`);
     }
   }
   // Files move on; a gold row outlives its offsets. Most should still cut.
-  // A file that is gone has no offsets to drift, so the share is taken over
-  // the passages whose file still exists: docs/SNAGS.md held 118 of the 550
-  // when its entries moved to the Snag list on 2026-10-20.
-  assert.ok(checked > present / 2, `only ${checked} of ${present} gold passages in files that still exist cut where recorded`);
+  // A passage that is gone has no offsets to drift, so the share is taken over
+  // the passages still in their file: docs/SNAGS.md held 118 of the 550 when
+  // its entries moved to the Snag list on 2026-10-20, and the 2026-10-22
+  // documentation cleanup cut 267 more out of files that remain. A passage is
+  // found again by its hash at a line or sentence start, which is where the
+  // scan cuts; one found elsewhere in its file counts against the share.
+  assert.ok(checked > present / 2,
+    `only ${checked} of ${present} gold passages still in their file cut where recorded; moved:\n${moved.join('\n')}`);
 });

@@ -21,17 +21,12 @@ Neither ask wants the document restructured. Content is fixed, so the pass stays
 narrow: only wording moves, and a rewrite that says something different is wrong
 rather than terse. That narrowness is what makes the result checkable.
 
-The name and the compression discipline both come from the caveman skill at
-[Julius Brussee's caveman](https://github.com/JuliusBrussee/caveman) (MIT), whose payload is two separable things:
-a discipline about which words carry nothing, and a broken-grammar register.
-
-**The discipline transfers. The register does not.** What comes out of this
-skill is plain professional prose with the slack taken out, because these values
-land in committed data and are read by someone next week. The name is inherited
-on purpose, to say where the rules came from, and this paragraph is where a
-session expecting caveman-speak learns it is not getting any. Nothing else was
-taken: not the session-wide mode, not the six-level intensity ladder, not the
-input-side proxy.
+The name and the discipline about which words carry nothing come from
+[Julius Brussee's caveman](https://github.com/JuliusBrussee/caveman) (MIT); its
+broken-grammar register does not, nor its session-wide mode, intensity ladder
+or input-side proxy. What comes out of this skill is plain
+professional prose with the slack taken out, because these values land in
+committed data and are read by someone next week.
 
 Family: writing support, and text processing where the input is a set, since
 there the decisions are an artifact the rewrite is written against.
@@ -61,9 +56,8 @@ leave nothing to inspect between them.
 
 A set is two passes, and the first produces the artifact the second is written
 against: settle the decisions, show them, then rewrite each row against them.
-Deciding per row is what produced the column that needed this skill, and on a
-long column the decisions are also the cheap place to be corrected, before two
-hundred rows are written the wrong way.
+The decisions are the cheap place to be corrected, before two hundred rows are
+written the wrong way.
 
 ## Key insights
 
@@ -159,14 +153,10 @@ present. `amount` was already at its floor and comes back untouched.
 
 ## Boundaries
 
-- Not `succinct-text`, which settles audience, theme and altitude, moves
-  material out to its own linked pieces, and proves losslessness with a
-  crosswalk. Reach for that one when what the document contains is in question.
-  Reach here when only the phrasing is.
-- Not `reduction-panel`, which fans readers out over a document's sections,
-  collects competing shorter versions and a cut list, and puts a judge over the
-  whole. That is a committee convened on a document. This is one narrow pass
-  over a span or a set, and it proposes nothing it does not also apply.
+- Not `succinct-text`, for when what the document contains is in question, and
+  not `reduction-panel`, a committee of readers convened on a whole document.
+  This is one narrow pass over a span or a set, and it proposes nothing it does
+  not also apply.
 - Not for a record. In a dated entry, a quoted source, or a chat log, the
   wording is the evidence.
 - Rewriting a column another person authored changes what they said. The table
@@ -174,8 +164,7 @@ present. `amount` was already at its floor and comes back untouched.
 
 ## Extending
 
-The alignment contract is mechanically checkable and nothing checks it. A script
-over the two sides could hold row count, key match, input order, and the
+The alignment contract is mechanically checkable and nothing checks it yet. A
+script over the two sides could hold row count, key match, input order, and the
 survival of every preserved token class (numbers, units, identifiers, polarity
-words). That is the next thing this skill should carry, per this repo's rule
-that a correction landing twice becomes a check.
+words).

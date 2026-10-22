@@ -81,8 +81,6 @@ Outer single quotes are for PowerShell; inner doubled double-quotes handle OS-le
 
 ## Interop Boundaries
 
-Most sharp edges in PowerShell come from crossing abstraction boundaries: PS/COM, PS/Win32, PS/WPF, PS/.NET compilation. Knowing which boundary you're at tells you what class of problem to expect.
-
 ### `Add-Type` Is Permanent per Session
 
 `Add-Type` compiles a type into the AppDomain permanently. Two consequences:
@@ -148,18 +146,16 @@ $items = @(Get-ChildItem $Path -Filter *.txt)
 $items.Count  # always works
 ```
 
-`@()` guarantees an array around the objects a command *emits*. It does not descend into a collection handed to it whole. `Get-ChildItem` streams its items one at a time, so `@()` collects them into an N-element array. A command that emits a whole array as a single object is the opposite case: `@()` wraps that one object and you get a length-1 array with the array itself nested inside. See **JSON Quirks** for that trap and how to spot it.
+`@()` guarantees an array around the objects a command *emits*; it does not descend into a collection emitted whole. A command that streams its items (`Get-ChildItem`) gives an N-element array; a command that emits a whole array as one object gives a length-1 array with the array nested inside (see **JSON Quirks**). The deciding question for any command is whether it enumerates its output or emits it in bulk.
 
 ### JSON Quirks
 
-In 5.1, `ConvertFrom-Json` and `Invoke-RestMethod` emit a top-level JSON array as a *single bulk object*, not as a stream of elements. Direct assignment binds that array intact and reports its true count. Wrapping the call in `@()` is the trap: `@()` collects the one emitted object and guarantees an array around it, producing a length-1 outer array with the array itself nested one layer down.
+In 5.1, `ConvertFrom-Json` and `Invoke-RestMethod` emit a top-level JSON array as a *single bulk object*, not as a stream of elements (confirmed on 5.1.26100 for object, single and multi roots). Direct assignment binds that array intact; wrapping the call in `@()` nests it one layer down. Do not `@()` either call.
 
 ```powershell
 $data = ConvertFrom-Json $raw       # clean: $data.Count is N
 $data = @(ConvertFrom-Json $raw)    # trap:  $data.Count is 1, $data[0] is the N-element array
 ```
-
-`Invoke-RestMethod` parses identically (confirmed on 5.1.26100, object/single/multi roots): do not `@()` either one. The array you want is already there. This is the streaming-versus-bulk distinction from **Array Guarantor @()**: the deciding question for any command is whether it enumerates its output or emits it in bulk.
 
 **A lone object is countless.** A JSON object root (`{...}`, not an array) deserializes to a single `PSCustomObject` whose `.Count` is `$null`, so code that trusts `$data.Count` silently reads nothing. When the root may be a single object and you want a guaranteed array, capture first, then wrap the variable, never the call:
 
@@ -168,9 +164,7 @@ $data = ConvertFrom-Json $raw
 $arr  = @($data)   # object -> length-1 array; array stays its true length N
 ```
 
-Wrapping the variable normalizes every root. Wrapping the call wraps whatever single thing the command emitted, which is the array trap above.
-
-**Fingerprint.** A bulk-wrapped value passes visual inspection and fails iteration. It prints as N tidy rows, because the formatter flattens nesting for display. But `.Count` is 1, and a `foreach` or pipeline over it binds once to the inner array, so member access concatenates every element's value into one blob: `$b.label` returns all N labels at once. N objects collapsing to one output with values *concatenated* is the signature, distinct from a loop running once over a scalar.
+**Fingerprint.** A bulk-wrapped value prints as N tidy rows, because the formatter flattens nesting for display, but `.Count` is 1 and a `foreach` or pipeline over it binds once to the inner array, so member access concatenates every element's value: `$b.label` returns all N labels at once. Values *concatenated* into one output is the signature, distinct from a loop running once over a scalar.
 
 **Diagnose by measurement, not by eye.** The printout lies. Confirm shape with `.Count` and `$x[0].GetType().FullName`. An `Object[]` at element zero is the wrap.
 
@@ -186,25 +180,9 @@ if (-not [string]::IsNullOrWhiteSpace($_.group)) { $_.group } else { 'Other' }
 
 ## Pipeline Design
 
-From James O'Neill's principles, maximize reuse by building composable blocks:
+Return objects with properties from a function, not formatted strings; let callers format. Give a parameter with an obvious default (current computer, current directory) that default, and turn constants into parameters with defaults.
 
-### Return Rich Objects
-
-Don't format inside functions. Return objects with properties; let callers format.
-
-```powershell
-# BAD - returns formatted string
-function Get-ServerInfo { "Server: $Name, Status: $Status" }
-
-# GOOD - returns object
-function Get-ServerInfo {
-    [PSCustomObject]@{ Name = $Name; Status = $Status }
-}
-```
-
-### Accept Pipeline Input Properly
-
-When both parameter and pipeline input are valid, use begin/process/end:
+When both parameter and pipeline input are valid, use begin/process/end, looping inside `process` so an array passed by parameter and items piped one at a time both work:
 
 ```powershell
 function Process-Items {
@@ -215,7 +193,7 @@ function Process-Items {
     )
     begin { $all = [System.Collections.Generic.List[string]]::new() }
     process { foreach ($n in $Name) { $all.Add($n) } }
-    end { 
+    end {
         foreach ($item in $all) { <# work here #> }
     }
 }
@@ -230,10 +208,6 @@ To pass array as single object through pipeline:
 Write-Output $array -NoEnumerate # explicit
 ```
 
-### Sensible Defaults
-
-If a parameter has an obvious default (current computer, current directory), set it. Convert constants to parameters with defaults for flexibility.
-
 ## Practical Idioms
 
 ### HttpListener Server
@@ -246,10 +220,10 @@ $listener.Start()
 while ($listener.IsListening) {
     $context = $listener.GetContext()
     $response = $context.Response
-    
+
     $html = '<html><body>Hello</body></html>'
     $buffer = [Text.Encoding]::UTF8.GetBytes($html)
-    
+
     $response.ContentType = 'text/html'
     $response.ContentLength64 = $buffer.Length
     $response.OutputStream.Write($buffer, 0, $buffer.Length)
@@ -264,10 +238,9 @@ while ($listener.IsListening) {
 - **No aliases in scripts**: use `ForEach-Object` not `%`, `Where-Object` not `?`
 - **Single quotes** for literals, double quotes only when interpolating
 - **No comments.** Not sparse comments, none. Reasoning goes in the commit
-  message, the PR body, or a tracker task, and usage goes in the folder's README.
-  Those are read; interspersed comments are not, and they become a second copy of
-  the reasoning that nothing checks. Set 2026-08-24, replacing "explain *why*, not
-  *what*", which licensed the habit by saying nothing about how often.
+  message, the PR body, or a tracker task, and usage goes in the folder's README,
+  since those are read and an interspersed comment becomes a second copy that
+  nothing checks.
   A single machine-readable `# @file <repository-relative PowerShell path>`
   declaration is permitted when code needs to identify its repository file for
   intake and comparison. It is an address, not explanatory commentary; do not

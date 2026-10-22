@@ -1,9 +1,9 @@
 # node/ — headless render + build harness
 
 Node tooling for exercising repo pages inside the Claude Code web sandbox, where
-the JS CDNs our pages use at runtime (jsDelivr, unpkg) are blocked and there's no
-GitHub token. See [`docs/environment/`](../docs/environment/) for the sandbox
-facts these build on.
+a render cannot count on reaching the JS CDNs or GitHub and there's no GitHub
+token. See [`docs/environment/`](../docs/environment/) for the sandbox facts
+these build on.
 
 Everything here resolves the same two networks of dependencies to local files:
 
@@ -54,8 +54,8 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run setup` | Configure this checkout's committed Git hooks and registry CSV merge driver, install usable development dependencies without a Playwright browser, and finish by checking readiness. Safe to repeat; never regenerates tracked artifacts. `node node/checkout-setup.mjs` is the dependency-free bootstrap when npm itself cannot start; Windows PowerShell can use `npm.cmd run setup` to bypass a broken `.ps1` shim. |
 | `npm run ready` | Read-only checkout diagnosis: effective hook paths, merge-driver configuration and attributes, required runtimes, and npm's installed dependency metadata. Works for ordinary clones and linked worktrees without assuming `.git` is a directory. |
 | `npm run artifacts:refresh` | Force every hook-owned generator through the configured pre-commit refresher, in the same order and with the same staging and gate policies the commit hooks use. This is artifact repair, intentionally separate from setup. If verification names an artifact outside that hook's ownership, run the command it names. |
-| `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior (compression round-trips, persistence over fake-indexeddb, messaging, wsl-core parsing/classification, xlsx OOXML structural parsing), a registration smoke test across every kit, and jsdom + real-Alpine component logic tests (counter, sheet-modal). Offline; third-party libs come vendored from `node_modules`. |
-| `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; `esm.sh`/cm6 can't load (reported, non-fatal). jsdom runs no module scripts or dynamic `import()`, so the boot block is rewritten to a classic IIFE with the `import(gh-api.js)` call shimmed. |
+| `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior, a registration smoke test across every kit, and jsdom + real-Alpine component logic tests. Offline; third-party libs come vendored from `node_modules`. |
+| `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; how it rewrites the page is in [`testing.md`](../docs/environment/testing.md). |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
 | `npm run build:lib` | Emit `dist/web-tools.js`: **the pre-build** — the whole `lib/` as one self-booting offline artifact (see [The pre-build](#the-pre-build)). |
@@ -104,17 +104,15 @@ state a real Pages URL would have, then exercise the actual control via the UI.
 
 ## Where "the build" sits — and why it stays off the dev path
 
-`build.mjs` does **not** rewrite the dependency graph. It emits the real
-`gh-api.js` loader with `GH.prototype.get` overridden by an inlined cache of every
-own-repo file the page reaches. The actual loader runs — same wrap+execute, with no source rewriting,
-same `gh-boot` registry/attribution, same `read()` tracking — only the source
-bytes come from memory instead of the API. Third-party libs are untouched: they
-stay on the page's CDN `<script>`/`<link>` tags.
+`build.mjs` does **not** rewrite the dependency graph: it emits the real
+`gh-api.js` loader with `GH.prototype.get` reading an inlined cache of every
+own-repo file the page reaches, and third-party libs stay on the page's CDN tags
+(the design is in [`lib/build.js`](../lib/build.js)'s header and "Load and build
+are one contract" in [`docs/loader.md`](../docs/loader.md)).
 
 Because the cache is just a `path → source` map that `gh.get` looks up, **load
-order is irrelevant** — the build collects the reachable *set*, including lazy
-`_selfLoad` targets (fab's console panel, the export kit), so the built page
-is fully offline-capable.
+order is irrelevant**: the build collects the reachable *set*, including lazy
+`_selfLoad` targets, so the built page is fully offline-capable.
 
 The build and the runtime loader **optimize opposite things**. `gh.load` exists
 for freshness — edit a file, see it immediately — fetching own code through the
@@ -139,30 +137,26 @@ await import('../dist/diff-tool.js');
 
 Everything after that line resolves from the cache. The build still honors
 `?use=<ref>` (an explicit ref falls through to the network), so a built page can be
-re-pinned for review. This is the **gh-for-review / build-for-delivery** split —
-one source line, two modes. `verify-build` is the guarantee: on every page tried so
-far the build render is MD5-identical to the live `gh.load` render.
+re-pinned for review: one source line, two modes. `verify-build` is the
+guarantee that the build render is identical to the live `gh.load` render.
 
-## Vocabulary (load → build → bake → pack)
+## Vocabulary (load → build → bake → export → brief)
 
-Four distinct steps, kept on four distinct words so "bundle" stops meaning three
-things:
+Distinct steps on distinct words, so "bundle" means only the hand-authored
+runtime grab-bags (`vanilla-bundle.js`, `alpine-bundle.js`):
 
-- **load** — the fresh, per-file, ref-pinnable runtime path (`gh.load`). The dev /
+- **load**: the fresh, per-file, ref-pinnable runtime path (`gh.load`). The dev /
   review loop.
-- **build** — a snapshot of a page's own **code** graph → `dist/<page>.js` (this
-  tool). `vanilla-bundle.js` / `alpine-bundle.js` keep "bundle" as hand-authored
-  runtime grab-bags — distinct from a build-produced graph.
-- **bake** — inline a build into a page's HTML to get one standalone document.
-  `node/build/bake.mjs` rewrites the page's `gh-api.js` import to a `data:` module
-  carrying the build, so the page boots with zero own-code network (verified
-  byte-identical to live on `sheet-modal-demo`).
-- **export** — [`lib/kits/export.js`](../lib/kits/export.js)'s "page + the data it
+- **build**: a snapshot of a page's own **code** graph → `dist/<page>.js` (this
+  tool).
+- **bake**: inline a build into a page's HTML to get one standalone document
+  that boots with zero own-code network (`node/build/bake.mjs`, through
+  `bake` in [`lib/build.js`](../lib/build.js)).
+- **export**: [`lib/kits/export.js`](../lib/kits/export.js)'s "page + the data it
   `read()`s" zip (the FAB's **"Export"** button, `window.exporter`). Runtime;
   **data** by default, **`{ offline: true }`** also bakes the code in.
-
-So "bundle" now means only the hand-authored grab-bags (`vanilla-bundle.js`,
-`alpine-bundle.js`); the four verbs above are the pipeline.
+- **brief**: the page and its own modules as one markdown document for a
+  reviewer, boot chain left out ([`lib/kits/brief.js`](../lib/kits/brief.js)).
 
 ## The pre-build
 
@@ -190,23 +184,16 @@ no per-component load. The pure kits (`compression`, `persistence`, `io`, …)
 ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
 instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
 Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` re-pins the bundle to
-that ref for review. It does so by **fetch + blob-import from
-raw.githubusercontent**, the same route `lib/entry.js` takes: raw serves public
-files anonymously with permissive CORS and a five-minute cache, so a fresh push
-previews immediately. A blob URL imports despite raw's `text/plain`
-type because the blob sets its own JS type, and the bundle is one self-contained
-module (no internal imports), so blob-import is clean and a branch name is
-cache-safe (no SHA needed). The no-`?use` path stays the same-origin Pages
-import, untouched. [`pages/demos/prebuild-demo.html`](../pages/demos/prebuild-demo.html)
-is the worked example.
+that ref for review through the same raw.githubusercontent fetch and blob import
+`lib/entry.js` uses, so a fresh push previews immediately and a branch name is
+safe. The no-`?use` path stays the same-origin Pages import.
+[`pages/demos/prebuild-demo.html`](../pages/demos/prebuild-demo.html) is the
+worked example.
 
-This is the **delivery** twin of the loader's **freshness**: develop against the
-`gh.load` chain (edit a file, reload, see it), ship against the pre-build (one
-dependable, offline, shared-cacheable artifact). Where it differs from a
-per-page build: the per-page build is leaner (only what one page reaches) but
-needs a build per page; the pre-build is one artifact reused everywhere, at the
-cost of carrying components a given page may not use (harmless — an unused
-`Alpine.data` registration only costs anything when an `x-data` references it).
+Develop against the `gh.load` chain, ship against the pre-build. A per-page
+build is leaner but needs a build per page; the pre-build is one artifact
+reused everywhere, and an unused `Alpine.data` registration costs nothing until
+an `x-data` references it.
 
 ### The app's pre-build
 
@@ -251,9 +238,7 @@ graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page
   a **live** iframe of the page or its **HTML source**. Per-page blurbs live in the
   `NOTES` map at the top of `pages-index.mjs` — edit them there.
 
-It's a *catalog*, deliberately kept off the load → build → bake → export → brief
-vocabulary (those five verbs are about a page's own-code graph; this is about the
-repo's set of pages). The catalogs regenerate automatically at commit time (see
+The catalogs regenerate automatically at commit time (see
 [The refresh model](#the-refresh-model)); `npm run pages` (= `pages-shots` then
 `pages-index`) is the manual full refresh, and `pages-index --check` exits non-zero
 when either committed catalog is stale, as an audit. The thumbnails are committed
@@ -267,9 +252,7 @@ relative `.githooks` path, so Git resolves the hooks from the checkout it is
 actually operating on, and registers the `derived-csv` merge driver named by
 `.gitattributes`. `npm run ready` asks Git for the effective hook path and reads
 the effective driver config; it does not inspect a presumed `.git/config`,
-regenerate anything, or stage files. The Claude session-start wrappers call the
-git-only and dependency-only halves of this same entry point. No Claude variable
-is required by the shared command.
+regenerate anything, or stage files.
 
 Every derived artifact in the repo is refreshed one of two ways, split on one
 property: whether its generator is **deterministic**.
@@ -321,11 +304,8 @@ reads goes wherever it likes.
 
 **And a leg has to stage the file it actually writes.** Every `git add` in the
 hook goes through a `stage()` helper that reports a path that is not there,
-because the bare form swallowed two renames for a month: `docs/docs.json` and
-`tracker/board.json` both became CSVs in PR #441 and their adds silently
-addressed nothing, so two registries were regenerated on every commit and
-committed on none. `git add X 2>/dev/null || true` cannot tell "nothing to
-stage" from "renamed," and the second is the one worth hearing about.
+because `git add X 2>/dev/null || true` cannot tell "nothing to stage" from
+"renamed," and the second is the one worth hearing about.
 
 Every generator is byte-deterministic, so the hook can fire on every commit and
 no-op invisibly when nothing real changed. It's non-blocking: a generator failure
@@ -353,22 +333,17 @@ the existing derivers over the combined tree, in the order above, and restamps
 those computed cells. It never takes one CSV side wholesale, so authored rows
 from the other branch survive.
 
-The tracker board was the last to get an owner there, on 2026-08-05, and the gap
-was not theoretical: `board.json`, the projection's shape until 2026-08-18,
-emitted its per-task keys by iterating a set, so hash randomization reordered
-them on every run. Same input, different bytes,
-in an artifact whose own closing comment promises the opposite, unnoticed
-because it is read by machines and diffed by no one. The suite now asserts
-determinism directly rather than inferring it from one passing run, since a
-nondeterministic generator makes a byte-comparison gate flaky rather than false.
+The suite asserts determinism directly rather than inferring
+it from one passing run, since a nondeterministic generator (one that iterates
+a set, say) makes a byte-comparison gate flaky rather than false.
 
 **Thumbnails (`pages/thumbs/*.png`) refresh once per session, at wrap-up.**
 Screenshots are slow (a Chromium render per page) and not byte-deterministic
 (PNG encoding, font raster), so regenerating per commit would write ~100KB of
 binary churn for every touched page on every commit. Instead the hook *warns*
 when a page's HTML changes without its thumbnail, and the refresh happens
-deliberately — `npm run pages-shots -- <changed pages…>` — as part of the
-session wrap-up, per the root `CLAUDE.md` ("Per-session refresh: thumbnails"). Until then,
+deliberately at session wrap-up (`npm run pages-shots -- <changed pages…>`, root
+`CLAUDE.md` "Per-session refresh: thumbnails"). Until then,
 `pages/index.html` degrades gracefully: a missing thumb shows the
 "no screenshot" placeholder.
 
@@ -391,9 +366,6 @@ the repair. Setup alone makes no claim about those paths.
 Committed artifacts are the truth, which is what lets a branch be previewed
 pre-merge via `?use=<sha>`. Authored docs (`docs/environment/`,
 this file) are never auto-generated.
-
-One human touch remains: a new page lists under its `<title>` until a blurb is
-added to the `NOTES` map at the top of `pages-index.mjs`.
 
 ## Extending
 

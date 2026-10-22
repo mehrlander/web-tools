@@ -1,11 +1,9 @@
 # What the hub knows about the rest of the estate
 
 The registries answer questions about this repository. A handful reach past it,
-and until 2026-08-20 nothing said which were which: the distinction sat inside
-twenty-two prose `scope` sentences, where it could not be grouped, filtered, or
-counted. `span` is now a column ([registries.csv](registries.csv), domain in
+and the `span` column says which ([registries.csv](registries.csv), domain in
 [vocabularies.csv](vocabularies.csv), gated by
-`node/test/properties-registry.test.mjs`), and the Map view's Registries tab
+`node/test/properties-registry.test.mjs`); the Map view's Registries tab
 carries both counts.
 
 This document is the reasoning the column cannot hold, and the measurement that
@@ -35,13 +33,9 @@ the crawl.
 | trackers | 13, in 8 repos | 2 | 11 on the retired `board.json` |
 | `.paths.json` declaration files | 3, in 3 repos | all | hub retired its two on 2026-09-21 |
 
-The declarations were 2, in 2 repos, and the hub carried none, until 2026-09-20
-retired the `Frozen` marker word and moved every whole-path claim into the
-file that was already the place for it. The hub carried two until 2026-09-21,
-when the markers skill and `status.py`, their only reader, were retired and
-the declarations went with them. home retired its root declaration the same
-day and keeps the budget-drs one; chat-histories and web-tools-private carry
-one each.
+The `.paths.json` row is as of 2026-09-21, when the hub retired its two
+declarations: home keeps the budget-drs one, and chat-histories and
+web-tools-private carry one each.
 
 The skills: home 10, chat-histories 4, wa-bills 1. The fork is wa-bills'
 `web-tools-conventions`, a 110-line copy of the hub's `default` skill whose
@@ -71,11 +65,9 @@ crawl already fetches. Reach for this when the hub genuinely needs one table.
 **Per-repo declaration.** The governed artifact is a file the hub defines and
 each repo carries, with no aggregate at all. `.paths.json` was the case, and it
 was the one that could not be a row in `registries.csv`: the table asserts that
-a registry is a CSV, and every instance is JSON. `registries.csv`'s own scope
-sentence recorded the miss from 2026-08-16 until the hub retired its own on
-2026-09-21. The gate was right to refuse it; what was missing was somewhere to
-say so. The arrangement is kept here, though the hub now defines no file of
-this kind.
+a registry is a CSV, and every instance is JSON. The gate was right to refuse
+it; what was missing was somewhere to say so. The hub now defines no file of
+this kind, and the shape is kept here for the next one.
 
 ## The rule the skills work follows
 
