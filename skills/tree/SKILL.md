@@ -187,7 +187,7 @@ json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
 This skill owns structure rendering. [`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md)
 owns change surfacing: the branch-page caption by default, the
 `[new]/[main]/[diff]` file list as fallback, and render lines. The
-[`surfacing-course`](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md) owns PR bodies and the
-merge guide. A tree is not a change handoff: it carries no change state and no
+[`surfacing-course`](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md) owns PR bodies and
+wrap-up. A tree is not a change handoff: it carries no change state and no
 diff links. If the ask is "what did I touch," follow the surfacing contract; a
 tree that also marks change is a deliberate combined view, not the default.
