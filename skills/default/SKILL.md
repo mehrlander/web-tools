@@ -39,12 +39,6 @@ curl -fsSL "$base/SURFACING.md"
 curl -fsSL "$base/QUALIFIED-WRITING.md"
 ```
 
-Load the [`surfacing-course.md`](surfacing-course.md) copy beside this skill only when this session
-will open or drive a pull request. It is the guide-PR lifecycle and idles until
-one exists, which is why it is a second file rather than a longer first one. If
-that vendored copy is unavailable, fetch canonical
-`docs/surfacing-course.md` from the same base URL.
-
 If `curl` is denied, use `mcp__github__get_file_contents` (owner `mehrlander`,
 repo `web-tools`), or WebFetch on the same raw URLs.
 

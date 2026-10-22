@@ -294,7 +294,7 @@ changes touch:
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
-| `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
+| `docs/SURFACING.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 

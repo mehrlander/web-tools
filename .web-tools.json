@@ -28,8 +28,7 @@
     "pages",
     "console",
     "lib/alpineComponents",
-    "docs/SURFACING.md",
-    "docs/surfacing-course.md"
+    "docs/SURFACING.md"
   ],
   "pages": [
     {
@@ -106,7 +105,6 @@
       "governs": [
         "docs/SURFACING.md",
         "docs/surfacing.csv",
-        "docs/surfacing-course.md",
         "skills/claude-markdown/",
         "skills/look-markers/",
         "skills/hooks/reply-check.py",
