@@ -822,6 +822,11 @@ test('the time panel reads a long span in days and counts the days the owner spo
     assert.equal(t.turns, 3);
     assert.equal(t.days, 2);
     assert.match(t.started, /Oct 11/);
+    // The rail: a tick a turn, placed by when it was said, ends named by day.
+    assert.equal(t.ticks.length, 3);
+    assert.ok(t.ticks.every((x, i) => x >= 0 && x <= 100 && (i === 0 || x >= t.ticks[i - 1])), 'in order, on the span');
+    assert.ok(t.ticks[1] - t.ticks[0] < 1 && t.ticks[2] - t.ticks[1] > 30, 'an hour apart sits close; four days apart does not');
+    assert.deepEqual([t.from, t.to], ['Oct 11', 'Oct 21']);
   } finally { d.record = was; }
 });
 
