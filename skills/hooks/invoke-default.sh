@@ -10,8 +10,7 @@
 # column; a repo can name /web-tools in prose, as home does, and still start a
 # session with none of the conventions in context. This asks the narrower
 # question a session can actually answer: is there a resolved `@`-import of the
-# primitives among the checkouts the harness read. Two different claims, so no
-# owners.csv repetition is owed.
+# primitives among the checkouts the harness read.
 #
 # WHY A DIRECTIVE RATHER THAN A DESCRIPTION. A skill enters context two ways:
 # the user types /name, or the model reads its description and elects to. There

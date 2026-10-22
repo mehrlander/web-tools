@@ -19,8 +19,8 @@ Four AI assistants contribute across this ecosystem. Each assistant identifies i
 | Assistant | Branch Prefix | Commit Signature / Trailer | Notes |
 | :--- | :--- | :--- | :--- |
 | **Claude** | `claude/<slug>` | `Claude-Session: <url>` | Automated by Claude Code harness |
-| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Requested 2026-09-20; Codex commits carried no trailer before then, so the prefix was the only signal |
-| **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits |
+| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Include trailer on all commits; commits before 2026-09-20 carry the prefix alone |
+| **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits; `antigravity/` reads as Gemini |
 | **Grok** | `grok/<slug>` | `Signed: Chief of Staff (Grok)` | Include signature on all commits |
 
 A commit or branch that carries no assistant prefix or trailer is **unclassified**, not human. Read as human, it stated a finding the classifier never made: on 2026-09-18 four Gemini branches went out without the prefix and the Activity view reported them as a person's work. A branch that predates this table, or went out without its prefix, is declared by a row in [assistant-branches.csv](assistant-branches.csv) with the basis for the claim; the Activity view reads declarations only and guesses nothing.

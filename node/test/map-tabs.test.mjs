@@ -12,7 +12,8 @@
 //
 // WHERE IT SHOWS changed on 2026-10-12, by the owner's decision on PR #889. It
 // used to head each tab; now the tab's controls and counts lead, and the
-// sentence opens with the tab's files and builders in Sources and methods. The
+// sentence opens the tab's About in the app drawer (2026-10-22), above its
+// files and builders. The
 // need it answers did not change, so it is still required of every address,
 // and the reader arriving cold now meets every set at once: the Overview, the
 // Map's front door, lists each address under its tab with this sentence.
@@ -37,10 +38,12 @@ const ROWS = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 
 // are addressable subviews rather than entries in the top-level strip.
 const tabsBlock = src.match(/TABS:\s*\[([\s\S]*?)\r?\n\s*\],\r?\n\s*SUBVIEWS:/)?.[1] || '';
 const subviewsBlock = src.match(/SUBVIEWS:\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*SUBVIEW_PARENT:/)?.[1] || '';
-const optionPattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: '(ph-[a-z-]+)'/g;
-const TABS = [...tabsBlock.matchAll(optionPattern)].map(m => ({ k: m[1], n: m[2], i: m[3] }));
+// An icon is a Phosphor class in quotes, or the name of a glyph the app draws
+// itself (REGISTRY_GLYPH, since Phosphor has no registry), held as a constant.
+const optionPattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: (?:'(ph-[a-z-]+)'|([A-Z_]+_GLYPH))/g;
+const TABS = [...tabsBlock.matchAll(optionPattern)].map(m => ({ k: m[1], n: m[2], i: m[3] || m[4] }));
 const SUBVIEWS = [...subviewsBlock.matchAll(optionPattern)]
-  .map(m => ({ k: m[1], n: m[2], i: m[3] }));
+  .map(m => ({ k: m[1], n: m[2], i: m[3] || m[4] }));
 // The same block read per tab, the way node/ui-units.mjs reads it to label a
 // unit: each group's key, then its options in strip order.
 const SUBVIEW_GROUPS = [...subviewsBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)]
@@ -76,7 +79,7 @@ const GROUPS = [
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
-  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['claims', 'Themes'], ['registries', 'Registries']]],
+  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes'], ['registries', 'Registries']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];
 
@@ -128,7 +131,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.match(src, /@click="setTab\(t\.k\)"/,
     'a top-level stop opens its own route, so Docs opens Inventory');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
-  assert.match(src, /x-for="\(s, i\) in ledeParts"/, 'the source panel renders the selected description, including its references');
+  assert.match(src, /lede: this\.ledeParts\.map\(/, 'the About contract carries the selected description, including its references');
 });
 
 // Pill rows stay on one line and scroll sideways. A filter row that wraps
@@ -250,8 +253,14 @@ test('every icon is a name the installed Phosphor carries', () => {
   const sheet = readFileSync(
     path.join(repoRoot, 'node_modules', '@phosphor-icons', 'web', 'src', 'regular', 'style.css'), 'utf8');
   const carried = new Set([...sheet.matchAll(/\.ph\.ph-([a-z0-9-]+)/g)].map(m => m[1]));
-  for (const t of [...TABS, ...SUBVIEWS])
+  for (const t of [...TABS, ...SUBVIEWS]) {
+    if (t.i.endsWith('_GLYPH')) {
+      assert.match(src, new RegExp(`const ${t.i} = '[^']*\\[mask:url\\(data:image/svg\\+xml,`),
+        `${t.n}: ${t.i} is not a mask glyph map.js defines`);
+      continue;
+    }
     assert.ok(carried.has(t.i.slice(3)), `${t.n}: ${t.i} is not an icon the font carries`);
+  }
 });
 
 test('a lede is one sentence and stays one', () => {

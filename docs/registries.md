@@ -247,9 +247,10 @@ consumer.
 
 ## Limits of the model
 
-A registry row names one CSV. Authority spread across many files, such as each
-skill's `SKILL.md` owning that skill's description, cannot be a registry; the
-family rule for it lives in [`owners.csv`](owners.csv).
+A registry row names one CSV. Authority spread across many files cannot be a
+registry, so it is stated here instead: each skill's `SKILL.md` owns that
+skill's description, and each agent's definition file owns its model, tools and
+preloads.
 
 Declarations govern the columns of registered CSVs, not prose inside JavaScript
 or HTML. [`content.csv`](../data/design/content.csv) classifies those files as
@@ -293,4 +294,4 @@ No consumer reads both, so the names stay as they are. budget-drs's
 `definition_owner`, the document that defines each property's domain, was tried
 here and dropped: hub domains are defined in the registry itself or in
 `vocabularies.csv`, so the field would be blank by construction, and where a
-domain is defined elsewhere `owners.csv` already says so.
+domain is defined elsewhere the property's gloss names the owner.
