@@ -1816,3 +1816,28 @@ test('sessionTopicItems consolidates minor asides into Other and abuts zero-gap'
   assert.ok(p3.includes('M 54.94117'), 'Topic 3 starts at 52.94117 (9/17*100)');
   assert.ok(p4.includes('M 90.23529'), 'Topic 4 starts at 88.23529 (15/17*100)');
 });
+
+// ── A deep link that opened the swiper before the rollup was joined ─────────
+// Reported 2026-10-22: the header read "HEAD", the branch the session's
+// checkout was detached at, where Gemini's title was due. The deck froze its
+// rows when it opened, and the rollup landed after. The join now re-seats the
+// open deck's rows, in place, and re-titles the slide in view.
+test('the topics join re-seats an open deck\'s rows in place and re-titles the slide', async () => {
+  seed([rec({ repos: [{ name: 'web-tools', branch: 'HEAD', lines: 1 }] })]);
+  const rows = [data.sessionRows_[0]];
+  assert.equal(rows[0].topicTitle, undefined);
+  const titles = [];
+  data.sessionDeck = { rows, i: 0, find: '', finds: {} };
+  const held = data.sessionDeck.rows;
+  data._sDeck = { setTitle: (t) => titles.push(t) };
+  FILES = { 'state/session-topics.json': { sessions: { b8fae678: {
+    title: 'Gemini names it', summary: 'What it was about.', topics: ['The thing'], agenda: [] } } } };
+  try {
+    await data.loadSessionTopics();
+    assert.equal(data.sessionDeck.rows, held, 'the same array, which the deck tells live from replaced by');
+    assert.equal(data.sessionDeck.rows[0].topicTitle, 'Gemini names it');
+    assert.deepEqual(titles, ['Gemini names it'], 'the header takes the title the slide was owed');
+  } finally {
+    data.sessionDeck = null; data._sDeck = null; FILES = {};
+  }
+});
