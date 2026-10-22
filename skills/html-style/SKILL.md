@@ -69,11 +69,15 @@ options as pills on one line that scrolls sideways rather than wrapping. Don't
 embed a deck in a page; a strip under its own list (rule 12) is the exception,
 since its takeover is one tap away.
 
-**5. A tenant page uses normal flow.** A page another page may embed (an
+**5. An embedded page has no fixed root.** A page another page may embed (an
 appendix, a toss render, a stage preview) takes rule 4's shape without the fixed
-root: `min-h-dvh` and sticky chrome over document scrolling. In an iframe on
+root: `min-h-dvh` and sticky chrome over document scrolling, or, for a list over
+a strip (rule 12), an `h-dvh` root whose panes scroll inside it. In an iframe on
 iOS, a fixed child measures against the outer viewport and loses its right-hand
-column, which headless Chromium does not show. With sticky chrome, save and
+column, which headless Chromium does not show. Inside the frame, `lg:` and every
+other width query measure the frame, not the window, so the wide layout has to
+hold at the frame's width: 992px in the Budget DRS app on a 1280px window. With
+sticky chrome, save and
 restore document scroll when a detail view replaces a long list, and drop
 `viewport-fit=cover` unless the page is edge-to-edge.
 
