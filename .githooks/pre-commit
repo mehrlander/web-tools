@@ -372,16 +372,11 @@ fi
 
 # --- leg vendored: a staged change to a vendored copy (warn only) -------------
 # data/vendored-copies.txt lists the files whose source is in another repo; the
-# next refresh from that source overwrites an edit made here. Expected, and
-# silent in effect, when the commit is that refresh.
-if [ "$refresh_all" = 0 ] && [ -f data/vendored-copies.txt ]; then
-  staged="$(git diff --cached --name-only)"
-  while IFS= read -r p; do
-    case "$p" in ''|'#'*) continue ;; esac
-    if printf '%s\n' "$staged" | grep -qxF -- "$p"; then
-      echo "build hook: $p is a vendored copy: edit its source, or the next refresh overwrites this (fine if this commit is that refresh)" >&2
-    fi
-  done < data/vendored-copies.txt
+# next refresh from that source overwrites an edit made here. The script names
+# each staged one; when the commit is that refresh, the warning is expected.
+if [ "$refresh_all" = 0 ] && [ -f python/vendored-copies.py ]; then
+  out="$(python3 python/vendored-copies.py --staged 2>&1 || true)"
+  [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/build hook: /' >&2 || true
 fi
 
 exit 0
