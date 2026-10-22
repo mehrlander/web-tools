@@ -16,12 +16,12 @@ down is a test failure rather than a discovery three months later. `consumer`
 records which tool reads each key: the file is shared, and which tool reads a
 key is a property of the key.
 
-It went flat on 2026-08-16. The members of an array or object key used to sit
-nested inside their parent's row, which meant the registry counted **20 rows while
-its own scope claimed every key in use**. There are 46. They are rows now,
-addressed `pages[].path` and `stage.files`, and a `required` column says whether
-a member has to be present, blank on a top-level key because that was never
-recorded.
+Each registry row gives a key's type, the tool that reads it (`consumer`), and
+what it does. Members of an array or object key are rows of their own
+(`pages[].path`, `stage.files`), and a `required` column says whether a member
+has to be present. The gate checks every key present in a real manifest against
+a row, so a field used without being written down fails the test. What stays
+in prose is design rationale and cross-field behaviour.
 
 Root `.web-tools.json` is the repo's canonical **web-tools config file**.
 The Web Tools app is one consumer: it reads the
@@ -117,17 +117,17 @@ setting only `pages` gets the gallery as the landing. Neither arrangement hides
 the other.
 
 **When an app view is the right call.** A view whose subject is *the estate* is
-built into the shell (Activity, Sessions, Repos, Surfaces, Stage, Map,
-Proposals, and the Lists pane, which is operational to the tool). A view whose subject
-is *content* is an app view over the repo that owns it: the renderer stays
-public here, the content stays wherever it belongs. News and Links are both that
-shape, home's data through a web-tools page. Two consequences before building
-one: the page gets the main area minus the sidebar, so it has to survive at two
-thirds width; and the shell already supplies a header and the sidebar label, so
-a promoted page should stand its own masthead down when `window.self !==
-window.top` (`pages/links.html` does, `pages/news/news.html` does not yet). An
-app view cannot reach the shell's chrome at all, being in an iframe, so anything
-wanting persistent presence has to be built into the shell instead.
+built into the shell (the rows of [app-routes.csv](app-routes.csv)). A view
+whose subject is *content* is an app view over the repo that owns it: the
+renderer stays public here, the content stays wherever it belongs. News and
+Links are both that shape, home's data through a web-tools page. Two
+consequences before building one: the page gets the main area minus the
+sidebar, so it has to survive at two thirds width; and the shell already
+supplies a header and the sidebar label, so a promoted page should stand its
+own masthead down when `window.self !== window.top` (`pages/links.html` does,
+`pages/news/news.html` does not yet). An app view cannot reach the shell's
+chrome at all, being in an iframe, so anything wanting persistent presence has
+to be built into the shell instead.
 
 **Checks: the boundary, and why the estate can afford them.** A check asks a
 question about *data* and never runs code; anything needing execution stays in a
@@ -362,9 +362,7 @@ Folder is the default because a folder is visible in ordinary browsing while a
 branch is invisible unless something points at it, and a consumer that forgets
 the ref reads the default branch and silently finds nothing. Writing into a
 branch also presumes the branch exists: the Contents API can PUT to an existing
-one, but creating a ref needs the Git Data API, which this lib does not carry.
-A repo that wants transient bulk kept off its main history says so by naming a
-ref, and pays the discoverability cost knowingly.
+one but cannot create a ref.
 
 **Inbox, on the send side.** The Stage view's send resolves an unaddressed
 deposit (a repo picked with no directory) against the *destination* repo's
@@ -419,8 +417,8 @@ went to another.
 in its repo menu, which opens the Files view at that folder. The pull itself is
 ordinary browsing or staging from there. For a **public** repo the outbox is
 also the one cross-repo handoff that needs no token at all: `raw.githubusercontent.com/owner/repo/<ref>/<path>`
-serves it to any reader, which is the gap the `#gz=` bundle form is contemplated
-for on the private side.
+serves it to any reader. On the private side, pasted text can ride a `#gz=`
+stage link with no token ([stage.md](stage.md#content-the-gz-param)).
 
 ## Proposals
 
@@ -460,13 +458,8 @@ let it grow, and it stays cheap because the lists share one panel, so hovering
 from one trigger to another swaps the rows in place where separate panels would
 close one under the pointer.
 
-**Repo**, off the Activity view's chip, is both of the above in two sections.
-The sidebar can afford to split its material across two buttons, because the
-row itself opens the repo and the list shows every sibling; an Activity row is
-about a **branch**, in a view with no sidebar on screen, so its chip is the
-reader's only route to the repo and carries the lot. Sections rather than a
-submenu: a submenu hides half the answer behind a second gesture, and seeing
-where you can go is the whole point of a jump-over list.
+**Repo**, off the Branches view's chip, is both of the above in two sections,
+since in a view with no sidebar the chip is the reader's only route to the repo.
 
 It is **the repo, twice**, then where it goes on GitHub, as one flat list:
 
