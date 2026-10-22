@@ -21,8 +21,8 @@ diagram, and each tab headed its own screen with its sentence.
 
 Every address that has controls or counts opens with them in one toolbar row.
 What the address is and reads (its description, the files and builders behind
-it, and notes on reading them) is in the About tab of the app drawer, which the
-launcher opens on. Below the `lg` breakpoint the two tab rows and the current
+it, and notes on reading them) is in the app drawer's About tab, the tab the
+drawer opens on. Below the `lg` breakpoint the two tab rows and the current
 group heading stay pinned while the pane scrolls; the controls and filter rows
 scroll away with the list.
 
