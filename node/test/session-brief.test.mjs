@@ -711,6 +711,15 @@ test('the checkouts panel lists every branch with work on it, under its reposito
     }, 'two pushed branches in one repository are two lines, and a bare checkout branch is none');
     assert.equal(d.scopePushed, 2, 'the header counts branches pushed');
     assert.match(d.scopeRows[0].branches[0].url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
+    // What the page read live, once loadWork has run: the PR, and the count
+    // of renderable views. A PR also counts as pushed for a record that
+    // predates `pushed`.
+    const work = d.work.branches;
+    d.work.branches = [{ repoShort: 'home', branch: 'claude/a-1', pr: 7, prState: 'open', prUrl: 'pr7',
+                         views: 2, ahead: 2, url: 'live-url' }];
+    const home = d.scopeRows[0].branches[0];
+    assert.deepEqual([home.pr, home.prState, home.views, home.word, home.url], [7, 'open', 2, 'pushed', 'live-url']);
+    d.work.branches = work;
     d.record = { ...d.rec, schema: 4, attached: undefined, pushed: undefined,
       repos: [{ name: 'web-tools', branch: 'claude/a-1' }] };
     assert.deepEqual(shape(), { 'web-tools': '' }, 'an old record makes no claim about commits');
