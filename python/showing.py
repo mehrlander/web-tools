@@ -785,7 +785,7 @@ def join_query(own, query=""):
 # percent-decodes its whole value once on the way, so its `%` are written as
 # `%25`: an intro or a look step's text naming "PR #1035" otherwise reaches the
 # frame with a bare `#` and splits there (2026-10-21, Snag list
-# look-intro-hash-cuts-the-walk).
+# look-intro-hash-cuts-the-walkthrough).
 #
 # Measured 2026-09-05, when this script emitted a branch-page toss with nothing
 # on it and the reader opened an empty form twice. Which pages need one is not
