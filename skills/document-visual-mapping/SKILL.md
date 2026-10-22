@@ -72,5 +72,5 @@ front of a user. Record when each row was last checked against the system.
 ## Worked example
 
 `mehrlander/home`, `projects/budget-drs/submittal/abs-guide.csv`: 37 rows over
-five tracks against two OFM PDFs, gated by `tools/build-submittal.py` and
+five tracks against two OFM PDFs, gated by `projects/budget-drs/submittal/tools/build-submittal.py` and
 rendered as the Budget DRS app's ABS tab.
